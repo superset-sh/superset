@@ -55,7 +55,7 @@ const TEXT_CONFIG = {
 	GLARE_INTERVAL: 5.0, // Interval between glare animations in seconds
 	GLARE_START_X: -3, // Starting X position for light sweep
 	GLARE_END_X: 3, // Ending X position for light sweep
-	GLARE_Y: 0.5, // Y position during sweep
+	GLARE_Y: 0.4, // Y position during sweep
 } as const;
 
 const GEOMETRY_CONFIG = {
@@ -129,9 +129,9 @@ const waveFragmentShader = `
 function calculateGlareProperties(
 	startTime: number | null,
 	currentTime: number,
-): { progress: number; lightX: number; lightY: number; intensity: number } {
+): { isActive: boolean; lightX: number; lightY: number; intensity: number } {
 	if (!startTime) {
-		return { progress: 0, lightX: 0, lightY: 0, intensity: 0 };
+		return { isActive: false, lightX: 0, lightY: 0, intensity: 0 };
 	}
 
 	const totalElapsed = (currentTime - startTime) / 1000; // Convert to seconds
@@ -143,7 +143,7 @@ function calculateGlareProperties(
 
 	// Check if we're in the active glare portion of the cycle
 	if (timeInCycle > duration) {
-		return { progress: 0, lightX: 0, lightY: 0, intensity: 0 };
+		return { isActive: false, lightX: 0, lightY: 0, intensity: 0 };
 	}
 
 	// Calculate progress (0 to 1) within the glare animation
@@ -164,17 +164,18 @@ function calculateGlareProperties(
 	const intensityMultiplier = 1 - Math.min(distanceFromCenter / maxDistance, 1);
 	const intensity = intensityMultiplier * TEXT_CONFIG.GLARE_LIGHT_INTENSITY;
 
-	return { progress, lightX, lightY, intensity };
+	return { isActive: true, lightX, lightY, intensity };
 }
 
 function LitBackground() {
 	const meshRef = useRef<Mesh>(null);
 	const lightRef = useRef<PointLight>(null);
+	const glareLightRef = useRef<PointLight>(null);
 	const textGroupRef = useRef<THREE.Group>(null);
 	const { viewport, camera } = useThree();
 	const isVisible = useHeroVisibility();
 	const [glareStartTime, setGlareStartTime] = useState<number | null>(null);
-	const glarePropertiesRef = useRef({ progress: 0, lightX: 0, lightY: 0, intensity: 0 });
+	const glarePropertiesRef = useRef({ isActive: false, lightX: 0, lightY: 0, intensity: 0 });
 
 	// Start glare animation cycle on mount
 	useEffect(() => {
@@ -212,25 +213,15 @@ function LitBackground() {
 		const glareProps = calculateGlareProperties(glareStartTime, Date.now());
 		glarePropertiesRef.current = glareProps;
 
-		// Determine light position and intensity
-		let x: number, y: number, intensity: number;
-
-		if (glareProps.progress > 0) {
-			// During glare animation, override light position
-			x = glareProps.lightX;
-			y = glareProps.lightY;
-			intensity = LIGHT_CONFIG.INTENSITY + glareProps.intensity;
-		} else {
-			// Normal behavior after glare completes
-			const hasMouseMoved = state.mouse.x !== 0 || state.mouse.y !== 0;
-			x = hasMouseMoved
-				? state.mouse.x * viewport.width
-				: viewport.width * LIGHT_CONFIG.DEFAULT_X_RATIO;
-			y = hasMouseMoved
-				? state.mouse.y * viewport.height
-				: viewport.height * LIGHT_CONFIG.DEFAULT_Y_RATIO;
-			intensity = LIGHT_CONFIG.INTENSITY;
-		}
+		// Mouse-controlled light position (always active)
+		const hasMouseMoved = state.mouse.x !== 0 || state.mouse.y !== 0;
+		const x = hasMouseMoved
+			? state.mouse.x * viewport.width
+			: viewport.width * LIGHT_CONFIG.DEFAULT_X_RATIO;
+		const y = hasMouseMoved
+			? state.mouse.y * viewport.height
+			: viewport.height * LIGHT_CONFIG.DEFAULT_Y_RATIO;
+		const intensity = LIGHT_CONFIG.INTENSITY;
 
 		// Change color based on position - cooler palette (blue to cyan to purple)
 		const hue =
@@ -243,7 +234,7 @@ function LitBackground() {
 		const lightness = LIGHT_CONFIG.LIGHTNESS;
 
 		if (lightRef.current) {
-			// Position light slightly in front of the plane
+			// Position mouse-controlled light slightly in front of the plane
 			lightRef.current.position.set(x, y, LIGHT_CONFIG.Z_POSITION);
 			lightRef.current.intensity = intensity;
 			lightRef.current.color.setHSL(
@@ -251,6 +242,21 @@ function LitBackground() {
 				saturation / 100,
 				lightness / 100,
 			);
+		}
+
+		// Update glare light (separate from mouse light)
+		if (glareLightRef.current) {
+			if (glareProps.isActive) {
+				glareLightRef.current.position.set(
+					glareProps.lightX,
+					glareProps.lightY,
+					LIGHT_CONFIG.Z_POSITION,
+				);
+				glareLightRef.current.intensity = glareProps.intensity;
+				glareLightRef.current.visible = true;
+			} else {
+				glareLightRef.current.visible = false;
+			}
 		}
 
 		// Make the text group face the camera
@@ -371,6 +377,16 @@ function LitBackground() {
 				color="#ffffff"
 				distance={50}
 				decay={1.2}
+			/>
+
+			{/* Separate glare light that sweeps across */}
+			<pointLight
+				ref={glareLightRef}
+				intensity={0}
+				color="#ffffff"
+				distance={50}
+				decay={1.2}
+				visible={false}
 			/>
 		</>
 	);
