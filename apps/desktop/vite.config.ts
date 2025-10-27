@@ -21,7 +21,9 @@ export default defineConfig(({ command }) => {
 			},
 		},
 		plugins: [
-			tailwindcss(),
+			tailwindcss({
+				base: path.join(__dirname, "../../"),
+			}),
 			react(),
 			electron({
 				main: {
