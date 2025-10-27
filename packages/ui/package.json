@@ -28,7 +28,7 @@
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.0-beta.7",
 		"@types/react": "^18.3.18",
-		"@types/react-dom": "^18.3.5",
+		"@types/react-dom": "^19.2.2",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1",
 		"tailwindcss": "^4.0.0-beta.7",
