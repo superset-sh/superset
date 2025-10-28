@@ -90,7 +90,7 @@ export function Sidebar({
 
 		try {
 			const result = (await window.ipcRenderer.invoke("worktree-create", {
-				currentWorkspaceId: currentWorkspace.id,
+				workspaceId: currentWorkspace.id,
 				branch: branchName.trim(),
 				createBranch: true,
 			})) as { success: boolean; error?: string };
