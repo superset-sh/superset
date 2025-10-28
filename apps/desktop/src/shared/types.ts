@@ -60,6 +60,9 @@ export interface Workspace {
 export interface WorkspaceConfig {
 	workspaces: Workspace[];
 	lastOpenedWorkspaceId: string | null;
+	activeWorktreeId: string | null;
+	activeTabGroupId: string | null;
+	activeTabId: string | null;
 }
 
 export interface CreateWorkspaceInput {

@@ -40,6 +40,13 @@ export function MainScreen() {
 		setSelectedWorktreeId(worktreeId);
 		setSelectedTabGroupId(tabGroupId);
 		setSelectedTabId(tabId);
+		// Save active selection
+		window.ipcRenderer.invoke(
+			"workspace-set-active-selection",
+			worktreeId,
+			tabGroupId,
+			tabId,
+		);
 	};
 
 	const handleTabGroupSelect = (worktreeId: string, tabGroupId: string) => {
@@ -47,6 +54,13 @@ export function MainScreen() {
 		setSelectedTabGroupId(tabGroupId);
 		// Clear individual tab selection when selecting a tab group
 		setSelectedTabId(null);
+		// Save active selection
+		window.ipcRenderer.invoke(
+			"workspace-set-active-selection",
+			worktreeId,
+			tabGroupId,
+			null,
+		);
 	};
 
 	const handleWorkspaceSelect = async (workspaceId: string) => {
@@ -144,6 +158,21 @@ export function MainScreen() {
 					setCurrentWorkspace(workspace);
 					// Scan for existing worktrees
 					await scanWorktrees(workspace.id);
+
+					// Restore active selection
+					const activeSelection = (await window.ipcRenderer.invoke(
+						"workspace-get-active-selection",
+					)) as {
+						worktreeId: string | null;
+						tabGroupId: string | null;
+						tabId: string | null;
+					};
+
+					if (activeSelection.worktreeId && activeSelection.tabGroupId) {
+						setSelectedWorktreeId(activeSelection.worktreeId);
+						setSelectedTabGroupId(activeSelection.tabGroupId);
+						setSelectedTabId(activeSelection.tabId);
+					}
 				}
 			} catch (err) {
 				setError(err instanceof Error ? err.message : String(err));

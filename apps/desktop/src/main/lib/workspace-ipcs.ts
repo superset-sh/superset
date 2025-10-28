@@ -8,6 +8,7 @@ import type {
 	UpdateWorkspaceInput,
 } from "shared/types";
 
+import configManager from "./config-manager";
 import workspaceManager from "./workspace-manager";
 
 export function registerWorkspaceIPCs() {
@@ -142,6 +143,24 @@ export function registerWorkspaceIPCs() {
 		"workspace-scan-worktrees",
 		async (_event, workspaceId: string) => {
 			return await workspaceManager.scanAndImportWorktrees(workspaceId);
+		},
+	);
+
+	// Get active selection
+	ipcMain.handle("workspace-get-active-selection", async () => {
+		return configManager.getActiveSelection();
+	});
+
+	// Set active selection
+	ipcMain.handle(
+		"workspace-set-active-selection",
+		async (
+			_event,
+			worktreeId: string | null,
+			tabGroupId: string | null,
+			tabId: string | null,
+		) => {
+			return configManager.setActiveSelection(worktreeId, tabGroupId, tabId);
 		},
 	);
 }

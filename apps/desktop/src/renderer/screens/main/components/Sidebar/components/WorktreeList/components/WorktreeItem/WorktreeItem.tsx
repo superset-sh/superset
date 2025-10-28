@@ -1,5 +1,5 @@
 import { ChevronRight, FolderOpen, GitBranch } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Worktree } from "shared/types";
 import { Button } from "@superset/ui/button";
 import { TabItem } from "./components/TabItem";
@@ -27,6 +27,23 @@ export function WorktreeItem({
 	const [expandedTabGroups, setExpandedTabGroups] = useState<Set<string>>(
 		new Set(),
 	);
+
+	// Auto-expand tab group if it's selected or contains the selected tab
+	useEffect(() => {
+		if (selectedTabGroupId) {
+			// Check if this tab group is selected or contains the selected tab
+			const tabGroup = worktree.tabGroups.find(
+				(tg) => tg.id === selectedTabGroupId,
+			);
+			if (tabGroup) {
+				setExpandedTabGroups((prev) => {
+					const next = new Set(prev);
+					next.add(selectedTabGroupId);
+					return next;
+				});
+			}
+		}
+	}, [selectedTabGroupId, selectedTabId, worktree.tabGroups]);
 
 	const toggleTabGroup = (tabGroupId: string) => {
 		setExpandedTabGroups((prev) => {
@@ -74,7 +91,7 @@ export function WorktreeItem({
 									toggleTabGroup(tabGroup.id);
 								}}
 								className={`w-full h-8 px-3 font-normal ${
-									selectedTabGroupId === tabGroup.id
+									selectedTabGroupId === tabGroup.id && !selectedTabId
 										? "bg-neutral-800 border border-neutral-700"
 										: ""
 								}`}

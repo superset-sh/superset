@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Workspace } from "shared/types";
 import {
 	SidebarHeader,
@@ -38,6 +38,25 @@ export function Sidebar({
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
 	const [branchName, setBranchName] = useState("");
+
+	// Auto-expand worktree if it contains the selected tab group
+	useEffect(() => {
+		if (currentWorkspace && selectedTabGroupId) {
+			// Find which worktree contains the selected tab group
+			const worktreeWithSelectedTabGroup = currentWorkspace.worktrees?.find(
+				(worktree) =>
+					worktree.tabGroups?.some((tg) => tg.id === selectedTabGroupId),
+			);
+
+			if (worktreeWithSelectedTabGroup) {
+				setExpandedWorktrees((prev) => {
+					const next = new Set(prev);
+					next.add(worktreeWithSelectedTabGroup.id);
+					return next;
+				});
+			}
+		}
+	}, [currentWorkspace, selectedTabGroupId]);
 
 	const toggleWorktree = (worktreeId: string) => {
 		setExpandedWorktrees((prev) => {

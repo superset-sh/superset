@@ -33,6 +33,9 @@ class ConfigManager {
 			const defaultConfig: WorkspaceConfig = {
 				workspaces: [],
 				lastOpenedWorkspaceId: null,
+				activeWorktreeId: null,
+				activeTabGroupId: null,
+				activeTabId: null,
 			};
 			writeFileSync(
 				this.configPath,
@@ -46,15 +49,30 @@ class ConfigManager {
 		try {
 			const content = readFileSync(this.configPath, "utf-8");
 			const config = JSON.parse(content) as WorkspaceConfig;
-			// Ensure lastOpenedWorkspaceId exists for backwards compatibility
+			// Ensure fields exist for backwards compatibility
 			if (config.lastOpenedWorkspaceId === undefined) {
 				config.lastOpenedWorkspaceId = null;
+			}
+			if (config.activeWorktreeId === undefined) {
+				config.activeWorktreeId = null;
+			}
+			if (config.activeTabGroupId === undefined) {
+				config.activeTabGroupId = null;
+			}
+			if (config.activeTabId === undefined) {
+				config.activeTabId = null;
 			}
 			return config;
 		} catch (error) {
 			console.error("Failed to read config:", error);
 			// Return default config if read fails
-			return { workspaces: [], lastOpenedWorkspaceId: null };
+			return {
+				workspaces: [],
+				lastOpenedWorkspaceId: null,
+				activeWorktreeId: null,
+				activeTabGroupId: null,
+				activeTabId: null,
+			};
 		}
 	}
 
@@ -80,6 +98,31 @@ class ConfigManager {
 	setLastOpenedWorkspaceId(id: string | null): boolean {
 		const config = this.read();
 		config.lastOpenedWorkspaceId = id;
+		return this.write(config);
+	}
+
+	getActiveSelection(): {
+		worktreeId: string | null;
+		tabGroupId: string | null;
+		tabId: string | null;
+	} {
+		const config = this.read();
+		return {
+			worktreeId: config.activeWorktreeId,
+			tabGroupId: config.activeTabGroupId,
+			tabId: config.activeTabId,
+		};
+	}
+
+	setActiveSelection(
+		worktreeId: string | null,
+		tabGroupId: string | null,
+		tabId: string | null,
+	): boolean {
+		const config = this.read();
+		config.activeWorktreeId = worktreeId;
+		config.activeTabGroupId = tabGroupId;
+		config.activeTabId = tabId;
 		return this.write(config);
 	}
 }
