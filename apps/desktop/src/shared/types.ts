@@ -34,10 +34,17 @@ export interface GridLayout {
 	terminals: GridTerminal[];
 }
 
-export interface Screen {
+export interface Tab {
 	id: string;
 	name: string;
 	layout: GridLayout;
+	createdAt: string;
+}
+
+export interface TabGroup {
+	id: string;
+	name: string;
+	tabs: Tab[];
 	createdAt: string;
 }
 
@@ -45,7 +52,7 @@ export interface Worktree {
 	id: string;
 	branch: string;
 	path: string;
-	screens: Screen[];
+	tabGroups: TabGroup[];
 	createdAt: string;
 }
 
@@ -76,9 +83,16 @@ export interface CreateWorktreeInput {
 	createBranch?: boolean;
 }
 
-export interface CreateScreenInput {
+export interface CreateTabGroupInput {
 	workspaceId: string;
 	worktreeId: string;
+	name: string;
+}
+
+export interface CreateTabInput {
+	workspaceId: string;
+	worktreeId: string;
+	tabGroupId: string;
 	name: string;
 	layout: GridLayout;
 }

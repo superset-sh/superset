@@ -1,7 +1,8 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
 
 import type {
-	CreateScreenInput,
+	CreateTabGroupInput,
+	CreateTabInput,
 	CreateWorkspaceInput,
 	CreateWorktreeInput,
 	UpdateWorkspaceInput,
@@ -123,9 +124,17 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
-	// Create screen
-	ipcMain.handle("screen-create", async (_event, input: CreateScreenInput) => {
-		return await workspaceManager.createScreen(input);
+	// Create tab group
+	ipcMain.handle(
+		"tab-group-create",
+		async (_event, input: CreateTabGroupInput) => {
+			return await workspaceManager.createTabGroup(input);
+		},
+	);
+
+	// Create tab
+	ipcMain.handle("tab-create", async (_event, input: CreateTabInput) => {
+		return await workspaceManager.createTab(input);
 	});
 
 	// Scan and import existing worktrees

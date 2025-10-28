@@ -1,11 +1,13 @@
 import { randomUUID } from "node:crypto";
 
 import type {
-	CreateScreenInput,
+	CreateTabGroupInput,
+	CreateTabInput,
 	CreateWorkspaceInput,
 	CreateWorktreeInput,
 	GridLayout,
-	Screen,
+	Tab,
+	TabGroup,
 	UpdateWorkspaceInput,
 	Workspace,
 	Worktree,
@@ -112,7 +114,7 @@ class WorkspaceManager {
 	}
 
 	/**
-	 * Create a new worktree with a default screen
+	 * Create a new worktree with a default tab group and tab
 	 */
 	async createWorktree(
 		input: CreateWorktreeInput,
@@ -137,12 +139,20 @@ class WorkspaceManager {
 				};
 			}
 
-			// Create default screen
+			// Create default tab with 2x2 layout
 			const now = new Date().toISOString();
-			const defaultScreen: Screen = {
+			const defaultTab: Tab = {
 				id: randomUUID(),
 				name: "default",
 				layout: createDefaultLayout(),
+				createdAt: now,
+			};
+
+			// Create default tab group with the default tab
+			const defaultTabGroup: TabGroup = {
+				id: randomUUID(),
+				name: "Default",
+				tabs: [defaultTab],
 				createdAt: now,
 			};
 
@@ -151,7 +161,7 @@ class WorkspaceManager {
 				id: randomUUID(),
 				branch: input.branch,
 				path: worktreeResult.path!,
-				screens: [defaultScreen],
+				tabGroups: [defaultTabGroup],
 				createdAt: now,
 			};
 
@@ -178,11 +188,11 @@ class WorkspaceManager {
 	}
 
 	/**
-	 * Create a new screen in a worktree
+	 * Create a new tab group in a worktree
 	 */
-	async createScreen(
-		input: CreateScreenInput,
-	): Promise<{ success: boolean; screen?: Screen; error?: string }> {
+	async createTabGroup(
+		input: CreateTabGroupInput,
+	): Promise<{ success: boolean; tabGroup?: TabGroup; error?: string }> {
 		try {
 			const workspace = await this.get(input.workspaceId);
 			if (!workspace) {
@@ -196,14 +206,14 @@ class WorkspaceManager {
 				return { success: false, error: "Worktree not found" };
 			}
 
-			const screen: Screen = {
+			const tabGroup: TabGroup = {
 				id: randomUUID(),
 				name: input.name,
-				layout: input.layout,
+				tabs: [],
 				createdAt: new Date().toISOString(),
 			};
 
-			worktree.screens.push(screen);
+			worktree.tabGroups.push(tabGroup);
 			workspace.updatedAt = new Date().toISOString();
 
 			// Save
@@ -214,9 +224,63 @@ class WorkspaceManager {
 				configManager.write(config);
 			}
 
-			return { success: true, screen };
+			return { success: true, tabGroup };
 		} catch (error) {
-			console.error("Failed to create screen:", error);
+			console.error("Failed to create tab group:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
+	 * Create a new tab in a tab group
+	 */
+	async createTab(
+		input: CreateTabInput,
+	): Promise<{ success: boolean; tab?: Tab; error?: string }> {
+		try {
+			const workspace = await this.get(input.workspaceId);
+			if (!workspace) {
+				return { success: false, error: "Workspace not found" };
+			}
+
+			const worktree = workspace.worktrees.find(
+				(wt) => wt.id === input.worktreeId,
+			);
+			if (!worktree) {
+				return { success: false, error: "Worktree not found" };
+			}
+
+			const tabGroup = worktree.tabGroups.find(
+				(tg) => tg.id === input.tabGroupId,
+			);
+			if (!tabGroup) {
+				return { success: false, error: "Tab group not found" };
+			}
+
+			const tab: Tab = {
+				id: randomUUID(),
+				name: input.name,
+				layout: input.layout,
+				createdAt: new Date().toISOString(),
+			};
+
+			tabGroup.tabs.push(tab);
+			workspace.updatedAt = new Date().toISOString();
+
+			// Save
+			const config = configManager.read();
+			const index = config.workspaces.findIndex((ws) => ws.id === workspace.id);
+			if (index !== -1) {
+				config.workspaces[index] = workspace;
+				configManager.write(config);
+			}
+
+			return { success: true, tab };
+		} catch (error) {
+			console.error("Failed to create tab:", error);
 			return {
 				success: false,
 				error: error instanceof Error ? error.message : String(error),
@@ -327,13 +391,14 @@ class WorkspaceManager {
 	}
 
 	/**
-	 * Get a screen by ID
+	 * Get a tab by ID
 	 */
-	getScreen(
+	getTab(
 		workspaceId: string,
 		worktreeId: string,
-		screenId: string,
-	): Screen | null {
+		tabGroupId: string,
+		tabId: string,
+	): Tab | null {
 		const config = configManager.read();
 		const workspace = config.workspaces.find((ws) => ws.id === workspaceId);
 		if (!workspace) return null;
@@ -341,16 +406,20 @@ class WorkspaceManager {
 		const worktree = workspace.worktrees.find((wt) => wt.id === worktreeId);
 		if (!worktree) return null;
 
-		return worktree.screens.find((s) => s.id === screenId) || null;
+		const tabGroup = worktree.tabGroups.find((tg) => tg.id === tabGroupId);
+		if (!tabGroup) return null;
+
+		return tabGroup.tabs.find((t) => t.id === tabId) || null;
 	}
 
 	/**
-	 * Update terminal CWD in a screen
+	 * Update terminal CWD in a tab
 	 */
 	updateTerminalCwd(
 		workspaceId: string,
 		worktreeId: string,
-		screenId: string,
+		tabGroupId: string,
+		tabId: string,
 		terminalId: string,
 		cwd: string,
 	): boolean {
@@ -362,10 +431,13 @@ class WorkspaceManager {
 			const worktree = workspace.worktrees.find((wt) => wt.id === worktreeId);
 			if (!worktree) return false;
 
-			const screen = worktree.screens.find((s) => s.id === screenId);
-			if (!screen) return false;
+			const tabGroup = worktree.tabGroups.find((tg) => tg.id === tabGroupId);
+			if (!tabGroup) return false;
 
-			const terminal = screen.layout.terminals.find((t) => t.id === terminalId);
+			const tab = tabGroup.tabs.find((t) => t.id === tabId);
+			if (!tab) return false;
+
+			const terminal = tab.layout.terminals.find((t) => t.id === terminalId);
 			if (!terminal) return false;
 
 			// Update CWD
@@ -415,11 +487,19 @@ class WorkspaceManager {
 				);
 
 				if (!existingWorktree) {
-					// Create default screen with stub terminal
-					const defaultScreen: Screen = {
+					// Create default tab with 2x2 layout
+					const defaultTab: Tab = {
 						id: randomUUID(),
 						name: "default",
 						layout: createDefaultLayout(),
+						createdAt: now,
+					};
+
+					// Create default tab group with the default tab
+					const defaultTabGroup: TabGroup = {
+						id: randomUUID(),
+						name: "Default",
+						tabs: [defaultTab],
 						createdAt: now,
 					};
 
@@ -428,7 +508,7 @@ class WorkspaceManager {
 						id: randomUUID(),
 						branch: gitWorktree.branch,
 						path: gitWorktree.path,
-						screens: [defaultScreen],
+						tabGroups: [defaultTabGroup],
 						createdAt: now,
 					};
 

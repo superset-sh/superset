@@ -7,7 +7,8 @@ interface TerminalLayoutProps {
 	workingDirectory: string;
 	workspaceId?: string;
 	worktreeId?: string;
-	screenId?: string;
+	tabGroupId?: string;
+	tabId?: string;
 }
 
 interface TerminalInstanceProps {
@@ -15,7 +16,8 @@ interface TerminalInstanceProps {
 	workingDirectory: string;
 	workspaceId?: string;
 	worktreeId?: string;
-	screenId?: string;
+	tabGroupId?: string;
+	tabId?: string;
 }
 
 function TerminalInstance({
@@ -23,7 +25,8 @@ function TerminalInstance({
 	workingDirectory,
 	workspaceId,
 	worktreeId,
-	screenId,
+	tabGroupId,
+	tabId,
 }: TerminalInstanceProps) {
 	const [terminalId, setTerminalId] = useState<string | null>(null);
 	const terminalCreatedRef = useRef(false);
@@ -82,7 +85,8 @@ function TerminalInstance({
 
 	// Listen for CWD changes from the main process
 	useEffect(() => {
-		if (!terminalId || !workspaceId || !worktreeId || !screenId) return;
+		if (!terminalId || !workspaceId || !worktreeId || !tabGroupId || !tabId)
+			return;
 
 		const handleCwdChange = async (data: { id: string; cwd: string }) => {
 			// Only handle changes for this terminal
@@ -93,7 +97,8 @@ function TerminalInstance({
 				await window.ipcRenderer.invoke("workspace-update-terminal-cwd", {
 					workspaceId,
 					worktreeId,
-					screenId,
+					tabGroupId,
+					tabId,
 					terminalId: terminal.id,
 					cwd: data.cwd,
 				});
@@ -107,7 +112,7 @@ function TerminalInstance({
 		return () => {
 			window.ipcRenderer.off("terminal-cwd-changed", handleCwdChange);
 		};
-	}, [terminalId, terminal.id, workspaceId, worktreeId, screenId]);
+	}, [terminalId, terminal.id, workspaceId, worktreeId, tabGroupId, tabId]);
 
 	return (
 		<div className="w-full h-full">
@@ -121,7 +126,8 @@ export default function TerminalLayout({
 	workingDirectory,
 	workspaceId,
 	worktreeId,
-	screenId,
+	tabGroupId,
+	tabId,
 }: TerminalLayoutProps) {
 	// Safety check: ensure layout has the expected structure
 	if (!layout || !layout.terminals || !Array.isArray(layout.terminals)) {
@@ -130,7 +136,7 @@ export default function TerminalLayout({
 				<div className="text-center">
 					<p>Invalid layout structure</p>
 					<p className="text-sm text-gray-500 mt-2">
-						Please rescan worktrees or create a new screen
+						Please rescan worktrees or create a new tab
 					</p>
 				</div>
 			</div>
@@ -160,7 +166,8 @@ export default function TerminalLayout({
 						workingDirectory={workingDirectory}
 						workspaceId={workspaceId}
 						worktreeId={worktreeId}
-						screenId={screenId}
+						tabGroupId={tabGroupId}
+						tabId={tabId}
 					/>
 				</div>
 			))}

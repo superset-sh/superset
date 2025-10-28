@@ -5,16 +5,16 @@ interface WorktreeListProps {
 	currentWorkspace: Workspace | null;
 	expandedWorktrees: Set<string>;
 	onToggleWorktree: (worktreeId: string) => void;
-	onScreenSelect: (worktreeId: string, screenId: string) => void;
-	selectedScreenId?: string;
+	onTabSelect: (worktreeId: string, tabGroupId: string, tabId: string) => void;
+	selectedTabId?: string;
 }
 
 export function WorktreeList({
 	currentWorkspace,
 	expandedWorktrees,
 	onToggleWorktree,
-	onScreenSelect,
-	selectedScreenId,
+	onTabSelect,
+	selectedTabId,
 }: WorktreeListProps) {
 	if (!currentWorkspace) {
 		return (
@@ -40,8 +40,8 @@ export function WorktreeList({
 					worktree={worktree}
 					isExpanded={expandedWorktrees.has(worktree.id)}
 					onToggle={onToggleWorktree}
-					onScreenSelect={onScreenSelect}
-					selectedScreenId={selectedScreenId}
+					onTabSelect={onTabSelect}
+					selectedTabId={selectedTabId}
 				/>
 			))}
 		</>

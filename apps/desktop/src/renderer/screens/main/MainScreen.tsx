@@ -16,22 +16,31 @@ export function MainScreen() {
 	const [selectedWorktreeId, setSelectedWorktreeId] = useState<string | null>(
 		null,
 	);
-	const [selectedScreenId, setSelectedScreenId] = useState<string | null>(null);
+	const [selectedTabGroupId, setSelectedTabGroupId] = useState<string | null>(
+		null,
+	);
+	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Get selected screen details
-	const selectedScreen = currentWorkspace?.worktrees
+	// Get selected tab details
+	const selectedTab = currentWorkspace?.worktrees
 		?.find((wt) => wt.id === selectedWorktreeId)
-		?.screens.find((s) => s.id === selectedScreenId);
+		?.tabGroups.find((tg) => tg.id === selectedTabGroupId)
+		?.tabs.find((t) => t.id === selectedTabId);
 
 	const selectedWorktree = currentWorkspace?.worktrees?.find(
 		(wt) => wt.id === selectedWorktreeId,
 	);
 
-	const handleScreenSelect = (worktreeId: string, screenId: string) => {
+	const handleTabSelect = (
+		worktreeId: string,
+		tabGroupId: string,
+		tabId: string,
+	) => {
 		setSelectedWorktreeId(worktreeId);
-		setSelectedScreenId(screenId);
+		setSelectedTabGroupId(tabGroupId);
+		setSelectedTabId(tabId);
 	};
 
 	const handleWorkspaceSelect = async (workspaceId: string) => {
@@ -43,9 +52,10 @@ export function MainScreen() {
 
 			if (workspace) {
 				setCurrentWorkspace(workspace);
-				// Reset screen selection when switching workspaces
+				// Reset tab selection when switching workspaces
 				setSelectedWorktreeId(null);
-				setSelectedScreenId(null);
+				setSelectedTabGroupId(null);
+				setSelectedTabId(null);
 			}
 		} catch (error) {
 			console.error("Failed to load workspace:", error);
@@ -169,10 +179,10 @@ export function MainScreen() {
 					<Sidebar
 						workspaces={workspaces}
 						currentWorkspace={currentWorkspace}
-						onScreenSelect={handleScreenSelect}
+						onTabSelect={handleTabSelect}
 						onWorktreeCreated={handleWorktreeCreated}
 						onWorkspaceSelect={handleWorkspaceSelect}
-						selectedScreenId={selectedScreenId ?? undefined}
+						selectedTabId={selectedTabId ?? undefined}
 						onCollapse={() => setIsSidebarOpen(false)}
 					/>
 				)}
@@ -212,11 +222,9 @@ export function MainScreen() {
 							</div>
 						)}
 
-						{!loading && !error && currentWorkspace && !selectedScreen && (
+						{!loading && !error && currentWorkspace && !selectedTab && (
 							<div className="flex flex-col items-center justify-center h-full text-neutral-400 bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
-								<p className="mb-4">
-									Select a worktree and screen to view terminals
-								</p>
+								<p className="mb-4">Select a worktree and tab to view terminals</p>
 								<p className="text-sm text-neutral-500">
 									Create a worktree from the sidebar to get started
 								</p>
@@ -225,17 +233,18 @@ export function MainScreen() {
 
 						{!loading &&
 							!error &&
-							selectedScreen &&
+							selectedTab &&
 							selectedWorktree &&
 							currentWorkspace && (
 								<TerminalLayout
-									layout={selectedScreen.layout}
+									layout={selectedTab.layout}
 									workingDirectory={
 										selectedWorktree.path || currentWorkspace.repoPath
 									}
 									workspaceId={currentWorkspace.id}
 									worktreeId={selectedWorktreeId ?? undefined}
-									screenId={selectedScreenId ?? undefined}
+									tabGroupId={selectedTabGroupId ?? undefined}
+									tabId={selectedTabId ?? undefined}
 								/>
 							)}
 					</div>
