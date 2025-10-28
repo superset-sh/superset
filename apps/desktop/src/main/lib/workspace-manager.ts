@@ -508,13 +508,23 @@ class WorkspaceManager {
 			const now = new Date().toISOString();
 
 			for (const gitWorktree of allWorktrees) {
+				// Get the actual current branch for this worktree path
+				const currentBranch =
+					worktreeManager.getCurrentBranch(gitWorktree.path) ||
+					gitWorktree.branch;
+
 				// Check if this worktree is already in our workspace
 				const existingWorktree = workspace.worktrees.find(
-					(wt) =>
-						wt.path === gitWorktree.path || wt.branch === gitWorktree.branch,
+					(wt) => wt.path === gitWorktree.path,
 				);
 
-				if (!existingWorktree) {
+				if (existingWorktree) {
+					// Update the branch if it has changed
+					if (existingWorktree.branch !== currentBranch) {
+						existingWorktree.branch = currentBranch;
+						importedCount++;
+					}
+				} else {
 					// Create default tabs for 2x2 layout
 					const defaultTabs = createDefaultTabs();
 
@@ -531,7 +541,7 @@ class WorkspaceManager {
 					// Create worktree object
 					const worktree: Worktree = {
 						id: randomUUID(),
-						branch: gitWorktree.branch,
+						branch: currentBranch,
 						path: gitWorktree.path,
 						tabGroups: [defaultTabGroup],
 						createdAt: now,
