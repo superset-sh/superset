@@ -9,7 +9,9 @@ interface WorktreeItemProps {
 	isExpanded: boolean;
 	onToggle: (worktreeId: string) => void;
 	onTabSelect: (worktreeId: string, tabGroupId: string, tabId: string) => void;
+	onTabGroupSelect: (worktreeId: string, tabGroupId: string) => void;
 	selectedTabId?: string;
+	selectedTabGroupId?: string;
 }
 
 export function WorktreeItem({
@@ -17,7 +19,9 @@ export function WorktreeItem({
 	isExpanded,
 	onToggle,
 	onTabSelect,
+	onTabGroupSelect,
 	selectedTabId,
+	selectedTabGroupId,
 }: WorktreeItemProps) {
 	// Track which tab groups are expanded
 	const [expandedTabGroups, setExpandedTabGroups] = useState<Set<string>>(
@@ -63,8 +67,17 @@ export function WorktreeItem({
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() => toggleTabGroup(tabGroup.id)}
-								className="w-full h-8 px-3 font-normal"
+								onClick={() => {
+									// Select the tab group (make it active)
+									onTabGroupSelect(worktree.id, tabGroup.id);
+									// Also toggle expansion
+									toggleTabGroup(tabGroup.id);
+								}}
+								className={`w-full h-8 px-3 font-normal ${
+									selectedTabGroupId === tabGroup.id
+										? "bg-neutral-800 border border-neutral-700"
+										: ""
+								}`}
 								style={{ justifyContent: "flex-start" }}
 							>
 								<ChevronRight

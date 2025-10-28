@@ -13,9 +13,11 @@ interface SidebarProps {
 	currentWorkspace: Workspace | null;
 	onCollapse: () => void;
 	onTabSelect: (worktreeId: string, tabGroupId: string, tabId: string) => void;
+	onTabGroupSelect: (worktreeId: string, tabGroupId: string) => void;
 	onWorktreeCreated?: () => void;
 	onWorkspaceSelect: (workspaceId: string) => void;
 	selectedTabId?: string;
+	selectedTabGroupId?: string;
 }
 
 export function Sidebar({
@@ -23,9 +25,11 @@ export function Sidebar({
 	currentWorkspace,
 	onCollapse,
 	onTabSelect,
+	onTabGroupSelect,
 	onWorktreeCreated,
 	onWorkspaceSelect,
 	selectedTabId,
+	selectedTabGroupId,
 }: SidebarProps) {
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
@@ -175,7 +179,9 @@ export function Sidebar({
 					expandedWorktrees={expandedWorktrees}
 					onToggleWorktree={toggleWorktree}
 					onTabSelect={onTabSelect}
+					onTabGroupSelect={onTabGroupSelect}
 					selectedTabId={selectedTabId}
+					selectedTabGroupId={selectedTabGroupId}
 				/>
 
 				{currentWorkspace && (

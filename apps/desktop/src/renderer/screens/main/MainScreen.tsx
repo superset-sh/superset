@@ -42,6 +42,13 @@ export function MainScreen() {
 		setSelectedTabId(tabId);
 	};
 
+	const handleTabGroupSelect = (worktreeId: string, tabGroupId: string) => {
+		setSelectedWorktreeId(worktreeId);
+		setSelectedTabGroupId(tabGroupId);
+		// Clear individual tab selection when selecting a tab group
+		setSelectedTabId(null);
+	};
+
 	const handleWorkspaceSelect = async (workspaceId: string) => {
 		try {
 			const workspace = (await window.ipcRenderer.invoke(
@@ -179,9 +186,11 @@ export function MainScreen() {
 						workspaces={workspaces}
 						currentWorkspace={currentWorkspace}
 						onTabSelect={handleTabSelect}
+						onTabGroupSelect={handleTabGroupSelect}
 						onWorktreeCreated={handleWorktreeCreated}
 						onWorkspaceSelect={handleWorkspaceSelect}
 						selectedTabId={selectedTabId ?? undefined}
+						selectedTabGroupId={selectedTabGroupId ?? undefined}
 						onCollapse={() => setIsSidebarOpen(false)}
 					/>
 				)}
