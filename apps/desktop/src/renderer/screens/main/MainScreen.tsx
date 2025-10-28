@@ -23,11 +23,10 @@ export function MainScreen() {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Get selected tab details
-	const selectedTab = currentWorkspace?.worktrees
+	// Get selected tab group details (contains all tabs in the grid)
+	const selectedTabGroup = currentWorkspace?.worktrees
 		?.find((wt) => wt.id === selectedWorktreeId)
-		?.tabGroups.find((tg) => tg.id === selectedTabGroupId)
-		?.tabs.find((t) => t.id === selectedTabId);
+		?.tabGroups.find((tg) => tg.id === selectedTabGroupId);
 
 	const selectedWorktree = currentWorkspace?.worktrees?.find(
 		(wt) => wt.id === selectedWorktreeId,
@@ -222,7 +221,7 @@ export function MainScreen() {
 							</div>
 						)}
 
-						{!loading && !error && currentWorkspace && !selectedTab && (
+						{!loading && !error && currentWorkspace && !selectedTabGroup && (
 							<div className="flex flex-col items-center justify-center h-full text-neutral-400 bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
 								<p className="mb-4">Select a worktree and tab to view terminals</p>
 								<p className="text-sm text-neutral-500">
@@ -233,18 +232,16 @@ export function MainScreen() {
 
 						{!loading &&
 							!error &&
-							selectedTab &&
+							selectedTabGroup &&
 							selectedWorktree &&
 							currentWorkspace && (
 								<TerminalLayout
-									layout={selectedTab.layout}
+									tabGroup={selectedTabGroup}
 									workingDirectory={
 										selectedWorktree.path || currentWorkspace.repoPath
 									}
 									workspaceId={currentWorkspace.id}
 									worktreeId={selectedWorktreeId ?? undefined}
-									tabGroupId={selectedTabGroupId ?? undefined}
-									tabId={selectedTabId ?? undefined}
 								/>
 							)}
 					</div>

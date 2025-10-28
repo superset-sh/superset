@@ -17,27 +17,16 @@ export interface WindowCreationByIPC {
 	callback(window: BrowserWindow, event: IpcMainInvokeEvent): void;
 }
 
-// Workspace types - Simple Grid Layout
-export interface GridTerminal {
+// Workspace types - Tab-based Grid Layout
+export interface Tab {
 	id: string;
+	name: string;
 	command?: string | null;
 	cwd?: string; // Current working directory
 	row: number;
 	col: number;
 	rowSpan?: number;
 	colSpan?: number;
-}
-
-export interface GridLayout {
-	rows: number;
-	cols: number;
-	terminals: GridTerminal[];
-}
-
-export interface Tab {
-	id: string;
-	name: string;
-	layout: GridLayout;
 	createdAt: string;
 }
 
@@ -45,6 +34,8 @@ export interface TabGroup {
 	id: string;
 	name: string;
 	tabs: Tab[];
+	rows: number;
+	cols: number;
 	createdAt: string;
 }
 
@@ -94,7 +85,11 @@ export interface CreateTabInput {
 	worktreeId: string;
 	tabGroupId: string;
 	name: string;
-	layout: GridLayout;
+	command?: string | null;
+	row: number;
+	col: number;
+	rowSpan?: number;
+	colSpan?: number;
 }
 
 export interface UpdateWorkspaceInput {

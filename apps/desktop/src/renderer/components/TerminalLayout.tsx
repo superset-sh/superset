@@ -1,38 +1,34 @@
 import { useEffect, useRef, useState } from "react";
-import type { GridLayout, GridTerminal } from "shared/types";
+import type { Tab, TabGroup } from "shared/types";
 import Terminal from "./Terminal";
 
 interface TerminalLayoutProps {
-	layout: GridLayout;
+	tabGroup: TabGroup;
 	workingDirectory: string;
 	workspaceId?: string;
 	worktreeId?: string;
-	tabGroupId?: string;
-	tabId?: string;
 }
 
 interface TerminalInstanceProps {
-	terminal: GridTerminal;
+	tab: Tab;
 	workingDirectory: string;
 	workspaceId?: string;
 	worktreeId?: string;
-	tabGroupId?: string;
-	tabId?: string;
+	tabGroupId: string;
 }
 
 function TerminalInstance({
-	terminal,
+	tab,
 	workingDirectory,
 	workspaceId,
 	worktreeId,
 	tabGroupId,
-	tabId,
 }: TerminalInstanceProps) {
 	const [terminalId, setTerminalId] = useState<string | null>(null);
 	const terminalCreatedRef = useRef(false);
 
 	useEffect(() => {
-		// Prevent double creation - only create once per terminal.id
+		// Prevent double creation - only create once per tab.id
 		if (terminalCreatedRef.current) {
 			return;
 		}
@@ -42,12 +38,12 @@ function TerminalInstance({
 			try {
 				// Use saved CWD if available, otherwise use workingDirectory
 				// Ensure we always have a valid directory
-				const initialCwd = terminal.cwd || workingDirectory;
+				const initialCwd = tab.cwd || workingDirectory;
 
 				if (!initialCwd) {
 					console.error(
-						"[TerminalLayout] No CWD available for terminal",
-						terminal.id,
+						"[TerminalLayout] No CWD available for tab",
+						tab.id,
 					);
 					return;
 				}
@@ -60,11 +56,11 @@ function TerminalInstance({
 				setTerminalId(id);
 
 				// Execute startup command if specified
-				if (terminal.command && id) {
+				if (tab.command && id) {
 					setTimeout(() => {
 						window.ipcRenderer.invoke("terminal-execute-command", {
 							id,
-							command: terminal.command,
+							command: tab.command,
 						});
 					}, 500); // Small delay to ensure terminal is ready
 				}
@@ -81,25 +77,23 @@ function TerminalInstance({
 				window.ipcRenderer.invoke("terminal-kill", terminalId);
 			}
 		};
-	}, [workingDirectory, terminal.command, terminal.cwd, terminal.id]);
+	}, [workingDirectory, tab.command, tab.cwd, tab.id]);
 
 	// Listen for CWD changes from the main process
 	useEffect(() => {
-		if (!terminalId || !workspaceId || !worktreeId || !tabGroupId || !tabId)
-			return;
+		if (!terminalId || !workspaceId || !worktreeId || !tabGroupId) return;
 
 		const handleCwdChange = async (data: { id: string; cwd: string }) => {
 			// Only handle changes for this terminal
 			if (data.id !== terminalId) return;
 
-			// Save the new CWD to the workspace config
+			// Save the new CWD to the workspace config (tab IS the terminal)
 			try {
 				await window.ipcRenderer.invoke("workspace-update-terminal-cwd", {
 					workspaceId,
 					worktreeId,
 					tabGroupId,
-					tabId,
-					terminalId: terminal.id,
+					tabId: tab.id,
 					cwd: data.cwd,
 				});
 			} catch (error) {
@@ -112,7 +106,7 @@ function TerminalInstance({
 		return () => {
 			window.ipcRenderer.off("terminal-cwd-changed", handleCwdChange);
 		};
-	}, [terminalId, terminal.id, workspaceId, worktreeId, tabGroupId, tabId]);
+	}, [terminalId, tab.id, workspaceId, worktreeId, tabGroupId]);
 
 	return (
 		<div className="w-full h-full">
@@ -122,21 +116,19 @@ function TerminalInstance({
 }
 
 export default function TerminalLayout({
-	layout,
+	tabGroup,
 	workingDirectory,
 	workspaceId,
 	worktreeId,
-	tabGroupId,
-	tabId,
 }: TerminalLayoutProps) {
-	// Safety check: ensure layout has the expected structure
-	if (!layout || !layout.terminals || !Array.isArray(layout.terminals)) {
+	// Safety check: ensure tabGroup has tabs
+	if (!tabGroup || !tabGroup.tabs || !Array.isArray(tabGroup.tabs)) {
 		return (
 			<div className="w-full h-full flex items-center justify-center text-gray-400">
 				<div className="text-center">
-					<p>Invalid layout structure</p>
+					<p>Invalid tab group structure</p>
 					<p className="text-sm text-gray-500 mt-2">
-						Please rescan worktrees or create a new tab
+						Please rescan worktrees or create a new tab group
 					</p>
 				</div>
 			</div>
@@ -148,26 +140,25 @@ export default function TerminalLayout({
 			className="w-full h-full gap-1 p-1"
 			style={{
 				display: "grid",
-				gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
-				gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
+				gridTemplateRows: `repeat(${tabGroup.rows}, 1fr)`,
+				gridTemplateColumns: `repeat(${tabGroup.cols}, 1fr)`,
 			}}
 		>
-			{layout.terminals.map((terminal) => (
+			{tabGroup.tabs.map((tab) => (
 				<div
-					key={terminal.id}
+					key={tab.id}
 					className="overflow-hidden rounded border border-neutral-800"
 					style={{
-						gridRow: `${terminal.row + 1} / span ${terminal.rowSpan || 1}`,
-						gridColumn: `${terminal.col + 1} / span ${terminal.colSpan || 1}`,
+						gridRow: `${tab.row + 1} / span ${tab.rowSpan || 1}`,
+						gridColumn: `${tab.col + 1} / span ${tab.colSpan || 1}`,
 					}}
 				>
 					<TerminalInstance
-						terminal={terminal}
+						tab={tab}
 						workingDirectory={workingDirectory}
 						workspaceId={workspaceId}
 						worktreeId={worktreeId}
-						tabGroupId={tabGroupId}
-						tabId={tabId}
+						tabGroupId={tabGroup.id}
 					/>
 				</div>
 			))}

@@ -5,7 +5,6 @@ import type {
 	CreateTabInput,
 	CreateWorkspaceInput,
 	CreateWorktreeInput,
-	GridLayout,
 	Tab,
 	TabGroup,
 	UpdateWorkspaceInput,
@@ -16,18 +15,43 @@ import type {
 import configManager from "./config-manager";
 import worktreeManager from "./worktree-manager";
 
-// Function to create default 2x2 grid layout
-function createDefaultLayout(): GridLayout {
-	return {
-		rows: 2,
-		cols: 2,
-		terminals: [
-			{ id: randomUUID(), row: 0, col: 0, command: null },
-			{ id: randomUUID(), row: 0, col: 1, command: null },
-			{ id: randomUUID(), row: 1, col: 0, command: null },
-			{ id: randomUUID(), row: 1, col: 1, command: null },
-		],
-	};
+// Function to create default tabs for a 2x2 grid layout
+function createDefaultTabs(): Tab[] {
+	const now = new Date().toISOString();
+	return [
+		{
+			id: randomUUID(),
+			name: "Terminal 1",
+			row: 0,
+			col: 0,
+			command: null,
+			createdAt: now,
+		},
+		{
+			id: randomUUID(),
+			name: "Terminal 2",
+			row: 0,
+			col: 1,
+			command: null,
+			createdAt: now,
+		},
+		{
+			id: randomUUID(),
+			name: "Terminal 3",
+			row: 1,
+			col: 0,
+			command: null,
+			createdAt: now,
+		},
+		{
+			id: randomUUID(),
+			name: "Terminal 4",
+			row: 1,
+			col: 1,
+			command: null,
+			createdAt: now,
+		},
+	];
 }
 
 class WorkspaceManager {
@@ -139,20 +163,17 @@ class WorkspaceManager {
 				};
 			}
 
-			// Create default tab with 2x2 layout
+			// Create default tabs for 2x2 layout
 			const now = new Date().toISOString();
-			const defaultTab: Tab = {
-				id: randomUUID(),
-				name: "default",
-				layout: createDefaultLayout(),
-				createdAt: now,
-			};
+			const defaultTabs = createDefaultTabs();
 
-			// Create default tab group with the default tab
+			// Create default tab group with 4 tabs in 2x2 grid
 			const defaultTabGroup: TabGroup = {
 				id: randomUUID(),
 				name: "Default",
-				tabs: [defaultTab],
+				tabs: defaultTabs,
+				rows: 2,
+				cols: 2,
 				createdAt: now,
 			};
 
@@ -210,6 +231,8 @@ class WorkspaceManager {
 				id: randomUUID(),
 				name: input.name,
 				tabs: [],
+				rows: 2,
+				cols: 2,
 				createdAt: new Date().toISOString(),
 			};
 
@@ -263,7 +286,11 @@ class WorkspaceManager {
 			const tab: Tab = {
 				id: randomUUID(),
 				name: input.name,
-				layout: input.layout,
+				command: input.command,
+				row: input.row,
+				col: input.col,
+				rowSpan: input.rowSpan,
+				colSpan: input.colSpan,
 				createdAt: new Date().toISOString(),
 			};
 
@@ -413,14 +440,13 @@ class WorkspaceManager {
 	}
 
 	/**
-	 * Update terminal CWD in a tab
+	 * Update terminal CWD in a tab (tab now IS the terminal)
 	 */
 	updateTerminalCwd(
 		workspaceId: string,
 		worktreeId: string,
 		tabGroupId: string,
 		tabId: string,
-		terminalId: string,
 		cwd: string,
 	): boolean {
 		try {
@@ -437,11 +463,8 @@ class WorkspaceManager {
 			const tab = tabGroup.tabs.find((t) => t.id === tabId);
 			if (!tab) return false;
 
-			const terminal = tab.layout.terminals.find((t) => t.id === terminalId);
-			if (!terminal) return false;
-
-			// Update CWD
-			terminal.cwd = cwd;
+			// Update CWD on the tab itself (tab is the terminal)
+			tab.cwd = cwd;
 			workspace.updatedAt = new Date().toISOString();
 
 			// Save to config
@@ -487,19 +510,16 @@ class WorkspaceManager {
 				);
 
 				if (!existingWorktree) {
-					// Create default tab with 2x2 layout
-					const defaultTab: Tab = {
-						id: randomUUID(),
-						name: "default",
-						layout: createDefaultLayout(),
-						createdAt: now,
-					};
+					// Create default tabs for 2x2 layout
+					const defaultTabs = createDefaultTabs();
 
-					// Create default tab group with the default tab
+					// Create default tab group with 4 tabs in 2x2 grid
 					const defaultTabGroup: TabGroup = {
 						id: randomUUID(),
 						name: "Default",
-						tabs: [defaultTab],
+						tabs: defaultTabs,
+						rows: 2,
+						cols: 2,
 						createdAt: now,
 					};
 
