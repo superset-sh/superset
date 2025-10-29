@@ -1,27 +1,27 @@
-import { Button } from "@superset/ui/button";
-import { ChevronRight, FolderOpen, GitBranch } from "lucide-react";
-import { useEffect, useState } from "react";
-import type { Tab, TabGroup, Worktree } from "shared/types";
 import {
+	closestCenter,
 	DndContext,
-	DragEndEvent,
-	DragOverEvent,
+	type DragEndEvent,
+	type DragOverEvent,
 	DragOverlay,
-	DragStartEvent,
+	type DragStartEvent,
 	KeyboardSensor,
 	PointerSensor,
-	closestCenter,
 	useSensor,
 	useSensors,
 } from "@dnd-kit/core";
 import {
-	SortableContext,
 	arrayMove,
+	SortableContext,
 	sortableKeyboardCoordinates,
 	useSortable,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Button } from "@superset/ui/button";
+import { ChevronRight, FolderOpen, GitBranch, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import type { Tab, TabGroup, Worktree } from "shared/types";
 import { TabItem } from "./components/TabItem";
 
 // Non-sortable wrapper for tab groups (only tabs are draggable)
@@ -42,10 +42,7 @@ function TabGroupSection({
 	selectedTabId?: string;
 	onTabSelect: (worktreeId: string, tabGroupId: string, tabId: string) => void;
 }) {
-	const {
-		setNodeRef,
-		isOver,
-	} = useSortable({
+	const { setNodeRef, isOver } = useSortable({
 		id: tabGroup.id,
 		data: {
 			type: "tab-group",
@@ -181,7 +178,7 @@ export function WorktreeItem({
 
 	// Track active drag state
 	const [activeId, setActiveId] = useState<string | null>(null);
-	const [overId, setOverId] = useState<string | null>(null);
+	const [_overId, setOverId] = useState<string | null>(null);
 
 	// Auto-expand tab group if it's selected or contains the selected tab
 	useEffect(() => {
@@ -198,7 +195,7 @@ export function WorktreeItem({
 				});
 			}
 		}
-	}, [selectedTabGroupId, selectedTabId, worktree.tabGroups]);
+	}, [selectedTabGroupId, worktree.tabGroups]);
 
 	const toggleTabGroup = (tabGroupId: string) => {
 		setExpandedTabGroups((prev) => {
@@ -435,6 +432,42 @@ export function WorktreeItem({
 			worktree.tabGroups.find((tg) => tg.id === activeId)
 		: null;
 
+	const handleAddTab = async (e: React.MouseEvent) => {
+		e.stopPropagation(); // Prevent toggling the worktree
+
+		// Get the first tab group (or use a default if none exist)
+		const tabGroup = worktree.tabGroups[0];
+		if (!tabGroup) {
+			console.error("No tab group found for worktree");
+			return;
+		}
+
+		// Calculate next tab position in grid
+		const nextOrder = tabGroup.tabs.length;
+		const row = Math.floor(nextOrder / tabGroup.cols);
+		const col = nextOrder % tabGroup.cols;
+
+		try {
+			const result = await window.ipcRenderer.invoke("tab-create", {
+				workspaceId,
+				worktreeId: worktree.id,
+				tabGroupId: tabGroup.id,
+				name: `Terminal ${tabGroup.tabs.length + 1}`,
+				type: "terminal",
+				row,
+				col,
+			});
+
+			if (result.success) {
+				onReload(); // Refresh the workspace to show the new tab
+			} else {
+				console.error("Failed to create tab:", result.error);
+			}
+		} catch (error) {
+			console.error("Error creating tab:", error);
+		}
+	};
+
 	return (
 		<DndContext
 			sensors={sensors}
@@ -445,20 +478,31 @@ export function WorktreeItem({
 		>
 			<div className="space-y-1">
 				{/* Worktree Header */}
-				<Button
-					variant="ghost"
-					size="sm"
-					onClick={() => onToggle(worktree.id)}
-					className="w-full h-8 px-3 pb-1 font-normal"
-					style={{ justifyContent: "flex-start" }}
-				>
-					<ChevronRight
-						size={12}
-						className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
-					/>
-					<GitBranch size={14} className="opacity-70" />
-					<span className="truncate flex-1 text-left">{worktree.branch}</span>
-				</Button>
+				<div className="flex items-center gap-1">
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={() => onToggle(worktree.id)}
+						className="flex-1 h-8 px-3 pb-1 font-normal"
+						style={{ justifyContent: "flex-start" }}
+					>
+						<ChevronRight
+							size={12}
+							className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
+						/>
+						<GitBranch size={14} className="opacity-70" />
+						<span className="truncate flex-1 text-left">{worktree.branch}</span>
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onClick={handleAddTab}
+						className="h-8 w-8 p-0 opacity-70 hover:opacity-100"
+						title="Add terminal tab"
+					>
+						<Plus size={14} />
+					</Button>
+				</div>
 
 				{/* Tab Groups and Tabs List */}
 				{isExpanded && (
@@ -469,7 +513,9 @@ export function WorktreeItem({
 								tabGroup={tabGroup}
 								worktree={worktree}
 								isExpanded={expandedTabGroups.has(tabGroup.id)}
-								isSelected={selectedTabGroupId === tabGroup.id && !selectedTabId}
+								isSelected={
+									selectedTabGroupId === tabGroup.id && !selectedTabId
+								}
 								onToggle={() => {
 									onTabGroupSelect(worktree.id, tabGroup.id);
 									toggleTabGroup(tabGroup.id);
