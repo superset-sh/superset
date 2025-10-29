@@ -28,6 +28,7 @@ import {
 import {
 	ChevronRight,
 	Clipboard,
+	FolderOpen,
 	GitBranch,
 	GitMerge,
 	Plus,
@@ -281,6 +282,41 @@ export function WorktreeItem({
 			setLastClickedTabId(null);
 		} catch (error) {
 			console.error("Error grouping tabs:", error);
+		}
+	};
+
+	// Handle ungrouping a group tab
+	const handleUngroupTab = async (groupTabId: string) => {
+		try {
+			const groupTab = findTabById(tabs, groupTabId);
+			if (!groupTab || groupTab.type !== "group" || !groupTab.tabs) {
+				console.error("Invalid group tab");
+				return;
+			}
+
+			// Move each child tab back to the worktree level
+			for (const childTab of groupTab.tabs) {
+				await window.ipcRenderer.invoke("tab-move", {
+					workspaceId,
+					worktreeId: worktree.id,
+					tabId: childTab.id,
+					sourceParentTabId: groupTabId, // Move from the group
+					targetParentTabId: undefined, // Move to worktree level
+					targetIndex: 0, // Add to end of worktree tabs
+				});
+			}
+
+			// Delete the now-empty group tab
+			await window.ipcRenderer.invoke("tab-delete", {
+				workspaceId,
+				worktreeId: worktree.id,
+				tabId: groupTabId,
+			});
+
+			// Reload to show the updated structure
+			onReload();
+		} catch (error) {
+			console.error("Error ungrouping tab:", error);
 		}
 	};
 
@@ -582,27 +618,37 @@ export function WorktreeItem({
 			return (
 				<div key={tab.id} className="space-y-1">
 					{/* Group Tab Header */}
-					<button
-						type="button"
-						onClick={(e) => {
-							// Select the group tab
-							handleTabSelect(worktree.id, tab.id, e.shiftKey);
-							// Also toggle expansion
-							toggleGroupTab(tab.id);
-						}}
-						className={`group flex items-center gap-1 w-full h-8 px-3 text-sm rounded-md [transition:all_0.2s,border_0s] ${
-							isSelected
-								? "bg-neutral-800 border border-neutral-700"
-								: "hover:bg-neutral-800/50"
-						}`}
-						style={{ paddingLeft: `${level * 12 + 12}px` }}
-					>
-						<ChevronRight
-							size={12}
-							className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
-						/>
-						<span className="truncate flex-1 text-left">{tab.name}</span>
-					</button>
+					<ContextMenu>
+						<ContextMenuTrigger asChild>
+							<button
+								type="button"
+								onClick={(e) => {
+									// Select the group tab
+									handleTabSelect(worktree.id, tab.id, e.shiftKey);
+									// Also toggle expansion
+									toggleGroupTab(tab.id);
+								}}
+								className={`group flex items-center gap-1 w-full h-8 px-3 text-sm rounded-md [transition:all_0.2s,border_0s] ${
+									isSelected
+										? "bg-neutral-800 border border-neutral-700"
+										: "hover:bg-neutral-800/50"
+								}`}
+								style={{ paddingLeft: `${level * 12 + 12}px` }}
+							>
+								<ChevronRight
+									size={12}
+									className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
+								/>
+								<span className="truncate flex-1 text-left">{tab.name}</span>
+							</button>
+						</ContextMenuTrigger>
+						<ContextMenuContent>
+							<ContextMenuItem onClick={() => handleUngroupTab(tab.id)}>
+								<FolderOpen size={14} className="mr-2" />
+								Ungroup Tabs
+							</ContextMenuItem>
+						</ContextMenuContent>
+					</ContextMenu>
 
 					{/* Nested Tabs */}
 					{isExpanded && tab.tabs && (
