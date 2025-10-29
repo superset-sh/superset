@@ -135,8 +135,6 @@ export default function TerminalComponent({
 		// Track if this is the initial setup to prevent resize events during reconnection
 		let isInitialSetup = true;
 
-		// Initial fit will be called after addons are loaded and dimensions are stable
-
 		// Load addons
 		// 1. WebLinks - Makes URLs clickable and open in default browser
 		const webLinksAddon = new WebLinksAddon((event, uri) => {
