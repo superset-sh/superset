@@ -1,6 +1,7 @@
 import type { MotionValue } from "framer-motion";
 import { useEffect, useState } from "react";
-import type { Worktree, Workspace } from "shared/types";
+import type { WorkspaceRef } from "shared/electron-store";
+import type { Worktree, Workspace } from "shared/runtime-types";
 import {
 	CreateWorktreeButton,
 	CreateWorktreeModal,
@@ -11,14 +12,19 @@ import {
 } from "./components";
 
 interface SidebarProps {
-	workspaces: Workspace[];
+	workspaces: WorkspaceRef[];
 	currentWorkspace: Workspace | null;
 	onCollapse: () => void;
 	onTabSelect: (worktreeId: string, tabGroupId: string, tabId: string) => void;
 	onTabGroupSelect: (worktreeId: string, tabGroupId: string) => void;
 	onWorktreeCreated?: () => void;
 	onWorkspaceSelect: (workspaceId: string) => void;
-	onUpdateWorktree: (worktreeId: string, updatedWorktree: Worktree) => void;
+	onUpdateWorktree: () => void;
+	onScanWorktrees: () => Promise<{ success: boolean; imported?: number }>;
+	onCreateWorktree: (
+		branch: string,
+		createBranch: boolean,
+	) => Promise<{ success: boolean; error?: string }>;
 	selectedTabId?: string;
 	selectedTabGroupId?: string;
 }
@@ -32,6 +38,8 @@ export function Sidebar({
 	onWorktreeCreated,
 	onWorkspaceSelect,
 	onUpdateWorktree,
+	onScanWorktrees,
+	onCreateWorktree,
 	selectedTabId,
 	selectedTabGroupId,
 }: SidebarProps) {
@@ -45,8 +53,6 @@ export function Sidebar({
 	const [scrollProgress, setScrollProgress] = useState<
 		MotionValue<number> | undefined
 	>();
-
-	console.log(currentWorkspace, workspaces)
 
 	// Auto-expand worktree if it contains the selected tab group
 	useEffect(() => {
@@ -80,7 +86,6 @@ export function Sidebar({
 	};
 
 	const handleCreateWorktree = () => {
-		console.log("[Sidebar] New Worktree button clicked");
 		setShowWorktreeModal(true);
 	};
 
@@ -89,27 +94,16 @@ export function Sidebar({
 
 		if (!currentWorkspace || !branchName.trim()) return;
 
-		console.log("[Sidebar] Creating worktree:", {
-			branchName,
-			createBranch: true,
-		});
 		setIsCreatingWorktree(true);
 
 		try {
-			// Type-safe IPC call - no need for type assertion!
-			const result = await window.ipcRenderer.invoke("worktree-create", {
-				workspaceId: currentWorkspace.id,
-				branch: branchName.trim(),
-				createBranch: true,
-			});
+			const result = await onCreateWorktree(branchName.trim(), true);
 
 			if (result.success) {
-				console.log("[Sidebar] Worktree created successfully");
 				setShowWorktreeModal(false);
 				setBranchName("");
 				onWorktreeCreated?.();
 			} else {
-				console.error("[Sidebar] Failed to create worktree:", result.error);
 				alert(`Failed to create worktree: ${result.error || "Unknown error"}`);
 			}
 		} catch (error) {
@@ -165,25 +159,13 @@ export function Sidebar({
 	const handleScanWorktrees = async () => {
 		if (!currentWorkspace) return;
 
-		console.log(
-			"[Sidebar] Scanning worktrees for workspace:",
-			currentWorkspace.id,
-		);
 		setIsScanningWorktrees(true);
 
 		try {
-			const result = (await window.ipcRenderer.invoke(
-				"workspace-scan-worktrees",
-				currentWorkspace.id,
-			)) as { success: boolean; imported?: number; error?: string };
+			const result = await onScanWorktrees();
 
-			if (result.success) {
-				console.log("[Sidebar] Scan completed, imported:", result.imported);
-				if (result.imported && result.imported > 0) {
-					onWorktreeCreated?.();
-				}
-			} else {
-				console.error("[Sidebar] Failed to scan worktrees:", result.error);
+			if (result.success && result.imported && result.imported > 0) {
+				onWorktreeCreated?.();
 			}
 		} catch (error) {
 			console.error("[Sidebar] Error scanning worktrees:", error);
@@ -215,6 +197,12 @@ export function Sidebar({
 							onToggleWorktree={toggleWorktree}
 							onTabSelect={onTabSelect}
 							onTabGroupSelect={onTabGroupSelect}
+							onReload={onUpdateWorktree}
+							onUpdateWorktree={() => {
+								// Worktree updates are not persisted in new architecture
+								// Just refresh workspace data from git
+								onUpdateWorktree();
+							}}
 							selectedTabId={selectedTabId}
 							selectedTabGroupId={selectedTabGroupId}
 						/>

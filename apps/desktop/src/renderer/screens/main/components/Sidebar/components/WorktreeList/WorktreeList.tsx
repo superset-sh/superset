@@ -1,4 +1,4 @@
-import type { Worktree, Workspace } from "shared/types";
+import type { Worktree, Workspace } from "shared/runtime-types";
 import { WorktreeItem } from "./components/WorktreeItem";
 
 interface WorktreeListProps {

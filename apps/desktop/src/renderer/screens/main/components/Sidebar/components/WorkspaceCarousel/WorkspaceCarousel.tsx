@@ -6,10 +6,11 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { Workspace } from "shared/types";
+import type { WorkspaceRef } from "shared/electron-store";
+import type { Workspace } from "shared/runtime-types";
 
 interface WorkspaceCarouselProps {
-	workspaces: Workspace[];
+	workspaces: WorkspaceRef[];
 	currentWorkspace: Workspace | null;
 	onWorkspaceSelect: (workspaceId: string) => void;
 	children: (workspace: Workspace | null, isActive: boolean) => ReactNode;
@@ -162,19 +163,23 @@ export function WorkspaceCarousel({
 				className="flex h-full"
 				style={{ width: `${workspaces.length * 100}%` }}
 			>
-				{workspaces.map((workspace) => (
-					<div
-						key={workspace.id}
-						className="overflow-y-auto px-3 py-2 space-y-1"
-						style={{
-							scrollSnapAlign: "start",
-							scrollSnapStop: "always",
-							width: `${100 / workspaces.length}%`,
-						}}
-					>
-						{children(workspace, workspace.id === currentWorkspace?.id)}
-					</div>
-				))}
+				{workspaces.map((workspaceRef) => {
+					const isActive = workspaceRef.id === currentWorkspace?.id;
+					const workspace = isActive ? currentWorkspace : null;
+					return (
+						<div
+							key={workspaceRef.id}
+							className="overflow-y-auto px-3 py-2 space-y-1"
+							style={{
+								scrollSnapAlign: "start",
+								scrollSnapStop: "always",
+								width: `${100 / workspaces.length}%`,
+							}}
+						>
+							{children(workspace, isActive)}
+						</div>
+					);
+				})}
 			</div>
 		</div>
 	);

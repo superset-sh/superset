@@ -27,6 +27,7 @@ export default defineConfig({
 
 				output: {
 					dir: resolve(devPath, "main"),
+					format: "es",
 				},
 			},
 		},

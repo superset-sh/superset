@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
+import { useConfigStore, storeHydrated } from "renderer/stores/config-store";
+import { useWorkspaceStore } from "renderer/stores/workspace-store";
 import ScreenLayout from "renderer/components/ScreenLayout";
-import type { Workspace } from "shared/types";
+import type { Workspace } from "shared/runtime-types";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { Sidebar } from "./components/Sidebar";
@@ -9,219 +11,210 @@ import { TopBar } from "./components/TopBar";
 
 export function MainScreen() {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-	const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
-	const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(
-		null,
-	);
-	const [selectedWorktreeId, setSelectedWorktreeId] = useState<string | null>(
-		null,
-	);
-	const [selectedTabGroupId, setSelectedTabGroupId] = useState<string | null>(
-		null,
-	);
-	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
 
-	// Get selected tab group details (contains all tabs in the grid)
-	const selectedTabGroup = currentWorkspace?.worktrees
-		?.find((wt) => wt.id === selectedWorktreeId)
-		?.tabGroups.find((tg) => tg.id === selectedTabGroupId);
+	// Config store - workspace refs + templates (auto-synced to main process)
+	const { workspaces, setLastWorkspace, addWorkspace } = useConfigStore();
 
-	const selectedWorktree = currentWorkspace?.worktrees?.find(
-		(wt) => wt.id === selectedWorktreeId,
-	);
+	// Workspace store - runtime state (NOT persisted)
+	const {
+		currentWorkspace,
+		activeWorktreeId,
+		activeTabGroupId,
+		activeTabId,
+		setCurrentWorkspace,
+		setActiveSelection,
+		getActiveWorktree,
+		getActiveTabGroup,
+	} = useWorkspaceStore();
+
+	// Derived state from getters
+	const selectedWorktree = getActiveWorktree();
+	const selectedTabGroup = getActiveTabGroup();
+
+	// Load config from main process on mount
+	useEffect(() => {
+		const loadConfig = async () => {
+			try {
+				// Wait for store to hydrate from main process
+				await storeHydrated;
+
+				// Get the loaded config to check for lastWorkspaceId
+				const { lastWorkspaceId } = useConfigStore.getState();
+
+				// If there's a last workspace, load it with live git data
+				if (lastWorkspaceId) {
+					const workspace = (await window.ipcRenderer.invoke(
+						"workspace-get",
+						lastWorkspaceId,
+					)) as Workspace | null;
+					if (workspace) {
+						setCurrentWorkspace(workspace);
+					}
+				}
+			} catch (err) {
+				console.error("[MainScreen] Failed to load config:", err);
+			}
+		};
+
+		loadConfig();
+	}, [setCurrentWorkspace]);
+
+	// Listen for workspace-opened event from File menu
+	useEffect(() => {
+		const handler = async (workspace: Workspace) => {
+			console.log("[MainScreen] Workspace opened event received:", workspace);
+
+			// Add workspace ref to config if it doesn't exist
+			const existing = workspaces.find((w) => w.id === workspace.id);
+			if (!existing) {
+				addWorkspace({
+					id: workspace.id,
+					name: workspace.name,
+					repoPath: workspace.repoPath,
+				});
+				// Note: addWorkspace auto-syncs to main process
+			}
+
+			// Set as current in both stores (auto-syncs to main)
+			setLastWorkspace(workspace.id);
+			setCurrentWorkspace(workspace);
+		};
+
+		window.ipcRenderer.on("workspace-opened", handler);
+		return () => {
+			window.ipcRenderer.off("workspace-opened", handler);
+		};
+	}, [workspaces, addWorkspace, setLastWorkspace, setCurrentWorkspace]);
 
 	const handleTabSelect = (
 		worktreeId: string,
 		tabGroupId: string,
 		tabId: string,
 	) => {
-		setSelectedWorktreeId(worktreeId);
-		setSelectedTabGroupId(tabGroupId);
-		setSelectedTabId(tabId);
-		// Save active selection
-		window.ipcRenderer.invoke("workspace-set-active-selection", {
-			worktreeId,
-			tabGroupId,
-			tabId,
-		});
+		setActiveSelection(worktreeId, tabGroupId, tabId);
 	};
 
 	const handleTabGroupSelect = (worktreeId: string, tabGroupId: string) => {
-		setSelectedWorktreeId(worktreeId);
-		setSelectedTabGroupId(tabGroupId);
-		// Clear individual tab selection when selecting a tab group
-		setSelectedTabId(null);
-		// Save active selection
-		window.ipcRenderer.invoke("workspace-set-active-selection", {
-			worktreeId,
-			tabGroupId,
-			tabId: null,
-		});
+		setActiveSelection(worktreeId, tabGroupId, null);
 	};
 
 	const handleTabFocus = (tabId: string) => {
-		// When a terminal gets focus, find its worktree and tab group
-		if (!currentWorkspace || !selectedWorktreeId || !selectedTabGroupId) return;
+		if (!selectedWorktree || !selectedTabGroup) return;
 
-		setSelectedTabId(tabId);
-		// Save active selection
-		window.ipcRenderer.invoke("workspace-set-active-selection", {
-			worktreeId: selectedWorktreeId,
-			tabGroupId: selectedTabGroupId,
-			tabId,
-		});
+		setActiveSelection(selectedWorktree.id, selectedTabGroup.id, tabId);
 	};
 
 	const handleWorkspaceSelect = async (workspaceId: string) => {
+		// Fetch workspace with live git data
 		try {
-			const workspace = await window.ipcRenderer.invoke(
+			const workspace = (await window.ipcRenderer.invoke(
 				"workspace-get",
 				workspaceId,
-			);
+			)) as Workspace | null;
 
 			if (workspace) {
+				// Auto-syncs to main process
+				setLastWorkspace(workspaceId);
 				setCurrentWorkspace(workspace);
-				// Reset tab selection when switching workspaces
-				setSelectedWorktreeId(null);
-				setSelectedTabGroupId(null);
-				setSelectedTabId(null);
+				// Reset selections when switching workspaces
+				setActiveSelection(null, null, null);
 			}
-		} catch (error) {
-			console.error("Failed to load workspace:", error);
+		} catch (err) {
+			console.error("[MainScreen] Failed to get workspace:", err);
 		}
 	};
 
 	const handleWorktreeCreated = async () => {
-		// Refresh workspace data after worktree creation
 		if (!currentWorkspace) return;
 
+		// Refresh workspace data from main process after worktree creation
 		try {
-			const refreshedWorkspace = await window.ipcRenderer.invoke(
+			const refreshed = (await window.ipcRenderer.invoke(
 				"workspace-get",
 				currentWorkspace.id,
-			);
-
-			if (refreshedWorkspace) {
-				setCurrentWorkspace(refreshedWorkspace);
-				// Also refresh workspaces list
-				await loadAllWorkspaces();
+			)) as Workspace | null;
+			if (refreshed) {
+				setCurrentWorkspace(refreshed);
 			}
-		} catch (error) {
-			console.error("Failed to refresh workspace:", error);
+		} catch (err) {
+			console.error("[MainScreen] Failed to refresh workspace:", err);
 		}
 	};
 
-	const handleUpdateWorktree = (worktreeId: string, updatedWorktree: any) => {
-		// Optimistically update the worktree in the current workspace
+	const handleScanWorktrees = async () => {
+		if (!currentWorkspace) return { success: false };
+
+		try {
+			const result = (await window.ipcRenderer.invoke(
+				"workspace-scan-worktrees",
+				currentWorkspace.id,
+			)) as { success: boolean; workspace?: Workspace; imported?: number; error?: string };
+
+			if (result.success && result.workspace) {
+				// Update workspace with scanned worktrees
+				setCurrentWorkspace(result.workspace);
+			}
+
+			return {
+				success: result.success,
+				imported: result.imported,
+			};
+		} catch (err) {
+			console.error("[MainScreen] Failed to scan worktrees:", err);
+			return { success: false };
+		}
+	};
+
+	const handleCreateWorktree = async (
+		branch: string,
+		createBranch: boolean,
+	) => {
+		if (!currentWorkspace) {
+			return { success: false, error: "No workspace selected" };
+		}
+
+		try {
+			const result = (await window.ipcRenderer.invoke("worktree-create", {
+				workspaceId: currentWorkspace.id,
+				branch,
+				createBranch,
+			})) as { success: boolean; error?: string };
+
+			if (result.success) {
+				// Refresh workspace data after successful creation
+				const refreshed = (await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				)) as Workspace | null;
+				if (refreshed) {
+					setCurrentWorkspace(refreshed);
+				}
+			}
+
+			return result;
+		} catch (err) {
+			const errorMessage = err instanceof Error ? err.message : String(err);
+			console.error("[MainScreen] Failed to create worktree:", err);
+			return { success: false, error: errorMessage };
+		}
+	};
+
+	const handleUpdateWorktree = async () => {
 		if (!currentWorkspace) return;
 
-		const updatedWorktrees = currentWorkspace.worktrees.map((wt) =>
-			wt.id === worktreeId ? updatedWorktree : wt,
-		);
-
-		setCurrentWorkspace({
-			...currentWorkspace,
-			worktrees: updatedWorktrees,
-		});
-	};
-
-	const loadAllWorkspaces = async () => {
+		// Refresh workspace data from disk to get latest state
 		try {
-			const allWorkspaces = await window.ipcRenderer.invoke("workspace-list");
-
-			setWorkspaces(allWorkspaces);
-		} catch (error) {
-			console.error("Failed to load workspaces:", error);
+			const refreshed = (await window.ipcRenderer.invoke(
+				"workspace-get",
+				currentWorkspace.id,
+			)) as Workspace | null;
+			if (refreshed) {
+				setCurrentWorkspace(refreshed);
+			}
+		} catch (err) {
+			console.error("[MainScreen] Failed to refresh workspace:", err);
 		}
 	};
-
-	// Scan for existing worktrees when workspace is opened
-	const scanWorktrees = async (workspaceId: string) => {
-		try {
-			const result = await window.ipcRenderer.invoke(
-				"workspace-scan-worktrees",
-				workspaceId,
-			);
-
-			if (result.success && result.data?.imported && result.data.imported > 0) {
-				console.log("[MainScreen] Imported worktrees:", result.data.imported);
-				// Refresh workspace data
-				const refreshedWorkspace = await window.ipcRenderer.invoke(
-					"workspace-get",
-					workspaceId,
-				);
-
-				if (refreshedWorkspace) {
-					setCurrentWorkspace(refreshedWorkspace);
-				}
-			}
-		} catch (error) {
-			console.error("[MainScreen] Failed to scan worktrees:", error);
-		}
-	};
-
-	// Load last opened workspace and all workspaces on mount
-	useEffect(() => {
-		const loadLastWorkspace = async () => {
-			try {
-				setLoading(true);
-				setError(null);
-
-				// Load all workspaces
-				await loadAllWorkspaces();
-
-				// Load last opened workspace
-				const workspace = await window.ipcRenderer.invoke(
-					"workspace-get-last-opened",
-				);
-
-				if (workspace) {
-					setCurrentWorkspace(workspace);
-					// Scan for existing worktrees
-					await scanWorktrees(workspace.id);
-
-					// Restore active selection
-					const activeSelection = await window.ipcRenderer.invoke(
-						"workspace-get-active-selection",
-					);
-
-					if (activeSelection.worktreeId && activeSelection.tabGroupId) {
-						setSelectedWorktreeId(activeSelection.worktreeId);
-						setSelectedTabGroupId(activeSelection.tabGroupId);
-						setSelectedTabId(activeSelection.tabId);
-					}
-				}
-			} catch (err) {
-				setError(err instanceof Error ? err.message : String(err));
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		loadLastWorkspace();
-	}, []);
-
-	// Listen for workspace-opened event from menu
-	useEffect(() => {
-		const handler = async (workspace: Workspace) => {
-			console.log("[MainScreen] Workspace opened event received:", workspace);
-			setCurrentWorkspace(workspace);
-			setLoading(false);
-			// Refresh workspaces list
-			await loadAllWorkspaces();
-			// Scan for existing worktrees
-			await scanWorktrees(workspace.id);
-		};
-
-		console.log("[MainScreen] Setting up workspace-opened listener");
-		window.ipcRenderer.on("workspace-opened", handler);
-		return () => {
-			console.log("[MainScreen] Removing workspace-opened listener");
-			window.ipcRenderer.off("workspace-opened", handler);
-		};
-	}, []);
 
 	return (
 		<div className="flex h-screen relative text-neutral-300">
@@ -229,7 +222,7 @@ export function MainScreen() {
 
 			{/* App Frame - continuous border + sidebar + topbar */}
 			<AppFrame>
-				{isSidebarOpen && workspaces && (
+				{isSidebarOpen && workspaces.length > 0 && (
 					<Sidebar
 						workspaces={workspaces}
 						currentWorkspace={currentWorkspace}
@@ -237,9 +230,11 @@ export function MainScreen() {
 						onTabGroupSelect={handleTabGroupSelect}
 						onWorktreeCreated={handleWorktreeCreated}
 						onWorkspaceSelect={handleWorkspaceSelect}
-					onUpdateWorktree={handleUpdateWorktree}
-						selectedTabId={selectedTabId ?? undefined}
-						selectedTabGroupId={selectedTabGroupId ?? undefined}
+						onUpdateWorktree={handleUpdateWorktree}
+						onScanWorktrees={handleScanWorktrees}
+						onCreateWorktree={handleCreateWorktree}
+						selectedTabId={activeTabId ?? undefined}
+						selectedTabGroupId={activeTabGroupId ?? undefined}
 						onCollapse={() => setIsSidebarOpen(false)}
 					/>
 				)}
@@ -256,19 +251,7 @@ export function MainScreen() {
 
 					{/* Content Area - Terminal Layout */}
 					<div className="flex-1 overflow-hidden">
-						{loading && (
-							<div className="flex items-center justify-center h-full bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
-								Loading workspace...
-							</div>
-						)}
-
-						{error && (
-							<div className="flex items-center justify-center h-full text-red-400 bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
-								Error: {error}
-							</div>
-						)}
-
-						{!loading && !error && !currentWorkspace && (
+						{!currentWorkspace && (
 							<div className="flex flex-col items-center justify-center h-full text-neutral-400 bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
 								<p className="mb-4">No repository open</p>
 								<p className="text-sm text-neutral-500">
@@ -279,7 +262,7 @@ export function MainScreen() {
 							</div>
 						)}
 
-						{!loading && !error && currentWorkspace && !selectedTabGroup && (
+						{currentWorkspace && !selectedTabGroup && (
 							<div className="flex flex-col items-center justify-center h-full text-neutral-400 bg-neutral-950/40 backdrop-blur-xl rounded-2xl">
 								<p className="mb-4">
 									Select a worktree and tab to view terminals
@@ -290,22 +273,18 @@ export function MainScreen() {
 							</div>
 						)}
 
-						{!loading &&
-							!error &&
-							selectedTabGroup &&
-							selectedWorktree &&
-							currentWorkspace && (
-								<ScreenLayout
-									tabGroup={selectedTabGroup}
-									workingDirectory={
-										selectedWorktree.path || currentWorkspace.repoPath
-									}
-									workspaceId={currentWorkspace.id}
-									worktreeId={selectedWorktreeId ?? undefined}
-									selectedTabId={selectedTabId ?? undefined}
-									onTabFocus={handleTabFocus}
-								/>
-							)}
+						{selectedTabGroup && selectedWorktree && currentWorkspace && (
+							<ScreenLayout
+								tabGroup={selectedTabGroup}
+								workingDirectory={
+									selectedWorktree.path || currentWorkspace.repoPath
+								}
+								workspaceId={currentWorkspace.id}
+								worktreeId={selectedWorktree.id}
+								selectedTabId={activeTabId ?? undefined}
+								onTabFocus={handleTabFocus}
+							/>
+						)}
 					</div>
 				</div>
 			</AppFrame>

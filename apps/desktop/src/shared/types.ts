@@ -17,59 +17,10 @@ export interface WindowCreationByIPC {
 	callback(window: BrowserWindow, event: IpcMainInvokeEvent): void;
 }
 
-// Workspace types - Tab-based Grid Layout
-
-// Tab types that can be displayed
-export type TabType = "terminal" | "editor" | "browser" | "preview";
-
-export interface Tab {
-	id: string;
-	name: string;
-	type: TabType; // Type of content to display
-	command?: string | null; // For terminal tabs
-	cwd?: string; // Current working directory (for terminal tabs)
-	order: number; // Explicit ordering - position in the grid (0, 1, 2, 3, ...)
-	row: number; // Derived from order: floor(order / cols)
-	col: number; // Derived from order: order % cols
-	rowSpan?: number;
-	colSpan?: number;
-	createdAt: string;
-}
-
-export interface TabGroup {
-	id: string;
-	name: string;
-	tabs: Tab[];
-	rows: number;
-	cols: number;
-	createdAt: string;
-}
-
-export interface Worktree {
-	id: string;
-	branch: string;
-	path: string;
-	tabGroups: TabGroup[];
-	createdAt: string;
-}
-
-export interface Workspace {
-	id: string;
-	name: string;
-	repoPath: string;
-	branch: string;
-	worktrees: Worktree[];
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface WorkspaceConfig {
-	workspaces: Workspace[];
-	lastOpenedWorkspaceId: string | null;
-	activeWorktreeId: string | null;
-	activeTabGroupId: string | null;
-	activeTabId: string | null;
-}
+// ========================================
+// IPC Contract Types
+// These types define the shape of data sent across IPC boundaries
+// ========================================
 
 export interface CreateWorkspaceInput {
 	name: string;
@@ -86,7 +37,7 @@ export interface CreateWorktreeInput {
 export interface CreateTabGroupInput {
 	workspaceId: string;
 	worktreeId: string;
-	name: string;
+	templateId: string; // ID of template to instantiate
 }
 
 export interface CreateTabInput {
@@ -94,7 +45,6 @@ export interface CreateTabInput {
 	worktreeId: string;
 	tabGroupId: string;
 	name: string;
-	type?: TabType; // Optional - defaults to "terminal"
 	command?: string | null;
 	row: number;
 	col: number;

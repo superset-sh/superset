@@ -10,12 +10,9 @@ import type {
 	CreateTabInput,
 	CreateWorkspaceInput,
 	CreateWorktreeInput,
-	Tab,
-	TabGroup,
 	UpdateWorkspaceInput,
-	Workspace,
-	Worktree,
 } from "./types";
+import type { Tab, TabGroup, Workspace, Worktree } from "./runtime-types";
 
 /**
  * Standard response format for operations

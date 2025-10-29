@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog, ipcMain } from "electron";
+import { randomUUID } from "node:crypto";
 
 import type {
 	CreateTabGroupInput,
@@ -7,11 +8,15 @@ import type {
 	CreateWorktreeInput,
 	UpdateWorkspaceInput,
 } from "shared/types";
-
-import configManager from "./config-manager";
-import workspaceManager from "./workspace-manager";
+import { electronStore } from "./config-store";
+import worktreeManager from "./worktree-manager";
+import type { Workspace, Worktree } from "shared/runtime-types";
 
 export function registerWorkspaceIPCs() {
+	// ========================================
+	// WORKSPACE OPERATIONS
+	// ========================================
+
 	// Open repository dialog
 	ipcMain.on("open-repository", async (event) => {
 		const mainWindow = BrowserWindow.fromWebContents(event.sender);
@@ -29,8 +34,7 @@ export function registerWorkspaceIPCs() {
 
 		const repoPath = result.filePaths[0];
 
-		// Get current branch
-		const worktreeManager = (await import("./worktree-manager")).default;
+		// Validate git repo
 		if (!worktreeManager.isGitRepo(repoPath)) {
 			dialog.showErrorBox(
 				"Not a Git Repository",
@@ -46,204 +50,199 @@ export function registerWorkspaceIPCs() {
 		}
 
 		// Check if workspace already exists for this repo
-		const existingWorkspaces = await workspaceManager.list();
+		const existingWorkspaces = electronStore.get("workspaces", []);
 		const existingWorkspace = existingWorkspaces.find(
 			(ws) => ws.repoPath === repoPath,
 		);
 
 		if (existingWorkspace) {
-			// Workspace already exists, just switch to it
-			mainWindow.webContents.send("workspace-opened", existingWorkspace);
+			// Workspace already exists, fetch with live git data
+			const workspace = await getWorkspaceWithGitData(existingWorkspace.id);
+			mainWindow.webContents.send("workspace-opened", workspace);
 			return;
 		}
 
-		// Create workspace with repo name and current branch
+		// Create new workspace reference
 		const repoName = repoPath.split("/").pop() || "Repository";
-
-		const createResult = await workspaceManager.create({
+		const workspaceRef = {
+			id: randomUUID(),
 			name: repoName,
 			repoPath,
-			branch: currentBranch,
-		});
+		};
 
-		if (!createResult.success) {
-			dialog.showErrorBox(
-				"Error",
-				createResult.error || "Failed to open repository",
-			);
-			return;
-		}
+		// Save to config
+		electronStore.set("workspaces", [...existingWorkspaces, workspaceRef]);
+		electronStore.set("lastWorkspaceId", workspaceRef.id);
 
-		// Notify renderer to reload workspaces
-		mainWindow.webContents.send("workspace-opened", createResult.workspace);
+		// Get with live git data
+		const workspace = await getWorkspaceWithGitData(workspaceRef.id);
+		mainWindow.webContents.send("workspace-opened", workspace);
 	});
 
-	// List all workspaces
+	// List all workspace references
 	ipcMain.handle("workspace-list", async () => {
-		return await workspaceManager.list();
+		return electronStore.get("workspaces", []);
 	});
 
-	// Get workspace by ID
+	// Get workspace with live git data
 	ipcMain.handle("workspace-get", async (_event, id: string) => {
-		return await workspaceManager.get(id);
+		return await getWorkspaceWithGitData(id);
 	});
 
-	// Create workspace
+	// Create workspace reference
 	ipcMain.handle(
 		"workspace-create",
 		async (_event, input: CreateWorkspaceInput) => {
-			return await workspaceManager.create(input);
+			if (!worktreeManager.isGitRepo(input.repoPath)) {
+				return { success: false, error: "Not a git repository" };
+			}
+
+			const workspaceRef = {
+				id: randomUUID(),
+				name: input.name,
+				repoPath: input.repoPath,
+			};
+
+			// Save to config
+			const workspaces = electronStore.get("workspaces", []);
+			electronStore.set("workspaces", [...workspaces, workspaceRef]);
+			electronStore.set("lastWorkspaceId", workspaceRef.id);
+
+			// Get with live git data
+			const workspace = await getWorkspaceWithGitData(workspaceRef.id);
+
+			return { success: true, workspace };
 		},
 	);
 
-	// Update workspace
+	// Update workspace reference
 	ipcMain.handle(
 		"workspace-update",
 		async (_event, input: UpdateWorkspaceInput) => {
-			return await workspaceManager.update(input);
+			const workspaces = electronStore.get("workspaces", []);
+			const updated = workspaces.map((w) =>
+				w.id === input.id ? { ...w, ...input } : w,
+			);
+			electronStore.set("workspaces", updated);
+
+			return { success: true };
 		},
 	);
 
-	// Delete workspace
+	// Delete workspace reference
 	ipcMain.handle(
 		"workspace-delete",
 		async (_event, input: { id: string; removeWorktree?: boolean }) => {
-			return await workspaceManager.delete(
-				input.id,
-				input.removeWorktree ?? false,
-			);
+			const workspaces = electronStore.get("workspaces", []);
+			electronStore.set("workspaces", workspaces.filter((w) => w.id !== input.id));
+
+			if (electronStore.get("lastWorkspaceId") === input.id) {
+				electronStore.set("lastWorkspaceId", null);
+			}
+
+			return { success: true };
 		},
 	);
 
 	// Get last opened workspace
 	ipcMain.handle("workspace-get-last-opened", async () => {
-		return await workspaceManager.getLastOpened();
+		const lastId = electronStore.get("lastWorkspaceId", null);
+		if (!lastId) return null;
+
+		return await getWorkspaceWithGitData(lastId);
 	});
 
-	// Create worktree
+	// ========================================
+	// WORKTREE OPERATIONS
+	// ========================================
+
+	// Create git worktree (doesn't persist to config, just creates on disk)
 	ipcMain.handle(
 		"worktree-create",
 		async (_event, input: CreateWorktreeInput) => {
-			return await workspaceManager.createWorktree(input);
+			const workspaceRef = electronStore
+				.get("workspaces", [])
+				.find((w) => w.id === input.workspaceId);
+			if (!workspaceRef) {
+				return { success: false, error: "Workspace not found" };
+			}
+
+			// Create git worktree
+			const result = await worktreeManager.createWorktree(
+				workspaceRef.repoPath,
+				input.branch,
+				input.createBranch || false,
+			);
+
+			return result;
 		},
 	);
 
-	// Create tab group
+	// Scan worktrees (just returns current git worktrees, doesn't persist)
+	ipcMain.handle("workspace-scan-worktrees", async (_event, workspaceId: string) => {
+		const workspace = await getWorkspaceWithGitData(workspaceId);
+		if (!workspace) {
+			return { success: false, error: "Workspace not found" };
+		}
+
+		return {
+			success: true,
+			workspace,
+			imported: workspace.worktrees.length,
+		};
+	});
+
+	// ========================================
+	// TAB GROUP / TAB OPERATIONS
+	// These will be managed in renderer via Zustand (runtime state)
+	// Keeping stubs for now to avoid breaking existing code
+	// ========================================
+
 	ipcMain.handle(
 		"tab-group-create",
 		async (_event, input: CreateTabGroupInput) => {
-			return await workspaceManager.createTabGroup(input);
+			// TODO: This should be handled in renderer (instantiate template)
+			return { success: true };
 		},
 	);
 
-	// Create tab
 	ipcMain.handle("tab-create", async (_event, input: CreateTabInput) => {
-		return await workspaceManager.createTab(input);
+		// TODO: This should be handled in renderer
+		return { success: true };
 	});
 
-	// Scan and import existing worktrees
-	ipcMain.handle(
-		"workspace-scan-worktrees",
-		async (_event, workspaceId: string) => {
-			return await workspaceManager.scanAndImportWorktrees(workspaceId);
-		},
-	);
-
-	// Get active selection
+	// Get active selection (from config)
 	ipcMain.handle("workspace-get-active-selection", async () => {
-		return configManager.getActiveSelection();
+		return {
+			worktreeId: null,
+			tabGroupId: null,
+			tabId: null,
+		};
 	});
 
-	// Set active selection
+	// Set active selection (to config)
+	// NOTE: We may not need this anymore since selections are runtime-only
 	ipcMain.handle(
 		"workspace-set-active-selection",
 		async (
 			_event,
-			input: {
+			_input: {
 				worktreeId: string | null;
 				tabGroupId: string | null;
 				tabId: string | null;
 			},
 		) => {
-			return configManager.setActiveSelection(
-				input.worktreeId,
-				input.tabGroupId,
-				input.tabId,
-			);
+			// No-op for now, selections are runtime-only
 		},
 	);
 
-	// Reorder tabs within a tab group
-	ipcMain.handle(
-		"tab-reorder",
-		async (
-			_event,
-			input: {
-				workspaceId: string;
-				worktreeId: string;
-				tabGroupId: string;
-				tabIds: string[];
-			},
-		) => {
-			return await workspaceManager.reorderTabs(
-				input.workspaceId,
-				input.worktreeId,
-				input.tabGroupId,
-				input.tabIds,
-			);
-		},
-	);
-
-	// Reorder tab groups within a worktree
-	ipcMain.handle(
-		"tab-group-reorder",
-		async (
-			_event,
-			input: {
-				workspaceId: string;
-				worktreeId: string;
-				tabGroupIds: string[];
-			},
-		) => {
-			return await workspaceManager.reorderTabGroups(
-				input.workspaceId,
-				input.worktreeId,
-				input.tabGroupIds,
-			);
-		},
-	);
-
-	// Move tab to another tab group
-	ipcMain.handle(
-		"tab-move-to-group",
-		async (
-			_event,
-			input: {
-				workspaceId: string;
-				worktreeId: string;
-				tabId: string;
-				sourceTabGroupId: string;
-				targetTabGroupId: string;
-				targetIndex: number;
-			},
-		) => {
-			return await workspaceManager.moveTabToGroup(
-				input.workspaceId,
-				input.worktreeId,
-				input.tabId,
-				input.sourceTabGroupId,
-				input.targetTabGroupId,
-				input.targetIndex,
-			);
-		},
-	);
-
-	// Update terminal CWD in workspace config
+	// Terminal CWD updates (for persistence across restarts)
+	// NOTE: May not need this if sessions are ephemeral
 	ipcMain.handle(
 		"workspace-update-terminal-cwd",
 		async (
 			_event,
-			input: {
+			_input: {
 				workspaceId: string;
 				worktreeId: string;
 				tabGroupId: string;
@@ -251,13 +250,72 @@ export function registerWorkspaceIPCs() {
 				cwd: string;
 			},
 		) => {
-			return workspaceManager.updateTerminalCwd(
-				input.workspaceId,
-				input.worktreeId,
-				input.tabGroupId,
-				input.tabId,
-				input.cwd,
-			);
+			// No-op for now
+			return true;
 		},
 	);
+
+	// Tab/TabGroup reordering (runtime-only, handled in renderer)
+	ipcMain.handle("tab-reorder", async () => ({ success: true }));
+	ipcMain.handle("tab-group-reorder", async () => ({ success: true }));
+	ipcMain.handle("tab-move-to-group", async () => ({ success: true }));
+
+	// ========================================
+	// CONFIG OPERATIONS (simple get/set API for renderer)
+	// ========================================
+
+	// Get entire config state
+	ipcMain.handle("config:get", async () => {
+		return electronStore.store; // Returns { workspaces, lastWorkspaceId, tabGroupTemplates }
+	});
+
+	// Set entire config state (or partial updates)
+	ipcMain.handle("config:set", async (_event, data: any) => {
+		// Merge partial updates with existing state
+		electronStore.set(data);
+		return electronStore.store; // Return updated state
+	});
+}
+
+// ========================================
+// HELPER: Merge workspace ref + live git data
+// ========================================
+async function getWorkspaceWithGitData(
+	id: string,
+): Promise<Workspace | null> {
+	const workspaceRef = electronStore.get("workspaces", []).find((w) => w.id === id);
+	if (!workspaceRef) return null;
+
+	// Get current branch from git
+	const currentBranch = worktreeManager.getCurrentBranch(workspaceRef.repoPath);
+	if (!currentBranch) return null;
+
+	// Fetch live worktrees from git
+	const gitWorktrees = worktreeManager.listWorktrees(workspaceRef.repoPath);
+	const liveWorktrees: Worktree[] = gitWorktrees
+		.filter((wt) => !wt.bare)
+		.map((gitWorktree) => {
+			const actualBranch =
+				worktreeManager.getCurrentBranch(gitWorktree.path) ||
+				gitWorktree.branch;
+
+			return {
+				id: randomUUID(),
+				branch: actualBranch,
+				path: gitWorktree.path,
+				tabGroups: [], // Runtime state, managed by renderer
+				createdAt: new Date().toISOString(),
+			};
+		});
+
+	// Merge config + git data
+	return {
+		id: workspaceRef.id,
+		name: workspaceRef.name,
+		repoPath: workspaceRef.repoPath,
+		branch: currentBranch,
+		worktrees: liveWorktrees,
+		createdAt: new Date().toISOString(),
+		updatedAt: new Date().toISOString(),
+	};
 }

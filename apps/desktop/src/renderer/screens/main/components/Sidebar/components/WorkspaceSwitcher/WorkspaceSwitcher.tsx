@@ -14,11 +14,11 @@ import {
 	useTransform,
 } from "framer-motion";
 import { Plus } from "lucide-react";
-import type { Workspace } from "shared/types";
+import type { WorkspaceRef } from "shared/electron-store";
 import { getWorkspaceIcon } from "../../utils";
 
 interface WorkspaceSwitcherProps {
-	workspaces: Workspace[];
+	workspaces: WorkspaceRef[];
 	currentWorkspaceId: string | null;
 	onWorkspaceSelect: (workspaceId: string) => void;
 	onAddWorkspace: () => void;

@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { SquareTerminal } from "lucide-react";
-import type { Tab } from "shared/types";
+import type { Tab } from "shared/runtime-types";
 
 interface TabItemProps {
 	tab: Tab;

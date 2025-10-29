@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Tab, TabGroup } from "shared/types";
+import type { Tab, TabGroup } from "shared/runtime-types";
 import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {

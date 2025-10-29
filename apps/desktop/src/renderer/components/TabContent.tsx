@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tab } from "shared/types";
+import type { Tab } from "shared/runtime-types";
 import Terminal from "./Terminal";
 
 interface TabContentProps {

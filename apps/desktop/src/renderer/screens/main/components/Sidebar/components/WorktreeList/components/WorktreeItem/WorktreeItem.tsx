@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { ChevronRight, FolderOpen, GitBranch } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Tab, TabGroup, Worktree } from "shared/types";
+import type { Tab, TabGroup, Worktree } from "shared/runtime-types";
 import {
 	DndContext,
 	DragEndEvent,

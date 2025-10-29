@@ -1,5 +1,7 @@
 import { app, type BrowserWindow, dialog, Menu } from "electron";
-import workspaceManager from "./workspace-manager";
+import { randomUUID } from "node:crypto";
+import { electronStore } from "./config-store";
+import worktreeManager from "./worktree-manager";
 
 export function createApplicationMenu(mainWindow: BrowserWindow) {
 	const template: Electron.MenuItemConstructorOptions[] = [
@@ -22,9 +24,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 
 						const repoPath = result.filePaths[0];
 
-						// Get current branch
-						const worktreeManager = (await import("./worktree-manager"))
-							.default;
+						// Validate git repo
 						if (!worktreeManager.isGitRepo(repoPath)) {
 							dialog.showErrorBox(
 								"Not a Git Repository",
@@ -43,51 +43,73 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 						}
 
 						// Check if workspace already exists for this repo
-						const existingWorkspaces = await workspaceManager.list();
+						const existingWorkspaces = electronStore.get("workspaces", []);
 						const existingWorkspace = existingWorkspaces.find(
 							(ws) => ws.repoPath === repoPath,
 						);
 
 						if (existingWorkspace) {
-							// Workspace already exists, just switch to it
-							console.log(
-								"[Menu] Workspace already exists, switching to:",
-								existingWorkspace,
-							);
-							mainWindow.webContents.send(
-								"workspace-opened",
-								existingWorkspace,
-							);
+							// Workspace already exists, fetch with live git data
+							const gitWorktrees = worktreeManager.listWorktrees(repoPath);
+							const workspace = {
+								id: existingWorkspace.id,
+								name: existingWorkspace.name,
+								repoPath: existingWorkspace.repoPath,
+								branch: currentBranch,
+								worktrees: gitWorktrees
+									.filter((wt) => !wt.bare)
+									.map((gitWorktree) => ({
+										id: randomUUID(),
+										branch:
+											worktreeManager.getCurrentBranch(gitWorktree.path) ||
+											gitWorktree.branch,
+										path: gitWorktree.path,
+										tabGroups: [],
+										createdAt: new Date().toISOString(),
+									})),
+								createdAt: new Date().toISOString(),
+								updatedAt: new Date().toISOString(),
+							};
+
+							mainWindow.webContents.send("workspace-opened", workspace);
 							return;
 						}
 
-						// Create workspace with repo name and current branch
+						// Create new workspace reference
 						const repoName = repoPath.split("/").pop() || "Repository";
-
-						const createResult = await workspaceManager.create({
+						const workspaceRef = {
+							id: randomUUID(),
 							name: repoName,
 							repoPath,
+						};
+
+						// Save to config
+						electronStore.set("workspaces", [...existingWorkspaces, workspaceRef]);
+						electronStore.set("lastWorkspaceId", workspaceRef.id);
+
+						// Get with live git data
+						const gitWorktrees = worktreeManager.listWorktrees(repoPath);
+						const workspace = {
+							id: workspaceRef.id,
+							name: workspaceRef.name,
+							repoPath: workspaceRef.repoPath,
 							branch: currentBranch,
-						});
+							worktrees: gitWorktrees
+								.filter((wt) => !wt.bare)
+								.map((gitWorktree) => ({
+									id: randomUUID(),
+									branch:
+										worktreeManager.getCurrentBranch(gitWorktree.path) ||
+										gitWorktree.branch,
+									path: gitWorktree.path,
+									tabGroups: [],
+									createdAt: new Date().toISOString(),
+								})),
+							createdAt: new Date().toISOString(),
+							updatedAt: new Date().toISOString(),
+						};
 
-						if (!createResult.success) {
-							dialog.showErrorBox(
-								"Error",
-								createResult.error || "Failed to open repository",
-							);
-							return;
-						}
-
-						// Notify renderer to reload workspaces
-						console.log(
-							"[Menu] Sending workspace-opened event:",
-							createResult.workspace,
-						);
-						mainWindow.webContents.send(
-							"workspace-opened",
-							createResult.workspace,
-						);
-						console.log("[Menu] Event sent");
+						mainWindow.webContents.send("workspace-opened", workspace);
 					},
 				},
 				{ type: "separator" },

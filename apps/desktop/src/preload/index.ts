@@ -4,11 +4,13 @@ import type {
 	IpcRequest,
 	IpcResponse_,
 } from "shared/ipc-channels";
+import type { ConfigSchema } from "shared/electron-store";
 
 declare global {
 	interface Window {
 		App: typeof API;
 		ipcRenderer: typeof ipcRendererAPI;
+		electronAPI: typeof electronAPI;
 	}
 }
 
@@ -62,5 +64,30 @@ const ipcRendererAPI = {
 	},
 };
 
+/**
+ * High-level API for config operations
+ */
+const electronAPI = {
+	config: {
+		/**
+		 * Get entire config state from main process
+		 * @returns Promise resolving to full config (workspaces, lastWorkspaceId, tabGroupTemplates)
+		 */
+		get: (): Promise<ConfigSchema> => {
+			return ipcRenderer.invoke("config:get");
+		},
+
+		/**
+		 * Set config state in main process (merges with existing state)
+		 * @param data - Partial or full config object to save
+		 * @returns Promise resolving to updated config state
+		 */
+		set: (data: Partial<ConfigSchema>): Promise<ConfigSchema> => {
+			return ipcRenderer.invoke("config:set", data);
+		},
+	},
+};
+
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
+contextBridge.exposeInMainWorld("electronAPI", electronAPI);
