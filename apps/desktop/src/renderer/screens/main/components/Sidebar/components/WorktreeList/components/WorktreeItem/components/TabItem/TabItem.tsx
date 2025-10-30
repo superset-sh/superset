@@ -5,7 +5,7 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { FolderTree, FolderOutput, SquareTerminal, X } from "lucide-react";
+import { FolderOutput, FolderTree, SquareTerminal, X } from "lucide-react";
 import type { Tab } from "shared/types";
 
 interface TabItemProps {

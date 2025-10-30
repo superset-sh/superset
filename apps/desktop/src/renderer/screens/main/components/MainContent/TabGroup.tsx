@@ -1,231 +1,231 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-    Mosaic,
-    type MosaicBranch,
-    type MosaicNode,
-    MosaicWindow,
+	Mosaic,
+	type MosaicBranch,
+	type MosaicNode,
+	MosaicWindow,
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import type { Tab } from "shared/types";
 import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {
-    groupTab: Tab; // A tab with type: "group"
-    workingDirectory: string;
-    workspaceId: string;
-    worktreeId: string | undefined;
-    selectedTabId: string | undefined;
-    onTabFocus: (tabId: string) => void;
+	groupTab: Tab; // A tab with type: "group"
+	workingDirectory: string;
+	workspaceId: string;
+	worktreeId: string | undefined;
+	selectedTabId: string | undefined;
+	onTabFocus: (tabId: string) => void;
 }
 
 export default function TabGroup({
-    groupTab,
-    workingDirectory,
-    workspaceId,
-    worktreeId,
-    selectedTabId,
-    onTabFocus,
+	groupTab,
+	workingDirectory,
+	workspaceId,
+	worktreeId,
+	selectedTabId,
+	onTabFocus,
 }: ScreenLayoutProps) {
-    // Initialize mosaic tree from groupTab or create a default tree
-    const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
-        () => {
-            if (groupTab.mosaicTree) {
-                return groupTab.mosaicTree as MosaicNode<string>;
-            }
+	// Initialize mosaic tree from groupTab or create a default tree
+	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
+		() => {
+			if (groupTab.mosaicTree) {
+				return groupTab.mosaicTree as MosaicNode<string>;
+			}
 
-            // If no mosaic tree exists but tabs exist, create a default layout
-            if (groupTab.tabs && groupTab.tabs.length > 0) {
-                if (groupTab.tabs.length === 1) {
-                    return groupTab.tabs[0].id;
-                }
-                // Create a simple row split for 2+ tabs
-                return {
-                    direction: "row",
-                    first: groupTab.tabs[0].id,
-                    second:
-                        groupTab.tabs.length === 2
-                            ? groupTab.tabs[1].id
-                            : {
-                                direction: "column",
-                                first: groupTab.tabs[1].id,
-                                second: groupTab.tabs[2]?.id || groupTab.tabs[1].id,
-                            },
-                };
-            }
+			// If no mosaic tree exists but tabs exist, create a default layout
+			if (groupTab.tabs && groupTab.tabs.length > 0) {
+				if (groupTab.tabs.length === 1) {
+					return groupTab.tabs[0].id;
+				}
+				// Create a simple row split for 2+ tabs
+				return {
+					direction: "row",
+					first: groupTab.tabs[0].id,
+					second:
+						groupTab.tabs.length === 2
+							? groupTab.tabs[1].id
+							: {
+									direction: "column",
+									first: groupTab.tabs[1].id,
+									second: groupTab.tabs[2]?.id || groupTab.tabs[1].id,
+								},
+				};
+			}
 
-            return null;
-        },
-    );
+			return null;
+		},
+	);
 
-    // Sync mosaic tree when groupTab.mosaicTree changes externally
-    useEffect(() => {
-        if (groupTab.mosaicTree) {
-            setMosaicTree(groupTab.mosaicTree as MosaicNode<string>);
-        } else if (groupTab.tabs && groupTab.tabs.length > 0) {
-            // Reconstruct tree if it was cleared but tabs exist
-            if (groupTab.tabs.length === 1) {
-                setMosaicTree(groupTab.tabs[0].id);
-            } else {
-                setMosaicTree({
-                    direction: "row",
-                    first: groupTab.tabs[0].id,
-                    second:
-                        groupTab.tabs.length === 2
-                            ? groupTab.tabs[1].id
-                            : {
-                                direction: "column",
-                                first: groupTab.tabs[1].id,
-                                second: groupTab.tabs[2]?.id || groupTab.tabs[1].id,
-                            },
-                });
-            }
-        }
-    }, [groupTab.mosaicTree, groupTab.tabs]);
+	// Sync mosaic tree when groupTab.mosaicTree changes externally
+	useEffect(() => {
+		if (groupTab.mosaicTree) {
+			setMosaicTree(groupTab.mosaicTree as MosaicNode<string>);
+		} else if (groupTab.tabs && groupTab.tabs.length > 0) {
+			// Reconstruct tree if it was cleared but tabs exist
+			if (groupTab.tabs.length === 1) {
+				setMosaicTree(groupTab.tabs[0].id);
+			} else {
+				setMosaicTree({
+					direction: "row",
+					first: groupTab.tabs[0].id,
+					second:
+						groupTab.tabs.length === 2
+							? groupTab.tabs[1].id
+							: {
+									direction: "column",
+									first: groupTab.tabs[1].id,
+									second: groupTab.tabs[2]?.id || groupTab.tabs[1].id,
+								},
+				});
+			}
+		}
+	}, [groupTab.mosaicTree, groupTab.tabs]);
 
-    // Helper function to get all tab IDs from a mosaic tree
-    const getTabIdsFromTree = (tree: MosaicNode<string> | null): Set<string> => {
-        const ids = new Set<string>();
-        if (!tree) return ids;
+	// Helper function to get all tab IDs from a mosaic tree
+	const getTabIdsFromTree = (tree: MosaicNode<string> | null): Set<string> => {
+		const ids = new Set<string>();
+		if (!tree) return ids;
 
-        if (typeof tree === "string") {
-            ids.add(tree);
-        } else {
-            const firstIds = getTabIdsFromTree(tree.first);
-            const secondIds = getTabIdsFromTree(tree.second);
-            firstIds.forEach((id) => ids.add(id));
-            secondIds.forEach((id) => ids.add(id));
-        }
-        return ids;
-    };
+		if (typeof tree === "string") {
+			ids.add(tree);
+		} else {
+			const firstIds = getTabIdsFromTree(tree.first);
+			const secondIds = getTabIdsFromTree(tree.second);
+			firstIds.forEach((id) => ids.add(id));
+			secondIds.forEach((id) => ids.add(id));
+		}
+		return ids;
+	};
 
-    // Save mosaic tree changes to backend
-    const handleMosaicChange = useCallback(
-        async (newTree: MosaicNode<string> | null) => {
-            if (!worktreeId) return;
+	// Save mosaic tree changes to backend
+	const handleMosaicChange = useCallback(
+		async (newTree: MosaicNode<string> | null) => {
+			if (!worktreeId) return;
 
-            // Detect which tabs were removed from the mosaic tree
-            const oldTabIds = getTabIdsFromTree(mosaicTree);
-            const newTabIds = getTabIdsFromTree(newTree);
-            const removedTabIds = Array.from(oldTabIds).filter(
-                (id) => !newTabIds.has(id),
-            );
+			// Detect which tabs were removed from the mosaic tree
+			const oldTabIds = getTabIdsFromTree(mosaicTree);
+			const newTabIds = getTabIdsFromTree(newTree);
+			const removedTabIds = Array.from(oldTabIds).filter(
+				(id) => !newTabIds.has(id),
+			);
 
-            try {
-                // First, delete any tabs that were removed from the mosaic
-                for (const removedTabId of removedTabIds) {
-                    await window.ipcRenderer.invoke("tab-delete", {
-                        workspaceId,
-                        worktreeId,
-                        tabId: removedTabId,
-                    });
-                }
+			try {
+				// First, delete any tabs that were removed from the mosaic
+				for (const removedTabId of removedTabIds) {
+					await window.ipcRenderer.invoke("tab-delete", {
+						workspaceId,
+						worktreeId,
+						tabId: removedTabId,
+					});
+				}
 
-                // Then update the mosaic tree
-                await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
-                    workspaceId,
-                    worktreeId,
-                    tabId: groupTab.id,
-                    mosaicTree: newTree,
-                });
+				// Then update the mosaic tree
+				await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+					workspaceId,
+					worktreeId,
+					tabId: groupTab.id,
+					mosaicTree: newTree,
+				});
 
-                // Update local state after successful backend update
-                setMosaicTree(newTree);
-            } catch (error) {
-                console.error("Failed to save mosaic tree:", error);
-            }
-        },
-        [workspaceId, worktreeId, groupTab.id, mosaicTree],
-    );
+				// Update local state after successful backend update
+				setMosaicTree(newTree);
+			} catch (error) {
+				console.error("Failed to save mosaic tree:", error);
+			}
+		},
+		[workspaceId, worktreeId, groupTab.id, mosaicTree],
+	);
 
-    // Create a map of tab IDs to Tab objects for easy lookup
-    const tabsById = new Map(groupTab.tabs?.map((tab) => [tab.id, tab]) || []);
+	// Create a map of tab IDs to Tab objects for easy lookup
+	const tabsById = new Map(groupTab.tabs?.map((tab) => [tab.id, tab]) || []);
 
-    // Render individual mosaic tile
-    const renderTile = useCallback(
-        (id: string, path: MosaicBranch[]) => {
-            const tab = tabsById.get(id);
-            if (!tab) {
-                return (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        Tab not found: {id}
-                    </div>
-                );
-            }
+	// Render individual mosaic tile
+	const renderTile = useCallback(
+		(id: string, path: MosaicBranch[]) => {
+			const tab = tabsById.get(id);
+			if (!tab) {
+				return (
+					<div className="w-full h-full flex items-center justify-center text-gray-400">
+						Tab not found: {id}
+					</div>
+				);
+			}
 
-            const isActive = selectedTabId === id;
+			const isActive = selectedTabId === id;
 
-            return (
-                <MosaicWindow<string>
-                    path={path}
-                    title={tab.name}
-                    className={isActive ? "active-mosaic-window" : ""}
-                    toolbarControls={<div />}
-                >
-                    <TabContent
-                        tab={tab}
-                        workingDirectory={workingDirectory}
-                        workspaceId={workspaceId}
-                        worktreeId={worktreeId}
-                        groupTabId={groupTab.id}
-                        selectedTabId={selectedTabId}
-                        onTabFocus={onTabFocus}
-                    />
-                </MosaicWindow>
-            );
-        },
-        [
-            tabsById,
-            selectedTabId,
-            workingDirectory,
-            workspaceId,
-            worktreeId,
-            groupTab.id,
-            onTabFocus,
-        ],
-    );
+			return (
+				<MosaicWindow<string>
+					path={path}
+					title={tab.name}
+					className={isActive ? "active-mosaic-window" : ""}
+					toolbarControls={<div />}
+				>
+					<TabContent
+						tab={tab}
+						workingDirectory={workingDirectory}
+						workspaceId={workspaceId}
+						worktreeId={worktreeId}
+						groupTabId={groupTab.id}
+						selectedTabId={selectedTabId}
+						onTabFocus={onTabFocus}
+					/>
+				</MosaicWindow>
+			);
+		},
+		[
+			tabsById,
+			selectedTabId,
+			workingDirectory,
+			workspaceId,
+			worktreeId,
+			groupTab.id,
+			onTabFocus,
+		],
+	);
 
-    // Safety check: ensure groupTab is a group type with tabs
-    if (
-        !groupTab ||
-        groupTab.type !== "group" ||
-        !groupTab.tabs ||
-        !Array.isArray(groupTab.tabs) ||
-        groupTab.tabs.length === 0
-    ) {
-        return (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <div className="text-center">
-                    <p>No tabs in this group</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Create a new tab to get started
-                    </p>
-                </div>
-            </div>
-        );
-    }
+	// Safety check: ensure groupTab is a group type with tabs
+	if (
+		!groupTab ||
+		groupTab.type !== "group" ||
+		!groupTab.tabs ||
+		!Array.isArray(groupTab.tabs) ||
+		groupTab.tabs.length === 0
+	) {
+		return (
+			<div className="w-full h-full flex items-center justify-center text-gray-400">
+				<div className="text-center">
+					<p>No tabs in this group</p>
+					<p className="text-sm text-gray-500 mt-2">
+						Create a new tab to get started
+					</p>
+				</div>
+			</div>
+		);
+	}
 
-    if (!mosaicTree) {
-        return (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <div className="text-center">
-                    <p>Invalid mosaic layout</p>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Please rescan worktrees or recreate the group
-                    </p>
-                </div>
-            </div>
-        );
-    }
+	if (!mosaicTree) {
+		return (
+			<div className="w-full h-full flex items-center justify-center text-gray-400">
+				<div className="text-center">
+					<p>Invalid mosaic layout</p>
+					<p className="text-sm text-gray-500 mt-2">
+						Please rescan worktrees or recreate the group
+					</p>
+				</div>
+			</div>
+		);
+	}
 
-    return (
-        <div className="w-full h-full mosaic-container">
-            <Mosaic<string>
-                renderTile={renderTile}
-                value={mosaicTree}
-                onChange={handleMosaicChange}
-                className="mosaic-theme-dark"
-            />
-            <style>{`
+	return (
+		<div className="w-full h-full mosaic-container">
+			<Mosaic<string>
+				renderTile={renderTile}
+				value={mosaicTree}
+				onChange={handleMosaicChange}
+				className="mosaic-theme-dark"
+			/>
+			<style>{`
 				.mosaic-container {
 					background: #1a1a1a;
 				}
@@ -257,6 +257,6 @@ export default function TabGroup({
 					box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 				}
 			`}</style>
-        </div>
-    );
+		</div>
+	);
 }

@@ -1,9 +1,9 @@
 import {
 	closestCenter,
 	DndContext,
-	DragOverlay,
 	type DragEndEvent,
 	type DragOverEvent,
+	DragOverlay,
 	type DragStartEvent,
 	KeyboardSensor,
 	PointerSensor,
@@ -193,9 +193,7 @@ function DroppableGroupArea({
 		<div
 			ref={setNodeRef}
 			className={`relative ${
-				isOver
-					? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md"
-					: ""
+				isOver ? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md" : ""
 			}`}
 			style={{
 				minHeight: "40px",
@@ -771,7 +769,11 @@ export function WorktreeItem({
 					const draggedTab = findTabById(tabs, draggedTabId);
 					const targetGroupTab = findTabById(tabs, targetParentTabId);
 
-					if (!draggedTab || !targetGroupTab || targetGroupTab.type !== "group") {
+					if (
+						!draggedTab ||
+						!targetGroupTab ||
+						targetGroupTab.type !== "group"
+					) {
 						console.error("Invalid tab or target group");
 						return;
 					}
@@ -1000,10 +1002,7 @@ export function WorktreeItem({
 
 					{/* Nested Tabs - Make the entire area droppable */}
 					{isExpanded && tab.tabs && (
-						<DroppableGroupArea
-							groupTabId={tab.id}
-							isOver={isAreaOver}
-						>
+						<DroppableGroupArea groupTabId={tab.id} isOver={isAreaOver}>
 							<div className="space-y-1">
 								{tab.tabs.map((childTab) =>
 									renderTab(childTab, tab.id, level + 1),

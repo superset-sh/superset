@@ -251,8 +251,7 @@ export async function executeSetup(
 			error: allErrors.length > 0 ? allErrors.join("\n") : undefined,
 		};
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : String(error);
+		const errorMessage = error instanceof Error ? error.message : String(error);
 		return {
 			success: false,
 			output: outputs.join("\n"),

@@ -38,6 +38,8 @@ export function Sidebar({
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
 	const [branchName, setBranchName] = useState("");
+	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
+	const [setupOutput, setSetupOutput] = useState<string | undefined>(undefined);
 
 	// Initialize with current workspace index
 	const currentIndex = workspaces.findIndex(
@@ -107,6 +109,8 @@ export function Sidebar({
 			createBranch: true,
 		});
 		setIsCreatingWorktree(true);
+		setSetupStatus("Creating git worktree...");
+		setSetupOutput(undefined);
 
 		try {
 			// Type-safe IPC call - no need for type assertion!
@@ -118,16 +122,36 @@ export function Sidebar({
 
 			if (result.success) {
 				console.log("[Sidebar] Worktree created successfully");
+
+				// Display setup result if available
+				if (result.setupResult) {
+					setSetupStatus(
+						result.setupResult.success
+							? "Setup completed successfully!"
+							: "Setup completed with errors",
+					);
+					setSetupOutput(result.setupResult.output);
+
+					// Keep modal open for 1.5 seconds to show result
+					await new Promise((resolve) => setTimeout(resolve, 1500));
+				}
+
 				setShowWorktreeModal(false);
 				setBranchName("");
+				setSetupStatus(undefined);
+				setSetupOutput(undefined);
 				onWorktreeCreated();
 			} else {
 				console.error("[Sidebar] Failed to create worktree:", result.error);
-				alert(`Failed to create worktree: ${result.error || "Unknown error"}`);
+				setSetupStatus("Failed to create worktree");
+				setSetupOutput(result.error);
+				// Don't close modal on error so user can see what went wrong
 			}
 		} catch (error) {
 			console.error("[Sidebar] Error creating worktree:", error);
-			alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+			setSetupStatus("Error creating worktree");
+			setSetupOutput(error instanceof Error ? error.message : String(error));
+			// Don't close modal on error so user can see what went wrong
 		} finally {
 			setIsCreatingWorktree(false);
 		}
@@ -136,6 +160,8 @@ export function Sidebar({
 	const handleCancelWorktree = () => {
 		setShowWorktreeModal(false);
 		setBranchName("");
+		setSetupStatus(undefined);
+		setSetupOutput(undefined);
 	};
 
 	const handleAddWorkspace = () => {
@@ -258,6 +284,8 @@ export function Sidebar({
 				isCreating={isCreatingWorktree}
 				branchName={branchName}
 				onBranchNameChange={setBranchName}
+				setupStatus={setupStatus}
+				setupOutput={setupOutput}
 			/>
 		</div>
 	);

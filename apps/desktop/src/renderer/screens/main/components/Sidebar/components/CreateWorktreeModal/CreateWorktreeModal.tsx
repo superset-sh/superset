@@ -1,4 +1,16 @@
 import { Button } from "@superset/ui/button";
+import { Loader2 } from "lucide-react";
+import { useId } from "react";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "renderer/components/ui/dialog";
+import { Input } from "renderer/components/ui/input";
+import { Label } from "renderer/components/ui/label";
 
 interface CreateWorktreeModalProps {
 	isOpen: boolean;
@@ -7,6 +19,8 @@ interface CreateWorktreeModalProps {
 	isCreating: boolean;
 	branchName: string;
 	onBranchNameChange: (value: string) => void;
+	setupStatus?: string;
+	setupOutput?: string;
 }
 
 export function CreateWorktreeModal({
@@ -16,37 +30,61 @@ export function CreateWorktreeModal({
 	isCreating,
 	branchName,
 	onBranchNameChange,
+	setupStatus,
+	setupOutput,
 }: CreateWorktreeModalProps) {
-	if (!isOpen) return null;
+	const inputId = useId();
 
 	return (
-		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-neutral-800 rounded-lg shadow-xl p-6 w-96">
-				<h3 className="text-lg font-semibold mb-4">Create New Worktree</h3>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogContent
+				className="max-w-[600px] max-h-[80vh] flex flex-col"
+				showCloseButton={!isCreating}
+			>
+				<DialogHeader>
+					<DialogTitle>Create New Worktree</DialogTitle>
+					<DialogDescription>
+						A new branch will be created from the current branch
+					</DialogDescription>
+				</DialogHeader>
 
-				<form onSubmit={onSubmit} className="space-y-4">
-					<div>
-						<label
-							htmlFor="branchName"
-							className="block text-sm font-medium mb-2"
-						>
-							New Branch Name
-						</label>
-						<input
+				<form
+					onSubmit={onSubmit}
+					className="space-y-4 flex-1 flex flex-col overflow-hidden"
+				>
+					<div className="space-y-2">
+						<Label htmlFor={inputId}>New Branch Name</Label>
+						<Input
 							type="text"
+							id={inputId}
 							value={branchName}
 							onChange={(e) => onBranchNameChange(e.target.value)}
 							placeholder="feature/my-branch"
-							className="w-full px-3 py-2 bg-neutral-700 border border-neutral-600 rounded text-white focus:outline-none focus:border-blue-500"
 							autoFocus
 							required
+							disabled={isCreating}
 						/>
-						<p className="text-xs text-gray-400 mt-1">
-							A new branch will be created from the current branch
-						</p>
 					</div>
 
-					<div className="flex justify-end gap-3 mt-6">
+					{/* Setup Progress Section */}
+					{isCreating && (
+						<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px]">
+							<div className="flex items-center gap-2 text-sm">
+								<Loader2 size={16} className="animate-spin" />
+								<span>{setupStatus || "Creating worktree..."}</span>
+							</div>
+
+							{setupOutput && (
+								<div className="flex-1 bg-neutral-900 rounded border border-neutral-700 p-3 overflow-y-auto">
+									<pre className="text-xs text-neutral-300 whitespace-pre-wrap font-mono">
+										{setupOutput}
+									</pre>
+								</div>
+							)}
+						</div>
+					)}
+
+					<DialogFooter>
 						<Button
 							type="button"
 							variant="ghost"
@@ -55,16 +93,12 @@ export function CreateWorktreeModal({
 						>
 							Cancel
 						</Button>
-						<Button
-							type="submit"
-							disabled={isCreating || !branchName.trim()}
-							className="bg-blue-600 hover:bg-blue-700"
-						>
+						<Button type="submit" disabled={isCreating || !branchName.trim()}>
 							{isCreating ? "Creating..." : "Create"}
 						</Button>
-					</div>
+					</DialogFooter>
 				</form>
-			</div>
-		</div>
+			</DialogContent>
+		</Dialog>
 	);
 }
