@@ -1,6 +1,8 @@
 {
-  "copy": [],
-  "commands": [
-    "bun i"
-  ]
+    "copy": [
+        ".env"
+    ],
+    "commands": [
+        "bun i"
+    ]
 }

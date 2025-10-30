@@ -258,6 +258,14 @@ export function Sidebar({
 			>
 				{(workspace, isActive) => (
 					<>
+						{workspace && (
+							<div className="px-3 pt-2 pb-1 mb-2">
+								<div className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
+									{workspace.name}
+								</div>
+							</div>
+						)}
+
 						<WorktreeList
 							currentWorkspace={workspace}
 							expandedWorktrees={expandedWorktrees}

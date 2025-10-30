@@ -24,6 +24,7 @@ export function WorkspaceCarousel({
 	onScrollProgress,
 }: WorkspaceCarouselProps) {
 	const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+	const isInitialMount = useRef(true);
 
 	const currentIndex = workspaces.findIndex(
 		(w) => w.id === currentWorkspace?.id,
@@ -91,9 +92,12 @@ export function WorkspaceCarousel({
 		if (Math.abs(scrollContainer.scrollLeft - targetScrollX) > 10) {
 			scrollContainer.scrollTo({
 				left: targetScrollX,
-				behavior: "smooth",
+				behavior: isInitialMount.current ? "auto" : "smooth",
 			});
 		}
+
+		// Mark that initial mount is complete
+		isInitialMount.current = false;
 	}, [currentIndex, scrollContainer]);
 
 	// Detect when user finishes scrolling and update current workspace
