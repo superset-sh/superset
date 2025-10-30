@@ -45,7 +45,7 @@
         "fast-glob": "^3.3.3",
         "framer-motion": "^12.23.24",
         "http-proxy": "^1.18.1",
-        "lucide-react": "^0.468.0",
+        "lucide-react": "^0.548.0",
         "node-pty": "1.1.0-beta30",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
