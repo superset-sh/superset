@@ -90,9 +90,26 @@ class WorktreeManager {
 			};
 		} catch (error) {
 			console.error("Failed to create worktree:", error);
+
+			// Extract a cleaner error message from git output
+			let errorMessage = error instanceof Error ? error.message : String(error);
+
+			// Try to extract the fatal/error line from stderr for a cleaner message
+			if (typeof error === "object" && error !== null && "stderr" in error) {
+				const stderr = String((error as any).stderr);
+				const fatalMatch = stderr.match(/fatal: (.+)/);
+				const errorMatch = stderr.match(/error: (.+)/);
+
+				if (fatalMatch) {
+					errorMessage = fatalMatch[1].trim();
+				} else if (errorMatch) {
+					errorMessage = errorMatch[1].trim();
+				}
+			}
+
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : String(error),
+				error: errorMessage,
 			};
 		}
 	}

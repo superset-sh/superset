@@ -602,12 +602,12 @@ export function WorktreeItem({
 	};
 
 	const confirmRemoveWorktree = async () => {
+		setShowRemoveDialog(false);
+
 		const result = await window.ipcRenderer.invoke("worktree-remove", {
 			workspaceId,
 			worktreeId: worktree.id,
 		});
-
-		setShowRemoveDialog(false);
 
 		if (result.success) {
 			onReload();
@@ -649,13 +649,13 @@ export function WorktreeItem({
 	};
 
 	const confirmMergeWorktree = async () => {
+		setShowMergeDialog(false);
+		setMergeWarning("");
+
 		const result = await window.ipcRenderer.invoke("worktree-merge", {
 			workspaceId,
 			worktreeId: worktree.id,
 		});
-
-		setShowMergeDialog(false);
-		setMergeWarning("");
 
 		if (result.success) {
 			onReload();

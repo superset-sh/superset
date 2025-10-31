@@ -137,6 +137,26 @@ export function CreateWorktreeModal({
 						</div>
 					)}
 
+					{/* Error Display - shown when creation failed */}
+					{!isCreating &&
+						setupStatus &&
+						(setupStatus.toLowerCase().includes("failed") ||
+							setupStatus.toLowerCase().includes("error")) && (
+							<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px]">
+								<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
+									<span>{setupStatus}</span>
+								</div>
+
+								{setupOutput && (
+									<div className="flex-1 bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto">
+										<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
+											{setupOutput}
+										</pre>
+									</div>
+								)}
+							</div>
+						)}
+
 					<DialogFooter>
 						<Button
 							type="button"
