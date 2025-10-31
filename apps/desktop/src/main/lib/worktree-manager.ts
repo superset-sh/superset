@@ -53,6 +53,7 @@ class WorktreeManager {
 		repoPath: string,
 		branch: string,
 		createBranch = false,
+		sourceBranch?: string,
 	): Promise<{ success: boolean; path?: string; error?: string }> {
 		try {
 			const worktreePath = this.getWorktreePath(repoPath, branch);
@@ -68,7 +69,12 @@ class WorktreeManager {
 			// Build git worktree add command
 			let command = `git worktree add "${worktreePath}"`;
 			if (createBranch) {
-				command += ` -b ${branch}`;
+				// When creating a new branch, optionally specify the source branch
+				if (sourceBranch) {
+					command += ` -b ${branch} ${sourceBranch}`;
+				} else {
+					command += ` -b ${branch}`;
+				}
 			} else {
 				command += ` ${branch}`;
 			}
@@ -183,6 +189,25 @@ class WorktreeManager {
 		} catch (error) {
 			console.error("Failed to get current branch:", error);
 			return null;
+		}
+	}
+
+	/**
+	 * List all branches in a repository
+	 */
+	listBranches(repoPath: string): string[] {
+		try {
+			const output = execSync("git branch --format='%(refname:short)'", {
+				cwd: repoPath,
+				encoding: "utf-8",
+			}).trim();
+
+			if (!output) return [];
+
+			return output.split("\n").map(branch => branch.trim()).filter(Boolean);
+		} catch (error) {
+			console.error("Failed to list branches:", error);
+			return [];
 		}
 	}
 

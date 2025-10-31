@@ -36,6 +36,7 @@ export async function createWorktree(
 			workspace.repoPath,
 			input.branch,
 			input.createBranch || false,
+			input.sourceBranch,
 		);
 
 		if (!worktreeResult.success) {

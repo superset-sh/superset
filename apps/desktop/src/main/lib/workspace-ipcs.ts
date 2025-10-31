@@ -193,6 +193,23 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// List branches for a workspace
+	ipcMain.handle(
+		"workspace-list-branches",
+		async (_event, workspaceId: string) => {
+			const workspace = await workspaceManager.get(workspaceId);
+			if (!workspace) {
+				return { branches: [], currentBranch: null };
+			}
+
+			const worktreeManager = (await import("./worktree-manager")).default;
+			const branches = worktreeManager.listBranches(workspace.repoPath);
+			const currentBranch = worktreeManager.getCurrentBranch(workspace.repoPath);
+
+			return { branches, currentBranch };
+		},
+	);
+
 	// Reorder tabs within a parent tab or at worktree level
 	ipcMain.handle(
 		"tab-reorder",

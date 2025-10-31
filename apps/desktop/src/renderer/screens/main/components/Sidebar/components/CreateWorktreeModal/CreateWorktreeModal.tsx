@@ -19,6 +19,9 @@ interface CreateWorktreeModalProps {
 	isCreating: boolean;
 	branchName: string;
 	onBranchNameChange: (value: string) => void;
+	branches: string[];
+	sourceBranch: string;
+	onSourceBranchChange: (value: string) => void;
 	setupStatus?: string;
 	setupOutput?: string;
 }
@@ -30,10 +33,14 @@ export function CreateWorktreeModal({
 	isCreating,
 	branchName,
 	onBranchNameChange,
+	branches,
+	sourceBranch,
+	onSourceBranchChange,
 	setupStatus,
 	setupOutput,
 }: CreateWorktreeModalProps) {
 	const inputId = useId();
+	const sourceBranchId = useId();
 
 	return (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -44,7 +51,7 @@ export function CreateWorktreeModal({
 				<DialogHeader>
 					<DialogTitle>Create New Worktree</DialogTitle>
 					<DialogDescription>
-						A new branch will be created from the current branch
+						A new branch will be created from the selected source branch
 					</DialogDescription>
 				</DialogHeader>
 
@@ -52,6 +59,23 @@ export function CreateWorktreeModal({
 					onSubmit={onSubmit}
 					className="space-y-4 flex-1 flex flex-col overflow-hidden"
 				>
+					<div className="space-y-2">
+						<Label htmlFor={sourceBranchId}>Create From Branch</Label>
+						<select
+							id={sourceBranchId}
+							value={sourceBranch}
+							onChange={(e) => onSourceBranchChange(e.target.value)}
+							disabled={isCreating}
+							className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{branches.map((branch) => (
+								<option key={branch} value={branch}>
+									{branch}
+								</option>
+							))}
+						</select>
+					</div>
+
 					<div className="space-y-2">
 						<Label htmlFor={inputId}>New Branch Name</Label>
 						<Input

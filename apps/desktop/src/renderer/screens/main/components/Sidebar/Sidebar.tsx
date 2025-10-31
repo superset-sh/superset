@@ -39,6 +39,8 @@ export function Sidebar({
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
 	const [branchName, setBranchName] = useState("");
+	const [branches, setBranches] = useState<string[]>([]);
+	const [sourceBranch, setSourceBranch] = useState("");
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
 	const [setupOutput, setSetupOutput] = useState<string | undefined>(undefined);
 
@@ -82,6 +84,21 @@ export function Sidebar({
 			}
 		}
 	}, [currentWorkspace, selectedTabId]);
+
+	// Fetch branches when modal opens
+	useEffect(() => {
+		if (showWorktreeModal && currentWorkspace) {
+			const fetchBranches = async () => {
+				const result = await window.ipcRenderer.invoke(
+					"workspace-list-branches",
+					currentWorkspace.id,
+				);
+				setBranches(result.branches);
+				setSourceBranch(result.currentBranch || result.branches[0] || "");
+			};
+			fetchBranches();
+		}
+	}, [showWorktreeModal, currentWorkspace]);
 
 	const toggleWorktree = (worktreeId: string) => {
 		setExpandedWorktrees((prev) => {
@@ -128,6 +145,7 @@ export function Sidebar({
 				workspaceId: currentWorkspace.id,
 				branch: branchName.trim(),
 				createBranch: true,
+				sourceBranch: sourceBranch,
 			});
 
 			if (result.success) {
@@ -304,6 +322,9 @@ export function Sidebar({
 				isCreating={isCreatingWorktree}
 				branchName={branchName}
 				onBranchNameChange={setBranchName}
+				branches={branches}
+				sourceBranch={sourceBranch}
+				onSourceBranchChange={setSourceBranch}
 				setupStatus={setupStatus}
 				setupOutput={setupOutput}
 			/>
