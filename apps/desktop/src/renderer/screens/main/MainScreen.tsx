@@ -380,6 +380,14 @@ export function MainScreen() {
 		}
 
 		if (typeof tree === "string") {
+			// Prevent duplicate IDs - if the tree already contains this tab ID, just return the tree
+			if (tree === tabId) {
+				console.warn(
+					`[MainScreen] Attempted to add duplicate tab ID "${tabId}" to mosaic tree`,
+				);
+				return tree;
+			}
+
 			// Single tab - create a split
 			return {
 				direction: "row",
@@ -387,6 +395,21 @@ export function MainScreen() {
 				second: tabId,
 				splitPercentage: 50,
 			};
+		}
+
+		// Check if the tab ID already exists in the tree (recursively)
+		const containsTabId = (node: MosaicNode<string>): boolean => {
+			if (typeof node === "string") {
+				return node === tabId;
+			}
+			return containsTabId(node.first) || containsTabId(node.second);
+		};
+
+		if (containsTabId(tree)) {
+			console.warn(
+				`[MainScreen] Tab ID "${tabId}" already exists in mosaic tree, skipping addition`,
+			);
+			return tree;
 		}
 
 		// Tree node - add to the second branch
@@ -460,6 +483,80 @@ export function MainScreen() {
 				try {
 					const parentTabId = activeData.parentTabId;
 
+					// Check if the dragged tab is already in this group
+					const isAlreadyInGroup = selectedTab.tabs?.some(
+						(t) => t.id === draggedTabId,
+					);
+					if (isAlreadyInGroup) {
+						console.log(
+							"[MainScreen] Tab is already in this group - creating duplicate tab for split",
+						);
+
+						// Find the original tab to get its properties
+						const originalTab = findTabById(worktree.tabs, draggedTabId);
+						if (!originalTab) {
+							console.error(
+								"[MainScreen] Could not find original tab:",
+								draggedTabId,
+							);
+							return;
+						}
+
+						// Create a new duplicate tab
+						const newTabResult = await window.ipcRenderer.invoke("tab-create", {
+							workspaceId: currentWorkspace.id,
+							worktreeId: selectedWorktreeId,
+							name: originalTab.name,
+							type: originalTab.type,
+						});
+
+						if (!newTabResult.success || !newTabResult.tab) {
+							console.error(
+								"[MainScreen] Failed to create duplicate tab:",
+								newTabResult.error,
+							);
+							return;
+						}
+
+						// Move the new tab into the group
+						const moveResult = await window.ipcRenderer.invoke("tab-move", {
+							workspaceId: currentWorkspace.id,
+							worktreeId: selectedWorktreeId,
+							tabId: newTabResult.tab.id,
+							sourceParentTabId: undefined,
+							targetParentTabId: selectedTab.id,
+							targetIndex: selectedTab.tabs?.length || 0,
+						});
+
+						if (!moveResult.success) {
+							console.error("[MainScreen] Failed to move tab:", moveResult.error);
+							return;
+						}
+
+						// Update the mosaic tree to include the new tab
+						const updatedMosaicTree = addTabToMosaicTree(
+							selectedTab.mosaicTree,
+							newTabResult.tab.id,
+						);
+
+						await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+							workspaceId: currentWorkspace.id,
+							worktreeId: selectedWorktreeId,
+							tabId: selectedTab.id,
+							mosaicTree: updatedMosaicTree,
+						});
+
+						// Refresh workspace to show the updated structure
+						const refreshedWorkspace = await window.ipcRenderer.invoke(
+							"workspace-get",
+							currentWorkspace.id,
+						);
+						if (refreshedWorkspace) {
+							setCurrentWorkspace(refreshedWorkspace);
+						}
+						return;
+					}
+
 					// Move the tab into the group
 					const moveResult = await window.ipcRenderer.invoke("tab-move", {
 						workspaceId: currentWorkspace.id,
@@ -503,6 +600,34 @@ export function MainScreen() {
 			// Case 2: Currently viewing a single tab - create a new group with both tabs
 			else if (selectedTab) {
 				try {
+					// If dragging a tab onto itself, create a new duplicate tab for the split
+					let secondTabId = draggedTabId;
+					const parentTabId = activeData.parentTabId;
+
+					if (draggedTabId === selectedTab.id) {
+						console.log(
+							"[MainScreen] Dragging tab onto itself - creating duplicate tab for split",
+						);
+
+						// Create a new tab with the same type and name
+						const newTabResult = await window.ipcRenderer.invoke("tab-create", {
+							workspaceId: currentWorkspace.id,
+							worktreeId: selectedWorktreeId,
+							name: selectedTab.name,
+							type: selectedTab.type,
+						});
+
+						if (!newTabResult.success || !newTabResult.tab) {
+							console.error(
+								"[MainScreen] Failed to create duplicate tab:",
+								newTabResult.error,
+							);
+							return;
+						}
+
+						secondTabId = newTabResult.tab.id;
+					}
+
 					// Create a new group tab
 					const groupResult = await window.ipcRenderer.invoke("tab-create", {
 						workspaceId: currentWorkspace.id,
@@ -520,7 +645,6 @@ export function MainScreen() {
 					}
 
 					const groupTabId = groupResult.tab.id;
-					const parentTabId = activeData.parentTabId;
 
 					// Move both tabs into the group
 					// First, move the currently selected tab
@@ -533,12 +657,13 @@ export function MainScreen() {
 						targetIndex: 0,
 					});
 
-					// Then, move the dragged tab
+					// Then, move the second tab (either the dragged tab or the newly created one)
 					await window.ipcRenderer.invoke("tab-move", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
-						tabId: draggedTabId,
-						sourceParentTabId: parentTabId,
+						tabId: secondTabId,
+						sourceParentTabId:
+							secondTabId === draggedTabId ? parentTabId : undefined,
 						targetParentTabId: groupTabId,
 						targetIndex: 1,
 					});
@@ -547,7 +672,7 @@ export function MainScreen() {
 					const mosaicTree: MosaicNode<string> = {
 						direction: "row",
 						first: selectedTab.id,
-						second: draggedTabId,
+						second: secondTabId,
 						splitPercentage: 50,
 					};
 
