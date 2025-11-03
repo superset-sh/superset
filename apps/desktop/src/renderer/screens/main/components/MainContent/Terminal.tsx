@@ -8,6 +8,13 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 // WebglAddon disabled due to cursor positioning issues with autocomplete
 // import { WebglAddon } from "@xterm/addon-webgl";
 
+// Custom styles for terminal padding
+const terminalStyles = `
+	.terminal-with-padding .xterm-screen {
+		padding: 8px;
+	}
+`;
+
 interface TerminalProps {
 	terminalId?: string | null;
 	hidden?: boolean;
@@ -421,9 +428,12 @@ export default function TerminalComponent({
 	}
 
 	return (
-		<div
-			ref={terminalRef}
-			className={`h-full w-full transition-opacity duration-200 text-start ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
-		/>
+		<>
+			<style>{terminalStyles}</style>
+			<div
+				ref={terminalRef}
+				className={`terminal-with-padding h-full w-full transition-opacity duration-200 text-start ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
+			/>
+		</>
 	);
 }
