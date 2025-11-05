@@ -25,7 +25,8 @@ import TabContent from "./components/MainContent/TabContent";
 import TabGroup from "./components/MainContent/TabGroup";
 import { PlaceholderState } from "./components/PlaceholderState";
 import { Sidebar } from "./components/Sidebar";
-import { TopBar } from "./components/TopBar";
+import { TopBar, type ViewMode } from "./components/TopBar";
+import { PlanView } from "./components/PlanView";
 
 // Droppable wrapper for main content area
 function DroppableMainContent({
@@ -73,6 +74,7 @@ export function MainScreen() {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null); // Can be a group tab or any tab
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [currentView, setCurrentView] = useState<ViewMode>("workspace");
 
 	// Drag and drop state
 	const [activeId, setActiveId] = useState<string | null>(null);
@@ -923,67 +925,73 @@ export function MainScreen() {
 						<ResizablePanel minSize={30}>
 							<div className="flex flex-col h-full overflow-hidden">
 								{/* Top Bar */}
-								{/* <TopBar
-							isSidebarOpen={isSidebarOpen}
-							onOpenSidebar={() => setIsSidebarOpen(true)}
-							workspaceName={currentWorkspace?.name}
-							currentBranch={currentWorkspace?.branch}
-						/> */}
+								<TopBar
+									isSidebarOpen={isSidebarOpen}
+									onOpenSidebar={() => setIsSidebarOpen(true)}
+									workspaceName={currentWorkspace?.name}
+									currentBranch={currentWorkspace?.branch}
+									currentView={currentView}
+									onViewChange={setCurrentView}
+								/>
 
 								{/* Content Area */}
-								<DroppableMainContent isOver={isOverMainContent}>
-									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
-										<PlaceholderState
-											loading={loading}
-											error={error}
-											hasWorkspace={!!currentWorkspace}
-										/>
-									) : parentGroupTab ? (
-										// Selected tab is a sub-tab of a group → display the parent group's mosaic
-										<TabGroup
-											groupTab={parentGroupTab}
-											workingDirectory={
-												selectedWorktree.path || currentWorkspace.repoPath
-											}
-											workspaceId={currentWorkspace.id}
-											worktreeId={selectedWorktreeId ?? undefined}
-											selectedTabId={selectedTabId ?? undefined}
-											onTabFocus={handleTabFocus}
-										/>
-									) : selectedTab.type === "group" ? (
-										// Selected tab is a group tab → display its mosaic layout
-										<TabGroup
-											groupTab={selectedTab}
-											workingDirectory={
-												selectedWorktree.path || currentWorkspace.repoPath
-											}
-											workspaceId={currentWorkspace.id}
-											worktreeId={selectedWorktreeId ?? undefined}
-											selectedTabId={selectedTabId ?? undefined}
-											onTabFocus={handleTabFocus}
-										/>
-									) : (
-										// Base level tab (not inside a group) → display full width/height
-										<div className="w-full h-full">
-											<TabContent
-												tab={selectedTab}
+								{currentView === "plan" ? (
+									<PlanView />
+								) : (
+									<DroppableMainContent isOver={isOverMainContent}>
+										{loading ||
+										error ||
+										!currentWorkspace ||
+										!selectedTab ||
+										!selectedWorktree ? (
+											<PlaceholderState
+												loading={loading}
+												error={error}
+												hasWorkspace={!!currentWorkspace}
+											/>
+										) : parentGroupTab ? (
+											// Selected tab is a sub-tab of a group → display the parent group's mosaic
+											<TabGroup
+												groupTab={parentGroupTab}
 												workingDirectory={
 													selectedWorktree.path || currentWorkspace.repoPath
 												}
 												workspaceId={currentWorkspace.id}
 												worktreeId={selectedWorktreeId ?? undefined}
-												worktree={selectedWorktree}
-												groupTabId="" // No parent group
 												selectedTabId={selectedTabId ?? undefined}
 												onTabFocus={handleTabFocus}
 											/>
-										</div>
-									)}
-								</DroppableMainContent>
+										) : selectedTab.type === "group" ? (
+											// Selected tab is a group tab → display its mosaic layout
+											<TabGroup
+												groupTab={selectedTab}
+												workingDirectory={
+													selectedWorktree.path || currentWorkspace.repoPath
+												}
+												workspaceId={currentWorkspace.id}
+												worktreeId={selectedWorktreeId ?? undefined}
+												selectedTabId={selectedTabId ?? undefined}
+												onTabFocus={handleTabFocus}
+											/>
+										) : (
+											// Base level tab (not inside a group) → display full width/height
+											<div className="w-full h-full">
+												<TabContent
+													tab={selectedTab}
+													workingDirectory={
+														selectedWorktree.path || currentWorkspace.repoPath
+													}
+													workspaceId={currentWorkspace.id}
+													worktreeId={selectedWorktreeId ?? undefined}
+													worktree={selectedWorktree}
+													groupTabId="" // No parent group
+													selectedTabId={selectedTabId ?? undefined}
+													onTabFocus={handleTabFocus}
+												/>
+											</div>
+										)}
+									</DroppableMainContent>
+								)}
 							</div>
 						</ResizablePanel>
 					</ResizablePanelGroup>
