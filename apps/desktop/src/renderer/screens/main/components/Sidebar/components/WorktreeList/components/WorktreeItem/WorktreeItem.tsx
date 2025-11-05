@@ -11,6 +11,9 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuSub,
+	ContextMenuSubContent,
+	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
@@ -1114,20 +1117,34 @@ export function WorktreeItem({
 					</Button>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
-					<ContextMenuItem onClick={onCloneWorktree}>
-						<GitBranch size={14} className="mr-2" />
-						Clone Worktree...
-					</ContextMenuItem>
+					{/* Git operations submenu */}
+					<ContextMenuSub>
+						<ContextMenuSubTrigger>
+							<GitBranch size={14} className="mr-2" />
+							Git
+						</ContextMenuSubTrigger>
+						<ContextMenuSubContent>
+							<ContextMenuItem onClick={onCloneWorktree}>
+								<GitBranch size={14} className="mr-2" />
+								Clone Worktree...
+							</ContextMenuItem>
+							<ContextMenuItem
+								onClick={handleMergeWorktree}
+								disabled={isMergeDisabled}
+							>
+								<GitMerge size={14} className="mr-2" />
+								{isMergeDisabled
+									? `Merge Worktree (${mergeDisabledReason})`
+									: "Merge Worktree..."}
+							</ContextMenuItem>
+							<ContextMenuItem onClick={() => console.log("Git Status clicked")}>
+								<GitBranch size={14} className="mr-2" />
+								Git Status
+							</ContextMenuItem>
+						</ContextMenuSubContent>
+					</ContextMenuSub>
 					<ContextMenuSeparator />
-					<ContextMenuItem
-						onClick={handleMergeWorktree}
-						disabled={isMergeDisabled}
-					>
-						<GitMerge size={14} className="mr-2" />
-						{isMergeDisabled
-							? `Merge Worktree (${mergeDisabledReason})`
-							: "Merge Worktree..."}
-					</ContextMenuItem>
+					{/* Files group */}
 					<ContextMenuItem onClick={handleCopyPath}>
 						<Clipboard size={14} className="mr-2" />
 						Copy Path
@@ -1141,6 +1158,7 @@ export function WorktreeItem({
 						Open Settings
 					</ContextMenuItem>
 					<ContextMenuSeparator />
+					{/* Delete group */}
 					<ContextMenuItem onClick={handleRemoveWorktree} variant="destructive">
 						<Trash2 size={14} className="mr-2" />
 						Remove Worktree
