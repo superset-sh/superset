@@ -975,7 +975,10 @@ export function WorktreeItem({
 						(item) => item.active && typeof item.target === "number",
 					);
 					const proxyMap = new Map(
-						activeProxies.map((item) => [item.target as number, item.canonical]),
+						activeProxies.map((item) => [
+							item.target as number,
+							item.canonical,
+						]),
 					);
 
 					const canonicalPort = proxyMap.get(port);
@@ -1251,27 +1254,27 @@ export function WorktreeItem({
 						{tabs.map((tab) => renderTab(tab, undefined, 0))}
 					</SortableContext>
 
-					{/* New Tab Button */}
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleAddTab}
-						className="w-full h-8 px-3 font-normal opacity-70 hover:opacity-100"
-						style={{ justifyContent: "flex-start" }}
-					>
-						<Plus size={14} />
-						<span className="truncate">New Tab</span>
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onClick={handleAddPreview}
-						className="w-full h-8 px-3 font-normal opacity-70 hover:opacity-100"
-						style={{ justifyContent: "flex-start" }}
-					>
-						<Monitor size={14} />
-						<span className="truncate">New Preview</span>
-					</Button>
+					{/* New Terminal / Preview Buttons */}
+					<div className="flex items-center gap-2 w-full">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleAddTab}
+							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
+						>
+							<Plus size={14} />
+							<span className="truncate">New Terminal</span>
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleAddPreview}
+							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
+						>
+							<Monitor size={14} />
+							<span className="truncate">New Preview</span>
+						</Button>
+					</div>
 				</div>
 			)}
 
