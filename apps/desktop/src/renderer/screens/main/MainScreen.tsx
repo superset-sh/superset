@@ -24,7 +24,9 @@ import { Background } from "./components/Background";
 import TabContent from "./components/MainContent/TabContent";
 import TabGroup from "./components/MainContent/TabGroup";
 import { PlaceholderState } from "./components/PlaceholderState";
+import { PlanView } from "./components/PlanView";
 import { Sidebar } from "./components/Sidebar";
+import type { ViewMode } from "./components/Sidebar/components";
 import { TopBar } from "./components/TopBar";
 
 // Droppable wrapper for main content area
@@ -73,6 +75,7 @@ export function MainScreen() {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null); // Can be a group tab or any tab
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [viewMode, setViewMode] = useState<ViewMode>("code");
 
 	// Drag and drop state
 	const [activeId, setActiveId] = useState<string | null>(null);
@@ -915,6 +918,8 @@ export function MainScreen() {
 									selectedTabId={selectedTabId ?? undefined}
 									onCollapse={() => setIsSidebarOpen(false)}
 									isDragging={!!activeId}
+									viewMode={viewMode}
+									onViewModeChange={setViewMode}
 								/>
 							)}
 						</ResizablePanel>
@@ -932,11 +937,17 @@ export function MainScreen() {
 
 								{/* Content Area */}
 								<DroppableMainContent isOver={isOverMainContent}>
-									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
+									{viewMode === "plan" ? (
+										// Plan mode - show Kanban board
+										<PlanView
+											workspaceId={currentWorkspace?.id}
+											worktreeId={selectedWorktreeId ?? undefined}
+										/>
+									) : loading ||
+									  error ||
+									  !currentWorkspace ||
+									  !selectedTab ||
+									  !selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}

@@ -7,6 +7,7 @@ import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import { portDetector } from "../lib/port-detector";
 import { registerPortIpcs } from "../lib/port-ipcs";
+import { registerTaskIpcs } from "../lib/task-ipcs";
 import { registerTerminalIPCs } from "../lib/terminal-ipcs";
 import {
 	getActiveWorkspaceId,
@@ -42,6 +43,7 @@ export async function MainWindow() {
 	const cleanupTerminal = registerTerminalIPCs(window);
 	registerWorkspaceIPCs();
 	registerPortIpcs();
+	registerTaskIpcs();
 
 	// Set up port detection listeners
 	portDetector.on("port-detected", async (event: any) => {

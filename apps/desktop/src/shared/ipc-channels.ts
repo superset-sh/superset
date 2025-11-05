@@ -248,6 +248,26 @@ export interface IpcChannels {
 		request: void;
 		response: { success: boolean; error?: string };
 	};
+	"dialog-open-file": {
+		request: {
+			properties?: Array<
+				| "openFile"
+				| "openDirectory"
+				| "multiSelections"
+				| "showHiddenFiles"
+				| "createDirectory"
+				| "promptToCreate"
+				| "noResolveAliases"
+				| "treatPackageAsDirectory"
+				| "dontAddToRecent"
+			>;
+			title?: string;
+			defaultPath?: string;
+			buttonLabel?: string;
+			filters?: Array<{ name: string; extensions: string[] }>;
+		};
+		response: { canceled: boolean; filePaths: string[] };
+	};
 
 	// Port detection and proxy operations
 	"workspace-set-ports": {
@@ -269,6 +289,54 @@ export interface IpcChannels {
 			service?: string;
 			active: boolean;
 		}>;
+	};
+
+	// Task operations
+	"task-evaluate-complexity": {
+		request: {
+			title: string;
+			description?: string;
+			subTodos?: Array<{ title: string }>;
+		};
+		response: {
+			success: boolean;
+			complexity?: "one-shot" | "needs-context" | "needs-guidance" | "low-confidence";
+			error?: string;
+		};
+	};
+	"task-list": {
+		request: string; // workspace ID
+		response: import("./types").Task[];
+	};
+	"task-create": {
+		request: {
+			workspaceId: string;
+			task: Omit<import("./types").Task, "id" | "createdAt" | "updatedAt">;
+		};
+		response: {
+			success: boolean;
+			task?: import("./types").Task;
+			error?: string;
+		};
+	};
+	"task-update": {
+		request: {
+			workspaceId: string;
+			taskId: string;
+			updates: Partial<Omit<import("./types").Task, "id" | "createdAt">>;
+		};
+		response: {
+			success: boolean;
+			task?: import("./types").Task;
+			error?: string;
+		};
+	};
+	"task-delete": {
+		request: {
+			workspaceId: string;
+			taskId: string;
+		};
+		response: IpcResponse;
 	};
 }
 
@@ -315,6 +383,7 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"worktree-open-settings",
 		"worktree-update-description",
 		"open-app-settings",
+		"dialog-open-file",
 		"tab-create",
 		"tab-delete",
 		"tab-reorder",
@@ -328,6 +397,11 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"workspace-set-ports",
 		"workspace-get-detected-ports",
 		"proxy-get-status",
+		"task-evaluate-complexity",
+		"task-list",
+		"task-create",
+		"task-update",
+		"task-delete",
 	];
 	return validChannels.includes(channel as IpcChannelName);
 }

@@ -76,6 +76,7 @@ export interface Workspace {
 	createdAt: string;
 	updatedAt: string;
 	ports?: Array<number | { name: string; port: number }>; // Port configuration for proxy routing
+	tasks?: Task[]; // Tasks/plan items for this workspace
 }
 
 export interface WorkspaceConfig {
@@ -132,4 +133,32 @@ export interface DetectedPort {
 	service?: string;
 	terminalId: string;
 	detectedAt: string;
+}
+
+// Task/Plan types
+export interface SubTodo {
+	id: string;
+	title: string;
+	completed: boolean;
+}
+
+export interface AttachedFile {
+	id: string;
+	name: string;
+	path: string;
+	size: number;
+}
+
+export type LLMComplexity = "pending" | "one-shot" | "needs-context" | "needs-guidance" | "low-confidence";
+
+export interface Task {
+	id: string;
+	title: string;
+	description?: string;
+	status: "todo" | "in-progress" | "done";
+	subTodos: SubTodo[];
+	files: AttachedFile[];
+	llmComplexity?: LLMComplexity;
+	createdAt: string;
+	updatedAt: string;
 }

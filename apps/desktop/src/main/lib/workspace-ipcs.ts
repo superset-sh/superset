@@ -452,4 +452,22 @@ export function registerWorkspaceIPCs() {
 			};
 		}
 	});
+
+	// Open file dialog
+	ipcMain.handle("dialog-open-file", async (_event, options) => {
+		const mainWindow = BrowserWindow.getAllWindows()[0];
+		if (!mainWindow) {
+			return { canceled: true, filePaths: [] };
+		}
+
+		const result = await dialog.showOpenDialog(mainWindow, {
+			properties: options?.properties || ["openFile"],
+			title: options?.title,
+			defaultPath: options?.defaultPath,
+			buttonLabel: options?.buttonLabel,
+			filters: options?.filters,
+		});
+
+		return result;
+	});
 }

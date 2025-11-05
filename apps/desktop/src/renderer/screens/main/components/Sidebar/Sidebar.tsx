@@ -9,6 +9,7 @@ import {
 	WorkspacePortIndicator,
 	WorkspaceSwitcher,
 	WorktreeList,
+	type ViewMode,
 } from "./components";
 
 interface SidebarProps {
@@ -21,6 +22,8 @@ interface SidebarProps {
 	onUpdateWorktree: (worktreeId: string, updatedWorktree: Worktree) => void;
 	selectedTabId: string | undefined;
 	isDragging?: boolean;
+	viewMode: ViewMode;
+	onViewModeChange: (mode: ViewMode) => void;
 }
 
 export function Sidebar({
@@ -33,6 +36,8 @@ export function Sidebar({
 	onUpdateWorktree,
 	selectedTabId,
 	isDragging = false,
+	viewMode,
+	onViewModeChange,
 }: SidebarProps) {
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
@@ -291,6 +296,8 @@ export function Sidebar({
 				onScanWorktrees={handleScanWorktrees}
 				isScanningWorktrees={isScanningWorktrees}
 				hasWorkspace={!!currentWorkspace}
+				viewMode={viewMode}
+				onViewModeChange={onViewModeChange}
 			/>
 
 			<WorkspaceCarousel
