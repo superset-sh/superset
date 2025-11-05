@@ -11,6 +11,7 @@ import type {
 	CreateWorktreeInput,
 	MosaicNode,
 	Tab,
+	UpdatePreviewTabInput,
 	UpdateWorkspaceInput,
 	Workspace,
 	Worktree,
@@ -161,6 +162,10 @@ export interface IpcChannels {
 	"tab-create": {
 		request: CreateTabInput;
 		response: { success: boolean; tab?: Tab; error?: string };
+	};
+	"tab-update-preview": {
+		request: UpdatePreviewTabInput;
+		response: IpcResponse;
 	};
 	"tab-delete": {
 		request: {
@@ -316,6 +321,7 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"worktree-update-description",
 		"open-app-settings",
 		"tab-create",
+		"tab-update-preview",
 		"tab-delete",
 		"tab-reorder",
 		"tab-move",

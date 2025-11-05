@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Tab, Worktree } from "shared/types";
 import { PortTab } from "../TabContent/components/PortTab";
+import { PreviewTab } from "../TabContent/components/PreviewTab";
 import TabGroup from "./TabGroup";
 import Terminal from "./Terminal";
 
@@ -101,11 +102,14 @@ export default function TabContent({
 
 		case "preview":
 			return (
-				<PlaceholderContent
-					type="preview"
-					message="Preview pane coming soon"
-					onFocus={handleFocus}
-				/>
+				<div className="w-full h-full" onClick={handleFocus}>
+					<PreviewTab
+						tab={tab}
+						workspaceId={workspaceId}
+						worktreeId={worktreeId}
+						worktree={worktree}
+					/>
+				</div>
 			);
 
 		default:

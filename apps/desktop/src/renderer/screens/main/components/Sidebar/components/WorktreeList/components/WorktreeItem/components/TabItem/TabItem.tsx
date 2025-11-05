@@ -7,8 +7,10 @@ import {
 } from "@superset/ui/context-menu";
 import {
 	Edit2,
+	Globe2,
 	FolderOutput,
 	FolderTree,
+	Monitor,
 	SquareTerminal,
 	X,
 } from "lucide-react";
@@ -120,6 +122,17 @@ export function TabItem({
 	const showMultiSelectHighlight = isMultiSelected && selectedTabIds.size > 1;
 	const isInsideGroup = !!parentTabId;
 
+	const IconComponent = (() => {
+		switch (tab.type) {
+			case "preview":
+				return Monitor;
+			case "port":
+				return Globe2;
+			default:
+				return SquareTerminal;
+		}
+	})();
+
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
@@ -136,7 +149,7 @@ export function TabItem({
 					onDoubleClick={handleDoubleClick}
 				>
 					<div className="flex items-center gap-2 flex-1 min-w-0">
-						<SquareTerminal size={14} className="shrink-0" />
+						<IconComponent size={14} className="shrink-0" />
 						{isEditing ? (
 							<input
 								ref={inputRef}

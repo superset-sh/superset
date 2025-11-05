@@ -18,7 +18,7 @@ import {
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
 import { useEffect, useState } from "react";
-import type { MosaicNode, Tab, Workspace } from "shared/types";
+import type { MosaicNode, Tab, TabType, Workspace } from "shared/types";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import TabContent from "./components/MainContent/TabContent";
@@ -87,7 +87,7 @@ export function MainScreen() {
 		workspaceId: string,
 		worktreeId: string,
 		name: string,
-		type: string,
+		type: TabType,
 	) => {
 		const result = await window.ipcRenderer.invoke("tab-create", {
 			workspaceId,

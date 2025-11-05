@@ -4,6 +4,7 @@ import type {
 	CreateWorktreeInput,
 	MosaicNode,
 	Tab,
+	UpdatePreviewTabInput,
 	UpdateWorkspaceInput,
 	Workspace,
 	Worktree,
@@ -401,6 +402,19 @@ class WorkspaceManager {
 			tabId,
 			name,
 		});
+	}
+
+	/**
+	 * Update preview tab URL
+	 */
+	async updatePreviewTab(
+		input: UpdatePreviewTabInput,
+	): Promise<{ success: boolean; error?: string }> {
+		const workspace = await this.get(input.workspaceId);
+		if (!workspace) {
+			return { success: false, error: "Workspace not found" };
+		}
+		return tabOps.updatePreviewTabUrl(workspace, input);
 	}
 
 	/**

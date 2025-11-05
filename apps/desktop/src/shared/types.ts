@@ -47,6 +47,7 @@ export interface Tab {
 	// Terminal-specific properties
 	command?: string | null; // For terminal tabs
 	cwd?: string; // Current working directory (for terminal tabs)
+	url?: string; // For preview/browser tabs
 	// Mosaic layout properties (used when type === "group")
 	tabs?: Tab[]; // Child tabs when type is "group" (NOTE: cannot contain nested group tabs)
 	mosaicTree?: MosaicNode<string>; // Mosaic tree structure (tab IDs as leaf nodes)
@@ -105,8 +106,16 @@ export interface CreateTabInput {
 	name: string;
 	type?: TabType; // Optional - defaults to "terminal"
 	command?: string | null;
+	url?: string; // Initial URL for preview/browser tabs
 	// For copying tab content when splitting
 	copyFromTabId?: string;
+}
+
+export interface UpdatePreviewTabInput {
+	workspaceId: string;
+	worktreeId: string;
+	tabId: string;
+	url: string;
 }
 
 export interface UpdateWorkspaceInput {

@@ -4,6 +4,7 @@ import type {
 	CreateTabInput,
 	MosaicNode,
 	Tab,
+	UpdatePreviewTabInput,
 	Workspace,
 	Worktree,
 } from "shared/types";
@@ -43,6 +44,8 @@ export async function createTab(
 		// Type-specific properties
 		if (tab.type === "terminal") {
 			tab.command = input.command;
+		} else if (tab.type === "preview" || tab.type === "browser") {
+			tab.url = input.url;
 		} else if (tab.type === "group") {
 			tab.tabs = [];
 			tab.mosaicTree = undefined; // Will be set when tabs are added
@@ -56,6 +59,8 @@ export async function createTab(
 				if (tab.type === "terminal") {
 					tab.command = sourceTab.command;
 					tab.cwd = sourceTab.cwd;
+				} else if (tab.type === "preview" || tab.type === "browser") {
+					tab.url = sourceTab.url;
 				}
 			}
 		}
@@ -98,6 +103,50 @@ export async function createTab(
 		return { success: true, tab };
 	} catch (error) {
 		console.error("Failed to create tab:", error);
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
+/**
+ * Update preview tab URL
+ */
+export async function updatePreviewTabUrl(
+	workspace: Workspace,
+	input: UpdatePreviewTabInput,
+): Promise<{ success: boolean; error?: string }> {
+	try {
+		const worktree = workspace.worktrees.find(
+			(wt) => wt.id === input.worktreeId,
+		);
+		if (!worktree) {
+			return { success: false, error: "Worktree not found" };
+		}
+
+		const tab = findTab(worktree.tabs, input.tabId);
+		if (!tab) {
+			return { success: false, error: "Tab not found" };
+		}
+
+		if (tab.type !== "preview" && tab.type !== "browser") {
+			return { success: false, error: "Tab is not a preview" };
+		}
+
+		tab.url = input.url;
+		workspace.updatedAt = new Date().toISOString();
+
+		const config = configManager.read();
+		const index = config.workspaces.findIndex((ws) => ws.id === workspace.id);
+		if (index !== -1) {
+			config.workspaces[index] = workspace;
+			configManager.write(config);
+		}
+
+		return { success: true };
+	} catch (error) {
+		console.error("Failed to update preview tab URL:", error);
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : String(error),

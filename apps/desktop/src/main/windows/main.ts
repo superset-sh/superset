@@ -35,6 +35,7 @@ export async function MainWindow() {
 
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
+			webviewTag: true,
 		},
 	});
 
