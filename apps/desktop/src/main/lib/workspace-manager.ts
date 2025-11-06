@@ -9,7 +9,9 @@ import type {
 	Workspace,
 	Worktree,
 } from "shared/types";
+import configManager from "./config-manager";
 import { proxyManager } from "./proxy-manager";
+import { terminalManager } from "./terminal-manager";
 import * as tabOps from "./workspace/tab-operations";
 import * as workspaceOps from "./workspace/workspace-operations";
 import * as worktreeOps from "./workspace/worktree-operations";
