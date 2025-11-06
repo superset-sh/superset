@@ -72,12 +72,6 @@ export function PreviewTab({
 	worktreeId,
 	worktree,
 }: PreviewTabProps) {
-	console.log(
-		"[PreviewTab] Component mounted/rendered for tab:",
-		tab.id,
-		"with url:",
-		tab.url,
-	);
 	const webviewRef = useRef<WebviewTag | null>(null);
 	const initializedRef = useRef(false);
 	const lastPersistedUrlRef = useRef<string | undefined>(tab.url);
@@ -129,8 +123,6 @@ export function PreviewTab({
 			}
 
 			lastPersistedUrlRef.current = url;
-
-			console.log("[PreviewTab] Persisting URL for tab:", tab.id, "url:", url);
 
 			try {
 				await window.ipcRenderer.invoke("tab-update-preview", {
@@ -200,10 +192,6 @@ export function PreviewTab({
 
 	const navigateTo = useCallback(
 		(url: string, options?: { persist?: boolean }) => {
-			console.log("[PreviewTab] navigateTo called:", {
-				url,
-				webviewReady: webviewReadyRef.current,
-			});
 			const normalized = normalizeUrl(url);
 			setCurrentUrl((previous) => {
 				if (previous === normalized) {
@@ -214,11 +202,9 @@ export function PreviewTab({
 			setAddressBarValue(normalized);
 
 			if (webviewReadyRef.current) {
-				console.log("[PreviewTab] webview ready, loading immediately");
 				pendingLoadRef.current = null;
 				loadWebviewUrl(normalized);
 			} else {
-				console.log("[PreviewTab] webview not ready, setting pending load");
 				pendingLoadRef.current = normalized;
 			}
 
@@ -313,14 +299,6 @@ export function PreviewTab({
 			return;
 		}
 
-		console.log(
-			"[PreviewTab] tab.url changed externally for tab:",
-			tab.id,
-			"from:",
-			previousTabUrlRef.current,
-			"to:",
-			tab.url,
-		);
 		previousTabUrlRef.current = tab.url;
 
 		if (!tab.url) {
@@ -393,25 +371,18 @@ export function PreviewTab({
 				}
 			})();
 
-			console.log("[PreviewTab] flushing pending navigation:", {
-				pendingUrl,
-				webviewUrl,
-			});
-
 			if (
 				pendingUrl &&
 				pendingUrl !== "" &&
 				pendingUrl !== "about:blank" &&
 				pendingUrl !== webviewUrl
 			) {
-				console.log("[PreviewTab] loading pending url:", pendingUrl);
 				loadWebviewUrl(pendingUrl);
 				pendingLoadRef.current = null;
 			}
 		};
 
 		const handleDomReady = () => {
-			console.log("[PreviewTab] dom-ready fired");
 			webviewReadyRef.current = true;
 			attachNavigationListeners();
 
@@ -423,10 +394,6 @@ export function PreviewTab({
 			flushPendingNavigation();
 		};
 
-		console.log(
-			"[PreviewTab] attaching dom-ready listener, webview:",
-			!!webview,
-		);
 		// Wait for dom-ready event to initialize
 		// Don't try to check isLoading() as it throws before webview is attached to DOM
 		webview.addEventListener("dom-ready", handleDomReady);
@@ -562,6 +529,7 @@ export function PreviewTab({
 									: null;
 							}}
 							src={tab.url || ""}
+							partition={`persist:preview-${tab.id}`}
 							allowpopups
 							style={{
 								width: "100%",
