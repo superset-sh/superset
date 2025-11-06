@@ -192,6 +192,10 @@ export function PreviewTab({
 
 	const navigateTo = useCallback(
 		(url: string, options?: { persist?: boolean }) => {
+			console.log("[PreviewTab] navigateTo called:", {
+				url,
+				webviewReady: webviewReadyRef.current,
+			});
 			const normalized = normalizeUrl(url);
 			setCurrentUrl((previous) => {
 				if (previous === normalized) {
@@ -202,9 +206,11 @@ export function PreviewTab({
 			setAddressBarValue(normalized);
 
 			if (webviewReadyRef.current) {
+				console.log("[PreviewTab] webview ready, loading immediately");
 				pendingLoadRef.current = null;
 				loadWebviewUrl(normalized);
 			} else {
+				console.log("[PreviewTab] webview not ready, setting pending load");
 				pendingLoadRef.current = normalized;
 			}
 
@@ -362,7 +368,7 @@ export function PreviewTab({
 			webview.addEventListener("did-navigate-in-page", handleNavigate);
 		};
 		const flushPendingNavigation = () => {
-			const pendingUrl = pendingLoadRef.current ?? currentUrlRef.current;
+			const pendingUrl = pendingLoadRef.current;
 			const webviewUrl = (() => {
 				try {
 					return webview.getURL();
@@ -371,18 +377,25 @@ export function PreviewTab({
 				}
 			})();
 
+			console.log("[PreviewTab] flushing pending navigation:", {
+				pendingUrl,
+				webviewUrl,
+			});
+
 			if (
 				pendingUrl &&
 				pendingUrl !== "" &&
 				pendingUrl !== "about:blank" &&
 				pendingUrl !== webviewUrl
 			) {
+				console.log("[PreviewTab] loading pending url:", pendingUrl);
 				loadWebviewUrl(pendingUrl);
 				pendingLoadRef.current = null;
 			}
 		};
 
 		const handleDomReady = () => {
+			console.log("[PreviewTab] dom-ready fired");
 			webviewReadyRef.current = true;
 			attachNavigationListeners();
 
@@ -394,20 +407,12 @@ export function PreviewTab({
 			flushPendingNavigation();
 		};
 
-		// Only try to check loading state if webview is already attached and ready
-		try {
-			if (typeof webview.isLoading === "function") {
-				webviewReadyRef.current = !webview.isLoading();
-
-				if (webviewReadyRef.current) {
-					attachNavigationListeners();
-					handleDomReady();
-				}
-			}
-		} catch {
-			// Webview not ready yet, dom-ready event will handle initialization
-		}
-
+		console.log(
+			"[PreviewTab] attaching dom-ready listener, webview:",
+			!!webview,
+		);
+		// Wait for dom-ready event to initialize
+		// Don't try to check isLoading() as it throws before webview is attached to DOM
 		webview.addEventListener("dom-ready", handleDomReady);
 
 		return () => {
@@ -539,6 +544,7 @@ export function PreviewTab({
 									? (element as unknown as WebviewTag)
 									: null;
 							}}
+							src={currentUrl}
 							allowpopups
 							style={{
 								width: "100%",
