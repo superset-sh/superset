@@ -353,6 +353,14 @@ export function PreviewTab({
 				return;
 			}
 
+			// Update sessionStorage for client-side cache
+			try {
+				const storageKey = `preview-tab-${tab.id}-url`;
+				sessionStorage.setItem(storageKey, url);
+			} catch (error) {
+				console.error("Failed to store URL in sessionStorage:", error);
+			}
+
 			pendingLoadRef.current = null;
 			setCurrentUrl(url);
 			setAddressBarValue(url);
