@@ -1261,24 +1261,24 @@ export function WorktreeItem({
 					</SortableContext>
 
 					{/* New Terminal / Preview Buttons */}
-					<div className="flex items-center gap-2 w-full">
+					<div className="flex flex-col sm:flex-row items-stretch gap-2 w-full">
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={handleAddTab}
-							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
+							className="flex-1 h-8 px-2 font-normal opacity-70 hover:opacity-100 min-w-0"
 						>
-							<Plus size={14} />
-							<span className="truncate">Terminal</span>
+							<Plus size={14} className="shrink-0" />
+							<span className="truncate ml-1">Terminal</span>
 						</Button>
 						<Button
 							variant="ghost"
 							size="sm"
 							onClick={handleAddPreview}
-							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
+							className="flex-1 h-8 px-2 font-normal opacity-70 hover:opacity-100 min-w-0"
 						>
-							<Monitor size={14} />
-							<span className="truncate">Preview</span>
+							<Monitor size={14} className="shrink-0" />
+							<span className="truncate ml-1">Preview</span>
 						</Button>
 					</div>
 				</div>

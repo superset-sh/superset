@@ -545,7 +545,10 @@ export function MainScreen() {
 						});
 
 						if (!moveResult.success) {
-							console.error("[MainScreen] Failed to move tab:", moveResult.error);
+							console.error(
+								"[MainScreen] Failed to move tab:",
+								moveResult.error,
+							);
 							return;
 						}
 
@@ -900,7 +903,7 @@ export function MainScreen() {
 					<ResizablePanelGroup direction="horizontal" autoSaveId="main-layout">
 						<ResizablePanel
 							defaultSize={20}
-							minSize={18}
+							minSize={16}
 							maxSize={40}
 							collapsible={true}
 						>
