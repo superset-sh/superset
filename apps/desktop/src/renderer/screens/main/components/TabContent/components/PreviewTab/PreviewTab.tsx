@@ -75,11 +75,13 @@ export function PreviewTab({
 	const webviewRef = useRef<WebviewTag | null>(null);
 	const initializedRef = useRef(false);
 	const lastPersistedUrlRef = useRef<string | undefined>(tab.url);
-	const [addressBarValue, setAddressBarValue] = useState(tab.url ?? "");
-	const [currentUrl, setCurrentUrl] = useState(tab.url ?? "");
+
+	// Initialize state from tab.url only once
+	const [addressBarValue, setAddressBarValue] = useState(() => tab.url ?? "");
+	const [currentUrl, setCurrentUrl] = useState(() => tab.url ?? "");
+
 	const [isLoading, setIsLoading] = useState(false);
 	const [proxyStatus, setProxyStatus] = useState<ProxyStatus[]>([]);
-	const previousTabUrlRef = useRef(tab.url);
 	const webviewReadyRef = useRef(false);
 	const pendingLoadRef = useRef<string | null>(null);
 	const currentUrlRef = useRef(currentUrl);
@@ -266,47 +268,36 @@ export function PreviewTab({
 		};
 	}, []);
 
-	// Initialize default URL from tab data or detected ports
+	// Initialize default URL from detected ports if no URL is set
 	useEffect(() => {
 		if (initializedRef.current) {
 			return;
 		}
 
-		const initialize = async () => {
+		const initialize = () => {
+			// If tab already has a URL, the webview src will handle it
 			if (tab.url && tab.url.trim() !== "") {
-				navigateTo(tab.url, { persist: false });
 				initializedRef.current = true;
 				return;
 			}
 
+			// Fallback to first detected port
 			const firstEntry = portEntries[0];
-			if (!firstEntry) {
-				return;
+			if (firstEntry) {
+				const [, port] = firstEntry;
+				const resolved = resolvePortUrl(port);
+				navigateTo(resolved, { persist: true });
 			}
 
-			const [, port] = firstEntry;
-			const resolved = resolvePortUrl(port);
-			navigateTo(resolved, { persist: true });
 			initializedRef.current = true;
 		};
 
-		void initialize();
-	}, [navigateTo, portEntries, resolvePortUrl, tab.url]);
+		initialize();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []); // Only run once on mount
 
-	// Sync when tab.url changes externally
-	useEffect(() => {
-		if (tab.url === previousTabUrlRef.current) {
-			return;
-		}
-
-		previousTabUrlRef.current = tab.url;
-
-		if (!tab.url) {
-			return;
-		}
-
-		navigateTo(tab.url, { persist: false });
-	}, [tab.url, navigateTo]);
+	// Note: We don't sync tab.url changes after mount because state is the source of truth
+	// State gets persisted to backend, which updates tab.url, creating a feedback loop
 
 	// Attach webview event listeners once the webview is ready
 	useLayoutEffect(() => {
