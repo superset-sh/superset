@@ -285,6 +285,66 @@ export function Sidebar({
 		}
 	};
 
+	const handleClearPreviewUrls = async () => {
+		if (!currentWorkspace) return;
+
+		const confirmed = window.confirm(
+			"Clear all preview tab URLs in this workspace?\n\nThis will reset all preview tabs to empty state.",
+		);
+
+		if (!confirmed) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"workspace-clear-preview-urls",
+				currentWorkspace.id,
+			);
+
+			if (result.success) {
+				console.log("[Sidebar] Cleared preview URLs");
+				// Reload to reflect changes
+				window.location.reload();
+			} else {
+				alert(
+					`Failed to clear preview URLs: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			console.error("[Sidebar] Error clearing preview URLs:", error);
+			alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	};
+
+	const handleClearWorkspaceState = async () => {
+		if (!currentWorkspace) return;
+
+		const confirmed = window.confirm(
+			"Clear ALL workspace state?\n\nThis will:\n- Delete all worktrees from config\n- Close all terminals\n- Reset to fresh state\n\nGit worktrees on disk will NOT be deleted.",
+		);
+
+		if (!confirmed) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"workspace-clear-state",
+				currentWorkspace.id,
+			);
+
+			if (result.success) {
+				console.log("[Sidebar] Cleared workspace state");
+				// Reload to reflect changes
+				window.location.reload();
+			} else {
+				alert(
+					`Failed to clear workspace state: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			console.error("[Sidebar] Error clearing workspace state:", error);
+			alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	};
+
 	return (
 		<div className="flex flex-col h-full w-full select-none text-neutral-300">
 			<SidebarHeader
@@ -331,6 +391,24 @@ export function Sidebar({
 					</>
 				)}
 			</WorkspaceCarousel>
+
+			{/* Debug buttons */}
+			{currentWorkspace && (
+				<div className="px-3 pb-2 space-y-2">
+					<button
+						onClick={handleClearPreviewUrls}
+						className="w-full text-xs text-neutral-500 hover:text-neutral-300 py-2 border border-neutral-800 rounded hover:bg-neutral-900 transition-colors"
+					>
+						Clear Preview URLs
+					</button>
+					<button
+						onClick={handleClearWorkspaceState}
+						className="w-full text-xs text-red-500 hover:text-red-300 py-2 border border-red-900 rounded hover:bg-red-950 transition-colors"
+					>
+						Clear All Workspace State
+					</button>
+				</div>
+			)}
 
 			<WorkspaceSwitcher
 				workspaces={workspaces}

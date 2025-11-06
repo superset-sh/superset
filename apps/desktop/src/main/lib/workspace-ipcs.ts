@@ -139,8 +139,15 @@ export function registerWorkspaceIPCs() {
 	// Update preview tab
 	ipcMain.handle(
 		"tab-update-preview",
-		async (_event, input: UpdatePreviewTabInput) => {
-			return await workspaceManager.updatePreviewTab(input);
+		async (event, input: UpdatePreviewTabInput) => {
+			const result = await workspaceManager.updatePreviewTab(input);
+
+			// Emit event to notify renderer that workspace was updated
+			if (result.success && event.sender) {
+				event.sender.send("workspace-data-updated", input.workspaceId);
+			}
+
+			return result;
 		},
 	);
 
@@ -152,6 +159,22 @@ export function registerWorkspaceIPCs() {
 			input: { workspaceId: string; worktreeId: string; tabId: string },
 		) => {
 			return await workspaceManager.deleteTab(input);
+		},
+	);
+
+	// Clear all preview tab URLs in workspace
+	ipcMain.handle(
+		"workspace-clear-preview-urls",
+		async (_event, workspaceId: string) => {
+			return await workspaceManager.clearPreviewUrls(workspaceId);
+		},
+	);
+
+	// Clear all workspace state (worktrees, tabs, terminals)
+	ipcMain.handle(
+		"workspace-clear-state",
+		async (_event, workspaceId: string) => {
+			return await workspaceManager.clearWorkspaceState(workspaceId);
 		},
 	);
 
