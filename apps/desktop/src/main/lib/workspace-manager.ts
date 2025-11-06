@@ -321,6 +321,53 @@ class WorkspaceManager {
 	}
 
 	/**
+	 * Clear all preview tab URLs in workspace
+	 */
+	async clearPreviewUrls(
+		workspaceId: string,
+	): Promise<{ success: boolean; error?: string }> {
+		const workspace = await this.get(workspaceId);
+		if (!workspace) {
+			return { success: false, error: "Workspace not found" };
+		}
+
+		try {
+			// Recursively clear preview tab URLs
+			const clearTabUrls = (tabs: any[]): void => {
+				for (const tab of tabs) {
+					if (tab.type === "preview" || tab.type === "browser") {
+						tab.url = "";
+					}
+					if (tab.type === "group" && tab.tabs) {
+						clearTabUrls(tab.tabs);
+					}
+				}
+			};
+
+			for (const worktree of workspace.worktrees) {
+				clearTabUrls(worktree.tabs || []);
+			}
+
+			workspace.updatedAt = new Date().toISOString();
+
+			const config = configManager.read();
+			const index = config.workspaces.findIndex((ws) => ws.id === workspace.id);
+			if (index !== -1) {
+				config.workspaces[index] = workspace;
+				configManager.write(config);
+			}
+
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to clear preview URLs:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
 	 * Reorder tabs
 	 */
 	async reorderTabs(

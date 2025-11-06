@@ -162,6 +162,14 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// Clear all preview tab URLs in workspace
+	ipcMain.handle(
+		"workspace-clear-preview-urls",
+		async (_event, workspaceId: string) => {
+			return await workspaceManager.clearPreviewUrls(workspaceId);
+		},
+	);
+
 	// Scan and import existing worktrees
 	ipcMain.handle(
 		"workspace-scan-worktrees",
