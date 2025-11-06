@@ -74,6 +74,19 @@ class TerminalManager {
 				this.addTerminalMessage(id, data);
 			});
 
+			// Handle terminal exit
+			ptyProcess.onExit(({ exitCode }) => {
+				console.log(`Terminal ${id} exited with code ${exitCode}`);
+				// Notify renderer that terminal has exited
+				this.mainWindow?.webContents.send("terminal-exited", {
+					id,
+					exitCode,
+				});
+				// Clean up
+				this.processes.delete(id);
+				this.outputHistory.delete(id);
+			});
+
 			this.processes.set(id, ptyProcess);
 			return id;
 		} catch (error) {

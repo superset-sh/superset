@@ -385,6 +385,128 @@ export function MainScreen() {
 		};
 	}, []);
 
+	// Listen for terminal exit events and auto-close the tab
+	useEffect(() => {
+		const handleTerminalExit = async (data: {
+			id: string;
+			exitCode: number;
+		}) => {
+			console.log(
+				`[MainScreen] Terminal ${data.id} exited with code ${data.exitCode}`,
+			);
+
+			if (!currentWorkspace || !selectedWorktreeId) return;
+
+			// Find which tab contains this terminal
+			const worktree = currentWorkspace.worktrees.find(
+				(wt) => wt.id === selectedWorktreeId,
+			);
+			if (!worktree) return;
+
+			// Check if the exited terminal is the currently selected tab
+			const isCurrentTab = selectedTabId === data.id;
+
+			// Find the tab to determine its context (top-level or in group)
+			const tabResult = findTabRecursive(worktree.tabs, data.id);
+			if (!tabResult) return;
+
+			const parentGroup = tabResult.parent;
+			const isInGroup = !!parentGroup;
+
+			// Get the tabs array (either from group or top-level)
+			const tabs = isInGroup ? parentGroup?.tabs || [] : worktree.tabs;
+			const currentIndex = tabs.findIndex((t) => t.id === data.id);
+
+			// Update mosaic tree if in a group
+			if (isInGroup && parentGroup && parentGroup.mosaicTree) {
+				const updatedMosaicTree = removeTabFromMosaicTree(
+					parentGroup.mosaicTree as MosaicNode<string>,
+					data.id,
+				);
+
+				await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+					tabId: parentGroup.id,
+					mosaicTree: updatedMosaicTree,
+				});
+			}
+
+			// Delete the tab
+			const result = await window.ipcRenderer.invoke("tab-delete", {
+				workspaceId: currentWorkspace.id,
+				worktreeId: selectedWorktreeId,
+				tabId: data.id,
+			});
+
+			if (!result.success) {
+				console.error("Failed to close exited terminal tab:", result.error);
+				return;
+			}
+
+			// Refresh workspace
+			const refreshedWorkspace = await window.ipcRenderer.invoke(
+				"workspace-get",
+				currentWorkspace.id,
+			);
+
+			if (refreshedWorkspace) {
+				setCurrentWorkspace(refreshedWorkspace);
+				await loadAllWorkspaces();
+
+				// Only select adjacent tab if the exited terminal was the current one
+				if (isCurrentTab) {
+					const updatedWorktree = refreshedWorkspace.worktrees.find(
+						(wt) => wt.id === selectedWorktreeId,
+					);
+
+					if (updatedWorktree) {
+						if (isInGroup && parentGroup) {
+							// Select adjacent tab within the group
+							const updatedGroupTab = findTabById(
+								updatedWorktree.tabs,
+								parentGroup.id,
+							);
+							if (
+								updatedGroupTab &&
+								updatedGroupTab.tabs &&
+								updatedGroupTab.tabs.length > 0
+							) {
+								const newIndex = Math.min(
+									currentIndex,
+									updatedGroupTab.tabs.length - 1,
+								);
+								handleTabSelect(
+									selectedWorktreeId,
+									updatedGroupTab.tabs[newIndex].id,
+								);
+							} else {
+								setSelectedTabId(null);
+							}
+						} else if (updatedWorktree.tabs.length > 0) {
+							// Select adjacent top-level tab
+							const newIndex = Math.min(
+								currentIndex,
+								updatedWorktree.tabs.length - 1,
+							);
+							handleTabSelect(
+								selectedWorktreeId,
+								updatedWorktree.tabs[newIndex].id,
+							);
+						} else {
+							setSelectedTabId(null);
+						}
+					}
+				}
+			}
+		};
+
+		window.ipcRenderer.on("terminal-exited", handleTerminalExit);
+		return () => {
+			window.ipcRenderer.off("terminal-exited", handleTerminalExit);
+		};
+	}, [currentWorkspace, selectedWorktreeId, selectedTabId]);
+
 	// Helper: recursively find a tab by ID
 	const findTabById = (tabs: Tab[], tabId: string): Tab | null => {
 		for (const tab of tabs) {
