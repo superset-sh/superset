@@ -17,7 +17,8 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import type { MosaicNode, Tab, TabType, Workspace } from "shared/types";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -68,6 +69,8 @@ function DroppableMainContent({
 
 export function MainScreen() {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
+	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
 	const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
 	const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(
 		null,
@@ -444,6 +447,13 @@ export function MainScreen() {
 				return;
 			}
 
+			// Temporarily clear selection to force unmount if it's the current tab
+			const savedTabId = selectedTabId;
+			const savedWorktreeId = selectedWorktreeId;
+			if (isCurrentTab) {
+				setSelectedTabId(null);
+			}
+
 			// Refresh workspace
 			const refreshedWorkspace = await window.ipcRenderer.invoke(
 				"workspace-get",
@@ -454,10 +464,13 @@ export function MainScreen() {
 				setCurrentWorkspace(refreshedWorkspace);
 				await loadAllWorkspaces();
 
+				// Wait for next tick to ensure state updates
+				await new Promise((resolve) => setTimeout(resolve, 0));
+
 				// Only select adjacent tab if the exited terminal was the current one
 				if (isCurrentTab) {
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
-						(wt) => wt.id === selectedWorktreeId,
+						(wt) => wt.id === savedWorktreeId,
 					);
 
 					if (updatedWorktree) {
@@ -477,7 +490,7 @@ export function MainScreen() {
 									updatedGroupTab.tabs.length - 1,
 								);
 								handleTabSelect(
-									selectedWorktreeId,
+									savedWorktreeId,
 									updatedGroupTab.tabs[newIndex].id,
 								);
 							} else {
@@ -490,7 +503,7 @@ export function MainScreen() {
 								updatedWorktree.tabs.length - 1,
 							);
 							handleTabSelect(
-								selectedWorktreeId,
+								savedWorktreeId,
 								updatedWorktree.tabs[newIndex].id,
 							);
 						} else {
@@ -1071,14 +1084,23 @@ export function MainScreen() {
 				}
 			},
 			toggleSidebar: () => {
-				setIsSidebarOpen((prev) => !prev);
+				const panel = sidebarPanelRef.current;
+				if (!panel) return;
+
+				if (panel.isCollapsed()) {
+					panel.expand();
+					setIsSidebarOpen(true);
+				} else {
+					panel.collapse();
+					setIsSidebarOpen(false);
+				}
 			},
 			createSplitView: async () => {
 				// Create horizontal split
 				if (!currentWorkspace || !selectedWorktreeId || !selectedTab) return;
 
-				// If already in a group, add to that group
-				if (selectedTab.type === "group") {
+				// If we're inside a group (parentGroupTab exists), add to that group
+				if (parentGroupTab) {
 					const newTab = await createTab(
 						currentWorkspace.id,
 						selectedWorktreeId,
@@ -1087,27 +1109,35 @@ export function MainScreen() {
 					);
 					if (!newTab) return;
 
-					// Move into the group
+					// Move into the parent group
 					await window.ipcRenderer.invoke("tab-move", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
 						tabId: newTab.id,
 						sourceParentTabId: undefined,
-						targetParentTabId: selectedTab.id,
-						targetIndex: selectedTab.tabs?.length || 0,
+						targetParentTabId: parentGroupTab.id,
+						targetIndex: parentGroupTab.tabs?.length || 0,
 					});
 
-					// Update mosaic tree (horizontal split)
+					// Update mosaic tree (horizontal split) - add to existing group's mosaic
 					const updatedMosaicTree = addTabToMosaicTree(
-						selectedTab.mosaicTree,
+						parentGroupTab.mosaicTree,
 						newTab.id,
 					);
 
 					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
-						tabId: selectedTab.id,
+						tabId: parentGroupTab.id,
 						mosaicTree: updatedMosaicTree,
+					});
+
+					// Select the newly created terminal
+					setSelectedTabId(newTab.id);
+					await window.ipcRenderer.invoke("workspace-set-active-selection", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
 					});
 				} else {
 					// Create new group with horizontal split
@@ -1185,8 +1215,8 @@ export function MainScreen() {
 				// Create vertical split
 				if (!currentWorkspace || !selectedWorktreeId || !selectedTab) return;
 
-				// If already in a group, add to that group with column direction
-				if (selectedTab.type === "group") {
+				// If we're inside a group (parentGroupTab exists), add to that group
+				if (parentGroupTab) {
 					const newTab = await createTab(
 						currentWorkspace.id,
 						selectedWorktreeId,
@@ -1195,28 +1225,28 @@ export function MainScreen() {
 					);
 					if (!newTab) return;
 
-					// Move into the group
+					// Move into the parent group
 					await window.ipcRenderer.invoke("tab-move", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
 						tabId: newTab.id,
 						sourceParentTabId: undefined,
-						targetParentTabId: selectedTab.id,
-						targetIndex: selectedTab.tabs?.length || 0,
+						targetParentTabId: parentGroupTab.id,
+						targetIndex: parentGroupTab.tabs?.length || 0,
 					});
 
 					// Update mosaic tree with column direction for vertical split
 					const updatedMosaicTree: MosaicNode<string> =
-						typeof selectedTab.mosaicTree === "string"
+						typeof parentGroupTab.mosaicTree === "string"
 							? {
 									direction: "column",
-									first: selectedTab.mosaicTree,
+									first: parentGroupTab.mosaicTree,
 									second: newTab.id,
 									splitPercentage: 50,
 								}
 							: {
 									direction: "column",
-									first: selectedTab.mosaicTree,
+									first: parentGroupTab.mosaicTree,
 									second: newTab.id,
 									splitPercentage: 50,
 								};
@@ -1224,8 +1254,16 @@ export function MainScreen() {
 					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
-						tabId: selectedTab.id,
+						tabId: parentGroupTab.id,
 						mosaicTree: updatedMosaicTree,
+					});
+
+					// Select the newly created terminal
+					setSelectedTabId(newTab.id);
+					await window.ipcRenderer.invoke("workspace-set-active-selection", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
 					});
 				} else {
 					// Create new group with vertical split
@@ -1386,7 +1424,19 @@ export function MainScreen() {
 				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
 				const tabToClose = selectedTabId;
 
-				// If in a group, update mosaic tree first to remove the tab
+				// Delete the tab first
+				const result = await window.ipcRenderer.invoke("tab-delete", {
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+					tabId: tabToClose,
+				});
+
+				if (!result.success) {
+					console.error("Failed to close tab:", result.error);
+					return;
+				}
+
+				// Then update mosaic tree if in a group (after deletion)
 				if (isInGroup && parentGroupTab && parentGroupTab.mosaicTree) {
 					const updatedMosaicTree = removeTabFromMosaicTree(
 						parentGroupTab.mosaicTree as MosaicNode<string>,
@@ -1401,18 +1451,6 @@ export function MainScreen() {
 					});
 				}
 
-				// Delete the tab
-				const result = await window.ipcRenderer.invoke("tab-delete", {
-					workspaceId: currentWorkspace.id,
-					worktreeId: selectedWorktreeId,
-					tabId: tabToClose,
-				});
-
-				if (!result.success) {
-					console.error("Failed to close tab:", result.error);
-					return;
-				}
-
 				// Refresh workspace to get updated tab list
 				const refreshedWorkspace = await window.ipcRenderer.invoke(
 					"workspace-get",
@@ -1420,10 +1458,11 @@ export function MainScreen() {
 				);
 
 				if (refreshedWorkspace) {
-					// Update workspace state first
-					setCurrentWorkspace(refreshedWorkspace);
-					// Also refresh workspaces list for sidebar
+					// Force update workspaces list first for sidebar
 					await loadAllWorkspaces();
+
+					// Update workspace state with new object reference
+					setCurrentWorkspace(refreshedWorkspace);
 
 					// Find the worktree and updated parent group if applicable
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
@@ -1431,11 +1470,14 @@ export function MainScreen() {
 					);
 
 					if (updatedWorktree) {
-						// If we were in a group, find the updated group and select adjacent tab within it
-						if (isInGroup && parentGroupTab) {
+						// Re-find the parent group from the refreshed workspace
+						const wasInGroup = isInGroup;
+						const oldParentId = parentGroupTab?.id;
+
+						if (wasInGroup && oldParentId) {
 							const updatedGroupTab = findTabById(
 								updatedWorktree.tabs,
-								parentGroupTab.id,
+								oldParentId,
 							);
 							if (
 								updatedGroupTab &&
@@ -1448,11 +1490,11 @@ export function MainScreen() {
 									updatedGroupTab.tabs.length - 1,
 								);
 								handleTabSelect(
-									selectedWorktreeId,
+									savedWorktreeId,
 									updatedGroupTab.tabs[newIndex].id,
 								);
 							} else {
-								// Group is now empty, clear selection or select the group itself
+								// Group is now empty, clear selection
 								setSelectedTabId(null);
 							}
 						} else if (updatedWorktree.tabs.length > 0) {
@@ -1462,7 +1504,7 @@ export function MainScreen() {
 								updatedWorktree.tabs.length - 1,
 							);
 							handleTabSelect(
-								selectedWorktreeId,
+								savedWorktreeId,
 								updatedWorktree.tabs[newIndex].id,
 							);
 						} else {
@@ -1539,14 +1581,49 @@ export function MainScreen() {
 			<div className="flex h-screen relative text-neutral-300">
 				<Background />
 
+				{/* Hover trigger area when sidebar is hidden */}
+				{!isSidebarOpen && (
+					<div
+						className="fixed left-0 top-0 bottom-0 w-2 z-50"
+						onMouseEnter={() => setShowSidebarOverlay(true)}
+					/>
+				)}
+
+				{/* Sidebar overlay when hidden and hovering */}
+				{!isSidebarOpen && showSidebarOverlay && workspaces && (
+					<div
+						className="fixed left-0 top-0 bottom-0 w-80 z-40 animate-in slide-in-from-left duration-200"
+						onMouseLeave={() => setShowSidebarOverlay(false)}
+					>
+						<div className="h-full border-r border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
+							<Sidebar
+								workspaces={workspaces}
+								currentWorkspace={currentWorkspace}
+								onTabSelect={handleTabSelect}
+								onWorktreeCreated={handleWorktreeCreated}
+								onWorkspaceSelect={handleWorkspaceSelect}
+								onUpdateWorktree={handleUpdateWorktree}
+								selectedTabId={selectedTabId ?? undefined}
+								onCollapse={() => {
+									setShowSidebarOverlay(false);
+								}}
+								isDragging={!!activeId}
+							/>
+						</div>
+					</div>
+				)}
+
 				{/* App Frame - continuous border + sidebar + topbar */}
 				<AppFrame>
 					<ResizablePanelGroup direction="horizontal" autoSaveId="main-layout">
 						<ResizablePanel
+							ref={sidebarPanelRef}
 							defaultSize={20}
-							minSize={16}
+							minSize={15}
 							maxSize={40}
 							collapsible={true}
+							onCollapse={() => setIsSidebarOpen(false)}
+							onExpand={() => setIsSidebarOpen(true)}
 						>
 							{isSidebarOpen && workspaces && (
 								<Sidebar
@@ -1589,6 +1666,7 @@ export function MainScreen() {
 									) : parentGroupTab ? (
 										// Selected tab is a sub-tab of a group → display the parent group's mosaic
 										<TabGroup
+											key={`${parentGroupTab.id}-${JSON.stringify(parentGroupTab.mosaicTree)}-${parentGroupTab.tabs?.length}`}
 											groupTab={parentGroupTab}
 											workingDirectory={
 												selectedWorktree.path || currentWorkspace.repoPath
@@ -1601,6 +1679,7 @@ export function MainScreen() {
 									) : selectedTab.type === "group" ? (
 										// Selected tab is a group tab → display its mosaic layout
 										<TabGroup
+											key={`${selectedTab.id}-${JSON.stringify(selectedTab.mosaicTree)}-${selectedTab.tabs?.length}`}
 											groupTab={selectedTab}
 											workingDirectory={
 												selectedWorktree.path || currentWorkspace.repoPath
