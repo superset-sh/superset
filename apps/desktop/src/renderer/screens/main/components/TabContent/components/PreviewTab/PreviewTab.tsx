@@ -519,7 +519,7 @@ export function PreviewTab({
 									? (element as unknown as WebviewTag)
 									: null;
 							}}
-							src={tab.url || ""}
+							src={currentUrl || ""}
 							partition={`persist:preview-${tab.id}`}
 							allowpopups
 							style={{
