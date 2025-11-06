@@ -26,6 +26,11 @@ import TabGroup from "./components/MainContent/TabGroup";
 import { PlaceholderState } from "./components/PlaceholderState";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
+import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
+import {
+	createWorkspaceShortcuts,
+	createTabShortcuts,
+} from "../../lib/shortcuts";
 
 // Droppable wrapper for main content area
 function DroppableMainContent({
@@ -886,6 +891,121 @@ export function MainScreen() {
 		activeId && selectedWorktree
 			? findTabById(selectedWorktree.tabs, activeId)
 			: null;
+
+	// Set up keyboard shortcuts
+	useEffect(() => {
+		const workspaceShortcuts = createWorkspaceShortcuts({
+			switchToPrevWorkspace: () => {
+				if (!workspaces || !currentWorkspace) return;
+				const currentIndex = workspaces.findIndex(
+					(ws) => ws.id === currentWorkspace.id,
+				);
+				if (currentIndex > 0) {
+					handleWorkspaceSelect(workspaces[currentIndex - 1].id);
+				}
+			},
+			switchToNextWorkspace: () => {
+				if (!workspaces || !currentWorkspace) return;
+				const currentIndex = workspaces.findIndex(
+					(ws) => ws.id === currentWorkspace.id,
+				);
+				if (currentIndex < workspaces.length - 1) {
+					handleWorkspaceSelect(workspaces[currentIndex + 1].id);
+				}
+			},
+			toggleSidebar: () => {
+				setIsSidebarOpen((prev) => !prev);
+			},
+			createSplitView: () => {
+				// TODO: implement horizontal split
+				console.log("Create split view (horizontal)");
+			},
+			createVerticalSplit: () => {
+				// TODO: implement vertical split
+				console.log("Create split view (vertical)");
+			},
+		});
+
+		const tabShortcuts = createTabShortcuts({
+			switchToPrevTab: () => {
+				if (!selectedWorktree || !selectedTabId) return;
+				const tabs = selectedWorktree.tabs;
+				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
+				if (currentIndex > 0) {
+					handleTabSelect(selectedWorktree.id, tabs[currentIndex - 1].id);
+				}
+			},
+			switchToNextTab: () => {
+				if (!selectedWorktree || !selectedTabId) return;
+				const tabs = selectedWorktree.tabs;
+				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
+				if (currentIndex < tabs.length - 1) {
+					handleTabSelect(selectedWorktree.id, tabs[currentIndex + 1].id);
+				}
+			},
+			newTab: async () => {
+				if (!currentWorkspace || !selectedWorktreeId) return;
+				const tab = await createTab(
+					currentWorkspace.id,
+					selectedWorktreeId,
+					"Terminal",
+					"terminal",
+				);
+				if (tab) {
+					// Refresh workspace
+					const refreshedWorkspace = await window.ipcRenderer.invoke(
+						"workspace-get",
+						currentWorkspace.id,
+					);
+					if (refreshedWorkspace) {
+						setCurrentWorkspace(refreshedWorkspace);
+						handleTabSelect(selectedWorktreeId, tab.id);
+					}
+				}
+			},
+			closeTab: async () => {
+				if (!currentWorkspace || !selectedWorktreeId || !selectedTabId) return;
+				// TODO: implement tab close with proper cleanup
+				console.log("Close tab:", selectedTabId);
+			},
+			reopenClosedTab: () => {
+				// TODO: implement reopen closed tab
+				console.log("Reopen closed tab");
+			},
+			jumpToTab: (index: number) => {
+				if (!selectedWorktree) return;
+				const tabs = selectedWorktree.tabs;
+				if (index > 0 && index <= tabs.length) {
+					handleTabSelect(selectedWorktree.id, tabs[index - 1].id);
+				}
+			},
+		});
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+			// Try workspace shortcuts first
+			const workspaceHandler = createShortcutHandler(
+				workspaceShortcuts.shortcuts,
+			);
+			if (!workspaceHandler(event)) {
+				return;
+			}
+
+			// Then try tab shortcuts
+			const tabHandler = createShortcutHandler(tabShortcuts.shortcuts);
+			tabHandler(event);
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [
+		workspaces,
+		currentWorkspace,
+		selectedWorktree,
+		selectedWorktreeId,
+		selectedTabId,
+	]);
 
 	return (
 		<DndContext
