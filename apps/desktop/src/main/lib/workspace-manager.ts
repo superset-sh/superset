@@ -11,7 +11,7 @@ import type {
 } from "shared/types";
 import configManager from "./config-manager";
 import { proxyManager } from "./proxy-manager";
-import { terminalManager } from "./terminal-manager";
+import terminalManager from "./terminal";
 import * as tabOps from "./workspace/tab-operations";
 import * as workspaceOps from "./workspace/workspace-operations";
 import * as worktreeOps from "./workspace/worktree-operations";
