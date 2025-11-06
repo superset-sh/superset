@@ -397,6 +397,41 @@ export function MainScreen() {
 		return null;
 	};
 
+	// Helper: Remove tab ID from mosaic tree
+	const removeTabFromMosaicTree = (
+		tree: MosaicNode<string>,
+		tabId: string,
+	): MosaicNode<string> | null => {
+		if (typeof tree === "string") {
+			// If this is the tab to remove, return null
+			return tree === tabId ? null : tree;
+		}
+
+		// Recursively remove from branches
+		const newFirst = removeTabFromMosaicTree(tree.first, tabId);
+		const newSecond = removeTabFromMosaicTree(tree.second, tabId);
+
+		// If both branches are gone, return null
+		if (!newFirst && !newSecond) {
+			return null;
+		}
+
+		// If one branch is gone, return the other
+		if (!newFirst) {
+			return newSecond;
+		}
+		if (!newSecond) {
+			return newFirst;
+		}
+
+		// Both branches exist, keep the structure
+		return {
+			...tree,
+			first: newFirst,
+			second: newSecond,
+		};
+	};
+
 	// Helper: Add tab ID to mosaic tree
 	const addTabToMosaicTree = (
 		tree: MosaicNode<string> | null | undefined,
@@ -1004,11 +1039,12 @@ export function MainScreen() {
 						mosaicTree,
 					});
 
-					setSelectedTabId(groupTab.id);
+					// Select the newly created terminal (not the group)
+					setSelectedTabId(newTab.id);
 					await window.ipcRenderer.invoke("workspace-set-active-selection", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
-						tabId: groupTab.id,
+						tabId: newTab.id,
 					});
 				}
 
@@ -1019,6 +1055,8 @@ export function MainScreen() {
 				);
 				if (refreshedWorkspace) {
 					setCurrentWorkspace(refreshedWorkspace);
+					// Also refresh workspaces list for sidebar
+					await loadAllWorkspaces();
 				}
 			},
 			createVerticalSplit: async () => {
@@ -1119,11 +1157,12 @@ export function MainScreen() {
 						mosaicTree,
 					});
 
-					setSelectedTabId(groupTab.id);
+					// Select the newly created terminal (not the group)
+					setSelectedTabId(newTab.id);
 					await window.ipcRenderer.invoke("workspace-set-active-selection", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: selectedWorktreeId,
-						tabId: groupTab.id,
+						tabId: newTab.id,
 					});
 				}
 
@@ -1134,6 +1173,8 @@ export function MainScreen() {
 				);
 				if (refreshedWorkspace) {
 					setCurrentWorkspace(refreshedWorkspace);
+					// Also refresh workspaces list for sidebar
+					await loadAllWorkspaces();
 				}
 			},
 		});
@@ -1215,9 +1256,28 @@ export function MainScreen() {
 			closeTab: async () => {
 				if (!currentWorkspace || !selectedWorktreeId || !selectedTabId) return;
 
-				const tabs = selectedWorktree?.tabs || [];
+				// Check if we're inside a group tab
+				const isInGroup = !!parentGroupTab;
+				const tabs = isInGroup
+					? parentGroupTab?.tabs || []
+					: selectedWorktree?.tabs || [];
 				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
 				const tabToClose = selectedTabId;
+
+				// If in a group, update mosaic tree first to remove the tab
+				if (isInGroup && parentGroupTab && parentGroupTab.mosaicTree) {
+					const updatedMosaicTree = removeTabFromMosaicTree(
+						parentGroupTab.mosaicTree as MosaicNode<string>,
+						tabToClose,
+					);
+
+					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: parentGroupTab.id,
+						mosaicTree: updatedMosaicTree,
+					});
+				}
 
 				// Delete the tab
 				const result = await window.ipcRenderer.invoke("tab-delete", {
@@ -1243,24 +1303,50 @@ export function MainScreen() {
 					// Also refresh workspaces list for sidebar
 					await loadAllWorkspaces();
 
-					// Find the worktree and select adjacent tab
+					// Find the worktree and updated parent group if applicable
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
 						(wt) => wt.id === selectedWorktreeId,
 					);
 
-					if (updatedWorktree && updatedWorktree.tabs.length > 0) {
-						// Try to select the tab at the same index, or the last tab
-						const newIndex = Math.min(
-							currentIndex,
-							updatedWorktree.tabs.length - 1,
-						);
-						handleTabSelect(
-							selectedWorktreeId,
-							updatedWorktree.tabs[newIndex].id,
-						);
-					} else {
-						// No tabs left, clear selection
-						setSelectedTabId(null);
+					if (updatedWorktree) {
+						// If we were in a group, find the updated group and select adjacent tab within it
+						if (isInGroup && parentGroupTab) {
+							const updatedGroupTab = findTabById(
+								updatedWorktree.tabs,
+								parentGroupTab.id,
+							);
+							if (
+								updatedGroupTab &&
+								updatedGroupTab.tabs &&
+								updatedGroupTab.tabs.length > 0
+							) {
+								// Select adjacent tab within the group
+								const newIndex = Math.min(
+									currentIndex,
+									updatedGroupTab.tabs.length - 1,
+								);
+								handleTabSelect(
+									selectedWorktreeId,
+									updatedGroupTab.tabs[newIndex].id,
+								);
+							} else {
+								// Group is now empty, clear selection or select the group itself
+								setSelectedTabId(null);
+							}
+						} else if (updatedWorktree.tabs.length > 0) {
+							// Top-level tab - select adjacent top-level tab
+							const newIndex = Math.min(
+								currentIndex,
+								updatedWorktree.tabs.length - 1,
+							);
+							handleTabSelect(
+								selectedWorktreeId,
+								updatedWorktree.tabs[newIndex].id,
+							);
+						} else {
+							// No tabs left, clear selection
+							setSelectedTabId(null);
+						}
 					}
 				}
 			},
