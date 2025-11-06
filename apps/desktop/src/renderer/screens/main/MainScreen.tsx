@@ -900,7 +900,7 @@ export function MainScreen() {
 					<ResizablePanelGroup direction="horizontal" autoSaveId="main-layout">
 						<ResizablePanel
 							defaultSize={20}
-							minSize={15}
+							minSize={18}
 							maxSize={40}
 							collapsible={true}
 						>
