@@ -1190,28 +1190,19 @@ export function MainScreen() {
 
 					if (result.success && result.tab) {
 						const newTabId = result.tab.id;
-						// Set active selection immediately
-						await window.ipcRenderer.invoke("workspace-set-active-selection", {
-							workspaceId: currentWorkspace.id,
-							worktreeId: selectedWorktreeId,
-							tabId: newTabId,
-						});
 
-						// Update local state
-						setSelectedWorktreeId(selectedWorktreeId);
-						setSelectedTabId(newTabId);
-
-						// Refresh workspace to get updated data
+						// Refresh workspace first to ensure we have the new tab
 						const refreshedWorkspace = await window.ipcRenderer.invoke(
 							"workspace-get",
 							currentWorkspace.id,
 						);
+
 						if (refreshedWorkspace) {
-							setCurrentWorkspace({
-								...refreshedWorkspace,
-								activeWorktreeId: selectedWorktreeId,
-								activeTabId: newTabId,
-							});
+							// Update workspace state
+							setCurrentWorkspace(refreshedWorkspace);
+
+							// Then select the new tab (this will trigger focus)
+							handleTabSelect(selectedWorktreeId, newTabId);
 						}
 					} else {
 						console.error("Failed to create tab:", result.error);
@@ -1225,12 +1216,13 @@ export function MainScreen() {
 
 				const tabs = selectedWorktree?.tabs || [];
 				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
+				const tabToClose = selectedTabId;
 
 				// Delete the tab
 				const result = await window.ipcRenderer.invoke("tab-delete", {
 					workspaceId: currentWorkspace.id,
 					worktreeId: selectedWorktreeId,
-					tabId: selectedTabId,
+					tabId: tabToClose,
 				});
 
 				if (!result.success) {
@@ -1238,23 +1230,21 @@ export function MainScreen() {
 					return;
 				}
 
-				// Clear selected tab immediately to trigger UI update
-				setSelectedTabId(null);
-
-				// Refresh workspace
+				// Refresh workspace to get updated tab list
 				const refreshedWorkspace = await window.ipcRenderer.invoke(
 					"workspace-get",
 					currentWorkspace.id,
 				);
 
 				if (refreshedWorkspace) {
-					// Force a new object reference to ensure React re-renders
-					setCurrentWorkspace({ ...refreshedWorkspace });
+					// Update workspace state first
+					setCurrentWorkspace(refreshedWorkspace);
 
-					// Select adjacent tab
+					// Find the worktree and select adjacent tab
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
 						(wt) => wt.id === selectedWorktreeId,
 					);
+
 					if (updatedWorktree && updatedWorktree.tabs.length > 0) {
 						// Try to select the tab at the same index, or the last tab
 						const newIndex = Math.min(
@@ -1265,6 +1255,9 @@ export function MainScreen() {
 							selectedWorktreeId,
 							updatedWorktree.tabs[newIndex].id,
 						);
+					} else {
+						// No tabs left, clear selection
+						setSelectedTabId(null);
 					}
 				}
 			},
@@ -1274,9 +1267,25 @@ export function MainScreen() {
 			},
 			jumpToTab: (index: number) => {
 				if (!selectedWorktree) return;
-				const tabs = selectedWorktree.tabs;
-				if (index > 0 && index <= tabs.length) {
-					handleTabSelect(selectedWorktree.id, tabs[index - 1].id);
+
+				// Flatten tabs: expand group children to number all actual terminals
+				const flattenTabs = (tabs: Tab[]): Tab[] => {
+					const result: Tab[] = [];
+					for (const tab of tabs) {
+						if (tab.type === "group" && tab.tabs && tab.tabs.length > 0) {
+							// Add all children of the group
+							result.push(...tab.tabs);
+						} else {
+							// Add non-group tabs
+							result.push(tab);
+						}
+					}
+					return result;
+				};
+
+				const flatTabs = flattenTabs(selectedWorktree.tabs);
+				if (index > 0 && index <= flatTabs.length) {
+					handleTabSelect(selectedWorktree.id, flatTabs[index - 1].id);
 				}
 			},
 		});
