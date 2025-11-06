@@ -76,9 +76,20 @@ export function PreviewTab({
 	const initializedRef = useRef(false);
 	const lastPersistedUrlRef = useRef<string | undefined>(tab.url);
 
-	// Initialize state from tab.url only once
-	const [addressBarValue, setAddressBarValue] = useState(() => tab.url ?? "");
-	const [currentUrl, setCurrentUrl] = useState(() => tab.url ?? "");
+	// Use sessionStorage as client-side cache to survive unmount/remount
+	const getStorageKey = (key: string) => `preview-tab-${tab.id}-${key}`;
+
+	const getStoredUrl = () => {
+		try {
+			return sessionStorage.getItem(getStorageKey("url")) || tab.url || "";
+		} catch {
+			return tab.url || "";
+		}
+	};
+
+	// Initialize state from sessionStorage or tab.url
+	const [addressBarValue, setAddressBarValue] = useState(() => getStoredUrl());
+	const [currentUrl, setCurrentUrl] = useState(() => getStoredUrl());
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [proxyStatus, setProxyStatus] = useState<ProxyStatus[]>([]);
@@ -195,6 +206,15 @@ export function PreviewTab({
 	const navigateTo = useCallback(
 		(url: string, options?: { persist?: boolean }) => {
 			const normalized = normalizeUrl(url);
+
+			// Store in sessionStorage immediately for client-side cache
+			try {
+				const storageKey = `preview-tab-${tab.id}-url`;
+				sessionStorage.setItem(storageKey, normalized);
+			} catch (error) {
+				console.error("Failed to store URL in sessionStorage:", error);
+			}
+
 			setCurrentUrl((previous) => {
 				if (previous === normalized) {
 					return previous;
@@ -214,7 +234,7 @@ export function PreviewTab({
 				void persistUrl(normalized);
 			}
 		},
-		[loadWebviewUrl, persistUrl],
+		[loadWebviewUrl, persistUrl, tab.id],
 	);
 
 	const handleSubmit = useCallback(
