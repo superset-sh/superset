@@ -81,7 +81,14 @@ export function PreviewTab({
 
 	const getStoredUrl = () => {
 		try {
-			return sessionStorage.getItem(getStorageKey("url")) || tab.url || "";
+			const stored = sessionStorage.getItem(getStorageKey("url"));
+			console.log(
+				`[PreviewTab ${tab.id}] getStoredUrl - sessionStorage:`,
+				stored,
+				"tab.url:",
+				tab.url,
+			);
+			return stored || tab.url || "";
 		} catch {
 			return tab.url || "";
 		}
@@ -353,10 +360,13 @@ export function PreviewTab({
 				return;
 			}
 
+			console.log(`[PreviewTab ${tab.id}] handleNavigate - url:`, url);
+
 			// Update sessionStorage for client-side cache
 			try {
 				const storageKey = `preview-tab-${tab.id}-url`;
 				sessionStorage.setItem(storageKey, url);
+				console.log(`[PreviewTab ${tab.id}] Stored in sessionStorage:`, url);
 			} catch (error) {
 				console.error("Failed to store URL in sessionStorage:", error);
 			}
