@@ -138,7 +138,7 @@ export default function TerminalComponent({
 			fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 			theme:
 				currentTheme === "light" ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK,
-			scrollback: 10000,
+			scrollback: 9999999, // Very large scrollback buffer (practical maximum)
 			// Use xterm.js defaults for all other settings to match standard terminal behavior
 			// scrollOnUserInput: true (default)
 			// altClickMovesCursor: true (default - matches iTerm2)
