@@ -135,8 +135,8 @@ export function PreviewTab({
 				console.error("Failed to persist preview URL:", error);
 			}
 		},
-			[tab.id, worktreeId, workspaceId],
-		);
+		[tab.id, worktreeId, workspaceId],
+	);
 
 	const loadWebviewUrl = useCallback((targetUrl: string) => {
 		if (!targetUrl || targetUrl === "about:blank") {
@@ -177,7 +177,10 @@ export function PreviewTab({
 				});
 			}
 		} catch (error) {
-			const { code, errno } = (error || {}) as { code?: string; errno?: number };
+			const { code, errno } = (error || {}) as {
+				code?: string;
+				errno?: number;
+			};
 
 			if (code === "ERR_ABORTED" || errno === -3) {
 				return;
@@ -391,14 +394,18 @@ export function PreviewTab({
 			flushPendingNavigation();
 		};
 
-		attachNavigationListeners();
+		// Only try to check loading state if webview is already attached and ready
+		try {
+			if (typeof webview.isLoading === "function") {
+				webviewReadyRef.current = !webview.isLoading();
 
-		if (typeof webview.isLoading === "function") {
-			webviewReadyRef.current = !webview.isLoading();
-		}
-
-		if (webviewReadyRef.current) {
-			handleDomReady();
+				if (webviewReadyRef.current) {
+					attachNavigationListeners();
+					handleDomReady();
+				}
+			}
+		} catch {
+			// Webview not ready yet, dom-ready event will handle initialization
 		}
 
 		webview.addEventListener("dom-ready", handleDomReady);
@@ -413,10 +420,7 @@ export function PreviewTab({
 				webview.removeEventListener("did-stop-loading", handleDidStop);
 				webview.removeEventListener("did-fail-load", handleDidFail);
 				webview.removeEventListener("did-navigate", handleNavigate);
-				webview.removeEventListener(
-					"did-navigate-in-page",
-					handleNavigate,
-				);
+				webview.removeEventListener("did-navigate-in-page", handleNavigate);
 			}
 		};
 	}, [loadWebviewUrl, persistUrl]);
@@ -451,7 +455,10 @@ export function PreviewTab({
 					/>
 				</Button>
 
-				<form onSubmit={handleSubmit} className="flex flex-1 items-center gap-2">
+				<form
+					onSubmit={handleSubmit}
+					className="flex flex-1 items-center gap-2"
+				>
 					<div className="flex flex-1 items-center gap-2 rounded-md bg-neutral-900 px-2 py-1 ring-1 ring-inset ring-neutral-800 focus-within:ring-blue-500">
 						<MonitorSmartphone size={16} className="text-neutral-400" />
 						<input
@@ -475,7 +482,10 @@ export function PreviewTab({
 					>
 						<option value="">Detected Ports</option>
 						{portOptions.map((option) => (
-							<option key={`${option.service}-${option.port}`} value={option.url}>
+							<option
+								key={`${option.service}-${option.port}`}
+								value={option.url}
+							>
 								{option.label}
 							</option>
 						))}
