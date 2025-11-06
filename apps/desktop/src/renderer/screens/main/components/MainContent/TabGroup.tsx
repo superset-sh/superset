@@ -178,15 +178,17 @@ export default function TabGroup({
 					className={isActive ? "active-mosaic-window" : ""}
 					toolbarControls={<div />}
 				>
-					<TabContent
-						tab={tab}
-						workingDirectory={workingDirectory}
-						workspaceId={workspaceId}
-						worktreeId={worktreeId}
-						groupTabId={groupTab.id}
-						selectedTabId={selectedTabId}
-						onTabFocus={onTabFocus}
-					/>
+					<div className="w-full h-full p-2 bg-[#1e1e1e]">
+						<TabContent
+							tab={tab}
+							workingDirectory={workingDirectory}
+							workspaceId={workspaceId}
+							worktreeId={worktreeId}
+							groupTabId={groupTab.id}
+							selectedTabId={selectedTabId}
+							onTabFocus={onTabFocus}
+						/>
+					</div>
 				</MosaicWindow>
 			);
 		},

@@ -10,13 +10,6 @@ import { createTerminalShortcuts } from "../../../../lib/shortcuts";
 // WebglAddon disabled due to cursor positioning issues with autocomplete
 // import { WebglAddon } from "@xterm/addon-webgl";
 
-// Custom styles for terminal padding
-const terminalStyles = `
-	.terminal-with-padding .xterm-screen {
-		padding: 8px;
-	}
-`;
-
 interface TerminalProps {
 	terminalId?: string | null;
 	hidden?: boolean;
@@ -145,12 +138,12 @@ export default function TerminalComponent({
 			fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 			theme:
 				currentTheme === "light" ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK,
-			allowTransparency: true,
-			disableStdin: false,
-			// Add scrollback configuration for better history handling
 			scrollback: 10000,
-			// Enable alternate screen for better full-screen app support
-			altClickMovesCursor: false,
+			// Use xterm.js defaults for all other settings to match standard terminal behavior
+			// scrollOnUserInput: true (default)
+			// altClickMovesCursor: true (default - matches iTerm2)
+			// convertEol: false (default - PTY handles EOL conversion)
+			// fastScrollModifier: "alt" (default)
 		});
 
 		term.open(container);
@@ -439,12 +432,11 @@ export default function TerminalComponent({
 	}
 
 	return (
-		<>
-			<style>{terminalStyles}</style>
+		<div className="h-full w-full">
 			<div
 				ref={terminalRef}
-				className={`terminal-with-padding h-full w-full transition-opacity duration-200 text-start ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
+				className={`h-full w-full transition-opacity duration-200 text-start [&_.xterm-screen]:!p-0 ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
 			/>
-		</>
+		</div>
 	);
 }

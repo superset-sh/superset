@@ -1700,7 +1700,7 @@ export function MainScreen() {
 										/>
 									) : (
 										// Base level tab (not inside a group) → display full width/height
-										<div className="w-full h-full">
+										<div className="w-full h-full p-2 bg-[#1e1e1e]">
 											<TabContent
 												tab={selectedTab}
 												workingDirectory={

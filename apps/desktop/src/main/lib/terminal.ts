@@ -67,7 +67,16 @@ class TerminalManager {
 				cols: options?.cols || 80,
 				rows: options?.rows || 30,
 				cwd: finalCwd,
-				env: process.env as Record<string, string>,
+				env: {
+					...(process.env as Record<string, string>),
+					// Ensure proper terminal capabilities for fullscreen apps
+					TERM: "xterm-256color",
+					COLORTERM: "truecolor",
+				},
+				// Use ConptyPty on Windows for better terminal emulation
+				useConpty: os.platform() === "win32",
+				// Enable flow control to prevent data loss during rapid output
+				handleFlowControl: true,
 			});
 
 			ptyProcess.onData((data: string) => {
