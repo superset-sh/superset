@@ -1191,18 +1191,17 @@ export function MainScreen() {
 					if (result.success && result.tab) {
 						const newTabId = result.tab.id;
 
-						// Refresh workspace first to ensure we have the new tab
+						// Select the new tab first (matches sidebar button behavior)
+						handleTabSelect(selectedWorktreeId, newTabId);
+
+						// Then refresh workspace to get updated data
 						const refreshedWorkspace = await window.ipcRenderer.invoke(
 							"workspace-get",
 							currentWorkspace.id,
 						);
 
 						if (refreshedWorkspace) {
-							// Update workspace state
 							setCurrentWorkspace(refreshedWorkspace);
-
-							// Then select the new tab (this will trigger focus)
-							handleTabSelect(selectedWorktreeId, newTabId);
 						}
 					} else {
 						console.error("Failed to create tab:", result.error);
