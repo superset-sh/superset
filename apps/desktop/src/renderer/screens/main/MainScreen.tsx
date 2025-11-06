@@ -1193,6 +1193,9 @@ export function MainScreen() {
 					return;
 				}
 
+				// Clear selected tab immediately to trigger UI update
+				setSelectedTabId(null);
+
 				// Refresh workspace
 				const refreshedWorkspace = await window.ipcRenderer.invoke(
 					"workspace-get",
@@ -1200,7 +1203,8 @@ export function MainScreen() {
 				);
 
 				if (refreshedWorkspace) {
-					setCurrentWorkspace(refreshedWorkspace);
+					// Force a new object reference to ensure React re-renders
+					setCurrentWorkspace({ ...refreshedWorkspace });
 
 					// Select adjacent tab
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
@@ -1216,9 +1220,6 @@ export function MainScreen() {
 							selectedWorktreeId,
 							updatedWorktree.tabs[newIndex].id,
 						);
-					} else {
-						// No tabs left
-						setSelectedTabId(null);
 					}
 				}
 			},
@@ -1249,9 +1250,10 @@ export function MainScreen() {
 			tabHandler(event);
 		};
 
-		window.addEventListener("keydown", handleKeyDown);
+		// Use capture phase to intercept events before they reach terminal
+		window.addEventListener("keydown", handleKeyDown, true);
 		return () => {
-			window.removeEventListener("keydown", handleKeyDown);
+			window.removeEventListener("keydown", handleKeyDown, true);
 		};
 	}, [
 		workspaces,

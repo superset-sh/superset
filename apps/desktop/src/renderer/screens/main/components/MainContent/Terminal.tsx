@@ -95,6 +95,16 @@ export default function TerminalComponent({
 		onFocusRef.current = onFocus;
 	}, [onFocus]);
 
+	// Auto-focus terminal when terminalId changes (new tab or switched tab)
+	useEffect(() => {
+		if (terminal && terminalId) {
+			// Small delay to ensure terminal is fully mounted
+			setTimeout(() => {
+				terminal.focus();
+			}, 50);
+		}
+	}, [terminal, terminalId]);
+
 	useEffect(() => {
 		if (terminal) {
 			terminal.options.theme =
