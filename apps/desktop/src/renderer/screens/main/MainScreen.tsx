@@ -1157,22 +1157,45 @@ export function MainScreen() {
 			},
 			newTab: async () => {
 				if (!currentWorkspace || !selectedWorktreeId) return;
-				const tab = await createTab(
-					currentWorkspace.id,
-					selectedWorktreeId,
-					"Terminal",
-					"terminal",
-				);
-				if (tab) {
-					// Refresh workspace
-					const refreshedWorkspace = await window.ipcRenderer.invoke(
-						"workspace-get",
-						currentWorkspace.id,
-					);
-					if (refreshedWorkspace) {
-						setCurrentWorkspace(refreshedWorkspace);
-						handleTabSelect(selectedWorktreeId, tab.id);
+
+				try {
+					const result = await window.ipcRenderer.invoke("tab-create", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						name: "New Terminal",
+						type: "terminal",
+					});
+
+					if (result.success && result.tab) {
+						const newTabId = result.tab.id;
+						// Set active selection immediately
+						await window.ipcRenderer.invoke("workspace-set-active-selection", {
+							workspaceId: currentWorkspace.id,
+							worktreeId: selectedWorktreeId,
+							tabId: newTabId,
+						});
+
+						// Update local state
+						setSelectedWorktreeId(selectedWorktreeId);
+						setSelectedTabId(newTabId);
+
+						// Refresh workspace to get updated data
+						const refreshedWorkspace = await window.ipcRenderer.invoke(
+							"workspace-get",
+							currentWorkspace.id,
+						);
+						if (refreshedWorkspace) {
+							setCurrentWorkspace({
+								...refreshedWorkspace,
+								activeWorktreeId: selectedWorktreeId,
+								activeTabId: newTabId,
+							});
+						}
+					} else {
+						console.error("Failed to create tab:", result.error);
 					}
+				} catch (error) {
+					console.error("Error creating new tab:", error);
 				}
 			},
 			closeTab: async () => {
