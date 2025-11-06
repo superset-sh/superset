@@ -40,6 +40,7 @@ export function Sidebar({
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
+	const [title, setTitle] = useState("");
 	const [branchName, setBranchName] = useState("");
 	const [branches, setBranches] = useState<string[]>([]);
 	const [sourceBranch, setSourceBranch] = useState("");
@@ -121,6 +122,8 @@ export function Sidebar({
 
 	const handleCreateWorktree = () => {
 		// Reset modal state for creating a new worktree (not cloning)
+		setTitle("");
+		setBranchName("");
 		setSourceBranch("");
 		setCloneTabsFromWorktreeId("");
 		setDescription("");
@@ -130,6 +133,8 @@ export function Sidebar({
 	const handleCloneWorktree = (worktreeId: string, branch: string) => {
 		// Pre-populate modal for cloning: use the clicked worktree's branch as source
 		// and clone its tabs to the new worktree
+		setTitle("");
+		setBranchName("");
 		setSourceBranch(branch);
 		setCloneTabsFromWorktreeId(worktreeId);
 		setShowWorktreeModal(true);
@@ -138,10 +143,11 @@ export function Sidebar({
 	const handleSubmitWorktree = async (e: React.FormEvent) => {
 		e.preventDefault();
 
-		if (!currentWorkspace || !branchName.trim()) return;
+		if (!currentWorkspace || !title.trim()) return;
 
 		console.log("[Sidebar] Creating worktree:", {
-			branchName,
+			title,
+			branch: branchName.trim() || undefined,
 			createBranch: true,
 		});
 		setIsCreatingWorktree(true);
@@ -161,7 +167,8 @@ export function Sidebar({
 			// Type-safe IPC call - no need for type assertion!
 			const result = await window.ipcRenderer.invoke("worktree-create", {
 				workspaceId: currentWorkspace.id,
-				branch: branchName.trim(),
+				title: title.trim(),
+				...(branchName.trim() && { branch: branchName.trim() }),
 				createBranch: true,
 				sourceBranch: sourceBranch,
 				...(cloneTabsFromWorktreeId && { cloneTabsFromWorktreeId }),
@@ -184,6 +191,7 @@ export function Sidebar({
 
 				// Reset modal state and close
 				setShowWorktreeModal(false);
+				setTitle("");
 				setBranchName("");
 				setSourceBranch("");
 				setCloneTabsFromWorktreeId("");
@@ -211,9 +219,11 @@ export function Sidebar({
 
 	const handleCancelWorktree = () => {
 		setShowWorktreeModal(false);
+		setTitle("");
 		setBranchName("");
 		setSourceBranch("");
 		setCloneTabsFromWorktreeId("");
+		setDescription("");
 		setSetupStatus(undefined);
 		setSetupOutput(undefined);
 	};
@@ -347,6 +357,8 @@ export function Sidebar({
 				onClose={handleCancelWorktree}
 				onSubmit={handleSubmitWorktree}
 				isCreating={isCreatingWorktree}
+				title={title}
+				onTitleChange={setTitle}
 				branchName={branchName}
 				onBranchNameChange={setBranchName}
 				branches={branches}

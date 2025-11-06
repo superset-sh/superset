@@ -19,6 +19,8 @@ interface CreateWorktreeModalProps {
 	onClose: () => void;
 	onSubmit: (e: React.FormEvent) => void;
 	isCreating: boolean;
+	title: string;
+	onTitleChange: (value: string) => void;
 	branchName: string;
 	onBranchNameChange: (value: string) => void;
 	branches: string[];
@@ -38,6 +40,8 @@ export function CreateWorktreeModal({
 	onClose,
 	onSubmit,
 	isCreating,
+	title,
+	onTitleChange,
 	branchName,
 	onBranchNameChange,
 	branches,
@@ -51,7 +55,8 @@ export function CreateWorktreeModal({
 	setupStatus,
 	setupOutput,
 }: CreateWorktreeModalProps) {
-	const inputId = useId();
+	const titleId = useId();
+	const branchNameId = useId();
 	const sourceBranchId = useId();
 	const cloneTabsId = useId();
 	const descriptionId = useId();
@@ -73,6 +78,35 @@ export function CreateWorktreeModal({
 					onSubmit={onSubmit}
 					className="space-y-4 flex-1 flex flex-col overflow-hidden"
 				>
+					<div className="space-y-2">
+						<Label htmlFor={titleId}>Title</Label>
+						<Input
+							type="text"
+							id={titleId}
+							value={title}
+							onChange={(e) => onTitleChange(e.target.value)}
+							placeholder="My new feature"
+							autoFocus
+							required
+							disabled={isCreating}
+						/>
+					</div>
+
+					<div className="space-y-2">
+						<Label htmlFor={branchNameId}>
+							Branch Name{" "}
+							<span className="text-muted-foreground font-normal">(optional)</span>
+						</Label>
+						<Input
+							type="text"
+							id={branchNameId}
+							value={branchName}
+							onChange={(e) => onBranchNameChange(e.target.value)}
+							placeholder="Auto-generated from title"
+							disabled={isCreating}
+						/>
+					</div>
+
 					<div className="space-y-2">
 						<Label htmlFor={sourceBranchId}>Create From Branch</Label>
 						<select
@@ -107,20 +141,6 @@ export function CreateWorktreeModal({
 								</option>
 							))}
 						</select>
-					</div>
-
-					<div className="space-y-2">
-						<Label htmlFor={inputId}>New Branch Name</Label>
-						<Input
-							type="text"
-							id={inputId}
-							value={branchName}
-							onChange={(e) => onBranchNameChange(e.target.value)}
-							placeholder="feature/my-branch"
-							autoFocus
-							required
-							disabled={isCreating}
-						/>
 					</div>
 
 					<div className="space-y-2">
@@ -184,7 +204,7 @@ export function CreateWorktreeModal({
 						>
 							Cancel
 						</Button>
-						<Button type="submit" disabled={isCreating || !branchName.trim()}>
+						<Button type="submit" disabled={isCreating || !title.trim()}>
 							{isCreating ? "Creating..." : "Create"}
 						</Button>
 					</DialogFooter>

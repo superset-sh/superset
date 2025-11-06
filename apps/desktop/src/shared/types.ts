@@ -92,7 +92,8 @@ export interface CreateWorkspaceInput {
 
 export interface CreateWorktreeInput {
 	workspaceId: string;
-	branch: string;
+	title: string; // Required title for the worktree
+	branch?: string; // Optional branch name - auto-generated from title if not provided
 	createBranch?: boolean;
 	cloneTabsFromWorktreeId?: string; // Optional worktree ID to clone tab setup from
 	sourceBranch?: string; // Optional source branch to create from (defaults to current branch)

@@ -10,6 +10,7 @@ import type {
 	Workspace,
 	Worktree,
 } from "shared/types";
+import { generateBranchName } from "shared/utils/slug";
 
 import configManager from "../config-manager";
 import { executeSetup } from "../setup-executor";
@@ -31,10 +32,13 @@ export async function createWorktree(
 	error?: string;
 }> {
 	try {
+		// Generate branch name from title if not provided
+		const branchName = input.branch || generateBranchName(input.title);
+
 		// Create git worktree
 		const worktreeResult = await worktreeManager.createWorktree(
 			workspace.repoPath,
-			input.branch,
+			branchName,
 			input.createBranch || false,
 			input.sourceBranch,
 		);
@@ -61,7 +65,7 @@ export async function createWorktree(
 		const now = new Date().toISOString();
 		const worktree: Worktree = {
 			id: randomUUID(),
-			branch: input.branch,
+			branch: branchName,
 			path: worktreeResult.path!,
 			tabs,
 			createdAt: now,
@@ -84,7 +88,7 @@ export async function createWorktree(
 		const setupResult = await executeSetup(
 			workspace.repoPath,
 			worktree.path,
-			input.branch,
+			branchName,
 			(status, output) => {
 				// Send progress event to renderer
 				if (webContents && !webContents.isDestroyed()) {
