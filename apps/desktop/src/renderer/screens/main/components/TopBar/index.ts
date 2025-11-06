@@ -1,1 +1,1 @@
-export { TopBar } from "./TopBar";
+export { TopBar, type ViewMode } from "./TopBar";
