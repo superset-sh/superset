@@ -1240,6 +1240,8 @@ export function MainScreen() {
 				if (refreshedWorkspace) {
 					// Update workspace state first
 					setCurrentWorkspace(refreshedWorkspace);
+					// Also refresh workspaces list for sidebar
+					await loadAllWorkspaces();
 
 					// Find the worktree and select adjacent tab
 					const updatedWorktree = refreshedWorkspace.worktrees.find(
