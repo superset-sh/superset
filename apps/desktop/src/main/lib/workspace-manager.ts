@@ -368,6 +368,64 @@ class WorkspaceManager {
 	}
 
 	/**
+	 * Clear all workspace state - removes all worktrees, tabs, and terminals
+	 */
+	async clearWorkspaceState(
+		workspaceId: string,
+	): Promise<{ success: boolean; error?: string }> {
+		const workspace = await this.get(workspaceId);
+		if (!workspace) {
+			return { success: false, error: "Workspace not found" };
+		}
+
+		try {
+			// Close all terminals for all worktrees
+			for (const worktree of workspace.worktrees) {
+				const collectTabIds = (tabs: any[]): string[] => {
+					const ids: string[] = [];
+					for (const tab of tabs) {
+						ids.push(tab.id);
+						if (tab.type === "group" && tab.tabs) {
+							ids.push(...collectTabIds(tab.tabs));
+						}
+					}
+					return ids;
+				};
+
+				const tabIds = collectTabIds(worktree.tabs || []);
+				for (const tabId of tabIds) {
+					try {
+						await terminalManager.kill(tabId);
+					} catch (error) {
+						console.error(`Failed to kill terminal ${tabId}:`, error);
+					}
+				}
+			}
+
+			// Clear all worktrees
+			workspace.worktrees = [];
+			workspace.activeWorktreeId = null;
+			workspace.activeTabId = null;
+			workspace.updatedAt = new Date().toISOString();
+
+			const config = configManager.read();
+			const index = config.workspaces.findIndex((ws) => ws.id === workspace.id);
+			if (index !== -1) {
+				config.workspaces[index] = workspace;
+				configManager.write(config);
+			}
+
+			return { success: true };
+		} catch (error) {
+			console.error("Failed to clear workspace state:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
 	 * Reorder tabs
 	 */
 	async reorderTabs(

@@ -63,6 +63,10 @@ export interface IpcChannels {
 		request: string; // workspace ID
 		response: { success: boolean; error?: string };
 	};
+	"workspace-clear-state": {
+		request: string; // workspace ID
+		response: { success: boolean; error?: string };
+	};
 	"workspace-get-active-selection": {
 		request: string; // workspace ID
 		response: {

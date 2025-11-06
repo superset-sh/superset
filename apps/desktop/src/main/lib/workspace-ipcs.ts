@@ -170,6 +170,14 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// Clear all workspace state (worktrees, tabs, terminals)
+	ipcMain.handle(
+		"workspace-clear-state",
+		async (_event, workspaceId: string) => {
+			return await workspaceManager.clearWorkspaceState(workspaceId);
+		},
+	);
+
 	// Scan and import existing worktrees
 	ipcMain.handle(
 		"workspace-scan-worktrees",
