@@ -139,8 +139,15 @@ export function registerWorkspaceIPCs() {
 	// Update preview tab
 	ipcMain.handle(
 		"tab-update-preview",
-		async (_event, input: UpdatePreviewTabInput) => {
-			return await workspaceManager.updatePreviewTab(input);
+		async (event, input: UpdatePreviewTabInput) => {
+			const result = await workspaceManager.updatePreviewTab(input);
+
+			// Emit event to notify renderer that workspace was updated
+			if (result.success && event.sender) {
+				event.sender.send("workspace-data-updated", input.workspaceId);
+			}
+
+			return result;
 		},
 	);
 

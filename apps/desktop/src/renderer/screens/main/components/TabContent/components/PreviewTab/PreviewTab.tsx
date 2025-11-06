@@ -76,20 +76,9 @@ export function PreviewTab({
 	const initializedRef = useRef(false);
 	const lastPersistedUrlRef = useRef<string | undefined>(tab.url);
 
-	// Use sessionStorage as client-side cache to survive unmount/remount
-	const getStorageKey = (key: string) => `preview-tab-${tab.id}-${key}`;
-
-	const getStoredUrl = () => {
-		try {
-			return sessionStorage.getItem(getStorageKey("url")) || tab.url || "";
-		} catch {
-			return tab.url || "";
-		}
-	};
-
-	// Initialize state from sessionStorage or tab.url
-	const [addressBarValue, setAddressBarValue] = useState(() => getStoredUrl());
-	const [currentUrl, setCurrentUrl] = useState(() => getStoredUrl());
+	// Initialize state from tab.url prop (single source of truth from workspace)
+	const [addressBarValue, setAddressBarValue] = useState(() => tab.url ?? "");
+	const [currentUrl, setCurrentUrl] = useState(() => tab.url ?? "");
 
 	const [isLoading, setIsLoading] = useState(false);
 	const [proxyStatus, setProxyStatus] = useState<ProxyStatus[]>([]);
@@ -207,14 +196,6 @@ export function PreviewTab({
 		(url: string, options?: { persist?: boolean }) => {
 			const normalized = normalizeUrl(url);
 
-			// Store in sessionStorage immediately for client-side cache
-			try {
-				const storageKey = `preview-tab-${tab.id}-url`;
-				sessionStorage.setItem(storageKey, normalized);
-			} catch (error) {
-				console.error("Failed to store URL in sessionStorage:", error);
-			}
-
 			setCurrentUrl((previous) => {
 				if (previous === normalized) {
 					return previous;
@@ -234,7 +215,7 @@ export function PreviewTab({
 				void persistUrl(normalized);
 			}
 		},
-		[loadWebviewUrl, persistUrl, tab.id],
+		[loadWebviewUrl, persistUrl],
 	);
 
 	const handleSubmit = useCallback(
@@ -353,13 +334,7 @@ export function PreviewTab({
 				return;
 			}
 
-			// Update sessionStorage for client-side cache
-			try {
-				const storageKey = `preview-tab-${tab.id}-url`;
-				sessionStorage.setItem(storageKey, url);
-			} catch (error) {
-				console.error("Failed to store URL in sessionStorage:", error);
-			}
+			console.log(`[PreviewTab ${tab.id}] handleNavigate - url:`, url);
 
 			pendingLoadRef.current = null;
 			setCurrentUrl(url);

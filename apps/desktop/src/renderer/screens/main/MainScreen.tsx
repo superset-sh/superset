@@ -380,6 +380,31 @@ export function MainScreen() {
 		};
 	}, []);
 
+	// Listen for workspace data updates (e.g., when preview URLs change)
+	useEffect(() => {
+		const handler = async (workspaceId: string) => {
+			// Only reload if it's the current workspace
+			if (currentWorkspace?.id === workspaceId) {
+				console.log(
+					"[MainScreen] Workspace data updated, reloading:",
+					workspaceId,
+				);
+				const workspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					workspaceId,
+				);
+				if (workspace) {
+					setCurrentWorkspace(workspace);
+				}
+			}
+		};
+
+		window.ipcRenderer.on("workspace-data-updated", handler);
+		return () => {
+			window.ipcRenderer.off("workspace-data-updated", handler);
+		};
+	}, [currentWorkspace?.id]);
+
 	// Helper: recursively find a tab by ID
 	const findTabById = (tabs: Tab[], tabId: string): Tab | null => {
 		for (const tab of tabs) {
@@ -545,7 +570,10 @@ export function MainScreen() {
 						});
 
 						if (!moveResult.success) {
-							console.error("[MainScreen] Failed to move tab:", moveResult.error);
+							console.error(
+								"[MainScreen] Failed to move tab:",
+								moveResult.error,
+							);
 							return;
 						}
 
