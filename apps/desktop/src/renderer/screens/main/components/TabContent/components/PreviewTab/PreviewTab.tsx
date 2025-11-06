@@ -4,6 +4,7 @@ import type { WebviewTag } from "electron";
 import {
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -27,6 +28,9 @@ interface PreviewTabProps {
 const normalizeUrl = (value: string): string => {
 	let url = value.trim();
 
+	// Strip wrapping quotes that often come from copy/paste
+	url = url.replace(/^['"]+|['"]+$/g, "");
+
 	if (url === "") {
 		return url;
 	}
@@ -47,7 +51,16 @@ const normalizeUrl = (value: string): string => {
 
 	// Prefix protocol if missing
 	if (!/^[a-zA-Z][a-zA-Z0-9+\-.]*:/.test(url)) {
-		return `http://${url}`;
+		const lower = url.toLowerCase();
+		const isLocalhost =
+			lower.startsWith("localhost") ||
+			lower.startsWith("127.") ||
+			lower.startsWith("0.0.0.0") ||
+			lower.startsWith("[::1]");
+		const isIPv4 = /^\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?$/.test(lower);
+		const isIPv6 = lower.includes("::") || lower.startsWith("[");
+		const protocol = isLocalhost || isIPv4 || isIPv6 ? "http" : "https";
+		return `${protocol}://${url}`;
 	}
 
 	return url;
@@ -66,6 +79,14 @@ export function PreviewTab({
 	const [currentUrl, setCurrentUrl] = useState(tab.url ?? "");
 	const [isLoading, setIsLoading] = useState(false);
 	const [proxyStatus, setProxyStatus] = useState<ProxyStatus[]>([]);
+	const previousTabUrlRef = useRef(tab.url);
+	const webviewReadyRef = useRef(false);
+	const pendingLoadRef = useRef<string | null>(null);
+	const currentUrlRef = useRef(currentUrl);
+
+	useEffect(() => {
+		currentUrlRef.current = currentUrl;
+	}, [currentUrl]);
 
 	const detectedPorts = worktree?.detectedPorts || {};
 	const portEntries = useMemo(
@@ -114,30 +135,81 @@ export function PreviewTab({
 				console.error("Failed to persist preview URL:", error);
 			}
 		},
-		[tab.id, worktreeId, workspaceId],
-	);
+			[tab.id, worktreeId, workspaceId],
+		);
+
+	const loadWebviewUrl = useCallback((targetUrl: string) => {
+		if (!targetUrl || targetUrl === "about:blank") {
+			return;
+		}
+
+		const webview = webviewRef.current;
+		if (!webview) {
+			return;
+		}
+
+		try {
+			if (webview.getURL && webview.getURL() === targetUrl) {
+				return;
+			}
+		} catch (error) {
+			// Some Electron versions throw while the webview is initializing
+		}
+
+		try {
+			const loadResult = webview.loadURL(targetUrl);
+
+			if (
+				loadResult &&
+				typeof (loadResult as Promise<void>).catch === "function"
+			) {
+				(loadResult as Promise<void>).catch((error) => {
+					const { code, errno } = (error || {}) as {
+						code?: string;
+						errno?: number;
+					};
+
+					if (code === "ERR_ABORTED" || errno === -3) {
+						return;
+					}
+
+					console.error("Failed to load preview URL:", error);
+				});
+			}
+		} catch (error) {
+			const { code, errno } = (error || {}) as { code?: string; errno?: number };
+
+			if (code === "ERR_ABORTED" || errno === -3) {
+				return;
+			}
+
+			console.error("Failed to load preview URL:", error);
+		}
+	}, []);
 
 	const navigateTo = useCallback(
 		(url: string, options?: { persist?: boolean }) => {
 			const normalized = normalizeUrl(url);
-			setCurrentUrl(normalized);
+			setCurrentUrl((previous) => {
+				if (previous === normalized) {
+					return previous;
+				}
+				return normalized;
+			});
 			setAddressBarValue(normalized);
 
-			if (webviewRef.current && normalized) {
-				try {
-					if (webviewRef.current.getURL() !== normalized) {
-						webviewRef.current.loadURL(normalized);
-					}
-				} catch (error) {
-					console.error("Failed to load preview URL:", error);
-				}
+			if (webviewReadyRef.current) {
+				pendingLoadRef.current = null;
+				loadWebviewUrl(normalized);
+			} else {
+				pendingLoadRef.current = normalized;
 			}
 
 			if (options?.persist !== false) {
 				void persistUrl(normalized);
 			}
 		},
-		[persistUrl],
+		[loadWebviewUrl, persistUrl],
 	);
 
 	const handleSubmit = useCallback(
@@ -199,8 +271,7 @@ export function PreviewTab({
 
 		const initialize = async () => {
 			if (tab.url && tab.url.trim() !== "") {
-				setCurrentUrl(tab.url);
-				setAddressBarValue(tab.url);
+				navigateTo(tab.url, { persist: false });
 				initializedRef.current = true;
 				return;
 			}
@@ -221,45 +292,134 @@ export function PreviewTab({
 
 	// Sync when tab.url changes externally
 	useEffect(() => {
-		if (!tab.url || tab.url === currentUrl) {
+		if (tab.url === previousTabUrlRef.current) {
 			return;
 		}
-		setCurrentUrl(tab.url);
-		setAddressBarValue(tab.url);
-	}, [tab.url, currentUrl]);
 
-	// Attach webview event listeners
-	useEffect(() => {
+		previousTabUrlRef.current = tab.url;
+
+		if (!tab.url) {
+			return;
+		}
+
+		navigateTo(tab.url, { persist: false });
+	}, [tab.url, navigateTo]);
+
+	// Attach webview event listeners once the webview is ready
+	useLayoutEffect(() => {
 		const webview = webviewRef.current;
 		if (!webview) return;
 
+		let listenersAttached = false;
+
 		const handleDidStart = () => setIsLoading(true);
 		const handleDidStop = () => setIsLoading(false);
-		const handleDidFail = () => setIsLoading(false);
+		const handleDidFail = (
+			event: Electron.Event & { errorCode?: number; validatedURL?: string },
+		) => {
+			setIsLoading(false);
 
-		const handleNavigate = (event: Electron.Event & { url?: string }) => {
-			const url = event.url || webview.getURL();
-			if (url) {
-				setCurrentUrl(url);
-				setAddressBarValue(url);
-				void persistUrl(url);
+			if (event.errorCode === -3) {
+				// ERR_ABORTED - normal when a new navigation cancels the previous one
+				return;
+			}
+
+			if (event.validatedURL && event.validatedURL !== "about:blank") {
+				console.error(
+					"Preview failed to load:",
+					event.errorCode,
+					event.validatedURL,
+				);
 			}
 		};
 
-		webview.addEventListener("did-start-loading", handleDidStart);
-		webview.addEventListener("did-stop-loading", handleDidStop);
-		webview.addEventListener("did-fail-load", handleDidFail);
-		webview.addEventListener("did-navigate", handleNavigate);
-		webview.addEventListener("did-navigate-in-page", handleNavigate);
+		const handleNavigate = (event: Electron.Event & { url?: string }) => {
+			const url = event.url || webview.getURL();
+			if (!url || url === "about:blank") {
+				return;
+			}
+
+			pendingLoadRef.current = null;
+			setCurrentUrl(url);
+			setAddressBarValue(url);
+			void persistUrl(url);
+		};
+
+		const attachNavigationListeners = () => {
+			if (listenersAttached) {
+				return;
+			}
+
+			listenersAttached = true;
+
+			webview.addEventListener("did-start-loading", handleDidStart);
+			webview.addEventListener("did-stop-loading", handleDidStop);
+			webview.addEventListener("did-fail-load", handleDidFail);
+			webview.addEventListener("did-navigate", handleNavigate);
+			webview.addEventListener("did-navigate-in-page", handleNavigate);
+		};
+		const flushPendingNavigation = () => {
+			const pendingUrl = pendingLoadRef.current ?? currentUrlRef.current;
+			const webviewUrl = (() => {
+				try {
+					return webview.getURL();
+				} catch {
+					return undefined;
+				}
+			})();
+
+			if (
+				pendingUrl &&
+				pendingUrl !== "" &&
+				pendingUrl !== "about:blank" &&
+				pendingUrl !== webviewUrl
+			) {
+				loadWebviewUrl(pendingUrl);
+				pendingLoadRef.current = null;
+			}
+		};
+
+		const handleDomReady = () => {
+			webviewReadyRef.current = true;
+			attachNavigationListeners();
+
+			// Sync the address bar with whatever URL the webview resolved to
+			handleNavigate({
+				url: webview.getURL(),
+			} as Electron.Event & { url?: string });
+
+			flushPendingNavigation();
+		};
+
+		attachNavigationListeners();
+
+		if (typeof webview.isLoading === "function") {
+			webviewReadyRef.current = !webview.isLoading();
+		}
+
+		if (webviewReadyRef.current) {
+			handleDomReady();
+		}
+
+		webview.addEventListener("dom-ready", handleDomReady);
 
 		return () => {
-			webview.removeEventListener("did-start-loading", handleDidStart);
-			webview.removeEventListener("did-stop-loading", handleDidStop);
-			webview.removeEventListener("did-fail-load", handleDidFail);
-			webview.removeEventListener("did-navigate", handleNavigate);
-			webview.removeEventListener("did-navigate-in-page", handleNavigate);
+			webviewReadyRef.current = false;
+			pendingLoadRef.current = null;
+			webview.removeEventListener("dom-ready", handleDomReady);
+
+			if (listenersAttached) {
+				webview.removeEventListener("did-start-loading", handleDidStart);
+				webview.removeEventListener("did-stop-loading", handleDidStop);
+				webview.removeEventListener("did-fail-load", handleDidFail);
+				webview.removeEventListener("did-navigate", handleNavigate);
+				webview.removeEventListener(
+					"did-navigate-in-page",
+					handleNavigate,
+				);
+			}
 		};
-	}, [persistUrl]);
+	}, [loadWebviewUrl, persistUrl]);
 
 	const portOptions = useMemo(() => {
 		return portEntries.map(([service, port]) => {
@@ -369,7 +529,6 @@ export function PreviewTab({
 									? (element as unknown as WebviewTag)
 									: null;
 							}}
-							src={currentUrl}
 							allowpopups
 							style={{
 								width: "100%",
