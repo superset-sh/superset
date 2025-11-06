@@ -177,7 +177,18 @@ Each instance needs:
 - **Separate dev server port** - Set via `VITE_DEV_SERVER_PORT` in root `.env`
 - **Separate user data directory** - Pass via `--user-data-dir` flag
 
-The desktop app loads environment variables from the monorepo root `.env` file.
+### Environment Variable Loading
+
+The desktop app loads environment variables from the monorepo root `.env` file:
+
+**Loading sequence:**
+1. `src/main/index.ts` - Loads `.env` with `override: true` before any imports (main process)
+2. `electron.vite.config.ts` - Loads `.env` with `override: true` for Vite configuration (build time)
+
+**Important notes:**
+- `override: true` is critical - ensures `.env` values override inherited environment variables
+- `src/lib/electron-router-dom.ts` must NOT import Node.js modules (`node:path`, `dotenv`) as it's shared between main and renderer processes
+- Port configuration flows: `.env` → main process → `electron-router-dom` settings → Vite dev server
 
 ### Keyboard Shortcuts System
 
