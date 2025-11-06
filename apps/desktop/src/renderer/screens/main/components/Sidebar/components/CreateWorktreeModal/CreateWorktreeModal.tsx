@@ -11,6 +11,7 @@ import {
 } from "renderer/components/ui/dialog";
 import { Input } from "renderer/components/ui/input";
 import { Label } from "renderer/components/ui/label";
+import { Separator } from "renderer/components/ui/separator";
 import type { Worktree } from "shared/types";
 import { TerminalOutput } from "./TerminalOutput";
 
@@ -108,6 +109,21 @@ export function CreateWorktreeModal({
 					</div>
 
 					<div className="space-y-2">
+						<Label htmlFor={descriptionId}>Description (Optional)</Label>
+						<textarea
+							id={descriptionId}
+							value={description}
+							onChange={(e) => onDescriptionChange(e.target.value)}
+							placeholder="What is the goal of this worktree?"
+							disabled={isCreating}
+							rows={3}
+							className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+						/>
+					</div>
+
+					<Separator />
+
+					<div className="space-y-2">
 						<Label htmlFor={sourceBranchId}>Create From Branch</Label>
 						<select
 							id={sourceBranchId}
@@ -143,18 +159,6 @@ export function CreateWorktreeModal({
 						</select>
 					</div>
 
-					<div className="space-y-2">
-						<Label htmlFor={descriptionId}>Description (Optional)</Label>
-						<textarea
-							id={descriptionId}
-							value={description}
-							onChange={(e) => onDescriptionChange(e.target.value)}
-							placeholder="What is the goal of this worktree?"
-							disabled={isCreating}
-							rows={3}
-							className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-						/>
-					</div>
 
 					{/* Setup Progress Section */}
 					{isCreating && (
