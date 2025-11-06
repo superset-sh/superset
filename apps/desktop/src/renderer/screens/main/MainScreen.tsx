@@ -916,13 +916,225 @@ export function MainScreen() {
 			toggleSidebar: () => {
 				setIsSidebarOpen((prev) => !prev);
 			},
-			createSplitView: () => {
-				// TODO: implement horizontal split
-				console.log("Create split view (horizontal)");
+			createSplitView: async () => {
+				// Create horizontal split
+				if (!currentWorkspace || !selectedWorktreeId || !selectedTab) return;
+
+				// If already in a group, add to that group
+				if (selectedTab.type === "group") {
+					const newTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Terminal",
+						"terminal",
+					);
+					if (!newTab) return;
+
+					// Move into the group
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: selectedTab.id,
+						targetIndex: selectedTab.tabs?.length || 0,
+					});
+
+					// Update mosaic tree (horizontal split)
+					const updatedMosaicTree = addTabToMosaicTree(
+						selectedTab.mosaicTree,
+						newTab.id,
+					);
+
+					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: selectedTab.id,
+						mosaicTree: updatedMosaicTree,
+					});
+				} else {
+					// Create new group with horizontal split
+					const newTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Terminal",
+						"terminal",
+					);
+					if (!newTab) return;
+
+					const groupTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Tab Group",
+						"group",
+					);
+					if (!groupTab) return;
+
+					// Move both tabs into group
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: selectedTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: groupTab.id,
+						targetIndex: 0,
+					});
+
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: groupTab.id,
+						targetIndex: 1,
+					});
+
+					// Create horizontal mosaic tree
+					const mosaicTree: MosaicNode<string> = {
+						direction: "row",
+						first: selectedTab.id,
+						second: newTab.id,
+						splitPercentage: 50,
+					};
+
+					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: groupTab.id,
+						mosaicTree,
+					});
+
+					setSelectedTabId(groupTab.id);
+					await window.ipcRenderer.invoke("workspace-set-active-selection", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: groupTab.id,
+					});
+				}
+
+				// Refresh workspace
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+				}
 			},
-			createVerticalSplit: () => {
-				// TODO: implement vertical split
-				console.log("Create split view (vertical)");
+			createVerticalSplit: async () => {
+				// Create vertical split
+				if (!currentWorkspace || !selectedWorktreeId || !selectedTab) return;
+
+				// If already in a group, add to that group with column direction
+				if (selectedTab.type === "group") {
+					const newTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Terminal",
+						"terminal",
+					);
+					if (!newTab) return;
+
+					// Move into the group
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: selectedTab.id,
+						targetIndex: selectedTab.tabs?.length || 0,
+					});
+
+					// Update mosaic tree with column direction for vertical split
+					const updatedMosaicTree: MosaicNode<string> =
+						typeof selectedTab.mosaicTree === "string"
+							? {
+									direction: "column",
+									first: selectedTab.mosaicTree,
+									second: newTab.id,
+									splitPercentage: 50,
+								}
+							: {
+									direction: "column",
+									first: selectedTab.mosaicTree,
+									second: newTab.id,
+									splitPercentage: 50,
+								};
+
+					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: selectedTab.id,
+						mosaicTree: updatedMosaicTree,
+					});
+				} else {
+					// Create new group with vertical split
+					const newTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Terminal",
+						"terminal",
+					);
+					if (!newTab) return;
+
+					const groupTab = await createTab(
+						currentWorkspace.id,
+						selectedWorktreeId,
+						"Tab Group",
+						"group",
+					);
+					if (!groupTab) return;
+
+					// Move both tabs into group
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: selectedTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: groupTab.id,
+						targetIndex: 0,
+					});
+
+					await window.ipcRenderer.invoke("tab-move", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: newTab.id,
+						sourceParentTabId: undefined,
+						targetParentTabId: groupTab.id,
+						targetIndex: 1,
+					});
+
+					// Create vertical mosaic tree
+					const mosaicTree: MosaicNode<string> = {
+						direction: "column",
+						first: selectedTab.id,
+						second: newTab.id,
+						splitPercentage: 50,
+					};
+
+					await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: groupTab.id,
+						mosaicTree,
+					});
+
+					setSelectedTabId(groupTab.id);
+					await window.ipcRenderer.invoke("workspace-set-active-selection", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: groupTab.id,
+					});
+				}
+
+				// Refresh workspace
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+				}
 			},
 		});
 
@@ -965,8 +1177,50 @@ export function MainScreen() {
 			},
 			closeTab: async () => {
 				if (!currentWorkspace || !selectedWorktreeId || !selectedTabId) return;
-				// TODO: implement tab close with proper cleanup
-				console.log("Close tab:", selectedTabId);
+
+				const tabs = selectedWorktree?.tabs || [];
+				const currentIndex = tabs.findIndex((t) => t.id === selectedTabId);
+
+				// Delete the tab
+				const result = await window.ipcRenderer.invoke("tab-delete", {
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+					tabId: selectedTabId,
+				});
+
+				if (!result.success) {
+					console.error("Failed to close tab:", result.error);
+					return;
+				}
+
+				// Refresh workspace
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+
+					// Select adjacent tab
+					const updatedWorktree = refreshedWorkspace.worktrees.find(
+						(wt) => wt.id === selectedWorktreeId,
+					);
+					if (updatedWorktree && updatedWorktree.tabs.length > 0) {
+						// Try to select the tab at the same index, or the last tab
+						const newIndex = Math.min(
+							currentIndex,
+							updatedWorktree.tabs.length - 1,
+						);
+						handleTabSelect(
+							selectedWorktreeId,
+							updatedWorktree.tabs[newIndex].id,
+						);
+					} else {
+						// No tabs left
+						setSelectedTabId(null);
+					}
+				}
 			},
 			reopenClosedTab: () => {
 				// TODO: implement reopen closed tab

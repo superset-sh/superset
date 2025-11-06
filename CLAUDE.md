@@ -192,14 +192,14 @@ The desktop app uses a centralized keyboard shortcuts system inspired by Arc Bro
 **Workspace Management:**
 - `Cmd+Option+Left/Right` - Switch between workspaces
 - `Cmd+S` - Toggle sidebar visibility
-- `Cmd+D` - Create split view (horizontal) [TODO]
-- `Cmd+Shift+D` - Create split view (vertical) [TODO]
+- `Cmd+D` - Create split view (horizontal)
+- `Cmd+Shift+D` - Create split view (vertical)
 
 **Tab Management:**
 - `Cmd+Option+Up/Down` - Switch between tabs
 - `Cmd+T` - Create new tab
-- `Cmd+W` - Close tab [TODO]
-- `Cmd+Shift+T` - Reopen closed tab [TODO]
+- `Cmd+W` - Close tab
+- `Cmd+Shift+T` - Reopen closed tab [TODO - requires history tracking]
 - `Cmd+1-9` - Jump to tab by position
 
 **Terminal:**
