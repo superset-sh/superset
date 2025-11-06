@@ -1,12 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import {
-	Folder,
-	GitBranch,
-	MoreVertical,
-	PanelLeftOpen,
-	Plus,
-} from "lucide-react";
+import { PanelLeftOpen } from "lucide-react";
 
 interface TopBarProps {
 	isSidebarOpen: boolean;
@@ -50,38 +44,11 @@ export function TopBar({
 				)}
 			</div>
 
-			{/* Center section - Workspace Info */}
-			<div className="flex-1 flex items-center justify-center gap-3">
-				{workspaceName ? (
-					<>
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-900 rounded-lg border border-neutral-800">
-							<Folder size={14} className="opacity-70" />
-							<span className="text-sm font-medium">{workspaceName}</span>
-						</div>
-						{currentBranch && (
-							<div className="flex items-center gap-2 px-3 py-1.5 bg-neutral-900 rounded-lg border border-neutral-800">
-								<GitBranch size={14} className="opacity-70" />
-								<span className="text-sm">{currentBranch}</span>
-							</div>
-						)}
-					</>
-				) : (
-					<span className="text-sm text-neutral-500">No workspace open</span>
-				)}
-			</div>
+			{/* Center section - Empty */}
+			<div className="flex-1" />
 
-			{/* Right section - Actions */}
-			<div
-				className="flex items-center gap-1 pr-4"
-				style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-			>
-				<Button variant="ghost" size="icon-sm" className="hover:bg-neutral-800">
-					<Plus size={16} />
-				</Button>
-				<Button variant="ghost" size="icon-sm" className="hover:bg-neutral-800">
-					<MoreVertical size={16} />
-				</Button>
-			</div>
+			{/* Right section - Empty */}
+			<div className="pr-4" />
 		</div>
 	);
 }
