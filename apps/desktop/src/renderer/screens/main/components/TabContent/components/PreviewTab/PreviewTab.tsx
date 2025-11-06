@@ -72,6 +72,12 @@ export function PreviewTab({
 	worktreeId,
 	worktree,
 }: PreviewTabProps) {
+	console.log(
+		"[PreviewTab] Component mounted/rendered for tab:",
+		tab.id,
+		"with url:",
+		tab.url,
+	);
 	const webviewRef = useRef<WebviewTag | null>(null);
 	const initializedRef = useRef(false);
 	const lastPersistedUrlRef = useRef<string | undefined>(tab.url);
@@ -118,11 +124,13 @@ export function PreviewTab({
 				return;
 			}
 
-			if (lastPersistedUrlRef.current === url) {
+			if (url === lastPersistedUrlRef.current) {
 				return;
 			}
 
 			lastPersistedUrlRef.current = url;
+
+			console.log("[PreviewTab] Persisting URL for tab:", tab.id, "url:", url);
 
 			try {
 				await window.ipcRenderer.invoke("tab-update-preview", {
@@ -305,6 +313,14 @@ export function PreviewTab({
 			return;
 		}
 
+		console.log(
+			"[PreviewTab] tab.url changed externally for tab:",
+			tab.id,
+			"from:",
+			previousTabUrlRef.current,
+			"to:",
+			tab.url,
+		);
 		previousTabUrlRef.current = tab.url;
 
 		if (!tab.url) {
@@ -539,12 +555,13 @@ export function PreviewTab({
 							</div>
 						)}
 						<webview
+							key={tab.id}
 							ref={(element) => {
 								webviewRef.current = element
 									? (element as unknown as WebviewTag)
 									: null;
 							}}
-							src={currentUrl}
+							src={tab.url || ""}
 							allowpopups
 							style={{
 								width: "100%",
