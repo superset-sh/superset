@@ -1269,7 +1269,7 @@ export function WorktreeItem({
 							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
 						>
 							<Plus size={14} />
-							<span className="truncate">New Terminal</span>
+							<span className="truncate">Terminal</span>
 						</Button>
 						<Button
 							variant="ghost"
@@ -1278,7 +1278,7 @@ export function WorktreeItem({
 							className="flex-1 h-8 px-3 font-normal opacity-70 hover:opacity-100"
 						>
 							<Monitor size={14} />
-							<span className="truncate">New Preview</span>
+							<span className="truncate">Preview</span>
 						</Button>
 					</div>
 				</div>
