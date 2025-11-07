@@ -7,6 +7,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
+import { getPortSync } from "./src/lib/port-manager";
 import { settings } from "./src/lib/electron-router-dom";
 
 // Load .env from monorepo root
@@ -52,8 +53,8 @@ export default defineConfig({
 		},
 
 		server: {
-			port: Number(process.env.VITE_DEV_SERVER_PORT) || settings.port,
-			strictPort: true, // Fail if port is already in use
+			port: getPortSync(),
+			strictPort: false, // Allow fallback to next available port
 		},
 
 		plugins: [

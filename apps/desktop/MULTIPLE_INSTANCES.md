@@ -4,60 +4,59 @@ This guide explains how to run multiple Electron instances simultaneously for pa
 
 ## Quick Start
 
-### Method 1: Using Worktrees (Recommended)
+### Method 1: Automatic Port Management (Recommended)
 
-When you create a new worktree via the Superset app, it automatically runs `update-port.sh` which increments the port number in the root `.env`:
+The app automatically manages ports for you! Each instance will:
+- Try to use the last used port (stored in `~/.superset/dev-port.json`)
+- If that port is unavailable, automatically find the next available port in the range (4927-4999)
+- Save the chosen port for next time
 
-```bash
-# Worktree 1 - automatically uses port 4927
-# Worktree 2 - automatically uses port 4928
-# Worktree 3 - automatically uses port 4929
-```
-
-Each worktree reads the port from the root `.env` file, which gets incremented automatically during worktree setup.
-
-### Method 2: Manual Script Execution
-
-Run the port update script manually from the monorepo root:
+Simply run multiple instances:
 
 ```bash
-# Increment port in root .env
-./update-port.sh
+# Terminal 1 - Instance 1
+cd apps/desktop && bun dev
 
-# Then run dev in desktop app
+# Terminal 2 - Instance 2 (will automatically get next available port)
+cd apps/desktop && bun dev
+
+# Terminal 3 - Instance 3 (will automatically get next available port)
 cd apps/desktop && bun dev
 ```
 
-### Method 3: Helper Scripts (Advanced)
+Each instance will automatically select an available port without any configuration needed.
 
-Override the .env port using environment variables:
+### Method 2: Using Worktrees
+
+When you create a new worktree via the Superset app, each worktree will automatically get its own port:
 
 ```bash
-# Terminal 1 - Instance 1 on port 4927
-./dev-instance.sh instance1 4927
-
-# Terminal 2 - Instance 2 on port 4928
-./dev-instance.sh instance2 4928
-
-# Terminal 3 - Instance 3 on port 4929
-./dev-instance.sh instance3 4929
+# Worktree 1 - automatically finds available port
+# Worktree 2 - automatically finds available port
+# Worktree 3 - automatically finds available port
 ```
+
+Ports are managed automatically - no manual configuration needed!
 
 ### Windows
 
-```powershell
-# Terminal 1
-.\dev-instance.ps1 instance1 4927
+Ports are automatically managed on Windows too:
 
-# Terminal 2
-.\dev-instance.ps1 instance2 4928
+```powershell
+# Terminal 1 - Instance 1 (automatically gets available port)
+cd apps\desktop; bun dev
+
+# Terminal 2 - Instance 2 (automatically gets next available port)
+cd apps\desktop; bun dev
 ```
+
+Each instance will automatically select an available port without any configuration needed.
 
 ## How It Works
 
 Each instance runs with:
-- **Separate dev server port** - Configured via `VITE_DEV_SERVER_PORT`
-- **Separate user data directory** - Each instance stores settings, cache, and local storage in `~/.superset-dev-{instance-name}`
+- **Separate dev server port** - Automatically selected from available ports (4927-4999), persisted in `~/.superset/dev-port.json`
+- **Separate user data directory** - Each instance stores settings, cache, and local storage in `~/.superset-dev-{instance-name}` (optional)
 
 This allows you to:
 - Test different branches simultaneously
@@ -67,15 +66,14 @@ This allows you to:
 
 ## Manual Setup
 
-If you prefer not to use the helper scripts:
+If you want to use a custom user data directory:
 
 ```bash
-# Set the port
-export VITE_DEV_SERVER_PORT=4928
-
 # Run with custom user data directory
 bun dev -- --user-data-dir="$HOME/.superset-dev-custom"
 ```
+
+The port will still be automatically selected - no need to configure it manually!
 
 ## User Data Directories
 
@@ -105,9 +103,10 @@ Remove-Item -Recurse -Force "$env:USERPROFILE\.superset-dev-instance1"
 ## Troubleshooting
 
 ### Port already in use
-If you see "Port 4927 is already in use", either:
-1. Stop the other instance using that port
-2. Choose a different port number (4928, 4929, etc.)
+The app automatically handles port conflicts by finding the next available port. If you see port-related issues:
+1. The app will automatically switch to an available port
+2. Check `~/.superset/dev-port.json` to see which port is being used
+3. If needed, delete the config file to reset port selection
 
 ### Instances share the same data
 Make sure each instance uses a different user data directory. Check that the `--user-data-dir` flag is being passed correctly.
