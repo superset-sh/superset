@@ -1,18 +1,23 @@
 import { type BrowserWindow, ipcMain, shell } from "electron";
-import terminalManager from "./terminal";
+import tmuxManager from "./tmux-manager";
 
 export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 	// Set main window reference
-	terminalManager.setMainWindow(mainWindow);
+	tmuxManager.setMainWindow(mainWindow);
 
-	// Create terminal
+	// Initialize tmux manager (restore sessions)
+	tmuxManager.initialize().catch((error) => {
+		console.error("[Terminal IPC] Failed to initialize tmux manager:", error);
+	});
+
+	// Create terminal (or reattach to existing tmux session)
 	ipcMain.handle(
 		"terminal-create",
 		async (
 			_event,
 			options: { id?: string; cols?: number; rows?: number; cwd?: string },
 		) => {
-			return await terminalManager.create(options);
+			return await tmuxManager.create(options);
 		},
 	);
 
@@ -20,34 +25,47 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 	ipcMain.on(
 		"terminal-input",
 		(_event, message: { id: string; data: string }) => {
-			terminalManager.write(message.id, message.data);
+			tmuxManager.write(message.id, message.data);
 		},
 	);
 
-	// Resize terminal
+	// Resize terminal with sequence tracking
 	ipcMain.on(
 		"terminal-resize",
-		(_event, message: { id: string; cols: number; rows: number }) => {
-			terminalManager.resize(message.id, message.cols, message.rows);
+		(_event, message: { id: string; cols: number; rows: number; seq: number }) => {
+			tmuxManager.resize(message.id, message.cols, message.rows, message.seq);
 		},
 	);
+
+	// Send signal to terminal foreground process
+	ipcMain.on(
+		"terminal-signal",
+		(_event, message: { id: string; signal: string }) => {
+			tmuxManager.signal(message.id, message.signal);
+		},
+	);
+
+	// Detach from terminal (keep tmux session alive)
+	ipcMain.on("terminal-detach", (_event, id: string) => {
+		tmuxManager.detach(id);
+	});
 
 	// Execute command in terminal
 	ipcMain.on(
 		"terminal-execute-command",
 		(_event, message: { id: string; command: string }) => {
-			terminalManager.executeCommand(message.id, message.command);
+			tmuxManager.executeCommand(message.id, message.command);
 		},
 	);
 
-	// Kill terminal
+	// Kill terminal (destroy tmux session completely)
 	ipcMain.on("terminal-kill", (_event, id: string) => {
-		terminalManager.kill(id);
+		tmuxManager.kill(id);
 	});
 
 	// Get terminal history
 	ipcMain.handle("terminal-get-history", (_event, id: string) => {
-		return terminalManager.getHistory(id);
+		return tmuxManager.getHistory(id);
 	});
 
 	// Open external URLs
@@ -57,7 +75,10 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 
 	// Clean up on app quit
 	const cleanup = () => {
-		terminalManager.killAll();
+		// Detach from all sessions but keep tmux sessions alive for potential restart
+		// If you want to kill all sessions on quit, use killAll() instead
+		console.log("[Terminal IPC] Cleaning up on app quit...");
+		// tmuxManager.killAll(); // Uncomment to kill all sessions on quit
 	};
 
 	return cleanup;

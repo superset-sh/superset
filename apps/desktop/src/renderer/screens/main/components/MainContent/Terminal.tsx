@@ -298,6 +298,8 @@ export default function TerminalComponent({
 
 		// Store current dimensions to detect actual changes
 		let currentDimensions = { cols: 80, rows: 30 };
+		// Monotonic sequence counter for resize events to prevent out-of-order processing
+		let resizeSeq = 0;
 
 		term.onResize(({ cols, rows }) => {
 			// Skip resize events during initial setup to prevent shell from redrawing prompt
@@ -315,10 +317,14 @@ export default function TerminalComponent({
 			currentDimensions = { cols, rows };
 
 			if (terminalIdRef.current) {
+				// Increment sequence number for this resize event
+				resizeSeq += 1;
+
 				window.ipcRenderer.send("terminal-resize", {
 					id: terminalIdRef.current,
 					cols,
 					rows,
+					seq: resizeSeq,
 				});
 			}
 		});
