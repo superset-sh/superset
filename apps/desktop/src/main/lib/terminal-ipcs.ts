@@ -57,7 +57,7 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 
 	// Clean up on app quit
 	const cleanup = () => {
-		terminalManager.killAll();
+		terminalManager.cleanup();
 	};
 
 	return cleanup;

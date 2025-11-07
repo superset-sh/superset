@@ -86,11 +86,13 @@ class TerminalManager {
 			// Handle terminal exit
 			ptyProcess.onExit(({ exitCode }) => {
 				console.log(`Terminal ${id} exited with code ${exitCode}`);
-				// Notify renderer that terminal has exited
-				this.mainWindow?.webContents.send("terminal-exited", {
-					id,
-					exitCode,
-				});
+				// Notify renderer that terminal has exited (only if window still exists)
+				if (this.mainWindow && !this.mainWindow.isDestroyed() && !this.mainWindow.webContents.isDestroyed()) {
+					this.mainWindow.webContents.send("terminal-exited", {
+						id,
+						exitCode,
+					});
+				}
 				// Clean up
 				this.processes.delete(id);
 				this.outputHistory.delete(id);
@@ -111,10 +113,13 @@ class TerminalManager {
 	}
 
 	emitMessage(id: string, data: string): void {
-		this.mainWindow?.webContents.send("terminal-on-data", {
-			id,
-			data,
-		});
+		// Check if window exists and webContents is not destroyed before sending
+		if (this.mainWindow && !this.mainWindow.isDestroyed() && !this.mainWindow.webContents.isDestroyed()) {
+			this.mainWindow.webContents.send("terminal-on-data", {
+				id,
+				data,
+			});
+		}
 	}
 
 	write(id: string, data: string): boolean {
@@ -191,6 +196,28 @@ class TerminalManager {
 
 	getProcess(id: string): pty.IPty | undefined {
 		return this.processes.get(id);
+	}
+
+	/**
+	 * Clean up before shutdown - unregister data handlers to prevent
+	 * "Object has been destroyed" errors when pty processes emit data
+	 * after the window is destroyed
+	 */
+	cleanup(): void {
+		// Remove all data handlers before killing processes
+		for (const [id, process] of this.processes) {
+			try {
+				// Remove data listener to prevent events after window destruction
+				process.removeAllListeners("data");
+				process.removeAllListeners("exit");
+			} catch (error) {
+				console.error(`Failed to remove listeners for terminal ${id}:`, error);
+			}
+		}
+		// Now kill all processes
+		this.killAll();
+		// Clear window reference
+		this.mainWindow = null;
 	}
 }
 
