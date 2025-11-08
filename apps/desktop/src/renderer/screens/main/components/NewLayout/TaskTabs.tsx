@@ -141,13 +141,19 @@ export const TaskTabs: React.FC<WorktreeTabsProps> = ({
 									{/* Header with title */}
 									<div className="flex items-start justify-between gap-3">
 										<div className="flex-1 min-w-0">
-											<h4 className="font-semibold text-sm text-white">
-												{displayTitle}
-											</h4>
-											{worktree.description && (
-												<p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
-													{worktree.description}
-												</p>
+											{worktree.description ? (
+												<>
+													<h4 className="font-semibold text-sm text-white">
+														{worktree.description}
+													</h4>
+													<p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+														Branch: {worktree.branch}
+													</p>
+												</>
+											) : (
+												<h4 className="font-semibold text-sm text-white">
+													{worktree.branch}
+												</h4>
 											)}
 										</div>
 									</div>
@@ -190,10 +196,19 @@ export const TaskTabs: React.FC<WorktreeTabsProps> = ({
 											</div>
 										)}
 
+										{!worktree.description && (
+											<div className="flex items-center gap-2 col-span-2">
+												<span className="text-neutral-500">Branch</span>
+												<span className="text-neutral-300 font-mono text-xs truncate">
+													{worktree.branch}
+												</span>
+											</div>
+										)}
+
 										<div className="flex items-center gap-2 col-span-2">
-											<span className="text-neutral-500">Branch</span>
+											<span className="text-neutral-500">Path</span>
 											<span className="text-neutral-300 font-mono text-xs truncate">
-												{worktree.branch}
+												{worktree.path}
 											</span>
 										</div>
 									</div>
