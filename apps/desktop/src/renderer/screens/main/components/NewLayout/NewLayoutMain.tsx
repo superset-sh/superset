@@ -15,8 +15,8 @@ import { PlaceholderState } from "../PlaceholderState";
 import { DiffTab } from "../TabContent/components/DiffTab";
 import { AddTaskModal } from "./AddTaskModal";
 import { TaskTabs } from "./TaskTabs";
-import { WorktreeTabView } from "./WorktreeTabView";
 import { WorktreeTabsSidebar } from "./WorktreeTabsSidebar";
+import { WorktreeTabView } from "./WorktreeTabView";
 
 // Mock tasks data - TODO: Replace with actual task data from backend
 const MOCK_TASKS = [
@@ -29,7 +29,7 @@ const MOCK_TASKS = [
 		description: "Redesigning the homepage with new branding and improved UX",
 		assignee: "Alice",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=1",
-		lastUpdated: "2 hours ago"
+		lastUpdated: "2 hours ago",
 	},
 	{
 		id: "2",
@@ -40,7 +40,7 @@ const MOCK_TASKS = [
 		description: "Integrate new REST API endpoints for user management",
 		assignee: "Bob",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=12",
-		lastUpdated: "1 day ago"
+		lastUpdated: "1 day ago",
 	},
 	{
 		id: "3",
@@ -51,7 +51,7 @@ const MOCK_TASKS = [
 		description: "Collection of bug fixes reported by users",
 		assignee: "Charlie",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=33",
-		lastUpdated: "3 days ago"
+		lastUpdated: "3 days ago",
 	},
 	{
 		id: "4",
@@ -62,7 +62,7 @@ const MOCK_TASKS = [
 		description: "Optimize database queries for faster page loads",
 		assignee: "Diana",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=9",
-		lastUpdated: "5 minutes ago"
+		lastUpdated: "5 minutes ago",
 	},
 	{
 		id: "5",
@@ -70,10 +70,11 @@ const MOCK_TASKS = [
 		name: "User Authentication System",
 		status: "working" as const,
 		branch: "feature/auth-system",
-		description: "Implement OAuth2 and JWT-based authentication system with refresh tokens",
+		description:
+			"Implement OAuth2 and JWT-based authentication system with refresh tokens",
 		assignee: "Eve",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=5",
-		lastUpdated: "3 hours ago"
+		lastUpdated: "3 hours ago",
 	},
 	{
 		id: "6",
@@ -84,7 +85,7 @@ const MOCK_TASKS = [
 		description: "Add dark mode theme support across the entire application",
 		assignee: "Frank",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=13",
-		lastUpdated: "2 days ago"
+		lastUpdated: "2 days ago",
 	},
 	{
 		id: "7",
@@ -92,10 +93,11 @@ const MOCK_TASKS = [
 		name: "Database Migration Scripts",
 		status: "ready-to-merge" as const,
 		branch: "db/migration-scripts",
-		description: "Create automated migration scripts for production database updates",
+		description:
+			"Create automated migration scripts for production database updates",
 		assignee: "Grace",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=20",
-		lastUpdated: "1 hour ago"
+		lastUpdated: "1 hour ago",
 	},
 	{
 		id: "8",
@@ -103,10 +105,11 @@ const MOCK_TASKS = [
 		name: "Email Notification Service",
 		status: "needs-feedback" as const,
 		branch: "feature/email-notifications",
-		description: "Build email notification service using SendGrid for transactional emails",
+		description:
+			"Build email notification service using SendGrid for transactional emails",
 		assignee: "Henry",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=8",
-		lastUpdated: "4 hours ago"
+		lastUpdated: "4 hours ago",
 	},
 	{
 		id: "9",
@@ -114,10 +117,11 @@ const MOCK_TASKS = [
 		name: "Mobile Responsive Design",
 		status: "working" as const,
 		branch: "feature/mobile-responsive",
-		description: "Make the application fully responsive for mobile and tablet devices",
+		description:
+			"Make the application fully responsive for mobile and tablet devices",
 		assignee: "Iris",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=16",
-		lastUpdated: "6 hours ago"
+		lastUpdated: "6 hours ago",
 	},
 	{
 		id: "10",
@@ -125,10 +129,11 @@ const MOCK_TASKS = [
 		name: "Analytics Dashboard",
 		status: "planning" as const,
 		branch: "feature/analytics-dashboard",
-		description: "Create admin dashboard with charts and metrics for user analytics",
+		description:
+			"Create admin dashboard with charts and metrics for user analytics",
 		assignee: "Jack",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=11",
-		lastUpdated: "1 week ago"
+		lastUpdated: "1 week ago",
 	},
 	{
 		id: "11",
@@ -136,10 +141,11 @@ const MOCK_TASKS = [
 		name: "CI/CD Pipeline",
 		status: "ready-to-merge" as const,
 		branch: "devops/ci-cd-pipeline",
-		description: "Set up automated CI/CD pipeline with GitHub Actions and Docker",
+		description:
+			"Set up automated CI/CD pipeline with GitHub Actions and Docker",
 		assignee: "Kate",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=25",
-		lastUpdated: "30 minutes ago"
+		lastUpdated: "30 minutes ago",
 	},
 	{
 		id: "12",
@@ -150,7 +156,7 @@ const MOCK_TASKS = [
 		description: "Implement full-text search with Elasticsearch integration",
 		assignee: "Liam",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=14",
-		lastUpdated: "5 hours ago"
+		lastUpdated: "5 hours ago",
 	},
 	{
 		id: "13",
@@ -158,10 +164,11 @@ const MOCK_TASKS = [
 		name: "File Upload System",
 		status: "needs-feedback" as const,
 		branch: "feature/file-uploads",
-		description: "Build secure file upload system with S3 storage and virus scanning",
+		description:
+			"Build secure file upload system with S3 storage and virus scanning",
 		assignee: "Mia",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=27",
-		lastUpdated: "2 hours ago"
+		lastUpdated: "2 hours ago",
 	},
 	{
 		id: "14",
@@ -172,7 +179,7 @@ const MOCK_TASKS = [
 		description: "Implement rate limiting and throttling for API endpoints",
 		assignee: "Noah",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=17",
-		lastUpdated: "4 days ago"
+		lastUpdated: "4 days ago",
 	},
 	{
 		id: "15",
@@ -180,10 +187,11 @@ const MOCK_TASKS = [
 		name: "Internationalization",
 		status: "working" as const,
 		branch: "feature/i18n",
-		description: "Add multi-language support with i18next for English, Spanish, and French",
+		description:
+			"Add multi-language support with i18next for English, Spanish, and French",
 		assignee: "Olivia",
 		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=32",
-		lastUpdated: "8 hours ago"
+		lastUpdated: "8 hours ago",
 	},
 ];
 
@@ -194,7 +202,7 @@ export const NewLayoutMain: React.FC = () => {
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
 	// Initialize with first 4 tasks to match the tabs currently displayed
 	const [openTasks, setOpenTasks] = useState<typeof MOCK_TASKS>(
-		MOCK_TASKS.slice(0, 4)
+		MOCK_TASKS.slice(0, 4),
 	);
 	const [activeTaskId, setActiveTaskId] = useState(MOCK_TASKS[0].id);
 	const [allTasks, setAllTasks] = useState(MOCK_TASKS);
@@ -464,6 +472,46 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
+	// Workspace handlers
+	const handleAddWorkspace = () => {
+		// TODO: Implement workspace creation dialog
+		console.log("Add workspace - not yet implemented");
+	};
+
+	const handleRemoveWorkspace = async (
+		workspaceId: string,
+		workspaceName: string,
+	) => {
+		// Show confirmation dialog
+		const confirmed = confirm(
+			`Are you sure you want to remove workspace "${workspaceName}"? This will not delete any files.`,
+		);
+
+		if (confirmed) {
+			try {
+				await window.ipcRenderer.invoke("workspace-delete", {
+					id: workspaceId,
+					removeWorktree: false,
+				});
+				// Reload workspaces
+				await loadAllWorkspaces();
+				// If we removed the current workspace, switch to another one
+				if (currentWorkspace?.id === workspaceId && workspaces) {
+					const remainingWorkspaces = workspaces.filter(
+						(ws) => ws.id !== workspaceId,
+					);
+					if (remainingWorkspaces.length > 0) {
+						await handleWorkspaceSelect(remainingWorkspaces[0].id);
+					} else {
+						setCurrentWorkspace(null);
+					}
+				}
+			} catch (error) {
+				console.error("Failed to remove workspace:", error);
+			}
+		}
+	};
+
 	// Task handlers
 	const handleOpenAddTaskModal = () => {
 		setIsAddTaskModalOpen(true);
@@ -473,7 +521,7 @@ export const NewLayoutMain: React.FC = () => {
 		setIsAddTaskModalOpen(false);
 	};
 
-	const handleSelectTask = (task: typeof MOCK_TASKS[0]) => {
+	const handleSelectTask = (task: (typeof MOCK_TASKS)[0]) => {
 		// Check if task is already open
 		const isAlreadyOpen = openTasks.some((t) => t.id === task.id);
 		if (!isAlreadyOpen) {
@@ -594,7 +642,10 @@ export const NewLayoutMain: React.FC = () => {
 				setCurrentWorkspace(refreshedWorkspace);
 
 				// Auto-select first worktree and tab if available
-				if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+				if (
+					refreshedWorkspace.worktrees &&
+					refreshedWorkspace.worktrees.length > 0
+				) {
 					const firstWorktree = refreshedWorkspace.worktrees[0];
 					setSelectedWorktreeId(firstWorktree.id);
 					if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
@@ -683,6 +734,11 @@ export const NewLayoutMain: React.FC = () => {
 								setShowSidebarOverlay(false);
 							}}
 							workspaceId={currentWorkspace?.id || null}
+							workspaces={workspaces || undefined}
+							currentWorkspace={currentWorkspace}
+							onWorkspaceSelect={handleWorkspaceSelect}
+							onAddWorkspace={handleAddWorkspace}
+							onRemoveWorkspace={handleRemoveWorkspace}
 						/>
 					</div>
 				</div>
@@ -700,7 +756,9 @@ export const NewLayoutMain: React.FC = () => {
 						onWorktreeSelect={(worktreeId) => {
 							setSelectedWorktreeId(worktreeId);
 							// Select first tab in the worktree
-							const worktree = currentWorkspace?.worktrees?.find(wt => wt.id === worktreeId);
+							const worktree = currentWorkspace?.worktrees?.find(
+								(wt) => wt.id === worktreeId,
+							);
 							if (worktree && worktree.tabs && worktree.tabs.length > 0) {
 								handleTabSelect(worktreeId, worktree.tabs[0].id);
 							}
@@ -708,7 +766,7 @@ export const NewLayoutMain: React.FC = () => {
 					/>
 
 					{/* Main content area with resizable sidebar */}
-					<div className="flex-1 overflow-hidden border-t border-neutral-700">
+					<div className="flex-1 overflow-hidden border-neutral-700">
 						<ResizablePanelGroup
 							direction="horizontal"
 							autoSaveId="new-layout-panels"
@@ -735,11 +793,14 @@ export const NewLayoutMain: React.FC = () => {
 										onTabClose={async (tabId) => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke("tab-delete", {
-												workspaceId: currentWorkspace.id,
-												worktreeId: selectedWorktreeId,
-												tabId,
-											});
+											const result = await window.ipcRenderer.invoke(
+												"tab-delete",
+												{
+													workspaceId: currentWorkspace.id,
+													worktreeId: selectedWorktreeId,
+													tabId,
+												},
+											);
 
 											if (result.success) {
 												await handleWorktreeCreated();
@@ -748,12 +809,15 @@ export const NewLayoutMain: React.FC = () => {
 										onCreateTerminal={async () => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke("tab-create", {
-												workspaceId: currentWorkspace.id,
-												worktreeId: selectedWorktreeId,
-												name: "Terminal",
-												type: "terminal",
-											});
+											const result = await window.ipcRenderer.invoke(
+												"tab-create",
+												{
+													workspaceId: currentWorkspace.id,
+													worktreeId: selectedWorktreeId,
+													name: "Terminal",
+													type: "terminal",
+												},
+											);
 
 											if (result.success && result.tab) {
 												handleTabSelect(selectedWorktreeId, result.tab.id);
@@ -763,12 +827,15 @@ export const NewLayoutMain: React.FC = () => {
 										onCreatePreview={async () => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke("tab-create", {
-												workspaceId: currentWorkspace.id,
-												worktreeId: selectedWorktreeId,
-												name: "Preview",
-												type: "preview",
-											});
+											const result = await window.ipcRenderer.invoke(
+												"tab-create",
+												{
+													workspaceId: currentWorkspace.id,
+													worktreeId: selectedWorktreeId,
+													name: "Preview",
+													type: "preview",
+												},
+											);
 
 											if (result.success && result.tab) {
 												handleTabSelect(selectedWorktreeId, result.tab.id);
@@ -776,6 +843,11 @@ export const NewLayoutMain: React.FC = () => {
 											}
 										}}
 										workspaceId={currentWorkspace?.id || null}
+										workspaces={workspaces || undefined}
+										currentWorkspace={currentWorkspace}
+										onWorkspaceSelect={handleWorkspaceSelect}
+										onAddWorkspace={handleAddWorkspace}
+										onRemoveWorkspace={handleRemoveWorkspace}
 									/>
 								)}
 							</ResizablePanel>
@@ -785,10 +857,10 @@ export const NewLayoutMain: React.FC = () => {
 							{/* Main content panel */}
 							<ResizablePanel defaultSize={80} minSize={30}>
 								{loading ||
-								error ||
-								!currentWorkspace ||
-								!selectedTab ||
-								!selectedWorktree ? (
+									error ||
+									!currentWorkspace ||
+									!selectedTab ||
+									!selectedWorktree ? (
 									<PlaceholderState
 										loading={loading}
 										error={error}
