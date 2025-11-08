@@ -28,6 +28,9 @@ interface DiffViewProps {
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
 	onClose?: () => void;
+	hideFileTree?: boolean;
+	externalSelectedFile?: string | null;
+	onFileSelect?: (fileId: string) => void;
 }
 
 export function DiffView({
@@ -35,14 +38,21 @@ export function DiffView({
 	onRefresh,
 	isRefreshing = false,
 	onClose,
+	hideFileTree = false,
+	externalSelectedFile = null,
+	onFileSelect: externalOnFileSelect,
 }: DiffViewProps) {
 	const [viewMode, setViewMode] = useState<ViewMode>("files");
-	const [selectedFile, setSelectedFile] = useState<string | null>(
+	const [internalSelectedFile, setInternalSelectedFile] = useState<string | null>(
 		data.files[0]?.id || null,
 	);
-	const [showFileTree, setShowFileTree] = useState(true);
+	const [showFileTree, setShowFileTree] = useState(!hideFileTree);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const isScrollingProgrammatically = useRef(false);
+
+	// Use external selected file if provided, otherwise use internal state
+	const selectedFile = externalSelectedFile !== null ? externalSelectedFile : internalSelectedFile;
+	const setSelectedFile = externalOnFileSelect || setInternalSelectedFile;
 
 	const getFileIcon = (status: FileDiff["status"]) => {
 		switch (status) {
@@ -338,44 +348,46 @@ export function DiffView({
 				) : (
 					// Files changed view - scrollable list of all files (GitHub style)
 					<>
-						{/* File tree sidebar - kept mounted, hidden with display:none for instant toggle */}
-						<div
-							className={`w-72 border-r border-white/5 overflow-y-auto bg-[#1a1a1a] shrink-0 ${showFileTree ? "" : "hidden"}`}
-						>
-							<div className="py-2">
-								<div className="flex items-center justify-between px-3 py-2">
-									<h2 className="text-xs font-medium text-zinc-500">Files</h2>
-									<div className="flex items-center gap-1">
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<button
-													onClick={() => setShowFileTree(false)}
-													className="text-zinc-600 hover:text-zinc-400 transition-colors p-1 rounded hover:bg-white/5"
-													type="button"
-												>
-													<PanelLeftClose className="w-3.5 h-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="bottom">
-												<p>Hide file tree</p>
-											</TooltipContent>
-										</Tooltip>
+						{/* File tree sidebar - hidden when hideFileTree prop is true */}
+						{!hideFileTree && (
+							<div
+								className={`w-72 border-r border-white/5 overflow-y-auto bg-[#1a1a1a] shrink-0 ${showFileTree ? "" : "hidden"}`}
+							>
+								<div className="py-2">
+									<div className="flex items-center justify-between px-3 py-2">
+										<h2 className="text-xs font-medium text-zinc-500">Files</h2>
+										<div className="flex items-center gap-1">
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<button
+														onClick={() => setShowFileTree(false)}
+														className="text-zinc-600 hover:text-zinc-400 transition-colors p-1 rounded hover:bg-white/5"
+														type="button"
+													>
+														<PanelLeftClose className="w-3.5 h-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="bottom">
+													<p>Hide file tree</p>
+												</TooltipContent>
+											</Tooltip>
+										</div>
+									</div>
+									<div className="px-2">
+										<FileTree
+											files={data.files}
+											selectedFile={selectedFile}
+											onFileSelect={handleFileSelect}
+											getFileIcon={getFileIcon}
+										/>
 									</div>
 								</div>
-								<div className="px-2">
-									<FileTree
-										files={data.files}
-										selectedFile={selectedFile}
-										onFileSelect={handleFileSelect}
-										getFileIcon={getFileIcon}
-									/>
-								</div>
 							</div>
-						</div>
+						)}
 
 						{/* All files diff content - scrollable */}
 						<div className="flex-1 flex flex-col overflow-hidden">
-							{!showFileTree && (
+							{!hideFileTree && !showFileTree && (
 								<div className="border-b border-white/5 px-3 py-2">
 									<button
 										onClick={() => setShowFileTree(true)}

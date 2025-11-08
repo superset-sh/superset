@@ -218,6 +218,7 @@ export const NewLayoutMain: React.FC = () => {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null);
 
 	const handleCollapseSidebar = () => {
 		const panel = sidebarPanelRef.current;
@@ -472,45 +473,6 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
-	// Workspace handlers
-	const handleAddWorkspace = () => {
-		// TODO: Implement workspace creation dialog
-		console.log("Add workspace - not yet implemented");
-	};
-
-	const handleRemoveWorkspace = async (
-		workspaceId: string,
-		workspaceName: string,
-	) => {
-		// Show confirmation dialog
-		const confirmed = confirm(
-			`Are you sure you want to remove workspace "${workspaceName}"? This will not delete any files.`,
-		);
-
-		if (confirmed) {
-			try {
-				await window.ipcRenderer.invoke("workspace-delete", {
-					id: workspaceId,
-					removeWorktree: false,
-				});
-				// Reload workspaces
-				await loadAllWorkspaces();
-				// If we removed the current workspace, switch to another one
-				if (currentWorkspace?.id === workspaceId && workspaces) {
-					const remainingWorkspaces = workspaces.filter(
-						(ws) => ws.id !== workspaceId,
-					);
-					if (remainingWorkspaces.length > 0) {
-						await handleWorkspaceSelect(remainingWorkspaces[0].id);
-					} else {
-						setCurrentWorkspace(null);
-					}
-				}
-			} catch (error) {
-				console.error("Failed to remove workspace:", error);
-			}
-		}
-	};
 
 	// Task handlers
 	const handleOpenAddTaskModal = () => {
@@ -734,11 +696,9 @@ export const NewLayoutMain: React.FC = () => {
 								setShowSidebarOverlay(false);
 							}}
 							workspaceId={currentWorkspace?.id || null}
-							workspaces={workspaces || undefined}
-							currentWorkspace={currentWorkspace}
-							onWorkspaceSelect={handleWorkspaceSelect}
-							onAddWorkspace={handleAddWorkspace}
-							onRemoveWorkspace={handleRemoveWorkspace}
+							workspaceName={currentWorkspace?.name}
+							mainBranch={currentWorkspace?.branch}
+							onDiffFileSelect={setSelectedDiffFile}
 						/>
 					</div>
 				</div>
@@ -843,11 +803,9 @@ export const NewLayoutMain: React.FC = () => {
 											}
 										}}
 										workspaceId={currentWorkspace?.id || null}
-										workspaces={workspaces || undefined}
-										currentWorkspace={currentWorkspace}
-										onWorkspaceSelect={handleWorkspaceSelect}
-										onAddWorkspace={handleAddWorkspace}
-										onRemoveWorkspace={handleRemoveWorkspace}
+										workspaceName={currentWorkspace?.name}
+										mainBranch={currentWorkspace?.branch}
+										onDiffFileSelect={setSelectedDiffFile}
 									/>
 								)}
 							</ResizablePanel>
@@ -906,6 +864,8 @@ export const NewLayoutMain: React.FC = () => {
 											worktree={selectedWorktree}
 											workspaceName={currentWorkspace.name}
 											mainBranch={currentWorkspace.branch}
+											selectedDiffFile={selectedDiffFile}
+											onDiffFileSelect={setSelectedDiffFile}
 										/>
 									</div>
 								) : (
