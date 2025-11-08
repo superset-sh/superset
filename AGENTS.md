@@ -179,28 +179,6 @@ const result = await window.ipcRenderer.invoke("my-channel", {
   - `types.ts` - Data models
   - `ipc-channels.ts` - IPC type definitions
 
-### Running Multiple Instances
-
-You can run multiple Electron instances simultaneously for parallel development. See `apps/desktop/MULTIPLE_INSTANCES.md` for full documentation.
-
-**Quick start:**
-```bash
-# Method 1: Auto-increment port when creating worktrees
-# The update-port.sh script runs automatically during worktree setup
-# and increments VITE_DEV_SERVER_PORT in the root .env
-
-# Method 2: Manual port update
-./update-port.sh  # Increments port in root .env
-cd apps/desktop && bun dev
-
-# Method 3: Helper scripts (override .env)
-./dev-instance.sh instance2 4928
-```
-
-Each instance needs:
-- **Separate dev server port** - Set via `VITE_DEV_SERVER_PORT` in root `.env`
-- **Separate user data directory** - Pass via `--user-data-dir` flag
-
 ### Environment Variable Loading
 
 The desktop app loads environment variables from the monorepo root `.env` file:
