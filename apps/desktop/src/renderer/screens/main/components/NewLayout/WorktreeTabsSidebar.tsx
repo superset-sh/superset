@@ -1,8 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { type MotionValue, useMotionValue } from "framer-motion";
 import { Monitor, Plus, Terminal as TerminalIcon, X } from "lucide-react";
 import type React from "react";
-import type { Tab, Worktree } from "shared/types";
+import type { Tab, Workspace, Worktree } from "shared/types";
+import { WorkspaceCarousel } from "../Sidebar/components/WorkspaceCarousel";
+import { WorkspaceSwitcher } from "../Sidebar/components/WorkspaceSwitcher";
 
 interface WorktreeTabsSidebarProps {
 	worktree: Worktree | null;
@@ -12,6 +15,12 @@ interface WorktreeTabsSidebarProps {
 	onCreateTerminal: () => void;
 	onCreatePreview: () => void;
 	workspaceId: string | null;
+	// New props for workspace carousel
+	workspaces?: Workspace[];
+	currentWorkspace?: Workspace | null;
+	onWorkspaceSelect?: (workspaceId: string) => void;
+	onAddWorkspace?: () => void;
+	onRemoveWorkspace?: (workspaceId: string, workspaceName: string) => void;
 }
 
 export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
@@ -22,7 +31,14 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 	onCreateTerminal,
 	onCreatePreview,
 	workspaceId,
+	workspaces,
+	currentWorkspace,
+	onWorkspaceSelect,
+	onAddWorkspace,
+	onRemoveWorkspace,
 }) => {
+	const scrollProgress = useMotionValue(0);
+
 	if (!worktree || !workspaceId) {
 		return (
 			<div className="flex flex-col h-full p-4 text-neutral-400 text-sm">
@@ -32,6 +48,15 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 	}
 
 	const tabs = worktree.tabs || [];
+
+	// Check if workspace carousel should be shown
+	const showWorkspaceCarousel =
+		workspaces &&
+		workspaces.length > 1 &&
+		currentWorkspace &&
+		onWorkspaceSelect &&
+		onAddWorkspace &&
+		onRemoveWorkspace;
 
 	// Helper to get icon for tab type
 	const getTabIcon = (tab: Tab) => {
@@ -61,89 +86,132 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 
 	const flatTabs = flattenTabs(tabs);
 
-	return (
-		<div className="flex flex-col h-full">
-			{/* Header with actions */}
-			<div className="flex items-center justify-between p-3 border-b border-neutral-800">
-				<h3 className="text-sm font-medium text-neutral-300">Tabs</h3>
-				<div className="flex items-center gap-1">
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								onClick={onCreateTerminal}
-								className="h-6 w-6 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
-							>
-								<Plus size={14} />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom">
-							<p className="text-xs">New Terminal</p>
-						</TooltipContent>
-					</Tooltip>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon-sm"
-								onClick={onCreatePreview}
-								className="h-6 w-6 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
-							>
-								<Monitor size={14} />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom">
-							<p className="text-xs">New Preview</p>
-						</TooltipContent>
-					</Tooltip>
-				</div>
-			</div>
+	const renderSidebarContent = (workspace: Workspace | null, isActive: boolean) => {
+		if (!workspace) return null;
 
-			{/* Tab list */}
-			<div className="flex-1 overflow-y-auto">
-				{flatTabs.length === 0 ? (
-					<div className="p-4 text-sm text-neutral-500">
-						No tabs yet. Create a terminal or preview to get started.
+		// Find the worktree for this workspace
+		const workspaceWorktree = workspace.worktrees?.[0] || null;
+		const workspaceTabs = workspaceWorktree?.tabs || [];
+		const workspaceFlatTabs = flattenTabs(workspaceTabs);
+
+		return (
+			<>
+				{/* Header with actions */}
+				<div className="flex items-center justify-between p-3 border-b border-neutral-800">
+					<h3 className="text-sm font-medium text-neutral-300">Tabs</h3>
+					<div className="flex items-center gap-1">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									onClick={onCreateTerminal}
+									className="h-6 w-6 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
+								>
+									<Plus size={14} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom">
+								<p className="text-xs">New Terminal</p>
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon-sm"
+									onClick={onCreatePreview}
+									className="h-6 w-6 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
+								>
+									<Monitor size={14} />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom">
+								<p className="text-xs">New Preview</p>
+							</TooltipContent>
+						</Tooltip>
 					</div>
-				) : (
-					<div className="p-2">
-						{flatTabs.map(({ tab, level }) => (
-							<button
-								key={tab.id}
-								type="button"
-								onClick={() => onTabSelect(tab.id)}
-								className={`
-									w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm transition-colors group
-									${
-										selectedTabId === tab.id
-											? "bg-neutral-800 text-neutral-100"
-											: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-									}
-								`}
-								style={{ paddingLeft: `${12 + level * 16}px` }}
-							>
-								<div className="flex items-center gap-2 min-w-0">
-									{getTabIcon(tab)}
-									<span className="truncate">{tab.name}</span>
-								</div>
-								{tab.type !== "group" && (
-									<button
-										type="button"
-										onClick={(e) => {
-											e.stopPropagation();
-											onTabClose(tab.id);
-										}}
-										className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
-									>
-										<X size={14} />
-									</button>
-								)}
-							</button>
-						))}
-					</div>
-				)}
-			</div>
+				</div>
+
+				{/* Tab list */}
+				<div className="flex-1 overflow-y-auto">
+					{workspaceFlatTabs.length === 0 ? (
+						<div className="p-4 text-sm text-neutral-500">
+							No tabs yet. Create a terminal or preview to get started.
+						</div>
+					) : (
+						<div className="p-2">
+							{workspaceFlatTabs.map(({ tab, level }) => (
+								<button
+									key={tab.id}
+									type="button"
+									onClick={() => onTabSelect(tab.id)}
+									className={`
+										w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm transition-colors group
+										${
+											selectedTabId === tab.id
+												? "bg-neutral-800 text-neutral-100"
+												: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+										}
+									`}
+									style={{ paddingLeft: `${12 + level * 16}px` }}
+								>
+									<div className="flex items-center gap-2 min-w-0">
+										{getTabIcon(tab)}
+										<span className="truncate">{tab.name}</span>
+									</div>
+									{tab.type !== "group" && (
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												onTabClose(tab.id);
+											}}
+											className="opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"
+										>
+											<X size={14} />
+										</button>
+									)}
+								</button>
+							))}
+						</div>
+					)}
+				</div>
+			</>
+		);
+	};
+
+	return (
+		<div className="flex flex-col h-full select-none text-neutral-300 text-sm">
+			{/* Workspace Switcher - only show if multiple workspaces */}
+			{showWorkspaceCarousel && workspaces && currentWorkspace && onWorkspaceSelect && onAddWorkspace && onRemoveWorkspace && (
+				<WorkspaceSwitcher
+					workspaces={workspaces}
+					currentWorkspaceId={currentWorkspace.id}
+					onWorkspaceSelect={onWorkspaceSelect}
+					onAddWorkspace={onAddWorkspace}
+					onRemoveWorkspace={onRemoveWorkspace}
+					scrollProgress={scrollProgress}
+				/>
+			)}
+
+			{/* Workspace Carousel - horizontal scroll between workspaces */}
+			{showWorkspaceCarousel && workspaces && currentWorkspace && onWorkspaceSelect ? (
+				<WorkspaceCarousel
+					workspaces={workspaces}
+					currentWorkspace={currentWorkspace}
+					onWorkspaceSelect={onWorkspaceSelect}
+					onScrollProgress={(progress: MotionValue<number>) => {
+						// Update scroll progress for the switcher
+						scrollProgress.set(progress.get());
+					}}
+				>
+					{renderSidebarContent}
+				</WorkspaceCarousel>
+			) : (
+				// Single workspace - no carousel needed
+				renderSidebarContent(currentWorkspace || null, true)
+			)}
 		</div>
 	);
 };

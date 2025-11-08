@@ -280,9 +280,18 @@ export default function TabGroup({
 				}
 				.mosaic-theme-dark .mosaic-split {
 					background: #333;
+					opacity: 0;
+					border-radius: 25px;
+					transition: opacity 0.2s ease, background-color 0.2s ease;
 				}
 				.mosaic-theme-dark .mosaic-split:hover {
 					background: #444;
+					opacity: 1;
+				}
+				.mosaic-theme-dark .mosaic-split:active,
+				.mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
+					background: #555;
+					opacity: 1;
 				}
 				.active-mosaic-window .mosaic-window-toolbar {
 					background: #3a3a3a !important;
