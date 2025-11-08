@@ -257,6 +257,10 @@ class TmuxManager {
 
 			// Set up data listener
 			ptyProcess.onData((data: string) => {
+				// Debug: log what's coming from PTY
+				if (data.includes("1;2c") || data.includes("0;276")) {
+					console.log(`[TmuxManager] PTY output from ${sid}:`, JSON.stringify(data), `(length: ${data.length})`);
+				}
 				this.addTerminalMessage(sid, data);
 			});
 
@@ -408,6 +412,8 @@ class TmuxManager {
 		try {
 			const session = this.sessions.get(sid);
 			if (session?.pty) {
+				// Debug: log what's being written
+				console.log(`[TmuxManager] Writing to ${sid}:`, JSON.stringify(data), `(length: ${data.length})`);
 				session.pty.write(data);
 				return true;
 			}
