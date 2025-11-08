@@ -285,14 +285,6 @@ class TmuxManager {
 
 			// Set up data listener
 			ptyProcess.onData((data: string) => {
-				// Debug: log what's coming from PTY
-				if (data.includes("1;2c") || data.includes("0;276")) {
-					console.log(
-						`[TmuxManager] PTY output from ${sid}:`,
-						JSON.stringify(data),
-						`(length: ${data.length})`,
-					);
-				}
 				this.addTerminalMessage(sid, data);
 			});
 
@@ -560,15 +552,8 @@ class TmuxManager {
 
 		// Return in-memory history if available
 		if (session.outputHistory.length > 0) {
-			console.log(
-				`[TmuxManager] Returning ${session.outputHistory.length} bytes of cached history for ${sid}`,
-			);
 			return session.outputHistory;
 		}
-
-		console.log(
-			`[TmuxManager] No cached history for ${sid}, tmux will send content on attach`,
-		);
 		return undefined;
 	}
 
