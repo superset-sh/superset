@@ -229,6 +229,38 @@ class TmuxManager {
 			// Ensure tmux session exists
 			this.ensureSessionExists(sid, cols, rows, finalCwd);
 
+			// Resize the tmux window BEFORE attaching to ensure proper dimensions
+			// This is crucial for reconnection after restart
+			console.log(`[TmuxManager] Resizing tmux window ${sid} to ${cols}x${rows} before attach`);
+			const resizeResult = spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"resize-window",
+				"-t",
+				sid,
+				"-x",
+				String(cols),
+				"-y",
+				String(rows),
+			]);
+
+			if (resizeResult.status !== 0) {
+				console.warn(
+					`[TmuxManager] Failed to pre-resize tmux window ${sid}:`,
+					resizeResult.stderr.toString(),
+				);
+			}
+
+			// Force tmux to refresh and reflow content at new size
+			// This ensures the pane content is properly wrapped for the new dimensions
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"refresh-client",
+				"-t",
+				sid,
+			]);
+
 			// Attach to the session via node-pty
 			console.log(`[TmuxManager] Attaching to session: ${sid}`);
 			const ptyProcess = pty.spawn(
@@ -520,9 +552,21 @@ class TmuxManager {
 
 	/**
 	 * Get output history
+	 * Returns in-memory history or undefined
+	 * Note: After restart, history is empty and will be populated by PTY data on reattach
 	 */
 	getHistory(sid: string): string | undefined {
-		return this.sessions.get(sid)?.outputHistory;
+		const session = this.sessions.get(sid);
+		if (!session) return undefined;
+
+		// Return in-memory history if available
+		if (session.outputHistory.length > 0) {
+			console.log(`[TmuxManager] Returning ${session.outputHistory.length} bytes of cached history for ${sid}`);
+			return session.outputHistory;
+		}
+
+		console.log(`[TmuxManager] No cached history for ${sid}, tmux will send content on attach`);
+		return undefined;
 	}
 
 	/**

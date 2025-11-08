@@ -234,7 +234,7 @@ function TerminalTabContent({
 			<Terminal
 				key={terminalId}
 				terminalId={terminalId}
-				isSelected={isSelected}
+				hidden={!isSelected}
 				onFocus={onFocus}
 			/>
 		</div>
