@@ -82,8 +82,8 @@ export const TaskTabs: React.FC<WorktreeTabsProps> = ({
 					const displayTitle = worktree.description || worktree.branch;
 
 					return (
-						<Tooltip key={worktree.id}>
-							<TooltipTrigger asChild>
+						<HoverCard key={worktree.id} openDelay={200}>
+							<HoverCardTrigger asChild>
 								<button
 									type="button"
 									onClick={() => onWorktreeSelect(worktree.id)}
@@ -100,24 +100,61 @@ export const TaskTabs: React.FC<WorktreeTabsProps> = ({
 										{displayTitle}
 									</span>
 								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" className="max-w-xs">
-								<div className="space-y-1">
-									{worktree.description && (
-										<p className="text-sm font-medium">
-											{worktree.description}
-										</p>
-									)}
-									<p className="text-xs text-neutral-400">
-										<span className="font-medium">Branch:</span>{" "}
-										{worktree.branch}
-									</p>
-									<p className="text-xs text-neutral-400">
-										<span className="font-medium">Path:</span> {worktree.path}
-									</p>
+							</HoverCardTrigger>
+							<HoverCardContent side="bottom" align="start" className="w-96">
+								<div className="space-y-3">
+									{/* Header with title */}
+									<div className="flex items-start justify-between gap-3">
+										<div className="flex-1 min-w-0">
+											<h4 className="font-semibold text-sm text-white">
+												{worktree.description || worktree.branch}
+											</h4>
+											{worktree.description && (
+												<p className="text-xs text-neutral-400 mt-1.5 leading-relaxed">
+													{worktree.description}
+												</p>
+											)}
+										</div>
+									</div>
+
+									{/* Metadata grid */}
+									<div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs pt-2 border-t border-neutral-800">
+										<div className="flex items-center gap-2 col-span-2">
+											<span className="text-neutral-500">Branch</span>
+											<span className="text-neutral-300 font-mono text-xs truncate">
+												{worktree.branch}
+											</span>
+										</div>
+
+										<div className="flex items-center gap-2 col-span-2">
+											<span className="text-neutral-500">Path</span>
+											<span className="text-neutral-300 font-mono text-xs truncate">
+												{worktree.path}
+											</span>
+										</div>
+
+										{worktree.tabs && worktree.tabs.length > 0 && (
+											<div className="flex items-center gap-2">
+												<span className="text-neutral-500">Tabs</span>
+												<span className="text-neutral-300">
+													{worktree.tabs.length}
+												</span>
+											</div>
+										)}
+
+										{worktree.detectedPorts &&
+											Object.keys(worktree.detectedPorts).length > 0 && (
+												<div className="flex items-center gap-2">
+													<span className="text-neutral-500">Ports</span>
+													<span className="text-neutral-300">
+														{Object.keys(worktree.detectedPorts).length}
+													</span>
+												</div>
+											)}
+									</div>
 								</div>
-							</TooltipContent>
-						</Tooltip>
+							</HoverCardContent>
+						</HoverCard>
 					);
 				})}
 			</div>
