@@ -23,4 +23,3 @@ function Separator({
 }
 
 export { Separator };
-

@@ -136,8 +136,12 @@ export default function TerminalComponent({
 	useEffect(() => {
 		// Guard: only initialize once per terminalId
 		// terminalIdRef serves as both storage and initialization guard
-		if (!terminalRef.current || terminal || !terminalId || terminalIdRef.current === terminalId) {
-			console.log(`[Terminal] Init guard: ref=${!!terminalRef.current} terminal=${!!terminal} id=${terminalId?.slice(0, 8)} currentId=${terminalIdRef.current?.slice(0, 8)}`);
+		if (
+			!terminalRef.current ||
+			terminal ||
+			!terminalId ||
+			terminalIdRef.current === terminalId
+		) {
 			return;
 		}
 
@@ -146,11 +150,7 @@ export default function TerminalComponent({
 		// Set terminalIdRef immediately to prevent race conditions
 		terminalIdRef.current = terminalId;
 
-		const { term } = initTerminal(
-			terminalRef.current,
-			theme,
-			onFocusRef,
-		);
+		const { term } = initTerminal(terminalRef.current, theme, onFocusRef);
 		setTerminal(term);
 
 		console.log(`[Terminal] Initialized terminal: ${terminalId.slice(0, 8)}`);

@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { Loader2, MonitorSmartphone, RotateCw } from "lucide-react";
 import type { WebviewTag } from "electron";
+import { Loader2, MonitorSmartphone, RotateCw } from "lucide-react";
 import {
 	useCallback,
 	useEffect,

@@ -6,8 +6,8 @@ import { config } from "dotenv";
 config({ path: resolve(__dirname, "../../../../.env"), override: true });
 
 import { app } from "electron";
-import { getPort } from "main/lib/port-manager";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { getPort } from "main/lib/port-manager";
 import { MainWindow } from "./windows/main";
 
 // Allow multiple instances - removed single instance lock

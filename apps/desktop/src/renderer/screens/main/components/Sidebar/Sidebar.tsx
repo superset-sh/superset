@@ -21,6 +21,7 @@ interface SidebarProps {
 	onUpdateWorktree: (worktreeId: string, updatedWorktree: Worktree) => void;
 	selectedTabId: string | undefined;
 	isDragging?: boolean;
+	onShowDiff?: (worktreeId: string) => void;
 }
 
 export function Sidebar({
@@ -33,6 +34,7 @@ export function Sidebar({
 	onUpdateWorktree,
 	selectedTabId,
 	isDragging = false,
+	onShowDiff,
 }: SidebarProps) {
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
@@ -296,14 +298,7 @@ export function Sidebar({
 	};
 
 	return (
-		<div className="flex flex-col h-full w-full select-none text-neutral-300">
-			<SidebarHeader
-				onCollapse={onCollapse}
-				onScanWorktrees={handleScanWorktrees}
-				isScanningWorktrees={isScanningWorktrees}
-				hasWorkspace={!!currentWorkspace}
-			/>
-
+		<div className="flex flex-col h-full w-full select-none text-neutral-300 text-sm">
 			<WorkspaceCarousel
 				workspaces={workspaces}
 				currentWorkspace={currentWorkspace}
@@ -313,15 +308,6 @@ export function Sidebar({
 			>
 				{(workspace, isActive) => (
 					<>
-						{workspace && (
-							<div className="px-3 pt-2 pb-1 mb-2">
-								<div className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-									{workspace.name}
-								</div>
-								<WorkspacePortIndicator workspace={workspace} />
-							</div>
-						)}
-
 						<WorktreeList
 							currentWorkspace={workspace}
 							expandedWorktrees={expandedWorktrees}
@@ -331,6 +317,9 @@ export function Sidebar({
 							onUpdateWorktree={onUpdateWorktree}
 							selectedTabId={selectedTabId}
 							onCloneWorktree={handleCloneWorktree}
+							onShowDiff={onShowDiff}
+							selectedWorktreeId={currentWorkspace?.activeWorktreeId}
+							showWorkspaceHeader={true}
 						/>
 
 						{workspace && (
@@ -342,15 +331,6 @@ export function Sidebar({
 					</>
 				)}
 			</WorkspaceCarousel>
-
-			<WorkspaceSwitcher
-				workspaces={workspaces}
-				currentWorkspaceId={currentWorkspace?.id || null}
-				onWorkspaceSelect={onWorkspaceSelect}
-				onAddWorkspace={handleAddWorkspace}
-				onRemoveWorkspace={handleRemoveWorkspace}
-				scrollProgress={scrollProgress}
-			/>
 
 			<CreateWorktreeModal
 				isOpen={showWorktreeModal}

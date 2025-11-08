@@ -213,17 +213,18 @@ function DroppableGroupTab({
 					<button
 						type="button"
 						onClick={handleClick}
-						className={`group flex items-center gap-1 w-full h-8 px-3 text-sm rounded-md [transition:all_0.2s,border_0s] ${isSelected
-								? "bg-neutral-800 border border-neutral-700"
+						className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${
+							isSelected
+								? "bg-neutral-800/80 text-neutral-200"
 								: isOver
-									? "bg-blue-900/50 border border-blue-500"
-									: "hover:bg-neutral-800/50"
-							}`}
-						style={{ paddingLeft: `${level * 12 + 12}px` }}
+									? "bg-blue-900/40 text-blue-200"
+									: "hover:bg-neutral-800/40 text-neutral-400"
+						}`}
+						style={{ paddingLeft: `${level * 12 + 10}px` }}
 					>
 						<ChevronRight
-							size={12}
-							className={`transition-transform ${isExpanded ? "rotate-90" : ""} shrink-0`}
+							size={11}
+							className={`transition-transform ${isExpanded ? "rotate-90" : ""} shrink-0 text-neutral-500`}
 						/>
 						{isEditing ? (
 							<input
@@ -234,7 +235,7 @@ function DroppableGroupTab({
 								onBlur={handleSaveRename}
 								onKeyDown={handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-neutral-700 text-white px-2 py-0.5 rounded-sm text-sm outline-none focus:ring-1 focus:ring-blue-500 min-w-0"
+								className="flex-1 bg-neutral-700 text-white px-2 py-0.5 rounded-sm text-xs outline-none focus:ring-1 focus:ring-blue-500 min-w-0"
 							/>
 						) : (
 							<span className="truncate flex-1 text-left">{tab.name}</span>
@@ -277,8 +278,9 @@ function DroppableGroupArea({
 	return (
 		<div
 			ref={setNodeRef}
-			className={`relative ${isOver ? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md" : ""
-				}`}
+			className={`relative ${
+				isOver ? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md" : ""
+			}`}
 			style={{
 				minHeight: "40px",
 				transition: "all 0.2s",
@@ -761,7 +763,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Remove Worktree");
 			setErrorMessage(
 				result.error ||
-				"An unknown error occurred while removing the worktree.",
+					"An unknown error occurred while removing the worktree.",
 			);
 			setShowErrorDialog(true);
 		}
@@ -904,7 +906,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Check Settings");
 			setErrorMessage(
 				checkResult.error ||
-				"An unknown error occurred while checking settings.",
+					"An unknown error occurred while checking settings.",
 			);
 			setShowErrorDialog(true);
 			return;
@@ -1112,7 +1114,7 @@ export function WorktreeItem({
 		if (tab.type === "group") {
 			const isExpanded = expandedGroupTabs.has(tab.id);
 			return (
-				<div key={tab.id} className="space-y-1">
+				<div key={tab.id} className="space-y-0.5">
 					{/* Group Tab Header */}
 					<DroppableGroupTab
 						tab={tab}
@@ -1131,7 +1133,7 @@ export function WorktreeItem({
 					{/* Nested Tabs - Make the entire area droppable */}
 					{isExpanded && tab.tabs && (
 						<DroppableGroupArea groupTabId={tab.id} isOver={false}>
-							<div className="space-y-1">
+							<div className="space-y-0.5">
 								{tab.tabs.map((childTab) =>
 									renderTab(childTab, tab.id, level + 1),
 								)}
@@ -1144,7 +1146,7 @@ export function WorktreeItem({
 
 		// Regular tab (terminal, editor, etc.)
 		return (
-			<div key={tab.id} style={{ paddingLeft: `${level * 12}px` }}>
+			<div key={tab.id} style={{ paddingLeft: `${level * 10}px` }}>
 				<SortableTab
 					tab={tab}
 					worktreeId={worktree.id}
@@ -1164,7 +1166,7 @@ export function WorktreeItem({
 	};
 
 	return (
-		<div className="space-y-1">
+		<div className="space-y-0.5">
 			{/* Worktree Header */}
 			<Tooltip>
 				<ContextMenu>
@@ -1174,25 +1176,25 @@ export function WorktreeItem({
 								variant="ghost"
 								size="sm"
 								onClick={() => onToggle(worktree.id)}
-								className="group w-full h-8 px-3 pb-1 font-normal relative"
+								className="group w-full h-7 px-2.5 font-normal text-xs hover:bg-neutral-800/50 gap-1.5"
 								style={{ justifyContent: "flex-start" }}
 							>
 								<ChevronRight
-									size={12}
-									className={`transition-transform ${isExpanded ? "rotate-90" : ""}`}
+									size={11}
+									className={`transition-transform text-neutral-500 ${isExpanded ? "rotate-90" : ""}`}
 								/>
-								<GitBranch size={14} className="opacity-70" />
-								<span className="truncate flex-1 text-left">
+								<GitBranch size={12} className="text-neutral-400" />
+								<span className="truncate flex-1 text-left text-neutral-300">
 									{worktree.branch}
 								</span>
 								{worktree.branch === mainBranch && (
 									<Star
-										size={14}
-										className="text-yellow-500 shrink-0 fill-yellow-500"
+										size={11}
+										className="text-yellow-500/80 shrink-0 fill-yellow-500/80"
 									/>
 								)}
 								{worktree.merged && (
-									<GitMerge size={14} className="text-purple-500 shrink-0" />
+									<GitMerge size={11} className="text-purple-400/80 shrink-0" />
 								)}
 							</Button>
 						</TooltipTrigger>
@@ -1258,7 +1260,7 @@ export function WorktreeItem({
 
 			{/* Tabs List */}
 			{isExpanded && (
-				<div className="ml-6 space-y-1">
+				<div className="ml-4 space-y-0.5">
 					{/* Render tabs with collapsible groups */}
 					<SortableContext
 						items={allTabIds}
@@ -1266,28 +1268,6 @@ export function WorktreeItem({
 					>
 						{tabs.map((tab) => renderTab(tab, undefined, 0))}
 					</SortableContext>
-
-					{/* New Terminal / Preview Buttons */}
-					<div className="flex flex-col sm:flex-row items-stretch gap-2 w-full">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleAddTab}
-							className="flex-1 h-8 px-2 font-normal opacity-70 hover:opacity-100 min-w-0"
-						>
-							<Plus size={14} className="shrink-0" />
-							<span className="truncate ml-1">Terminal</span>
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={handleAddPreview}
-							className="flex-1 h-8 px-2 font-normal opacity-70 hover:opacity-100 min-w-0"
-						>
-							<Monitor size={14} className="shrink-0" />
-							<span className="truncate ml-1">Preview</span>
-						</Button>
-					</div>
 				</div>
 			)}
 

@@ -46,9 +46,15 @@ export const GitView: React.FC = () => {
 					>
 						<div className="flex items-center gap-2 mb-1">
 							<GitBranch size={14} className="text-blue-500 shrink-0" />
-							<span className="text-sm text-neutral-200 truncate">{worktree.name}</span>
+							<span className="text-sm text-neutral-200 truncate">
+								{worktree.name}
+							</span>
 							{worktree.isMain && (
-								<Star size={12} className="text-yellow-500 shrink-0" fill="currentColor" />
+								<Star
+									size={12}
+									className="text-yellow-500 shrink-0"
+									fill="currentColor"
+								/>
 							)}
 						</div>
 						<div className="text-xs text-neutral-500 pl-5">

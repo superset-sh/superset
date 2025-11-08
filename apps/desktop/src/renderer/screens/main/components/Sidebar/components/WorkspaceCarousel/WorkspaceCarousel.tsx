@@ -151,7 +151,7 @@ export function WorkspaceCarousel({
 	// If only one workspace or no workspaces, disable carousel
 	if (workspaces.length <= 1) {
 		return (
-			<div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+			<div className="flex-1 overflow-y-auto px-3">
 				{children(currentWorkspace, true)}
 			</div>
 		);
@@ -176,7 +176,7 @@ export function WorkspaceCarousel({
 				{workspaces.map((workspace) => (
 					<div
 						key={workspace.id}
-						className="overflow-y-auto px-3 py-2 space-y-1"
+						className="overflow-y-auto px-3"
 						style={{
 							scrollSnapAlign: "start",
 							scrollSnapStop: "always",

@@ -7,9 +7,10 @@ import {
 } from "@superset/ui/context-menu";
 import {
 	Edit2,
-	Globe2,
 	FolderOutput,
 	FolderTree,
+	GitCompare,
+	Globe2,
 	Monitor,
 	SquareTerminal,
 	X,
@@ -128,6 +129,8 @@ export function TabItem({
 				return Monitor;
 			case "port":
 				return Globe2;
+			case "diff":
+				return GitCompare;
 			default:
 				return SquareTerminal;
 		}
@@ -138,18 +141,18 @@ export function TabItem({
 			<ContextMenuTrigger asChild>
 				<button
 					type="button"
-					className={`group flex items-center gap-1 w-full h-8 px-3 text-sm rounded-md [transition:all_0.2s,border_0s] ${
+					className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${
 						isSelected
-							? "bg-neutral-800 border border-neutral-700"
+							? "bg-neutral-800/80 text-neutral-200"
 							: showMultiSelectHighlight
-								? "bg-blue-900/30 border border-blue-700/50"
-								: ""
+								? "bg-blue-900/30 text-blue-200"
+								: "hover:bg-neutral-800/40 text-neutral-400 hover:text-neutral-300"
 					}`}
 					onClick={handleClick}
 					onDoubleClick={handleDoubleClick}
 				>
-					<div className="flex items-center gap-2 flex-1 min-w-0">
-						<IconComponent size={14} className="shrink-0" />
+					<div className="flex items-center gap-1.5 flex-1 min-w-0">
+						<IconComponent size={12} className="shrink-0" />
 						{isEditing ? (
 							<input
 								ref={inputRef}
@@ -159,7 +162,7 @@ export function TabItem({
 								onBlur={handleSaveRename}
 								onKeyDown={handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-neutral-700 text-white px-2 py-0.5 rounded-sm text-sm outline-none focus:ring-1 focus:ring-blue-500 min-w-0"
+								className="flex-1 bg-neutral-700 text-white px-2 py-0.5 rounded-sm text-xs outline-none focus:ring-1 focus:ring-blue-500 min-w-0"
 							/>
 						) : (
 							<span className="truncate">{tab.name}</span>
@@ -170,9 +173,9 @@ export function TabItem({
 							variant="ghost"
 							size="icon"
 							onClick={handleRemove}
-							className="h-5 w-5 p-0 opacity-0 group-hover:opacity-70 hover:opacity-100 hover:bg-neutral-700"
+							className="h-4 w-4 p-0 opacity-0 group-hover:opacity-60 hover:!opacity-100 hover:bg-neutral-700/80"
 						>
-							<X size={12} />
+							<X size={10} />
 						</Button>
 					)}
 				</button>

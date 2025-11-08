@@ -1,6 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { GitBranch, Globe, Settings, Terminal as TerminalIcon } from "lucide-react";
+import {
+	GitBranch,
+	Globe,
+	Settings,
+	Terminal as TerminalIcon,
+} from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 import { BrowserView } from "./views/BrowserView";
@@ -18,7 +23,11 @@ interface Tab {
 
 const TABS: Tab[] = [
 	{ id: "git", label: "Git", icon: <GitBranch size={14} /> },
-	{ id: "summary", label: "Summary", icon: <div className="w-1.5 h-1.5 rounded-full bg-blue-500" /> },
+	{
+		id: "summary",
+		label: "Summary",
+		icon: <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />,
+	},
 	{ id: "terminals", label: "Terminals", icon: <TerminalIcon size={14} /> },
 	{ id: "browser", label: "Browser", icon: <Globe size={14} /> },
 ];

@@ -16,6 +16,8 @@ interface ScreenLayoutProps {
 	worktreeId: string | undefined;
 	selectedTabId: string | undefined;
 	onTabFocus: (tabId: string) => void;
+	workspaceName?: string;
+	mainBranch?: string;
 }
 
 export default function TabGroup({
@@ -25,6 +27,8 @@ export default function TabGroup({
 	worktreeId,
 	selectedTabId,
 	onTabFocus,
+	workspaceName,
+	mainBranch,
 }: ScreenLayoutProps) {
 	// Initialize mosaic tree from groupTab or create a default tree
 	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
@@ -187,6 +191,8 @@ export default function TabGroup({
 							groupTabId={groupTab.id}
 							selectedTabId={selectedTabId}
 							onTabFocus={onTabFocus}
+							workspaceName={workspaceName}
+							mainBranch={mainBranch}
 						/>
 					</div>
 				</MosaicWindow>
@@ -200,6 +206,8 @@ export default function TabGroup({
 			worktreeId,
 			groupTab.id,
 			onTabFocus,
+			workspaceName,
+			mainBranch,
 		],
 	);
 

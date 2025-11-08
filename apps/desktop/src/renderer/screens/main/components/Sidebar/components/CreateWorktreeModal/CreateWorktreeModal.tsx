@@ -96,7 +96,9 @@ export function CreateWorktreeModal({
 					<div className="space-y-2">
 						<Label htmlFor={branchNameId}>
 							Branch Name{" "}
-							<span className="text-muted-foreground font-normal">(optional)</span>
+							<span className="text-muted-foreground font-normal">
+								(optional)
+							</span>
 						</Label>
 						<Input
 							type="text"
@@ -158,7 +160,6 @@ export function CreateWorktreeModal({
 							))}
 						</select>
 					</div>
-
 
 					{/* Setup Progress Section */}
 					{isCreating && (

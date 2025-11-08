@@ -527,6 +527,167 @@ class WorktreeManager {
 			};
 		}
 	}
+
+	/**
+	 * Get detailed git diff for a worktree (line-by-line changes)
+	 */
+	async getGitDiff(
+		worktreePath: string,
+		mainBranch: string,
+	): Promise<{
+		success: boolean;
+		diff?: {
+			files: Array<{
+				id: string;
+				fileName: string;
+				filePath: string;
+				status: "added" | "deleted" | "modified" | "renamed";
+				oldPath?: string;
+				additions: number;
+				deletions: number;
+				changes: Array<{
+					type: "added" | "removed" | "modified" | "unchanged";
+					oldLineNumber: number | null;
+					newLineNumber: number | null;
+					content: string;
+				}>;
+			}>;
+		};
+		error?: string;
+	}> {
+		try {
+			// Get list of changed files with status
+			// Using two-dot diff to show all changes (committed + uncommitted) vs main branch
+			const diffFilesResult = await execAsync(
+				`git diff ${mainBranch} --name-status`,
+				{ cwd: worktreePath },
+			);
+
+			const fileLines = diffFilesResult.stdout
+				.trim()
+				.split("\n")
+				.filter(Boolean);
+			const files = [];
+
+			for (const fileLine of fileLines) {
+				const parts = fileLine.split("\t");
+				const statusCode = parts[0];
+				const filePath = parts[1];
+				const oldPath = parts[2]; // For renamed files
+
+				// Determine status
+				let status: "added" | "deleted" | "modified" | "renamed" = "modified";
+				if (statusCode.startsWith("A")) status = "added";
+				else if (statusCode.startsWith("D")) status = "deleted";
+				else if (statusCode.startsWith("R")) status = "renamed";
+				else if (statusCode.startsWith("M")) status = "modified";
+
+				// Get detailed diff for this file
+				const diffCommand =
+					status === "deleted"
+						? `git diff ${mainBranch} -- "${filePath}"`
+						: `git diff ${mainBranch} -- "${oldPath || filePath}"`;
+
+				const fileDiffResult = await execAsync(diffCommand, {
+					cwd: worktreePath,
+					maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large diffs
+				});
+
+				const diffOutput = fileDiffResult.stdout;
+
+				// Parse the diff output
+				const changes: Array<{
+					type: "added" | "removed" | "modified" | "unchanged";
+					oldLineNumber: number | null;
+					newLineNumber: number | null;
+					content: string;
+				}> = [];
+
+				let oldLineNum = 0;
+				let newLineNum = 0;
+				let additions = 0;
+				let deletions = 0;
+
+				const diffLines = diffOutput.split("\n");
+				for (let i = 0; i < diffLines.length; i++) {
+					const line = diffLines[i];
+
+					// Parse hunk headers (e.g., @@ -1,4 +1,5 @@)
+					if (line.startsWith("@@")) {
+						const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+						if (match) {
+							oldLineNum = parseInt(match[1], 10);
+							newLineNum = parseInt(match[2], 10);
+						}
+						continue;
+					}
+
+					// Skip file headers
+					if (
+						line.startsWith("diff --git") ||
+						line.startsWith("index ") ||
+						line.startsWith("---") ||
+						line.startsWith("+++")
+					) {
+						continue;
+					}
+
+					// Parse actual changes
+					if (line.startsWith("+")) {
+						changes.push({
+							type: "added",
+							oldLineNumber: null,
+							newLineNumber: newLineNum,
+							content: line.substring(1),
+						});
+						newLineNum++;
+						additions++;
+					} else if (line.startsWith("-")) {
+						changes.push({
+							type: "removed",
+							oldLineNumber: oldLineNum,
+							newLineNumber: null,
+							content: line.substring(1),
+						});
+						oldLineNum++;
+						deletions++;
+					} else if (line.startsWith(" ")) {
+						changes.push({
+							type: "unchanged",
+							oldLineNumber: oldLineNum,
+							newLineNumber: newLineNum,
+							content: line.substring(1),
+						});
+						oldLineNum++;
+						newLineNum++;
+					}
+				}
+
+				const fileName = path.basename(oldPath || filePath);
+				files.push({
+					id: `file-${files.length}`,
+					fileName,
+					filePath: oldPath || filePath,
+					status,
+					...(oldPath && { oldPath: filePath }),
+					additions,
+					deletions,
+					changes,
+				});
+			}
+
+			return {
+				success: true,
+				diff: { files },
+			};
+		} catch (error) {
+			console.error("Failed to get git diff:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
 }
 
 export default WorktreeManager.getInstance();

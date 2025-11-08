@@ -28,9 +28,7 @@ export const BrowserView: React.FC = () => {
 					placeholder="Enter URL..."
 					className="flex-1 px-3 py-2 text-sm bg-neutral-900 text-neutral-200 border border-neutral-700 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
 				/>
-				<Button size="sm">
-					Open
-				</Button>
+				<Button size="sm">Open</Button>
 			</div>
 
 			<ScrollArea className="flex-1">

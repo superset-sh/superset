@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Tab, Worktree } from "shared/types";
+import { DiffTab } from "../TabContent/components/DiffTab";
 import { PortTab } from "../TabContent/components/PortTab";
 import { PreviewTab } from "../TabContent/components/PreviewTab";
 import TabGroup from "./TabGroup";
@@ -14,6 +15,8 @@ interface TabContentProps {
 	groupTabId: string; // ID of the parent group tab
 	selectedTabId?: string; // Currently selected tab ID
 	onTabFocus: (tabId: string) => void;
+	workspaceName?: string;
+	mainBranch?: string;
 }
 
 /**
@@ -34,6 +37,8 @@ export default function TabContent({
 	groupTabId,
 	selectedTabId,
 	onTabFocus,
+	workspaceName,
+	mainBranch,
 }: TabContentProps) {
 	const handleFocus = () => {
 		onTabFocus(tab.id);
@@ -51,6 +56,8 @@ export default function TabContent({
 					worktreeId={worktreeId}
 					selectedTabId={selectedTabId}
 					onTabFocus={onTabFocus}
+					workspaceName={workspaceName}
+					mainBranch={mainBranch}
 				/>
 			);
 
@@ -109,6 +116,29 @@ export default function TabContent({
 						workspaceId={workspaceId}
 						worktreeId={worktreeId}
 						worktree={worktree}
+					/>
+				</div>
+			);
+
+		case "diff":
+			if (!worktreeId) {
+				return (
+					<PlaceholderContent
+						type="diff"
+						message="Worktree not available"
+						onFocus={handleFocus}
+					/>
+				);
+			}
+			return (
+				<div className="w-full h-full" onClick={handleFocus}>
+					<DiffTab
+						tab={tab}
+						workspaceId={workspaceId}
+						worktreeId={worktreeId}
+						worktree={worktree}
+						workspaceName={workspaceName}
+						mainBranch={mainBranch}
 					/>
 				</div>
 			);

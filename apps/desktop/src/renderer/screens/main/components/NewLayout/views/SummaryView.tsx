@@ -11,7 +11,9 @@ export const SummaryView: React.FC = () => {
 		<div className="flex flex-col h-full">
 			<ScrollArea className="flex-1 p-3">
 				<div className="space-y-3">
-					<h2 className="text-sm font-semibold text-neutral-300">Agent Activity</h2>
+					<h2 className="text-sm font-semibold text-neutral-300">
+						Agent Activity
+					</h2>
 
 					{/* Mock agent reports */}
 					<div className="space-y-2">
@@ -37,7 +39,9 @@ export const SummaryView: React.FC = () => {
 								className="p-2.5 bg-neutral-800/50 rounded-md border-l-2 border-blue-500"
 							>
 								<div className="flex items-start justify-between mb-1">
-									<span className="text-xs text-neutral-500">{report.timestamp}</span>
+									<span className="text-xs text-neutral-500">
+										{report.timestamp}
+									</span>
 									<span
 										className={`text-xs px-1.5 py-0.5 rounded ${
 											report.status === "success"
@@ -57,7 +61,10 @@ export const SummaryView: React.FC = () => {
 
 			{/* Prompt iteration area */}
 			<div className="border-t border-neutral-700 p-3">
-				<label htmlFor="prompt-input" className="text-xs text-neutral-500 mb-2 block">
+				<label
+					htmlFor="prompt-input"
+					className="text-xs text-neutral-500 mb-2 block"
+				>
 					Iterate on prompt
 				</label>
 				<div className="flex gap-2">

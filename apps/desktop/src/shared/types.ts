@@ -26,7 +26,8 @@ export type TabType =
 	| "browser"
 	| "preview"
 	| "group"
-	| "port";
+	| "port"
+	| "diff";
 
 // Mosaic tree node types
 export type MosaicDirection = "row" | "column";

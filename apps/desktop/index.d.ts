@@ -1,10 +1,6 @@
 /// <reference types="vite/client" />
 
-import type {
-	DetailedHTMLProps,
-	HTMLAttributes,
-	Ref,
-} from "react";
+import type { DetailedHTMLProps, HTMLAttributes, Ref } from "react";
 import type { WebviewTag } from "electron";
 
 interface ImportMetaEnv {

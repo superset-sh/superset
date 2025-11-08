@@ -25,7 +25,12 @@ export const TerminalsView: React.FC = () => {
 				<div className="space-y-1.5">
 					{/* Mock terminal items */}
 					{[
-						{ id: "1", name: "Terminal 1", cwd: "~/code/superset", worktree: "main" },
+						{
+							id: "1",
+							name: "Terminal 1",
+							cwd: "~/code/superset",
+							worktree: "main",
+						},
 						{
 							id: "2",
 							name: "Terminal 2",

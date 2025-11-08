@@ -1,4 +1,6 @@
 /** biome-ignore-all lint/suspicious/noTemplateCurlyInString: <> */
+
+import { dirname } from "node:path";
 import type { Configuration } from "electron-builder";
 
 import {
@@ -10,8 +12,6 @@ import {
 	resources,
 	version,
 } from "./package.json";
-
-import { getDevFolder } from "./src/lib/electron-app/release/utils/path";
 
 const author = _author?.name ?? _author;
 const currentYear = new Date().getFullYear();
@@ -26,7 +26,7 @@ export default {
 	copyright: `Copyright © ${currentYear} — ${author}`,
 
 	directories: {
-		app: getDevFolder(main),
+		app: dirname(main),
 		output: `dist/v${version}`,
 	},
 

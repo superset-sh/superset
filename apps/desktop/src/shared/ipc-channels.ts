@@ -178,6 +178,30 @@ export interface IpcChannels {
 		};
 		response: IpcResponse;
 	};
+	"worktree-get-git-diff": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			diff?: {
+				files: Array<{
+					id: string;
+					fileName: string;
+					filePath: string;
+					status: "added" | "deleted" | "modified" | "renamed";
+					oldPath?: string;
+					additions: number;
+					deletions: number;
+					changes: Array<{
+						type: "added" | "removed" | "modified" | "unchanged";
+						oldLineNumber: number | null;
+						newLineNumber: number | null;
+						content: string;
+					}>;
+				}>;
+			};
+			error?: string;
+		};
+	};
 
 	// Tab operations
 	"tab-create": {

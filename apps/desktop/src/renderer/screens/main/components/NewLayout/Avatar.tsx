@@ -6,7 +6,11 @@ interface AvatarProps {
 	size?: number;
 }
 
-export const Avatar: React.FC<AvatarProps> = ({ imageUrl, name, size = 32 }) => {
+export const Avatar: React.FC<AvatarProps> = ({
+	imageUrl,
+	name,
+	size = 32,
+}) => {
 	return (
 		<img
 			src={imageUrl}

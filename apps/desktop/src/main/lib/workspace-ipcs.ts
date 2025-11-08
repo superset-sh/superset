@@ -486,6 +486,45 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// Get git diff for a worktree
+	ipcMain.handle(
+		"worktree-get-git-diff",
+		async (_event, input: { workspaceId: string; worktreeId: string }) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				return await worktreeManager.getGitDiff(
+					worktree.path,
+					workspace.branch,
+				);
+			} catch (error) {
+				console.error("Failed to get git diff:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
 	// Open app settings in Cursor
 	ipcMain.handle("open-app-settings", async () => {
 		try {

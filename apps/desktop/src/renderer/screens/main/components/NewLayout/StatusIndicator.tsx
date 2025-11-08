@@ -1,15 +1,15 @@
 import type React from "react";
 
-export type WorkspaceStatus = "planning" | "working" | "needs-feedback" | "ready-to-merge";
+export type TaskStatus = "planning" | "working" | "needs-feedback" | "ready-to-merge";
 
 interface StatusIndicatorProps {
-	status: WorkspaceStatus;
+	status: TaskStatus;
 	showLabel?: boolean;
-	size?: "sm" | "md";
+	size?: "xs" | "sm" | "md";
 }
 
 const STATUS_CONFIG: Record<
-	WorkspaceStatus,
+	TaskStatus,
 	{ label: string; color: string; type: "dashed" | "filled" | "pulsing" }
 > = {
 	planning: {
@@ -40,14 +40,21 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
 	size = "sm",
 }) => {
 	const config = STATUS_CONFIG[status];
-	const circleSize = size === "sm" ? 10 : 14;
+	const circleSize = size === "xs" ? 8 : size === "sm" ? 10 : 14;
 	const strokeWidth = 1.5;
 
 	return (
 		<div className="flex items-center gap-1.5">
-			<div className="relative" style={{ width: circleSize, height: circleSize }}>
+			<div
+				className="relative"
+				style={{ width: circleSize, height: circleSize }}
+			>
 				{/* Main circle */}
-				<svg width={circleSize} height={circleSize} viewBox={`0 0 ${circleSize} ${circleSize}`}>
+				<svg
+					width={circleSize}
+					height={circleSize}
+					viewBox={`0 0 ${circleSize} ${circleSize}`}
+				>
 					{config.type === "dashed" ? (
 						<circle
 							cx={circleSize / 2}

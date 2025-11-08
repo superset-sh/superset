@@ -24,27 +24,31 @@ export function SidebarHeader({
 
 	return (
 		<div
-			className="flex items-center"
+			className="flex items-center justify-center border-b border-neutral-800/50"
 			style={
 				{
 					height: "48px",
-					paddingLeft: "88px",
 					WebkitAppRegion: "drag",
 				} as React.CSSProperties
 			}
 		>
 			<div
 				style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				className="flex items-center gap-1"
+				className="flex items-center gap-0.5"
 			>
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant="ghost" size="icon-sm" onClick={onCollapse}>
-							<PanelLeftClose size={16} />
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={onCollapse}
+							className="h-7 w-7 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
+						>
+							<PanelLeftClose size={14} />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<p>Collapse sidebar</p>
+						<p className="text-xs">Collapse sidebar</p>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
@@ -54,25 +58,31 @@ export function SidebarHeader({
 							size="icon-sm"
 							onClick={onScanWorktrees}
 							disabled={isScanningWorktrees || !hasWorkspace}
+							className="h-7 w-7 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200 disabled:opacity-30"
 						>
 							<RefreshCw
-								size={16}
+								size={14}
 								className={isScanningWorktrees ? "animate-spin" : ""}
 							/>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<p>Scan worktrees</p>
+						<p className="text-xs">Scan worktrees</p>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant="ghost" size="icon-sm" onClick={handleOpenSettings}>
-							<Settings size={16} />
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							onClick={handleOpenSettings}
+							className="h-7 w-7 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
+						>
+							<Settings size={14} />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">
-						<p>Open app settings</p>
+						<p className="text-xs">Open app settings</p>
 					</TooltipContent>
 				</Tooltip>
 			</div>
