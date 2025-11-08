@@ -75,14 +75,7 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 
 	// Clean up on app quit
 	const cleanup = () => {
-<<<<<<< HEAD
-		// Detach from all sessions but keep tmux sessions alive for potential restart
-		// If you want to kill all sessions on quit, use killAll() instead
-		console.log("[Terminal IPC] Cleaning up on app quit...");
-		// tmuxManager.killAll(); // Uncomment to kill all sessions on quit
-=======
-		terminalManager.cleanup();
->>>>>>> main
+		// tmuxManager.killAll();
 	};
 
 	return cleanup;
