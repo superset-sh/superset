@@ -5,15 +5,11 @@ import { PanelLeftOpen } from "lucide-react";
 interface TopBarProps {
 	isSidebarOpen: boolean;
 	onOpenSidebar: () => void;
-	workspaceName?: string;
-	currentBranch?: string;
 }
 
 export function TopBar({
 	isSidebarOpen,
 	onOpenSidebar,
-	workspaceName,
-	currentBranch,
 }: TopBarProps) {
 	return (
 		<div

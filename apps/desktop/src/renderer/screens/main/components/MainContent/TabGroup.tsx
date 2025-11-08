@@ -193,6 +193,7 @@ export default function TabGroup({
 							onTabFocus={onTabFocus}
 							workspaceName={workspaceName}
 							mainBranch={mainBranch}
+							isVisibleInMosaic={true}
 						/>
 					</div>
 				</MosaicWindow>
@@ -259,16 +260,20 @@ export default function TabGroup({
 				.mosaic-theme-dark .mosaic-window {
 					background: #1a1a1a;
 					border: 1px solid #333;
+					outline: none;
+					transition: outline 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
 					background: #262626;
 					border-bottom: 1px solid #333;
 					height: 32px;
 					padding: 0 8px;
+					transition: background-color 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window .mosaic-window-title {
 					color: #e5e5e5;
 					font-size: 12px;
+					transition: color 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window-body {
 					background: #1a1a1a;
@@ -279,9 +284,8 @@ export default function TabGroup({
 				.mosaic-theme-dark .mosaic-split:hover {
 					background: #444;
 				}
-				.active-mosaic-window .mosaic-window {
-					border: 1px solid #3b82f6 !important;
-					box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+				.active-mosaic-window .mosaic-window-toolbar {
+					background: #3a3a3a !important;
 				}
 			`}</style>
 		</div>

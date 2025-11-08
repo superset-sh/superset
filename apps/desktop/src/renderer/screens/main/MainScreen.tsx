@@ -53,9 +53,8 @@ function DroppableMainContent({
 	return (
 		<div
 			ref={setNodeRef}
-			className={`flex-1 overflow-hidden m-1 rounded-lg relative ${
-				isOver ? "ring-2 ring-blue-500 ring-inset" : ""
-			}`}
+			className={`flex-1 overflow-hidden m-1 rounded-lg relative ${isOver ? "ring-2 ring-blue-500 ring-inset" : ""
+				}`}
 		>
 			{children}
 			{isOver && (
@@ -70,14 +69,11 @@ function DroppableMainContent({
 }
 
 export function MainScreen() {
-	// Check if new UI is enabled
-	const enableNewUI = import.meta.env.ENABLE_NEW_UI === "true";
+	// Use the new layout by default
+	return <NewLayoutMain />;
+}
 
-	// If new UI is enabled, render the new layout
-	if (enableNewUI) {
-		return <NewLayoutMain />;
-	}
-
+export function OldMainScreen() {
 	// Otherwise, render the original layout
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
@@ -1687,18 +1683,16 @@ export function MainScreen() {
 				)}
 
 				{/* Sidebar overlay when hidden and hovering */}
-				{!isSidebarOpen && showSidebarOverlay && workspaces && (
+				{!isSidebarOpen && showSidebarOverlay && currentWorkspace && (
 					<div
 						className="fixed left-0 top-0 bottom-0 w-80 z-40 animate-in slide-in-from-left duration-200"
 						onMouseLeave={() => setShowSidebarOverlay(false)}
 					>
 						<div className="h-full border-r border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
 							<Sidebar
-								workspaces={workspaces}
 								currentWorkspace={currentWorkspace}
 								onTabSelect={handleTabSelect}
 								onWorktreeCreated={handleWorktreeCreated}
-								onWorkspaceSelect={handleWorkspaceSelect}
 								onUpdateWorktree={handleUpdateWorktree}
 								selectedTabId={selectedTabId ?? undefined}
 								onCollapse={() => {
@@ -1723,13 +1717,11 @@ export function MainScreen() {
 							onCollapse={() => setIsSidebarOpen(false)}
 							onExpand={() => setIsSidebarOpen(true)}
 						>
-							{isSidebarOpen && workspaces && (
+							{isSidebarOpen && currentWorkspace && (
 								<Sidebar
-									workspaces={workspaces}
 									currentWorkspace={currentWorkspace}
 									onTabSelect={handleTabSelect}
 									onWorktreeCreated={handleWorktreeCreated}
-									onWorkspaceSelect={handleWorkspaceSelect}
 									onUpdateWorktree={handleUpdateWorktree}
 									selectedTabId={selectedTabId ?? undefined}
 									onCollapse={() => {
@@ -1756,16 +1748,14 @@ export function MainScreen() {
 											panel.expand();
 										}
 									}}
-									workspaceName={currentWorkspace?.name}
-									currentBranch={currentWorkspace?.branch}
 								/>
 
 								{/* Content Area */}
 								<DroppableMainContent isOver={isOverMainContent}>
 									{showDiffView &&
-									diffWorktreeId &&
-									diffWorktree &&
-									currentWorkspace ? (
+										diffWorktreeId &&
+										diffWorktree &&
+										currentWorkspace ? (
 										// Show diff view
 										<div className="w-full h-full">
 											<DiffTab
