@@ -284,20 +284,8 @@ export default function TabGroup({
 				.mosaic-theme-dark .mosaic-split:hover {
 					background: #444;
 				}
-				.active-mosaic-window .mosaic-window {
-					outline: 2px solid #3b82f6 !important;
-					outline-offset: 0px;
-				}
-				.active-mosaic-window .mosaic-window-body {
-					outline: 2px solid #3b82f6 !important;
-					outline-offset: -2px;
-				}
 				.active-mosaic-window .mosaic-window-toolbar {
 					background: #3a3a3a !important;
-				}
-				.active-mosaic-window .mosaic-window-title {
-					color: #e5e5e5 !important;
-					font-weight: 500;
 				}
 			`}</style>
 		</div>

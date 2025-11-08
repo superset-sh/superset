@@ -1,9 +1,9 @@
+import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import os from "node:os";
 import { dirname, join } from "node:path";
-import { spawnSync } from "node:child_process";
 import type { BrowserWindow } from "electron";
 import { app } from "electron";
 import * as pty from "node-pty";
@@ -231,7 +231,9 @@ class TmuxManager {
 
 			// Resize the tmux window BEFORE attaching to ensure proper dimensions
 			// This is crucial for reconnection after restart
-			console.log(`[TmuxManager] Resizing tmux window ${sid} to ${cols}x${rows} before attach`);
+			console.log(
+				`[TmuxManager] Resizing tmux window ${sid} to ${cols}x${rows} before attach`,
+			);
 			const resizeResult = spawnSync("tmux", [
 				"-L",
 				this.TMUX_SOCKET,
@@ -253,13 +255,7 @@ class TmuxManager {
 
 			// Force tmux to refresh and reflow content at new size
 			// This ensures the pane content is properly wrapped for the new dimensions
-			spawnSync("tmux", [
-				"-L",
-				this.TMUX_SOCKET,
-				"refresh-client",
-				"-t",
-				sid,
-			]);
+			spawnSync("tmux", ["-L", this.TMUX_SOCKET, "refresh-client", "-t", sid]);
 
 			// Attach to the session via node-pty
 			console.log(`[TmuxManager] Attaching to session: ${sid}`);
@@ -291,7 +287,11 @@ class TmuxManager {
 			ptyProcess.onData((data: string) => {
 				// Debug: log what's coming from PTY
 				if (data.includes("1;2c") || data.includes("0;276")) {
-					console.log(`[TmuxManager] PTY output from ${sid}:`, JSON.stringify(data), `(length: ${data.length})`);
+					console.log(
+						`[TmuxManager] PTY output from ${sid}:`,
+						JSON.stringify(data),
+						`(length: ${data.length})`,
+					);
 				}
 				this.addTerminalMessage(sid, data);
 			});
@@ -445,7 +445,6 @@ class TmuxManager {
 			const session = this.sessions.get(sid);
 			if (session?.pty) {
 				// Debug: log what's being written
-				console.log(`[TmuxManager] Writing to ${sid}:`, JSON.stringify(data), `(length: ${data.length})`);
 				session.pty.write(data);
 				return true;
 			}
@@ -561,11 +560,15 @@ class TmuxManager {
 
 		// Return in-memory history if available
 		if (session.outputHistory.length > 0) {
-			console.log(`[TmuxManager] Returning ${session.outputHistory.length} bytes of cached history for ${sid}`);
+			console.log(
+				`[TmuxManager] Returning ${session.outputHistory.length} bytes of cached history for ${sid}`,
+			);
 			return session.outputHistory;
 		}
 
-		console.log(`[TmuxManager] No cached history for ${sid}, tmux will send content on attach`);
+		console.log(
+			`[TmuxManager] No cached history for ${sid}, tmux will send content on attach`,
+		);
 		return undefined;
 	}
 
@@ -631,9 +634,7 @@ class TmuxManager {
 				"utf-8",
 			);
 
-			console.log(
-				`[TmuxManager] Saved ${metadata.length} sessions to disk`,
-			);
+			console.log(`[TmuxManager] Saved ${metadata.length} sessions to disk`);
 		} catch (error) {
 			console.error("[TmuxManager] Failed to save sessions to disk:", error);
 		}
