@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { motion, useMotionValue } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import {
 	File,
 	FileEdit,
@@ -166,6 +166,20 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 		});
 		return unsubscribe;
 	}, [scrollProgress, backgroundX]);
+
+	// Create opacity transforms for each mode (must be outside render loop)
+	const mode0Opacity = useTransform(
+		scrollProgress,
+		[-0.5, 0, 0.5],
+		[0.4, 1, 0.4]
+	);
+	const mode1Opacity = useTransform(
+		scrollProgress,
+		[0.5, 1, 1.5],
+		[0.4, 1, 0.4]
+	);
+
+	const modeOpacities = [mode0Opacity, mode1Opacity];
 
 	// Load diff data when switching to Changes mode
 	const loadDiff = useCallback(async () => {
@@ -444,23 +458,21 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 						}}
 					/>
 
-					{SIDEBAR_MODES.map((mode) => {
+					{SIDEBAR_MODES.map((mode, index) => {
 						const Icon = mode.icon;
+						const opacity = modeOpacities[index];
+
 						return (
 							<Tooltip key={mode.id}>
 								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon-sm"
+									<motion.button
+										type="button"
 										onClick={() => setCurrentMode(mode.id)}
-										className={`relative z-10 ${
-											currentMode === mode.id
-												? "text-neutral-100"
-												: "text-neutral-500 hover:text-neutral-300"
-										}`}
+										className="relative z-10 flex h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-white/5"
+										style={{ opacity }}
 									>
-										<Icon size={18} />
-									</Button>
+										<Icon size={18} className="text-neutral-100" />
+									</motion.button>
 								</TooltipTrigger>
 								<TooltipContent side="top">
 									<p>{mode.name}</p>
