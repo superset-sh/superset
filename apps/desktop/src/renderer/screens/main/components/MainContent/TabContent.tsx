@@ -151,55 +151,22 @@ function TerminalTabContent({
 	const isSelected = selectedTabId === tab.id;
 
 	// Terminal creation and lifecycle
+	// NOTE: Actual terminal-create is now deferred to the Terminal component
+	// so it can pass the correct dimensions when ready
 	useEffect(() => {
-		// Prevent double creation - only create once per tab.id
-		if (terminalCreatedRef.current) {
-			return;
-		}
-
-		terminalCreatedRef.current = true;
-
-		const createTerminal = async () => {
-			try {
-				// Use saved CWD if available, otherwise use workingDirectory
-				const initialCwd = tab.cwd || workingDirectory;
-
-				if (!initialCwd) {
-					console.error(
-						"[TabContent] No CWD available for terminal tab",
-						tab.id,
-					);
-					return;
-				}
-
-				// Pass the stable tab.id as the terminal ID
-				// If terminal already exists in backend, it will reuse it
-				await window.ipcRenderer.invoke("terminal-create", {
+		// Execute startup command if specified (only after terminal is created)
+		if (tab.command && tab.command.trim() !== "" && !terminalCreatedRef.current) {
+			terminalCreatedRef.current = true;
+			const commandToExecute = tab.command;
+			// Wait for terminal to be created and attached
+			setTimeout(() => {
+				window.ipcRenderer.invoke("terminal-execute-command", {
 					id: tab.id,
-					cwd: initialCwd,
+					command: commandToExecute,
 				});
-
-				// Execute startup command if specified
-				if (tab.command && tab.command.trim() !== "") {
-					const commandToExecute = tab.command;
-					setTimeout(() => {
-						window.ipcRenderer.invoke("terminal-execute-command", {
-							id: tab.id,
-							command: commandToExecute,
-						});
-					}, 500); // Small delay to ensure terminal is ready
-				}
-			} catch (error) {
-				console.error("Failed to create terminal:", error);
-			}
-		};
-
-		createTerminal();
-
-		// No cleanup - terminals persist in backend
-		// They're only killed when explicitly removed from config
-		// This prevents terminals from being killed during reordering
-	}, [tab.id]);
+			}, 1000);
+		}
+	}, [tab.id, tab.command]);
 
 	// Listen for CWD changes from the main process
 	useEffect(() => {
@@ -229,6 +196,9 @@ function TerminalTabContent({
 		};
 	}, [terminalId, tab.id, workspaceId, worktreeId]);
 
+	// Use saved CWD if available, otherwise use workingDirectory
+	const terminalCwd = tab.cwd || workingDirectory;
+
 	return (
 		<div className="w-full h-full">
 			<Terminal
@@ -236,6 +206,7 @@ function TerminalTabContent({
 				terminalId={terminalId}
 				hidden={!isSelected}
 				onFocus={onFocus}
+				cwd={terminalCwd}
 			/>
 		</div>
 	);

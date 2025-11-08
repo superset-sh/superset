@@ -14,6 +14,7 @@ interface TerminalProps {
 	terminalId?: string | null;
 	hidden?: boolean;
 	onFocus?: () => void;
+	cwd?: string;
 }
 
 interface TerminalMessage {
@@ -73,6 +74,7 @@ export default function TerminalComponent({
 	terminalId,
 	hidden = false,
 	onFocus,
+	cwd,
 }: TerminalProps) {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const [terminal, setTerminal] = useState<XTerm | null>(null);
@@ -116,18 +118,6 @@ export default function TerminalComponent({
 				if (rect && rect.width > 0 && rect.height > 0) {
 					console.log(`[Terminal] Fitting terminal ${terminalIdRef.current?.slice(0, 8)} after becoming visible (attempt ${attempts + 1}, firstTime=${isFirstTimeVisible})`);
 					fitFunctionRef.current?.();
-
-					// After fitting, send a redraw command to tmux to refresh content at new size
-					// This handles the case where terminal was attached at wrong size (especially after restart)
-					if (terminalIdRef.current && isFirstTimeVisible) {
-						console.log(`[Terminal] Sending Ctrl+L to ${terminalIdRef.current.slice(0, 8)} to redraw at correct size`);
-						setTimeout(() => {
-							window.ipcRenderer.send("terminal-input", {
-								id: terminalIdRef.current,
-								data: "\x0c", // Ctrl+L to redraw
-							});
-						}, 200);
-					}
 				} else if (attempts < maxAttempts) {
 					attempts++;
 					console.log(`[Terminal] Container not ready for ${terminalIdRef.current?.slice(0, 8)}, retrying... (${rect?.width}x${rect?.height})`);
@@ -278,6 +268,24 @@ export default function TerminalComponent({
 		// Perform initial fit to size terminal correctly on first render
 		// This ensures the terminal has correct dimensions when it first appears
 		customFit();
+
+		// Create/attach terminal session with proper dimensions
+		// This is deferred until the terminal is initialized so we can pass correct cols/rows
+		if (terminalId && cwd) {
+			const dimensions = fitAddon.proposeDimensions();
+			const cols = dimensions?.cols || 80;
+			const rows = dimensions?.rows || 30;
+
+			console.log(`[Terminal] Creating terminal ${terminalId.slice(0, 8)} with dimensions ${cols}x${rows}`);
+			window.ipcRenderer.invoke("terminal-create", {
+				id: terminalId,
+				cwd,
+				cols,
+				rows,
+			}).catch((error: Error) => {
+				console.error("Failed to create terminal:", error);
+			});
+		}
 
 		// Listen for container resize to auto-fit terminal
 		// Use ResizeObserver to detect when the container size changes
