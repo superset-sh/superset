@@ -12,11 +12,11 @@ import { Background } from "../Background";
 import TabContent from "../MainContent/TabContent";
 import TabGroup from "../MainContent/TabGroup";
 import { PlaceholderState } from "../PlaceholderState";
-import { Sidebar } from "../Sidebar";
 import { DiffTab } from "../TabContent/components/DiffTab";
 import { AddTaskModal } from "./AddTaskModal";
 import { TaskTabs } from "./TaskTabs";
 import { WorktreeTabView } from "./WorktreeTabView";
+import { WorktreeTabsSidebar } from "./WorktreeTabsSidebar";
 
 // Mock tasks data - TODO: Replace with actual task data from backend
 const MOCK_TASKS = [
@@ -551,6 +551,13 @@ export const NewLayoutMain: React.FC = () => {
 						if (activeSelection?.worktreeId && activeSelection?.tabId) {
 							setSelectedWorktreeId(activeSelection.worktreeId);
 							setSelectedTabId(activeSelection.tabId);
+						} else if (workspace.worktrees && workspace.worktrees.length > 0) {
+							// Auto-select first worktree and its first tab if no selection exists
+							const firstWorktree = workspace.worktrees[0];
+							setSelectedWorktreeId(firstWorktree.id);
+							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
+								setSelectedTabId(firstWorktree.tabs[0].id);
+							}
 						}
 					}
 				}
@@ -585,6 +592,15 @@ export const NewLayoutMain: React.FC = () => {
 			);
 			if (refreshedWorkspace) {
 				setCurrentWorkspace(refreshedWorkspace);
+
+				// Auto-select first worktree and tab if available
+				if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+					const firstWorktree = refreshedWorkspace.worktrees[0];
+					setSelectedWorktreeId(firstWorktree.id);
+					if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
+						setSelectedTabId(firstWorktree.tabs[0].id);
+					}
+				}
 			}
 		};
 
@@ -612,18 +628,61 @@ export const NewLayoutMain: React.FC = () => {
 					onMouseLeave={() => setShowSidebarOverlay(false)}
 				>
 					<div className="h-full border-r border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
-						<Sidebar
-							workspaces={workspaces}
-							currentWorkspace={currentWorkspace}
-							onTabSelect={handleTabSelect}
-							onWorktreeCreated={handleWorktreeCreated}
-							onWorkspaceSelect={handleWorkspaceSelect}
-							onUpdateWorktree={handleUpdateWorktree}
-							selectedTabId={selectedTabId ?? undefined}
-							onCollapse={() => {
+						<WorktreeTabsSidebar
+							worktree={selectedWorktree || null}
+							selectedTabId={selectedTabId}
+							onTabSelect={(tabId) => {
+								if (selectedWorktreeId) {
+									handleTabSelect(selectedWorktreeId, tabId);
+								}
 								setShowSidebarOverlay(false);
 							}}
-							onShowDiff={handleShowDiff}
+							onTabClose={async (tabId) => {
+								if (!currentWorkspace || !selectedWorktreeId) return;
+
+								const result = await window.ipcRenderer.invoke("tab-delete", {
+									workspaceId: currentWorkspace.id,
+									worktreeId: selectedWorktreeId,
+									tabId,
+								});
+
+								if (result.success) {
+									await handleWorktreeCreated();
+								}
+							}}
+							onCreateTerminal={async () => {
+								if (!currentWorkspace || !selectedWorktreeId) return;
+
+								const result = await window.ipcRenderer.invoke("tab-create", {
+									workspaceId: currentWorkspace.id,
+									worktreeId: selectedWorktreeId,
+									name: "Terminal",
+									type: "terminal",
+								});
+
+								if (result.success && result.tab) {
+									handleTabSelect(selectedWorktreeId, result.tab.id);
+									await handleWorktreeCreated();
+								}
+								setShowSidebarOverlay(false);
+							}}
+							onCreatePreview={async () => {
+								if (!currentWorkspace || !selectedWorktreeId) return;
+
+								const result = await window.ipcRenderer.invoke("tab-create", {
+									workspaceId: currentWorkspace.id,
+									worktreeId: selectedWorktreeId,
+									name: "Preview",
+									type: "preview",
+								});
+
+								if (result.success && result.tab) {
+									handleTabSelect(selectedWorktreeId, result.tab.id);
+									await handleWorktreeCreated();
+								}
+								setShowSidebarOverlay(false);
+							}}
+							workspaceId={currentWorkspace?.id || null}
 						/>
 					</div>
 				</div>
@@ -631,15 +690,21 @@ export const NewLayoutMain: React.FC = () => {
 
 			<AppFrame>
 				<div className="flex flex-col h-full w-full">
-					{/* Task tabs at the top */}
+					{/* Worktree tabs at the top */}
 					<TaskTabs
 						onCollapseSidebar={handleCollapseSidebar}
 						onExpandSidebar={handleExpandSidebar}
 						isSidebarOpen={isSidebarOpen}
-						onAddTask={handleOpenAddTaskModal}
-						activeTaskId={activeTaskId}
-						onActiveTaskChange={setActiveTaskId}
-						openTasks={openTasks}
+						worktrees={currentWorkspace?.worktrees || []}
+						selectedWorktreeId={selectedWorktreeId}
+						onWorktreeSelect={(worktreeId) => {
+							setSelectedWorktreeId(worktreeId);
+							// Select first tab in the worktree
+							const worktree = currentWorkspace?.worktrees?.find(wt => wt.id === worktreeId);
+							if (worktree && worktree.tabs && worktree.tabs.length > 0) {
+								handleTabSelect(worktreeId, worktree.tabs[0].id);
+							}
+						}}
 					/>
 
 					{/* Main content area with resizable sidebar */}
@@ -658,22 +723,59 @@ export const NewLayoutMain: React.FC = () => {
 								onCollapse={() => setIsSidebarOpen(false)}
 								onExpand={() => setIsSidebarOpen(true)}
 							>
-								{isSidebarOpen && workspaces && (
-									<Sidebar
-										workspaces={workspaces}
-										currentWorkspace={currentWorkspace}
-										onTabSelect={handleTabSelect}
-										onWorktreeCreated={handleWorktreeCreated}
-										onWorkspaceSelect={handleWorkspaceSelect}
-										onUpdateWorktree={handleUpdateWorktree}
-										selectedTabId={selectedTabId ?? undefined}
-										onCollapse={() => {
-											const panel = sidebarPanelRef.current;
-											if (panel && !panel.isCollapsed()) {
-												panel.collapse();
+								{isSidebarOpen && (
+									<WorktreeTabsSidebar
+										worktree={selectedWorktree || null}
+										selectedTabId={selectedTabId}
+										onTabSelect={(tabId) => {
+											if (selectedWorktreeId) {
+												handleTabSelect(selectedWorktreeId, tabId);
 											}
 										}}
-										onShowDiff={handleShowDiff}
+										onTabClose={async (tabId) => {
+											if (!currentWorkspace || !selectedWorktreeId) return;
+
+											const result = await window.ipcRenderer.invoke("tab-delete", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												tabId,
+											});
+
+											if (result.success) {
+												await handleWorktreeCreated();
+											}
+										}}
+										onCreateTerminal={async () => {
+											if (!currentWorkspace || !selectedWorktreeId) return;
+
+											const result = await window.ipcRenderer.invoke("tab-create", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												name: "Terminal",
+												type: "terminal",
+											});
+
+											if (result.success && result.tab) {
+												handleTabSelect(selectedWorktreeId, result.tab.id);
+												await handleWorktreeCreated();
+											}
+										}}
+										onCreatePreview={async () => {
+											if (!currentWorkspace || !selectedWorktreeId) return;
+
+											const result = await window.ipcRenderer.invoke("tab-create", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												name: "Preview",
+												type: "preview",
+											});
+
+											if (result.success && result.tab) {
+												handleTabSelect(selectedWorktreeId, result.tab.id);
+												await handleWorktreeCreated();
+											}
+										}}
+										workspaceId={currentWorkspace?.id || null}
 									/>
 								)}
 							</ResizablePanel>
