@@ -5,6 +5,7 @@ import { createWindow } from "lib/electron-app/factories/windows/create";
 import { ENVIRONMENT } from "shared/constants";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
+import { registerDeepLinkIpcs } from "../lib/deep-link-ipcs";
 import { portDetector } from "../lib/port-detector";
 import { registerPortIpcs } from "../lib/port-ipcs";
 import { registerTerminalIPCs } from "../lib/terminal-ipcs";
@@ -43,6 +44,7 @@ export async function MainWindow() {
 	const cleanupTerminal = registerTerminalIPCs(window);
 	registerWorkspaceIPCs();
 	registerPortIpcs();
+	registerDeepLinkIpcs();
 
 	// Set up port detection listeners
 	portDetector.on("port-detected", async (event: any) => {

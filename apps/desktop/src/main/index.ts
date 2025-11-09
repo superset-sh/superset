@@ -5,10 +5,36 @@ import { config } from "dotenv";
 // Use override: true to ensure .env values take precedence over inherited env vars
 config({ path: resolve(__dirname, "../../../../.env"), override: true });
 
+import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { deepLinkManager } from "main/lib/deep-link-manager";
 import { getPort } from "main/lib/port-manager";
 import { MainWindow } from "./windows/main";
+
+// Protocol scheme for deep linking
+const PROTOCOL_SCHEME = "superset";
+
+// Register protocol handler for deep linking
+// In development, we need to provide the execPath and args
+if (process.defaultApp) {
+	if (process.argv.length >= 2) {
+		app.setAsDefaultProtocolClient(
+			PROTOCOL_SCHEME,
+			process.execPath,
+			[path.resolve(process.argv[1])],
+		);
+	}
+} else {
+	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
+}
+
+// macOS: Handle deep link when app is already running
+app.on("open-url", (event, url) => {
+	event.preventDefault();
+	console.log("Deep link URL (open-url):", url);
+	deepLinkManager.setUrl(url);
+});
 
 // Allow multiple instances - removed single instance lock
 // Each instance will use the same default user data directory
