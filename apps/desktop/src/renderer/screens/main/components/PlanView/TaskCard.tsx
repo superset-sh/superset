@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Play } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import type { Workspace } from "shared/types";
+import type { Tab, Workspace } from "shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 
@@ -12,7 +12,7 @@ interface TaskCardProps {
 	currentWorkspace: Workspace | null;
 	selectedWorktreeId: string | null;
 	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onReload: () => void;
+	onTabCreated: (worktreeId: string, tab: Tab) => void;
 	onUpdateTask: (
 		taskId: string,
 		updates: {
@@ -41,7 +41,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 	currentWorkspace,
 	selectedWorktreeId,
 	onTabSelect,
-	onReload,
+	onTabCreated,
 	onUpdateTask,
 }) => {
 	const statusColor = statusColors[task.status] || "bg-neutral-500";
@@ -103,10 +103,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 					status: "planning",
 				});
 
-				// Reload workspace to get updated tab data
-				await onReload();
+				// Optimistically add the tab to state
+				onTabCreated(targetWorktreeId, result.tab);
 
-				// Select the new tab immediately after reload completes
+				// Select the new tab immediately
 				onTabSelect(targetWorktreeId, newTabId);
 			}
 		} catch (error) {

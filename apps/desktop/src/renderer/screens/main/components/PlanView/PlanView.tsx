@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Plus } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import type { Workspace } from "shared/types";
+import type { Tab, Workspace } from "shared/types";
 import { mockTasks, mockUsers } from "../../../../../lib/mock-data";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { KanbanColumn } from "./KanbanColumn";
@@ -15,14 +15,14 @@ interface PlanViewProps {
 	currentWorkspace: Workspace | null;
 	selectedWorktreeId: string | null;
 	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onReload: () => void;
+	onTabCreated: (worktreeId: string, tab: Tab) => void;
 }
 
 export const PlanView: React.FC<PlanViewProps> = ({
 	currentWorkspace,
 	selectedWorktreeId,
 	onTabSelect,
-	onReload,
+	onTabCreated,
 }) => {
 	// Initialize with mock tasks and add some variety to statuses
 	const [tasks, setTasks] = useState<Task[]>(() => {
@@ -144,7 +144,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 				currentWorkspace={currentWorkspace}
 				selectedWorktreeId={selectedWorktreeId}
 				onTabSelect={onTabSelect}
-				onReload={onReload}
+				onTabCreated={onTabCreated}
 			/>
 		);
 	}
@@ -183,7 +183,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
@@ -194,7 +194,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
@@ -205,7 +205,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
@@ -216,7 +216,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
@@ -227,7 +227,7 @@ export const PlanView: React.FC<PlanViewProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={handleUpdateTask}
 					/>
 				</div>

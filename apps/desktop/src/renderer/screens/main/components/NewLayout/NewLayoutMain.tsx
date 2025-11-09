@@ -374,17 +374,37 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
-	// Reload both workspaces and current workspace
-	const reloadWorkspaceData = async () => {
-		await loadAllWorkspaces();
-		if (currentWorkspace) {
-			const refreshedWorkspace = await window.ipcRenderer.invoke(
-				"workspace-get",
-				currentWorkspace.id,
-			);
-			if (refreshedWorkspace) {
-				setCurrentWorkspace(refreshedWorkspace);
+	// Optimistically add a tab to the current workspace
+	const handleTabCreated = (worktreeId: string, tab: Tab) => {
+		if (!currentWorkspace) return;
+
+		// Find the worktree and add the tab
+		const updatedWorktrees = currentWorkspace.worktrees.map((wt) => {
+			if (wt.id === worktreeId) {
+				return {
+					...wt,
+					tabs: [...wt.tabs, tab],
+				};
 			}
+			return wt;
+		});
+
+		const updatedWorkspace = {
+			...currentWorkspace,
+			worktrees: updatedWorktrees,
+			activeWorktreeId: worktreeId,
+			activeTabId: tab.id,
+		};
+
+		setCurrentWorkspace(updatedWorkspace);
+
+		// Also update in workspaces array
+		if (workspaces) {
+			setWorkspaces(
+				workspaces.map((ws) =>
+					ws.id === currentWorkspace.id ? updatedWorkspace : ws,
+				),
+			);
 		}
 	};
 
@@ -963,7 +983,7 @@ export const NewLayoutMain: React.FC = () => {
 								currentWorkspace={currentWorkspace}
 								selectedWorktreeId={selectedWorktreeId}
 								onTabSelect={handleTabSelect}
-								onReload={reloadWorkspaceData}
+								onTabCreated={handleTabCreated}
 							/>
 						) : (
 							// Edit mode - show workspace/terminal view

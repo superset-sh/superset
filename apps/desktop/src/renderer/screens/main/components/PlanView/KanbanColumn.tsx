@@ -1,6 +1,6 @@
 import type { RouterOutputs } from "@superset/api";
 import type React from "react";
-import type { Workspace } from "shared/types";
+import type { Tab, Workspace } from "shared/types";
 import { TaskCard } from "./TaskCard";
 
 type Task = RouterOutputs["task"]["all"][number];
@@ -13,7 +13,7 @@ interface KanbanColumnProps {
 	currentWorkspace: Workspace | null;
 	selectedWorktreeId: string | null;
 	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onReload: () => void;
+	onTabCreated: (worktreeId: string, tab: Tab) => void;
 	onUpdateTask: (
 		taskId: string,
 		updates: {
@@ -33,7 +33,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 	currentWorkspace,
 	selectedWorktreeId,
 	onTabSelect,
-	onReload,
+	onTabCreated,
 	onUpdateTask,
 }) => {
 	return (
@@ -61,7 +61,7 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 						currentWorkspace={currentWorkspace}
 						selectedWorktreeId={selectedWorktreeId}
 						onTabSelect={onTabSelect}
-						onReload={onReload}
+						onTabCreated={onTabCreated}
 						onUpdateTask={onUpdateTask}
 					/>
 				))}

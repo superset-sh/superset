@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { ChevronDown, ChevronLeft, Play, User as UserIcon } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { Workspace } from "shared/types";
+import type { Tab, Workspace } from "shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 type User = RouterOutputs["user"]["all"][number];
@@ -23,7 +23,7 @@ interface TaskPageProps {
 	currentWorkspace: Workspace | null;
 	selectedWorktreeId: string | null;
 	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onReload: () => void;
+	onTabCreated: (worktreeId: string, tab: Tab) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -56,7 +56,7 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 	currentWorkspace,
 	selectedWorktreeId,
 	onTabSelect,
-	onReload,
+	onTabCreated,
 }) => {
 	const statusColor = statusColors[task.status] || "bg-neutral-500";
 	const [title, setTitle] = useState(task.title);
@@ -175,7 +175,7 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 				});
 
 				// Reload workspace to get updated tab data
-				await onReload();
+				await onTabCreated();
 
 				// Select the new tab after reload
 				const newTabId = result.tab?.id;
