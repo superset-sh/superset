@@ -117,60 +117,11 @@ components/                                # Used in 2+ pages (last resort)
 └── Header/
 ```
 
-### Structure Rules
-
 1. **One folder per component**: `ComponentName/ComponentName.tsx` + `index.ts` for barrel export
 2. **Co-locate by usage**: If used once, nest under parent's `components/`. If used 2+ times, promote to **highest shared parent's** `components/` (or `components/` as last resort)
 3. **One component per file**: No multi-component files
 4. **Co-locate dependencies**: Utils, hooks, constants, config, tests, stories live next to the file using them
 5. **Test coverage**: All components should have co-located `.test.tsx` files next to their implementation
-
-### Guidance for project-structure-validator Agent
-
-When analyzing project structure, provide:
-
-**Report Format (CONCISE)**:
-- **Executive Summary**: 2-3 sentences max, compliance score
-- **Critical Issues Only**: List only violations that need fixing (not compliant items)
-- **Quick Metrics**: Component count, violation count, test coverage %
-- **Actionable Fixes**: Specific file moves or code changes (1-2 sentences per violation)
-
-**What to Check**:
-1. Folder structure compliance (one-folder-per-component)
-2. Co-location by usage (used once = nested, used 2+ = promoted)
-3. Multi-component files (violations)
-4. Test file co-location (*.test.tsx next to *.tsx)
-5. Supporting file co-location (hooks, utils, constants, stories)
-
-**Performance Tracking**:
-At the end of your report, include a "Performance Analysis" section:
-- What operations took the most time (file reads, searches, analysis)
-- What could be optimized (e.g., "Could cache component usage analysis")
-- What guidance would help you work faster (e.g., "Pre-computed component dependency graph")
-- Total tool calls made and which were slowest
-
-**Example Output Structure**:
-```
-## Summary
-Score: 92% | 48 components | 3 violations | 85% test coverage
-
-## Critical Issues
-1. [VIOLATION] WaitlistModal used 2x but not promoted
-   Fix: Move state to page.tsx, pass handler to Header
-2. [MISSING TESTS] Header, Footer, ClientLogos (3 components)
-   Fix: Add *.test.tsx files
-
-## Metrics
-- Components: 48 total, avg depth 2.3
-- Test coverage: 41/48 components (85%)
-- Violations: 3 co-location, 0 multi-component
-
-## Performance Analysis
-- Slowest: Component usage analysis (15 file reads)
-- Optimization: Could use glob patterns instead of individual reads
-- Guidance needed: Component import map would eliminate usage tracing
-- Tool calls: 23 total (18 Read, 5 Grep)
-```
 
 ## Database Rules
 
