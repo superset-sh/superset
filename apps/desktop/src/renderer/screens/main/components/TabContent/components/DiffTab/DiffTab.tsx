@@ -13,6 +13,8 @@ interface DiffTabProps {
 	workspaceName?: string;
 	mainBranch?: string;
 	onClose?: () => void;
+	selectedDiffFile?: string | null;
+	onDiffFileSelect?: (fileId: string) => void;
 }
 
 export function DiffTab({
@@ -23,6 +25,8 @@ export function DiffTab({
 	workspaceName,
 	mainBranch,
 	onClose,
+	selectedDiffFile,
+	onDiffFileSelect,
 }: DiffTabProps) {
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
@@ -159,6 +163,9 @@ export function DiffTab({
 				onRefresh={handleRefresh}
 				isRefreshing={refreshing}
 				onClose={onClose}
+				hideFileTree={!!selectedDiffFile}
+				externalSelectedFile={selectedDiffFile || null}
+				onFileSelect={onDiffFileSelect}
 			/>
 		</div>
 	);

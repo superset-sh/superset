@@ -218,6 +218,8 @@ export const NewLayoutMain: React.FC = () => {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null);
+	const [sidebarMode, setSidebarMode] = useState<"tabs" | "changes">("tabs");
 
 	const handleCollapseSidebar = () => {
 		const panel = sidebarPanelRef.current;
@@ -472,46 +474,6 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
-	// Workspace handlers
-	const handleAddWorkspace = () => {
-		// TODO: Implement workspace creation dialog
-		console.log("Add workspace - not yet implemented");
-	};
-
-	const handleRemoveWorkspace = async (
-		workspaceId: string,
-		workspaceName: string,
-	) => {
-		// Show confirmation dialog
-		const confirmed = confirm(
-			`Are you sure you want to remove workspace "${workspaceName}"? This will not delete any files.`,
-		);
-
-		if (confirmed) {
-			try {
-				await window.ipcRenderer.invoke("workspace-delete", {
-					id: workspaceId,
-					removeWorktree: false,
-				});
-				// Reload workspaces
-				await loadAllWorkspaces();
-				// If we removed the current workspace, switch to another one
-				if (currentWorkspace?.id === workspaceId && workspaces) {
-					const remainingWorkspaces = workspaces.filter(
-						(ws) => ws.id !== workspaceId,
-					);
-					if (remainingWorkspaces.length > 0) {
-						await handleWorkspaceSelect(remainingWorkspaces[0].id);
-					} else {
-						setCurrentWorkspace(null);
-					}
-				}
-			} catch (error) {
-				console.error("Failed to remove workspace:", error);
-			}
-		}
-	};
-
 	// Task handlers
 	const handleOpenAddTaskModal = () => {
 		setIsAddTaskModalOpen(true);
@@ -734,11 +696,10 @@ export const NewLayoutMain: React.FC = () => {
 								setShowSidebarOverlay(false);
 							}}
 							workspaceId={currentWorkspace?.id || null}
-							workspaces={workspaces || undefined}
-							currentWorkspace={currentWorkspace}
-							onWorkspaceSelect={handleWorkspaceSelect}
-							onAddWorkspace={handleAddWorkspace}
-							onRemoveWorkspace={handleRemoveWorkspace}
+							workspaceName={currentWorkspace?.name}
+							mainBranch={currentWorkspace?.branch}
+							onDiffFileSelect={setSelectedDiffFile}
+							onModeChange={setSidebarMode}
 						/>
 					</div>
 				</div>
@@ -843,11 +804,10 @@ export const NewLayoutMain: React.FC = () => {
 											}
 										}}
 										workspaceId={currentWorkspace?.id || null}
-										workspaces={workspaces || undefined}
-										currentWorkspace={currentWorkspace}
-										onWorkspaceSelect={handleWorkspaceSelect}
-										onAddWorkspace={handleAddWorkspace}
-										onRemoveWorkspace={handleRemoveWorkspace}
+										workspaceName={currentWorkspace?.name}
+										mainBranch={currentWorkspace?.branch}
+										onDiffFileSelect={setSelectedDiffFile}
+										onModeChange={setSidebarMode}
 									/>
 								)}
 							</ResizablePanel>
@@ -859,11 +819,30 @@ export const NewLayoutMain: React.FC = () => {
 								{loading ||
 									error ||
 									!currentWorkspace ||
-									!selectedTab ||
 									!selectedWorktree ? (
 									<PlaceholderState
 										loading={loading}
 										error={error}
+										hasWorkspace={!!currentWorkspace}
+									/>
+								) : sidebarMode === "changes" ? (
+									// Changes mode - always show diff view
+									<div className="w-full h-full">
+										<DiffTab
+											tab={{ id: "changes-view", name: "Changes", type: "diff" } as any}
+											workspaceId={currentWorkspace.id}
+											worktreeId={selectedWorktreeId ?? ""}
+											worktree={selectedWorktree}
+											workspaceName={currentWorkspace.name}
+											mainBranch={currentWorkspace.branch}
+											selectedDiffFile={selectedDiffFile}
+											onDiffFileSelect={setSelectedDiffFile}
+										/>
+									</div>
+								) : !selectedTab ? (
+									<PlaceholderState
+										loading={false}
+										error={null}
 										hasWorkspace={!!currentWorkspace}
 									/>
 								) : parentGroupTab ? (
@@ -906,6 +885,8 @@ export const NewLayoutMain: React.FC = () => {
 											worktree={selectedWorktree}
 											workspaceName={currentWorkspace.name}
 											mainBranch={currentWorkspace.branch}
+											selectedDiffFile={selectedDiffFile}
+											onDiffFileSelect={setSelectedDiffFile}
 										/>
 									</div>
 								) : (
