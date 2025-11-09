@@ -525,6 +525,102 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// Create PR from worktree
+	ipcMain.handle(
+		"worktree-create-pr",
+		async (
+			_event,
+			input: {
+				workspaceId: string;
+				worktreeId: string;
+				title: string;
+				body: string;
+				baseBranch?: string;
+			},
+		) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				// Use base branch from input or default to workspace branch
+				const baseBranch = input.baseBranch || workspace.branch;
+
+				// Create PR using gh CLI
+				const { execSync } = await import("node:child_process");
+
+				try {
+					// Execute gh pr create command in the worktree directory
+					const command = `gh pr create --title ${JSON.stringify(input.title)} --body ${JSON.stringify(input.body)} --base ${baseBranch}`;
+					const output = execSync(command, {
+						cwd: worktree.path,
+						encoding: "utf-8",
+					});
+
+					// Extract PR URL from output (gh CLI outputs the PR URL on the last line)
+					const prUrl = output.trim().split("\n").pop() || "";
+
+					return {
+						success: true,
+						prUrl,
+					};
+				} catch (error) {
+					// Handle gh CLI errors
+					if (error instanceof Error && "stderr" in error) {
+						const stderr = (error as any).stderr?.toString() || "";
+
+						// Check for common errors
+						if (stderr.includes("not found") || stderr.includes("command not found")) {
+							return {
+								success: false,
+								error: "GitHub CLI (gh) is not installed. Please install it first: https://cli.github.com/",
+							};
+						}
+
+						if (stderr.includes("not logged in") || stderr.includes("authentication")) {
+							return {
+								success: false,
+								error: "Not authenticated with GitHub CLI. Please run 'gh auth login' first.",
+							};
+						}
+
+						return {
+							success: false,
+							error: stderr || "Failed to create PR",
+						};
+					}
+
+					return {
+						success: false,
+						error: error instanceof Error ? error.message : String(error),
+					};
+				}
+			} catch (error) {
+				console.error("Failed to create PR:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
 	// Open app settings in Cursor
 	ipcMain.handle("open-app-settings", async () => {
 		try {

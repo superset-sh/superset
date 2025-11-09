@@ -72,6 +72,11 @@ export async function createWorktree(
 			...(input.description && { description: input.description }),
 		};
 
+		// Ensure worktrees array exists (backwards compatibility)
+		if (!workspace.worktrees) {
+			workspace.worktrees = [];
+		}
+
 		// Add to workspace
 		workspace.worktrees.push(worktree);
 		workspace.updatedAt = now;

@@ -1,6 +1,5 @@
 import { exec, execSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
 
@@ -14,11 +13,8 @@ export interface WorktreeInfo {
 
 class WorktreeManager {
 	private static instance: WorktreeManager;
-	private worktreeBaseDir: string;
 
-	private constructor() {
-		this.worktreeBaseDir = path.join(os.homedir(), ".superset", "worktrees");
-	}
+	private constructor() {}
 
 	static getInstance(): WorktreeManager {
 		if (!WorktreeManager.instance) {
@@ -31,11 +27,10 @@ class WorktreeManager {
 	 * Get the path where a worktree for this branch would be created
 	 */
 	getWorktreePath(repoPath: string, branch: string): string {
-		// Get repo name from path
-		const repoName = path.basename(repoPath);
 		// Sanitize branch name for filesystem
 		const sanitizedBranch = branch.replace(/[^a-zA-Z0-9-_]/g, "-");
-		return path.join(this.worktreeBaseDir, repoName, sanitizedBranch);
+		// Create worktree path inside repo's .superset directory
+		return path.join(repoPath, ".superset", "worktrees", sanitizedBranch);
 	}
 
 	/**

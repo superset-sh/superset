@@ -1,6 +1,8 @@
 import type React from "react";
 
-export type TaskStatus = "planning" | "working" | "needs-feedback" | "ready-to-merge";
+// Import task status type from database
+export type { TaskStatus } from "@superset/db/schema";
+import type { TaskStatus } from "@superset/db/schema";
 
 interface StatusIndicatorProps {
 	status: TaskStatus;
@@ -12,6 +14,16 @@ const STATUS_CONFIG: Record<
 	TaskStatus,
 	{ label: string; color: string; type: "dashed" | "filled" | "pulsing" }
 > = {
+	backlog: {
+		label: "Backlog",
+		color: "rgb(156, 163, 175)", // gray-400
+		type: "dashed",
+	},
+	todo: {
+		label: "To Do",
+		color: "rgb(148, 163, 184)", // slate-400
+		type: "dashed",
+	},
 	planning: {
 		label: "Planning",
 		color: "rgb(59, 130, 246)", // blue-500
@@ -30,6 +42,16 @@ const STATUS_CONFIG: Record<
 	"ready-to-merge": {
 		label: "Ready to Merge",
 		color: "rgb(34, 197, 94)", // green-500
+		type: "filled",
+	},
+	completed: {
+		label: "Completed",
+		color: "rgb(34, 197, 94)", // green-500
+		type: "filled",
+	},
+	canceled: {
+		label: "Canceled",
+		color: "rgb(107, 114, 128)", // gray-500
 		type: "filled",
 	},
 };
