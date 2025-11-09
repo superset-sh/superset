@@ -123,22 +123,30 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 		<div className="flex flex-col h-full bg-neutral-950">
 			{/* Header with Breadcrumbs */}
 			<div className="border-b border-neutral-800/50 bg-neutral-950/80 backdrop-blur-sm">
-				<div className="flex items-center gap-3 px-8 py-4">
+				<div className="flex items-center justify-between gap-3 px-8 py-4">
+					<div className="flex items-center gap-3">
+						<button
+							type="button"
+							onClick={onBack}
+							className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors group"
+						>
+							<ChevronLeft
+								size={16}
+								className="group-hover:-translate-x-0.5 transition-transform"
+							/>
+							<span className="font-medium">Plan</span>
+						</button>
+						<span className="text-neutral-600">/</span>
+						<span className="text-sm text-neutral-300 font-medium">
+							{task.slug}
+						</span>
+					</div>
 					<button
 						type="button"
-						onClick={onBack}
-						className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors group"
+						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
 					>
-						<ChevronLeft
-							size={16}
-							className="group-hover:-translate-x-0.5 transition-transform"
-						/>
-						<span className="font-medium">Plan</span>
+						Start Task
 					</button>
-					<span className="text-neutral-600">/</span>
-					<span className="text-sm text-neutral-300 font-medium">
-						{task.slug}
-					</span>
 				</div>
 			</div>
 
@@ -272,9 +280,8 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 										)}
 									</div>
 									<ChevronDown
-										className={`w-4 h-4 text-neutral-500 transition-transform ${
-											isAssigneeDropdownOpen ? "rotate-180" : ""
-										}`}
+										className={`w-4 h-4 text-neutral-500 transition-transform ${isAssigneeDropdownOpen ? "rotate-180" : ""
+											}`}
 									/>
 								</button>
 
