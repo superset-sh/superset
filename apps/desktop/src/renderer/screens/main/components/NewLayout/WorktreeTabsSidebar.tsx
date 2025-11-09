@@ -12,10 +12,10 @@ import {
 	Plus,
 	RefreshCw,
 	Terminal as TerminalIcon,
-	X
+	X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import type React from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Tab, Worktree } from "shared/types";
 import { FileTree } from "../DiffView/FileTree";
 import type { DiffViewData, FileDiff } from "../DiffView/types";
@@ -175,12 +175,12 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 	const mode0Opacity = useTransform(
 		scrollProgress,
 		[-0.5, 0, 0.5],
-		[0.4, 1, 0.4]
+		[0.4, 1, 0.4],
 	);
 	const mode1Opacity = useTransform(
 		scrollProgress,
 		[0.5, 1, 1.5],
-		[0.4, 1, 0.4]
+		[0.4, 1, 0.4],
 	);
 
 	const modeOpacities = [mode0Opacity, mode1Opacity];
@@ -217,7 +217,13 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 		} finally {
 			setLoadingDiff(false);
 		}
-	}, [workspaceId, worktree?.id, worktree?.branch, workspaceName, selectedFile]);
+	}, [
+		workspaceId,
+		worktree?.id,
+		worktree?.branch,
+		workspaceName,
+		selectedFile,
+	]);
 
 	// Load diff when switching to Changes mode
 	useEffect(() => {
@@ -338,10 +344,9 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 								onClick={() => onTabSelect(tab.id)}
 								className={`
 									w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm transition-colors group
-									${
-										selectedTabId === tab.id
-											? "bg-neutral-800 text-neutral-100"
-											: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+									${selectedTabId === tab.id
+										? "bg-neutral-800 text-neutral-100"
+										: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
 									}
 								`}
 								style={{ paddingLeft: `${12 + level * 16}px` }}
@@ -386,7 +391,9 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 								disabled={loadingDiff}
 								className="h-6 w-6 hover:bg-neutral-800/60 text-neutral-400 hover:text-neutral-200"
 							>
-								<RefreshCw className={`w-3.5 h-3.5 ${loadingDiff ? "animate-spin" : ""}`} />
+								<RefreshCw
+									className={`w-3.5 h-3.5 ${loadingDiff ? "animate-spin" : ""}`}
+								/>
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
@@ -453,44 +460,34 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 			{/* Mode Switcher */}
 			<div className="flex w-full border-b border-neutral-800 bg-neutral-950">
 				<div className="relative flex items-center gap-2 px-2 py-2 w-full">
-					{/* Sliding background indicator */}
-					<motion.div
-						className="absolute w-8 h-8 bg-neutral-800 rounded-md pointer-events-none"
-						style={{ x: backgroundX }}
-						initial={false}
-						transition={{
-							type: "spring",
-							stiffness: 300,
-							damping: 30,
-						}}
-					/>
-
-					{SIDEBAR_MODES.map((mode, index) => {
+					{SIDEBAR_MODES.map((mode) => {
 						const Icon = mode.icon;
-						const opacity = modeOpacities[index];
 						const isActive = currentMode === mode.id;
 
 						return (
 							<Tooltip key={mode.id}>
 								<TooltipTrigger asChild>
-									<motion.button
+									<button
 										type="button"
 										onClick={(e) => {
 											e.preventDefault();
 											e.stopPropagation();
-											console.log("Mode button clicked:", mode.id);
+											console.log(
+												"Mode clicked:",
+												mode.id,
+												"Current:",
+												currentMode,
+											);
 											setCurrentMode(mode.id);
 											onModeChange?.(mode.id);
 										}}
-										className={`relative z-20 flex h-8 w-8 items-center justify-center rounded-sm transition-all cursor-pointer ${
-											isActive
-												? "text-neutral-100"
-												: "text-neutral-500 hover:text-neutral-300"
-										} hover:bg-white/10 active:bg-white/20`}
-										style={{ opacity: isActive ? 1 : opacity }}
+										className={`relative z-20 flex h-8 w-8 items-center justify-center rounded-sm transition-all cursor-pointer ${isActive
+											? "text-white bg-neutral-800"
+											: "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+											}`}
 									>
-										<Icon size={18} className="pointer-events-none" />
-									</motion.button>
+										<Icon size={18} />
+									</button>
 								</TooltipTrigger>
 								<TooltipContent side="top">
 									<p>{mode.name}</p>
@@ -512,7 +509,10 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 					msOverflowStyle: "none",
 				}}
 			>
-				<div className="flex h-full" style={{ width: `${SIDEBAR_MODES.length * 100}%` }}>
+				<div
+					className="flex h-full"
+					style={{ width: `${SIDEBAR_MODES.length * 100}%` }}
+				>
 					{/* Tabs Mode */}
 					<div
 						className="flex flex-col overflow-y-auto"
