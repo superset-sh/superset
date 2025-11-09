@@ -5,7 +5,7 @@ import {
 	HoverCardTrigger,
 } from "@superset/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import { Loader2, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import type React from "react";
 import type { Worktree } from "shared/types";
 import { StatusIndicator, type TaskStatus } from "./StatusIndicator";
@@ -13,6 +13,7 @@ import { TaskAssignee } from "./TaskAssignee";
 
 // Extended Worktree type with optional task metadata
 export interface WorktreeWithTask extends Worktree {
+	isPending?: boolean; // Flag for optimistic updates
 	task?: {
 		id: string;
 		slug: string;
@@ -134,6 +135,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 				{worktrees.map((worktree) => {
 					const hasTask = !!worktree.task;
 					const task = worktree.task;
+					const isPending = worktree.isPending;
 					const displayTitle = hasTask && task
 						? task.slug
 						: worktree.description || worktree.branch;
@@ -154,6 +156,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								<button
 									type="button"
 									onClick={() => onWorktreeSelect(worktree.id)}
+									disabled={isPending}
 									className={`
 										flex items-center gap-2 px-3 h-8 rounded-t-md transition-all border-t border-x
 										${
@@ -161,10 +164,14 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 												? "bg-neutral-900 text-white border-neutral-700 -mb-px"
 												: "bg-neutral-800/50 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border-transparent"
 										}
+										${isPending ? "opacity-70 cursor-wait" : ""}
 									`}
 								>
-									{hasTask && task && (
-										<StatusIndicator status={task.status} showLabel={false} />
+									{isPending ? (
+										<Loader2 size={14} className="animate-spin text-blue-400" />
+									) : (
+										hasTask &&
+										task && <StatusIndicator status={task.status} showLabel={false} />
 									)}
 									<span className="text-sm whitespace-nowrap">
 										{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}
@@ -172,7 +179,20 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</button>
 							</HoverCardTrigger>
 							<HoverCardContent side="bottom" align="start" className="w-96">
-								{hasTask && task ? (
+								{isPending ? (
+									<div className="space-y-2">
+										{/* Pending state */}
+										<div className="flex items-center gap-2">
+											<Loader2 size={16} className="animate-spin text-blue-400" />
+											<h4 className="font-semibold text-sm text-white">
+												Creating worktree...
+											</h4>
+										</div>
+										<p className="text-xs text-neutral-400">
+											Setting up git worktree and initializing workspace
+										</p>
+									</div>
+								) : hasTask && task ? (
 									<div className="space-y-3">
 										{/* Task view */}
 										<div className="flex items-start justify-between gap-3">
