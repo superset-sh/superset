@@ -867,7 +867,12 @@ export const NewLayoutMain: React.FC = () => {
 					<div className="flex-1 overflow-hidden border-t border-neutral-700">
 						{mode === "plan" ? (
 							// Plan mode - show kanban board
-							<PlanView />
+							<PlanView
+								currentWorkspace={currentWorkspace}
+								selectedWorktreeId={selectedWorktreeId}
+								onTabSelect={handleTabSelect}
+								onReload={loadAllWorkspaces}
+							/>
 						) : (
 							// Edit mode - show workspace/terminal view
 							<ResizablePanelGroup

@@ -1,5 +1,6 @@
 import type { RouterOutputs } from "@superset/api";
 import type React from "react";
+import type { Workspace } from "shared/types";
 import { TaskCard } from "./TaskCard";
 
 type Task = RouterOutputs["task"]["all"][number];
@@ -9,6 +10,19 @@ interface KanbanColumnProps {
 	tasks: Task[];
 	onTaskClick: (task: Task) => void;
 	statusColor?: string;
+	currentWorkspace: Workspace | null;
+	selectedWorktreeId: string | null;
+	onTabSelect: (worktreeId: string, tabId: string) => void;
+	onReload: () => void;
+	onUpdateTask: (
+		taskId: string,
+		updates: {
+			title: string;
+			description: string;
+			status: Task["status"];
+			assigneeId?: string | null;
+		},
+	) => void;
 }
 
 export const KanbanColumn: React.FC<KanbanColumnProps> = ({
@@ -16,6 +30,11 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 	tasks,
 	onTaskClick,
 	statusColor = "bg-neutral-500",
+	currentWorkspace,
+	selectedWorktreeId,
+	onTabSelect,
+	onReload,
+	onUpdateTask,
 }) => {
 	return (
 		<div className="flex flex-col h-full min-w-[300px] w-[300px]">
@@ -39,6 +58,11 @@ export const KanbanColumn: React.FC<KanbanColumnProps> = ({
 						key={task.id}
 						task={task}
 						onClick={() => onTaskClick(task)}
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={onUpdateTask}
 					/>
 				))}
 			</div>

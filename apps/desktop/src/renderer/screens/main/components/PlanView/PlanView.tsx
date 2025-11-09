@@ -2,6 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Plus } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
+import type { Workspace } from "shared/types";
 import { mockTasks, mockUsers } from "../../../../../lib/mock-data";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { KanbanColumn } from "./KanbanColumn";
@@ -10,7 +11,19 @@ import { TaskPage } from "./TaskPage";
 type Task = RouterOutputs["task"]["all"][number];
 type User = RouterOutputs["user"]["all"][number];
 
-export const PlanView: React.FC = () => {
+interface PlanViewProps {
+	currentWorkspace: Workspace | null;
+	selectedWorktreeId: string | null;
+	onTabSelect: (worktreeId: string, tabId: string) => void;
+	onReload: () => void;
+}
+
+export const PlanView: React.FC<PlanViewProps> = ({
+	currentWorkspace,
+	selectedWorktreeId,
+	onTabSelect,
+	onReload,
+}) => {
 	// Initialize with mock tasks and add some variety to statuses
 	const [tasks, setTasks] = useState<Task[]>(() => {
 		// Modify some tasks to have different statuses for demo purposes
@@ -128,6 +141,10 @@ export const PlanView: React.FC = () => {
 				users={mockUsers}
 				onBack={() => setViewingTask(null)}
 				onUpdate={handleUpdateTask}
+				currentWorkspace={currentWorkspace}
+				selectedWorktreeId={selectedWorktreeId}
+				onTabSelect={onTabSelect}
+				onReload={onReload}
 			/>
 		);
 	}
@@ -163,30 +180,55 @@ export const PlanView: React.FC = () => {
 						tasks={tasksByStatus.backlog}
 						onTaskClick={setViewingTask}
 						statusColor="bg-neutral-500"
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
 						title="Todo"
 						tasks={tasksByStatus.todo}
 						onTaskClick={setViewingTask}
 						statusColor="bg-blue-500"
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
 						title="Pending"
 						tasks={tasksByStatus.planning}
 						onTaskClick={setViewingTask}
 						statusColor="bg-yellow-500"
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
 						title="Needs Feedback"
 						tasks={tasksByStatus["needs-feedback"]}
 						onTaskClick={setViewingTask}
 						statusColor="bg-orange-500"
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={handleUpdateTask}
 					/>
 					<KanbanColumn
 						title="Completed"
 						tasks={tasksByStatus.completed}
 						onTaskClick={setViewingTask}
 						statusColor="bg-green-600"
+						currentWorkspace={currentWorkspace}
+						selectedWorktreeId={selectedWorktreeId}
+						onTabSelect={onTabSelect}
+						onReload={onReload}
+						onUpdateTask={handleUpdateTask}
 					/>
 				</div>
 			</div>

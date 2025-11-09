@@ -2,6 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { ChevronDown, ChevronLeft, Play, User as UserIcon } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
+import type { Workspace } from "shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 type User = RouterOutputs["user"]["all"][number];
@@ -19,6 +20,10 @@ interface TaskPageProps {
 			assigneeId?: string | null;
 		},
 	) => void;
+	currentWorkspace: Workspace | null;
+	selectedWorktreeId: string | null;
+	onTabSelect: (worktreeId: string, tabId: string) => void;
+	onReload: () => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -48,6 +53,10 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 	users,
 	onBack,
 	onUpdate,
+	currentWorkspace,
+	selectedWorktreeId,
+	onTabSelect,
+	onReload,
 }) => {
 	const statusColor = statusColors[task.status] || "bg-neutral-500";
 	const [title, setTitle] = useState(task.title);
@@ -119,6 +128,42 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 		? users.find((u) => u.id === assigneeId)
 		: null;
 
+	const handleStartTask = async () => {
+		if (!currentWorkspace || !selectedWorktreeId) {
+			console.error("No workspace or worktree selected");
+			return;
+		}
+
+		try {
+			// Create a new terminal with claude command
+			const result = await window.ipcRenderer.invoke("tab-create", {
+				workspaceId: currentWorkspace.id,
+				worktreeId: selectedWorktreeId,
+				name: `Task: ${task.slug}`,
+				type: "terminal",
+				command: `claude "hi"`,
+			});
+
+			if (result.success) {
+				const newTabId = result.tab?.id;
+				if (newTabId) {
+					onTabSelect(selectedWorktreeId, newTabId);
+				}
+
+				// Update task status to planning (pending)
+				onUpdate(task.id, {
+					title: task.title,
+					description: task.description || "",
+					status: "planning",
+				});
+
+				onReload();
+			}
+		} catch (error) {
+			console.error("Error starting task:", error);
+		}
+	};
+
 	return (
 		<div className="flex flex-col h-full bg-neutral-950">
 			{/* Header with Breadcrumbs */}
@@ -143,6 +188,7 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 					</div>
 					<button
 						type="button"
+						onClick={handleStartTask}
 						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
 					>
 						<Play size={14} className="fill-white" />

@@ -2,12 +2,26 @@ import type { RouterOutputs } from "@superset/api";
 import { Play } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
+import type { Workspace } from "shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 
 interface TaskCardProps {
 	task: Task;
 	onClick: () => void;
+	currentWorkspace: Workspace | null;
+	selectedWorktreeId: string | null;
+	onTabSelect: (worktreeId: string, tabId: string) => void;
+	onReload: () => void;
+	onUpdateTask: (
+		taskId: string,
+		updates: {
+			title: string;
+			description: string;
+			status: Task["status"];
+			assigneeId?: string | null;
+		},
+	) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -21,14 +35,54 @@ const statusColors: Record<string, string> = {
 	canceled: "bg-red-500",
 };
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({
+	task,
+	onClick,
+	currentWorkspace,
+	selectedWorktreeId,
+	onTabSelect,
+	onReload,
+	onUpdateTask,
+}) => {
 	const statusColor = statusColors[task.status] || "bg-neutral-500";
 	const [isHovered, setIsHovered] = useState(false);
 
-	const handleStartTask = (e: React.MouseEvent) => {
+	const handleStartTask = async (e: React.MouseEvent) => {
 		e.stopPropagation();
-		// TODO: Implement start task functionality
-		console.log("Start task:", task.id);
+
+		if (!currentWorkspace || !selectedWorktreeId) {
+			console.error("No workspace or worktree selected");
+			return;
+		}
+
+		try {
+			// Create a new terminal with claude command
+			const result = await window.ipcRenderer.invoke("tab-create", {
+				workspaceId: currentWorkspace.id,
+				worktreeId: selectedWorktreeId,
+				name: `Task: ${task.slug}`,
+				type: "terminal",
+				command: `claude "hi"`,
+			});
+
+			if (result.success) {
+				const newTabId = result.tab?.id;
+				if (newTabId) {
+					onTabSelect(selectedWorktreeId, newTabId);
+				}
+
+				// Update task status to planning (pending)
+				onUpdateTask(task.id, {
+					title: task.title,
+					description: task.description || "",
+					status: "planning",
+				});
+
+				onReload();
+			}
+		} catch (error) {
+			console.error("Error starting task:", error);
+		}
 	};
 
 	return (
