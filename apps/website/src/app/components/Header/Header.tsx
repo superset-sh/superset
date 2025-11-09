@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { WaitlistModal } from "./WaitlistModal";
+import { WaitlistModal } from "../WaitlistModal";
 
 export function Header() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
