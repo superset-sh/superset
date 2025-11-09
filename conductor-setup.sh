@@ -1,15 +1,29 @@
 #!/usr/bin/env bash
 set -e
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+NC='\033[0m'
+
+error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+success() { echo -e "${GREEN}✓${NC} $1"; }
+
 echo "🚀 Setting up Superset workspace..."
+
+# Check dependencies
+command -v bun &> /dev/null || error "Bun not installed. Install from https://bun.sh"
+command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
+command -v jq &> /dev/null || error "jq not installed. Run: brew install jq"
 
 # Install dependencies
 echo "📥 Installing dependencies..."
 bun install
+success "Dependencies installed"
 
 # Link direnv config
 echo "🔧 Linking .envrc..."
 ln -sf "$CONDUCTOR_ROOT_PATH/.envrc" .envrc
+success "direnv configured"
 
 # Create Neon branch for this workspace
 echo "🗄️  Creating Neon branch..."
@@ -28,4 +42,5 @@ DATABASE_URL=$DATABASE_URL
 DATABASE_POOLED_URL=$DATABASE_POOLED_URL
 EOF
 
-echo "✨ Done! Neon branch: $WORKSPACE_NAME"
+success "Neon branch created: $WORKSPACE_NAME"
+echo "✨ Done!"
