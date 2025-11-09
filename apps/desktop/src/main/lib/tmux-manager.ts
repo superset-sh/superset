@@ -199,6 +199,7 @@ class TmuxManager {
 		cwd?: string;
 		cols?: number;
 		rows?: number;
+		command?: string;
 	}): Promise<string> {
 		try {
 			const sid = options?.id || randomUUID();
@@ -329,6 +330,14 @@ class TmuxManager {
 
 			// Persist session registry
 			this.saveSessionsToDisk();
+
+			// Execute initial command if provided
+			if (options?.command) {
+				// Wait a bit for terminal to be ready
+				setTimeout(() => {
+					this.executeCommand(sid, options.command!);
+				}, 500);
+			}
 
 			return sid;
 		} catch (error) {

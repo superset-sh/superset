@@ -50,8 +50,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 	const handleStartTask = async (e: React.MouseEvent) => {
 		e.stopPropagation();
 
-		if (!currentWorkspace || !selectedWorktreeId) {
-			console.error("No workspace or worktree selected");
+		if (!currentWorkspace) {
+			console.error("No workspace selected");
+			return;
+		}
+
+		// Find worktree to use: either the selected one, task's branch worktree, or first worktree
+		let targetWorktreeId = selectedWorktreeId;
+
+		if (!targetWorktreeId) {
+			// Try to find a worktree matching the task's branch
+			const taskWorktree = currentWorkspace.worktrees?.find(
+				(wt) => wt.branch === task.branch,
+			);
+
+			if (taskWorktree) {
+				targetWorktreeId = taskWorktree.id;
+			} else if (currentWorkspace.worktrees && currentWorkspace.worktrees.length > 0) {
+				// Use the first worktree as fallback
+				targetWorktreeId = currentWorkspace.worktrees[0].id;
+			}
+		}
+
+		if (!targetWorktreeId) {
+			console.error("No worktree available to create terminal");
 			return;
 		}
 
@@ -59,18 +81,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 			// Create a new terminal with claude command
 			const result = await window.ipcRenderer.invoke("tab-create", {
 				workspaceId: currentWorkspace.id,
-				worktreeId: selectedWorktreeId,
+				worktreeId: targetWorktreeId,
 				name: `Task: ${task.slug}`,
 				type: "terminal",
 				command: `claude "hi"`,
 			});
 
 			if (result.success) {
-				const newTabId = result.tab?.id;
-				if (newTabId) {
-					onTabSelect(selectedWorktreeId, newTabId);
-				}
-
 				// Update task status to planning (pending)
 				onUpdateTask(task.id, {
 					title: task.title,
@@ -78,7 +95,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 					status: "planning",
 				});
 
-				onReload();
+				// Reload workspace to get updated tab data
+				await onReload();
+
+				// Select the new tab after reload
+				const newTabId = result.tab?.id;
+				if (newTabId) {
+					// Small delay to ensure workspace is reloaded
+					setTimeout(() => {
+						onTabSelect(targetWorktreeId, newTabId);
+					}, 100);
+				}
 			}
 		} catch (error) {
 			console.error("Error starting task:", error);

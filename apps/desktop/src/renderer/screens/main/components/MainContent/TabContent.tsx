@@ -241,6 +241,7 @@ function TerminalTabContent({
 				hidden={!isSelected}
 				onFocus={onFocus}
 				cwd={terminalCwd}
+				command={tab.command}
 			/>
 		</div>
 	);

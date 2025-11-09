@@ -15,6 +15,7 @@ interface TerminalProps {
 	hidden?: boolean;
 	onFocus?: () => void;
 	cwd?: string;
+	command?: string | null;
 }
 
 interface TerminalMessage {
@@ -75,6 +76,7 @@ export default function TerminalComponent({
 	hidden = false,
 	onFocus,
 	cwd,
+	command,
 }: TerminalProps) {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const [terminal, setTerminal] = useState<XTerm | null>(null);
@@ -299,6 +301,7 @@ export default function TerminalComponent({
 					cwd,
 					cols,
 					rows,
+					command: command || undefined,
 				})
 				.catch((error: Error) => {
 					console.error("Failed to create terminal:", error);

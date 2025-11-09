@@ -15,7 +15,13 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 		"terminal-create",
 		async (
 			_event,
-			options: { id?: string; cols?: number; rows?: number; cwd?: string },
+			options: {
+				id?: string;
+				cols?: number;
+				rows?: number;
+				cwd?: string;
+				command?: string;
+			},
 		) => {
 			return await tmuxManager.create(options);
 		},
