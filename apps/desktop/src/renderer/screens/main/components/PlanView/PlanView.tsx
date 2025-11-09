@@ -41,15 +41,23 @@ export const PlanView: React.FC<PlanViewProps> = ({
 	const [viewingTask, setViewingTask] = useState<Task | null>(null);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-	// Group tasks by status
+	// Group tasks by status - optimized to use single pass instead of multiple filters
 	const tasksByStatus = useMemo(() => {
-		return {
-			backlog: tasks.filter((t) => t.status === "backlog"),
-			todo: tasks.filter((t) => t.status === "todo"),
-			planning: tasks.filter((t) => t.status === "planning"),
-			"needs-feedback": tasks.filter((t) => t.status === "needs-feedback"),
-			completed: tasks.filter((t) => t.status === "completed"),
+		const groups = {
+			backlog: [] as Task[],
+			todo: [] as Task[],
+			planning: [] as Task[],
+			"needs-feedback": [] as Task[],
+			completed: [] as Task[],
 		};
+		
+		for (const task of tasks) {
+			if (task.status in groups) {
+				groups[task.status].push(task);
+			}
+		}
+		
+		return groups;
 	}, [tasks]);
 
 	const handleCreateTask = (taskData: {

@@ -15,7 +15,7 @@ import {
 	RefreshCw,
 	X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { DiffContent } from "./DiffContent";
 import { DiffSummary } from "./DiffSummary";
 import { FileTree } from "./FileTree";
@@ -57,15 +57,22 @@ export function DiffView({
 		}
 	};
 
-	const totalAdditions = data.files.reduce(
-		(sum, file) => sum + file.additions,
-		0,
-	);
-	const totalDeletions = data.files.reduce(
-		(sum, file) => sum + file.deletions,
-		0,
-	);
-	const filesChanged = data.files.length;
+	// Memoize file statistics to avoid recalculating on every render
+	const fileStats = useMemo(() => {
+		let additions = 0;
+		let deletions = 0;
+		
+		for (const file of data.files) {
+			additions += file.additions;
+			deletions += file.deletions;
+		}
+		
+		return {
+			totalAdditions: additions,
+			totalDeletions: deletions,
+			filesChanged: data.files.length,
+		};
+	}, [data.files]);
 
 	// Set up intersection observer to track which file is at the top of the viewport
 	useEffect(() => {
@@ -234,7 +241,7 @@ export function DiffView({
 						<GitCommit className="w-3.5 h-3.5" />
 						Files changed
 						<span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-white/10">
-							{filesChanged}
+							{fileStats.filesChanged}
 						</span>
 					</button>
 				</div>
@@ -257,17 +264,17 @@ export function DiffView({
 											<div className="flex items-center gap-2">
 												<GitCommit className="w-3.5 h-3.5 text-zinc-500" />
 												<span className="text-zinc-400">
-													{filesChanged} files changed
+													{fileStats.filesChanged} files changed
 												</span>
 											</div>
 											<div className="flex items-center gap-2">
 												<span className="text-emerald-400">
-													+{totalAdditions} additions
+													+{fileStats.totalAdditions} additions
 												</span>
 											</div>
 											<div className="flex items-center gap-2">
 												<span className="text-rose-400">
-													-{totalDeletions} deletions
+													-{fileStats.totalDeletions} deletions
 												</span>
 											</div>
 										</div>
