@@ -291,6 +291,10 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 															isSelected={task.id === selectedTaskId}
 															isOpen={openTasks.some((t) => t.id === task.id)}
 															onClick={() => setSelectedTaskId(task.id)}
+															onDoubleClick={() => {
+																setSelectedTaskId(task.id);
+																handleOpenTask();
+															}}
 														/>
 													))
 												)}

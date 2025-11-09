@@ -13,6 +13,7 @@ interface TaskListItemProps {
 	isSelected: boolean;
 	isOpen: boolean;
 	onClick: () => void;
+	onDoubleClick?: () => void;
 }
 
 export const TaskListItem: React.FC<TaskListItemProps> = ({
@@ -20,11 +21,13 @@ export const TaskListItem: React.FC<TaskListItemProps> = ({
 	isSelected,
 	isOpen,
 	onClick,
+	onDoubleClick,
 }) => {
 	return (
 		<button
 			type="button"
 			onClick={onClick}
+			onDoubleClick={onDoubleClick}
 			className={`
 				w-full text-left px-3 py-2.5 rounded-md transition-all
 				${
