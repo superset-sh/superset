@@ -79,12 +79,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
 		try {
 			// Create a new terminal with claude command
+			const taskPrompt = `${task.title}\n\n${task.description || ""}`.trim();
+			// Escape quotes and newlines for shell command
+			const escapedPrompt = taskPrompt
+				.replace(/\\/g, '\\\\')  // Escape backslashes first
+				.replace(/"/g, '\\"')     // Escape double quotes
+				.replace(/\n/g, '\\n');   // Escape newlines
 			const result = await window.ipcRenderer.invoke("tab-create", {
 				workspaceId: currentWorkspace.id,
 				worktreeId: targetWorktreeId,
 				name: `Task: ${task.slug}`,
 				type: "terminal",
-				command: `claude "hi"`,
+				command: `claude "${escapedPrompt}"`,
 			});
 
 			if (result.success) {

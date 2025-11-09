@@ -36,7 +36,7 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
 	const statusLabels: Record<string, string> = {
 		backlog: "Backlog",
 		todo: "Todo",
-		planning: "Pending",
+		planning: "In Progress",
 		working: "Working",
 		"needs-feedback": "Needs Feedback",
 		"ready-to-merge": "Ready to Merge",
