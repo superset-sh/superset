@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
-import { WaitlistModal } from "@/components/layout/WaitlistModal";
+import { Footer } from "./components/Footer";
+import { Header } from "./components/Header";
+import { WaitlistModal } from "./components/WaitlistModal";
 import { HeroSection } from "./components/HeroSection";
 import { ClientLogosSection } from "./components/ClientLogosSection";
 import { FeaturesSection } from "./components/FeaturesSection";

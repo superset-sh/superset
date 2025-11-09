@@ -1,0 +1,1 @@
+export { LitBackground } from "./LitBackground";

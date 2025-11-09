@@ -1,1 +1,0 @@
-export { ScaleFeaturesSection } from "./ScaleFeaturesSection";
