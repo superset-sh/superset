@@ -474,7 +474,6 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
-
 	// Task handlers
 	const handleOpenAddTaskModal = () => {
 		setIsAddTaskModalOpen(true);
