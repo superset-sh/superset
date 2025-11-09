@@ -3,209 +3,36 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
+import { Toaster } from "@superset/ui/sonner";
+import type { RouterOutputs } from "@superset/api";
 import type React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
+import { toast } from "sonner";
 import type { Tab, Workspace, Worktree } from "shared/types";
+import { mockTasks } from "../../../../../lib/mock-data";
+
+// Use the tRPC API type for tasks
+type Task = RouterOutputs["task"]["all"][number];
 import { AppFrame } from "../AppFrame";
 import { Background } from "../Background";
 import TabContent from "../MainContent/TabContent";
 import TabGroup from "../MainContent/TabGroup";
 import { PlaceholderState } from "../PlaceholderState";
 import { DiffTab } from "../TabContent/components/DiffTab";
+import { DeleteWorktreeModal } from "../../../../components/DeleteWorktreeModal";
 import { AddTaskModal } from "./AddTaskModal";
 import { TaskTabs } from "./TaskTabs";
-import { WorktreeTabsSidebar } from "./WorktreeTabsSidebar";
 import { WorktreeTabView } from "./WorktreeTabView";
-
-// Mock tasks data - TODO: Replace with actual task data from backend
-const MOCK_TASKS = [
-	{
-		id: "1",
-		slug: "SSET-1",
-		name: "Homepage Redesign",
-		status: "working" as const,
-		branch: "feature/homepage-redesign",
-		description: "Redesigning the homepage with new branding and improved UX",
-		assignee: "Alice",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=1",
-		lastUpdated: "2 hours ago",
-	},
-	{
-		id: "2",
-		slug: "SSET-2",
-		name: "API Integration",
-		status: "needs-feedback" as const,
-		branch: "feature/api-integration",
-		description: "Integrate new REST API endpoints for user management",
-		assignee: "Bob",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=12",
-		lastUpdated: "1 day ago",
-	},
-	{
-		id: "3",
-		slug: "SSET-3",
-		name: "Bug Fixes",
-		status: "planning" as const,
-		branch: "fix/various-bugs",
-		description: "Collection of bug fixes reported by users",
-		assignee: "Charlie",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=33",
-		lastUpdated: "3 days ago",
-	},
-	{
-		id: "4",
-		slug: "SSET-4",
-		name: "Performance Optimization",
-		status: "ready-to-merge" as const,
-		branch: "perf/optimize-queries",
-		description: "Optimize database queries for faster page loads",
-		assignee: "Diana",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=9",
-		lastUpdated: "5 minutes ago",
-	},
-	{
-		id: "5",
-		slug: "SSET-5",
-		name: "User Authentication System",
-		status: "working" as const,
-		branch: "feature/auth-system",
-		description:
-			"Implement OAuth2 and JWT-based authentication system with refresh tokens",
-		assignee: "Eve",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=5",
-		lastUpdated: "3 hours ago",
-	},
-	{
-		id: "6",
-		slug: "SSET-6",
-		name: "Dark Mode Support",
-		status: "planning" as const,
-		branch: "feature/dark-mode",
-		description: "Add dark mode theme support across the entire application",
-		assignee: "Frank",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=13",
-		lastUpdated: "2 days ago",
-	},
-	{
-		id: "7",
-		slug: "SSET-7",
-		name: "Database Migration Scripts",
-		status: "ready-to-merge" as const,
-		branch: "db/migration-scripts",
-		description:
-			"Create automated migration scripts for production database updates",
-		assignee: "Grace",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=20",
-		lastUpdated: "1 hour ago",
-	},
-	{
-		id: "8",
-		slug: "SSET-8",
-		name: "Email Notification Service",
-		status: "needs-feedback" as const,
-		branch: "feature/email-notifications",
-		description:
-			"Build email notification service using SendGrid for transactional emails",
-		assignee: "Henry",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=8",
-		lastUpdated: "4 hours ago",
-	},
-	{
-		id: "9",
-		slug: "SSET-9",
-		name: "Mobile Responsive Design",
-		status: "working" as const,
-		branch: "feature/mobile-responsive",
-		description:
-			"Make the application fully responsive for mobile and tablet devices",
-		assignee: "Iris",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=16",
-		lastUpdated: "6 hours ago",
-	},
-	{
-		id: "10",
-		slug: "SSET-10",
-		name: "Analytics Dashboard",
-		status: "planning" as const,
-		branch: "feature/analytics-dashboard",
-		description:
-			"Create admin dashboard with charts and metrics for user analytics",
-		assignee: "Jack",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=11",
-		lastUpdated: "1 week ago",
-	},
-	{
-		id: "11",
-		slug: "SSET-11",
-		name: "CI/CD Pipeline",
-		status: "ready-to-merge" as const,
-		branch: "devops/ci-cd-pipeline",
-		description:
-			"Set up automated CI/CD pipeline with GitHub Actions and Docker",
-		assignee: "Kate",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=25",
-		lastUpdated: "30 minutes ago",
-	},
-	{
-		id: "12",
-		slug: "SSET-12",
-		name: "Search Functionality",
-		status: "working" as const,
-		branch: "feature/search",
-		description: "Implement full-text search with Elasticsearch integration",
-		assignee: "Liam",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=14",
-		lastUpdated: "5 hours ago",
-	},
-	{
-		id: "13",
-		slug: "SSET-13",
-		name: "File Upload System",
-		status: "needs-feedback" as const,
-		branch: "feature/file-uploads",
-		description:
-			"Build secure file upload system with S3 storage and virus scanning",
-		assignee: "Mia",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=27",
-		lastUpdated: "2 hours ago",
-	},
-	{
-		id: "14",
-		slug: "SSET-14",
-		name: "API Rate Limiting",
-		status: "planning" as const,
-		branch: "feature/rate-limiting",
-		description: "Implement rate limiting and throttling for API endpoints",
-		assignee: "Noah",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=17",
-		lastUpdated: "4 days ago",
-	},
-	{
-		id: "15",
-		slug: "SSET-15",
-		name: "Internationalization",
-		status: "working" as const,
-		branch: "feature/i18n",
-		description:
-			"Add multi-language support with i18next for English, Spanish, and French",
-		assignee: "Olivia",
-		assigneeAvatarUrl: "https://i.pravatar.cc/150?img=32",
-		lastUpdated: "8 hours ago",
-	},
-];
+import { WorktreeTabsSidebar } from "./WorktreeTabsSidebar";
 
 export const NewLayoutMain: React.FC = () => {
 	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-	// Initialize with first 4 tasks to match the tabs currently displayed
-	const [openTasks, setOpenTasks] = useState<typeof MOCK_TASKS>(
-		MOCK_TASKS.slice(0, 4),
-	);
-	const [activeTaskId, setActiveTaskId] = useState(MOCK_TASKS[0].id);
-	const [allTasks, setAllTasks] = useState(MOCK_TASKS);
+	const [activeTaskId, setActiveTaskId] = useState(mockTasks[0].id);
+	const [allTasks, setAllTasks] = useState<Task[]>(mockTasks);
 
 	// Workspace state
 	const [workspaces, setWorkspaces] = useState<Workspace[] | null>(null);
@@ -218,8 +45,34 @@ export const NewLayoutMain: React.FC = () => {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null);
-	const [sidebarMode, setSidebarMode] = useState<"tabs" | "changes">("tabs");
+
+	// Delete worktree modal state
+	const [deleteWorktreeId, setDeleteWorktreeId] = useState<string | null>(null);
+	const [deleteWorktreeInfo, setDeleteWorktreeInfo] = useState<{
+		name: string;
+		path: string;
+		hasUncommittedChanges: boolean;
+	} | null>(null);
+
+	// Derive openTasks from worktrees - tasks are "opened" if they have a worktree with matching description
+	const openTasks = useMemo(() => {
+		if (!currentWorkspace?.worktrees || !allTasks) return [];
+
+		// Create a set of worktree descriptions and branches for matching
+		const worktreeDescriptions = new Set(
+			currentWorkspace.worktrees.map(wt => wt.description?.toLowerCase())
+		);
+		const worktreeBranches = new Set(
+			currentWorkspace.worktrees.map(wt => wt.branch)
+		);
+
+		return allTasks.filter(task => {
+			// Match by description (task title) or by branch if task has one
+			const matchByDescription = task.title && worktreeDescriptions.has(task.title.toLowerCase());
+			const matchByBranch = task.branch && worktreeBranches.has(task.branch);
+			return matchByDescription || matchByBranch;
+		});
+	}, [currentWorkspace?.worktrees, allTasks]);
 
 	const handleCollapseSidebar = () => {
 		const panel = sidebarPanelRef.current;
@@ -483,45 +336,183 @@ export const NewLayoutMain: React.FC = () => {
 		setIsAddTaskModalOpen(false);
 	};
 
-	const handleSelectTask = (task: (typeof MOCK_TASKS)[0]) => {
-		// Check if task is already open
-		const isAlreadyOpen = openTasks.some((t) => t.id === task.id);
-		if (!isAlreadyOpen) {
-			// Add to open tasks and make it active
-			setOpenTasks([...openTasks, task]);
+	const handleSelectTask = async (task: Task) => {
+		// Check if task already has a worktree (match by description or branch)
+		const existingWorktree = currentWorkspace?.worktrees?.find(
+			wt => {
+				const matchByDescription = wt.description?.toLowerCase() === task.title.toLowerCase();
+				const matchByBranch = task.branch && wt.branch === task.branch;
+				return matchByDescription || matchByBranch;
+			}
+		);
+
+		if (existingWorktree) {
+			// Task already has a worktree - just switch to it
 			setActiveTaskId(task.id);
+			setSelectedWorktreeId(existingWorktree.id);
+			// Select first tab if any
+			if (existingWorktree.tabs && existingWorktree.tabs.length > 0) {
+				setSelectedTabId(existingWorktree.tabs[0].id);
+			}
+			// Close the modal
+			handleCloseAddTaskModal();
 		} else {
-			// Task is already open, just switch focus to it
-			setActiveTaskId(task.id);
+			// Task doesn't have a worktree - create one
+			if (!currentWorkspace) return;
+
+			const createWorktreePromise = (async () => {
+				// Use task.branch if set, otherwise use slug
+				const branchName = task.branch || task.slug.toLowerCase();
+
+				// Check if branch already exists in git
+				const branchesResult = await window.ipcRenderer.invoke("workspace-list-branches", currentWorkspace.id);
+				const branchExists = branchesResult.branches?.includes(branchName);
+
+				const result = await window.ipcRenderer.invoke("worktree-create", {
+					workspaceId: currentWorkspace.id,
+					title: task.title,
+					description: task.description || undefined,
+					branch: branchName,
+					createBranch: !branchExists, // Only create new branch if it doesn't exist
+				});
+
+				if (result.success && result.worktree) {
+					// Reload workspace to get updated worktrees
+					await handleWorktreeCreated();
+
+					// Switch to new worktree
+					setSelectedWorktreeId(result.worktree.id);
+					setActiveTaskId(task.id);
+
+					// Select first tab if any
+					if (result.worktree.tabs && result.worktree.tabs.length > 0) {
+						setSelectedTabId(result.worktree.tabs[0].id);
+					}
+
+					// Close the modal
+					handleCloseAddTaskModal();
+
+					return result.worktree;
+				} else {
+					throw new Error(result.error || "Failed to create worktree");
+				}
+			})();
+
+			toast.promise(createWorktreePromise, {
+				loading: `Creating worktree for ${task.slug}...`,
+				success: `Worktree created for ${task.slug}`,
+				error: (err) => `Failed to create worktree: ${err.message}`,
+			});
 		}
 	};
 
-	const handleCreateTask = (taskData: {
-		name: string;
-		description: string;
-		status: "planning" | "working" | "needs-feedback" | "ready-to-merge";
+	const handleCreateTask = async (taskData: Pick<Task, 'title' | 'description' | 'status'> & {
 		assignee: string;
 		branch: string;
 	}) => {
-		// Generate new task with mock data
-		const newTask = {
-			id: String(allTasks.length + 1),
-			slug: `SSET-${allTasks.length + 1}`,
-			name: taskData.name,
-			status: taskData.status,
-			branch: taskData.branch,
-			description: taskData.description,
-			assignee: taskData.assignee,
-			assigneeAvatarUrl: "https://i.pravatar.cc/150?img=1", // Default avatar
-			lastUpdated: "Just now",
-		};
+		if (!currentWorkspace) return;
 
-		// Add to all tasks
-		setAllTasks([...allTasks, newTask]);
+		try {
+			// Create worktree using IPC
+			const result = await window.ipcRenderer.invoke("worktree-create", {
+				workspaceId: currentWorkspace.id,
+				title: taskData.title,
+				description: taskData.description || undefined,
+				branch: taskData.branch,
+				createBranch: true,
+			});
 
-		// Open the new task
-		setOpenTasks([...openTasks, newTask]);
-		setActiveTaskId(newTask.id);
+			if (result.success && result.worktree) {
+				// Reload workspace to get updated worktrees
+				await handleWorktreeCreated();
+
+				// Switch to new worktree
+				setSelectedWorktreeId(result.worktree.id);
+
+				// Select first tab if any
+				if (result.worktree.tabs && result.worktree.tabs.length > 0) {
+					setSelectedTabId(result.worktree.tabs[0].id);
+				}
+
+				console.log("Worktree created successfully:", result.worktree);
+			} else {
+				console.error("Failed to create worktree:", result.error);
+			}
+		} catch (error) {
+			console.error("Error creating worktree:", error);
+		}
+	};
+
+	// Handle worktree deletion
+	const handleDeleteWorktree = async (worktreeId: string) => {
+		if (!currentWorkspace) return;
+
+		try {
+			// Check if worktree can be removed and get uncommitted changes info
+			const result = await window.ipcRenderer.invoke("worktree-can-remove", {
+				workspaceId: currentWorkspace.id,
+				worktreeId,
+			});
+
+			if (result.success) {
+				const worktree = currentWorkspace.worktrees.find(wt => wt.id === worktreeId);
+				if (!worktree) return;
+
+				// Set delete info and show modal
+				setDeleteWorktreeId(worktreeId);
+				setDeleteWorktreeInfo({
+					name: worktree.description || worktree.branch,
+					path: worktree.path,
+					hasUncommittedChanges: result.hasUncommittedChanges || false,
+				});
+			} else {
+				console.error("Failed to check worktree status:", result.error);
+			}
+		} catch (error) {
+			console.error("Error checking worktree status:", error);
+		}
+	};
+
+	const handleConfirmDelete = async () => {
+		if (!currentWorkspace || !deleteWorktreeId) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke("worktree-remove", {
+				workspaceId: currentWorkspace.id,
+				worktreeId: deleteWorktreeId,
+			});
+
+			if (result.success) {
+				// If deleted worktree was active, switch to another worktree
+				if (selectedWorktreeId === deleteWorktreeId) {
+					const remainingWorktrees = currentWorkspace.worktrees.filter(
+						wt => wt.id !== deleteWorktreeId
+					);
+					if (remainingWorktrees.length > 0) {
+						setSelectedWorktreeId(remainingWorktrees[0].id);
+						// Select first tab in the new worktree
+						if (remainingWorktrees[0].tabs && remainingWorktrees[0].tabs.length > 0) {
+							setSelectedTabId(remainingWorktrees[0].tabs[0].id);
+						}
+					} else {
+						setSelectedWorktreeId(null);
+						setSelectedTabId(null);
+					}
+				}
+
+				// Reload workspace to update UI
+				await handleWorktreeCreated();
+
+				// Reset delete modal state
+				setDeleteWorktreeId(null);
+				setDeleteWorktreeInfo(null);
+			} else {
+				throw new Error(result.error || "Failed to delete worktree");
+			}
+		} catch (error) {
+			console.error("Error deleting worktree:", error);
+			throw error; // Let modal handle error display
+		}
 	};
 
 	// Load active workspace on mount
@@ -604,10 +595,7 @@ export const NewLayoutMain: React.FC = () => {
 				setCurrentWorkspace(refreshedWorkspace);
 
 				// Auto-select first worktree and tab if available
-				if (
-					refreshedWorkspace.worktrees &&
-					refreshedWorkspace.worktrees.length > 0
-				) {
+				if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
 					const firstWorktree = refreshedWorkspace.worktrees[0];
 					setSelectedWorktreeId(firstWorktree.id);
 					if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
@@ -696,10 +684,6 @@ export const NewLayoutMain: React.FC = () => {
 								setShowSidebarOverlay(false);
 							}}
 							workspaceId={currentWorkspace?.id || null}
-							workspaceName={currentWorkspace?.name}
-							mainBranch={currentWorkspace?.branch}
-							onDiffFileSelect={setSelectedDiffFile}
-							onModeChange={setSidebarMode}
 						/>
 					</div>
 				</div>
@@ -713,21 +697,23 @@ export const NewLayoutMain: React.FC = () => {
 						onExpandSidebar={handleExpandSidebar}
 						isSidebarOpen={isSidebarOpen}
 						worktrees={currentWorkspace?.worktrees || []}
+						tasks={allTasks}
 						selectedWorktreeId={selectedWorktreeId}
 						onWorktreeSelect={(worktreeId) => {
 							setSelectedWorktreeId(worktreeId);
 							// Select first tab in the worktree
-							const worktree = currentWorkspace?.worktrees?.find(
-								(wt) => wt.id === worktreeId,
-							);
+							const worktree = currentWorkspace?.worktrees?.find(wt => wt.id === worktreeId);
 							if (worktree && worktree.tabs && worktree.tabs.length > 0) {
 								handleTabSelect(worktreeId, worktree.tabs[0].id);
 							}
 						}}
+						workspaceId={currentWorkspace?.id}
+						onDeleteWorktree={handleDeleteWorktree}
+						onAddTask={handleOpenAddTaskModal}
 					/>
 
 					{/* Main content area with resizable sidebar */}
-					<div className="flex-1 overflow-hidden border-neutral-700">
+					<div className="flex-1 overflow-hidden border-t border-neutral-700">
 						<ResizablePanelGroup
 							direction="horizontal"
 							autoSaveId="new-layout-panels"
@@ -754,14 +740,11 @@ export const NewLayoutMain: React.FC = () => {
 										onTabClose={async (tabId) => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke(
-												"tab-delete",
-												{
-													workspaceId: currentWorkspace.id,
-													worktreeId: selectedWorktreeId,
-													tabId,
-												},
-											);
+											const result = await window.ipcRenderer.invoke("tab-delete", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												tabId,
+											});
 
 											if (result.success) {
 												await handleWorktreeCreated();
@@ -770,15 +753,12 @@ export const NewLayoutMain: React.FC = () => {
 										onCreateTerminal={async () => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke(
-												"tab-create",
-												{
-													workspaceId: currentWorkspace.id,
-													worktreeId: selectedWorktreeId,
-													name: "Terminal",
-													type: "terminal",
-												},
-											);
+											const result = await window.ipcRenderer.invoke("tab-create", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												name: "Terminal",
+												type: "terminal",
+											});
 
 											if (result.success && result.tab) {
 												handleTabSelect(selectedWorktreeId, result.tab.id);
@@ -788,15 +768,12 @@ export const NewLayoutMain: React.FC = () => {
 										onCreatePreview={async () => {
 											if (!currentWorkspace || !selectedWorktreeId) return;
 
-											const result = await window.ipcRenderer.invoke(
-												"tab-create",
-												{
-													workspaceId: currentWorkspace.id,
-													worktreeId: selectedWorktreeId,
-													name: "Preview",
-													type: "preview",
-												},
-											);
+											const result = await window.ipcRenderer.invoke("tab-create", {
+												workspaceId: currentWorkspace.id,
+												worktreeId: selectedWorktreeId,
+												name: "Preview",
+												type: "preview",
+											});
 
 											if (result.success && result.tab) {
 												handleTabSelect(selectedWorktreeId, result.tab.id);
@@ -804,10 +781,6 @@ export const NewLayoutMain: React.FC = () => {
 											}
 										}}
 										workspaceId={currentWorkspace?.id || null}
-										workspaceName={currentWorkspace?.name}
-										mainBranch={currentWorkspace?.branch}
-										onDiffFileSelect={setSelectedDiffFile}
-										onModeChange={setSidebarMode}
 									/>
 								)}
 							</ResizablePanel>
@@ -817,32 +790,13 @@ export const NewLayoutMain: React.FC = () => {
 							{/* Main content panel */}
 							<ResizablePanel defaultSize={80} minSize={30}>
 								{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedWorktree ? (
+								error ||
+								!currentWorkspace ||
+								!selectedTab ||
+								!selectedWorktree ? (
 									<PlaceholderState
 										loading={loading}
 										error={error}
-										hasWorkspace={!!currentWorkspace}
-									/>
-								) : sidebarMode === "changes" ? (
-									// Changes mode - always show diff view
-									<div className="w-full h-full">
-										<DiffTab
-											tab={{ id: "changes-view", name: "Changes", type: "diff" } as any}
-											workspaceId={currentWorkspace.id}
-											worktreeId={selectedWorktreeId ?? ""}
-											worktree={selectedWorktree}
-											workspaceName={currentWorkspace.name}
-											mainBranch={currentWorkspace.branch}
-											selectedDiffFile={selectedDiffFile}
-											onDiffFileSelect={setSelectedDiffFile}
-										/>
-									</div>
-								) : !selectedTab ? (
-									<PlaceholderState
-										loading={false}
-										error={null}
 										hasWorkspace={!!currentWorkspace}
 									/>
 								) : parentGroupTab ? (
@@ -885,8 +839,6 @@ export const NewLayoutMain: React.FC = () => {
 											worktree={selectedWorktree}
 											workspaceName={currentWorkspace.name}
 											mainBranch={currentWorkspace.branch}
-											selectedDiffFile={selectedDiffFile}
-											onDiffFileSelect={setSelectedDiffFile}
 										/>
 									</div>
 								) : (
@@ -923,6 +875,23 @@ export const NewLayoutMain: React.FC = () => {
 				onSelectTask={handleSelectTask}
 				onCreateTask={handleCreateTask}
 			/>
+
+			{/* Delete Worktree Modal */}
+			{deleteWorktreeInfo && currentWorkspace && (
+				<DeleteWorktreeModal
+					isOpen={!!deleteWorktreeId}
+					onClose={() => {
+						setDeleteWorktreeId(null);
+						setDeleteWorktreeInfo(null);
+					}}
+					worktreeName={deleteWorktreeInfo.name}
+					worktreePath={deleteWorktreeInfo.path}
+					repoPath={currentWorkspace.repoPath}
+					hasUncommittedChanges={deleteWorktreeInfo.hasUncommittedChanges}
+					onConfirm={handleConfirmDelete}
+				/>
+			)}
+			<Toaster />
 		</>
 	);
 };

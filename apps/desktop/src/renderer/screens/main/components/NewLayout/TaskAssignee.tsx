@@ -3,7 +3,7 @@ import { Avatar } from "./Avatar";
 
 interface TaskAssigneeProps {
 	userName: string;
-	userAvatarUrl: string;
+	userAvatarUrl: string | null;
 	agentName?: string;
 }
 

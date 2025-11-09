@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
-import { Label } from "@superset/ui/label";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -24,25 +23,18 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Textarea } from "@superset/ui/textarea";
+import type { RouterOutputs } from "@superset/api";
 import { ArrowLeft, Plus, Search, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
+import { formatRelativeTime } from "shared/utils";
 import { Avatar } from "./Avatar";
-import { StatusIndicator, type TaskStatus } from "./StatusIndicator";
+import { type TaskStatus } from "./StatusIndicator";
 import { TaskListItem } from "./TaskListItem";
 import { TaskPreview } from "./TaskPreview";
 
-interface Task {
-	id: string;
-	slug: string;
-	name: string;
-	status: TaskStatus;
-	branch: string;
-	description: string;
-	assignee: string;
-	assigneeAvatarUrl: string;
-	lastUpdated: string;
-}
+// Use the tRPC API type for tasks
+type Task = RouterOutputs["task"]["all"][number];
 
 interface AddTaskModalProps {
 	isOpen: boolean;
@@ -50,10 +42,7 @@ interface AddTaskModalProps {
 	tasks: Task[];
 	openTasks: Task[];
 	onSelectTask: (task: Task) => void;
-	onCreateTask: (taskData: {
-		name: string;
-		description: string;
-		status: TaskStatus;
+	onCreateTask: (taskData: Pick<Task, 'title' | 'description' | 'status'> & {
 		assignee: string;
 		branch: string;
 	}) => void;
@@ -86,9 +75,9 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		return tasks.filter(
 			(task) =>
 				task.slug.toLowerCase().includes(query) ||
-				task.name.toLowerCase().includes(query) ||
-				task.description.toLowerCase().includes(query) ||
-				task.assignee.toLowerCase().includes(query)
+				task.title.toLowerCase().includes(query) ||
+				task.description?.toLowerCase().includes(query) ||
+				task.assignee?.name.toLowerCase().includes(query)
 		);
 	}, [tasks, searchQuery]);
 
@@ -188,7 +177,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		if (!newTaskName.trim()) return;
 
 		onCreateTask({
-			name: newTaskName.trim(),
+			title: newTaskName.trim(),
 			description: newTaskDescription.trim(),
 			status: newTaskStatus,
 			assignee: newTaskAssignee,
