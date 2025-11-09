@@ -177,30 +177,7 @@ function TerminalTabContent({
 	onFocus,
 }: TerminalTabContentProps) {
 	const terminalId = tab.id;
-	const terminalCreatedRef = useRef(false);
 	const isSelected = selectedTabId === tab.id;
-
-	// Terminal creation and lifecycle
-	// NOTE: Actual terminal-create is now deferred to the Terminal component
-	// so it can pass the correct dimensions when ready
-	useEffect(() => {
-		// Execute startup command if specified (only after terminal is created)
-		if (
-			tab.command &&
-			tab.command.trim() !== "" &&
-			!terminalCreatedRef.current
-		) {
-			terminalCreatedRef.current = true;
-			const commandToExecute = tab.command;
-			// Wait for terminal to be created and attached
-			setTimeout(() => {
-				window.ipcRenderer.invoke("terminal-execute-command", {
-					id: tab.id,
-					command: commandToExecute,
-				});
-			}, 1000);
-		}
-	}, [tab.id, tab.command]);
 
 	// Listen for CWD changes from the main process
 	useEffect(() => {
@@ -241,7 +218,6 @@ function TerminalTabContent({
 				hidden={!isSelected}
 				onFocus={onFocus}
 				cwd={terminalCwd}
-				command={tab.command}
 			/>
 		</div>
 	);

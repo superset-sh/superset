@@ -100,6 +100,24 @@ export async function createTab(
 			configManager.write(config);
 		}
 
+		// Create terminal process immediately for terminal tabs with commands
+		if (tab.type === "terminal" && tab.command) {
+			const tmuxManager = await import("../tmux-manager").then(
+				(m) => m.default,
+			);
+			const workingDir = worktree.path || workspace.repoPath;
+
+			// Create terminal with command - it will be executed automatically
+			await tmuxManager.create({
+				id: tab.id,
+				cwd: workingDir,
+				command: tab.command,
+				// Use default dimensions, Terminal component will resize when it loads
+				cols: 80,
+				rows: 30,
+			});
+		}
+
 		return { success: true, tab };
 	} catch (error) {
 		console.error("Failed to create tab:", error);
