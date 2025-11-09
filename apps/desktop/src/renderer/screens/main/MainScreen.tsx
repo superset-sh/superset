@@ -53,8 +53,9 @@ function DroppableMainContent({
 	return (
 		<div
 			ref={setNodeRef}
-			className={`flex-1 overflow-hidden m-1 rounded-lg relative ${isOver ? "ring-2 ring-blue-500 ring-inset" : ""
-				}`}
+			className={`flex-1 overflow-hidden m-1 rounded-lg relative ${
+				isOver ? "ring-2 ring-blue-500 ring-inset" : ""
+			}`}
 		>
 			{children}
 			{isOver && (
@@ -1753,9 +1754,9 @@ export function OldMainScreen() {
 								{/* Content Area */}
 								<DroppableMainContent isOver={isOverMainContent}>
 									{showDiffView &&
-										diffWorktreeId &&
-										diffWorktree &&
-										currentWorkspace ? (
+									diffWorktreeId &&
+									diffWorktree &&
+									currentWorkspace ? (
 										// Show diff view
 										<div className="w-full h-full">
 											<DiffTab

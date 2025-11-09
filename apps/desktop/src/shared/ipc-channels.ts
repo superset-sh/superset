@@ -202,6 +202,48 @@ export interface IpcChannels {
 			error?: string;
 		};
 	};
+	"worktree-get-git-diff-files": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			files?: Array<{
+				id: string;
+				fileName: string;
+				filePath: string;
+				status: "added" | "deleted" | "modified" | "renamed";
+				oldPath?: string;
+				additions: number;
+				deletions: number;
+			}>;
+			error?: string;
+		};
+	};
+	"worktree-get-git-file-diff": {
+		request: {
+			workspaceId: string;
+			worktreeId: string;
+			filePath: string;
+		};
+		response: {
+			success: boolean;
+			diff?: {
+				id: string;
+				fileName: string;
+				filePath: string;
+				status: "added" | "deleted" | "modified" | "renamed";
+				oldPath?: string;
+				additions: number;
+				deletions: number;
+				changes: Array<{
+					type: "added" | "removed" | "modified" | "unchanged";
+					oldLineNumber: number | null;
+					newLineNumber: number | null;
+					content: string;
+				}>;
+			};
+			error?: string;
+		};
+	};
 
 	// Tab operations
 	"tab-create": {
@@ -376,6 +418,9 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"worktree-check-settings",
 		"worktree-open-settings",
 		"worktree-get-git-status",
+		"worktree-get-git-diff",
+		"worktree-get-git-diff-files",
+		"worktree-get-git-file-diff",
 		"worktree-update-description",
 		"open-app-settings",
 		"tab-create",

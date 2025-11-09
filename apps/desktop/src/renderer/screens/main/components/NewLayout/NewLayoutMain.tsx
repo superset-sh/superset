@@ -816,10 +816,7 @@ export const NewLayoutMain: React.FC = () => {
 
 							{/* Main content panel */}
 							<ResizablePanel defaultSize={80} minSize={30}>
-								{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedWorktree ? (
+								{loading || error || !currentWorkspace || !selectedWorktree ? (
 									<PlaceholderState
 										loading={loading}
 										error={error}
@@ -829,7 +826,13 @@ export const NewLayoutMain: React.FC = () => {
 									// Changes mode - always show diff view
 									<div className="w-full h-full">
 										<DiffTab
-											tab={{ id: "changes-view", name: "Changes", type: "diff" } as any}
+											tab={
+												{
+													id: "changes-view",
+													name: "Changes",
+													type: "diff",
+												} as any
+											}
 											workspaceId={currentWorkspace.id}
 											worktreeId={selectedWorktreeId ?? ""}
 											worktree={selectedWorktree}

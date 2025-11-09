@@ -525,6 +525,88 @@ export function registerWorkspaceIPCs() {
 		},
 	);
 
+	// Get git diff file list for a worktree (without detailed changes)
+	ipcMain.handle(
+		"worktree-get-git-diff-files",
+		async (_event, input: { workspaceId: string; worktreeId: string }) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				return await worktreeManager.getGitDiffFiles(
+					worktree.path,
+					workspace.branch,
+				);
+			} catch (error) {
+				console.error("Failed to get git diff files:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
+	// Get git diff for a single file
+	ipcMain.handle(
+		"worktree-get-git-file-diff",
+		async (
+			_event,
+			input: { workspaceId: string; worktreeId: string; filePath: string },
+		) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				return await worktreeManager.getGitFileDiff(
+					worktree.path,
+					workspace.branch,
+					input.filePath,
+				);
+			} catch (error) {
+				console.error("Failed to get git file diff:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
 	// Open app settings in Cursor
 	ipcMain.handle("open-app-settings", async () => {
 		try {

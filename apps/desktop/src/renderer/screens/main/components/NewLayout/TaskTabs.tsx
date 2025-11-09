@@ -99,10 +99,11 @@ export const TaskTabs: React.FC<WorktreeTabsProps> = ({
 										onClick={() => onWorktreeSelect(worktree.id)}
 										className={`
 										flex items-center gap-2 px-3 h-8 rounded-t-md transition-all border-t border-x
-										${selectedWorktreeId === worktree.id
+										${
+											selectedWorktreeId === worktree.id
 												? "bg-neutral-900 text-white border-neutral-700 -mb-px"
 												: "bg-neutral-800/50 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border-transparent"
-											}
+										}
 									`}
 									>
 										{/* Status indicator dot */}

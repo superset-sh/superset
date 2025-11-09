@@ -56,7 +56,11 @@ export const TaskListItem: React.FC<TaskListItemProps> = ({
 			{/* Second line: Assignee + Time */}
 			<div className="flex items-center gap-2 ml-5">
 				<div className="flex items-center gap-1.5">
-					<Avatar imageUrl={task.assigneeAvatarUrl} name={task.assignee} size={12} />
+					<Avatar
+						imageUrl={task.assigneeAvatarUrl}
+						name={task.assignee}
+						size={12}
+					/>
 					<span className="text-xs text-neutral-400">{task.assignee}</span>
 				</div>
 				<span className="text-xs text-neutral-500">·</span>

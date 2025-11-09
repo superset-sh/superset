@@ -87,7 +87,11 @@ class TerminalManager {
 			ptyProcess.onExit(({ exitCode }) => {
 				console.log(`Terminal ${id} exited with code ${exitCode}`);
 				// Notify renderer that terminal has exited (only if window still exists)
-				if (this.mainWindow && !this.mainWindow.isDestroyed() && !this.mainWindow.webContents.isDestroyed()) {
+				if (
+					this.mainWindow &&
+					!this.mainWindow.isDestroyed() &&
+					!this.mainWindow.webContents.isDestroyed()
+				) {
 					this.mainWindow.webContents.send("terminal-exited", {
 						id,
 						exitCode,
@@ -114,7 +118,11 @@ class TerminalManager {
 
 	emitMessage(id: string, data: string): void {
 		// Check if window exists and webContents is not destroyed before sending
-		if (this.mainWindow && !this.mainWindow.isDestroyed() && !this.mainWindow.webContents.isDestroyed()) {
+		if (
+			this.mainWindow &&
+			!this.mainWindow.isDestroyed() &&
+			!this.mainWindow.webContents.isDestroyed()
+		) {
 			this.mainWindow.webContents.send("terminal-on-data", {
 				id,
 				data,

@@ -192,7 +192,11 @@ function TerminalTabContent({
 	// so it can pass the correct dimensions when ready
 	useEffect(() => {
 		// Execute startup command if specified (only after terminal is created)
-		if (tab.command && tab.command.trim() !== "" && !terminalCreatedRef.current) {
+		if (
+			tab.command &&
+			tab.command.trim() !== "" &&
+			!terminalCreatedRef.current
+		) {
 			terminalCreatedRef.current = true;
 			const commandToExecute = tab.command;
 			// Wait for terminal to be created and attached

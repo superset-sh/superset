@@ -529,6 +529,249 @@ class WorktreeManager {
 	}
 
 	/**
+	 * Get list of changed files without detailed line-by-line changes
+	 * This is faster than getGitDiff for just listing files
+	 */
+	async getGitDiffFiles(
+		worktreePath: string,
+		mainBranch: string,
+	): Promise<{
+		success: boolean;
+		files?: Array<{
+			id: string;
+			fileName: string;
+			filePath: string;
+			status: "added" | "deleted" | "modified" | "renamed";
+			oldPath?: string;
+			additions: number;
+			deletions: number;
+		}>;
+		error?: string;
+	}> {
+		try {
+			// Get list of changed files with status
+			const diffFilesResult = await execAsync(
+				`git diff ${mainBranch} --name-status`,
+				{ cwd: worktreePath },
+			);
+
+			const fileLines = diffFilesResult.stdout
+				.trim()
+				.split("\n")
+				.filter(Boolean);
+			const files = [];
+
+			for (const fileLine of fileLines) {
+				const parts = fileLine.split("\t");
+				const statusCode = parts[0];
+				const filePath = parts[1];
+				const oldPath = parts[2]; // For renamed files
+
+				// Determine status
+				let status: "added" | "deleted" | "modified" | "renamed" = "modified";
+				if (statusCode.startsWith("A")) status = "added";
+				else if (statusCode.startsWith("D")) status = "deleted";
+				else if (statusCode.startsWith("R")) status = "renamed";
+				else if (statusCode.startsWith("M")) status = "modified";
+
+				// Get numstat for additions/deletions count
+				const numstatCommand = `git diff ${mainBranch} --numstat -- "${oldPath || filePath}"`;
+				const numstatResult = await execAsync(numstatCommand, {
+					cwd: worktreePath,
+				});
+
+				let additions = 0;
+				let deletions = 0;
+				const numstatLine = numstatResult.stdout.trim();
+				if (numstatLine) {
+					const [add, del] = numstatLine.split(/\s+/);
+					additions = add === "-" ? 0 : parseInt(add, 10) || 0;
+					deletions = del === "-" ? 0 : parseInt(del, 10) || 0;
+				}
+
+				const fileName = path.basename(oldPath || filePath);
+				files.push({
+					id: `file-${files.length}`,
+					fileName,
+					filePath: oldPath || filePath,
+					status,
+					...(oldPath && { oldPath: filePath }),
+					additions,
+					deletions,
+				});
+			}
+
+			return {
+				success: true,
+				files,
+			};
+		} catch (error) {
+			console.error("Failed to get git diff files:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
+	 * Get detailed git diff for a single file
+	 */
+	async getGitFileDiff(
+		worktreePath: string,
+		mainBranch: string,
+		filePath: string,
+	): Promise<{
+		success: boolean;
+		diff?: {
+			id: string;
+			fileName: string;
+			filePath: string;
+			status: "added" | "deleted" | "modified" | "renamed";
+			oldPath?: string;
+			additions: number;
+			deletions: number;
+			changes: Array<{
+				type: "added" | "removed" | "modified" | "unchanged";
+				oldLineNumber: number | null;
+				newLineNumber: number | null;
+				content: string;
+			}>;
+		};
+		error?: string;
+	}> {
+		try {
+			// First get the file status
+			const statusResult = await execAsync(
+				`git diff ${mainBranch} --name-status -- "${filePath}"`,
+				{ cwd: worktreePath },
+			);
+
+			const statusLine = statusResult.stdout.trim();
+			if (!statusLine) {
+				return {
+					success: false,
+					error: "File not found in diff",
+				};
+			}
+
+			const parts = statusLine.split("\t");
+			const statusCode = parts[0];
+			const currentPath = parts[1];
+			const oldPath = parts[2]; // For renamed files
+
+			// Determine status
+			let status: "added" | "deleted" | "modified" | "renamed" = "modified";
+			if (statusCode.startsWith("A")) status = "added";
+			else if (statusCode.startsWith("D")) status = "deleted";
+			else if (statusCode.startsWith("R")) status = "renamed";
+			else if (statusCode.startsWith("M")) status = "modified";
+
+			// Get detailed diff for this file
+			const diffCommand =
+				status === "deleted"
+					? `git diff ${mainBranch} -- "${currentPath}"`
+					: `git diff ${mainBranch} -- "${oldPath || currentPath}"`;
+
+			const fileDiffResult = await execAsync(diffCommand, {
+				cwd: worktreePath,
+				maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large diffs
+			});
+
+			const diffOutput = fileDiffResult.stdout;
+
+			// Parse the diff output
+			const changes: Array<{
+				type: "added" | "removed" | "modified" | "unchanged";
+				oldLineNumber: number | null;
+				newLineNumber: number | null;
+				content: string;
+			}> = [];
+
+			let oldLineNum = 0;
+			let newLineNum = 0;
+			let additions = 0;
+			let deletions = 0;
+
+			const diffLines = diffOutput.split("\n");
+			for (let i = 0; i < diffLines.length; i++) {
+				const line = diffLines[i];
+
+				// Parse hunk headers (e.g., @@ -1,4 +1,5 @@)
+				if (line.startsWith("@@")) {
+					const match = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+					if (match) {
+						oldLineNum = parseInt(match[1], 10);
+						newLineNum = parseInt(match[2], 10);
+					}
+					continue;
+				}
+
+				// Skip file headers
+				if (
+					line.startsWith("diff --git") ||
+					line.startsWith("index ") ||
+					line.startsWith("---") ||
+					line.startsWith("+++")
+				) {
+					continue;
+				}
+
+				// Parse actual changes
+				if (line.startsWith("+")) {
+					changes.push({
+						type: "added",
+						oldLineNumber: null,
+						newLineNumber: newLineNum,
+						content: line.substring(1),
+					});
+					newLineNum++;
+					additions++;
+				} else if (line.startsWith("-")) {
+					changes.push({
+						type: "removed",
+						oldLineNumber: oldLineNum,
+						newLineNumber: null,
+						content: line.substring(1),
+					});
+					oldLineNum++;
+					deletions++;
+				} else if (line.startsWith(" ")) {
+					changes.push({
+						type: "unchanged",
+						oldLineNumber: oldLineNum,
+						newLineNumber: newLineNum,
+						content: line.substring(1),
+					});
+					oldLineNum++;
+					newLineNum++;
+				}
+			}
+
+			const fileName = path.basename(oldPath || currentPath);
+			return {
+				success: true,
+				diff: {
+					id: `file-${filePath}`,
+					fileName,
+					filePath: oldPath || currentPath,
+					status,
+					...(oldPath && { oldPath: currentPath }),
+					additions,
+					deletions,
+					changes,
+				},
+			};
+		} catch (error) {
+			console.error("Failed to get git file diff:", error);
+			return {
+				success: false,
+				error: error instanceof Error ? error.message : String(error),
+			};
+		}
+	}
+
+	/**
 	 * Get detailed git diff for a worktree (line-by-line changes)
 	 */
 	async getGitDiff(
