@@ -30,7 +30,9 @@ export default {
 		output: `dist/v${version}`,
 	},
 
-	npmRebuild: false,
+	asarUnpack: ["**/node_modules/node-pty/**/*"],
+
+	npmRebuild: true,
 	buildDependenciesFromSource: false,
 	nodeGypRebuild: false,
 
