@@ -45,6 +45,7 @@ interface WorktreeTabsSidebarProps {
 	workspaceName?: string;
 	mainBranch?: string;
 	onDiffFileSelect?: (fileId: string | null) => void;
+	onModeChange?: (mode: SidebarMode) => void;
 }
 
 export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
@@ -58,6 +59,7 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 	workspaceName,
 	mainBranch,
 	onDiffFileSelect,
+	onModeChange,
 }) => {
 	const [currentMode, setCurrentMode] = useState<SidebarMode>("tabs");
 	const scrollProgress = useMotionValue(0);
@@ -144,7 +146,9 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 					newIndex < SIDEBAR_MODES.length &&
 					SIDEBAR_MODES[newIndex].id !== currentMode
 				) {
-					setCurrentMode(SIDEBAR_MODES[newIndex].id);
+					const newMode = SIDEBAR_MODES[newIndex].id;
+					setCurrentMode(newMode);
+					onModeChange?.(newMode);
 				}
 			}, 150);
 		};
@@ -157,7 +161,7 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 				clearTimeout(scrollTimeoutRef.current);
 			}
 		};
-	}, [currentMode]);
+	}, [currentMode, onModeChange]);
 
 	// Calculate sliding background position (each button is 40px wide including gap)
 	useEffect(() => {
@@ -276,6 +280,9 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 
 	const flatTabs = flattenTabs(tabs);
 
+	// Filter out diff tabs - they should only be accessed through Changes mode
+	const nonDiffTabs = flatTabs.filter(({ tab }) => tab.type !== "diff");
+
 	// Render tabs mode content
 	const renderTabsMode = () => (
 		<>
@@ -318,13 +325,13 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 
 			{/* Tab list */}
 			<div className="flex-1 overflow-y-auto">
-				{flatTabs.length === 0 ? (
+				{nonDiffTabs.length === 0 ? (
 					<div className="p-4 text-sm text-neutral-500">
 						No tabs yet. Create a terminal or preview to get started.
 					</div>
 				) : (
 					<div className="p-2">
-						{flatTabs.map(({ tab, level }) => (
+						{nonDiffTabs.map(({ tab, level }) => (
 							<button
 								key={tab.id}
 								type="button"
@@ -444,11 +451,11 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 	return (
 		<div className="flex flex-col h-full select-none text-neutral-300 text-sm">
 			{/* Mode Switcher */}
-			<div className="flex w-full border-b border-neutral-800">
+			<div className="flex w-full border-b border-neutral-800 bg-neutral-950">
 				<div className="relative flex items-center gap-2 px-2 py-2 w-full">
 					{/* Sliding background indicator */}
 					<motion.div
-						className="absolute w-8 h-8 bg-neutral-800 rounded-md"
+						className="absolute w-8 h-8 bg-neutral-800 rounded-md pointer-events-none"
 						style={{ x: backgroundX }}
 						initial={false}
 						transition={{
@@ -461,17 +468,28 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 					{SIDEBAR_MODES.map((mode, index) => {
 						const Icon = mode.icon;
 						const opacity = modeOpacities[index];
+						const isActive = currentMode === mode.id;
 
 						return (
 							<Tooltip key={mode.id}>
 								<TooltipTrigger asChild>
 									<motion.button
 										type="button"
-										onClick={() => setCurrentMode(mode.id)}
-										className="relative z-10 flex h-8 w-8 items-center justify-center rounded-sm transition-colors hover:bg-white/5"
-										style={{ opacity }}
+										onClick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											console.log("Mode button clicked:", mode.id);
+											setCurrentMode(mode.id);
+											onModeChange?.(mode.id);
+										}}
+										className={`relative z-20 flex h-8 w-8 items-center justify-center rounded-sm transition-all cursor-pointer ${
+											isActive
+												? "text-neutral-100"
+												: "text-neutral-500 hover:text-neutral-300"
+										} hover:bg-white/10 active:bg-white/20`}
+										style={{ opacity: isActive ? 1 : opacity }}
 									>
-										<Icon size={18} className="text-neutral-100" />
+										<Icon size={18} className="pointer-events-none" />
 									</motion.button>
 								</TooltipTrigger>
 								<TooltipContent side="top">

@@ -219,6 +219,7 @@ export const NewLayoutMain: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedDiffFile, setSelectedDiffFile] = useState<string | null>(null);
+	const [sidebarMode, setSidebarMode] = useState<"tabs" | "changes">("tabs");
 
 	const handleCollapseSidebar = () => {
 		const panel = sidebarPanelRef.current;
@@ -699,6 +700,7 @@ export const NewLayoutMain: React.FC = () => {
 							workspaceName={currentWorkspace?.name}
 							mainBranch={currentWorkspace?.branch}
 							onDiffFileSelect={setSelectedDiffFile}
+							onModeChange={setSidebarMode}
 						/>
 					</div>
 				</div>
@@ -806,6 +808,7 @@ export const NewLayoutMain: React.FC = () => {
 										workspaceName={currentWorkspace?.name}
 										mainBranch={currentWorkspace?.branch}
 										onDiffFileSelect={setSelectedDiffFile}
+										onModeChange={setSidebarMode}
 									/>
 								)}
 							</ResizablePanel>
@@ -817,11 +820,30 @@ export const NewLayoutMain: React.FC = () => {
 								{loading ||
 									error ||
 									!currentWorkspace ||
-									!selectedTab ||
 									!selectedWorktree ? (
 									<PlaceholderState
 										loading={loading}
 										error={error}
+										hasWorkspace={!!currentWorkspace}
+									/>
+								) : sidebarMode === "changes" ? (
+									// Changes mode - always show diff view
+									<div className="w-full h-full">
+										<DiffTab
+											tab={{ id: "changes-view", name: "Changes", type: "diff" } as any}
+											workspaceId={currentWorkspace.id}
+											worktreeId={selectedWorktreeId ?? ""}
+											worktree={selectedWorktree}
+											workspaceName={currentWorkspace.name}
+											mainBranch={currentWorkspace.branch}
+											selectedDiffFile={selectedDiffFile}
+											onDiffFileSelect={setSelectedDiffFile}
+										/>
+									</div>
+								) : !selectedTab ? (
+									<PlaceholderState
+										loading={false}
+										error={null}
 										hasWorkspace={!!currentWorkspace}
 									/>
 								) : parentGroupTab ? (
