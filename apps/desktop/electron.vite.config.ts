@@ -1,4 +1,5 @@
 import { dirname, normalize, resolve } from "node:path";
+import { writeFileSync } from "node:fs";
 import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
@@ -22,7 +23,22 @@ const tsconfigPaths = tsconfigPathsPlugin({
 
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, externalizeDepsPlugin()],
+		plugins: [
+			tsconfigPaths,
+			externalizeDepsPlugin(),
+			{
+				name: "copy-package-json",
+				closeBundle() {
+					const pkgPath = resolve(devPath, "main/package.json");
+					const pkg = {
+						name: "Superset",
+						version: "0.1.0",
+						main: "index.js",
+					};
+					writeFileSync(pkgPath, JSON.stringify(pkg, null, 2));
+				},
+			},
+		],
 
 		build: {
 			rollupOptions: {
