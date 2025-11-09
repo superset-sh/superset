@@ -1,4 +1,5 @@
 import type { RouterOutputs } from "@superset/api";
+import { Play } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 
@@ -72,9 +73,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
 					<button
 						type="button"
 						onClick={handleStartTask}
-						className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+						className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors flex items-center gap-1.5"
 					>
-						Start Task
+						<Play size={12} className="fill-white" />
+						<span>Start Task</span>
 					</button>
 				)}
 			</div>

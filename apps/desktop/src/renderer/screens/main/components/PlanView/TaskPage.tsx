@@ -1,5 +1,5 @@
 import type { RouterOutputs } from "@superset/api";
-import { ChevronDown, ChevronLeft, User as UserIcon } from "lucide-react";
+import { ChevronDown, ChevronLeft, Play, User as UserIcon } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -143,9 +143,10 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 					</div>
 					<button
 						type="button"
-						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+						className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
 					>
-						Start Task
+						<Play size={14} className="fill-white" />
+						<span>Start Task</span>
 					</button>
 				</div>
 			</div>
