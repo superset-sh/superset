@@ -1,5 +1,6 @@
 import type { RouterOutputs } from "@superset/api";
 import type React from "react";
+import { useState } from "react";
 
 type Task = RouterOutputs["task"]["all"][number];
 
@@ -21,12 +22,21 @@ const statusColors: Record<string, string> = {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
 	const statusColor = statusColors[task.status] || "bg-neutral-500";
+	const [isHovered, setIsHovered] = useState(false);
+
+	const handleStartTask = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		// TODO: Implement start task functionality
+		console.log("Start task:", task.id);
+	};
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
-			className="w-full bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800/50 hover:border-neutral-700/70 rounded-xl p-3.5 text-left transition-all group shadow-sm hover:shadow-md"
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
+			className="w-full bg-neutral-900/40 hover:bg-neutral-900/70 border border-neutral-800/50 hover:border-neutral-700/70 rounded-xl p-3.5 text-left transition-all group shadow-sm hover:shadow-md relative"
 		>
 			{/* Task header */}
 			<div className="flex items-start gap-2 mb-2.5">
@@ -56,6 +66,17 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onClick }) => {
 					</div>
 				)}
 				<div className="flex-1" />
+
+				{/* Start Task button - appears on hover for TODO tasks */}
+				{isHovered && task.status === "todo" && (
+					<button
+						type="button"
+						onClick={handleStartTask}
+						className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+					>
+						Start Task
+					</button>
+				)}
 			</div>
 		</button>
 	);
