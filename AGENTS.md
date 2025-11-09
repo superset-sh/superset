@@ -121,7 +121,6 @@ components/                                # Used in 2+ pages (last resort)
 2. **Co-locate by usage**: If used once, nest under parent's `components/`. If used 2+ times, promote to **highest shared parent's** `components/` (or `components/` as last resort)
 3. **One component per file**: No multi-component files
 4. **Co-locate dependencies**: Utils, hooks, constants, config, tests, stories live next to the file using them
-5. **Test coverage**: All components should have co-located `.test.tsx` files next to their implementation
 
 ## Database Rules
 
