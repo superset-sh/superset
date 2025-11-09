@@ -1,8 +1,7 @@
 export const CLIENT_LOGOS = [
 	{ name: "numbies", logo: "numbies.xyz" },
 	{ name: "findmymachinist", logo: "findmymachinist.com" },
-	{ name: "21st.dev", logo: "21st.dev" },
-	{ name: "AdamCAD", logo: "adam.new" },
+	{ name: "21st.dev", logo: "21st" },
 	{ name: "cadra", logo: "Cadra" },
 	{ name: "onlook", logo: "Onlook" },
 	{ name: "amazon", logo: "Amazon" },
