@@ -374,6 +374,20 @@ export const NewLayoutMain: React.FC = () => {
 		}
 	};
 
+	// Reload both workspaces and current workspace
+	const reloadWorkspaceData = async () => {
+		await loadAllWorkspaces();
+		if (currentWorkspace) {
+			const refreshedWorkspace = await window.ipcRenderer.invoke(
+				"workspace-get",
+				currentWorkspace.id,
+			);
+			if (refreshedWorkspace) {
+				setCurrentWorkspace(refreshedWorkspace);
+			}
+		}
+	};
+
 	// Handle tab selection
 	const handleTabSelect = (worktreeId: string, tabId: string) => {
 		setSelectedWorktreeId(worktreeId);
@@ -949,7 +963,7 @@ export const NewLayoutMain: React.FC = () => {
 								currentWorkspace={currentWorkspace}
 								selectedWorktreeId={selectedWorktreeId}
 								onTabSelect={handleTabSelect}
-								onReload={loadAllWorkspaces}
+								onReload={reloadWorkspaceData}
 							/>
 						) : (
 							// Edit mode - show workspace/terminal view

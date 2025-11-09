@@ -93,7 +93,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 				command: `claude "${escapedPrompt}"`,
 			});
 
-			if (result.success) {
+			if (result.success && result.tab) {
+				const newTabId = result.tab.id;
+
 				// Update task status to planning (pending)
 				onUpdateTask(task.id, {
 					title: task.title,
@@ -104,14 +106,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 				// Reload workspace to get updated tab data
 				await onReload();
 
-				// Select the new tab after reload
-				const newTabId = result.tab?.id;
-				if (newTabId) {
-					// Small delay to ensure workspace is reloaded
-					setTimeout(() => {
-						onTabSelect(targetWorktreeId, newTabId);
-					}, 100);
-				}
+				// Select the new tab immediately after reload completes
+				onTabSelect(targetWorktreeId, newTabId);
 			}
 		} catch (error) {
 			console.error("Error starting task:", error);
