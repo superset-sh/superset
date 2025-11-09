@@ -11,7 +11,8 @@ Bun + Turbo monorepo with:
   - `apps/docs` - Documentation site
   - `apps/blog` - Blog site
 - **Packages**:
-  - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4)
+  - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4). 
+    - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
   - `packages/db` - Drizzle ORM database schema
   - `packages/constants` - Shared constants
   - `packages/models` - Shared data models
@@ -52,16 +53,6 @@ bun run clean              # Clean root node_modules
 bun run clean:workspaces   # Clean all workspace node_modules
 ```
 
-## UI Components
-
-All components in `packages/ui`:
-- **Import**: `@superset/ui/button`, `@superset/ui/input`, etc.
-- **Icons**: `@superset/ui/icons`
-- **Utils**: `@superset/ui/utils`
-- **Hooks**: `@superset/ui/hooks`
-- **Styles**: `@superset/ui/globals.css`
-- **Add shadcn component**: `npx shadcn@latest add <component>` (run in `packages/ui/`)
-
 ## Code Quality
 
 **Biome runs at root level** (not per-package) for speed:
@@ -74,9 +65,58 @@ All components in `packages/ui`:
 
 1. **Keep diffs minimal** - targeted edits only
 2. **Follow existing patterns** - match the codebase style
-5. **Type safety** - avoid `any` unless necessary
-6. **Don't run dev servers** in automation
-7. **Search narrowly** - avoid reading large files/assets
+3. **Type safety** - avoid `any` unless necessary
+4. **Don't run dev servers** in automation
+5. **Search narrowly** - avoid reading large files/assets
+
+## Project Structure
+
+All projects in this repo should be structured like this:
+
+```
+app/
+├── page.tsx
+├── dashboard/
+│   ├── page.tsx
+│   └── components/
+│       └── MetricsChart/
+│           ├── MetricsChart.tsx
+│           ├── index.ts
+│           ├── useMetricsData.ts          # Hook used only here
+│           └── constants.ts
+└── components/
+    ├── Sidebar/
+    │   ├── Sidebar.tsx
+    │   ├── Sidebar.test.tsx
+    │   ├── index.ts
+    │   ├── components/                    # Used 2+ times IN Sidebar
+    │   │   └── SidebarButton/             # Shared by SidebarNav + SidebarFooter
+    │   │       ├── SidebarButton.tsx
+    │   │       └── index.ts
+    │   ├── SidebarNav/
+    │   │   ├── SidebarNav.tsx
+    │   │   └── index.ts
+    │   └── SidebarFooter/
+    │       ├── SidebarFooter.tsx
+    │       └── index.ts
+    └── HeroSection/
+        ├── HeroSection.tsx
+        ├── index.ts
+        └── components/                    # Used ONLY by HeroSection
+            └── HeroCanvas/
+                ├── HeroCanvas.tsx
+                ├── HeroCanvas.stories.tsx
+                ├── index.ts
+                └── config.ts
+
+components/                                # Used in 2+ pages (last resort)
+└── Header/
+```
+
+1. **One folder per component**: `ComponentName/ComponentName.tsx` + `index.ts` for barrel export
+2. **Co-locate by usage**: If used once, nest under parent's `components/`. If used 2+ times, promote to **highest shared parent's** `components/` (or `components/` as last resort)
+3. **One component per file**: No multi-component files
+4. **Co-locate dependencies**: Utils, hooks, constants, config, tests, stories live next to the file using them
 
 ## Database Rules
 
