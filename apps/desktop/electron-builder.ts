@@ -42,6 +42,11 @@ export default {
 		notarize: false,
 	},
 
+	protocols: {
+		name: displayName,
+		schemes: ["superset"],
+	},
+
 	linux: {
 		artifactName,
 		category: "Utilities",
