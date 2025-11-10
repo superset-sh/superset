@@ -7,6 +7,7 @@ import { WaitlistModal } from "./components/WaitlistModal";
 import { HeroSection } from "./components/HeroSection";
 import { ClientLogosSection } from "./components/ClientLogosSection";
 import { FeaturesSection } from "./components/FeaturesSection";
+import { TestimonialsSection } from "./components/TestimonialsSection";
 
 export default function Home() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
@@ -18,6 +19,7 @@ export default function Home() {
 				<HeroSection />
 				<ClientLogosSection />
 				<FeaturesSection onOpenWaitlist={() => setIsWaitlistOpen(true)} />
+				<TestimonialsSection />
 				<Footer />
 			</main>
 			<WaitlistModal
