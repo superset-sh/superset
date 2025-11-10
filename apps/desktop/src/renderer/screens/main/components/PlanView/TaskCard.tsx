@@ -90,7 +90,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 				worktreeId: targetWorktreeId,
 				name: `Task: ${task.slug}`,
 				type: "terminal",
-				command: `claude "${escapedPrompt}"`,
+				command: `claude --dangerously-skip-permissions "${escapedPrompt}"`,
 			});
 
 			if (result.success && result.tab) {
