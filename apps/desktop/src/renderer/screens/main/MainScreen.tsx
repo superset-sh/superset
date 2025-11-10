@@ -17,7 +17,7 @@ import {
 	ResizablePanel,
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import type { MosaicNode, Tab, TabType, Workspace } from "shared/types";
 import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
@@ -245,10 +245,11 @@ export function MainScreen() {
 		return null;
 	};
 
-	// Get selected tab and its parent (if it's a sub-tab)
-	const tabResult = selectedWorktree?.tabs
-		? findTabRecursive(selectedWorktree.tabs, selectedTabId ?? "")
-		: null;
+	// Get selected tab and its parent (if it's a sub-tab) - memoized to avoid recalculating on every render
+	const tabResult = useMemo(() => {
+		if (!selectedWorktree?.tabs || !selectedTabId) return null;
+		return findTabRecursive(selectedWorktree.tabs, selectedTabId);
+	}, [selectedWorktree?.tabs, selectedTabId]);
 
 	const selectedTab = tabResult?.tab;
 	const parentGroupTab = tabResult?.parent;

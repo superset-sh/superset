@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Tab, Worktree } from "shared/types";
 
 interface PortTabProps {
@@ -36,11 +36,17 @@ export function PortTab({ tab, worktree, workspaceId }: PortTabProps) {
 	}, []);
 
 	const detectedPorts = worktree.detectedPorts || {};
-	const portEntries = Object.entries(detectedPorts);
+	const portEntries = useMemo(() => Object.entries(detectedPorts), [detectedPorts]);
 
-	// Get active proxies
-	const activeProxies = proxyStatus.filter((p) => p.active && p.target);
-	const proxyMap = new Map(activeProxies.map((p) => [p.target, p.canonical]));
+	// Get active proxies - memoized to avoid recalculating on every render
+	const activeProxies = useMemo(
+		() => proxyStatus.filter((p) => p.active && p.target),
+		[proxyStatus],
+	);
+	const proxyMap = useMemo(
+		() => new Map(activeProxies.map((p) => [p.target, p.canonical])),
+		[activeProxies],
+	);
 
 	const handleOpenPort = (port: number) => {
 		const canonicalPort = proxyMap.get(port);
