@@ -15,38 +15,6 @@ const TESTIMONIALS = [
 		avatar: "NB",
 		color: "bg-orange-400",
 	},
-	{
-		quote:
-			"Creative geniuses who listen, understand, and craft captivating visuals - an agency that truly understands our needs.",
-		author: "Gabrielle Williams",
-		title: "CEO and Co-founder of ABC Company",
-		avatar: "GW",
-		color: "bg-yellow-400",
-	},
-	{
-		quote:
-			"A refreshing and imaginative agency that consistently delivers exceptional results - highly recommended for any project.",
-		author: "Victoria Thompson",
-		title: "CEO and Co-founder of ABC Company",
-		avatar: "VT",
-		color: "bg-purple-400",
-	},
-	{
-		quote:
-			"Their team's artistic flair and strategic approach resulted in remarkable campaigns - a reliable creative partner.",
-		author: "John Peter",
-		title: "CEO and Co-founder of ABC Company",
-		avatar: "JP",
-		color: "bg-amber-600",
-	},
-	{
-		quote:
-			"From concept to execution, their creativity knows no bounds - a game-changer for our brand's success.",
-		author: "Natalie Martinez",
-		title: "CEO and Co-founder of ABC Company",
-		avatar: "NM",
-		color: "bg-indigo-400",
-	},
 ] as const;
 
 export function TestimonialsSection() {
@@ -55,7 +23,7 @@ export function TestimonialsSection() {
 	const secondRow = TESTIMONIALS.slice(3, 6);
 
 	return (
-		<section className="py-16 sm:py-24 md:py-32 bg-black overflow-hidden">
+		<section className="hidden py-16 sm:py-24 md:py-32 bg-black overflow-hidden">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
