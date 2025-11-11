@@ -144,8 +144,6 @@ class TmuxManager {
 
 			// Apply invisibility settings
 			this.applySessionSettings(sid);
-		} else {
-			console.log(`[TmuxManager] Session ${sid} already exists, reusing`);
 		}
 	}
 
