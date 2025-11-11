@@ -12,6 +12,7 @@ import {
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
 import {
+	CreateWorktreeButton,
 	CreateWorktreeModal,
 	WorktreeList,
 } from "./components";
@@ -26,14 +27,18 @@ export function Sidebar({
 	isDragging = false,
 	onDiffModeChange,
 }: SidebarProps) {
-	const { workspaces, currentWorkspace, handleWorkspaceSelect } = useWorkspaceContext();
-	const { selectedTabId, selectedWorktreeId, handleTabSelect } = useTabContext();
-	const { handleWorktreeCreated, handleUpdateWorktree } = useWorktreeOperationsContext();
+	const { workspaces, currentWorkspace, handleWorkspaceSelect } =
+		useWorkspaceContext();
+	const { selectedTabId, selectedWorktreeId, handleTabSelect } =
+		useTabContext();
+	const { handleWorktreeCreated, handleUpdateWorktree } =
+		useWorktreeOperationsContext();
 	const { handleCollapseSidebar } = useSidebarContext();
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
 	);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
+	const [isCreatingCloudWorktree, setIsCreatingCloudWorktree] = useState(false);
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
 	const [title, setTitle] = useState("");
@@ -63,7 +68,8 @@ export function Sidebar({
 		};
 
 		window.addEventListener("workspace-changed", handleWorkspaceChanged);
-		return () => window.removeEventListener("workspace-changed", handleWorkspaceChanged);
+		return () =>
+			window.removeEventListener("workspace-changed", handleWorkspaceChanged);
 	}, [handleWorktreeCreated]);
 
 	// Fetch diff data when in changes mode
@@ -171,6 +177,65 @@ export function Sidebar({
 		setCloneTabsFromWorktreeId("");
 		setDescription("");
 		setShowWorktreeModal(true);
+	};
+
+	const handleCreateCloudWorktree = async () => {
+		if (!currentWorkspace) return;
+
+		// For now, create a simple worktree and immediately create a cloud sandbox for it
+		const title = "Cloud Development";
+		const branch = `cloud-dev-${Date.now()}`;
+
+		try {
+			setIsCreatingCloudWorktree(true);
+
+			// Create worktree
+			const result = await window.ipcRenderer.invoke("worktree-create", {
+				workspaceId: currentWorkspace.id,
+				title,
+				branch,
+				createBranch: true,
+				description: "Cloud development environment",
+			});
+
+			if (result.success && result.worktree) {
+				onWorktreeCreated();
+
+				// Immediately create cloud sandbox for this worktree
+				const sandboxResult = await window.ipcRenderer.invoke(
+					"worktree-create-cloud-sandbox",
+					{
+						workspaceId: currentWorkspace.id,
+						worktreeId: result.worktree.id,
+					},
+				);
+
+				if (sandboxResult.success && sandboxResult.sandbox?.claudeHost) {
+					// Create a preview tab with the claude host URL
+					const claudeUrl = sandboxResult.sandbox.claudeHost.startsWith("http")
+						? sandboxResult.sandbox.claudeHost
+						: `https://${sandboxResult.sandbox.claudeHost}`;
+
+					await window.ipcRenderer.invoke("tab-create", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: result.worktree.id,
+						name: "Cloud IDE",
+						type: "preview",
+						url: claudeUrl,
+					});
+				}
+			} else {
+				alert(
+					`Failed to create cloud worktree: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to create cloud worktree: ${errorMessage}`);
+		} finally {
+			setIsCreatingCloudWorktree(false);
+		}
 	};
 
 	const handleCloneWorktree = (worktreeId: string, branch: string) => {
@@ -387,6 +452,15 @@ export function Sidebar({
 								}
 								showWorkspaceHeader={true}
 							/>
+
+							{currentWorkspace && (
+								<CreateWorktreeButton
+									onClick={handleCreateWorktree}
+									onCreateCloud={handleCreateCloudWorktree}
+									isCreating={isCreatingWorktree}
+									isCreatingCloud={isCreatingCloudWorktree}
+								/>
+							)}
 						</>
 					);
 				}}
