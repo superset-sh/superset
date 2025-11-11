@@ -20,7 +20,7 @@
 		"nextra-theme-docs": "^4.6.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
-		"three": "^0.180.0"
+		"three": "^0.181.1"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
