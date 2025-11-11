@@ -17,6 +17,7 @@ interface TabContentProps {
 	onTabFocus: (tabId: string) => void;
 	workspaceName?: string;
 	mainBranch?: string;
+	isVisibleInMosaic?: boolean; // Whether this tab is visible in a mosaic layout
 }
 
 /**
@@ -39,6 +40,7 @@ export default function TabContent({
 	onTabFocus,
 	workspaceName,
 	mainBranch,
+	isVisibleInMosaic = false,
 }: TabContentProps) {
 	const handleFocus = () => {
 		onTabFocus(tab.id);
@@ -71,6 +73,7 @@ export default function TabContent({
 					groupTabId={groupTabId}
 					selectedTabId={selectedTabId}
 					onFocus={handleFocus}
+					isVisibleInMosaic={isVisibleInMosaic}
 				/>
 			);
 
@@ -165,6 +168,7 @@ interface TerminalTabContentProps {
 	groupTabId: string; // ID of the parent group tab
 	selectedTabId?: string; // Currently selected tab ID
 	onFocus: () => void;
+	isVisibleInMosaic?: boolean; // Whether this tab is visible in a mosaic layout
 }
 
 function TerminalTabContent({
@@ -175,9 +179,12 @@ function TerminalTabContent({
 	groupTabId,
 	selectedTabId,
 	onFocus,
+	isVisibleInMosaic = false,
 }: TerminalTabContentProps) {
 	const terminalId = tab.id;
 	const isSelected = selectedTabId === tab.id;
+	// Terminal should be visible if it's selected OR visible in a mosaic layout
+	const isVisible = isSelected || isVisibleInMosaic;
 
 	// Listen for CWD changes from the main process
 	useEffect(() => {
@@ -215,7 +222,7 @@ function TerminalTabContent({
 			<Terminal
 				key={terminalId}
 				terminalId={terminalId}
-				hidden={!isSelected}
+				hidden={!isVisible}
 				onFocus={onFocus}
 				cwd={terminalCwd}
 			/>

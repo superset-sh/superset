@@ -193,6 +193,7 @@ export default function TabGroup({
 							onTabFocus={onTabFocus}
 							workspaceName={workspaceName}
 							mainBranch={mainBranch}
+							isVisibleInMosaic={true}
 						/>
 					</div>
 				</MosaicWindow>
