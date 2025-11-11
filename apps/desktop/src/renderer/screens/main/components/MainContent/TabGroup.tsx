@@ -259,29 +259,40 @@ export default function TabGroup({
 				.mosaic-theme-dark .mosaic-window {
 					background: #1a1a1a;
 					border: 1px solid #333;
+					outline: none;
+					transition: outline 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
 					background: #262626;
 					border-bottom: 1px solid #333;
 					height: 32px;
 					padding: 0 8px;
+					transition: background-color 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window .mosaic-window-title {
 					color: #e5e5e5;
 					font-size: 12px;
+					transition: color 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window-body {
 					background: #1a1a1a;
 				}
 				.mosaic-theme-dark .mosaic-split {
 					background: #333;
+					opacity: 0;
+					border-radius: 25px;
+					transition: opacity 0.2s ease, background-color 0.2s ease;
 				}
 				.mosaic-theme-dark .mosaic-split:hover {
+					opacity: 1;
 					background: #444;
 				}
-				.active-mosaic-window .mosaic-window {
-					border: 1px solid #3b82f6 !important;
-					box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+				.mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
+					opacity: 1;
+					background: #555;
+				}
+				.active-mosaic-window .mosaic-window-toolbar {
+					background: #3a3a3a !important;
 				}
 			`}</style>
 		</div>
