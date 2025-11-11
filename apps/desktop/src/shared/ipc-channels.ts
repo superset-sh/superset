@@ -377,6 +377,13 @@ export interface IpcChannels {
 			error?: string;
 		};
 	};
+	"cloud-sandbox-delete-by-id": {
+		request: { sandboxId: string };
+		response: {
+			success: boolean;
+			error?: string;
+		};
+	};
 }
 
 /**
@@ -447,6 +454,7 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"worktree-create-cloud-sandbox",
 		"worktree-open-cloud-sandbox",
 		"worktree-delete-cloud-sandbox",
+		"cloud-sandbox-delete-by-id",
 	];
 	return validChannels.includes(channel as IpcChannelName);
 }
