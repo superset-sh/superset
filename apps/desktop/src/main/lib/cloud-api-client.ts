@@ -5,6 +5,7 @@ interface CreateSandboxParams {
 	name: string;
 	githubRepo?: string;
 	taskDescription?: string;
+	envVars?: Record<string, string>;
 }
 
 interface CreateSandboxResponse {
@@ -66,11 +67,18 @@ class CloudApiClient {
 		}
 
 		try {
+			// Get Claude Code auth token from .env.local
+			const claudeAuthToken = process.env.CLAUDE_CODE_OAUTH_TOKEN;
+
 			const requestBody = {
 				name: params.name,
 				template: "yolocode",
 				githubRepo: params.githubRepo,
 				taskDescription: params.taskDescription,
+				envVars: {
+					...params.envVars,
+					...(claudeAuthToken && { CLAUDE_CODE_OAUTH_TOKEN: claudeAuthToken }),
+				},
 			};
 
 			console.log("Creating sandbox with params:", requestBody);
