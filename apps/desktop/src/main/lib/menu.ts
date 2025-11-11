@@ -1,4 +1,5 @@
 import { app, type BrowserWindow, dialog, Menu } from "electron";
+import windowManager from "./window-manager";
 import workspaceManager from "./workspace-manager";
 
 export function createApplicationMenu(mainWindow: BrowserWindow) {
@@ -6,6 +7,23 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 		{
 			label: "File",
 			submenu: [
+				{
+					label: "New Window",
+					accelerator: "CmdOrCtrl+Shift+N",
+					click: async () => {
+						try {
+							await windowManager.createWindow();
+						} catch (error) {
+							console.error("[Menu] Failed to create new window:", error);
+							dialog.showErrorBox(
+								"Error",
+								"Failed to create new window: " +
+									(error instanceof Error ? error.message : "Unknown error"),
+							);
+						}
+					},
+				},
+				{ type: "separator" },
 				{
 					label: "Open Repository...",
 					accelerator: "CmdOrCtrl+O",

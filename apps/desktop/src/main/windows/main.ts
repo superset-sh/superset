@@ -40,11 +40,8 @@ export async function MainWindow() {
 		},
 	});
 
-	// Register IPC handlers
+	// Register terminal IPCs for this window
 	const cleanupTerminal = registerTerminalIPCs(window);
-	registerWorkspaceIPCs();
-	registerPortIpcs();
-	registerDeepLinkIpcs();
 
 	// Set up port detection listeners
 	portDetector.on("port-detected", async (event: any) => {
