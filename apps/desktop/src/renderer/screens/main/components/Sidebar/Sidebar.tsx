@@ -199,8 +199,6 @@ export function Sidebar({
 			});
 
 			if (result.success && result.worktree) {
-				onWorktreeCreated();
-
 				// Immediately create cloud sandbox for this worktree
 				const sandboxResult = await window.ipcRenderer.invoke(
 					"worktree-create-cloud-sandbox",
@@ -224,6 +222,9 @@ export function Sidebar({
 						url: claudeUrl,
 					});
 				}
+
+				// Refresh UI after everything is created
+				onWorktreeCreated();
 			} else {
 				alert(
 					`Failed to create cloud worktree: ${result.error || "Unknown error"}`,
