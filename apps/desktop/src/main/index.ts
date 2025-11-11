@@ -8,9 +8,12 @@ config({ path: resolve(__dirname, "../../../../.env"), override: true });
 import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { registerDeepLinkIpcs } from "main/lib/deep-link-ipcs";
 import { deepLinkManager } from "main/lib/deep-link-manager";
+import { registerPortIpcs } from "main/lib/port-ipcs";
 import { getPort } from "main/lib/port-manager";
-import { MainWindow } from "./windows/main";
+import windowManager from "main/lib/window-manager";
+import { registerWorkspaceIPCs } from "main/lib/workspace-ipcs";
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -19,11 +22,9 @@ const PROTOCOL_SCHEME = "superset";
 // In development, we need to provide the execPath and args
 if (process.defaultApp) {
 	if (process.argv.length >= 2) {
-		app.setAsDefaultProtocolClient(
-			PROTOCOL_SCHEME,
-			process.execPath,
-			[path.resolve(process.argv[1])],
-		);
+		app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [
+			path.resolve(process.argv[1]),
+		]);
 	}
 } else {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
@@ -46,5 +47,11 @@ app.on("open-url", (event, url) => {
 	console.log(`Using dev server port: ${port}`);
 
 	await app.whenReady();
-	await makeAppSetup(MainWindow);
+
+	// Register IPC handlers once at startup (not per-window)
+	registerWorkspaceIPCs();
+	registerPortIpcs();
+	registerDeepLinkIpcs();
+
+	await makeAppSetup(() => windowManager.createWindow());
 })();
