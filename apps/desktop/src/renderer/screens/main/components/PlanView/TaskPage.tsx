@@ -62,9 +62,7 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 	const [title, setTitle] = useState(task.title);
 	const [description, setDescription] = useState(task.description || "");
 	const [status, setStatus] = useState(task.status);
-	const [assigneeId, setAssigneeId] = useState<string | null>(
-		task.assigneeId,
-	);
+	const [assigneeId, setAssigneeId] = useState<string | null>(task.assigneeId);
 	const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -145,7 +143,10 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 
 			if (taskWorktree) {
 				targetWorktreeId = taskWorktree.id;
-			} else if (currentWorkspace.worktrees && currentWorkspace.worktrees.length > 0) {
+			} else if (
+				currentWorkspace.worktrees &&
+				currentWorkspace.worktrees.length > 0
+			) {
 				// Use the first worktree as fallback
 				targetWorktreeId = currentWorkspace.worktrees[0].id;
 			}
@@ -354,8 +355,9 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 										)}
 									</div>
 									<ChevronDown
-										className={`w-4 h-4 text-neutral-500 transition-transform ${isAssigneeDropdownOpen ? "rotate-180" : ""
-											}`}
+										className={`w-4 h-4 text-neutral-500 transition-transform ${
+											isAssigneeDropdownOpen ? "rotate-180" : ""
+										}`}
 									/>
 								</button>
 
@@ -381,8 +383,7 @@ export const TaskPage: React.FC<TaskPageProps> = ({
 												>
 													<img
 														src={
-															user.avatarUrl ||
-															"https://via.placeholder.com/24"
+															user.avatarUrl || "https://via.placeholder.com/24"
 														}
 														alt={user.name}
 														className="w-5 h-5 rounded-full ring-1 ring-neutral-700"

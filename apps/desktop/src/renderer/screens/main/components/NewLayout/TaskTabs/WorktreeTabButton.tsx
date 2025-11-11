@@ -38,7 +38,8 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 			{isPending ? (
 				<Loader2 size={14} className="animate-spin text-blue-400" />
 			) : (
-				hasTask && task && <StatusIndicator status={task.status} showLabel={false} />
+				hasTask &&
+				task && <StatusIndicator status={task.status} showLabel={false} />
 			)}
 			<span className="text-sm whitespace-nowrap">
 				{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}

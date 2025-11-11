@@ -62,7 +62,9 @@ export const TaskWorktreeContent: React.FC<TaskWorktreeContentProps> = ({
 
 				<div className="flex items-center gap-2 col-span-2">
 					<span className="text-neutral-500">Tabs</span>
-					<span className="text-neutral-300">{worktree.tabs?.length || 0} open</span>
+					<span className="text-neutral-300">
+						{worktree.tabs?.length || 0} open
+					</span>
 				</div>
 			</div>
 		</div>

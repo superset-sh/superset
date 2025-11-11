@@ -32,7 +32,6 @@ export function TestimonialsSection() {
 					transition={{ duration: 0.5 }}
 					className="text-center mb-12 sm:mb-16"
 				>
-
 					<h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
 						Engineers love Superset
 					</h2>
@@ -83,7 +82,9 @@ export function TestimonialsSection() {
 									<div className="text-white font-semibold text-base">
 										{testimonial.author}
 									</div>
-									<div className="text-zinc-500 text-sm">{testimonial.title}</div>
+									<div className="text-zinc-500 text-sm">
+										{testimonial.title}
+									</div>
 								</div>
 							</div>
 						</div>
@@ -135,7 +136,9 @@ export function TestimonialsSection() {
 									<div className="text-white font-semibold text-base">
 										{testimonial.author}
 									</div>
-									<div className="text-zinc-500 text-sm">{testimonial.title}</div>
+									<div className="text-zinc-500 text-sm">
+										{testimonial.title}
+									</div>
 								</div>
 							</div>
 						</div>

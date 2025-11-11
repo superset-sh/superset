@@ -724,7 +724,8 @@ class WorktreeManager {
 					console.error("Failed to commit changes:", commitError);
 					return {
 						success: false,
-						error: "Failed to commit changes. Please commit manually and try again.",
+						error:
+							"Failed to commit changes. Please commit manually and try again.",
 					};
 				}
 			}
@@ -764,11 +765,15 @@ class WorktreeManager {
 			} catch (pushError) {
 				const errorStr = String(pushError);
 				// Only ignore if branch already exists or is up-to-date
-				if (!errorStr.includes("already exists") && !errorStr.includes("up-to-date")) {
+				if (
+					!errorStr.includes("already exists") &&
+					!errorStr.includes("up-to-date")
+				) {
 					console.error("Failed to push branch:", errorStr);
 					return {
 						success: false,
-						error: "Failed to push branch to remote. Please push manually and try again.",
+						error:
+							"Failed to push branch to remote. Please push manually and try again.",
 					};
 				}
 			}
@@ -879,7 +884,8 @@ class WorktreeManager {
 			};
 		} catch (error) {
 			console.error("Failed to create PR:", error);
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 
 			// Provide helpful error messages
 			if (errorMessage.includes("could not find any commits")) {
@@ -929,7 +935,8 @@ class WorktreeManager {
 			};
 		} catch (error) {
 			console.error("Failed to merge PR:", error);
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 
 			return {
 				success: false,

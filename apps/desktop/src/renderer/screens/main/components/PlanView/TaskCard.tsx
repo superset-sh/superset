@@ -66,7 +66,10 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 
 			if (taskWorktree) {
 				targetWorktreeId = taskWorktree.id;
-			} else if (currentWorkspace.worktrees && currentWorkspace.worktrees.length > 0) {
+			} else if (
+				currentWorkspace.worktrees &&
+				currentWorkspace.worktrees.length > 0
+			) {
 				// Use the first worktree as fallback
 				targetWorktreeId = currentWorkspace.worktrees[0].id;
 			}
@@ -82,9 +85,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 			const taskPrompt = `${task.title}\n\n${task.description || ""}`.trim();
 			// Escape quotes and newlines for shell command
 			const escapedPrompt = taskPrompt
-				.replace(/\\/g, '\\\\')  // Escape backslashes first
-				.replace(/"/g, '\\"')     // Escape double quotes
-				.replace(/\n/g, '\\n');   // Escape newlines
+				.replace(/\\/g, "\\\\") // Escape backslashes first
+				.replace(/"/g, '\\"') // Escape double quotes
+				.replace(/\n/g, "\\n"); // Escape newlines
 			const result = await window.ipcRenderer.invoke("tab-create", {
 				workspaceId: currentWorkspace.id,
 				worktreeId: targetWorktreeId,

@@ -7,7 +7,13 @@ import { cn } from "../lib/utils";
 function ContextMenu({
 	...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
-	return <ContextMenuPrimitive.Root data-slot="context-menu" modal={false} {...props} />;
+	return (
+		<ContextMenuPrimitive.Root
+			data-slot="context-menu"
+			modal={false}
+			{...props}
+		/>
+	);
 }
 
 function ContextMenuTrigger({
