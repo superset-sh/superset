@@ -66,25 +66,32 @@ class CloudApiClient {
 		}
 
 		try {
+			const requestBody = {
+				name: params.name,
+				template: "yolocode",
+				githubRepo: params.githubRepo,
+				taskDescription: params.taskDescription,
+			};
+
+			console.log("Creating sandbox with params:", requestBody);
+
 			const response = await fetch(this.baseUrl, {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${token}`,
 					"Content-Type": "application/json",
 				},
-				body: JSON.stringify({
-					name: params.name,
-					githubRepo: params.githubRepo,
-					taskDescription: params.taskDescription,
-				}),
+				body: JSON.stringify(requestBody),
 			});
 
 			if (!response.ok) {
 				const errorText = await response.text();
 				console.error("API error:", errorText);
+				console.error("Response status:", response.status);
+				console.error("Response statusText:", response.statusText);
 				return {
 					success: false,
-					error: `Failed to create sandbox: ${response.statusText}`,
+					error: `Failed to create sandbox: ${response.statusText}. Details: ${errorText}`,
 				};
 			}
 
