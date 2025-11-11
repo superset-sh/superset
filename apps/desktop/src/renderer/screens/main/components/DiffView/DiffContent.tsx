@@ -6,12 +6,19 @@ import type { DiffLine, FileDiff } from "./types";
 
 interface DiffContentProps {
 	file: FileDiff;
+	isLoading?: boolean;
 }
 
 export const DiffContent = memo(function DiffContent({
 	file,
+	isLoading = false,
 }: DiffContentProps) {
 	const language = detectLanguage(file.fileName);
+
+	// Show loading skeleton if file content isn't loaded yet
+	const hasContent = file.changes.length > 0;
+	const showLoading = isLoading || !hasContent;
+
 	const renderDiffLine = (line: DiffLine, index: number) => {
 		const getBgColor = () => {
 			switch (line.type) {
@@ -142,14 +149,15 @@ export const DiffContent = memo(function DiffContent({
 							</div>
 						)}
 						<span
-							className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${file.status === "added"
+							className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+								file.status === "added"
 									? "bg-emerald-500/10 text-emerald-400"
 									: file.status === "deleted"
 										? "bg-rose-500/10 text-rose-400"
 										: file.status === "modified"
 											? "bg-amber-500/10 text-amber-400"
 											: "bg-white/5 text-zinc-400"
-								}`}
+							}`}
 						>
 							{file.status}
 						</span>
@@ -158,9 +166,22 @@ export const DiffContent = memo(function DiffContent({
 			</div>
 			{/* Diff content area */}
 			<div className="flex-1 overflow-auto">
-				<div className="min-w-max">
-					{file.changes.map((line, index) => renderDiffLine(line, index))}
-				</div>
+				{showLoading ? (
+					<div className="min-w-max p-4">
+						<div className="flex items-center justify-center py-12">
+							<div className="text-center space-y-3">
+								<div className="animate-spin rounded-full h-8 w-8 border-2 border-zinc-700 border-t-zinc-400 mx-auto" />
+								<p className="text-xs text-zinc-500">
+									{isLoading ? "Loading file diff..." : "No changes to display"}
+								</p>
+							</div>
+						</div>
+					</div>
+				) : (
+					<div className="min-w-max">
+						{file.changes.map((line, index) => renderDiffLine(line, index))}
+					</div>
+				)}
 			</div>
 		</div>
 	);

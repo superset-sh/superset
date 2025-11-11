@@ -185,7 +185,7 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 
 	const modeOpacities = [mode0Opacity, mode1Opacity];
 
-	// Load diff data when switching to Changes mode
+	// Load diff data when switching to Changes mode (only file list, not content)
 	const loadDiff = useCallback(async () => {
 		if (!workspaceId || !worktree?.id) return;
 
@@ -193,17 +193,25 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 		setDiffError(null);
 
 		try {
-			const result = await window.ipcRenderer.invoke("worktree-get-git-diff", {
-				workspaceId,
-				worktreeId: worktree.id,
-			});
+			// Use the new lazy loading endpoint - only loads file list
+			const result = await window.ipcRenderer.invoke(
+				"worktree-get-git-diff-files",
+				{
+					workspaceId,
+					worktreeId: worktree.id,
+				},
+			);
 
-			if (result?.success && result.diff) {
+			if (result?.success && result.files) {
+				// Map file list to DiffViewData format (without changes array)
 				const diffViewData: DiffViewData = {
 					title: `Changes in ${worktree.branch}`,
 					description: workspaceName,
 					timestamp: new Date().toLocaleString(),
-					files: result.diff.files,
+					files: result.files.map((file) => ({
+						...file,
+						changes: [], // Empty changes - will be loaded lazily on demand
+					})),
 				};
 				setDiffData(diffViewData);
 				if (diffViewData.files.length > 0 && !selectedFile) {
@@ -344,9 +352,10 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 								onClick={() => onTabSelect(tab.id)}
 								className={`
 									w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md text-sm transition-colors group
-									${selectedTabId === tab.id
-										? "bg-neutral-800 text-neutral-100"
-										: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+									${
+										selectedTabId === tab.id
+											? "bg-neutral-800 text-neutral-100"
+											: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
 									}
 								`}
 								style={{ paddingLeft: `${12 + level * 16}px` }}
@@ -481,10 +490,11 @@ export const WorktreeTabsSidebar: React.FC<WorktreeTabsSidebarProps> = ({
 											setCurrentMode(mode.id);
 											onModeChange?.(mode.id);
 										}}
-										className={`relative z-20 flex h-8 w-8 items-center justify-center rounded-sm transition-all cursor-pointer ${isActive
-											? "text-white bg-neutral-800"
-											: "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
-											}`}
+										className={`relative z-20 flex h-8 w-8 items-center justify-center rounded-sm transition-all cursor-pointer ${
+											isActive
+												? "text-white bg-neutral-800"
+												: "text-neutral-500 hover:text-neutral-300 hover:bg-white/5"
+										}`}
 									>
 										<Icon size={18} />
 									</button>

@@ -28,8 +28,8 @@ export default function RootLayout({
 				/>
 			</head>
 			<body className="overscroll-none font-sans">
-			<TRPCReactProvider>{children}</TRPCReactProvider>
-		</body>
+				<TRPCReactProvider>{children}</TRPCReactProvider>
+			</body>
 		</html>
 	);
 }

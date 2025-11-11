@@ -31,6 +31,7 @@ interface DiffViewProps {
 	hideFileTree?: boolean;
 	externalSelectedFile?: string | null;
 	onFileSelect?: (fileId: string) => void;
+	loadingFiles?: Set<string>;
 }
 
 export function DiffView({
@@ -41,17 +42,19 @@ export function DiffView({
 	hideFileTree = false,
 	externalSelectedFile = null,
 	onFileSelect: externalOnFileSelect,
+	loadingFiles = new Set(),
 }: DiffViewProps) {
 	const [viewMode, setViewMode] = useState<ViewMode>("files");
-	const [internalSelectedFile, setInternalSelectedFile] = useState<string | null>(
-		data.files[0]?.id || null,
-	);
+	const [internalSelectedFile, setInternalSelectedFile] = useState<
+		string | null
+	>(data.files[0]?.id || null);
 	const [showFileTree, setShowFileTree] = useState(!hideFileTree);
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
 	const isScrollingProgrammatically = useRef(false);
 
 	// Use external selected file if provided, otherwise use internal state
-	const selectedFile = externalSelectedFile !== null ? externalSelectedFile : internalSelectedFile;
+	const selectedFile =
+		externalSelectedFile !== null ? externalSelectedFile : internalSelectedFile;
 	const setSelectedFile = externalOnFileSelect || setInternalSelectedFile;
 
 	const getFileIcon = (status: FileDiff["status"]) => {
@@ -406,7 +409,10 @@ export function DiffView({
 										id={`file-diff-${file.id}`}
 										className="border-b border-white/5 last:border-b-0"
 									>
-										<DiffContent file={file} />
+										<DiffContent
+											file={file}
+											isLoading={loadingFiles.has(file.filePath)}
+										/>
 									</div>
 								))}
 							</div>

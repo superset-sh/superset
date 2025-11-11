@@ -26,7 +26,10 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 	"ready-to-merge": "Ready to Merge",
 };
 
-export const TaskPreview: React.FC<TaskPreviewProps> = ({ task, onOpenTask }) => {
+export const TaskPreview: React.FC<TaskPreviewProps> = ({
+	task,
+	onOpenTask,
+}) => {
 	if (!task) {
 		return (
 			<div className="flex items-center justify-center h-full text-neutral-500 text-sm">
@@ -54,7 +57,9 @@ export const TaskPreview: React.FC<TaskPreviewProps> = ({ task, onOpenTask }) =>
 
 			{/* Description */}
 			<div className="mb-6">
-				<p className="text-sm text-neutral-300 leading-relaxed">{task.description}</p>
+				<p className="text-sm text-neutral-300 leading-relaxed">
+					{task.description}
+				</p>
 			</div>
 
 			{/* Metadata grid */}
@@ -63,7 +68,9 @@ export const TaskPreview: React.FC<TaskPreviewProps> = ({ task, onOpenTask }) =>
 					<div className="text-neutral-500 mb-1">Status</div>
 					<div className="flex items-center gap-2">
 						<StatusIndicator status={task.status} showLabel={false} size="sm" />
-						<span className="text-neutral-200">{STATUS_LABELS[task.status]}</span>
+						<span className="text-neutral-200">
+							{STATUS_LABELS[task.status]}
+						</span>
 					</div>
 				</div>
 
@@ -74,7 +81,9 @@ export const TaskPreview: React.FC<TaskPreviewProps> = ({ task, onOpenTask }) =>
 
 				<div className="col-span-2">
 					<div className="text-neutral-500 mb-1">Branch</div>
-					<div className="text-neutral-200 font-mono text-xs">{task.branch}</div>
+					<div className="text-neutral-200 font-mono text-xs">
+						{task.branch}
+					</div>
 				</div>
 			</div>
 		</div>

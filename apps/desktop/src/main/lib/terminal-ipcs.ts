@@ -32,7 +32,10 @@ export function registerTerminalIPCs(mainWindow: BrowserWindow) {
 	// Resize terminal with sequence tracking
 	ipcMain.on(
 		"terminal-resize",
-		(_event, message: { id: string; cols: number; rows: number; seq: number }) => {
+		(
+			_event,
+			message: { id: string; cols: number; rows: number; seq: number },
+		) => {
 			tmuxManager.resize(message.id, message.cols, message.rows, message.seq);
 		},
 	);

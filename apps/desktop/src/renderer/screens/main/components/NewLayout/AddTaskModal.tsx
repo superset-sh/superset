@@ -88,7 +88,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 				task.slug.toLowerCase().includes(query) ||
 				task.name.toLowerCase().includes(query) ||
 				task.description.toLowerCase().includes(query) ||
-				task.assignee.toLowerCase().includes(query)
+				task.assignee.toLowerCase().includes(query),
 		);
 	}, [tasks, searchQuery]);
 
@@ -102,13 +102,14 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	// Get currently selected task (from all tasks, not just filtered)
 	const selectedTask = useMemo(
 		() => tasks.find((task) => task.id === selectedTaskId) || null,
-		[tasks, selectedTaskId]
+		[tasks, selectedTaskId],
 	);
 
 	// Check if selected task is already open
 	const isSelectedTaskOpen = useMemo(
-		() => selectedTask ? openTasks.some((t) => t.id === selectedTask.id) : false,
-		[selectedTask, openTasks]
+		() =>
+			selectedTask ? openTasks.some((t) => t.id === selectedTask.id) : false,
+		[selectedTask, openTasks],
 	);
 
 	// Auto-generate branch name from task name
@@ -140,7 +141,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 			if (e.key === "ArrowDown" || e.key === "ArrowUp") {
 				e.preventDefault();
 				const currentIndex = filteredTasks.findIndex(
-					(task) => task.id === selectedTaskId
+					(task) => task.id === selectedTaskId,
 				);
 
 				if (e.key === "ArrowDown" && currentIndex < filteredTasks.length - 1) {
@@ -239,7 +240,12 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							</DialogTitle>
 						</div>
 						{mode === "list" && (
-							<Button variant="outline" size="sm" className="gap-2" onClick={() => setMode("new")}>
+							<Button
+								variant="outline"
+								size="sm"
+								className="gap-2"
+								onClick={() => setMode("new")}
+							>
 								<Plus size={16} />
 								New task
 							</Button>
@@ -252,10 +258,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 					<>
 						{/* Two-column layout */}
 						<div className="flex-1 overflow-hidden min-h-0">
-							<ResizablePanelGroup
-								direction="horizontal"
-								className="h-full"
-							>
+							<ResizablePanelGroup direction="horizontal" className="h-full">
 								{/* Left panel: Search + Task list */}
 								<ResizablePanel defaultSize={40} minSize={30} maxSize={50}>
 									<div className="flex flex-col h-full">
@@ -337,7 +340,10 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 				) : (
 					<>
 						{/* New task form - Description-focused layout */}
-						<form onSubmit={handleCreateTask} className="flex-1 flex flex-col min-h-0">
+						<form
+							onSubmit={handleCreateTask}
+							className="flex-1 flex flex-col min-h-0"
+						>
 							{/* Title section */}
 							<div className="px-6 pt-6 pb-3 shrink-0">
 								<Input
@@ -365,26 +371,42 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							<div className="px-6 py-4 border-t border-neutral-700 shrink-0">
 								<div className="flex items-center gap-3">
 									{/* Status */}
-									<Select value={newTaskStatus} onValueChange={(value) => setNewTaskStatus(value as TaskStatus)}>
+									<Select
+										value={newTaskStatus}
+										onValueChange={(value) =>
+											setNewTaskStatus(value as TaskStatus)
+										}
+									>
 										<SelectTrigger>
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="planning">Planning</SelectItem>
-											<SelectItem value="needs-feedback">Needs Feedback</SelectItem>
-											<SelectItem value="ready-to-merge">Ready to Merge</SelectItem>
+											<SelectItem value="needs-feedback">
+												Needs Feedback
+											</SelectItem>
+											<SelectItem value="ready-to-merge">
+												Ready to Merge
+											</SelectItem>
 										</SelectContent>
 									</Select>
 
 									{/* Assignee */}
-									<Select value={newTaskAssignee} onValueChange={setNewTaskAssignee}>
+									<Select
+										value={newTaskAssignee}
+										onValueChange={setNewTaskAssignee}
+									>
 										<SelectTrigger>
 											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
 											<SelectItem value="You" className="px-3">
 												<div className="flex items-center gap-2">
-													<Avatar imageUrl="https://i.pravatar.cc/150?img=1" name="You" size={16} />
+													<Avatar
+														imageUrl="https://i.pravatar.cc/150?img=1"
+														name="You"
+														size={16}
+													/>
 													<span>You</span>
 												</div>
 											</SelectItem>
@@ -393,7 +415,11 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 												<SelectLabel>Agents</SelectLabel>
 												<SelectItem value="Claude" className="px-3">
 													<div className="flex items-center gap-2">
-														<Avatar imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg" name="Claude" size={16} />
+														<Avatar
+															imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg"
+															name="Claude"
+															size={16}
+														/>
 														<span>Claude</span>
 													</div>
 												</SelectItem>
@@ -409,7 +435,12 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							</div>
 							{/* Footer for new task form */}
 							<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-2 shrink-0">
-								<Button type="button" variant="ghost" onClick={handleBackToList} className="gap-2">
+								<Button
+									type="button"
+									variant="ghost"
+									onClick={handleBackToList}
+									className="gap-2"
+								>
 									<ArrowLeft size={16} />
 									Back
 								</Button>

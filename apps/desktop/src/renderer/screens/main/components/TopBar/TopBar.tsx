@@ -7,10 +7,7 @@ interface TopBarProps {
 	onOpenSidebar: () => void;
 }
 
-export function TopBar({
-	isSidebarOpen,
-	onOpenSidebar,
-}: TopBarProps) {
+export function TopBar({ isSidebarOpen, onOpenSidebar }: TopBarProps) {
 	return (
 		<div
 			className="flex items-center justify-between text-neutral-300 select-none"

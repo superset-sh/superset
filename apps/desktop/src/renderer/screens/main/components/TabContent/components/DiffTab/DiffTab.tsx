@@ -32,7 +32,10 @@ export function DiffTab({
 	const [refreshing, setRefreshing] = useState(false);
 	const [diffData, setDiffData] = useState<DiffViewData | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [loadedFiles, setLoadedFiles] = useState<Set<string>>(new Set());
+	const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set());
 
+	// Load file list (without detailed changes)
 	const loadDiff = useCallback(
 		async (isRefresh = false) => {
 			if (isRefresh) {
@@ -43,8 +46,9 @@ export function DiffTab({
 			setError(null);
 
 			try {
+				// First, get just the file list (fast)
 				const result = await window.ipcRenderer.invoke(
-					"worktree-get-git-diff",
+					"worktree-get-git-diff-files",
 					{
 						workspaceId,
 						worktreeId,
@@ -56,19 +60,23 @@ export function DiffTab({
 					typeof result === "object" &&
 					"success" in result &&
 					result.success &&
-					"diff" in result &&
-					result.diff
+					"files" in result &&
+					result.files
 				) {
-					// Transform the diff data to match DiffViewData format
+					// Transform the file list to DiffViewData format with empty changes
 					const diffViewData: DiffViewData = {
 						title: `Changes in ${worktree?.branch || "worktree"}`,
 						description: workspaceName
 							? `Workspace: ${workspaceName}`
 							: undefined,
 						timestamp: new Date().toLocaleString(),
-						files: result.diff.files,
+						files: result.files.map((file) => ({
+							...file,
+							changes: [], // Empty - will be loaded on demand
+						})),
 					};
 					setDiffData(diffViewData);
+					setLoadedFiles(new Set()); // Reset loaded files on refresh
 				} else {
 					const errorMsg =
 						result && typeof result === "object" && "error" in result
@@ -88,6 +96,100 @@ export function DiffTab({
 		},
 		[workspaceId, worktreeId, worktree?.branch, workspaceName],
 	);
+
+	// Load individual file diff on demand
+	const loadFileDiff = useCallback(
+		async (filePath: string) => {
+			// Don't reload if already loaded or loading
+			if (loadedFiles.has(filePath) || loadingFiles.has(filePath)) {
+				return;
+			}
+
+			setLoadingFiles((prev) => new Set(prev).add(filePath));
+
+			try {
+				const result = await window.ipcRenderer.invoke(
+					"worktree-get-git-file-diff",
+					{
+						workspaceId,
+						worktreeId,
+						filePath,
+					},
+				);
+
+				if (
+					result &&
+					typeof result === "object" &&
+					"success" in result &&
+					result.success &&
+					"diff" in result &&
+					result.diff
+				) {
+					// Update the file in diffData with the loaded changes
+					setDiffData((prev) => {
+						if (!prev) return prev;
+
+						return {
+							...prev,
+							files: prev.files.map((file) =>
+								file.filePath === filePath
+									? { ...file, changes: result.diff?.changes || [] }
+									: file,
+							),
+						};
+					});
+
+					setLoadedFiles((prev) => new Set(prev).add(filePath));
+				}
+			} catch (err) {
+				console.error("Failed to load file diff:", err);
+			} finally {
+				setLoadingFiles((prev) => {
+					const next = new Set(prev);
+					next.delete(filePath);
+					return next;
+				});
+			}
+		},
+		[workspaceId, worktreeId, loadedFiles, loadingFiles],
+	);
+
+	// Load file diff when a file is selected, and preload surrounding files in parallel
+	useEffect(() => {
+		if (selectedDiffFile && diffData) {
+			const selectedIndex = diffData.files.findIndex(
+				(f) => f.id === selectedDiffFile,
+			);
+			if (selectedIndex === -1) return;
+
+			// Load selected file immediately
+			const selectedFile = diffData.files[selectedIndex];
+			if (!loadedFiles.has(selectedFile.filePath)) {
+				loadFileDiff(selectedFile.filePath);
+			}
+
+			// Preload surrounding files in parallel (previous 2 and next 2)
+			const filesToPreload: string[] = [];
+			for (
+				let i = Math.max(0, selectedIndex - 2);
+				i <= Math.min(diffData.files.length - 1, selectedIndex + 2);
+				i++
+			) {
+				if (i !== selectedIndex) {
+					const file = diffData.files[i];
+					if (
+						!loadedFiles.has(file.filePath) &&
+						!loadingFiles.has(file.filePath)
+					) {
+						filesToPreload.push(file.filePath);
+					}
+				}
+			}
+
+			// Load all surrounding files in parallel
+			Promise.all(filesToPreload.map((filePath) => loadFileDiff(filePath)));
+		}
+	}, [selectedDiffFile, diffData, loadedFiles, loadingFiles, loadFileDiff]);
 
 	const handleRefresh = useCallback(() => {
 		loadDiff(true);
@@ -166,6 +268,7 @@ export function DiffTab({
 				hideFileTree={!!selectedDiffFile}
 				externalSelectedFile={selectedDiffFile || null}
 				onFileSelect={onDiffFileSelect}
+				loadingFiles={loadingFiles}
 			/>
 		</div>
 	);
