@@ -353,6 +353,37 @@ export interface IpcChannels {
 		request: void;
 		response: string | null;
 	};
+
+	// Cloud sandbox operations
+	"worktree-create-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			sandbox?: import("./types").CloudSandbox;
+			error?: string;
+		};
+	};
+	"worktree-open-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			error?: string;
+		};
+	};
+	"worktree-delete-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			error?: string;
+		};
+	};
+	"cloud-sandbox-delete-by-id": {
+		request: { sandboxId: string };
+		response: {
+			success: boolean;
+			error?: string;
+		};
+	};
 }
 
 /**
@@ -420,6 +451,10 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"workspace-get-detected-ports",
 		"proxy-get-status",
 		"deep-link-get-url",
+		"worktree-create-cloud-sandbox",
+		"worktree-open-cloud-sandbox",
+		"worktree-delete-cloud-sandbox",
+		"cloud-sandbox-delete-by-id",
 	];
 	return validChannels.includes(channel as IpcChannelName);
 }

@@ -745,9 +745,7 @@ export const NewLayoutMain: React.FC = () => {
 			} catch (error) {
 				console.error("Failed to create task/worktree:", error);
 				// Remove pending on error
-				setPendingWorktrees((prev) =>
-					prev.filter((wt) => wt.id !== pendingId),
-				);
+				setPendingWorktrees((prev) => prev.filter((wt) => wt.id !== pendingId));
 			}
 		})();
 	};
@@ -824,6 +822,77 @@ export const NewLayoutMain: React.FC = () => {
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
 			alert(`Failed to merge PR: ${errorMessage}`);
+		}
+	};
+
+	const handleCreateCloudSandbox = async () => {
+		if (!currentWorkspace || !selectedWorktreeId) return;
+
+		const worktree = currentWorkspace.worktrees?.find(
+			(wt) => wt.id === selectedWorktreeId,
+		);
+		if (!worktree) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"worktree-create-cloud-sandbox",
+				{
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+				},
+			);
+
+			if (result.success) {
+				// Reload workspace to show updated sandbox state
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+				}
+				alert("Cloud sandbox created! Opening in browser...");
+
+				// Auto-open the sandbox
+				if (result.sandbox?.claudeHost) {
+					await window.ipcRenderer.invoke("worktree-open-cloud-sandbox", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+					});
+				}
+			} else {
+				alert(
+					`Failed to create cloud sandbox: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to create cloud sandbox: ${errorMessage}`);
+		}
+	};
+
+	const handleOpenCloudSandbox = async () => {
+		if (!currentWorkspace || !selectedWorktreeId) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"worktree-open-cloud-sandbox",
+				{
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+				},
+			);
+
+			if (!result.success) {
+				alert(
+					`Failed to open cloud sandbox: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to open cloud sandbox: ${errorMessage}`);
 		}
 	};
 
@@ -953,6 +1022,8 @@ export const NewLayoutMain: React.FC = () => {
 						onAddTask={handleOpenAddTaskModal}
 						onCreatePR={handleCreatePR}
 						onMergePR={handleMergePR}
+						onCreateCloudSandbox={handleCreateCloudSandbox}
+						onOpenCloudSandbox={handleOpenCloudSandbox}
 						worktrees={enrichWorktreesWithTasks(
 							currentWorkspace?.worktrees || [],
 							pendingWorktrees,
