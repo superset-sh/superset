@@ -60,11 +60,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	const hasPR = selectedWorktree && selectedWorktree.prUrl;
 	return (
 		<div
-			className="flex items-end justify-between select-none bg-black/20"
+			className="flex items-end justify-between select-none shrink-0 h-10 pl-14 border-b border-neutral-800"
 			style={
 				{
-					height: "48px",
-					paddingLeft: "88px",
 					WebkitAppRegion: "drag",
 				} as React.CSSProperties
 			}
@@ -115,22 +113,20 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 							<button
 								type="button"
 								onClick={() => onModeChange("plan")}
-								className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-									mode === "plan"
-										? "bg-neutral-700 text-white"
-										: "text-neutral-400 hover:text-neutral-200"
-								}`}
+								className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${mode === "plan"
+									? "bg-neutral-700 text-white"
+									: "text-neutral-400 hover:text-neutral-200"
+									}`}
 							>
 								Plan
 							</button>
 							<button
 								type="button"
 								onClick={() => onModeChange("edit")}
-								className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-									mode === "edit"
-										? "bg-neutral-700 text-white"
-										: "text-neutral-400 hover:text-neutral-200"
-								}`}
+								className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${mode === "edit"
+									? "bg-neutral-700 text-white"
+									: "text-neutral-400 hover:text-neutral-200"
+									}`}
 							>
 								Edit
 							</button>
@@ -138,8 +134,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 					</div>
 				)}
 
-				{/* Worktree tabs - each tab represents a worktree */}
-				{worktrees.map((worktree) => {
+				{/* Worktree tabs - wrapped in full height container with bottom alignment */}
+				<div className="flex items-end h-full gap-1">
+					{worktrees.map((worktree) => {
 					const hasTask = !!worktree.task;
 					const task = worktree.task;
 					const isPending = worktree.isPending;
@@ -166,10 +163,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 									disabled={isPending}
 									className={`
 										flex items-center gap-2 px-3 h-8 rounded-t-md transition-all border-t border-x
-										${
-											selectedWorktreeId === worktree.id
-												? "bg-neutral-900 text-white border-neutral-700 -mb-px"
-												: "bg-neutral-800/50 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border-transparent"
+										${selectedWorktreeId === worktree.id
+											? "bg-neutral-900 text-white border-neutral-700 -mb-px"
+											: "bg-neutral-800/50 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800 border-transparent"
 										}
 										${isPending ? "opacity-70 cursor-wait" : ""}
 									`}
@@ -290,6 +286,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 						</HoverCard>
 					);
 				})}
+				</div>
 
 				{/* Add task/worktree button */}
 				<Tooltip>

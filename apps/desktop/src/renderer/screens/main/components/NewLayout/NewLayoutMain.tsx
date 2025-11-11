@@ -7,6 +7,7 @@ import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import type { Tab, Workspace, Worktree } from "shared/types";
+import { WorktreeProvider } from "../../../../contexts/WorktreeContext";
 import { AppFrame } from "../AppFrame";
 import { Background } from "../Background";
 import TabContent from "../MainContent/TabContent";
@@ -16,10 +17,9 @@ import { PlanView } from "../PlanView";
 import { Sidebar } from "../Sidebar";
 import { DiffTab } from "../TabContent/components/DiffTab";
 import { AddTaskModal } from "./AddTaskModal";
-import { TaskTabs, type WorktreeWithTask } from "./TaskTabs";
 import type { TaskStatus } from "./StatusIndicator";
+import { TaskTabs, type WorktreeWithTask } from "./TaskTabs";
 import { WorktreeTabView } from "./WorktreeTabView";
-import { WorktreeProvider } from "../../../../contexts/WorktreeContext";
 
 // Type alias for task data used in UI
 type UITask = {
@@ -241,12 +241,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-						id: pending.id,
-						slug: pending.taskData.slug,
-						title: pending.taskData.name,
-						status: pending.taskData.status,
-						description: pending.description || "",
-					}
+					id: pending.id,
+					slug: pending.taskData.slug,
+					title: pending.taskData.name,
+					status: pending.taskData.status,
+					description: pending.description || "",
+				}
 				: undefined,
 		}),
 	);
@@ -745,9 +745,7 @@ export const NewLayoutMain: React.FC = () => {
 			} catch (error) {
 				console.error("Failed to create task/worktree:", error);
 				// Remove pending on error
-				setPendingWorktrees((prev) =>
-					prev.filter((wt) => wt.id !== pendingId),
-				);
+				setPendingWorktrees((prev) => prev.filter((wt) => wt.id !== pendingId));
 			}
 		})();
 	};
@@ -976,7 +974,7 @@ export const NewLayoutMain: React.FC = () => {
 					/>
 
 					{/* Main content area - conditionally render based on mode */}
-					<div className="flex-1 overflow-hidden border-t border-neutral-700">
+					<div className="flex-1 overflow-hidden">
 						{mode === "plan" ? (
 							// Plan mode - show kanban board
 							<PlanView
@@ -1027,10 +1025,10 @@ export const NewLayoutMain: React.FC = () => {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
+										error ||
+										!currentWorkspace ||
+										!selectedTab ||
+										!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}
