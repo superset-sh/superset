@@ -168,6 +168,16 @@ export function TabItem({
 		tab.url?.includes("e2b.app") &&
 		worktree?.cloudSandbox;
 
+	// Debug logging
+	if (tab.type === "preview" && tab.url?.includes("e2b.app")) {
+		console.log("Cloud IDE tab detected:", {
+			tabName: tab.name,
+			tabUrl: tab.url,
+			hasCloudSandbox: !!worktree?.cloudSandbox,
+			isCloudIDETab,
+		});
+	}
+
 	const IconComponent = (() => {
 		switch (tab.type) {
 			case "preview":
