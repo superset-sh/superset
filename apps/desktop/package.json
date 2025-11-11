@@ -46,7 +46,7 @@
 		"framer-motion": "^12.23.24",
 		"http-proxy": "^1.18.1",
 		"lucide-react": "^0.553.0",
-		"node-pty": "1.1.0-beta39",
+		"node-pty": "1.1.0-beta30",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
 		"react-mosaic-component": "^6.1.1",
