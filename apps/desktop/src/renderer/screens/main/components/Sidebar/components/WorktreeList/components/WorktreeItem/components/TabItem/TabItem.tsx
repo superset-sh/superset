@@ -126,10 +126,10 @@ export function TabItem({
 	};
 
 	const handleKillVM = async () => {
-		if (!tab.url) return;
+		if (!tab.url || !workspaceId || !worktreeId) return;
 
 		const confirmed = window.confirm(
-			"Are you sure you want to delete this cloud sandbox? This cannot be undone.",
+			"Are you sure you want to delete this cloud sandbox and worktree? This cannot be undone.",
 		);
 		if (!confirmed) return;
 
@@ -143,24 +143,42 @@ export function TabItem({
 				return;
 			}
 
-			// Delete via sandbox ID directly
-			const result = await window.ipcRenderer.invoke(
+			// Delete the cloud sandbox
+			const sandboxResult = await window.ipcRenderer.invoke(
 				"cloud-sandbox-delete-by-id",
 				{ sandboxId },
 			);
 
-			if (result.success) {
-				// Close the tab after successful deletion
-				onTabRemove?.(tab.id);
-			} else {
+			if (!sandboxResult.success) {
 				alert(
-					`Failed to delete cloud sandbox: ${result.error || "Unknown error"}`,
+					`Failed to delete cloud sandbox: ${sandboxResult.error || "Unknown error"}`,
+				);
+				return;
+			}
+
+			// Delete the worktree
+			const worktreeResult = await window.ipcRenderer.invoke(
+				"worktree-remove",
+				{
+					workspaceId,
+					worktreeId,
+				},
+			);
+
+			if (
+				worktreeResult &&
+				typeof worktreeResult === "object" &&
+				"success" in worktreeResult &&
+				!worktreeResult.success
+			) {
+				alert(
+					`Cloud sandbox deleted, but failed to delete worktree: ${worktreeResult.error || "Unknown error"}`,
 				);
 			}
 		} catch (error) {
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
-			alert(`Failed to delete cloud sandbox: ${errorMessage}`);
+			alert(`Failed to delete cloud sandbox and worktree: ${errorMessage}`);
 		}
 	};
 

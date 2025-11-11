@@ -566,6 +566,19 @@ export function WorktreeItem({
 		setShowRemoveDialog(false);
 		setRemoveWarning("");
 
+		// If this worktree has a cloud sandbox, delete it first
+		if (worktree.cloudSandbox) {
+			try {
+				await window.ipcRenderer.invoke("worktree-delete-cloud-sandbox", {
+					workspaceId,
+					worktreeId: worktree.id,
+				});
+			} catch (error) {
+				console.error("Failed to delete cloud sandbox:", error);
+				// Continue with worktree removal even if cloud sandbox deletion fails
+			}
+		}
+
 		const result = await window.ipcRenderer.invoke("worktree-remove", {
 			workspaceId,
 			worktreeId: worktree.id,
