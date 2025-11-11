@@ -378,7 +378,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 					</Tooltip>
 				) : null}
 
-				{/* Cloud sandbox button */}
+				{/* Cloud sandbox button - always show when worktree is selected */}
 				{hasCloudSandbox && onOpenCloudSandbox ? (
 					<Tooltip>
 						<TooltipTrigger asChild>
@@ -396,13 +396,14 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 							<p>Open cloud sandbox in browser</p>
 						</TooltipContent>
 					</Tooltip>
-				) : onCreateCloudSandbox && canCreatePR ? (
+				) : onCreateCloudSandbox && selectedWorktree ? (
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
 								variant="outline"
 								size="sm"
 								onClick={onCreateCloudSandbox}
+								disabled={selectedWorktree.isPending}
 								className="h-7"
 							>
 								<Cloud size={14} className="mr-1.5" />
@@ -411,7 +412,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 						</TooltipTrigger>
 						<TooltipContent side="bottom">
 							<p>
-								Create cloud coding environment for {selectedWorktree?.branch}
+								{selectedWorktree.isPending
+									? "Wait for worktree to finish creating"
+									: `Create cloud coding environment for ${selectedWorktree?.branch}`}
 							</p>
 						</TooltipContent>
 					</Tooltip>
