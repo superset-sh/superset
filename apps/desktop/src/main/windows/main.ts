@@ -1,19 +1,15 @@
 import { join } from "node:path";
-import { BrowserWindow, ipcMain, screen, shell } from "electron";
+import { screen } from "electron";
 
 import { createWindow } from "lib/electron-app/factories/windows/create";
-import { ENVIRONMENT } from "shared/constants";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
-import { registerDeepLinkIpcs } from "../lib/deep-link-ipcs";
 import { portDetector } from "../lib/port-detector";
-import { registerPortIpcs } from "../lib/port-ipcs";
 import { registerTerminalIPCs } from "../lib/terminal-ipcs";
 import {
 	getActiveWorkspaceId,
 	updateDetectedPorts,
 } from "../lib/workspace/workspace-operations";
-import { registerWorkspaceIPCs } from "../lib/workspace-ipcs";
 import workspaceManager from "../lib/workspace-manager";
 
 export async function MainWindow() {
@@ -122,12 +118,11 @@ export async function MainWindow() {
 	});
 
 	window.on("close", () => {
-		// Clean up terminal processes
+		// Clean up terminal processes for this window
 		cleanupTerminal();
 
-		for (const window of BrowserWindow.getAllWindows()) {
-			window.destroy();
-		}
+		// Note: Don't destroy other windows - let them close independently
+		// Each window manages its own lifecycle
 	});
 
 	return window;

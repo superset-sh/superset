@@ -31,7 +31,7 @@ interface ActiveSession {
 class TmuxManager {
 	private static instance: TmuxManager;
 	private sessions: Map<string, ActiveSession>;
-	private mainWindow: BrowserWindow | null = null;
+	private terminalWindows: Map<string, Set<BrowserWindow>> = new Map();
 	private sessionRegistryPath: string;
 	// tmux socket name - unique per user
 	private readonly TMUX_SOCKET = "onlook";
@@ -52,8 +52,50 @@ class TmuxManager {
 		return TmuxManager.instance;
 	}
 
-	setMainWindow(window: BrowserWindow | null): void {
-		this.mainWindow = window;
+	/**
+	 * Register a window to receive output from a specific terminal
+	 */
+	registerTerminalWindow(terminalId: string, window: BrowserWindow): void {
+		if (!this.terminalWindows.has(terminalId)) {
+			this.terminalWindows.set(terminalId, new Set());
+		}
+		this.terminalWindows.get(terminalId)?.add(window);
+		console.log(
+			`[TmuxManager] Registered window for terminal ${terminalId}, now ${this.terminalWindows.get(terminalId)?.size} window(s)`,
+		);
+	}
+
+	/**
+	 * Unregister a window from receiving output from a specific terminal
+	 */
+	unregisterTerminalWindow(terminalId: string, window: BrowserWindow): void {
+		const windows = this.terminalWindows.get(terminalId);
+		if (windows) {
+			windows.delete(window);
+			console.log(
+				`[TmuxManager] Unregistered window from terminal ${terminalId}, now ${windows.size} window(s)`,
+			);
+			if (windows.size === 0) {
+				this.terminalWindows.delete(terminalId);
+			}
+		}
+	}
+
+	/**
+	 * Unregister a window from all terminals (when window closes)
+	 */
+	unregisterWindow(window: BrowserWindow): void {
+		let count = 0;
+		for (const [terminalId, windows] of this.terminalWindows.entries()) {
+			if (windows.has(window)) {
+				windows.delete(window);
+				count++;
+				if (windows.size === 0) {
+					this.terminalWindows.delete(terminalId);
+				}
+			}
+		}
+		console.log(`[TmuxManager] Unregistered window from ${count} terminal(s)`);
 	}
 
 	/**
@@ -596,13 +638,20 @@ class TmuxManager {
 	}
 
 	/**
-	 * Emit terminal data to renderer
+	 * Emit terminal data to all windows viewing this terminal
 	 */
 	private emitMessage(sid: string, data: string): void {
-		this.mainWindow?.webContents.send("terminal-on-data", {
-			id: sid,
-			data,
-		});
+		const windows = this.terminalWindows.get(sid);
+		if (windows && windows.size > 0) {
+			for (const window of windows) {
+				if (!window.isDestroyed()) {
+					window.webContents.send("terminal-on-data", {
+						id: sid,
+						data,
+					});
+				}
+			}
+		}
 	}
 
 	/**

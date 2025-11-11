@@ -1,12 +1,14 @@
-import { BrowserWindow, type BrowserWindow as BrowserWindowType, ipcMain, shell } from "electron";
+import {
+	BrowserWindow,
+	type BrowserWindow as BrowserWindowType,
+	ipcMain,
+	shell,
+} from "electron";
 import tmuxManager from "./tmux-manager";
 
 let ipcHandlersRegistered = false;
 
-export function registerTerminalIPCs(mainWindow: BrowserWindowType) {
-	// Set main window reference for this window
-	tmuxManager.setMainWindow(mainWindow);
-
+export function registerTerminalIPCs(window: BrowserWindowType) {
 	// Initialize tmux manager (restore sessions) only once
 	if (!ipcHandlersRegistered) {
 		tmuxManager.initialize().catch((error) => {
@@ -31,10 +33,14 @@ export function registerTerminalIPCs(mainWindow: BrowserWindowType) {
 			) => {
 				// Get the window that sent this request
 				const senderWindow = BrowserWindow.fromWebContents(event.sender);
+				const terminalId = await tmuxManager.create(options);
+
+				// Register this window to receive output from this terminal
 				if (senderWindow) {
-					tmuxManager.setMainWindow(senderWindow);
+					tmuxManager.registerTerminalWindow(terminalId, senderWindow);
 				}
-				return await tmuxManager.create(options);
+
+				return terminalId;
 			},
 		);
 
@@ -96,10 +102,14 @@ export function registerTerminalIPCs(mainWindow: BrowserWindowType) {
 		ipcHandlersRegistered = true;
 	}
 
-	// Clean up on app quit
+	// Clean up when this window closes
 	const cleanup = () => {
-		// tmuxManager.killAll();
+		console.log("[Terminal IPC] Cleaning up window terminal registrations");
+		tmuxManager.unregisterWindow(window);
 	};
+
+	// Register cleanup on window close
+	window.on("closed", cleanup);
 
 	return cleanup;
 }
