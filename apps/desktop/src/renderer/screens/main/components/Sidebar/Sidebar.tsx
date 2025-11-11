@@ -182,9 +182,38 @@ export function Sidebar({
 	const handleCreateCloudWorktree = async () => {
 		if (!currentWorkspace) return;
 
+		// Generate random two-word name
+		const adjectives = [
+			"happy",
+			"sleepy",
+			"brave",
+			"clever",
+			"gentle",
+			"bright",
+			"calm",
+			"bold",
+			"swift",
+			"quiet",
+		];
+		const nouns = [
+			"cat",
+			"fox",
+			"owl",
+			"bear",
+			"wolf",
+			"deer",
+			"hawk",
+			"lynx",
+			"seal",
+			"dove",
+		];
+		const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+		const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+		const randomName = `${randomAdj}-${randomNoun}`;
+
 		// For now, create a simple worktree and immediately create a cloud sandbox for it
-		const title = "Cloud Development";
-		const branch = `cloud-dev-${Date.now()}`;
+		const title = `Cloud ${randomAdj} ${randomNoun}`;
+		const branch = `cloud-dev-${randomName}`;
 
 		try {
 			setIsCreatingCloudWorktree(true);
