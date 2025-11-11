@@ -566,13 +566,31 @@ export function WorktreeItem({
 		setShowRemoveDialog(false);
 		setRemoveWarning("");
 
-		// If this worktree has a cloud sandbox, delete it first
+		// Check if this worktree has a cloud sandbox
+		// Try to find sandbox ID from cloudSandbox property or from tab URLs
+		let sandboxId: string | undefined;
+
 		if (worktree.cloudSandbox) {
+			sandboxId = worktree.cloudSandbox.id;
+		} else {
+			// Check if any tab has an e2b.app URL (Cloud IDE tab)
+			const cloudTab = worktree.tabs.find(
+				(tab) => tab.type === "preview" && tab.url?.includes("e2b.app"),
+			);
+			if (cloudTab?.url) {
+				// Extract sandbox ID from URL (format: https://7030-SANDBOX_ID.e2b.app/)
+				const urlMatch = cloudTab.url.match(/\/\/\d+-([^.]+)\.e2b\.app/);
+				sandboxId = urlMatch?.[1];
+			}
+		}
+
+		// If we found a sandbox ID, delete the cloud sandbox first
+		if (sandboxId) {
 			try {
-				await window.ipcRenderer.invoke("worktree-delete-cloud-sandbox", {
-					workspaceId,
-					worktreeId: worktree.id,
+				await window.ipcRenderer.invoke("cloud-sandbox-delete-by-id", {
+					sandboxId,
 				});
+				console.log(`Deleted cloud sandbox: ${sandboxId}`);
 			} catch (error) {
 				console.error("Failed to delete cloud sandbox:", error);
 				// Continue with worktree removal even if cloud sandbox deletion fails
