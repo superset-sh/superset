@@ -5,7 +5,15 @@ import {
 	HoverCardTrigger,
 } from "@superset/ui/hover-card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { GitMerge, GitPullRequest, Loader2, PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
+import {
+	Cloud,
+	GitMerge,
+	GitPullRequest,
+	Loader2,
+	PanelLeftClose,
+	PanelLeftOpen,
+	Plus,
+} from "lucide-react";
 import type React from "react";
 import type { Worktree } from "shared/types";
 import { StatusIndicator, type TaskStatus } from "./StatusIndicator";
@@ -35,6 +43,8 @@ interface TaskTabsProps {
 	onAddTask: () => void;
 	onCreatePR?: () => void;
 	onMergePR?: () => void;
+	onCreateCloudSandbox?: () => void;
+	onOpenCloudSandbox?: () => void;
 	worktrees: WorktreeWithTask[];
 	selectedWorktreeId: string | null;
 	onWorktreeSelect: (worktreeId: string) => void;
@@ -49,15 +59,18 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	onAddTask,
 	onCreatePR,
 	onMergePR,
+	onCreateCloudSandbox,
+	onOpenCloudSandbox,
 	worktrees,
 	selectedWorktreeId,
 	onWorktreeSelect,
 	mode = "edit",
 	onModeChange,
 }) => {
-	const selectedWorktree = worktrees.find(wt => wt.id === selectedWorktreeId);
+	const selectedWorktree = worktrees.find((wt) => wt.id === selectedWorktreeId);
 	const canCreatePR = selectedWorktree && !selectedWorktree.isPending;
 	const hasPR = selectedWorktree && selectedWorktree.prUrl;
+	const hasCloudSandbox = selectedWorktree && selectedWorktree.cloudSandbox;
 	return (
 		<div
 			className="flex items-end justify-between select-none bg-black/20"
@@ -143,9 +156,10 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 					const hasTask = !!worktree.task;
 					const task = worktree.task;
 					const isPending = worktree.isPending;
-					const displayTitle = hasTask && task
-						? task.slug
-						: worktree.description || worktree.branch;
+					const displayTitle =
+						hasTask && task
+							? task.slug
+							: worktree.description || worktree.branch;
 
 					const statusLabel = task
 						? task.status === "planning"
@@ -178,10 +192,14 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 										<Loader2 size={14} className="animate-spin text-blue-400" />
 									) : (
 										hasTask &&
-										task && <StatusIndicator status={task.status} showLabel={false} />
+										task && (
+											<StatusIndicator status={task.status} showLabel={false} />
+										)
 									)}
 									<span className="text-sm whitespace-nowrap">
-										{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}
+										{hasTask && task
+											? `[${task.slug}] ${task.title}`
+											: displayTitle}
 									</span>
 								</button>
 							</HoverCardTrigger>
@@ -190,7 +208,10 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 									<div className="space-y-2">
 										{/* Pending state */}
 										<div className="flex items-center gap-2">
-											<Loader2 size={16} className="animate-spin text-blue-400" />
+											<Loader2
+												size={16}
+												className="animate-spin text-blue-400"
+											/>
 											<h4 className="font-semibold text-sm text-white">
 												Creating worktree...
 											</h4>
@@ -231,7 +252,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 														showLabel={false}
 														size="sm"
 													/>
-													<span className="text-neutral-300">{statusLabel}</span>
+													<span className="text-neutral-300">
+														{statusLabel}
+													</span>
 												</div>
 											</div>
 
@@ -350,6 +373,45 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								{canCreatePR
 									? `Create pull request for ${selectedWorktree?.branch}`
 									: "Select a worktree to create a PR"}
+							</p>
+						</TooltipContent>
+					</Tooltip>
+				) : null}
+
+				{/* Cloud sandbox button */}
+				{hasCloudSandbox && onOpenCloudSandbox ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="secondary"
+								size="sm"
+								onClick={onOpenCloudSandbox}
+								className="h-7"
+							>
+								<Cloud size={14} className="mr-1.5" />
+								Open Cloud
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<p>Open cloud sandbox in browser</p>
+						</TooltipContent>
+					</Tooltip>
+				) : onCreateCloudSandbox && canCreatePR ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={onCreateCloudSandbox}
+								className="h-7"
+							>
+								<Cloud size={14} className="mr-1.5" />
+								Create Cloud Sandbox
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom">
+							<p>
+								Create cloud coding environment for {selectedWorktree?.branch}
 							</p>
 						</TooltipContent>
 					</Tooltip>
