@@ -214,13 +214,25 @@ export function Sidebar({
 						? sandboxResult.sandbox.claudeHost
 						: `https://${sandboxResult.sandbox.claudeHost}`;
 
-					await window.ipcRenderer.invoke("tab-create", {
+					const tabResult = await window.ipcRenderer.invoke("tab-create", {
 						workspaceId: currentWorkspace.id,
 						worktreeId: result.worktree.id,
 						name: "Cloud IDE",
 						type: "preview",
 						url: claudeUrl,
 					});
+
+					console.log("Tab creation result:", tabResult);
+
+					// Expand the worktree and select the newly created tab
+					if (tabResult.success && tabResult.tab && result.worktree) {
+						setExpandedWorktrees((prev) => {
+							const next = new Set(prev);
+							next.add(result.worktree!.id);
+							return next;
+						});
+						onTabSelect(result.worktree.id, tabResult.tab.id);
+					}
 				}
 
 				// Refresh UI after everything is created
