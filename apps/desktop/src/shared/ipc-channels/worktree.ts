@@ -201,4 +201,9 @@ export interface WorktreeChannels {
 		request: { workspaceId: string; worktreeId: string };
 		response: SuccessResponse;
 	};
+
+	"cloud-sandbox-delete-by-id": {
+		request: { sandboxId: string };
+		response: SuccessResponse;
+	};
 }

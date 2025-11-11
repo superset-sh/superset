@@ -126,7 +126,7 @@ export function TabItem({
 	};
 
 	const handleKillVM = async () => {
-		if (!workspaceId || !worktreeId) return;
+		if (!tab.url) return;
 
 		const confirmed = window.confirm(
 			"Are you sure you want to delete this cloud sandbox? This cannot be undone.",
@@ -134,12 +134,19 @@ export function TabItem({
 		if (!confirmed) return;
 
 		try {
+			// Extract sandbox ID from URL (format: https://7030-SANDBOX_ID.e2b.app/)
+			const urlMatch = tab.url.match(/\/\/\d+-([^.]+)\.e2b\.app/);
+			const sandboxId = urlMatch?.[1];
+
+			if (!sandboxId) {
+				alert("Could not extract sandbox ID from URL");
+				return;
+			}
+
+			// Delete via sandbox ID directly
 			const result = await window.ipcRenderer.invoke(
-				"worktree-delete-cloud-sandbox",
-				{
-					workspaceId,
-					worktreeId,
-				},
+				"cloud-sandbox-delete-by-id",
+				{ sandboxId },
 			);
 
 			if (result.success) {

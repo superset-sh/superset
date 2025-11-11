@@ -948,4 +948,22 @@ export function registerWorkspaceIPCs() {
 			}
 		},
 	);
+
+	// Delete cloud sandbox by ID directly (doesn't require worktree)
+	ipcMain.handle(
+		"cloud-sandbox-delete-by-id",
+		async (_event, input: { sandboxId: string }) => {
+			try {
+				const { cloudApiClient } = await import("./cloud-api-client");
+				const result = await cloudApiClient.deleteSandbox(input.sandboxId);
+				return result;
+			} catch (error) {
+				console.error("Failed to delete cloud sandbox by ID:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
 }
