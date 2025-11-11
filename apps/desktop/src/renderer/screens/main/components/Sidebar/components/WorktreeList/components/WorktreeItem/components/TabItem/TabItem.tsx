@@ -165,7 +165,7 @@ export function TabItem({
 	// Check if this is a Cloud IDE tab
 	const isCloudIDETab =
 		tab.type === "preview" &&
-		tab.name === "Cloud IDE" &&
+		tab.url?.includes("e2b.app") &&
 		worktree?.cloudSandbox;
 
 	const IconComponent = (() => {
