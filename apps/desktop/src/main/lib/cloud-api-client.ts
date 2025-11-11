@@ -34,7 +34,7 @@ interface CreateSandboxResponse {
  * Uses GitHub token for authentication
  */
 class CloudApiClient {
-	private baseUrl = "https://staging.yolocode.ai/api/e2b-sandboxes";
+	private baseUrl = "http://localhost:3001/api/e2b-sandboxes";
 
 	/**
 	 * Get GitHub token from gh CLI
