@@ -771,4 +771,181 @@ export function registerWorkspaceIPCs() {
 			};
 		}
 	});
+
+	// Cloud sandbox operations
+	ipcMain.handle(
+		"worktree-create-cloud-sandbox",
+		async (_event, input: { workspaceId: string; worktreeId: string }) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				// Get GitHub repo URL
+				let githubRepo: string | undefined;
+				try {
+					const { execSync } = await import("node:child_process");
+					const remoteUrl = execSync("git remote get-url origin", {
+						cwd: workspace.repoPath,
+						encoding: "utf-8",
+					}).trim();
+
+					// Convert git URL to repo format (owner/repo)
+					const match = remoteUrl.match(/github\.com[:/](.+?)(?:\.git)?$/);
+					if (match?.[1]) {
+						githubRepo = match[1];
+					}
+				} catch (error) {
+					console.warn("Could not determine GitHub repo:", error);
+				}
+
+				// Import cloud API client
+				const { cloudApiClient } = await import("./cloud-api-client");
+
+				// Create sandbox
+				const result = await cloudApiClient.createSandbox({
+					name: `${workspace.name}-${worktree.branch}`,
+					githubRepo,
+					taskDescription: worktree.description || `Work on ${worktree.branch}`,
+				});
+
+				if (!result.success || !result.sandbox) {
+					return result;
+				}
+
+				// Store sandbox info in worktree config
+				worktree.cloudSandbox = result.sandbox;
+				await workspaceManager.saveConfig();
+
+				return result;
+			} catch (error) {
+				console.error("Failed to create cloud sandbox:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
+	ipcMain.handle(
+		"worktree-open-cloud-sandbox",
+		async (_event, input: { workspaceId: string; worktreeId: string }) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				if (!worktree.cloudSandbox?.claudeHost) {
+					return {
+						success: false,
+						error: "No cloud sandbox found for this worktree",
+					};
+				}
+
+				// Open Claude host in browser
+				const url = worktree.cloudSandbox.claudeHost.startsWith("http")
+					? worktree.cloudSandbox.claudeHost
+					: `https://${worktree.cloudSandbox.claudeHost}`;
+
+				await shell.openExternal(url);
+
+				return { success: true };
+			} catch (error) {
+				console.error("Failed to open cloud sandbox:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
+
+	ipcMain.handle(
+		"worktree-delete-cloud-sandbox",
+		async (_event, input: { workspaceId: string; worktreeId: string }) => {
+			try {
+				const workspace = await workspaceManager.getWorkspace(
+					input.workspaceId,
+				);
+				if (!workspace) {
+					return {
+						success: false,
+						error: "Workspace not found",
+					};
+				}
+
+				const worktree = workspace.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false,
+						error: "Worktree not found",
+					};
+				}
+
+				if (!worktree.cloudSandbox) {
+					return {
+						success: false,
+						error: "No cloud sandbox found for this worktree",
+					};
+				}
+
+				// Import cloud API client
+				const { cloudApiClient } = await import("./cloud-api-client");
+
+				// Delete sandbox
+				const result = await cloudApiClient.deleteSandbox(
+					worktree.cloudSandbox.id,
+				);
+
+				if (result.success) {
+					// Remove sandbox info from worktree config
+					delete worktree.cloudSandbox;
+					await workspaceManager.saveConfig();
+				}
+
+				return result;
+			} catch (error) {
+				console.error("Failed to delete cloud sandbox:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
 }

@@ -240,12 +240,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-					id: pending.id,
-					slug: pending.taskData.slug,
-					title: pending.taskData.name,
-					status: pending.taskData.status,
-					description: pending.description || "",
-				}
+						id: pending.id,
+						slug: pending.taskData.slug,
+						title: pending.taskData.name,
+						status: pending.taskData.status,
+						description: pending.description || "",
+					}
 				: undefined,
 		}),
 	);
@@ -289,7 +289,9 @@ export const MainLayout: React.FC = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<"list" | "new">("list");
+	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<
+		"list" | "new"
+	>("list");
 	const [branches, setBranches] = useState<string[]>([]);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
@@ -526,7 +528,10 @@ export const MainLayout: React.FC = () => {
 
 					// If we deleted the selected worktree, select the first available one
 					if (selectedWorktreeId === worktreeId) {
-						if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+						if (
+							refreshedWorkspace.worktrees &&
+							refreshedWorkspace.worktrees.length > 0
+						) {
 							const firstWorktree = refreshedWorkspace.worktrees[0];
 							setSelectedWorktreeId(firstWorktree.id);
 							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
@@ -581,7 +586,7 @@ export const MainLayout: React.FC = () => {
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
 		setAddTaskModalInitialMode(mode);
 		setIsAddTaskModalOpen(true);
-		
+
 		// Fetch branches when opening in new mode
 		if (mode === "new" && currentWorkspace) {
 			void (async () => {
@@ -715,7 +720,10 @@ export const MainLayout: React.FC = () => {
 				}),
 			});
 
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
+			window.ipcRenderer.removeListener(
+				"worktree-setup-progress",
+				progressHandler,
+			);
 
 			if (result.success) {
 				// Display setup result if available
@@ -747,8 +755,12 @@ export const MainLayout: React.FC = () => {
 						handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
 					}
 				}
+				<<<<<<< HEAD:apps/desktop/src/renderer/screens/main/components/Layout/NewLayoutMain.tsx
 			} else {
-				console.error("[NewLayoutMain] Failed to create worktree:", result.error);
+				console.error(
+					"[NewLayoutMain] Failed to create worktree:",
+					result.error,
+				);
 				setSetupStatus("Failed to create worktree");
 				setSetupOutput(result.error);
 				setIsCreatingWorktree(false);
@@ -759,7 +771,10 @@ export const MainLayout: React.FC = () => {
 			setSetupStatus("Error creating worktree");
 			setSetupOutput(String(error));
 			setIsCreatingWorktree(false);
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
+			window.ipcRenderer.removeListener(
+				"worktree-setup-progress",
+				progressHandler,
+			);
 		}
 	};
 
@@ -835,6 +850,77 @@ export const MainLayout: React.FC = () => {
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
 			alert(`Failed to merge PR: ${errorMessage}`);
+		}
+	};
+
+	const handleCreateCloudSandbox = async () => {
+		if (!currentWorkspace || !selectedWorktreeId) return;
+
+		const worktree = currentWorkspace.worktrees?.find(
+			(wt) => wt.id === selectedWorktreeId,
+		);
+		if (!worktree) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"worktree-create-cloud-sandbox",
+				{
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+				},
+			);
+
+			if (result.success) {
+				// Reload workspace to show updated sandbox state
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+				}
+				alert("Cloud sandbox created! Opening in browser...");
+
+				// Auto-open the sandbox
+				if (result.sandbox?.claudeHost) {
+					await window.ipcRenderer.invoke("worktree-open-cloud-sandbox", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+					});
+				}
+			} else {
+				alert(
+					`Failed to create cloud sandbox: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to create cloud sandbox: ${errorMessage}`);
+		}
+	};
+
+	const handleOpenCloudSandbox = async () => {
+		if (!currentWorkspace || !selectedWorktreeId) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"worktree-open-cloud-sandbox",
+				{
+					workspaceId: currentWorkspace.id,
+					worktreeId: selectedWorktreeId,
+				},
+			);
+
+			if (!result.success) {
+				alert(
+					`Failed to open cloud sandbox: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to open cloud sandbox: ${errorMessage}`);
 		}
 	};
 
@@ -960,6 +1046,8 @@ export const MainLayout: React.FC = () => {
 						onAddTask={handleOpenAddTaskModal}
 						onCreatePR={handleCreatePR}
 						onMergePR={handleMergePR}
+						onCreateCloudSandbox={handleCreateCloudSandbox}
+						onOpenCloudSandbox={handleOpenCloudSandbox}
 						worktrees={enrichWorktreesWithTasks(
 							currentWorkspace?.worktrees || [],
 							pendingWorktrees,
@@ -1035,10 +1123,10 @@ export const MainLayout: React.FC = () => {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-										error ||
-										!currentWorkspace ||
-										!selectedTab ||
-										!selectedWorktree ? (
+									error ||
+									!currentWorkspace ||
+									!selectedTab ||
+									!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}
