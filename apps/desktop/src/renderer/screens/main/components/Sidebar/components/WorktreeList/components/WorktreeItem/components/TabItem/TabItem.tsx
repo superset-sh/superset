@@ -6,6 +6,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	Cloud,
 	Edit2,
 	FolderOutput,
 	FolderTree,
@@ -124,10 +125,48 @@ export function TabItem({
 		}
 	};
 
+	const handleKillVM = async () => {
+		if (!workspaceId || !worktreeId) return;
+
+		const confirmed = window.confirm(
+			"Are you sure you want to delete this cloud sandbox? This cannot be undone.",
+		);
+		if (!confirmed) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke(
+				"worktree-delete-cloud-sandbox",
+				{
+					workspaceId,
+					worktreeId,
+				},
+			);
+
+			if (result.success) {
+				// Close the tab after successful deletion
+				onTabRemove?.(tab.id);
+			} else {
+				alert(
+					`Failed to delete cloud sandbox: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to delete cloud sandbox: ${errorMessage}`);
+		}
+	};
+
 	const isSelected = selectedTabId === tab.id;
 	const isMultiSelected = selectedTabIds.has(tab.id);
 	const showMultiSelectHighlight = isMultiSelected && selectedTabIds.size > 1;
 	const isInsideGroup = !!parentTabId;
+
+	// Check if this is a Cloud IDE tab
+	const isCloudIDETab =
+		tab.type === "preview" &&
+		tab.name === "Cloud IDE" &&
+		worktree?.cloudSandbox;
 
 	const IconComponent = (() => {
 		switch (tab.type) {
@@ -199,6 +238,12 @@ export function TabItem({
 					<ContextMenuItem onClick={handleGroupSelected}>
 						<FolderTree size={14} className="mr-2" />
 						Group {selectedTabIds.size} Tabs
+					</ContextMenuItem>
+				)}
+				{isCloudIDETab && (
+					<ContextMenuItem onClick={handleKillVM} className="text-red-400">
+						<Cloud size={14} className="mr-2" />
+						Kill VM
 					</ContextMenuItem>
 				)}
 			</ContextMenuContent>
