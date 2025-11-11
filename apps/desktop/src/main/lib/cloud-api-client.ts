@@ -97,14 +97,20 @@ class CloudApiClient {
 
 			const data: CreateSandboxResponse = await response.json();
 
+			// Override claudeHost to use port 7030 for web UI
+			const claudeHost =
+				data.claudeHost?.replace(/:\d+/, ":7030") || data.claudeHost;
+
 			const sandbox: CloudSandbox = {
 				id: data.id,
 				name: data.name,
 				status: "running",
 				websshHost: data.websshHost,
-				claudeHost: data.claudeHost,
+				claudeHost: claudeHost,
 				createdAt: data.createdAt,
 			};
+
+			console.log("Created sandbox:", sandbox);
 
 			return { success: true, sandbox };
 		} catch (error) {
