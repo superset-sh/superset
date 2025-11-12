@@ -209,7 +209,8 @@ export function Sidebar({
 		];
 		const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
 		const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-		const randomName = `${randomAdj}-${randomNoun}`;
+		const timestamp = Date.now().toString(36); // Add timestamp to ensure uniqueness
+		const randomName = `${randomAdj}-${randomNoun}-${timestamp}`;
 
 		// For now, create a simple worktree and immediately create a cloud sandbox for it
 		const title = `Cloud ${randomAdj} ${randomNoun}`;
