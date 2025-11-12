@@ -8,6 +8,12 @@
 	"formatter": {
 		"formatWithErrors": true
 	},
+	"css": {
+		"parser": {
+			"cssModules": true,
+			"tailwindDirectives": true
+		}
+	},
 	"linter": {
 		"rules": {
 			"suspicious": {

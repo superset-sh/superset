@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "@superset/ui/globals.css";
 
-@plugin 'tailwindcss-animate';
+@plugin "tailwindcss-animate";
 
 @source "./**/*.{ts,tsx}";
 
