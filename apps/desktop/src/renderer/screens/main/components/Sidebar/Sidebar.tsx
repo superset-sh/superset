@@ -4,12 +4,10 @@ import type { Tab, Workspace, Worktree } from "shared/types";
 import {
 	CreateWorktreeButton,
 	CreateWorktreeModal,
-	SidebarHeader,
-	WorkspaceCarousel,
-	WorkspacePortIndicator,
-	WorkspaceSwitcher,
 	WorktreeList,
 } from "./components";
+import { ModeCarousel, type SidebarMode } from "./components/ModeCarousel";
+import { ModeSwitcher } from "./components/ModeSwitcher";
 
 interface SidebarProps {
 	workspaces: Workspace[];
@@ -52,16 +50,15 @@ export function Sidebar({
 	const [description, setDescription] = useState("");
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
 	const [setupOutput, setSetupOutput] = useState<string | undefined>(undefined);
+	const [currentMode, setCurrentMode] = useState<SidebarMode>("tabs");
 
-	// Initialize with current workspace index
-	const currentIndex = workspaces.findIndex(
-		(w) => w.id === currentWorkspace?.id,
-	);
-	const initialIndex = currentIndex >= 0 ? currentIndex : 0;
-	const defaultScrollProgress = useMotionValue(initialIndex);
+	// Initialize scroll progress
+	const defaultScrollProgress = useMotionValue(0);
 	const [scrollProgress, setScrollProgress] = useState<MotionValue<number>>(
 		defaultScrollProgress,
 	);
+
+	const modes: SidebarMode[] = ["tabs", "diff"];
 
 	// Auto-expand worktree if it contains the selected tab
 	useEffect(() => {
@@ -291,40 +288,54 @@ export function Sidebar({
 
 	return (
 		<div className="flex flex-col h-full w-full select-none text-neutral-300 text-sm">
-			<WorkspaceCarousel
-				workspaces={workspaces}
-				currentWorkspace={currentWorkspace}
-				onWorkspaceSelect={onWorkspaceSelect}
+			<ModeSwitcher
+				modes={modes}
+				currentMode={currentMode}
+				onModeSelect={setCurrentMode}
+				scrollProgress={scrollProgress}
+			/>
+			<ModeCarousel
+				modes={modes}
+				currentMode={currentMode}
+				onModeSelect={setCurrentMode}
 				onScrollProgress={setScrollProgress}
 				isDragging={isDragging}
 			>
-				{(workspace, isActive) => (
-					<>
-						<WorktreeList
-							currentWorkspace={workspace}
-							expandedWorktrees={expandedWorktrees}
-							onToggleWorktree={toggleWorktree}
-							onTabSelect={onTabSelect}
-							onReload={onWorktreeCreated}
-							onUpdateWorktree={onUpdateWorktree}
-							selectedTabId={selectedTabId}
-							onCloneWorktree={handleCloneWorktree}
-							onShowDiff={onShowDiff}
-							selectedWorktreeId={
-								selectedWorktreeId ?? currentWorkspace?.activeWorktreeId
-							}
-							showWorkspaceHeader={true}
-						/>
+				{(mode, isActive) => {
+					if (mode === "diff") {
+						// Diff mode - empty for now
+						return <div className="flex-1" />;
+					}
 
-						{workspace && (
-							<CreateWorktreeButton
-								onClick={handleCreateWorktree}
-								isCreating={isCreatingWorktree}
+					// Tabs mode - show worktree list
+					return (
+						<>
+							<WorktreeList
+								currentWorkspace={currentWorkspace}
+								expandedWorktrees={expandedWorktrees}
+								onToggleWorktree={toggleWorktree}
+								onTabSelect={onTabSelect}
+								onReload={onWorktreeCreated}
+								onUpdateWorktree={onUpdateWorktree}
+								selectedTabId={selectedTabId}
+								onCloneWorktree={handleCloneWorktree}
+								onShowDiff={onShowDiff}
+								selectedWorktreeId={
+									selectedWorktreeId ?? currentWorkspace?.activeWorktreeId
+								}
+								showWorkspaceHeader={true}
 							/>
-						)}
-					</>
-				)}
-			</WorkspaceCarousel>
+
+							{currentWorkspace && (
+								<CreateWorktreeButton
+									onClick={handleCreateWorktree}
+									isCreating={isCreatingWorktree}
+								/>
+							)}
+						</>
+					);
+				}}
+			</ModeCarousel>
 
 			<CreateWorktreeModal
 				isOpen={showWorktreeModal}
