@@ -12,6 +12,7 @@ import {
 	FolderTree,
 	GitCompare,
 	Globe2,
+	Loader2,
 	Monitor,
 	SquareTerminal,
 	X,
@@ -50,6 +51,7 @@ export function TabItem({
 }: TabItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editName, setEditName] = useState(tab.name);
+	const [isKillingVM, setIsKillingVM] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Focus input when entering edit mode
@@ -127,6 +129,7 @@ export function TabItem({
 		);
 		if (!confirmed) return;
 
+		setIsKillingVM(true);
 		try {
 			// Extract sandbox ID from URL (format: https://7030-SANDBOX_ID.e2b.app/)
 			const urlMatch = tab.url.match(/\/\/\d+-([^.]+)\.e2b\.app/);
@@ -173,6 +176,8 @@ export function TabItem({
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
 			alert(`Failed to delete cloud sandbox and worktree: ${errorMessage}`);
+		} finally {
+			setIsKillingVM(false);
 		}
 	};
 
@@ -261,9 +266,17 @@ export function TabItem({
 					</ContextMenuItem>
 				)}
 				{isCloudIDETab && (
-					<ContextMenuItem onClick={handleKillVM} className="text-red-400">
-						<Cloud size={14} className="mr-2" />
-						Kill VM
+					<ContextMenuItem
+						onClick={handleKillVM}
+						disabled={isKillingVM}
+						className="text-red-400"
+					>
+						{isKillingVM ? (
+							<Loader2 size={14} className="mr-2 animate-spin" />
+						) : (
+							<Cloud size={14} className="mr-2" />
+						)}
+						{isKillingVM ? "Deleting..." : "Kill VM"}
 					</ContextMenuItem>
 				)}
 			</ContextMenuContent>
