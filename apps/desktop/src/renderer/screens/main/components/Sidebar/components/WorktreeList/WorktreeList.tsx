@@ -200,11 +200,6 @@ export function WorktreeList({
 							className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all hover:bg-neutral-800/40 text-neutral-400 hover:text-neutral-300`}
 						>
 							<Plus size={12} className="shrink-0" />
-							{defaultTabType === "terminal" ? (
-								<SquareTerminal size={12} className="shrink-0" />
-							) : (
-								<Monitor size={12} className="shrink-0" />
-							)}
 							<span className="truncate flex-1 text-left">
 								{defaultTabType === "terminal" ? "New Terminal" : "New Preview"}
 							</span>
