@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { TaskStatus, Worktree } from "shared/types";
+import type { Worktree } from "shared/types";
+import type { TaskStatus } from "../components/Layout/StatusIndicator";
 import type { UITask, PendingWorktree } from "../types";
 import { MOCK_TASKS } from "../constants";
 

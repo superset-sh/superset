@@ -1,9 +1,10 @@
+import type React from "react";
 import type { Workspace, Worktree } from "shared/types";
 
 interface UseWorktreesProps {
 	currentWorkspace: Workspace | null;
 	setCurrentWorkspace: (workspace: Workspace) => void;
-	setWorkspaces: (workspaces: Workspace[]) => void;
+	setWorkspaces: React.Dispatch<React.SetStateAction<Workspace[] | null>>;
 	loadAllWorkspaces: () => Promise<void>;
 	setSelectedWorktreeId: (id: string | null) => void;
 	setSelectedTabId: (id: string | null) => void;
@@ -56,7 +57,7 @@ export function useWorktrees({
 
 		// Also update in workspaces array if available
 		setWorkspaces((prev) => {
-			if (!prev) return prev;
+			if (!prev) return [];
 			return prev.map((ws) =>
 				ws.id === currentWorkspace.id ? updatedCurrentWorkspace : ws,
 			);
