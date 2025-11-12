@@ -44,13 +44,12 @@ export const PRActions: React.FC<PRActionsProps> = ({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						variant="default"
+						variant="outline"
 						size="sm"
 						onClick={onCreatePR}
 						disabled={!canCreatePR}
-						className="h-7"
 					>
-						<GitPullRequest size={14} className="mr-1.5" />
+						<GitPullRequest size={14} />
 						Create PR
 					</Button>
 				</TooltipTrigger>
