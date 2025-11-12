@@ -241,12 +241,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-					id: pending.id,
-					slug: pending.taskData.slug,
-					title: pending.taskData.name,
-					status: pending.taskData.status,
-					description: pending.description || "",
-				}
+						id: pending.id,
+						slug: pending.taskData.slug,
+						title: pending.taskData.name,
+						status: pending.taskData.status,
+						description: pending.description || "",
+					}
 				: undefined,
 		}),
 	);
@@ -1025,10 +1025,10 @@ export const NewLayoutMain: React.FC = () => {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-										error ||
-										!currentWorkspace ||
-										!selectedTab ||
-										!selectedWorktree ? (
+									error ||
+									!currentWorkspace ||
+									!selectedTab ||
+									!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}

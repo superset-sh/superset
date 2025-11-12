@@ -60,9 +60,6 @@ class TmuxManager {
 			this.terminalWindows.set(terminalId, new Set());
 		}
 		this.terminalWindows.get(terminalId)?.add(window);
-		console.log(
-			`[TmuxManager] Registered window for terminal ${terminalId}, now ${this.terminalWindows.get(terminalId)?.size} window(s)`,
-		);
 	}
 
 	/**
@@ -72,9 +69,6 @@ class TmuxManager {
 		const windows = this.terminalWindows.get(terminalId);
 		if (windows) {
 			windows.delete(window);
-			console.log(
-				`[TmuxManager] Unregistered window from terminal ${terminalId}, now ${windows.size} window(s)`,
-			);
 			if (windows.size === 0) {
 				this.terminalWindows.delete(terminalId);
 			}
@@ -95,18 +89,13 @@ class TmuxManager {
 				}
 			}
 		}
-		console.log(`[TmuxManager] Unregistered window from ${count} terminal(s)`);
 	}
 
 	/**
 	 * Initialize tmux session manager - restore sessions from disk
 	 */
 	async initialize(): Promise<void> {
-		console.log("[TmuxManager] Initializing...");
 		const savedSessions = this.loadSessionsFromDisk();
-		console.log(
-			`[TmuxManager] Found ${savedSessions.length} persisted sessions`,
-		);
 
 		// Verify each session exists in tmux and prepare for lazy reattach
 		for (const metadata of savedSessions) {
@@ -149,9 +138,6 @@ class TmuxManager {
 
 		if (hasSession.status !== 0) {
 			// Session doesn't exist, create it
-			console.log(
-				`[TmuxManager] Creating new tmux session: ${sid} (${cols}x${rows})`,
-			);
 
 			const shell = process.env.SHELL || "/bin/bash";
 			const createResult = spawnSync(
@@ -261,7 +247,6 @@ class TmuxManager {
 				const session = this.sessions.get(sid)!;
 				if (session.pty) {
 					// Already attached, just return
-					console.log(`[TmuxManager] Session ${sid} already attached`);
 					return sid;
 				}
 				// Session exists but detached, reattach below
@@ -272,9 +257,6 @@ class TmuxManager {
 
 			// Resize the tmux window BEFORE attaching to ensure proper dimensions
 			// This is crucial for reconnection after restart
-			console.log(
-				`[TmuxManager] Resizing tmux window ${sid} to ${cols}x${rows} before attach`,
-			);
 			const resizeResult = spawnSync("tmux", [
 				"-L",
 				this.TMUX_SOCKET,
@@ -299,7 +281,6 @@ class TmuxManager {
 			spawnSync("tmux", ["-L", this.TMUX_SOCKET, "refresh-client", "-t", sid]);
 
 			// Attach to the session via node-pty
-			console.log(`[TmuxManager] Attaching to session: ${sid}`);
 			const ptyProcess = pty.spawn(
 				"tmux",
 				[
@@ -328,18 +309,12 @@ class TmuxManager {
 			ptyProcess.onData((data: string) => {
 				// Debug: log what's coming from PTY
 				if (data.includes("1;2c") || data.includes("0;276")) {
-					console.log(
-						`[TmuxManager] PTY output from ${sid}:`,
-						JSON.stringify(data),
-						`(length: ${data.length})`,
-					);
 				}
 				this.addTerminalMessage(sid, data);
 			});
 
 			// Handle exit (PTY client detached, not tmux session killed)
 			ptyProcess.onExit(({ exitCode }) => {
-				console.log(`[TmuxManager] PTY client for ${sid} exited: ${exitCode}`);
 				const session = this.sessions.get(sid);
 				if (session) {
 					// Mark as detached but keep session metadata
@@ -399,9 +374,6 @@ class TmuxManager {
 
 			// Drop stale resize events
 			if (seq <= session.lastResizeSeq) {
-				console.log(
-					`[TmuxManager] Dropping stale resize for ${sid}: seq ${seq} <= ${session.lastResizeSeq}`,
-				);
 				return false;
 			}
 
@@ -493,12 +465,6 @@ class TmuxManager {
 		try {
 			const session = this.sessions.get(sid);
 			if (session?.pty) {
-				// Debug: log what's being written
-				console.log(
-					`[TmuxManager] Writing to ${sid}:`,
-					JSON.stringify(data),
-					`(length: ${data.length})`,
-				);
 				session.pty.write(data);
 				return true;
 			}
@@ -533,7 +499,6 @@ class TmuxManager {
 		try {
 			const session = this.sessions.get(sid);
 			if (session?.pty) {
-				console.log(`[TmuxManager] Detaching from session: ${sid}`);
 				session.pty.kill();
 				session.pty = null;
 				return true;
@@ -550,8 +515,6 @@ class TmuxManager {
 	 */
 	kill(sid: string): boolean {
 		try {
-			console.log(`[TmuxManager] Killing session: ${sid}`);
-
 			// Kill PTY client if attached
 			const session = this.sessions.get(sid);
 			if (session?.pty) {
@@ -592,7 +555,6 @@ class TmuxManager {
 	 */
 	killAll(): boolean {
 		try {
-			console.log("[TmuxManager] Killing all sessions");
 			for (const sid of this.sessions.keys()) {
 				this.kill(sid);
 			}
@@ -614,15 +576,8 @@ class TmuxManager {
 
 		// Return in-memory history if available
 		if (session.outputHistory.length > 0) {
-			console.log(
-				`[TmuxManager] Returning ${session.outputHistory.length} bytes of cached history for ${sid}`,
-			);
 			return session.outputHistory;
 		}
-
-		console.log(
-			`[TmuxManager] No cached history for ${sid}, tmux will send content on attach`,
-		);
 		return undefined;
 	}
 
@@ -694,8 +649,6 @@ class TmuxManager {
 				JSON.stringify(metadata, null, 2),
 				"utf-8",
 			);
-
-			console.log(`[TmuxManager] Saved ${metadata.length} sessions to disk`);
 		} catch (error) {
 			console.error("[TmuxManager] Failed to save sessions to disk:", error);
 		}

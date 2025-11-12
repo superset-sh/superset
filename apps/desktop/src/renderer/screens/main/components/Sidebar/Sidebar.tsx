@@ -320,7 +320,9 @@ export function Sidebar({
 							selectedTabId={selectedTabId}
 							onCloneWorktree={handleCloneWorktree}
 							onShowDiff={onShowDiff}
-							selectedWorktreeId={selectedWorktreeId ?? currentWorkspace?.activeWorktreeId}
+							selectedWorktreeId={
+								selectedWorktreeId ?? currentWorkspace?.activeWorktreeId
+							}
 							showWorkspaceHeader={true}
 						/>
 

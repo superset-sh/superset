@@ -182,7 +182,12 @@ export default function TabGroup({
 					className={isActive ? "active-mosaic-window" : ""}
 					toolbarControls={<div />}
 				>
-					<div className="w-full h-full p-2 bg-[#1e1e1e]">
+					<div
+						className="w-full h-full p-2 bg-[#1e1e1e] mosaic-window-content"
+						tabIndex={0}
+						role="region"
+						aria-label={`${tab.name} content`}
+					>
 						<TabContent
 							tab={tab}
 							workingDirectory={workingDirectory}
@@ -260,8 +265,7 @@ export default function TabGroup({
 				.mosaic-theme-dark .mosaic-window {
 					background: #1a1a1a;
 					border: 1px solid #333;
-					outline: none;
-					transition: outline 0.15s ease;
+					transition: border-color 0.15s ease, box-shadow 0.15s ease;
 				}
 				.mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
 					background: #262626;
@@ -277,6 +281,14 @@ export default function TabGroup({
 				}
 				.mosaic-theme-dark .mosaic-window-body {
 					background: #1a1a1a;
+				}
+				.mosaic-window-content {
+					outline: none;
+				}
+				.mosaic-window-content:focus-visible {
+					outline: 2px solid #3b82f6;
+					outline-offset: -2px;
+					box-shadow: inset 0 0 0 4px rgba(59, 130, 246, 0.2);
 				}
 				.mosaic-theme-dark .mosaic-split {
 					background: #333;

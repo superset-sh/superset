@@ -558,7 +558,9 @@ export function registerWorkspaceIPCs() {
 
 				// If successful, store the PR URL in the worktree config
 				if (result.success && result.prUrl) {
-					console.log(`Storing PR URL for worktree ${worktree.id}: ${result.prUrl}`);
+					console.log(
+						`Storing PR URL for worktree ${worktree.id}: ${result.prUrl}`,
+					);
 					worktree.prUrl = result.prUrl;
 					await workspaceManager.saveConfig();
 				} else {
