@@ -16,6 +16,11 @@ const modeIcons: Record<SidebarMode, typeof LayoutList> = {
 	diff: GitBranch,
 };
 
+const modeLabels: Record<SidebarMode, string> = {
+	tabs: "Tabs",
+	diff: "Diffs",
+};
+
 interface AnimatedBackgroundProps {
 	progress: MotionValue<number>;
 	modeCount: number;
@@ -184,10 +189,16 @@ export function ModeCarousel({
 		};
 	}, [modes, currentMode, onModeSelect, scrollContainer, isDragging]);
 
+	const currentLabelSingle = modeLabels[currentMode];
+
 	// If only one mode or no modes, disable carousel
 	if (modes.length <= 1) {
 		return (
 			<div className="flex flex-col flex-1 h-full">
+				{/* Header showing current mode */}
+				<div className="px-3 py-2">
+					<span className="text-xs font-medium text-neutral-300">{currentLabelSingle}</span>
+				</div>
 				<div className="flex-1 overflow-y-auto px-3">
 					{children(currentMode, true)}
 				</div>
@@ -195,8 +206,15 @@ export function ModeCarousel({
 		);
 	}
 
+	const currentLabel = modeLabels[currentMode];
+
 	return (
 		<div className="flex flex-col flex-1 h-full">
+			{/* Header showing current mode */}
+			<div className="px-3 py-2">
+				<span className="text-xs font-medium text-neutral-300">{currentLabel}</span>
+			</div>
+
 			{/* Carousel content */}
 			<div
 				ref={scrollContainerRef}
