@@ -191,7 +191,7 @@ export function WorktreeList({
 
 			{/* Arc-style New Tab Button - styled like a tab at the bottom */}
 			{selectedWorktreeId && (
-				<div className="space-y-0.5">
+				<div className="space-y-0.5 mt-2">
 					<div className="relative">
 						<button
 							ref={buttonRef}
@@ -207,11 +207,11 @@ export function WorktreeList({
 								ref={chevronRef}
 								type="button"
 								onClick={handleChevronClick}
-								className="shrink-0 opacity-0 group-hover:opacity-60 hover:opacity-100 p-0.5 rounded transition-opacity"
+								className="shrink-0 opacity-0 group-hover:opacity-60 hover:opacity-100 p-1 rounded transition-opacity"
 								onMouseDown={(e) => e.stopPropagation()}
 							>
 								<ChevronDown
-									size={10}
+									size={14}
 									className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
 								/>
 							</button>
