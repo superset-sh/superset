@@ -77,7 +77,9 @@ class CloudApiClient {
 				taskDescription: params.taskDescription,
 				envVars: {
 					...params.envVars,
-					...(claudeAuthToken && { ANTHROPIC_AUTH_TOKEN: claudeAuthToken }),
+					...(claudeAuthToken && {
+						CLAUDE_CODE_OAUTH_TOKEN: claudeAuthToken,
+					}),
 				},
 			};
 
@@ -87,7 +89,9 @@ class CloudApiClient {
 				template: requestBody.template,
 				githubRepo: requestBody.githubRepo,
 				taskDescription: requestBody.taskDescription,
-				envVars: claudeAuthToken ? { ANTHROPIC_AUTH_TOKEN: "***" } : undefined,
+				envVars: claudeAuthToken
+					? { CLAUDE_CODE_OAUTH_TOKEN: "***" }
+					: undefined,
 			});
 
 			const response = await fetch(this.baseUrl, {
