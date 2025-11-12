@@ -164,7 +164,6 @@
         "@superset/db": "*",
         "@t3-oss/env-core": "^0.13.8",
         "@trpc/server": "^11.7.0",
-        "drizzle-orm": "0.44.3",
         "superjson": "2.2.3",
         "zod": "^4.1.12",
       },
