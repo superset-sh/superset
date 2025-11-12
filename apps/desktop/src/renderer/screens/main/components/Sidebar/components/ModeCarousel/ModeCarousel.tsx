@@ -1,4 +1,6 @@
-import { type MotionValue, useMotionValue } from "framer-motion";
+import { Button } from "@superset/ui/button";
+import { type MotionValue, motion, useMotionValue, useTransform } from "framer-motion";
+import { GitBranch, LayoutList } from "lucide-react";
 import {
 	type ReactNode,
 	useCallback,
@@ -8,6 +10,47 @@ import {
 } from "react";
 
 export type SidebarMode = "tabs" | "diff";
+
+const modeIcons: Record<SidebarMode, typeof LayoutList> = {
+	tabs: LayoutList,
+	diff: GitBranch,
+};
+
+interface AnimatedBackgroundProps {
+	progress: MotionValue<number>;
+	modeCount: number;
+}
+
+function AnimatedBackground({ progress, modeCount }: AnimatedBackgroundProps) {
+	// Calculate the width of each button (36px = h-9 w-9) + gap (4px = gap-1)
+	const buttonWidth = 36;
+	const gap = 4;
+	const totalButtonWidth = buttonWidth + gap;
+
+	// Transform progress (0-1) to translateX position
+	// For 2 modes: 0 -> 0px, 1 -> 40px (buttonWidth + gap)
+	const translateX = useTransform(
+		progress,
+		[0, modeCount - 1],
+		[0, (modeCount - 1) * totalButtonWidth]
+	);
+
+	return (
+		<motion.div
+			className="absolute h-9 rounded-lg bg-neutral-800/60"
+			style={{
+				width: buttonWidth,
+				x: translateX,
+			}}
+			initial={false}
+			transition={{
+				type: "spring",
+				stiffness: 300,
+				damping: 30,
+			}}
+		/>
+	);
+}
 
 interface ModeCarouselProps {
 	modes: SidebarMode[];
@@ -144,43 +187,75 @@ export function ModeCarousel({
 	// If only one mode or no modes, disable carousel
 	if (modes.length <= 1) {
 		return (
-			<div className="flex-1 overflow-y-auto px-3">
-				{children(currentMode, true)}
+			<div className="flex flex-col flex-1 h-full">
+				<div className="flex-1 overflow-y-auto px-3">
+					{children(currentMode, true)}
+				</div>
 			</div>
 		);
 	}
 
 	return (
-		<div
-			ref={scrollContainerRef}
-			className="flex-1 overflow-x-scroll overflow-y-hidden hide-scrollbar"
-			style={{
-				scrollSnapType: isDragging ? "none" : "x mandatory",
-				WebkitOverflowScrolling: "touch",
-				scrollbarWidth: "none",
-				msOverflowStyle: "none",
-				pointerEvents: isDragging ? "none" : "auto",
-			}}
-		>
+		<div className="flex flex-col flex-1 h-full">
+			{/* Carousel content */}
 			<div
-				className="flex h-full"
-				style={{ width: `${modes.length * 100}%` }}
+				ref={scrollContainerRef}
+				className="flex-1 overflow-x-scroll overflow-y-hidden hide-scrollbar"
+				style={{
+					scrollSnapType: isDragging ? "none" : "x mandatory",
+					WebkitOverflowScrolling: "touch",
+					scrollbarWidth: "none",
+					msOverflowStyle: "none",
+					pointerEvents: isDragging ? "none" : "auto",
+				}}
 			>
-				{modes.map((mode) => (
-					<div
-						key={mode}
-						className="overflow-y-auto px-3"
-						style={{
-							scrollSnapAlign: "start",
-							scrollSnapStop: "always",
-							width: `${100 / modes.length}%`,
-						}}
-					>
-						{children(mode, mode === currentMode)}
-					</div>
-				))}
+				<div
+					className="flex h-full"
+					style={{ width: `${modes.length * 100}%` }}
+				>
+					{modes.map((mode) => (
+						<div
+							key={mode}
+							className="overflow-y-auto px-3"
+							style={{
+								scrollSnapAlign: "start",
+								scrollSnapStop: "always",
+								width: `${100 / modes.length}%`,
+							}}
+						>
+							{children(mode, mode === currentMode)}
+						</div>
+					))}
+				</div>
+			</div>
+
+			{/* Bottom navigation bar - Arc browser style */}
+			<div className="flex items-center justify-center gap-1 px-2 py-2 border-t border-neutral-800/50 bg-neutral-900/50 backdrop-blur-sm">
+				<div className="relative flex items-center gap-1">
+					{/* Animated background indicator */}
+					<AnimatedBackground progress={modeProgress} modeCount={modes.length} />
+
+					{modes.map((mode) => {
+						const Icon = modeIcons[mode];
+						const isActive = mode === currentMode;
+
+						return (
+							<Button
+								key={mode}
+								variant="ghost"
+								size="sm"
+								onClick={() => onModeSelect(mode)}
+								className={`relative z-10 h-9 w-9 rounded-lg transition-colors duration-200 ${isActive
+									? "text-neutral-100"
+									: "text-neutral-400 hover:text-neutral-300"
+									}`}
+							>
+								<Icon className="w-4 h-4" />
+							</Button>
+						);
+					})}
+				</div>
 			</div>
 		</div>
 	);
 }
-

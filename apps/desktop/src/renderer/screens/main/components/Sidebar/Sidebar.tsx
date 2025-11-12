@@ -10,7 +10,6 @@ import {
 	WorktreeList,
 } from "./components";
 import { ModeCarousel, type SidebarMode } from "./components/ModeCarousel";
-import { ModeSwitcher } from "./components/ModeSwitcher";
 
 interface SidebarProps {
 	workspaces: Workspace[];
@@ -328,12 +327,6 @@ export function Sidebar({
 
 	return (
 		<div className="flex flex-col h-full w-full select-none text-neutral-300 text-sm">
-			<ModeSwitcher
-				modes={modes}
-				currentMode={currentMode}
-				onModeSelect={setCurrentMode}
-				scrollProgress={scrollProgress}
-			/>
 			<ModeCarousel
 				modes={modes}
 				currentMode={currentMode}
