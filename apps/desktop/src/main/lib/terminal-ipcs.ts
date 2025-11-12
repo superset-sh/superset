@@ -104,7 +104,6 @@ export function registerTerminalIPCs(window: BrowserWindowType) {
 
 	// Clean up when this window closes
 	const cleanup = () => {
-		console.log("[Terminal IPC] Cleaning up window terminal registrations");
 		tmuxManager.unregisterWindow(window);
 	};
 

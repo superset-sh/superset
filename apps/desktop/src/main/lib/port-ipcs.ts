@@ -34,11 +34,6 @@ export function registerPortIpcs(): void {
 				// Reinitialize proxy manager with new configuration
 				await proxyManager.initialize(workspace);
 				proxyManager.updateTargets(workspace);
-
-				console.log(
-					`[PortIpcs] Updated ports configuration for workspace ${workspace.name}`,
-				);
-
 				return {
 					success: true,
 				};
@@ -64,6 +59,4 @@ export function registerPortIpcs(): void {
 	ipcMain.handle("proxy-get-status", async () => {
 		return proxyManager.getStatus();
 	});
-
-	console.log("[PortIpcs] Registered port-related IPC handlers");
 }

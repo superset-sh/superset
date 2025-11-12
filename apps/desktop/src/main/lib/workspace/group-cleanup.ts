@@ -26,9 +26,6 @@ export function removeEmptyGroupTabs(
 			// Remove this empty group
 			tabs.splice(i, 1);
 			removedAny = true;
-			console.log(
-				`Removed empty group tab: ${[...parentPath, tab.name].join(" > ")}`,
-			);
 		} else if (tab.type === "group" && tab.tabs) {
 			// Recursively check child tabs
 			const childRemoved = removeEmptyGroupTabs(tab.tabs, [
@@ -43,9 +40,6 @@ export function removeEmptyGroupTabs(
 			if (isEmptyGroup(tab)) {
 				tabs.splice(i, 1);
 				removedAny = true;
-				console.log(
-					`Removed newly-empty group tab: ${[...parentPath, tab.name].join(" > ")}`,
-				);
 			}
 		}
 	}
