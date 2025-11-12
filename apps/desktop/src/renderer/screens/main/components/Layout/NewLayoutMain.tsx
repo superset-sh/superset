@@ -241,12 +241,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-						id: pending.id,
-						slug: pending.taskData.slug,
-						title: pending.taskData.name,
-						status: pending.taskData.status,
-						description: pending.description || "",
-					}
+					id: pending.id,
+					slug: pending.taskData.slug,
+					title: pending.taskData.name,
+					status: pending.taskData.status,
+					description: pending.description || "",
+				}
 				: undefined,
 		}),
 	);
@@ -285,7 +285,7 @@ function enrichWorktreesWithTasks(
 	return [...pendingAsWorktrees, ...enrichedWorktrees];
 }
 
-export const NewLayoutMain: React.FC = () => {
+export const MainLayout: React.FC = () => {
 	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
@@ -879,7 +879,7 @@ export const NewLayoutMain: React.FC = () => {
 	useEffect(() => {
 		const handler = async (workspace: Workspace) => {
 			console.log(
-				"[NewLayoutMain] Workspace opened event received:",
+				"[MainLayout] Workspace opened event received:",
 				workspace,
 			);
 			setLoading(false);
@@ -1025,10 +1025,10 @@ export const NewLayoutMain: React.FC = () => {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
+										error ||
+										!currentWorkspace ||
+										!selectedTab ||
+										!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}
