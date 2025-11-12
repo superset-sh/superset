@@ -12,6 +12,7 @@ import type {
 import configManager from "./config-manager";
 import workspaceManager from "./workspace-manager";
 import worktreeManager from "./worktree-manager";
+import windowManager from "./window-manager";
 
 export function registerWorkspaceIPCs() {
 	// Open repository dialog
@@ -200,6 +201,32 @@ export function registerWorkspaceIPCs() {
 		"workspace-set-active-workspace-id",
 		async (_event, workspaceId: string) => {
 			return await workspaceManager.setActiveWorkspaceId(workspaceId);
+		},
+	);
+
+	// Get workspace ID for the current window
+	ipcMain.handle("workspace-get-window-workspace-id", async (event) => {
+		const senderWindow = BrowserWindow.fromWebContents(event.sender);
+		if (!senderWindow) {
+			return null;
+		}
+		return windowManager.getWorkspaceForWindow(senderWindow);
+	});
+
+	// Set workspace ID for the current window
+	ipcMain.handle(
+		"workspace-set-window-workspace-id",
+		async (event, workspaceId: string | null) => {
+			const senderWindow = BrowserWindow.fromWebContents(event.sender);
+			if (!senderWindow) {
+				return false;
+			}
+			windowManager.setWorkspaceForWindow(senderWindow, workspaceId);
+			// Also update global active workspace for backward compatibility
+			if (workspaceId) {
+				await workspaceManager.setActiveWorkspaceId(workspaceId);
+			}
+			return true;
 		},
 	);
 

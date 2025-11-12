@@ -17,6 +17,7 @@ import { PlaceholderState } from "./components/PlaceholderState";
 import { PlanView } from "./components/PlanView";
 import { Sidebar } from "./components/Sidebar";
 import { DiffTab } from "./components/TabContent/components/DiffTab";
+import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
 
 // Type alias for task data used in UI
 type UITask = {
@@ -238,12 +239,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-						id: pending.id,
-						slug: pending.taskData.slug,
-						title: pending.taskData.name,
-						status: pending.taskData.status,
-						description: pending.description || "",
-					}
+					id: pending.id,
+					slug: pending.taskData.slug,
+					title: pending.taskData.name,
+					status: pending.taskData.status,
+					description: pending.description || "",
+				}
 				: undefined,
 		}),
 	);
@@ -303,6 +304,7 @@ export function MainScreen() {
 	const [pendingWorktrees, setPendingWorktrees] = useState<PendingWorktree[]>(
 		[],
 	);
+	const [showWorkspaceSelection, setShowWorkspaceSelection] = useState(false);
 
 	// Compute which tasks have worktrees (are "open")
 	const openTasks = MOCK_TASKS.filter((task) =>
@@ -454,6 +456,12 @@ export function MainScreen() {
 
 			if (workspace) {
 				setCurrentWorkspace(workspace);
+				// Set window-specific workspace
+				await window.ipcRenderer.invoke(
+					"workspace-set-window-workspace-id",
+					workspaceId,
+				);
+				// Also update global active workspace for backward compatibility
 				await window.ipcRenderer.invoke(
 					"workspace-set-active-workspace-id",
 					workspaceId,
@@ -471,10 +479,24 @@ export function MainScreen() {
 					setSelectedWorktreeId(null);
 					setSelectedTabId(null);
 				}
+
+				// Close workspace selection modal if open
+				setShowWorkspaceSelection(false);
 			}
 		} catch (error) {
 			console.error("Failed to load workspace:", error);
 		}
+	};
+
+	// Handle workspace selection from modal
+	const handleWorkspaceSelectFromModal = async (workspaceId: string) => {
+		await handleWorkspaceSelect(workspaceId);
+	};
+
+	// Handle create workspace from modal
+	const handleCreateWorkspaceFromModal = async () => {
+		// Trigger the open repository dialog
+		window.ipcRenderer.send("open-repository");
 	};
 
 	// Handle worktree created
@@ -832,15 +854,16 @@ export function MainScreen() {
 				const allWorkspaces = await window.ipcRenderer.invoke("workspace-list");
 				setWorkspaces(allWorkspaces);
 
-				let workspaceId = await window.ipcRenderer.invoke(
-					"workspace-get-active-workspace-id",
+				// Check for window-specific workspace first
+				const workspaceId = await window.ipcRenderer.invoke(
+					"workspace-get-window-workspace-id",
 				);
 
+				// If window doesn't have a workspace assigned, show selection modal
+				// (new windows start with null workspace and should prompt user)
 				if (!workspaceId) {
-					const lastOpenedWorkspace = await window.ipcRenderer.invoke(
-						"workspace-get-last-opened",
-					);
-					workspaceId = lastOpenedWorkspace?.id ?? null;
+					setShowWorkspaceSelection(true);
+					return;
 				}
 
 				if (workspaceId) {
@@ -851,6 +874,11 @@ export function MainScreen() {
 
 					if (workspace) {
 						setCurrentWorkspace(workspace);
+						// Set window-specific workspace
+						await window.ipcRenderer.invoke(
+							"workspace-set-window-workspace-id",
+							workspaceId,
+						);
 
 						const activeSelection = await window.ipcRenderer.invoke(
 							"workspace-get-active-selection",
@@ -862,6 +890,9 @@ export function MainScreen() {
 							setSelectedTabId(activeSelection.tabId);
 						}
 					}
+				} else {
+					// No workspace selected - show selection modal
+					setShowWorkspaceSelection(true);
 				}
 			} catch (err) {
 				setError(err instanceof Error ? err.message : String(err));
@@ -879,6 +910,12 @@ export function MainScreen() {
 			console.log("[MainScreen] Workspace opened event received:", workspace);
 			setLoading(false);
 
+			// Set window-specific workspace
+			await window.ipcRenderer.invoke(
+				"workspace-set-window-workspace-id",
+				workspace.id,
+			);
+			// Also update global active workspace for backward compatibility
 			await window.ipcRenderer.invoke(
 				"workspace-set-active-workspace-id",
 				workspace.id,
@@ -892,6 +929,8 @@ export function MainScreen() {
 			);
 			if (refreshedWorkspace) {
 				setCurrentWorkspace(refreshedWorkspace);
+				// Close workspace selection modal if open
+				setShowWorkspaceSelection(false);
 			}
 		};
 
@@ -1024,10 +1063,10 @@ export function MainScreen() {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
+										error ||
+										!currentWorkspace ||
+										!selectedTab ||
+										!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}
@@ -1110,6 +1149,16 @@ export function MainScreen() {
 				onSelectTask={handleSelectTask}
 				onCreateTask={handleCreateTask}
 			/>
+
+			{/* Workspace Selection Modal */}
+			{workspaces && (
+				<WorkspaceSelectionModal
+					isOpen={showWorkspaceSelection}
+					workspaces={workspaces}
+					onSelectWorkspace={handleWorkspaceSelectFromModal}
+					onCreateWorkspace={handleCreateWorkspaceFromModal}
+				/>
+			)}
 		</>
 	);
 }
