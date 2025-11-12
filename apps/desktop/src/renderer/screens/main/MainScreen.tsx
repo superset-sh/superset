@@ -29,45 +29,18 @@ import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import TabContent from "./components/MainContent/TabContent";
 import TabGroup from "./components/MainContent/TabGroup";
+import { DroppableMainContent } from "./components/MainContent/components/DroppableMainContent";
+import {
+	addTabToMosaicTree,
+	findTabById,
+	findTabRecursive,
+	removeTabFromMosaicTree,
+} from "./components/MainContent/utils";
 import { NewLayoutMain } from "./components/NewLayout/NewLayoutMain";
 import { PlaceholderState } from "./components/PlaceholderState";
 import { Sidebar } from "./components/Sidebar";
 import { DiffTab } from "./components/TabContent/components/DiffTab";
 import { TopBar } from "./components/TopBar";
-
-// Droppable wrapper for main content area
-function DroppableMainContent({
-	children,
-	isOver,
-}: {
-	children: React.ReactNode;
-	isOver: boolean;
-}) {
-	const { setNodeRef } = useDroppable({
-		id: "main-content-drop-zone",
-		data: {
-			type: "main-content",
-		},
-	});
-
-	return (
-		<div
-			ref={setNodeRef}
-			className={`flex-1 overflow-hidden m-1 rounded-lg relative ${
-				isOver ? "ring-2 ring-blue-500 ring-inset" : ""
-			}`}
-		>
-			{children}
-			{isOver && (
-				<div className="absolute inset-0 bg-blue-500/10 pointer-events-none flex items-center justify-center">
-					<div className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium">
-						Drop to add to split view
-					</div>
-				</div>
-			)}
-		</div>
-	);
-}
 
 export function MainScreen() {
 	// Check if new UI is enabled
@@ -222,28 +195,6 @@ export function MainScreen() {
 		}),
 	);
 
-	// Helper function to find a tab recursively (for finding sub-tabs inside groups)
-	const findTabRecursive = (
-		tabs: Tab[] | undefined,
-		tabId: string,
-	): { tab: Tab; parent?: Tab } | null => {
-		if (!tabs) return null;
-
-		for (const tab of tabs) {
-			if (tab.id === tabId) {
-				return { tab };
-			}
-			// Check if this tab is a group tab with children
-			if (tab.type === "group" && tab.tabs) {
-				for (const childTab of tab.tabs) {
-					if (childTab.id === tabId) {
-						return { tab: childTab, parent: tab };
-					}
-				}
-			}
-		}
-		return null;
-	};
 
 	// Get selected tab and its parent (if it's a sub-tab)
 	const tabResult = selectedWorktree?.tabs
@@ -616,101 +567,6 @@ export function MainScreen() {
 		};
 	}, [currentWorkspace, selectedWorktreeId, selectedTabId]);
 
-	// Helper: recursively find a tab by ID
-	const findTabById = (tabs: Tab[], tabId: string): Tab | null => {
-		for (const tab of tabs) {
-			if (tab.id === tabId) return tab;
-			if (tab.type === "group" && tab.tabs) {
-				const found = findTabById(tab.tabs, tabId);
-				if (found) return found;
-			}
-		}
-		return null;
-	};
-
-	// Helper: Remove tab ID from mosaic tree
-	const removeTabFromMosaicTree = (
-		tree: MosaicNode<string>,
-		tabId: string,
-	): MosaicNode<string> | null => {
-		if (typeof tree === "string") {
-			// If this is the tab to remove, return null
-			return tree === tabId ? null : tree;
-		}
-
-		// Recursively remove from branches
-		const newFirst = removeTabFromMosaicTree(tree.first, tabId);
-		const newSecond = removeTabFromMosaicTree(tree.second, tabId);
-
-		// If both branches are gone, return null
-		if (!newFirst && !newSecond) {
-			return null;
-		}
-
-		// If one branch is gone, return the other
-		if (!newFirst) {
-			return newSecond;
-		}
-		if (!newSecond) {
-			return newFirst;
-		}
-
-		// Both branches exist, keep the structure
-		return {
-			...tree,
-			first: newFirst,
-			second: newSecond,
-		};
-	};
-
-	// Helper: Add tab ID to mosaic tree
-	const addTabToMosaicTree = (
-		tree: MosaicNode<string> | null | undefined,
-		tabId: string,
-	): MosaicNode<string> => {
-		if (!tree) {
-			return tabId;
-		}
-
-		if (typeof tree === "string") {
-			// Prevent duplicate IDs - if the tree already contains this tab ID, just return the tree
-			if (tree === tabId) {
-				console.warn(
-					`[MainScreen] Attempted to add duplicate tab ID "${tabId}" to mosaic tree`,
-				);
-				return tree;
-			}
-
-			// Single tab - create a split
-			return {
-				direction: "row",
-				first: tree,
-				second: tabId,
-				splitPercentage: 50,
-			};
-		}
-
-		// Check if the tab ID already exists in the tree (recursively)
-		const containsTabId = (node: MosaicNode<string>): boolean => {
-			if (typeof node === "string") {
-				return node === tabId;
-			}
-			return containsTabId(node.first) || containsTabId(node.second);
-		};
-
-		if (containsTabId(tree)) {
-			console.warn(
-				`[MainScreen] Tab ID "${tabId}" already exists in mosaic tree, skipping addition`,
-			);
-			return tree;
-		}
-
-		// Tree node - add to the second branch
-		return {
-			...tree,
-			second: addTabToMosaicTree(tree.second, tabId),
-		};
-	};
 
 	// Drag and drop handlers
 	const handleDragStart = (event: DragStartEvent) => {

@@ -1,0 +1,2 @@
+export { DroppableMainContent } from "./DroppableMainContent";
+
