@@ -36,6 +36,16 @@ export function DiffContentArea({
 }: DiffContentAreaProps) {
 	const [viewMode, setViewMode] = useState<ViewMode>("files");
 	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const loadedFilesRef = useRef(loadedFiles);
+	const loadingFilesRef = useRef(loadingFiles);
+	const loadFileContentRef = useRef(loadFileContent);
+
+	// Keep refs in sync
+	useEffect(() => {
+		loadedFilesRef.current = loadedFiles;
+		loadingFilesRef.current = loadingFiles;
+		loadFileContentRef.current = loadFileContent;
+	}, [loadedFiles, loadingFiles, loadFileContent]);
 
 	// Load selected file immediately
 	useEffect(() => {
@@ -53,8 +63,8 @@ export function DiffContentArea({
 				for (const entry of entries) {
 					if (entry.isIntersecting) {
 						const fileId = entry.target.id.replace("file-diff-", "");
-						if (fileId && !loadedFiles.has(fileId) && !loadingFiles.has(fileId)) {
-							loadFileContent(fileId);
+						if (fileId && !loadedFilesRef.current.has(fileId) && !loadingFilesRef.current.has(fileId)) {
+							loadFileContentRef.current?.(fileId);
 						}
 					}
 				}
@@ -66,15 +76,40 @@ export function DiffContentArea({
 			},
 		);
 
-		// Observe all file diff elements
-		const elements =
-			scrollContainerRef.current.querySelectorAll('[id^="file-diff-"]');
-		elements.forEach((el) => observer.observe(el));
+		// Function to observe all file elements
+		const observeFiles = () => {
+			if (!scrollContainerRef.current) return;
+			const elements =
+				scrollContainerRef.current.querySelectorAll('[id^="file-diff-"]');
+			elements.forEach((el) => {
+				// Only observe if not already observed
+				if (!observer.takeRecords().some((record) => record.target === el)) {
+					observer.observe(el);
+				}
+			});
+		};
+
+		// Initial observation - use a timeout to batch DOM queries
+		const timeoutId = setTimeout(observeFiles, 0);
+
+		// Use MutationObserver to watch for new file elements being added
+		const mutationObserver = new MutationObserver(() => {
+			observeFiles();
+		});
+
+		if (scrollContainerRef.current) {
+			mutationObserver.observe(scrollContainerRef.current, {
+				childList: true,
+				subtree: true,
+			});
+		}
 
 		return () => {
+			clearTimeout(timeoutId);
+			mutationObserver.disconnect();
 			observer.disconnect();
 		};
-	}, [viewMode, data.files, loadFileContent, loadedFiles, loadingFiles]);
+	}, [viewMode]); // Only recreate when viewMode changes
 
 	const getFileIcon = (status: FileDiff["status"]) => {
 		switch (status) {

@@ -1,8 +1,5 @@
 import { Loader2 } from "lucide-react";
 import { memo, useEffect } from "react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { detectLanguage } from "./languageDetector";
 import type { DiffLine, FileDiff } from "./types";
 
 interface DiffContentProps {
@@ -16,14 +13,13 @@ export const DiffContent = memo(function DiffContent({
 	isLoading = false,
 	onLoad,
 }: DiffContentProps) {
-	const language = detectLanguage(file.fileName);
-
 	// Trigger load when component mounts if content is not loaded
 	useEffect(() => {
 		if (file.changes.length === 0 && !isLoading && onLoad) {
 			onLoad();
 		}
 	}, [file.changes.length, isLoading, onLoad]);
+
 	const renderDiffLine = (line: DiffLine, index: number) => {
 		const getBgColor = () => {
 			switch (line.type) {
@@ -104,28 +100,8 @@ export const DiffContent = memo(function DiffContent({
 				>
 					{getLinePrefix()}
 				</div>
-				<div className={`flex-1 py-0.5 pr-4`}>
-					<SyntaxHighlighter
-						language={language}
-						style={vscDarkPlus}
-						customStyle={{
-							margin: 0,
-							padding: 0,
-							background: "transparent",
-							fontSize: "inherit",
-							lineHeight: "inherit",
-						}}
-						codeTagProps={{
-							style: {
-								fontFamily: "inherit",
-								background: "transparent",
-							},
-						}}
-						PreTag="div"
-						className="inline-block"
-					>
-						{line.content || " "}
-					</SyntaxHighlighter>
+				<div className={`flex-1 py-0.5 pr-4 ${getTextColor()}`}>
+					{line.content || " "}
 				</div>
 			</div>
 		);

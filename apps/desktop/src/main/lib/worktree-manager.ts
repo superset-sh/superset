@@ -847,6 +847,16 @@ class WorktreeManager {
 			let newLineNum = 0;
 
 			const diffLines = diffOutput.split("\n");
+			// Only include 3 lines of context around changes to reduce data size
+			// This dramatically reduces memory usage for large files with few changes
+			const CONTEXT_LINES = 3;
+			let contextBuffer: Array<{
+				type: "unchanged";
+				oldLineNumber: number;
+				newLineNumber: number;
+				content: string;
+			}> = [];
+
 			for (let i = 0; i < diffLines.length; i++) {
 				const line = diffLines[i];
 
@@ -857,6 +867,8 @@ class WorktreeManager {
 						oldLineNum = parseInt(match[1], 10);
 						newLineNum = parseInt(match[2], 10);
 					}
+					// Flush context buffer when starting a new hunk
+					contextBuffer = [];
 					continue;
 				}
 
@@ -872,6 +884,13 @@ class WorktreeManager {
 
 				// Parse actual changes
 				if (line.startsWith("+")) {
+					// Flush context buffer before adding change
+					if (contextBuffer.length > 0) {
+						// Only include up to CONTEXT_LINES from buffer
+						const contextToInclude = contextBuffer.slice(-CONTEXT_LINES);
+						changes.push(...contextToInclude);
+						contextBuffer = [];
+					}
 					changes.push({
 						type: "added",
 						oldLineNumber: null,
@@ -880,6 +899,12 @@ class WorktreeManager {
 					});
 					newLineNum++;
 				} else if (line.startsWith("-")) {
+					// Flush context buffer before removing change
+					if (contextBuffer.length > 0) {
+						const contextToInclude = contextBuffer.slice(-CONTEXT_LINES);
+						changes.push(...contextToInclude);
+						contextBuffer = [];
+					}
 					changes.push({
 						type: "removed",
 						oldLineNumber: oldLineNum,
@@ -888,12 +913,17 @@ class WorktreeManager {
 					});
 					oldLineNum++;
 				} else if (line.startsWith(" ")) {
-					changes.push({
+					// Store unchanged lines in buffer (only keep last CONTEXT_LINES)
+					contextBuffer.push({
 						type: "unchanged",
 						oldLineNumber: oldLineNum,
 						newLineNumber: newLineNum,
 						content: line.substring(1),
 					});
+					// Keep buffer size limited
+					if (contextBuffer.length > CONTEXT_LINES * 2) {
+						contextBuffer.shift();
+					}
 					oldLineNum++;
 					newLineNum++;
 				}
