@@ -149,11 +149,6 @@ export function Sidebar({
 
 		if (!currentWorkspace || !title.trim()) return;
 
-		console.log("[Sidebar] Creating worktree:", {
-			title,
-			branch: branchName.trim() || undefined,
-			createBranch: true,
-		});
 		setIsCreatingWorktree(true);
 		setSetupStatus("Creating git worktree...");
 		setSetupOutput(undefined);
@@ -272,10 +267,6 @@ export function Sidebar({
 	const handleScanWorktrees = async () => {
 		if (!currentWorkspace) return;
 
-		console.log(
-			"[Sidebar] Scanning worktrees for workspace:",
-			currentWorkspace.id,
-		);
 		setIsScanningWorktrees(true);
 
 		try {
@@ -285,7 +276,6 @@ export function Sidebar({
 			)) as { success: boolean; imported?: number; error?: string };
 
 			if (result.success) {
-				console.log("[Sidebar] Scan completed, imported:", result.imported);
 				if (result.imported && result.imported > 0) {
 					onWorktreeCreated();
 				}

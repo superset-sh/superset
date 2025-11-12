@@ -19,7 +19,13 @@ import {
 } from "@superset/ui/resizable";
 import { useEffect, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import type { MosaicNode, Tab, TabType, Worktree, Workspace } from "shared/types";
+import type {
+	MosaicNode,
+	Tab,
+	TabType,
+	Workspace,
+	Worktree,
+} from "shared/types";
 import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
 import {
 	createTabShortcuts,
@@ -388,9 +394,7 @@ export function MainScreen() {
 				workspaceId,
 			);
 
-			if (result.success && result.imported && result.imported > 0) {
-				console.log("[MainScreen] Imported worktrees:", result.imported);
-			}
+			// Success - worktrees imported
 		} catch (error) {
 			console.error("[MainScreen] Failed to scan worktrees:", error);
 		}
@@ -455,7 +459,6 @@ export function MainScreen() {
 	// Listen for workspace-opened event from menu
 	useEffect(() => {
 		const handler = async (workspace: Workspace) => {
-			console.log("[MainScreen] Workspace opened event received:", workspace);
 			setLoading(false);
 			// Persist the active workspace
 			await window.ipcRenderer.invoke(
@@ -476,10 +479,8 @@ export function MainScreen() {
 			}
 		};
 
-		console.log("[MainScreen] Setting up workspace-opened listener");
 		window.ipcRenderer.on("workspace-opened", handler);
 		return () => {
-			console.log("[MainScreen] Removing workspace-opened listener");
 			window.ipcRenderer.off("workspace-opened", handler);
 		};
 	}, []);
@@ -490,10 +491,6 @@ export function MainScreen() {
 			id: string;
 			exitCode: number;
 		}) => {
-			console.log(
-				`[MainScreen] Terminal ${data.id} exited with code ${data.exitCode}`,
-			);
-
 			if (!currentWorkspace || !selectedWorktreeId) return;
 
 			// Find which tab contains this terminal
@@ -752,9 +749,6 @@ export function MainScreen() {
 
 			// Check if the dragged tab is from the same worktree as the currently selected tab
 			if (draggedWorktreeId !== selectedWorktreeId) {
-				console.log(
-					"[MainScreen] Cannot drop tab from different worktree onto main content",
-				);
 				return;
 			}
 
@@ -767,7 +761,6 @@ export function MainScreen() {
 
 			const draggedTab = findTabById(worktree.tabs, draggedTabId);
 			if (!draggedTab || draggedTab.type === "group") {
-				console.log("[MainScreen] Cannot drop group tabs onto main content");
 				return;
 			}
 
@@ -781,10 +774,6 @@ export function MainScreen() {
 						(t) => t.id === draggedTabId,
 					);
 					if (isAlreadyInGroup) {
-						console.log(
-							"[MainScreen] Tab is already in this group - creating duplicate tab for split",
-						);
-
 						// Find the original tab to get its properties
 						const originalTab = findTabById(worktree.tabs, draggedTabId);
 						if (!originalTab) {
@@ -895,10 +884,6 @@ export function MainScreen() {
 					const parentTabId = activeData.parentTabId;
 
 					if (draggedTabId === selectedTab.id) {
-						console.log(
-							"[MainScreen] Dragging tab onto itself - creating duplicate tab for split",
-						);
-
 						// Create a new tab with the same type and name
 						const newTab = await createTab(
 							currentWorkspace.id,
@@ -1613,7 +1598,6 @@ export function MainScreen() {
 			},
 			reopenClosedTab: () => {
 				// TODO: implement reopen closed tab
-				console.log("Reopen closed tab");
 			},
 			jumpToTab: (index: number) => {
 				if (!selectedWorktree) return;

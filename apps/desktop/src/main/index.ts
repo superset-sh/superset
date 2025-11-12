@@ -33,7 +33,6 @@ if (process.defaultApp) {
 // macOS: Handle deep link when app is already running
 app.on("open-url", (event, url) => {
 	event.preventDefault();
-	console.log("Deep link URL (open-url):", url);
 	deepLinkManager.setUrl(url);
 });
 
@@ -44,7 +43,6 @@ app.on("open-url", (event, url) => {
 	// Initialize port selection before app starts
 	// This ensures we get a consistent available port for this workspace
 	const port = await getPort();
-	console.log(`Using dev server port: ${port}`);
 
 	await app.whenReady();
 

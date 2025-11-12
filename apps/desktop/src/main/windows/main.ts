@@ -5,9 +5,9 @@ import { createWindow } from "lib/electron-app/factories/windows/create";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import {
-	portDetector,
 	type PortClosedEvent,
 	type PortDetectedEvent,
+	portDetector,
 } from "../lib/port-detector";
 import { registerTerminalIPCs } from "../lib/terminal-ipcs";
 import {
@@ -45,10 +45,7 @@ export async function MainWindow() {
 
 	// Set up port detection listeners
 	portDetector.on("port-detected", async (event: PortDetectedEvent) => {
-		const { worktreeId, port, service } = event;
-		console.log(
-			`[Main] Port detected: ${port}${service ? ` (${service})` : ""} in worktree ${worktreeId}`,
-		);
+		const { worktreeId } = event;
 
 		// Get detected ports map for this worktree
 		const detectedPorts = portDetector.getDetectedPortsMap(worktreeId);
@@ -64,9 +61,6 @@ export async function MainWindow() {
 				// Update proxy if this is the active worktree
 				if (workspace.activeWorktreeId === worktreeId) {
 					await workspaceManager.updateProxyTargets(workspace.id);
-					console.log(
-						`[Main] Updated proxy targets for active worktree ${worktree.branch}`,
-					);
 				}
 				break;
 			}
@@ -74,8 +68,7 @@ export async function MainWindow() {
 	});
 
 	portDetector.on("port-closed", async (event: PortClosedEvent) => {
-		const { worktreeId, port } = event;
-		console.log(`[Main] Port closed: ${port} in worktree ${worktreeId}`);
+		const { worktreeId } = event;
 
 		// Get updated detected ports map
 		const detectedPorts = portDetector.getDetectedPortsMap(worktreeId);
@@ -110,9 +103,6 @@ export async function MainWindow() {
 				const activeWorkspace = await workspaceManager.get(activeWorkspaceId);
 
 				if (activeWorkspace?.ports && activeWorkspace.ports.length > 0) {
-					console.log(
-						`[Main] Initializing proxy for workspace: ${activeWorkspace.name}`,
-					);
 					await workspaceManager.initializeProxyForWorkspace(activeWorkspaceId);
 				}
 			}

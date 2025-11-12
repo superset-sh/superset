@@ -85,7 +85,6 @@ class TerminalManager {
 
 			// Handle terminal exit
 			ptyProcess.onExit(({ exitCode }) => {
-				console.log(`Terminal ${id} exited with code ${exitCode}`);
 				// Notify renderer that terminal has exited (only if window still exists)
 				if (
 					this.mainWindow &&
