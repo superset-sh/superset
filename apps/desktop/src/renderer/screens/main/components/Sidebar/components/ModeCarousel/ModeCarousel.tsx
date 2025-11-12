@@ -74,7 +74,6 @@ export function ModeCarousel({
 	onScrollProgress,
 	isDragging = false,
 }: ModeCarouselProps) {
-	const scrollTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 	const isInitialMount = useRef(true);
 
 	const currentIndex = modes.findIndex((m) => m === currentMode);
@@ -138,7 +137,7 @@ export function ModeCarousel({
 		const targetScrollX = currentIndex * scrollContainer.offsetWidth;
 
 		// Only scroll if we're not already at the target position
-		if (Math.abs(scrollContainer.scrollLeft - targetScrollX) > 10) {
+		if (Math.abs(scrollContainer.scrollLeft - targetScrollX) > 5) {
 			scrollContainer.scrollTo({
 				left: targetScrollX,
 				behavior: isInitialMount.current ? "auto" : "smooth",
@@ -153,75 +152,83 @@ export function ModeCarousel({
 	useEffect(() => {
 		if (!scrollContainer || isDragging) return;
 
+		let scrollEndTimer: NodeJS.Timeout | undefined;
+
 		const handleScroll = () => {
 			// Clear existing timeout
-			if (scrollTimeoutRef.current) {
-				clearTimeout(scrollTimeoutRef.current);
+			if (scrollEndTimer) {
+				clearTimeout(scrollEndTimer);
 			}
 
-			// Wait for scroll to settle (150ms after last scroll event)
-			scrollTimeoutRef.current = setTimeout(() => {
-				const scrollLeft = scrollContainer.scrollLeft;
-				const containerWidth = scrollContainer.offsetWidth;
+			// Wait for scroll to settle before updating mode (reduces jitter)
+			scrollEndTimer = setTimeout(() => {
+				const finalScrollLeft = scrollContainer.scrollLeft;
+				const finalContainerWidth = scrollContainer.offsetWidth;
 
-				// Calculate which mode we're closest to
-				const newIndex = Math.round(scrollLeft / containerWidth);
+				// Calculate which mode we're closest to and snap to it
+				const finalIndex = Math.round(finalScrollLeft / finalContainerWidth);
 
-				// Update mode if it changed
 				if (
-					newIndex >= 0 &&
-					newIndex < modes.length &&
-					modes[newIndex] &&
-					modes[newIndex] !== currentMode
+					finalIndex >= 0 &&
+					finalIndex < modes.length &&
+					modes[finalIndex]
 				) {
-					onModeSelect(modes[newIndex]);
+					// Snap to the nearest mode
+					const targetScrollX = finalIndex * finalContainerWidth;
+					if (Math.abs(finalScrollLeft - targetScrollX) > 5) {
+						scrollContainer.scrollTo({
+							left: targetScrollX,
+							behavior: "smooth",
+						});
+					}
+
+					// Update mode if it changed
+					if (modes[finalIndex] !== currentMode) {
+						onModeSelect(modes[finalIndex]);
+					}
 				}
 			}, 150);
 		};
 
-		scrollContainer.addEventListener("scroll", handleScroll);
+		scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
 
 		return () => {
 			scrollContainer.removeEventListener("scroll", handleScroll);
-			if (scrollTimeoutRef.current) {
-				clearTimeout(scrollTimeoutRef.current);
+			if (scrollEndTimer) {
+				clearTimeout(scrollEndTimer);
 			}
 		};
 	}, [modes, currentMode, onModeSelect, scrollContainer, isDragging]);
-
-	const currentLabelSingle = modeLabels[currentMode];
 
 	// If only one mode or no modes, disable carousel
 	if (modes.length <= 1) {
 		return (
 			<div className="flex flex-col flex-1 h-full">
-				{/* Header showing current mode */}
-				<div className="px-3 py-2">
-					<span className="text-xs font-medium text-neutral-300">{currentLabelSingle}</span>
-				</div>
-				<div className="flex-1 overflow-y-auto px-3">
-					{children(currentMode, true)}
+				<div className="flex-1 overflow-y-auto">
+					{/* Header showing current mode */}
+					<div className="px-3 py-2">
+						<span className="text-xs font-medium text-neutral-300">{modeLabels[currentMode]}</span>
+					</div>
+					<div className="px-3">
+						{children(currentMode, true)}
+					</div>
 				</div>
 			</div>
 		);
 	}
 
-	const currentLabel = modeLabels[currentMode];
-
 	return (
 		<div className="flex flex-col flex-1 h-full">
-			{/* Header showing current mode */}
-			<div className="px-3 py-2">
-				<span className="text-xs font-medium text-neutral-300">{currentLabel}</span>
-			</div>
-
 			{/* Carousel content */}
 			<div
 				ref={scrollContainerRef}
 				className="flex-1 overflow-x-scroll overflow-y-hidden hide-scrollbar"
 				style={{
 					scrollSnapType: isDragging ? "none" : "x mandatory",
+					scrollSnapStop: "always",
+					scrollBehavior: "smooth",
 					WebkitOverflowScrolling: "touch",
+					overscrollBehaviorX: "contain",
 					scrollbarWidth: "none",
 					msOverflowStyle: "none",
 					pointerEvents: isDragging ? "none" : "auto",
@@ -234,14 +241,20 @@ export function ModeCarousel({
 					{modes.map((mode) => (
 						<div
 							key={mode}
-							className="overflow-y-auto px-3"
+							className="overflow-y-auto"
 							style={{
 								scrollSnapAlign: "start",
 								scrollSnapStop: "always",
 								width: `${100 / modes.length}%`,
 							}}
 						>
-							{children(mode, mode === currentMode)}
+							{/* Header showing current mode */}
+							<div className="px-3 py-2">
+								<span className="text-xs font-medium text-neutral-300">{modeLabels[mode]}</span>
+							</div>
+							<div className="px-3">
+								{children(mode, mode === currentMode)}
+							</div>
 						</div>
 					))}
 				</div>
