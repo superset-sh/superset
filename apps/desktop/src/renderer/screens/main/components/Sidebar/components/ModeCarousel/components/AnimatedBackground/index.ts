@@ -1,0 +1,2 @@
+export { AnimatedBackground } from "./AnimatedBackground";
+
