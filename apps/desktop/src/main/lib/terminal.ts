@@ -215,10 +215,7 @@ class TerminalManager {
 		for (const [id, process] of this.processes) {
 			try {
 				// Remove data listener to prevent events after window destruction
-				// Note: removeAllListeners is available on IPty but not in the type definition
-				// @ts-expect-error - IPty has removeAllListeners method
 				process.removeAllListeners("data");
-				// @ts-expect-error - IPty has removeAllListeners method
 				process.removeAllListeners("exit");
 			} catch (error) {
 				console.error(`Failed to remove listeners for terminal ${id}:`, error);
