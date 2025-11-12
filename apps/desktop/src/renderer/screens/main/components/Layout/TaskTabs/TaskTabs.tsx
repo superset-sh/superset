@@ -21,7 +21,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 }) => {
 	const selectedWorktree = worktrees.find((wt) => wt.id === selectedWorktreeId);
 	const canCreatePR = selectedWorktree && !selectedWorktree.isPending;
-	const hasPR = selectedWorktree && selectedWorktree.prUrl;
+	const hasPR = selectedWorktree?.prUrl;
 
 	return (
 		<div
@@ -40,15 +40,27 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 				{onModeChange && <ModeToggle mode={mode} onChange={onModeChange} />}
 
-				<div className="flex items-end h-full gap-1">
-					{worktrees.map((worktree) => (
-						<WorktreeTab
-							key={worktree.id}
-							worktree={worktree}
-							isSelected={selectedWorktreeId === worktree.id}
-							onSelect={() => onWorktreeSelect(worktree.id)}
-						/>
-					))}
+				<div className="flex items-end h-full gap-0">
+					{worktrees.map((worktree, index) => {
+						const isSelected = selectedWorktreeId === worktree.id;
+						const prevWorktree = index > 0 ? worktrees[index - 1] : null;
+						const prevIsSelected = prevWorktree?.id === selectedWorktreeId;
+						const showDivider =
+							prevWorktree !== null && !isSelected && !prevIsSelected;
+
+						return (
+							<div key={worktree.id} className="flex items-end">
+								{showDivider && (
+									<div className="w-px h-5 bg-neutral-700 self-end mb-1" />
+								)}
+								<WorktreeTab
+									worktree={worktree}
+									isSelected={isSelected}
+									onSelect={() => onWorktreeSelect(worktree.id)}
+								/>
+							</div>
+						);
+					})}
 				</div>
 
 				<AddTaskButton onClick={onAddTask} />
