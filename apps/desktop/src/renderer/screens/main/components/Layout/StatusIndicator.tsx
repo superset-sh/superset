@@ -2,11 +2,13 @@ import type React from "react";
 
 export type TaskStatus =
 	| "backlog"
+	| "todo"
 	| "planning"
 	| "working"
 	| "needs-feedback"
 	| "ready-to-merge"
-	| "completed";
+	| "completed"
+	| "canceled";
 
 interface StatusIndicatorProps {
 	status: TaskStatus;

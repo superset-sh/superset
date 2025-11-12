@@ -51,7 +51,7 @@ export const mockUsers: User[] = [
 ];
 
 // Mock Organization (with members)
-export const mockOrganization = {
+export const mockOrganization: Organization = {
 	id: SUPERSET_ORG_ID,
 	name: "Superset",
 	slug: "SUPER",
