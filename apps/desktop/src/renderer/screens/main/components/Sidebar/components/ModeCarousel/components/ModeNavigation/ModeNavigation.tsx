@@ -1,7 +1,5 @@
-import { Button } from "@superset/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { MotionValue } from "framer-motion";
-import { modeIcons, modeLabels } from "../../constants";
+import { modeIcons } from "../../constants";
 import type { SidebarMode } from "../../types";
 import { AnimatedBackground } from "../AnimatedBackground";
 
@@ -19,7 +17,7 @@ export function ModeNavigation({
 	scrollProgress,
 }: ModeNavigationProps) {
 	return (
-		<div className="flex items-center justify-center gap-1 px-2 py-2 border-t border-neutral-800/50 bg-neutral-900/50 backdrop-blur-sm">
+		<div className="flex items-center justify-center gap-1 px-2 py-2">
 			<div className="relative flex items-center gap-1">
 				<AnimatedBackground
 					progress={scrollProgress}
@@ -31,24 +29,17 @@ export function ModeNavigation({
 					const isActive = mode === currentMode;
 
 					return (
-						<Tooltip key={mode}>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									onClick={() => onModeSelect(mode)}
-									className={`relative z-10 h-9 w-9 rounded transition-colors duration-200 ${isActive
-										? "text-neutral-100"
-										: "text-neutral-400 hover:text-neutral-300"
-										}`}
-								>
-									<Icon className="w-4 h-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="top">
-								<p className="text-xs">{modeLabels[mode]}</p>
-							</TooltipContent>
-						</Tooltip>
+						<button
+							key={mode}
+							type="button"
+							onClick={() => onModeSelect(mode)}
+							className={`relative z-10 h-8 w-8 rounded-sm flex items-center justify-center transition-colors duration-150 ${isActive
+								? "text-neutral-100"
+								: "text-neutral-600 hover:text-neutral-500"
+								}`}
+						>
+							<Icon className="w-3.5 h-3.5" />
+						</button>
 					);
 				})}
 			</div>
