@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type {
 	CreateWorkspaceInput,
+	Tab,
 	UpdateWorkspaceInput,
 	Workspace,
 } from "shared/types";
@@ -282,8 +283,8 @@ function startMonitoringWorktree(
 /**
  * Recursively find all terminal tabs
  */
-function findTerminalTabs(tabs: any[]): any[] {
-	const terminals: any[] = [];
+function findTerminalTabs(tabs: Tab[]): Tab[] {
+	const terminals: Tab[] = [];
 
 	for (const tab of tabs) {
 		if (tab.type === "terminal") {

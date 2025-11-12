@@ -19,7 +19,7 @@ import {
 } from "@superset/ui/resizable";
 import { useEffect, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import type { MosaicNode, Tab, TabType, Workspace } from "shared/types";
+import type { MosaicNode, Tab, TabType, Worktree, Workspace } from "shared/types";
 import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
 import {
 	createTabShortcuts,

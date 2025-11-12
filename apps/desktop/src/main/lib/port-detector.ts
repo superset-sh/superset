@@ -12,6 +12,16 @@ interface DetectedPort {
 	detectedAt: string;
 }
 
+export interface PortDetectedEvent extends DetectedPort {
+	worktreeId: string;
+}
+
+export interface PortClosedEvent {
+	terminalId: string;
+	worktreeId: string;
+	port: number;
+}
+
 interface MonitoredTerminal {
 	terminalId: string;
 	worktreeId: string;
@@ -71,10 +81,6 @@ export class PortDetector extends EventEmitter {
 		this.pollTerminalPorts(terminalId).catch((error) => {
 			console.error(`Error in initial port check for ${terminalId}:`, error);
 		});
-
-		console.log(
-			`[PortDetector] Started monitoring terminal ${terminalId} for worktree ${worktreeId}`,
-		);
 	}
 
 	/**
@@ -101,8 +107,6 @@ export class PortDetector extends EventEmitter {
 
 		// Update cache
 		this.updateWorktreePortsCache(monitored.worktreeId);
-
-		console.log(`[PortDetector] Stopped monitoring terminal ${terminalId}`);
 	}
 
 	/**
@@ -147,10 +151,6 @@ export class PortDetector extends EventEmitter {
 				...detectedPort,
 				worktreeId: monitored.worktreeId,
 			});
-
-			console.log(
-				`[PortDetector] Detected port ${port}${service ? ` (${service})` : ""} in terminal ${terminalId}`,
-			);
 		}
 
 		// Emit events for closed ports
@@ -160,10 +160,6 @@ export class PortDetector extends EventEmitter {
 				worktreeId: monitored.worktreeId,
 				port,
 			});
-
-			console.log(
-				`[PortDetector] Port ${port} closed in terminal ${terminalId}`,
-			);
 		}
 	}
 
@@ -194,7 +190,7 @@ export class PortDetector extends EventEmitter {
 						.filter((p) => !Number.isNaN(p) && p > 0 && p <= 65535);
 
 					allPorts.push(...ports);
-				} catch (error) {}
+				} catch (error) { }
 			}
 
 			return [...new Set(allPorts)]; // Deduplicate
@@ -233,7 +229,7 @@ export class PortDetector extends EventEmitter {
 						toProcess.push(childPid);
 					}
 				}
-			} catch (error) {}
+			} catch (error) { }
 		}
 
 		return allPids;
@@ -244,7 +240,6 @@ export class PortDetector extends EventEmitter {
 	 */
 	private detectServiceName(cwd?: string): string | undefined {
 		if (!cwd) {
-			console.log("[PortDetector] No CWD provided for service detection");
 			return undefined;
 		}
 
@@ -318,10 +313,6 @@ export class PortDetector extends EventEmitter {
 	 */
 	getDetectedPortsMap(worktreeId: string): Record<string, number> {
 		const ports = this.getDetectedPorts(worktreeId);
-		console.log(
-			`[PortDetector] getDetectedPortsMap for worktree ${worktreeId}: found ${ports.length} ports`,
-			ports,
-		);
 
 		const map: Record<string, number> = {};
 
@@ -336,14 +327,10 @@ export class PortDetector extends EventEmitter {
 				const portKey = detected.port.toString();
 				if (!map[portKey]) {
 					map[portKey] = detected.port;
-					console.log(
-						`[PortDetector] Added unnamed port ${detected.port} with key "${portKey}"`,
-					);
 				}
 			}
 		}
 
-		console.log(`[PortDetector] Returning map:`, map);
 		return map;
 	}
 
@@ -362,7 +349,6 @@ export class PortDetector extends EventEmitter {
 			this.stopMonitoring(terminalId);
 		}
 		this.worktreePortsCache.clear();
-		console.log("[PortDetector] Cleaned up all monitoring");
 	}
 }
 

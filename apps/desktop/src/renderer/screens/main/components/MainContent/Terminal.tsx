@@ -84,11 +84,6 @@ export default function TerminalComponent({
 	const fitFunctionRef = useRef<(() => void) | null>(null);
 	const hasBeenVisibleRef = useRef(false);
 
-	// Log visibility changes for debugging
-	console.log(
-		`[Terminal] Render: ${terminalId?.slice(0, 8)} hidden=${hidden} terminal=${!!terminal}`,
-	);
-
 	// Update the ref when onFocus changes
 	useEffect(() => {
 		onFocusRef.current = onFocus;
@@ -103,10 +98,6 @@ export default function TerminalComponent({
 
 	// Handle visibility changes - fit terminal when it becomes visible
 	useEffect(() => {
-		console.log(
-			`[Terminal] Visibility effect fired: ${terminalIdRef.current?.slice(0, 8)} hidden=${hidden} terminal=${!!terminal} hasBeenVisible=${hasBeenVisibleRef.current}`,
-		);
-
 		if (!hidden && terminal && fitFunctionRef.current && terminalRef.current) {
 			const isFirstTimeVisible = !hasBeenVisibleRef.current;
 			hasBeenVisibleRef.current = true;
@@ -120,20 +111,10 @@ export default function TerminalComponent({
 			const tryFit = () => {
 				const rect = terminalRef.current?.getBoundingClientRect();
 				if (rect && rect.width > 0 && rect.height > 0) {
-					console.log(
-						`[Terminal] Fitting terminal ${terminalIdRef.current?.slice(0, 8)} after becoming visible (attempt ${attempts + 1}, firstTime=${isFirstTimeVisible})`,
-					);
 					fitFunctionRef.current?.();
 				} else if (attempts < maxAttempts) {
 					attempts++;
-					console.log(
-						`[Terminal] Container not ready for ${terminalIdRef.current?.slice(0, 8)}, retrying... (${rect?.width}x${rect?.height})`,
-					);
 					setTimeout(tryFit, retryDelay);
-				} else {
-					console.warn(
-						`[Terminal] Failed to fit ${terminalIdRef.current} after ${maxAttempts} attempts`,
-					);
 				}
 			};
 
@@ -155,15 +136,11 @@ export default function TerminalComponent({
 			return;
 		}
 
-		console.log(`[Terminal] Initializing terminal: ${terminalId.slice(0, 8)}`);
-
 		// Set terminalIdRef immediately to prevent race conditions
 		terminalIdRef.current = terminalId;
 
 		const { term } = initTerminal(terminalRef.current, theme, onFocusRef);
 		setTerminal(term);
-
-		console.log(`[Terminal] Initialized terminal: ${terminalId.slice(0, 8)}`);
 
 		return () => {
 			// Don't dispose XTerm or cleanup on unmount
@@ -242,9 +219,6 @@ export default function TerminalComponent({
 				const height = rect.height;
 
 				if (width <= 0 || height <= 0) {
-					console.log(
-						`[Terminal] Skipping fit for ${terminalIdRef.current} - container has no dimensions (${width}x${height})`,
-					);
 					return; // Skip if container has no dimensions yet
 				}
 
@@ -252,9 +226,6 @@ export default function TerminalComponent({
 				// Then manually resize to ensure PTY gets the correct dimensions
 				const dimensions = fitAddon.proposeDimensions();
 				if (dimensions) {
-					console.log(
-						`[Terminal] Fitting ${terminalIdRef.current} to ${dimensions.cols}x${dimensions.rows}`,
-					);
 					term.resize(dimensions.cols, dimensions.rows);
 				}
 			} catch (e) {
@@ -290,9 +261,6 @@ export default function TerminalComponent({
 			const cols = dimensions?.cols || 80;
 			const rows = dimensions?.rows || 30;
 
-			console.log(
-				`[Terminal] Creating terminal ${terminalId.slice(0, 8)} with dimensions ${cols}x${rows}`,
-			);
 			window.ipcRenderer
 				.invoke("terminal-create", {
 					id: terminalId,
@@ -391,19 +359,9 @@ export default function TerminalComponent({
 					data === "\x1b[O"; // Focus out event
 
 				if (isTerminalResponse) {
-					console.log(
-						`[Terminal] Filtered terminal response for ${terminalIdRef.current}:`,
-						JSON.stringify(data),
-					);
 					return;
 				}
 
-				// Debug: log user input
-				console.log(
-					`[Terminal] User input for ${terminalIdRef.current}:`,
-					JSON.stringify(data),
-					`(length: ${data.length})`,
-				);
 				window.ipcRenderer.send("terminal-input", {
 					id: terminalIdRef.current,
 					data,
@@ -446,14 +404,6 @@ export default function TerminalComponent({
 
 		const terminalDataListener = (message: TerminalMessage) => {
 			if (message?.id === terminalIdRef.current) {
-				// Debug: log data being written to xterm
-				if (message.data.includes("1;2c") || message.data.includes("0;276")) {
-					console.log(
-						`[Terminal] Received data for ${terminalIdRef.current}:`,
-						JSON.stringify(message.data),
-						`(length: ${message.data.length})`,
-					);
-				}
 				// If we're in the middle of a resize, queue the write
 				if (isResizing) {
 					writeQueue.push(message.data);

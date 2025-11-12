@@ -40,9 +40,6 @@ export class ProxyManager extends EventEmitter {
 	 */
 	async initialize(workspace: Workspace): Promise<void> {
 		if (!workspace.ports || workspace.ports.length === 0) {
-			console.log(
-				"[ProxyManager] No ports configured for workspace, skipping initialization",
-			);
 			return;
 		}
 
@@ -60,9 +57,6 @@ export class ProxyManager extends EventEmitter {
 		}
 
 		this.initialized = true;
-		console.log(
-			`[ProxyManager] Initialized ${this.proxies.size} proxy servers for workspace ${workspace.name}`,
-		);
 	}
 
 	/**
@@ -130,9 +124,6 @@ export class ProxyManager extends EventEmitter {
 			// Start listening
 			await new Promise<void>((resolve, reject) => {
 				server.listen(canonical, "127.0.0.1", () => {
-					console.log(
-						`[ProxyManager] Proxy listening on http://localhost:${canonical}${service ? ` (${service})` : ""}`,
-					);
 					resolve();
 				});
 
@@ -167,9 +158,6 @@ export class ProxyManager extends EventEmitter {
 	 */
 	updateTargets(workspace: Workspace): void {
 		if (!this.initialized || !workspace.ports) {
-			console.log(
-				`[ProxyManager] Cannot update targets - initialized: ${this.initialized}, has ports: ${!!workspace.ports}`,
-			);
 			return;
 		}
 
@@ -178,17 +166,11 @@ export class ProxyManager extends EventEmitter {
 		);
 
 		if (!activeWorktree) {
-			console.log("[ProxyManager] No active worktree, clearing all targets");
 			this.clearAllTargets();
 			return;
 		}
 
 		const detectedPorts = activeWorktree.detectedPorts || {};
-
-		console.log(
-			`[ProxyManager] Updating targets for active worktree ${activeWorktree.branch} (${workspace.activeWorktreeId})`,
-		);
-		console.log(`[ProxyManager] Detected ports:`, detectedPorts);
 
 		// Update each proxy
 		for (const [canonical, instance] of this.proxies) {
@@ -197,23 +179,12 @@ export class ProxyManager extends EventEmitter {
 			if (instance.service) {
 				// Named port: match by service name
 				targetPort = detectedPorts[instance.service];
-				console.log(
-					`[ProxyManager] Looking for service "${instance.service}" in detectedPorts:`,
-					detectedPorts,
-				);
 			} else {
 				// Unnamed port: use first available detected port
 				// Filter out entries that are port numbers used as keys (e.g., "3000" → 3000)
 				const availablePorts = Object.values(detectedPorts);
 				if (availablePorts.length > 0) {
 					targetPort = availablePorts[0];
-					console.log(
-						`[ProxyManager] No service specified, using first detected port: ${targetPort}`,
-					);
-				} else {
-					console.log(
-						`[ProxyManager] No service specified and no detected ports available`,
-					);
 				}
 			}
 
@@ -221,17 +192,9 @@ export class ProxyManager extends EventEmitter {
 				const target = `http://localhost:${targetPort}`;
 				instance.target = target;
 				instance.active = true;
-
-				console.log(
-					`[ProxyManager] Port ${canonical}${instance.service ? ` (${instance.service})` : ""} → ${targetPort}`,
-				);
 			} else {
 				instance.target = undefined;
 				instance.active = false;
-
-				console.log(
-					`[ProxyManager] Port ${canonical}${instance.service ? ` (${instance.service})` : ""} → no backend`,
-				);
 			}
 		}
 
@@ -274,9 +237,6 @@ export class ProxyManager extends EventEmitter {
 		for (const instance of this.proxies.values()) {
 			const promise = new Promise<void>((resolve) => {
 				instance.server.close(() => {
-					console.log(
-						`[ProxyManager] Stopped proxy on port ${instance.canonical}`,
-					);
 					resolve();
 				});
 			});
@@ -290,8 +250,6 @@ export class ProxyManager extends EventEmitter {
 
 		this.proxies.clear();
 		this.initialized = false;
-
-		console.log("[ProxyManager] All proxies stopped");
 	}
 
 	/**

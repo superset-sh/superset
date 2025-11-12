@@ -4,7 +4,11 @@ import { screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
-import { portDetector } from "../lib/port-detector";
+import {
+	portDetector,
+	type PortClosedEvent,
+	type PortDetectedEvent,
+} from "../lib/port-detector";
 import { registerTerminalIPCs } from "../lib/terminal-ipcs";
 import {
 	getActiveWorkspaceId,
@@ -40,7 +44,7 @@ export async function MainWindow() {
 	const cleanupTerminal = registerTerminalIPCs(window);
 
 	// Set up port detection listeners
-	portDetector.on("port-detected", async (event: any) => {
+	portDetector.on("port-detected", async (event: PortDetectedEvent) => {
 		const { worktreeId, port, service } = event;
 		console.log(
 			`[Main] Port detected: ${port}${service ? ` (${service})` : ""} in worktree ${worktreeId}`,
@@ -69,7 +73,7 @@ export async function MainWindow() {
 		}
 	});
 
-	portDetector.on("port-closed", async (event: any) => {
+	portDetector.on("port-closed", async (event: PortClosedEvent) => {
 		const { worktreeId, port } = event;
 		console.log(`[Main] Port closed: ${port} in worktree ${worktreeId}`);
 

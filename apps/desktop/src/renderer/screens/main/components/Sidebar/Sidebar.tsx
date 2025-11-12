@@ -1,6 +1,6 @@
 import { type MotionValue, useMotionValue } from "framer-motion";
 import { useEffect, useState } from "react";
-import type { Workspace, Worktree } from "shared/types";
+import type { Tab, Workspace, Worktree } from "shared/types";
 import {
 	CreateWorktreeButton,
 	CreateWorktreeModal,
@@ -69,7 +69,7 @@ export function Sidebar({
 			// Find which worktree contains the selected tab (recursively search through tabs)
 			const findWorktreeWithTab = (tabId: string) => {
 				return currentWorkspace.worktrees?.find((worktree) => {
-					const searchTabs = (tabs: any[]): boolean => {
+					const searchTabs = (tabs: Tab[]): boolean => {
 						for (const tab of tabs) {
 							if (tab.id === tabId) return true;
 							if (tab.type === "group" && tab.tabs) {
@@ -159,7 +159,7 @@ export function Sidebar({
 		setSetupOutput(undefined);
 
 		// Listen for setup progress events
-		const progressHandler = (data: any) => {
+		const progressHandler = (data: { status: string; output: string }) => {
 			if (data && data.status !== undefined && data.output !== undefined) {
 				setSetupStatus(data.status);
 				setSetupOutput(data.output);
