@@ -24,7 +24,7 @@ export function AnimatedBackground({
 
 	return (
 		<motion.div
-			className="absolute h-9 rounded-lg bg-neutral-800/60"
+			className="absolute h-9 rounded bg-neutral-800/60"
 			style={{
 				width: buttonWidth,
 				x: translateX,
