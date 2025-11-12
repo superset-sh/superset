@@ -625,9 +625,13 @@ export function registerWorkspaceIPCs() {
 					};
 				}
 
+				// Detect main branch instead of using workspace.branch
+				// This ensures we compare against main/master, not a feature branch
+				const mainBranch = await worktreeManager.detectMainBranch(workspace.repoPath);
+
 				return await worktreeManager.getGitDiffFile(
 					worktree.path,
-					workspace.branch,
+					mainBranch,
 					input.filePath,
 					input.oldPath,
 					input.status,
