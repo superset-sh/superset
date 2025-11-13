@@ -40,7 +40,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 				{onModeChange && <ModeToggle mode={mode} onChange={onModeChange} />}
 
-				<div className="flex items-end h-full gap-0">
+				<div className="flex items-end h-full gap-1">
 					{worktrees.map((worktree, index) => {
 						const isSelected = selectedWorktreeId === worktree.id;
 						const prevWorktree = index > 0 ? worktrees[index - 1] : null;

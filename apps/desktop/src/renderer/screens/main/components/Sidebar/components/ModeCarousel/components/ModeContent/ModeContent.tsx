@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ModeHeader } from "../ModeHeader";
 import type { SidebarMode } from "../../types";
+import { ModeHeader } from "../ModeHeader";
 
 interface ModeContentProps {
 	mode: SidebarMode;
@@ -18,8 +18,7 @@ export function ModeContent({ mode, children }: ModeContentProps) {
 			}}
 		>
 			<ModeHeader mode={mode} />
-			<div className="px-3">{children}</div>
+			<div className="px-1">{children}</div>
 		</div>
 	);
 }
-

@@ -356,20 +356,13 @@ export function Sidebar({
 						}
 
 						return (
-							<div className="flex-1 overflow-y-auto">
-								<div className="py-2">
-									<div className="px-3 py-2">
-										<h2 className="text-xs font-medium text-zinc-500">Files</h2>
-									</div>
-									<div className="px-2">
-										<FileTree
-											files={diffData.files}
-											selectedFile={selectedFile}
-											onFileSelect={setSelectedFile}
-											getFileIcon={getFileIcon}
-										/>
-									</div>
-								</div>
+							<div className="flex-1 overflow-y-auto px-2">
+								<FileTree
+									files={diffData.files}
+									selectedFile={selectedFile}
+									onFileSelect={setSelectedFile}
+									getFileIcon={getFileIcon}
+								/>
 							</div>
 						);
 					}
