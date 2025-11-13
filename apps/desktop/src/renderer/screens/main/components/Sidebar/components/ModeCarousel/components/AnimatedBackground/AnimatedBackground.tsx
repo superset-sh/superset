@@ -9,13 +9,13 @@ export function AnimatedBackground({
 	progress,
 	modeCount,
 }: AnimatedBackgroundProps) {
-	// Calculate the width of each button (36px = h-9 w-9) + gap (4px = gap-1)
-	const buttonWidth = 36;
+	// Calculate the width of each button (32px = h-8 w-8) + gap (4px = gap-1)
+	const buttonWidth = 32;
 	const gap = 4;
 	const totalButtonWidth = buttonWidth + gap;
 
 	// Transform progress (0-1) to translateX position
-	// For 2 modes: 0 -> 0px, 1 -> 40px (buttonWidth + gap)
+	// For 2 modes: 0 -> 0px, 1 -> 36px (buttonWidth + gap)
 	const translateX = useTransform(
 		progress,
 		[0, modeCount - 1],
@@ -24,9 +24,8 @@ export function AnimatedBackground({
 
 	return (
 		<motion.div
-			className="absolute h-9 rounded bg-neutral-800/60"
+			className="absolute h-8 w-8 rounded-sm bg-neutral-800/40"
 			style={{
-				width: buttonWidth,
 				x: translateX,
 			}}
 			initial={false}
