@@ -199,7 +199,7 @@ export function MainContentArea({
                     />
                 ) : (
                     // Base level tab (terminal, preview, etc.) → display full width/height
-                    <div className="w-full h-full p-2 bg-[#1e1e1e] rounded-sm m-2">
+                    <div className="w-full h-full p-2 bg-[#1e1e1e] rounded-sm">
                         <TabContent
                             tab={selectedTab}
                             workingDirectory={
