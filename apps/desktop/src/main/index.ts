@@ -50,6 +50,11 @@ app.on("open-url", (event, url) => {
 	registerWorkspaceIPCs();
 	registerPortIpcs();
 	registerDeepLinkIpcs();
+	const { registerWindowIPCs } = await import("main/lib/window-ipcs");
+	registerWindowIPCs();
 
-	await makeAppSetup(() => windowManager.createWindow());
+	await makeAppSetup(
+		() => windowManager.createWindow(),
+		() => windowManager.restoreWindows(),
+	);
 })();

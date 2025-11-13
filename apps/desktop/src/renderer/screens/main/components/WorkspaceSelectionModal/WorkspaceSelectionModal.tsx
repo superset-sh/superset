@@ -1,16 +1,8 @@
 import { Button } from "@superset/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "renderer/components/ui/dialog";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { Download, FolderOpen, Settings, Terminal } from "lucide-react";
+import { Dialog, DialogContent } from "renderer/components/ui/dialog";
 import type { Workspace } from "shared/types";
-import { FolderOpen, Plus } from "lucide-react";
-import { useState } from "react";
 
 interface WorkspaceSelectionModalProps {
 	isOpen: boolean;
@@ -25,109 +17,142 @@ export function WorkspaceSelectionModal({
 	onSelectWorkspace,
 	onCreateWorkspace,
 }: WorkspaceSelectionModalProps) {
-	const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(
-		null,
-	);
-
-	const handleSelect = () => {
-		if (selectedWorkspaceId) {
-			onSelectWorkspace(selectedWorkspaceId);
-			setSelectedWorkspaceId(null);
-		}
+	const handleSelect = (workspaceId: string) => {
+		onSelectWorkspace(workspaceId);
 	};
 
-	const handleCreate = () => {
-		setSelectedWorkspaceId(null);
+	const handleOpenProject = () => {
 		onCreateWorkspace();
 	};
 
+	// Show recent workspaces (limit to 5 for display)
+	const recentWorkspaces = workspaces.slice(0, 5);
+
 	return (
-		<Dialog open={isOpen} onOpenChange={() => {}}>
+		<Dialog open={isOpen} onOpenChange={() => { }}>
 			<DialogContent
-				className="max-w-[600px] max-h-[80vh] flex flex-col"
+				className="max-w-[900px] max-h-[85vh] flex flex-col p-0 bg-[#1e1e1e] border-neutral-800"
 				showCloseButton={false}
 			>
-				<DialogHeader>
-					<DialogTitle>Select Workspace</DialogTitle>
-					<DialogDescription>
-						Choose an existing workspace or create a new one to get started
-					</DialogDescription>
-				</DialogHeader>
-
-				<div className="flex-1 flex flex-col overflow-hidden min-h-0">
-					{workspaces.length > 0 ? (
-						<>
-							<ScrollArea className="flex-1 pr-4">
-								<div className="space-y-2">
-									{workspaces.map((workspace) => (
-										<button
-											key={workspace.id}
-											type="button"
-											onClick={() => setSelectedWorkspaceId(workspace.id)}
-											className={`w-full text-left p-4 rounded-lg border transition-colors ${
-												selectedWorkspaceId === workspace.id
-													? "border-blue-500 bg-blue-500/10"
-													: "border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800 hover:border-neutral-600"
-											}`}
-										>
-											<div className="flex items-start gap-3">
-												<FolderOpen className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
-												<div className="flex-1 min-w-0">
-													<div className="font-medium text-white mb-1">
-														{workspace.name}
-													</div>
-													<div className="text-sm text-neutral-400 truncate">
-														{workspace.repoPath}
-													</div>
-													{workspace.worktrees.length > 0 && (
-														<div className="text-xs text-neutral-500 mt-1">
-															{workspace.worktrees.length}{" "}
-															{workspace.worktrees.length === 1
-																? "worktree"
-																: "worktrees"}
-														</div>
-													)}
-												</div>
-											</div>
-										</button>
-									))}
-								</div>
-							</ScrollArea>
-						</>
-					) : (
-						<div className="flex-1 flex items-center justify-center text-center py-8">
-							<div className="space-y-2">
-								<FolderOpen className="w-12 h-12 text-neutral-500 mx-auto" />
-								<p className="text-neutral-400">
-									No workspaces yet. Create one to get started.
-								</p>
-							</div>
+				<div className="flex flex-col h-full">
+					{/* Header */}
+					<div className="flex items-center justify-between px-8 pt-8 pb-6 border-b border-neutral-800">
+						<div className="flex items-center gap-2">
+							<span className="text-lg font-semibold text-white">Select Workspace</span>
 						</div>
-					)}
-				</div>
-
-				<DialogFooter className="gap-2">
-					<Button
-						variant="outline"
-						onClick={handleCreate}
-						className="flex items-center gap-2"
-					>
-						<Plus className="w-4 h-4" />
-						Create New Workspace
-					</Button>
-					{workspaces.length > 0 && (
 						<Button
-							onClick={handleSelect}
-							disabled={!selectedWorkspaceId}
-							className="flex items-center gap-2"
+							variant="ghost"
+							onClick={() => {
+								window.ipcRenderer.invoke("open-app-settings");
+							}}
 						>
-							<FolderOpen className="w-4 h-4" />
-							Open Selected
+							<Settings className="w-4 h-4 inline mr-1" />
+							Settings
 						</Button>
-					)}
-				</DialogFooter>
+					</div>
+
+					{/* Main Content */}
+					<div className="flex-1 overflow-hidden flex flex-col">
+						<div className="px-8 pt-8 pb-6">
+							{/* Action Cards */}
+							<div className="grid grid-cols-3 gap-4 mb-8">
+								<button
+									type="button"
+									onClick={handleOpenProject}
+									className="group relative p-6 rounded-lg border border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-left"
+								>
+									<FolderOpen className="w-6 h-6 text-neutral-400 group-hover:text-blue-500 transition-colors mb-3" />
+									<div className="text-sm font-medium text-white">
+										Open folder
+									</div>
+								</button>
+
+								<button
+									type="button"
+									onClick={handleOpenProject}
+									className="group relative p-6 rounded-lg border border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-left opacity-50 cursor-not-allowed"
+									disabled
+									title="Coming soon"
+								>
+									<Download className="w-6 h-6 text-neutral-400 group-hover:text-blue-500 transition-colors mb-3" />
+									<div className="text-sm font-medium text-white">
+										Clone repo
+									</div>
+								</button>
+
+								<button
+									type="button"
+									onClick={handleOpenProject}
+									className="group relative p-6 rounded-lg border border-neutral-700 bg-neutral-800/50 hover:bg-neutral-800 hover:border-neutral-600 transition-all text-left opacity-50 cursor-not-allowed"
+									disabled
+									title="Coming soon"
+								>
+									<Terminal className="w-6 h-6 text-neutral-400 group-hover:text-blue-500 transition-colors mb-3" />
+									<div className="text-sm font-medium text-white">
+										Connect via SSH
+									</div>
+								</button>
+							</div>
+
+							{/* Recent Projects Section */}
+							{recentWorkspaces.length > 0 && (
+								<div>
+									<div className="flex items-center justify-between mb-4">
+										<h3 className="text-sm font-medium text-neutral-300">
+											Recent projects
+										</h3>
+										{workspaces.length > 5 && (
+											<button
+												type="button"
+												className="text-xs text-neutral-400 hover:text-neutral-300 transition-colors"
+											>
+												View all ({workspaces.length})
+											</button>
+										)}
+									</div>
+
+									<ScrollArea className="max-h-[300px]">
+										<div className="space-y-0">
+											{recentWorkspaces.map((workspace) => (
+												<button
+													key={workspace.id}
+													type="button"
+													onClick={() => handleSelect(workspace.id)}
+													className="w-full flex items-center gap-8 px-3 py-1 transition-colors cursor-pointer hover:bg-neutral-800/50 text-left"
+												>
+													<div className="flex-1">
+														<div className="text-sm font-medium truncate text-neutral-300">
+															{workspace.name}
+														</div>
+													</div>
+													<div className="flex-1">
+														<div className="text-xs text-neutral-500 truncate">
+															{workspace.repoPath}
+														</div>
+													</div>
+												</button>
+											))}
+										</div>
+									</ScrollArea>
+								</div>
+							)}
+
+							{/* Empty State */}
+							{workspaces.length === 0 && (
+								<div className="flex flex-col items-center justify-center py-16 text-center">
+									<FolderOpen className="w-16 h-16 text-neutral-600 mb-4" />
+									<p className="text-neutral-400 text-sm mb-2">
+										No workspaces yet
+									</p>
+									<p className="text-neutral-500 text-xs">
+										Click "Open project" to get started
+									</p>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
 }
-

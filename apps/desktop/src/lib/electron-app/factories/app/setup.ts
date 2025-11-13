@@ -11,7 +11,10 @@ import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);
 
-export async function makeAppSetup(createWindow: () => Promise<BrowserWindow>) {
+export async function makeAppSetup(
+	createWindow: () => Promise<BrowserWindow>,
+	restoreWindows?: () => Promise<void>,
+) {
 	if (ENVIRONMENT.IS_DEV) {
 		try {
 			await installExtension([REACT_DEVELOPER_TOOLS], {
@@ -24,7 +27,19 @@ export async function makeAppSetup(createWindow: () => Promise<BrowserWindow>) {
 		}
 	}
 
-	let window = await createWindow();
+	// Restore windows from previous session if available
+	if (restoreWindows) {
+		await restoreWindows();
+	}
+
+	// If no windows were restored, create a new one
+	const existingWindows = BrowserWindow.getAllWindows();
+	let window: BrowserWindow;
+	if (existingWindows.length > 0) {
+		window = existingWindows[0];
+	} else {
+		window = await createWindow();
+	}
 
 	app.on("activate", async () => {
 		const windows = BrowserWindow.getAllWindows();

@@ -91,14 +91,20 @@ export function useWorkspace({
 				const allWorkspaces = await window.ipcRenderer.invoke("workspace-list");
 				setWorkspaces(allWorkspaces);
 
+				// Check if this window was restored from a previous session
+				const isRestored = await window.ipcRenderer.invoke(
+					"window-is-restored",
+				);
+
 				// Check for window-specific workspace first
 				const workspaceId = await window.ipcRenderer.invoke(
 					"workspace-get-window-workspace-id",
 				);
 
 				// If window doesn't have a workspace assigned, show selection modal
-				// (new windows start with null workspace and should prompt user)
-				if (!workspaceId) {
+				// BUT only if this is a NEW window (not restored)
+				// Restored windows without workspace should not show modal (user closed them)
+				if (!workspaceId && !isRestored) {
 					setShowWorkspaceSelection(true);
 					return;
 				}
@@ -127,8 +133,8 @@ export function useWorkspace({
 							setSelectedTabId?.(activeSelection.tabId);
 						}
 					}
-				} else {
-					// No workspace selected - show selection modal
+				} else if (!isRestored) {
+					// No workspace selected and not restored - show selection modal
 					setShowWorkspaceSelection(true);
 				}
 			} catch (err) {

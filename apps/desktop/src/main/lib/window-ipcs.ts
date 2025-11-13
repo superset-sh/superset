@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import { BrowserWindow, ipcMain } from "electron";
 import windowManager from "./window-manager";
 
 export function registerWindowIPCs() {
@@ -13,5 +13,13 @@ export function registerWindowIPCs() {
 				error: error instanceof Error ? error.message : "Unknown error",
 			};
 		}
+	});
+
+	ipcMain.handle("window-is-restored", async (event) => {
+		const senderWindow = BrowserWindow.fromWebContents(event.sender);
+		if (!senderWindow) {
+			return false;
+		}
+		return windowManager.isRestoredWindow(senderWindow);
 	});
 }

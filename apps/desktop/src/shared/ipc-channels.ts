@@ -396,6 +396,16 @@ export interface IpcChannels {
 		request: void;
 		response: string | null;
 	};
+
+	// Window operations
+	"window-create": {
+		request: void;
+		response: { success: boolean; error?: string };
+	};
+	"window-is-restored": {
+		request: void;
+		response: boolean;
+	};
 }
 
 /**
@@ -465,6 +475,8 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 		"workspace-get-detected-ports",
 		"proxy-get-status",
 		"deep-link-get-url",
+		"window-create",
+		"window-is-restored",
 	];
 	return validChannels.includes(channel as IpcChannelName);
 }
