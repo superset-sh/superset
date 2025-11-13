@@ -27,10 +27,9 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 			disabled={isPending}
 			className={`
 				flex items-center gap-2 px-3 h-8 rounded-t-md transition-all
-				${
-					isSelected
-						? "bg-neutral-900 text-white border-t border-x border-r border-neutral-700 -mb-px"
-						: "bg-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+				${isSelected
+					? "text-white border-t border-x border-r border-b border-b-black -mb-px"
+					: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
 				}
 				${isPending ? "opacity-70 cursor-wait" : ""}
 			`}

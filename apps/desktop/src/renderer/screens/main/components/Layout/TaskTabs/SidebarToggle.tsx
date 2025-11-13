@@ -14,7 +14,7 @@ export const SidebarToggle: React.FC<SidebarToggleProps> = ({
 	onCollapse,
 	onExpand,
 }) => (
-	<div className="flex items-center gap-1 mr-2">
+	<div className="flex items-center gap-1 mr-2 pt-1">
 		{isOpen ? (
 			<Tooltip>
 				<TooltipTrigger asChild>

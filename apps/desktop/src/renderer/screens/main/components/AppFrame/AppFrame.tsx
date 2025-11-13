@@ -4,7 +4,7 @@ interface AppFrameProps {
 
 export function AppFrame({ children }: AppFrameProps) {
 	return (
-		<div className="absolute inset-0 p-2 bg-stone-950 flex gap-2">
+		<div className="absolute inset-0 bg-stone-950 flex">
 			{children}
 		</div>
 	);

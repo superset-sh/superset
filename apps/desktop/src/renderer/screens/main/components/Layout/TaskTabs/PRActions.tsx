@@ -26,7 +26,7 @@ export const PRActions: React.FC<PRActionsProps> = ({
 						variant="default"
 						size="sm"
 						onClick={onMergePR}
-						className="h-7 bg-green-600 hover:bg-green-700 text-white"
+						className="h-6 bg-green-600 hover:bg-green-700 text-white text-xs"
 					>
 						<GitMerge size={14} className="mr-1.5" />
 						Merge PR
@@ -48,6 +48,7 @@ export const PRActions: React.FC<PRActionsProps> = ({
 						size="sm"
 						onClick={onCreatePR}
 						disabled={!canCreatePR}
+						className="h-6 text-xs"
 					>
 						<GitPullRequest size={14} />
 						Create PR

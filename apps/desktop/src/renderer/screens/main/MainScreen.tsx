@@ -164,7 +164,7 @@ export function MainScreen() {
 					/>
 
 					{/* Main content area - conditionally render based on mode */}
-					<div className="flex-1 overflow-hidden">
+					<div className="flex-1 overflow-hidden p-2 gap-2">
 						<MainContentArea
 							mode={mode}
 							loading={loading}
