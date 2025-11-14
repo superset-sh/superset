@@ -1,4 +1,4 @@
-import { exec, execSync } from "node:child_process";
+import { exec, execSync, spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -1333,7 +1333,60 @@ class WorktreeManager {
 	}
 
 	/**
-	 * Clone a git repository from a URL
+	 * Validate and sanitize a filesystem path to prevent injection attacks
+	 * Note: Since we use spawn with shell:false, shell metacharacters are not a concern
+	 * as they are passed literally to git and not interpreted by a shell
+	 */
+	private validateDestinationPath(destinationPath: string): {
+		valid: boolean;
+		error?: string;
+		sanitized?: string;
+	} {
+		// Check for null bytes (can cause issues in C-based functions)
+		if (destinationPath.includes("\0")) {
+			return {
+				valid: false,
+				error: "Invalid path: contains null bytes",
+			};
+		}
+
+		// Check for empty path
+		if (!destinationPath || destinationPath.trim().length === 0) {
+			return {
+				valid: false,
+				error: "Invalid path: path is empty",
+			};
+		}
+
+		// Normalize and resolve the path to get canonical form
+		const normalizedPath = path.normalize(destinationPath);
+		const resolvedPath = path.resolve(normalizedPath);
+
+		// Ensure the path is absolute (for consistency and clarity)
+		if (!path.isAbsolute(resolvedPath)) {
+			return {
+				valid: false,
+				error: "Invalid path: must be an absolute path",
+			};
+		}
+
+		// Check that parent directory exists (git clone will create the target directory)
+		const parentDir = path.dirname(resolvedPath);
+		if (!existsSync(parentDir)) {
+			return {
+				valid: false,
+				error: `Invalid path: parent directory does not exist: ${parentDir}`,
+			};
+		}
+
+		return {
+			valid: true,
+			sanitized: resolvedPath,
+		};
+	}
+
+	/**
+	 * Clone a git repository from a URL using secure spawn (no shell injection)
 	 */
 	async cloneRepository(
 		url: string,
@@ -1356,14 +1409,112 @@ class WorktreeManager {
 				}
 			}
 
-			// Clone the repository
-			await execAsync(`git clone "${url}" "${destinationPath}"`, {
-				encoding: "utf-8",
+			// Validate and sanitize destination path
+			const pathValidation = this.validateDestinationPath(destinationPath);
+			if (!pathValidation.valid) {
+				return {
+					success: false,
+					error: pathValidation.error || "Invalid destination path",
+				};
+			}
+
+			const sanitizedPath = pathValidation.sanitized!;
+
+			// Clone the repository using spawn (no shell, preventing command injection)
+			console.log(
+				`Cloning repository: git clone ${url} ${sanitizedPath}`,
+			);
+
+			await new Promise<void>((resolve, reject) => {
+				// Set a timeout for the clone operation (5 minutes)
+				const timeout = setTimeout(() => {
+					gitProcess.kill();
+					reject(
+						new Error(
+							"Git clone timed out after 5 minutes. The repository might be too large or there may be network issues.",
+						),
+					);
+				}, 5 * 60 * 1000);
+
+				const gitProcess = spawn(
+					"git",
+					["clone", "--progress", url, sanitizedPath],
+					{
+						stdio: ["pipe", "pipe", "pipe"],
+						shell: false, // Critical: do not use shell
+						env: {
+							...process.env,
+							GIT_TERMINAL_PROMPT: "0", // Disable credential prompts
+						},
+					},
+				);
+
+				let stdout = "";
+				let stderr = "";
+
+				// Close stdin immediately to prevent hanging on prompts
+				if (gitProcess.stdin) {
+					gitProcess.stdin.end();
+				}
+
+				// Collect stdout for diagnostics
+				if (gitProcess.stdout) {
+					gitProcess.stdout.on("data", (data) => {
+						const output = data.toString();
+						stdout += output;
+						console.log(`git clone stdout: ${output.trim()}`);
+					});
+				}
+
+				// Collect stderr for diagnostics (git outputs progress to stderr)
+				if (gitProcess.stderr) {
+					gitProcess.stderr.on("data", (data) => {
+						const output = data.toString();
+						stderr += output;
+						console.log(`git clone stderr: ${output.trim()}`);
+					});
+				}
+
+				// Handle process exit
+				gitProcess.on("close", (code) => {
+					clearTimeout(timeout);
+					console.log(`git clone exited with code: ${code}`);
+					if (code === 0) {
+						resolve();
+					} else {
+						const error = new Error(
+							`git clone failed with exit code ${code}`,
+						) as any;
+						error.stdout = stdout;
+						error.stderr = stderr;
+						error.code = code;
+						reject(error);
+					}
+				});
+
+				// Handle process exit via 'exit' event as well (backup)
+				gitProcess.on("exit", (code, signal) => {
+					if (signal) {
+						clearTimeout(timeout);
+						reject(new Error(`git clone was killed with signal: ${signal}`));
+					}
+				});
+
+				// Handle process errors (e.g., git not found)
+				gitProcess.on("error", (err) => {
+					clearTimeout(timeout);
+					console.error(`git clone process error:`, err);
+					reject(
+						new Error(
+							`Failed to execute git: ${err.message}. Is git installed?`,
+						),
+					);
+				});
 			});
 
 			return {
 				success: true,
-				path: destinationPath,
+				path: sanitizedPath,
 			};
 		} catch (error) {
 			console.error("Failed to clone repository:", error);
@@ -1376,7 +1527,11 @@ class WorktreeManager {
 				const stderr = String((error as any).stderr);
 				const fatalMatch = stderr.match(/fatal: (.+)/);
 				if (fatalMatch) {
-					errorMessage = fatalMatch[1];
+					// Sanitize the error message to remove any sensitive path info
+					errorMessage = fatalMatch[1].replace(
+						new RegExp(destinationPath, "g"),
+						"<destination>",
+					);
 				}
 			}
 
