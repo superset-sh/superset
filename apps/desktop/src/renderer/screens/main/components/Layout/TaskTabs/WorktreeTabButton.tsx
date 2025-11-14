@@ -26,7 +26,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 
 	return (
 		<div 
-			className="group relative flex items-end" 
+			className="group relative flex items-end shrink-0" 
 			style={{ width: width ? `${width}px` : undefined }}
 		>
 			<button
@@ -34,7 +34,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 				onClick={onClick}
 				disabled={isPending}
 				className={`
-					flex items-center gap-2 rounded-t-md transition-all w-full relative
+					flex items-center gap-2 rounded-t-md transition-all w-full relative shrink-0
 					${onClose && !isPending ? "pl-3 pr-6" : "px-3"}
 					${isSelected
 						? "text-white border-t border-x border-r h-[33px] border-b-2 border-b-black bg-transparent z-10"
@@ -44,7 +44,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 				`}
 				style={{
 					minWidth: width ? undefined : "60px",
-					maxWidth: width ? undefined : "240px",
+					maxWidth: width ? `${width}px` : "240px",
 					...(isSelected && {
 						marginBottom: "-2px",
 						position: "relative",
