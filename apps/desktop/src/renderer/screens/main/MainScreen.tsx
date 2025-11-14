@@ -118,7 +118,7 @@ export function MainScreen() {
 			{!isSidebarOpen && (
 				<button
 					type="button"
-					className="fixed left-0 top-0 bottom-0 w-2 z-50"
+					className="fixed left-0 top-0 bottom-0 w-2 z-30"
 					onMouseEnter={() => setShowSidebarOverlay(true)}
 					aria-label="Show sidebar"
 				/>

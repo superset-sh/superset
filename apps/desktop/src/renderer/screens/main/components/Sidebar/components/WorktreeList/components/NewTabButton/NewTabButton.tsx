@@ -1,12 +1,12 @@
-import { ChevronDown, Monitor, Plus, SquareTerminal } from "lucide-react";
-import { useState } from "react";
-import type { Workspace } from "shared/types";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { ChevronDown, Monitor, Plus, SquareTerminal } from "lucide-react";
+import { useState } from "react";
+import type { Workspace } from "shared/types";
 
 interface NewTabButtonProps {
 	currentWorkspace: Workspace;
@@ -131,25 +131,15 @@ export function NewTabButton({
 						className="w-[--radix-dropdown-menu-trigger-width] bg-neutral-800 border-neutral-700"
 					>
 						<DropdownMenuItem
-							onClick={() =>
-								handleAddTerminal(defaultTabType !== "terminal")
-							}
-							className={`cursor-pointer ${
-								defaultTabType === "terminal"
-									? "bg-neutral-700/50 text-neutral-200"
-									: "text-neutral-300"
-							}`}
+							onClick={() => handleAddTerminal(defaultTabType !== "terminal")}
+							className="text-neutral-300"
 						>
 							<SquareTerminal size={14} className="text-neutral-400" />
 							<span>New Terminal</span>
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onClick={() => handleAddPreview(defaultTabType !== "preview")}
-							className={`cursor-pointer ${
-								defaultTabType === "preview"
-									? "bg-neutral-700/50 text-neutral-200"
-									: "text-neutral-300"
-							}`}
+							className="text-neutral-300"
 						>
 							<Monitor size={14} className="text-neutral-400" />
 							<span>New Preview</span>
@@ -160,4 +150,3 @@ export function NewTabButton({
 		</div>
 	);
 }
-
