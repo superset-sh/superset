@@ -134,9 +134,11 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	return (
 		<>
 			<div
-				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 border-b border-neutral-800 relative overflow-visible"
+				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 relative overflow-visible"
 				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 			>
+				{/* Bottom border line - but not under selected tab */}
+				<div className="absolute bottom-0 left-0 right-0 h-px bg-neutral-800 z-0" />
 				<div
 					className="flex items-center gap-1 px-1 h-full flex-1 min-w-0"
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -151,7 +153,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 					<div
 						ref={tabsContainerRef}
-						className="flex items-end h-full gap-1 flex-1 min-w-0 overflow-visible relative"
+						className="flex items-end h-full gap-1 shrink-0 min-w-0 overflow-x-auto overflow-hidden relative"
 					>
 						{worktrees.map((worktree, index) => {
 							const isSelected = selectedWorktreeId === worktree.id;
@@ -179,6 +181,8 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</div>
 							);
 						})}
+					</div>
+					<div className="h-full items-end flex">
 						<AddTaskButton onClick={onAddTask} />
 					</div>
 				</div>

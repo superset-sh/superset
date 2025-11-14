@@ -1,4 +1,6 @@
 {
-	"copy": [".env"],
-	"commands": ["bun i", "./update-port.sh"]
+	"copy": [
+		"**/.env*"
+	],
+	"commands": []
 }

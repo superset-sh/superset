@@ -11,7 +11,7 @@ interface UseTasksProps {
 	} | null;
 	setSelectedWorktreeId: (id: string | null) => void;
 	handleTabSelect: (worktreeId: string, tabId: string) => void;
-	handleWorktreeCreated: () => Promise<void>;
+	handleWorktreeCreated: () => Promise<import("shared/types").Workspace | null>;
 }
 
 export function useTasks({
@@ -171,7 +171,7 @@ export function useTasks({
 				setIsCreatingWorktree(false);
 
 				// Reload workspace to get the new worktree
-				await handleWorktreeCreated();
+				const refreshedWorkspace = await handleWorktreeCreated();
 
 				// Only close modal and select worktree if modal is still open
 				if (isAddTaskModalOpen) {
@@ -181,10 +181,18 @@ export function useTasks({
 					setSetupOutput(undefined);
 
 					// Switch to the new worktree if available
-					if (result.worktree) {
-						setSelectedWorktreeId(result.worktree.id);
-						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
+					// Use the refreshed workspace returned from handleWorktreeCreated
+					if (result.worktree && refreshedWorkspace) {
+						// Find the worktree by branch name (most reliable)
+						const newWorktree = refreshedWorkspace.worktrees?.find(
+							(wt) => wt.branch === result.worktree?.branch,
+						);
+						
+						if (newWorktree) {
+							setSelectedWorktreeId(newWorktree.id);
+							if (newWorktree.tabs && newWorktree.tabs.length > 0) {
+								handleTabSelect(newWorktree.id, newWorktree.tabs[0].id);
+							}
 						}
 					}
 				}

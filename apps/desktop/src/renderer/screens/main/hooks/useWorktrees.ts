@@ -21,8 +21,8 @@ export function useWorktrees({
 	setSelectedTabId,
 }: UseWorktreesProps) {
 	// Handle worktree created
-	const handleWorktreeCreated = async () => {
-		if (!currentWorkspace) return;
+	const handleWorktreeCreated = async (): Promise<Workspace | null> => {
+		if (!currentWorkspace) return null;
 
 		try {
 			const refreshedWorkspace = await window.ipcRenderer.invoke(
@@ -31,12 +31,17 @@ export function useWorktrees({
 			);
 
 			if (refreshedWorkspace) {
-				setCurrentWorkspace(refreshedWorkspace);
-				await loadAllWorkspaces();
+				// Create a new object with new array references to ensure React detects the change
+				setCurrentWorkspace({
+					...refreshedWorkspace,
+					worktrees: refreshedWorkspace.worktrees ? [...refreshedWorkspace.worktrees] : [],
+				});
+				return refreshedWorkspace;
 			}
 		} catch (error) {
 			console.error("Failed to refresh workspace:", error);
 		}
+		return null;
 	};
 
 	// Handle worktree update

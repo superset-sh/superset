@@ -142,6 +142,7 @@ export function MainScreen() {
 				<div className="flex flex-col h-full w-full">
 					{/* Worktree tabs at the top - each tab represents a worktree */}
 					<TaskTabs
+						key={`tabs-${currentWorkspace?.worktrees?.length || 0}-${currentWorkspace?.updatedAt || ''}`}
 						onCollapseSidebar={handleCollapseSidebar}
 						onExpandSidebar={handleExpandSidebar}
 						isSidebarOpen={isSidebarOpen}
