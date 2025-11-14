@@ -6,7 +6,6 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
-import { Label } from "@superset/ui/label";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -24,11 +23,13 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Textarea } from "@superset/ui/textarea";
-import { ArrowLeft, Plus, Search, X } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Search, X } from "lucide-react";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { Worktree } from "shared/types";
+import { TerminalOutput } from "../Sidebar/components/CreateWorktreeModal/TerminalOutput";
 import { Avatar } from "./Avatar";
-import { StatusIndicator, type TaskStatus } from "./StatusIndicator";
+import type { TaskStatus } from "./StatusIndicator";
 import { TaskListItem } from "./TaskListItem";
 import { TaskPreview } from "./TaskPreview";
 
@@ -56,7 +57,16 @@ interface AddTaskModalProps {
 		status: TaskStatus;
 		assignee: string;
 		branch: string;
+		sourceBranch?: string;
+		cloneTabsFromWorktreeId?: string;
 	}) => void;
+	initialMode?: "list" | "new";
+	// Worktree creation props
+	branches?: string[];
+	worktrees?: Worktree[];
+	isCreating?: boolean;
+	setupStatus?: string;
+	setupOutput?: string;
 }
 
 export const AddTaskModal: React.FC<AddTaskModalProps> = ({
@@ -66,8 +76,14 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	openTasks,
 	onSelectTask,
 	onCreateTask,
+	initialMode = "list",
+	branches = [],
+	worktrees = [],
+	isCreating = false,
+	setupStatus,
+	setupOutput,
 }) => {
-	const [mode, setMode] = useState<"list" | "new">("list");
+	const [mode, setMode] = useState<"list" | "new">(initialMode);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -77,6 +93,8 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>("planning");
 	const [newTaskAssignee, setNewTaskAssignee] = useState("You");
 	const [newTaskBranch, setNewTaskBranch] = useState("");
+	const [sourceBranch, setSourceBranch] = useState("");
+	const [cloneTabsFromWorktreeId, setCloneTabsFromWorktreeId] = useState("");
 
 	// Filter tasks based on search query
 	const filteredTasks = useMemo(() => {
@@ -112,25 +130,49 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		[selectedTask, openTasks],
 	);
 
-	// Auto-generate branch name from task name
+	// Track if branch name was manually edited
+	const [isBranchManuallyEdited, setIsBranchManuallyEdited] = useState(false);
+
+	// Auto-generate branch name from task name (only if not manually edited)
 	useEffect(() => {
-		if (newTaskName) {
+		if (!isBranchManuallyEdited && newTaskName) {
 			const branchName = newTaskName
 				.toLowerCase()
 				.replace(/[^a-z0-9]+/g, "-")
 				.replace(/^-|-$/g, "");
 			setNewTaskBranch(branchName);
-		} else {
+		} else if (!newTaskName) {
 			setNewTaskBranch("");
+			setIsBranchManuallyEdited(false);
 		}
-	}, [newTaskName]);
+	}, [newTaskName, isBranchManuallyEdited]);
 
-	// Reset mode when modal closes
+	// Initialize source branch when modal opens or branches change
 	useEffect(() => {
-		if (!isOpen) {
+		if (isOpen && mode === "new" && branches.length > 0 && !sourceBranch) {
+			setSourceBranch(branches[0]);
+		}
+	}, [isOpen, mode, branches, sourceBranch]);
+
+	// Reset mode when modal opens/closes
+	useEffect(() => {
+		if (isOpen) {
+			setMode(initialMode);
+		} else {
 			setMode("list");
 		}
-	}, [isOpen]);
+	}, [isOpen, initialMode]);
+
+	// Handle opening a task
+	const handleOpenTask = useCallback(() => {
+		if (selectedTask) {
+			onSelectTask(selectedTask);
+			onClose();
+			// Reset state
+			setSearchQuery("");
+			setSelectedTaskId(null);
+		}
+	}, [selectedTask, onSelectTask, onClose]);
 
 	// Handle keyboard navigation
 	useEffect(() => {
@@ -165,18 +207,14 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
 		window.addEventListener("keydown", handleKeyDown);
 		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, filteredTasks, selectedTaskId, selectedTask, searchQuery]);
-
-	// Handle opening a task
-	const handleOpenTask = () => {
-		if (selectedTask) {
-			onSelectTask(selectedTask);
-			onClose();
-			// Reset state
-			setSearchQuery("");
-			setSelectedTaskId(null);
-		}
-	};
+	}, [
+		isOpen,
+		filteredTasks,
+		selectedTaskId,
+		selectedTask,
+		searchQuery,
+		handleOpenTask,
+	]);
 
 	// Clear search
 	const handleClearSearch = () => {
@@ -186,7 +224,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	// Handle creating a new task
 	const handleCreateTask = (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!newTaskName.trim()) return;
+		if (!newTaskName.trim() || isCreating) return;
 
 		onCreateTask({
 			name: newTaskName.trim(),
@@ -194,22 +232,28 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 			status: newTaskStatus,
 			assignee: newTaskAssignee,
 			branch: newTaskBranch,
+			sourceBranch: sourceBranch || undefined,
+			cloneTabsFromWorktreeId: cloneTabsFromWorktreeId || undefined,
 		});
 
-		// Close modal and reset form
-		onClose();
-
-		// Reset form
-		setNewTaskName("");
-		setNewTaskDescription("");
-		setNewTaskStatus("planning");
-		setNewTaskAssignee("You");
-		setNewTaskBranch("");
-		setMode("list");
+		// Don't close modal immediately - let parent handle closing after creation completes
+		// Reset form only if not creating (will be reset when modal closes)
+		if (!isCreating) {
+			setNewTaskName("");
+			setNewTaskDescription("");
+			setNewTaskStatus("planning");
+			setNewTaskAssignee("You");
+			setNewTaskBranch("");
+			setIsBranchManuallyEdited(false);
+			setSourceBranch("");
+			setCloneTabsFromWorktreeId("");
+			setMode("list");
+		}
 	};
 
 	// Handle back to list
 	const handleBackToList = () => {
+		if (isCreating) return; // Prevent going back while creating
 		setMode("list");
 		// Reset form
 		setNewTaskName("");
@@ -217,10 +261,16 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		setNewTaskStatus("planning");
 		setNewTaskAssignee("You");
 		setNewTaskBranch("");
+		setIsBranchManuallyEdited(false);
+		setSourceBranch("");
+		setCloneTabsFromWorktreeId("");
 	};
 
 	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
+		<Dialog
+			open={isOpen}
+			onOpenChange={(open) => !open && !isCreating && onClose()}
+		>
 			<DialogContent className="w-[90vw]! max-w-[1200px]! h-[85vh]! max-h-[800px]! p-0 gap-0 flex flex-col">
 				{/* Header */}
 				<DialogHeader className="px-6 pt-6 pb-4 border-b border-neutral-800 shrink-0">
@@ -345,7 +395,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							className="flex-1 flex flex-col min-h-0"
 						>
 							{/* Title section */}
-							<div className="px-6 pt-6 pb-3 shrink-0">
+							<div className="px-6 pt-6 pb-3 shrink-0 space-y-3">
 								<Input
 									id="task-name"
 									placeholder="Task title"
@@ -353,19 +403,141 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 									onChange={(e) => setNewTaskName(e.target.value)}
 									autoFocus
 									required
+									disabled={isCreating}
 								/>
+								<div className="space-y-2">
+									<label
+										htmlFor="branch-name"
+										className="text-sm font-medium text-neutral-300"
+									>
+										Branch Name{" "}
+										<span className="text-neutral-500 font-normal">
+											(optional)
+										</span>
+									</label>
+									<Input
+										id="branch-name"
+										type="text"
+										placeholder="Auto-generated from title"
+										value={newTaskBranch}
+										onChange={(e) => {
+											setNewTaskBranch(e.target.value);
+											setIsBranchManuallyEdited(true);
+										}}
+										disabled={isCreating}
+										className="font-mono text-sm"
+									/>
+								</div>
 							</div>
 
-							{/* Description section - takes up all available space */}
-							<div className="flex-1 px-6 min-h-0">
+							{/* Description section */}
+							<div className="px-6 shrink-0">
 								<Textarea
 									id="task-description"
 									placeholder="Add description..."
 									value={newTaskDescription}
 									onChange={(e) => setNewTaskDescription(e.target.value)}
-									className="h-full resize-none"
+									disabled={isCreating}
+									rows={4}
+									className="resize-none"
 								/>
 							</div>
+
+							{/* Worktree creation options */}
+							{(branches.length > 0 || worktrees.length > 0) && (
+								<div className="px-6 space-y-3 shrink-0 border-t border-neutral-800/50 pt-4">
+									{branches.length > 0 && (
+										<div className="space-y-2">
+											<label
+												htmlFor="source-branch"
+												className="text-sm font-medium text-neutral-300"
+											>
+												Create From Branch
+											</label>
+											<select
+												id="source-branch"
+												value={sourceBranch}
+												onChange={(e) => setSourceBranch(e.target.value)}
+												disabled={isCreating}
+												className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+											>
+												{branches.map((branch) => (
+													<option key={branch} value={branch}>
+														{branch}
+													</option>
+												))}
+											</select>
+										</div>
+									)}
+
+									{worktrees.length > 0 && (
+										<div className="space-y-2">
+											<label
+												htmlFor="clone-tabs"
+												className="text-sm font-medium text-neutral-300"
+											>
+												Clone Tabs From
+											</label>
+											<select
+												id="clone-tabs"
+												value={cloneTabsFromWorktreeId}
+												onChange={(e) =>
+													setCloneTabsFromWorktreeId(e.target.value)
+												}
+												disabled={isCreating}
+												className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+											>
+												<option value="">Don't clone tabs</option>
+												{worktrees.map((worktree) => (
+													<option key={worktree.id} value={worktree.id}>
+														{worktree.branch} ({worktree.tabs.length} tab
+														{worktree.tabs.length !== 1 ? "s" : ""})
+													</option>
+												))}
+											</select>
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Setup Progress Section */}
+							{isCreating && (
+								<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px] px-6 pt-4">
+									<div className="flex items-center gap-2 text-sm text-neutral-300">
+										<Loader2 size={16} className="animate-spin" />
+										<span>{setupStatus || "Creating worktree..."}</span>
+									</div>
+
+									{setupOutput && (
+										<div className="flex-1 bg-neutral-900 rounded border border-neutral-700 overflow-hidden">
+											<TerminalOutput
+												output={setupOutput}
+												className="w-full h-full"
+											/>
+										</div>
+									)}
+								</div>
+							)}
+
+							{/* Error Display - shown when creation failed */}
+							{!isCreating &&
+								setupStatus &&
+								(setupStatus.toLowerCase().includes("failed") ||
+									setupStatus.toLowerCase().includes("error")) && (
+									<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px] px-6 pt-4">
+										<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
+											<span>{setupStatus}</span>
+										</div>
+
+										{setupOutput && (
+											<div className="flex-1 bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto">
+												<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
+													{setupOutput}
+												</pre>
+											</div>
+										)}
+									</div>
+								)}
 
 							{/* Metadata section - at bottom */}
 							<div className="px-6 py-4 border-t border-neutral-700 shrink-0">
@@ -376,6 +548,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 										onValueChange={(value) =>
 											setNewTaskStatus(value as TaskStatus)
 										}
+										disabled={isCreating}
 									>
 										<SelectTrigger>
 											<SelectValue />
@@ -395,6 +568,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 									<Select
 										value={newTaskAssignee}
 										onValueChange={setNewTaskAssignee}
+										disabled={isCreating}
 									>
 										<SelectTrigger>
 											<SelectValue />
@@ -427,10 +601,6 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 										</SelectContent>
 									</Select>
 
-									{/* Branch Name */}
-									<div className="ml-auto text-xs text-neutral-500 font-mono">
-										{newTaskBranch || "task-name"}
-									</div>
 								</div>
 							</div>
 							{/* Footer for new task form */}
@@ -440,12 +610,16 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 									variant="ghost"
 									onClick={handleBackToList}
 									className="gap-2"
+									disabled={isCreating}
 								>
 									<ArrowLeft size={16} />
 									Back
 								</Button>
-								<Button type="submit" disabled={!newTaskName.trim()}>
-									Create task
+								<Button
+									type="submit"
+									disabled={!newTaskName.trim() || isCreating}
+								>
+									{isCreating ? "Creating..." : "Create task"}
 								</Button>
 							</div>
 						</form>

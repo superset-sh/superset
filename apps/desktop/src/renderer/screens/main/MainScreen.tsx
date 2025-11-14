@@ -92,6 +92,11 @@ export function MainScreen() {
 	// Task management
 	const {
 		isAddTaskModalOpen,
+		addTaskModalInitialMode,
+		branches,
+		isCreatingWorktree,
+		setupStatus,
+		setupOutput,
 		pendingWorktrees,
 		openTasks,
 		handleOpenAddTaskModal,
@@ -203,6 +208,12 @@ export function MainScreen() {
 				openTasks={openTasks}
 				onSelectTask={handleSelectTask}
 				onCreateTask={handleCreateTask}
+				initialMode={addTaskModalInitialMode}
+				branches={branches}
+				worktrees={currentWorkspace?.worktrees || []}
+				isCreating={isCreatingWorktree}
+				setupStatus={setupStatus}
+				setupOutput={setupOutput}
 			/>
 
 			{/* Workspace Selection Modal */}
