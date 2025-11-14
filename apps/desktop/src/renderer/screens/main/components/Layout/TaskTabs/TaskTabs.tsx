@@ -19,6 +19,8 @@ import { WorktreeTab } from "./WorktreeTab";
 const TAB_GAP = 4; // gap-1 = 4px
 const MIN_TAB_WIDTH = 40;
 const MAX_TAB_WIDTH = 240;
+const WIDTH_BUFFER = 4; // Buffer to account for rounding and measurement discrepancies
+const ADD_BUTTON_WIDTH = 32; // Approximate width of AddTaskButton
 
 // Custom hook for calculating tab widths based on available space
 function useTabWidth(worktrees: Array<{ id: string }>) {
@@ -39,25 +41,18 @@ function useTabWidth(worktrees: Array<{ id: string }>) {
 
 			const container = containerRef.current;
 			const numTabs = worktrees.length;
-
-			// Get the actual available width
 			const containerWidth = container.offsetWidth;
-			const totalGapWidth = TAB_GAP * (numTabs - 1);
-			// Add buffer to account for rounding, borders, and measurement discrepancies
-			const BUFFER = 4;
-			const availableWidth = containerWidth - totalGapWidth - BUFFER;
+
+			// Account for AddTaskButton width + gap, and gaps between tabs
+			// numTabs gaps: (numTabs - 1) between tabs + 1 before button
+			const addButtonWidth = ADD_BUTTON_WIDTH + TAB_GAP;
+			const totalGapWidth = TAB_GAP * numTabs;
+			const availableWidth = containerWidth - totalGapWidth - addButtonWidth - WIDTH_BUFFER;
 			const calculatedWidth = availableWidth / numTabs;
 
-			// If calculated width is less than min, tabs won't fit - use min (will scroll)
-			// Otherwise, clamp to fit exactly - use floor to ensure it fits
-			let finalWidth: number;
-			if (calculatedWidth < MIN_TAB_WIDTH) {
-				finalWidth = MIN_TAB_WIDTH;
-			} else {
-				// Clamp between min and max, then floor to ensure it fits
-				const clampedWidth = Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth));
-				finalWidth = Math.floor(clampedWidth);
-			}
+			const finalWidth = calculatedWidth < MIN_TAB_WIDTH
+				? MIN_TAB_WIDTH
+				: Math.floor(Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)));
 
 			setTabWidth(finalWidth);
 		};
@@ -167,7 +162,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 					<div
 						ref={tabsContainerRef}
-						className="flex items-end h-full gap-1 flex-1 min-w-0 overflow-x-auto overflow-y-hidden relative hide-scrollbar"
+						className="flex items-end h-full gap-1 flex-1 overflow-x-auto overflow-y-hidden relative hide-scrollbar"
 					>
 						{worktrees.map((worktree, index) => {
 							const isSelected = selectedWorktreeId === worktree.id;
@@ -195,14 +190,10 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</div>
 							);
 						})}
+						<div className="shrink-0">
+							<AddTaskButton onClick={onAddTask} />
+						</div>
 					</div>
-				</div>
-
-				<div
-					className="flex items-end h-full shrink-0 relative z-10"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-				>
-					<AddTaskButton onClick={onAddTask} />
 				</div>
 
 				<div
@@ -228,7 +219,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 							{worktreeToDelete && (
 								<>
 									Are you sure you want to remove the worktree "
-									{worktrees.find((wt) => wt.id === worktreeToDelete)?.branch ||
+									{worktrees.find((wt) => wt.id === worktreeToDelete)?.branch ??
 										worktreeToDelete}
 									"? This action cannot be undone.
 								</>
