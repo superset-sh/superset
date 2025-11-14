@@ -1,4 +1,6 @@
+import type { Worktree } from "shared/types";
 import type { APITask, Task } from "./types";
+import type { TaskStatus } from "../StatusIndicator";
 
 export function formatRelativeTime(date: Date): string {
 	const now = new Date();
@@ -8,10 +10,8 @@ export function formatRelativeTime(date: Date): string {
 	const diffDays = Math.floor(diffMs / 86400000);
 
 	if (diffMins < 1) return "just now";
-	if (diffMins < 60)
-		return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
-	if (diffHours < 24)
-		return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+	if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+	if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
 	if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
 	return date.toLocaleDateString();
 }
@@ -30,9 +30,44 @@ export function transformAPITaskToUITask(apiTask: APITask): Task {
 	};
 }
 
-export function generateBranchNameWithCollisionAvoidance(
-	title: string,
-): string {
+/**
+ * Transform a Worktree from workspace config to a Task for display
+ */
+export function transformWorktreeToTask(worktree: Worktree): Task {
+	// Generate slug from branch name
+	const slug = worktree.branch
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
+
+	// Determine status based on worktree state
+	let status: TaskStatus = "planning";
+	if (worktree.merged) {
+		status = "completed";
+	} else if (worktree.prUrl) {
+		status = "ready-to-merge";
+	} else if (worktree.tabs && worktree.tabs.length > 0) {
+		status = "working";
+	}
+
+	// Use description as name if available, otherwise use branch name
+	const name = worktree.description || worktree.branch;
+
+	return {
+		id: worktree.id,
+		slug: slug || worktree.id,
+		name,
+		status,
+		branch: worktree.branch,
+		description: worktree.description || "",
+		assignee: "Unassigned",
+		assigneeAvatarUrl: "",
+		lastUpdated: formatRelativeTime(new Date(worktree.createdAt)),
+	};
+}
+
+export function generateBranchNameWithCollisionAvoidance(title: string): string {
 	// Convert to lowercase and replace spaces/special chars with hyphens
 	let slug = title
 		.toLowerCase()
@@ -74,3 +109,4 @@ export function generateBranchNameWithCollisionAvoidance(
 
 	return `${slug}-${randomSuffix}`;
 }
+

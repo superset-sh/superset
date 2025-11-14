@@ -1,80 +1,70 @@
-import { useEffect, useState } from "react";
-import type { APITask, Task } from "./types";
-import { transformAPITaskToUITask } from "./utils";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { Worktree } from "shared/types";
+import type { Task } from "./types";
+import { transformWorktreeToTask } from "./utils";
 
 export function useTaskData(
 	isOpen: boolean,
 	mode: "list" | "new",
-	apiBaseUrl: string,
+	workspaceId: string | null,
+	worktrees?: Worktree[],
 ) {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [isLoadingTasks, setIsLoadingTasks] = useState(false);
 	const [tasksError, setTasksError] = useState<string | null>(null);
+	const fetchRef = useRef<(() => Promise<void>) | null>(null);
 
-	// Fetch tasks when modal opens
-	useEffect(() => {
-		if (!isOpen || mode !== "list") return;
+	const fetchTasks = useCallback(async () => {
+		if (!workspaceId) {
+			setTasks([]);
+			return;
+		}
 
-		let cancelled = false;
 		setIsLoadingTasks(true);
 		setTasksError(null);
 
-		const fetchTasks = async () => {
-			try {
-				const url = `${apiBaseUrl}/api/trpc/task.all?input=${encodeURIComponent("{}")}`;
-				const response = await fetch(url, {
-					method: "GET",
-					headers: {
-						"Content-Type": "application/json",
-					},
-				});
+		try {
+			// Fetch workspace from config via IPC
+			const workspace = await window.ipcRenderer.invoke(
+				"workspace-get",
+				workspaceId,
+			);
 
-				if (!response.ok) {
-					throw new Error(`Failed to fetch tasks: ${response.statusText}`);
-				}
-
-				const data = await response.json();
-
-				// Handle different possible response formats
-				let apiTasks: APITask[] = [];
-				if (data.result?.data) {
-					apiTasks = Array.isArray(data.result.data) ? data.result.data : [];
-				} else if (data.result?.json) {
-					apiTasks = Array.isArray(data.result.json) ? data.result.json : [];
-				} else if (Array.isArray(data)) {
-					apiTasks = data;
-				} else if (Array.isArray(data.result)) {
-					apiTasks = data.result;
-				}
-
-				if (!cancelled) {
-					const transformedTasks = apiTasks.map(transformAPITaskToUITask);
-					setTasks(transformedTasks);
-					setTasksError(null);
-				}
-			} catch (error) {
-				if (!cancelled) {
-					console.error("Failed to fetch tasks:", error);
-					setTasksError(
-						error instanceof Error
-							? error.message
-							: "Failed to load tasks. Please check if the API server is running.",
-					);
-					setTasks([]);
-				}
-			} finally {
-				if (!cancelled) {
-					setIsLoadingTasks(false);
-				}
+			if (!workspace) {
+				throw new Error("Workspace not found");
 			}
-		};
+
+			// Transform worktrees to tasks
+			const transformedTasks = workspace.worktrees.map(transformWorktreeToTask);
+			setTasks(transformedTasks);
+			setTasksError(null);
+		} catch (error) {
+			console.error("Failed to fetch tasks:", error);
+			setTasksError(
+				error instanceof Error
+					? error.message
+					: "Failed to load tasks from workspace.",
+			);
+			setTasks([]);
+		} finally {
+			setIsLoadingTasks(false);
+		}
+	}, [workspaceId]);
+
+	// Store fetch function in ref so it can be called externally
+	useEffect(() => {
+		fetchRef.current = fetchTasks;
+	}, [fetchTasks]);
+
+	// Fetch tasks when modal opens or worktrees change
+	useEffect(() => {
+		if (!isOpen || mode !== "list" || !workspaceId) {
+			setTasks([]);
+			return;
+		}
 
 		void fetchTasks();
+	}, [isOpen, mode, workspaceId, fetchTasks, worktrees?.length]);
 
-		return () => {
-			cancelled = true;
-		};
-	}, [isOpen, mode, apiBaseUrl]);
-
-	return { tasks, isLoadingTasks, tasksError };
+	return { tasks, isLoadingTasks, tasksError, refetch: fetchTasks };
 }

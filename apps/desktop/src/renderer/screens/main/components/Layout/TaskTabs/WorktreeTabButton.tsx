@@ -27,17 +27,19 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 			className="group relative flex items-end shrink-0"
 			style={{ width: width ? `${width}px` : undefined }}
 		>
+			{isSelected && (
+				<div className="absolute bottom-0 left-0 right-0 h-px bg-stone-950" />
+			)}
 			<button
 				type="button"
 				onClick={onClick}
 				disabled={isPending}
 				className={`
-					flex items-center gap-2 rounded-t-md transition-all w-full relative shrink-0
+					flex items-center gap-2 rounded-t-md transition-all w-full shrink-0
 					${onClose && !isPending ? "pl-3 pr-6" : "px-3"}
-					${
-						isSelected
-							? "text-white border-t border-x border-r h-[33px] border-b-2 border-b-black bg-transparent"
-							: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
+					${isSelected
+						? "text-white border-t border-x border-r h-[33px] bg-stone-950"
+						: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
 					}
 					${isPending ? "opacity-70 cursor-wait" : ""}
 				`}
@@ -45,7 +47,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 					minWidth: width ? undefined : "60px",
 					maxWidth: width ? `${width}px` : "240px",
 					...(isSelected && {
-						marginBottom: "-2px",
+						marginBottom: "-1px",
 					}),
 				}}
 			>
@@ -56,9 +58,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 					task && <StatusIndicator status={task.status} showLabel={false} />
 				)}
 				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
-					{hasTask && task
-						? `${task.title} (${worktree.branch})`
-						: worktree.branch}
+					{hasTask && task ? `${task.title} (${worktree.branch})` : worktree.branch}
 				</span>
 			</button>
 			{onClose && !isPending && (
@@ -74,10 +74,9 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 						w-4 h-4 rounded
 						transition-opacity cursor-pointer
 						hover:bg-neutral-700
-						${
-							isSelected
-								? "opacity-100 text-neutral-300"
-								: "opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-neutral-200"
+						${isSelected
+							? "opacity-100 text-neutral-300"
+							: "opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-neutral-200"
 						}
 					`}
 					aria-label="Close tab"

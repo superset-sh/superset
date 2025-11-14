@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Worktree } from "shared/types";
 import type { TaskStatus } from "../components/Layout/StatusIndicator";
-import { MOCK_TASKS } from "../constants";
-import type { PendingWorktree, UITask } from "../types";
+import type { UITask, PendingWorktree } from "../types";
+import { transformWorktreeToTask } from "../components/Layout/AddTaskModal/utils";
 
 interface UseTasksProps {
 	currentWorkspace: {
@@ -21,9 +21,7 @@ export function useTasks({
 	handleWorktreeCreated,
 }: UseTasksProps) {
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<
-		"list" | "new"
-	>("list");
+	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<"list" | "new">("list");
 	const [branches, setBranches] = useState<string[]>([]);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
@@ -31,34 +29,34 @@ export function useTasks({
 	const [pendingWorktrees, setPendingWorktrees] = useState<PendingWorktree[]>(
 		[],
 	);
-	const progressHandlerRef = useRef<
-		((data: { status: string; output: string }) => void) | null
-	>(null);
+	const progressHandlerRef = useRef<((data: { status: string; output: string }) => void) | null>(null);
 	const isHandlingProgressRef = useRef(false);
+	const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// Cleanup IPC listener on unmount or when creation completes
 	useEffect(() => {
 		return () => {
+			if (cleanupTimeoutRef.current) {
+				clearTimeout(cleanupTimeoutRef.current);
+				cleanupTimeoutRef.current = null;
+			}
 			if (progressHandlerRef.current) {
-				window.ipcRenderer.removeListener(
-					"worktree-setup-progress",
-					progressHandlerRef.current,
-				);
+				window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 				progressHandlerRef.current = null;
 			}
 			isHandlingProgressRef.current = false;
 		};
 	}, []);
 
-	// Compute which tasks have worktrees (are "open")
-	const openTasks = MOCK_TASKS.filter((task) =>
-		currentWorkspace?.worktrees?.some((wt) => wt.branch === task.branch),
+	// Compute open tasks from worktrees (all worktrees are "open" as tabs)
+	const openTasks: UITask[] = (currentWorkspace?.worktrees || []).map(
+		transformWorktreeToTask,
 	);
 
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
 		setAddTaskModalInitialMode(mode);
 		setIsAddTaskModalOpen(true);
-
+		
 		// Fetch branches when opening in new mode
 		if (mode === "new" && currentWorkspace) {
 			void (async () => {
@@ -87,73 +85,22 @@ export function useTasks({
 	const handleSelectTask = (task: UITask) => {
 		if (!currentWorkspace) return;
 
-		// Find existing worktree for this task's branch
+		// Since tasks are now worktrees from config, find worktree by ID directly
 		const existingWorktree = currentWorkspace.worktrees?.find(
-			(wt) => wt.branch === task.branch,
+			(wt) => wt.id === task.id,
 		);
 
 		if (existingWorktree) {
-			// Worktree already exists - switch to it
+			// Worktree exists - switch to it
 			setSelectedWorktreeId(existingWorktree.id);
 			if (existingWorktree.tabs && existingWorktree.tabs.length > 0) {
 				handleTabSelect(existingWorktree.id, existingWorktree.tabs[0].id);
 			}
 			handleCloseAddTaskModal();
 		} else {
-			// Worktree doesn't exist - create it with optimistic update
-			const pendingId = `pending-${Date.now()}`;
-			const pendingWorktree: PendingWorktree = {
-				id: pendingId,
-				isPending: true,
-				title: task.name,
-				branch: task.branch,
-				description: task.description,
-				taskData: {
-					slug: task.slug,
-					name: task.name,
-					status: task.status,
-				},
-			};
-
-			// Add pending worktree immediately
-			setPendingWorktrees((prev) => [...prev, pendingWorktree]);
+			// Worktree not found - this shouldn't happen if data is in sync
+			console.warn("Worktree not found for task:", task.id);
 			handleCloseAddTaskModal();
-
-			void (async () => {
-				try {
-					const result = await window.ipcRenderer.invoke("worktree-create", {
-						workspaceId: currentWorkspace.id,
-						title: task.name,
-						branch: task.branch,
-						createBranch: false, // Branch should already exist
-						description: task.description,
-					});
-
-					if (result.success && result.worktree) {
-						// Remove pending worktree
-						setPendingWorktrees((prev) =>
-							prev.filter((wt) => wt.id !== pendingId),
-						);
-						// Refresh workspace to get the real worktree
-						await handleWorktreeCreated();
-						setSelectedWorktreeId(result.worktree.id);
-						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
-						}
-					} else {
-						// Remove pending on failure
-						setPendingWorktrees((prev) =>
-							prev.filter((wt) => wt.id !== pendingId),
-						);
-					}
-				} catch (error) {
-					console.error("Failed to create worktree for task:", error);
-					// Remove pending on error
-					setPendingWorktrees((prev) =>
-						prev.filter((wt) => wt.id !== pendingId),
-					);
-				}
-			})();
 		}
 	};
 
@@ -174,10 +121,7 @@ export function useTasks({
 
 		// Clean up any existing listener first
 		if (progressHandlerRef.current) {
-			window.ipcRenderer.removeListener(
-				"worktree-setup-progress",
-				progressHandlerRef.current,
-			);
+			window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 		}
 
 		isHandlingProgressRef.current = true;
@@ -186,7 +130,7 @@ export function useTasks({
 		const progressHandler = (data: { status: string; output: string }) => {
 			// Ignore events if we're no longer handling progress
 			if (!isHandlingProgressRef.current) return;
-
+			
 			if (data && data.status !== undefined && data.output !== undefined) {
 				setSetupStatus(data.status);
 				setSetupOutput(data.output);
@@ -229,18 +173,34 @@ export function useTasks({
 				// Reload workspace to get the new worktree
 				await handleWorktreeCreated();
 
+				// Small delay to ensure state has propagated
+				await new Promise((resolve) => setTimeout(resolve, 50));
+
 				// Only close modal and select worktree if modal is still open
 				if (isAddTaskModalOpen) {
+					// Fetch the workspace again to get the latest state with correct IDs
+					const latestWorkspace = await window.ipcRenderer.invoke(
+						"workspace-get",
+						currentWorkspace.id,
+					);
+
 					// Close modal and reset state
 					setIsAddTaskModalOpen(false);
 					setSetupStatus(undefined);
 					setSetupOutput(undefined);
 
 					// Switch to the new worktree if available
-					if (result.worktree) {
-						setSelectedWorktreeId(result.worktree.id);
-						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
+					if (result.worktree && latestWorkspace) {
+						// Find the worktree by branch name to get the correct ID
+						const newWorktree = latestWorkspace.worktrees?.find(
+							(wt) => wt.branch === result.worktree?.branch,
+						);
+
+						if (newWorktree) {
+							setSelectedWorktreeId(newWorktree.id);
+							if (newWorktree.tabs && newWorktree.tabs.length > 0) {
+								handleTabSelect(newWorktree.id, newWorktree.tabs[0].id);
+							}
 						}
 					}
 				}
@@ -259,16 +219,19 @@ export function useTasks({
 		} finally {
 			// Stop handling progress events
 			isHandlingProgressRef.current = false;
-
+			
+			// Clear any existing cleanup timeout
+			if (cleanupTimeoutRef.current) {
+				clearTimeout(cleanupTimeoutRef.current);
+			}
+			
 			// Wait a bit to ensure any queued events are processed, then remove listener
-			setTimeout(() => {
+			cleanupTimeoutRef.current = setTimeout(() => {
 				if (progressHandlerRef.current) {
-					window.ipcRenderer.removeListener(
-						"worktree-setup-progress",
-						progressHandlerRef.current,
-					);
+					window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 					progressHandlerRef.current = null;
 				}
+				cleanupTimeoutRef.current = null;
 			}, 100);
 		}
 	};
@@ -289,3 +252,4 @@ export function useTasks({
 		handleClearStatus,
 	};
 }
+

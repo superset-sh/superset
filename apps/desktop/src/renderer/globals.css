@@ -146,9 +146,14 @@
 		width: 100% !important;
 	}
 
-	/* Hide scrollbar for workspace carousel */
+	/* Hide scrollbar for workspace carousel and tabs */
+	.hide-scrollbar {
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE/Edge */
+	}
+
 	.hide-scrollbar::-webkit-scrollbar {
-		display: none;
+		display: none; /* Chrome/Safari/Electron */
 	}
 
 	/* Dark mode scrollbar styling */

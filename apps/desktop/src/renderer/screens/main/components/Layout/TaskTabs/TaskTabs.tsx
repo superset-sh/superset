@@ -16,6 +16,60 @@ import { SidebarToggle } from "./SidebarToggle";
 import type { TaskTabsProps } from "./types";
 import { WorktreeTab } from "./WorktreeTab";
 
+const TAB_GAP = 4; // gap-1 = 4px
+const MIN_TAB_WIDTH = 40;
+const MAX_TAB_WIDTH = 240;
+const WIDTH_BUFFER = 4; // Buffer to account for rounding and measurement discrepancies
+const ADD_BUTTON_WIDTH = 32; // Approximate width of AddTaskButton
+
+// Custom hook for calculating tab widths based on available space
+function useTabWidth(worktrees: Array<{ id: string }>) {
+	const containerRef = useRef<HTMLDivElement>(null);
+	const [tabWidth, setTabWidth] = useState<number | undefined>(undefined);
+
+	useEffect(() => {
+		if (!containerRef.current || worktrees.length === 0) {
+			setTabWidth(undefined);
+			return;
+		}
+
+		const updateTabWidth = () => {
+			if (!containerRef.current || worktrees.length === 0) {
+				setTabWidth(undefined);
+				return;
+			}
+
+			const container = containerRef.current;
+			const numTabs = worktrees.length;
+			const containerWidth = container.offsetWidth;
+
+			// Account for AddTaskButton width + gap, and gaps between tabs
+			// numTabs gaps: (numTabs - 1) between tabs + 1 before button
+			const addButtonWidth = ADD_BUTTON_WIDTH + TAB_GAP;
+			const totalGapWidth = TAB_GAP * numTabs;
+			const availableWidth = containerWidth - totalGapWidth - addButtonWidth - WIDTH_BUFFER;
+			const calculatedWidth = availableWidth / numTabs;
+
+			const finalWidth = calculatedWidth < MIN_TAB_WIDTH
+				? MIN_TAB_WIDTH
+				: Math.floor(Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)));
+
+			setTabWidth(finalWidth);
+		};
+
+		updateTabWidth();
+
+		const resizeObserver = new ResizeObserver(updateTabWidth);
+		resizeObserver.observe(containerRef.current);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, [worktrees.length]);
+
+	return { containerRef, tabWidth };
+}
+
 export const TaskTabs: React.FC<TaskTabsProps> = ({
 	onCollapseSidebar,
 	onExpandSidebar,
@@ -34,49 +88,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 	const [removeWarning, setRemoveWarning] = useState("");
 	const [worktreeToDelete, setWorktreeToDelete] = useState<string | null>(null);
-	const tabsContainerRef = useRef<HTMLDivElement>(null);
-	const [tabWidth, setTabWidth] = useState<number | undefined>(undefined);
-
-	// Calculate tab width based on available space and number of tabs
-	useEffect(() => {
-		const updateTabWidth = () => {
-			if (!tabsContainerRef.current || worktrees.length === 0) {
-				setTabWidth(undefined);
-				return;
-			}
-
-			const container = tabsContainerRef.current;
-			const containerWidth = container.offsetWidth;
-			const gap = 4; // gap-1 = 4px
-			const numTabs = worktrees.length;
-
-			// Calculate available width per tab (accounting for gaps)
-			const availableWidth = containerWidth - gap * (numTabs - 1);
-			const calculatedWidth = availableWidth / numTabs;
-
-			// Apply min/max constraints (Chrome-like: min ~60px, max ~240px)
-			const MIN_WIDTH = 60;
-			const MAX_WIDTH = 240;
-			const constrainedWidth = Math.max(
-				MIN_WIDTH,
-				Math.min(MAX_WIDTH, calculatedWidth),
-			);
-
-			setTabWidth(constrainedWidth);
-		};
-
-		updateTabWidth();
-
-		// Update on window resize
-		const resizeObserver = new ResizeObserver(updateTabWidth);
-		if (tabsContainerRef.current) {
-			resizeObserver.observe(tabsContainerRef.current);
-		}
-
-		return () => {
-			resizeObserver.disconnect();
-		};
-	}, [worktrees.length]);
+	const { containerRef: tabsContainerRef, tabWidth } = useTabWidth(worktrees);
 
 	const selectedWorktree = worktrees.find((wt) => wt.id === selectedWorktreeId);
 	const canCreatePR = selectedWorktree && !selectedWorktree.isPending;
@@ -88,55 +100,54 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 		if (!onDeleteWorktree || !workspaceId) return;
 
 		const worktree = worktrees.find((wt) => wt.id === worktreeId);
-		// Allow deletion of active/selected worktrees (same as sidebar behavior)
-		// Only prevent deletion of pending worktrees
 		if (!worktree || worktree.isPending) return;
 
-		// Check if the worktree has uncommitted changes
 		try {
 			const canRemoveResult = await window.ipcRenderer.invoke(
 				"worktree-can-remove",
-				{
-					workspaceId,
-					worktreeId,
-				},
+				{ workspaceId, worktreeId },
 			);
 
-			// Build warning message if there are uncommitted changes
-			let warning = "";
-			if (canRemoveResult.hasUncommittedChanges) {
-				warning = `Warning: This worktree (${worktree.branch}) has uncommitted changes. Removing it will delete these changes permanently.`;
-			}
+			const warning = canRemoveResult.hasUncommittedChanges
+				? `Warning: This worktree (${worktree.branch}) has uncommitted changes. Removing it will delete these changes permanently.`
+				: "";
 
 			setRemoveWarning(warning);
 			setWorktreeToDelete(worktreeId);
 			setShowRemoveDialog(true);
 		} catch (error) {
 			console.error("Error checking if worktree can be removed:", error);
-			// Still show dialog even if check fails
 			setRemoveWarning("");
 			setWorktreeToDelete(worktreeId);
 			setShowRemoveDialog(true);
 		}
 	};
 
-	const confirmRemoveWorktree = async () => {
+	const handleConfirmRemove = async () => {
 		if (!onDeleteWorktree || !worktreeToDelete) return;
 
+		const worktreeId = worktreeToDelete;
 		setShowRemoveDialog(false);
 		setRemoveWarning("");
-		const worktreeId = worktreeToDelete;
 		setWorktreeToDelete(null);
 
 		await onDeleteWorktree(worktreeId);
 	};
 
+	const handleCancelRemove = () => {
+		setShowRemoveDialog(false);
+		setRemoveWarning("");
+		setWorktreeToDelete(null);
+	};
+
 	return (
 		<>
 			<div
-				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 border-b border-neutral-800 relative overflow-visible"
+				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 relative overflow-visible"
 				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
 			>
+				{/* Bottom border line */}
+				<div className="absolute bottom-0 left-0 right-0 h-px bg-neutral-800" />
 				<div
 					className="flex items-center gap-1 px-1 h-full flex-1 min-w-0"
 					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
@@ -151,7 +162,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 					<div
 						ref={tabsContainerRef}
-						className="flex items-end h-full gap-1 flex-1 min-w-0 overflow-visible relative"
+						className="flex items-end h-full gap-1 flex-1 overflow-x-auto overflow-y-hidden relative hide-scrollbar"
 					>
 						{worktrees.map((worktree, index) => {
 							const isSelected = selectedWorktreeId === worktree.id;
@@ -179,7 +190,9 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</div>
 							);
 						})}
-						<AddTaskButton onClick={onAddTask} />
+						<div className="shrink-0">
+							<AddTaskButton onClick={onAddTask} />
+						</div>
 					</div>
 				</div>
 
@@ -206,7 +219,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 							{worktreeToDelete && (
 								<>
 									Are you sure you want to remove the worktree "
-									{worktrees.find((wt) => wt.id === worktreeToDelete)?.branch ||
+									{worktrees.find((wt) => wt.id === worktreeToDelete)?.branch ??
 										worktreeToDelete}
 									"? This action cannot be undone.
 								</>
@@ -222,17 +235,10 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 					)}
 
 					<DialogFooter>
-						<Button
-							variant="ghost"
-							onClick={() => {
-								setShowRemoveDialog(false);
-								setRemoveWarning("");
-								setWorktreeToDelete(null);
-							}}
-						>
+						<Button variant="ghost" onClick={handleCancelRemove}>
 							Cancel
 						</Button>
-						<Button variant="destructive" onClick={confirmRemoveWorktree}>
+						<Button variant="destructive" onClick={handleConfirmRemove}>
 							Remove
 						</Button>
 					</DialogFooter>

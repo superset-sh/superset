@@ -55,5 +55,5 @@ export interface AddTaskModalProps {
 	setupStatus?: string;
 	setupOutput?: string;
 	onClearStatus?: () => void;
-	apiBaseUrl?: string;
+	currentWorkspaceId?: string | null;
 }

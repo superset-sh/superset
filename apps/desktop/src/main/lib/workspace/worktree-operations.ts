@@ -63,13 +63,15 @@ export async function createWorktree(
 
 		// Create worktree object with cloned or empty tabs
 		const now = new Date().toISOString();
+		// Use description if provided, otherwise use title as description
+		const description = input.description || input.title;
 		const worktree: Worktree = {
 			id: randomUUID(),
 			branch: branchName,
 			path: worktreeResult.path!,
 			tabs,
 			createdAt: now,
-			...(input.description && { description: input.description }),
+			...(description && { description }),
 		};
 
 		// Add to workspace

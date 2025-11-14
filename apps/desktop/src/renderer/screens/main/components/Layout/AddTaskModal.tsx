@@ -28,16 +28,17 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	setupStatus,
 	setupOutput,
 	onClearStatus,
-	apiBaseUrl = "http://localhost:3000",
+	currentWorkspaceId,
 }) => {
 	const [mode, setMode] = useState<"list" | "new">(initialMode);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-	const { tasks, isLoadingTasks, tasksError } = useTaskData(
+	const { tasks, isLoadingTasks, tasksError, refetch: refetchTasks } = useTaskData(
 		isOpen,
 		mode,
-		apiBaseUrl,
+		currentWorkspaceId ?? null,
+		worktrees,
 	);
 
 	const formState = useTaskForm(isOpen, mode, branches, worktrees);
@@ -85,16 +86,19 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		}
 	}, [isOpen, initialMode]);
 
-	// Automatically go back to list mode when creation completes
+	// Automatically go back to list mode when creation completes and refetch tasks
 	useEffect(() => {
 		if (!isCreating && setupStatus && mode === "new") {
+			// Refetch tasks to get the newly created worktree
+			void refetchTasks();
+
 			const timer = setTimeout(() => {
 				setMode("list");
 				onClearStatus?.();
 			}, 1500);
 			return () => clearTimeout(timer);
 		}
-	}, [isCreating, setupStatus, mode, onClearStatus]);
+	}, [isCreating, setupStatus, mode, onClearStatus, refetchTasks]);
 
 	// Handle opening a task
 	const handleOpenTask = useCallback(() => {

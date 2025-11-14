@@ -11,22 +11,28 @@ interface CreatingViewProps {
 	onClose: () => void;
 }
 
+function getStatusType(status?: string): "error" | "success" | "creating" {
+	if (!status) return "creating";
+	
+	const lowerStatus = status.toLowerCase();
+	if (lowerStatus.includes("failed") || lowerStatus.includes("error")) {
+		return "error";
+	}
+	if (lowerStatus.includes("success") || lowerStatus.includes("completed")) {
+		return "success";
+	}
+	return "creating";
+}
+
 export const CreatingView: React.FC<CreatingViewProps> = ({
 	setupStatus,
 	setupOutput,
 	isCreating,
 	onClose,
 }) => {
-	const isError =
-		setupStatus &&
-		(setupStatus.toLowerCase().includes("failed") ||
-			setupStatus.toLowerCase().includes("error"));
-
-	const isSuccess =
-		setupStatus &&
-		!isError &&
-		(setupStatus.toLowerCase().includes("success") ||
-			setupStatus.toLowerCase().includes("completed"));
+	const statusType = getStatusType(setupStatus);
+	const isError = statusType === "error";
+	const isSuccess = statusType === "success";
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 overflow-hidden">
