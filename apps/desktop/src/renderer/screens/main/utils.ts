@@ -1,7 +1,8 @@
 import type { Tab, Worktree } from "shared/types";
+import type { TaskStatus } from "./components/Layout/StatusIndicator";
 import type { WorktreeWithTask } from "./components/Layout/TaskTabs";
-import { MOCK_TASKS } from "./constants";
 import type { PendingWorktree } from "./types";
+import { formatRelativeTime } from "./components/Layout/AddTaskModal/utils";
 
 // Helper function to find a tab recursively (for finding sub-tabs inside groups)
 export function findTabRecursive(
@@ -24,6 +25,33 @@ export function findTabRecursive(
         }
     }
     return null;
+}
+
+/**
+ * Determine task status based on worktree state
+ */
+function getTaskStatusFromWorktree(worktree: Worktree): TaskStatus {
+	if (worktree.merged) {
+		return "completed";
+	}
+	if (worktree.prUrl) {
+		return "ready-to-merge";
+	}
+	if (worktree.tabs && worktree.tabs.length > 0) {
+		return "working";
+	}
+	return "planning";
+}
+
+/**
+ * Generate slug from branch name
+ */
+function generateSlugFromBranch(branch: string): string {
+	return branch
+		.toLowerCase()
+		.replace(/[^a-z0-9-]/g, "-")
+		.replace(/-+/g, "-")
+		.replace(/^-+|-+$/g, "");
 }
 
 // Helper function to enrich worktrees with task metadata
@@ -52,34 +80,24 @@ export function enrichWorktreesWithTasks(
         }),
     );
 
-    // Then, enrich real worktrees with task metadata
-    const enrichedWorktrees = worktrees.map((worktree) => {
-        // Try to find a matching task by branch name
-        const matchingTask = MOCK_TASKS.find(
-            (task) => task.branch === worktree.branch,
-        );
+    // Then, enrich real worktrees with task metadata derived from worktree data
+    const enrichedWorktrees: WorktreeWithTask[] = worktrees.map((worktree) => {
+        // Generate task metadata from worktree data
+        const slug = generateSlugFromBranch(worktree.branch);
+        const status = getTaskStatusFromWorktree(worktree);
+        const title = worktree.description || worktree.branch;
 
-        if (matchingTask) {
-            // Worktree has an associated task - add task metadata
-            return {
-                ...worktree,
-                task: {
-                    id: matchingTask.id,
-                    slug: matchingTask.slug,
-                    title: matchingTask.name,
-                    status: matchingTask.status,
-                    description: matchingTask.description,
-                    assignee: {
-                        name: matchingTask.assignee,
-                        avatarUrl: matchingTask.assigneeAvatarUrl,
-                    },
-                    lastUpdated: matchingTask.lastUpdated,
-                },
-            };
-        }
-
-        // Worktree without task - return as-is
-        return worktree;
+        return {
+            ...worktree,
+            task: {
+                id: worktree.id,
+                slug: slug || worktree.id,
+                title,
+                status,
+                description: worktree.description || "",
+                lastUpdated: formatRelativeTime(new Date(worktree.createdAt)),
+            },
+        };
     });
 
     // Merge pending and real worktrees

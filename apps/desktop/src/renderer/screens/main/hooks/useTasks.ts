@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Worktree } from "shared/types";
 import type { TaskStatus } from "../components/Layout/StatusIndicator";
 import type { UITask, PendingWorktree } from "../types";
-import { MOCK_TASKS } from "../constants";
+import { transformWorktreeToTask } from "../components/Layout/AddTaskModal/utils";
 
 interface UseTasksProps {
 	currentWorkspace: {
@@ -48,9 +48,9 @@ export function useTasks({
 		};
 	}, []);
 
-	// Compute which tasks have worktrees (are "open")
-	const openTasks = MOCK_TASKS.filter((task) =>
-		currentWorkspace?.worktrees?.some((wt) => wt.branch === task.branch),
+	// Compute open tasks from worktrees (all worktrees are "open" as tabs)
+	const openTasks: UITask[] = (currentWorkspace?.worktrees || []).map(
+		transformWorktreeToTask,
 	);
 
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
@@ -85,73 +85,22 @@ export function useTasks({
 	const handleSelectTask = (task: UITask) => {
 		if (!currentWorkspace) return;
 
-		// Find existing worktree for this task's branch
+		// Since tasks are now worktrees from config, find worktree by ID directly
 		const existingWorktree = currentWorkspace.worktrees?.find(
-			(wt) => wt.branch === task.branch,
+			(wt) => wt.id === task.id,
 		);
 
 		if (existingWorktree) {
-			// Worktree already exists - switch to it
+			// Worktree exists - switch to it
 			setSelectedWorktreeId(existingWorktree.id);
 			if (existingWorktree.tabs && existingWorktree.tabs.length > 0) {
 				handleTabSelect(existingWorktree.id, existingWorktree.tabs[0].id);
 			}
 			handleCloseAddTaskModal();
 		} else {
-			// Worktree doesn't exist - create it with optimistic update
-			const pendingId = `pending-${Date.now()}`;
-			const pendingWorktree: PendingWorktree = {
-				id: pendingId,
-				isPending: true,
-				title: task.name,
-				branch: task.branch,
-				description: task.description,
-				taskData: {
-					slug: task.slug,
-					name: task.name,
-					status: task.status,
-				},
-			};
-
-			// Add pending worktree immediately
-			setPendingWorktrees((prev) => [...prev, pendingWorktree]);
+			// Worktree not found - this shouldn't happen if data is in sync
+			console.warn("Worktree not found for task:", task.id);
 			handleCloseAddTaskModal();
-
-			void (async () => {
-				try {
-					const result = await window.ipcRenderer.invoke("worktree-create", {
-						workspaceId: currentWorkspace.id,
-						title: task.name,
-						branch: task.branch,
-						createBranch: false, // Branch should already exist
-						description: task.description,
-					});
-
-					if (result.success && result.worktree) {
-						// Remove pending worktree
-						setPendingWorktrees((prev) =>
-							prev.filter((wt) => wt.id !== pendingId),
-						);
-						// Refresh workspace to get the real worktree
-						await handleWorktreeCreated();
-						setSelectedWorktreeId(result.worktree.id);
-						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
-						}
-					} else {
-						// Remove pending on failure
-						setPendingWorktrees((prev) =>
-							prev.filter((wt) => wt.id !== pendingId),
-						);
-					}
-				} catch (error) {
-					console.error("Failed to create worktree for task:", error);
-					// Remove pending on error
-					setPendingWorktrees((prev) =>
-						prev.filter((wt) => wt.id !== pendingId),
-					);
-				}
-			})();
 		}
 	};
 

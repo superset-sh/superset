@@ -28,7 +28,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	setupStatus,
 	setupOutput,
 	onClearStatus,
-	apiBaseUrl = "http://localhost:3000",
+	currentWorkspaceId,
 }) => {
 	const [mode, setMode] = useState<"list" | "new">(initialMode);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -37,7 +37,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	const { tasks, isLoadingTasks, tasksError } = useTaskData(
 		isOpen,
 		mode,
-		apiBaseUrl,
+		currentWorkspaceId ?? null,
 	);
 
 	const formState = useTaskForm(isOpen, mode, branches, worktrees);

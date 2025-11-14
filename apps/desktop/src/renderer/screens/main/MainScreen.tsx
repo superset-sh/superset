@@ -214,6 +214,7 @@ export function MainScreen() {
 				setupStatus={setupStatus}
 				setupOutput={setupOutput}
 				onClearStatus={handleClearStatus}
+				currentWorkspaceId={currentWorkspace?.id || null}
 			/>
 
 			{/* Workspace Selection Modal */}

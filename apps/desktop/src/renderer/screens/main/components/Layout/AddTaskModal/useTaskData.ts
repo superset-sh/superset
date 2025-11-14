@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import type { APITask, Task } from "./types";
-import { transformAPITaskToUITask } from "./utils";
+import type { Worktree } from "shared/types";
+import type { Task } from "./types";
+import { transformWorktreeToTask } from "./utils";
 
 export function useTaskData(
 	isOpen: boolean,
 	mode: "list" | "new",
-	apiBaseUrl: string,
+	workspaceId: string | null,
 ) {
 	const [tasks, setTasks] = useState<Task[]>([]);
 	const [isLoadingTasks, setIsLoadingTasks] = useState(false);
@@ -13,7 +14,10 @@ export function useTaskData(
 
 	// Fetch tasks when modal opens
 	useEffect(() => {
-		if (!isOpen || mode !== "list") return;
+		if (!isOpen || mode !== "list" || !workspaceId) {
+			setTasks([]);
+			return;
+		}
 
 		let cancelled = false;
 		setIsLoadingTasks(true);
@@ -21,34 +25,19 @@ export function useTaskData(
 
 		const fetchTasks = async () => {
 			try {
-				const url = `${apiBaseUrl}/api/trpc/task.all?input=${encodeURIComponent("{}")}`;
-				const response = await fetch(url, {
-					method: "GET",
-					headers: {
-						"Content-Type": "application/json",
-					},
-				});
+				// Fetch workspace from config via IPC
+				const workspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					workspaceId,
+				);
 
-				if (!response.ok) {
-					throw new Error(`Failed to fetch tasks: ${response.statusText}`);
-				}
-
-				const data = await response.json();
-
-				// Handle different possible response formats
-				let apiTasks: APITask[] = [];
-				if (data.result?.data) {
-					apiTasks = Array.isArray(data.result.data) ? data.result.data : [];
-				} else if (data.result?.json) {
-					apiTasks = Array.isArray(data.result.json) ? data.result.json : [];
-				} else if (Array.isArray(data)) {
-					apiTasks = data;
-				} else if (Array.isArray(data.result)) {
-					apiTasks = data.result;
+				if (!workspace) {
+					throw new Error("Workspace not found");
 				}
 
 				if (!cancelled) {
-					const transformedTasks = apiTasks.map(transformAPITaskToUITask);
+					// Transform worktrees to tasks
+					const transformedTasks = workspace.worktrees.map(transformWorktreeToTask);
 					setTasks(transformedTasks);
 					setTasksError(null);
 				}
@@ -58,7 +47,7 @@ export function useTaskData(
 					setTasksError(
 						error instanceof Error
 							? error.message
-							: "Failed to load tasks. Please check if the API server is running.",
+							: "Failed to load tasks from workspace.",
 					);
 					setTasks([]);
 				}
@@ -74,7 +63,7 @@ export function useTaskData(
 		return () => {
 			cancelled = true;
 		};
-	}, [isOpen, mode, apiBaseUrl]);
+	}, [isOpen, mode, workspaceId]);
 
 	return { tasks, isLoadingTasks, tasksError };
 }
