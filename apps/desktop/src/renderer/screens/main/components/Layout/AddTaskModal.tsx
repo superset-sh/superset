@@ -6,6 +6,7 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
+import { Label } from "@superset/ui/label";
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -133,24 +134,80 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	// Track if branch name was manually edited
 	const [isBranchManuallyEdited, setIsBranchManuallyEdited] = useState(false);
 
+	// Generate branch name with collision avoidance (same logic as generateBranchName)
+	const generateBranchNameWithCollisionAvoidance = useCallback(
+		(title: string): string => {
+			// Convert to lowercase and replace spaces/special chars with hyphens
+			let slug = title
+				.toLowerCase()
+				.trim()
+				.replace(/[\s_]+/g, "-")
+				.replace(/[^a-z0-9-]/g, "")
+				.replace(/-+/g, "-")
+				.replace(/^-+|-+$/g, "");
+
+			// If slug is empty after sanitization, use a default
+			if (!slug) {
+				slug = "worktree";
+			}
+
+			// Generate random suffix (4 chars) for collision avoidance
+			const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+			let randomSuffix = "";
+			for (let i = 0; i < 4; i++) {
+				randomSuffix += chars.charAt(
+					Math.floor(Math.random() * chars.length),
+				);
+			}
+
+			// Calculate available length (max 50 chars, reserve 5 for "-" + suffix)
+			const maxLength = 50;
+			const availableLength = maxLength - 4 - 1; // 45 chars for base slug
+
+			// Truncate slug if needed
+			if (slug.length > availableLength) {
+				const truncated = slug.substring(0, availableLength);
+				const lastHyphen = truncated.lastIndexOf("-");
+
+				if (lastHyphen > availableLength * 0.7) {
+					slug = truncated.substring(0, lastHyphen);
+				} else {
+					slug = truncated;
+				}
+
+				slug = slug.replace(/-+$/, "");
+			}
+
+			return `${slug}-${randomSuffix}`;
+		},
+		[],
+	);
+
 	// Auto-generate branch name from task name (only if not manually edited)
 	useEffect(() => {
 		if (!isBranchManuallyEdited && newTaskName) {
-			const branchName = newTaskName
-				.toLowerCase()
-				.replace(/[^a-z0-9]+/g, "-")
-				.replace(/^-|-$/g, "");
+			const branchName = generateBranchNameWithCollisionAvoidance(newTaskName);
 			setNewTaskBranch(branchName);
 		} else if (!newTaskName) {
 			setNewTaskBranch("");
 			setIsBranchManuallyEdited(false);
 		}
-	}, [newTaskName, isBranchManuallyEdited]);
+	}, [newTaskName, isBranchManuallyEdited, generateBranchNameWithCollisionAvoidance]);
 
 	// Initialize source branch when modal opens or branches change
+	// Always try to default to "main" if available
 	useEffect(() => {
-		if (isOpen && mode === "new" && branches.length > 0 && !sourceBranch) {
-			setSourceBranch(branches[0]);
+		if (isOpen && mode === "new" && branches.length > 0) {
+			// Prefer "main" branch, fallback to "master", then first branch
+			const mainBranch = branches.find((b) => b.toLowerCase() === "main");
+			const masterBranch = branches.find((b) => b.toLowerCase() === "master");
+			const preferredBranch = mainBranch || masterBranch || branches[0];
+
+			// Only update if sourceBranch is empty or not in the branches list
+			// This ensures we default to "main" but don't override user selections
+			if (!sourceBranch || !branches.includes(sourceBranch)) {
+				setSourceBranch(preferredBranch);
+			}
 		}
 	}, [isOpen, mode, branches, sourceBranch]);
 
@@ -158,6 +215,10 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	useEffect(() => {
 		if (isOpen) {
 			setMode(initialMode);
+			// Reset sourceBranch when opening in new mode so it can be set to "main"
+			if (initialMode === "new") {
+				setSourceBranch("");
+			}
 		} else {
 			setMode("list");
 		}
@@ -395,26 +456,26 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							className="flex-1 flex flex-col min-h-0"
 						>
 							{/* Title section */}
-							<div className="px-6 pt-6 pb-3 shrink-0 space-y-3">
-								<Input
-									id="task-name"
-									placeholder="Task title"
-									value={newTaskName}
-									onChange={(e) => setNewTaskName(e.target.value)}
-									autoFocus
-									required
-									disabled={isCreating}
-								/>
+							<div className="px-6 pt-6 pb-3 shrink-0 space-y-4">
 								<div className="space-y-2">
-									<label
-										htmlFor="branch-name"
-										className="text-sm font-medium text-neutral-300"
-									>
+									<Label htmlFor="task-name">Title</Label>
+									<Input
+										id="task-name"
+										placeholder="My new feature"
+										value={newTaskName}
+										onChange={(e) => setNewTaskName(e.target.value)}
+										autoFocus
+										required
+										disabled={isCreating}
+									/>
+								</div>
+								<div className="space-y-2">
+									<Label htmlFor="branch-name">
 										Branch Name{" "}
-										<span className="text-neutral-500 font-normal">
+										<span className="text-muted-foreground font-normal">
 											(optional)
 										</span>
-									</label>
+									</Label>
 									<Input
 										id="branch-name"
 										type="text"
@@ -425,20 +486,25 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 											setIsBranchManuallyEdited(true);
 										}}
 										disabled={isCreating}
-										className="font-mono text-sm"
 									/>
 								</div>
 							</div>
 
 							{/* Description section */}
-							<div className="px-6 shrink-0">
+							<div className="px-6 shrink-0 space-y-2">
+								<Label htmlFor="task-description">
+									Description{" "}
+									<span className="text-muted-foreground font-normal">
+										(Optional)
+									</span>
+								</Label>
 								<Textarea
 									id="task-description"
-									placeholder="Add description..."
+									placeholder="What is the goal of this worktree?"
 									value={newTaskDescription}
 									onChange={(e) => setNewTaskDescription(e.target.value)}
 									disabled={isCreating}
-									rows={4}
+									rows={3}
 									className="resize-none"
 								/>
 							</div>
