@@ -211,6 +211,24 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		}
 	}, [isOpen, mode, branches, sourceBranch]);
 
+	// Auto-select worktree to clone tabs from if it matches the source branch
+	useEffect(() => {
+		if (sourceBranch && worktrees.length > 0) {
+			// Find worktree with matching branch
+			const matchingWorktree = worktrees.find(
+				(wt) => wt.branch === sourceBranch,
+			);
+			if (matchingWorktree) {
+				setCloneTabsFromWorktreeId(matchingWorktree.id);
+			} else {
+				// Clear selection if no matching worktree
+				setCloneTabsFromWorktreeId("");
+			}
+		} else {
+			setCloneTabsFromWorktreeId("");
+		}
+	}, [sourceBranch, worktrees]);
+
 	// Reset mode when modal opens/closes
 	useEffect(() => {
 		if (isOpen) {
@@ -453,237 +471,220 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 						{/* New task form - Description-focused layout */}
 						<form
 							onSubmit={handleCreateTask}
-							className="flex-1 flex flex-col min-h-0"
+							className="flex-1 flex flex-col min-h-0 overflow-hidden"
 						>
-							{/* Title section */}
-							<div className="px-6 pt-6 pb-3 shrink-0 space-y-4">
-								<div className="space-y-2">
-									<Label htmlFor="task-name">Title</Label>
-									<Input
-										id="task-name"
-										placeholder="My new feature"
-										value={newTaskName}
-										onChange={(e) => setNewTaskName(e.target.value)}
-										autoFocus
-										required
-										disabled={isCreating}
-									/>
-								</div>
-								<div className="space-y-2">
-									<Label htmlFor="branch-name">
-										Branch Name{" "}
-										<span className="text-muted-foreground font-normal">
-											(optional)
-										</span>
-									</Label>
-									<Input
-										id="branch-name"
-										type="text"
-										placeholder="Auto-generated from title"
-										value={newTaskBranch}
-										onChange={(e) => {
-											setNewTaskBranch(e.target.value);
-											setIsBranchManuallyEdited(true);
-										}}
-										disabled={isCreating}
-									/>
-								</div>
-							</div>
-
-							{/* Description section */}
-							<div className="px-6 shrink-0 space-y-2">
-								<Label htmlFor="task-description">
-									Description{" "}
-									<span className="text-muted-foreground font-normal">
-										(Optional)
-									</span>
-								</Label>
-								<Textarea
-									id="task-description"
-									placeholder="What is the goal of this worktree?"
-									value={newTaskDescription}
-									onChange={(e) => setNewTaskDescription(e.target.value)}
-									disabled={isCreating}
-									rows={3}
-									className="resize-none"
-								/>
-							</div>
-
-							{/* Worktree creation options */}
-							{(branches.length > 0 || worktrees.length > 0) && (
-								<div className="px-6 space-y-3 shrink-0 border-t border-neutral-800/50 pt-4">
-									{branches.length > 0 && (
+							{/* Scrollable content area */}
+							<ScrollArea className="flex-1 min-h-0">
+								<div className="px-6 pt-6 space-y-4 pb-4">
+									{/* Title section */}
+									<div className="space-y-4">
 										<div className="space-y-2">
-											<label
-												htmlFor="source-branch"
-												className="text-sm font-medium text-neutral-300"
-											>
-												Create From Branch
-											</label>
-											<select
-												id="source-branch"
-												value={sourceBranch}
-												onChange={(e) => setSourceBranch(e.target.value)}
+											<Label htmlFor="task-name">Title</Label>
+											<Input
+												id="task-name"
+												placeholder="My new feature"
+												value={newTaskName}
+												onChange={(e) => setNewTaskName(e.target.value)}
+												autoFocus
+												required
 												disabled={isCreating}
-												className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
-											>
-												{branches.map((branch) => (
-													<option key={branch} value={branch}>
-														{branch}
-													</option>
-												))}
-											</select>
-										</div>
-									)}
-
-									{worktrees.length > 0 && (
-										<div className="space-y-2">
-											<label
-												htmlFor="clone-tabs"
-												className="text-sm font-medium text-neutral-300"
-											>
-												Clone Tabs From
-											</label>
-											<select
-												id="clone-tabs"
-												value={cloneTabsFromWorktreeId}
-												onChange={(e) =>
-													setCloneTabsFromWorktreeId(e.target.value)
-												}
-												disabled={isCreating}
-												className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
-											>
-												<option value="">Don't clone tabs</option>
-												{worktrees.map((worktree) => (
-													<option key={worktree.id} value={worktree.id}>
-														{worktree.branch} ({worktree.tabs.length} tab
-														{worktree.tabs.length !== 1 ? "s" : ""})
-													</option>
-												))}
-											</select>
-										</div>
-									)}
-								</div>
-							)}
-
-							{/* Setup Progress Section */}
-							{isCreating && (
-								<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px] px-6 pt-4">
-									<div className="flex items-center gap-2 text-sm text-neutral-300">
-										<Loader2 size={16} className="animate-spin" />
-										<span>{setupStatus || "Creating worktree..."}</span>
-									</div>
-
-									{setupOutput && (
-										<div className="flex-1 bg-neutral-900 rounded border border-neutral-700 overflow-hidden">
-											<TerminalOutput
-												output={setupOutput}
-												className="w-full h-full"
 											/>
 										</div>
-									)}
-								</div>
-							)}
-
-							{/* Error Display - shown when creation failed */}
-							{!isCreating &&
-								setupStatus &&
-								(setupStatus.toLowerCase().includes("failed") ||
-									setupStatus.toLowerCase().includes("error")) && (
-									<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px] px-6 pt-4">
-										<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
-											<span>{setupStatus}</span>
+										<div className="space-y-2">
+											<Label htmlFor="task-description">
+												Description{" "}
+												<span className="text-muted-foreground font-normal">
+													(Optional)
+												</span>
+											</Label>
+											<Textarea
+												id="task-description"
+												placeholder="What is the goal of this worktree?"
+												value={newTaskDescription}
+												onChange={(e) => setNewTaskDescription(e.target.value)}
+												disabled={isCreating}
+												rows={3}
+												className="resize-none"
+											/>
 										</div>
+									</div>
 
-										{setupOutput && (
-											<div className="flex-1 bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto">
-												<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
-													{setupOutput}
-												</pre>
+									{/* Setup Progress Section */}
+									{isCreating && (
+										<div className="flex flex-col space-y-3 min-h-[200px] pt-4">
+											<div className="flex items-center gap-2 text-sm text-neutral-300">
+												<Loader2 size={16} className="animate-spin" />
+												<span>{setupStatus || "Creating worktree..."}</span>
+											</div>
+
+											{setupOutput && (
+												<div className="bg-neutral-900 rounded border border-neutral-700 overflow-hidden min-h-[200px]">
+													<TerminalOutput
+														output={setupOutput}
+														className="w-full h-full"
+													/>
+												</div>
+											)}
+										</div>
+									)}
+
+									{/* Error Display - shown when creation failed */}
+									{!isCreating &&
+										setupStatus &&
+										(setupStatus.toLowerCase().includes("failed") ||
+											setupStatus.toLowerCase().includes("error")) && (
+											<div className="flex flex-col space-y-3 min-h-[200px] pt-4">
+												<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
+													<span>{setupStatus}</span>
+												</div>
+
+												{setupOutput && (
+													<div className="bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto min-h-[200px]">
+														<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
+															{setupOutput}
+														</pre>
+													</div>
+												)}
 											</div>
 										)}
-									</div>
-								)}
 
-							{/* Metadata section - at bottom */}
-							<div className="px-6 py-4 border-t border-neutral-700 shrink-0">
-								<div className="flex items-center gap-3">
-									{/* Status */}
-									<Select
-										value={newTaskStatus}
-										onValueChange={(value) =>
-											setNewTaskStatus(value as TaskStatus)
-										}
-										disabled={isCreating}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="planning">Planning</SelectItem>
-											<SelectItem value="needs-feedback">
-												Needs Feedback
-											</SelectItem>
-											<SelectItem value="ready-to-merge">
-												Ready to Merge
-											</SelectItem>
-										</SelectContent>
-									</Select>
-
-									{/* Assignee */}
-									<Select
-										value={newTaskAssignee}
-										onValueChange={setNewTaskAssignee}
-										disabled={isCreating}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="You" className="px-3">
-												<div className="flex items-center gap-2">
-													<Avatar
-														imageUrl="https://i.pravatar.cc/150?img=1"
-														name="You"
-														size={16}
-													/>
-													<span>You</span>
+									{/* Worktree creation options */}
+									{(branches.length > 0 || worktrees.length > 0) && (
+										<div className="space-y-3  pt-4">
+											{branches.length > 0 && (
+												<div className="space-y-2">
+													<Label htmlFor="source-branch">
+														Create From Branch
+													</Label>
+													<select
+														id="source-branch"
+														value={sourceBranch}
+														onChange={(e) => setSourceBranch(e.target.value)}
+														disabled={isCreating}
+														className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+													>
+														{branches.map((branch) => (
+															<option key={branch} value={branch}>
+																{branch}
+															</option>
+														))}
+													</select>
 												</div>
-											</SelectItem>
-											<SelectSeparator />
-											<SelectGroup>
-												<SelectLabel>Agents</SelectLabel>
-												<SelectItem value="Claude" className="px-3">
+											)}
+
+											{worktrees.length > 0 && (
+												<div className="space-y-2">
+													<Label htmlFor="clone-tabs">
+														Clone Tabs From
+													</Label>
+													<select
+														id="clone-tabs"
+														value={cloneTabsFromWorktreeId}
+														onChange={(e) =>
+															setCloneTabsFromWorktreeId(e.target.value)
+														}
+														disabled={isCreating}
+														className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+													>
+														<option value="">Don't clone tabs</option>
+														{worktrees.map((worktree) => (
+															<option key={worktree.id} value={worktree.id}>
+																{worktree.branch} ({worktree.tabs.length} tab
+																{worktree.tabs.length !== 1 ? "s" : ""})
+															</option>
+														))}
+													</select>
+												</div>
+											)}
+
+											<div className="space-y-2">
+												<Label htmlFor="branch-name">
+													Branch Name
+												</Label>
+												<Input
+													id="branch-name"
+													type="text"
+													placeholder="Auto-generated from title"
+													value={newTaskBranch}
+													onChange={(e) => {
+														setNewTaskBranch(e.target.value);
+														setIsBranchManuallyEdited(true);
+													}}
+													disabled={isCreating}
+												/>
+											</div>
+										</div>
+									)}
+
+									{/* Metadata section */}
+									<div className="flex items-center gap-3">
+										{/* Status */}
+										<Select
+											value={newTaskStatus}
+											onValueChange={(value) =>
+												setNewTaskStatus(value as TaskStatus)
+											}
+											disabled={isCreating}
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="planning">Planning</SelectItem>
+												<SelectItem value="needs-feedback">
+													Needs Feedback
+												</SelectItem>
+												<SelectItem value="ready-to-merge">
+													Ready to Merge
+												</SelectItem>
+											</SelectContent>
+										</Select>
+
+										{/* Assignee */}
+										<Select
+											value={newTaskAssignee}
+											onValueChange={setNewTaskAssignee}
+											disabled={isCreating}
+										>
+											<SelectTrigger>
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="You" className="px-3">
 													<div className="flex items-center gap-2">
 														<Avatar
-															imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg"
-															name="Claude"
+															imageUrl="https://i.pravatar.cc/150?img=1"
+															name="You"
 															size={16}
 														/>
-														<span>Claude</span>
+														<span>You</span>
 													</div>
 												</SelectItem>
-											</SelectGroup>
-										</SelectContent>
-									</Select>
-
+												<SelectSeparator />
+												<SelectGroup>
+													<SelectLabel>Agents</SelectLabel>
+													<SelectItem value="Claude" className="px-3">
+														<div className="flex items-center gap-2">
+															<Avatar
+																imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg"
+																name="Claude"
+																size={16}
+															/>
+															<span>Claude</span>
+														</div>
+													</SelectItem>
+												</SelectGroup>
+											</SelectContent>
+										</Select>
+									</div>
 								</div>
-							</div>
+							</ScrollArea>
 							{/* Footer for new task form */}
 							<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-2 shrink-0">
 								<Button
-									type="button"
-									variant="ghost"
-									onClick={handleBackToList}
-									className="gap-2"
-									disabled={isCreating}
-								>
-									<ArrowLeft size={16} />
-									Back
-								</Button>
-								<Button
 									type="submit"
 									disabled={!newTaskName.trim() || isCreating}
+									className="ml-auto"
 								>
 									{isCreating ? "Creating..." : "Create task"}
 								</Button>
