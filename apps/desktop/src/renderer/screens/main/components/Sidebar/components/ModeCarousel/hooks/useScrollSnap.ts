@@ -30,4 +30,3 @@ export function useScrollSnap({
 		isInitialMount.current = false;
 	}, [currentIndex, scrollContainer, isInitialMount]);
 }
-

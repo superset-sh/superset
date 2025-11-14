@@ -854,7 +854,10 @@ class WorktreeManager {
 				const oldPath = parts[2]; // For renamed files
 
 				// Check if file should be excluded
-				if (this.shouldExcludeFile(filePath) || (oldPath && this.shouldExcludeFile(oldPath))) {
+				if (
+					this.shouldExcludeFile(filePath) ||
+					(oldPath && this.shouldExcludeFile(oldPath))
+				) {
 					continue;
 				}
 
@@ -1321,6 +1324,61 @@ class WorktreeManager {
 			console.error("Failed to merge PR:", error);
 			const errorMessage =
 				error instanceof Error ? error.message : String(error);
+
+			return {
+				success: false,
+				error: errorMessage,
+			};
+		}
+	}
+
+	/**
+	 * Clone a git repository from a URL
+	 */
+	async cloneRepository(
+		url: string,
+		destinationPath: string,
+	): Promise<{ success: boolean; path?: string; error?: string }> {
+		try {
+			// Validate URL format (basic check)
+			if (
+				!url.includes("github.com") &&
+				!url.includes("gitlab.com") &&
+				!url.includes("bitbucket.org")
+			) {
+				// Accept common git hosting services or any URL with .git
+				if (!url.endsWith(".git") && !url.startsWith("git@")) {
+					return {
+						success: false,
+						error:
+							"Invalid repository URL. Please provide a valid git repository URL.",
+					};
+				}
+			}
+
+			// Clone the repository
+			await execAsync(`git clone "${url}" "${destinationPath}"`, {
+				encoding: "utf-8",
+			});
+
+			return {
+				success: true,
+				path: destinationPath,
+			};
+		} catch (error) {
+			console.error("Failed to clone repository:", error);
+
+			// Extract a cleaner error message from git output
+			let errorMessage = error instanceof Error ? error.message : String(error);
+
+			// Try to extract the fatal/error line from stderr for a cleaner message
+			if (typeof error === "object" && error !== null && "stderr" in error) {
+				const stderr = String((error as any).stderr);
+				const fatalMatch = stderr.match(/fatal: (.+)/);
+				if (fatalMatch) {
+					errorMessage = fatalMatch[1];
+				}
+			}
 
 			return {
 				success: false,

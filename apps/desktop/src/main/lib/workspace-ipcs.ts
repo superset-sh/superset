@@ -10,9 +10,9 @@ import type {
 } from "shared/types";
 
 import configManager from "./config-manager";
+import windowManager from "./window-manager";
 import workspaceManager from "./workspace-manager";
 import worktreeManager from "./worktree-manager";
-import windowManager from "./window-manager";
 
 export function registerWorkspaceIPCs() {
 	// Open repository dialog
@@ -80,6 +80,103 @@ export function registerWorkspaceIPCs() {
 		// Notify renderer to reload workspaces
 		mainWindow.webContents.send("workspace-opened", createResult.workspace);
 	});
+
+	// Select directory for cloning
+	ipcMain.handle("workspace-select-directory", async (event) => {
+		const mainWindow = BrowserWindow.fromWebContents(event.sender);
+		if (!mainWindow) {
+			return { canceled: true };
+		}
+
+		const result = await dialog.showOpenDialog(mainWindow, {
+			properties: ["openDirectory", "createDirectory"],
+			title: "Select Destination Folder",
+		});
+
+		if (result.canceled || result.filePaths.length === 0) {
+			return { canceled: true };
+		}
+
+		return {
+			canceled: false,
+			filePath: result.filePaths[0],
+		};
+	});
+
+	// Clone repository from URL
+	ipcMain.handle(
+		"workspace-clone-from-url",
+		async (_event, input: { url: string; destinationPath: string }) => {
+			try {
+				// Clone the repository
+				const cloneResult = await worktreeManager.cloneRepository(
+					input.url,
+					input.destinationPath,
+				);
+
+				if (!cloneResult.success || !cloneResult.path) {
+					return {
+						success: false,
+						error: cloneResult.error || "Failed to clone repository",
+					};
+				}
+
+				const repoPath = cloneResult.path;
+
+				// Get current branch
+				if (!worktreeManager.isGitRepo(repoPath)) {
+					return {
+						success: false,
+						error: "Cloned directory is not a valid git repository.",
+					};
+				}
+
+				const currentBranch = worktreeManager.getCurrentBranch(repoPath);
+				if (!currentBranch) {
+					return {
+						success: false,
+						error: "Could not determine current branch.",
+					};
+				}
+
+				// Check if workspace already exists for this repo
+				const existingWorkspaces = await workspaceManager.list();
+				const existingWorkspace = existingWorkspaces.find(
+					(ws) => ws.repoPath === repoPath,
+				);
+
+				if (existingWorkspace) {
+					// Workspace already exists, return it
+					return {
+						success: true,
+						data: existingWorkspace,
+					};
+				}
+
+				// Create workspace with repo name and current branch
+				const repoName = repoPath.split("/").pop() || "Repository";
+
+				const createResult = await workspaceManager.create({
+					name: repoName,
+					repoPath,
+					branch: currentBranch,
+				});
+
+				// Convert to IpcResponse format
+				return {
+					success: createResult.success,
+					data: createResult.workspace,
+					error: createResult.error,
+				};
+			} catch (error) {
+				console.error("Failed to clone repository:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : String(error),
+				};
+			}
+		},
+	);
 
 	// List all workspaces
 	ipcMain.handle("workspace-list", async () => {
@@ -627,7 +724,9 @@ export function registerWorkspaceIPCs() {
 
 				// Detect main branch instead of using workspace.branch
 				// This ensures we compare against main/master, not a feature branch
-				const mainBranch = await worktreeManager.detectMainBranch(workspace.repoPath);
+				const mainBranch = await worktreeManager.detectMainBranch(
+					workspace.repoPath,
+				);
 
 				return await worktreeManager.getGitDiffFile(
 					worktree.path,

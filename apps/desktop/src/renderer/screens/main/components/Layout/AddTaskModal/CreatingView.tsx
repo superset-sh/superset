@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
+import { ScrollArea } from "@superset/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import type React from "react";
-import { ScrollArea } from "@superset/ui/scroll-area";
 import { TerminalOutput } from "../../Sidebar/components/CreateWorktreeModal/TerminalOutput";
 
 interface CreatingViewProps {
@@ -97,4 +97,3 @@ export const CreatingView: React.FC<CreatingViewProps> = ({
 		</div>
 	);
 };
-

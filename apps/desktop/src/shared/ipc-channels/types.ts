@@ -25,4 +25,3 @@ export type NoResponse = void;
  * Helper type for simple success/error responses
  */
 export type SuccessResponse = { success: boolean; error?: string };
-

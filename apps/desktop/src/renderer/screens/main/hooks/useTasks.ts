@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Worktree } from "shared/types";
 import type { TaskStatus } from "../components/Layout/StatusIndicator";
-import type { UITask, PendingWorktree } from "../types";
 import { MOCK_TASKS } from "../constants";
+import type { PendingWorktree, UITask } from "../types";
 
 interface UseTasksProps {
 	currentWorkspace: {
@@ -21,7 +21,9 @@ export function useTasks({
 	handleWorktreeCreated,
 }: UseTasksProps) {
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<"list" | "new">("list");
+	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<
+		"list" | "new"
+	>("list");
 	const [branches, setBranches] = useState<string[]>([]);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
@@ -29,14 +31,19 @@ export function useTasks({
 	const [pendingWorktrees, setPendingWorktrees] = useState<PendingWorktree[]>(
 		[],
 	);
-	const progressHandlerRef = useRef<((data: { status: string; output: string }) => void) | null>(null);
+	const progressHandlerRef = useRef<
+		((data: { status: string; output: string }) => void) | null
+	>(null);
 	const isHandlingProgressRef = useRef(false);
 
 	// Cleanup IPC listener on unmount or when creation completes
 	useEffect(() => {
 		return () => {
 			if (progressHandlerRef.current) {
-				window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+				window.ipcRenderer.removeListener(
+					"worktree-setup-progress",
+					progressHandlerRef.current,
+				);
 				progressHandlerRef.current = null;
 			}
 			isHandlingProgressRef.current = false;
@@ -51,7 +58,7 @@ export function useTasks({
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
 		setAddTaskModalInitialMode(mode);
 		setIsAddTaskModalOpen(true);
-		
+
 		// Fetch branches when opening in new mode
 		if (mode === "new" && currentWorkspace) {
 			void (async () => {
@@ -167,7 +174,10 @@ export function useTasks({
 
 		// Clean up any existing listener first
 		if (progressHandlerRef.current) {
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+			window.ipcRenderer.removeListener(
+				"worktree-setup-progress",
+				progressHandlerRef.current,
+			);
 		}
 
 		isHandlingProgressRef.current = true;
@@ -176,7 +186,7 @@ export function useTasks({
 		const progressHandler = (data: { status: string; output: string }) => {
 			// Ignore events if we're no longer handling progress
 			if (!isHandlingProgressRef.current) return;
-			
+
 			if (data && data.status !== undefined && data.output !== undefined) {
 				setSetupStatus(data.status);
 				setSetupOutput(data.output);
@@ -249,11 +259,14 @@ export function useTasks({
 		} finally {
 			// Stop handling progress events
 			isHandlingProgressRef.current = false;
-			
+
 			// Wait a bit to ensure any queued events are processed, then remove listener
 			setTimeout(() => {
 				if (progressHandlerRef.current) {
-					window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+					window.ipcRenderer.removeListener(
+						"worktree-setup-progress",
+						progressHandlerRef.current,
+					);
 					progressHandlerRef.current = null;
 				}
 			}, 100);
@@ -276,4 +289,3 @@ export function useTasks({
 		handleClearStatus,
 	};
 }
-

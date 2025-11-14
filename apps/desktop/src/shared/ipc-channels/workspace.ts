@@ -110,5 +110,14 @@ export interface WorkspaceChannels {
 		request: string | null;
 		response: boolean;
 	};
-}
 
+	"workspace-clone-from-url": {
+		request: { url: string; destinationPath: string };
+		response: IpcResponse<Workspace>;
+	};
+
+	"workspace-select-directory": {
+		request: NoRequest;
+		response: { canceled: boolean; filePath?: string };
+	};
+}

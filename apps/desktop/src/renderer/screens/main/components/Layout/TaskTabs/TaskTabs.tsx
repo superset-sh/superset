@@ -51,7 +51,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 			const numTabs = worktrees.length;
 
 			// Calculate available width per tab (accounting for gaps)
-			const availableWidth = containerWidth - (gap * (numTabs - 1));
+			const availableWidth = containerWidth - gap * (numTabs - 1);
 			const calculatedWidth = availableWidth / numTabs;
 
 			// Apply min/max constraints (Chrome-like: min ~60px, max ~240px)

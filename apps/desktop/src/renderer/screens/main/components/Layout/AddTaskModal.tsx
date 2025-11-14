@@ -227,7 +227,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 				) : (
 					<>
 						{/* Show creating view when creating or when there's a status */}
-						{(isCreating || setupStatus) ? (
+						{isCreating || setupStatus ? (
 							<CreatingView
 								setupStatus={setupStatus}
 								setupOutput={setupOutput}
@@ -249,7 +249,9 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 								sourceBranch={formState.sourceBranch}
 								onSourceBranchChange={formState.setSourceBranch}
 								cloneTabsFromWorktreeId={formState.cloneTabsFromWorktreeId}
-								onCloneTabsFromWorktreeIdChange={formState.setCloneTabsFromWorktreeId}
+								onCloneTabsFromWorktreeIdChange={
+									formState.setCloneTabsFromWorktreeId
+								}
 								branches={branches}
 								worktrees={worktrees}
 								onSubmit={handleCreateTask}
