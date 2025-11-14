@@ -21,8 +21,6 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 	const hasTask = !!worktree.task;
 	const task = worktree.task;
 	const isPending = worktree.isPending;
-	const displayTitle =
-		hasTask && task ? task.slug : worktree.description || worktree.branch;
 
 	return (
 		<div 
@@ -58,7 +56,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 					task && <StatusIndicator status={task.status} showLabel={false} />
 				)}
 				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
-					{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}
+					{hasTask && task ? `${task.title} (${worktree.branch})` : worktree.branch}
 				</span>
 			</button>
 			{onClose && !isPending && (

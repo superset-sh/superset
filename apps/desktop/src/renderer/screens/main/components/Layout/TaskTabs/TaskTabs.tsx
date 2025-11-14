@@ -177,9 +177,8 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</div>
 							);
 						})}
+						<AddTaskButton onClick={onAddTask} />
 					</div>
-
-					<AddTaskButton onClick={onAddTask} />
 				</div>
 
 				<div
