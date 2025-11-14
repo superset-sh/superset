@@ -31,10 +31,15 @@ export function useTasks({
 	);
 	const progressHandlerRef = useRef<((data: { status: string; output: string }) => void) | null>(null);
 	const isHandlingProgressRef = useRef(false);
+	const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 	// Cleanup IPC listener on unmount or when creation completes
 	useEffect(() => {
 		return () => {
+			if (cleanupTimeoutRef.current) {
+				clearTimeout(cleanupTimeoutRef.current);
+				cleanupTimeoutRef.current = null;
+			}
 			if (progressHandlerRef.current) {
 				window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
 				progressHandlerRef.current = null;
@@ -250,12 +255,18 @@ export function useTasks({
 			// Stop handling progress events
 			isHandlingProgressRef.current = false;
 			
+			// Clear any existing cleanup timeout
+			if (cleanupTimeoutRef.current) {
+				clearTimeout(cleanupTimeoutRef.current);
+			}
+			
 			// Wait a bit to ensure any queued events are processed, then remove listener
-			setTimeout(() => {
+			cleanupTimeoutRef.current = setTimeout(() => {
 				if (progressHandlerRef.current) {
 					window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
 					progressHandlerRef.current = null;
 				}
+				cleanupTimeoutRef.current = null;
 			}, 100);
 		}
 	};

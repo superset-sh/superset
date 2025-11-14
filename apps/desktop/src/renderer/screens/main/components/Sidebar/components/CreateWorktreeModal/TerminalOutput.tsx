@@ -42,7 +42,7 @@ export function TerminalOutput({ output, className }: TerminalOutputProps) {
 
 			// Resize observer to fit terminal when container size changes
 			const resizeObserver = new ResizeObserver(() => {
-				fitAddon.fit();
+				fitAddonRef.current?.fit();
 			});
 			resizeObserver.observe(terminalRef.current);
 
