@@ -11,7 +11,7 @@ interface ModeSwitcherProps {
 
 const modeLabels: Record<SidebarMode, string> = {
 	tabs: "Tabs",
-	diff: "Diffs",
+	changes: "Changes",
 };
 
 export function ModeSwitcher({
@@ -21,7 +21,7 @@ export function ModeSwitcher({
 	scrollProgress,
 }: ModeSwitcherProps) {
 	// Calculate sliding background position from scroll progress
-	// scrollProgress is 0-1 (0 = tabs, 1 = diff), and we have 2 modes, so each mode is 50% width
+	// scrollProgress is 0-1 (0 = tabs, 1 = changes), and we have 2 modes, so each mode is 50% width
 	// Transform to percentage: 0 -> 0%, 1 -> 50%
 	const backgroundX = useTransform(scrollProgress, (value) => `${value * 50}%`);
 

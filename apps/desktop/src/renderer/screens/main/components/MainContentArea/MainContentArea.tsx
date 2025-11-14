@@ -78,7 +78,7 @@ export function MainContentArea({
         worktreeId: selectedWorktreeId ?? undefined,
         worktreeBranch: selectedWorktree?.branch,
         workspaceName: currentWorkspace?.name,
-        enabled: sidebarMode === "diff" && !!selectedWorktreeId,
+        enabled: sidebarMode === "changes" && !!selectedWorktreeId,
     });
     if (mode === "plan") {
         return (
@@ -131,7 +131,7 @@ export function MainContentArea({
 
             {/* Main content panel */}
             <ResizablePanel defaultSize={80} minSize={30}>
-                {sidebarMode === "diff" ? (
+                {sidebarMode === "changes" ? (
                     diffLoading ? (
                         <PlaceholderState
                             loading={true}

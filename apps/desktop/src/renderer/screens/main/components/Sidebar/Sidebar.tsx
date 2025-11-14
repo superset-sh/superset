@@ -61,9 +61,9 @@ export function Sidebar({
 		defaultScrollProgress,
 	);
 
-	const modes: SidebarMode[] = ["tabs", "diff"];
+	const modes: SidebarMode[] = ["tabs", "changes"];
 
-	// Fetch diff data when in diff mode
+	// Fetch diff data when in changes mode
 	const { diffData, loading: diffLoading } = useDiffData({
 		workspaceId: currentWorkspace?.id,
 		worktreeId: selectedWorktreeId ?? undefined,
@@ -71,7 +71,7 @@ export function Sidebar({
 			(wt) => wt.id === selectedWorktreeId,
 		)?.branch,
 		workspaceName: currentWorkspace?.name,
-		enabled: currentMode === "diff" && !!selectedWorktreeId,
+		enabled: currentMode === "changes" && !!selectedWorktreeId,
 	});
 
 	// Set initial selected file when diff data loads
@@ -335,8 +335,8 @@ export function Sidebar({
 				isDragging={isDragging}
 			>
 				{(mode, isActive) => {
-					if (mode === "diff") {
-						// Diff mode - show file tree
+					if (mode === "changes") {
+						// Changes mode - show file tree
 						if (diffLoading) {
 							return (
 								<div className="flex-1 flex items-center justify-center text-neutral-500 text-sm">

@@ -1,6 +1,7 @@
-import type { MotionValue, ReactNode } from "react";
+import type { MotionValue } from "framer-motion";
+import type { ReactNode } from "react";
 
-export type SidebarMode = "tabs" | "diff";
+export type SidebarMode = "tabs" | "changes";
 
 export interface ModeCarouselProps {
 	modes: SidebarMode[];

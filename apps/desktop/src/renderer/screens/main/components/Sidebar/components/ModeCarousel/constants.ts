@@ -3,11 +3,11 @@ import type { SidebarMode } from "./types";
 
 export const modeIcons: Record<SidebarMode, typeof LayoutList> = {
 	tabs: LayoutList,
-	diff: GitBranch,
+	changes: GitBranch,
 };
 
 export const modeLabels: Record<SidebarMode, string> = {
 	tabs: "Tabs",
-	diff: "Diffs",
+	changes: "Changes",
 };
 
