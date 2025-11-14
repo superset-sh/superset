@@ -14,6 +14,7 @@
 		"./hover-card": "./src/components/hover-card.tsx",
 		"./dialog": "./src/components/dialog.tsx",
 		"./context-menu": "./src/components/context-menu.tsx",
+		"./dropdown-menu": "./src/components/dropdown-menu.tsx",
 		"./scroll-area": "./src/components/scroll-area.tsx",
 		"./resizable": "./src/components/resizable.tsx",
 		"./label": "./src/components/label.tsx",
@@ -29,6 +30,7 @@
 	"dependencies": {
 		"@radix-ui/react-context-menu": "^2.2.16",
 		"@radix-ui/react-dialog": "^1.1.15",
+		"@radix-ui/react-dropdown-menu": "^2.1.16",
 		"@radix-ui/react-hover-card": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
 		"@radix-ui/react-scroll-area": "^1.2.10",
