@@ -28,7 +28,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 			style={{ width: width ? `${width}px` : undefined }}
 		>
 			{isSelected && (
-				<div className="absolute bottom-0 left-0 right-0 h-px bg-stone-950 z-30" />
+				<div className="absolute bottom-0 left-0 right-0 h-px bg-stone-950" />
 			)}
 			<button
 				type="button"
@@ -38,7 +38,7 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 					flex items-center gap-2 rounded-t-md transition-all w-full shrink-0
 					${onClose && !isPending ? "pl-3 pr-6" : "px-3"}
 					${isSelected
-						? "text-white border-t border-x border-r h-[33px] bg-stone-950 relative z-20"
+						? "text-white border-t border-x border-r h-[33px] bg-stone-950"
 						: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
 					}
 					${isPending ? "opacity-70 cursor-wait" : ""}

@@ -21,27 +21,40 @@ export function useWorktrees({
 	setSelectedTabId,
 }: UseWorktreesProps) {
 	// Handle worktree created
-	const handleWorktreeCreated = async (): Promise<Workspace | null> => {
-		if (!currentWorkspace) return null;
+	const handleWorktreeCreated = async () => {
+		if (!currentWorkspace) return;
 
 		try {
+			// Small delay to ensure backend has saved the workspace config
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			const workspaceId = currentWorkspace.id;
 			const refreshedWorkspace = await window.ipcRenderer.invoke(
 				"workspace-get",
-				currentWorkspace.id,
+				workspaceId,
 			);
 
 			if (refreshedWorkspace) {
-				// Create a new object with new array references to ensure React detects the change
-				setCurrentWorkspace({
-					...refreshedWorkspace,
-					worktrees: refreshedWorkspace.worktrees ? [...refreshedWorkspace.worktrees] : [],
+				// Use functional update to prevent race conditions
+				// Only update if this is still the current workspace
+				setCurrentWorkspace((prev) => {
+					if (!prev || prev.id !== workspaceId) {
+						// Workspace changed, don't update
+						return prev;
+					}
+					// Create a new object with new array references to ensure React detects the change
+					return {
+						...refreshedWorkspace,
+						worktrees: refreshedWorkspace.worktrees ? [...refreshedWorkspace.worktrees] : [],
+					};
 				});
-				return refreshedWorkspace;
+				// Don't call loadAllWorkspaces here - it can cause race conditions
+				// Update workspaces list asynchronously without blocking
+				void loadAllWorkspaces();
 			}
 		} catch (error) {
 			console.error("Failed to refresh workspace:", error);
 		}
-		return null;
 	};
 
 	// Handle worktree update

@@ -41,7 +41,7 @@ export function useTasks({
 				cleanupTimeoutRef.current = null;
 			}
 			if (progressHandlerRef.current) {
-				window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+				window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 				progressHandlerRef.current = null;
 			}
 			isHandlingProgressRef.current = false;
@@ -121,7 +121,7 @@ export function useTasks({
 
 		// Clean up any existing listener first
 		if (progressHandlerRef.current) {
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+			window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 		}
 
 		isHandlingProgressRef.current = true;
@@ -173,18 +173,34 @@ export function useTasks({
 				// Reload workspace to get the new worktree
 				await handleWorktreeCreated();
 
+				// Small delay to ensure state has propagated
+				await new Promise((resolve) => setTimeout(resolve, 50));
+
 				// Only close modal and select worktree if modal is still open
 				if (isAddTaskModalOpen) {
+					// Fetch the workspace again to get the latest state with correct IDs
+					const latestWorkspace = await window.ipcRenderer.invoke(
+						"workspace-get",
+						currentWorkspace.id,
+					);
+
 					// Close modal and reset state
 					setIsAddTaskModalOpen(false);
 					setSetupStatus(undefined);
 					setSetupOutput(undefined);
 
 					// Switch to the new worktree if available
-					if (result.worktree) {
-						setSelectedWorktreeId(result.worktree.id);
-						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
+					if (result.worktree && latestWorkspace) {
+						// Find the worktree by branch name to get the correct ID
+						const newWorktree = latestWorkspace.worktrees?.find(
+							(wt) => wt.branch === result.worktree?.branch,
+						);
+
+						if (newWorktree) {
+							setSelectedWorktreeId(newWorktree.id);
+							if (newWorktree.tabs && newWorktree.tabs.length > 0) {
+								handleTabSelect(newWorktree.id, newWorktree.tabs[0].id);
+							}
 						}
 					}
 				}
@@ -212,7 +228,7 @@ export function useTasks({
 			// Wait a bit to ensure any queued events are processed, then remove listener
 			cleanupTimeoutRef.current = setTimeout(() => {
 				if (progressHandlerRef.current) {
-					window.ipcRenderer.removeListener("worktree-setup-progress", progressHandlerRef.current);
+					window.ipcRenderer.off("worktree-setup-progress", progressHandlerRef.current);
 					progressHandlerRef.current = null;
 				}
 				cleanupTimeoutRef.current = null;
