@@ -59,19 +59,24 @@ export function TerminalOutput({ output, className }: TerminalOutputProps) {
 		const terminal = xtermRef.current;
 		if (!terminal) return;
 
-		// Only write the new content that was added
-		if (output !== lastOutputRef.current) {
-			if (output.startsWith(lastOutputRef.current)) {
-				// Append only the new content
-				const newContent = output.slice(lastOutputRef.current.length);
+		// Only update if output changed
+		if (output === lastOutputRef.current) return;
+
+		// If output is an extension of previous output, append only new content
+		if (lastOutputRef.current && output.startsWith(lastOutputRef.current)) {
+			const newContent = output.slice(lastOutputRef.current.length);
+			if (newContent) {
 				terminal.write(newContent);
-			} else {
-				// Output changed completely, clear and rewrite
-				terminal.clear();
+			}
+		} else {
+			// Output changed completely or is new, clear and write everything
+			terminal.clear();
+			if (output) {
 				terminal.write(output);
 			}
-			lastOutputRef.current = output;
 		}
+
+		lastOutputRef.current = output;
 	}, [output]);
 
 	return (
