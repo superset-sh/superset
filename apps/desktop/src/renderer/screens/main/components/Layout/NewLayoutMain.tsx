@@ -498,6 +498,53 @@ export const MainLayout: React.FC = () => {
 		}
 	};
 
+	// Handle worktree deletion
+	const handleDeleteWorktree = async (worktreeId: string) => {
+		if (!currentWorkspace) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke("worktree-remove", {
+				workspaceId: currentWorkspace.id,
+				worktreeId,
+			});
+
+			if (result.success) {
+				// Reload workspace to get updated worktree list
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+					await loadAllWorkspaces();
+
+					// If we deleted the selected worktree, select the first available one
+					if (selectedWorktreeId === worktreeId) {
+						if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+							const firstWorktree = refreshedWorkspace.worktrees[0];
+							setSelectedWorktreeId(firstWorktree.id);
+							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
+								handleTabSelect(firstWorktree.id, firstWorktree.tabs[0].id);
+							} else {
+								setSelectedTabId(null);
+							}
+						} else {
+							setSelectedWorktreeId(null);
+							setSelectedTabId(null);
+						}
+					}
+				}
+			} else {
+				console.error("Failed to remove worktree:", result.error);
+				alert(`Failed to remove worktree: ${result.error || "Unknown error"}`);
+			}
+		} catch (error) {
+			console.error("Error removing worktree:", error);
+			alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	};
+
 	// Handle worktree update
 	const handleUpdateWorktree = (
 		worktreeId: string,
@@ -891,6 +938,8 @@ export const MainLayout: React.FC = () => {
 								handleTabSelect(worktreeId, worktree.tabs[0].id);
 							}
 						}}
+						onDeleteWorktree={handleDeleteWorktree}
+						workspaceId={currentWorkspace?.id}
 						mode={mode}
 						onModeChange={setMode}
 					/>

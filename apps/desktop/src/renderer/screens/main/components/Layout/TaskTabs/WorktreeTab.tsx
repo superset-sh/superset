@@ -14,12 +14,16 @@ interface WorktreeTabProps {
 	worktree: WorktreeWithTask;
 	isSelected: boolean;
 	onSelect: () => void;
+	onClose?: (e: React.MouseEvent) => void;
+	width?: number;
 }
 
 export const WorktreeTab: React.FC<WorktreeTabProps> = ({
 	worktree,
 	isSelected,
 	onSelect,
+	onClose,
+	width,
 }) => {
 	const isPending = worktree.isPending;
 	const hasTask = !!worktree.task;
@@ -32,6 +36,8 @@ export const WorktreeTab: React.FC<WorktreeTabProps> = ({
 					worktree={worktree}
 					isSelected={isSelected}
 					onClick={onSelect}
+					onClose={onClose}
+					width={width}
 				/>
 			</HoverCardTrigger>
 			<HoverCardContent side="bottom" align="start" className="w-96">

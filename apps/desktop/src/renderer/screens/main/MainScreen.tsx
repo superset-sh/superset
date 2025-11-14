@@ -78,11 +78,13 @@ export function MainScreen() {
 		handleUpdateWorktree,
 		handleCreatePR,
 		handleMergePR,
+		handleDeleteWorktree,
 	} = useWorktrees({
 		currentWorkspace,
 		setCurrentWorkspace,
 		setWorkspaces,
 		loadAllWorkspaces,
+		selectedWorktreeId,
 		setSelectedWorktreeId,
 		setSelectedTabId,
 	});
@@ -159,6 +161,8 @@ export function MainScreen() {
 								handleTabSelect(worktreeId, worktree.tabs[0].id);
 							}
 						}}
+						onDeleteWorktree={handleDeleteWorktree}
+						workspaceId={currentWorkspace?.id}
 						mode={mode}
 						onModeChange={setMode}
 					/>

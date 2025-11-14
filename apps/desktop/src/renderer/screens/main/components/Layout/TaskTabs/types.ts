@@ -27,6 +27,8 @@ export interface TaskTabsProps {
 	worktrees: WorktreeWithTask[];
 	selectedWorktreeId: string | null;
 	onWorktreeSelect: (worktreeId: string) => void;
+	onDeleteWorktree?: (worktreeId: string) => Promise<void>;
+	workspaceId?: string;
 	mode?: "plan" | "edit";
 	onModeChange?: (mode: "plan" | "edit") => void;
 }

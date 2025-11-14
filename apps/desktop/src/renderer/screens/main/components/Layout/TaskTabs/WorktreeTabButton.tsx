@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import type React from "react";
 import { StatusIndicator } from "../StatusIndicator";
 import type { WorktreeWithTask } from "./types";
@@ -7,12 +7,16 @@ interface WorktreeTabButtonProps {
 	worktree: WorktreeWithTask;
 	isSelected: boolean;
 	onClick: () => void;
+	onClose?: (e: React.MouseEvent) => void;
+	width?: number;
 }
 
 export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 	worktree,
 	isSelected,
 	onClick,
+	onClose,
+	width,
 }) => {
 	const hasTask = !!worktree.task;
 	const task = worktree.task;
@@ -21,28 +25,64 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 		hasTask && task ? task.slug : worktree.description || worktree.branch;
 
 	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={isPending}
-			className={`
-				flex items-center gap-2 px-3 h-8 rounded-t-md transition-all
-				${isSelected
-					? "text-white border-t border-x border-r border-b border-b-black -mb-px"
-					: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-				}
-				${isPending ? "opacity-70 cursor-wait" : ""}
-			`}
+		<div 
+			className="group relative flex items-end" 
+			style={{ width: width ? `${width}px` : undefined }}
 		>
-			{isPending ? (
-				<Loader2 size={14} className="animate-spin text-blue-400" />
-			) : (
-				hasTask &&
-				task && <StatusIndicator status={task.status} showLabel={false} />
+			<button
+				type="button"
+				onClick={onClick}
+				disabled={isPending}
+				className={`
+					flex items-center gap-2 rounded-t-md transition-all w-full relative
+					${onClose && !isPending ? "pl-3 pr-6" : "px-3"}
+					${isSelected
+						? "text-white border-t border-x border-r h-[33px] border-b-2 border-b-black bg-transparent z-10"
+						: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
+					}
+					${isPending ? "opacity-70 cursor-wait" : ""}
+				`}
+				style={{
+					minWidth: width ? undefined : "60px",
+					maxWidth: width ? undefined : "240px",
+					...(isSelected && {
+						marginBottom: "-2px",
+						position: "relative",
+					}),
+				}}
+			>
+				{isPending ? (
+					<Loader2 size={14} className="animate-spin text-blue-400" />
+				) : (
+					hasTask &&
+					task && <StatusIndicator status={task.status} showLabel={false} />
+				)}
+				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
+					{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}
+				</span>
+			</button>
+			{onClose && !isPending && (
+				<button
+					type="button"
+					onClick={(e) => {
+						e.stopPropagation();
+						onClose(e);
+					}}
+					className={`
+						absolute right-1 top-1/2 -translate-y-1/2
+						flex items-center justify-center
+						w-4 h-4 rounded
+						opacity-0 group-hover:opacity-100
+						transition-opacity
+						hover:bg-neutral-700
+						text-neutral-400 hover:text-neutral-200
+						${isSelected ? "text-neutral-300" : ""}
+					`}
+					aria-label="Close tab"
+				>
+					<X size={12} />
+				</button>
 			)}
-			<span className="text-sm whitespace-nowrap">
-				{hasTask && task ? `[${task.slug}] ${task.title}` : displayTitle}
-			</span>
-		</button>
+		</div>
 	);
 };

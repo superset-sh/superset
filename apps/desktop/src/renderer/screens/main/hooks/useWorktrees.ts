@@ -6,6 +6,7 @@ interface UseWorktreesProps {
 	setCurrentWorkspace: (workspace: Workspace) => void;
 	setWorkspaces: React.Dispatch<React.SetStateAction<Workspace[] | null>>;
 	loadAllWorkspaces: () => Promise<void>;
+	selectedWorktreeId: string | null;
 	setSelectedWorktreeId: (id: string | null) => void;
 	setSelectedTabId: (id: string | null) => void;
 }
@@ -15,6 +16,7 @@ export function useWorktrees({
 	setCurrentWorkspace,
 	setWorkspaces,
 	loadAllWorkspaces,
+	selectedWorktreeId,
 	setSelectedWorktreeId,
 	setSelectedTabId,
 }: UseWorktreesProps) {
@@ -139,11 +141,58 @@ export function useWorktrees({
 		}
 	};
 
+	const handleDeleteWorktree = async (worktreeId: string) => {
+		if (!currentWorkspace) return;
+
+		try {
+			const result = await window.ipcRenderer.invoke("worktree-remove", {
+				workspaceId: currentWorkspace.id,
+				worktreeId,
+			});
+
+			if (result.success) {
+				// Reload workspace to get updated worktree list
+				const refreshedWorkspace = await window.ipcRenderer.invoke(
+					"workspace-get",
+					currentWorkspace.id,
+				);
+
+				if (refreshedWorkspace) {
+					setCurrentWorkspace(refreshedWorkspace);
+					await loadAllWorkspaces();
+
+					// If we deleted the selected worktree, select the first available one
+					if (selectedWorktreeId === worktreeId) {
+						if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+							const firstWorktree = refreshedWorkspace.worktrees[0];
+							setSelectedWorktreeId(firstWorktree.id);
+							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
+								setSelectedTabId(firstWorktree.tabs[0].id);
+							} else {
+								setSelectedTabId(null);
+							}
+						} else {
+							setSelectedWorktreeId(null);
+							setSelectedTabId(null);
+						}
+					}
+				}
+			} else {
+				console.error("Failed to remove worktree:", result.error);
+				alert(`Failed to remove worktree: ${result.error || "Unknown error"}`);
+			}
+		} catch (error) {
+			console.error("Error removing worktree:", error);
+			alert(`Error: ${error instanceof Error ? error.message : String(error)}`);
+		}
+	};
+
 	return {
 		handleWorktreeCreated,
 		handleUpdateWorktree,
 		handleCreatePR,
 		handleMergePR,
+		handleDeleteWorktree,
 	};
 }
 
