@@ -59,6 +59,11 @@ export function useTasks({
 		setSetupOutput(undefined);
 	};
 
+	const handleClearStatus = () => {
+		setSetupStatus(undefined);
+		setSetupOutput(undefined);
+	};
+
 	const handleSelectTask = (task: UITask) => {
 		if (!currentWorkspace) return;
 
@@ -183,25 +188,28 @@ export function useTasks({
 							: "Setup completed with errors",
 					);
 					setSetupOutput(result.setupResult.output);
-
-					// Keep modal open for 1.5 seconds to show result
-					await new Promise((resolve) => setTimeout(resolve, 1500));
+				} else {
+					setSetupStatus("Task created successfully!");
 				}
 
-				// Reset modal state and close
-				setIsAddTaskModalOpen(false);
 				setIsCreatingWorktree(false);
-				setSetupStatus(undefined);
-				setSetupOutput(undefined);
 
 				// Reload workspace to get the new worktree
 				await handleWorktreeCreated();
 
-				// Switch to the new worktree if available
-				if (result.worktree) {
-					setSelectedWorktreeId(result.worktree.id);
-					if (result.worktree.tabs && result.worktree.tabs.length > 0) {
-						handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
+				// Only close modal and select worktree if modal is still open
+				if (isAddTaskModalOpen) {
+					// Close modal and reset state
+					setIsAddTaskModalOpen(false);
+					setSetupStatus(undefined);
+					setSetupOutput(undefined);
+
+					// Switch to the new worktree if available
+					if (result.worktree) {
+						setSelectedWorktreeId(result.worktree.id);
+						if (result.worktree.tabs && result.worktree.tabs.length > 0) {
+							handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
+						}
 					}
 				}
 			} else {
@@ -233,6 +241,7 @@ export function useTasks({
 		handleCloseAddTaskModal,
 		handleSelectTask,
 		handleCreateTask,
+		handleClearStatus,
 	};
 }
 

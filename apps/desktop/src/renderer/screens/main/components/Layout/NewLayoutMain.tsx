@@ -1104,7 +1104,6 @@ export const MainLayout: React.FC = () => {
 			<AddTaskModal
 				isOpen={isAddTaskModalOpen}
 				onClose={handleCloseAddTaskModal}
-				tasks={MOCK_TASKS}
 				openTasks={openTasks}
 				onSelectTask={handleSelectTask}
 				onCreateTask={handleCreateTask}

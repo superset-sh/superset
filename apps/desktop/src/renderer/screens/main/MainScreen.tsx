@@ -6,7 +6,6 @@ import { TaskTabs } from "./components/Layout/TaskTabs";
 import { MainContentArea } from "./components/MainContentArea";
 import { SidebarOverlay } from "./components/SidebarOverlay";
 import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
-import { MOCK_TASKS } from "./constants";
 import {
 	useSidebar,
 	useTabs,
@@ -103,6 +102,7 @@ export function MainScreen() {
 		handleCloseAddTaskModal,
 		handleSelectTask,
 		handleCreateTask,
+		handleClearStatus,
 	} = useTasks({
 		currentWorkspace,
 		setSelectedWorktreeId,
@@ -204,7 +204,6 @@ export function MainScreen() {
 			<AddTaskModal
 				isOpen={isAddTaskModalOpen}
 				onClose={handleCloseAddTaskModal}
-				tasks={MOCK_TASKS}
 				openTasks={openTasks}
 				onSelectTask={handleSelectTask}
 				onCreateTask={handleCreateTask}
@@ -214,6 +213,7 @@ export function MainScreen() {
 				isCreating={isCreatingWorktree}
 				setupStatus={setupStatus}
 				setupOutput={setupOutput}
+				onClearStatus={handleClearStatus}
 			/>
 
 			{/* Workspace Selection Modal */}

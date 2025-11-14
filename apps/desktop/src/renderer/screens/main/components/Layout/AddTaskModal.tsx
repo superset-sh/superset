@@ -46,10 +46,31 @@ interface Task {
 	lastUpdated: string;
 }
 
+// API task response type
+interface APITask {
+	id: string;
+	slug: string;
+	title: string;
+	description: string | null;
+	status: TaskStatus;
+	branch: string | null;
+	createdAt: string;
+	updatedAt: string;
+	assignee: {
+		id: string;
+		name: string;
+		avatarUrl: string | null;
+	} | null;
+	creator: {
+		id: string;
+		name: string;
+		avatarUrl: string | null;
+	};
+}
+
 interface AddTaskModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	tasks: Task[];
 	openTasks: Task[];
 	onSelectTask: (task: Task) => void;
 	onCreateTask: (taskData: {
@@ -68,12 +89,44 @@ interface AddTaskModalProps {
 	isCreating?: boolean;
 	setupStatus?: string;
 	setupOutput?: string;
+	onClearStatus?: () => void;
+	// API configuration
+	apiBaseUrl?: string;
+}
+
+// Helper function to format relative time
+function formatRelativeTime(date: Date): string {
+	const now = new Date();
+	const diffMs = now.getTime() - date.getTime();
+	const diffMins = Math.floor(diffMs / 60000);
+	const diffHours = Math.floor(diffMs / 3600000);
+	const diffDays = Math.floor(diffMs / 86400000);
+
+	if (diffMins < 1) return "just now";
+	if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+	if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+	if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+	return date.toLocaleDateString();
+}
+
+// Transform API task to UI task
+function transformAPITaskToUITask(apiTask: APITask): Task {
+	return {
+		id: apiTask.id,
+		slug: apiTask.slug,
+		name: apiTask.title,
+		status: apiTask.status,
+		branch: apiTask.branch || "",
+		description: apiTask.description || "",
+		assignee: apiTask.assignee?.name || "Unassigned",
+		assigneeAvatarUrl: apiTask.assignee?.avatarUrl || "",
+		lastUpdated: formatRelativeTime(new Date(apiTask.updatedAt)),
+	};
 }
 
 export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	isOpen,
 	onClose,
-	tasks,
 	openTasks,
 	onSelectTask,
 	onCreateTask,
@@ -83,10 +136,15 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 	isCreating = false,
 	setupStatus,
 	setupOutput,
+	onClearStatus,
+	apiBaseUrl = "http://localhost:3000",
 }) => {
 	const [mode, setMode] = useState<"list" | "new">(initialMode);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+	const [tasks, setTasks] = useState<Task[]>([]);
+	const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+	const [tasksError, setTasksError] = useState<string | null>(null);
 
 	// New task form state
 	const [newTaskName, setNewTaskName] = useState("");
@@ -229,7 +287,75 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 		}
 	}, [sourceBranch, worktrees]);
 
-	// Reset mode when modal opens/closes
+	// Fetch tasks when modal opens
+	useEffect(() => {
+		if (!isOpen || mode !== "list") return;
+
+		let cancelled = false;
+		setIsLoadingTasks(true);
+		setTasksError(null);
+
+		const fetchTasks = async () => {
+			try {
+				// Fetch tasks from tRPC endpoint
+				// tRPC uses format: /api/trpc/[procedure]?input={} for queries without input
+				const url = `${apiBaseUrl}/api/trpc/task.all?input=${encodeURIComponent("{}")}`;
+				const response = await fetch(url, {
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+					},
+				});
+
+				if (!response.ok) {
+					throw new Error(`Failed to fetch tasks: ${response.statusText}`);
+				}
+
+				// tRPC returns data in format: { result: { data: ... } }
+				const data = await response.json();
+
+				// Handle different possible response formats
+				let apiTasks: APITask[] = [];
+				if (data.result?.data) {
+					apiTasks = Array.isArray(data.result.data) ? data.result.data : [];
+				} else if (data.result?.json) {
+					apiTasks = Array.isArray(data.result.json) ? data.result.json : [];
+				} else if (Array.isArray(data)) {
+					apiTasks = data;
+				} else if (Array.isArray(data.result)) {
+					apiTasks = data.result;
+				}
+
+				if (!cancelled) {
+					const transformedTasks = apiTasks.map(transformAPITaskToUITask);
+					setTasks(transformedTasks);
+					setTasksError(null);
+				}
+			} catch (error) {
+				if (!cancelled) {
+					console.error("Failed to fetch tasks:", error);
+					setTasksError(
+						error instanceof Error
+							? error.message
+							: "Failed to load tasks. Please check if the API server is running.",
+					);
+					setTasks([]);
+				}
+			} finally {
+				if (!cancelled) {
+					setIsLoadingTasks(false);
+				}
+			}
+		};
+
+		void fetchTasks();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isOpen, mode, apiBaseUrl]);
+
+	// Reset mode and form when modal opens/closes
 	useEffect(() => {
 		if (isOpen) {
 			setMode(initialMode);
@@ -238,9 +364,30 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 				setSourceBranch("");
 			}
 		} else {
+			// Reset form when modal closes
 			setMode("list");
+			setNewTaskName("");
+			setNewTaskDescription("");
+			setNewTaskStatus("planning");
+			setNewTaskAssignee("You");
+			setNewTaskBranch("");
+			setIsBranchManuallyEdited(false);
+			setSourceBranch("");
+			setCloneTabsFromWorktreeId("");
 		}
 	}, [isOpen, initialMode]);
+
+	// Automatically go back to list mode when creation completes
+	useEffect(() => {
+		if (!isCreating && setupStatus && mode === "new") {
+			// Small delay to show the result briefly before switching
+			const timer = setTimeout(() => {
+				setMode("list");
+				onClearStatus?.();
+			}, 1500);
+			return () => clearTimeout(timer);
+		}
+	}, [isCreating, setupStatus, mode, onClearStatus]);
 
 	// Handle opening a task
 	const handleOpenTask = useCallback(() => {
@@ -315,19 +462,8 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 			cloneTabsFromWorktreeId: cloneTabsFromWorktreeId || undefined,
 		});
 
-		// Don't close modal immediately - let parent handle closing after creation completes
-		// Reset form only if not creating (will be reset when modal closes)
-		if (!isCreating) {
-			setNewTaskName("");
-			setNewTaskDescription("");
-			setNewTaskStatus("planning");
-			setNewTaskAssignee("You");
-			setNewTaskBranch("");
-			setIsBranchManuallyEdited(false);
-			setSourceBranch("");
-			setCloneTabsFromWorktreeId("");
-			setMode("list");
-		}
+		// Don't reset form or switch mode - keep showing progress in "new" mode
+		// Form will be reset when modal closes
 	};
 
 	// Handle back to list
@@ -350,7 +486,10 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 			open={isOpen}
 			onOpenChange={(open) => !open && !isCreating && onClose()}
 		>
-			<DialogContent className="w-[90vw]! max-w-[1200px]! h-[85vh]! max-h-[800px]! p-0 gap-0 flex flex-col">
+			<DialogContent
+				className="w-[90vw]! max-w-[1200px]! h-[85vh]! max-h-[800px]! p-0 gap-0 flex flex-col"
+				showCloseButton={!isCreating}
+			>
 				{/* Header */}
 				<DialogHeader className="px-6 pt-6 pb-4 border-b border-neutral-800 shrink-0">
 					<div className="flex items-center justify-between pr-8">
@@ -422,9 +561,21 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 										{/* Task list */}
 										<ScrollArea className="flex-1 h-0">
 											<div className="p-2 space-y-0.5">
-												{filteredTasks.length === 0 ? (
+												{isLoadingTasks ? (
+													<div className="flex items-center justify-center py-8">
+														<Loader2 size={20} className="animate-spin text-neutral-500" />
+														<span className="ml-2 text-sm text-neutral-500">
+															Loading tasks...
+														</span>
+													</div>
+												) : tasksError ? (
+													<div className="text-center text-red-400 text-sm py-8 px-4">
+														<p className="font-medium mb-1">Failed to load tasks</p>
+														<p className="text-xs text-neutral-500">{tasksError}</p>
+													</div>
+												) : filteredTasks.length === 0 ? (
 													<div className="text-center text-neutral-500 text-sm py-8">
-														No tasks found
+														{searchQuery ? "No tasks match your search" : "No tasks found"}
 													</div>
 												) : (
 													filteredTasks.map((task) => (
@@ -454,13 +605,18 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 						{/* Footer */}
 						<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between shrink-0">
 							<div className="text-sm text-neutral-500">
-								{filteredTasks.length} of {tasks.length} tasks
+								{!isLoadingTasks && !tasksError
+									? `${filteredTasks.length} of ${tasks.length} tasks`
+									: ""}
 							</div>
 							<div className="flex gap-2">
 								<Button variant="ghost" onClick={onClose}>
 									Cancel
 								</Button>
-								<Button onClick={handleOpenTask} disabled={!selectedTask}>
+								<Button
+									onClick={handleOpenTask}
+									disabled={!selectedTask || isLoadingTasks}
+								>
 									{isSelectedTaskOpen ? "Switch to Task" : "Open Task"}
 								</Button>
 							</div>
@@ -473,222 +629,259 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({
 							onSubmit={handleCreateTask}
 							className="flex-1 flex flex-col min-h-0 overflow-hidden"
 						>
-							{/* Scrollable content area */}
-							<ScrollArea className="flex-1 min-h-0">
-								<div className="px-6 pt-6 space-y-4 pb-4">
-									{/* Title section */}
-									<div className="space-y-4">
-										<div className="space-y-2">
-											<Label htmlFor="task-name">Title</Label>
-											<Input
-												id="task-name"
-												placeholder="My new feature"
-												value={newTaskName}
-												onChange={(e) => setNewTaskName(e.target.value)}
-												autoFocus
-												required
-												disabled={isCreating}
-											/>
-										</div>
-										<div className="space-y-2">
-											<Label htmlFor="task-description">
-												Description{" "}
-												<span className="text-muted-foreground font-normal">
-													(Optional)
-												</span>
-											</Label>
-											<Textarea
-												id="task-description"
-												placeholder="What is the goal of this worktree?"
-												value={newTaskDescription}
-												onChange={(e) => setNewTaskDescription(e.target.value)}
-												disabled={isCreating}
-												rows={3}
-												className="resize-none"
-											/>
-										</div>
-									</div>
+							{/* Show progress/result view when creating or when there's a status */}
+							{(isCreating || setupStatus) ? (
+								<div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+									<ScrollArea className="flex-1 min-h-0">
+										<div className="px-6 pt-6 pb-4">
+											{/* Progress Section - shown while creating */}
+											{isCreating && (
+												<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px]">
+													<div className="flex items-center gap-2 text-sm text-neutral-300">
+														<Loader2 size={16} className="animate-spin" />
+														<span>{setupStatus || "Creating worktree..."}</span>
+													</div>
 
-									{/* Setup Progress Section */}
-									{isCreating && (
-										<div className="flex flex-col space-y-3 min-h-[200px] pt-4">
-											<div className="flex items-center gap-2 text-sm text-neutral-300">
-												<Loader2 size={16} className="animate-spin" />
-												<span>{setupStatus || "Creating worktree..."}</span>
-											</div>
-
-											{setupOutput && (
-												<div className="bg-neutral-900 rounded border border-neutral-700 overflow-hidden min-h-[200px]">
-													<TerminalOutput
-														output={setupOutput}
-														className="w-full h-full"
-													/>
+													{setupOutput && (
+														<div className="flex-1 bg-neutral-900 rounded border border-neutral-700 overflow-hidden min-h-[400px]">
+															<TerminalOutput
+																output={setupOutput}
+																className="w-full h-full"
+															/>
+														</div>
+													)}
 												</div>
 											)}
-										</div>
-									)}
 
-									{/* Error Display - shown when creation failed */}
-									{!isCreating &&
-										setupStatus &&
-										(setupStatus.toLowerCase().includes("failed") ||
-											setupStatus.toLowerCase().includes("error")) && (
-											<div className="flex flex-col space-y-3 min-h-[200px] pt-4">
-												<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
-													<span>{setupStatus}</span>
-												</div>
+											{/* Success Display - shown when creation succeeded */}
+											{!isCreating &&
+												setupStatus &&
+												!setupStatus.toLowerCase().includes("failed") &&
+												!setupStatus.toLowerCase().includes("error") &&
+												(setupStatus.toLowerCase().includes("success") ||
+													setupStatus.toLowerCase().includes("completed")) && (
+													<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px]">
+														<div className="flex items-center gap-2 text-sm text-green-400 font-medium">
+															<span>{setupStatus}</span>
+														</div>
 
-												{setupOutput && (
-													<div className="bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto min-h-[200px]">
-														<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
-															{setupOutput}
-														</pre>
+														{setupOutput && (
+															<div className="flex-1 bg-green-500/10 rounded border border-green-500/30 p-3 overflow-auto min-h-[400px]">
+																<pre className="text-green-200 text-xs font-mono whitespace-pre-wrap">
+																	{setupOutput}
+																</pre>
+															</div>
+														)}
 													</div>
 												)}
-											</div>
-										)}
 
-									{/* Worktree creation options */}
-									{(branches.length > 0 || worktrees.length > 0) && (
-										<div className="space-y-3  pt-4">
-											{branches.length > 0 && (
-												<div className="space-y-2">
-													<Label htmlFor="source-branch">
-														Create From Branch
-													</Label>
-													<select
-														id="source-branch"
-														value={sourceBranch}
-														onChange={(e) => setSourceBranch(e.target.value)}
-														disabled={isCreating}
-														className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
-													>
-														{branches.map((branch) => (
-															<option key={branch} value={branch}>
-																{branch}
-															</option>
-														))}
-													</select>
-												</div>
-											)}
-
-											{worktrees.length > 0 && (
-												<div className="space-y-2">
-													<Label htmlFor="clone-tabs">
-														Clone Tabs From
-													</Label>
-													<select
-														id="clone-tabs"
-														value={cloneTabsFromWorktreeId}
-														onChange={(e) =>
-															setCloneTabsFromWorktreeId(e.target.value)
-														}
-														disabled={isCreating}
-														className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
-													>
-														<option value="">Don't clone tabs</option>
-														{worktrees.map((worktree) => (
-															<option key={worktree.id} value={worktree.id}>
-																{worktree.branch} ({worktree.tabs.length} tab
-																{worktree.tabs.length !== 1 ? "s" : ""})
-															</option>
-														))}
-													</select>
-												</div>
-											)}
-
-											<div className="space-y-2">
-												<Label htmlFor="branch-name">
-													Branch Name
-												</Label>
-												<Input
-													id="branch-name"
-													type="text"
-													placeholder="Auto-generated from title"
-													value={newTaskBranch}
-													onChange={(e) => {
-														setNewTaskBranch(e.target.value);
-														setIsBranchManuallyEdited(true);
-													}}
-													disabled={isCreating}
-												/>
-											</div>
-										</div>
-									)}
-
-									{/* Metadata section */}
-									<div className="flex items-center gap-3">
-										{/* Status */}
-										<Select
-											value={newTaskStatus}
-											onValueChange={(value) =>
-												setNewTaskStatus(value as TaskStatus)
-											}
-											disabled={isCreating}
-										>
-											<SelectTrigger>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="planning">Planning</SelectItem>
-												<SelectItem value="needs-feedback">
-													Needs Feedback
-												</SelectItem>
-												<SelectItem value="ready-to-merge">
-													Ready to Merge
-												</SelectItem>
-											</SelectContent>
-										</Select>
-
-										{/* Assignee */}
-										<Select
-											value={newTaskAssignee}
-											onValueChange={setNewTaskAssignee}
-											disabled={isCreating}
-										>
-											<SelectTrigger>
-												<SelectValue />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="You" className="px-3">
-													<div className="flex items-center gap-2">
-														<Avatar
-															imageUrl="https://i.pravatar.cc/150?img=1"
-															name="You"
-															size={16}
-														/>
-														<span>You</span>
-													</div>
-												</SelectItem>
-												<SelectSeparator />
-												<SelectGroup>
-													<SelectLabel>Agents</SelectLabel>
-													<SelectItem value="Claude" className="px-3">
-														<div className="flex items-center gap-2">
-															<Avatar
-																imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg"
-																name="Claude"
-																size={16}
-															/>
-															<span>Claude</span>
+											{/* Error Display - shown when creation failed */}
+											{!isCreating &&
+												setupStatus &&
+												(setupStatus.toLowerCase().includes("failed") ||
+													setupStatus.toLowerCase().includes("error")) && (
+													<div className="flex-1 flex flex-col space-y-3 overflow-hidden min-h-[200px]">
+														<div className="flex items-center gap-2 text-sm text-red-400 font-medium">
+															<span>{setupStatus}</span>
 														</div>
-													</SelectItem>
-												</SelectGroup>
-											</SelectContent>
-										</Select>
+
+														{setupOutput && (
+															<div className="flex-1 bg-red-500/10 rounded border border-red-500/30 p-3 overflow-auto min-h-[400px]">
+																<pre className="text-red-200 text-xs font-mono whitespace-pre-wrap">
+																	{setupOutput}
+																</pre>
+															</div>
+														)}
+													</div>
+												)}
+										</div>
+									</ScrollArea>
+									{/* Footer for progress view */}
+									<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-end gap-2 shrink-0">
+										<Button
+											type="button"
+											variant="ghost"
+											onClick={onClose}
+											disabled={isCreating}
+										>
+											{isCreating ? "Creating..." : "Close"}
+										</Button>
 									</div>
 								</div>
-							</ScrollArea>
-							{/* Footer for new task form */}
-							<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-2 shrink-0">
-								<Button
-									type="submit"
-									disabled={!newTaskName.trim() || isCreating}
-									className="ml-auto"
-								>
-									{isCreating ? "Creating..." : "Create task"}
-								</Button>
-							</div>
+							) : (
+								<>
+									{/* Form fields - hidden when creating */}
+									<ScrollArea className="flex-1 min-h-0">
+										<div className="px-6 pt-6 space-y-4 pb-4">
+											{/* Title section */}
+											<div className="space-y-4">
+												<div className="space-y-2">
+													<Label htmlFor="task-name">Title</Label>
+													<Input
+														id="task-name"
+														placeholder="My new feature"
+														value={newTaskName}
+														onChange={(e) => setNewTaskName(e.target.value)}
+														autoFocus
+														required
+													/>
+												</div>
+												<div className="space-y-2">
+													<Label htmlFor="task-description">
+														Description{" "}
+														<span className="text-muted-foreground font-normal">
+															(Optional)
+														</span>
+													</Label>
+													<Textarea
+														id="task-description"
+														placeholder="What is the goal of this worktree?"
+														value={newTaskDescription}
+														onChange={(e) => setNewTaskDescription(e.target.value)}
+														rows={3}
+														className="resize-none"
+													/>
+												</div>
+											</div>
+
+											{/* Worktree creation options */}
+											{(branches.length > 0 || worktrees.length > 0) && (
+												<div className="space-y-3 pt-4">
+													{branches.length > 0 && (
+														<div className="space-y-2">
+															<Label htmlFor="source-branch">
+																Create From Branch
+															</Label>
+															<select
+																id="source-branch"
+																value={sourceBranch}
+																onChange={(e) => setSourceBranch(e.target.value)}
+																className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+															>
+																{branches.map((branch) => (
+																	<option key={branch} value={branch}>
+																		{branch}
+																	</option>
+																))}
+															</select>
+														</div>
+													)}
+
+													{worktrees.length > 0 && (
+														<div className="space-y-2">
+															<Label htmlFor="clone-tabs">
+																Clone Tabs From
+															</Label>
+															<select
+																id="clone-tabs"
+																value={cloneTabsFromWorktreeId}
+																onChange={(e) =>
+																	setCloneTabsFromWorktreeId(e.target.value)
+																}
+																className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
+															>
+																<option value="">Don't clone tabs</option>
+																{worktrees.map((worktree) => (
+																	<option key={worktree.id} value={worktree.id}>
+																		{worktree.branch} ({worktree.tabs.length} tab
+																		{worktree.tabs.length !== 1 ? "s" : ""})
+																	</option>
+																))}
+															</select>
+														</div>
+													)}
+
+													<div className="space-y-2">
+														<Label htmlFor="branch-name">
+															Branch Name
+														</Label>
+														<Input
+															id="branch-name"
+															type="text"
+															placeholder="Auto-generated from title"
+															value={newTaskBranch}
+															onChange={(e) => {
+																setNewTaskBranch(e.target.value);
+																setIsBranchManuallyEdited(true);
+															}}
+														/>
+													</div>
+												</div>
+											)}
+
+											{/* Metadata section */}
+											<div className="flex items-center gap-3">
+												{/* Status */}
+												<Select
+													value={newTaskStatus}
+													onValueChange={(value) =>
+														setNewTaskStatus(value as TaskStatus)
+													}
+												>
+													<SelectTrigger>
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="planning">Planning</SelectItem>
+														<SelectItem value="needs-feedback">
+															Needs Feedback
+														</SelectItem>
+														<SelectItem value="ready-to-merge">
+															Ready to Merge
+														</SelectItem>
+													</SelectContent>
+												</Select>
+
+												{/* Assignee */}
+												<Select
+													value={newTaskAssignee}
+													onValueChange={setNewTaskAssignee}
+												>
+													<SelectTrigger>
+														<SelectValue />
+													</SelectTrigger>
+													<SelectContent>
+														<SelectItem value="You" className="px-3">
+															<div className="flex items-center gap-2">
+																<Avatar
+																	imageUrl="https://i.pravatar.cc/150?img=1"
+																	name="You"
+																	size={16}
+																/>
+																<span>You</span>
+															</div>
+														</SelectItem>
+														<SelectSeparator />
+														<SelectGroup>
+															<SelectLabel>Agents</SelectLabel>
+															<SelectItem value="Claude" className="px-3">
+																<div className="flex items-center gap-2">
+																	<Avatar
+																		imageUrl="https://upload.wikimedia.org/wikipedia/commons/b/b0/Claude_AI_symbol.svg"
+																		name="Claude"
+																		size={16}
+																	/>
+																	<span>Claude</span>
+																</div>
+															</SelectItem>
+														</SelectGroup>
+													</SelectContent>
+												</Select>
+											</div>
+										</div>
+									</ScrollArea>
+									{/* Footer for new task form */}
+									<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-2 shrink-0">
+										<Button
+											type="submit"
+											disabled={!newTaskName.trim()}
+											className="ml-auto"
+										>
+											Create task
+										</Button>
+									</div>
+								</>
+							)}
 						</form>
 					</>
 				)}
