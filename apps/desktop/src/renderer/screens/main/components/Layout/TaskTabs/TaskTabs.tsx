@@ -88,6 +88,8 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 		if (!onDeleteWorktree || !workspaceId) return;
 
 		const worktree = worktrees.find((wt) => wt.id === worktreeId);
+		// Allow deletion of active/selected worktrees (same as sidebar behavior)
+		// Only prevent deletion of pending worktrees
 		if (!worktree || worktree.isPending) return;
 
 		// Check if the worktree has uncommitted changes
