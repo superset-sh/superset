@@ -1,4 +1,8 @@
-import { useDroppable } from "@dnd-kit/core";
+import {
+	DndContext,
+	type DragEndEvent,
+	useDroppable,
+} from "@dnd-kit/core";
 import {
 	SortableContext,
 	useSortable,
@@ -121,7 +125,6 @@ function DroppableGroupTab({
 	onTabSelect,
 	onUngroupTab,
 	onRenameGroup,
-	isOver,
 }: {
 	tab: Tab;
 	worktreeId: string;
@@ -133,13 +136,12 @@ function DroppableGroupTab({
 	onTabSelect: (worktreeId: string, tabId: string, shiftKey: boolean) => void;
 	onUngroupTab: (groupTabId: string) => void;
 	onRenameGroup: (groupTabId: string, newName: string) => void;
-	isOver: boolean;
 }) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editName, setEditName] = useState(tab.name);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const { setNodeRef } = useDroppable({
+	const { setNodeRef, isOver } = useDroppable({
 		id: `group-${tab.id}`,
 		data: {
 			type: "group",
@@ -202,7 +204,7 @@ function DroppableGroupTab({
 						className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${isSelected
 							? "bg-neutral-800/80 text-neutral-200"
 							: isOver
-								? "bg-blue-900/40 text-blue-200"
+								? "bg-blue-900/40 text-blue-200 border-l-2 border-blue-500"
 								: "hover:bg-neutral-800/40 text-neutral-400"
 							}`}
 						style={{ paddingLeft: `${level * 12 + 10}px` }}
@@ -245,14 +247,12 @@ function DroppableGroupTab({
 // Droppable area wrapper for the expanded group tab content
 function DroppableGroupArea({
 	groupTabId,
-	isOver,
 	children,
 }: {
 	groupTabId: string;
-	isOver: boolean;
 	children: React.ReactNode;
 }) {
-	const { setNodeRef } = useDroppable({
+	const { setNodeRef, isOver } = useDroppable({
 		id: `group-area-${groupTabId}`,
 		data: {
 			type: "group-area",
@@ -1084,6 +1084,108 @@ export function WorktreeItem({
 	const allTabsFlat = getAllTabs(tabs);
 	const allTabIds = allTabsFlat.map((item) => item.tab.id);
 
+	// Handle drag end - move tab to group or reorder
+	const handleDragEnd = async (event: DragEndEvent) => {
+		const { active, over } = event;
+
+		if (!over) return;
+
+		const draggedTabId = active.id as string;
+		const draggedTab = findTabById(tabs, draggedTabId);
+
+		if (!draggedTab || draggedTab.type === "group") {
+			// Don't allow dragging group tabs
+			return;
+		}
+
+		const overId = over.id as string;
+		const overData = over.data.current;
+
+		// Check if dropped on a group tab header
+		if (overId.startsWith("group-") && overData?.type === "group") {
+			const targetGroupId = overData.groupTabId as string;
+
+			// Find source parent
+			const sourceParent = findParentGroupTab(tabs, draggedTabId);
+			const sourceParentTabId = sourceParent?.id;
+
+			// Don't move if already in this group
+			if (sourceParentTabId === targetGroupId) {
+				return;
+			}
+
+			// Expand the target group
+			setExpandedGroupTabs((prev) => new Set(prev).add(targetGroupId));
+
+			// Move tab into the group
+			try {
+				const result = await window.ipcRenderer.invoke("tab-move", {
+					workspaceId,
+					worktreeId: worktree.id,
+					tabId: draggedTabId,
+					sourceParentTabId: sourceParentTabId || undefined,
+					targetParentTabId: targetGroupId,
+					targetIndex: 0, // Add to end of group
+				});
+
+				if (result.success) {
+					onReload();
+					// Select the moved tab
+					onTabSelect(worktree.id, draggedTabId);
+				} else {
+					console.error("Failed to move tab to group:", result.error);
+				}
+			} catch (error) {
+				console.error("Error moving tab to group:", error);
+			}
+			return;
+		}
+
+		// Check if dropped on a group area (expanded group content)
+		if (
+			overId.startsWith("group-area-") &&
+			overData?.type === "group-area"
+		) {
+			const targetGroupId = overData.groupTabId as string;
+
+			// Find source parent
+			const sourceParent = findParentGroupTab(tabs, draggedTabId);
+			const sourceParentTabId = sourceParent?.id;
+
+			// Don't move if already in this group
+			if (sourceParentTabId === targetGroupId) {
+				return;
+			}
+
+			// Move tab into the group
+			try {
+				const result = await window.ipcRenderer.invoke("tab-move", {
+					workspaceId,
+					worktreeId: worktree.id,
+					tabId: draggedTabId,
+					sourceParentTabId: sourceParentTabId || undefined,
+					targetParentTabId: targetGroupId,
+					targetIndex: 0, // Add to end of group
+				});
+
+				if (result.success) {
+					onReload();
+					// Select the moved tab
+					onTabSelect(worktree.id, draggedTabId);
+				} else {
+					console.error("Failed to move tab to group:", result.error);
+				}
+			} catch (error) {
+				console.error("Error moving tab to group:", error);
+			}
+			return;
+		}
+
+		// Handle reordering within the same parent (if dropped on another tab)
+		// This is handled by SortableContext's built-in reordering
+		// We could add custom reordering logic here if needed
+	};
+
 	// Toggle group tab expansion
 	const toggleGroupTab = (groupTabId: string) => {
 		setExpandedGroupTabs((prev) => {
@@ -1115,12 +1217,11 @@ export function WorktreeItem({
 						onTabSelect={handleTabSelect}
 						onUngroupTab={handleUngroupTab}
 						onRenameGroup={handleRenameGroup}
-						isOver={false}
 					/>
 
 					{/* Nested Tabs - Make the entire area droppable */}
 					{isExpanded && tab.tabs && (
-						<DroppableGroupArea groupTabId={tab.id} isOver={false}>
+						<DroppableGroupArea groupTabId={tab.id}>
 							<div className="space-y-0.5">
 								{tab.tabs.map((childTab) =>
 									renderTab(childTab, tab.id, level + 1),
@@ -1163,12 +1264,14 @@ export function WorktreeItem({
 			{/* Tabs List */}
 			<div className="space-y-0.5">
 				{/* Render tabs with collapsible groups */}
-				<SortableContext
-					items={allTabIds}
-					strategy={verticalListSortingStrategy}
-				>
-					{tabs.map((tab) => renderTab(tab, undefined, 0))}
-				</SortableContext>
+				<DndContext onDragEnd={handleDragEnd}>
+					<SortableContext
+						items={allTabIds}
+						strategy={verticalListSortingStrategy}
+					>
+						{tabs.map((tab) => renderTab(tab, undefined, 0))}
+					</SortableContext>
+				</DndContext>
 			</div>
 
 			{/* Remove Worktree Confirmation Dialog */}
