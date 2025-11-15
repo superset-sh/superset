@@ -2,7 +2,12 @@
  * Tab-related IPC channels
  */
 
-import type { CreateTabInput, MosaicNode, Tab, UpdatePreviewTabInput } from "../types";
+import type {
+	CreateTabInput,
+	MosaicNode,
+	Tab,
+	UpdatePreviewTabInput,
+} from "../types";
 import type { IpcResponse } from "./types";
 
 export interface TabChannels {
@@ -67,4 +72,3 @@ export interface TabChannels {
 		response: IpcResponse;
 	};
 }
-

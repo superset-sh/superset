@@ -45,7 +45,9 @@ export function useWorktrees({
 					// Create a new object with new array references to ensure React detects the change
 					return {
 						...refreshedWorkspace,
-						worktrees: refreshedWorkspace.worktrees ? [...refreshedWorkspace.worktrees] : [],
+						worktrees: refreshedWorkspace.worktrees
+							? [...refreshedWorkspace.worktrees]
+							: [],
 					};
 				});
 
@@ -183,7 +185,10 @@ export function useWorktrees({
 
 					// If we deleted the selected worktree, select the first available one
 					if (selectedWorktreeId === worktreeId) {
-						if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
+						if (
+							refreshedWorkspace.worktrees &&
+							refreshedWorkspace.worktrees.length > 0
+						) {
 							const firstWorktree = refreshedWorkspace.worktrees[0];
 							setSelectedWorktreeId(firstWorktree.id);
 							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
@@ -221,4 +226,3 @@ export function useWorktrees({
 		handleDeleteWorktree,
 	};
 }
-

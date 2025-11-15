@@ -10,9 +10,9 @@ import type {
 } from "@/shared/types";
 
 import configManager from "./config-manager";
+import windowManager from "./window-manager";
 import workspaceManager from "./workspace-manager";
 import worktreeManager from "./worktree-manager";
-import windowManager from "./window-manager";
 
 export function registerWorkspaceIPCs() {
 	// Open repository dialog
@@ -627,7 +627,9 @@ export function registerWorkspaceIPCs() {
 
 				// Detect main branch instead of using workspace.branch
 				// This ensures we compare against main/master, not a feature branch
-				const mainBranch = await worktreeManager.detectMainBranch(workspace.repoPath);
+				const mainBranch = await worktreeManager.detectMainBranch(
+					workspace.repoPath,
+				);
 
 				return await worktreeManager.getGitDiffFile(
 					worktree.path,

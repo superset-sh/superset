@@ -80,7 +80,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 						<div className="space-y-2">
 							<Label htmlFor="task-description">
 								Description{" "}
-								<span className="text-muted-foreground font-normal">(Optional)</span>
+								<span className="text-muted-foreground font-normal">
+									(Optional)
+								</span>
 							</Label>
 							<Textarea
 								id="task-description"
@@ -120,7 +122,9 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 									<select
 										id="clone-tabs"
 										value={cloneTabsFromWorktreeId}
-										onChange={(e) => onCloneTabsFromWorktreeIdChange(e.target.value)}
+										onChange={(e) =>
+											onCloneTabsFromWorktreeIdChange(e.target.value)
+										}
 										className="flex h-9 w-full rounded-md border border-neutral-700 bg-neutral-900/50 px-3 py-1 text-sm text-neutral-200 shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-600 disabled:cursor-not-allowed disabled:opacity-50"
 									>
 										<option value="">Don't clone tabs</option>
@@ -165,7 +169,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 						</Select>
 
 						{/* Assignee */}
-						<Select value={newTaskAssignee} onValueChange={onTaskAssigneeChange}>
+						<Select
+							value={newTaskAssignee}
+							onValueChange={onTaskAssigneeChange}
+						>
 							<SelectTrigger>
 								<SelectValue />
 							</SelectTrigger>
@@ -201,11 +208,14 @@ export const TaskForm: React.FC<TaskFormProps> = ({
 			</ScrollArea>
 			{/* Footer for new task form */}
 			<div className="px-6 py-4 border-t border-neutral-800 flex items-center justify-between gap-2 shrink-0">
-				<Button type="submit" disabled={!newTaskName.trim()} className="ml-auto">
+				<Button
+					type="submit"
+					disabled={!newTaskName.trim()}
+					className="ml-auto"
+				>
 					Create task
 				</Button>
 			</div>
 		</form>
 	);
 };
-

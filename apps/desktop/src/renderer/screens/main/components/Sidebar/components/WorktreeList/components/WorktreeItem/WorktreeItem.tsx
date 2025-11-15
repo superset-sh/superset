@@ -12,11 +12,7 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import {
-	ChevronRight,
-	Edit2,
-	FolderOpen,
-} from "lucide-react";
+import { ChevronRight, Edit2, FolderOpen } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { MosaicNode } from "react-mosaic-component";
 import {
@@ -199,12 +195,13 @@ function DroppableGroupTab({
 					<button
 						type="button"
 						onClick={handleClick}
-						className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${isSelected
-							? "bg-neutral-800/80 text-neutral-200"
-							: isOver
-								? "bg-blue-900/40 text-blue-200"
-								: "hover:bg-neutral-800/40 text-neutral-400"
-							}`}
+						className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${
+							isSelected
+								? "bg-neutral-800/80 text-neutral-200"
+								: isOver
+									? "bg-blue-900/40 text-blue-200"
+									: "hover:bg-neutral-800/40 text-neutral-400"
+						}`}
 						style={{ paddingLeft: `${level * 12 + 10}px` }}
 					>
 						<ChevronRight
@@ -263,8 +260,9 @@ function DroppableGroupArea({
 	return (
 		<div
 			ref={setNodeRef}
-			className={`relative ${isOver ? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md" : ""
-				}`}
+			className={`relative ${
+				isOver ? "bg-blue-900/20 border-l-2 border-blue-500 rounded-r-md" : ""
+			}`}
 			style={{
 				minHeight: "40px",
 				transition: "all 0.2s",
@@ -746,7 +744,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Remove Worktree");
 			setErrorMessage(
 				result.error ||
-				"An unknown error occurred while removing the worktree.",
+					"An unknown error occurred while removing the worktree.",
 			);
 			setShowErrorDialog(true);
 		}
@@ -892,7 +890,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Check Settings");
 			setErrorMessage(
 				checkResult.error ||
-				"An unknown error occurred while checking settings.",
+					"An unknown error occurred while checking settings.",
 			);
 			setShowErrorDialog(true);
 			return;

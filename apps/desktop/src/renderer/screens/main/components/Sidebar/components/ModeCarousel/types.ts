@@ -11,4 +11,3 @@ export interface ModeCarouselProps {
 	onScrollProgress: (progress: MotionValue<number>) => void;
 	isDragging?: boolean;
 }
-

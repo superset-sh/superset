@@ -5,6 +5,7 @@ import { createWindow } from "@/lib/electron-app/factories/windows/create";
 import pkg from "~/package.json";
 
 const { displayName } = pkg;
+
 import { createApplicationMenu } from "../lib/menu";
 import {
 	type PortClosedEvent,

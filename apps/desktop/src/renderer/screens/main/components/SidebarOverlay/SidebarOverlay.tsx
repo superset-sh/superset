@@ -9,7 +9,10 @@ interface SidebarOverlayProps {
 	onTabSelect: (worktreeId: string, tabId: string) => void;
 	onWorktreeCreated: () => Promise<void>;
 	onWorkspaceSelect: (workspaceId: string) => Promise<void>;
-	onUpdateWorktree: (worktreeId: string, updatedWorktree: import("shared/types").Worktree) => void;
+	onUpdateWorktree: (
+		worktreeId: string,
+		updatedWorktree: import("shared/types").Worktree,
+	) => void;
 	selectedTabId?: string;
 	selectedWorktreeId: string | null;
 }
@@ -49,4 +52,3 @@ export function SidebarOverlay({
 		</aside>
 	);
 }
-
