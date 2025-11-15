@@ -24,15 +24,37 @@ export default {
 	appId,
 	productName: displayName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
+	electronVersion: "39.1.2",
 
 	directories: {
-		app: dirname(main),
 		output: `dist/v${version}`,
+		buildResources: "src/resources"
 	},
+
+	files: [
+		"node_modules/.dev/**/*",
+		{
+			from: "../../node_modules/node-pty",
+			to: "node_modules/node-pty"
+		}
+	],
+
+	asarUnpack: [
+		"node_modules/node-pty/**/*"
+	],
 
 	npmRebuild: false,
 	buildDependenciesFromSource: false,
 	nodeGypRebuild: false,
+
+	extraMetadata: {
+		name: displayName,
+		version,
+		main: "./node_modules/.dev/main/index.js",
+		dependencies: {
+			"node-pty": "1.1.0-beta30"
+		}
+	},
 
 	mac: {
 		artifactName,
