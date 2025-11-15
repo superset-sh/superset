@@ -11,7 +11,7 @@ interface UseTasksProps {
 	} | null;
 	setSelectedWorktreeId: (id: string | null) => void;
 	handleTabSelect: (worktreeId: string, tabId: string) => void;
-	handleWorktreeCreated: () => Promise<void>;
+	handleWorktreeCreated: () => Promise<{ id: string; worktrees?: Worktree[] } | null>;
 }
 
 export function useTasks({
@@ -171,28 +171,25 @@ export function useTasks({
 				setIsCreatingWorktree(false);
 
 				// Reload workspace to get the new worktree
-				await handleWorktreeCreated();
+				// handleWorktreeCreated returns the refreshed workspace directly
+				const refreshedWorkspace = await handleWorktreeCreated();
 
-				// Small delay to ensure state has propagated
+				// Wait for React to process the state update from handleWorktreeCreated
+				// This ensures handleTabSelect sees the updated workspace in its functional setState
 				await new Promise((resolve) => setTimeout(resolve, 50));
 
 				// Only close modal and select worktree if modal is still open
 				if (isAddTaskModalOpen) {
-					// Fetch the workspace again to get the latest state with correct IDs
-					const latestWorkspace = await window.ipcRenderer.invoke(
-						"workspace-get",
-						currentWorkspace.id,
-					);
-
 					// Close modal and reset state
 					setIsAddTaskModalOpen(false);
 					setSetupStatus(undefined);
 					setSetupOutput(undefined);
 
 					// Switch to the new worktree if available
-					if (result.worktree && latestWorkspace) {
+					// Use the refreshed workspace returned by handleWorktreeCreated
+					if (result.worktree && refreshedWorkspace) {
 						// Find the worktree by branch name to get the correct ID
-						const newWorktree = latestWorkspace.worktrees?.find(
+						const newWorktree = refreshedWorkspace.worktrees?.find(
 							(wt) => wt.branch === result.worktree?.branch,
 						);
 

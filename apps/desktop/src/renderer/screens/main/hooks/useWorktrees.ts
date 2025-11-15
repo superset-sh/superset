@@ -3,7 +3,7 @@ import type { Workspace, Worktree } from "shared/types";
 
 interface UseWorktreesProps {
 	currentWorkspace: Workspace | null;
-	setCurrentWorkspace: (workspace: Workspace) => void;
+	setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>;
 	setWorkspaces: React.Dispatch<React.SetStateAction<Workspace[] | null>>;
 	loadAllWorkspaces: () => Promise<void>;
 	selectedWorktreeId: string | null;
@@ -22,7 +22,7 @@ export function useWorktrees({
 }: UseWorktreesProps) {
 	// Handle worktree created
 	const handleWorktreeCreated = async () => {
-		if (!currentWorkspace) return;
+		if (!currentWorkspace) return null;
 
 		try {
 			// Small delay to ensure backend has saved the workspace config
@@ -48,12 +48,14 @@ export function useWorktrees({
 						worktrees: refreshedWorkspace.worktrees ? [...refreshedWorkspace.worktrees] : [],
 					};
 				});
-				// Don't call loadAllWorkspaces here - it can cause race conditions
-				// Update workspaces list asynchronously without blocking
-				void loadAllWorkspaces();
+
+				// Return the refreshed workspace so callers can use it immediately
+				return refreshedWorkspace;
 			}
+			return null;
 		} catch (error) {
 			console.error("Failed to refresh workspace:", error);
+			return null;
 		}
 	};
 
@@ -205,8 +207,14 @@ export function useWorktrees({
 		}
 	};
 
+	// Wrapper for components that expect Promise<void>
+	const handleWorktreeCreatedVoid = async () => {
+		await handleWorktreeCreated();
+	};
+
 	return {
-		handleWorktreeCreated,
+		handleWorktreeCreated: handleWorktreeCreatedVoid,
+		handleWorktreeCreatedWithResult: handleWorktreeCreated,
 		handleUpdateWorktree,
 		handleCreatePR,
 		handleMergePR,

@@ -1,9 +1,10 @@
+import type React from "react";
 import type { Tab, Workspace } from "shared/types";
 import { findTabRecursive } from "../utils";
 
 interface UseTabsProps {
 	currentWorkspace: Workspace | null;
-	setCurrentWorkspace: (workspace: Workspace) => void;
+	setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>;
 	selectedWorktreeId: string | null;
 	setSelectedWorktreeId: (id: string | null) => void;
 	selectedTabId: string | null;
@@ -36,25 +37,28 @@ export function useTabs({
 	const handleTabCreated = (worktreeId: string, tab: Tab) => {
 		if (!currentWorkspace) return;
 
-		// Find the worktree and add the tab
-		const updatedWorktrees = currentWorkspace.worktrees.map((wt) => {
-			if (wt.id === worktreeId) {
-				return {
-					...wt,
-					tabs: [...wt.tabs, tab],
-				};
-			}
-			return wt;
+		// Use functional setState to avoid stale closures
+		setCurrentWorkspace((prev) => {
+			if (!prev) return prev;
+
+			// Find the worktree and add the tab
+			const updatedWorktrees = prev.worktrees.map((wt) => {
+				if (wt.id === worktreeId) {
+					return {
+						...wt,
+						tabs: [...wt.tabs, tab],
+					};
+				}
+				return wt;
+			});
+
+			return {
+				...prev,
+				worktrees: updatedWorktrees,
+				activeWorktreeId: worktreeId,
+				activeTabId: tab.id,
+			};
 		});
-
-		const updatedWorkspace = {
-			...currentWorkspace,
-			worktrees: updatedWorktrees,
-			activeWorktreeId: worktreeId,
-			activeTabId: tab.id,
-		};
-
-		setCurrentWorkspace(updatedWorkspace);
 	};
 
 	// Handle tab selection
@@ -69,10 +73,14 @@ export function useTabs({
 				tabId,
 			});
 
-			setCurrentWorkspace({
-				...currentWorkspace,
-				activeWorktreeId: worktreeId,
-				activeTabId: tabId,
+			// Use functional setState to avoid overwriting concurrent updates
+			setCurrentWorkspace((prev) => {
+				if (!prev) return prev;
+				return {
+					...prev,
+					activeWorktreeId: worktreeId,
+					activeTabId: tabId,
+				};
 			});
 		}
 	};
@@ -89,10 +97,14 @@ export function useTabs({
 			tabId,
 		});
 
-		setCurrentWorkspace({
-			...currentWorkspace,
-			activeWorktreeId: selectedWorktreeId,
-			activeTabId: tabId,
+		// Use functional setState to avoid overwriting concurrent updates
+		setCurrentWorkspace((prev) => {
+			if (!prev) return prev;
+			return {
+				...prev,
+				activeWorktreeId: selectedWorktreeId,
+				activeTabId: tabId,
+			};
 		});
 	};
 
