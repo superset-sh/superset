@@ -69,12 +69,6 @@ export default defineConfig({
 			},
 		},
 
-		// Optimize workspace package handling
-		optimizeDeps: {
-			// Include workspace packages for pre-bundling
-			include: ["@superset/ui", "@superset/api"],
-		},
-
 		resolve: {
 			// Deduplicate react/react-dom from workspace packages
 			dedupe: ["react", "react-dom"],
