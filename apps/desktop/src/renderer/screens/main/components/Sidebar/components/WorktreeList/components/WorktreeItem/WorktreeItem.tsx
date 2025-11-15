@@ -30,22 +30,23 @@ interface ProxyStatus {
 	active: boolean;
 }
 
-// Convert Tab[] to react-arborist format
-function convertTabsToTreeData(
-	tabs: Tab[],
-): Array<{
+// Tree node type for react-arborist
+type TreeNode = {
 	id: string;
 	name: string;
 	tab: Tab;
-	children?: Array<{ id: string; name: string; tab: Tab }>;
-}> {
+	children?: TreeNode[];
+};
+
+// Constants
+const TREE_ROW_HEIGHT = 28;
+const TREE_MIN_HEIGHT = 10;
+const TREE_MAX_HEIGHT = 600;
+
+// Convert Tab[] to react-arborist format
+function convertTabsToTreeData(tabs: Tab[]): TreeNode[] {
 	return tabs.map((tab) => {
-		const node: {
-			id: string;
-			name: string;
-			tab: Tab;
-			children?: Array<{ id: string; name: string; tab: Tab }>;
-		} = {
+		const node: TreeNode = {
 			id: tab.id,
 			name: tab.name,
 			tab,
@@ -55,6 +56,48 @@ function convertTabsToTreeData(
 		}
 		return node;
 	});
+}
+
+// Helper: Collect all group tab IDs recursively
+function collectGroupTabIds(tabs: Tab[]): Set<string> {
+	const groupTabIds = new Set<string>();
+	const collect = (tabList: Tab[]) => {
+		for (const tab of tabList) {
+			if (tab.type === "group") {
+				groupTabIds.add(tab.id);
+				if (tab.tabs) {
+					collect(tab.tabs);
+				}
+			}
+		}
+	};
+	collect(tabs);
+	return groupTabIds;
+}
+
+// Helper: Build merge warning message
+function buildMergeWarning(
+	canMergeResult: {
+		targetHasUncommittedChanges?: boolean;
+		sourceHasUncommittedChanges?: boolean;
+	},
+	sourceBranch: string,
+	targetBranch?: string,
+): string {
+	const warnings: string[] = [];
+
+	if (canMergeResult.targetHasUncommittedChanges) {
+		const targetBranchText = targetBranch ? ` (${targetBranch})` : "";
+		warnings.push(`The target worktree${targetBranchText} has uncommitted changes.`);
+	}
+
+	if (canMergeResult.sourceHasUncommittedChanges) {
+		warnings.push(`The source worktree (${sourceBranch}) has uncommitted changes.`);
+	}
+
+	return warnings.length > 0
+		? `Warning: ${warnings.join(" ")} The merge will proceed anyway.`
+		: "";
 }
 
 interface WorktreeItemProps {
@@ -81,22 +124,10 @@ export function WorktreeItem({
 	onCloneWorktree: _onCloneWorktree,
 }: WorktreeItemProps) {
 	// Track expanded group tabs - initialize with all group tabs expanded by default
-	const [expandedGroupTabs, setExpandedGroupTabs] = useState<Set<string>>(() => {
-		const tabs = Array.isArray(worktree.tabs) ? worktree.tabs : [];
-		const groupTabIds = new Set<string>();
-		const collectGroupTabs = (tabList: Tab[]) => {
-			for (const tab of tabList) {
-				if (tab.type === "group") {
-					groupTabIds.add(tab.id);
-					if (tab.tabs) {
-						collectGroupTabs(tab.tabs);
-					}
-				}
-			}
-		};
-		collectGroupTabs(tabs);
-		return groupTabIds;
-	});
+	const tabs = Array.isArray(worktree.tabs) ? worktree.tabs : [];
+	const [expandedGroupTabs, setExpandedGroupTabs] = useState<Set<string>>(() =>
+		collectGroupTabIds(tabs),
+	);
 
 	// Track multi-selected tabs
 	const [selectedTabIds, setSelectedTabIds] = useState<Set<string>>(new Set());
@@ -467,27 +498,13 @@ export function WorktreeItem({
 		loadWorktrees();
 	}, [workspaceId, worktree.id]);
 
-	// Get all tabs for sortable context (including nested)
-	// Defensive: ensure worktree.tabs exists and is an array
-	const tabs = Array.isArray(worktree.tabs) ? worktree.tabs : [];
-	const treeData = convertTabsToTreeData(tabs);
 
 	// Calculate responsive height based on visible items
 	// Must be before early return to satisfy React hooks rules
+	const treeData = useMemo(() => convertTabsToTreeData(tabs), [tabs]);
 	const treeHeight = useMemo(() => {
-		const rowHeight = 28;
-		const minHeight = 10;
-		const maxHeight = 600;
-
 		// Count visible nodes (including expanded children)
-		const countVisibleNodes = (
-			nodes: Array<{
-				id: string;
-				name: string;
-				tab: Tab;
-				children?: Array<{ id: string; name: string; tab: Tab }>;
-			}>,
-		): number => {
+		const countVisibleNodes = (nodes: TreeNode[]): number => {
 			let count = 0;
 			for (const node of nodes) {
 				count += 1; // Count the node itself
@@ -503,8 +520,8 @@ export function WorktreeItem({
 		};
 
 		const visibleCount = countVisibleNodes(treeData);
-		const calculatedHeight = visibleCount * rowHeight;
-		return Math.max(minHeight, Math.min(maxHeight, calculatedHeight));
+		const calculatedHeight = visibleCount * TREE_ROW_HEIGHT;
+		return Math.max(TREE_MIN_HEIGHT, Math.min(TREE_MAX_HEIGHT, calculatedHeight));
 	}, [treeData, expandedGroupTabs]);
 
 	// Only render tabs for the active worktree
@@ -587,28 +604,9 @@ export function WorktreeItem({
 			return;
 		}
 
-		// Build warning message if there are uncommitted changes
-		let warning = "";
-		const warnings = [];
-
-		if (canMergeResult.targetHasUncommittedChanges) {
-			const targetBranchText = targetBranch ? ` (${targetBranch})` : "";
-			warnings.push(
-				`The target worktree${targetBranchText} has uncommitted changes.`,
-			);
-		}
-
-		if (canMergeResult.sourceHasUncommittedChanges) {
-			warnings.push(
-				`The source worktree (${worktree.branch}) has uncommitted changes.`,
-			);
-		}
-
-		if (warnings.length > 0) {
-			warning = `Warning: ${warnings.join(" ")} The merge will proceed anyway.`;
-		}
-
-		setMergeWarning(warning);
+		setMergeWarning(
+			buildMergeWarning(canMergeResult, worktree.branch, targetBranch),
+		);
 		setShowMergeDialog(true);
 	};
 
@@ -634,30 +632,13 @@ export function WorktreeItem({
 			},
 		);
 
-		// Update warning message
-		let warning = "";
-		const warnings = [];
-
-		if (canMergeResult.targetHasUncommittedChanges) {
-			const targetBranchText = targetWorktree?.branch
-				? ` (${targetWorktree.branch})`
-				: "";
-			warnings.push(
-				`The target worktree${targetBranchText} has uncommitted changes.`,
-			);
-		}
-
-		if (canMergeResult.sourceHasUncommittedChanges) {
-			warnings.push(
-				`The source worktree (${worktree.branch}) has uncommitted changes.`,
-			);
-		}
-
-		if (warnings.length > 0) {
-			warning = `Warning: ${warnings.join(" ")} The merge will proceed anyway.`;
-		}
-
-		setMergeWarning(warning);
+		setMergeWarning(
+			buildMergeWarning(
+				canMergeResult,
+				worktree.branch,
+				targetWorktree?.branch,
+			),
+		);
 	};
 
 	const confirmMergeWorktree = async () => {
@@ -897,19 +878,9 @@ export function WorktreeItem({
 	// Handle drag and drop (move) using react-arborist
 	const handleMove = async (args: {
 		dragIds: string[];
-		dragNodes: NodeApi<{
-			id: string;
-			name: string;
-			tab: Tab;
-			children?: Array<{ id: string; name: string; tab: Tab }>;
-		}>[];
+		dragNodes: NodeApi<TreeNode>[];
 		parentId: string | null;
-		parentNode: NodeApi<{
-			id: string;
-			name: string;
-			tab: Tab;
-			children?: Array<{ id: string; name: string; tab: Tab }>;
-		}> | null;
+		parentNode: NodeApi<TreeNode> | null;
 		index: number;
 	}) => {
 		if (args.dragNodes.length === 0) return;
@@ -917,10 +888,10 @@ export function WorktreeItem({
 		const draggedNode = args.dragNodes[0];
 		const draggedTab = draggedNode.data.tab as Tab;
 
-		// Don't allow dragging group tabs
-		if (!draggedTab || draggedTab.type === "group") return;
+		if (!draggedTab) return;
 
 		const draggedTabId = draggedTab.id;
+		const isGroupTab = draggedTab.type === "group";
 		const sourceParent = draggedNode.parent;
 		const sourceParentTabId =
 			sourceParent?.data.tab?.type === "group" ? sourceParent.id : null;
@@ -929,6 +900,11 @@ export function WorktreeItem({
 
 		// If moving to a different parent, use tab-move
 		if (sourceParentTabId !== targetParentTabId) {
+			// Prevent group tabs from being moved into other groups
+			if (isGroupTab && targetParentTabId) {
+				return;
+			}
+
 			try {
 				const result = await window.ipcRenderer.invoke("tab-move", {
 					workspaceId,
@@ -951,7 +927,7 @@ export function WorktreeItem({
 			return;
 		}
 
-		// Same parent - handle reordering
+		// Same parent - handle reordering (works for both regular tabs and group tabs)
 		const parentTabs = sourceParentTabId
 			? (sourceParent?.data.tab as Tab).tabs || []
 			: tabs;
@@ -994,19 +970,9 @@ export function WorktreeItem({
 
 	// Render node content for react-arborist Tree
 	const renderNode = (props: {
-		node: NodeApi<{
-			id: string;
-			name: string;
-			tab: Tab;
-			children?: Array<{ id: string; name: string; tab: Tab }>;
-		}>;
+		node: NodeApi<TreeNode>;
 		style: React.CSSProperties;
-		tree: TreeApi<{
-			id: string;
-			name: string;
-			tab: Tab;
-			children?: Array<{ id: string; name: string; tab: Tab }>;
-		}>;
+		tree: TreeApi<TreeNode>;
 		dragHandle?: (el: HTMLDivElement | null) => void;
 		preview?: boolean;
 	}) => {
@@ -1018,7 +984,7 @@ export function WorktreeItem({
 
 		if (isGroup) {
 			return (
-				<div style={style} className="flex items-center">
+				<div style={style} className="flex items-center" ref={dragHandle}>
 					<ContextMenu>
 						<ContextMenuTrigger asChild>
 							<button
@@ -1122,12 +1088,16 @@ export function WorktreeItem({
 							.filter((item) => item.tab.type === "group")
 							.map((item) => [item.id, true]),
 					)}
-					rowHeight={28}
+					rowHeight={TREE_ROW_HEIGHT}
 					indent={12}
-					disableDrag={(node) => {
-						// Disable dragging for group tabs
-						const tab = node.tab as Tab;
-						return tab.type === "group";
+					disableDrop={(args) => {
+						// Prevent dropping group tabs into other groups
+						const draggedTab = args.dragNodes[0]?.data.tab as Tab;
+						const targetParentTab = args.parentNode?.data.tab as Tab;
+						return (
+							draggedTab?.type === "group" &&
+							targetParentTab?.type === "group"
+						);
 					}}
 				>
 					{renderNode}
