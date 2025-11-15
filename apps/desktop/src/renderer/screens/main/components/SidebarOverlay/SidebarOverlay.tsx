@@ -1,31 +1,17 @@
-import type { Workspace } from "shared/types";
+import { useWorkspaceContext } from "../../../../contexts";
 import { Sidebar } from "../Sidebar";
 
 interface SidebarOverlayProps {
 	isVisible: boolean;
-	workspaces: Workspace[] | null;
-	currentWorkspace: Workspace | null;
 	onMouseLeave: () => void;
-	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onWorktreeCreated: () => Promise<void>;
-	onWorkspaceSelect: (workspaceId: string) => Promise<void>;
-	onUpdateWorktree: (worktreeId: string, updatedWorktree: import("shared/types").Worktree) => void;
-	selectedTabId?: string;
-	selectedWorktreeId: string | null;
 }
 
 export function SidebarOverlay({
 	isVisible,
-	workspaces,
-	currentWorkspace,
 	onMouseLeave,
-	onTabSelect,
-	onWorktreeCreated,
-	onWorkspaceSelect,
-	onUpdateWorktree,
-	selectedTabId,
-	selectedWorktreeId,
 }: SidebarOverlayProps) {
+	const { workspaces } = useWorkspaceContext();
+	
 	if (!isVisible || !workspaces) return null;
 
 	return (
@@ -34,17 +20,7 @@ export function SidebarOverlay({
 			onMouseLeave={onMouseLeave}
 		>
 			<div className="h-full border-r border-neutral-800 bg-neutral-950/95 backdrop-blur-sm">
-				<Sidebar
-					workspaces={workspaces}
-					currentWorkspace={currentWorkspace}
-					onTabSelect={onTabSelect}
-					onWorktreeCreated={onWorktreeCreated}
-					onWorkspaceSelect={onWorkspaceSelect}
-					onUpdateWorktree={onUpdateWorktree}
-					selectedTabId={selectedTabId}
-					selectedWorktreeId={selectedWorktreeId}
-					onCollapse={onMouseLeave}
-				/>
+				<Sidebar />
 			</div>
 		</aside>
 	);

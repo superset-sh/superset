@@ -1,8 +1,14 @@
 import { type MotionValue, useMotionValue } from "framer-motion";
 import { File, FileEdit, FilePlus, FileX } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Tab, Workspace, Worktree } from "shared/types";
+import type { Tab } from "shared/types";
 import { useDiffData } from "../../hooks";
+import {
+	useWorkspaceContext,
+	useTabContext,
+	useWorktreeOperationsContext,
+	useSidebarContext,
+} from "../../../../contexts";
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
 import {
@@ -12,32 +18,18 @@ import {
 import { ModeCarousel, type SidebarMode } from "./components/ModeCarousel";
 
 interface SidebarProps {
-	workspaces: Workspace[];
-	currentWorkspace: Workspace | null;
-	onCollapse: () => void;
-	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onWorktreeCreated: () => void;
-	onWorkspaceSelect: (workspaceId: string) => void;
-	onUpdateWorktree: (worktreeId: string, updatedWorktree: Worktree) => void;
-	selectedTabId: string | undefined;
 	isDragging?: boolean;
-	selectedWorktreeId?: string | null;
 	onDiffModeChange?: (mode: SidebarMode, selectedFile: string | null) => void;
 }
 
 export function Sidebar({
-	workspaces,
-	currentWorkspace,
-	onCollapse,
-	onTabSelect,
-	onWorktreeCreated,
-	onWorkspaceSelect,
-	onUpdateWorktree,
-	selectedTabId,
 	isDragging = false,
-	selectedWorktreeId,
 	onDiffModeChange,
 }: SidebarProps) {
+	const { workspaces, currentWorkspace, handleWorkspaceSelect } = useWorkspaceContext();
+	const { selectedTabId, selectedWorktreeId, handleTabSelect } = useTabContext();
+	const { handleWorktreeCreated, handleUpdateWorktree } = useWorktreeOperationsContext();
+	const { handleCollapseSidebar } = useSidebarContext();
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
 	);
@@ -287,7 +279,7 @@ export function Sidebar({
 			if (result.success) {
 				// If we deleted the current workspace, clear selection
 				if (currentWorkspace?.id === workspaceId) {
-					onWorkspaceSelect("");
+					handleWorkspaceSelect("");
 				}
 				// Refresh will happen via workspace-opened event
 				window.location.reload();
@@ -374,10 +366,10 @@ export function Sidebar({
 								currentWorkspace={currentWorkspace}
 								expandedWorktrees={expandedWorktrees}
 								onToggleWorktree={toggleWorktree}
-								onTabSelect={onTabSelect}
-								onReload={onWorktreeCreated}
-								onUpdateWorktree={onUpdateWorktree}
-								selectedTabId={selectedTabId}
+								onTabSelect={handleTabSelect}
+								onReload={handleWorktreeCreated}
+								onUpdateWorktree={handleUpdateWorktree}
+								selectedTabId={selectedTabId ?? undefined}
 								onCloneWorktree={handleCloneWorktree}
 								selectedWorktreeId={
 									selectedWorktreeId ?? currentWorkspace?.activeWorktreeId
