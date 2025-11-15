@@ -63,7 +63,14 @@ export function TabItem({
 		onTabRemove?.(tab.id);
 	};
 
+	const handleMouseDown = (e: React.MouseEvent) => {
+		// Stop propagation to prevent drag from starting when clicking the button
+		e.stopPropagation();
+	};
+
 	const handleClick = (e: React.MouseEvent) => {
+		// Stop propagation to prevent drag from starting
+		e.stopPropagation();
 		if (!isEditing) {
 			onTabSelect(worktreeId, tab.id, e.shiftKey);
 		}
@@ -144,6 +151,7 @@ export function TabItem({
 								? "bg-blue-900/30 text-blue-200"
 								: "hover:bg-neutral-800/40 text-neutral-400 hover:text-neutral-300"
 						}`}
+					onMouseDown={handleMouseDown}
 					onClick={handleClick}
 					onDoubleClick={handleDoubleClick}
 				>
