@@ -1,20 +1,9 @@
-import { dirname, normalize, resolve } from "node:path";
+import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
-import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
-import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-import { main, resources } from "./package.json";
-import { getPortSync } from "./src/main/lib/port-manager";
-
-// Load .env from monorepo root
-// Use override: true to ensure .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true });
-
-const [nodeModules, devFolder] = normalize(dirname(main)).split(/\/|\\/g);
-const devPath = [nodeModules, devFolder].join("/");
 
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
@@ -23,15 +12,11 @@ const tsconfigPaths = tsconfigPathsPlugin({
 export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths, externalizeDepsPlugin()],
-
 		build: {
+			outDir: "dist/main",
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
-				},
-
-				output: {
-					dir: resolve(devPath, "main"),
 				},
 			},
 		},
@@ -39,24 +24,25 @@ export default defineConfig({
 
 	preload: {
 		plugins: [tsconfigPaths, externalizeDepsPlugin()],
-
 		build: {
-			outDir: resolve(devPath, "preload"),
+			outDir: "dist/preload",
 		},
 	},
 
 	renderer: {
+		// Environment variable configuration
+		// Load from monorepo root, only expose VITE_ prefixed vars to renderer
+		envDir: resolve(__dirname, "../.."),
+		envPrefix: ["VITE_"],
+
+		// Define compile-time constants
 		define: {
-			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),
-			"import.meta.env.ENABLE_NEW_UI": JSON.stringify(
-				process.env.ENABLE_NEW_UI || "false",
-			),
-			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(getPortSync()),
 		},
 
+		// Dev server configuration
 		server: {
-			port: getPortSync(),
+			port: 4927,
 			strictPort: false, // Allow fallback to next available port
 		},
 
@@ -64,7 +50,6 @@ export default defineConfig({
 			tsconfigPaths,
 			tailwindcss(),
 			reactPlugin(),
-
 			codeInspectorPlugin({
 				bundler: "vite",
 				hotKeys: ["altKey"],
@@ -72,27 +57,27 @@ export default defineConfig({
 			}),
 		],
 
-		publicDir: resolve(resources, "public"),
+		// Public assets directory
+		publicDir: resolve("src/resources/public"),
 
 		build: {
-			outDir: resolve(devPath, "renderer"),
-
+			outDir: "dist/renderer",
 			rollupOptions: {
-				plugins: [
-					injectProcessEnvPlugin({
-						NODE_ENV: "production",
-						platform: process.platform,
-					}),
-				],
-
 				input: {
 					index: resolve("src/renderer/index.html"),
 				},
-
-				output: {
-					dir: resolve(devPath, "renderer"),
-				},
 			},
+		},
+
+		// Optimize workspace package handling
+		optimizeDeps: {
+			// Include workspace packages for pre-bundling
+			include: ["@superset/ui", "@superset/api"],
+		},
+
+		resolve: {
+			// Deduplicate react/react-dom from workspace packages
+			dedupe: ["react", "react-dom"],
 		},
 	},
 });
