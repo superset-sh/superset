@@ -48,6 +48,7 @@
 		"lucide-react": "^0.553.0",
 		"node-pty": "1.1.0-beta30",
 		"react": "^19.1.1",
+		"react-arborist": "^3.4.3",
 		"react-dom": "^19.1.1",
 		"react-mosaic-component": "^6.1.1",
 		"react-resizable-panels": "^3.0.6",
