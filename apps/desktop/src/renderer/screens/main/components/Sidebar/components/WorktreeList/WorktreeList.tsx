@@ -28,7 +28,6 @@ export function WorktreeList({
 	selectedWorktreeId,
 	showWorkspaceHeader = false,
 }: WorktreeListProps) {
-
 	if (!currentWorkspace) {
 		return (
 			<div className="text-sm text-gray-500 px-3 py-2">No workspace open</div>

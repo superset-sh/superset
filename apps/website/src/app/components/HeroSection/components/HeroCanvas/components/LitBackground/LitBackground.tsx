@@ -6,15 +6,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Mesh, PointLight } from "three";
 import * as THREE from "three";
 import { useHeroVisibility } from "../../../HeroParallax";
-import { waveVertexShader } from "../../shaders/vertex";
-import { waveFragmentShader } from "../../shaders/fragment";
 import {
+	GEOMETRY_CONFIG,
 	LIGHT_CONFIG,
 	MATERIAL_CONFIG,
 	TEXT_CONFIG,
-	GEOMETRY_CONFIG,
 } from "../../config";
 import { calculateGlareProperties } from "../../helpers";
+import { waveFragmentShader } from "../../shaders/fragment";
+import { waveVertexShader } from "../../shaders/vertex";
 
 export function LitBackground() {
 	const meshRef = useRef<Mesh>(null);

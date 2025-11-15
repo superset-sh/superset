@@ -10,4 +10,3 @@ export const modeLabels: Record<SidebarMode, string> = {
 	tabs: "Tabs",
 	changes: "Changes",
 };
-

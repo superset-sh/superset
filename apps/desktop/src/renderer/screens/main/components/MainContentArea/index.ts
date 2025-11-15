@@ -1,2 +1,1 @@
 export { MainContentArea } from "./MainContentArea";
-

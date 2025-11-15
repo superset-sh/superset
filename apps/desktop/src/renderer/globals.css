@@ -135,6 +135,11 @@
 		-webkit-font-smoothing: antialiased;
 	}
 
+	/* Micro 5 font for logo */
+	.font-micro5 {
+		font-family: "Micro 5", monospace;
+	}
+
 	/* Ensure xterm terminal fills container height */
 	.xterm {
 		height: 100% !important;

@@ -92,9 +92,8 @@ export function useWorkspace({
 				setWorkspaces(allWorkspaces);
 
 				// Check if this window was restored from a previous session
-				const isRestored = await window.ipcRenderer.invoke(
-					"window-is-restored",
-				);
+				const isRestored =
+					await window.ipcRenderer.invoke("window-is-restored");
 
 				// Check for window-specific workspace first
 				const workspaceId = await window.ipcRenderer.invoke(
@@ -198,4 +197,3 @@ export function useWorkspace({
 		handleCreateWorkspaceFromModal,
 	};
 }
-

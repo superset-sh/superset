@@ -40,4 +40,3 @@ export interface TerminalChannels {
 		response: NoResponse;
 	};
 }
-

@@ -14,4 +14,3 @@ export function ModeHeader({ mode }: ModeHeaderProps) {
 		</div>
 	);
 }
-

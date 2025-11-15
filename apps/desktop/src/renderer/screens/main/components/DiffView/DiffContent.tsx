@@ -155,14 +155,15 @@ export const DiffContent = memo(function DiffContent({
 							</div>
 						)}
 						<span
-							className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${file.status === "added"
-								? "bg-emerald-500/10 text-emerald-400"
-								: file.status === "deleted"
-									? "bg-rose-500/10 text-rose-400"
-									: file.status === "modified"
-										? "bg-amber-500/10 text-amber-400"
-										: "bg-white/5 text-zinc-400"
-								}`}
+							className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+								file.status === "added"
+									? "bg-emerald-500/10 text-emerald-400"
+									: file.status === "deleted"
+										? "bg-rose-500/10 text-rose-400"
+										: file.status === "modified"
+											? "bg-amber-500/10 text-amber-400"
+											: "bg-white/5 text-zinc-400"
+							}`}
 						>
 							{file.status}
 						</span>

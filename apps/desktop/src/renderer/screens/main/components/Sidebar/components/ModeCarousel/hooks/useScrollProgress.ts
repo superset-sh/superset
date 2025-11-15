@@ -56,4 +56,3 @@ export function useScrollProgress({
 
 	return modeProgress;
 }
-

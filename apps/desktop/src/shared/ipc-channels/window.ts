@@ -15,4 +15,3 @@ export interface WindowChannels {
 		response: boolean;
 	};
 }
-

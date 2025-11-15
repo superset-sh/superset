@@ -11,8 +11,8 @@ import type { ProxyChannels } from "./proxy";
 import type { TabChannels } from "./tab";
 import type { TerminalChannels } from "./terminal";
 import type { WindowChannels } from "./window";
-import type { WorktreeChannels } from "./worktree";
 import type { WorkspaceChannels } from "./workspace";
+import type { WorktreeChannels } from "./worktree";
 
 // Re-export shared types
 export type {
@@ -68,4 +68,3 @@ export function isValidChannel(channel: string): channel is IpcChannelName {
 export function getAllChannelNames(): IpcChannelName[] {
 	return Object.keys({} as IpcChannels) as IpcChannelName[];
 }
-
