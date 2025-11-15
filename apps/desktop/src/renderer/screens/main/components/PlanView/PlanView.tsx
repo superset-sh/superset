@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Plus } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import type { Tab, Workspace } from "shared/types";
+import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import { mockTasks, mockUsers } from "../../../../../lib/mock-data";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { KanbanColumn } from "./KanbanColumn";
@@ -11,19 +11,11 @@ import { TaskPage } from "./TaskPage";
 type Task = RouterOutputs["task"]["all"][number];
 type User = RouterOutputs["user"]["all"][number];
 
-interface PlanViewProps {
-	currentWorkspace: Workspace | null;
-	selectedWorktreeId: string | null;
-	onTabSelect: (worktreeId: string, tabId: string) => void;
-	onTabCreated: (worktreeId: string, tab: Tab) => void;
-}
+interface PlanViewProps {}
 
-export const PlanView: React.FC<PlanViewProps> = ({
-	currentWorkspace,
-	selectedWorktreeId,
-	onTabSelect,
-	onTabCreated,
-}) => {
+export const PlanView: React.FC<PlanViewProps> = () => {
+	const { currentWorkspace } = useWorkspaceContext();
+	const { selectedWorktreeId, handleTabSelect, handleTabCreated } = useTabContext();
 	// Initialize with mock tasks and add some variety to statuses
 	const [tasks, setTasks] = useState<Task[]>(() => {
 		// Modify some tasks to have different statuses for demo purposes
@@ -143,8 +135,8 @@ export const PlanView: React.FC<PlanViewProps> = ({
 				onUpdate={handleUpdateTask}
 				currentWorkspace={currentWorkspace}
 				selectedWorktreeId={selectedWorktreeId}
-				onTabSelect={onTabSelect}
-				onTabCreated={onTabCreated}
+				onTabSelect={handleTabSelect}
+				onTabCreated={handleTabCreated}
 			/>
 		);
 	}

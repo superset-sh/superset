@@ -7,29 +7,24 @@ import {
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import type { Tab } from "shared/types";
+import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {
 	groupTab: Tab; // A tab with type: "group"
-	workingDirectory: string;
-	workspaceId: string;
-	worktreeId: string | undefined;
-	selectedTabId: string | undefined;
-	onTabFocus: (tabId: string) => void;
-	workspaceName?: string;
-	mainBranch?: string;
 }
 
-export default function TabGroup({
-	groupTab,
-	workingDirectory,
-	workspaceId,
-	worktreeId,
-	selectedTabId,
-	onTabFocus,
-	workspaceName,
-	mainBranch,
-}: ScreenLayoutProps) {
+export default function TabGroup({ groupTab }: ScreenLayoutProps) {
+	const { currentWorkspace } = useWorkspaceContext();
+	const { selectedWorktreeId, selectedTabId, handleTabFocus } = useTabContext();
+	
+	const selectedWorktree = currentWorkspace?.worktrees?.find(
+		(wt) => wt.id === selectedWorktreeId,
+	);
+	
+	const workingDirectory = selectedWorktree?.path || currentWorkspace?.repoPath || "";
+	const workspaceId = currentWorkspace?.id || "";
+	const worktreeId = selectedWorktreeId ?? undefined;
 	// Initialize mosaic tree from groupTab or create a default tree
 	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
 		() => {
@@ -190,14 +185,7 @@ export default function TabGroup({
 					>
 						<TabContent
 							tab={tab}
-							workingDirectory={workingDirectory}
-							workspaceId={workspaceId}
-							worktreeId={worktreeId}
 							groupTabId={groupTab.id}
-							selectedTabId={selectedTabId}
-							onTabFocus={onTabFocus}
-							workspaceName={workspaceName}
-							mainBranch={mainBranch}
 							isVisibleInMosaic={true}
 						/>
 					</div>
@@ -211,9 +199,7 @@ export default function TabGroup({
 			workspaceId,
 			worktreeId,
 			groupTab.id,
-			onTabFocus,
-			workspaceName,
-			mainBranch,
+			handleTabFocus,
 		],
 	);
 

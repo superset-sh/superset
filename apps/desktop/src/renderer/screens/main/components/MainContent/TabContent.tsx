@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
+import type { Tab } from "shared/types";
+import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import { PortTab } from "../TabContent/components/PortTab";
 import { PreviewTab } from "../TabContent/components/PreviewTab";
 import TabGroup from "./TabGroup";
@@ -7,15 +8,7 @@ import Terminal from "./Terminal";
 
 interface TabContentProps {
 	tab: Tab;
-	workingDirectory: string;
-	workspaceId: string;
-	worktreeId: string | undefined;
-	worktree?: Worktree;
 	groupTabId: string; // ID of the parent group tab
-	selectedTabId?: string; // Currently selected tab ID
-	onTabFocus: (tabId: string) => void;
-	workspaceName?: string;
-	mainBranch?: string;
 	isVisibleInMosaic?: boolean; // Whether this tab is visible in a mosaic layout
 }
 
@@ -30,37 +23,30 @@ interface TabContentProps {
  */
 export default function TabContent({
 	tab,
-	workingDirectory,
-	workspaceId,
-	worktreeId,
-	worktree,
 	groupTabId,
-	selectedTabId,
-	onTabFocus,
-	workspaceName,
-	mainBranch,
 	isVisibleInMosaic = false,
 }: TabContentProps) {
+	const { currentWorkspace } = useWorkspaceContext();
+	const { selectedWorktreeId, selectedTabId, handleTabFocus } = useTabContext();
+	
+	const selectedWorktree = currentWorkspace?.worktrees?.find(
+		(wt) => wt.id === selectedWorktreeId,
+	);
+	
+	const workingDirectory = selectedWorktree?.path || currentWorkspace?.repoPath || "";
+	const workspaceId = currentWorkspace?.id || "";
+	const worktreeId = selectedWorktreeId ?? undefined;
+	const worktree = selectedWorktree;
+	
 	const handleFocus = () => {
-		onTabFocus(tab.id);
+		handleTabFocus(tab.id);
 	};
 
 	// Render based on tab type
 	switch (tab.type) {
 		case "group":
 			// Recursively render a nested ScreenLayout for group tabs
-			return (
-				<TabGroup
-					groupTab={tab}
-					workingDirectory={workingDirectory}
-					workspaceId={workspaceId}
-					worktreeId={worktreeId}
-					selectedTabId={selectedTabId}
-					onTabFocus={onTabFocus}
-					workspaceName={workspaceName}
-					mainBranch={mainBranch}
-				/>
-			);
+			return <TabGroup groupTab={tab} />;
 
 		case "terminal":
 			return (

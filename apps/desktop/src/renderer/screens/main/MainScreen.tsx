@@ -7,58 +7,41 @@ import { MainContentArea } from "./components/MainContentArea";
 import { SidebarOverlay } from "./components/SidebarOverlay";
 import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
 import {
-	useSidebar,
-	useTabs,
-	useTasks,
-	useWorkspace,
-	useWorktrees,
-} from "./hooks";
+	useWorkspaceContext,
+	useTabContext,
+	useSidebarContext,
+	useWorktreeOperationsContext,
+	useTaskContext,
+} from "../../contexts";
 import type { AppMode } from "./types";
 import { enrichWorktreesWithTasks } from "./utils";
 
 export function MainScreen() {
 	const [mode, setMode] = useState<AppMode>("edit");
 
-	// Tab management (needs to be initialized first for workspace hook)
-	const [selectedWorktreeId, setSelectedWorktreeId] = useState<string | null>(
-		null,
-	);
-	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
-
 	// Workspace management
 	const {
 		workspaces,
 		currentWorkspace,
-		setCurrentWorkspace,
-		setWorkspaces,
 		loading,
 		error,
 		showWorkspaceSelection,
-		loadAllWorkspaces,
 		handleWorkspaceSelect,
 		handleWorkspaceSelectFromModal,
 		handleCreateWorkspaceFromModal,
-	} = useWorkspace({
-		setSelectedWorktreeId,
-		setSelectedTabId,
-	});
+	} = useWorkspaceContext();
 
 	// Tab management
 	const {
+		selectedWorktreeId,
+		setSelectedWorktreeId,
 		selectedWorktree,
 		selectedTab,
 		parentGroupTab,
 		handleTabCreated,
 		handleTabSelect,
 		handleTabFocus,
-	} = useTabs({
-		currentWorkspace,
-		setCurrentWorkspace,
-		selectedWorktreeId,
-		setSelectedWorktreeId,
-		selectedTabId,
-		setSelectedTabId,
-	});
+	} = useTabContext();
 
 	// Sidebar management
 	const {
@@ -69,25 +52,16 @@ export function MainScreen() {
 		setShowSidebarOverlay,
 		handleCollapseSidebar,
 		handleExpandSidebar,
-	} = useSidebar();
+	} = useSidebarContext();
 
 	// Worktree operations
 	const {
 		handleWorktreeCreated,
-		handleWorktreeCreatedWithResult,
 		handleUpdateWorktree,
 		handleCreatePR,
 		handleMergePR,
 		handleDeleteWorktree,
-	} = useWorktrees({
-		currentWorkspace,
-		setCurrentWorkspace,
-		setWorkspaces,
-		loadAllWorkspaces,
-		selectedWorktreeId,
-		setSelectedWorktreeId,
-		setSelectedTabId,
-	});
+	} = useWorktreeOperationsContext();
 
 	// Task management
 	const {
@@ -104,12 +78,7 @@ export function MainScreen() {
 		handleSelectTask,
 		handleCreateTask,
 		handleClearStatus,
-	} = useTasks({
-		currentWorkspace,
-		setSelectedWorktreeId,
-		handleTabSelect,
-		handleWorktreeCreated: handleWorktreeCreatedWithResult,
-	});
+	} = useTaskContext();
 
 	return (
 		<>
@@ -128,15 +97,7 @@ export function MainScreen() {
 			{/* Sidebar overlay when hidden and hovering */}
 			<SidebarOverlay
 				isVisible={showSidebarOverlay}
-				workspaces={workspaces}
-				currentWorkspace={currentWorkspace}
 				onMouseLeave={() => setShowSidebarOverlay(false)}
-				onTabSelect={handleTabSelect}
-				onWorktreeCreated={handleWorktreeCreated}
-				onWorkspaceSelect={handleWorkspaceSelect}
-				onUpdateWorktree={handleUpdateWorktree}
-				selectedTabId={selectedTabId ?? undefined}
-				selectedWorktreeId={selectedWorktreeId}
 			/>
 
 			<AppFrame>
@@ -175,28 +136,7 @@ export function MainScreen() {
 
 					{/* Main content area - conditionally render based on mode */}
 					<div className="flex-1 overflow-hidden p-2 gap-2">
-						<MainContentArea
-							mode={mode}
-							loading={loading}
-							error={error}
-							currentWorkspace={currentWorkspace}
-							selectedWorktree={selectedWorktree}
-							selectedTab={selectedTab}
-							parentGroupTab={parentGroupTab}
-							selectedWorktreeId={selectedWorktreeId}
-							selectedTabId={selectedTabId}
-							workspaces={workspaces}
-							isSidebarOpen={isSidebarOpen}
-							sidebarPanelRef={sidebarPanelRef}
-							onSidebarCollapse={() => setIsSidebarOpen(false)}
-							onSidebarExpand={() => setIsSidebarOpen(true)}
-							onTabSelect={handleTabSelect}
-							onWorktreeCreated={handleWorktreeCreated}
-							onWorkspaceSelect={handleWorkspaceSelect}
-							onUpdateWorktree={handleUpdateWorktree}
-							onTabFocus={handleTabFocus}
-							onTabCreated={handleTabCreated}
-						/>
+						<MainContentArea mode={mode} />
 					</div>
 				</div>
 			</AppFrame>
