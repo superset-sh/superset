@@ -6,7 +6,7 @@ import {
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
-import type { Tab, Workspace, Worktree } from "shared/types";
+import type { Tab, Workspace, Worktree } from "@/shared/types";
 import { WorktreeProvider } from "../../../../contexts/WorktreeContext";
 import { AppFrame } from "../AppFrame";
 import { Background } from "../Background";

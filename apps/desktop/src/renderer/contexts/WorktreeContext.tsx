@@ -1,6 +1,6 @@
 import type React from "react";
 import { createContext, useContext } from "react";
-import type { Worktree } from "shared/types";
+import type { Worktree } from "@/shared/types";
 
 interface WorktreeContextValue {
 	currentWorktree: Worktree | null;

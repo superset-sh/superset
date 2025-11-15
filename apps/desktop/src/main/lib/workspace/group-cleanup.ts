@@ -1,4 +1,4 @@
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 import { findTab } from "./tab-helpers";
 
 /**

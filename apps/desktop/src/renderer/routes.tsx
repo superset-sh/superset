@@ -1,4 +1,4 @@
-import { Router } from "lib/electron-router-dom";
+import { Router } from "@/lib/electron-router-dom";
 import { Route, useRouteError } from "react-router-dom";
 
 import { MainScreen } from "./screens/main";

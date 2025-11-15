@@ -1,6 +1,6 @@
 import type { RouterOutputs } from "@superset/api";
 import type React from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 import { TaskCard } from "./TaskCard";
 
 type Task = RouterOutputs["task"]["all"][number];

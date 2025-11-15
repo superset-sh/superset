@@ -8,11 +8,11 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "renderer/components/ui/dialog";
-import { Input } from "renderer/components/ui/input";
-import { Label } from "renderer/components/ui/label";
-import { Separator } from "renderer/components/ui/separator";
-import type { Worktree } from "shared/types";
+} from "@/renderer/components/ui/dialog";
+import { Input } from "@/renderer/components/ui/input";
+import { Label } from "@/renderer/components/ui/label";
+import { Separator } from "@/renderer/components/ui/separator";
+import type { Worktree } from "@/shared/types";
 import { TerminalOutput } from "./TerminalOutput";
 
 interface CreateWorktreeModalProps {

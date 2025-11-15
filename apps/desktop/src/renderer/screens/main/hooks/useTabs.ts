@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 import { findTabRecursive } from "../utils";
 
 interface UseTabsProps {

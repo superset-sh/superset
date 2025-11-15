@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Workspace } from "shared/types";
+import type { Workspace } from "@/shared/types";
 
 interface UseWorkspaceProps {
 	setSelectedWorktreeId?: (id: string | null) => void;

@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Plus } from "lucide-react";
 import type React from "react";
 import { useMemo, useState } from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 import { mockTasks, mockUsers } from "../../../../../lib/mock-data";
 import { CreateTaskModal } from "./CreateTaskModal";
 import { KanbanColumn } from "./KanbanColumn";

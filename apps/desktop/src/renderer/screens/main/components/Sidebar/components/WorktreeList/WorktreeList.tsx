@@ -1,4 +1,4 @@
-import type { Workspace, Worktree } from "shared/types";
+import type { Workspace, Worktree } from "@/shared/types";
 import { WorkspacePortIndicator } from "../WorkspacePortIndicator";
 import { NewTabButton } from "./components/NewTabButton";
 import { WorktreeItem } from "./components/WorktreeItem";

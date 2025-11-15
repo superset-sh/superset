@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import type { WorkspaceConfig } from "shared/types";
+import type { WorkspaceConfig } from "@/shared/types";
 
 class ConfigManager {
 	private static instance: ConfigManager;

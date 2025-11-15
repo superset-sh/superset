@@ -1,8 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Download, FolderOpen, Settings, Terminal } from "lucide-react";
-import { Dialog, DialogContent } from "renderer/components/ui/dialog";
-import type { Workspace } from "shared/types";
+import { Dialog, DialogContent } from "@/renderer/components/ui/dialog";
+import type { Workspace } from "@/shared/types";
 
 interface WorkspaceSelectionModalProps {
 	isOpen: boolean;

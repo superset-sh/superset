@@ -1,4 +1,4 @@
-import type { Workspace } from "shared/types";
+import type { Workspace } from "@/shared/types";
 import { Sidebar } from "../Sidebar";
 
 interface SidebarOverlayProps {

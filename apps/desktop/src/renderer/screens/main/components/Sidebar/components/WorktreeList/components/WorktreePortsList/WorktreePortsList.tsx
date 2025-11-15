@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { ExternalLink, Network } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Worktree } from "shared/types";
+import type { Worktree } from "@/shared/types";
 
 interface WorktreePortsListProps {
 	worktree: Worktree;

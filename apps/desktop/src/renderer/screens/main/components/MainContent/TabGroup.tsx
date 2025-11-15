@@ -6,7 +6,7 @@ import {
 	MosaicWindow,
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
-import type { Tab } from "shared/types";
+import type { Tab } from "@/shared/types";
 import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {

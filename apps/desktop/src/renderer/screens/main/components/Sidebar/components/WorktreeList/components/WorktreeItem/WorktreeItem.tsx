@@ -26,8 +26,8 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "renderer/components/ui/dialog";
-import type { Tab, Worktree } from "shared/types";
+} from "@/renderer/components/ui/dialog";
+import type { Tab, Worktree } from "@/shared/types";
 import { WorktreePortsList } from "../WorktreePortsList";
 import { GitStatusDialog } from "./components/GitStatusDialog";
 import { TabItem } from "./components/TabItem";

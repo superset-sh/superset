@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
+import type { Tab, Worktree } from "@/shared/types";
 
 interface PortTabProps {
 	tab: Tab;

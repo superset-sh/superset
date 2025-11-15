@@ -1,4 +1,4 @@
-import type { Tab, Worktree } from "shared/types";
+import type { Tab, Worktree } from "@/shared/types";
 import type { TaskStatus } from "./components/Layout/StatusIndicator";
 import type { WorktreeWithTask } from "./components/Layout/TaskTabs";
 import type { PendingWorktree } from "./types";

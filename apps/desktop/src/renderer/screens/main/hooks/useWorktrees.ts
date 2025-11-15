@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Workspace, Worktree } from "shared/types";
+import type { Workspace, Worktree } from "@/shared/types";
 
 interface UseWorktreesProps {
 	currentWorkspace: Workspace | null;

@@ -8,7 +8,7 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "renderer/components/ui/dialog";
+} from "@/renderer/components/ui/dialog";
 import { AddTaskButton } from "./AddTaskButton";
 import { ModeToggle } from "./ModeToggle";
 import { PRActions } from "./PRActions";

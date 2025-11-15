@@ -7,7 +7,7 @@ import type {
 	MosaicNode,
 	UpdatePreviewTabInput,
 	UpdateWorkspaceInput,
-} from "shared/types";
+} from "@/shared/types";
 
 import configManager from "./config-manager";
 import workspaceManager from "./workspace-manager";

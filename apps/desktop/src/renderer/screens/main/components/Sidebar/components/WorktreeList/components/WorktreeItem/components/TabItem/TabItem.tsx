@@ -15,7 +15,7 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
+import type { Tab, Worktree } from "@/shared/types";
 
 interface TabItemProps {
 	tab: Tab;
