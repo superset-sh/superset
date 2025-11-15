@@ -1,0 +1,7 @@
+{
+  "name": "Superset",
+  "version": "0.0.0",
+  "main": "./node_modules/.dev/main/index.js",
+  "dependencies": {},
+  "devDependencies": {}
+}

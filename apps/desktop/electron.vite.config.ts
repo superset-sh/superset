@@ -22,7 +22,7 @@ const tsconfigPaths = tsconfigPathsPlugin({
 
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, externalizeDepsPlugin()],
+		plugins: [tsconfigPaths],
 
 		build: {
 			rollupOptions: {
@@ -33,15 +33,19 @@ export default defineConfig({
 				output: {
 					dir: resolve(devPath, "main"),
 				},
+				external: ["electron", "node-pty", /^node:/],
 			},
 		},
 	},
 
 	preload: {
-		plugins: [tsconfigPaths, externalizeDepsPlugin()],
+		plugins: [tsconfigPaths],
 
 		build: {
 			outDir: resolve(devPath, "preload"),
+			rollupOptions: {
+				external: ["electron", /^node:/],
+			},
 		},
 	},
 
