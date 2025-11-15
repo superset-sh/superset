@@ -1,4 +1,4 @@
-import type { Worktree } from "shared/types";
+import type { Worktree } from "@/shared/types";
 import type { TaskStatus } from "../StatusIndicator";
 
 export interface WorktreeWithTask extends Worktree {

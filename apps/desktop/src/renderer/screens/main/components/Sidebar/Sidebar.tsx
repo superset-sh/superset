@@ -1,14 +1,11 @@
 import { type MotionValue, useMotionValue } from "framer-motion";
 import { File, FileEdit, FilePlus, FileX } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Tab, Workspace, Worktree } from "shared/types";
+import type { Tab, Workspace, Worktree } from "@/shared/types";
 import { useDiffData } from "../../hooks";
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
-import {
-	CreateWorktreeModal,
-	WorktreeList,
-} from "./components";
+import { CreateWorktreeModal, WorktreeList } from "./components";
 import { ModeCarousel, type SidebarMode } from "./components/ModeCarousel";
 
 interface SidebarProps {

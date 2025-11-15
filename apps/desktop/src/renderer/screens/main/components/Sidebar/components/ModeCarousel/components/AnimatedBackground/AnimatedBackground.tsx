@@ -19,7 +19,7 @@ export function AnimatedBackground({
 	const translateX = useTransform(
 		progress,
 		[0, modeCount - 1],
-		[0, (modeCount - 1) * totalButtonWidth]
+		[0, (modeCount - 1) * totalButtonWidth],
 	);
 
 	return (
@@ -37,4 +37,3 @@ export function AnimatedBackground({
 		/>
 	);
 }
-

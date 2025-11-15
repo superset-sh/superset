@@ -111,4 +111,3 @@ export interface WorkspaceChannels {
 		response: boolean;
 	};
 }
-

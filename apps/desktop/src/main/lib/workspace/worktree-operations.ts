@@ -9,8 +9,8 @@ import type {
 	Tab,
 	Workspace,
 	Worktree,
-} from "shared/types";
-import { generateBranchName } from "shared/utils/slug";
+} from "@/shared/types";
+import { generateBranchName } from "@/shared/utils/slug";
 
 import configManager from "../config-manager";
 import { executeSetup } from "../setup-executor";

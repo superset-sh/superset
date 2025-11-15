@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
+import type { Tab, Worktree } from "@/shared/types";
 import { PortTab } from "../TabContent/components/PortTab";
 import { PreviewTab } from "../TabContent/components/PreviewTab";
 import TabGroup from "./TabGroup";

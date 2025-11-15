@@ -1,6 +1,7 @@
-import { author as _author, name } from "~/package.json";
+import pkg from "~/package.json";
 
-const author = _author.name ?? _author;
+const author = pkg.author.name ?? pkg.author;
+const name = pkg.name;
 const authorInKebabCase = author.replace(/\s+/g, "-");
 const appId = `com.${authorInKebabCase}.${name}`.toLowerCase();
 

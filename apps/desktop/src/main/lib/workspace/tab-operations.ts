@@ -7,7 +7,7 @@ import type {
 	UpdatePreviewTabInput,
 	Workspace,
 	Worktree,
-} from "shared/types";
+} from "@/shared/types";
 
 import configManager from "../config-manager";
 import { cleanupEmptyGroupsInWorktree } from "./group-cleanup";

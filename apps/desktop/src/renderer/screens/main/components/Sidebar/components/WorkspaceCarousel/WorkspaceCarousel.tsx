@@ -6,7 +6,7 @@ import {
 	useRef,
 	useState,
 } from "react";
-import type { Workspace } from "shared/types";
+import type { Workspace } from "@/shared/types";
 
 interface WorkspaceCarouselProps {
 	workspaces: Workspace[];

@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { MosaicNode, Tab } from "shared/types";
+import type { MosaicNode, Tab } from "@/shared/types";
 
 /**
  * Helper functions for working with tabs

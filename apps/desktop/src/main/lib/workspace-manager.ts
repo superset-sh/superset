@@ -8,7 +8,7 @@ import type {
 	UpdateWorkspaceInput,
 	Workspace,
 	Worktree,
-} from "shared/types";
+} from "@/shared/types";
 import { proxyManager } from "./proxy-manager";
 import * as tabOps from "./workspace/tab-operations";
 import * as workspaceOps from "./workspace/workspace-operations";

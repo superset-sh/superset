@@ -1,19 +1,12 @@
-// Load .env from monorepo root before any other imports
-import { resolve } from "node:path";
-import { config } from "dotenv";
-
-// Use override: true to ensure .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../../../.env"), override: true });
-
 import path from "node:path";
 import { app } from "electron";
-import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { registerDeepLinkIpcs } from "main/lib/deep-link-ipcs";
-import { deepLinkManager } from "main/lib/deep-link-manager";
-import { registerPortIpcs } from "main/lib/port-ipcs";
-import { getPort } from "main/lib/port-manager";
-import windowManager from "main/lib/window-manager";
-import { registerWorkspaceIPCs } from "main/lib/workspace-ipcs";
+import { makeAppSetup } from "@/lib/electron-app/factories/app/setup";
+import { registerDeepLinkIpcs } from "@/main/lib/deep-link-ipcs";
+import { deepLinkManager } from "@/main/lib/deep-link-manager";
+import { registerPortIpcs } from "@/main/lib/port-ipcs";
+import { getPort } from "@/main/lib/port-manager";
+import windowManager from "@/main/lib/window-manager";
+import { registerWorkspaceIPCs } from "@/main/lib/workspace-ipcs";
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -50,7 +43,7 @@ app.on("open-url", (event, url) => {
 	registerWorkspaceIPCs();
 	registerPortIpcs();
 	registerDeepLinkIpcs();
-	const { registerWindowIPCs } = await import("main/lib/window-ipcs");
+	const { registerWindowIPCs } = await import("@/main/lib/window-ipcs");
 	registerWindowIPCs();
 
 	await makeAppSetup(

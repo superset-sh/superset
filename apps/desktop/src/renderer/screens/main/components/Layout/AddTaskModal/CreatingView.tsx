@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
+import { ScrollArea } from "@superset/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import type React from "react";
-import { ScrollArea } from "@superset/ui/scroll-area";
 import { TerminalOutput } from "../../Sidebar/components/CreateWorktreeModal/TerminalOutput";
 
 interface CreatingViewProps {
@@ -13,7 +13,7 @@ interface CreatingViewProps {
 
 function getStatusType(status?: string): "error" | "success" | "creating" {
 	if (!status) return "creating";
-	
+
 	const lowerStatus = status.toLowerCase();
 	if (lowerStatus.includes("failed") || lowerStatus.includes("error")) {
 		return "error";
@@ -103,4 +103,3 @@ export const CreatingView: React.FC<CreatingViewProps> = ({
 		</div>
 	);
 };
-

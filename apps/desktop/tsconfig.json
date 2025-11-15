@@ -16,16 +16,16 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"noEmit": true,
-		"baseUrl": ".",
+		"baseUrl": "./src",
 		"paths": {
-			"*": ["src/*"],
-			"~/*": ["./*"]
+			"@/*": ["./*"],
+			"~/*": ["../*"]
 		}
 	},
 	"include": [
 		"./src",
 		"electron.vite.config.*",
-		"electron-builder.ts",
+		"electron-builder.config.ts",
 		"index.d.ts"
 	],
 	"exclude": ["node_modules"]

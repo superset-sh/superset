@@ -4,9 +4,9 @@ import {
 	installExtension,
 	REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
-import terminalManager from "main/lib/terminal";
-import { ENVIRONMENT, PLATFORM } from "shared/constants";
-import { makeAppId } from "shared/utils";
+import terminalManager from "@/main/lib/terminal";
+import { ENVIRONMENT, PLATFORM } from "@/shared/constants";
+import { makeAppId } from "@/shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);

@@ -9,7 +9,7 @@ import { ScrollArea, ScrollBar } from "@superset/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { type MotionValue, motion, useTransform } from "framer-motion";
 import { Plus } from "lucide-react";
-import type { Workspace } from "shared/types";
+import type { Workspace } from "@/shared/types";
 import { getWorkspaceIcon } from "../../utils";
 
 interface WorkspaceSwitcherProps {

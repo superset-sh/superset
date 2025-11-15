@@ -1,5 +1,5 @@
 import type React from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 import { findTabRecursive } from "../utils";
 
 interface UseTabsProps {
@@ -19,7 +19,6 @@ export function useTabs({
 	selectedTabId,
 	setSelectedTabId,
 }: UseTabsProps) {
-
 	// Get selected worktree
 	const selectedWorktree = currentWorkspace?.worktrees?.find(
 		(wt) => wt.id === selectedWorktreeId,
@@ -121,4 +120,3 @@ export function useTabs({
 		handleTabFocus,
 	};
 }
-

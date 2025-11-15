@@ -49,21 +49,31 @@ export function DiffContentArea({
 
 	// Load selected file immediately
 	useEffect(() => {
-		if (selectedFile && loadFileContent && !loadedFiles.has(selectedFile) && !loadingFiles.has(selectedFile)) {
+		if (
+			selectedFile &&
+			loadFileContent &&
+			!loadedFiles.has(selectedFile) &&
+			!loadingFiles.has(selectedFile)
+		) {
 			loadFileContent(selectedFile);
 		}
 	}, [selectedFile, loadFileContent, loadedFiles, loadingFiles]);
 
 	// Use intersection observer to load files when they come into view
 	useEffect(() => {
-		if (viewMode !== "files" || !scrollContainerRef.current || !loadFileContent) return;
+		if (viewMode !== "files" || !scrollContainerRef.current || !loadFileContent)
+			return;
 
 		const observer = new IntersectionObserver(
 			(entries) => {
 				for (const entry of entries) {
 					if (entry.isIntersecting) {
 						const fileId = entry.target.id.replace("file-diff-", "");
-						if (fileId && !loadedFilesRef.current.has(fileId) && !loadingFilesRef.current.has(fileId)) {
+						if (
+							fileId &&
+							!loadedFilesRef.current.has(fileId) &&
+							!loadingFilesRef.current.has(fileId)
+						) {
 							loadFileContentRef.current?.(fileId);
 						}
 					}
@@ -361,4 +371,3 @@ export function DiffContentArea({
 		</div>
 	);
 }
-

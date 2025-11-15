@@ -5,7 +5,7 @@ import type {
 	Tab,
 	UpdateWorkspaceInput,
 	Workspace,
-} from "shared/types";
+} from "@/shared/types";
 
 import configManager from "../config-manager";
 import { portDetector } from "../port-detector";

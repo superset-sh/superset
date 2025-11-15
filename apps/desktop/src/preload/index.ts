@@ -3,7 +3,7 @@ import type {
 	IpcChannelName,
 	IpcRequest,
 	IpcResponse_,
-} from "shared/ipc-channels";
+} from "@/shared/ipc-channels";
 
 declare global {
 	interface Window {

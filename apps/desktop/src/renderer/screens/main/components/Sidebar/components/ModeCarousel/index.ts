@@ -1,2 +1,2 @@
 export { ModeCarousel } from "./ModeCarousel";
-export type { SidebarMode, ModeCarouselProps } from "./types";
+export type { ModeCarouselProps, SidebarMode } from "./types";

@@ -8,6 +8,7 @@ interface ImportMetaEnv {
 	readonly ENABLE_NEW_UI?: string;
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Module augmentation for ImportMeta
 interface ImportMeta {
 	readonly env: ImportMetaEnv;
 }

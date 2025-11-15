@@ -36,11 +36,7 @@ export function useModeDetection({
 				// Calculate which mode we're closest to and snap to it
 				const finalIndex = Math.round(finalScrollLeft / finalContainerWidth);
 
-				if (
-					finalIndex >= 0 &&
-					finalIndex < modes.length &&
-					modes[finalIndex]
-				) {
+				if (finalIndex >= 0 && finalIndex < modes.length && modes[finalIndex]) {
 					// Snap to the nearest mode
 					const targetScrollX = finalIndex * finalContainerWidth;
 					if (Math.abs(finalScrollLeft - targetScrollX) > 5) {
@@ -68,4 +64,3 @@ export function useModeDetection({
 		};
 	}, [modes, currentMode, onModeSelect, scrollContainer, isDragging]);
 }
-

@@ -854,7 +854,10 @@ class WorktreeManager {
 				const oldPath = parts[2]; // For renamed files
 
 				// Check if file should be excluded
-				if (this.shouldExcludeFile(filePath) || (oldPath && this.shouldExcludeFile(oldPath))) {
+				if (
+					this.shouldExcludeFile(filePath) ||
+					(oldPath && this.shouldExcludeFile(oldPath))
+				) {
 					continue;
 				}
 

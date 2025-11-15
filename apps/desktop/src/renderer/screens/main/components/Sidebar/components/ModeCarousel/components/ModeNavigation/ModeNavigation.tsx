@@ -36,10 +36,11 @@ export function ModeNavigation({
 								<button
 									type="button"
 									onClick={() => onModeSelect(mode)}
-									className={`relative z-10 h-8 w-8 rounded-sm flex items-center justify-center transition-colors duration-150 ${isActive
-										? "text-neutral-100"
-										: "text-neutral-600 hover:text-neutral-500"
-										}`}
+									className={`relative z-10 h-8 w-8 rounded-sm flex items-center justify-center transition-colors duration-150 ${
+										isActive
+											? "text-neutral-100"
+											: "text-neutral-600 hover:text-neutral-500"
+									}`}
 								>
 									<Icon className="w-3.5 h-3.5" />
 								</button>

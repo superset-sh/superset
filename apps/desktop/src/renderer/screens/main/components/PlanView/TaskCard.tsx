@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { Play } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 

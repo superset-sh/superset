@@ -2,7 +2,7 @@ import type { RouterOutputs } from "@superset/api";
 import { ChevronDown, ChevronLeft, Play, User as UserIcon } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import type { Tab, Workspace } from "shared/types";
+import type { Tab, Workspace } from "@/shared/types";
 
 type Task = RouterOutputs["task"]["all"][number];
 type User = RouterOutputs["user"]["all"][number];

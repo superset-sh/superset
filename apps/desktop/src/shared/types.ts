@@ -1,6 +1,6 @@
 import type { BrowserWindow, IpcMainInvokeEvent } from "electron";
 
-import type { registerRoute } from "lib/electron-router-dom";
+import type { registerRoute } from "@/lib/electron-router-dom";
 
 export type BrowserWindowOrNull = Electron.BrowserWindow | null;
 
