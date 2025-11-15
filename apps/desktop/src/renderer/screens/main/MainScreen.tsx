@@ -6,7 +6,6 @@ import { TaskTabs } from "./components/Layout/TaskTabs";
 import { MainContentArea } from "./components/MainContentArea";
 import { SidebarOverlay } from "./components/SidebarOverlay";
 import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
-import { WorkspaceOperationsProvider } from "./contexts/WorkspaceOperationsContext";
 import {
 	useSidebar,
 	useTabs,
@@ -113,19 +112,7 @@ export function MainScreen() {
 	});
 
 	return (
-		<WorkspaceOperationsProvider
-			value={{
-				handleWorktreeCreated,
-				handleUpdateWorktree,
-				handleCreatePR,
-				handleMergePR,
-				handleDeleteWorktree,
-				currentWorkspace,
-				workspaces,
-				handleWorkspaceSelect,
-				loadAllWorkspaces,
-			}}
-		>
+		<>
 			<Background />
 
 			{/* Hover trigger area when sidebar is hidden */}
@@ -240,6 +227,6 @@ export function MainScreen() {
 					onCreateWorkspace={handleCreateWorkspaceFromModal}
 				/>
 			)}
-		</WorkspaceOperationsProvider>
+		</>
 	);
 }
