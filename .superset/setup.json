@@ -2,5 +2,7 @@
 	"copy": [
 		"**/.env*"
 	],
-	"commands": []
+	"commands": [
+		"bun i"
+	]
 }
