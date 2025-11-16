@@ -19,11 +19,14 @@ import { WorktreeTab } from "./WorktreeTab";
 const TAB_GAP = 4; // gap-1 = 4px
 const MIN_TAB_WIDTH = 40;
 const MAX_TAB_WIDTH = 240;
-const WIDTH_BUFFER = 4; // Buffer to account for rounding and measurement discrepancies
-const ADD_BUTTON_WIDTH = 32; // Approximate width of AddTaskButton
+const WIDTH_BUFFER = 2; // Buffer to account for rounding and measurement discrepancies
 
 // Custom hook for calculating tab widths based on available space
-function useTabWidth(worktrees: Array<{ id: string }>) {
+function useTabWidth(
+	worktrees: Array<{ id: string }>,
+	leftControlsRef: React.RefObject<HTMLDivElement | null>,
+	rightActionsRef: React.RefObject<HTMLDivElement | null>,
+) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [tabWidth, setTabWidth] = useState<number | undefined>(undefined);
 
@@ -39,16 +42,45 @@ function useTabWidth(worktrees: Array<{ id: string }>) {
 				return;
 			}
 
-			const container = containerRef.current;
+			const tabsContainer = containerRef.current;
 			const numTabs = worktrees.length;
-			const containerWidth = container.offsetWidth;
 
-			// Account for AddTaskButton width + gap, and gaps between tabs
-			// numTabs gaps: (numTabs - 1) between tabs + 1 before button
-			const addButtonWidth = ADD_BUTTON_WIDTH + TAB_GAP;
+			// Get the parent container (middle section) which has flex-1
+			const middleSection = tabsContainer.parentElement;
+			if (!middleSection) {
+				setTabWidth(undefined);
+				return;
+			}
+
+			// Measure fixed elements dynamically
+			const leftControlsWidth = leftControlsRef.current?.offsetWidth ?? 0;
+
+			// Account for padding on the middle section (px-1 = 8px total)
+			const middleSectionPadding = 8;
+
+			// Get the actual width of the middle section
+			const middleSectionWidth = middleSection.offsetWidth;
+
+			// Calculate gaps: (numTabs - 1) between tabs + 1 before AddTaskButton
 			const totalGapWidth = TAB_GAP * numTabs;
-			const availableWidth = containerWidth - totalGapWidth - addButtonWidth - WIDTH_BUFFER;
-			const calculatedWidth = availableWidth / numTabs;
+
+			// Measure AddTaskButton dynamically
+			const addButtonElement = tabsContainer.querySelector('[data-add-button]');
+			const addButtonWidth = addButtonElement
+				? (addButtonElement as HTMLElement).offsetWidth + TAB_GAP
+				: 36; // Fallback estimate (32px button + 4px gap)
+
+			// Calculate available width for tabs
+			// Start with middle section width, subtract: left controls, padding, gaps, AddButton, and buffer
+			const availableWidth = middleSectionWidth
+				- leftControlsWidth
+				- middleSectionPadding
+				- totalGapWidth
+				- addButtonWidth
+				- WIDTH_BUFFER;
+
+			const widthForTabs = availableWidth;
+			const calculatedWidth = widthForTabs / numTabs;
 
 			const finalWidth = calculatedWidth < MIN_TAB_WIDTH
 				? MIN_TAB_WIDTH
@@ -57,15 +89,33 @@ function useTabWidth(worktrees: Array<{ id: string }>) {
 			setTabWidth(finalWidth);
 		};
 
-		updateTabWidth();
+		// Use requestAnimationFrame to ensure DOM is ready
+		const rafId = requestAnimationFrame(() => {
+			updateTabWidth();
+		});
 
-		const resizeObserver = new ResizeObserver(updateTabWidth);
+		const resizeObserver = new ResizeObserver(() => {
+			updateTabWidth();
+		});
+
+		// Observe the tabs container and its parent (middle section)
 		resizeObserver.observe(containerRef.current);
+		const middleSection = containerRef.current.parentElement;
+		if (middleSection) {
+			resizeObserver.observe(middleSection);
+		}
+		if (leftControlsRef.current) {
+			resizeObserver.observe(leftControlsRef.current);
+		}
+		if (rightActionsRef.current) {
+			resizeObserver.observe(rightActionsRef.current);
+		}
 
 		return () => {
+			cancelAnimationFrame(rafId);
 			resizeObserver.disconnect();
 		};
-	}, [worktrees.length]);
+	}, [worktrees.length, leftControlsRef, rightActionsRef]);
 
 	return { containerRef, tabWidth };
 }
@@ -88,7 +138,13 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	const [showRemoveDialog, setShowRemoveDialog] = useState(false);
 	const [removeWarning, setRemoveWarning] = useState("");
 	const [worktreeToDelete, setWorktreeToDelete] = useState<string | null>(null);
-	const { containerRef: tabsContainerRef, tabWidth } = useTabWidth(worktrees);
+	const leftControlsRef = useRef<HTMLDivElement>(null);
+	const rightActionsRef = useRef<HTMLDivElement>(null);
+	const { containerRef: tabsContainerRef, tabWidth } = useTabWidth(
+		worktrees,
+		leftControlsRef,
+		rightActionsRef,
+	);
 
 	const selectedWorktree = worktrees.find((wt) => wt.id === selectedWorktreeId);
 	const canCreatePR = selectedWorktree && !selectedWorktree.isPending;
@@ -143,26 +199,26 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 	return (
 		<>
 			<div
-				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 relative overflow-visible"
-				style={{ WebkitAppRegion: "drag" } as React.CSSProperties}
+				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 pr-4 relative overflow-visible drag"
 			>
 				{/* Bottom border line */}
 				<div className="absolute bottom-0 left-0 right-0 h-px bg-neutral-800" />
 				<div
 					className="flex items-center gap-1 px-1 h-full flex-1 min-w-0"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
 				>
-					<SidebarToggle
-						isOpen={isSidebarOpen}
-						onCollapse={onCollapseSidebar}
-						onExpand={onExpandSidebar}
-					/>
+					<div ref={leftControlsRef} className="flex items-center gap-1 shrink-0 no-drag">
+						<SidebarToggle
+							isOpen={isSidebarOpen}
+							onCollapse={onCollapseSidebar}
+							onExpand={onExpandSidebar}
+						/>
 
-					{onModeChange && <ModeToggle mode={mode} onChange={onModeChange} />}
+						{onModeChange && <ModeToggle mode={mode} onChange={onModeChange} />}
+					</div>
 
 					<div
 						ref={tabsContainerRef}
-						className="flex items-end h-full gap-1 flex-1 overflow-x-auto overflow-y-hidden relative hide-scrollbar"
+						className="flex items-end h-full gap-1 shrink-0 overflow-x-auto overflow-y-hidden relative hide-scrollbar"
 					>
 						{worktrees.map((worktree, index) => {
 							const isSelected = selectedWorktreeId === worktree.id;
@@ -172,7 +228,7 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								prevWorktree !== null && !isSelected && !prevIsSelected;
 
 							return (
-								<div key={worktree.id} className="flex items-end">
+								<div key={worktree.id} className="flex items-end no-drag">
 									{showDivider && (
 										<div className="w-px h-5 bg-neutral-700 self-end mb-1" />
 									)}
@@ -190,15 +246,15 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 								</div>
 							);
 						})}
-						<div className="shrink-0">
-							<AddTaskButton onClick={onAddTask} />
-						</div>
+					</div>
+					<div className="shrink-0 no-drag" data-add-button>
+						<AddTaskButton onClick={onAddTask} />
 					</div>
 				</div>
 
 				<div
-					className="flex items-center gap-2 px-4 h-full"
-					style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+					ref={rightActionsRef}
+					className="flex items-center gap-2 px-4 h-full shrink-0 no-drag"
 				>
 					<PRActions
 						hasPR={!!hasPR}

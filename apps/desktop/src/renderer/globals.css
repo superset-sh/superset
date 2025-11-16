@@ -200,4 +200,13 @@
 		border-radius: 4px;
 		border: 2px solid transparent;
 	}
+
+	/* Electron drag region utilities */
+	.drag {
+		-webkit-app-region: drag;
+	}
+
+	.no-drag {
+		-webkit-app-region: no-drag;
+	}
 }
