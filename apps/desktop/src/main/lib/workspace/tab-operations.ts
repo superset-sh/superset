@@ -173,6 +173,24 @@ export async function updatePreviewTabUrl(
 }
 
 /**
+ * Helper function to recursively kill all terminal processes in a tab tree
+ */
+async function killTerminalProcesses(tab: Tab): Promise<void> {
+	const tmuxManager = await import("../tmux-manager").then((m) => m.default);
+
+	if (tab.type === "terminal") {
+		// Kill the terminal process for this tab
+		// This will trigger log saving in tmuxManager.kill()
+		tmuxManager.kill(tab.id);
+	} else if (tab.type === "group" && tab.tabs) {
+		// Recursively kill terminals in child tabs
+		for (const childTab of tab.tabs) {
+			await killTerminalProcesses(childTab);
+		}
+	}
+}
+
+/**
  * Delete a tab from a worktree
  * Also removes the tab from the parent group's mosaic tree if applicable
  */
@@ -190,6 +208,15 @@ export async function deleteTab(
 		if (!worktree) {
 			return { success: false, error: "Worktree not found" };
 		}
+
+		// Find the tab before deleting it so we can clean up terminal processes
+		const tab = findTab(worktree.tabs, input.tabId);
+		if (!tab) {
+			return { success: false, error: "Tab not found" };
+		}
+
+		// Kill terminal processes before removing the tab
+		await killTerminalProcesses(tab);
 
 		// Find the parent tab (if this tab is inside a group)
 		const parentTab = findParentTab(worktree.tabs, input.tabId);

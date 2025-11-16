@@ -1,7 +1,6 @@
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { mkdir } from "node:fs/promises";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import { dirname, join } from "node:path";
 import type { BrowserWindow } from "electron";
@@ -515,8 +514,15 @@ class TmuxManager {
 	 */
 	kill(sid: string): boolean {
 		try {
-			// Kill PTY client if attached
+			// Get session before killing to save output history
 			const session = this.sessions.get(sid);
+
+			// Save terminal output to log file
+			if (session) {
+				this.saveTerminalLog(sid, session.outputHistory);
+			}
+
+			// Kill PTY client if attached
 			if (session?.pty) {
 				session.pty.kill();
 			}
@@ -641,7 +647,7 @@ class TmuxManager {
 			// Ensure directory exists
 			const dir = dirname(this.sessionRegistryPath);
 			if (!existsSync(dir)) {
-				mkdir(dir, { recursive: true });
+				mkdirSync(dir, { recursive: true });
 			}
 
 			writeFileSync(
@@ -651,6 +657,42 @@ class TmuxManager {
 			);
 		} catch (error) {
 			console.error("[TmuxManager] Failed to save sessions to disk:", error);
+		}
+	}
+
+	/**
+	 * Save terminal output log to ~/.superset/logs/processes
+	 */
+	private saveTerminalLog(sid: string, outputHistory: string): void {
+		try {
+			// Skip if no output history
+			if (!outputHistory || outputHistory.length === 0) {
+				return;
+			}
+
+			// Create log directory path
+			const logsDir = join(os.homedir(), ".superset", "logs", "processes");
+
+			// Ensure directory exists
+			if (!existsSync(logsDir)) {
+				mkdirSync(logsDir, { recursive: true });
+			}
+
+			// Generate filename with timestamp
+			const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+			const logFilePath = join(logsDir, `${sid}_${timestamp}.txt`);
+
+			// Write log file
+			writeFileSync(logFilePath, outputHistory, "utf-8");
+
+			console.log(
+				`[TmuxManager] Saved terminal log for ${sid} to ${logFilePath}`,
+			);
+		} catch (error) {
+			console.error(
+				`[TmuxManager] Failed to save terminal log for ${sid}:`,
+				error,
+			);
 		}
 	}
 }
