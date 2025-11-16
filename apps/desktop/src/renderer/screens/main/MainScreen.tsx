@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { AddTaskModal } from "./components/Layout/AddTaskModal";
@@ -83,7 +81,7 @@ export function MainScreen() {
 	} = useTaskContext();
 
 	return (
-		<DndProvider backend={HTML5Backend}>
+		<>
 			<Background />
 
 			{/* Hover trigger area when sidebar is hidden */}
@@ -169,6 +167,6 @@ export function MainScreen() {
 					onCreateWorkspace={handleCreateWorkspaceFromModal}
 				/>
 			)}
-		</DndProvider>
+		</>
 	);
 }

@@ -6,10 +6,10 @@ import { AppRoutes } from "./routes";
 
 import "./globals.css";
 
+// Note: StrictMode disabled due to react-dnd compatibility issues with React 19
+// StrictMode causes double mounting which conflicts with HTML5Backend singleton
 ReactDom.createRoot(document.querySelector("app") as HTMLElement).render(
-	<React.StrictMode>
-		<AppProviders>
-			<AppRoutes />
-		</AppProviders>
-	</React.StrictMode>,
+	<AppProviders>
+		<AppRoutes />
+	</AppProviders>,
 );

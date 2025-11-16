@@ -9,30 +9,13 @@ import "react-mosaic-component/react-mosaic-component.css";
 import type { Tab } from "shared/types";
 import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import TabContent from "./TabContent";
-
-// Helper to build a balanced mosaic tree from tab IDs
-// This is duplicated from the backend helper to avoid importing Node.js modules in renderer
-function buildBalancedMosaicTree(
-	tabIds: string[],
-	depth = 0,
-): MosaicNode<string> | null {
-	if (tabIds.length === 0) return null;
-	if (tabIds.length === 1) return tabIds[0];
-
-	// Split tabs in half
-	const mid = Math.ceil(tabIds.length / 2);
-	const firstHalf = tabIds.slice(0, mid);
-	const secondHalf = tabIds.slice(mid);
-
-	// Alternate between row and column splits for better layout
-	const direction = depth % 2 === 0 ? "row" : "column";
-
-	return {
-		direction,
-		first: buildBalancedMosaicTree(firstHalf, depth + 1),
-		second: buildBalancedMosaicTree(secondHalf, depth + 1),
-	} as MosaicNode<string>;
-}
+import { TabDropZone } from "./TabDropZone";
+import {
+	buildBalancedMosaicTree,
+	getTabIdsFromTree,
+	insertTabIntoMosaicTree,
+	handleTabDropValidation,
+} from "./mosaic-helpers";
 
 interface ScreenLayoutProps {
 	groupTab: Tab; // A tab with type: "group"
@@ -51,7 +34,7 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 	const worktreeId = selectedWorktreeId ?? undefined;
 
 	// Initialize mosaic tree from groupTab or create a balanced tree from all tabs
-	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
+	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null | undefined>(
 		() => {
 			if (groupTab.mosaicTree) {
 				return groupTab.mosaicTree as MosaicNode<string>;
@@ -63,7 +46,7 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 				return buildBalancedMosaicTree(tabIds);
 			}
 
-			return null;
+			return undefined;
 		},
 	);
 
@@ -77,29 +60,6 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 			setMosaicTree(buildBalancedMosaicTree(tabIds));
 		}
 	}, [groupTab.mosaicTree, groupTab.tabs]);
-
-	// Helper function to get all tab IDs from a mosaic tree
-	const getTabIdsFromTree = useCallback(
-		(tree: MosaicNode<string> | null): Set<string> => {
-			const ids = new Set<string>();
-			if (!tree) return ids;
-
-			if (typeof tree === "string") {
-				ids.add(tree);
-			} else {
-				const firstIds = getTabIdsFromTree(tree.first);
-				const secondIds = getTabIdsFromTree(tree.second);
-				firstIds.forEach((id) => {
-					ids.add(id);
-				});
-				secondIds.forEach((id) => {
-					ids.add(id);
-				});
-			}
-			return ids;
-		},
-		[],
-	);
 
 	// Save mosaic tree changes to backend
 	const handleMosaicChange = useCallback(
@@ -123,7 +83,65 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 					});
 				}
 
+				// Convert null to undefined for backend compatibility
+				const treeToSave = newTree === null ? undefined : newTree;
+
 				// Then update the mosaic tree
+				await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
+					workspaceId,
+					worktreeId,
+					tabId: groupTab.id,
+					mosaicTree: treeToSave,
+				});
+
+				// Update local state after successful backend update
+				setMosaicTree(treeToSave);
+			} catch (error) {
+				console.error("Failed to save mosaic tree:", error);
+			}
+		},
+		[workspaceId, worktreeId, groupTab.id, mosaicTree],
+	);
+
+	// Handle tab drop from sidebar
+	const handleTabDrop = useCallback(
+		async (
+			droppedTab: Tab,
+			sourceWorktreeId: string,
+			sourceWorkspaceId: string,
+			position: "top" | "right" | "bottom" | "left" | "center",
+		) => {
+			if (!worktreeId || !workspaceId) return;
+
+			try {
+				// Validate the drop operation
+				const validation = await handleTabDropValidation({
+					droppedTab,
+					sourceWorktreeId,
+					targetWorktreeId: worktreeId,
+					workspaceId,
+					existingTree: mosaicTree,
+				});
+
+				if (!validation.valid) {
+					console.log(`Drop blocked: ${validation.reason}`);
+					return;
+				}
+
+				const tabToAdd = validation.tab!;
+
+				// Move the tab into this group
+				await window.ipcRenderer.invoke("tab-move", {
+					workspaceId,
+					worktreeId,
+					tabId: tabToAdd.id,
+					targetParentTabId: groupTab.id,
+					targetIndex: 0,
+				});
+
+				// Update the mosaic tree to include the new tab
+				const newTree = insertTabIntoMosaicTree(mosaicTree, tabToAdd.id, position);
+
 				await window.ipcRenderer.invoke("tab-update-mosaic-tree", {
 					workspaceId,
 					worktreeId,
@@ -131,13 +149,16 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 					mosaicTree: newTree,
 				});
 
-				// Update local state after successful backend update
+				// Update local state
 				setMosaicTree(newTree);
+
+				// Trigger a reload to refresh the workspace data
+				window.location.reload();
 			} catch (error) {
-				console.error("Failed to save mosaic tree:", error);
+				console.error("Failed to handle tab drop:", error);
 			}
 		},
-		[workspaceId, worktreeId, groupTab.id, mosaicTree, getTabIdsFromTree],
+		[workspaceId, worktreeId, groupTab.id, mosaicTree],
 	);
 
 	// Create a map of tab IDs to Tab objects for easy lookup
@@ -224,13 +245,14 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 	}
 
 	return (
-		<div className="w-full h-full mosaic-container">
+		<div className="w-full h-full mosaic-container relative">
 			<Mosaic<string>
 				renderTile={renderTile}
 				value={mosaicTree}
 				onChange={handleMosaicChange}
 				className="mosaic-theme-dark"
 			/>
+			<TabDropZone onDrop={handleTabDrop} />
 			<style>{`
 				.mosaic-container {
 					background: #1a1a1a;

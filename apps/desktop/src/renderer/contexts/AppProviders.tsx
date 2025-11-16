@@ -1,5 +1,7 @@
 import type React from "react";
 import { useState } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 import {
 	WorkspaceProvider,
 	TabProvider,
@@ -19,23 +21,25 @@ export function AppProviders({ children }: AppProvidersProps) {
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 
 	return (
-		<WorkspaceProvider
-			setSelectedWorktreeId={setSelectedWorktreeId}
-			setSelectedTabId={setSelectedTabId}
-		>
-			<TabProvider
-				selectedWorktreeId={selectedWorktreeId}
+		<DndProvider backend={HTML5Backend}>
+			<WorkspaceProvider
 				setSelectedWorktreeId={setSelectedWorktreeId}
-				selectedTabId={selectedTabId}
 				setSelectedTabId={setSelectedTabId}
 			>
-				<SidebarProvider>
-					<WorktreeOperationsProvider>
-						<TaskProvider>{children}</TaskProvider>
-					</WorktreeOperationsProvider>
-				</SidebarProvider>
-			</TabProvider>
-		</WorkspaceProvider>
+				<TabProvider
+					selectedWorktreeId={selectedWorktreeId}
+					setSelectedWorktreeId={setSelectedWorktreeId}
+					selectedTabId={selectedTabId}
+					setSelectedTabId={setSelectedTabId}
+				>
+					<SidebarProvider>
+						<WorktreeOperationsProvider>
+							<TaskProvider>{children}</TaskProvider>
+						</WorktreeOperationsProvider>
+					</SidebarProvider>
+				</TabProvider>
+			</WorkspaceProvider>
+		</DndProvider>
 	);
 }
 

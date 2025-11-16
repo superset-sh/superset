@@ -13,8 +13,8 @@ import {
 	useWorktreeOperationsContext,
 } from "../../../../contexts";
 import { DiffContentArea } from "../DiffView";
-import TabContent from "../MainContent/TabContent";
 import TabGroup from "../MainContent/TabGroup";
+import { SingleTabView } from "../MainContent/SingleTabView";
 import { PlaceholderState } from "../PlaceholderState";
 import { PlanView } from "../PlanView";
 import { Sidebar } from "../Sidebar";
@@ -144,13 +144,8 @@ export function MainContentArea({ mode }: MainContentAreaProps) {
                     // Selected tab is a group tab → display its mosaic layout
                     <TabGroup groupTab={selectedTab} />
                 ) : (
-                    // Base level tab (terminal, preview, etc.) → display full width/height
-                    <div className="w-full h-full p-2 bg-[#1e1e1e] rounded-sm">
-                        <TabContent
-                            tab={selectedTab}
-                            groupTabId="" // No parent group
-                        />
-                    </div>
+                    // Base level tab (terminal, preview, etc.) → display full width/height with drop zone
+                    <SingleTabView tab={selectedTab} />
                 )}
             </ResizablePanel>
         </ResizablePanelGroup>

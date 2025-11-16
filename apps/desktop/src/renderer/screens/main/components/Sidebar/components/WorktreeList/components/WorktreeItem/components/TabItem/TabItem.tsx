@@ -15,6 +15,7 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useDrag } from "react-dnd";
 import type { Tab, Worktree } from "shared/types";
 
 interface TabItemProps {
@@ -49,6 +50,19 @@ export function TabItem({
 	const [isEditing, setIsEditing] = useState(false);
 	const [editName, setEditName] = useState(tab.name);
 	const inputRef = useRef<HTMLInputElement>(null);
+
+	// Set up drag source
+	const [{ isDragging }, dragRef] = useDrag(
+		() => ({
+			type: "TAB",
+			item: { tab, worktreeId, workspaceId },
+			canDrag: !isEditing, // Don't allow dragging while editing
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[tab, worktreeId, workspaceId, isEditing],
+	);
 
 	// Focus input when entering edit mode
 	useEffect(() => {
@@ -144,13 +158,14 @@ export function TabItem({
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
 				<button
+					ref={dragRef}
 					type="button"
 					className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${isSelected
 							? "bg-neutral-800/80 text-neutral-200"
 							: showMultiSelectHighlight
 								? "bg-blue-900/30 text-blue-200"
 								: "hover:bg-neutral-800/40 text-neutral-400 hover:text-neutral-300"
-						}`}
+						} ${isDragging ? "opacity-40 cursor-grabbing" : "cursor-grab"}`}
 					onMouseDown={handleMouseDown}
 					onClick={handleClick}
 					onDoubleClick={handleDoubleClick}
