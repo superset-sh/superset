@@ -129,6 +129,32 @@ export function getTabIdsFromMosaicTree(
 }
 
 /**
+ * Build a balanced mosaic tree from an array of tab IDs
+ * Uses alternating row/column splits for a balanced layout
+ */
+export function buildBalancedMosaicTree(
+	tabIds: string[],
+	depth = 0,
+): MosaicNode<string> | null {
+	if (tabIds.length === 0) return null;
+	if (tabIds.length === 1) return tabIds[0];
+
+	// Split tabs in half
+	const mid = Math.ceil(tabIds.length / 2);
+	const firstHalf = tabIds.slice(0, mid);
+	const secondHalf = tabIds.slice(mid);
+
+	// Alternate between row and column splits for better layout
+	const direction = depth % 2 === 0 ? "row" : "column";
+
+	return {
+		direction,
+		first: buildBalancedMosaicTree(firstHalf, depth + 1),
+		second: buildBalancedMosaicTree(secondHalf, depth + 1),
+	} as MosaicNode<string>;
+}
+
+/**
  * Clone tabs with new unique IDs
  * This is used when cloning tab setup to a new worktree
  */

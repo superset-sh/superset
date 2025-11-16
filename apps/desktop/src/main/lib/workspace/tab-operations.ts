@@ -12,6 +12,7 @@ import type {
 import configManager from "../config-manager";
 import { cleanupEmptyGroupsInWorktree } from "./group-cleanup";
 import {
+	buildBalancedMosaicTree,
 	findParentTab,
 	findTab,
 	isValidParentTab,
@@ -85,6 +86,10 @@ export async function createTab(
 
 			parentTab!.tabs = parentTab!.tabs || [];
 			parentTab!.tabs.push(tab);
+
+			// Rebuild the mosaic tree to include the new tab
+			const allTabIds = parentTab!.tabs.map((t) => t.id);
+			parentTab!.mosaicTree = buildBalancedMosaicTree(allTabIds);
 		} else {
 			// Top-level tab in worktree
 			worktree.tabs.push(tab);

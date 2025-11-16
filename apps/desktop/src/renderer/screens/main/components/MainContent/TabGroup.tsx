@@ -10,6 +10,30 @@ import type { Tab } from "shared/types";
 import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import TabContent from "./TabContent";
 
+// Helper to build a balanced mosaic tree from tab IDs
+// This is duplicated from the backend helper to avoid importing Node.js modules in renderer
+function buildBalancedMosaicTree(
+	tabIds: string[],
+	depth = 0,
+): MosaicNode<string> | null {
+	if (tabIds.length === 0) return null;
+	if (tabIds.length === 1) return tabIds[0];
+
+	// Split tabs in half
+	const mid = Math.ceil(tabIds.length / 2);
+	const firstHalf = tabIds.slice(0, mid);
+	const secondHalf = tabIds.slice(mid);
+
+	// Alternate between row and column splits for better layout
+	const direction = depth % 2 === 0 ? "row" : "column";
+
+	return {
+		direction,
+		first: buildBalancedMosaicTree(firstHalf, depth + 1),
+		second: buildBalancedMosaicTree(secondHalf, depth + 1),
+	} as MosaicNode<string>;
+}
+
 interface ScreenLayoutProps {
 	groupTab: Tab; // A tab with type: "group"
 }
@@ -25,69 +49,32 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 	const workingDirectory = selectedWorktree?.path || currentWorkspace?.repoPath || "";
 	const workspaceId = currentWorkspace?.id || "";
 	const worktreeId = selectedWorktreeId ?? undefined;
-	// Initialize mosaic tree from groupTab or create a default tree
+
+	// Initialize mosaic tree from groupTab or create a balanced tree from all tabs
 	const [mosaicTree, setMosaicTree] = useState<MosaicNode<string> | null>(
 		() => {
 			if (groupTab.mosaicTree) {
 				return groupTab.mosaicTree as MosaicNode<string>;
 			}
 
-			// If no mosaic tree exists but tabs exist, create a default layout
+			// If no mosaic tree exists but tabs exist, build a balanced tree for all tabs
 			if (groupTab.tabs && groupTab.tabs.length > 0) {
-				if (groupTab.tabs.length === 1) {
-					return groupTab.tabs[0].id;
-				}
-				if (groupTab.tabs.length === 2) {
-					// Simple row split for 2 tabs
-					return {
-						direction: "row",
-						first: groupTab.tabs[0].id,
-						second: groupTab.tabs[1].id,
-					};
-				}
-				// For 3+ tabs, create nested layout
-				return {
-					direction: "row",
-					first: groupTab.tabs[0].id,
-					second: {
-						direction: "column",
-						first: groupTab.tabs[1].id,
-						second: groupTab.tabs[2].id,
-					},
-				};
+				const tabIds = groupTab.tabs.map((tab) => tab.id);
+				return buildBalancedMosaicTree(tabIds);
 			}
 
 			return null;
 		},
 	);
 
-	// Sync mosaic tree when groupTab.mosaicTree changes externally
+	// Sync mosaic tree when groupTab.mosaicTree changes externally or when tabs are added/removed
 	useEffect(() => {
 		if (groupTab.mosaicTree) {
 			setMosaicTree(groupTab.mosaicTree as MosaicNode<string>);
 		} else if (groupTab.tabs && groupTab.tabs.length > 0) {
-			// Reconstruct tree if it was cleared but tabs exist
-			if (groupTab.tabs.length === 1) {
-				setMosaicTree(groupTab.tabs[0].id);
-			} else if (groupTab.tabs.length === 2) {
-				// Simple row split for 2 tabs
-				setMosaicTree({
-					direction: "row",
-					first: groupTab.tabs[0].id,
-					second: groupTab.tabs[1].id,
-				});
-			} else {
-				// For 3+ tabs, create nested layout
-				setMosaicTree({
-					direction: "row",
-					first: groupTab.tabs[0].id,
-					second: {
-						direction: "column",
-						first: groupTab.tabs[1].id,
-						second: groupTab.tabs[2].id,
-					},
-				});
-			}
+			// Reconstruct a balanced tree if it was cleared but tabs exist
+			const tabIds = groupTab.tabs.map((tab) => tab.id);
+			setMosaicTree(buildBalancedMosaicTree(tabIds));
 		}
 	}, [groupTab.mosaicTree, groupTab.tabs]);
 
