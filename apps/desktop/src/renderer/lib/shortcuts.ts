@@ -25,6 +25,7 @@ export interface ShortcutHandlers {
 
 	// Terminal specific
 	clearTerminal: () => void;
+	closeTerminal: () => void;
 }
 
 export function createWorkspaceShortcuts(
@@ -179,7 +180,7 @@ export function createTabShortcuts(
 }
 
 export function createTerminalShortcuts(
-	handlers: Pick<ShortcutHandlers, "clearTerminal">,
+	handlers: Pick<ShortcutHandlers, "clearTerminal" | "closeTerminal">,
 ): KeyboardShortcutGroup {
 	return {
 		name: "Terminal",
@@ -191,6 +192,16 @@ export function createTerminalShortcuts(
 				handler: (event) => {
 					event.preventDefault();
 					handlers.clearTerminal();
+					return false;
+				},
+			},
+			{
+				key: "w",
+				modifiers: ["meta"],
+				description: "Close current terminal",
+				handler: (event) => {
+					event.preventDefault();
+					handlers.closeTerminal();
 					return false;
 				},
 			},

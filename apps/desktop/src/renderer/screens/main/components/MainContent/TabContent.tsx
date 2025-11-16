@@ -187,6 +187,8 @@ function TerminalTabContent({
 				hidden={!isVisible}
 				onFocus={onFocus}
 				cwd={terminalCwd}
+				workspaceId={workspaceId}
+				worktreeId={worktreeId}
 			/>
 		</div>
 	);

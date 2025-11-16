@@ -15,6 +15,8 @@ interface TerminalProps {
 	hidden?: boolean;
 	onFocus?: () => void;
 	cwd?: string;
+	workspaceId?: string;
+	worktreeId?: string;
 }
 
 interface TerminalMessage {
@@ -75,6 +77,8 @@ export default function TerminalComponent({
 	hidden = false,
 	onFocus,
 	cwd,
+	workspaceId,
+	worktreeId,
 }: TerminalProps) {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const [terminal, setTerminal] = useState<XTerm | null>(null);
@@ -189,6 +193,20 @@ export default function TerminalComponent({
 						id: terminalIdRef.current,
 						data: "\x0c", // Form feed (Ctrl+L) - clears screen in most shells
 					});
+				}
+			},
+			closeTerminal: async () => {
+				// Close the terminal by deleting the tab
+				if (terminalIdRef.current && workspaceId && worktreeId) {
+					try {
+						await window.ipcRenderer.invoke("tab-delete", {
+							workspaceId,
+							worktreeId,
+							tabId: terminalIdRef.current,
+						});
+					} catch (error) {
+						console.error("Failed to close terminal:", error);
+					}
 				}
 			},
 		});
