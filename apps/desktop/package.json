@@ -49,6 +49,8 @@
 		"node-pty": "1.1.0-beta30",
 		"react": "^19.1.1",
 		"react-arborist": "^3.4.3",
+		"react-dnd": "^16.0.1",
+		"react-dnd-html5-backend": "^16.0.1",
 		"react-dom": "^19.1.1",
 		"react-mosaic-component": "^6.1.1",
 		"react-resizable-panels": "^3.0.6",
