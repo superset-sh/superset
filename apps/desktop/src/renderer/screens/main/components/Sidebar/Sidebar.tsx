@@ -2,19 +2,16 @@ import { type MotionValue, useMotionValue } from "framer-motion";
 import { File, FileEdit, FilePlus, FileX } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Tab } from "shared/types";
-import { useDiffData } from "../../hooks";
 import {
-	useWorkspaceContext,
-	useTabContext,
-	useWorktreeOperationsContext,
 	useSidebarContext,
+	useTabContext,
+	useWorkspaceContext,
+	useWorktreeOperationsContext,
 } from "../../../../contexts";
+import { useDiffData } from "../../hooks";
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
-import {
-	CreateWorktreeModal,
-	WorktreeList,
-} from "./components";
+import { CreateWorktreeModal, WorktreeList } from "./components";
 import { ModeCarousel, type SidebarMode } from "./components/ModeCarousel";
 
 interface SidebarProps {
@@ -26,9 +23,12 @@ export function Sidebar({
 	isDragging = false,
 	onDiffModeChange,
 }: SidebarProps) {
-	const { workspaces, currentWorkspace, handleWorkspaceSelect } = useWorkspaceContext();
-	const { selectedTabId, selectedWorktreeId, handleTabSelect } = useTabContext();
-	const { handleWorktreeCreated, handleUpdateWorktree } = useWorktreeOperationsContext();
+	const { workspaces, currentWorkspace, handleWorkspaceSelect } =
+		useWorkspaceContext();
+	const { selectedTabId, selectedWorktreeId, handleTabSelect } =
+		useTabContext();
+	const { handleWorktreeCreated, handleUpdateWorktree } =
+		useWorktreeOperationsContext();
 	const { handleCollapseSidebar } = useSidebarContext();
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),

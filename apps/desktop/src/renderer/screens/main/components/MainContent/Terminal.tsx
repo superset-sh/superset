@@ -222,12 +222,43 @@ export default function TerminalComponent({
 					return; // Skip if container has no dimensions yet
 				}
 
-				// Use proposeDimensions to calculate optimal size without applying it
-				// Then manually resize to ensure PTY gets the correct dimensions
-				const dimensions = fitAddon.proposeDimensions();
-				if (dimensions) {
-					term.resize(dimensions.cols, dimensions.rows);
-				}
+				// Access xterm.js internal dimensions for more accurate calculations
+				// This ensures we use the actual rendered cell dimensions
+				const core = (term as any)._core;
+				const cellWidth =
+					core?._renderService?.dimensions?.css?.cell?.width || 9;
+				const cellHeight =
+					core?._renderService?.dimensions?.css?.cell?.height || 17;
+
+				// Calculate available space (accounting for potential padding)
+				// Note: CSS has [&_.xterm-screen]:!p-0 which removes padding,
+				// but we calculate defensively in case padding is present
+				const xtermScreen = container.querySelector(".xterm-screen");
+				const computedStyle = xtermScreen
+					? window.getComputedStyle(xtermScreen)
+					: null;
+				const paddingLeft = computedStyle
+					? Number.parseFloat(computedStyle.paddingLeft)
+					: 0;
+				const paddingRight = computedStyle
+					? Number.parseFloat(computedStyle.paddingRight)
+					: 0;
+				const paddingTop = computedStyle
+					? Number.parseFloat(computedStyle.paddingTop)
+					: 0;
+				const paddingBottom = computedStyle
+					? Number.parseFloat(computedStyle.paddingBottom)
+					: 0;
+
+				const availableWidth = width - paddingLeft - paddingRight;
+				const availableHeight = height - paddingTop - paddingBottom;
+
+				// Calculate cols and rows based on actual cell dimensions
+				const cols = Math.max(2, Math.floor(availableWidth / cellWidth));
+				const rows = Math.max(1, Math.floor(availableHeight / cellHeight));
+
+				// Resize the terminal
+				term.resize(cols, rows);
 			} catch (e) {
 				console.warn("Custom fit failed:", e);
 			}
@@ -313,7 +344,11 @@ export default function TerminalComponent({
 				.then((history: string | undefined) => {
 					if (history) {
 						// Write history directly - PTY data already has proper formatting
-						term.write(history);
+						// Use callback to ensure scroll happens after write completes
+						term.write(history, () => {
+							// Scroll to bottom to show latest output
+							term.scrollToBottom();
+						});
 
 						// Delay initial fit AFTER writing history to prevent resize events
 						// from triggering the shell to redraw the prompt
@@ -475,7 +510,7 @@ export default function TerminalComponent({
 	return (
 		<div
 			ref={terminalRef}
-			className={`h-full w-full transition-opacity duration-200 text-start [&_.xterm-screen]:!p-0 ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
+			className={`h-full w-full overflow-hidden transition-opacity duration-200 text-start ${hidden ? "opacity-0" : "opacity-100 delay-300"}`}
 		/>
 	);
 }

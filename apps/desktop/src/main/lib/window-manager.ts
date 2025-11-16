@@ -7,9 +7,10 @@ class WindowManager {
 	private windowWorkspaces: Map<BrowserWindow, string | null> = new Map();
 	private restoredWindowIds: Set<number> = new Set();
 
-	async createWindow(
-		restoreState?: { workspaceId: string | null; bounds?: Electron.Rectangle },
-	): Promise<BrowserWindow> {
+	async createWindow(restoreState?: {
+		workspaceId: string | null;
+		bounds?: Electron.Rectangle;
+	}): Promise<BrowserWindow> {
 		const window = await MainWindow();
 
 		// Restore window bounds if provided
@@ -55,7 +56,7 @@ class WindowManager {
 			// Save final state before closing (window is still valid here)
 			// Get workspace ID from our map before window might be destroyed
 			const workspaceId = this.windowWorkspaces.get(window) ?? null;
-			
+
 			try {
 				if (!window.isDestroyed()) {
 					const bounds = window.getBounds();
@@ -77,7 +78,10 @@ class WindowManager {
 			} catch (error) {
 				// Silently fail if window is destroyed - we'll clean up in closed handler
 				if (!(error instanceof Error && error.message.includes("destroyed"))) {
-					console.error("[WindowManager] Failed to save window state on close:", error);
+					console.error(
+						"[WindowManager] Failed to save window state on close:",
+						error,
+					);
 				}
 			}
 		});
@@ -109,7 +113,10 @@ class WindowManager {
 		return this.windowWorkspaces.get(window) ?? null;
 	}
 
-	setWorkspaceForWindow(window: BrowserWindow, workspaceId: string | null): void {
+	setWorkspaceForWindow(
+		window: BrowserWindow,
+		workspaceId: string | null,
+	): void {
 		this.windowWorkspaces.set(window, workspaceId);
 		// Persist the workspace association
 		windowStateManager.saveWindowState(window, workspaceId);

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import {
+	useSidebarContext,
+	useTabContext,
+	useTaskContext,
+	useWorkspaceContext,
+	useWorktreeOperationsContext,
+} from "../../contexts";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { AddTaskModal } from "./components/Layout/AddTaskModal";
@@ -8,13 +15,6 @@ import { TaskTabs } from "./components/Layout/TaskTabs";
 import { MainContentArea } from "./components/MainContentArea";
 import { SidebarOverlay } from "./components/SidebarOverlay";
 import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
-import {
-	useWorkspaceContext,
-	useTabContext,
-	useSidebarContext,
-	useWorktreeOperationsContext,
-	useTaskContext,
-} from "../../contexts";
 import type { AppMode } from "./types";
 import { enrichWorktreesWithTasks } from "./utils";
 

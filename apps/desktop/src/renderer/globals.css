@@ -135,15 +135,24 @@
 		-webkit-font-smoothing: antialiased;
 	}
 
-	/* Ensure xterm terminal fills container height */
+	/* Fix xterm.js scrollbar positioning */
 	.xterm {
-		height: 100% !important;
-		width: 100% !important;
+		position: relative;
+		height: 100%;
+		width: 100%;
 	}
 
-	.xterm-screen {
-		height: 100% !important;
-		width: 100% !important;
+	.xterm .xterm-viewport {
+		overflow-y: auto;
+		position: absolute;
+		right: 0;
+		left: 0;
+		top: 0;
+		bottom: 0;
+	}
+
+	.xterm .xterm-screen {
+		position: relative;
 	}
 
 	/* Hide scrollbar for workspace carousel and tabs */

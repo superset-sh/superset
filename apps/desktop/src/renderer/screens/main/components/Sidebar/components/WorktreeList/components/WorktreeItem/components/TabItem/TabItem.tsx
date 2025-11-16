@@ -145,12 +145,13 @@ export function TabItem({
 			<ContextMenuTrigger asChild>
 				<button
 					type="button"
-					className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${isSelected
+					className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${
+						isSelected
 							? "bg-neutral-800/80 text-neutral-200"
 							: showMultiSelectHighlight
 								? "bg-blue-900/30 text-blue-200"
 								: "hover:bg-neutral-800/40 text-neutral-400 hover:text-neutral-300"
-						}`}
+					}`}
 					onMouseDown={handleMouseDown}
 					onClick={handleClick}
 					onDoubleClick={handleDoubleClick}

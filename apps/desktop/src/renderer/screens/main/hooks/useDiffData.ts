@@ -106,7 +106,10 @@ export function useDiffData({
 			if (!diffData || !workspaceId || !worktreeId) return;
 
 			// Check if already loaded or loading using refs
-			if (loadedFilesRef.current.has(fileId) || loadingFilesRef.current.has(fileId)) {
+			if (
+				loadedFilesRef.current.has(fileId) ||
+				loadingFilesRef.current.has(fileId)
+			) {
 				return;
 			}
 
@@ -147,9 +150,7 @@ export function useDiffData({
 						return {
 							...prev,
 							files: prev.files.map((f) =>
-								f.id === fileId
-									? { ...f, changes: result.changes || [] }
-									: f,
+								f.id === fileId ? { ...f, changes: result.changes || [] } : f,
 							),
 						};
 					});
@@ -196,4 +197,3 @@ export function useDiffData({
 		loadingFiles,
 	};
 }
-

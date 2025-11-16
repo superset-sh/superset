@@ -7,7 +7,7 @@ import {
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import type { Tab } from "shared/types";
-import { useWorkspaceContext, useTabContext } from "../../../../contexts";
+import { useTabContext, useWorkspaceContext } from "../../../../contexts";
 import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {
@@ -17,12 +17,13 @@ interface ScreenLayoutProps {
 export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 	const { currentWorkspace } = useWorkspaceContext();
 	const { selectedWorktreeId, selectedTabId, handleTabFocus } = useTabContext();
-	
+
 	const selectedWorktree = currentWorkspace?.worktrees?.find(
 		(wt) => wt.id === selectedWorktreeId,
 	);
-	
-	const workingDirectory = selectedWorktree?.path || currentWorkspace?.repoPath || "";
+
+	const workingDirectory =
+		selectedWorktree?.path || currentWorkspace?.repoPath || "";
 	const workspaceId = currentWorkspace?.id || "";
 	const worktreeId = selectedWorktreeId ?? undefined;
 	// Initialize mosaic tree from groupTab or create a default tree

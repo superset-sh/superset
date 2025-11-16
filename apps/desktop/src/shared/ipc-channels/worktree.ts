@@ -182,4 +182,3 @@ export interface WorktreeChannels {
 		response: SuccessResponse;
 	};
 }
-

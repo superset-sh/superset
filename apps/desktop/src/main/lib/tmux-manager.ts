@@ -183,7 +183,7 @@ class TmuxManager {
 			["status", "off"],
 			["set-titles", "off"],
 			["allow-rename", "off"],
-			["mouse", "off"],
+			["mouse", "on"], // Enable mouse mode for scroll handling
 			["focus-events", "on"],
 			["history-limit", "200000"],
 			["remain-on-exit", "off"],

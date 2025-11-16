@@ -1,6 +1,3 @@
-import { Tree } from "react-arborist";
-import type { NodeApi } from "react-arborist";
-import type { TreeApi } from "react-arborist";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -8,16 +5,10 @@ import {
 	ContextMenuItem,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import {
-	ChevronRight,
-	Edit2,
-	FolderOpen,
-} from "lucide-react";
+import { ChevronRight, Edit2, FolderOpen } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
-import { WorktreePortsList } from "../WorktreePortsList";
-import { GitStatusDialog } from "./components/GitStatusDialog";
-import { TabItem } from "./components/TabItem";
+import type { NodeApi, TreeApi } from "react-arborist";
+import { Tree } from "react-arborist";
 import {
 	Dialog,
 	DialogContent,
@@ -26,6 +17,10 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "renderer/components/ui/dialog";
+import type { Tab, Worktree } from "shared/types";
+import { WorktreePortsList } from "../WorktreePortsList";
+import { GitStatusDialog } from "./components/GitStatusDialog";
+import { TabItem } from "./components/TabItem";
 
 interface WorktreeItemProps {
 	worktree: Worktree;
@@ -40,9 +35,21 @@ interface WorktreeItemProps {
 }
 
 // Convert Tab[] to react-arborist format
-function convertTabsToTreeData(tabs: Tab[]): Array<{ id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> }> {
+function convertTabsToTreeData(
+	tabs: Tab[],
+): Array<{
+	id: string;
+	name: string;
+	tab: Tab;
+	children?: Array<{ id: string; name: string; tab: Tab }>;
+}> {
 	return tabs.map((tab) => {
-		const node: { id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> } = {
+		const node: {
+			id: string;
+			name: string;
+			tab: Tab;
+			children?: Array<{ id: string; name: string; tab: Tab }>;
+		} = {
 			id: tab.id,
 			name: tab.name,
 			tab,
@@ -147,9 +154,19 @@ export function WorktreeItem({
 	// Handle drag and drop (move)
 	const handleMove = async (args: {
 		dragIds: string[];
-		dragNodes: NodeApi<{ id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> }>[];
+		dragNodes: NodeApi<{
+			id: string;
+			name: string;
+			tab: Tab;
+			children?: Array<{ id: string; name: string; tab: Tab }>;
+		}>[];
 		parentId: string | null;
-		parentNode: NodeApi<{ id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> }> | null;
+		parentNode: NodeApi<{
+			id: string;
+			name: string;
+			tab: Tab;
+			children?: Array<{ id: string; name: string; tab: Tab }>;
+		}> | null;
 		index: number;
 	}) => {
 		if (args.dragNodes.length === 0) return;
@@ -161,8 +178,10 @@ export function WorktreeItem({
 
 		const draggedTabId = draggedTab.id;
 		const sourceParent = draggedNode.parent;
-		const sourceParentTabId = sourceParent?.data.tab?.type === "group" ? sourceParent.id : null;
-		const targetParentTabId = args.parentNode?.data.tab?.type === "group" ? args.parentNode.id : null;
+		const sourceParentTabId =
+			sourceParent?.data.tab?.type === "group" ? sourceParent.id : null;
+		const targetParentTabId =
+			args.parentNode?.data.tab?.type === "group" ? args.parentNode.id : null;
 
 		// Don't move if already in the same position
 		if (sourceParentTabId === targetParentTabId) {
@@ -326,9 +345,19 @@ export function WorktreeItem({
 
 	// Render node content
 	const renderNode = (props: {
-		node: NodeApi<{ id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> }>;
+		node: NodeApi<{
+			id: string;
+			name: string;
+			tab: Tab;
+			children?: Array<{ id: string; name: string; tab: Tab }>;
+		}>;
 		style: React.CSSProperties;
-		tree: TreeApi<{ id: string; name: string; tab: Tab; children?: Array<{ id: string; name: string; tab: Tab }> }>;
+		tree: TreeApi<{
+			id: string;
+			name: string;
+			tab: Tab;
+			children?: Array<{ id: string; name: string; tab: Tab }>;
+		}>;
 		dragHandle?: (el: HTMLDivElement | null) => void;
 		preview?: boolean;
 	}) => {
@@ -364,7 +393,9 @@ export function WorktreeItem({
 							</button>
 						</ContextMenuTrigger>
 						<ContextMenuContent>
-							<ContextMenuItem onClick={() => handleRenameGroup(tab.id, tab.name)}>
+							<ContextMenuItem
+								onClick={() => handleRenameGroup(tab.id, tab.name)}
+							>
 								<Edit2 size={14} className="mr-2" />
 								Rename
 							</ContextMenuItem>
@@ -385,7 +416,9 @@ export function WorktreeItem({
 					worktreeId={worktree.id}
 					worktree={worktree}
 					workspaceId={workspaceId}
-					parentTabId={node.parent?.data.tab?.type === "group" ? node.parent.id : undefined}
+					parentTabId={
+						node.parent?.data.tab?.type === "group" ? node.parent.id : undefined
+					}
 					selectedTabId={selectedTabId}
 					selectedTabIds={selectedTabIds}
 					onTabSelect={(wtId, tabId, shiftKey) => {
@@ -435,8 +468,11 @@ export function WorktreeItem({
 					openByDefault={false}
 					initialOpenState={Object.fromEntries(
 						treeData
-							.filter((item) => item.tab.type === "group" && expandedGroupTabs.has(item.id))
-							.map((item) => [item.id, true])
+							.filter(
+								(item) =>
+									item.tab.type === "group" && expandedGroupTabs.has(item.id),
+							)
+							.map((item) => [item.id, true]),
 					)}
 				>
 					{renderNode}
@@ -447,4 +483,3 @@ export function WorktreeItem({
 		</div>
 	);
 }
-

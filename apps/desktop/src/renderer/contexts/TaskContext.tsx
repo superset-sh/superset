@@ -1,10 +1,10 @@
 import type React from "react";
 import { createContext, useContext } from "react";
 import type { TaskStatus } from "../screens/main/components/Layout/StatusIndicator";
-import type { PendingWorktree, UITask } from "../screens/main/types";
 import { useTasks } from "../screens/main/hooks";
-import { useWorkspaceContext } from "./WorkspaceContext";
+import type { PendingWorktree, UITask } from "../screens/main/types";
 import { useTabContext } from "./TabContext";
+import { useWorkspaceContext } from "./WorkspaceContext";
 import { useWorktreeOperationsContext } from "./WorktreeOperationsContext";
 
 interface TaskContextValue {
@@ -50,9 +50,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
 	});
 
 	return (
-		<TaskContext.Provider value={taskData}>
-			{children}
-		</TaskContext.Provider>
+		<TaskContext.Provider value={taskData}>{children}</TaskContext.Provider>
 	);
 }
 
@@ -63,4 +61,3 @@ export function useTaskContext() {
 	}
 	return context;
 }
-

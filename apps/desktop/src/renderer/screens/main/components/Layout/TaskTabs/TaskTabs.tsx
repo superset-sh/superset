@@ -47,12 +47,16 @@ function useTabWidth(worktrees: Array<{ id: string }>) {
 			// numTabs gaps: (numTabs - 1) between tabs + 1 before button
 			const addButtonWidth = ADD_BUTTON_WIDTH + TAB_GAP;
 			const totalGapWidth = TAB_GAP * numTabs;
-			const availableWidth = containerWidth - totalGapWidth - addButtonWidth - WIDTH_BUFFER;
+			const availableWidth =
+				containerWidth - totalGapWidth - addButtonWidth - WIDTH_BUFFER;
 			const calculatedWidth = availableWidth / numTabs;
 
-			const finalWidth = calculatedWidth < MIN_TAB_WIDTH
-				? MIN_TAB_WIDTH
-				: Math.floor(Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)));
+			const finalWidth =
+				calculatedWidth < MIN_TAB_WIDTH
+					? MIN_TAB_WIDTH
+					: Math.floor(
+							Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)),
+						);
 
 			setTabWidth(finalWidth);
 		};

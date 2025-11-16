@@ -88,11 +88,15 @@ function buildMergeWarning(
 
 	if (canMergeResult.targetHasUncommittedChanges) {
 		const targetBranchText = targetBranch ? ` (${targetBranch})` : "";
-		warnings.push(`The target worktree${targetBranchText} has uncommitted changes.`);
+		warnings.push(
+			`The target worktree${targetBranchText} has uncommitted changes.`,
+		);
 	}
 
 	if (canMergeResult.sourceHasUncommittedChanges) {
-		warnings.push(`The source worktree (${sourceBranch}) has uncommitted changes.`);
+		warnings.push(
+			`The source worktree (${sourceBranch}) has uncommitted changes.`,
+		);
 	}
 
 	return warnings.length > 0
@@ -235,7 +239,6 @@ export function WorktreeItem({
 			second: newSecond,
 		};
 	};
-
 
 	// Helper: get all non-group tabs at the same level (for shift-click range selection)
 	const getTabsAtSameLevel = (
@@ -498,7 +501,6 @@ export function WorktreeItem({
 		loadWorktrees();
 	}, [workspaceId, worktree.id]);
 
-
 	// Calculate responsive height based on visible items
 	// Must be before early return to satisfy React hooks rules
 	const treeData = useMemo(() => convertTabsToTreeData(tabs), [tabs]);
@@ -521,7 +523,10 @@ export function WorktreeItem({
 
 		const visibleCount = countVisibleNodes(treeData);
 		const calculatedHeight = visibleCount * TREE_ROW_HEIGHT;
-		return Math.max(TREE_MIN_HEIGHT, Math.min(TREE_MAX_HEIGHT, calculatedHeight));
+		return Math.max(
+			TREE_MIN_HEIGHT,
+			Math.min(TREE_MAX_HEIGHT, calculatedHeight),
+		);
 	}, [treeData, expandedGroupTabs]);
 
 	// Only render tabs for the active worktree
@@ -579,7 +584,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Remove Worktree");
 			setErrorMessage(
 				result.error ||
-				"An unknown error occurred while removing the worktree.",
+					"An unknown error occurred while removing the worktree.",
 			);
 			setShowErrorDialog(true);
 		}
@@ -689,7 +694,7 @@ export function WorktreeItem({
 			setErrorTitle("Failed to Check Settings");
 			setErrorMessage(
 				checkResult.error ||
-				"An unknown error occurred while checking settings.",
+					"An unknown error occurred while checking settings.",
 			);
 			setShowErrorDialog(true);
 			return;
@@ -993,10 +998,11 @@ export function WorktreeItem({
 									node.toggle();
 									handleTabSelect(worktree.id, tab.id, false);
 								}}
-								className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${isSelected
-									? "bg-neutral-800/80 text-neutral-200"
-									: "hover:bg-neutral-800/40 text-neutral-400"
-									}`}
+								className={`group flex items-center gap-1.5 w-full h-7 px-2.5 text-xs rounded-md transition-all ${
+									isSelected
+										? "bg-neutral-800/80 text-neutral-200"
+										: "hover:bg-neutral-800/40 text-neutral-400"
+								}`}
 								style={{ paddingLeft: `${node.level * 12 + 10}px` }}
 							>
 								<ChevronRight
@@ -1095,8 +1101,7 @@ export function WorktreeItem({
 						const draggedTab = args.dragNodes[0]?.data.tab as Tab;
 						const targetParentTab = args.parentNode?.data.tab as Tab;
 						return (
-							draggedTab?.type === "group" &&
-							targetParentTab?.type === "group"
+							draggedTab?.type === "group" && targetParentTab?.type === "group"
 						);
 					}}
 				>
