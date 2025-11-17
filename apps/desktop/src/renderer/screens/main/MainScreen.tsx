@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { AppFrame } from "./components/AppFrame";
@@ -17,6 +17,8 @@ import {
 } from "../../contexts";
 import type { AppMode } from "./types";
 import { enrichWorktreesWithTasks } from "./utils";
+import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
+import { createTabShortcuts } from "../../lib/shortcuts";
 
 export function MainScreen() {
 	const [mode, setMode] = useState<AppMode>("edit");
@@ -81,6 +83,55 @@ export function MainScreen() {
 		handleCreateTask,
 		handleClearStatus,
 	} = useTaskContext();
+
+	// Global keyboard shortcuts (window-level, work from anywhere)
+	useEffect(() => {
+		const handleCloseTab = async () => {
+			// Close the currently selected tab (terminal/preview/port)
+			if (selectedTab && currentWorkspace && selectedWorktreeId) {
+				try {
+					const result = await window.ipcRenderer.invoke("tab-delete", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: selectedWorktreeId,
+						tabId: selectedTab.id,
+					});
+
+					if (result.success) {
+						// Trigger workspace refresh
+						window.dispatchEvent(new CustomEvent("workspace-changed"));
+					}
+				} catch (error) {
+					console.error("[MainScreen] Failed to close tab:", error);
+				}
+			}
+		};
+
+		const tabShortcuts = createTabShortcuts({
+			switchToPrevTab: () => {
+				// TODO: Implement tab switching
+			},
+			switchToNextTab: () => {
+				// TODO: Implement tab switching
+			},
+			newTab: () => {
+				// TODO: Implement new tab creation
+			},
+			closeTab: handleCloseTab,
+			reopenClosedTab: () => {
+				// TODO: Implement reopen closed tab
+			},
+			jumpToTab: (index: number) => {
+				// TODO: Implement jump to tab by index
+			},
+		});
+
+		const handleKeyDown = createShortcutHandler(tabShortcuts.shortcuts);
+		window.addEventListener("keydown", handleKeyDown);
+
+		return () => {
+			window.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [selectedTab, currentWorkspace, selectedWorktreeId]);
 
 	return (
 		<DndProvider backend={HTML5Backend}>

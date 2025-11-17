@@ -4,8 +4,6 @@ import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { createShortcutHandler } from "../../../../lib/keyboard-shortcuts";
-import { createTerminalShortcuts } from "../../../../lib/shortcuts";
 
 // WebglAddon disabled due to cursor positioning issues with autocomplete
 // import { WebglAddon } from "@xterm/addon-webgl";
@@ -182,10 +180,13 @@ export default function TerminalComponent({
 		let isResizing = false;
 		let writeQueue: string[] = [];
 
-		// Set up keyboard shortcuts
-		const terminalShortcuts = createTerminalShortcuts({
-			clearTerminal: () => {
-				// Clear the xterm buffer (removes scrollback)
+		// Set up terminal-specific keyboard shortcuts
+		// Note: Cmd+W is handled at window level (MainScreen.tsx) but we need to prevent it
+		// from being sent to the shell process (where it would be interpreted as delete word)
+		term.attachCustomKeyEventHandler((e: KeyboardEvent): boolean => {
+			// Cmd+K: Clear terminal
+			if (e.key === "k" && e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+				e.preventDefault();
 				term.clear();
 				// Also send clear command to shell to reset shell state
 				if (terminalIdRef.current) {
@@ -194,35 +195,18 @@ export default function TerminalComponent({
 						data: "\x0c", // Form feed (Ctrl+L) - clears screen in most shells
 					});
 				}
-			},
-			closeTerminal: async () => {
-				// Close the terminal by deleting the tab
-				// This matches the exact behavior of clicking the X button in the sidebar
-				if (terminalIdRef.current && workspaceId && worktreeId) {
-					try {
-						const result = await window.ipcRenderer.invoke("tab-delete", {
-							workspaceId,
-							worktreeId,
-							tabId: terminalIdRef.current,
-						});
+				return false; // Prevent key from being sent to shell
+			}
 
-						if (result.success) {
-							// Dispatch custom event to trigger workspace refresh in sidebar
-							// This ensures the UI updates to reflect the deleted tab
-							window.dispatchEvent(new CustomEvent("workspace-changed"));
-						}
-					} catch (error) {
-						console.error("[Terminal] Failed to close terminal:", error);
-					}
-				}
-			},
+			// Cmd+W: Prevent from being sent to shell (handled at window level)
+			if (e.key === "w" && e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+				e.preventDefault();
+				return false; // Prevent key from being sent to shell
+			}
+
+			// Allow all other keys to be sent to terminal
+			return true;
 		});
-
-		const handleShortcut = createShortcutHandler(terminalShortcuts.shortcuts);
-		// attachCustomKeyEventHandler should return false to prevent the key from being sent to the terminal
-		// When handleShortcut returns false, it means the key was handled and should not be sent to the shell
-		// This prevents Cmd+W from being interpreted as Ctrl+W (delete word backward) by the shell
-		term.attachCustomKeyEventHandler(handleShortcut);
 
 		// Load addons
 		// 1. WebLinks - Makes URLs clickable and open in default browser
