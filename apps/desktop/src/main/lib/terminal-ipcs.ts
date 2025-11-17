@@ -10,7 +10,7 @@ let ipcHandlersRegistered = false;
 
 export function registerTerminalIPCs(window: BrowserWindowType) {
 	// Initialize tmux manager (restore sessions) only once
-	if (!ipcHandlersRegistered) {
+  if (!ipcHandlersRegistered) {
 		tmuxManager.initialize().catch((error) => {
 			console.error("[Terminal IPC] Failed to initialize tmux manager:", error);
 		});
@@ -84,10 +84,18 @@ export function registerTerminalIPCs(window: BrowserWindowType) {
 			},
 		);
 
-		// Kill terminal (destroy tmux session completely)
-		ipcMain.on("terminal-kill", (_event, id: string) => {
-			tmuxManager.kill(id);
-		});
+    // Kill terminal (destroy tmux session completely)
+    ipcMain.on("terminal-kill", (_event, id: string) => {
+      tmuxManager.kill(id);
+    });
+
+    // Scroll tmux history by N lines (positive = down, negative = up)
+    ipcMain.on(
+      "terminal-scroll-lines",
+      (_event, message: { id: string; amount: number }) => {
+        tmuxManager.scrollLines(message.id, message.amount);
+      },
+    );
 
 		// Get terminal history
 		ipcMain.handle("terminal-get-history", (_event, id: string) => {

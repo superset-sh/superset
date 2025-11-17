@@ -257,6 +257,31 @@ export default function TerminalComponent({
 		// This ensures the terminal has correct dimensions when it first appears
 		customFit();
 
+		// Attach custom wheel handler to scroll tmux history when in normal buffer
+		try {
+			term.attachCustomWheelEventHandler((ev: WheelEvent) => {
+				// If alternate buffer (full-screen app), let xterm transform wheel to keys
+				const isAlternate = (term as any)?.buffer?.active?.type === "alternate";
+				if (isAlternate) return true; // allow default handling
+
+				// If user is selecting (mouse button down), don't hijack
+				if ((ev.buttons & 1) === 1) return true;
+
+				// Convert delta to line count (heuristic)
+				const lines = Math.max(1, Math.abs(Math.round(ev.deltaY / 40)));
+				const amount = ev.deltaY > 0 ? lines : -lines;
+				if (terminalIdRef.current && amount !== 0) {
+					window.ipcRenderer.send("terminal-scroll-lines", {
+						id: terminalIdRef.current,
+						amount,
+					});
+					// Prevent default so viewport/xterm doesn't fight with tmux copy-mode
+					return false;
+				}
+				return true;
+			});
+		} catch {}
+
 		// Create/attach terminal session with proper dimensions
 		// This is deferred until the terminal is initialized so we can pass correct cols/rows
 		if (terminalId && cwd) {

@@ -39,5 +39,10 @@ export interface TerminalChannels {
 		request: string;
 		response: NoResponse;
 	};
-}
 
+	/** Scroll tmux history lines (positive = down, negative = up) */
+	"terminal-scroll-lines": {
+		request: { id: string; amount: number };
+		response: NoResponse;
+	};
+}

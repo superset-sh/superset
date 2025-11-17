@@ -186,7 +186,8 @@ class TmuxManager {
       ["status", "off"],
       ["set-titles", "off"],
       ["allow-rename", "off"],
-      ["mouse", "on"],
+      // Turn off tmux mouse so xterm selection remains native
+      ["mouse", "off"],
       ["focus-events", "on"],
       ["history-limit", "200000"],
       ["remain-on-exit", "off"],
@@ -645,16 +646,57 @@ class TmuxManager {
 	 * Emit terminal data to all windows viewing this terminal
 	 */
   private emitMessage(sid: string, data: string): void {
+    // Strip mouse reporting enable sequences so xterm never flips into mouse mode
+    const sanitizeMouseSeq = (input: string): string => {
+      try {
+        return input.replace(/\x1b\[\?([0-9;]+)h/g, (_m, nums: string) => {
+          const blocked = new Set([9, 1000, 1002, 1003, 1005, 1006, 1015]);
+          const kept: number[] = [];
+          for (const part of String(nums).split(";")) {
+            const n = Number(part);
+            if (!blocked.has(n)) kept.push(n);
+          }
+          return kept.length ? `\x1b[?${kept.join(";")}h` : "";
+        });
+      } catch {
+        return input;
+      }
+    };
+
     const windows = this.terminalWindows.get(sid);
     if (windows && windows.size > 0) {
       for (const window of windows) {
         if (!window.isDestroyed()) {
           window.webContents.send("terminal-on-data", {
             id: sid,
-            data,
+            data: sanitizeMouseSeq(data),
           });
         }
       }
+    }
+  }
+
+  /** Scroll tmux history by amount (positive = down, negative = up) */
+  scrollLines(sid: string, amount: number): void {
+    try {
+      const count = Math.max(1, Math.min(100, Math.abs(Math.trunc(amount))));
+      const direction = amount > 0 ? "scroll-down" : "scroll-up";
+      // Enter copy-mode if not already
+      spawnSync("tmux", ["-L", this.TMUX_SOCKET, "copy-mode", "-e", "-t", sid]);
+      // Repeat scroll efficiently
+      spawnSync("tmux", [
+        "-L",
+        this.TMUX_SOCKET,
+        "send-keys",
+        "-t",
+        sid,
+        "-X",
+        "-N",
+        String(count),
+        direction,
+      ]);
+    } catch (e) {
+      console.warn("[TmuxManager] Failed to scroll lines:", sid, amount, e);
     }
   }
 
