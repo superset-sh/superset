@@ -45,4 +45,10 @@ export interface TerminalChannels {
 		request: { id: string; amount: number };
 		response: NoResponse;
 	};
+
+	/** End scroll session: exit copy-mode after wheel inactivity */
+	"terminal-scroll-finish": {
+		request: string; // terminal id
+		response: NoResponse;
+	};
 }

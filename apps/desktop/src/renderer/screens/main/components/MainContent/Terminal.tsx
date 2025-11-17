@@ -259,6 +259,16 @@ export default function TerminalComponent({
 
 		// Attach custom wheel handler to scroll tmux history when in normal buffer
 		try {
+			let wheelFinishTimer: ReturnType<typeof setTimeout> | null = null;
+			const scheduleFinish = () => {
+				if (wheelFinishTimer) clearTimeout(wheelFinishTimer);
+				wheelFinishTimer = setTimeout(() => {
+					if (terminalIdRef.current) {
+						window.ipcRenderer.send("terminal-scroll-finish", terminalIdRef.current);
+					}
+				}, 250);
+			};
+
 			term.attachCustomWheelEventHandler((ev: WheelEvent) => {
 				// If alternate buffer (full-screen app), let xterm transform wheel to keys
 				const isAlternate = (term as any)?.buffer?.active?.type === "alternate";
@@ -275,6 +285,7 @@ export default function TerminalComponent({
 						id: terminalIdRef.current,
 						amount,
 					});
+					scheduleFinish();
 					// Prevent default so viewport/xterm doesn't fight with tmux copy-mode
 					return false;
 				}

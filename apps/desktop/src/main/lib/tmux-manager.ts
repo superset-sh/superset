@@ -188,6 +188,8 @@ class TmuxManager {
       ["allow-rename", "off"],
       // Turn off tmux mouse so xterm selection remains native
       ["mouse", "off"],
+      // Hide transient messages like copy-mode position overlays
+      ["display-time", "0"],
       ["focus-events", "on"],
       ["history-limit", "200000"],
       ["remain-on-exit", "off"],
@@ -697,6 +699,15 @@ class TmuxManager {
       ]);
     } catch (e) {
       console.warn("[TmuxManager] Failed to scroll lines:", sid, amount, e);
+    }
+  }
+
+  /** Exit copy-mode after scrolling to restore normal cursor */
+  scrollFinish(sid: string): void {
+    try {
+      spawnSync("tmux", ["-L", this.TMUX_SOCKET, "send-keys", "-t", sid, "-X", "cancel"]);
+    } catch (e) {
+      console.warn("[TmuxManager] Failed to cancel copy-mode:", sid, e);
     }
   }
 

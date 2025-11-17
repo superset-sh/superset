@@ -97,6 +97,10 @@ export function registerTerminalIPCs(window: BrowserWindowType) {
       },
     );
 
+    ipcMain.on("terminal-scroll-finish", (_event, id: string) => {
+      tmuxManager.scrollFinish(id);
+    });
+
 		// Get terminal history
 		ipcMain.handle("terminal-get-history", (_event, id: string) => {
 			return tmuxManager.getHistory(id);
