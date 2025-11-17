@@ -93,8 +93,11 @@ class TmuxManager {
 	/**
 	 * Initialize tmux session manager - restore sessions from disk
 	 */
-	async initialize(): Promise<void> {
-		const savedSessions = this.loadSessionsFromDisk();
+  async initialize(): Promise<void> {
+    // Ensure server-level settings (affect all sessions/panes)
+    this.applyServerSettings();
+
+    const savedSessions = this.loadSessionsFromDisk();
 
 		// Verify each session exists in tmux and prepare for lazy reattach
 		for (const metadata of savedSessions) {
@@ -204,20 +207,7 @@ class TmuxManager {
       ]);
     }
 
-    // Ensure maximum scrollback at the server level so all panes inherit it
-    // Use a very high limit to mimic "unlimited" scrollback behavior
-    try {
-      spawnSync("tmux", [
-        "-L",
-        this.TMUX_SOCKET,
-        "set",
-        "-s",
-        "history-limit",
-        "500000",
-      ]);
-    } catch (e) {
-      console.warn("[TmuxManager] Failed to set server history-limit", e);
-    }
+    // Server-level history-limit is applied in applyServerSettings()
 
     // Leave key bindings and prefixes at user defaults
 
@@ -271,6 +261,39 @@ class TmuxManager {
       } catch (e) {
         console.warn("[TmuxManager] Failed to bind key:", args.join(" "), e);
       }
+    }
+  }
+
+  /**
+   * Apply server/global settings that maximize scrollback across all sessions
+   */
+  private applyServerSettings(): void {
+    try {
+      // Server-level hard cap for history size
+      spawnSync("tmux", [
+        "-L",
+        this.TMUX_SOCKET,
+        "set",
+        "-s",
+        "history-limit",
+        "1000000",
+      ]);
+    } catch (e) {
+      console.warn("[TmuxManager] Failed to set server history-limit", e);
+    }
+
+    try {
+      // Global default for future windows/panes
+      spawnSync("tmux", [
+        "-L",
+        this.TMUX_SOCKET,
+        "set",
+        "-g",
+        "history-limit",
+        "1000000",
+      ]);
+    } catch (e) {
+      console.warn("[TmuxManager] Failed to set global history-limit", e);
     }
   }
 
