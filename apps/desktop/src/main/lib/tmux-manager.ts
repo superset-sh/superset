@@ -204,6 +204,21 @@ class TmuxManager {
       ]);
     }
 
+    // Ensure maximum scrollback at the server level so all panes inherit it
+    // Use a very high limit to mimic "unlimited" scrollback behavior
+    try {
+      spawnSync("tmux", [
+        "-L",
+        this.TMUX_SOCKET,
+        "set",
+        "-s",
+        "history-limit",
+        "500000",
+      ]);
+    } catch (e) {
+      console.warn("[TmuxManager] Failed to set server history-limit", e);
+    }
+
     // Leave key bindings and prefixes at user defaults
 
     // Add terminal-overrides for true color support
