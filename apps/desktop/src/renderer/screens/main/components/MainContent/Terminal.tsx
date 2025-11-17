@@ -13,8 +13,6 @@ interface TerminalProps {
 	hidden?: boolean;
 	onFocus?: () => void;
 	cwd?: string;
-	workspaceId?: string;
-	worktreeId?: string;
 }
 
 interface TerminalMessage {
@@ -75,8 +73,6 @@ export default function TerminalComponent({
 	hidden = false,
 	onFocus,
 	cwd,
-	workspaceId,
-	worktreeId,
 }: TerminalProps) {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const [terminal, setTerminal] = useState<XTerm | null>(null);
