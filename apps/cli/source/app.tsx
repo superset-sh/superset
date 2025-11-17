@@ -1,7 +1,11 @@
 import { Box, Text, useApp, useInput } from "ink";
 import React, { useEffect, useState } from "react";
 
-export default function App({ name = "Stranger" }) {
+type Props = {
+	name: string | undefined;
+};
+
+export default function App({ name = "Stranger" }: Props) {
 	const [counter, setCounter] = useState(0);
 	const [input, setInput] = useState("");
 	const { exit } = useApp();

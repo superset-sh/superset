@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import chokidar from "chokidar";
 
-let child = null;
+let child: ChildProcess | null = null;
 
 function startApp() {
 	if (child) {
@@ -22,7 +22,7 @@ function startApp() {
 	});
 }
 
-const watcher = chokidar.watch("dist/**/*.js", {
+const watcher = chokidar.watch("dist/**/*", {
 	ignoreInitial: false,
 	persistent: true,
 });
