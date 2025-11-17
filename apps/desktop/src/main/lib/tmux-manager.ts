@@ -177,44 +177,87 @@ class TmuxManager {
 	/**
 	 * Apply tmux settings to make session invisible and optimized
 	 */
-	private applySessionSettings(sid: string): void {
-		const settings = [
-			["status", "off"],
-			["set-titles", "off"],
-			["allow-rename", "off"],
-			["mouse", "on"],
-			["focus-events", "on"],
-			["history-limit", "200000"],
-			["remain-on-exit", "off"],
-			["detach-on-destroy", "off"],
-			["escape-time", "0"],
-			["default-terminal", "xterm-256color"],
-		];
+  private applySessionSettings(sid: string): void {
+    // Keep settings minimal and focused on invisibility and correct behavior
+    const settings = [
+      ["status", "off"],
+      ["set-titles", "off"],
+      ["allow-rename", "off"],
+      ["mouse", "on"],
+      ["focus-events", "on"],
+      ["history-limit", "200000"],
+      ["remain-on-exit", "off"],
+      ["detach-on-destroy", "off"],
+      ["escape-time", "0"],
+      ["default-terminal", "xterm-256color"],
+    ];
 
-		for (const [option, value] of settings) {
-			spawnSync("tmux", [
-				"-L",
-				this.TMUX_SOCKET,
-				"set",
-				"-t",
-				sid,
-				option,
-				value,
-			]);
-		}
+    for (const [option, value] of settings) {
+      spawnSync("tmux", [
+        "-L",
+        this.TMUX_SOCKET,
+        "set",
+        "-t",
+        sid,
+        option,
+        value,
+      ]);
+    }
 
-		// Add terminal-overrides for true color support
-		spawnSync("tmux", [
-			"-L",
-			this.TMUX_SOCKET,
-			"set",
-			"-t",
-			sid,
-			"-as",
-			"terminal-overrides",
-			",*:Tc",
-		]);
-	}
+    // Leave key bindings and prefixes at user defaults
+
+    // Add terminal-overrides for true color support
+    spawnSync("tmux", [
+      "-L",
+      this.TMUX_SOCKET,
+      "set",
+      "-t",
+      sid,
+      "-as",
+      "terminal-overrides",
+      ",*:Tc",
+    ]);
+
+    // Bind mouse-driven selection to behave like native selection (no Shift required)
+    // Drag to select -> enter copy-mode and start selection. Mouse up -> copy to system clipboard.
+    const isMac = process.platform === "darwin";
+    const copyCmd = isMac ? "pbcopy" : (process.env.DISPLAY ? "xclip -selection clipboard" : "wl-copy");
+
+    const binds: string[][] = [
+      // Start selection on drag even when not in copy-mode
+      [
+        "bind-key", "-T", "root", "MouseDrag1Pane",
+        "if-shell", "-F", "#{pane_in_mode}",
+        "send-keys", "-X", "begin-selection",
+        ";",
+        "copy-mode", "-e", ";", "send-keys", "-X", "begin-selection",
+      ],
+      // Clear selection on mouse down to avoid stale highlights
+      [
+        "bind-key", "-T", "root", "MouseDown1Pane",
+        "if-shell", "-F", "#{pane_in_mode}",
+        "send-keys", "-X", "clear-selection",
+        ";",
+        "select-pane", "-t=", ";", "send-keys", "-X", "clear-selection",
+      ],
+      // On mouse up, copy selection to system clipboard and exit copy-mode
+      [
+        "bind-key", "-T", "root", "MouseUp1Pane",
+        "if-shell", "-F", "#{pane_in_mode}",
+        "send-keys", "-X", "copy-pipe-and-cancel", copyCmd,
+        ";",
+        "copy-mode", "-e", ";", "send-keys", "-X", "copy-pipe-and-cancel", copyCmd,
+      ],
+    ];
+
+    for (const args of binds) {
+      try {
+        spawnSync("tmux", ["-L", this.TMUX_SOCKET, ...args]);
+      } catch (e) {
+        console.warn("[TmuxManager] Failed to bind key:", args.join(" "), e);
+      }
+    }
+  }
 
 	/**
 	 * Create or reattach to a terminal session
@@ -601,19 +644,19 @@ class TmuxManager {
 	/**
 	 * Emit terminal data to all windows viewing this terminal
 	 */
-	private emitMessage(sid: string, data: string): void {
-		const windows = this.terminalWindows.get(sid);
-		if (windows && windows.size > 0) {
-			for (const window of windows) {
-				if (!window.isDestroyed()) {
-					window.webContents.send("terminal-on-data", {
-						id: sid,
-						data,
-					});
-				}
-			}
-		}
-	}
+  private emitMessage(sid: string, data: string): void {
+    const windows = this.terminalWindows.get(sid);
+    if (windows && windows.size > 0) {
+      for (const window of windows) {
+        if (!window.isDestroyed()) {
+          window.webContents.send("terminal-on-data", {
+            id: sid,
+            data,
+          });
+        }
+      }
+    }
+  }
 
 	/**
 	 * Load persisted sessions from disk
