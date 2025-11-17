@@ -197,21 +197,31 @@ export default function TerminalComponent({
 			},
 			closeTerminal: async () => {
 				// Close the terminal by deleting the tab
+				// This matches the exact behavior of clicking the X button in the sidebar
 				if (terminalIdRef.current && workspaceId && worktreeId) {
 					try {
-						await window.ipcRenderer.invoke("tab-delete", {
+						const result = await window.ipcRenderer.invoke("tab-delete", {
 							workspaceId,
 							worktreeId,
 							tabId: terminalIdRef.current,
 						});
+
+						if (result.success) {
+							// Dispatch custom event to trigger workspace refresh in sidebar
+							// This ensures the UI updates to reflect the deleted tab
+							window.dispatchEvent(new CustomEvent("workspace-changed"));
+						}
 					} catch (error) {
-						console.error("Failed to close terminal:", error);
+						console.error("[Terminal] Failed to close terminal:", error);
 					}
 				}
 			},
 		});
 
 		const handleShortcut = createShortcutHandler(terminalShortcuts.shortcuts);
+		// attachCustomKeyEventHandler should return false to prevent the key from being sent to the terminal
+		// When handleShortcut returns false, it means the key was handled and should not be sent to the shell
+		// This prevents Cmd+W from being interpreted as Ctrl+W (delete word backward) by the shell
 		term.attachCustomKeyEventHandler(handleShortcut);
 
 		// Load addons

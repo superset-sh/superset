@@ -144,7 +144,16 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 				{ role: "minimize" },
 				{ role: "zoom" },
 				{ type: "separator" },
-				{ role: "close" },
+				// Custom close handler to prevent Cmd+W from closing the window
+				// Arc-style behavior: Cmd+W closes tabs/terminals, Cmd+Shift+W closes window
+				// This allows renderer-side shortcuts to handle Cmd+W for closing content
+				{
+					label: "Close Window",
+					accelerator: "CmdOrCtrl+Shift+W",
+					click: () => {
+						mainWindow.close();
+					},
+				},
 			],
 		},
 	];

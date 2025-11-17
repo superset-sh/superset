@@ -263,6 +263,9 @@ The desktop app uses a centralized keyboard shortcuts system inspired by Arc Bro
 - `Cmd+K` - Clear terminal (scrollback + screen)
 - `Cmd+W` - Close current terminal
 
+**Window:**
+- `Cmd+Shift+W` - Close window (Arc-style: Cmd+W closes content, Cmd+Shift+W closes window)
+
 **Adding New Shortcuts:**
 
 1. Define handlers in the component (e.g., `MainScreen.tsx`)

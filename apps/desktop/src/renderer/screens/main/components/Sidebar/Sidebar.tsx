@@ -55,6 +55,17 @@ export function Sidebar({
 
 	const modes: SidebarMode[] = ["tabs", "changes"];
 
+	// Listen for custom workspace-changed events (e.g., from terminal Cmd+W shortcuts)
+	// This allows components to trigger workspace refreshes without direct access to context
+	useEffect(() => {
+		const handleWorkspaceChanged = () => {
+			handleWorktreeCreated();
+		};
+
+		window.addEventListener("workspace-changed", handleWorkspaceChanged);
+		return () => window.removeEventListener("workspace-changed", handleWorkspaceChanged);
+	}, [handleWorktreeCreated]);
+
 	// Fetch diff data when in changes mode
 	const { diffData, loading: diffLoading } = useDiffData({
 		workspaceId: currentWorkspace?.id,
