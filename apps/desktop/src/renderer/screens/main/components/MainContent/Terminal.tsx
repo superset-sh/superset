@@ -161,6 +161,9 @@ export default function TerminalComponent({
 			theme:
 				currentTheme === "light" ? TERMINAL_THEME.LIGHT : TERMINAL_THEME.DARK,
 			scrollback: 9999999, // Very large scrollback buffer (practical maximum)
+			// Favor native-feeling selection and copy (Cmd+C) in xterm
+			macOptionClickForcesSelection: true,
+			rightClickSelectsWord: true,
 			// Use xterm.js defaults for all other settings to match standard terminal behavior
 			// scrollOnUserInput: true (default)
 			// altClickMovesCursor: true (default - matches iTerm2)
