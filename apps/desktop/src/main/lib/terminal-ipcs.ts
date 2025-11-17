@@ -44,13 +44,14 @@ export function registerTerminalIPCs(window: BrowserWindowType) {
 			},
 		);
 
-		// Send input to terminal
-		ipcMain.on(
-			"terminal-input",
-			(_event, message: { id: string; data: string }) => {
-				tmuxManager.write(message.id, message.data);
-			},
-		);
+    // Send input to terminal (exit copy-mode first so we don't snap back)
+    ipcMain.on(
+      "terminal-input",
+      (_event, message: { id: string; data: string }) => {
+        tmuxManager.scrollFinish(message.id);
+        tmuxManager.write(message.id, message.data);
+      },
+    );
 
 		// Resize terminal with sequence tracking
 		ipcMain.on(
@@ -97,9 +98,6 @@ export function registerTerminalIPCs(window: BrowserWindowType) {
       },
     );
 
-    ipcMain.on("terminal-scroll-finish", (_event, id: string) => {
-      tmuxManager.scrollFinish(id);
-    });
 
 		// Get terminal history
 		ipcMain.handle("terminal-get-history", (_event, id: string) => {
