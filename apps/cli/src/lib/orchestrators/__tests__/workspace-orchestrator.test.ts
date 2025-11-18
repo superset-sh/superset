@@ -112,7 +112,7 @@ describe("WorkspaceOrchestrator", () => {
 
 			const workspaces = await orchestrator.list(env1.id);
 			expect(workspaces).toHaveLength(1);
-			expect(workspaces[0].id).toBe(ws1.id);
+			expect(workspaces[0]?.id).toBe(ws1.id);
 		});
 	});
 

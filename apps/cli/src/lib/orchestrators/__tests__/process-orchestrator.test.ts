@@ -141,7 +141,7 @@ describe("ProcessOrchestrator", () => {
 
 			const processes = await orchestrator.list(ws1.id);
 			expect(processes).toHaveLength(1);
-			expect(processes[0].id).toBe(p1.id);
+			expect(processes[0]?.id).toBe(p1.id);
 		});
 	});
 

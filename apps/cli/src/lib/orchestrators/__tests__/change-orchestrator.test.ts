@@ -89,7 +89,7 @@ describe("ChangeOrchestrator", () => {
 
 			const changes = await orchestrator.list(ws1.id);
 			expect(changes).toHaveLength(1);
-			expect(changes[0].id).toBe(c1.id);
+			expect(changes[0]?.id).toBe(c1.id);
 		});
 
 		test("returns multiple changes in order", async () => {
@@ -135,7 +135,7 @@ describe("ChangeOrchestrator", () => {
 			await orchestrator.update(change.id, { summary: "Updated summary" });
 
 			const changes = await orchestrator.list(workspace.id);
-			expect(changes[0].summary).toBe("Updated summary");
+			expect(changes[0]?.summary).toBe("Updated summary");
 		});
 
 		test("throws error for non-existent change", async () => {
