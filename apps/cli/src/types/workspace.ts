@@ -1,5 +1,3 @@
-import type { Environment } from "./environment";
-
 export enum WorkspaceType {
 	LOCAL = "local",
 	CLOUD = "cloud",

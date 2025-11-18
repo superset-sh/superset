@@ -33,7 +33,7 @@ export interface Agent extends Process {
 
 export interface ProcessOrchestrator {
 	get: (id: string) => Promise<Process>;
-	list: () => Promise<Process[]>;
+	list: (workspaceId?: string) => Promise<Process[]>;
 
 	create: (
 		type: ProcessType,
