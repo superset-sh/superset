@@ -1,0 +1,168 @@
+import { JSONFilePreset } from "lowdb/node";
+import type { StorageAdapter } from "./adapter.js";
+import { ensureStorageDir, getDbPath } from "./config.js";
+import {
+	type Database,
+	type SerializedDatabase,
+	createEmptyDatabase,
+} from "./types.js";
+
+/**
+ * Lowdb implementation of StorageAdapter
+ * Handles JSON file persistence with date serialization/deserialization
+ */
+export class LowdbAdapter implements StorageAdapter {
+	private db: Awaited<ReturnType<typeof JSONFilePreset<SerializedDatabase>>> | null = null;
+	private readonly dbPath: string;
+
+	constructor(dbPath?: string) {
+		this.dbPath = dbPath ?? getDbPath();
+	}
+
+	/**
+	 * Initialize the database connection
+	 */
+	private async init(): Promise<void> {
+		if (this.db) return;
+
+		await ensureStorageDir();
+		this.db = await JSONFilePreset<SerializedDatabase>(
+			this.dbPath,
+			createEmptyDatabase(),
+		);
+	}
+
+	/**
+	 * Deserialize dates from ISO strings to Date objects
+	 */
+	private deserializeDates<T>(obj: any): T {
+		if (obj === null || obj === undefined) return obj;
+
+		if (typeof obj === "string" && this.isISODate(obj)) {
+			return new Date(obj) as any;
+		}
+
+		if (Array.isArray(obj)) {
+			return obj.map((item) => this.deserializeDates(item)) as any;
+		}
+
+		if (typeof obj === "object") {
+			const result: any = {};
+			for (const [key, value] of Object.entries(obj)) {
+				result[key] = this.deserializeDates(value);
+			}
+			return result;
+		}
+
+		return obj;
+	}
+
+	/**
+	 * Serialize dates to ISO strings
+	 */
+	private serializeDates<T>(obj: T): any {
+		if (obj === null || obj === undefined) return obj;
+
+		if (obj instanceof Date) {
+			return obj.toISOString();
+		}
+
+		if (Array.isArray(obj)) {
+			return obj.map((item) => this.serializeDates(item));
+		}
+
+		if (typeof obj === "object") {
+			const result: any = {};
+			for (const [key, value] of Object.entries(obj)) {
+				result[key] = this.serializeDates(value);
+			}
+			return result;
+		}
+
+		return obj;
+	}
+
+	/**
+	 * Check if a string is an ISO date format
+	 */
+	private isISODate(str: string): boolean {
+		const isoDateRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
+		return isoDateRegex.test(str);
+	}
+
+	async read(): Promise<Database> {
+		await this.init();
+		await this.db!.read();
+		return this.deserializeDates<Database>(this.db!.data);
+	}
+
+	async write(data: Database): Promise<void> {
+		await this.init();
+		this.db!.data = this.serializeDates(data);
+		await this.db!.write();
+	}
+
+	async getCollection<K extends keyof Database>(
+		collection: K,
+	): Promise<Database[K]> {
+		await this.init();
+		await this.db!.read();
+		return this.deserializeDates<Database[K]>(this.db!.data[collection]);
+	}
+
+	async updateCollection<K extends keyof Database>(
+		collection: K,
+		data: Database[K],
+	): Promise<void> {
+		await this.init();
+		await this.db!.read();
+		this.db!.data[collection] = this.serializeDates(data);
+		await this.db!.write();
+	}
+
+	async get<K extends keyof Database>(
+		collection: K,
+		id: string,
+	): Promise<Database[K][string] | undefined> {
+		await this.init();
+		await this.db!.read();
+		const item = this.db!.data[collection][id];
+		return item ? this.deserializeDates(item) : undefined;
+	}
+
+	async set<K extends keyof Database>(
+		collection: K,
+		id: string,
+		value: Database[K][string],
+	): Promise<void> {
+		await this.init();
+		await this.db!.read();
+		this.db!.data[collection][id] = this.serializeDates(value);
+		await this.db!.write();
+	}
+
+	async delete<K extends keyof Database>(
+		collection: K,
+		id: string,
+	): Promise<void> {
+		await this.init();
+		await this.db!.read();
+		delete this.db!.data[collection][id];
+		await this.db!.write();
+	}
+
+	async has<K extends keyof Database>(
+		collection: K,
+		id: string,
+	): Promise<boolean> {
+		await this.init();
+		await this.db!.read();
+		return id in this.db!.data[collection];
+	}
+
+	async clear(): Promise<void> {
+		await this.init();
+		this.db!.data = createEmptyDatabase();
+		await this.db!.write();
+	}
+}
