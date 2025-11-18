@@ -38,5 +38,8 @@
 		"@biomejs/biome": "^2.2.6",
 		"sherif": "^1.7.0",
 		"turbo": "^2.5.8"
+	},
+	"dependencies": {
+		"react-devtools-core": "^7.0.1"
 	}
 }
