@@ -58,7 +58,11 @@ export class WorkspaceOrchestrator implements IWorkspaceOrchestrator {
 
 	async update(id: string, updates: Partial<Workspace>): Promise<void> {
 		const existing = await this.get(id);
-		const updated = { ...existing, ...updates };
+
+		// Filter out immutable fields to prevent desync
+		const { id: _, environmentId: __, ...updatesWithoutImmutable } = updates;
+
+		const updated = { ...existing, ...updatesWithoutImmutable };
 		await this.storage.set("workspaces", id, updated);
 	}
 

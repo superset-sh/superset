@@ -36,7 +36,10 @@ export class ChangeOrchestrator implements IChangeOrchestrator {
 			throw new Error(`Change with id ${id} not found`);
 		}
 
-		const updated = { ...existing, ...updates };
+		// Filter out immutable fields to prevent desync
+		const { id: _, workspaceId: __, createdAt: ___, ...updatesWithoutImmutable } = updates;
+
+		const updated = { ...existing, ...updatesWithoutImmutable };
 		await this.storage.set("changes", id, updated);
 	}
 

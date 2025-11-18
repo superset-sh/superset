@@ -68,9 +68,13 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 
 	async update(id: string, updates: Partial<Process>): Promise<void> {
 		const existing = await this.get(id);
+
+		// Filter out immutable fields to prevent desync
+		const { id: _, workspaceId: __, createdAt: ___, ...updatesWithoutImmutable } = updates;
+
 		const updated = {
 			...existing,
-			...updates,
+			...updatesWithoutImmutable,
 			updatedAt: new Date(),
 		};
 		await this.storage.set("processes", id, updated);

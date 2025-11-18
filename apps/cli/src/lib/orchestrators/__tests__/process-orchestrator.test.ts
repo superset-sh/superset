@@ -166,6 +166,36 @@ describe("ProcessOrchestrator", () => {
 				process.updatedAt.getTime(),
 			);
 		});
+
+		test("prevents updating immutable fields", async () => {
+			const env = await environmentOrchestrator.create();
+			const workspace = await workspaceOrchestrator.create(
+				env.id,
+				WorkspaceType.LOCAL,
+				"/tmp/test",
+			);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
+			const originalId = process.id;
+			const originalWorkspaceId = process.workspaceId;
+			const originalCreatedAt = process.createdAt;
+
+			// Try to update immutable fields - should be ignored
+			await orchestrator.update(process.id, {
+				id: "new-id",
+				workspaceId: "different-workspace",
+				createdAt: new Date("2020-01-01"),
+			});
+
+			const retrieved = await orchestrator.get(originalId);
+
+			// Immutable fields should remain unchanged
+			expect(retrieved.id).toBe(originalId);
+			expect(retrieved.workspaceId).toBe(originalWorkspaceId);
+			expect(retrieved.createdAt.getTime()).toBe(originalCreatedAt.getTime());
+		});
 	});
 
 	describe("stop", () => {

@@ -36,15 +36,12 @@ export class EnvironmentOrchestrator implements IEnvironmentOrchestrator {
 
 	async update(id: string, updates: Partial<Environment>): Promise<void> {
 		const existing = await this.get(id);
-		const updated = { ...existing, ...updates };
 
-		// If ID is being changed, delete old key and create new one
-		if (updates.id && updates.id !== id) {
-			await this.storage.delete("environments", id);
-			await this.storage.set("environments", updated.id, updated);
-		} else {
-			await this.storage.set("environments", id, updated);
-		}
+		// Filter out immutable id field to prevent desync
+		const { id: _, ...updatesWithoutImmutable } = updates;
+
+		const updated = { ...existing, ...updatesWithoutImmutable };
+		await this.storage.set("environments", id, updated);
 	}
 
 	async delete(id: string): Promise<void> {

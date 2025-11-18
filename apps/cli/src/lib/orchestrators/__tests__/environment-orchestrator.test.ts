@@ -79,18 +79,21 @@ describe("EnvironmentOrchestrator", () => {
 	});
 
 	describe("update", () => {
-		test("updates environment properties", async () => {
+		test("prevents updating immutable id field", async () => {
 			const env = await orchestrator.create();
+			const originalId = env.id;
 
+			// Try to update id - should be ignored
 			await orchestrator.update(env.id, { id: "updated-id" });
-			const retrieved = await orchestrator.get("updated-id");
+			const retrieved = await orchestrator.get(originalId);
 
-			expect(retrieved.id).toBe("updated-id");
+			// ID should remain unchanged
+			expect(retrieved.id).toBe(originalId);
 		});
 
 		test("throws error for non-existent environment", async () => {
 			expect(
-				orchestrator.update("non-existent", { id: "new" }),
+				orchestrator.update("non-existent", {}),
 			).rejects.toThrow();
 		});
 	});
