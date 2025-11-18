@@ -12,7 +12,11 @@
 		"dev": "tsc --watch",
 		"start": "bun watch.ts",
 		"typecheck": "tsc --noEmit",
-		"test": "prettier --check . && xo && ava"
+		"test": "prettier --check . && xo && ava",
+		"lint": "biome check --write .",
+		"lint:check": "biome check .",
+		"format": "biome format --write .",
+		"format:check": "biome format ."
 	},
 	"files": [
 		"dist"
