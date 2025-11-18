@@ -1,11 +1,10 @@
 {
-	"extends": "@sindresorhus/tsconfig",
+	"extends": "@superset/typescript/react-library.json",
 	"compilerOptions": {
 		"outDir": "dist",
-		"skipLibCheck": true,
+		"noEmit": false,
+		"allowImportingTsExtensions": false,
 		"types": []
 	},
-	"include": [
-		"src"
-	]
+	"include": ["src"]
 }
