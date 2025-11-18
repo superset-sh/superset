@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import Table from "ink-table";
+import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
 import { WorkspaceType } from "../types/workspace";

@@ -10,7 +10,7 @@ function startApp() {
 	}
 
 	console.log("\x1b[36m[watch] Starting app...\x1b[0m");
-	child = spawn("node", ["dist/cli.js"], {
+	child = spawn("bun", ["dist/cli.js"], {
 		stdio: "inherit",
 		shell: false,
 	});
