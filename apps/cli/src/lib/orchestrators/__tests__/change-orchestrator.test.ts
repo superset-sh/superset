@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { WorkspaceType } from "../../../types/workspace.js";
-import { LowdbAdapter } from "../../storage/lowdb-adapter.js";
-import { ChangeOrchestrator } from "../change-orchestrator.js";
-import { EnvironmentOrchestrator } from "../environment-orchestrator.js";
-import { WorkspaceOrchestrator } from "../workspace-orchestrator.js";
+import { WorkspaceType } from "../../../types/workspace";
+import { LowdbAdapter } from "../../storage/lowdb-adapter";
+import { ChangeOrchestrator } from "../change-orchestrator";
+import { EnvironmentOrchestrator } from "../environment-orchestrator";
+import { WorkspaceOrchestrator } from "../workspace-orchestrator";
 
 describe("ChangeOrchestrator", () => {
 	let tempDir: string;
