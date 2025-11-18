@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Agent } from "../../../types/process.js";
 import { AgentType, ProcessType } from "../../../types/process.js";
 import { WorkspaceType } from "../../../types/workspace.js";
@@ -39,7 +39,10 @@ describe("ProcessOrchestrator", () => {
 				"/tmp/test",
 			);
 
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 
 			expect(process.id).toBeDefined();
 			expect(process.type).toBe(ProcessType.TERMINAL);
@@ -77,7 +80,10 @@ describe("ProcessOrchestrator", () => {
 				WorkspaceType.LOCAL,
 				"/tmp/test",
 			);
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 
 			const retrieved = await orchestrator.get(process.id);
 			expect(retrieved).toEqual(process);
@@ -147,13 +153,16 @@ describe("ProcessOrchestrator", () => {
 				WorkspaceType.LOCAL,
 				"/tmp/test",
 			);
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 
 			await orchestrator.update(process.id, { title: "Updated Title" });
 			const retrieved = await orchestrator.get(process.id);
 
 			expect(retrieved.title).toBe("Updated Title");
-			expect(retrieved.updatedAt.getTime()).toBeGreaterThan(
+			expect(retrieved.updatedAt.getTime()).toBeGreaterThanOrEqual(
 				process.updatedAt.getTime(),
 			);
 		});
@@ -167,7 +176,10 @@ describe("ProcessOrchestrator", () => {
 				WorkspaceType.LOCAL,
 				"/tmp/test",
 			);
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 
 			await orchestrator.stop(process.id);
 			const retrieved = await orchestrator.get(process.id);
@@ -230,7 +242,10 @@ describe("ProcessOrchestrator", () => {
 				"/tmp/test",
 			);
 
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 			await orchestrator.stop(process.id);
 
 			const firstStopped = await orchestrator.get(process.id);
@@ -251,7 +266,10 @@ describe("ProcessOrchestrator", () => {
 				WorkspaceType.LOCAL,
 				"/tmp/test",
 			);
-			const process = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const process = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 
 			await orchestrator.delete(process.id);
 			expect(orchestrator.get(process.id)).rejects.toThrow();

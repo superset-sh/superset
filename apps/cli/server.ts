@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import chokidar from "chokidar";
 
 let child: ChildProcess | null = null;

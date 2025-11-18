@@ -19,9 +19,7 @@ export class ChangeOrchestrator implements IChangeOrchestrator {
 		);
 	}
 
-	async create(
-		change: Omit<Change, "id" | "timestamp">,
-	): Promise<Change> {
+	async create(change: Omit<Change, "id" | "timestamp">): Promise<Change> {
 		const newChange: Change = {
 			...change,
 			id: randomUUID(),

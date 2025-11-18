@@ -34,10 +34,7 @@ export class EnvironmentOrchestrator implements IEnvironmentOrchestrator {
 		return environment;
 	}
 
-	async update(
-		id: string,
-		updates: Partial<Environment>,
-	): Promise<void> {
+	async update(id: string, updates: Partial<Environment>): Promise<void> {
 		const existing = await this.get(id);
 		const updated = { ...existing, ...updates };
 
@@ -78,8 +75,7 @@ export class EnvironmentOrchestrator implements IEnvironmentOrchestrator {
 
 		for (const processId of processIds) {
 			// Delete agent summaries for this process
-			const agentSummaries =
-				await this.storage.getCollection("agentSummaries");
+			const agentSummaries = await this.storage.getCollection("agentSummaries");
 			const summaryIds = Object.entries(agentSummaries)
 				.filter(([_, summary]) => summary.agentId === processId)
 				.map(([summaryId]) => summaryId);

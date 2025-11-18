@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type {
+	WorkspaceOrchestrator as IWorkspaceOrchestrator,
 	LocalWorkspace,
 	Workspace,
-	WorkspaceOrchestrator as IWorkspaceOrchestrator,
 	WorkspaceType,
 } from "../../types/workspace.js";
 import type { StorageAdapter } from "../storage/adapter.js";
@@ -73,8 +73,7 @@ export class WorkspaceOrchestrator implements IWorkspaceOrchestrator {
 
 		for (const processId of processIds) {
 			// Delete agent summaries for this process
-			const agentSummaries =
-				await this.storage.getCollection("agentSummaries");
+			const agentSummaries = await this.storage.getCollection("agentSummaries");
 			const summaryIds = Object.entries(agentSummaries)
 				.filter(([_, summary]) => summary.agentId === processId)
 				.map(([summaryId]) => summaryId);

@@ -1,10 +1,13 @@
+import { existsSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
+import { dirname } from "node:path";
 import { JSONFilePreset } from "lowdb/node";
 import type { StorageAdapter } from "./adapter.js";
-import { ensureStorageDir, getDbPath } from "./config.js";
+import { getDbPath } from "./config.js";
 import {
+	createEmptyDatabase,
 	type Database,
 	type SerializedDatabase,
-	createEmptyDatabase,
 } from "./types.js";
 
 /**
@@ -12,7 +15,9 @@ import {
  * Handles JSON file persistence with date serialization/deserialization
  */
 export class LowdbAdapter implements StorageAdapter {
-	private db: Awaited<ReturnType<typeof JSONFilePreset<SerializedDatabase>>> | null = null;
+	private db: Awaited<
+		ReturnType<typeof JSONFilePreset<SerializedDatabase>>
+	> | null = null;
 	private readonly dbPath: string;
 
 	constructor(dbPath?: string) {
@@ -25,7 +30,12 @@ export class LowdbAdapter implements StorageAdapter {
 	private async init(): Promise<void> {
 		if (this.db) return;
 
-		await ensureStorageDir();
+		// Ensure the parent directory exists (for both default and custom paths)
+		const parentDir = dirname(this.dbPath);
+		if (!existsSync(parentDir)) {
+			await mkdir(parentDir, { recursive: true, mode: 0o700 });
+		}
+
 		this.db = await JSONFilePreset<SerializedDatabase>(
 			this.dbPath,
 			createEmptyDatabase(),

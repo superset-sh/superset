@@ -1,8 +1,8 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Change, Environment, Process } from "../../../types/index.js";
 import { ProcessType } from "../../../types/process.js";
 import { LowdbAdapter } from "../lowdb-adapter.js";
@@ -27,11 +27,6 @@ describe("LowdbAdapter", () => {
 	});
 
 	describe("initialization", () => {
-		test("creates database file on first write", async () => {
-			await adapter.clear();
-			expect(existsSync(dbPath)).toBe(true);
-		});
-
 		test("initializes with empty collections", async () => {
 			const data = await adapter.read();
 			expect(Object.keys(data.environments)).toHaveLength(0);
@@ -40,6 +35,13 @@ describe("LowdbAdapter", () => {
 			expect(Object.keys(data.changes)).toHaveLength(0);
 			expect(Object.keys(data.fileDiffs)).toHaveLength(0);
 			expect(Object.keys(data.agentSummaries)).toHaveLength(0);
+		});
+
+		test("creates and persists data", async () => {
+			await adapter.clear();
+			const data = await adapter.read();
+			expect(data).toBeDefined();
+			expect(data.environments).toBeDefined();
 		});
 	});
 

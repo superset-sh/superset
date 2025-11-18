@@ -18,9 +18,7 @@ export interface StorageAdapter {
 	/**
 	 * Get a specific collection
 	 */
-	getCollection<K extends keyof Database>(
-		collection: K,
-	): Promise<Database[K]>;
+	getCollection<K extends keyof Database>(collection: K): Promise<Database[K]>;
 
 	/**
 	 * Update a specific collection
@@ -50,18 +48,12 @@ export interface StorageAdapter {
 	/**
 	 * Delete a single entity from a collection
 	 */
-	delete<K extends keyof Database>(
-		collection: K,
-		id: string,
-	): Promise<void>;
+	delete<K extends keyof Database>(collection: K, id: string): Promise<void>;
 
 	/**
 	 * Check if an entity exists in a collection
 	 */
-	has<K extends keyof Database>(
-		collection: K,
-		id: string,
-	): Promise<boolean>;
+	has<K extends keyof Database>(collection: K, id: string): Promise<boolean>;
 
 	/**
 	 * Clear all data (useful for testing)

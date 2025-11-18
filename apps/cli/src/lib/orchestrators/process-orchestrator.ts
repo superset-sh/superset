@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import {
 	type Agent,
 	type AgentType,
-	type Process,
 	type ProcessOrchestrator as IProcessOrchestrator,
+	type Process,
 	ProcessType,
 	type Terminal,
 } from "../../types/process.js";

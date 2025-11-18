@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { LocalWorkspace } from "../../../types/workspace.js";
 import { WorkspaceType } from "../../../types/workspace.js";
 import { LowdbAdapter } from "../../storage/lowdb-adapter.js";
@@ -46,10 +46,7 @@ describe("WorkspaceOrchestrator", () => {
 
 		test("creates cloud workspace without path", async () => {
 			const env = await environmentOrchestrator.create();
-			const workspace = await orchestrator.create(
-				env.id,
-				WorkspaceType.CLOUD,
-			);
+			const workspace = await orchestrator.create(env.id, WorkspaceType.CLOUD);
 
 			expect(workspace.id).toBeDefined();
 			expect(workspace.type).toBe(WorkspaceType.CLOUD);
