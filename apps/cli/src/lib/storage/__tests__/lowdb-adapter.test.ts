@@ -3,9 +3,9 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Change, Environment, Process } from "../../../types/index.js";
-import { ProcessType } from "../../../types/process.js";
-import { LowdbAdapter } from "../lowdb-adapter.js";
+import type { Change, Environment, Process } from "../../../types/index";
+import { ProcessType } from "../../../types/process";
+import { LowdbAdapter } from "../lowdb-adapter";
 
 describe("LowdbAdapter", () => {
 	let tempDir: string;

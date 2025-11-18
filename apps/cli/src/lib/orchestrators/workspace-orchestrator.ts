@@ -4,8 +4,8 @@ import type {
 	LocalWorkspace,
 	Workspace,
 	WorkspaceType,
-} from "../../types/workspace.js";
-import type { StorageAdapter } from "../storage/adapter.js";
+} from "../../types/workspace";
+import type { StorageAdapter } from "../storage/adapter";
 
 /**
  * Workspace orchestrator implementation using storage adapter

@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import type {
 	Change,
 	ChangeOrchestrator as IChangeOrchestrator,
-} from "../../types/change.js";
-import type { StorageAdapter } from "../storage/adapter.js";
+} from "../../types/change";
+import type { StorageAdapter } from "../storage/adapter";
 
 /**
  * Change orchestrator implementation using storage adapter

@@ -1,10 +1,10 @@
-export { EnvList, EnvGet, EnvCreate, EnvDelete } from "./env.js";
+export { EnvList, EnvGet, EnvCreate, EnvDelete } from "./env";
 export {
 	WorkspaceList,
 	WorkspaceGet,
 	WorkspaceCreate,
 	WorkspaceDelete,
-} from "./workspace.js";
+} from "./workspace";
 export {
 	AgentList,
 	AgentGet,
@@ -12,5 +12,5 @@ export {
 	AgentStop,
 	AgentStopAll,
 	AgentDelete,
-} from "./agent.js";
-export { ChangeList, ChangeCreate, ChangeDelete } from "./change.js";
+} from "./agent";
+export { ChangeList, ChangeCreate, ChangeDelete } from "./change";

@@ -6,7 +6,7 @@ import type {
 	FileDiff,
 	Process,
 	Workspace,
-} from "../../types/index.js";
+} from "../../types/index";
 
 /**
  * Database schema for JSON storage

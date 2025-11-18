@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import type {
 	Environment,
 	EnvironmentOrchestrator as IEnvironmentOrchestrator,
-} from "../../types/environment.js";
-import type { StorageAdapter } from "../storage/adapter.js";
+} from "../../types/environment";
+import type { StorageAdapter } from "../storage/adapter";
 
 /**
  * Environment orchestrator implementation using storage adapter

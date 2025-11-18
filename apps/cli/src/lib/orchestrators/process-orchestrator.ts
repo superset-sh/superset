@@ -6,9 +6,9 @@ import {
 	type Process,
 	ProcessType,
 	type Terminal,
-} from "../../types/process.js";
-import type { Workspace } from "../../types/workspace.js";
-import type { StorageAdapter } from "../storage/adapter.js";
+} from "../../types/process";
+import type { Workspace } from "../../types/workspace";
+import type { StorageAdapter } from "../storage/adapter";
 
 /**
  * Process orchestrator implementation using storage adapter

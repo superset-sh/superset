@@ -2,8 +2,8 @@
 import { render } from "ink";
 import { Command } from "commander";
 import React from "react";
-import { ProcessType, AgentType } from "./types/process.js";
-import { WorkspaceType } from "./types/workspace.js";
+import { ProcessType, AgentType } from "./types/process";
+import { WorkspaceType } from "./types/workspace";
 import {
 	EnvList,
 	EnvGet,
@@ -22,7 +22,7 @@ import {
 	ChangeList,
 	ChangeCreate,
 	ChangeDelete,
-} from "./commands/index.js";
+} from "./commands/index";
 
 const program = new Command();
 

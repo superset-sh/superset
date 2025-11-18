@@ -1,9 +1,9 @@
 import React from "react";
 import { Box, Text } from "ink";
 import Table from "ink-table";
-import { getDb } from "../lib/db.js";
-import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator.js";
-import { WorkspaceType } from "../types/workspace.js";
+import { getDb } from "../lib/db";
+import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
+import { WorkspaceType } from "../types/workspace";
 
 interface WorkspaceListProps {
 	environmentId?: string;

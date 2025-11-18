@@ -2,13 +2,13 @@ import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { JSONFilePreset } from "lowdb/node";
-import type { StorageAdapter } from "./adapter.js";
-import { getDbPath } from "./config.js";
+import type { StorageAdapter } from "./adapter";
+import { getDbPath } from "./config";
 import {
 	createEmptyDatabase,
 	type Database,
 	type SerializedDatabase,
-} from "./types.js";
+} from "./types";
 
 /**
  * Lowdb implementation of StorageAdapter

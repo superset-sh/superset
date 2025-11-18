@@ -1,8 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
 import Table from "ink-table";
-import { getDb } from "../lib/db.js";
-import { EnvironmentOrchestrator } from "../lib/orchestrators/environment-orchestrator.js";
+import { getDb } from "../lib/db";
+import { EnvironmentOrchestrator } from "../lib/orchestrators/environment-orchestrator";
 
 interface EnvListProps {
 	onComplete?: () => void;
