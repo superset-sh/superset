@@ -28,7 +28,9 @@ const program = new Command();
 
 program
 	.name("superset")
-	.description("Superset CLI - Manage environments, workspaces, agents, and changes")
+	.description(
+		"Superset CLI - Manage environments, workspaces, agents, and changes",
+	)
 	.version("0.1.0");
 
 // Environment commands
@@ -58,7 +60,9 @@ env
 
 env
 	.command("delete")
-	.description("Delete an environment (cascades to workspaces, processes, changes)")
+	.description(
+		"Delete an environment (cascades to workspaces, processes, changes)",
+	)
 	.argument("<id>", "Environment ID")
 	.action((id: string) => {
 		render(<EnvDelete id={id} onComplete={() => process.exit(0)} />);
@@ -72,7 +76,12 @@ workspace
 	.description("List all workspaces")
 	.option("--env <environmentId>", "Filter by environment ID")
 	.action((options: { env?: string }) => {
-		render(<WorkspaceList environmentId={options.env} onComplete={() => process.exit(0)} />);
+		render(
+			<WorkspaceList
+				environmentId={options.env}
+				onComplete={() => process.exit(0)}
+			/>,
+		);
 	});
 
 workspace
@@ -87,7 +96,10 @@ workspace
 	.command("create")
 	.description("Create a new workspace")
 	.argument("<environmentId>", "Environment ID")
-	.argument("<type>", `Workspace type (${Object.values(WorkspaceType).join(", ")})`)
+	.argument(
+		"<type>",
+		`Workspace type (${Object.values(WorkspaceType).join(", ")})`,
+	)
 	.option("--path <path>", "Path for local workspace")
 	.action((environmentId: string, type: string, options: { path?: string }) => {
 		// Validate workspace type
@@ -117,14 +129,21 @@ workspace
 	});
 
 // Agent/Process commands
-const agent = program.command("agent").description("Manage agents and processes");
+const agent = program
+	.command("agent")
+	.description("Manage agents and processes");
 
 agent
 	.command("list")
 	.description("List all agents/processes")
 	.option("--workspace <workspaceId>", "Filter by workspace ID")
 	.action((options: { workspace?: string }) => {
-		render(<AgentList workspaceId={options.workspace} onComplete={() => process.exit(0)} />);
+		render(
+			<AgentList
+				workspaceId={options.workspace}
+				onComplete={() => process.exit(0)}
+			/>,
+		);
 	});
 
 agent
@@ -144,36 +163,40 @@ agent
 		"--agent-type <agentType>",
 		`Agent type (${Object.values(AgentType).join(", ")}) - required if type is 'agent'`,
 	)
-	.action((workspaceId: string, type: string, options: { agentType?: string }) => {
-		// Validate process type
-		if (!Object.values(ProcessType).includes(type as ProcessType)) {
-			console.error(
-				`Invalid process type: ${type}. Must be one of: ${Object.values(ProcessType).join(", ")}`,
-			);
-			process.exit(1);
-		}
-
-		// Validate agent type if provided
-		let agentType: AgentType | undefined;
-		if (options.agentType) {
-			if (!Object.values(AgentType).includes(options.agentType as AgentType)) {
+	.action(
+		(workspaceId: string, type: string, options: { agentType?: string }) => {
+			// Validate process type
+			if (!Object.values(ProcessType).includes(type as ProcessType)) {
 				console.error(
-					`Invalid agent type: ${options.agentType}. Must be one of: ${Object.values(AgentType).join(", ")}`,
+					`Invalid process type: ${type}. Must be one of: ${Object.values(ProcessType).join(", ")}`,
 				);
 				process.exit(1);
 			}
-			agentType = options.agentType as AgentType;
-		}
 
-		render(
-			<AgentCreate
-				workspaceId={workspaceId}
-				type={type as ProcessType}
-				agentType={agentType}
-				onComplete={() => process.exit(0)}
-			/>,
-		);
-	});
+			// Validate agent type if provided
+			let agentType: AgentType | undefined;
+			if (options.agentType) {
+				if (
+					!Object.values(AgentType).includes(options.agentType as AgentType)
+				) {
+					console.error(
+						`Invalid agent type: ${options.agentType}. Must be one of: ${Object.values(AgentType).join(", ")}`,
+					);
+					process.exit(1);
+				}
+				agentType = options.agentType as AgentType;
+			}
+
+			render(
+				<AgentCreate
+					workspaceId={workspaceId}
+					type={type as ProcessType}
+					agentType={agentType}
+					onComplete={() => process.exit(0)}
+				/>,
+			);
+		},
+	);
 
 agent
 	.command("stop")
@@ -206,7 +229,12 @@ change
 	.description("List changes for a workspace")
 	.argument("<workspaceId>", "Workspace ID")
 	.action((workspaceId: string) => {
-		render(<ChangeList workspaceId={workspaceId} onComplete={() => process.exit(0)} />);
+		render(
+			<ChangeList
+				workspaceId={workspaceId}
+				onComplete={() => process.exit(0)}
+			/>,
+		);
 	});
 
 change

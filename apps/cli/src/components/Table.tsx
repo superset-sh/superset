@@ -15,7 +15,11 @@ export default function Table({ data }: TableProps) {
 	return (
 		<Box flexDirection="column">
 			{data.map((row, index) => (
-				<Box key={index} flexDirection="column" marginBottom={index < data.length - 1 ? 1 : 0}>
+				<Box
+					key={index}
+					flexDirection="column"
+					marginBottom={index < data.length - 1 ? 1 : 0}
+				>
 					{keys.map((key) => (
 						<Text key={key}>
 							<Text bold>{key}:</Text> {String(row[key])}

@@ -70,7 +70,12 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		const existing = await this.get(id);
 
 		// Filter out immutable fields to prevent desync
-		const { id: _, workspaceId: __, createdAt: ___, ...updatesWithoutImmutable } = updates;
+		const {
+			id: _,
+			workspaceId: __,
+			createdAt: ___,
+			...updatesWithoutImmutable
+		} = updates;
 
 		const updated = {
 			...existing,

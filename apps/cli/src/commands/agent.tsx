@@ -60,14 +60,17 @@ export function AgentList({ workspaceId, onComplete }: AgentListProps) {
 			: "No agents/processes found";
 		return (
 			<Text dimColor>
-				{message}. Create one with: superset agent create &lt;workspace-id&gt; &lt;type&gt;
+				{message}. Create one with: superset agent create &lt;workspace-id&gt;
+				&lt;type&gt;
 			</Text>
 		);
 	}
 
 	return (
 		<Box flexDirection="column">
-			<Text bold>Agents/Processes{workspaceId ? ` (Workspace: ${workspaceId})` : ""}</Text>
+			<Text bold>
+				Agents/Processes{workspaceId ? ` (Workspace: ${workspaceId})` : ""}
+			</Text>
 			<Table data={agents} />
 		</Box>
 	);
@@ -95,7 +98,9 @@ export function AgentGet({ id, onComplete }: AgentGetProps) {
 					...process,
 					createdAt: new Date(process.createdAt).toLocaleString(),
 					updatedAt: new Date(process.updatedAt).toLocaleString(),
-					endedAt: process.endedAt ? new Date(process.endedAt).toLocaleString() : "—",
+					endedAt: process.endedAt
+						? new Date(process.endedAt).toLocaleString()
+						: "—",
 				};
 
 				setAgent(formatted);
@@ -133,7 +138,12 @@ interface AgentCreateProps {
 	onComplete?: () => void;
 }
 
-export function AgentCreate({ workspaceId, type, agentType, onComplete }: AgentCreateProps) {
+export function AgentCreate({
+	workspaceId,
+	type,
+	agentType,
+	onComplete,
+}: AgentCreateProps) {
 	const [agent, setAgent] = React.useState<any | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
@@ -149,14 +159,20 @@ export function AgentCreate({ workspaceId, type, agentType, onComplete }: AgentC
 				const workspace = await workspaceOrchestrator.get(workspaceId);
 
 				// Create the process
-				const process = await processOrchestrator.create(type, workspace, agentType);
+				const process = await processOrchestrator.create(
+					type,
+					workspace,
+					agentType,
+				);
 
 				// Format dates
 				const formatted = {
 					...process,
 					createdAt: new Date(process.createdAt).toLocaleString(),
 					updatedAt: new Date(process.updatedAt).toLocaleString(),
-					endedAt: process.endedAt ? new Date(process.endedAt).toLocaleString() : "—",
+					endedAt: process.endedAt
+						? new Date(process.endedAt).toLocaleString()
+						: "—",
 				};
 
 				setAgent(formatted);
@@ -271,7 +287,9 @@ export function AgentStopAll({ onComplete }: AgentStopAllProps) {
 	}
 
 	if (success) {
-		return <Text color="green">✓ All agents/processes stopped successfully</Text>;
+		return (
+			<Text color="green">✓ All agents/processes stopped successfully</Text>
+		);
 	}
 
 	return null;
@@ -318,7 +336,9 @@ export function AgentDelete({ id, onComplete }: AgentDeleteProps) {
 			<Box flexDirection="column">
 				<Text color="green">✓ Agent/Process deleted successfully</Text>
 				<Text dimColor>ID: {id}</Text>
-				<Text dimColor>Note: All associated agent summaries have been removed.</Text>
+				<Text dimColor>
+					Note: All associated agent summaries have been removed.
+				</Text>
 			</Box>
 		);
 	}

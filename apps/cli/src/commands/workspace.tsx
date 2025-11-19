@@ -10,7 +10,10 @@ interface WorkspaceListProps {
 	onComplete?: () => void;
 }
 
-export function WorkspaceList({ environmentId, onComplete }: WorkspaceListProps) {
+export function WorkspaceList({
+	environmentId,
+	onComplete,
+}: WorkspaceListProps) {
 	const [workspaces, setWorkspaces] = React.useState<any[]>([]);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
@@ -52,7 +55,8 @@ export function WorkspaceList({ environmentId, onComplete }: WorkspaceListProps)
 			: "No workspaces found";
 		return (
 			<Text dimColor>
-				{message}. Create one with: superset workspace create &lt;env-id&gt; &lt;type&gt;
+				{message}. Create one with: superset workspace create &lt;env-id&gt;
+				&lt;type&gt;
 			</Text>
 		);
 	}
@@ -203,7 +207,9 @@ export function WorkspaceDelete({ id, onComplete }: WorkspaceDeleteProps) {
 			<Box flexDirection="column">
 				<Text color="green">✓ Workspace deleted successfully</Text>
 				<Text dimColor>ID: {id}</Text>
-				<Text dimColor>Note: All associated processes and changes have been removed.</Text>
+				<Text dimColor>
+					Note: All associated processes and changes have been removed.
+				</Text>
 			</Box>
 		);
 	}

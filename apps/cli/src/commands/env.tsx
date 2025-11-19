@@ -45,7 +45,11 @@ export function EnvList({ onComplete }: EnvListProps) {
 	}
 
 	if (environments.length === 0) {
-		return <Text dimColor>No environments found. Create one with: superset env create</Text>;
+		return (
+			<Text dimColor>
+				No environments found. Create one with: superset env create
+			</Text>
+		);
 	}
 
 	return (
@@ -185,7 +189,8 @@ export function EnvDelete({ id, onComplete }: EnvDeleteProps) {
 				<Text color="green">✓ Environment deleted successfully</Text>
 				<Text dimColor>ID: {id}</Text>
 				<Text dimColor>
-					Note: All associated workspaces, processes, and changes have been removed.
+					Note: All associated workspaces, processes, and changes have been
+					removed.
 				</Text>
 			</Box>
 		);

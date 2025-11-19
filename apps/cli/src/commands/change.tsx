@@ -53,8 +53,8 @@ export function ChangeList({ workspaceId, onComplete }: ChangeListProps) {
 	if (changes.length === 0) {
 		return (
 			<Text dimColor>
-				No changes found for workspace {workspaceId}. Create one with: superset change create{" "}
-				{workspaceId} &lt;summary&gt;
+				No changes found for workspace {workspaceId}. Create one with: superset
+				change create {workspaceId} &lt;summary&gt;
 			</Text>
 		);
 	}
@@ -73,7 +73,11 @@ interface ChangeCreateProps {
 	onComplete?: () => void;
 }
 
-export function ChangeCreate({ workspaceId, summary, onComplete }: ChangeCreateProps) {
+export function ChangeCreate({
+	workspaceId,
+	summary,
+	onComplete,
+}: ChangeCreateProps) {
 	const [change, setChange] = React.useState<any | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);

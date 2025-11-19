@@ -37,7 +37,12 @@ export class ChangeOrchestrator implements IChangeOrchestrator {
 		}
 
 		// Filter out immutable fields to prevent desync
-		const { id: _, workspaceId: __, createdAt: ___, ...updatesWithoutImmutable } = updates;
+		const {
+			id: _,
+			workspaceId: __,
+			createdAt: ___,
+			...updatesWithoutImmutable
+		} = updates;
 
 		const updated = { ...existing, ...updatesWithoutImmutable };
 		await this.storage.set("changes", id, updated);

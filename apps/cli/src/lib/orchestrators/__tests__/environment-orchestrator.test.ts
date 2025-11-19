@@ -92,9 +92,7 @@ describe("EnvironmentOrchestrator", () => {
 		});
 
 		test("throws error for non-existent environment", async () => {
-			expect(
-				orchestrator.update("non-existent", {}),
-			).rejects.toThrow();
+			expect(orchestrator.update("non-existent", {})).rejects.toThrow();
 		});
 	});
 
