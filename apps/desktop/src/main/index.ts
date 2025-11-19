@@ -12,6 +12,7 @@ import { registerDeepLinkIpcs } from "main/lib/deep-link-ipcs";
 import { deepLinkManager } from "main/lib/deep-link-manager";
 import { registerPortIpcs } from "main/lib/port-ipcs";
 import { getPort } from "main/lib/port-manager";
+import { registerUiIPCs } from "main/lib/ui-ipcs";
 import windowManager from "main/lib/window-manager";
 import { registerWorkspaceIPCs } from "main/lib/workspace-ipcs";
 
@@ -50,6 +51,7 @@ app.on("open-url", (event, url) => {
 	registerWorkspaceIPCs();
 	registerPortIpcs();
 	registerDeepLinkIpcs();
+	registerUiIPCs();
 	const { registerWindowIPCs } = await import("main/lib/window-ipcs");
 	registerWindowIPCs();
 

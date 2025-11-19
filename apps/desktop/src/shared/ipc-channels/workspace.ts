@@ -110,5 +110,116 @@ export interface WorkspaceChannels {
 		request: string | null;
 		response: boolean;
 	};
+
+	// New architecture: Workspace activation and composition
+	"workspace-activate": {
+		request: { workspaceId: string };
+		response: IpcResponse<{
+			workspace: {
+				id: string;
+				type: "local";
+				environmentId: string;
+				path: string;
+			};
+			worktrees: Array<{
+				path: string;
+				branch: string;
+				currentBranch: string;
+				bare: boolean;
+				merged?: boolean;
+				ui: {
+					path: string;
+					branch: string;
+					description?: string;
+					prUrl?: string;
+					merged?: boolean;
+					tabs: Array<{
+						id: string;
+						name: string;
+						type: string;
+						cwd?: string;
+						url?: string;
+						command?: string | null;
+						tabs?: unknown[];
+						mosaicTree?: unknown;
+						createdAt: string;
+					}>;
+					mosaicTree?: unknown;
+					activeTabId: string | null;
+					updatedAt: string;
+				};
+			}>;
+			ui: {
+				activeWorktreePath: string | null;
+				activeTabId: string | null;
+			};
+		}>;
+	};
+
+	"workspace-rescan": {
+		request: { workspaceId: string };
+		response: IpcResponse<{
+			added: Array<{
+				path: string;
+				branch: string;
+				bare: boolean;
+				currentBranch: string;
+				merged?: boolean;
+			}>;
+			removed: Array<{
+				path: string;
+				branch: string;
+				bare: boolean;
+				currentBranch: string;
+				merged?: boolean;
+			}>;
+			changed: Array<{
+				old: {
+					path: string;
+					branch: string;
+					bare: boolean;
+					currentBranch: string;
+					merged?: boolean;
+				};
+				new: {
+					path: string;
+					branch: string;
+					bare: boolean;
+					currentBranch: string;
+					merged?: boolean;
+				};
+			}>;
+			state: {
+				workspace: {
+					id: string;
+					type: "local";
+					environmentId: string;
+					path: string;
+				};
+				worktrees: Array<{
+					path: string;
+					branch: string;
+					currentBranch: string;
+					bare: boolean;
+					merged?: boolean;
+					ui: {
+						path: string;
+						branch: string;
+						description?: string;
+						prUrl?: string;
+						merged?: boolean;
+						tabs: unknown[];
+						mosaicTree?: unknown;
+						activeTabId: string | null;
+						updatedAt: string;
+					};
+				}>;
+				ui: {
+					activeWorktreePath: string | null;
+					activeTabId: string | null;
+				};
+			};
+		}>;
+	};
 }
 

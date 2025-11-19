@@ -771,4 +771,149 @@ export function registerWorkspaceIPCs() {
 			};
 		}
 	});
+
+	// New architecture: Workspace activation
+	ipcMain.handle(
+		"workspace-activate",
+		async (_event, input: { workspaceId: string }) => {
+			try {
+				const { desktopStores } = await import("./desktop-stores");
+				const workspaceOrch = desktopStores.getWorkspaceOrchestrator();
+				const composer = desktopStores.getComposer();
+
+				// Get domain workspace
+				const workspace = await workspaceOrch.get(input.workspaceId);
+				if (workspace.type !== "local") {
+					return {
+						success: false,
+						error: "Only local workspaces are supported",
+					};
+				}
+
+				// Detect main branch
+				const worktreeManager = (await import("./worktree-manager")).default;
+				const mainBranch = await worktreeManager.detectMainBranch(
+					workspace.path,
+				);
+
+				// Compose workspace state
+				const composed = await composer.composeWorkspaceState(
+					workspace,
+					mainBranch,
+				);
+
+				return {
+					success: true,
+					data: {
+						workspace: {
+							id: workspace.id,
+							type: workspace.type,
+							environmentId: workspace.environmentId,
+							path: workspace.path,
+						},
+						worktrees: composed.worktrees.map((wt) => ({
+							path: wt.path,
+							branch: wt.branch,
+							currentBranch: wt.currentBranch,
+							bare: wt.bare,
+							merged: wt.merged,
+							ui: {
+								path: wt.ui.path,
+								branch: wt.ui.branch,
+								description: wt.ui.description,
+								prUrl: wt.ui.prUrl,
+								merged: wt.ui.merged,
+								tabs: wt.ui.tabs,
+								mosaicTree: wt.ui.mosaicTree,
+								activeTabId: wt.ui.activeTabId,
+								updatedAt: wt.ui.updatedAt,
+							},
+						})),
+						ui: composed.ui,
+					},
+				};
+			} catch (error) {
+				console.error("[WorkspaceIPC] Error activating workspace:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : "Unknown error",
+				};
+			}
+		},
+	);
+
+	// New architecture: Workspace rescan
+	ipcMain.handle(
+		"workspace-rescan",
+		async (_event, input: { workspaceId: string }) => {
+			try {
+				const { desktopStores } = await import("./desktop-stores");
+				const workspaceOrch = desktopStores.getWorkspaceOrchestrator();
+				const composer = desktopStores.getComposer();
+
+				// Get domain workspace
+				const workspace = await workspaceOrch.get(input.workspaceId);
+				if (workspace.type !== "local") {
+					return {
+						success: false,
+						error: "Only local workspaces are supported",
+					};
+				}
+
+				// Detect main branch
+				const worktreeManager = (await import("./worktree-manager")).default;
+				const mainBranch = await worktreeManager.detectMainBranch(
+					workspace.path,
+				);
+
+				// Rescan workspace
+				const rescanResult = await composer.rescanWorkspace(
+					workspace,
+					mainBranch,
+				);
+
+				return {
+					success: true,
+					data: {
+						added: rescanResult.added,
+						removed: rescanResult.removed,
+						changed: rescanResult.changed,
+						state: {
+							workspace: {
+								id: workspace.id,
+								type: workspace.type,
+								environmentId: workspace.environmentId,
+								path: workspace.path,
+							},
+							worktrees: rescanResult.state.worktrees.map((wt) => ({
+								path: wt.path,
+								branch: wt.branch,
+								currentBranch: wt.currentBranch,
+								bare: wt.bare,
+								merged: wt.merged,
+								ui: {
+									path: wt.ui.path,
+									branch: wt.ui.branch,
+									description: wt.ui.description,
+									prUrl: wt.ui.prUrl,
+									merged: wt.ui.merged,
+									tabs: wt.ui.tabs,
+									mosaicTree: wt.ui.mosaicTree,
+									activeTabId: wt.ui.activeTabId,
+									updatedAt: wt.ui.updatedAt,
+								},
+							})),
+							ui: rescanResult.state.ui,
+						},
+					},
+				};
+			} catch (error) {
+				console.error("[WorkspaceIPC] Error rescanning workspace:", error);
+				return {
+					success: false,
+					error: error instanceof Error ? error.message : "Unknown error",
+				};
+			}
+		},
+	);
 }

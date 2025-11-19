@@ -22,7 +22,12 @@ const tsconfigPaths = tsconfigPathsPlugin({
 
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths, externalizeDepsPlugin()],
+		plugins: [
+			tsconfigPaths,
+			externalizeDepsPlugin({
+				exclude: ["@superset/cli"],
+			}),
+		],
 
 		build: {
 			rollupOptions: {
@@ -33,6 +38,11 @@ export default defineConfig({
 				output: {
 					dir: resolve(devPath, "main"),
 				},
+			},
+		},
+		resolve: {
+			alias: {
+				"@superset/cli": resolve(__dirname, "../../apps/cli/src"),
 			},
 		},
 	},

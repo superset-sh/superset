@@ -10,6 +10,7 @@ import type { ExternalChannels } from "./external";
 import type { ProxyChannels } from "./proxy";
 import type { TabChannels } from "./tab";
 import type { TerminalChannels } from "./terminal";
+import type { UiChannels } from "./ui";
 import type { WindowChannels } from "./window";
 import type { WorktreeChannels } from "./worktree";
 import type { WorkspaceChannels } from "./workspace";
@@ -33,7 +34,8 @@ export interface IpcChannels
 		ProxyChannels,
 		ExternalChannels,
 		DeepLinkChannels,
-		WindowChannels {}
+		WindowChannels,
+		UiChannels {}
 
 /**
  * Type-safe IPC channel names

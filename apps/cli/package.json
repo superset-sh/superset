@@ -1,5 +1,5 @@
 {
-	"name": "cli",
+	"name": "@superset/cli",
 	"version": "0.0.0",
 	"license": "MIT",
 	"bin": "dist/cli.js",
@@ -19,10 +19,15 @@
 		"format:check": "biome format ."
 	},
 	"files": [
-		"dist"
+		"dist",
+		"src/types"
 	],
+	"exports": {
+		"./types/*": "./src/types/*",
+		"./types": "./src/types/index.ts"
+	},
 	"dependencies": {
-		"commander": "^14.0.1",
+		"commander": "^14.0.2",
 		"ink": "^6.5.0",
 		"ink-select-input": "^6.2.0",
 		"ink-table": "^3.1.0",
