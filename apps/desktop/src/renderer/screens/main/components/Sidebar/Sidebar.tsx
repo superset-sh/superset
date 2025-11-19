@@ -1,7 +1,35 @@
+import { motion } from "framer-motion";
+import { useAppStore } from "renderer/stores";
+
 export function Sidebar() {
+	const { isSidebarOpen } = useAppStore();
+
 	return (
-		<aside className="w-64 h-full border-r border-sidebar-border bg-sidebar flex flex-col">
-			<div className="p-4 flex-1 overflow-y-auto">
+		<motion.aside
+			initial={false}
+			animate={{
+				width: isSidebarOpen ? 256 : 0,
+			}}
+			transition={{
+				duration: 0.2,
+				ease: "easeInOut",
+			}}
+			className="h-full border-r border-sidebar-border bg-sidebar flex flex-col overflow-hidden"
+			style={{
+				pointerEvents: isSidebarOpen ? "auto" : "none",
+			}}
+		>
+			<motion.div
+				initial={false}
+				animate={{
+					opacity: isSidebarOpen ? 1 : 0,
+				}}
+				transition={{
+					duration: 0.15,
+					ease: "easeInOut",
+				}}
+				className="p-4 flex-1 overflow-y-auto"
+			>
 				<nav className="space-y-2">
 					{/* Add navigation items here */}
 					<div className="text-sm text-sidebar-foreground">
@@ -19,13 +47,23 @@ export function Sidebar() {
 						</ul>
 					</div>
 				</nav>
-			</div>
+			</motion.div>
 
-			<div className="p-4 border-t border-sidebar-border">
+			<motion.div
+				initial={false}
+				animate={{
+					opacity: isSidebarOpen ? 1 : 0,
+				}}
+				transition={{
+					duration: 0.15,
+					ease: "easeInOut",
+				}}
+				className="p-4 border-t border-sidebar-border"
+			>
 				<div className="text-xs text-sidebar-foreground/60">
 					v{/* Add version here */}
 				</div>
-			</div>
-		</aside>
+			</motion.div>
+		</motion.aside>
 	);
 }
