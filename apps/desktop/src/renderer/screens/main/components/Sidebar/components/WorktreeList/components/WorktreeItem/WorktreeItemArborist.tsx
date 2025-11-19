@@ -18,6 +18,7 @@ import type { Tab, Worktree } from "shared/types";
 import { WorktreePortsList } from "../WorktreePortsList";
 import { GitStatusDialog } from "./components/GitStatusDialog";
 import { TabItem } from "./components/TabItem";
+import { dragDropManager } from "renderer/lib/dnd";
 import {
 	Dialog,
 	DialogContent,
@@ -411,6 +412,7 @@ export function WorktreeItem({
 					data={treeData}
 					width="100%"
 					height={400}
+					dndManager={dragDropManager}
 					onMove={handleMove}
 					onSelect={(nodes) => {
 						if (nodes.length > 0) {
@@ -447,4 +449,3 @@ export function WorktreeItem({
 		</div>
 	);
 }
-

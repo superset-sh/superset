@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-	Mosaic,
-	type MosaicBranch,
-	type MosaicNode,
-	MosaicWindow,
+    Mosaic,
+    type MosaicBranch,
+    type MosaicNode,
+    MosaicWindow,
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import type { Tab } from "shared/types";
 import { useWorkspaceContext, useTabContext } from "../../../../contexts";
 import TabContent from "./TabContent";
+import { dragDropManager } from "renderer/lib/dnd";
 
 interface ScreenLayoutProps {
 	groupTab: Tab; // A tab with type: "group"
@@ -243,6 +244,7 @@ export default function TabGroup({ groupTab }: ScreenLayoutProps) {
 				value={mosaicTree}
 				onChange={handleMosaicChange}
 				className="mosaic-theme-dark"
+				dragAndDropManager={dragDropManager}
 			/>
 			<style>{`
 				.mosaic-container {

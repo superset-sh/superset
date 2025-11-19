@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DndProvider } from "react-dnd";
-import { HTML5Backend } from "react-dnd-html5-backend";
+import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { AddTaskModal } from "./components/Layout/AddTaskModal";
@@ -134,7 +134,7 @@ export function MainScreen() {
 	}, [selectedTab, currentWorkspace, selectedWorktreeId]);
 
 	return (
-		<DndProvider backend={HTML5Backend}>
+		<DndProvider manager={dragDropManager}>
 			<Background />
 
 			{/* Hover trigger area when sidebar is hidden */}
