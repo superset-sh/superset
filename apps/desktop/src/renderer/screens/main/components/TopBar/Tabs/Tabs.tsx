@@ -71,20 +71,25 @@ export function Tabs() {
 	const { tabs, activeTabId, addTab } = useTabsStore();
 
 	return (
-		<div className="flex items-center h-full">
-			{tabs.map((tab, index) => (
-				<TabItem
-					key={tab.id}
-					id={tab.id}
-					title={tab.title}
-					isActive={tab.id === activeTabId}
-					index={index}
-				/>
-			))}
+		<div className="flex items-center h-full w-full">
+			<div className="relative flex-1 h-full overflow-hidden">
+				<div className="flex items-center h-full overflow-x-auto hide-scrollbar">
+					{tabs.map((tab, index) => (
+						<TabItem
+							key={tab.id}
+							id={tab.id}
+							title={tab.title}
+							isActive={tab.id === activeTabId}
+							index={index}
+						/>
+					))}
+				</div>
+				<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
+			</div>
 			<button
 				type="button"
 				onClick={addTab}
-				className="px-3 h-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+				className="shrink-0 px-3 h-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground border-l border-border"
 			>
 				<span className="text-lg">+</span>
 			</button>

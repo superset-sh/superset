@@ -1,5 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
-import { Tabs } from "./components/Tabs";
+import { Tabs } from "./Tabs";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
