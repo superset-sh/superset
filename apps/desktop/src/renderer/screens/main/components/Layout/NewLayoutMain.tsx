@@ -581,7 +581,7 @@ export const MainLayout: React.FC = () => {
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
 		setAddTaskModalInitialMode(mode);
 		setIsAddTaskModalOpen(true);
-		
+
 		// Fetch branches when opening in new mode
 		if (mode === "new" && currentWorkspace) {
 			void (async () => {
@@ -715,7 +715,7 @@ export const MainLayout: React.FC = () => {
 				}),
 			});
 
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
+			window.ipcRenderer.off("worktree-setup-progress", progressHandler);
 
 			if (result.success) {
 				// Display setup result if available
@@ -759,7 +759,7 @@ export const MainLayout: React.FC = () => {
 			setSetupStatus("Error creating worktree");
 			setSetupOutput(String(error));
 			setIsCreatingWorktree(false);
-			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
+			window.ipcRenderer.off("worktree-setup-progress", progressHandler);
 		}
 	};
 
