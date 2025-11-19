@@ -1,5 +1,5 @@
-import React from "react";
 import { Box, Text } from "ink";
+import React from "react";
 
 interface TableProps {
 	data: Record<string, any>[];

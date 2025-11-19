@@ -1,28 +1,28 @@
 #!/usr/bin/env node
-import { render } from "ink";
 import { Command } from "commander";
+import { render } from "ink";
 import React from "react";
-import { ProcessType, AgentType } from "./types/process";
-import { WorkspaceType } from "./types/workspace";
 import {
-	EnvList,
-	EnvGet,
-	EnvCreate,
-	EnvDelete,
-	WorkspaceList,
-	WorkspaceGet,
-	WorkspaceCreate,
-	WorkspaceDelete,
-	AgentList,
-	AgentGet,
 	AgentCreate,
+	AgentDelete,
+	AgentGet,
+	AgentList,
 	AgentStop,
 	AgentStopAll,
-	AgentDelete,
-	ChangeList,
 	ChangeCreate,
 	ChangeDelete,
+	ChangeList,
+	EnvCreate,
+	EnvDelete,
+	EnvGet,
+	EnvList,
+	WorkspaceCreate,
+	WorkspaceDelete,
+	WorkspaceGet,
+	WorkspaceList,
 } from "./commands/index";
+import { AgentType, ProcessType } from "./types/process";
+import { WorkspaceType } from "./types/workspace";
 
 const program = new Command();
 

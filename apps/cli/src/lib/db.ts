@@ -1,6 +1,6 @@
+import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { mkdirSync, existsSync } from "node:fs";
 import { LowdbAdapter } from "./storage/lowdb-adapter";
 
 let adapter: LowdbAdapter | null = null;

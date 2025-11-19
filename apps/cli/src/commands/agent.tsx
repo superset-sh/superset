@@ -1,10 +1,17 @@
-import React from "react";
 import { Box, Text } from "ink";
+import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import { ProcessType, AgentType } from "../types/process";
+import type { AgentType, Process, ProcessType } from "../types/process";
+
+// Display type with formatted date strings
+type FormattedProcess = Omit<Process, "createdAt" | "updatedAt" | "endedAt"> & {
+	createdAt: string;
+	updatedAt: string;
+	endedAt: string;
+};
 
 interface AgentListProps {
 	workspaceId?: string;
@@ -12,7 +19,7 @@ interface AgentListProps {
 }
 
 export function AgentList({ workspaceId, onComplete }: AgentListProps) {
-	const [agents, setAgents] = React.useState<any[]>([]);
+	const [agents, setAgents] = React.useState<FormattedProcess[]>([]);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -82,7 +89,7 @@ interface AgentGetProps {
 }
 
 export function AgentGet({ id, onComplete }: AgentGetProps) {
-	const [agent, setAgent] = React.useState<any | null>(null);
+	const [agent, setAgent] = React.useState<FormattedProcess | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -123,6 +130,10 @@ export function AgentGet({ id, onComplete }: AgentGetProps) {
 		return <Text color="red">Error: {error}</Text>;
 	}
 
+	if (!agent) {
+		return <Text color="red">Error: Agent not found</Text>;
+	}
+
 	return (
 		<Box flexDirection="column">
 			<Text bold>Agent/Process Details</Text>
@@ -144,7 +155,7 @@ export function AgentCreate({
 	agentType,
 	onComplete,
 }: AgentCreateProps) {
-	const [agent, setAgent] = React.useState<any | null>(null);
+	const [agent, setAgent] = React.useState<FormattedProcess | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -193,6 +204,10 @@ export function AgentCreate({
 
 	if (error) {
 		return <Text color="red">Error: {error}</Text>;
+	}
+
+	if (!agent) {
+		return <Text color="red">Error: Failed to create agent</Text>;
 	}
 
 	return (
