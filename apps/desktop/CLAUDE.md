@@ -1,7 +1,11 @@
+# Implementation details
 For Electron interprocess communnication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible
+Prefer zustand for state management if it makes sense. Do not use effect unless absolutely necessary.
 
-Please follow the clean code rules:
+
+
+# Code quality
 ```
 Code is clean if it can be understood easily – by everyone on the team. Clean code can be read and enhanced by a developer other than its original author. With understandability comes readability, changeability, extensibility and maintainability.
 _____________________________________
