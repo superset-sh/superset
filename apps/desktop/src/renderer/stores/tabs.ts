@@ -4,6 +4,7 @@ import { devtools } from "zustand/middleware";
 export interface Tab {
 	id: string;
 	title: string;
+	isNew?: boolean;
 }
 
 interface TabsState {
@@ -14,11 +15,13 @@ interface TabsState {
 	removeTab: (id: string) => void;
 	setActiveTab: (id: string) => void;
 	reorderTabs: (startIndex: number, endIndex: number) => void;
+	markTabAsUsed: (id: string) => void;
 }
 
 const createNewTab = (): Tab => ({
 	id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
 	title: "New Tab",
+	isNew: true,
 });
 
 export const useTabsStore = create<TabsState>()(
@@ -64,6 +67,14 @@ export const useTabsStore = create<TabsState>()(
 					tabs.splice(endIndex, 0, removed);
 					return { tabs };
 				});
+			},
+
+			markTabAsUsed: (id) => {
+				set((state) => ({
+					tabs: state.tabs.map((tab) =>
+						tab.id === id ? { ...tab, isNew: false } : tab,
+					),
+				}));
 			},
 		}),
 		{ name: "TabsStore" },

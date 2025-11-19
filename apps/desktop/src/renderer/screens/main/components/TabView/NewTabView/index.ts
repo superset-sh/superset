@@ -1,0 +1,1 @@
+export { NewTabView } from "./NewTabView";

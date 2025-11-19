@@ -2,8 +2,7 @@ import { DndProvider } from "react-dnd";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
-import { CenterView } from "./components/CenterView";
-import { Sidebar } from "./components/Sidebar";
+import { TabView } from "./components/TabView";
 import { TopBar } from "./components/TopBar";
 
 export function MainScreen() {
@@ -14,8 +13,7 @@ export function MainScreen() {
 				<div className="flex flex-col h-full w-full">
 					<TopBar />
 					<div className="flex flex-1 overflow-hidden">
-						<Sidebar />
-						<CenterView />
+						<TabView />
 					</div>
 				</div>
 			</AppFrame>
