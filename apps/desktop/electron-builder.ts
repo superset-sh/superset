@@ -1,62 +1,89 @@
-/** biome-ignore-all lint/suspicious/noTemplateCurlyInString: <> */
+/**
+ * Electron Builder Configuration
+ * @see https://www.electron.build/configuration/configuration
+ */
 
-import { dirname } from "node:path";
+import { join } from "node:path";
 import type { Configuration } from "electron-builder";
+import pkg from "./package.json";
 
-import {
-	author as _author,
-	description,
-	displayName,
-	main,
-	name,
-	resources,
-	version,
-} from "./package.json";
-
-const author = _author?.name ?? _author;
 const currentYear = new Date().getFullYear();
+const author = pkg.author?.name ?? pkg.author;
 const authorInKebabCase = author.replace(/\s+/g, "-");
-const appId = `com.${authorInKebabCase}.${name}`.toLowerCase();
+const appId = `com.${authorInKebabCase}.${pkg.name}`.toLowerCase();
 
-const artifactName = [`${name}-v${version}`, "-${os}.${ext}"].join("");
-
-export default {
+const config: Configuration = {
 	appId,
-	productName: displayName,
+	productName: pkg.displayName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
+	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
 
+	// Directories
 	directories: {
-		app: dirname(main),
-		output: `dist/v${version}`,
+		output: "release",
+		buildResources: join(pkg.resources, "build"),
 	},
 
+	files: [
+		"dist/**/*",
+		"package.json",
+		{
+			from: pkg.resources,
+			to: "resources",
+			filter: ["**/*"],
+		},
+	],
+
+	// Build optimization
 	npmRebuild: false,
 	buildDependenciesFromSource: false,
 	nodeGypRebuild: false,
 
+	// macOS
 	mac: {
-		artifactName,
-		icon: `${resources}/build/icons/icon.icns`,
+		icon: join(pkg.resources, "build/icons/icon.icns"),
 		category: "public.app-category.utilities",
-		target: ["zip", "dmg", "dir"],
+		target: [
+			{
+				target: "default",
+				arch: ["universal"],
+			},
+		],
+		hardenedRuntime: true,
+		gatekeeperAssess: false,
 		notarize: false,
 	},
 
+	// Deep linking protocol
 	protocols: {
-		name: displayName,
+		name: pkg.displayName,
 		schemes: ["superset"],
 	},
 
+	// Linux
 	linux: {
-		artifactName,
-		category: "Utilities",
-		synopsis: description,
-		target: ["AppImage", "deb", "pacman", "freebsd", "rpm"],
+		icon: join(pkg.resources, "build/icons"),
+		category: "Utility",
+		synopsis: pkg.description,
+		target: ["AppImage", "deb"],
 	},
 
+	// Windows
 	win: {
-		artifactName,
-		icon: `${resources}/build/icons/icon.ico`,
-		target: ["zip", "portable"],
+		icon: join(pkg.resources, "build/icons/icon.ico"),
+		target: [
+			{
+				target: "nsis",
+				arch: ["x64"],
+			},
+		],
 	},
-} satisfies Configuration;
+
+	// NSIS installer (Windows)
+	nsis: {
+		oneClick: false,
+		allowToChangeInstallationDirectory: true,
+	},
+};
+
+export default config;
