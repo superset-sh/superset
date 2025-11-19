@@ -5,4 +5,4 @@
  */
 
 export * from "./sidebar-state";
-export * from "./tabs";
+export * from "./workspaces";

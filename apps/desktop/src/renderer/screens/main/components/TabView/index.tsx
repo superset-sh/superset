@@ -1,13 +1,15 @@
-import { useTabsStore } from "renderer/stores/tabs";
+import { useWorkspacesStore } from "renderer/stores/workspaces";
 import { CenterView } from "./CenterView";
 import { NewTabView } from "./NewTabView";
 import { Sidebar } from "./Sidebar";
 
 export function TabView() {
-	const { tabs, activeTabId } = useTabsStore();
-	const activeTab = tabs.find((tab) => tab.id === activeTabId);
+	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
+	const activeWorkspace = workspaces.find(
+		(workspace) => workspace.id === activeWorkspaceId,
+	);
 
-	if (activeTab?.isNew) {
+	if (activeWorkspace?.isNew) {
 		return (
 			<div className="flex flex-1">
 				<NewTabView />
