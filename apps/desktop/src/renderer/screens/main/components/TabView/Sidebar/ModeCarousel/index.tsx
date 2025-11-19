@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from "react";
-import { ModeContent } from "./components/ModeContent";
-import { ModeHeader } from "./components/ModeHeader";
-import { ModeNavigation } from "./components/ModeNavigation";
+import { ModeContent } from "./ModeContent";
+import { ModeHeader } from "./ModeHeader";
+import { ModeNavigation } from "./ModeNavigation";
 import { useModeDetection } from "./hooks/useModeDetection";
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useScrollSnap } from "./hooks/useScrollSnap";
@@ -16,33 +16,29 @@ export function ModeCarousel({
 	isDragging = false,
 }: ModeCarouselProps) {
 	const isInitialMount = useRef(true);
-	const currentIndex = modes.findIndex((m) => m === currentMode);
+	const currentIndex = modes.indexOf(currentMode);
 	const [scrollContainer, setScrollContainer] = useState<HTMLDivElement | null>(
 		null,
 	);
 
-	// Use callback ref to get notified when the ref is attached
 	const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
 		if (node) {
 			setScrollContainer(node);
 		}
 	}, []);
 
-	// Track scroll progress
 	const modeProgress = useScrollProgress({
 		scrollContainer,
 		currentIndex,
 		onScrollProgress,
 	});
 
-	// Handle scroll snapping
 	useScrollSnap({
 		scrollContainer,
 		currentIndex,
 		isInitialMount,
 	});
 
-	// Detect mode changes from scrolling
 	useModeDetection({
 		scrollContainer,
 		modes,
@@ -51,7 +47,6 @@ export function ModeCarousel({
 		isDragging,
 	});
 
-	// If only one mode or no modes, disable carousel
 	if (modes.length <= 1) {
 		return (
 			<div className="flex flex-col flex-1 h-full">

@@ -37,9 +37,7 @@ interface WorktreeItemProps {
 }
 
 // Convert Tab[] to react-arborist format
-function convertTabsToTreeData(
-	tabs: Tab[],
-): Array<{
+function convertTabsToTreeData(tabs: Tab[]): Array<{
 	id: string;
 	name: string;
 	tab: Tab;

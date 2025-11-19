@@ -1,5 +1,5 @@
-import { modeLabels } from "../../constants";
-import type { SidebarMode } from "../../types";
+import { modeLabels } from "./constants";
+import type { SidebarMode } from "./types";
 
 interface ModeHeaderProps {
 	mode: SidebarMode;

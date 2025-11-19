@@ -1,1 +1,0 @@
-export { Background } from "./Background";
