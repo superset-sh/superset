@@ -1,5 +1,5 @@
 import { useWorkspacesStore } from "renderer/stores/workspaces";
-import { CenterView } from "./CenterView";
+import { ContentView } from "./ContentView";
 import { NewWorkspaceView } from "./NewWorkspaceView";
 import { Sidebar } from "./Sidebar";
 
@@ -20,7 +20,7 @@ export function WorkspaceView() {
 	return (
 		<div className="flex flex-1">
 			<Sidebar />
-			<CenterView />
+			<ContentView />
 		</div>
 	);
 }
