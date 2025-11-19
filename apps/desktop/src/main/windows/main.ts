@@ -1,8 +1,10 @@
 import { join } from "node:path";
 import { screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
+import { createIPCHandler } from "trpc-electron/main";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
+import { createAppRouter } from "../lib/trpc/routers";
 
 export async function MainWindow() {
 	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -29,6 +31,12 @@ export async function MainWindow() {
 
 	// Create application menu
 	createApplicationMenu(window);
+
+	// Set up tRPC handler
+	createIPCHandler({
+		router: createAppRouter(window),
+		windows: [window],
+	});
 
 	window.webContents.on("did-finish-load", async () => {
 		window.show();

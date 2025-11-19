@@ -4,6 +4,7 @@ import type {
 	IpcRequest,
 	IpcResponse_,
 } from "shared/ipc-channels";
+import { exposeElectronTRPC } from "trpc-electron/main";
 
 declare global {
 	interface Window {
@@ -61,6 +62,9 @@ const ipcRendererAPI = {
 		}
 	},
 };
+
+// Expose electron-trpc IPC channel FIRST (must be before contextBridge calls)
+exposeElectronTRPC();
 
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);

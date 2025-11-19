@@ -32,6 +32,10 @@
 		"@dnd-kit/utilities": "^3.2.2",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
+		"@tanstack/react-query": "^5.90.10",
+		"@trpc/client": "^11.7.1",
+		"@trpc/react-query": "^11.7.1",
+		"@trpc/server": "^11.7.1",
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/addon-search": "^0.15.0",
 		"@xterm/addon-web-links": "^0.11.0",
@@ -55,7 +59,9 @@
 		"react-resizable-panels": "^3.0.6",
 		"react-router-dom": "^7.8.2",
 		"react-syntax-highlighter": "^16.1.0",
-		"tailwind-merge": "^2.6.0"
+		"superjson": "^2.2.5",
+		"tailwind-merge": "^2.6.0",
+		"trpc-electron": "^0.1.2"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.6",

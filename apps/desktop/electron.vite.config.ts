@@ -13,8 +13,8 @@ import { getPortSync } from "./src/main/lib/port-manager";
 // Use override: true to ensure .env values take precedence over inherited env vars
 config({ path: resolve(__dirname, "../../.env"), override: true });
 
-const [nodeModules, devFolder] = normalize(dirname(main)).split(/\/|\\/g);
-const devPath = [nodeModules, devFolder].join("/");
+// Extract base output directory (dist/) from main path
+const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
 
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
@@ -36,7 +36,7 @@ export default defineConfig({
 				},
 
 				output: {
-					dir: resolve(devPath),
+					dir: resolve(devPath, "main"),
 				},
 			},
 		},
@@ -46,10 +46,20 @@ export default defineConfig({
 	},
 
 	preload: {
-		plugins: [tsconfigPaths, externalizeDepsPlugin()],
+		plugins: [
+			tsconfigPaths,
+			externalizeDepsPlugin({
+				exclude: ["trpc-electron"],
+			}),
+		],
 
 		build: {
 			outDir: resolve(devPath, "preload"),
+			rollupOptions: {
+				input: {
+					index: resolve("src/preload/index.ts"),
+				},
+			},
 		},
 	},
 
@@ -95,10 +105,6 @@ export default defineConfig({
 
 				input: {
 					index: resolve("src/renderer/index.html"),
-				},
-
-				output: {
-					dir: resolve(devPath, "renderer"),
 				},
 			},
 		},

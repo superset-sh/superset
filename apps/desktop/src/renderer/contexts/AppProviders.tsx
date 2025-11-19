@@ -1,9 +1,10 @@
 import type React from "react";
+import { TRPCProvider } from "./TRPCProvider";
 
 interface AppProvidersProps {
 	children: React.ReactNode;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-	return <>{children}</>;
+	return <TRPCProvider>{children}</TRPCProvider>;
 }

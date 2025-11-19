@@ -1,0 +1,46 @@
+import { Minus, Square, X } from "lucide-react";
+import { trpc } from "renderer/lib/trpc";
+
+export function WindowControls() {
+	const minimizeMutation = trpc.window.minimize.useMutation();
+	const maximizeMutation = trpc.window.maximize.useMutation();
+	const closeMutation = trpc.window.close.useMutation();
+
+	const handleMinimize = () => {
+		minimizeMutation.mutate();
+	};
+
+	const handleMaximize = () => {
+		maximizeMutation.mutate();
+	};
+
+	const handleClose = () => {
+		closeMutation.mutate();
+	};
+
+	return (
+		<div className="flex items-center h-full">
+			<button
+				type="button"
+				className="h-full w-12 flex items-center justify-center hover:bg-accent transition-colors"
+				onClick={handleMinimize}
+			>
+				<Minus className="h-4 w-4" />
+			</button>
+			<button
+				type="button"
+				className="h-full w-12 flex items-center justify-center hover:bg-accent transition-colors"
+				onClick={handleMaximize}
+			>
+				<Square className="h-3 w-3" />
+			</button>
+			<button
+				type="button"
+				className="h-full w-12 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
+				onClick={handleClose}
+			>
+				<X className="h-4 w-4" />
+			</button>
+		</div>
+	);
+}
