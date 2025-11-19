@@ -32,6 +32,7 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
+		"!node_modules/@superset/**/*",
 	],
 
 	// Build optimization

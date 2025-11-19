@@ -32,9 +32,6 @@
 		"@dnd-kit/utilities": "^3.2.2",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
-		"@superset/api": "workspace:*",
-		"@superset/cli": "workspace:*",
-		"@superset/ui": "workspace:*",
 		"@xterm/addon-fit": "^0.10.0",
 		"@xterm/addon-search": "^0.15.0",
 		"@xterm/addon-web-links": "^0.11.0",
@@ -62,6 +59,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.6",
+		"@superset/ui": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",
 		"@types/http-proxy": "^1.17.17",
 		"@types/node": "^24.9.1",

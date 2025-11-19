@@ -25,7 +25,7 @@ export default defineConfig({
 		plugins: [
 			tsconfigPaths,
 			externalizeDepsPlugin({
-				exclude: ["@superset/cli"],
+				exclude: ["@superset/*"],
 			}),
 		],
 
@@ -36,14 +36,12 @@ export default defineConfig({
 				},
 
 				output: {
-					dir: resolve(devPath, "main"),
+					dir: resolve(devPath),
 				},
 			},
 		},
 		resolve: {
-			alias: {
-				"@superset/cli": resolve(__dirname, "../../apps/cli/src"),
-			},
+			alias: {},
 		},
 	},
 
