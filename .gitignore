@@ -54,3 +54,6 @@ mise.toml
 
 # Superset
 .superset
+
+# tsbuildinfo
+*.tsbuildinfo
