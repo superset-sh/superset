@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { useAppStore } from "renderer/stores";
+import { useSidebarStore } from "renderer/stores";
 
 export function Sidebar() {
-	const { isSidebarOpen } = useAppStore();
+	const { isSidebarOpen } = useSidebarStore();
 
 	return (
 		<motion.aside
@@ -59,11 +59,7 @@ export function Sidebar() {
 					ease: "easeInOut",
 				}}
 				className="p-4 border-t border-sidebar-border"
-			>
-				<div className="text-xs text-sidebar-foreground/60">
-					v{/* Add version here */}
-				</div>
-			</motion.div>
+			></motion.div>
 		</motion.aside>
 	);
 }

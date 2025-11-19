@@ -27,13 +27,16 @@ export function TabItem({
 }: TabItemProps) {
 	const { setActiveTab, removeTab, reorderTabs } = useTabsStore();
 
-	const [{ isDragging }, drag] = useDrag({
-		type: TAB_TYPE,
-		item: { id, index },
-		collect: (monitor) => ({
-			isDragging: monitor.isDragging(),
+	const [{ isDragging }, drag] = useDrag(
+		() => ({
+			type: TAB_TYPE,
+			item: { id, index },
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
 		}),
-	});
+		[id, index],
+	);
 
 	const [, drop] = useDrop({
 		accept: TAB_TYPE,
@@ -66,11 +69,12 @@ export function TabItem({
 					flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]
 					${
 						isActive
-							? "text-foreground bg-border"
+							? "text-foreground bg-sidebar"
 							: "text-muted-foreground hover:text-foreground hover:bg-muted/30"
 					}
-					${isDragging ? "opacity-50" : "opacity-100"}
+					${isDragging ? "opacity-30" : "opacity-100"}
 				`}
+				style={{ cursor: isDragging ? "grabbing" : "grab" }}
 			>
 				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
 					{title}

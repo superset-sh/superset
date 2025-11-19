@@ -1,9 +1,9 @@
 import { Button } from "@superset/ui/button";
 import { PanelLeft, PanelRight } from "lucide-react";
-import { useAppStore } from "renderer/stores";
+import { useSidebarStore } from "renderer/stores";
 
 export function SidebarControl() {
-	const { isSidebarOpen, toggleSidebar } = useAppStore();
+	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
 
 	return (
 		<Button

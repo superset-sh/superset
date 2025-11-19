@@ -59,7 +59,11 @@ export function Tabs() {
 	}, [tabs]);
 
 	return (
-		<div ref={containerRef} className="flex items-center h-full w-full">
+		<div
+			ref={containerRef}
+			className="flex items-center h-full w-full"
+			style={{ isolation: "isolate" }}
+		>
 			<div className="relative flex-1 h-full overflow-hidden w-full">
 				<div
 					ref={scrollRef}

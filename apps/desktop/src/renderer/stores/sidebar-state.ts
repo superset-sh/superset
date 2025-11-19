@@ -1,13 +1,13 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-interface AppState {
+interface SidebarState {
 	isSidebarOpen: boolean;
 	toggleSidebar: () => void;
 	setSidebarOpen: (open: boolean) => void;
 }
 
-export const useAppStore = create<AppState>()(
+export const useSidebarStore = create<SidebarState>()(
 	devtools(
 		(set) => ({
 			isSidebarOpen: true,
@@ -20,7 +20,6 @@ export const useAppStore = create<AppState>()(
 				set({ isSidebarOpen: open });
 			},
 		}),
-		{ name: "AppStore" },
+		{ name: "SidebarStore" },
 	),
 );
-
