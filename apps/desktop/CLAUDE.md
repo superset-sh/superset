@@ -1,0 +1,1 @@
+For Electron interprocess communnication, ALWAYS use trpc as defined in `src/lib/trpc`

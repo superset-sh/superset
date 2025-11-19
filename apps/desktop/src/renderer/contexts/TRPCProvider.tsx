@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { trpc } from "main/lib/trpc";
+import { trpc } from "lib/trpc";
 import { useState } from "react";
 import superjson from "superjson";
 import { ipcLink } from "trpc-electron/renderer";
