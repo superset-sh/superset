@@ -27,12 +27,9 @@ export function Sidebar({
 	isDragging = false,
 	onDiffModeChange,
 }: SidebarProps) {
-	const { workspaces, currentWorkspace, handleWorkspaceSelect } =
-		useWorkspaceContext();
-	const { selectedTabId, selectedWorktreeId, handleTabSelect } =
-		useTabContext();
-	const { handleWorktreeCreated, handleUpdateWorktree } =
-		useWorktreeOperationsContext();
+	const { workspaces, currentWorkspace, handleWorkspaceSelect } = useWorkspaceContext();
+	const { selectedTabId, selectedWorktreeId, handleTabSelect } = useTabContext();
+	const { handleWorktreeCreated, handleUpdateWorktree } = useWorktreeOperationsContext();
 	const { handleCollapseSidebar } = useSidebarContext();
 	const [expandedWorktrees, setExpandedWorktrees] = useState<Set<string>>(
 		new Set(),
@@ -68,8 +65,7 @@ export function Sidebar({
 		};
 
 		window.addEventListener("workspace-changed", handleWorkspaceChanged);
-		return () =>
-			window.removeEventListener("workspace-changed", handleWorkspaceChanged);
+		return () => window.removeEventListener("workspace-changed", handleWorkspaceChanged);
 	}, [handleWorktreeCreated]);
 
 	// Fetch diff data when in changes mode

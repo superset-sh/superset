@@ -240,12 +240,12 @@ function enrichWorktreesWithTasks(
 			isPending: true, // Mark as pending for UI
 			task: pending.taskData
 				? {
-						id: pending.id,
-						slug: pending.taskData.slug,
-						title: pending.taskData.name,
-						status: pending.taskData.status,
-						description: pending.description || "",
-					}
+					id: pending.id,
+					slug: pending.taskData.slug,
+					title: pending.taskData.name,
+					status: pending.taskData.status,
+					description: pending.description || "",
+				}
 				: undefined,
 		}),
 	);
@@ -289,9 +289,7 @@ export const MainLayout: React.FC = () => {
 	const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 	const [showSidebarOverlay, setShowSidebarOverlay] = useState(false);
 	const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<
-		"list" | "new"
-	>("list");
+	const [addTaskModalInitialMode, setAddTaskModalInitialMode] = useState<"list" | "new">("list");
 	const [branches, setBranches] = useState<string[]>([]);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
 	const [setupStatus, setSetupStatus] = useState<string | undefined>(undefined);
@@ -528,10 +526,7 @@ export const MainLayout: React.FC = () => {
 
 					// If we deleted the selected worktree, select the first available one
 					if (selectedWorktreeId === worktreeId) {
-						if (
-							refreshedWorkspace.worktrees &&
-							refreshedWorkspace.worktrees.length > 0
-						) {
+						if (refreshedWorkspace.worktrees && refreshedWorkspace.worktrees.length > 0) {
 							const firstWorktree = refreshedWorkspace.worktrees[0];
 							setSelectedWorktreeId(firstWorktree.id);
 							if (firstWorktree.tabs && firstWorktree.tabs.length > 0) {
@@ -586,7 +581,7 @@ export const MainLayout: React.FC = () => {
 	const handleOpenAddTaskModal = (mode: "list" | "new" = "list") => {
 		setAddTaskModalInitialMode(mode);
 		setIsAddTaskModalOpen(true);
-
+		
 		// Fetch branches when opening in new mode
 		if (mode === "new" && currentWorkspace) {
 			void (async () => {
@@ -720,10 +715,7 @@ export const MainLayout: React.FC = () => {
 				}),
 			});
 
-			window.ipcRenderer.removeListener(
-				"worktree-setup-progress",
-				progressHandler,
-			);
+			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
 
 			if (result.success) {
 				// Display setup result if available
@@ -755,12 +747,8 @@ export const MainLayout: React.FC = () => {
 						handleTabSelect(result.worktree.id, result.worktree.tabs[0].id);
 					}
 				}
-				<<<<<<< HEAD:apps/desktop/src/renderer/screens/main/components/Layout/NewLayoutMain.tsx
 			} else {
-				console.error(
-					"[NewLayoutMain] Failed to create worktree:",
-					result.error,
-				);
+				console.error("[NewLayoutMain] Failed to create worktree:", result.error);
 				setSetupStatus("Failed to create worktree");
 				setSetupOutput(result.error);
 				setIsCreatingWorktree(false);
@@ -771,10 +759,7 @@ export const MainLayout: React.FC = () => {
 			setSetupStatus("Error creating worktree");
 			setSetupOutput(String(error));
 			setIsCreatingWorktree(false);
-			window.ipcRenderer.removeListener(
-				"worktree-setup-progress",
-				progressHandler,
-			);
+			window.ipcRenderer.removeListener("worktree-setup-progress", progressHandler);
 		}
 	};
 
@@ -1123,10 +1108,10 @@ export const MainLayout: React.FC = () => {
 								{/* Main content panel */}
 								<ResizablePanel defaultSize={80} minSize={30}>
 									{loading ||
-									error ||
-									!currentWorkspace ||
-									!selectedTab ||
-									!selectedWorktree ? (
+										error ||
+										!currentWorkspace ||
+										!selectedTab ||
+										!selectedWorktree ? (
 										<PlaceholderState
 											loading={loading}
 											error={error}
