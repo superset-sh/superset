@@ -7,13 +7,10 @@ export function ChangesContent() {
 						<h2 className="text-2xl font-semibold text-foreground mb-2">
 							Changes
 						</h2>
-						<p className="text-muted-foreground">
-							Changes content will appear here
-						</p>
+						<p className="text-muted-foreground">Coming soon...</p>
 					</div>
 				</div>
 			</div>
 		</div>
 	);
 }
-
