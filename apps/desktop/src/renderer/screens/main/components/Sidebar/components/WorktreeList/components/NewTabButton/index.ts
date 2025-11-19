@@ -1,1 +1,0 @@
-export { NewTabButton } from "./NewTabButton";

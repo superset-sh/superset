@@ -2,7 +2,10 @@ export function Background() {
 	return (
 		<>
 			{/* SVG filter definition */}
-			<svg style={{ position: "absolute", width: 0, height: 0 }}>
+			<svg
+				style={{ position: "absolute", width: 0, height: 0 }}
+				aria-hidden="true"
+			>
 				<filter id="noise">
 					<feTurbulence
 						type="fractalNoise"

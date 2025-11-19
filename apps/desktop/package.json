@@ -1,6 +1,6 @@
 {
 	"displayName": "Superset",
-	"name": "Superset",
+	"name": "@superset/desktop",
 	"description": "The last developer tool you'll ever need",
 	"version": "0.0.0",
 	"main": "./node_modules/.dev/main/index.js",
