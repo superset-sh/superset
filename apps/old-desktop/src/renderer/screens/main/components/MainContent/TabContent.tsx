@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Tab } from "shared/types";
-import { useWorkspaceContext, useTabContext } from "../../../../contexts";
+import { useTabContext, useWorkspaceContext } from "../../../../contexts";
 import { PortTab } from "../TabContent/components/PortTab";
 import { PreviewTab } from "../TabContent/components/PreviewTab";
 import TabGroup from "./TabGroup";

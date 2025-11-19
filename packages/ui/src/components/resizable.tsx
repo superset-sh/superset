@@ -1,5 +1,5 @@
-import { HiMiniEllipsisVertical } from "react-icons/hi2";
 import type * as React from "react";
+import { HiMiniEllipsisVertical } from "react-icons/hi2";
 import * as ResizablePrimitive from "react-resizable-panels";
 
 import { cn } from "../lib/utils";

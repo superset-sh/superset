@@ -1,10 +1,10 @@
 export { AppProviders } from "./AppProviders";
-export { WorkspaceProvider, useWorkspaceContext } from "./WorkspaceContext";
-export { TabProvider, useTabContext } from "./TabContext";
 export { SidebarProvider, useSidebarContext } from "./SidebarContext";
-export {
-	WorktreeOperationsProvider,
-	useWorktreeOperationsContext,
-} from "./WorktreeOperationsContext";
+export { TabProvider, useTabContext } from "./TabContext";
 export { TaskProvider, useTaskContext } from "./TaskContext";
-export { WorktreeProvider, useWorktree } from "./WorktreeContext";
+export { useWorkspaceContext, WorkspaceProvider } from "./WorkspaceContext";
+export { useWorktree, WorktreeProvider } from "./WorktreeContext";
+export {
+	useWorktreeOperationsContext,
+	WorktreeOperationsProvider,
+} from "./WorktreeOperationsContext";

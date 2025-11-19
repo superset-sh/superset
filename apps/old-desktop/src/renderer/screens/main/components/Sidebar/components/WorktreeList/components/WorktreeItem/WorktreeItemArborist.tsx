@@ -1,6 +1,3 @@
-import { Tree } from "react-arborist";
-import type { NodeApi } from "react-arborist";
-import type { TreeApi } from "react-arborist";
 import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
@@ -10,11 +7,8 @@ import {
 } from "@superset/ui/context-menu";
 import { ChevronRight, Edit2, FolderOpen } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
-import type { Tab, Worktree } from "shared/types";
-import { WorktreePortsList } from "../WorktreePortsList";
-import { GitStatusDialog } from "./components/GitStatusDialog";
-import { TabItem } from "./components/TabItem";
-import { dragDropManager } from "renderer/lib/dnd";
+import type { NodeApi, TreeApi } from "react-arborist";
+import { Tree } from "react-arborist";
 import {
 	Dialog,
 	DialogContent,
@@ -23,6 +17,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "renderer/components/ui/dialog";
+import { dragDropManager } from "renderer/lib/dnd";
+import type { Tab, Worktree } from "shared/types";
+import { WorktreePortsList } from "../WorktreePortsList";
+import { GitStatusDialog } from "./components/GitStatusDialog";
+import { TabItem } from "./components/TabItem";
 
 interface WorktreeItemProps {
 	worktree: Worktree;

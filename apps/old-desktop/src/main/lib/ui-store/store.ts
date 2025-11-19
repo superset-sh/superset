@@ -1,12 +1,12 @@
 import {
-	existsSync,
-	readFileSync,
-	writeFileSync,
-	mkdirSync,
-	renameSync,
-	fsyncSync,
-	openSync,
 	closeSync,
+	existsSync,
+	fsyncSync,
+	mkdirSync,
+	openSync,
+	readFileSync,
+	renameSync,
+	writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { getDesktopUiDir, getUiVersionPath } from "../storage/config";

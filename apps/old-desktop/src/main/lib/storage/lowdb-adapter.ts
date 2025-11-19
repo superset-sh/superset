@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { JSONFilePreset } from "lowdb/node";
 import type { DesktopStorageAdapter } from "./adapter";
-import { getDomainCollectionPath, getDesktopDbDir } from "./config";
+import { getDesktopDbDir, getDomainCollectionPath } from "./config";
 import {
 	createEmptyDesktopDatabase,
 	type DesktopDatabase,

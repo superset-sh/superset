@@ -2,13 +2,13 @@ import { type MotionValue, useMotionValue } from "framer-motion";
 import { File, FileEdit, FilePlus, FileX } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Tab } from "shared/types";
-import { useDiffData } from "../../hooks";
 import {
-	useWorkspaceContext,
-	useTabContext,
-	useWorktreeOperationsContext,
 	useSidebarContext,
+	useTabContext,
+	useWorkspaceContext,
+	useWorktreeOperationsContext,
 } from "../../../../contexts";
+import { useDiffData } from "../../hooks";
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
 import { CreateWorktreeModal, WorktreeList } from "./components";

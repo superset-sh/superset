@@ -1,6 +1,6 @@
 import type { Worktree } from "shared/types";
-import type { APITask, Task } from "./types";
 import type { TaskStatus } from "../StatusIndicator";
+import type { APITask, Task } from "./types";
 
 export function formatRelativeTime(date: Date): string {
 	const now = new Date();

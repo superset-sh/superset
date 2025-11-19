@@ -1,11 +1,11 @@
 import type React from "react";
 import { useState } from "react";
 import {
-	WorkspaceProvider,
-	TabProvider,
 	SidebarProvider,
-	WorktreeOperationsProvider,
+	TabProvider,
 	TaskProvider,
+	WorkspaceProvider,
+	WorktreeOperationsProvider,
 } from "./index";
 
 interface AppProvidersProps {

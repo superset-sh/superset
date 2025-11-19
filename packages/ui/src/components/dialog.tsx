@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { HiMiniXMark } from "react-icons/hi2";
 import type * as React from "react";
+import { HiMiniXMark } from "react-icons/hi2";
 
 import { cn } from "../lib/utils";
 

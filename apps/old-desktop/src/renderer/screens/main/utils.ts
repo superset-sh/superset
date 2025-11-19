@@ -1,8 +1,8 @@
 import type { Tab, Worktree } from "shared/types";
+import { formatRelativeTime } from "./components/Layout/AddTaskModal/utils";
 import type { TaskStatus } from "./components/Layout/StatusIndicator";
 import type { WorktreeWithTask } from "./components/Layout/TaskTabs";
 import type { PendingWorktree } from "./types";
-import { formatRelativeTime } from "./components/Layout/AddTaskModal/utils";
 
 // Helper function to find a tab recursively (for finding sub-tabs inside groups)
 export function findTabRecursive(

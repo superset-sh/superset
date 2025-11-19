@@ -1,6 +1,6 @@
 import type { LocalWorkspace } from "../types/cli-types";
-import type { WorktreeInfo } from "../worktree-manager";
 import type { WorktreeUiMetadata } from "../ui-store/types";
+import type { WorktreeInfo } from "../worktree-manager";
 
 /**
  * Scanned worktree with Git information

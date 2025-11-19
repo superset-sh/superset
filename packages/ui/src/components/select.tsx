@@ -1,12 +1,12 @@
 "use client";
 
 import * as SelectPrimitive from "@radix-ui/react-select";
+import type * as React from "react";
 import {
 	HiMiniCheck,
 	HiMiniChevronDown,
 	HiMiniChevronUp,
 } from "react-icons/hi2";
-import type * as React from "react";
 
 import { cn } from "../lib/utils";
 

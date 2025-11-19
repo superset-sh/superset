@@ -2,8 +2,8 @@ import { DndProvider } from "react-dnd";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
-import { WorkspaceView } from "./components/WorkspaceView";
 import { TopBar } from "./components/TopBar";
+import { WorkspaceView } from "./components/WorkspaceView";
 
 export function MainScreen() {
 	return (

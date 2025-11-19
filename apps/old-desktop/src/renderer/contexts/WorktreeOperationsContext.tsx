@@ -2,8 +2,8 @@ import type React from "react";
 import { createContext, useContext } from "react";
 import type { Worktree } from "shared/types";
 import { useWorktrees } from "../screens/main/hooks";
-import { useWorkspaceContext } from "./WorkspaceContext";
 import { useTabContext } from "./TabContext";
+import { useWorkspaceContext } from "./WorkspaceContext";
 
 interface WorktreeOperationsContextValue {
 	handleWorktreeCreated: () => Promise<void>;

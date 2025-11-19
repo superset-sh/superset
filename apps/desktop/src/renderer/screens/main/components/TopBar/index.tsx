@@ -1,7 +1,7 @@
 import { trpc } from "renderer/lib/trpc";
 import { SidebarControl } from "./SidebarControl";
-import { WorkspacesTabs } from "./WorkspaceTabs";
 import { WindowControls } from "./WindowControls";
+import { WorkspacesTabs } from "./WorkspaceTabs";
 
 export function TopBar() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();

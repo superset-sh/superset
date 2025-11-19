@@ -1,14 +1,14 @@
 import { randomUUID } from "node:crypto";
 import type { LocalWorkspace } from "../types/cli-types";
-import worktreeManager from "../worktree-manager";
 import type { UiStore } from "../ui-store/store";
+import type { WorktreeUiMetadata } from "../ui-store/types";
+import worktreeManager from "../worktree-manager";
 import type {
 	ComposedWorkspaceState,
 	ComposedWorktree,
 	RescanResult,
 	ScannedWorktree,
 } from "./types";
-import type { WorktreeUiMetadata } from "../ui-store/types";
 
 /**
  * Workspace state composer

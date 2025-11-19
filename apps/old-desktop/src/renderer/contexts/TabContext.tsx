@@ -1,5 +1,5 @@
-import { createContext, useContext } from "react";
 import type React from "react";
+import { createContext, useContext } from "react";
 import type { Tab, Worktree } from "shared/types";
 import { useTabs } from "../screens/main/hooks";
 import { useWorkspaceContext } from "./WorkspaceContext";

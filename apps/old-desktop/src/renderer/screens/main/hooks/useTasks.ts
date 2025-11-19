@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { Worktree } from "shared/types";
-import type { TaskStatus } from "../components/Layout/StatusIndicator";
-import type { UITask, PendingWorktree } from "../types";
 import { transformWorktreeToTask } from "../components/Layout/AddTaskModal/utils";
+import type { TaskStatus } from "../components/Layout/StatusIndicator";
+import type { PendingWorktree, UITask } from "../types";
 
 interface UseTasksProps {
 	currentWorkspace: {

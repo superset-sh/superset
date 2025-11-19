@@ -1,5 +1,5 @@
-import type { TaskStatus } from "../StatusIndicator";
 import type { Worktree } from "shared/types";
+import type { TaskStatus } from "../StatusIndicator";
 
 export interface Task {
 	id: string;

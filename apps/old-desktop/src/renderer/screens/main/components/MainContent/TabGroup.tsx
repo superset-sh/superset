@@ -6,10 +6,10 @@ import {
 	MosaicWindow,
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
-import type { Tab } from "shared/types";
-import { useWorkspaceContext, useTabContext } from "../../../../contexts";
-import TabContent from "./TabContent";
 import { dragDropManager } from "renderer/lib/dnd";
+import type { Tab } from "shared/types";
+import { useTabContext, useWorkspaceContext } from "../../../../contexts";
+import TabContent from "./TabContent";
 
 interface ScreenLayoutProps {
 	groupTab: Tab; // A tab with type: "group"

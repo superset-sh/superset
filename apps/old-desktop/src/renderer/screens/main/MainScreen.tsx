@@ -1,6 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
+import {
+	useSidebarContext,
+	useTabContext,
+	useTaskContext,
+	useWorkspaceContext,
+	useWorktreeOperationsContext,
+} from "../../contexts";
 import { dragDropManager } from "../../lib/dnd";
+import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
+import { createTabShortcuts } from "../../lib/shortcuts";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { AddTaskModal } from "./components/Layout/AddTaskModal";
@@ -8,17 +17,8 @@ import { TaskTabs } from "./components/Layout/TaskTabs";
 import { MainContentArea } from "./components/MainContentArea";
 import { SidebarOverlay } from "./components/SidebarOverlay";
 import { WorkspaceSelectionModal } from "./components/WorkspaceSelectionModal";
-import {
-	useWorkspaceContext,
-	useTabContext,
-	useSidebarContext,
-	useWorktreeOperationsContext,
-	useTaskContext,
-} from "../../contexts";
 import type { AppMode } from "./types";
 import { enrichWorktreesWithTasks } from "./utils";
-import { createShortcutHandler } from "../../lib/keyboard-shortcuts";
-import { createTabShortcuts } from "../../lib/shortcuts";
 
 export function MainScreen() {
 	const [mode, setMode] = useState<AppMode>("edit");

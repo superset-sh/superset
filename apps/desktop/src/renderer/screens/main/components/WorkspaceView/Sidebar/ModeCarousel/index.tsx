@@ -1,10 +1,10 @@
 import { useCallback, useRef, useState } from "react";
-import { ModeContent } from "./ModeContent";
-import { ModeHeader } from "./ModeHeader";
-import { ModeNavigation } from "./ModeNavigation";
 import { useModeDetection } from "./hooks/useModeDetection";
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useScrollSnap } from "./hooks/useScrollSnap";
+import { ModeContent } from "./ModeContent";
+import { ModeHeader } from "./ModeHeader";
+import { ModeNavigation } from "./ModeNavigation";
 import type { ModeCarouselProps } from "./types";
 
 export function ModeCarousel({
