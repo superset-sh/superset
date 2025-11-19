@@ -1,4 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
+import { Tabs } from "./components/Tabs";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
@@ -14,7 +15,9 @@ export function TopBar() {
 			>
 				<h1 className="text-sm font-semibold text-foreground">Superset</h1>
 			</div>
-			<div className=" flex items-center gap-2">Middle section</div>
+			<div className="no-drag flex items-center gap-2 flex-1 overflow-hidden">
+				<Tabs />
+			</div>
 			<div className="no-drag flex items-center gap-2 h-full pr-4">
 				{!isMac && <WindowControls />}
 			</div>

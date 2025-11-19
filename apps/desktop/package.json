@@ -7,7 +7,7 @@
 	"resources": "src/resources",
 	"author": {
 		"name": "Superset",
-		"email": "hi@superset.com"
+		"email": "hi@superset.sh"
 	},
 	"scripts": {
 		"start": "electron-vite preview",
