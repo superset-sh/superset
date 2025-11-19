@@ -47,6 +47,10 @@ app.on("open-url", (event, url) => {
 
 	await app.whenReady();
 
+	// Initialize desktop stores (migration, versioning) before registering IPCs
+	const { DesktopStores } = await import("main/lib/desktop-stores");
+	await DesktopStores.initialize();
+
 	// Register IPC handlers once at startup (not per-window)
 	registerWorkspaceIPCs();
 	registerPortIpcs();
@@ -59,4 +63,12 @@ app.on("open-url", (event, url) => {
 		() => windowManager.createWindow(),
 		() => windowManager.restoreWindows(),
 	);
+
+	// Stop all periodic rescans when app is quitting
+	app.on("before-quit", async () => {
+		const { workspaceRescanManager } = await import(
+			"main/lib/workspace-rescan"
+		);
+		workspaceRescanManager.stopAll();
+	});
 })();

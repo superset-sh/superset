@@ -1,4 +1,13 @@
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import {
+	existsSync,
+	readFileSync,
+	writeFileSync,
+	mkdirSync,
+	renameSync,
+	fsyncSync,
+	openSync,
+	closeSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
 	getDesktopUiDir,
@@ -40,6 +49,28 @@ export class UiStore {
 	}
 
 	/**
+	 * Atomically write data to a file
+	 * Writes to a temp file, fsyncs, then renames to avoid partial writes
+	 */
+	private atomicWrite(filePath: string, data: string): void {
+		const tempPath = `${filePath}.tmp`;
+
+		// Write to temp file
+		writeFileSync(tempPath, data, "utf-8");
+
+		// Fsync to ensure data is written to disk
+		const fd = openSync(tempPath, "r+");
+		try {
+			fsyncSync(fd);
+		} finally {
+			closeSync(fd);
+		}
+
+		// Atomic rename (overwrites existing file atomically on POSIX systems)
+		renameSync(tempPath, filePath);
+	}
+
+	/**
 	 * Read window state
 	 */
 	readWindowState(): WindowState[] {
@@ -60,10 +91,9 @@ export class UiStore {
 	 */
 	writeWindowState(state: WindowState[]): boolean {
 		try {
-			writeFileSync(
+			this.atomicWrite(
 				this.windowStatePath,
 				JSON.stringify(state, null, 2),
-				"utf-8",
 			);
 			return true;
 		} catch (error) {
@@ -93,10 +123,9 @@ export class UiStore {
 	 */
 	writeSettings(settings: DesktopSettings): boolean {
 		try {
-			writeFileSync(
+			this.atomicWrite(
 				this.settingsPath,
 				JSON.stringify(settings, null, 2),
-				"utf-8",
 			);
 			return true;
 		} catch (error) {
@@ -137,11 +166,7 @@ export class UiStore {
 				this.workspacesDir,
 				`${state.workspaceId}.json`,
 			);
-			writeFileSync(
-				workspacePath,
-				JSON.stringify(state, null, 2),
-				"utf-8",
-			);
+			this.atomicWrite(workspacePath, JSON.stringify(state, null, 2));
 			return true;
 		} catch (error) {
 			console.error(
@@ -224,7 +249,7 @@ export class UiStore {
 	writeUiVersion(version: number = 1): boolean {
 		try {
 			const versionPath = getUiVersionPath();
-			writeFileSync(versionPath, String(version), "utf-8");
+			this.atomicWrite(versionPath, String(version));
 			return true;
 		} catch (error) {
 			console.error("Failed to write UI version:", error);

@@ -3,6 +3,7 @@
  */
 
 import type { IpcResponse, NoRequest } from "./types";
+import type { Tab, MosaicNode } from "../types";
 
 export interface UiChannels {
 	// Workspace UI state
@@ -19,8 +20,8 @@ export interface UiChannels {
 					description?: string;
 					prUrl?: string;
 					merged?: boolean;
-					tabs: unknown[];
-					mosaicTree?: unknown;
+					tabs: Tab[];
+					mosaicTree?: MosaicNode<string>;
 					activeTabId: string | null;
 					updatedAt: string;
 				}
@@ -34,7 +35,20 @@ export interface UiChannels {
 			workspaceId: string;
 			patch: {
 				activeWorktreePath?: string | null;
-				worktrees?: Record<string, Partial<unknown>>;
+				worktrees?: Record<
+					string,
+					{
+						path: string;
+						branch: string;
+						description?: string;
+						prUrl?: string;
+						merged?: boolean;
+						tabs: Tab[];
+						mosaicTree?: MosaicNode<string>;
+						activeTabId: string | null;
+						updatedAt: string;
+					}
+				>;
 			};
 		};
 		response: IpcResponse;
@@ -45,6 +59,7 @@ export interface UiChannels {
 			workspaceId: string;
 			activeWorktreePath?: string | null;
 			activeTabId?: string | null;
+			updateGlobalActiveWorkspace?: boolean;
 		};
 		response: IpcResponse;
 	};

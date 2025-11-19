@@ -1,5 +1,6 @@
 import { ipcMain } from "electron";
 import { desktopStores } from "./desktop-stores";
+import type { WorktreeUiMetadata } from "./ui-store/types";
 
 /**
  * Register IPC handlers for UI operations
@@ -43,7 +44,7 @@ export function registerUiIPCs(): void {
 				workspaceId: string;
 				patch: {
 					activeWorktreePath?: string | null;
-					worktrees?: Record<string, Partial<unknown>>;
+					worktrees?: Record<string, WorktreeUiMetadata>;
 				};
 			},
 		) => {
@@ -77,6 +78,7 @@ export function registerUiIPCs(): void {
 				workspaceId: string;
 				activeWorktreePath?: string | null;
 				activeTabId?: string | null;
+				updateGlobalActiveWorkspace?: boolean;
 			},
 		) => {
 			try {
@@ -113,8 +115,9 @@ export function registerUiIPCs(): void {
 					}
 				}
 
-				// Update settings if setting active workspace
-				if (input.activeWorktreePath === null) {
+				// Update global active workspace setting if requested
+				// This is now explicit instead of coupled to activeWorktreePath === null
+				if (input.updateGlobalActiveWorkspace) {
 					const settings = uiStore.readSettings();
 					settings.lastActiveWorkspaceId = input.workspaceId;
 					uiStore.writeSettings(settings);

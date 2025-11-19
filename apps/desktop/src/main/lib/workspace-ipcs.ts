@@ -778,6 +778,9 @@ export function registerWorkspaceIPCs() {
 		async (_event, input: { workspaceId: string }) => {
 			try {
 				const { desktopStores } = await import("./desktop-stores");
+				const { workspaceRescanManager } = await import(
+					"./workspace-rescan"
+				);
 				const workspaceOrch = desktopStores.getWorkspaceOrchestrator();
 				const composer = desktopStores.getComposer();
 
@@ -801,6 +804,9 @@ export function registerWorkspaceIPCs() {
 					workspace,
 					mainBranch,
 				);
+
+				// Start periodic rescan for this workspace (5 minute interval)
+				workspaceRescanManager.startPeriodicRescan(input.workspaceId);
 
 				return {
 					success: true,

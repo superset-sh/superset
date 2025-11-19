@@ -17,6 +17,7 @@ import { LegacyMigrator } from "./migration/migrator";
  */
 class DesktopStores {
 	private static instance: DesktopStores;
+	private static initPromise: Promise<void> | null = null;
 	private domainStorage: DesktopLowdbAdapter;
 	private uiStore: UiStore;
 	private composer: WorkspaceComposer;
@@ -26,9 +27,6 @@ class DesktopStores {
 	private changeOrchestrator: DesktopChangeOrchestrator;
 
 	private constructor() {
-		// Initialize storage directories
-		this.initializeAsync();
-
 		// Initialize domain storage
 		this.domainStorage = new DesktopLowdbAdapter();
 
@@ -102,6 +100,18 @@ class DesktopStores {
 		return DesktopStores.instance;
 	}
 
+	/**
+	 * Initialize async operations (migration, version writes)
+	 * Must be called once after getInstance() and before using the stores
+	 */
+	static async initialize(): Promise<void> {
+		if (!DesktopStores.initPromise) {
+			const instance = DesktopStores.getInstance();
+			DesktopStores.initPromise = instance.initializeAsync();
+		}
+		return DesktopStores.initPromise;
+	}
+
 	getDomainStorage() {
 		return this.domainStorage;
 	}
@@ -132,4 +142,5 @@ class DesktopStores {
 }
 
 export const desktopStores = DesktopStores.getInstance();
+export { DesktopStores };
 

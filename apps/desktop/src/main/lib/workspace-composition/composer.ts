@@ -15,12 +15,19 @@ import type { WorktreeUiMetadata } from "../ui-store/types";
  * Composes domain workspace + Git scan + UI metadata
  */
 export class WorkspaceComposer {
+	// Cache of last scanned worktrees per workspace path for rescan diffing
+	private lastScannedWorktrees: Map<string, ScannedWorktree[]> = new Map();
+
 	constructor(private readonly uiStore: UiStore) {}
 
 	/**
 	 * Scan Git for worktrees in a repository
 	 */
-	async scanWorktrees(repoPath: string, mainBranch: string): Promise<ScannedWorktree[]> {
+	async scanWorktrees(
+		repoPath: string,
+		mainBranch: string,
+		updateCache: boolean = true,
+	): Promise<ScannedWorktree[]> {
 		const gitWorktrees = worktreeManager.listWorktrees(repoPath);
 		const scanned: ScannedWorktree[] = [];
 
@@ -44,6 +51,11 @@ export class WorkspaceComposer {
 				currentBranch,
 				merged: isMerged,
 			});
+		}
+
+		// Update cache for rescan diffing
+		if (updateCache) {
+			this.lastScannedWorktrees.set(repoPath, scanned);
 		}
 
 		return scanned;
@@ -126,49 +138,33 @@ export class WorkspaceComposer {
 		workspace: LocalWorkspace,
 		mainBranch: string = "main",
 	): Promise<RescanResult> {
-		// Get current composed state
-		const currentState = await this.composeWorkspaceState(workspace, mainBranch);
+		// Get previous scan from cache (or empty if first scan)
+		const previousScanned = this.lastScannedWorktrees.get(workspace.path) ?? [];
 
-		// Scan Git again
+		// Perform new scan (this will update the cache)
 		const newScanned = await this.scanWorktrees(workspace.path, mainBranch);
 
-		// Compare with current state
-		const currentPaths = new Set(
-			currentState.worktrees.map((wt) => wt.path),
-		);
+		// Compare previous scan with new scan
+		const previousPaths = new Set(previousScanned.map((wt) => wt.path));
 		const newPaths = new Set(newScanned.map((wt) => wt.path));
 
 		const added: ScannedWorktree[] = newScanned.filter(
-			(wt) => !currentPaths.has(wt.path),
+			(wt) => !previousPaths.has(wt.path),
 		);
-		const removed: ScannedWorktree[] = currentState.worktrees
-			.filter((wt) => !newPaths.has(wt.path))
-			.map((wt) => ({
-				path: wt.path,
-				branch: wt.branch,
-				bare: wt.bare,
-				currentBranch: wt.currentBranch,
-				merged: wt.merged,
-			}));
+		const removed: ScannedWorktree[] = previousScanned.filter(
+			(wt) => !newPaths.has(wt.path),
+		);
 
 		const changed: Array<{ old: ScannedWorktree; new: ScannedWorktree }> = [];
 		for (const newWt of newScanned) {
-			const oldWt = currentState.worktrees.find(
-				(wt) => wt.path === newWt.path,
-			);
+			const oldWt = previousScanned.find((wt) => wt.path === newWt.path);
 			if (
 				oldWt &&
 				(oldWt.currentBranch !== newWt.currentBranch ||
 					oldWt.merged !== newWt.merged)
 			) {
 				changed.push({
-					old: {
-						path: oldWt.path,
-						branch: oldWt.branch,
-						bare: oldWt.bare,
-						currentBranch: oldWt.currentBranch,
-						merged: oldWt.merged,
-					},
+					old: oldWt,
 					new: newWt,
 				});
 			}
