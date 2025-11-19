@@ -10,7 +10,7 @@ export function AddTabButton() {
 			size="icon"
 			onClick={addTab}
 			aria-label="Add new tab"
-			className="mt-2"
+			className=""
 		>
 			<span className="text-lg">+</span>
 		</Button>
