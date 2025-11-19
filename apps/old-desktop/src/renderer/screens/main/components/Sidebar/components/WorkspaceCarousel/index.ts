@@ -1,0 +1,1 @@
+export { WorkspaceCarousel } from "./WorkspaceCarousel";

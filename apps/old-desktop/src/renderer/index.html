@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!--
+      https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
+
+      If you want restrict the sources from where you can load resources:
+        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' *; script-src 'self' *; style-src 'self' 'unsafe-inline' *;" />
+  </head>
+
+  <body>
+    <app></app>
+    <script type="module" src="index.tsx"></script>
+  </body>
+</html>

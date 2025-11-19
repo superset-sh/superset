@@ -12,6 +12,11 @@
 	],
 	"scripts": {
 		"dev": "turbo dev",
+		"dev:desktop": "turbo dev --filter=desktop",
+		"dev:docs": "turbo dev --filter=docs",
+		"dev:blog": "turbo dev --filter=blog",
+		"dev:cli": "turbo dev --filter=cli",
+		"dev:website": "turbo dev --filter=website",
 		"test": "turbo test",
 		"build": "turbo build",
 		"db:generate": "turbo db:generate",
