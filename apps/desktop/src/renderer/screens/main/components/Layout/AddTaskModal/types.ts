@@ -57,4 +57,3 @@ export interface AddTaskModalProps {
 	onClearStatus?: () => void;
 	currentWorkspaceId?: string | null;
 }
-

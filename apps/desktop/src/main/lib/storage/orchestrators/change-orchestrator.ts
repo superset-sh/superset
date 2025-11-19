@@ -63,4 +63,3 @@ export class DesktopChangeOrchestrator implements IChangeOrchestrator {
 		await this.storage.delete("changes", id);
 	}
 }
-

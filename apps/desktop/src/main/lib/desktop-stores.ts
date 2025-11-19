@@ -46,9 +46,7 @@ class DesktopStores {
 		this.processOrchestrator = new DesktopProcessOrchestrator(
 			this.domainStorage,
 		);
-		this.changeOrchestrator = new DesktopChangeOrchestrator(
-			this.domainStorage,
-		);
+		this.changeOrchestrator = new DesktopChangeOrchestrator(this.domainStorage);
 	}
 
 	private async initializeAsync(): Promise<void> {
@@ -71,16 +69,14 @@ class DesktopStores {
 				this.environmentOrchestrator,
 				this.workspaceOrchestrator,
 				this.uiStore,
-				false
+				false,
 			);
 			if (result.success) {
 				console.log(
 					`[DesktopStores] Migration completed: ${result.migrated.workspaces} workspaces migrated`,
 				);
 			} else {
-				console.error(
-					`[DesktopStores] Migration failed: ${result.error}`,
-				);
+				console.error(`[DesktopStores] Migration failed: ${result.error}`);
 			}
 		}
 
@@ -143,4 +139,3 @@ class DesktopStores {
 
 export const desktopStores = DesktopStores.getInstance();
 export { DesktopStores };
-

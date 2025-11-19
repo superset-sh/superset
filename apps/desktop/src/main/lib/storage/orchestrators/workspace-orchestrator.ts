@@ -77,8 +77,7 @@ export class DesktopWorkspaceOrchestrator implements IWorkspaceOrchestrator {
 
 		for (const processId of processIds) {
 			// Delete agent summaries for this process
-			const agentSummaries =
-				await this.storage.getCollection("agentSummaries");
+			const agentSummaries = await this.storage.getCollection("agentSummaries");
 			const summaryIds = Object.entries(agentSummaries)
 				.filter(([_, summary]) => summary.agentId === processId)
 				.map(([summaryId]) => summaryId);
@@ -114,4 +113,3 @@ export class DesktopWorkspaceOrchestrator implements IWorkspaceOrchestrator {
 		await this.storage.delete("workspaces", id);
 	}
 }
-

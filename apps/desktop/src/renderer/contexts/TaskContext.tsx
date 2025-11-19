@@ -50,9 +50,7 @@ export function TaskProvider({ children }: TaskProviderProps) {
 	});
 
 	return (
-		<TaskContext.Provider value={taskData}>
-			{children}
-		</TaskContext.Provider>
+		<TaskContext.Provider value={taskData}>{children}</TaskContext.Provider>
 	);
 }
 
@@ -63,4 +61,3 @@ export function useTaskContext() {
 	}
 	return context;
 }
-

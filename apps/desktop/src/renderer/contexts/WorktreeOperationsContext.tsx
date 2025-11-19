@@ -7,24 +7,35 @@ import { useTabContext } from "./TabContext";
 
 interface WorktreeOperationsContextValue {
 	handleWorktreeCreated: () => Promise<void>;
-	handleWorktreeCreatedWithResult: () => Promise<{ id: string; worktrees?: Worktree[] } | null>;
+	handleWorktreeCreatedWithResult: () => Promise<{
+		id: string;
+		worktrees?: Worktree[];
+	} | null>;
 	handleUpdateWorktree: (worktreeId: string, updatedWorktree: Worktree) => void;
 	handleCreatePR: (selectedWorktreeId: string | null) => Promise<void>;
 	handleMergePR: (selectedWorktreeId: string | null) => Promise<void>;
 	handleDeleteWorktree: (worktreeId: string) => Promise<void>;
 }
 
-const WorktreeOperationsContext = createContext<WorktreeOperationsContextValue | undefined>(
-	undefined,
-);
+const WorktreeOperationsContext = createContext<
+	WorktreeOperationsContextValue | undefined
+>(undefined);
 
 interface WorktreeOperationsProviderProps {
 	children: React.ReactNode;
 }
 
-export function WorktreeOperationsProvider({ children }: WorktreeOperationsProviderProps) {
-	const { currentWorkspace, setCurrentWorkspace, setWorkspaces, loadAllWorkspaces } = useWorkspaceContext();
-	const { selectedWorktreeId, setSelectedWorktreeId, setSelectedTabId } = useTabContext();
+export function WorktreeOperationsProvider({
+	children,
+}: WorktreeOperationsProviderProps) {
+	const {
+		currentWorkspace,
+		setCurrentWorkspace,
+		setWorkspaces,
+		loadAllWorkspaces,
+	} = useWorkspaceContext();
+	const { selectedWorktreeId, setSelectedWorktreeId, setSelectedTabId } =
+		useTabContext();
 
 	const worktreeOperations = useWorktrees({
 		currentWorkspace,
@@ -46,8 +57,9 @@ export function WorktreeOperationsProvider({ children }: WorktreeOperationsProvi
 export function useWorktreeOperationsContext() {
 	const context = useContext(WorktreeOperationsContext);
 	if (context === undefined) {
-		throw new Error("useWorktreeOperationsContext must be used within a WorktreeOperationsProvider");
+		throw new Error(
+			"useWorktreeOperationsContext must be used within a WorktreeOperationsProvider",
+		);
 	}
 	return context;
 }
-

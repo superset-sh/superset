@@ -15,7 +15,12 @@ export const AddTaskButton: React.FC<AddTaskButtonProps> = ({ onClick }) => {
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<Button variant="ghost" size="icon-sm" className="ml-1" onClick={handleClick}>
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					className="ml-1"
+					onClick={handleClick}
+				>
 					<Plus size={18} />
 				</Button>
 			</TooltipTrigger>

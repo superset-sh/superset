@@ -81,4 +81,3 @@ export async function ensureDesktopStorageDirs(): Promise<void> {
 		await mkdir(cacheDir, { recursive: true, mode: 0o700 });
 	}
 }
-

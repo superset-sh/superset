@@ -3,10 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { JSONFilePreset } from "lowdb/node";
 import type { DesktopStorageAdapter } from "./adapter";
-import {
-	getDomainCollectionPath,
-	getDesktopDbDir,
-} from "./config";
+import { getDomainCollectionPath, getDesktopDbDir } from "./config";
 import {
 	createEmptyDesktopDatabase,
 	type DesktopDatabase,
@@ -40,10 +37,7 @@ export class DesktopLowdbAdapter implements DesktopStorageAdapter {
 			await mkdir(parentDir, { recursive: true, mode: 0o700 });
 		}
 
-		const db = await JSONFilePreset<Record<string, any>>(
-			collectionPath,
-			{},
-		);
+		const db = await JSONFilePreset<Record<string, any>>(collectionPath, {});
 
 		this.collections.set(collection, db);
 	}
@@ -219,4 +213,3 @@ export class DesktopLowdbAdapter implements DesktopStorageAdapter {
 		}
 	}
 }
-

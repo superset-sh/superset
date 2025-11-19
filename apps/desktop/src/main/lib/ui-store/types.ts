@@ -76,4 +76,3 @@ export interface UiStore {
 	settings: DesktopSettings;
 	workspaces: Record<string, WorkspaceUiState>;
 }
-

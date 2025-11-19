@@ -68,4 +68,3 @@ export interface DesktopStorageAdapter {
 	 */
 	clear(): Promise<void>;
 }
-

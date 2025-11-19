@@ -184,7 +184,13 @@ export default function TerminalComponent({
 		// from being sent to the shell process (where it would be interpreted as delete word)
 		term.attachCustomKeyEventHandler((e: KeyboardEvent): boolean => {
 			// Cmd+K: Clear terminal
-			if (e.key === "k" && e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+			if (
+				e.key === "k" &&
+				e.metaKey &&
+				!e.ctrlKey &&
+				!e.altKey &&
+				!e.shiftKey
+			) {
 				e.preventDefault();
 				term.clear();
 				// Also send clear command to shell to reset shell state
@@ -198,7 +204,13 @@ export default function TerminalComponent({
 			}
 
 			// Cmd+W: Prevent from being sent to shell (handled at window level)
-			if (e.key === "w" && e.metaKey && !e.ctrlKey && !e.altKey && !e.shiftKey) {
+			if (
+				e.key === "w" &&
+				e.metaKey &&
+				!e.ctrlKey &&
+				!e.altKey &&
+				!e.shiftKey
+			) {
 				e.preventDefault();
 				return false; // Prevent key from being sent to shell
 			}

@@ -10,8 +10,10 @@ export function formatRelativeTime(date: Date): string {
 	const diffDays = Math.floor(diffMs / 86400000);
 
 	if (diffMins < 1) return "just now";
-	if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
-	if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
+	if (diffMins < 60)
+		return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
+	if (diffHours < 24)
+		return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
 	if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
 	return date.toLocaleDateString();
 }
@@ -67,7 +69,9 @@ export function transformWorktreeToTask(worktree: Worktree): Task {
 	};
 }
 
-export function generateBranchNameWithCollisionAvoidance(title: string): string {
+export function generateBranchNameWithCollisionAvoidance(
+	title: string,
+): string {
 	// Convert to lowercase and replace spaces/special chars with hyphens
 	let slug = title
 		.toLowerCase()
@@ -109,4 +113,3 @@ export function generateBranchNameWithCollisionAvoidance(title: string): string 
 
 	return `${slug}-${randomSuffix}`;
 }
-

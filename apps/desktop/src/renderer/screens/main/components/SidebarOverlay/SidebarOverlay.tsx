@@ -11,7 +11,7 @@ export function SidebarOverlay({
 	onMouseLeave,
 }: SidebarOverlayProps) {
 	const { workspaces } = useWorkspaceContext();
-	
+
 	if (!isVisible || !workspaces) return null;
 
 	return (
@@ -25,4 +25,3 @@ export function SidebarOverlay({
 		</aside>
 	);
 }
-

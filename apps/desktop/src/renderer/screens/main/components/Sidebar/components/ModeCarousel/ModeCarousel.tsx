@@ -91,10 +91,7 @@ export function ModeCarousel({
 								width: `${100 / modes.length}%`,
 							}}
 						>
-							<ModeContent
-								mode={mode}
-								isActive={mode === currentMode}
-							>
+							<ModeContent mode={mode} isActive={mode === currentMode}>
 								{children(mode, mode === currentMode)}
 							</ModeContent>
 						</div>

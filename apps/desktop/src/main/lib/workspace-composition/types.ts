@@ -52,4 +52,3 @@ export interface RescanResult {
 	/** Composed state after rescan */
 	state: ComposedWorkspaceState;
 }
-

@@ -60,9 +60,7 @@ export class WorkspaceRescanManager {
 			}
 
 			// Detect main branch
-			const mainBranch = await worktreeManager.detectMainBranch(
-				workspace.path,
-			);
+			const mainBranch = await worktreeManager.detectMainBranch(workspace.path);
 
 			// Perform rescan
 			const rescanResult = await composer.rescanWorkspace(
@@ -97,9 +95,8 @@ export class WorkspaceRescanManager {
 
 			// Update changed worktrees (preserve UI metadata, update Git-derived fields)
 			for (const change of rescanResult.changed) {
-				const existingUi = uiStore
-					.readWorkspaceUiState(workspaceId)
-					?.worktrees[change.new.path];
+				const existingUi =
+					uiStore.readWorkspaceUiState(workspaceId)?.worktrees[change.new.path];
 				if (existingUi) {
 					uiStore.updateWorktreeMetadata(workspaceId, change.new.path, {
 						branch: change.new.currentBranch,
@@ -135,4 +132,3 @@ export class WorkspaceRescanManager {
 }
 
 export const workspaceRescanManager = new WorkspaceRescanManager();
-

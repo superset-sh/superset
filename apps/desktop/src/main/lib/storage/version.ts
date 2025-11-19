@@ -52,4 +52,3 @@ export class DomainVersion {
 		return DomainVersion.read() < DomainVersion.CURRENT_VERSION;
 	}
 }
-

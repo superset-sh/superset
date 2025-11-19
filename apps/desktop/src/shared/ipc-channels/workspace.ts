@@ -222,4 +222,3 @@ export interface WorkspaceChannels {
 		}>;
 	};
 }
-

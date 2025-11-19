@@ -93,11 +93,11 @@ class TmuxManager {
 	/**
 	 * Initialize tmux session manager - restore sessions from disk
 	 */
-  async initialize(): Promise<void> {
-    // Ensure server-level settings (affect all sessions/panes)
-    this.applyServerSettings();
+	async initialize(): Promise<void> {
+		// Ensure server-level settings (affect all sessions/panes)
+		this.applyServerSettings();
 
-    const savedSessions = this.loadSessionsFromDisk();
+		const savedSessions = this.loadSessionsFromDisk();
 
 		// Verify each session exists in tmux and prepare for lazy reattach
 		for (const metadata of savedSessions) {
@@ -180,87 +180,87 @@ class TmuxManager {
 	/**
 	 * Apply tmux settings to make session invisible and optimized
 	 */
-  private applySessionSettings(sid: string): void {
-    // Keep settings minimal and focused on invisibility and correct behavior
-    const settings = [
-      ["status", "off"],
-      ["set-titles", "off"],
-      ["allow-rename", "off"],
-      // Turn off tmux mouse so xterm selection remains native
-      ["mouse", "off"],
-      // Hide transient messages like copy-mode position overlays
-      ["display-time", "0"],
-      ["focus-events", "on"],
-      ["history-limit", "200000"],
-      ["remain-on-exit", "off"],
-      ["detach-on-destroy", "off"],
-      ["escape-time", "0"],
-      ["default-terminal", "xterm-256color"],
-    ];
+	private applySessionSettings(sid: string): void {
+		// Keep settings minimal and focused on invisibility and correct behavior
+		const settings = [
+			["status", "off"],
+			["set-titles", "off"],
+			["allow-rename", "off"],
+			// Turn off tmux mouse so xterm selection remains native
+			["mouse", "off"],
+			// Hide transient messages like copy-mode position overlays
+			["display-time", "0"],
+			["focus-events", "on"],
+			["history-limit", "200000"],
+			["remain-on-exit", "off"],
+			["detach-on-destroy", "off"],
+			["escape-time", "0"],
+			["default-terminal", "xterm-256color"],
+		];
 
-    for (const [option, value] of settings) {
-      spawnSync("tmux", [
-        "-L",
-        this.TMUX_SOCKET,
-        "set",
-        "-t",
-        sid,
-        option,
-        value,
-      ]);
-    }
+		for (const [option, value] of settings) {
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"set",
+				"-t",
+				sid,
+				option,
+				value,
+			]);
+		}
 
-    // Server-level history-limit is applied in applyServerSettings()
+		// Server-level history-limit is applied in applyServerSettings()
 
-    // Leave key bindings and prefixes at user defaults
+		// Leave key bindings and prefixes at user defaults
 
-    // Add terminal-overrides for true color support
-    spawnSync("tmux", [
-      "-L",
-      this.TMUX_SOCKET,
-      "set",
-      "-t",
-      sid,
-      "-as",
-      "terminal-overrides",
-      ",*:Tc",
-    ]);
+		// Add terminal-overrides for true color support
+		spawnSync("tmux", [
+			"-L",
+			this.TMUX_SOCKET,
+			"set",
+			"-t",
+			sid,
+			"-as",
+			"terminal-overrides",
+			",*:Tc",
+		]);
 
-    // Do not alter default mouse key bindings – keep selection behavior in xterm
-  }
+		// Do not alter default mouse key bindings – keep selection behavior in xterm
+	}
 
-  /**
-   * Apply server/global settings that maximize scrollback across all sessions
-   */
-  private applyServerSettings(): void {
-    try {
-      // Server-level hard cap for history size
-      spawnSync("tmux", [
-        "-L",
-        this.TMUX_SOCKET,
-        "set",
-        "-s",
-        "history-limit",
-        "1000000",
-      ]);
-    } catch (e) {
-      console.warn("[TmuxManager] Failed to set server history-limit", e);
-    }
+	/**
+	 * Apply server/global settings that maximize scrollback across all sessions
+	 */
+	private applyServerSettings(): void {
+		try {
+			// Server-level hard cap for history size
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"set",
+				"-s",
+				"history-limit",
+				"1000000",
+			]);
+		} catch (e) {
+			console.warn("[TmuxManager] Failed to set server history-limit", e);
+		}
 
-    try {
-      // Global default for future windows/panes
-      spawnSync("tmux", [
-        "-L",
-        this.TMUX_SOCKET,
-        "set",
-        "-g",
-        "history-limit",
-        "1000000",
-      ]);
-    } catch (e) {
-      console.warn("[TmuxManager] Failed to set global history-limit", e);
-    }
-  }
+		try {
+			// Global default for future windows/panes
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"set",
+				"-g",
+				"history-limit",
+				"1000000",
+			]);
+		} catch (e) {
+			console.warn("[TmuxManager] Failed to set global history-limit", e);
+		}
+	}
 
 	/**
 	 * Create or reattach to a terminal session
@@ -647,69 +647,77 @@ class TmuxManager {
 	/**
 	 * Emit terminal data to all windows viewing this terminal
 	 */
-  private emitMessage(sid: string, data: string): void {
-    // Strip mouse reporting enable sequences so xterm never flips into mouse mode
-    const sanitizeMouseSeq = (input: string): string => {
-      try {
-        return input.replace(/\x1b\[\?([0-9;]+)h/g, (_m, nums: string) => {
-          const blocked = new Set([9, 1000, 1002, 1003, 1005, 1006, 1015]);
-          const kept: number[] = [];
-          for (const part of String(nums).split(";")) {
-            const n = Number(part);
-            if (!blocked.has(n)) kept.push(n);
-          }
-          return kept.length ? `\x1b[?${kept.join(";")}h` : "";
-        });
-      } catch {
-        return input;
-      }
-    };
+	private emitMessage(sid: string, data: string): void {
+		// Strip mouse reporting enable sequences so xterm never flips into mouse mode
+		const sanitizeMouseSeq = (input: string): string => {
+			try {
+				return input.replace(/\x1b\[\?([0-9;]+)h/g, (_m, nums: string) => {
+					const blocked = new Set([9, 1000, 1002, 1003, 1005, 1006, 1015]);
+					const kept: number[] = [];
+					for (const part of String(nums).split(";")) {
+						const n = Number(part);
+						if (!blocked.has(n)) kept.push(n);
+					}
+					return kept.length ? `\x1b[?${kept.join(";")}h` : "";
+				});
+			} catch {
+				return input;
+			}
+		};
 
-    const windows = this.terminalWindows.get(sid);
-    if (windows && windows.size > 0) {
-      for (const window of windows) {
-        if (!window.isDestroyed()) {
-          window.webContents.send("terminal-on-data", {
-            id: sid,
-            data: sanitizeMouseSeq(data),
-          });
-        }
-      }
-    }
-  }
+		const windows = this.terminalWindows.get(sid);
+		if (windows && windows.size > 0) {
+			for (const window of windows) {
+				if (!window.isDestroyed()) {
+					window.webContents.send("terminal-on-data", {
+						id: sid,
+						data: sanitizeMouseSeq(data),
+					});
+				}
+			}
+		}
+	}
 
-  /** Scroll tmux history by amount (positive = down, negative = up) */
-  scrollLines(sid: string, amount: number): void {
-    try {
-      const count = Math.max(1, Math.min(100, Math.abs(Math.trunc(amount))));
-      const direction = amount > 0 ? "scroll-down" : "scroll-up";
-      // Enter copy-mode if not already
-      spawnSync("tmux", ["-L", this.TMUX_SOCKET, "copy-mode", "-e", "-t", sid]);
-      // Repeat scroll efficiently
-      spawnSync("tmux", [
-        "-L",
-        this.TMUX_SOCKET,
-        "send-keys",
-        "-t",
-        sid,
-        "-X",
-        "-N",
-        String(count),
-        direction,
-      ]);
-    } catch (e) {
-      console.warn("[TmuxManager] Failed to scroll lines:", sid, amount, e);
-    }
-  }
+	/** Scroll tmux history by amount (positive = down, negative = up) */
+	scrollLines(sid: string, amount: number): void {
+		try {
+			const count = Math.max(1, Math.min(100, Math.abs(Math.trunc(amount))));
+			const direction = amount > 0 ? "scroll-down" : "scroll-up";
+			// Enter copy-mode if not already
+			spawnSync("tmux", ["-L", this.TMUX_SOCKET, "copy-mode", "-e", "-t", sid]);
+			// Repeat scroll efficiently
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"send-keys",
+				"-t",
+				sid,
+				"-X",
+				"-N",
+				String(count),
+				direction,
+			]);
+		} catch (e) {
+			console.warn("[TmuxManager] Failed to scroll lines:", sid, amount, e);
+		}
+	}
 
-  /** Exit copy-mode after scrolling to restore normal cursor */
-  scrollFinish(sid: string): void {
-    try {
-      spawnSync("tmux", ["-L", this.TMUX_SOCKET, "send-keys", "-t", sid, "-X", "cancel"]);
-    } catch (e) {
-      console.warn("[TmuxManager] Failed to cancel copy-mode:", sid, e);
-    }
-  }
+	/** Exit copy-mode after scrolling to restore normal cursor */
+	scrollFinish(sid: string): void {
+		try {
+			spawnSync("tmux", [
+				"-L",
+				this.TMUX_SOCKET,
+				"send-keys",
+				"-t",
+				sid,
+				"-X",
+				"cancel",
+			]);
+		} catch (e) {
+			console.warn("[TmuxManager] Failed to cancel copy-mode:", sid, e);
+		}
+	}
 
 	/**
 	 * Load persisted sessions from disk

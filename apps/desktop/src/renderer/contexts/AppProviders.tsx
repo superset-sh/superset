@@ -15,7 +15,9 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
 	// Tab selection state needs to be lifted to AppProviders level
 	// so WorkspaceProvider can use it
-	const [selectedWorktreeId, setSelectedWorktreeId] = useState<string | null>(null);
+	const [selectedWorktreeId, setSelectedWorktreeId] = useState<string | null>(
+		null,
+	);
 	const [selectedTabId, setSelectedTabId] = useState<string | null>(null);
 
 	return (
@@ -38,4 +40,3 @@ export function AppProviders({ children }: AppProvidersProps) {
 		</WorkspaceProvider>
 	);
 }
-

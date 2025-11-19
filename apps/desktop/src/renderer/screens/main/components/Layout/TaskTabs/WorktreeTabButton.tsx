@@ -37,9 +37,10 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 				className={`
 					flex items-center gap-2 rounded-t-md transition-all w-full shrink-0
 					${onClose && !isPending ? "pl-3 pr-6" : "px-3"}
-					${isSelected
-						? "text-white border-t border-x border-r h-[33px] bg-stone-950"
-						: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
+					${
+						isSelected
+							? "text-white border-t border-x border-r h-[33px] bg-stone-950"
+							: "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50 border-transparent h-8"
 					}
 					${isPending ? "opacity-70 cursor-wait" : ""}
 				`}
@@ -58,7 +59,9 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 					task && <StatusIndicator status={task.status} showLabel={false} />
 				)}
 				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
-					{hasTask && task ? `${task.title} (${worktree.branch})` : worktree.branch}
+					{hasTask && task
+						? `${task.title} (${worktree.branch})`
+						: worktree.branch}
 				</span>
 			</button>
 			{onClose && !isPending && (
@@ -74,9 +77,10 @@ export const WorktreeTabButton: React.FC<WorktreeTabButtonProps> = ({
 						w-4 h-4 rounded
 						transition-opacity cursor-pointer
 						hover:bg-neutral-700
-						${isSelected
-							? "opacity-100 text-neutral-300"
-							: "opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-neutral-200"
+						${
+							isSelected
+								? "opacity-100 text-neutral-300"
+								: "opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-neutral-200"
 						}
 					`}
 					aria-label="Close tab"

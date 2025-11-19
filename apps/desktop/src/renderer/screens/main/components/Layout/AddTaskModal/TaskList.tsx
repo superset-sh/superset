@@ -88,7 +88,10 @@ export const TaskList: React.FC<TaskListProps> = ({
 								<div className="p-2 space-y-0.5">
 									{isLoadingTasks ? (
 										<div className="flex items-center justify-center py-8">
-											<Loader2 size={20} className="animate-spin text-neutral-500" />
+											<Loader2
+												size={20}
+												className="animate-spin text-neutral-500"
+											/>
 											<span className="ml-2 text-sm text-neutral-500">
 												Loading tasks...
 											</span>
@@ -100,7 +103,9 @@ export const TaskList: React.FC<TaskListProps> = ({
 										</div>
 									) : filteredTasks.length === 0 ? (
 										<div className="text-center text-neutral-500 text-sm py-8">
-											{searchQuery ? "No tasks match your search" : "No tasks found"}
+											{searchQuery
+												? "No tasks match your search"
+												: "No tasks found"}
 										</div>
 									) : (
 										filteredTasks.map((task) => (
@@ -138,7 +143,10 @@ export const TaskList: React.FC<TaskListProps> = ({
 					<Button variant="ghost" onClick={onClose}>
 						Cancel
 					</Button>
-					<Button onClick={onOpenTask} disabled={!selectedTask || isLoadingTasks}>
+					<Button
+						onClick={onOpenTask}
+						disabled={!selectedTask || isLoadingTasks}
+					>
 						{isSelectedTaskOpen ? "Switch to Task" : "Open Task"}
 					</Button>
 				</div>
@@ -146,4 +154,3 @@ export const TaskList: React.FC<TaskListProps> = ({
 		</>
 	);
 };
-

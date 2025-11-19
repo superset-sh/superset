@@ -40,11 +40,7 @@ export class WorkspaceComposer {
 			// Check if this branch has been merged into main
 			const isMerged =
 				currentBranch !== mainBranch &&
-				worktreeManager.isBranchMerged(
-					repoPath,
-					currentBranch,
-					mainBranch,
-				);
+				worktreeManager.isBranchMerged(repoPath, currentBranch, mainBranch);
 
 			scanned.push({
 				...gitWorktree,
@@ -211,4 +207,3 @@ export class WorkspaceComposer {
 		};
 	}
 }
-

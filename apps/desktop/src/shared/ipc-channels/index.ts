@@ -51,4 +51,3 @@ export type IpcRequest<T extends IpcChannelName> = IpcChannels[T]["request"];
  * Get response type for a channel
  */
 export type IpcResponse_<T extends IpcChannelName> = IpcChannels[T]["response"];
-

@@ -45,7 +45,9 @@ export function useTaskForm(
 	// Auto-select worktree to clone tabs from if it matches the source branch
 	useEffect(() => {
 		if (sourceBranch && worktrees.length > 0) {
-			const matchingWorktree = worktrees.find((wt) => wt.branch === sourceBranch);
+			const matchingWorktree = worktrees.find(
+				(wt) => wt.branch === sourceBranch,
+			);
 			if (matchingWorktree) {
 				setCloneTabsFromWorktreeId(matchingWorktree.id);
 			} else {
@@ -94,4 +96,3 @@ export function useTaskForm(
 		setCloneTabsFromWorktreeId,
 	};
 }
-

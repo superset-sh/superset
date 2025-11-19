@@ -132,7 +132,10 @@ class WindowStateManager {
 
 			this.write(state);
 		} catch (error) {
-			console.error("[WindowStateManager] Failed to save window state by ID:", error);
+			console.error(
+				"[WindowStateManager] Failed to save window state by ID:",
+				error,
+			);
 		}
 	}
 
@@ -157,4 +160,3 @@ class WindowStateManager {
 }
 
 export default WindowStateManager.getInstance();
-

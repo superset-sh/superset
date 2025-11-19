@@ -9,7 +9,9 @@ import type { DesktopStorageAdapter } from "../adapter";
  * Desktop Environment orchestrator implementation
  * Handles CRUD operations for environments
  */
-export class DesktopEnvironmentOrchestrator implements IEnvironmentOrchestrator {
+export class DesktopEnvironmentOrchestrator
+	implements IEnvironmentOrchestrator
+{
 	constructor(private readonly storage: DesktopStorageAdapter) {}
 
 	async get(id: string): Promise<Environment> {
@@ -72,8 +74,7 @@ export class DesktopEnvironmentOrchestrator implements IEnvironmentOrchestrator 
 
 		for (const processId of processIds) {
 			// Delete agent summaries for this process
-			const agentSummaries =
-				await this.storage.getCollection("agentSummaries");
+			const agentSummaries = await this.storage.getCollection("agentSummaries");
 			const summaryIds = Object.entries(agentSummaries)
 				.filter(([_, summary]) => summary.agentId === processId)
 				.map(([summaryId]) => summaryId);
@@ -109,4 +110,3 @@ export class DesktopEnvironmentOrchestrator implements IEnvironmentOrchestrator 
 		await this.storage.delete("workspaces", workspaceId);
 	}
 }
-

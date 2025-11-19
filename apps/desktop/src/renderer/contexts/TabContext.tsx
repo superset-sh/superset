@@ -45,11 +45,7 @@ export function TabProvider({
 		setSelectedTabId,
 	});
 
-	return (
-		<TabContext.Provider value={tabData}>
-			{children}
-		</TabContext.Provider>
-	);
+	return <TabContext.Provider value={tabData}>{children}</TabContext.Provider>;
 }
 
 export function useTabContext() {
@@ -59,4 +55,3 @@ export function useTabContext() {
 	}
 	return context;
 }
-

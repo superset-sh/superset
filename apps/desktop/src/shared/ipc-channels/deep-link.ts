@@ -10,4 +10,3 @@ export interface DeepLinkChannels {
 		response: string | null;
 	};
 }
-

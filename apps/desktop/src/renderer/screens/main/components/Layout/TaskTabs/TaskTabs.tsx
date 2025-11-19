@@ -65,26 +65,30 @@ function useTabWidth(
 			const totalGapWidth = TAB_GAP * numTabs;
 
 			// Measure AddTaskButton dynamically
-			const addButtonElement = tabsContainer.querySelector('[data-add-button]');
+			const addButtonElement = tabsContainer.querySelector("[data-add-button]");
 			const addButtonWidth = addButtonElement
 				? (addButtonElement as HTMLElement).offsetWidth + TAB_GAP
 				: 36; // Fallback estimate (32px button + 4px gap)
 
 			// Calculate available width for tabs
 			// Start with middle section width, subtract: left controls, padding, gaps, AddButton, and buffer
-			const availableWidth = middleSectionWidth
-				- leftControlsWidth
-				- middleSectionPadding
-				- totalGapWidth
-				- addButtonWidth
-				- WIDTH_BUFFER;
+			const availableWidth =
+				middleSectionWidth -
+				leftControlsWidth -
+				middleSectionPadding -
+				totalGapWidth -
+				addButtonWidth -
+				WIDTH_BUFFER;
 
 			const widthForTabs = availableWidth;
 			const calculatedWidth = widthForTabs / numTabs;
 
-			const finalWidth = calculatedWidth < MIN_TAB_WIDTH
-				? MIN_TAB_WIDTH
-				: Math.floor(Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)));
+			const finalWidth =
+				calculatedWidth < MIN_TAB_WIDTH
+					? MIN_TAB_WIDTH
+					: Math.floor(
+							Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, calculatedWidth)),
+						);
 
 			setTabWidth(finalWidth);
 		};
@@ -198,15 +202,14 @@ export const TaskTabs: React.FC<TaskTabsProps> = ({
 
 	return (
 		<>
-			<div
-				className="flex items-end justify-between select-none shrink-0 h-10 pl-16 pr-4 relative overflow-visible drag"
-			>
+			<div className="flex items-end justify-between select-none shrink-0 h-10 pl-16 pr-4 relative overflow-visible drag">
 				{/* Bottom border line */}
 				<div className="absolute bottom-0 left-0 right-0 h-px bg-neutral-800" />
-				<div
-					className="flex items-center gap-1 px-1 h-full flex-1 min-w-0"
-				>
-					<div ref={leftControlsRef} className="flex items-center gap-1 shrink-0 no-drag">
+				<div className="flex items-center gap-1 px-1 h-full flex-1 min-w-0">
+					<div
+						ref={leftControlsRef}
+						className="flex items-center gap-1 shrink-0 no-drag"
+					>
 						<SidebarToggle
 							isOpen={isSidebarOpen}
 							onCollapse={onCollapseSidebar}

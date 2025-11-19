@@ -13,7 +13,7 @@ interface CreatingViewProps {
 
 function getStatusType(status?: string): "error" | "success" | "creating" {
 	if (!status) return "creating";
-	
+
 	const lowerStatus = status.toLowerCase();
 	if (lowerStatus.includes("failed") || lowerStatus.includes("error")) {
 		return "error";
@@ -103,4 +103,3 @@ export const CreatingView: React.FC<CreatingViewProps> = ({
 		</div>
 	);
 };
-

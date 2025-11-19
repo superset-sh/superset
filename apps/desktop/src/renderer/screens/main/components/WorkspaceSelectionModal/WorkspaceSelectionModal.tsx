@@ -29,7 +29,7 @@ export function WorkspaceSelectionModal({
 	const recentWorkspaces = workspaces.slice(0, 5);
 
 	return (
-		<Dialog open={isOpen} onOpenChange={() => { }}>
+		<Dialog open={isOpen} onOpenChange={() => {}}>
 			<DialogContent
 				className="max-w-[900px] max-h-[85vh] flex flex-col p-0 bg-[#1e1e1e] border-neutral-800"
 				showCloseButton={false}
@@ -38,7 +38,9 @@ export function WorkspaceSelectionModal({
 					{/* Header */}
 					<div className="flex items-center justify-between px-8 pt-8 pb-6 border-b border-neutral-800">
 						<div className="flex items-center gap-2">
-							<span className="text-lg font-semibold text-white">Select Workspace</span>
+							<span className="text-lg font-semibold text-white">
+								Select Workspace
+							</span>
 						</div>
 						<Button
 							variant="ghost"

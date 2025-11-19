@@ -28,16 +28,17 @@ export default function TabContent({
 }: TabContentProps) {
 	const { currentWorkspace } = useWorkspaceContext();
 	const { selectedWorktreeId, selectedTabId, handleTabFocus } = useTabContext();
-	
+
 	const selectedWorktree = currentWorkspace?.worktrees?.find(
 		(wt) => wt.id === selectedWorktreeId,
 	);
-	
-	const workingDirectory = selectedWorktree?.path || currentWorkspace?.repoPath || "";
+
+	const workingDirectory =
+		selectedWorktree?.path || currentWorkspace?.repoPath || "";
 	const workspaceId = currentWorkspace?.id || "";
 	const worktreeId = selectedWorktreeId ?? undefined;
 	const worktree = selectedWorktree;
-	
+
 	const handleFocus = () => {
 		handleTabFocus(tab.id);
 	};

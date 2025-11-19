@@ -627,7 +627,9 @@ export function registerWorkspaceIPCs() {
 
 				// Detect main branch instead of using workspace.branch
 				// This ensures we compare against main/master, not a feature branch
-				const mainBranch = await worktreeManager.detectMainBranch(workspace.repoPath);
+				const mainBranch = await worktreeManager.detectMainBranch(
+					workspace.repoPath,
+				);
 
 				return await worktreeManager.getGitDiffFile(
 					worktree.path,
@@ -778,9 +780,7 @@ export function registerWorkspaceIPCs() {
 		async (_event, input: { workspaceId: string }) => {
 			try {
 				const { desktopStores } = await import("./desktop-stores");
-				const { workspaceRescanManager } = await import(
-					"./workspace-rescan"
-				);
+				const { workspaceRescanManager } = await import("./workspace-rescan");
 				const workspaceOrch = desktopStores.getWorkspaceOrchestrator();
 				const composer = desktopStores.getComposer();
 

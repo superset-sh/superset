@@ -9,10 +9,7 @@ import {
 	closeSync,
 } from "node:fs";
 import { join } from "node:path";
-import {
-	getDesktopUiDir,
-	getUiVersionPath,
-} from "../storage/config";
+import { getDesktopUiDir, getUiVersionPath } from "../storage/config";
 import type {
 	DesktopSettings,
 	WindowState,
@@ -91,10 +88,7 @@ export class UiStore {
 	 */
 	writeWindowState(state: WindowState[]): boolean {
 		try {
-			this.atomicWrite(
-				this.windowStatePath,
-				JSON.stringify(state, null, 2),
-			);
+			this.atomicWrite(this.windowStatePath, JSON.stringify(state, null, 2));
 			return true;
 		} catch (error) {
 			console.error("Failed to write window state:", error);
@@ -123,10 +117,7 @@ export class UiStore {
 	 */
 	writeSettings(settings: DesktopSettings): boolean {
 		try {
-			this.atomicWrite(
-				this.settingsPath,
-				JSON.stringify(settings, null, 2),
-			);
+			this.atomicWrite(this.settingsPath, JSON.stringify(settings, null, 2));
 			return true;
 		} catch (error) {
 			console.error("Failed to write settings:", error);
@@ -139,10 +130,7 @@ export class UiStore {
 	 */
 	readWorkspaceUiState(workspaceId: string): WorkspaceUiState | null {
 		try {
-			const workspacePath = join(
-				this.workspacesDir,
-				`${workspaceId}.json`,
-			);
+			const workspacePath = join(this.workspacesDir, `${workspaceId}.json`);
 			if (!existsSync(workspacePath)) {
 				return null;
 			}
@@ -187,7 +175,8 @@ export class UiStore {
 		const existing = this.readWorkspaceUiState(workspaceId);
 		const updated: WorkspaceUiState = {
 			workspaceId,
-			activeWorktreePath: updates.activeWorktreePath ?? existing?.activeWorktreePath ?? null,
+			activeWorktreePath:
+				updates.activeWorktreePath ?? existing?.activeWorktreePath ?? null,
 			worktrees: { ...existing?.worktrees, ...updates.worktrees },
 			updatedAt: new Date().toISOString(),
 		};
@@ -214,7 +203,8 @@ export class UiStore {
 			merged: metadata.merged ?? existingMetadata?.merged,
 			tabs: metadata.tabs ?? existingMetadata?.tabs ?? [],
 			mosaicTree: metadata.mosaicTree ?? existingMetadata?.mosaicTree,
-			activeTabId: metadata.activeTabId ?? existingMetadata?.activeTabId ?? null,
+			activeTabId:
+				metadata.activeTabId ?? existingMetadata?.activeTabId ?? null,
 			updatedAt: new Date().toISOString(),
 		};
 
@@ -264,4 +254,3 @@ export class UiStore {
 		return this.readUiVersion() < 1;
 	}
 }
-

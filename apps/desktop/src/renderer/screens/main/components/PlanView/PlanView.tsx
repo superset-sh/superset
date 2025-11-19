@@ -15,7 +15,8 @@ interface PlanViewProps {}
 
 export const PlanView: React.FC<PlanViewProps> = () => {
 	const { currentWorkspace } = useWorkspaceContext();
-	const { selectedWorktreeId, handleTabSelect, handleTabCreated } = useTabContext();
+	const { selectedWorktreeId, handleTabSelect, handleTabCreated } =
+		useTabContext();
 	// Initialize with mock tasks and add some variety to statuses
 	const [tasks, setTasks] = useState<Task[]>(() => {
 		// Modify some tasks to have different statuses for demo purposes

@@ -5,7 +5,10 @@ import { randomUUID } from "node:crypto";
 import type { WorkspaceConfig } from "shared/types";
 import { DomainVersion } from "../storage/version";
 import { WorkspaceType } from "../types/cli-types";
-import type { DesktopEnvironmentOrchestrator, DesktopWorkspaceOrchestrator } from "../storage/orchestrators";
+import type {
+	DesktopEnvironmentOrchestrator,
+	DesktopWorkspaceOrchestrator,
+} from "../storage/orchestrators";
 import type { UiStore } from "../ui-store/store";
 
 /**
@@ -40,7 +43,7 @@ export class LegacyMigrator {
 		envOrch: DesktopEnvironmentOrchestrator,
 		workspaceOrch: DesktopWorkspaceOrchestrator,
 		uiStore: UiStore,
-		dryRun: boolean = false
+		dryRun: boolean = false,
 	): Promise<{
 		success: boolean;
 		migrated: {
@@ -111,9 +114,8 @@ export class LegacyMigrator {
 				const uiState = {
 					workspaceId: domainWorkspace.id,
 					activeWorktreePath:
-						legacyWs.worktrees.find(
-							(wt) => wt.id === legacyWs.activeWorktreeId,
-						)?.path ?? null,
+						legacyWs.worktrees.find((wt) => wt.id === legacyWs.activeWorktreeId)
+							?.path ?? null,
 					worktrees,
 					updatedAt: legacyWs.updatedAt || new Date().toISOString(),
 				};
@@ -152,4 +154,3 @@ export class LegacyMigrator {
 		}
 	}
 }
-

@@ -138,4 +138,3 @@ export class DesktopProcessOrchestrator implements IProcessOrchestrator {
 		await this.storage.delete("processes", id);
 	}
 }
-
