@@ -1,6 +1,6 @@
 import { useWorkspacesStore } from "renderer/stores/workspaces";
 import { CenterView } from "./CenterView";
-import { NewTabView } from "./NewTabView";
+import { NewWorkspaceView } from "./NewWorkspaceView";
 import { Sidebar } from "./Sidebar";
 
 export function TabView() {
@@ -12,7 +12,7 @@ export function TabView() {
 	if (activeWorkspace?.isNew) {
 		return (
 			<div className="flex flex-1">
-				<NewTabView />
+				<NewWorkspaceView />
 			</div>
 		);
 	}
