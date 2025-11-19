@@ -58,7 +58,7 @@ Note: The “split by file per collection” is to keep the “not one big JSON�
 ## Loading Flow (High‑Level)
 
 1. App Boot (Main)
-   - Load env with override.
+   - Load env with override (uses find-up logic to locate monorepo root .env robustly).
    - Initialize domain store targeting `~/.superset/desktop/db/`.
    - Load UI settings (window + last active workspace) from `~/.superset/desktop/ui/`.
 2. Activate Workspace
@@ -66,9 +66,11 @@ Note: The “split by file per collection” is to keep the “not one big JSON�
    - Scan Git for worktrees (path/branch/bare) using the workspace repo path.
    - Merge: join scanned worktrees with per‑workspace UI metadata keyed by worktree path (fallback to branch when needed).
    - Initialize defaults for new worktrees (e.g., a terminal tab) in UI state when appropriate.
-   - Start background tasks: port detection for terminals in the active worktree, update proxy targets.
+   - Cache the scan result as the "activation-time snapshot" for diff tracking.
+   - Start background tasks: periodic rescans (every 30s), port detection for terminals in the active worktree, update proxy targets.
 3. Refresh
    - Manual rescan via IPC and periodic rescan reconcile UI metadata with Git (remove orphans after a grace period; retain notes when possible).
+   - **Important**: The first rescan after activation produces diffs relative to the activation-time snapshot only. Therefore, `workspace-activate` must be called once before `workspace-rescan` for meaningful diffs. If the renderer triggers a rescan before activation finishes, diffs will be empty.
 
 ## Worktree Strategy
 
@@ -84,7 +86,8 @@ Note: The “split by file per collection” is to keep the “not one big JSON�
 - UI
   - ui.workspace.get: { workspaceId } → current per‑workspace UI state
   - ui.workspace.update: { workspaceId, patch } → update specific UI fields
-  - ui.setActive: { workspaceId, activeWorktreePath?, activeTabId? }
+  - ui.set-active: { workspaceId, activeWorktreePath?, activeTabId? } → updates global active workspace and per-workspace active worktree/tab
+    - **Important**: Renderer must call `ui.set-active` when switching workspaces to ensure `lastActiveWorkspaceId` is persisted. This ensures the correct workspace is restored on next launch.
 - Processes (domain)
   - process.list/create/stop/stopAll following CLI type semantics
 
@@ -107,7 +110,7 @@ Use existing type‑safe IPC conventions (object params; shared channel type def
 
 - Worktree rename/path changes: primary key by path, secondary by branch; prompt on ambiguity.
 - Large repos: throttle rescans; make resumable/cancellable; limit scope to worktrees rather than full repo.
-- Partial writes: use atomic file write patterns; keep backups for migration.
+- Partial writes: **Implemented** - UI store uses atomic write pattern (write to *.tmp, fsync, rename) for all persistence operations (window-state.json, settings.json, per-workspace UI state). This prevents data corruption on crash.
 - Port detection flapping: debounce updates; only persist stable snapshots in UI or cache.
 
 ## Milestones

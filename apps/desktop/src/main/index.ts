@@ -1,9 +1,30 @@
 // Load .env from monorepo root before any other imports
-import { resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { resolve, dirname } from "node:path";
 import { config } from "dotenv";
 
-// Use override: true to ensure .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../../../.env"), override: true });
+// Find .env file by searching upward from __dirname
+// This is robust whether running from source or compiled code
+function findEnvFile(): string | undefined {
+	let currentDir = __dirname;
+	for (let i = 0; i < 6; i++) {
+		const envPath = resolve(currentDir, ".env");
+		if (existsSync(envPath)) {
+			return envPath;
+		}
+		currentDir = dirname(currentDir);
+	}
+	return undefined;
+}
+
+const envPath = findEnvFile();
+if (envPath) {
+	// Use override: true to ensure .env values take precedence over inherited env vars
+	config({ path: envPath, override: true });
+	console.log(`Loaded .env from ${envPath}`);
+} else {
+	console.warn("No .env file found in parent directories");
+}
 
 import path from "node:path";
 import { app } from "electron";

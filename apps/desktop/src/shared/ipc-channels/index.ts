@@ -52,22 +52,3 @@ export type IpcRequest<T extends IpcChannelName> = IpcChannels[T]["request"];
  */
 export type IpcResponse_<T extends IpcChannelName> = IpcChannels[T]["response"];
 
-/**
- * Type guard to check if a channel name is valid
- * Auto-generated from IpcChannels interface to prevent drift
- */
-export function isValidChannel(channel: string): channel is IpcChannelName {
-	// Auto-generate valid channels from the interface keys
-	// This ensures the list stays in sync with IpcChannels
-	const validChannels = Object.keys({} as IpcChannels) as IpcChannelName[];
-	return validChannels.includes(channel as IpcChannelName);
-}
-
-/**
- * Get all valid channel names
- * Useful for debugging and validation
- */
-export function getAllChannelNames(): IpcChannelName[] {
-	return Object.keys({} as IpcChannels) as IpcChannelName[];
-}
-
