@@ -4,7 +4,6 @@ import {
 	installExtension,
 	REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
-import terminalManager from "main/lib/terminal";
 import { ENVIRONMENT, PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
@@ -61,11 +60,7 @@ export async function makeAppSetup(
 	);
 
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
-
-	// Clean up terminal processes before app quits
-	app.on("before-quit", () => {
-		terminalManager.cleanup();
-	});
+	app.on("before-quit", () => {});
 
 	return window;
 }
