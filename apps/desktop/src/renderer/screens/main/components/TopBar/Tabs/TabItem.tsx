@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { X } from "lucide-react";
 import { useDrag, useDrop } from "react-dnd";
+import { HiMiniXMark } from "react-icons/hi2";
 import { useTabsStore } from "renderer/stores/tabs";
 
 const TAB_TYPE = "TAB";
@@ -90,12 +90,12 @@ export function TabItem({
 					removeTab(id);
 				}}
 				className={cn(
-					"mt-1 absolute right-1 top-1/2 -translate-y-1/2 size-5",
-					isActive ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+					"mt-1 absolute right-1 top-1/2 -translate-y-1/2 size-5 ",
+					isActive ? "opacity-90" : "opacity-0 group-hover:opacity-90",
 				)}
 				aria-label="Close tab"
 			>
-				<X className="size-3" />
+				<HiMiniXMark className="size-4" />
 			</Button>
 		</div>
 	);

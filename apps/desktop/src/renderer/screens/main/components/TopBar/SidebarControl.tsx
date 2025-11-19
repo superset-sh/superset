@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { PanelLeft, PanelRight } from "lucide-react";
+import { HiMiniBars3, HiMiniBars3BottomLeft } from "react-icons/hi2";
 import { useSidebarStore } from "renderer/stores";
 
 export function SidebarControl() {
@@ -14,9 +14,9 @@ export function SidebarControl() {
 			className="no-drag"
 		>
 			{isSidebarOpen ? (
-				<PanelLeft className="size-4" />
+				<HiMiniBars3BottomLeft className="size-4" />
 			) : (
-				<PanelRight className="size-4" />
+				<HiMiniBars3 className="size-4" />
 			)}
 		</Button>
 	);
