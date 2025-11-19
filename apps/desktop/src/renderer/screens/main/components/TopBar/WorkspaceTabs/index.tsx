@@ -8,7 +8,7 @@ const MIN_WORKSPACE_WIDTH = 60;
 const MAX_WORKSPACE_WIDTH = 240;
 const ADD_BUTTON_WIDTH = 48;
 
-export function Workspaces() {
+export function WorkspacesTabs() {
 	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);

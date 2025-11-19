@@ -1,6 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { SidebarControl } from "./SidebarControl";
-import { Workspaces } from "./Workspaces";
+import { WorkspacesTabs } from "./WorkspaceTabs";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
@@ -17,7 +17,7 @@ export function TopBar() {
 				<SidebarControl />
 			</div>
 			<div className="no-drag flex items-center gap-2 flex-1 overflow-hidden h-full">
-				<Workspaces />
+				<WorkspacesTabs />
 			</div>
 			<div className="no-drag flex items-center gap-2 h-full pr-4">
 				{!isMac && <WindowControls />}

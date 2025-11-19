@@ -3,7 +3,7 @@ import { CenterView } from "./CenterView";
 import { NewWorkspaceView } from "./NewWorkspaceView";
 import { Sidebar } from "./Sidebar";
 
-export function TabView() {
+export function WorkspaceView() {
 	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
 	const activeWorkspace = workspaces.find(
 		(workspace) => workspace.id === activeWorkspaceId,
