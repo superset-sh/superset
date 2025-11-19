@@ -181,5 +181,29 @@ export interface WorktreeChannels {
 		request: { workspaceId: string; worktreeId: string };
 		response: SuccessResponse;
 	};
-}
 
+	// Cloud sandbox operations
+	"worktree-create-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: {
+			success: boolean;
+			sandbox?: import("../types").CloudSandbox;
+			error?: string;
+		};
+	};
+
+	"worktree-open-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: SuccessResponse;
+	};
+
+	"worktree-delete-cloud-sandbox": {
+		request: { workspaceId: string; worktreeId: string };
+		response: SuccessResponse;
+	};
+
+	"cloud-sandbox-delete-by-id": {
+		request: { sandboxId: string };
+		response: SuccessResponse;
+	};
+}

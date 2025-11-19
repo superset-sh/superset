@@ -12,6 +12,7 @@ import {
 import { FileTree } from "../DiffView";
 import type { FileDiff } from "../DiffView/types";
 import {
+	CreateWorktreeButton,
 	CreateWorktreeModal,
 	WorktreeList,
 } from "./components";
@@ -34,6 +35,7 @@ export function Sidebar({
 		new Set(),
 	);
 	const [isCreatingWorktree, setIsCreatingWorktree] = useState(false);
+	const [isCreatingCloudWorktree, setIsCreatingCloudWorktree] = useState(false);
 	const [isScanningWorktrees, setIsScanningWorktrees] = useState(false);
 	const [showWorktreeModal, setShowWorktreeModal] = useState(false);
 	const [title, setTitle] = useState("");
@@ -171,6 +173,108 @@ export function Sidebar({
 		setCloneTabsFromWorktreeId("");
 		setDescription("");
 		setShowWorktreeModal(true);
+	};
+
+	const handleCreateCloudWorktree = async () => {
+		if (!currentWorkspace) return;
+
+		// Generate random two-word name
+		const adjectives = [
+			"happy",
+			"sleepy",
+			"brave",
+			"clever",
+			"gentle",
+			"bright",
+			"calm",
+			"bold",
+			"swift",
+			"quiet",
+		];
+		const nouns = [
+			"cat",
+			"fox",
+			"owl",
+			"bear",
+			"wolf",
+			"deer",
+			"hawk",
+			"lynx",
+			"seal",
+			"dove",
+		];
+		const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+		const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+		const timestamp = Date.now().toString(36); // Add timestamp to ensure uniqueness
+		const randomName = `${randomAdj}-${randomNoun}-${timestamp}`;
+
+		// For now, create a simple worktree and immediately create a cloud sandbox for it
+		const title = `Cloud ${randomAdj} ${randomNoun}`;
+		const branch = `cloud-dev-${randomName}`;
+
+		try {
+			setIsCreatingCloudWorktree(true);
+
+			// Create worktree
+			const result = await window.ipcRenderer.invoke("worktree-create", {
+				workspaceId: currentWorkspace.id,
+				title,
+				branch,
+				createBranch: true,
+				description: "Cloud development environment",
+			});
+
+			if (result.success && result.worktree) {
+				// Immediately create cloud sandbox for this worktree
+				const sandboxResult = await window.ipcRenderer.invoke(
+					"worktree-create-cloud-sandbox",
+					{
+						workspaceId: currentWorkspace.id,
+						worktreeId: result.worktree.id,
+					},
+				);
+
+				if (sandboxResult.success && sandboxResult.sandbox?.claudeHost) {
+					// Create a preview tab with the claude host URL
+					const claudeUrl = sandboxResult.sandbox.claudeHost.startsWith("http")
+						? sandboxResult.sandbox.claudeHost
+						: `https://${sandboxResult.sandbox.claudeHost}`;
+
+					const tabResult = await window.ipcRenderer.invoke("tab-create", {
+						workspaceId: currentWorkspace.id,
+						worktreeId: result.worktree.id,
+						name: "Cloud IDE",
+						type: "preview",
+						url: claudeUrl,
+					});
+
+					console.log("Tab creation result:", tabResult);
+
+					// Expand the worktree and select the newly created tab
+					if (tabResult.success && tabResult.tab && result.worktree) {
+						setExpandedWorktrees((prev) => {
+							const next = new Set(prev);
+							next.add(result.worktree!.id);
+							return next;
+						});
+						onTabSelect(result.worktree.id, tabResult.tab.id);
+					}
+				}
+
+				// Refresh UI after everything is created
+				onWorktreeCreated();
+			} else {
+				alert(
+					`Failed to create cloud worktree: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to create cloud worktree: ${errorMessage}`);
+		} finally {
+			setIsCreatingCloudWorktree(false);
+		}
 	};
 
 	const handleCloneWorktree = (worktreeId: string, branch: string) => {
@@ -387,6 +491,15 @@ export function Sidebar({
 								}
 								showWorkspaceHeader={true}
 							/>
+
+							{currentWorkspace && (
+								<CreateWorktreeButton
+									onClick={handleCreateWorktree}
+									onCreateCloud={handleCreateCloudWorktree}
+									isCreating={isCreatingWorktree}
+									isCreatingCloud={isCreatingCloudWorktree}
+								/>
+							)}
 						</>
 					);
 				}}

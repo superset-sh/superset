@@ -6,10 +6,12 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import {
+	Cloud,
 	Edit2,
 	FolderOutput,
 	FolderTree,
 	Globe2,
+	Loader2,
 	Monitor,
 	SquareTerminal,
 	X,
@@ -48,6 +50,7 @@ export function TabItem({
 }: TabItemProps) {
 	const [isEditing, setIsEditing] = useState(false);
 	const [editName, setEditName] = useState(tab.name);
+	const [isKillingVM, setIsKillingVM] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	// Focus input when entering edit mode
@@ -124,10 +127,75 @@ export function TabItem({
 		}
 	};
 
+	const handleKillVM = async () => {
+		if (!tab.url || !workspaceId || !worktreeId) return;
+
+		const confirmed = window.confirm(
+			"Are you sure you want to delete this cloud sandbox and worktree? This cannot be undone.",
+		);
+		if (!confirmed) return;
+
+		setIsKillingVM(true);
+		try {
+			// Extract sandbox ID from URL (format: https://7030-SANDBOX_ID.e2b.app/)
+			const urlMatch = tab.url.match(/\/\/\d+-([^.]+)\.e2b\.app/);
+			const sandboxId = urlMatch?.[1];
+
+			if (!sandboxId) {
+				alert("Could not extract sandbox ID from URL");
+				return;
+			}
+
+			// Delete the cloud sandbox
+			const sandboxResult = await window.ipcRenderer.invoke(
+				"cloud-sandbox-delete-by-id",
+				{ sandboxId },
+			);
+
+			if (!sandboxResult.success) {
+				alert(
+					`Failed to delete cloud sandbox: ${sandboxResult.error || "Unknown error"}`,
+				);
+				return;
+			}
+
+			// Delete the worktree
+			const worktreeResult = await window.ipcRenderer.invoke(
+				"worktree-remove",
+				{
+					workspaceId,
+					worktreeId,
+				},
+			);
+
+			if (
+				worktreeResult &&
+				typeof worktreeResult === "object" &&
+				"success" in worktreeResult &&
+				!worktreeResult.success
+			) {
+				alert(
+					`Cloud sandbox deleted, but failed to delete worktree: ${worktreeResult.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
+			alert(`Failed to delete cloud sandbox and worktree: ${errorMessage}`);
+		} finally {
+			setIsKillingVM(false);
+		}
+	};
+
 	const isSelected = selectedTabId === tab.id;
 	const isMultiSelected = selectedTabIds.has(tab.id);
 	const showMultiSelectHighlight = isMultiSelected && selectedTabIds.size > 1;
 	const isInsideGroup = !!parentTabId;
+
+	// Check if this is a Cloud IDE tab
+	// Just check if it's a preview tab with e2b.app URL (cloud sandbox URL)
+	const isCloudIDETab =
+		tab.type === "preview" && (tab.url?.includes("e2b.app") ?? false);
 
 	const IconComponent = (() => {
 		switch (tab.type) {
@@ -199,6 +267,20 @@ export function TabItem({
 					<ContextMenuItem onClick={handleGroupSelected}>
 						<FolderTree size={14} className="mr-2" />
 						Group {selectedTabIds.size} Tabs
+					</ContextMenuItem>
+				)}
+				{isCloudIDETab && (
+					<ContextMenuItem
+						onClick={handleKillVM}
+						disabled={isKillingVM}
+						className="text-red-400"
+					>
+						{isKillingVM ? (
+							<Loader2 size={14} className="mr-2 animate-spin" />
+						) : (
+							<Cloud size={14} className="mr-2" />
+						)}
+						{isKillingVM ? "Deleting..." : "Kill VM"}
 					</ContextMenuItem>
 				)}
 			</ContextMenuContent>
