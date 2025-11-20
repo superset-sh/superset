@@ -8,6 +8,7 @@ import {
 	useWorkspacesStore,
 } from "renderer/stores";
 import { TabType } from "renderer/stores/tabs/types";
+import { TabContextMenu } from "./TabContextMenu";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
 import { useGroupDrop } from "./useGroupDrop";
@@ -29,8 +30,8 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const { drag, drop, isDragging, isDragOver } = useDragTab(tab.id);
 	const groupDrop = useGroupDrop(tab.id);
 
-	const handleRemoveTab = (e: React.MouseEvent) => {
-		e.stopPropagation();
+	const handleRemoveTab = (e?: React.MouseEvent) => {
+		e?.stopPropagation();
 		removeTab(tab.id);
 	};
 
@@ -53,50 +54,86 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const isGroupTab = tab.type === TabType.Group;
 	const hasChildren = childTabs.length > 0;
 
+	const handleRename = () => {
+		// TODO: Implement rename functionality
+		console.log("Rename tab:", tab.id);
+	};
+
+	const handleDuplicate = () => {
+		// TODO: Implement duplicate functionality
+		console.log("Duplicate tab:", tab.id);
+	};
+
+	const handleMoveToNewWindow = () => {
+		// TODO: Implement move to new window functionality
+		console.log("Move to new window:", tab.id);
+	};
+
+	const handleUngroup = () => {
+		// TODO: Implement ungroup functionality
+		console.log("Ungroup tabs:", tab.id);
+	};
+
+	const handleDeleteGroup = () => {
+		// TODO: Implement delete group functionality
+		console.log("Delete group:", tab.id);
+	};
+
 	return (
 		<div className="w-full">
-			<Button
-				ref={attachRef}
-				variant="ghost"
-				onClick={handleTabClick}
-				onKeyDown={(e) => {
-					if (e.key === "Enter" || e.key === " ") {
-						e.preventDefault();
-						handleTabClick();
-					}
-				}}
-				tabIndex={0}
-				className={`
+			<TabContextMenu
+				tabId={tab.id}
+				tabType={tab.type}
+				onClose={handleRemoveTab}
+				onRename={handleRename}
+				onDuplicate={handleDuplicate}
+				onMoveToNewWindow={handleMoveToNewWindow}
+				onUngroup={handleUngroup}
+				onDeleteGroup={handleDeleteGroup}
+			>
+				<Button
+					ref={attachRef}
+					variant="ghost"
+					onClick={handleTabClick}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" || e.key === " ") {
+							e.preventDefault();
+							handleTabClick();
+						}
+					}}
+					tabIndex={0}
+					className={`
 					w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between
 					${isActive ? "bg-sidebar-accent" : ""}
 					${isDragging ? "opacity-50" : ""}
 					${isDragOver ? "bg-sidebar-accent/50" : ""}
 				`}
-			>
-				<div className="flex items-center gap-1 flex-1 min-w-0">
-					{isGroupTab && hasChildren && (
+				>
+					<div className="flex items-center gap-1 flex-1 min-w-0">
+						{isGroupTab && hasChildren && (
+							<button
+								type="button"
+								onClick={handleToggleExpand}
+								className="shrink-0 cursor-pointer hover:opacity-80"
+							>
+								<HiChevronRight
+									className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+								/>
+							</button>
+						)}
+						<span className="truncate flex-1">{tab.title}</span>
+					</div>
+					{!isGroupTab && (
 						<button
 							type="button"
-							onClick={handleToggleExpand}
-							className="shrink-0 cursor-pointer hover:opacity-80"
+							onClick={handleRemoveTab}
+							className="cursor-pointer opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
 						>
-							<HiChevronRight
-								className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-							/>
+							<HiMiniXMark className="size-4" />
 						</button>
 					)}
-					<span className="truncate flex-1">{tab.title}</span>
-				</div>
-				{!isGroupTab && (
-					<button
-						type="button"
-						onClick={handleRemoveTab}
-						className="cursor-pointer opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
-					>
-						<HiMiniXMark className="size-4" />
-					</button>
-				)}
-			</Button>
+				</Button>
+			</TabContextMenu>
 
 			{isGroupTab && hasChildren && isExpanded && (
 				<div

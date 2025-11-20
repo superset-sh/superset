@@ -17,6 +17,7 @@ import {
 	useTabs,
 	useTabsStore,
 } from "renderer/stores";
+import { TabContentContextMenu } from "../TabContentContextMenu";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
@@ -77,6 +78,31 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		[tab.id, tab.layout, updateTabGroupLayout, removeChildTabFromGroup],
 	);
 
+	const handleRename = useCallback((tabId: string) => {
+		// TODO: Implement rename functionality
+		console.log("Rename pane:", tabId);
+	}, []);
+
+	const handleDuplicate = useCallback((tabId: string) => {
+		// TODO: Implement duplicate functionality
+		console.log("Duplicate pane:", tabId);
+	}, []);
+
+	const handleSplitHorizontal = useCallback((tabId: string) => {
+		// TODO: Implement split horizontally functionality
+		console.log("Split horizontally:", tabId);
+	}, []);
+
+	const handleSplitVertical = useCallback((tabId: string) => {
+		// TODO: Implement split vertically functionality
+		console.log("Split vertically:", tabId);
+	}, []);
+
+	const handleClosePane = useCallback((tabId: string) => {
+		// TODO: Implement close pane functionality
+		console.log("Close pane:", tabId);
+	}, []);
+
 	const renderPane = useCallback(
 		(tabId: string, path: MosaicBranch[]) => {
 			const isActive = tabId === activeTabId;
@@ -96,11 +122,27 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 					toolbarControls={<div />}
 					className={isActive ? "mosaic-window-focused" : ""}
 				>
-					<div className="w-full h-full">{childTab.title}</div>
+					<TabContentContextMenu
+						onRename={() => handleRename(tabId)}
+						onDuplicate={() => handleDuplicate(tabId)}
+						onSplitHorizontal={() => handleSplitHorizontal(tabId)}
+						onSplitVertical={() => handleSplitVertical(tabId)}
+						onClosePane={() => handleClosePane(tabId)}
+					>
+						<div className="w-full h-full">{childTab.title}</div>
+					</TabContentContextMenu>
 				</MosaicWindow>
 			);
 		},
-		[childTabs, activeTabId],
+		[
+			childTabs,
+			activeTabId,
+			handleRename,
+			handleDuplicate,
+			handleSplitHorizontal,
+			handleSplitVertical,
+			handleClosePane,
+		],
 	);
 
 	if (childTabs.length === 0 || !cleanedLayout) {
