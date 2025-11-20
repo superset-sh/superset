@@ -102,7 +102,7 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 					toolbarControls={<div />}
 					className={isFocused ? "mosaic-window-focused" : ""}
 				>
-					<div className="w-full h-full bg-red-900">{childTab.title}</div>
+					<div className="w-full h-full">{childTab.title}</div>
 				</MosaicWindow>
 			);
 		},

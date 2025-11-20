@@ -1,7 +1,11 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { cleanLayout, handleDragTabToTab } from "./drag-logic";
+import {
+	cleanLayout,
+	handleDragTabToTab,
+	removeTabFromLayout,
+} from "./drag-logic";
 import { type Tab, TabType } from "./types";
 import { createNewTab, getChildTabIds } from "./utils";
 
@@ -25,6 +29,7 @@ interface TabsState {
 	removeChildTabFromGroup: (groupId: string, childTabId: string) => void;
 
 	dragTabToTab: (draggedTabId: string, targetTabId: string) => void;
+	ungroupTab: (tabId: string, targetIndex?: number) => void;
 
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
@@ -337,6 +342,119 @@ export const useTabsStore = create<TabsState>()(
 				set((state) => handleDragTabToTab(draggedTabId, targetTabId, state));
 			},
 
+			ungroupTab: (tabId, targetIndex) => {
+				set((state) => {
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab || !tab.parentId) return state;
+
+					const parentGroup = state.tabs.find(
+						(t) => t.id === tab.parentId && t.type === TabType.Group,
+					);
+					if (!parentGroup || parentGroup.type !== TabType.Group) return state;
+
+					// Remove parentId from the tab
+					const updatedTab: Tab = {
+						...tab,
+						parentId: undefined,
+					};
+
+					// Remove tab from parent's layout
+					const updatedLayout = removeTabFromLayout(
+						parentGroup.layout,
+						tabId,
+					) as MosaicNode<string> | null;
+
+					// Get remaining children
+					const remainingChildren = state.tabs.filter(
+						(t) => t.parentId === parentGroup.id && t.id !== tabId,
+					);
+
+					let updatedTabs = state.tabs.map((t) => {
+						if (t.id === tabId) return updatedTab;
+						if (t.id === parentGroup.id && t.type === TabType.Group) {
+							return {
+								...t,
+								layout: updatedLayout,
+							};
+						}
+						return t;
+					});
+
+					// If no children left, remove the group
+					if (remainingChildren.length === 0) {
+						updatedTabs = updatedTabs.filter((t) => t.id !== parentGroup.id);
+
+						const workspaceId = tab.workspaceId;
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+
+						const newActiveTabIds = { ...state.activeTabIds };
+						const newHistoryStack = historyStack.filter(
+							(id) => id !== parentGroup.id,
+						);
+
+						// If the group was active, switch to the ungrouped tab
+						if (currentActiveId === parentGroup.id) {
+							newActiveTabIds[workspaceId] = tabId;
+						}
+
+						// Reorder if targetIndex is provided
+						if (targetIndex !== undefined) {
+							const workspaceTabs = updatedTabs.filter(
+								(t) => t.workspaceId === workspaceId && !t.parentId,
+							);
+							const otherTabs = updatedTabs.filter(
+								(t) => t.workspaceId !== workspaceId || t.parentId,
+							);
+
+							const tabToMove = workspaceTabs.find((t) => t.id === tabId);
+							if (tabToMove) {
+								const filteredTabs = workspaceTabs.filter(
+									(t) => t.id !== tabId,
+								);
+								filteredTabs.splice(targetIndex, 0, tabToMove);
+								updatedTabs = [...otherTabs, ...filteredTabs];
+							}
+						}
+
+						return {
+							tabs: updatedTabs,
+							activeTabIds: newActiveTabIds,
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						};
+					}
+
+					// Validate layouts after removing tab
+					let validatedTabs = validateGroupLayouts(updatedTabs);
+
+					// Reorder if targetIndex is provided
+					if (targetIndex !== undefined) {
+						const workspaceId = tab.workspaceId;
+						const workspaceTabs = validatedTabs.filter(
+							(t) => t.workspaceId === workspaceId && !t.parentId,
+						);
+						const otherTabs = validatedTabs.filter(
+							(t) => t.workspaceId !== workspaceId || t.parentId,
+						);
+
+						const tabToMove = workspaceTabs.find((t) => t.id === tabId);
+						if (tabToMove) {
+							const filteredTabs = workspaceTabs.filter((t) => t.id !== tabId);
+							filteredTabs.splice(targetIndex, 0, tabToMove);
+							validatedTabs = [...otherTabs, ...filteredTabs];
+						}
+					}
+
+					return {
+						...state,
+						tabs: validatedTabs,
+					};
+				});
+			},
+
 			getTabsByWorkspace: (workspaceId) => {
 				return get().tabs.filter((tab) => tab.workspaceId === workspaceId);
 			},
@@ -367,3 +485,4 @@ export const useSetActiveTab = () =>
 export const useReorderTabs = () => useTabsStore((state) => state.reorderTabs);
 export const useMarkTabAsUsed = () =>
 	useTabsStore((state) => state.markTabAsUsed);
+export const useUngroupTab = () => useTabsStore((state) => state.ungroupTab);

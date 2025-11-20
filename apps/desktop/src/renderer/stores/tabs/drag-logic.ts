@@ -12,7 +12,7 @@ export interface DragTabToTabResult {
  * Removes a tab ID from a mosaic layout tree
  * Returns null if the layout becomes empty after removal
  */
-const removeTabFromLayout = (
+export const removeTabFromLayout = (
 	layout: MosaicNode<string> | null,
 	tabIdToRemove: string,
 ): MosaicNode<string> | null => {
