@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useModeDetection } from "./hooks/useModeDetection";
 import { useScrollProgress } from "./hooks/useScrollProgress";
 import { useScrollSnap } from "./hooks/useScrollSnap";
@@ -21,11 +21,11 @@ export function ModeCarousel({
 		null,
 	);
 
-	const scrollContainerRef = useCallback((node: HTMLDivElement | null) => {
+	const scrollContainerRef = (node: HTMLDivElement | null) => {
 		if (node) {
 			setScrollContainer(node);
 		}
-	}, []);
+	};
 
 	const modeProgress = useScrollProgress({
 		scrollContainer,

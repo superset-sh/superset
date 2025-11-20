@@ -7,16 +7,6 @@ interface SingleTabViewProps {
 }
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
-	const handleRename = () => {
-		// TODO: Implement rename functionality
-		console.log("Rename tab:", tab.id);
-	};
-
-	const handleDuplicate = () => {
-		// TODO: Implement duplicate functionality
-		console.log("Duplicate tab:", tab.id);
-	};
-
 	const handleSplitHorizontal = () => {
 		// TODO: Implement split horizontally functionality
 		console.log("Split horizontally:", tab.id);
@@ -34,8 +24,6 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 
 	return (
 		<TabContentContextMenu
-			onRename={handleRename}
-			onDuplicate={handleDuplicate}
 			onSplitHorizontal={handleSplitHorizontal}
 			onSplitVertical={handleSplitVertical}
 			onClosePane={handleClosePane}
