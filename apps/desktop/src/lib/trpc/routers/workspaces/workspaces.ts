@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
-import { publicProcedure, router } from "..";
-import { db } from "../../../main/lib/db";
+import { publicProcedure, router } from "../..";
+import { db } from "../../../../main/lib/db";
 
 /**
  * Workspaces router

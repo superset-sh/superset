@@ -2,9 +2,9 @@ import { dialog } from "electron";
 import type { BrowserWindow } from "electron";
 import { basename } from "node:path";
 import { z } from "zod";
-import { publicProcedure, router } from "..";
-import { db } from "../../../main/lib/db";
-import type { RecentProject } from "../../../main/lib/db/schemas";
+import { publicProcedure, router } from "../..";
+import { db } from "../../../../main/lib/db";
+import type { RecentProject } from "../../../../main/lib/db/schemas";
 
 /**
  * Projects router

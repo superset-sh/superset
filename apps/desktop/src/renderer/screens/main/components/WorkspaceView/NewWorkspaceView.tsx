@@ -1,24 +1,19 @@
 import { trpc } from "renderer/lib/trpc";
 import { useAddTab } from "renderer/stores";
+import { useOpenProject, useOpenRecent, useRemoveRecent } from "renderer/react-query/projects";
+import { useUpdateWorkspace } from "renderer/react-query/workspaces";
 import { StartSection } from "./NewWorkspaceView/components/StartSection";
 import { RecentSection } from "./NewWorkspaceView/components/RecentSection";
 
 export function NewWorkspaceView() {
-	const utils = trpc.useUtils();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const addTab = useAddTab();
 
-	const { data: recents = [], refetch: refetchRecents } =
-		trpc.projects.getRecents.useQuery();
+	const { data: recents = [] } = trpc.projects.getRecents.useQuery();
 
-	const updateWorkspace = trpc.workspaces.update.useMutation({
-		onSuccess: async () => {
-			// Invalidate and wait for refetch
-			await utils.workspaces.invalidate();
-		},
-	});
+	const updateWorkspace = useUpdateWorkspace();
 
-	const openProject = trpc.projects.openProject.useMutation({
+	const openProject = useOpenProject({
 		onSuccess: async (result) => {
 			if (result.success && activeWorkspace) {
 				// Update workspace in DB with path and wait for it to complete
@@ -36,7 +31,7 @@ export function NewWorkspaceView() {
 		},
 	});
 
-	const openRecent = trpc.projects.openRecent.useMutation({
+	const openRecent = useOpenRecent({
 		onSuccess: async (result) => {
 			if (result.success && activeWorkspace) {
 				// Update workspace in DB with path and wait for it to complete
@@ -54,11 +49,7 @@ export function NewWorkspaceView() {
 		},
 	});
 
-	const removeRecent = trpc.projects.removeRecent.useMutation({
-		onSuccess: () => {
-			refetchRecents();
-		},
-	});
+	const removeRecent = useRemoveRecent();
 
 	const handleOpenProject = () => {
 		openProject.mutate();

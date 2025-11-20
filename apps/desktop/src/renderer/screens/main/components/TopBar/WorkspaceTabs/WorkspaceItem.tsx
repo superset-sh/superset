@@ -2,7 +2,11 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import {
+	useSetActiveWorkspace,
+	useDeleteWorkspace,
+	useReorderWorkspaces,
+} from "renderer/react-query/workspaces";
 
 const WORKSPACE_TYPE = "WORKSPACE";
 
@@ -25,22 +29,9 @@ export function WorkspaceItem({
 	onMouseEnter,
 	onMouseLeave,
 }: WorkspaceItemProps) {
-	const utils = trpc.useUtils();
-	const setActive = trpc.workspaces.setActive.useMutation({
-		onSuccess: async () => {
-			await utils.workspaces.invalidate();
-		},
-	});
-	const deleteWorkspace = trpc.workspaces.delete.useMutation({
-		onSuccess: async () => {
-			await utils.workspaces.invalidate();
-		},
-	});
-	const reorderWorkspaces = trpc.workspaces.reorder.useMutation({
-		onSuccess: async () => {
-			await utils.workspaces.invalidate();
-		},
-	});
+	const setActive = useSetActiveWorkspace();
+	const deleteWorkspace = useDeleteWorkspace();
+	const reorderWorkspaces = useReorderWorkspaces();
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({

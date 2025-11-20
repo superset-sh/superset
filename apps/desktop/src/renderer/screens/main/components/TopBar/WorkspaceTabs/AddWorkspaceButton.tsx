@@ -1,14 +1,8 @@
 import { Button } from "@superset/ui/button";
-import { trpc } from "renderer/lib/trpc";
+import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 export function AddWorkspaceButton() {
-	const utils = trpc.useUtils();
-	const createWorkspace = trpc.workspaces.create.useMutation({
-		onSuccess: async () => {
-			// Invalidate all workspace queries
-			await utils.workspaces.invalidate();
-		},
-	});
+	const createWorkspace = useCreateWorkspace();
 
 	const handleAddWorkspace = () => {
 		createWorkspace.mutate({
