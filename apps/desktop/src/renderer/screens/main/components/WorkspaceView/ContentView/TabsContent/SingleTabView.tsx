@@ -7,10 +7,13 @@ interface SingleTabViewProps {
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
 	const { drop, isDropZone } = useDropTabTarget(tab);
+	const attachDrop = (node: HTMLDivElement | null) => {
+		if (node) drop(node);
+	};
 
 	return (
 		<div
-			ref={drop as unknown as React.Ref<HTMLDivElement>}
+			ref={attachDrop}
 			className={`flex-1 h-full overflow-auto transition-colors bg-background ${
 				isDropZone ? "bg-sidebar" : ""
 			}`}

@@ -54,9 +54,6 @@ export function WorkspaceItem({
 			className="group relative flex items-end shrink-0 h-full"
 			style={{ width: `${width}px` }}
 		>
-			{/* Active workspace bottom border overlay */}
-			{isActive && <div className="absolute bottom-0 left-0 right-0 h-px" />}
-
 			{/* Main workspace button */}
 			<button
 				type="button"

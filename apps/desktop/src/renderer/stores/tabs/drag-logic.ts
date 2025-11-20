@@ -62,6 +62,11 @@ export const cleanLayout = (
 	if (!newFirst) return newSecond;
 	if (!newSecond) return newFirst;
 
+	// If children are identical references, return original layout to avoid churn
+	if (newFirst === layout.first && newSecond === layout.second) {
+		return layout;
+	}
+
 	return {
 		...layout,
 		first: newFirst,

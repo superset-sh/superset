@@ -10,7 +10,6 @@ export function AddWorkspaceButton() {
 			size="icon"
 			onClick={addWorkspace}
 			aria-label="Add new workspace"
-			className=""
 		>
 			<span className="text-lg">+</span>
 		</Button>
