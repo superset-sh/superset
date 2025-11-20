@@ -168,18 +168,15 @@ export const handleDragTabToTab = (
 	// Rule 4: Dragging single tab into another single tab - creates new group container for split view
 	if (targetTab.type === TabType.Single && draggedTab.type === TabType.Single) {
 		const groupId = `tab-${Date.now()}-group`;
-		const childTab1Id = `tab-${Date.now()}-child-1`;
-		const childTab2Id = `tab-${Date.now()}-child-2`;
 
-		const childTab1: Tab = {
+		// Keep original tab IDs stable - just update their parentId
+		const updatedTargetTab: Tab = {
 			...targetTab,
-			id: childTab1Id,
 			parentId: groupId,
 		};
 
-		const childTab2: Tab = {
+		const updatedDraggedTab: Tab = {
 			...draggedTab,
-			id: childTab2Id,
 			parentId: groupId,
 		};
 
@@ -190,21 +187,21 @@ export const handleDragTabToTab = (
 			type: TabType.Group,
 			layout: {
 				direction: "row",
-				first: childTab1Id,
-				second: childTab2Id,
+				first: targetTab.id, // Use original ID, not new one
+				second: draggedTab.id, // Use original ID, not new one
 				splitPercentage: 50,
 			},
-			childTabIds: [childTab1Id, childTab2Id],
+			childTabIds: [targetTab.id, draggedTab.id], // Use original IDs
 		};
 
 		return {
 			...state,
 			tabs: [
-				...state.tabs.filter(
-					(tab) => tab.id !== targetTabId && tab.id !== draggedTabId,
-				),
-				childTab1,
-				childTab2,
+				...state.tabs.map((tab) => {
+					if (tab.id === targetTab.id) return updatedTargetTab;
+					if (tab.id === draggedTab.id) return updatedDraggedTab;
+					return tab;
+				}),
 				newGroupTab,
 			],
 			activeTabIds: {

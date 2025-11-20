@@ -9,22 +9,65 @@ import {
 	MosaicWindow,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
-import { type TabGroup, useTabs } from "renderer/stores";
+import { type TabGroup, useTabs, useTabsStore } from "renderer/stores";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
 	focusedChildId?: string | null;
 }
 
+// Extract all tab IDs from a mosaic layout tree
+function extractTabIdsFromLayout(
+	layout: MosaicNode<string> | null,
+): Set<string> {
+	const ids = new Set<string>();
+
+	if (!layout) return ids;
+
+	if (typeof layout === "string") {
+		ids.add(layout);
+	} else {
+		const firstIds = extractTabIdsFromLayout(layout.first);
+		const secondIds = extractTabIdsFromLayout(layout.second);
+		for (const id of firstIds) ids.add(id);
+		for (const id of secondIds) ids.add(id);
+	}
+
+	return ids;
+}
+
 export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 	const allTabs = useTabs();
 	const childTabs = allTabs.filter((t) => tab.childTabIds.includes(t.id));
+	const updateTabGroupLayout = useTabsStore(
+		(state) => state.updateTabGroupLayout,
+	);
+	const removeChildTabFromGroup = useTabsStore(
+		(state) => state.removeChildTabFromGroup,
+	);
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
-			console.log("Layout changed:", newLayout);
+			// Extract tab IDs from old and new layouts to detect removals
+			const oldTabIds = extractTabIdsFromLayout(tab.layout);
+			const newTabIds = extractTabIdsFromLayout(newLayout);
+
+			// Find tabs that were removed from the layout
+			const removedTabIds = Array.from(oldTabIds).filter(
+				(id) => !newTabIds.has(id),
+			);
+
+			// Remove tabs that were closed in the mosaic
+			for (const removedId of removedTabIds) {
+				removeChildTabFromGroup(tab.id, removedId);
+			}
+
+			// Update layout only if there are still tabs remaining
+			if (newLayout) {
+				updateTabGroupLayout(tab.id, newLayout);
+			}
 		},
-		[],
+		[tab.id, tab.layout, updateTabGroupLayout, removeChildTabFromGroup],
 	);
 
 	const renderPane = useCallback(
