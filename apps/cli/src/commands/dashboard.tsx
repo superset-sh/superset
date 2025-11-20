@@ -476,9 +476,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 											String(agent.agentType)}
 									</Text>
 									{sessionName && (
-										<Text dimColor>
-											[{truncate(sessionName, 16)}]
-										</Text>
+										<Text dimColor>[{truncate(sessionName, 16)}]</Text>
 									)}
 									<Text dimColor>
 										{new Date(agent.createdAt).toLocaleTimeString()}

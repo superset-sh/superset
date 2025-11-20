@@ -4,7 +4,12 @@ import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import { type Agent, type Process, ProcessStatus, ProcessType } from "../types/process";
+import {
+	type Agent,
+	type Process,
+	ProcessStatus,
+	ProcessType,
+} from "../types/process";
 import type { Workspace } from "../types/workspace";
 
 interface PanelsData {
@@ -354,8 +359,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								"agentType" in selectedAgent ? (
 									<>
 										<Text>
-											Agent:{" "}
-											<Text bold>{String(selectedAgent.agentType)}</Text>
+											Agent: <Text bold>{String(selectedAgent.agentType)}</Text>
 										</Text>
 										<Text dimColor>ID: {selectedAgent.id}</Text>
 										{"sessionName" in selectedAgent &&
@@ -367,7 +371,8 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 										<Text dimColor>Status: {selectedAgent.status}</Text>
 										{selectedAgent.endedAt && (
 											<Text dimColor>
-												Ended: {new Date(selectedAgent.endedAt).toLocaleString()}
+												Ended:{" "}
+												{new Date(selectedAgent.endedAt).toLocaleString()}
 											</Text>
 										)}
 									</>

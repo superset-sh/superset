@@ -643,7 +643,8 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 					<Text dimColor>Workspace: {workspace?.name || workspace?.id}</Text>
 					{successCount > 0 && (
 						<Text dimColor color="green">
-							Success: {startedAgents.map((a) => (a as any).agentType).join(", ")}
+							Success:{" "}
+							{startedAgents.map((a) => (a as any).agentType).join(", ")}
 						</Text>
 					)}
 				</Box>
