@@ -10,4 +10,5 @@ export const TAB_DND_TYPE = "TAB";
 export interface TabItemProps {
 	tab: Tab;
 	isActive: boolean;
+	childTabs?: Tab[];
 }

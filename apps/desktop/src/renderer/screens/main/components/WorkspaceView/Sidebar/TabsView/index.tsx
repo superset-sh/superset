@@ -20,10 +20,15 @@ export function TabsView() {
 	const tabs = useMemo(
 		() =>
 			activeWorkspaceId
-				? allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
+				? allTabs.filter(
+						(tab) => tab.workspaceId === activeWorkspaceId && !tab.parentId,
+					)
 				: [],
 		[activeWorkspaceId, allTabs],
 	);
+
+	const getChildTabs = (parentId: string) =>
+		allTabs.filter((tab) => tab.parentId === parentId);
 
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
@@ -39,7 +44,12 @@ export function TabsView() {
 		<nav className="space-y-2 flex flex-col h-full p-2">
 			<div className="text-sm text-sidebar-foreground flex-1 overflow-auto space-y-1">
 				{tabs.map((tab) => (
-					<TabItem key={tab.id} tab={tab} isActive={tab.id === activeTabId} />
+					<TabItem
+						key={tab.id}
+						tab={tab}
+						isActive={tab.id === activeTabId}
+						childTabs={getChildTabs(tab.id)}
+					/>
 				))}
 				<Button
 					variant="ghost"

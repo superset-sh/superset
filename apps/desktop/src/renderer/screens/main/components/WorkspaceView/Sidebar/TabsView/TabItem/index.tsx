@@ -10,7 +10,7 @@ import { TabType } from "renderer/stores/tabs/types";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
 
-export function TabItem({ tab, isActive }: TabItemProps) {
+export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const activeWorkspaceId = useWorkspacesStore(
 		(state) => state.activeWorkspaceId,
@@ -27,30 +27,13 @@ export function TabItem({ tab, isActive }: TabItemProps) {
 
 	const handleTabClick = () => {
 		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tab.id);
+			setActiveTab(activeWorkspaceId, tab.parentId || tab.id);
 		}
 	};
 
 	const handleToggleExpand = (e: React.MouseEvent) => {
 		e.stopPropagation();
 		setIsExpanded(!isExpanded);
-	};
-
-	const handlePaneClick = (_paneId: string) => {
-		// Make the parent group tab active when a child pane is clicked
-		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tab.id);
-			// TODO: Track active pane within group tab
-		}
-	};
-
-	const handleRemovePane = (
-		e: React.MouseEvent<HTMLButtonElement>,
-		paneId: string,
-	) => {
-		e.stopPropagation();
-		// TODO: Implement pane removal from group
-		console.log("Remove pane:", paneId);
 	};
 
 	// Combine drag and drop refs
@@ -60,7 +43,7 @@ export function TabItem({ tab, isActive }: TabItemProps) {
 	};
 
 	const isGroupTab = tab.type === TabType.Group;
-	const childPanes = isGroupTab ? Object.entries(tab.panes) : [];
+	const hasChildren = childTabs.length > 0;
 
 	return (
 		<div className="w-full">
@@ -83,7 +66,7 @@ export function TabItem({ tab, isActive }: TabItemProps) {
 				`}
 			>
 				<div className="flex items-center gap-1 flex-1 min-w-0">
-					{isGroupTab && (
+					{isGroupTab && hasChildren && (
 						<button
 							type="button"
 							onClick={handleToggleExpand}
@@ -107,25 +90,15 @@ export function TabItem({ tab, isActive }: TabItemProps) {
 				)}
 			</Button>
 
-			{isGroupTab && isExpanded && (
+			{isGroupTab && hasChildren && isExpanded && (
 				<div className="ml-4 mt-1 space-y-1">
-					{childPanes.map(([paneId, pane]) => (
-						<button
-							type="button"
-							key={paneId}
-							className="w-full px-3 py-1.5 text-sm text-muted-foreground rounded-md hover:bg-sidebar-accent/50 cursor-pointer flex items-center gap-2 group"
-							onClick={() => handlePaneClick(paneId)}
-						>
-							<span className="text-xs opacity-50">└</span>
-							<span className="truncate flex-1 text-start">{pane.title}</span>
-							<button
-								type="button"
-								onClick={(e) => handleRemovePane(e, paneId)}
-								className="opacity-0 group-hover:opacity-100 ml-2 text-xs hover:text-destructive shrink-0"
-							>
-								<HiMiniXMark className="size-4" />
-							</button>
-						</button>
+					{childTabs.map((childTab) => (
+						<div key={childTab.id} className="flex items-start gap-1">
+							<span className="text-xs opacity-50 mt-2">└</span>
+							<div className="flex-1">
+								<TabItem tab={childTab} isActive={isActive} childTabs={[]} />
+							</div>
+						</div>
 					))}
 				</div>
 			)}

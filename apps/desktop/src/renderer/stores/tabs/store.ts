@@ -244,35 +244,43 @@ export const useTabsStore = create<TabsState>()(
 				}));
 			},
 
-			addPaneToTabGroup: (id, paneId, title) => {
-				set((state) => ({
-					tabs: state.tabs.map((tab) =>
-						tab.id === id && tab.type === TabType.Group
-							? {
-									...tab,
-									panes: {
-										...tab.panes,
-										[paneId]: { title },
-									},
-								}
-							: tab,
-					),
-				}));
-			},
-
-			removePaneFromTabGroup: (id, paneId) => {
+			addChildTabToGroup: (groupId, childTabId) => {
 				set((state) => ({
 					tabs: state.tabs.map((tab) => {
-						if (tab.id === id && tab.type === TabType.Group) {
-							const { [paneId]: _removed, ...remainingPanes } = tab.panes;
+						if (tab.id === groupId && tab.type === TabType.Group) {
 							return {
 								...tab,
-								panes: remainingPanes,
+								childTabIds: [...tab.childTabIds, childTabId],
+							};
+						}
+						if (tab.id === childTabId) {
+							return {
+								...tab,
+								parentId: groupId,
 							};
 						}
 						return tab;
 					}),
 				}));
+			},
+
+			removeChildTabFromGroup: (groupId, childTabId) => {
+				set((state) => {
+					const updatedTabs = state.tabs.map((tab) => {
+						if (tab.id === groupId && tab.type === TabType.Group) {
+							return {
+								...tab,
+								childTabIds: tab.childTabIds.filter((id) => id !== childTabId),
+							};
+						}
+						return tab;
+					});
+
+					// Remove the child tab entirely
+					return {
+						tabs: updatedTabs.filter((tab) => tab.id !== childTabId),
+					};
+				});
 			},
 
 			dragTabToTab: (draggedTabId, targetTabId) => {
