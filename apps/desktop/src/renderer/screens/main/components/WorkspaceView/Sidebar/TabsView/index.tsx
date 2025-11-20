@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import type React from "react";
+import { LayoutGroup, motion } from "framer-motion";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
 import { useAddTab, useTabs, useWorkspacesStore } from "renderer/stores";
@@ -35,51 +35,32 @@ export function TabsView() {
 	return (
 		<nav className="space-y-2 flex flex-col h-full p-2">
 			<UngroupDropZone>
-				{(draggedTab, isDragOver, dropIndex) => {
-					const items: React.ReactNode[] = [];
-
-					tabs.forEach((tab, index) => {
-						// Add preview before this tab if needed
-						if (isDragOver && draggedTab && index === dropIndex) {
-							items.push(
-								<Button
-									key={`preview-${draggedTab.id}`}
-									variant="ghost"
-									className="w-full text-start px-3 py-2 rounded-md bg-sidebar-accent border-2 border-dashed border-sidebar-accent pointer-events-none"
-								>
-									<span className="truncate flex-1">{draggedTab.title}</span>
-								</Button>,
-							);
-						}
-
-						// Add the actual tab
-						items.push(
-							<div
-								key={tab.id}
-								data-tab-item
-								className={isDragOver && draggedTab ? "opacity-50" : ""}
-							>
-								<TabItem tab={tab} childTabs={getChildTabs(tab.id)} />
-							</div>,
-						);
-					});
-
-					// Add preview at the end if needed
-					if (isDragOver && draggedTab && dropIndex >= tabs.length) {
-						items.push(
-							<Button
-								key={`preview-${draggedTab.id}`}
-								variant="ghost"
-								className="w-full text-start px-3 py-2 rounded-md bg-sidebar-accent border-2 border-dashed border-sidebar-accent pointer-events-none"
-							>
-								<span className="truncate flex-1">{draggedTab.title}</span>
-							</Button>,
-						);
-					}
-
-					return (
+				{(draggedTab, isDragOver, dropIndex) => (
+					<LayoutGroup>
 						<div className="text-sm text-sidebar-foreground space-y-1">
-							{items}
+							{tabs.map((tab, index) => (
+								<motion.div
+									key={tab.id}
+									layout
+									initial={false}
+									transition={{
+										layout: { duration: 0.2, ease: "easeInOut" },
+									}}
+									className="relative"
+								>
+									{/* Drop line indicator before this tab */}
+									{isDragOver && draggedTab && index === dropIndex && (
+										<div className="absolute -top-0.5 left-0 right-0 h-0.5 bg-primary rounded-full z-10" />
+									)}
+									<div data-tab-item>
+										<TabItem tab={tab} childTabs={getChildTabs(tab.id)} />
+									</div>
+								</motion.div>
+							))}
+							{/* Drop line indicator at the end */}
+							{isDragOver && draggedTab && dropIndex >= tabs.length && (
+								<div className="h-0.5 bg-sidebar-accent rounded-full" />
+							)}
 							<Button
 								variant="ghost"
 								onClick={handleAddTab}
@@ -90,8 +71,8 @@ export function TabsView() {
 								<span className="truncate flex-1">New Tab</span>
 							</Button>
 						</div>
-					);
-				}}
+					</LayoutGroup>
+				)}
 			</UngroupDropZone>
 		</nav>
 	);

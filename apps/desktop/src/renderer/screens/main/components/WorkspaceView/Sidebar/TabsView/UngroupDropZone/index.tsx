@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { useDrop } from "react-dnd";
-import { useTabs, useUngroupTab } from "renderer/stores";
+import { useReorderTabById, useTabs, useUngroupTab } from "renderer/stores";
 import type { Tab } from "renderer/stores/tabs/types";
 import { type DragItem, TAB_DND_TYPE } from "../TabItem/types";
 
@@ -15,6 +15,7 @@ interface UngroupDropZoneProps {
 
 export function UngroupDropZone({ children }: UngroupDropZoneProps) {
 	const ungroupTab = useUngroupTab();
+	const reorderTabById = useReorderTabById();
 	const tabs = useTabs();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [dropIndex, setDropIndex] = useState(0);
@@ -26,13 +27,18 @@ export function UngroupDropZone({ children }: UngroupDropZoneProps) {
 	>({
 		accept: TAB_DND_TYPE,
 		drop: (item, monitor) => {
-			// Only ungroup if not dropped on a tab (which would be handled by the tab's own drop handler)
+			// Only handle drop if not dropped on a tab (which would be handled by the tab's own drop handler)
 			const didDrop = monitor.didDrop();
 			if (!didDrop) {
 				const draggedTab = tabs.find((t) => t.id === item.tabId);
-				// Only ungroup if the tab has a parent (is part of a group)
-				if (draggedTab?.parentId) {
+				if (!draggedTab) return;
+
+				// No adjustment needed since we filter out the dragged tab from the visible list
+				// The dropIndex is already correct relative to the final position
+				if (draggedTab.parentId) {
 					ungroupTab(item.tabId, dropIndex);
+				} else {
+					reorderTabById(item.tabId, dropIndex);
 				}
 			}
 		},
@@ -68,11 +74,12 @@ export function UngroupDropZone({ children }: UngroupDropZoneProps) {
 		collect: (monitor) => {
 			const item = monitor.getItem() as DragItem | null;
 			const draggedTab = item ? tabs.find((t) => t.id === item.tabId) : null;
-			const hasParent = draggedTab?.parentId !== undefined;
 
 			return {
 				isOver: monitor.isOver({ shallow: true }),
-				canDrop: monitor.canDrop() && hasParent,
+				canDrop: monitor.canDrop() && draggedTab !== null,
+				// Return the dragged tab regardless of whether it has a parent
+				// This allows us to show preview for both top-level and child tabs
 				draggedTab: draggedTab || null,
 			};
 		},

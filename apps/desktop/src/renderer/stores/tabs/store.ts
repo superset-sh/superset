@@ -22,6 +22,7 @@ interface TabsState {
 		startIndex: number,
 		endIndex: number,
 	) => void;
+	reorderTabById: (tabId: string, targetIndex: number) => void;
 	markTabAsUsed: (id: string) => void;
 
 	updateTabGroupLayout: (id: string, layout: MosaicNode<string>) => void;
@@ -231,6 +232,29 @@ export const useTabsStore = create<TabsState>()(
 					workspaceTabs.splice(endIndex, 0, removed);
 
 					return { tabs: [...otherTabs, ...workspaceTabs] };
+				});
+			},
+
+			reorderTabById: (tabId, targetIndex) => {
+				set((state) => {
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (!tab || tab.parentId) return state; // Only reorder top-level tabs
+
+					const workspaceId = tab.workspaceId;
+					const workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId && !t.parentId,
+					);
+					const otherTabs = state.tabs.filter(
+						(t) => t.workspaceId !== workspaceId || t.parentId,
+					);
+
+					const tabToMove = workspaceTabs.find((t) => t.id === tabId);
+					if (!tabToMove) return state;
+
+					const filteredTabs = workspaceTabs.filter((t) => t.id !== tabId);
+					filteredTabs.splice(targetIndex, 0, tabToMove);
+
+					return { tabs: [...otherTabs, ...filteredTabs] };
 				});
 			},
 
@@ -483,6 +507,8 @@ export const useRemoveTab = () => useTabsStore((state) => state.removeTab);
 export const useSetActiveTab = () =>
 	useTabsStore((state) => state.setActiveTab);
 export const useReorderTabs = () => useTabsStore((state) => state.reorderTabs);
+export const useReorderTabById = () =>
+	useTabsStore((state) => state.reorderTabById);
 export const useMarkTabAsUsed = () =>
 	useTabsStore((state) => state.markTabAsUsed);
 export const useUngroupTab = () => useTabsStore((state) => state.ungroupTab);

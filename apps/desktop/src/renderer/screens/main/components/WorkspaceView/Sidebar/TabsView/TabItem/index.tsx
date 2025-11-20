@@ -67,7 +67,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 				className={`
 					w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between
 					${isActive ? "bg-sidebar-accent" : ""}
-					${isDragging ? "opacity-50 cursor-grabbing" : ""}
+					${isDragging ? "opacity-50" : ""}
 					${isDragOver ? "bg-sidebar-accent/50" : ""}
 				`}
 			>
