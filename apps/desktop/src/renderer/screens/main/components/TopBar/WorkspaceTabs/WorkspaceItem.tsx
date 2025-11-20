@@ -2,11 +2,11 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import { useTabsStore } from "renderer/stores/tabs";
+import { useWorkspacesStore } from "renderer/stores/workspaces";
 
-const TAB_TYPE = "TAB";
+const WORKSPACE_TYPE = "WORKSPACE";
 
-interface TabItemProps {
+interface WorkspaceItemProps {
 	id: string;
 	title: string;
 	isActive: boolean;
@@ -16,7 +16,7 @@ interface TabItemProps {
 	onMouseLeave?: () => void;
 }
 
-export function TabItem({
+export function WorkspaceItem({
 	id,
 	title,
 	isActive,
@@ -24,12 +24,13 @@ export function TabItem({
 	width,
 	onMouseEnter,
 	onMouseLeave,
-}: TabItemProps) {
-	const { setActiveTab, removeTab, reorderTabs } = useTabsStore();
+}: WorkspaceItemProps) {
+	const { setActiveWorkspace, removeWorkspace, reorderWorkspaces } =
+		useWorkspacesStore();
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
-			type: TAB_TYPE,
+			type: WORKSPACE_TYPE,
 			item: { id, index },
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
@@ -39,10 +40,10 @@ export function TabItem({
 	);
 
 	const [, drop] = useDrop({
-		accept: TAB_TYPE,
+		accept: WORKSPACE_TYPE,
 		hover: (item: { id: string; index: number }) => {
 			if (item.index !== index) {
-				reorderTabs(item.index, index);
+				reorderWorkspaces(item.index, index);
 				item.index = index;
 			}
 		},
@@ -53,16 +54,13 @@ export function TabItem({
 			className="group relative flex items-end shrink-0 h-full"
 			style={{ width: `${width}px` }}
 		>
-			{/* Active tab bottom border overlay */}
-			{isActive && <div className="absolute bottom-0 left-0 right-0 h-px" />}
-
-			{/* Main tab button */}
+			{/* Main workspace button */}
 			<button
 				type="button"
 				ref={(node) => {
 					drag(drop(node));
 				}}
-				onClick={() => setActiveTab(id)}
+				onClick={() => setActiveWorkspace(id)}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 				className={`
@@ -87,13 +85,13 @@ export function TabItem({
 				size="icon"
 				onClick={(e) => {
 					e.stopPropagation();
-					removeTab(id);
+					removeWorkspace(id);
 				}}
 				className={cn(
 					"mt-1 absolute right-1 top-1/2 -translate-y-1/2 size-5 ",
 					isActive ? "opacity-90" : "opacity-0 group-hover:opacity-90",
 				)}
-				aria-label="Close tab"
+				aria-label="Close workspace"
 			>
 				<HiMiniXMark className="size-4" />
 			</Button>

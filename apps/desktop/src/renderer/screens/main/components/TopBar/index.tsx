@@ -1,13 +1,13 @@
 import { trpc } from "renderer/lib/trpc";
 import { SidebarControl } from "./SidebarControl";
-import { Tabs } from "./Tabs";
 import { WindowControls } from "./WindowControls";
+import { WorkspacesTabs } from "./WorkspaceTabs";
 
 export function TopBar() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	return (
-		<div className="drag gap-2 h-12 w-full flex items-center justify-between border-b border-border bg-background">
+		<div className="drag gap-2 h-12 w-full flex items-center justify-between border-b border-sidebar bg-background">
 			<div
 				className="flex items-center gap-4 h-full"
 				style={{
@@ -17,7 +17,7 @@ export function TopBar() {
 				<SidebarControl />
 			</div>
 			<div className="no-drag flex items-center gap-2 flex-1 overflow-hidden h-full">
-				<Tabs />
+				<WorkspacesTabs />
 			</div>
 			<div className="no-drag flex items-center gap-2 h-full pr-4">
 				{!isMac && <WindowControls />}

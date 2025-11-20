@@ -1,21 +1,23 @@
 import { Separator } from "@superset/ui/separator";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useTabsStore } from "renderer/stores/tabs";
-import { AddTabButton } from "./AddTabButton";
-import { TabItem } from "./TabItem";
+import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { AddWorkspaceButton } from "./AddWorkspaceButton";
+import { WorkspaceItem } from "./WorkspaceItem";
 
-const MIN_TAB_WIDTH = 60;
-const MAX_TAB_WIDTH = 240;
+const MIN_WORKSPACE_WIDTH = 60;
+const MAX_WORKSPACE_WIDTH = 240;
 const ADD_BUTTON_WIDTH = 48;
 
-export function Tabs() {
-	const { tabs, activeTabId } = useTabsStore();
+export function WorkspacesTabs() {
+	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showStartFade, setShowStartFade] = useState(false);
 	const [showEndFade, setShowEndFade] = useState(false);
-	const [tabWidth, setTabWidth] = useState(MAX_TAB_WIDTH);
-	const [hoveredTabId, setHoveredTabId] = useState<string | null>(null);
+	const [workspaceWidth, setWorkspaceWidth] = useState(MAX_WORKSPACE_WIDTH);
+	const [hoveredWorkspaceId, setHoveredWorkspaceId] = useState<string | null>(
+		null,
+	);
 
 	useEffect(() => {
 		const checkScroll = () => {
@@ -26,7 +28,7 @@ export function Tabs() {
 			setShowEndFade(scrollLeft < scrollWidth - clientWidth - 1);
 		};
 
-		const updateTabWidth = () => {
+		const updateWorkspaceWidth = () => {
 			if (!containerRef.current) return;
 
 			const containerWidth = containerRef.current.offsetWidth;
@@ -34,29 +36,29 @@ export function Tabs() {
 
 			// Calculate width: fill available space but respect min/max
 			const calculatedWidth = Math.max(
-				MIN_TAB_WIDTH,
-				Math.min(MAX_TAB_WIDTH, availableWidth / tabs.length),
+				MIN_WORKSPACE_WIDTH,
+				Math.min(MAX_WORKSPACE_WIDTH, availableWidth / workspaces.length),
 			);
-			setTabWidth(calculatedWidth);
+			setWorkspaceWidth(calculatedWidth);
 		};
 
 		checkScroll();
-		updateTabWidth();
+		updateWorkspaceWidth();
 
 		const scrollElement = scrollRef.current;
 		if (scrollElement) {
 			scrollElement.addEventListener("scroll", checkScroll);
 		}
 
-		window.addEventListener("resize", updateTabWidth);
+		window.addEventListener("resize", updateWorkspaceWidth);
 
 		return () => {
 			if (scrollElement) {
 				scrollElement.removeEventListener("scroll", checkScroll);
 			}
-			window.removeEventListener("resize", updateTabWidth);
+			window.removeEventListener("resize", updateWorkspaceWidth);
 		};
-	}, [tabs]);
+	}, [workspaces]);
 
 	return (
 		<div
@@ -69,31 +71,31 @@ export function Tabs() {
 					ref={scrollRef}
 					className="flex h-full overflow-x-auto hide-scrollbar gap-2"
 				>
-					{tabs.map((tab, index) => {
-						const nextTab = tabs[index + 1];
-						const isActive = tab.id === activeTabId;
-						const isNextActive = nextTab?.id === activeTabId;
-						const isHovered = tab.id === hoveredTabId;
-						const isNextHovered = nextTab?.id === hoveredTabId;
+					{workspaces.map((workspace, index) => {
+						const nextWorkspace = workspaces[index + 1];
+						const isActive = workspace.id === activeWorkspaceId;
+						const isNextActive = nextWorkspace?.id === activeWorkspaceId;
+						const isHovered = workspace.id === hoveredWorkspaceId;
+						const isNextHovered = nextWorkspace?.id === hoveredWorkspaceId;
 						const separatorOpacity =
 							!isActive && !isNextActive && !isHovered && !isNextHovered
 								? 100
 								: 0;
 
 						return (
-							<Fragment key={tab.id}>
+							<Fragment key={workspace.id}>
 								<div className="flex items-end h-full">
-									<TabItem
-										id={tab.id}
-										title={tab.title}
+									<WorkspaceItem
+										id={workspace.id}
+										title={workspace.title}
 										isActive={isActive}
 										index={index}
-										width={tabWidth}
-										onMouseEnter={() => setHoveredTabId(tab.id)}
-										onMouseLeave={() => setHoveredTabId(null)}
+										width={workspaceWidth}
+										onMouseEnter={() => setHoveredWorkspaceId(workspace.id)}
+										onMouseLeave={() => setHoveredWorkspaceId(null)}
 									/>
 								</div>
-								{index < tabs.length - 1 && (
+								{index < workspaces.length - 1 && (
 									<div
 										className="flex items-center h-full py-2 transition-opacity"
 										style={{ opacity: separatorOpacity / 100 }}
@@ -115,7 +117,7 @@ export function Tabs() {
 				)}
 			</div>
 
-			<AddTabButton />
+			<AddWorkspaceButton />
 		</div>
 	);
 }

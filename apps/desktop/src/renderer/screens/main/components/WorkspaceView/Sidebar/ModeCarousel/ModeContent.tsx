@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { SidebarMode } from "../types";
 import { ModeHeader } from "./ModeHeader";
+import type { SidebarMode } from "./types";
 
 interface ModeContentProps {
 	mode: SidebarMode;

@@ -8,7 +8,7 @@ interface ModeHeaderProps {
 export function ModeHeader({ mode }: ModeHeaderProps) {
 	return (
 		<div className="px-3 py-2">
-			<span className="text-xs font-medium text-sidebar-foreground/80">
+			<span className="text-sm font-medium text-sidebar-foreground/80">
 				{modeLabels[mode]}
 			</span>
 		</div>

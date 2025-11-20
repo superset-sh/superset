@@ -1,0 +1,48 @@
+.mosaic-container {
+	background: var(--background);
+}
+
+.mosaic-theme-dark .mosaic-window {
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+
+.mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
+	background: var(--background);
+	border: 1px solid var(--border);
+	border-top-left-radius: var(--radius-xs);
+	border-top-right-radius: var(--radius-xs);
+	height: 32px;
+	padding: 0 8px;
+	transition: background-color 0.15s ease;
+}
+.mosaic-window-focused .mosaic-window-toolbar {
+	background: var(--color-sidebar) !important;
+}
+.mosaic-theme-dark .mosaic-window .mosaic-window-title {
+	color: var(--color-foreground);
+	font-size: 12px;
+	transition: color 0.15s ease;
+}
+.mosaic-window-content {
+	outline: none;
+}
+.mosaic-window-content:focus-visible {
+	outline: 2px solid #303030;
+	outline-offset: -2px;
+	box-shadow: inset 0 0 0 4px rgba(59, 130, 246, 0.2);
+}
+.mosaic-theme-dark .mosaic-split {
+	background: var(--color-border);
+	opacity: 0;
+	border-radius: var(--radius-full);
+	transition:
+		opacity 0.2s ease,
+		background-color 0.2s ease;
+}
+
+.mosaic-theme-dark .mosaic-split.mosaic-split-dragging .mosaic-split:hover {
+	opacity: 1;
+	background: var(--color-border);
+}
