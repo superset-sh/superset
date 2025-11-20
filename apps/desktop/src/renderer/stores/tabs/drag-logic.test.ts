@@ -95,7 +95,7 @@ describe("cleanLayout", () => {
 describe("handleDragTabToTab", () => {
 	const workspaceId = "workspace-1";
 
-	test("dragging single tab onto itself duplicates the tab", () => {
+	test("dragging single tab onto itself creates a group with new tab", () => {
 		const tab1: Tab = {
 			id: "tab-1",
 			title: "Tab 1",
@@ -111,13 +111,37 @@ describe("handleDragTabToTab", () => {
 
 		const result = handleDragTabToTab("tab-1", "tab-1", state);
 
-		expect(result.tabs.length).toBe(2);
-		expect(result.tabs[0].id).toBe("tab-1");
-		expect(result.tabs[1].type).toBe(TabType.Single);
-		expect(result.activeTabIds[workspaceId]).not.toBe("tab-1");
+		// Should create 3 tabs: original tab-1 (now with parent), new tab, new group
+		expect(result.tabs.length).toBe(3);
+
+		// Find the tabs
+		const originalTab = result.tabs.find((t) => t.id === "tab-1");
+		const newTab = result.tabs.find(
+			(t) => t.id !== "tab-1" && t.type === TabType.Single,
+		);
+		const groupTab = result.tabs.find((t) => t.type === TabType.Group);
+
+		// Original tab should now have a parent
+		expect(originalTab?.parentId).toBe(groupTab?.id);
+
+		// New tab should also have the same parent
+		expect(newTab?.parentId).toBe(groupTab?.id);
+
+		// Group should be active
+		expect(result.activeTabIds[workspaceId]).toBe(groupTab?.id);
+
+		// Verify group layout contains both tabs
+		if (groupTab?.type === TabType.Group) {
+			expect(groupTab.layout).toEqual({
+				direction: "row",
+				first: "tab-1",
+				second: newTab?.id,
+				splitPercentage: 50,
+			});
+		}
 	});
 
-	test("dragging child tab onto itself does nothing", () => {
+	test("dragging child tab onto itself creates new tab in parent group", () => {
 		const groupTab: Tab = {
 			id: "group-1",
 			title: "Group",
@@ -142,7 +166,29 @@ describe("handleDragTabToTab", () => {
 
 		const result = handleDragTabToTab("child-1", "child-1", state);
 
-		expect(result).toEqual(state);
+		// Should create a new tab and add it to the group
+		expect(result.tabs.length).toBe(3);
+
+		// Find the new tab
+		const newTab = result.tabs.find(
+			(t) => t.id !== "group-1" && t.id !== "child-1",
+		);
+		expect(newTab).toBeDefined();
+		expect(newTab?.parentId).toBe("group-1");
+
+		// Group layout should be updated
+		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
+		if (updatedGroup?.type === TabType.Group) {
+			expect(updatedGroup.layout).toEqual({
+				direction: "row",
+				first: "child-1",
+				second: newTab?.id,
+				splitPercentage: 50,
+			});
+		}
+
+		// Group should remain active
+		expect(result.activeTabIds[workspaceId]).toBe("group-1");
 	});
 
 	test("dragging single tab into another single tab creates group with original IDs", () => {
@@ -663,7 +709,7 @@ describe("handleDragTabToTab", () => {
 		expect(cleaned).toBe("child-1");
 	});
 
-	test("dragging tab already in same group does nothing", () => {
+	test("dragging tab already in same group creates new tab in that group", () => {
 		const groupTab: Tab = {
 			id: "group-1",
 			title: "Group",
@@ -702,7 +748,172 @@ describe("handleDragTabToTab", () => {
 		// Drag child-1 onto its own parent group
 		const result = handleDragTabToTab("child-1", "group-1", state);
 
-		expect(result).toEqual(state);
+		// Should create a new tab and add it to the group
+		expect(result.tabs.length).toBe(4);
+
+		// Find the new tab
+		const newTab = result.tabs.find(
+			(t) => t.id !== "group-1" && t.id !== "child-1" && t.id !== "child-2",
+		);
+		expect(newTab).toBeDefined();
+		expect(newTab?.parentId).toBe("group-1");
+
+		// Group layout should be updated to include new tab
+		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
+		if (updatedGroup?.type === TabType.Group) {
+			expect(updatedGroup.layout).toEqual({
+				direction: "row",
+				first: {
+					direction: "row",
+					first: "child-1",
+					second: "child-2",
+					splitPercentage: 50,
+				},
+				second: newTab?.id,
+				splitPercentage: 50,
+			});
+		}
+
+		// Group should remain active
+		expect(result.activeTabIds[workspaceId]).toBe("group-1");
+	});
+
+	test("dragging group onto itself creates new tab in that group", () => {
+		const groupTab: Tab = {
+			id: "group-1",
+			title: "Group",
+			workspaceId,
+			type: TabType.Group,
+			layout: {
+				direction: "row",
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1: Tab = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const child2: Tab = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const state = {
+			tabs: [groupTab, child1, child2],
+			activeTabIds: { [workspaceId]: "group-1" },
+			tabHistoryStacks: { [workspaceId]: [] },
+		};
+
+		// Drag group-1 onto itself
+		const result = handleDragTabToTab("group-1", "group-1", state);
+
+		// Should create a new tab and add it to the group
+		expect(result.tabs.length).toBe(4);
+
+		// Find the new tab
+		const newTab = result.tabs.find(
+			(t) => t.id !== "group-1" && t.id !== "child-1" && t.id !== "child-2",
+		);
+		expect(newTab).toBeDefined();
+		expect(newTab?.parentId).toBe("group-1");
+
+		// Group layout should be updated to include new tab
+		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
+		if (updatedGroup?.type === TabType.Group) {
+			expect(updatedGroup.layout).toEqual({
+				direction: "row",
+				first: {
+					direction: "row",
+					first: "child-1",
+					second: "child-2",
+					splitPercentage: 50,
+				},
+				second: newTab?.id,
+				splitPercentage: 50,
+			});
+		}
+
+		// Group should remain active
+		expect(result.activeTabIds[workspaceId]).toBe("group-1");
+	});
+
+	test("dragging child into another child of same group creates new tab", () => {
+		const groupTab: Tab = {
+			id: "group-1",
+			title: "Group",
+			workspaceId,
+			type: TabType.Group,
+			layout: {
+				direction: "row",
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1: Tab = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const child2: Tab = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const state = {
+			tabs: [groupTab, child1, child2],
+			activeTabIds: { [workspaceId]: "group-1" },
+			tabHistoryStacks: { [workspaceId]: [] },
+		};
+
+		// Drag child-1 onto child-2 (both in same group)
+		const result = handleDragTabToTab("child-1", "child-2", state);
+
+		// Should create a new tab and add it to the group
+		expect(result.tabs.length).toBe(4);
+
+		// Find the new tab
+		const newTab = result.tabs.find(
+			(t) => t.id !== "group-1" && t.id !== "child-1" && t.id !== "child-2",
+		);
+		expect(newTab).toBeDefined();
+		expect(newTab?.parentId).toBe("group-1");
+
+		// Group layout should be updated to include new tab
+		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
+		if (updatedGroup?.type === TabType.Group) {
+			expect(updatedGroup.layout).toEqual({
+				direction: "row",
+				first: {
+					direction: "row",
+					first: "child-1",
+					second: "child-2",
+					splitPercentage: 50,
+				},
+				second: newTab?.id,
+				splitPercentage: 50,
+			});
+		}
+
+		// Group should remain active
+		expect(result.activeTabIds[workspaceId]).toBe("group-1");
 	});
 
 	test("dragging last child from group to another tab removes the group", () => {
