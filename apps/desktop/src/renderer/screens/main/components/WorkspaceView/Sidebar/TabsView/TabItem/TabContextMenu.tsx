@@ -15,7 +15,6 @@ interface TabContextMenuProps {
 	onClose?: () => void;
 	onRename?: () => void;
 	onDuplicate?: () => void;
-	onMoveToNewWindow?: () => void;
 	onUngroup?: () => void;
 	onDeleteGroup?: () => void;
 }
@@ -26,7 +25,6 @@ export function TabContextMenu({
 	onClose,
 	onRename,
 	onDuplicate,
-	onMoveToNewWindow,
 	onUngroup,
 	onDeleteGroup,
 }: TabContextMenuProps) {
@@ -54,10 +52,6 @@ export function TabContextMenu({
 						<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
 						<ContextMenuItem onSelect={onDuplicate}>
 							Duplicate Tab
-						</ContextMenuItem>
-						<ContextMenuSeparator />
-						<ContextMenuItem onSelect={onMoveToNewWindow}>
-							Move to New Window
 						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem variant="destructive" onSelect={onClose}>

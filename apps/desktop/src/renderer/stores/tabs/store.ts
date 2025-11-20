@@ -32,6 +32,7 @@ interface TabsState {
 
 	dragTabToTab: (draggedTabId: string, targetTabId: string) => void;
 	ungroupTab: (tabId: string, targetIndex?: number) => void;
+	ungroupTabs: (groupId: string) => void;
 
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
@@ -508,6 +509,88 @@ export const useTabsStore = create<TabsState>()(
 				});
 			},
 
+			ungroupTabs: (groupId) => {
+				set((state) => {
+					const group = state.tabs.find(
+						(t) => t.id === groupId && t.type === TabType.Group,
+					);
+					if (!group || group.type !== TabType.Group) return state;
+
+					// Get all child tabs
+					const childTabIds = getChildTabIds(state.tabs, groupId);
+					if (childTabIds.length === 0) return state;
+
+					// Find the group's position in the workspace
+					const workspaceId = group.workspaceId;
+					const workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId && !t.parentId,
+					);
+					const groupIndex = workspaceTabs.findIndex((t) => t.id === groupId);
+
+					// Remove parentId from all child tabs
+					const updatedTabs = state.tabs
+						.map((tab) => {
+							if (childTabIds.includes(tab.id)) {
+								return {
+									...tab,
+									parentId: undefined,
+								};
+							}
+							return tab;
+						})
+						// Remove the group tab itself
+						.filter((tab) => tab.id !== groupId);
+
+					// Reorder tabs to place ungrouped tabs where the group was
+					const newWorkspaceTabs = updatedTabs.filter(
+						(t) => t.workspaceId === workspaceId && !t.parentId,
+					);
+					const otherTabs = updatedTabs.filter(
+						(t) => t.workspaceId !== workspaceId || t.parentId,
+					);
+
+					// Get the ungrouped child tabs
+					const ungroupedTabs = newWorkspaceTabs.filter((t) =>
+						childTabIds.includes(t.id),
+					);
+					// Get tabs that are not the ungrouped children
+					const nonUngroupedTabs = newWorkspaceTabs.filter(
+						(t) => !childTabIds.includes(t.id),
+					);
+
+					// Insert ungrouped tabs at the group's original position
+					nonUngroupedTabs.splice(groupIndex, 0, ...ungroupedTabs);
+
+					const finalTabs = [...otherTabs, ...nonUngroupedTabs];
+
+					// Clean up active tab and history if the group was active
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = historyStack.filter((id) => id !== groupId);
+
+					const newActiveTabIds = { ...state.activeTabIds };
+					if (currentActiveId === groupId) {
+						// Set the first ungrouped tab as active
+						if (ungroupedTabs.length > 0) {
+							newActiveTabIds[workspaceId] = ungroupedTabs[0].id;
+						} else if (nonUngroupedTabs.length > 0) {
+							newActiveTabIds[workspaceId] = nonUngroupedTabs[0].id;
+						} else {
+							newActiveTabIds[workspaceId] = null;
+						}
+					}
+
+					return {
+						tabs: finalTabs,
+						activeTabIds: newActiveTabIds,
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					};
+				});
+			},
+
 			getTabsByWorkspace: (workspaceId) => {
 				return get().tabs.filter((tab) => tab.workspaceId === workspaceId);
 			},
@@ -542,3 +625,4 @@ export const useReorderTabById = () =>
 export const useMarkTabAsUsed = () =>
 	useTabsStore((state) => state.markTabAsUsed);
 export const useUngroupTab = () => useTabsStore((state) => state.ungroupTab);
+export const useUngroupTabs = () => useTabsStore((state) => state.ungroupTabs);

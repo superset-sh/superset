@@ -5,6 +5,7 @@ import {
 	useActiveTabIds,
 	useRemoveTab,
 	useSetActiveTab,
+	useUngroupTabs,
 	useWorkspacesStore,
 } from "renderer/stores";
 import { TabType } from "renderer/stores/tabs/types";
@@ -22,6 +23,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const activeTabIds = useActiveTabIds();
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();
+	const ungroupTabs = useUngroupTabs();
 
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
@@ -56,14 +58,8 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		console.log("Duplicate tab:", tab.id);
 	};
 
-	const handleMoveToNewWindow = () => {
-		// TODO: Implement move to new window functionality
-		console.log("Move to new window:", tab.id);
-	};
-
 	const handleUngroup = () => {
-		// TODO: Implement ungroup functionality
-		console.log("Ungroup tabs:", tab.id);
+		ungroupTabs(tab.id);
 	};
 
 	const handleDeleteGroup = () => {
@@ -87,7 +83,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 				onClose={handleRemoveTab}
 				onRename={rename.startRename}
 				onDuplicate={handleDuplicate}
-				onMoveToNewWindow={handleMoveToNewWindow}
 				onUngroup={handleUngroup}
 				onDeleteGroup={handleDeleteGroup}
 			>
