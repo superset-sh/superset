@@ -361,6 +361,12 @@ export const useTabsStore = create<TabsState>()(
 				const tabToRemove = state.tabs.find((tab) => tab.id === id);
 				if (!tabToRemove) return;
 
+				// Don't allow closing group tabs directly
+				if (tabToRemove.type === TabType.Group) {
+					console.error("Cannot close group tabs directly. Ungroup the tabs first.");
+					return;
+				}
+
 				// If this tab is a child of a group, delegate to removeChildTabFromGroup
 				// which handles empty group cleanup
 				if (tabToRemove.parentId) {
