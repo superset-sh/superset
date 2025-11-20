@@ -1,4 +1,4 @@
-import { Box, Text, useApp, useInput } from "ink";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
@@ -25,7 +25,7 @@ interface DashboardProps {
 
 type SelectionMode = "workspace" | "agent";
 
-export function Dashboard({ onComplete }: DashboardProps) {
+export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 	const [data, setData] = React.useState<DashboardData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
@@ -36,6 +36,19 @@ export function Dashboard({ onComplete }: DashboardProps) {
 		React.useState<SelectionMode>("workspace");
 	const [filterByCurrent, setFilterByCurrent] = React.useState(false);
 	const { exit } = useApp();
+	const { stdout } = useStdout();
+
+	// Get terminal width, default to 80 if not available
+	const terminalWidth = stdout?.columns || 80;
+
+	// Helper to create responsive separator
+	const getSeparator = (width: number) => "─".repeat(Math.max(width - 4, 20));
+
+	// Helper to truncate text if needed
+	const truncate = (text: string, maxLength: number) => {
+		if (text.length <= maxLength) return text;
+		return `${text.slice(0, maxLength - 3)}...`;
+	};
 
 	const loadDashboard = React.useCallback(async () => {
 		try {
@@ -97,13 +110,6 @@ export function Dashboard({ onComplete }: DashboardProps) {
 		const filteredAgents = displayWorkspaceId
 			? agents.filter((a) => a.workspaceId === displayWorkspaceId)
 			: agents;
-
-		const currentList =
-			selectionMode === "workspace" ? data.workspaces : filteredAgents;
-		const currentIndex =
-			selectionMode === "workspace"
-				? selectedWorkspaceIndex
-				: selectedAgentIndex;
 
 		// Switch selection mode
 		if (key.tab) {
@@ -262,121 +268,76 @@ export function Dashboard({ onComplete }: DashboardProps) {
 	// Status badge helper
 	const getStatusBadge = (agent: Process) => {
 		if (agent.endedAt) {
-			return (
-				<Text backgroundColor="gray" color="white">
-					{" "}
-					STOPPED{" "}
-				</Text>
-			);
+			return <Text dimColor>[stopped]</Text>;
 		}
 		switch (agent.status) {
 			case ProcessStatus.RUNNING:
-				return (
-					<Text backgroundColor="green" color="black">
-						{" "}
-						RUNNING{" "}
-					</Text>
-				);
+				return <Text color="green">[running]</Text>;
 			case ProcessStatus.IDLE:
-				return (
-					<Text backgroundColor="yellow" color="black">
-						{" "}
-						IDLE{" "}
-					</Text>
-				);
+				return <Text color="yellow">[idle]</Text>;
 			case ProcessStatus.ERROR:
-				return (
-					<Text backgroundColor="red" color="white">
-						{" "}
-						ERROR{" "}
-					</Text>
-				);
+				return <Text color="red">[error]</Text>;
 			default:
-				return (
-					<Text backgroundColor="gray" color="white">
-						{" "}
-						UNKNOWN{" "}
-					</Text>
-				);
+				return <Text dimColor>[unknown]</Text>;
 		}
 	};
 
 	return (
 		<Box flexDirection="column" paddingY={1}>
 			{/* Header */}
-			<Box
-				marginBottom={1}
-				borderStyle="double"
-				borderColor="cyan"
-				paddingX={2}
-				paddingY={0}
-			>
+			<Box marginBottom={1} paddingX={2}>
 				<Box flexDirection="row" justifyContent="space-between">
-					<Text bold color="cyan">
-						✨ SUPERSET DASHBOARD
-					</Text>
-					<Text color="cyan" dimColor>
-						{lastRefresh.toLocaleTimeString()}
-					</Text>
+					<Text bold>SUPERSET DASHBOARD</Text>
+					<Text dimColor>{lastRefresh.toLocaleTimeString()}</Text>
+				</Box>
+				<Box marginTop={0}>
+					<Text dimColor>{getSeparator(terminalWidth)}</Text>
 				</Box>
 			</Box>
 
 			{/* Summary Stats */}
-			<Box
-				marginBottom={1}
-				borderStyle="round"
-				borderColor="blue"
-				paddingX={2}
-				paddingY={0}
-			>
-				<Box flexDirection="row" gap={3}>
+			<Box marginBottom={1} paddingX={2}>
+				<Box
+					flexDirection="row"
+					gap={2}
+					flexWrap={terminalWidth < 80 ? "wrap" : "nowrap"}
+				>
 					<Box flexDirection="row" gap={1}>
-						<Text color="blue" bold>
-							⚡
-						</Text>
-						<Text dimColor>Workspaces</Text>
-						<Text bold color="blue">
+						<Text dimColor>Workspaces:</Text>
+						<Text bold color="cyan">
 							{workspaces.length}
 						</Text>
 					</Box>
-					<Text dimColor>│</Text>
+					<Text dimColor>·</Text>
 					<Box flexDirection="row" gap={1}>
-						<Text color="green" bold>
-							●
-						</Text>
-						<Text dimColor>Running</Text>
+						<Text dimColor>Running:</Text>
 						<Text bold color="green">
 							{runningAgents.length}
 						</Text>
 					</Box>
-					<Text dimColor>│</Text>
+					<Text dimColor>·</Text>
 					<Box flexDirection="row" gap={1}>
-						<Text color="yellow" bold>
-							●
-						</Text>
-						<Text dimColor>Idle</Text>
+						<Text dimColor>Idle:</Text>
 						<Text bold color="yellow">
 							{idleAgents.length}
 						</Text>
 					</Box>
-					<Text dimColor>│</Text>
-					<Box flexDirection="row" gap={1}>
-						<Text color="gray" bold>
-							●
-						</Text>
-						<Text dimColor>Stopped</Text>
-						<Text bold color="gray">
-							{stoppedAgents.length}
-						</Text>
-					</Box>
-					{errorAgents.length > 0 && (
+					{terminalWidth >= 60 && (
 						<>
-							<Text dimColor>│</Text>
+							<Text dimColor>·</Text>
 							<Box flexDirection="row" gap={1}>
-								<Text color="red" bold>
-									✖
+								<Text dimColor>Stopped:</Text>
+								<Text bold dimColor>
+									{stoppedAgents.length}
 								</Text>
-								<Text dimColor>Error</Text>
+							</Box>
+						</>
+					)}
+					{errorAgents.length > 0 && terminalWidth >= 80 && (
+						<>
+							<Text dimColor>·</Text>
+							<Box flexDirection="row" gap={1}>
+								<Text dimColor>Error:</Text>
 								<Text bold color="red">
 									{errorAgents.length}
 								</Text>
@@ -386,79 +347,60 @@ export function Dashboard({ onComplete }: DashboardProps) {
 				</Box>
 			</Box>
 
-			{/* Current Workspace Indicator */}
-			{currentWorkspaceId && (
-				<Box marginBottom={1} paddingX={1}>
-					<Box
-						borderStyle="round"
-						borderColor="cyan"
-						paddingX={1}
-						flexDirection="row"
-						gap={1}
-					>
-						<Text color="cyan" bold>
-							▶
-						</Text>
-						<Text dimColor>Current:</Text>
+			{/* Current Workspace & Controls */}
+			<Box marginBottom={1} paddingX={2} flexDirection="row" gap={3}>
+				{currentWorkspaceId && (
+					<Box flexDirection="row" gap={1}>
+						<Text dimColor>Active:</Text>
 						<Text bold color="cyan">
-							{workspaces.find((w) => w.id === currentWorkspaceId)?.name ||
-								currentWorkspaceId.slice(0, 8)}
+							{truncate(
+								workspaces.find((w) => w.id === currentWorkspaceId)?.name ||
+									currentWorkspaceId.slice(0, 8),
+								Math.max(15, Math.floor(terminalWidth / 4)),
+							)}
 						</Text>
 					</Box>
-				</Box>
-			)}
-
-			{/* Selection Mode & Filter */}
-			<Box marginBottom={1} paddingX={1} flexDirection="row" gap={2}>
-				<Box
-					borderStyle="round"
-					borderColor={selectionMode === "workspace" ? "cyan" : "yellow"}
-					paddingX={1}
-					flexDirection="row"
-					gap={1}
-				>
+				)}
+				<Box flexDirection="row" gap={1}>
+					<Text dimColor>Mode:</Text>
 					<Text bold color={selectionMode === "workspace" ? "cyan" : "yellow"}>
-						{selectionMode === "workspace" ? "📁 Workspaces" : "🤖 Agents"}
+						{selectionMode === "workspace" ? "Workspaces" : "Agents"}
 					</Text>
-					<Text dimColor>(TAB)</Text>
+					<Text dimColor>(tab)</Text>
 				</Box>
-				<Box borderStyle="round" borderColor="magenta" paddingX={1}>
-					<Text dimColor>Filter: </Text>
-					<Text color="magenta">
+				<Box flexDirection="row" gap={1}>
+					<Text dimColor>Filter:</Text>
+					<Text bold>
 						{filterByCurrent
-							? "Current workspace"
+							? "Current"
 							: selectedWorkspace
-								? `${selectedWorkspace.name || selectedWorkspace.id.slice(0, 8)}`
+								? truncate(
+										selectedWorkspace.name || selectedWorkspace.id.slice(0, 8),
+										Math.max(10, Math.floor(terminalWidth / 6)),
+									)
 								: "All"}
 					</Text>
-					<Text dimColor> (f)</Text>
+					<Text dimColor>(f)</Text>
 				</Box>
 			</Box>
 
+			<Box marginBottom={1} paddingX={2}>
+				<Text dimColor>{getSeparator(terminalWidth)}</Text>
+			</Box>
+
 			{/* Workspaces Section */}
-			<Box
-				flexDirection="column"
-				marginBottom={1}
-				borderStyle="round"
-				borderColor="cyan"
-				paddingX={2}
-				paddingY={0}
-			>
+			<Box flexDirection="column" marginBottom={1} paddingX={2}>
 				<Box marginBottom={0}>
-					<Text bold color="cyan">
-						📁 WORKSPACES
-					</Text>
+					<Text bold>WORKSPACES</Text>
 					<Text dimColor> ({workspaces.length})</Text>
 				</Box>
 				{workspaces.length === 0 ? (
-					<Box paddingY={1}>
-						<Text dimColor>
-							No workspaces found. Run:{" "}
-							<Text color="yellow">superset init</Text>
-						</Text>
+					<Box paddingY={1} paddingLeft={2}>
+						<Text dimColor>No workspaces. Run: </Text>
+						<Text color="cyan">superset init</Text>
 					</Box>
 				) : (
-					<Box flexDirection="column" paddingTop={0}>
+					<Box flexDirection="column" paddingTop={0} paddingLeft={2}>
 						{workspaces.map((ws, index) => {
 							const wsAgents = agents.filter((a) => a.workspaceId === ws.id);
 							const wsRunning = wsAgents.filter(
@@ -469,58 +411,38 @@ export function Dashboard({ onComplete }: DashboardProps) {
 								index === selectedWorkspaceIndex;
 							const isCurrent = ws.id === currentWorkspaceId;
 
+							const wsName = ws.name || ws.id.slice(0, 8);
+							const maxNameLength = Math.max(
+								20,
+								Math.floor((terminalWidth - 40) / 2),
+							);
+
 							return (
-								<Box
-									key={ws.id}
-									flexDirection="row"
-									gap={1}
-									paddingY={0}
-									backgroundColor={isSelected ? "blue" : undefined}
-								>
-									<Text bold color={isSelected ? "white" : undefined}>
-										{isSelected ? "▶" : " "}
-									</Text>
-									<Text color={isSelected ? "white" : undefined}>
-										{wsRunning.length > 0 ? (
-											<Text
-												color={isSelected ? "white" : "green"}
-												bold={!isSelected}
-											>
-												●
-											</Text>
-										) : (
-											<Text
-												dimColor={!isSelected}
-												color={isSelected ? "white" : undefined}
-											>
-												○
-											</Text>
-										)}
+								<Box key={ws.id} flexDirection="row" gap={1} paddingY={0}>
+									<Text color={isSelected ? "cyan" : undefined}>
+										{isSelected ? "▸" : " "}
 									</Text>
 									<Text
 										bold={isCurrent || isSelected}
 										color={
-											isSelected ? "white" : isCurrent ? "cyan" : undefined
+											isSelected ? "cyan" : isCurrent ? "white" : undefined
 										}
 									>
-										{ws.name || ws.id.slice(0, 8)}
+										{truncate(wsName, maxNameLength)}
 									</Text>
-									<Text
-										dimColor={!isSelected}
-										color={isSelected ? "white" : undefined}
-									>
-										({ws.type})
+									<Text dimColor>({ws.type})</Text>
+									<Text dimColor>
+										{wsRunning.length > 0 && (
+											<Text color="green">{wsRunning.length} running</Text>
+										)}
+										{wsRunning.length === 0 && wsAgents.length > 0 && (
+											<Text dimColor>{wsAgents.length} idle</Text>
+										)}
+										{wsAgents.length === 0 && <Text dimColor>no agents</Text>}
 									</Text>
-									<Text
-										dimColor={!isSelected}
-										color={isSelected ? "white" : undefined}
-									>
-										{wsRunning.length}/{wsAgents.length} agents
-									</Text>
-									{isCurrent && !isSelected && (
-										<Text backgroundColor="cyan" color="black">
-											{" "}
-											CURRENT{" "}
+									{isCurrent && (
+										<Text color="cyan" bold>
+											[active]
 										</Text>
 									)}
 								</Box>
@@ -531,59 +453,36 @@ export function Dashboard({ onComplete }: DashboardProps) {
 			</Box>
 
 			{/* Agents Section */}
-			<Box
-				flexDirection="column"
-				marginBottom={1}
-				borderStyle="round"
-				borderColor="yellow"
-				paddingX={2}
-				paddingY={0}
-			>
+			<Box flexDirection="column" marginBottom={1} paddingX={2}>
 				<Box marginBottom={0}>
-					<Text bold color="yellow">
-						🤖 AGENTS
-					</Text>
+					<Text bold>AGENTS</Text>
 					<Text dimColor> ({filteredAgents.length})</Text>
 				</Box>
 				{filteredAgents.length === 0 ? (
-					<Box paddingY={1}>
+					<Box paddingY={1} paddingLeft={2}>
 						<Text dimColor>No agents in this workspace</Text>
 					</Box>
 				) : (
-					<Box flexDirection="column" paddingTop={0}>
+					<Box flexDirection="column" paddingTop={0} paddingLeft={2}>
 						{filteredAgents.map((agent, index) => {
 							const isSelected =
 								selectionMode === "agent" && index === selectedAgentIndex;
 							return (
-								<Box
-									key={agent.id}
-									flexDirection="row"
-									gap={1}
-									paddingY={0}
-									backgroundColor={isSelected ? "yellow" : undefined}
-								>
-									<Text bold color={isSelected ? "black" : undefined}>
-										{isSelected ? "▶" : " "}
+								<Box key={agent.id} flexDirection="row" gap={1} paddingY={0}>
+									<Text color={isSelected ? "yellow" : undefined}>
+										{isSelected ? "▸" : " "}
 									</Text>
 									{getStatusBadge(agent)}
 									<Text
 										bold={isSelected}
-										color={isSelected ? "black" : "yellow"}
+										color={isSelected ? "yellow" : undefined}
 									>
 										{agent.type === ProcessType.AGENT &&
 											"agentType" in agent &&
 											String(agent.agentType)}
 									</Text>
-									<Text
-										dimColor={!isSelected}
-										color={isSelected ? "black" : undefined}
-									>
-										({agent.id.slice(0, 8)})
-									</Text>
-									<Text
-										dimColor={!isSelected}
-										color={isSelected ? "black" : undefined}
-									>
+									<Text dimColor>({agent.id.slice(0, 8)})</Text>
+									<Text dimColor>
 										{new Date(agent.createdAt).toLocaleTimeString()}
 									</Text>
 								</Box>
@@ -593,94 +492,46 @@ export function Dashboard({ onComplete }: DashboardProps) {
 				)}
 			</Box>
 
+			<Box marginBottom={0} paddingX={2}>
+				<Text dimColor>{getSeparator(terminalWidth)}</Text>
+			</Box>
+
 			{/* Keyboard Shortcuts */}
-			<Box
-				flexDirection="column"
-				borderStyle="double"
-				borderColor="magenta"
-				paddingX={2}
-				paddingY={0}
-			>
+			<Box flexDirection="column" paddingX={2} paddingY={0}>
 				<Box marginBottom={0}>
-					<Text bold color="magenta">
-						⌨️ KEYBOARD SHORTCUTS
+					<Text bold dimColor>
+						CONTROLS
 					</Text>
 				</Box>
-				<Box flexDirection="row" gap={3} paddingTop={0}>
+				<Box flexDirection="row" gap={2} paddingTop={0} paddingLeft={2}>
 					<Box flexDirection="column">
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								↑↓{" "}
-							</Text>{" "}
-							<Text backgroundColor="white" color="black">
-								{" "}
-								j{" "}
-							</Text>{" "}
-							<Text backgroundColor="white" color="black">
-								{" "}
-								k{" "}
-							</Text>{" "}
-							Navigate
+							<Text>↑↓</Text> <Text>j k</Text> Navigate
 						</Text>
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								TAB{" "}
-							</Text>{" "}
-							Switch mode
+							<Text>tab</Text> Switch mode
 						</Text>
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								⏎{" "}
-							</Text>{" "}
-							Launch agent
-						</Text>
-						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								[{" "}
-							</Text>{" "}
-							<Text backgroundColor="white" color="black">
-								{" "}
-								]{" "}
-							</Text>{" "}
-							Cycle workspace
+							<Text>⏎</Text> Launch agent
 						</Text>
 					</Box>
 					<Box flexDirection="column">
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								f{" "}
-							</Text>{" "}
-							Toggle filter
+							<Text>[ ]</Text> Cycle workspace
 						</Text>
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								r{" "}
-							</Text>{" "}
-							Refresh
+							<Text>f</Text> Toggle filter
 						</Text>
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								o{" "}
-							</Text>{" "}
-							Print cd path
+							<Text>r</Text> Refresh
+						</Text>
+					</Box>
+					<Box flexDirection="column">
+						<Text dimColor>
+							<Text>o</Text> Print cd path
 						</Text>
 						<Text dimColor>
-							<Text backgroundColor="white" color="black">
-								{" "}
-								q{" "}
-							</Text>{" "}
-							<Text backgroundColor="white" color="black">
-								{" "}
-								ESC{" "}
-							</Text>{" "}
-							Exit
+							<Text>q</Text> <Text>esc</Text> Exit
 						</Text>
 					</Box>
 				</Box>

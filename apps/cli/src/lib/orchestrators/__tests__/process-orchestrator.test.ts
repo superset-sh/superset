@@ -36,7 +36,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 
 			const process = await orchestrator.create(
@@ -57,7 +57,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 
 			const process = (await orchestrator.create(
@@ -78,7 +78,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -107,7 +107,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 
 			const p1 = await orchestrator.create(ProcessType.TERMINAL, workspace);
@@ -128,12 +128,12 @@ describe("ProcessOrchestrator", () => {
 			const ws1 = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test1",
+				{ path: "/tmp/test1" },
 			);
 			const ws2 = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test2",
+				{ path: "/tmp/test2" },
 			);
 
 			const p1 = await orchestrator.create(ProcessType.TERMINAL, ws1);
@@ -151,7 +151,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -172,7 +172,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -204,7 +204,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -222,7 +222,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = (await orchestrator.create(
 				ProcessType.AGENT,
@@ -244,7 +244,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 
 			const p1 = await orchestrator.create(ProcessType.TERMINAL, workspace);
@@ -269,7 +269,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 
 			const process = await orchestrator.create(
@@ -294,7 +294,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -310,7 +310,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test" },
+				{ path: "/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.AGENT,
