@@ -1,5 +1,4 @@
 import type { TabsState } from "../types";
-import { TabType } from "../types";
 
 /**
  * Finds the next best tab to activate when closing a tab.
@@ -66,9 +65,7 @@ export const findNextTab = (
 	);
 
 	// Filter out the tab we're closing
-	const remainingTabs = workspaceTabs.filter(
-		(tab) => tab.id !== tabIdToClose,
-	);
+	const remainingTabs = workspaceTabs.filter((tab) => tab.id !== tabIdToClose);
 
 	if (remainingTabs.length === 0) return null;
 
