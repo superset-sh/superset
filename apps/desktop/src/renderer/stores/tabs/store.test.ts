@@ -186,7 +186,7 @@ describe("splitTabVertical", () => {
 			title: "Original Tab",
 			workspaceId: "workspace-1",
 			type: TabType.Single,
-		};
+		} as const;
 
 		useTabsStore.setState({
 			tabs: [singleTab],
@@ -205,7 +205,9 @@ describe("splitTabVertical", () => {
 		// Find the group tab
 		const groupTab = state.tabs.find((t) => t.type === TabType.Group);
 		expect(groupTab).toBeDefined();
-		expect(groupTab?.layout).toEqual({
+		if (groupTab?.type !== TabType.Group) return;
+
+		expect(groupTab.layout).toEqual({
 			direction: "row",
 			first: "tab-1",
 			second: expect.any(String),
@@ -214,18 +216,19 @@ describe("splitTabVertical", () => {
 
 		// Original tab should now be a child
 		const originalTab = state.tabs.find((t) => t.id === "tab-1");
-		expect(originalTab?.parentId).toBe(groupTab?.id);
+		expect(originalTab?.parentId).toBe(groupTab.id);
 
 		// New child should exist
+		if (typeof groupTab.layout === "string" || !groupTab.layout) return;
 		const newChild = state.tabs.find(
-			(t) => t.id === groupTab?.layout?.second && t.type === TabType.Single,
+			(t) => t.id === groupTab.layout.second && t.type === TabType.Single,
 		);
 		expect(newChild).toBeDefined();
-		expect(newChild?.parentId).toBe(groupTab?.id);
+		expect(newChild?.parentId).toBe(groupTab.id);
 		expect(newChild?.title).toBe("New Tab");
 
 		// Active tab should be the group
-		expect(state.activeTabIds["workspace-1"]).toBe(groupTab?.id);
+		expect(state.activeTabIds["workspace-1"]).toBe(groupTab.id);
 	});
 
 	test("does not split a group tab", () => {
@@ -270,7 +273,7 @@ describe("splitTabHorizontal", () => {
 			title: "Original Tab",
 			workspaceId: "workspace-1",
 			type: TabType.Single,
-		};
+		} as const;
 
 		useTabsStore.setState({
 			tabs: [singleTab],
@@ -289,7 +292,9 @@ describe("splitTabHorizontal", () => {
 		// Find the group tab
 		const groupTab = state.tabs.find((t) => t.type === TabType.Group);
 		expect(groupTab).toBeDefined();
-		expect(groupTab?.layout).toEqual({
+		if (groupTab?.type !== TabType.Group) return;
+
+		expect(groupTab.layout).toEqual({
 			direction: "column",
 			first: "tab-1",
 			second: expect.any(String),
@@ -298,18 +303,19 @@ describe("splitTabHorizontal", () => {
 
 		// Original tab should now be a child
 		const originalTab = state.tabs.find((t) => t.id === "tab-1");
-		expect(originalTab?.parentId).toBe(groupTab?.id);
+		expect(originalTab?.parentId).toBe(groupTab.id);
 
 		// New child should exist
+		if (typeof groupTab.layout === "string" || !groupTab.layout) return;
 		const newChild = state.tabs.find(
-			(t) => t.id === groupTab?.layout?.second && t.type === TabType.Single,
+			(t) => t.id === groupTab.layout.second && t.type === TabType.Single,
 		);
 		expect(newChild).toBeDefined();
-		expect(newChild?.parentId).toBe(groupTab?.id);
+		expect(newChild?.parentId).toBe(groupTab.id);
 		expect(newChild?.title).toBe("New Tab");
 
 		// Active tab should be the group
-		expect(state.activeTabIds["workspace-1"]).toBe(groupTab?.id);
+		expect(state.activeTabIds["workspace-1"]).toBe(groupTab.id);
 	});
 
 	test("splits specific tab by id", () => {
@@ -320,14 +326,14 @@ describe("splitTabHorizontal", () => {
 			title: "Tab 1",
 			workspaceId: "workspace-1",
 			type: TabType.Single,
-		};
+		} as const;
 
 		const tab2 = {
 			id: "tab-2",
 			title: "Tab 2",
 			workspaceId: "workspace-1",
 			type: TabType.Single,
-		};
+		} as const;
 
 		useTabsStore.setState({
 			tabs: [tab1, tab2],

@@ -1,4 +1,9 @@
-import type { SingleTab } from "renderer/stores";
+import {
+	type SingleTab,
+	useRemoveTab,
+	useSplitTabHorizontal,
+	useSplitTabVertical,
+} from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
 
 interface SingleTabViewProps {
@@ -7,19 +12,20 @@ interface SingleTabViewProps {
 }
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
+	const splitTabHorizontal = useSplitTabHorizontal();
+	const splitTabVertical = useSplitTabVertical();
+	const removeTab = useRemoveTab();
+
 	const handleSplitHorizontal = () => {
-		// TODO: Implement split horizontally functionality
-		console.log("Split horizontally:", tab.id);
+		splitTabHorizontal(tab.workspaceId, tab.id);
 	};
 
 	const handleSplitVertical = () => {
-		// TODO: Implement split vertically functionality
-		console.log("Split vertically:", tab.id);
+		splitTabVertical(tab.workspaceId, tab.id);
 	};
 
 	const handleClosePane = () => {
-		// TODO: Implement close pane functionality
-		console.log("Close pane:", tab.id);
+		removeTab(tab.id);
 	};
 
 	return (
