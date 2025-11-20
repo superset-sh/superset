@@ -1,4 +1,5 @@
 import { DndProvider } from "react-dnd";
+import { useGlobalShortcuts } from "renderer/hooks/useGlobalShortcuts";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -6,6 +7,8 @@ import { TopBar } from "./components/TopBar";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 export function MainScreen() {
+	useGlobalShortcuts();
+
 	return (
 		<DndProvider manager={dragDropManager}>
 			<Background />

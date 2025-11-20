@@ -34,6 +34,9 @@ interface TabsState {
 	ungroupTab: (tabId: string, targetIndex?: number) => void;
 	ungroupTabs: (groupId: string) => void;
 
+	splitTabVertical: (workspaceId: string, sourceTabId?: string) => void;
+	splitTabHorizontal: (workspaceId: string, sourceTabId?: string) => void;
+
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
 	getLastActiveTabId: (workspaceId: string) => string | null;

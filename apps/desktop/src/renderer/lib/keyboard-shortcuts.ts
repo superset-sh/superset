@@ -9,7 +9,7 @@ export interface KeyboardShortcut {
 	key: string;
 	modifiers?: ModifierKey[];
 	description: string;
-	handler: (event: KeyboardEvent) => boolean | void;
+	handler: (event: KeyboardEvent) => boolean;
 }
 
 export interface KeyboardShortcutGroup {
