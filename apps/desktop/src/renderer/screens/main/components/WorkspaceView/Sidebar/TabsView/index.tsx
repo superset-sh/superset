@@ -1,11 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
-import {
-	useAddTab,
-	useTabs,
-	useWorkspacesStore,
-} from "renderer/stores";
+import { useAddTab, useTabs, useWorkspacesStore } from "renderer/stores";
 import { TabItem } from "./TabItem";
 
 export function TabsView() {

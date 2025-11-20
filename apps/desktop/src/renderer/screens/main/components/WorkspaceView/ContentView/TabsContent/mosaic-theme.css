@@ -1,7 +1,10 @@
-.mosaic-container {}
+.mosaic-container {
+}
 
 .mosaic-theme-dark .mosaic-window {
-	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	transition:
+		border-color 0.15s ease,
+		box-shadow 0.15s ease;
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
@@ -34,7 +37,9 @@
 	background: #333;
 	opacity: 0;
 	border-radius: 25px;
-	transition: opacity 0.2s ease, background-color 0.2s ease;
+	transition:
+		opacity 0.2s ease,
+		background-color 0.2s ease;
 }
 .mosaic-theme-dark .mosaic-split:hover {
 	opacity: 1;
