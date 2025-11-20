@@ -1,6 +1,6 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
 import {
 	cleanLayout,
 	handleDragTabToTab,
@@ -8,6 +8,7 @@ import {
 } from "./drag-logic";
 import { type Tab, TabType } from "./types";
 import { createNewTab, getChildTabIds } from "./utils";
+import { electronStorage } from "../../lib/electron-storage";
 
 interface TabsState {
 	tabs: Tab[];
@@ -174,10 +175,11 @@ const handleEmptyGroupRemoval = (
 
 export const useTabsStore = create<TabsState>()(
 	devtools(
-		(set, get) => ({
-			tabs: createInitialTabs(),
-			activeTabIds: { "workspace-1": "tab-single-1" },
-			tabHistoryStacks: { "workspace-1": [] },
+		persist(
+			(set, get) => ({
+				tabs: [],
+				activeTabIds: {},
+				tabHistoryStacks: {},
 
 			addTab: (workspaceId, type = TabType.Single) => {
 				const newTab = createNewTab(workspaceId, type);
@@ -605,7 +607,12 @@ export const useTabsStore = create<TabsState>()(
 				const historyStack = get().tabHistoryStacks[workspaceId] || [];
 				return historyStack[0] || null;
 			},
-		}),
+			}),
+			{
+				name: "tabs-storage",
+				storage: electronStorage,
+			},
+		),
 		{ name: "TabsStore" },
 	),
 );

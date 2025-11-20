@@ -10,6 +10,11 @@ declare global {
 	interface Window {
 		App: typeof API;
 		ipcRenderer: typeof ipcRendererAPI;
+		electronStore: {
+			get: (key: string) => any;
+			set: (key: string, value: any) => void;
+			delete: (key: string) => void;
+		};
 	}
 }
 
@@ -66,5 +71,13 @@ const ipcRendererAPI = {
 // Expose electron-trpc IPC channel FIRST (must be before contextBridge calls)
 exposeElectronTRPC();
 
+// Expose electron-store API via IPC
+const electronStoreAPI = {
+	get: (key: string) => ipcRenderer.invoke("storage:get", { key }),
+	set: (key: string, value: any) => ipcRenderer.invoke("storage:set", { key, value }),
+	delete: (key: string) => ipcRenderer.invoke("storage:delete", { key }),
+};
+
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
+contextBridge.exposeInMainWorld("electronStore", electronStoreAPI);
