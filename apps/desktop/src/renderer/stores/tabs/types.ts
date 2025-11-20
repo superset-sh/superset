@@ -25,7 +25,8 @@ export interface TabGroup extends BaseTab {
 	type: TabType.Group;
 	// MosaicNode describes the layout structure (split direction and children)
 	// Now uses tab IDs instead of pane IDs
-	layout: MosaicNode<string>;
+	// Can be null if no children yet
+	layout: MosaicNode<string> | null;
 	// Array of child tab IDs
 	childTabIds: string[];
 }

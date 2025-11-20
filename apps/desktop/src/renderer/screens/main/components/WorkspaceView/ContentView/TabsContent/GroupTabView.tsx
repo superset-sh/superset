@@ -7,7 +7,7 @@ import {
 } from "react-mosaic-component";
 import "react-mosaic-component/react-mosaic-component.css";
 import { dragDropManager } from "renderer/lib/dnd";
-import type { TabGroup } from "renderer/stores";
+import { type TabGroup, useTabs } from "renderer/stores";
 import "./mosaic-theme.css";
 
 interface GroupTabViewProps {
@@ -15,6 +15,9 @@ interface GroupTabViewProps {
 }
 
 export function GroupTabView({ tab }: GroupTabViewProps) {
+	const allTabs = useTabs();
+	const childTabs = allTabs.filter((t) => tab.childTabIds.includes(t.id));
+
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
 			// TODO: Persist layout changes to store
@@ -24,13 +27,13 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 	);
 
 	const renderPane = useCallback(
-		(paneId: string, path: MosaicBranch[]) => {
-			const pane = tab.panes[paneId];
+		(tabId: string, path: MosaicBranch[]) => {
+			const childTab = childTabs.find((t) => t.id === tabId);
 
-			if (!pane) {
+			if (!childTab) {
 				return (
 					<div className="w-full h-full flex items-center justify-center text-muted-foreground">
-						Pane not found: {paneId}
+						Tab not found: {tabId}
 					</div>
 				);
 			}
@@ -38,24 +41,22 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 			return (
 				<MosaicWindow<string>
 					path={path}
-					title={pane.title}
+					title={childTab.title}
 					toolbarControls={<div />}
 				>
 					<div className="w-full h-full bg-background p-2">
-						{/* TODO: Render actual pane content */}
+						{/* TODO: Render actual tab content */}
 						<div className="text-muted-foreground">
-							{pane.title} content will appear here
+							{childTab.title} content will appear here
 						</div>
 					</div>
 				</MosaicWindow>
 			);
 		},
-		[tab.panes],
+		[childTabs],
 	);
 
-	const paneCount = Object.keys(tab.panes).length;
-
-	if (paneCount === 0) {
+	if (childTabs.length === 0 || !tab.layout) {
 		return (
 			<div className="w-full h-full flex items-center justify-center">
 				<div className="text-center">

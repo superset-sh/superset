@@ -39,27 +39,36 @@ export const handleDragTabToTab = (
 
 	// Rule 2: Dragging into an existing group - join the group
 	if (targetTab.type === TabType.Group && draggedTab.type === TabType.Single) {
-		const newPaneId = `pane-${Date.now()}`;
+		// Convert dragged tab to a child tab
+		const updatedDraggedTab: Tab = {
+			...draggedTab,
+			parentId: targetTabId,
+		};
+
+		// Calculate new layout
+		const newLayout =
+			targetTab.layout === null
+				? draggedTabId // First child, just use its ID
+				: {
+						direction: "row" as const,
+						first: targetTab.layout,
+						second: draggedTabId,
+						splitPercentage: 50,
+					};
+
 		const updatedTargetTab: TabGroup = {
 			...targetTab,
-			panes: {
-				...targetTab.panes,
-				[newPaneId]: { title: draggedTab.title },
-			},
-			// Recompute layout - add new pane as split
-			layout: {
-				direction: "row",
-				first: targetTab.layout,
-				second: newPaneId,
-				splitPercentage: 50,
-			},
+			childTabIds: [...targetTab.childTabIds, draggedTabId],
+			layout: newLayout,
 		};
 
 		return {
 			...state,
-			tabs: state.tabs
-				.map((tab) => (tab.id === targetTabId ? updatedTargetTab : tab))
-				.filter((tab) => tab.id !== draggedTabId),
+			tabs: state.tabs.map((tab) => {
+				if (tab.id === targetTabId) return updatedTargetTab;
+				if (tab.id === draggedTabId) return updatedDraggedTab;
+				return tab;
+			}),
 			activeTabIds: {
 				...state.activeTabIds,
 				[workspaceId]: targetTabId,
@@ -73,24 +82,35 @@ export const handleDragTabToTab = (
 
 	// Rule 3: Dragging into a different single tab - create new group
 	if (targetTab.type === TabType.Single && draggedTab.type === TabType.Single) {
-		const pane1 = `pane-${Date.now()}-1`;
-		const pane2 = `pane-${Date.now()}-2`;
+		const groupId = `tab-${Date.now()}-group`;
+		const childTab1Id = `tab-${Date.now()}-child-1`;
+		const childTab2Id = `tab-${Date.now()}-child-2`;
+
+		// Create child tabs from the original tabs
+		const childTab1: Tab = {
+			...targetTab,
+			id: childTab1Id,
+			parentId: groupId,
+		};
+
+		const childTab2: Tab = {
+			...draggedTab,
+			id: childTab2Id,
+			parentId: groupId,
+		};
 
 		const newGroupTab: TabGroup = {
-			id: `tab-${Date.now()}-group`,
+			id: groupId,
 			title: `${targetTab.title} + ${draggedTab.title}`,
 			workspaceId,
 			type: TabType.Group,
 			layout: {
 				direction: "row",
-				first: pane1,
-				second: pane2,
+				first: childTab1Id,
+				second: childTab2Id,
 				splitPercentage: 50,
 			},
-			panes: {
-				[pane1]: { title: targetTab.title },
-				[pane2]: { title: draggedTab.title },
-			},
+			childTabIds: [childTab1Id, childTab2Id],
 		};
 
 		return {
@@ -99,6 +119,8 @@ export const handleDragTabToTab = (
 				...state.tabs.filter(
 					(tab) => tab.id !== targetTabId && tab.id !== draggedTabId,
 				),
+				childTab1,
+				childTab2,
 				newGroupTab,
 			],
 			activeTabIds: {

@@ -19,22 +19,12 @@ export const createNewTab = (
 		};
 	}
 
-	// Create a default split view with two panes
-	const pane1 = `pane-${Date.now()}-1`;
-	const pane2 = `pane-${Date.now()}-2`;
-
+	// For group tabs, just return the basic structure
+	// Child tabs should be created separately and added via addChildTabToGroup
 	return {
 		...baseTab,
 		type: TabType.Group,
-		layout: {
-			direction: "row",
-			first: pane1,
-			second: pane2,
-			splitPercentage: 50,
-		},
-		panes: {
-			[pane1]: { title: "Pane 1" },
-			[pane2]: { title: "Pane 2" },
-		},
+		layout: null,
+		childTabIds: [],
 	};
 };
