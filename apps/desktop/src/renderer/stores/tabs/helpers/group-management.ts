@@ -1,4 +1,4 @@
-import type { TabsState } from "../types";
+import type { Tab, TabsState } from "../types";
 
 /**
  * Handles the logic for when an empty group needs to be removed
@@ -55,4 +55,3 @@ export const handleEmptyGroupRemoval = (
 		},
 	};
 };
-
