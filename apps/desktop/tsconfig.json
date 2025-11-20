@@ -14,6 +14,7 @@
 		"allowJs": true,
 		"allowSyntheticDefaultImports": true,
 		"skipLibCheck": true,
+		"types": ["bun-types"],
 		"forceConsistentCasingInFileNames": true,
 		"noEmit": true,
 		"baseUrl": ".",

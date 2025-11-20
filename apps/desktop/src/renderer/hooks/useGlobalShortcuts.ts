@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { createShortcutHandler } from "../lib/keyboard-shortcuts";
 import {
 	createSplitPaneShortcuts,
@@ -11,14 +11,25 @@ import {
 	useAddTab,
 	useRemoveTab,
 	useSetActiveTab,
+	useSplitTabHorizontal,
+	useSplitTabVertical,
 	useTabs,
 } from "../stores/tabs";
 import { useWorkspacesStore } from "../stores/workspaces";
 
-/**
- * Global keyboard shortcuts hook
- * Handles all app-wide keyboard shortcuts for workspaces, tabs, and panes
- */
+function findWorkspaceIndex(
+	workspaces: Array<{ id: string }>,
+	id: string | null,
+) {
+	if (!id) return -1;
+	return workspaces.findIndex((w) => w.id === id);
+}
+
+function findTabIndex(tabs: Array<{ id: string }>, id: string | null) {
+	if (!id) return -1;
+	return tabs.findIndex((t) => t.id === id);
+}
+
 export function useGlobalShortcuts() {
 	const { workspaces, activeWorkspaceId, setActiveWorkspace } =
 		useWorkspacesStore();
@@ -28,77 +39,75 @@ export function useGlobalShortcuts() {
 	const setActiveTab = useSetActiveTab();
 	const addTab = useAddTab();
 	const removeTab = useRemoveTab();
+	const splitTabVertical = useSplitTabVertical();
+	const splitTabHorizontal = useSplitTabHorizontal();
+
+	const workspaceTabs = useMemo(() => {
+		if (!activeWorkspaceId) return [];
+		return tabs.filter(
+			(t) => t.workspaceId === activeWorkspaceId && !t.parentId,
+		);
+	}, [tabs, activeWorkspaceId]);
+
+	const activeTabId = activeWorkspaceId
+		? activeTabIds[activeWorkspaceId]
+		: null;
 
 	useEffect(() => {
-		// Workspace navigation handlers
 		const workspaceHandlers = {
 			switchToPrevWorkspace: () => {
 				if (!activeWorkspaceId) return;
-				const currentIndex = workspaces.findIndex(
-					(w) => w.id === activeWorkspaceId,
-				);
-				if (currentIndex > 0) {
-					setActiveWorkspace(workspaces[currentIndex - 1].id);
+				const index = findWorkspaceIndex(workspaces, activeWorkspaceId);
+				if (index > 0) {
+					setActiveWorkspace(workspaces[index - 1].id);
 				}
 			},
 			switchToNextWorkspace: () => {
 				if (!activeWorkspaceId) return;
-				const currentIndex = workspaces.findIndex(
-					(w) => w.id === activeWorkspaceId,
-				);
-				if (currentIndex < workspaces.length - 1) {
-					setActiveWorkspace(workspaces[currentIndex + 1].id);
+				const index = findWorkspaceIndex(workspaces, activeWorkspaceId);
+				if (index < workspaces.length - 1) {
+					setActiveWorkspace(workspaces[index + 1].id);
 				}
 			},
 			toggleSidebar,
 			splitVertical: () => {
-				// TODO: Implement split vertical
-				console.log("Split vertical");
+				if (activeWorkspaceId) {
+					splitTabVertical(activeWorkspaceId);
+				}
 			},
 			splitHorizontal: () => {
-				// TODO: Implement split horizontal
-				console.log("Split horizontal");
+				if (activeWorkspaceId) {
+					splitTabHorizontal(activeWorkspaceId);
+				}
 			},
 		};
 
-		// Get current workspace tabs and active tab
-		const workspaceTabs = activeWorkspaceId
-			? tabs.filter((t) => t.workspaceId === activeWorkspaceId && !t.parentId)
-			: [];
-		const activeTabId = activeWorkspaceId
-			? activeTabIds[activeWorkspaceId]
-			: null;
-
-		// Tab management handlers
 		const tabHandlers = {
 			switchToPrevTab: () => {
 				if (!activeWorkspaceId || !activeTabId) return;
-				const currentIndex = workspaceTabs.findIndex(
-					(t) => t.id === activeTabId,
-				);
-				if (currentIndex > 0) {
-					setActiveTab(activeWorkspaceId, workspaceTabs[currentIndex - 1].id);
+				const index = findTabIndex(workspaceTabs, activeTabId);
+				if (index > 0) {
+					setActiveTab(activeWorkspaceId, workspaceTabs[index - 1].id);
 				}
 			},
 			switchToNextTab: () => {
 				if (!activeWorkspaceId || !activeTabId) return;
-				const currentIndex = workspaceTabs.findIndex(
-					(t) => t.id === activeTabId,
-				);
-				if (currentIndex < workspaceTabs.length - 1) {
-					setActiveTab(activeWorkspaceId, workspaceTabs[currentIndex + 1].id);
+				const index = findTabIndex(workspaceTabs, activeTabId);
+				if (index < workspaceTabs.length - 1) {
+					setActiveTab(activeWorkspaceId, workspaceTabs[index + 1].id);
 				}
 			},
 			newTab: () => {
-				if (!activeWorkspaceId) return;
-				addTab(activeWorkspaceId);
+				if (activeWorkspaceId) {
+					addTab(activeWorkspaceId);
+				}
 			},
 			closeTab: () => {
-				if (!activeWorkspaceId || !activeTabId) return;
-				removeTab(activeTabId);
+				if (activeTabId) {
+					removeTab(activeTabId);
+				}
 			},
 			reopenClosedTab: () => {
-				// TODO: Implement reopen closed tab (requires history tracking)
 				console.log("Reopen closed tab");
 			},
 			jumpToTab: (index: number) => {
@@ -110,39 +119,23 @@ export function useGlobalShortcuts() {
 			},
 		};
 
-		// Split pane navigation handlers
 		const splitPaneHandlers = {
-			focusPaneLeft: () => {
-				// TODO: Implement focus pane left
-				console.log("Focus pane left");
-			},
-			focusPaneRight: () => {
-				// TODO: Implement focus pane right
-				console.log("Focus pane right");
-			},
-			focusPaneUp: () => {
-				// TODO: Implement focus pane up
-				console.log("Focus pane up");
-			},
-			focusPaneDown: () => {
-				// TODO: Implement focus pane down
-				console.log("Focus pane down");
-			},
+			focusPaneLeft: () => console.log("Focus pane left"),
+			focusPaneRight: () => console.log("Focus pane right"),
+			focusPaneUp: () => console.log("Focus pane up"),
+			focusPaneDown: () => console.log("Focus pane down"),
 		};
 
-		// Create shortcut groups
 		const workspaceShortcuts = createWorkspaceShortcuts(workspaceHandlers);
 		const tabShortcuts = createTabShortcuts(tabHandlers);
 		const splitPaneShortcuts = createSplitPaneShortcuts(splitPaneHandlers);
 
-		// Combine all shortcuts
 		const allShortcuts = [
 			...workspaceShortcuts.shortcuts,
 			...tabShortcuts.shortcuts,
 			...splitPaneShortcuts.shortcuts,
 		];
 
-		// Register keyboard event handler
 		const handleKeyDown = createShortcutHandler(allShortcuts);
 		window.addEventListener("keydown", handleKeyDown);
 
@@ -152,12 +145,14 @@ export function useGlobalShortcuts() {
 	}, [
 		workspaces,
 		activeWorkspaceId,
-		tabs,
-		activeTabIds,
+		workspaceTabs,
+		activeTabId,
 		setActiveWorkspace,
 		toggleSidebar,
 		setActiveTab,
 		addTab,
 		removeTab,
+		splitTabVertical,
+		splitTabHorizontal,
 	]);
 }

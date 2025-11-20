@@ -12,8 +12,8 @@ export interface ShortcutHandlers {
 	switchToPrevWorkspace: () => void;
 	switchToNextWorkspace: () => void;
 	toggleSidebar: () => void;
-	splitHorizontal: () => void; // iTerm2: Cmd+Shift+D
-	splitVertical: () => void; // iTerm2: Cmd+D
+	splitHorizontal: () => void;
+	splitVertical: () => void;
 
 	// Tab management
 	switchToPrevTab: () => void;
@@ -23,7 +23,7 @@ export interface ShortcutHandlers {
 	reopenClosedTab: () => void;
 	jumpToTab: (index: number) => void;
 
-	// Split pane navigation (iTerm2 style)
+	// Split pane navigation
 	focusPaneLeft: () => void;
 	focusPaneRight: () => void;
 	focusPaneUp: () => void;
@@ -80,7 +80,7 @@ export function createWorkspaceShortcuts(
 			{
 				key: "d",
 				modifiers: ["meta"],
-				description: "Split window vertically (iTerm2 style)",
+				description: "Split window vertically",
 				handler: (event) => {
 					event.preventDefault();
 					handlers.splitVertical();
@@ -90,7 +90,7 @@ export function createWorkspaceShortcuts(
 			{
 				key: "d",
 				modifiers: ["meta", "shift"],
-				description: "Split window horizontally (iTerm2 style)",
+				description: "Split window horizontally",
 				handler: (event) => {
 					event.preventDefault();
 					handlers.splitHorizontal();
@@ -165,7 +165,6 @@ export function createTabShortcuts(
 		},
 	];
 
-	// Add Cmd+1-9 shortcuts for jumping to tabs
 	for (let i = 1; i <= 9; i++) {
 		shortcuts.push({
 			key: i.toString(),
