@@ -1,4 +1,5 @@
-import type { MosaicNode } from "react-mosaic-component";
+import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
+import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import {
@@ -34,18 +35,15 @@ interface TabsState {
 	ungroupTab: (tabId: string, targetIndex?: number) => void;
 	ungroupTabs: (groupId: string) => void;
 
-	splitTabVertical: (workspaceId: string, sourceTabId?: string) => void;
-	splitTabHorizontal: (workspaceId: string, sourceTabId?: string) => void;
-
-	splitPaneVertical: (
-		groupId: string,
-		paneId: string,
-		path: number[],
+	splitTabVertical: (
+		workspaceId: string,
+		sourceTabId?: string,
+		path?: MosaicBranch[],
 	) => void;
-	splitPaneHorizontal: (
-		groupId: string,
-		paneId: string,
-		path: number[],
+	splitTabHorizontal: (
+		workspaceId: string,
+		sourceTabId?: string,
+		path?: MosaicBranch[],
 	) => void;
 
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
@@ -128,6 +126,145 @@ const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
 
 		return tab;
 	});
+};
+
+/**
+ * Splits a pane within an existing group
+ */
+const splitPaneInGroup = (
+	state: {
+		tabs: Tab[];
+		activeTabIds: Record<string, string | null>;
+		tabHistoryStacks: Record<string, string[]>;
+	},
+	tabToSplit: Tab,
+	workspaceId: string,
+	path: MosaicBranch[],
+	direction: "row" | "column",
+) => {
+	const group = state.tabs.find(
+		(t) => t.id === tabToSplit.parentId && t.type === TabType.Group,
+	);
+	if (!group || group.type !== TabType.Group || !group.layout) return state;
+
+	// Create a new child tab
+	const newTab = createNewTab(workspaceId, TabType.Single);
+	const newTabWithParent: Tab = {
+		...newTab,
+		parentId: tabToSplit.parentId,
+	};
+
+	// Update the mosaic layout
+	const newLayout = updateTree(group.layout, [
+		{
+			path,
+			spec: {
+				$set: {
+					direction,
+					first: tabToSplit.id,
+					second: newTab.id,
+					splitPercentage: 50,
+				},
+			},
+		},
+	]);
+
+	// Update the group's layout and add the new tab
+	const updatedTabs = state.tabs.map((tab) =>
+		tab.id === group.id && tab.type === TabType.Group
+			? { ...tab, layout: newLayout }
+			: tab,
+	);
+
+	return {
+		tabs: [...updatedTabs, newTabWithParent],
+	};
+};
+
+/**
+ * Converts a top-level tab into a group with a split
+ */
+const convertTabToGroup = (
+	state: {
+		tabs: Tab[];
+		activeTabIds: Record<string, string | null>;
+		tabHistoryStacks: Record<string, string[]>;
+	},
+	tabToSplit: Tab,
+	workspaceId: string,
+	direction: "row" | "column",
+) => {
+	// Create a new group tab
+	const groupTab: Tab = {
+		id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+		title: `${tabToSplit.title} - Split`,
+		workspaceId,
+		type: TabType.Group,
+		layout: null,
+		isNew: false,
+	};
+
+	// Create a new child tab for the new pane
+	const newChildTab: Tab = {
+		id: `tab-${Date.now() + 1}-${Math.random().toString(36).substring(2, 11)}`,
+		title: "New Tab",
+		workspaceId,
+		type: TabType.Single,
+		parentId: groupTab.id,
+		isNew: true,
+	};
+
+	// Update the original tab to be a child of the group
+	const updatedSourceTab: Tab = {
+		...tabToSplit,
+		parentId: groupTab.id,
+	};
+
+	// Create the split layout
+	const layout: MosaicNode<string> = {
+		direction,
+		first: tabToSplit.id,
+		second: newChildTab.id,
+		splitPercentage: 50,
+	};
+
+	const updatedGroupTab: Tab = {
+		...groupTab,
+		layout,
+	};
+
+	// Find the position of the original tab
+	const workspaceTabs = state.tabs.filter(
+		(t) => t.workspaceId === workspaceId && !t.parentId,
+	);
+	const sourceTabIndex = workspaceTabs.findIndex((t) => t.id === tabToSplit.id);
+
+	// Replace the source tab with the group and add the new child
+	const otherTabs = state.tabs.filter((t) => t.id !== tabToSplit.id);
+	const otherWorkspaceTabs = otherTabs.filter(
+		(t) => t.workspaceId === workspaceId && !t.parentId,
+	);
+	const nonWorkspaceTabs = otherTabs.filter(
+		(t) => t.workspaceId !== workspaceId || t.parentId,
+	);
+
+	// Insert the group at the original position
+	otherWorkspaceTabs.splice(sourceTabIndex, 0, updatedGroupTab);
+
+	const newTabs = [
+		...nonWorkspaceTabs,
+		...otherWorkspaceTabs,
+		updatedSourceTab,
+		newChildTab,
+	];
+
+	return {
+		tabs: newTabs,
+		activeTabIds: {
+			...state.activeTabIds,
+			[workspaceId]: updatedGroupTab.id,
+		},
+	};
 };
 
 /**
@@ -620,7 +757,7 @@ export const useTabsStore = create<TabsState>()(
 				return historyStack[0] || null;
 			},
 
-			splitTabVertical: (workspaceId, sourceTabId) => {
+			splitTabVertical: (workspaceId, sourceTabId, path) => {
 				set((state) => {
 					// Use provided sourceTabId or get the active tab
 					const tabToSplit = sourceTabId
@@ -631,83 +768,23 @@ export const useTabsStore = create<TabsState>()(
 
 					if (!tabToSplit || tabToSplit.type === TabType.Group) return state;
 
-					// Create a new group tab
-					const groupTab: Tab = {
-						id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-						title: `${tabToSplit.title} - Split`,
-						workspaceId,
-						type: TabType.Group,
-						layout: null,
-						isNew: false,
-					};
+					// Check if this tab is within a group (has a parentId) and path is provided
+					if (tabToSplit.parentId && path) {
+						return splitPaneInGroup(
+							state,
+							tabToSplit,
+							workspaceId,
+							path,
+							"row",
+						);
+					}
 
-					// Create a new child tab for the right pane
-					const newChildTab: Tab = {
-						id: `tab-${Date.now() + 1}-${Math.random().toString(36).substring(2, 11)}`,
-						title: "New Tab",
-						workspaceId,
-						type: TabType.Single,
-						parentId: groupTab.id,
-						isNew: true,
-					};
-
-					// Update the original tab to be a child of the group
-					const updatedSourceTab: Tab = {
-						...tabToSplit,
-						parentId: groupTab.id,
-					};
-
-					// Create the vertical split layout (row direction)
-					const layout: MosaicNode<string> = {
-						direction: "row",
-						first: tabToSplit.id,
-						second: newChildTab.id,
-						splitPercentage: 50,
-					};
-
-					const updatedGroupTab: Tab = {
-						...groupTab,
-						layout,
-					};
-
-					// Find the position of the original tab
-					const workspaceTabs = state.tabs.filter(
-						(t) => t.workspaceId === workspaceId && !t.parentId,
-					);
-					const sourceTabIndex = workspaceTabs.findIndex(
-						(t) => t.id === tabToSplit.id,
-					);
-
-					// Replace the source tab with the group and add the new child
-					const otherTabs = state.tabs.filter((t) => t.id !== tabToSplit.id);
-					const otherWorkspaceTabs = otherTabs.filter(
-						(t) => t.workspaceId === workspaceId && !t.parentId,
-					);
-					const nonWorkspaceTabs = otherTabs.filter(
-						(t) => t.workspaceId !== workspaceId || t.parentId,
-					);
-
-					// Insert the group at the original position
-					otherWorkspaceTabs.splice(sourceTabIndex, 0, updatedGroupTab);
-
-					const newTabs = [
-						...nonWorkspaceTabs,
-						...otherWorkspaceTabs,
-						updatedSourceTab,
-						newChildTab,
-					];
-
-					return {
-						tabs: newTabs,
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: updatedGroupTab.id,
-						},
-					};
+					// Convert top-level tab into a group
+					return convertTabToGroup(state, tabToSplit, workspaceId, "row");
 				});
 			},
 
-			splitTabHorizontal: (workspaceId, sourceTabId) => {
+			splitTabHorizontal: (workspaceId, sourceTabId, path) => {
 				set((state) => {
 					// Use provided sourceTabId or get the active tab
 					const tabToSplit = sourceTabId
@@ -718,79 +795,19 @@ export const useTabsStore = create<TabsState>()(
 
 					if (!tabToSplit || tabToSplit.type === TabType.Group) return state;
 
-					// Create a new group tab
-					const groupTab: Tab = {
-						id: `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
-						title: `${tabToSplit.title} - Split`,
-						workspaceId,
-						type: TabType.Group,
-						layout: null,
-						isNew: false,
-					};
+					// Check if this tab is within a group (has a parentId) and path is provided
+					if (tabToSplit.parentId && path) {
+						return splitPaneInGroup(
+							state,
+							tabToSplit,
+							workspaceId,
+							path,
+							"column",
+						);
+					}
 
-					// Create a new child tab for the bottom pane
-					const newChildTab: Tab = {
-						id: `tab-${Date.now() + 1}-${Math.random().toString(36).substring(2, 11)}`,
-						title: "New Tab",
-						workspaceId,
-						type: TabType.Single,
-						parentId: groupTab.id,
-						isNew: true,
-					};
-
-					// Update the original tab to be a child of the group
-					const updatedSourceTab: Tab = {
-						...tabToSplit,
-						parentId: groupTab.id,
-					};
-
-					// Create the horizontal split layout (column direction)
-					const layout: MosaicNode<string> = {
-						direction: "column",
-						first: tabToSplit.id,
-						second: newChildTab.id,
-						splitPercentage: 50,
-					};
-
-					const updatedGroupTab: Tab = {
-						...groupTab,
-						layout,
-					};
-
-					// Find the position of the original tab
-					const workspaceTabs = state.tabs.filter(
-						(t) => t.workspaceId === workspaceId && !t.parentId,
-					);
-					const sourceTabIndex = workspaceTabs.findIndex(
-						(t) => t.id === tabToSplit.id,
-					);
-
-					// Replace the source tab with the group and add the new child
-					const otherTabs = state.tabs.filter((t) => t.id !== tabToSplit.id);
-					const otherWorkspaceTabs = otherTabs.filter(
-						(t) => t.workspaceId === workspaceId && !t.parentId,
-					);
-					const nonWorkspaceTabs = otherTabs.filter(
-						(t) => t.workspaceId !== workspaceId || t.parentId,
-					);
-
-					// Insert the group at the original position
-					otherWorkspaceTabs.splice(sourceTabIndex, 0, updatedGroupTab);
-
-					const newTabs = [
-						...nonWorkspaceTabs,
-						...otherWorkspaceTabs,
-						updatedSourceTab,
-						newChildTab,
-					];
-
-					return {
-						tabs: newTabs,
-						activeTabIds: {
-							...state.activeTabIds,
-							[workspaceId]: updatedGroupTab.id,
-						},
-					};
+					// Convert top-level tab into a group
+					return convertTabToGroup(state, tabToSplit, workspaceId, "column");
 				});
 			},
 		}),

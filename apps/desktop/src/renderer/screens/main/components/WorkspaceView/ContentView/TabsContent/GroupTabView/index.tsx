@@ -7,17 +7,15 @@ import {
 	type MosaicBranch,
 	type MosaicNode,
 	MosaicWindow,
-	updateTree,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
 import {
 	cleanLayout,
-	createNewTab,
 	getChildTabIds,
-	type Tab,
 	type TabGroup,
-	TabType,
 	useActiveTabIds,
+	useSplitTabHorizontal,
+	useSplitTabVertical,
 	useTabs,
 	useTabsStore,
 } from "renderer/stores";
@@ -56,6 +54,8 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 	const removeChildTabFromGroup = useTabsStore(
 		(state) => state.removeChildTabFromGroup,
 	);
+	const splitTabHorizontal = useSplitTabHorizontal();
+	const splitTabVertical = useSplitTabVertical();
 	const activeTabIds = useActiveTabIds();
 	const activeTabId = activeTabIds[tab.workspaceId];
 
@@ -84,72 +84,16 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 
 	const handleSplitHorizontal = useCallback(
 		(tabId: string, path: MosaicBranch[]) => {
-			// Create a new child tab
-			const newTab = createNewTab(tab.workspaceId, TabType.Single);
-			const newTabWithParent: Tab = {
-				...newTab,
-				parentId: tab.id,
-			};
-
-			// Add the new tab to the store
-			useTabsStore.setState((state) => ({
-				tabs: [...state.tabs, newTabWithParent],
-			}));
-
-			// Update the mosaic layout to split horizontally (column direction)
-			if (cleanedLayout) {
-				const newLayout = updateTree(cleanedLayout, [
-					{
-						path,
-						spec: {
-							$set: {
-								direction: "column" as const,
-								first: tabId,
-								second: newTab.id,
-								splitPercentage: 50,
-							},
-						},
-					},
-				]);
-				updateTabGroupLayout(tab.id, newLayout);
-			}
+			splitTabHorizontal(tab.workspaceId, tabId, path);
 		},
-		[tab.id, tab.workspaceId, cleanedLayout, updateTabGroupLayout],
+		[tab.workspaceId, splitTabHorizontal],
 	);
 
 	const handleSplitVertical = useCallback(
 		(tabId: string, path: MosaicBranch[]) => {
-			// Create a new child tab
-			const newTab = createNewTab(tab.workspaceId, TabType.Single);
-			const newTabWithParent: Tab = {
-				...newTab,
-				parentId: tab.id,
-			};
-
-			// Add the new tab to the store
-			useTabsStore.setState((state) => ({
-				tabs: [...state.tabs, newTabWithParent],
-			}));
-
-			// Update the mosaic layout to split vertically (row direction)
-			if (cleanedLayout) {
-				const newLayout = updateTree(cleanedLayout, [
-					{
-						path,
-						spec: {
-							$set: {
-								direction: "row" as const,
-								first: tabId,
-								second: newTab.id,
-								splitPercentage: 50,
-							},
-						},
-					},
-				]);
-				updateTabGroupLayout(tab.id, newLayout);
-			}
+			splitTabVertical(tab.workspaceId, tabId, path);
 		},
-		[tab.id, tab.workspaceId, cleanedLayout, updateTabGroupLayout],
+		[tab.workspaceId, splitTabVertical],
 	);
 
 	const handleClosePane = useCallback(
