@@ -1,5 +1,13 @@
 import type { Database } from "./types";
 
+// Helper type to extract value type from Record collections
+type CollectionValue<K extends keyof Database> = Database[K] extends Record<
+	string,
+	infer V
+>
+	? V
+	: never;
+
 /**
  * Generic storage adapter interface
  * Abstracts persistence layer to allow easy migration from Lowdb to other solutions
@@ -34,7 +42,7 @@ export interface StorageAdapter {
 	get<K extends keyof Database>(
 		collection: K,
 		id: string,
-	): Promise<Database[K][string] | undefined>;
+	): Promise<CollectionValue<K> | undefined>;
 
 	/**
 	 * Set a single entity in a collection
@@ -42,7 +50,7 @@ export interface StorageAdapter {
 	set<K extends keyof Database>(
 		collection: K,
 		id: string,
-		value: Database[K][string],
+		value: CollectionValue<K>,
 	): Promise<void>;
 
 	/**

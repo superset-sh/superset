@@ -1,6 +1,7 @@
 import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
@@ -22,6 +23,9 @@ if (process.defaultApp) {
 app.on("open-url", (event, url) => {
 	event.preventDefault();
 });
+
+// Register storage IPC handlers
+registerStorageHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {

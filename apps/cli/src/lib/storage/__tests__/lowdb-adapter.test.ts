@@ -4,7 +4,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Change, Environment, Process } from "../../../types/index";
-import { ProcessType } from "../../../types/process";
+import { ProcessStatus, ProcessType } from "../../../types/process";
 import { LowdbAdapter } from "../lowdb-adapter";
 
 describe("LowdbAdapter", () => {
@@ -124,6 +124,7 @@ describe("LowdbAdapter", () => {
 				id: "proc-1",
 				type: ProcessType.TERMINAL,
 				workspaceId: "ws-1",
+				status: ProcessStatus.RUNNING,
 				title: "Test Process",
 				createdAt: now,
 				updatedAt: now,
@@ -143,6 +144,7 @@ describe("LowdbAdapter", () => {
 				id: "proc-1",
 				type: ProcessType.TERMINAL,
 				workspaceId: "ws-1",
+				status: ProcessStatus.RUNNING,
 				title: "Test Process",
 				createdAt: now,
 				updatedAt: now,

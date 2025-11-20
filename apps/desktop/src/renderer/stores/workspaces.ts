@@ -1,5 +1,6 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
+import { electronStorage } from "../lib/electron-storage";
 
 export interface Workspace {
 	id: string;
@@ -26,65 +27,71 @@ const createNewWorkspace = (): Workspace => ({
 
 export const useWorkspacesStore = create<WorkspacesState>()(
 	devtools(
-		(set) => ({
-			workspaces: [{ id: "workspace-1", title: "Home" }],
-			activeWorkspaceId: "workspace-1",
+		persist(
+			(set) => ({
+				workspaces: [],
+				activeWorkspaceId: null,
 
-			addWorkspace: () => {
-				const newWorkspace = createNewWorkspace();
-				set((state) => ({
-					workspaces: [...state.workspaces, newWorkspace],
-					activeWorkspaceId: newWorkspace.id,
-				}));
-			},
+				addWorkspace: () => {
+					const newWorkspace = createNewWorkspace();
+					set((state) => ({
+						workspaces: [...state.workspaces, newWorkspace],
+						activeWorkspaceId: newWorkspace.id,
+					}));
+				},
 
-			removeWorkspace: (id) => {
-				set((state) => {
-					const workspaces = state.workspaces.filter(
-						(workspace) => workspace.id !== id,
-					);
-					if (workspaces.length === 0) {
-						const newWorkspace = createNewWorkspace();
-						return {
-							workspaces: [newWorkspace],
-							activeWorkspaceId: newWorkspace.id,
-						};
-					}
-
-					if (id === state.activeWorkspaceId) {
-						const closedIndex = state.workspaces.findIndex(
-							(workspace) => workspace.id === id,
+				removeWorkspace: (id) => {
+					set((state) => {
+						const workspaces = state.workspaces.filter(
+							(workspace) => workspace.id !== id,
 						);
-						const nextWorkspace =
-							workspaces[closedIndex] || workspaces[closedIndex - 1];
-						return { workspaces, activeWorkspaceId: nextWorkspace.id };
-					}
+						if (workspaces.length === 0) {
+							const newWorkspace = createNewWorkspace();
+							return {
+								workspaces: [newWorkspace],
+								activeWorkspaceId: newWorkspace.id,
+							};
+						}
 
-					return { workspaces };
-				});
-			},
+						if (id === state.activeWorkspaceId) {
+							const closedIndex = state.workspaces.findIndex(
+								(workspace) => workspace.id === id,
+							);
+							const nextWorkspace =
+								workspaces[closedIndex] || workspaces[closedIndex - 1];
+							return { workspaces, activeWorkspaceId: nextWorkspace.id };
+						}
 
-			setActiveWorkspace: (id) => {
-				set({ activeWorkspaceId: id });
-			},
+						return { workspaces };
+					});
+				},
 
-			reorderWorkspaces: (startIndex, endIndex) => {
-				set((state) => {
-					const workspaces = [...state.workspaces];
-					const [removed] = workspaces.splice(startIndex, 1);
-					workspaces.splice(endIndex, 0, removed);
-					return { workspaces };
-				});
-			},
+				setActiveWorkspace: (id) => {
+					set({ activeWorkspaceId: id });
+				},
 
-			markWorkspaceAsUsed: (id) => {
-				set((state) => ({
-					workspaces: state.workspaces.map((workspace) =>
-						workspace.id === id ? { ...workspace, isNew: false } : workspace,
-					),
-				}));
+				reorderWorkspaces: (startIndex, endIndex) => {
+					set((state) => {
+						const workspaces = [...state.workspaces];
+						const [removed] = workspaces.splice(startIndex, 1);
+						workspaces.splice(endIndex, 0, removed);
+						return { workspaces };
+					});
+				},
+
+				markWorkspaceAsUsed: (id) => {
+					set((state) => ({
+						workspaces: state.workspaces.map((workspace) =>
+							workspace.id === id ? { ...workspace, isNew: false } : workspace,
+						),
+					}));
+				},
+			}),
+			{
+				name: "workspaces-storage",
+				storage: electronStorage,
 			},
-		}),
+		),
 		{ name: "WorkspacesStore" },
 	),
 );

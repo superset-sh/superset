@@ -109,7 +109,7 @@ describe("EnvironmentOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				{ path: "/tmp/test" },
 			);
 
 			await orchestrator.delete(env.id);
@@ -122,7 +122,7 @@ describe("EnvironmentOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				{ path: "/tmp/test" },
 			);
 			const process = await processOrchestrator.create(
 				ProcessType.TERMINAL,
@@ -139,12 +139,12 @@ describe("EnvironmentOrchestrator", () => {
 			const ws1 = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test1",
+				{ path: "/tmp/test1" },
 			);
 			const ws2 = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test2",
+				{ path: "/tmp/test2" },
 			);
 
 			await processOrchestrator.create(ProcessType.TERMINAL, ws1);

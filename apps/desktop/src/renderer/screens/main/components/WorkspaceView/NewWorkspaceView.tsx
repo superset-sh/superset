@@ -1,4 +1,16 @@
+import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { useAddTab } from "renderer/stores";
+
 export function NewWorkspaceView() {
+	const activeWorkspaceId = useWorkspacesStore(
+		(state) => state.activeWorkspaceId,
+	);
+	const addWorkspace = useWorkspacesStore((state) => state.addWorkspace);
+	const markWorkspaceAsUsed = useWorkspacesStore(
+		(state) => state.markWorkspaceAsUsed,
+	);
+	const addTab = useAddTab();
+
 	return (
 		<div className="flex-1 h-full flex items-center justify-center">
 			<div className="text-center max-w-2xl px-6">
@@ -29,11 +41,27 @@ export function NewWorkspaceView() {
 					</button>
 					<button
 						type="button"
+						onClick={() => {
+							if (!activeWorkspaceId) {
+								addWorkspace();
+								setTimeout(() => {
+									const newWorkspaceId =
+										useWorkspacesStore.getState().activeWorkspaceId;
+									if (newWorkspaceId) {
+										addTab(newWorkspaceId);
+										markWorkspaceAsUsed(newWorkspaceId);
+									}
+								}, 0);
+							} else {
+								addTab(activeWorkspaceId);
+								markWorkspaceAsUsed(activeWorkspaceId);
+							}
+						}}
 						className="p-6 border border-border rounded-lg hover:bg-accent hover:border-accent-foreground transition-colors text-left"
 					>
 						<div className="text-2xl mb-2">🔍</div>
-						<div className="font-medium text-foreground">Search</div>
-						<div className="text-sm text-muted-foreground">Find anything</div>
+						<div className="font-medium text-foreground">Create Tab & Start</div>
+						<div className="text-sm text-muted-foreground">Test persistence</div>
 					</button>
 					<button
 						type="button"

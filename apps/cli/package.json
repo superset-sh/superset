@@ -2,13 +2,15 @@
 	"name": "@superset/cli",
 	"version": "0.0.0",
 	"license": "MIT",
-	"bin": "dist/cli.js",
+	"bin": {
+		"superset": "dist/cli.js"
+	},
 	"type": "module",
 	"engines": {
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node --packages=bundle",
+		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node",
 		"dev": "tsc --watch",
 		"start": "bun src/server.ts",
 		"typecheck": "tsc --noEmit",
@@ -31,6 +33,7 @@
 		"ink": "^6.5.0",
 		"ink-select-input": "^6.2.0",
 		"ink-table": "^3.1.0",
+		"ink-text-input": "^6.0.0",
 		"lowdb": "^7.0.1",
 		"meow": "^11.0.0",
 		"react": "^19.1.1"

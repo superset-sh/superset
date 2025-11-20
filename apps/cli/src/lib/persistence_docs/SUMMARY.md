@@ -200,7 +200,7 @@ const changesInWorkspace = await changes.list(workspace.id);
 await environments.update(env.id, { /* updates */ });
 await processes.update(process.id, { title: "New Title" });
 await processes.stop(process.id); // Sets endedAt
-await processes.stopAll(); // Stops all running processes
+await processes.stopAll(); // Stops all running agents (not terminals)
 ```
 
 ### Deleting Data

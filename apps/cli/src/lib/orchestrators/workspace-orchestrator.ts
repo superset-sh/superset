@@ -3,8 +3,8 @@ import type {
 	WorkspaceOrchestrator as IWorkspaceOrchestrator,
 	LocalWorkspace,
 	Workspace,
-	WorkspaceType,
 } from "../../types/workspace";
+import { WorkspaceType } from "../../types/workspace";
 import type { StorageAdapter } from "../storage/adapter";
 
 /**
@@ -19,12 +19,27 @@ export class WorkspaceOrchestrator implements IWorkspaceOrchestrator {
 		if (!workspace) {
 			throw new Error(`Workspace with id ${id} not found`);
 		}
-		return workspace;
+
+		const backfilled = this.backfillDefaults(workspace);
+
+		// Persist backfilled defaults if they were added
+		const needsPersist =
+			!workspace.createdAt ||
+			!workspace.updatedAt ||
+			workspace.defaultAgents === undefined;
+
+		if (needsPersist) {
+			await this.storage.set("workspaces", id, backfilled);
+		}
+
+		return backfilled;
 	}
 
 	async list(environmentId?: string): Promise<Workspace[]> {
 		const workspaces = await this.storage.getCollection("workspaces");
-		const workspaceList = Object.values(workspaces);
+		const workspaceList = Object.values(workspaces).map((w) =>
+			this.backfillDefaults(w),
+		);
 
 		if (environmentId) {
 			return workspaceList.filter((w) => w.environmentId === environmentId);
@@ -33,27 +48,121 @@ export class WorkspaceOrchestrator implements IWorkspaceOrchestrator {
 		return workspaceList;
 	}
 
+	async getCurrent(): Promise<Workspace | null> {
+		const db = await this.storage.read();
+
+		// Defensive: handle missing state object (old DB files)
+		if (!db.state) {
+			db.state = {};
+			await this.storage.write(db);
+			return null;
+		}
+
+		const currentId = db.state.currentWorkspaceId;
+
+		if (!currentId) {
+			return null;
+		}
+
+		try {
+			return await this.get(currentId);
+		} catch {
+			// Current workspace was deleted, clear the pointer
+			const newDb = await this.storage.read();
+			if (!newDb.state) {
+				newDb.state = {};
+			}
+			newDb.state.currentWorkspaceId = undefined;
+			await this.storage.write(newDb);
+			return null;
+		}
+	}
+
+	private backfillDefaults(workspace: Workspace): Workspace {
+		const now = new Date();
+		return {
+			...workspace,
+			createdAt: workspace.createdAt || now,
+			updatedAt: workspace.updatedAt || now,
+			lastUsedAt: workspace.lastUsedAt,
+			name: workspace.name,
+			description: workspace.description,
+			defaultAgents: workspace.defaultAgents || [],
+		};
+	}
+
 	async create(
 		environmentId: string,
 		type: WorkspaceType,
-		path?: string,
+		options?: {
+			path?: string;
+			branch?: string;
+			name?: string;
+			description?: string;
+			defaultAgents?: string[];
+		},
 	): Promise<Workspace> {
-		const workspace: Workspace | LocalWorkspace =
-			type === "local" && path
-				? ({
-						id: randomUUID(),
-						type,
-						environmentId,
-						path,
-					} as LocalWorkspace)
-				: {
-						id: randomUUID(),
-						type,
-						environmentId,
-					};
+		// Validate required fields based on type
+		if (type === WorkspaceType.LOCAL && !options?.path) {
+			throw new Error("Local workspace requires a path");
+		}
+		if (type === WorkspaceType.CLOUD && !options?.branch) {
+			throw new Error("Cloud workspace requires a branch/ref");
+		}
+
+		const now = new Date();
+		const baseWorkspace = {
+			id: randomUUID(),
+			type,
+			environmentId,
+			name: options?.name,
+			description: options?.description,
+			createdAt: now,
+			updatedAt: now,
+			defaultAgents: options?.defaultAgents || [],
+		};
+
+		let workspace: Workspace;
+		if (type === WorkspaceType.LOCAL) {
+			workspace = {
+				...baseWorkspace,
+				type: WorkspaceType.LOCAL,
+				path: options!.path!,
+			} as LocalWorkspace;
+		} else if (type === WorkspaceType.CLOUD) {
+			workspace = {
+				...baseWorkspace,
+				type: WorkspaceType.CLOUD,
+				branch: options!.branch!,
+			} as any; // CloudWorkspace
+		} else {
+			throw new Error(`Unknown workspace type: ${type}`);
+		}
 
 		await this.storage.set("workspaces", workspace.id, workspace);
+
+		// Auto-select the newly created workspace
+		await this.use(workspace.id);
+
 		return workspace;
+	}
+
+	async use(id: string): Promise<void> {
+		// Verify workspace exists
+		await this.get(id);
+
+		// Update lastUsedAt
+		const workspace = await this.storage.get("workspaces", id);
+		if (workspace) {
+			workspace.lastUsedAt = new Date();
+			workspace.updatedAt = new Date();
+			await this.storage.set("workspaces", id, workspace);
+		}
+
+		// Set as current workspace
+		const db = await this.storage.read();
+		db.state.currentWorkspaceId = id;
+		await this.storage.write(db);
 	}
 
 	async update(id: string, updates: Partial<Workspace>): Promise<void> {

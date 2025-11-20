@@ -3,23 +3,29 @@ import { Command } from "commander";
 import { render } from "ink";
 import React from "react";
 import {
+	AgentAttach,
 	AgentCreate,
 	AgentDelete,
 	AgentGet,
 	AgentList,
+	AgentStart,
 	AgentStop,
 	AgentStopAll,
 	ChangeCreate,
 	ChangeDelete,
 	ChangeList,
+	Dashboard,
 	EnvCreate,
 	EnvDelete,
 	EnvGet,
 	EnvList,
+	Init,
+	Panels,
 	WorkspaceCreate,
 	WorkspaceDelete,
 	WorkspaceGet,
 	WorkspaceList,
+	WorkspaceUse,
 } from "./commands/index";
 import { AgentType, ProcessType } from "./types/process";
 import { WorkspaceType } from "./types/workspace";
@@ -33,8 +39,34 @@ program
 	)
 	.version("0.1.0");
 
+// Init command
+program
+	.command("init")
+	.description("Interactive workspace creation wizard")
+	.action(() => {
+		render(<Init />);
+	});
+
+// Dashboard command
+program
+	.command("dashboard")
+	.description("Show dashboard with all agents and workspaces")
+	.action(() => {
+		render(<Dashboard />);
+	});
+
+// Panels command
+program
+	.command("panels")
+	.description("Show three-panel IDE-style interface")
+	.action(() => {
+		render(<Panels />);
+	});
+
 // Environment commands
-const env = program.command("env").description("Manage environments");
+const env = program
+	.command("env")
+	.description("Manage environments (list, get, create, delete)");
 
 env
 	.command("list")
@@ -69,7 +101,9 @@ env
 	});
 
 // Workspace commands
-const workspace = program.command("workspace").description("Manage workspaces");
+const workspace = program
+	.command("workspace")
+	.description("Manage workspaces (list, get, create, use, delete)");
 
 workspace
 	.command("list")
@@ -128,10 +162,20 @@ workspace
 		render(<WorkspaceDelete id={id} onComplete={() => process.exit(0)} />);
 	});
 
+workspace
+	.command("use")
+	.description("Set current workspace (updates lastUsedAt)")
+	.argument("<id>", "Workspace ID")
+	.action((id: string) => {
+		render(<WorkspaceUse id={id} onComplete={() => process.exit(0)} />);
+	});
+
 // Agent/Process commands
 const agent = program
 	.command("agent")
-	.description("Manage agents and processes");
+	.description(
+		"Manage agents and processes (start, stop, stop-all, list, delete)",
+	);
 
 agent
 	.command("list")
@@ -152,6 +196,24 @@ agent
 	.argument("<id>", "Agent/Process ID")
 	.action((id: string) => {
 		render(<AgentGet id={id} onComplete={() => process.exit(0)} />);
+	});
+
+agent
+	.command("start")
+	.description(
+		"Start agents (uses current workspace if no ID provided, or workspace's default agents)",
+	)
+	.argument("[workspaceId]", "Workspace ID (optional, uses current workspace)")
+	.action((workspaceId?: string) => {
+		render(<AgentStart workspaceId={workspaceId} />);
+	});
+
+agent
+	.command("attach")
+	.description("Attach to an agent's tmux session")
+	.argument("<id>", "Agent ID or session name (e.g., agent-abc123)")
+	.action((id: string) => {
+		render(<AgentAttach id={id} onComplete={() => process.exit(0)} />);
 	});
 
 agent
@@ -208,9 +270,17 @@ agent
 
 agent
 	.command("stop-all")
-	.description("Stop all agents/processes")
-	.action(() => {
-		render(<AgentStopAll onComplete={() => process.exit(0)} />);
+	.description(
+		"Stop all agents in workspace (kills tmux sessions, does not affect terminals)",
+	)
+	.option("--workspace <workspaceId>", "Workspace ID to stop agents in")
+	.action((options: { workspace?: string }) => {
+		render(
+			<AgentStopAll
+				workspaceId={options.workspace}
+				onComplete={() => process.exit(0)}
+			/>,
+		);
 	});
 
 agent
@@ -222,7 +292,9 @@ agent
 	});
 
 // Change commands
-const change = program.command("change").description("Manage changes");
+const change = program
+	.command("change")
+	.description("Manage changes (list, create, delete)");
 
 change
 	.command("list")
@@ -259,5 +331,53 @@ change
 	.action((id: string) => {
 		render(<ChangeDelete id={id} onComplete={() => process.exit(0)} />);
 	});
+
+// Default action when no command is provided
+program.action(async () => {
+	console.log("\n👋 Welcome to Superset CLI!\n");
+
+	// Show current workspace if set
+	try {
+		const { getDb } = await import("./lib/db");
+		const { WorkspaceOrchestrator } = await import(
+			"./lib/orchestrators/workspace-orchestrator"
+		);
+		const db = getDb();
+		const orchestrator = new WorkspaceOrchestrator(db);
+		const currentWorkspace = await orchestrator.getCurrent();
+
+		if (currentWorkspace) {
+			console.log(
+				`📁 Current workspace: ${currentWorkspace.name || currentWorkspace.id}`,
+			);
+			if ("path" in currentWorkspace && currentWorkspace.path) {
+				console.log(`   Path: ${currentWorkspace.path}`);
+			}
+			if ("branch" in currentWorkspace && currentWorkspace.branch) {
+				console.log(`   Branch: ${currentWorkspace.branch}`);
+			}
+			console.log("");
+		} else {
+			console.log(
+				"💡 No workspace selected. Run 'superset init' to get started!\n",
+			);
+		}
+	} catch (err) {
+		// Silently ignore errors (e.g., no database yet)
+	}
+
+	console.log("Get started with these commands:\n");
+	console.log("  superset init                  Create workspace (wizard)");
+	console.log("  superset dashboard             Show dashboard overview");
+	console.log(
+		"  superset panels                Show three-panel IDE interface",
+	);
+	console.log("  superset workspace use <id>    Switch to a workspace");
+	console.log(
+		"  superset agent start           Start agents in current workspace",
+	);
+	console.log("\nFor more information, run: superset --help\n");
+	process.exit(0);
+});
 
 program.parse();
