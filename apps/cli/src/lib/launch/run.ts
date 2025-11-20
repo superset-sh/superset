@@ -176,21 +176,6 @@ export async function attachToAgent(
 
 	return new Promise((resolve) => {
 		try {
-			// Set tmux status bar message before attaching
-			try {
-				execSync(
-					`tmux set-option -t "${sessionName}" status-left-length 100 2>/dev/null`,
-				);
-				execSync(
-					`tmux set-option -t "${sessionName}" status-style "bg=yellow,fg=black" 2>/dev/null`,
-				);
-				execSync(
-					`tmux set-option -t "${sessionName}" status-left "#[bg=yellow,fg=black,bold] Ctrl-b d to detach and keep agent running #[default]" 2>/dev/null`,
-				);
-			} catch {
-				// Ignore errors setting status bar
-			}
-
 			// Spawn tmux attach with inherited stdio
 			const child = spawn("tmux", ["attach", "-t", sessionName], {
 				stdio: "inherit",

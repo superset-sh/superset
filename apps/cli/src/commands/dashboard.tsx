@@ -152,10 +152,10 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 					return;
 				}
 
-				// Exit Ink immediately and launch agent
 				const agentToLaunch = selectedAgent as Agent;
+				// Exit Ink to stop useInput before tmux takes over stdin
 				exit();
-				setTimeout(async () => {
+				setImmediate(async () => {
 					const result = await launchAgent(agentToLaunch, { attach: true });
 
 					if (!result.success) {
@@ -184,7 +184,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 						process.exit(1);
 					}
 					process.exit(0);
-				}, 100);
+				});
 			}
 		} else if (input === "r") {
 			loadDashboard();

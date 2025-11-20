@@ -25,6 +25,9 @@ interface PanelsProps {
 
 type ActivePanel = "workspaces" | "agents" | "details";
 
+// Threshold for responsive layout - hide details panel and adjust widths below this
+const SMALL_TERMINAL_THRESHOLD = 80;
+
 export function Panels({ onComplete: _onComplete }: PanelsProps) {
 	const [data, setData] = React.useState<PanelsData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
@@ -135,10 +138,10 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 					return;
 				}
 
-				// Exit Ink immediately and launch agent
 				const agentToAttach = selectedAgent as Agent;
+				// Exit Ink to stop useInput before tmux takes over stdin
 				exit();
-				setTimeout(async () => {
+				setImmediate(async () => {
 					const result = await launchAgent(agentToAttach, { attach: true });
 
 					if (!result.success) {
@@ -151,7 +154,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								endedAt: new Date(),
 							});
 						} catch (dbError) {
-							// Log DB error but don't fail the process
 							console.error(
 								`\nWarning: Failed to update agent status: ${dbError instanceof Error ? dbError.message : String(dbError)}\n`,
 							);
@@ -167,7 +169,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 						process.exit(1);
 					}
 					process.exit(0);
-				}, 100);
+				});
 			}
 		}
 
@@ -197,293 +199,225 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 		: agents;
 	const selectedAgent = filteredAgents[selectedAgentIndex];
 
-	const panelHeight = terminalHeight - 4;
-	const leftPanelWidth = Math.floor(terminalWidth * 0.25);
-	const middlePanelWidth = Math.floor(terminalWidth * 0.3);
-	const rightPanelWidth = terminalWidth - leftPanelWidth - middlePanelWidth - 6;
-
-	const getStatusIcon = (status: ProcessStatus, endedAt?: Date) => {
-		if (endedAt) return "○";
-		switch (status) {
-			case ProcessStatus.RUNNING:
-				return "●";
-			case ProcessStatus.IDLE:
-				return "○";
-			default:
-				return "○";
-		}
-	};
-
-	const getStatusColor = (
-		status: ProcessStatus,
-		endedAt?: Date,
-	): "green" | "yellow" | "gray" | undefined => {
-		if (endedAt) return "gray";
-		switch (status) {
-			case ProcessStatus.RUNNING:
-				return "green";
-			case ProcessStatus.IDLE:
-				return "yellow";
-			default:
-				return "gray";
-		}
-	};
-
 	return (
-		<Box flexDirection="column" height={terminalHeight}>
+		<Box
+			flexDirection="column"
+			paddingX={1}
+			paddingY={1}
+			height={terminalHeight}
+			width={terminalWidth}
+		>
 			{/* Header */}
-			<Box
-				borderStyle="single"
-				borderColor="cyan"
-				paddingX={1}
-				height={3}
-				width={terminalWidth}
-			>
-				<Box flexDirection="row" justifyContent="space-between" width="100%">
-					<Text bold color="cyan">
-						SUPERSET
-					</Text>
-					<Text dimColor>
-						{selectedWorkspace &&
-							`${selectedWorkspace.name || selectedWorkspace.id.slice(0, 8)}`}
-					</Text>
-				</Box>
+			<Box flexDirection="row" justifyContent="space-between" marginBottom={1}>
+				<Text bold>SUPERSET PANELS</Text>
+				<Text dimColor>{data.lastRefresh.toLocaleTimeString()}</Text>
 			</Box>
 
-			{/* Three Panel Layout */}
-			<Box flexDirection="row" height={panelHeight}>
-				{/* Left Panel - Workspaces */}
+			{/* Panels layout */}
+			<Box flexDirection="row" gap={1} flexGrow={1}>
+				{/* Workspaces panel */}
 				<Box
-					borderStyle="single"
-					borderColor={activePanel === "workspaces" ? "cyan" : "gray"}
 					flexDirection="column"
-					width={leftPanelWidth}
-					height={panelHeight}
+					borderStyle="round"
+					borderColor={activePanel === "workspaces" ? "cyan" : "gray"}
+					padding={1}
+					width={
+						terminalWidth < SMALL_TERMINAL_THRESHOLD
+							? Math.max(20, Math.floor(terminalWidth * 0.35))
+							: Math.max(24, Math.floor(terminalWidth * 0.25))
+					}
 				>
-					<Box paddingX={1} borderBottom borderColor="gray">
-						<Text
-							bold
-							color={activePanel === "workspaces" ? "cyan" : undefined}
-						>
-							WORKSPACES
-						</Text>
+					<Box marginBottom={1}>
+						<Text bold>Workspaces ({workspaces.length})</Text>
 					</Box>
-					<Box flexDirection="column" paddingX={1} paddingY={0}>
-						{workspaces.map((ws, index) => {
-							const isSelected = index === selectedWorkspaceIndex;
-							const isCurrent = ws.id === currentWorkspaceId;
-							const wsAgents = agents.filter((a) => a.workspaceId === ws.id);
-							const wsRunning = wsAgents.filter(
-								(a) => a.status === ProcessStatus.RUNNING,
-							);
+					{workspaces.length === 0 ? (
+						<Text dimColor>No workspaces</Text>
+					) : (
+						<Box flexDirection="column" gap={0}>
+							{workspaces.map((ws, index) => {
+								const wsAgents = agents.filter((a) => a.workspaceId === ws.id);
+								const wsRunning = wsAgents.filter(
+									(a) => a.status === ProcessStatus.RUNNING || !a.endedAt,
+								);
+								const isSelected = index === selectedWorkspaceIndex;
+								const isCurrent = ws.id === currentWorkspaceId;
+								const statusEmoji = wsRunning.length > 0 ? "●" : "○";
+								const statusColor = wsRunning.length > 0 ? "green" : "gray";
 
-							return (
-								<Box key={ws.id} flexDirection="row" gap={1}>
-									<Text
-										bold={isSelected}
-										color={isSelected ? "cyan" : isCurrent ? "white" : "gray"}
-									>
-										{isSelected ? "▸" : " "} {wsRunning.length > 0 ? "●" : "○"}{" "}
-										{ws.name || ws.id.slice(0, 8)}
-									</Text>
-								</Box>
-							);
-						})}
-						<Box marginTop={1}>
-							<Text dimColor>[W] New</Text>
+								return (
+									<Box key={ws.id} flexDirection="column" marginBottom={1}>
+										<Box flexDirection="row" gap={1}>
+											<Text color={isSelected ? "cyan" : undefined}>
+												{isSelected ? "▸" : " "}
+											</Text>
+											<Text color={statusColor}>{statusEmoji}</Text>
+											<Text
+												bold={isCurrent || isSelected}
+												color={
+													isSelected ? "cyan" : isCurrent ? "white" : undefined
+												}
+											>
+												{ws.name || ws.id.slice(0, 8)}
+											</Text>
+										</Box>
+										<Text dimColor>
+											{"  "}
+											{ws.type}
+											{isCurrent && " (active)"}
+										</Text>
+									</Box>
+								);
+							})}
 						</Box>
-					</Box>
+					)}
 				</Box>
 
-				{/* Middle Panel - Agents */}
+				{/* Agents panel */}
 				<Box
-					borderStyle="single"
-					borderColor={activePanel === "agents" ? "yellow" : "gray"}
 					flexDirection="column"
-					width={middlePanelWidth}
-					height={panelHeight}
+					borderStyle="round"
+					borderColor={activePanel === "agents" ? "yellow" : "gray"}
+					padding={1}
+					width={
+						terminalWidth < SMALL_TERMINAL_THRESHOLD
+							? undefined
+							: Math.max(30, Math.floor(terminalWidth * 0.35))
+					}
+					flexGrow={terminalWidth < SMALL_TERMINAL_THRESHOLD ? 1 : 0}
 				>
-					<Box paddingX={1} borderBottom borderColor="gray">
-						<Text bold color={activePanel === "agents" ? "yellow" : undefined}>
-							AGENTS ({filteredAgents.length})
-						</Text>
+					<Box marginBottom={1}>
+						<Text bold>Agents ({filteredAgents.length})</Text>
 					</Box>
-					<Box flexDirection="column" paddingX={1} paddingY={0}>
-						{filteredAgents.length === 0 ? (
-							<Text dimColor>No agents</Text>
-						) : (
-							filteredAgents.map((agent, index) => {
+					{filteredAgents.length === 0 ? (
+						<Text dimColor>No agents</Text>
+					) : (
+						<Box flexDirection="column" gap={0}>
+							{filteredAgents.map((agent, index) => {
 								const isSelected = index === selectedAgentIndex;
 								const agentType =
 									agent.type === ProcessType.AGENT && "agentType" in agent
 										? String(agent.agentType)
 										: "unknown";
-								const sessionName =
-									agent.type === ProcessType.AGENT &&
-									"sessionName" in agent &&
-									agent.sessionName
-										? String(agent.sessionName)
-										: null;
-								const timeAgo = Math.floor(
-									(Date.now() - new Date(agent.createdAt).getTime()) / 60000,
-								);
+								const statusEmoji =
+									agent.status === ProcessStatus.RUNNING
+										? "●"
+										: agent.status === ProcessStatus.IDLE
+											? "○"
+											: agent.status === ProcessStatus.ERROR
+												? "✗"
+												: "○";
+								const statusColor =
+									agent.status === ProcessStatus.RUNNING
+										? "green"
+										: agent.status === ProcessStatus.IDLE
+											? "yellow"
+											: agent.status === ProcessStatus.ERROR
+												? "red"
+												: "gray";
 
 								return (
-									<Box key={agent.id} flexDirection="row" gap={1}>
-										<Text
-											bold={isSelected}
-											color={isSelected ? "yellow" : undefined}
-										>
-											{isSelected ? "▸" : " "}
-										</Text>
-										<Text
-											color={getStatusColor(agent.status, agent.endedAt)}
-											bold
-										>
-											{getStatusIcon(agent.status, agent.endedAt)}
-										</Text>
-										<Text
-											bold={isSelected}
-											color={isSelected ? "yellow" : undefined}
-										>
-											{sessionName || `${agentType}-${timeAgo}m`}
+									<Box key={agent.id} flexDirection="column" marginBottom={1}>
+										<Box flexDirection="row" gap={1}>
+											<Text color={isSelected ? "yellow" : undefined}>
+												{isSelected ? "▸" : " "}
+											</Text>
+											<Text color={statusColor}>{statusEmoji}</Text>
+											<Text
+												bold={isSelected}
+												color={isSelected ? "yellow" : undefined}
+											>
+												{agentType}
+											</Text>
+										</Box>
+										<Text dimColor>
+											{"  "}
+											{new Date(agent.createdAt).toLocaleTimeString()}
 										</Text>
 									</Box>
 								);
-							})
-						)}
-						<Box marginTop={1}>
-							<Text dimColor>[N] New Agent</Text>
+							})}
 						</Box>
-						<Box>
-							<Text dimColor>[Enter] Open</Text>
-						</Box>
-					</Box>
+					)}
 				</Box>
 
-				{/* Right Panel - Details */}
-				<Box
-					borderStyle="single"
-					borderColor={activePanel === "details" ? "magenta" : "gray"}
-					flexDirection="column"
-					width={rightPanelWidth}
-					height={panelHeight}
-				>
-					<Box paddingX={1} borderBottom borderColor="gray">
-						<Text
-							bold
-							color={activePanel === "details" ? "magenta" : undefined}
-						>
-							DETAILS
-						</Text>
-					</Box>
-					<Box flexDirection="column" paddingX={1} paddingY={0}>
+				{/* Details panel - hidden on small terminals */}
+				{terminalWidth >= SMALL_TERMINAL_THRESHOLD && (
+					<Box
+						flexDirection="column"
+						borderStyle="round"
+						borderColor={activePanel === "details" ? "magenta" : "gray"}
+						padding={1}
+						flexGrow={1}
+						minWidth={Math.max(30, Math.floor(terminalWidth * 0.3))}
+					>
+						<Box marginBottom={1}>
+							<Text bold>Details</Text>
+						</Box>
 						{selectedAgent ? (
-							<>
-								{/* Agent Details */}
-								<Box flexDirection="column" marginBottom={1}>
-									<Text bold color="yellow">
-										{selectedAgent.type === ProcessType.AGENT &&
-										"agentType" in selectedAgent
-											? String(selectedAgent.agentType)
-											: "Unknown"}
-									</Text>
-									<Text dimColor>
-										Started:{" "}
-										{Math.floor(
-											(Date.now() -
-												new Date(selectedAgent.createdAt).getTime()) /
-												60000,
-										)}
-										m ago
-									</Text>
-									<Text>
-										Status:{" "}
-										<Text
-											color={getStatusColor(
-												selectedAgent.status,
-												selectedAgent.endedAt,
+							<Box flexDirection="column" gap={0}>
+								{selectedAgent.type === ProcessType.AGENT &&
+								"agentType" in selectedAgent ? (
+									<>
+										<Text>
+											Agent:{" "}
+											<Text bold>{String(selectedAgent.agentType)}</Text>
+										</Text>
+										<Text dimColor>ID: {selectedAgent.id}</Text>
+										{"sessionName" in selectedAgent &&
+											selectedAgent.sessionName && (
+												<Text dimColor>
+													Session: {String(selectedAgent.sessionName)}
+												</Text>
 											)}
-										>
-											{selectedAgent.endedAt ? "stopped" : selectedAgent.status}
-										</Text>
-									</Text>
-									<Text dimColor>ID: {selectedAgent.id.slice(0, 8)}</Text>
-								</Box>
-
-								{/* Task Info */}
-								{selectedAgent.title && (
-									<Box flexDirection="column" marginBottom={1}>
-										<Text bold>Task:</Text>
-										<Text>{selectedAgent.title}</Text>
-									</Box>
+										<Text dimColor>Status: {selectedAgent.status}</Text>
+										{selectedAgent.endedAt && (
+											<Text dimColor>
+												Ended: {new Date(selectedAgent.endedAt).toLocaleString()}
+											</Text>
+										)}
+									</>
+								) : (
+									<Text dimColor>Not an agent</Text>
 								)}
-
-								{/* Workspace Info */}
-								<Box flexDirection="column" marginBottom={1}>
-									<Text bold>Workspace:</Text>
-									<Text color="cyan">
-										{workspaces.find((w) => w.id === selectedAgent.workspaceId)
-											?.name || selectedAgent.workspaceId.slice(0, 8)}
-									</Text>
-								</Box>
-
-								{/* Launch Command */}
-								{selectedAgent.launchCommand && (
-									<Box flexDirection="column" marginBottom={1}>
-										<Text bold>Command:</Text>
-										<Text dimColor>{selectedAgent.launchCommand}</Text>
-									</Box>
-								)}
-
-								{/* Timestamps */}
-								<Box flexDirection="column" marginBottom={1}>
-									<Text bold>Timeline:</Text>
-									<Text dimColor>
-										Created:{" "}
-										{new Date(selectedAgent.createdAt).toLocaleTimeString()}
-									</Text>
-									<Text dimColor>
-										Updated:{" "}
-										{new Date(selectedAgent.updatedAt).toLocaleTimeString()}
-									</Text>
-									{selectedAgent.endedAt && (
-										<Text dimColor>
-											Ended:{" "}
-											{new Date(selectedAgent.endedAt).toLocaleTimeString()}
-										</Text>
-									)}
-								</Box>
-							</>
+							</Box>
 						) : (
-							<Text dimColor>Select an agent to view details</Text>
+							<Text dimColor>Select an agent to see details</Text>
 						)}
 					</Box>
-				</Box>
+				)}
 			</Box>
 
-			{/* Footer */}
-			<Box borderStyle="single" borderColor="gray" paddingX={1} height={3}>
-				<Box flexDirection="row" gap={2}>
-					<Text>
-						<Text bold>[1]</Text> Workspaces
-					</Text>
-					<Text dimColor>•</Text>
-					<Text>
-						<Text bold>[2]</Text> Agents
-					</Text>
-					<Text dimColor>•</Text>
-					<Text>
-						<Text bold>[3]</Text> Details
-					</Text>
-					<Text dimColor>•</Text>
-					<Text>
-						<Text bold>[Enter]</Text> Open Agent
-					</Text>
-					<Text dimColor>•</Text>
-					<Text>
-						<Text bold>[q]</Text> Exit
-					</Text>
+			{/* Controls */}
+			<Box marginTop={1} flexDirection="row" gap={2}>
+				<Box flexDirection="row" gap={1}>
+					<Text bold>[1]</Text>
+					<Text>Workspaces</Text>
+				</Box>
+				<Box flexDirection="row" gap={1}>
+					<Text bold>[2]</Text>
+					<Text>Agents</Text>
+				</Box>
+				{terminalWidth >= SMALL_TERMINAL_THRESHOLD && (
+					<Box flexDirection="row" gap={1}>
+						<Text bold>[3]</Text>
+						<Text>Details</Text>
+					</Box>
+				)}
+				<Box flexDirection="row" gap={1}>
+					<Text bold>↑↓</Text>
+					<Text>j k</Text>
+				</Box>
+				<Box flexDirection="row" gap={1}>
+					<Text bold>[Enter]</Text>
+					<Text>Attach</Text>
+				</Box>
+				<Box flexDirection="row" gap={1}>
+					<Text bold>[r]</Text>
+					<Text>Refresh</Text>
+				</Box>
+				<Box flexDirection="row" gap={1}>
+					<Text bold>[q]</Text>
+					<Text>Exit</Text>
 				</Box>
 			</Box>
 		</Box>

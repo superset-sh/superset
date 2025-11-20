@@ -673,15 +673,14 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 
 				const agent = process as import("../types/process").Agent;
 
-				// Import and call attachToAgent
+				// Import and call launchAgent
 				const { launchAgent } = await import("../lib/launch/run");
 
-				// Exit the Ink app before attaching
+				// Exit Ink to stop useInput before tmux takes over stdin
 				exit();
-
-				// Small delay to let Ink clean up
-				setTimeout(async () => {
+				setImmediate(async () => {
 					const result = await launchAgent(agent, { attach: true });
+
 					if (!result.success) {
 						// Update agent status to STOPPED on failure
 						try {
@@ -695,7 +694,6 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 								endedAt: new Date(),
 							});
 						} catch (dbError) {
-							// Log DB error but don't fail the process
 							console.error(
 								`\nWarning: Failed to update agent status: ${dbError instanceof Error ? dbError.message : String(dbError)}\n`,
 							);
@@ -703,10 +701,14 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 
 						console.error(`\n❌ Failed to attach to agent\n`);
 						console.error(`Error: ${result.error}\n`);
+						if (result.exitCode !== undefined) {
+							console.error(`Exit code: ${result.exitCode}\n`);
+						}
 						globalThis.process.exit(1);
 					}
+
 					globalThis.process.exit(0);
-				}, 100);
+				});
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Unknown error");
 				setLoading(false);
