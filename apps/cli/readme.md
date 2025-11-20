@@ -43,6 +43,24 @@ CLI for managing environments, workspaces (git worktrees/cloud branches), agents
 - Can be overridden with `SUPERSET_CLI_DATA_DIR` environment variable.
 - Dates are serialized ISO strings; orchestrators backfill defaults and persist missing fields (status, launchCommand, sessionName, timestamps).
 
+## Security & Configuration Notes
+
+### Session Names
+- Session names are generated internally as `agent-<shortId>` (6-char UUID prefix).
+- Only alphanumeric, hyphen, and underscore characters are allowed in tmux session names.
+- If custom session names are added in the future, they will be sanitized to meet tmux requirements.
+
+### Launch Commands
+- Agent launch commands are executed exactly as provided in environment variables or config.
+- **Security**: Only use trusted commands. The CLI does not sanitize or escape launch commands.
+- **Best practice**: Use binaries on PATH (e.g., `claude`, `codex`) rather than complex shell expressions.
+- **Complex shells**: For wrapped commands or environment setup, set `SUPERSET_AGENT_LAUNCH_<TYPE>` to point to a single, well-known entrypoint script:
+  ```bash
+  export SUPERSET_AGENT_LAUNCH_CLAUDE="/usr/local/bin/launch-claude.sh"
+  ```
+  Then put your complex logic in that script.
+- **Command validation**: Simple commands (1-2 words) are checked for existence on PATH. Complex commands (with quotes, env vars, or multiple arguments) skip preflight validation to avoid false negatives.
+
 ## Tips
 - Use `superset` (no args) for a welcome summary and quick commands.
 - If attach fails, ensure tmux is installed and the agent has a valid `launchCommand` (set env `SUPERSET_AGENT_LAUNCH_CLAUDE=claude` etc.).
