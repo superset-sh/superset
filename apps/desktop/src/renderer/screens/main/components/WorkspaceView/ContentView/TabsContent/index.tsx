@@ -8,6 +8,8 @@ import {
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
+import { useTabContentDrop } from "./useTabContentDrop";
+import { DropOverlay } from "./DropOverlay";
 
 export function TabsContent() {
 	const activeWorkspaceId = useWorkspacesStore(
@@ -16,32 +18,45 @@ export function TabsContent() {
 	const allTabs = useTabs();
 	const activeTabIds = useActiveTabIds();
 
-	const { tabToRender, focusedChildId } = useMemo(() => {
-		if (!activeWorkspaceId) return { tabToRender: null, focusedChildId: null };
+	const tabToRender = useMemo(() => {
+		if (!activeWorkspaceId) return null;
 		const activeTabId = activeTabIds[activeWorkspaceId];
-		if (!activeTabId) return { tabToRender: null, focusedChildId: null };
+		if (!activeTabId) return null;
 
 		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
-		if (!activeTab) return { tabToRender: null, focusedChildId: null };
+		if (!activeTab) return null;
 
 		if (activeTab.parentId) {
 			const parentGroup = allTabs.find((tab) => tab.id === activeTab.parentId);
-			return {
-				tabToRender: parentGroup || null,
-				focusedChildId: activeTabId,
-			};
+			return parentGroup || null;
 		}
 
-		return { tabToRender: activeTab, focusedChildId: null };
+		return activeTab;
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
+	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
+
 	if (!tabToRender) {
-		return <EmptyTabView />;
+		return (
+			<div ref={attachDrop} className="flex-1 h-full">
+				<EmptyTabView />
+			</div>
+		);
 	}
 
-	if (tabToRender.type === TabType.Single) {
-		return <SingleTabView tab={tabToRender} />;
-	}
-
-	return <GroupTabView tab={tabToRender} />;
+	return (
+		<div ref={attachDrop} className="flex-1 h-full relative">
+			{tabToRender.type === TabType.Single ? (
+				<>
+					<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
+					{isDropZone && <DropOverlay message="Drop to create split view" />}
+				</>
+			) : (
+				<>
+					<GroupTabView tab={tabToRender} />
+					{isDropZone && <DropOverlay message="Drop to add to split view" />}
+				</>
+			)}
+		</div>
+	);
 }

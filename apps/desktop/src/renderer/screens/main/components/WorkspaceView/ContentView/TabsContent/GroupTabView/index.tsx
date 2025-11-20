@@ -22,7 +22,6 @@ interface GroupTabViewProps {
 	tab: TabGroup;
 }
 
-// Extract all tab IDs from a mosaic layout tree
 function extractTabIdsFromLayout(
 	layout: MosaicNode<string> | null,
 ): Set<string> {
@@ -55,27 +54,22 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 	const activeTabIds = useActiveTabIds();
 	const activeTabId = activeTabIds[tab.workspaceId];
 
-	// Clean the layout to only include tabs that currently exist as children
 	const validTabIds = new Set(childTabIds);
 	const cleanedLayout = cleanLayout(tab.layout, validTabIds);
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
-			// Extract tab IDs from old and new layouts to detect removals
 			const oldTabIds = extractTabIdsFromLayout(tab.layout);
 			const newTabIds = extractTabIdsFromLayout(newLayout);
 
-			// Find tabs that were removed from the layout
 			const removedTabIds = Array.from(oldTabIds).filter(
 				(id) => !newTabIds.has(id),
 			);
 
-			// Remove tabs that were closed in the mosaic
 			for (const removedId of removedTabIds) {
 				removeChildTabFromGroup(tab.id, removedId);
 			}
 
-			// Update layout only if there are still tabs remaining
 			if (newLayout) {
 				updateTabGroupLayout(tab.id, newLayout);
 			}
