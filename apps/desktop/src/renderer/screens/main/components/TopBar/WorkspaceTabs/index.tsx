@@ -1,6 +1,6 @@
 import { Separator } from "@superset/ui/separator";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { trpc } from "renderer/lib/trpc";
 import { AddWorkspaceButton } from "./AddWorkspaceButton";
 import { WorkspaceItem } from "./WorkspaceItem";
 
@@ -9,7 +9,9 @@ const MAX_WORKSPACE_WIDTH = 240;
 const ADD_BUTTON_WIDTH = 48;
 
 export function WorkspacesTabs() {
-	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
+	const { data: workspaces = [] } = trpc.workspaces.getAll.useQuery();
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const activeWorkspaceId = activeWorkspace?.id || null;
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showStartFade, setShowStartFade] = useState(false);
@@ -87,7 +89,7 @@ export function WorkspacesTabs() {
 								<div className="flex items-end h-full">
 									<WorkspaceItem
 										id={workspace.id}
-										title={workspace.title}
+										title={workspace.name}
 										isActive={isActive}
 										index={index}
 										width={workspaceWidth}

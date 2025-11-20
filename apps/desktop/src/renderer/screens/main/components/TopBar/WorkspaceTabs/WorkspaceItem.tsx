@@ -2,7 +2,7 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { trpc } from "renderer/lib/trpc";
 
 const WORKSPACE_TYPE = "WORKSPACE";
 
@@ -25,8 +25,22 @@ export function WorkspaceItem({
 	onMouseEnter,
 	onMouseLeave,
 }: WorkspaceItemProps) {
-	const { setActiveWorkspace, removeWorkspace, reorderWorkspaces } =
-		useWorkspacesStore();
+	const utils = trpc.useUtils();
+	const setActive = trpc.workspaces.setActive.useMutation({
+		onSuccess: async () => {
+			await utils.workspaces.invalidate();
+		},
+	});
+	const deleteWorkspace = trpc.workspaces.delete.useMutation({
+		onSuccess: async () => {
+			await utils.workspaces.invalidate();
+		},
+	});
+	const reorderWorkspaces = trpc.workspaces.reorder.useMutation({
+		onSuccess: async () => {
+			await utils.workspaces.invalidate();
+		},
+	});
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
@@ -43,7 +57,10 @@ export function WorkspaceItem({
 		accept: WORKSPACE_TYPE,
 		hover: (item: { id: string; index: number }) => {
 			if (item.index !== index) {
-				reorderWorkspaces(item.index, index);
+				reorderWorkspaces.mutate({
+					fromIndex: item.index,
+					toIndex: index,
+				});
 				item.index = index;
 			}
 		},
@@ -60,7 +77,7 @@ export function WorkspaceItem({
 				ref={(node) => {
 					drag(drop(node));
 				}}
-				onClick={() => setActiveWorkspace(id)}
+				onClick={() => setActive.mutate({ id })}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 				className={`
@@ -85,7 +102,7 @@ export function WorkspaceItem({
 				size="icon"
 				onClick={(e) => {
 					e.stopPropagation();
-					removeWorkspace(id);
+					deleteWorkspace.mutate({ id });
 				}}
 				className={cn(
 					"mt-1 absolute right-1 top-1/2 -translate-y-1/2 size-5 ",

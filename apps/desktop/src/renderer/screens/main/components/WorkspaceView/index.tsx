@@ -1,15 +1,15 @@
-import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { trpc } from "renderer/lib/trpc";
 import { ContentView } from "./ContentView";
 import { NewWorkspaceView } from "./NewWorkspaceView";
 import { Sidebar } from "./Sidebar";
 
 export function WorkspaceView() {
-	const { workspaces, activeWorkspaceId } = useWorkspacesStore();
-	const activeWorkspace = workspaces.find(
-		(workspace) => workspace.id === activeWorkspaceId,
-	);
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 
-	if (activeWorkspace?.isNew) {
+	// If no workspace or workspace has no path, show new workspace view
+	const isNew = !activeWorkspace || activeWorkspace.path === null;
+
+	if (isNew) {
 		return (
 			<div className="flex flex-1 bg-sidebar">
 				<NewWorkspaceView />

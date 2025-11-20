@@ -3,6 +3,7 @@ import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { MainWindow } from "./windows/main";
+import { initDatabase } from "./lib/db";
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -30,6 +31,9 @@ registerStorageHandlers();
 // Allow multiple instances - removed single instance lock
 (async () => {
 	await app.whenReady();
+
+	// Initialize database before creating windows
+	await initDatabase();
 
 	await makeAppSetup(() => MainWindow());
 

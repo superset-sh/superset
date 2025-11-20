@@ -145,3 +145,10 @@ export interface DetectedPort {
 	terminalId: string;
 	detectedAt: string;
 }
+
+// Database types for local-first storage
+export interface RecentProject {
+	path: string;
+	name: string;
+	lastOpened: number;
+}

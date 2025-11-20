@@ -1,76 +1,110 @@
-import { useWorkspacesStore } from "renderer/stores/workspaces";
+import { trpc } from "renderer/lib/trpc";
 import { useAddTab } from "renderer/stores";
+import { StartSection } from "./NewWorkspaceView/components/StartSection";
+import { RecentSection } from "./NewWorkspaceView/components/RecentSection";
 
 export function NewWorkspaceView() {
-	const activeWorkspaceId = useWorkspacesStore(
-		(state) => state.activeWorkspaceId,
-	);
-	const addWorkspace = useWorkspacesStore((state) => state.addWorkspace);
-	const markWorkspaceAsUsed = useWorkspacesStore(
-		(state) => state.markWorkspaceAsUsed,
-	);
+	const utils = trpc.useUtils();
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const addTab = useAddTab();
 
+	const { data: recents = [], refetch: refetchRecents } =
+		trpc.projects.getRecents.useQuery();
+
+	const updateWorkspace = trpc.workspaces.update.useMutation({
+		onSuccess: async () => {
+			// Invalidate and wait for refetch
+			await utils.workspaces.invalidate();
+		},
+	});
+
+	const openProject = trpc.projects.openProject.useMutation({
+		onSuccess: async (result) => {
+			if (result.success && activeWorkspace) {
+				// Update workspace in DB with path and wait for it to complete
+				await updateWorkspace.mutateAsync({
+					id: activeWorkspace.id,
+					patch: {
+						path: result.path,
+						name: result.name,
+					},
+				});
+
+				// Add a tab for the project (still using Zustand for now)
+				addTab(activeWorkspace.id);
+			}
+		},
+	});
+
+	const openRecent = trpc.projects.openRecent.useMutation({
+		onSuccess: async (result) => {
+			if (result.success && activeWorkspace) {
+				// Update workspace in DB with path and wait for it to complete
+				await updateWorkspace.mutateAsync({
+					id: activeWorkspace.id,
+					patch: {
+						path: result.path,
+						name: result.name,
+					},
+				});
+
+				// Add a tab for the project (still using Zustand for now)
+				addTab(activeWorkspace.id);
+			}
+		},
+	});
+
+	const removeRecent = trpc.projects.removeRecent.useMutation({
+		onSuccess: () => {
+			refetchRecents();
+		},
+	});
+
+	const handleOpenProject = () => {
+		openProject.mutate();
+	};
+
+	const handleOpenRecent = (path: string) => {
+		openRecent.mutate({ path });
+	};
+
+	const handleRemoveRecent = (path: string) => {
+		removeRecent.mutate({ path });
+	};
+
 	return (
-		<div className="flex-1 h-full flex items-center justify-center">
-			<div className="text-center max-w-2xl px-6">
-				<h1 className="text-4xl font-bold text-foreground mb-4">
-					New Workspace
-				</h1>
-				<p className="text-lg text-muted-foreground mb-8">
-					Start by selecting an action or creating something new
-				</p>
-				<div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-					<button
-						type="button"
-						className="p-6 border border-border rounded-lg hover:bg-accent hover:border-accent-foreground transition-colors text-left"
-					>
-						<div className="text-2xl mb-2">📁</div>
-						<div className="font-medium text-foreground">Open Project</div>
-						<div className="text-sm text-muted-foreground">
-							Browse your files
-						</div>
-					</button>
-					<button
-						type="button"
-						className="p-6 border border-border rounded-lg hover:bg-accent hover:border-accent-foreground transition-colors text-left"
-					>
-						<div className="text-2xl mb-2">⚡</div>
-						<div className="font-medium text-foreground">Quick Actions</div>
-						<div className="text-sm text-muted-foreground">Common tasks</div>
-					</button>
-					<button
-						type="button"
-						onClick={() => {
-							if (!activeWorkspaceId) {
-								addWorkspace();
-								setTimeout(() => {
-									const newWorkspaceId =
-										useWorkspacesStore.getState().activeWorkspaceId;
-									if (newWorkspaceId) {
-										addTab(newWorkspaceId);
-										markWorkspaceAsUsed(newWorkspaceId);
-									}
-								}, 0);
-							} else {
-								addTab(activeWorkspaceId);
-								markWorkspaceAsUsed(activeWorkspaceId);
-							}
-						}}
-						className="p-6 border border-border rounded-lg hover:bg-accent hover:border-accent-foreground transition-colors text-left"
-					>
-						<div className="text-2xl mb-2">🔍</div>
-						<div className="font-medium text-foreground">Create Tab & Start</div>
-						<div className="text-sm text-muted-foreground">Test persistence</div>
-					</button>
-					<button
-						type="button"
-						className="p-6 border border-border rounded-lg hover:bg-accent hover:border-accent-foreground transition-colors text-left"
-					>
-						<div className="text-2xl mb-2">⚙️</div>
-						<div className="font-medium text-foreground">Settings</div>
-						<div className="text-sm text-muted-foreground">Configure app</div>
-					</button>
+		<div className="flex-1 h-full flex">
+			{/* Left column - Start and Recent sections */}
+			<div className="w-[400px] p-8 border-r border-border overflow-auto">
+				<div className="mb-2">
+					<h1 className="text-2xl font-bold text-foreground mb-1">
+						Welcome to Superset
+					</h1>
+					<p className="text-sm text-muted-foreground">
+						Open a project to get started
+					</p>
+				</div>
+
+				<div className="mt-8">
+					<StartSection
+						onOpenProject={handleOpenProject}
+						isLoading={openProject.isPending}
+					/>
+
+					<RecentSection
+						recents={recents}
+						onOpenRecent={handleOpenRecent}
+						onRemoveRecent={handleRemoveRecent}
+					/>
+				</div>
+			</div>
+
+			{/* Right column - Placeholder for future content */}
+			<div className="flex-1 flex items-center justify-center p-8">
+				<div className="text-center max-w-md">
+					<p className="text-muted-foreground">
+						Quick actions and walkthroughs will appear here
+					</p>
 				</div>
 			</div>
 		</div>
