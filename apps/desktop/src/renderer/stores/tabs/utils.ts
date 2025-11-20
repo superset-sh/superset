@@ -1,4 +1,4 @@
-import { type Tab, type TabGroup, TabType } from "./types";
+import { type Tab, TabType } from "./types";
 
 export const createNewTab = (
 	workspaceId: string,

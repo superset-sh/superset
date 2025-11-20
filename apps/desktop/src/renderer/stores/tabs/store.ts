@@ -1,7 +1,7 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { handleDragTabToTab } from "./drag-logic";
+import { cleanLayout, handleDragTabToTab } from "./drag-logic";
 import { type Tab, TabType } from "./types";
 import { createNewTab } from "./utils";
 
@@ -84,6 +84,28 @@ const createInitialTabs = (): Tab[] => {
 	};
 
 	return [singleTab, childTab1, childTab2, groupTab, singleTab2];
+};
+
+/**
+ * Validates and cleans all group tabs to ensure layout only contains valid child IDs
+ */
+const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
+	return tabs.map((tab) => {
+		if (tab.type !== TabType.Group) return tab;
+
+		const validTabIds = new Set(tab.childTabIds);
+		const cleanedLayout = cleanLayout(tab.layout, validTabIds);
+
+		// Only update if layout actually changed
+		if (cleanedLayout !== tab.layout) {
+			return {
+				...tab,
+				layout: cleanedLayout,
+			};
+		}
+
+		return tab;
+	});
 };
 
 export const useTabsStore = create<TabsState>()(
@@ -226,8 +248,8 @@ export const useTabsStore = create<TabsState>()(
 			},
 
 			addChildTabToGroup: (groupId, childTabId) => {
-				set((state) => ({
-					tabs: state.tabs.map((tab) => {
+				set((state) => {
+					const updatedTabs = state.tabs.map((tab) => {
 						if (tab.id === groupId && tab.type === TabType.Group) {
 							return {
 								...tab,
@@ -241,8 +263,15 @@ export const useTabsStore = create<TabsState>()(
 							};
 						}
 						return tab;
-					}),
-				}));
+					});
+
+					// Note: This doesn't update layout - caller is responsible for layout updates
+					// This is typically used in conjunction with updateTabGroupLayout
+
+					return {
+						tabs: updatedTabs,
+					};
+				});
 			},
 
 			removeChildTabFromGroup: (groupId, childTabId) => {
@@ -308,8 +337,13 @@ export const useTabsStore = create<TabsState>()(
 						return tab;
 					});
 
+					// Validate layouts after removing child tab
+					const validatedTabs = validateGroupLayouts(
+						updatedTabs.filter((tab) => tab.id !== childTabId),
+					);
+
 					return {
-						tabs: updatedTabs.filter((tab) => tab.id !== childTabId),
+						tabs: validatedTabs,
 					};
 				});
 			},

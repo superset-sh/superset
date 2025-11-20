@@ -1,3 +1,4 @@
+import type { MosaicNode } from "react-mosaic-component";
 import { type Tab, type TabGroup, TabType } from "./types";
 import { createNewTab } from "./utils";
 
@@ -7,6 +8,67 @@ export interface DragTabToTabResult {
 	tabHistoryStacks: Record<string, string[]>;
 }
 
+/**
+ * Removes a tab ID from a mosaic layout tree
+ * Returns null if the layout becomes empty after removal
+ */
+const removeTabFromLayout = (
+	layout: MosaicNode<string> | null,
+	tabIdToRemove: string,
+): MosaicNode<string> | null => {
+	if (!layout) return null;
+
+	// If layout is a leaf node (single tab ID)
+	if (typeof layout === "string") {
+		return layout === tabIdToRemove ? null : layout;
+	}
+
+	// Recursively remove from both branches
+	const newFirst = removeTabFromLayout(layout.first, tabIdToRemove);
+	const newSecond = removeTabFromLayout(layout.second, tabIdToRemove);
+
+	// If both branches are gone, return null
+	if (!newFirst && !newSecond) return null;
+
+	// If one branch is gone, return the other
+	if (!newFirst) return newSecond;
+	if (!newSecond) return newFirst;
+
+	// Both branches still exist, return updated layout
+	return {
+		...layout,
+		first: newFirst,
+		second: newSecond,
+	};
+};
+
+/**
+ * Validates layout against valid tab IDs and removes any invalid references
+ */
+export const cleanLayout = (
+	layout: MosaicNode<string> | null,
+	validTabIds: Set<string>,
+): MosaicNode<string> | null => {
+	if (!layout) return null;
+
+	if (typeof layout === "string") {
+		return validTabIds.has(layout) ? layout : null;
+	}
+
+	const newFirst = cleanLayout(layout.first, validTabIds);
+	const newSecond = cleanLayout(layout.second, validTabIds);
+
+	if (!newFirst && !newSecond) return null;
+	if (!newFirst) return newSecond;
+	if (!newSecond) return newFirst;
+
+	return {
+		...layout,
+		first: newFirst,
+		second: newSecond,
+	};
+};
+
 const removeFromOldParent = (
 	tabs: Tab[],
 	tabId: string,
@@ -14,9 +76,13 @@ const removeFromOldParent = (
 ): Tab[] => {
 	return tabs.map((tab) => {
 		if (tab.id === oldParentId && tab.type === TabType.Group) {
+			const updatedChildTabIds = tab.childTabIds.filter((id) => id !== tabId);
+			const updatedLayout = removeTabFromLayout(tab.layout, tabId);
+
 			return {
 				...tab,
-				childTabIds: tab.childTabIds.filter((id) => id !== tabId),
+				childTabIds: updatedChildTabIds,
+				layout: updatedLayout,
 			};
 		}
 		return tab;
