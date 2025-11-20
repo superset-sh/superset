@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { nanoid } from "nanoid";
 import { publicProcedure, router } from "..";
-import { readDb, writeDb } from "../../../main/lib/db";
+import { db } from "../../../main/lib/db";
 
 /**
  * Workspaces router
@@ -19,24 +20,22 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const timestamp = Date.now();
-				const db = readDb();
-
 				// Set order to be at the end of the list
-				const maxOrder = db.workspaces.length > 0
-					? Math.max(...db.workspaces.map((w) => w.order))
+				const maxOrder = db.data.workspaces.length > 0
+					? Math.max(...db.data.workspaces.map((w) => w.order))
 					: -1;
 
 				const workspace = {
-					id: `workspace-${timestamp}-${Math.random().toString(36).substring(2, 11)}`,
+					id: nanoid(),
 					name: input.name,
 					path: input.path ?? null,
 					order: maxOrder + 1,
-					createdAt: timestamp,
-					lastOpened: timestamp,
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+					lastOpenedAt: Date.now(),
 				};
 
-				await writeDb((data) => {
+				await db.update((data) => {
 					data.workspaces.push(workspace);
 					data.settings.lastActiveWorkspaceId = workspace.id;
 				});
@@ -50,8 +49,7 @@ export const createWorkspacesRouter = () => {
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				const db = readDb();
-				const workspace = db.workspaces.find((w) => w.id === input.id);
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
 				return workspace || null;
 			}),
 
@@ -59,8 +57,7 @@ export const createWorkspacesRouter = () => {
 		 * Get all workspaces sorted by order
 		 */
 		getAll: publicProcedure.query(() => {
-			const db = readDb();
-			return db.workspaces
+			return db.data.workspaces
 				.slice()
 				.sort((a, b) => a.order - b.order);
 		}),
@@ -69,14 +66,13 @@ export const createWorkspacesRouter = () => {
 		 * Get the last active workspace
 		 */
 		getActive: publicProcedure.query(() => {
-			const db = readDb();
-			const { lastActiveWorkspaceId } = db.settings;
+			const { lastActiveWorkspaceId } = db.data.settings;
 
 			if (!lastActiveWorkspaceId) {
 				return null;
 			}
 
-			return db.workspaces.find((w) => w.id === lastActiveWorkspaceId) || null;
+			return db.data.workspaces.find((w) => w.id === lastActiveWorkspaceId) || null;
 		}),
 
 		/**
@@ -94,7 +90,7 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await writeDb((data) => {
+				await db.update((data) => {
 					const workspace = data.workspaces.find((w) => w.id === input.id);
 					if (!workspace) {
 						throw new Error(`Workspace ${input.id} not found`);
@@ -108,8 +104,9 @@ export const createWorkspacesRouter = () => {
 						workspace.path = input.patch.path;
 					}
 
-					// Update last opened
-					workspace.lastOpened = Date.now();
+					// Update timestamps
+					workspace.updatedAt = Date.now();
+					workspace.lastOpenedAt = Date.now();
 				});
 
 				return { success: true };
@@ -122,8 +119,7 @@ export const createWorkspacesRouter = () => {
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const db = readDb();
-				const workspace = db.workspaces.find((w) => w.id === input.id);
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
 
 				if (!workspace) {
 					return { success: false, error: "Workspace not found" };
@@ -131,7 +127,7 @@ export const createWorkspacesRouter = () => {
 
 				const workspacePath = workspace.path;
 
-				await writeDb((data) => {
+				await db.update((data) => {
 					// Remove workspace
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
@@ -152,7 +148,7 @@ export const createWorkspacesRouter = () => {
 						// Set to the most recently opened workspace, if any
 						const sorted = data.workspaces
 							.slice()
-							.sort((a, b) => b.lastOpened - a.lastOpened);
+							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 						data.settings.lastActiveWorkspaceId = sorted[0]?.id || undefined;
 					}
 				});
@@ -166,14 +162,15 @@ export const createWorkspacesRouter = () => {
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				await writeDb((data) => {
+				await db.update((data) => {
 					const workspace = data.workspaces.find((w) => w.id === input.id);
 					if (!workspace) {
 						throw new Error(`Workspace ${input.id} not found`);
 					}
 
 					data.settings.lastActiveWorkspaceId = input.id;
-					workspace.lastOpened = Date.now();
+					workspace.lastOpenedAt = Date.now();
+					workspace.updatedAt = Date.now();
 				});
 
 				return { success: true };
@@ -190,7 +187,7 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await writeDb((data) => {
+				await db.update((data) => {
 					const { fromIndex, toIndex } = input;
 
 					// Get all workspaces sorted by order

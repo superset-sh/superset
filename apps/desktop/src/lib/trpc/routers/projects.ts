@@ -3,7 +3,7 @@ import type { BrowserWindow } from "electron";
 import { basename } from "node:path";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
-import { readDb, writeDb } from "../../../main/lib/db";
+import { db } from "../../../main/lib/db";
 import type { RecentProject } from "../../../main/lib/db/schemas";
 
 /**
@@ -28,20 +28,18 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 			const path = result.filePaths[0];
 			const name = basename(path);
-			const timestamp = Date.now();
 
-			// Add to recents (or update if exists)
-			await writeDb((data) => {
+			await db.update((data) => {
 				const existingIndex = data.recentProjects.findIndex(
 					(p) => p.path === path,
 				);
 				if (existingIndex !== -1) {
-					data.recentProjects[existingIndex].lastOpened = timestamp;
+					data.recentProjects[existingIndex].lastOpenedAt = Date.now();
 				} else {
 					data.recentProjects.push({
 						path,
 						name,
-						lastOpened: timestamp,
+						lastOpenedAt: Date.now(),
 					});
 				}
 			});
@@ -52,23 +50,16 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				name,
 			};
 		}),
-
-		/**
-		 * Open a recent project
-		 * Updates timestamp and returns path for UI to handle
-		 */
 		openRecent: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
 				const { path } = input;
 				const name = basename(path);
-				const timestamp = Date.now();
 
-				// Update recent project timestamp
-				await writeDb((data) => {
+				await db.update((data) => {
 					const recent = data.recentProjects.find((p) => p.path === path);
 					if (recent) {
-						recent.lastOpened = timestamp;
+						recent.lastOpenedAt = Date.now();
 					}
 				});
 
@@ -78,24 +69,15 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					name,
 				};
 			}),
-
-		/**
-		 * Get all recent projects sorted by last opened
-		 */
 		getRecents: publicProcedure.query((): RecentProject[] => {
-			const db = readDb();
-			return db.recentProjects
+			return db.data.recentProjects
 				.slice()
-				.sort((a, b) => b.lastOpened - a.lastOpened);
+				.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 		}),
-
-		/**
-		 * Remove a project from recents
-		 */
 		removeRecent: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				await writeDb((data) => {
+				await db.update((data) => {
 					data.recentProjects = data.recentProjects.filter(
 						(p) => p.path !== input.path,
 					);

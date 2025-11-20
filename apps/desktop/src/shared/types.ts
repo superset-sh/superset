@@ -150,5 +150,5 @@ export interface DetectedPort {
 export interface RecentProject {
 	path: string;
 	name: string;
-	lastOpened: number;
+	lastOpenedAt: number;
 }

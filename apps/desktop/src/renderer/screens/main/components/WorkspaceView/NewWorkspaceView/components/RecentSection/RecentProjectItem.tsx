@@ -51,7 +51,7 @@ export function RecentProjectItem({
 			</div>
 			<div className="flex items-center gap-2 flex-shrink-0">
 				<span className="text-xs text-muted-foreground">
-					{formatTimestamp(project.lastOpened)}
+					{formatTimestamp(project.lastOpenedAt)}
 				</span>
 				<Button
 					variant="ghost"

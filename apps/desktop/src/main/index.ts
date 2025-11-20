@@ -3,7 +3,7 @@ import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { MainWindow } from "./windows/main";
-import { initDatabase } from "./lib/db";
+import { initDb } from "./lib/db";
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -32,8 +32,8 @@ registerStorageHandlers();
 (async () => {
 	await app.whenReady();
 
-	// Initialize database before creating windows
-	await initDatabase();
+	// Initialize database
+	await initDb();
 
 	await makeAppSetup(() => MainWindow());
 

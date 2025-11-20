@@ -6,24 +6,26 @@
 export interface RecentProject {
 	path: string;
 	name: string;
-	lastOpened: number;
+	lastOpenedAt: number;
 }
 
 export interface Tab {
-	id: string;
+	id: string; // nanoid
 	title: string;
 	terminalId?: string;
 	type: "single" | "group";
 	createdAt: number;
+	updatedAt: number;
 }
 
 export interface Workspace {
-	id: string;
+	id: string; // nanoid
 	path: string | null; // null for new workspaces that haven't opened a project yet
 	name: string;
 	order: number; // Explicit order in the workspace tabs (0 = first, 1 = second, etc.)
 	createdAt: number;
-	lastOpened: number;
+	updatedAt: number;
+	lastOpenedAt: number;
 }
 
 export interface Settings {
