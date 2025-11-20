@@ -1,6 +1,5 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
-import { LaunchOverlay } from "../components/LaunchOverlay";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
@@ -30,10 +29,6 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 	const [data, setData] = React.useState<DashboardData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
-	const [launching, setLaunching] = React.useState(false);
-	const [launchingAgent, setLaunchingAgent] = React.useState<Agent | null>(
-		null,
-	);
 	const [selectedWorkspaceIndex, setSelectedWorkspaceIndex] = React.useState(0);
 	const [selectedAgentIndex, setSelectedAgentIndex] = React.useState(0);
 	const [selectionMode, setSelectionMode] =
@@ -149,11 +144,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 		// Actions
 		else if (key.return) {
 			// Launch selected agent
-			if (
-				selectionMode === "agent" &&
-				filteredAgents[selectedAgentIndex] &&
-				!launching
-			) {
+			if (selectionMode === "agent" && filteredAgents[selectedAgentIndex]) {
 				const selectedAgent = filteredAgents[selectedAgentIndex];
 
 				// Only launch agents, not terminals
@@ -164,30 +155,35 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 				// Exit Ink immediately and launch agent
 				const agentToLaunch = selectedAgent as Agent;
 				exit();
-				setTimeout(() => {
-					launchAgent(agentToLaunch, { attach: true })
-						.then((result) => {
-							if (!result.success) {
-								console.error(
-									`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
-								);
-								console.error(`Error: ${result.error}\n`);
-								if (result.exitCode !== undefined) {
-									console.error(`Exit code: ${result.exitCode}\n`);
-								}
-								process.exit(1);
-							}
-							process.exit(0);
-						})
-						.catch((error) => {
+				setTimeout(async () => {
+					const result = await launchAgent(agentToLaunch, { attach: true });
+
+					if (!result.success) {
+						// Update agent status to STOPPED on failure
+						try {
+							const db = getDb();
+							const orchestrator = new ProcessOrchestrator(db);
+							await orchestrator.update(agentToLaunch.id, {
+								status: ProcessStatus.STOPPED,
+								endedAt: new Date(),
+							});
+						} catch (dbError) {
+							// Log DB error but don't fail the process
 							console.error(
-								`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
+								`\nWarning: Failed to update agent status: ${dbError instanceof Error ? dbError.message : String(dbError)}\n`,
 							);
-							console.error(
-								`Error: ${error instanceof Error ? error.message : String(error)}\n`,
-							);
-							process.exit(1);
-						});
+						}
+
+						console.error(
+							`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
+						);
+						console.error(`Error: ${result.error}\n`);
+						if (result.exitCode !== undefined) {
+							console.error(`Exit code: ${result.exitCode}\n`);
+						}
+						process.exit(1);
+					}
+					process.exit(0);
 				}, 100);
 			}
 		} else if (input === "r") {
@@ -221,18 +217,6 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 
 	if (loading) {
 		return <Text>Loading dashboard...</Text>;
-	}
-
-	if (launching && launchingAgent) {
-		return (
-			<LaunchOverlay
-				agentType={launchingAgent.agentType}
-				sessionName={
-					launchingAgent.sessionName ||
-					`agent-${launchingAgent.id.slice(0, 6)}`
-				}
-			/>
-		);
 	}
 
 	if (error) {

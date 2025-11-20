@@ -128,23 +128,20 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 
 		const sessionExists = tmuxSessionExists(agent.sessionName);
 
-		// If session doesn't exist but agent is marked as RUNNING, mark it STOPPED
-		if (!sessionExists && agent.status === ProcessStatus.RUNNING && !agent.endedAt) {
+		// If session doesn't exist but agent is not already STOPPED, mark it STOPPED
+		if (!sessionExists && agent.status !== ProcessStatus.STOPPED) {
 			agent.status = ProcessStatus.STOPPED;
 			agent.endedAt = new Date();
 			agent.updatedAt = new Date();
 			return true;
 		}
 
-		// If session exists and agent is not STOPPED, upgrade to RUNNING
-		// This handles IDLE → RUNNING and clears endedAt for restarted agents
-		if (
-			sessionExists &&
-			(agent.status === ProcessStatus.IDLE ||
-				(agent.status === ProcessStatus.STOPPED && agent.endedAt))
-		) {
+		// If session exists and agent is not RUNNING, upgrade to RUNNING
+		// This handles IDLE → RUNNING and revival of STOPPED agents
+		// Clear endedAt when reviving to indicate the agent is active again
+		if (sessionExists && agent.status !== ProcessStatus.RUNNING) {
 			agent.status = ProcessStatus.RUNNING;
-			agent.endedAt = undefined; // Clear endedAt when restarting
+			agent.endedAt = undefined; // Clear endedAt when session is alive
 			agent.updatedAt = new Date();
 			return true;
 		}

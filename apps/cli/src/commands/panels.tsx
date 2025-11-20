@@ -138,30 +138,35 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 				// Exit Ink immediately and launch agent
 				const agentToAttach = selectedAgent as Agent;
 				exit();
-				setTimeout(() => {
-					launchAgent(agentToAttach, { attach: true })
-						.then((result) => {
-							if (!result.success) {
-								console.error(
-									`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
-								);
-								console.error(`Error: ${result.error}\n`);
-								if (result.exitCode !== undefined) {
-									console.error(`Exit code: ${result.exitCode}\n`);
-								}
-								process.exit(1);
-							}
-							process.exit(0);
-						})
-						.catch((error) => {
+				setTimeout(async () => {
+					const result = await launchAgent(agentToAttach, { attach: true });
+
+					if (!result.success) {
+						// Update agent status to STOPPED on failure
+						try {
+							const db = getDb();
+							const orchestrator = new ProcessOrchestrator(db);
+							await orchestrator.update(agentToAttach.id, {
+								status: ProcessStatus.STOPPED,
+								endedAt: new Date(),
+							});
+						} catch (dbError) {
+							// Log DB error but don't fail the process
 							console.error(
-								`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
+								`\nWarning: Failed to update agent status: ${dbError instanceof Error ? dbError.message : String(dbError)}\n`,
 							);
-							console.error(
-								`Error: ${error instanceof Error ? error.message : String(error)}\n`,
-							);
-							process.exit(1);
-						});
+						}
+
+						console.error(
+							`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
+						);
+						console.error(`Error: ${result.error}\n`);
+						if (result.exitCode !== undefined) {
+							console.error(`Exit code: ${result.exitCode}\n`);
+						}
+						process.exit(1);
+					}
+					process.exit(0);
 				}, 100);
 			}
 		}

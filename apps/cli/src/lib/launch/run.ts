@@ -90,8 +90,8 @@ export async function launchAgent(
 	try {
 		await execAsync(`tmux new-session -d -s "${sessionName}" "${command}"`);
 
-		// Wait a moment and verify the session is still alive
-		await new Promise((resolve) => setTimeout(resolve, 200));
+		// Wait longer and verify the session is still alive (increased from 200ms to 500ms)
+		await new Promise((resolve) => setTimeout(resolve, 500));
 		const stillExists = tmuxSessionExists(sessionName);
 
 		if (!stillExists) {
@@ -102,6 +102,15 @@ export async function launchAgent(
 		}
 
 		if (options.attach) {
+			// Double-check session still exists before attaching
+			const existsBeforeAttach = tmuxSessionExists(sessionName);
+			if (!existsBeforeAttach) {
+				return {
+					success: false,
+					error: `Session "${sessionName}" died before attach. The command may exit immediately: ${command}`,
+				};
+			}
+
 			// Created successfully and still alive, now attach
 			if (!options.silent) {
 				console.log(`\nSession "${sessionName}" created. Attaching...\n`);

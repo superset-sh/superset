@@ -683,6 +683,24 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 				setTimeout(async () => {
 					const result = await launchAgent(agent, { attach: true });
 					if (!result.success) {
+						// Update agent status to STOPPED on failure
+						try {
+							const db = (await import("../lib/db")).getDb();
+							const { ProcessOrchestrator } = await import(
+								"../lib/orchestrators/process-orchestrator"
+							);
+							const orchestrator = new ProcessOrchestrator(db);
+							await orchestrator.update(agent.id, {
+								status: ProcessStatus.STOPPED,
+								endedAt: new Date(),
+							});
+						} catch (dbError) {
+							// Log DB error but don't fail the process
+							console.error(
+								`\nWarning: Failed to update agent status: ${dbError instanceof Error ? dbError.message : String(dbError)}\n`,
+							);
+						}
+
 						console.error(`\n❌ Failed to attach to agent\n`);
 						console.error(`Error: ${result.error}\n`);
 						globalThis.process.exit(1);
