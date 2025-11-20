@@ -18,7 +18,7 @@ export function ModeContent({ mode, children }: ModeContentProps) {
 			}}
 		>
 			<ModeHeader mode={mode} />
-			<div className="px-1">{children}</div>
+			<div className="px-1 h-full">{children}</div>
 		</div>
 	);
 }
