@@ -9,11 +9,9 @@ import type { ReactNode } from "react";
 
 interface TabContentContextMenuProps {
 	children: ReactNode;
-	onSplitHorizontal?: () => void;
-	onSplitVertical?: () => void;
-	onClosePane?: () => void;
-	onRename?: () => void;
-	onDuplicate?: () => void;
+	onSplitHorizontal: () => void;
+	onSplitVertical: () => void;
+	onClosePane: () => void;
 }
 
 export function TabContentContextMenu({
@@ -21,16 +19,11 @@ export function TabContentContextMenu({
 	onSplitHorizontal,
 	onSplitVertical,
 	onClosePane,
-	onRename,
-	onDuplicate,
 }: TabContentContextMenuProps) {
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
-				<ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
-				<ContextMenuItem onSelect={onDuplicate}>Duplicate</ContextMenuItem>
-				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onSplitHorizontal}>
 					Split Horizontally
 				</ContextMenuItem>

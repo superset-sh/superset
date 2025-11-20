@@ -78,16 +78,6 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		[tab.id, tab.layout, updateTabGroupLayout, removeChildTabFromGroup],
 	);
 
-	const handleRename = useCallback((tabId: string) => {
-		// TODO: Implement rename functionality
-		console.log("Rename pane:", tabId);
-	}, []);
-
-	const handleDuplicate = useCallback((tabId: string) => {
-		// TODO: Implement duplicate functionality
-		console.log("Duplicate pane:", tabId);
-	}, []);
-
 	const handleSplitHorizontal = useCallback((tabId: string) => {
 		// TODO: Implement split horizontally functionality
 		console.log("Split horizontally:", tabId);
@@ -123,8 +113,6 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 					className={isActive ? "mosaic-window-focused" : ""}
 				>
 					<TabContentContextMenu
-						onRename={() => handleRename(tabId)}
-						onDuplicate={() => handleDuplicate(tabId)}
 						onSplitHorizontal={() => handleSplitHorizontal(tabId)}
 						onSplitVertical={() => handleSplitVertical(tabId)}
 						onClosePane={() => handleClosePane(tabId)}
@@ -137,8 +125,6 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		[
 			childTabs,
 			activeTabId,
-			handleRename,
-			handleDuplicate,
 			handleSplitHorizontal,
 			handleSplitVertical,
 			handleClosePane,
