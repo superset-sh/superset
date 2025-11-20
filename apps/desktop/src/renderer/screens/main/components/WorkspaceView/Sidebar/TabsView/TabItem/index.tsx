@@ -1,10 +1,9 @@
 import { Button } from "@superset/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import {
 	useActiveTabIds,
 	useRemoveTab,
-	useRenameTab,
 	useSetActiveTab,
 	useWorkspacesStore,
 } from "renderer/stores";
@@ -13,19 +12,16 @@ import { TabContextMenu } from "./TabContextMenu";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
 import { useGroupDrop } from "./useGroupDrop";
+import { useTabRename } from "./useTabRename";
 
 export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
-	const [isRenaming, setIsRenaming] = useState(false);
-	const [renameValue, setRenameValue] = useState(tab.title);
-	const inputRef = useRef<HTMLInputElement>(null);
 	const activeWorkspaceId = useWorkspacesStore(
 		(state) => state.activeWorkspaceId,
 	);
 	const activeTabIds = useActiveTabIds();
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();
-	const renameTab = useRenameTab();
 
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
@@ -35,13 +31,15 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const { drag, drop, isDragging, isDragOver } = useDragTab(tab.id);
 	const groupDrop = useGroupDrop(tab.id);
 
+	const rename = useTabRename(tab.id, tab.title);
+
 	const handleRemoveTab = (e?: React.MouseEvent) => {
 		e?.stopPropagation();
 		removeTab(tab.id);
 	};
 
 	const handleTabClick = () => {
-		if (isRenaming) return;
+		if (rename.isRenaming) return;
 		if (activeWorkspaceId) {
 			setActiveTab(activeWorkspaceId, tab.id);
 		}
@@ -49,57 +47,8 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 
 	const handleToggleExpand = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		if (isRenaming) return;
+		if (rename.isRenaming) return;
 		setIsExpanded(!isExpanded);
-	};
-
-	const attachRef = (el: HTMLButtonElement | null) => {
-		drag(el);
-		drop(el);
-	};
-
-	const isGroupTab = tab.type === TabType.Group;
-	const hasChildren = childTabs.length > 0;
-
-	// Select input text when rename mode is activated
-	useEffect(() => {
-		if (isRenaming && inputRef.current) {
-			inputRef.current.select();
-		}
-	}, [isRenaming]);
-
-	// Sync rename value when tab title changes
-	useEffect(() => {
-		setRenameValue(tab.title);
-	}, [tab.title]);
-
-	const handleRename = () => {
-		setIsRenaming(true);
-	};
-
-	const handleRenameSubmit = () => {
-		const trimmedValue = renameValue.trim();
-		if (trimmedValue && trimmedValue !== tab.title) {
-			renameTab(tab.id, trimmedValue);
-		} else {
-			setRenameValue(tab.title);
-		}
-		setIsRenaming(false);
-	};
-
-	const handleRenameCancel = () => {
-		setRenameValue(tab.title);
-		setIsRenaming(false);
-	};
-
-	const handleRenameKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter") {
-			e.preventDefault();
-			handleRenameSubmit();
-		} else if (e.key === "Escape") {
-			e.preventDefault();
-			handleRenameCancel();
-		}
 	};
 
 	const handleDuplicate = () => {
@@ -122,13 +71,21 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		console.log("Delete group:", tab.id);
 	};
 
+	const attachRef = (el: HTMLButtonElement | null) => {
+		drag(el);
+		drop(el);
+	};
+
+	const isGroupTab = tab.type === TabType.Group;
+	const hasChildren = childTabs.length > 0;
+
 	return (
 		<div className="w-full">
 			<TabContextMenu
 				tabId={tab.id}
 				tabType={tab.type}
 				onClose={handleRemoveTab}
-				onRename={handleRename}
+				onRename={rename.startRename}
 				onDuplicate={handleDuplicate}
 				onMoveToNewWindow={handleMoveToNewWindow}
 				onUngroup={handleUngroup}
@@ -138,6 +95,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 					ref={attachRef}
 					variant="ghost"
 					onClick={handleTabClick}
+					onDoubleClick={rename.startRename}
 					onKeyDown={(e) => {
 						if (e.key === "Enter" || e.key === " ") {
 							e.preventDefault();
@@ -164,14 +122,14 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 								/>
 							</button>
 						)}
-						{isRenaming ? (
+						{rename.isRenaming ? (
 							<input
-								ref={inputRef}
+								ref={rename.inputRef}
 								type="text"
-								value={renameValue}
-								onChange={(e) => setRenameValue(e.target.value)}
-								onBlur={handleRenameSubmit}
-								onKeyDown={handleRenameKeyDown}
+								value={rename.renameValue}
+								onChange={(e) => rename.setRenameValue(e.target.value)}
+								onBlur={rename.submitRename}
+								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
 								className="flex-1 bg-sidebar-accent border border-primary rounded px-1 py-0.5 text-sm outline-none"
 							/>
