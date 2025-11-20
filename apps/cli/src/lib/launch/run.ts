@@ -90,7 +90,7 @@ async function createSessionWithRetry(
 	agent: Agent,
 	sessionName: string,
 	command: string,
-	options: { attach?: boolean; silent?: boolean },
+	options: { attach?: boolean; silent?: boolean; retryCount?: number },
 	attempt = 1,
 ): Promise<LaunchResult> {
 	const maxAttempts = 2;
@@ -151,7 +151,7 @@ async function createSessionWithRetry(
 			if (!options.silent) {
 				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
 			}
-			const result = await attachToAgent(agent, options.silent);
+			const result = await attachToAgent(agent, options.silent, options.retryCount || 0);
 
 			// If attach failed, kill the session
 			if (!result.success) {
@@ -209,7 +209,7 @@ async function createSessionWithRetry(
  */
 export async function launchAgent(
 	agent: Agent,
-	options: { attach?: boolean; silent?: boolean } = { attach: true },
+	options: { attach?: boolean; silent?: boolean; retryCount?: number } = { attach: true },
 ): Promise<LaunchResult> {
 	const command = getLaunchCommand(agent);
 
@@ -230,11 +230,15 @@ export async function launchAgent(
 	}
 
 	// Preflight check: verify the launch command binary exists on PATH
-	const binary = command.split(" ")[0];
-	if (!binary || !commandExists(binary)) {
+	// Skip check for shell wrappers (bash -c, env FOO=bar, etc.) to avoid false negatives
+	const parts = command.split(" ");
+	const firstPart = parts[0];
+	const isShellWrapper = ["bash", "sh", "zsh", "env"].includes(firstPart || "");
+
+	if (!isShellWrapper && firstPart && !commandExists(firstPart)) {
 		return {
 			success: false,
-			error: `Command not found: ${binary || "empty"}\n\nThe agent launch command is not available on your PATH.\nTo fix this:\n  1. Install the command: which ${binary}\n  2. Or set a custom command: export SUPERSET_AGENT_LAUNCH_${agent.agentType.toUpperCase()}=your-command`,
+			error: `Command not found: ${firstPart}\n\nThe agent launch command is not available on your PATH.\nTo fix this:\n  1. Install the command: which ${firstPart}\n  2. Or set a custom command: export SUPERSET_AGENT_LAUNCH_${agent.agentType.toUpperCase()}=your-command`,
 		};
 	}
 
@@ -249,7 +253,7 @@ export async function launchAgent(
 			if (!options.silent) {
 				console.log(`\nSession "${sessionName}" exists. Attaching...\n`);
 			}
-			return attachToAgent(agent, options.silent);
+			return attachToAgent(agent, options.silent, options.retryCount || 0);
 		}
 		// Session exists but not attaching - just return success
 		return {
@@ -266,23 +270,31 @@ export async function launchAgent(
  * Attach to an existing agent's tmux session
  * Inherits stdio so user can interact, returns when user detaches
  * If session doesn't exist, attempts to create it first
+ * @param retryCount Internal counter to prevent infinite recursion (max 1 retry)
  */
 export async function attachToAgent(
 	agent: Agent,
 	silent = false,
+	retryCount = 0,
 ): Promise<LaunchResult> {
 	const sessionName = agent.sessionName || `agent-${agent.id.slice(0, 6)}`;
 
 	// Check if session exists
 	const exists = tmuxSessionExists(sessionName);
 	if (!exists) {
-		// Session missing - try to recreate it by calling launchAgent
+		// Session missing - try to recreate it by calling launchAgent (if not already retried)
+		if (retryCount >= 1) {
+			return {
+				success: false,
+				error: `Session "${sessionName}" not found and recreate attempt already failed.`,
+			};
+		}
 		if (!silent) {
 			console.log(
 				`\nSession "${sessionName}" not found. Creating new session...\n`,
 			);
 		}
-		return launchAgent(agent, { attach: true, silent });
+		return launchAgent(agent, { attach: true, silent, retryCount: retryCount + 1 });
 	}
 
 	if (!silent) {
@@ -329,15 +341,23 @@ export async function attachToAgent(
 				// Non-zero exit code indicates failure - kill the session
 				killTmuxSession(sessionName);
 
-				// One-time recovery: recreate the session and attach
+				// One-time recovery: recreate the session and attach (if not already retried)
 				// This handles cases where the pane died between session creation and attach
-				// The preflight and live-pane checks in launchAgent prevent infinite retries
+				if (retryCount >= 1) {
+					resolve({
+						success: false,
+						exitCode: code,
+						error: `Attach process exited with code ${code} after retry. The launch command may be invalid or exiting immediately.`,
+					});
+					return;
+				}
+
 				if (!silent) {
 					console.log(
 						`\nSession pane died. Attempting to recreate session...\n`,
 					);
 				}
-				const retry = await launchAgent(agent, { attach: true, silent });
+				const retry = await launchAgent(agent, { attach: true, silent, retryCount: retryCount + 1 });
 				resolve(retry);
 			});
 		} catch (error) {
