@@ -6,6 +6,7 @@ import type { TabsState } from "../types";
  * 1. From history stack
  * 2. Next tab in the same group (front then back)
  * 3. Next tab outside of group (front then back)
+ * 4. Any remaining tab in the workspace (ultimate fallback)
  */
 export const findNextTab = (
 	state: TabsState,
@@ -16,6 +17,14 @@ export const findNextTab = (
 
 	const workspaceId = tabToClose.workspaceId;
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
+
+	// Get all tabs in workspace (excluding the one being closed)
+	const allWorkspaceTabs = state.tabs.filter(
+		(tab) => tab.workspaceId === workspaceId && tab.id !== tabIdToClose,
+	);
+
+	// If no tabs remain in workspace, return null
+	if (allWorkspaceTabs.length === 0) return null;
 
 	// Priority 1: Try to find a tab from history stack (excluding the tab being closed)
 	const newHistoryStack = historyStack.filter((id) => id !== tabIdToClose);
@@ -65,48 +74,54 @@ export const findNextTab = (
 	);
 
 	// Filter out the tab we're closing
-	const remainingTabs = workspaceTabs.filter((tab) => tab.id !== tabIdToClose);
-
-	if (remainingTabs.length === 0) return null;
+	const remainingTopLevelTabs = workspaceTabs.filter(
+		(tab) => tab.id !== tabIdToClose,
+	);
 
 	// For tabs in a group, we need to find where the parent group is
 	if (tabToClose.parentId && currentIndex === -1) {
-		const parentGroup = state.tabs.find(
-			(tab) => tab.id === tabToClose.parentId,
-		);
-		if (parentGroup) {
-			const parentIndex = workspaceTabs.findIndex(
-				(tab) => tab.id === parentGroup.id,
+		if (remainingTopLevelTabs.length > 0) {
+			const parentGroup = state.tabs.find(
+				(tab) => tab.id === tabToClose.parentId,
 			);
-			if (parentIndex !== -1) {
-				// Try next tab after parent group (front)
-				if (parentIndex < remainingTabs.length) {
-					return remainingTabs[parentIndex]?.id || null;
-				}
-				// Then try previous tab before parent group (back)
-				if (parentIndex > 0) {
-					return remainingTabs[parentIndex - 1]?.id || null;
+			if (parentGroup) {
+				const parentIndex = workspaceTabs.findIndex(
+					(tab) => tab.id === parentGroup.id,
+				);
+				if (parentIndex !== -1) {
+					// Try next tab after parent group (front)
+					if (parentIndex < workspaceTabs.length - 1) {
+						return workspaceTabs[parentIndex + 1]?.id || null;
+					}
+					// Then try previous tab before parent group (back)
+					if (parentIndex > 0) {
+						return workspaceTabs[parentIndex - 1]?.id || null;
+					}
 				}
 			}
 		}
-		// Fallback to first available tab
-		return remainingTabs[0]?.id || null;
 	}
 
 	// For top-level tabs
-	if (currentIndex !== -1) {
+	if (currentIndex !== -1 && remainingTopLevelTabs.length > 0) {
 		// Try next tab (front)
 		if (currentIndex < workspaceTabs.length - 1) {
-			const nextTab = remainingTabs[currentIndex];
+			const nextTab = remainingTopLevelTabs[currentIndex];
 			if (nextTab) return nextTab.id;
 		}
 		// Then try previous tab (back)
 		if (currentIndex > 0) {
-			const prevTab = remainingTabs[currentIndex - 1];
+			const prevTab = remainingTopLevelTabs[currentIndex - 1];
 			if (prevTab) return prevTab.id;
 		}
 	}
 
-	// Fallback: return the first available tab
-	return remainingTabs[0]?.id || null;
+	// Ultimate fallback: return any available tab in the workspace
+	// Prefer top-level tabs first, then any child tab
+	if (remainingTopLevelTabs.length > 0) {
+		return remainingTopLevelTabs[0].id;
+	}
+
+	// If no top-level tabs, return any child tab
+	return allWorkspaceTabs[0]?.id || null;
 };

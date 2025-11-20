@@ -186,4 +186,60 @@ describe("findNextTab", () => {
 		const nextTabId = findNextTab(state, "tab1");
 		expect(nextTabId).toBeNull(); // Should not select tab from different workspace
 	});
+
+	it("should always find a tab if any exist in workspace (ultimate fallback)", () => {
+		const state: TabsState = {
+			tabs: [
+				{
+					id: "group1",
+					title: "Group 1",
+					workspaceId: "workspace1",
+					type: TabType.Group,
+					layout: {
+						direction: "row",
+						first: "child1",
+						second: "child2",
+					},
+				},
+				{
+					id: "child1",
+					title: "Child 1",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+				{
+					id: "child2",
+					title: "Child 2",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+				{
+					id: "group2",
+					title: "Group 2",
+					workspaceId: "workspace1",
+					type: TabType.Group,
+					layout: "child3",
+				},
+				{
+					id: "child3",
+					title: "Child 3",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group2",
+				},
+			],
+			activeTabIds: { workspace1: "child1" },
+			tabHistoryStacks: { workspace1: [] },
+		};
+
+		// Closing child1 when there are only groups and child tabs
+		// Should fallback to group1 (top-level) or another child tab
+		const nextTabId = findNextTab(state, "child1");
+		expect(nextTabId).not.toBeNull(); // Should never be null when tabs exist
+		if (nextTabId) {
+			expect(["child2", "child3", "group1", "group2"]).toContain(nextTabId);
+		}
+	});
 });
