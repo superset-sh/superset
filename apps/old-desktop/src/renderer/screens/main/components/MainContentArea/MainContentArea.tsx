@@ -4,14 +4,14 @@ import {
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
 import { useState } from "react";
-import { useDiffData } from "../../hooks";
-import type { AppMode } from "../../types";
 import {
-	useWorkspaceContext,
-	useTabContext,
 	useSidebarContext,
+	useTabContext,
+	useWorkspaceContext,
 	useWorktreeOperationsContext,
 } from "../../../../contexts";
+import { useDiffData } from "../../hooks";
+import type { AppMode } from "../../types";
 import { DiffContentArea } from "../DiffView";
 import TabContent from "../MainContent/TabContent";
 import TabGroup from "../MainContent/TabGroup";

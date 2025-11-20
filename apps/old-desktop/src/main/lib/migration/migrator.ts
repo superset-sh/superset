@@ -1,14 +1,14 @@
-import { existsSync, readFileSync, writeFileSync, copyFileSync } from "node:fs";
-import { join } from "node:path";
-import os from "node:os";
 import { randomUUID } from "node:crypto";
+import { copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import { join } from "node:path";
 import type { WorkspaceConfig } from "shared/types";
-import { DomainVersion } from "../storage/version";
-import { WorkspaceType } from "../types/cli-types";
 import type {
 	DesktopEnvironmentOrchestrator,
 	DesktopWorkspaceOrchestrator,
 } from "../storage/orchestrators";
+import { DomainVersion } from "../storage/version";
+import { WorkspaceType } from "../types/cli-types";
 import type { UiStore } from "../ui-store/store";
 
 /**

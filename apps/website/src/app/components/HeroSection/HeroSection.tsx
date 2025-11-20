@@ -1,6 +1,6 @@
 import { FadeUp } from "./components/FadeUp";
-import { HeroParallax } from "./components/HeroParallax";
 import { HeroCanvas } from "./components/HeroCanvas";
+import { HeroParallax } from "./components/HeroParallax";
 
 export function HeroSection() {
 	return (

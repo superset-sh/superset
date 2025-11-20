@@ -1,6 +1,6 @@
 // Load .env from monorepo root before any other imports
 import { existsSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { config } from "dotenv";
 
 // Find .env file by searching upward from __dirname

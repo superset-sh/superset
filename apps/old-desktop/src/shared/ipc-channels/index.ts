@@ -12,8 +12,8 @@ import type { TabChannels } from "./tab";
 import type { TerminalChannels } from "./terminal";
 import type { UiChannels } from "./ui";
 import type { WindowChannels } from "./window";
-import type { WorktreeChannels } from "./worktree";
 import type { WorkspaceChannels } from "./workspace";
+import type { WorktreeChannels } from "./worktree";
 
 // Re-export shared types
 export type {

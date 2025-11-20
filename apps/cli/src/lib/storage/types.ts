@@ -19,6 +19,9 @@ export interface Database {
 	changes: Record<string, Change>;
 	fileDiffs: Record<string, FileDiff>;
 	agentSummaries: Record<string, AgentSummary>;
+	state: {
+		currentWorkspaceId?: string;
+	};
 }
 
 /**
@@ -32,6 +35,9 @@ export interface SerializedDatabase {
 	changes: Record<string, SerializedChange>;
 	fileDiffs: Record<string, SerializedFileDiff>;
 	agentSummaries: Record<string, SerializedAgentSummary>;
+	state: {
+		currentWorkspaceId?: string;
+	};
 }
 
 // Serialized type helpers - convert Date fields to string
@@ -53,12 +59,18 @@ export type SerializedAgentSummary = Serialized<AgentSummary>;
 
 /**
  * Empty database structure for initialization
+ * Includes a default environment to get started
  */
 export const createEmptyDatabase = (): SerializedDatabase => ({
-	environments: {},
+	environments: {
+		default: {
+			id: "default",
+		},
+	},
 	workspaces: {},
 	processes: {},
 	changes: {},
 	fileDiffs: {},
 	agentSummaries: {},
+	state: {},
 });

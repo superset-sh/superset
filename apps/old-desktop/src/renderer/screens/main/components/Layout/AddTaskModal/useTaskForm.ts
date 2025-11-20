@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { TaskStatus } from "../StatusIndicator";
 import type { Worktree } from "shared/types";
+import type { TaskStatus } from "../StatusIndicator";
 import { generateBranchNameWithCollisionAvoidance } from "./utils";
 
 export function useTaskForm(

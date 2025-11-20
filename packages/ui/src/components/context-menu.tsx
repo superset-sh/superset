@@ -1,6 +1,6 @@
 import * as ContextMenuPrimitive from "@radix-ui/react-context-menu";
-import { HiMiniCheck, HiMiniChevronRight, HiMiniStop } from "react-icons/hi2";
 import type * as React from "react";
+import { HiMiniCheck, HiMiniChevronRight, HiMiniStop } from "react-icons/hi2";
 
 import { cn } from "../lib/utils";
 

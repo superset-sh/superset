@@ -1,4 +1,4 @@
-import type { Tab, MosaicNode } from "shared/types";
+import type { MosaicNode, Tab } from "shared/types";
 
 /**
  * UI state types for Desktop app

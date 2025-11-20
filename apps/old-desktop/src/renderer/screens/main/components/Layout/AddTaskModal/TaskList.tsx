@@ -8,9 +8,9 @@ import {
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { Loader2, Search, X } from "lucide-react";
 import type React from "react";
-import type { Task } from "./types";
 import { TaskListItem } from "../TaskListItem";
 import { TaskPreview } from "../TaskPreview";
+import type { Task } from "./types";
 
 interface TaskListProps {
 	searchQuery: string;

@@ -18,11 +18,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "renderer/components/ui/dialog";
+import { dragDropManager } from "renderer/lib/dnd";
 import type { Tab, Worktree } from "shared/types";
 import { WorktreePortsList } from "../WorktreePortsList";
 import { GitStatusDialog } from "./components/GitStatusDialog";
 import { TabItem } from "./components/TabItem";
-import { dragDropManager } from "renderer/lib/dnd";
 
 interface ProxyStatus {
 	canonical: number;

@@ -1,7 +1,7 @@
 import type { MotionValue } from "framer-motion";
+import { AnimatedBackground } from "./AnimatedBackground";
 import { modeIcons, modeLabels } from "./constants";
 import type { SidebarMode } from "./types";
-import { AnimatedBackground } from "./AnimatedBackground";
 
 interface ModeNavigationProps {
 	modes: SidebarMode[];

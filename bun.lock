@@ -42,12 +42,15 @@
     "apps/cli": {
       "name": "@superset/cli",
       "version": "0.0.0",
-      "bin": "dist/cli.js",
+      "bin": {
+        "superset": "dist/cli.js",
+      },
       "dependencies": {
         "commander": "^14.0.2",
         "ink": "^6.5.0",
         "ink-select-input": "^6.2.0",
         "ink-table": "^3.1.0",
+        "ink-text-input": "^6.0.0",
         "lowdb": "^7.0.1",
         "meow": "^11.0.0",
         "react": "^19.1.1",
@@ -2273,6 +2276,8 @@
     "ink-table": ["ink-table@3.1.0", "", { "dependencies": { "object-hash": "^2.0.3" }, "peerDependencies": { "ink": ">=3.0.0", "react": ">=16.8.0" } }, "sha512-qxVb4DIaEaJryvF9uZGydnmP9Hkmas3DCKVpEcBYC0E4eJd3qNgNe+PZKuzgCERFe9LfAS1TNWxCr9+AU4v3YA=="],
 
     "ink-testing-library": ["ink-testing-library@3.0.0", "", { "peerDependencies": { "@types/react": ">=18.0.0" }, "optionalPeers": ["@types/react"] }, "sha512-ItyyoOmcm6yftb7c5mZI2HU22BWzue8PBbO3DStmY8B9xaqfKr7QJONiWOXcwVsOk/6HuVQ0v7N5xhPaR3jycA=="],
+
+    "ink-text-input": ["ink-text-input@6.0.0", "", { "dependencies": { "chalk": "^5.3.0", "type-fest": "^4.18.2" }, "peerDependencies": { "ink": ">=5", "react": ">=18" } }, "sha512-Fw64n7Yha5deb1rHY137zHTAbSTNelUKuB5Kkk2HACXEtwIHBCf9OH2tP/LQ9fRYTl1F0dZgbW0zPnZk6FA9Lw=="],
 
     "inline-style-parser": ["inline-style-parser@0.2.6", "", {}, "sha512-gtGXVaBdl5mAes3rPcMedEBm12ibjt1kDMFfheul1wUAOVEJW60voNdMVzVkfLN06O7ZaD/rxhfKgtlgtTbMjg=="],
 

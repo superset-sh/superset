@@ -34,7 +34,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const change = await orchestrator.create({
@@ -56,7 +56,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const changes = await orchestrator.list(workspace.id);
@@ -97,7 +97,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const c1 = await orchestrator.create({
@@ -124,7 +124,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const change = await orchestrator.create({
 				workspaceId: workspace.id,
@@ -151,7 +151,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const change = await orchestrator.create({
 				workspaceId: workspace.id,
@@ -170,7 +170,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const change = await orchestrator.create({
 				workspaceId: workspace.id,
@@ -209,7 +209,7 @@ describe("ChangeOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const c1 = await orchestrator.create({
 				workspaceId: workspace.id,

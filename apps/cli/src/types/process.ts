@@ -5,30 +5,42 @@ export enum ProcessType {
 	TERMINAL = "terminal",
 }
 
+export enum ProcessStatus {
+	RUNNING = "running",
+	IDLE = "idle",
+	STOPPED = "stopped",
+	ERROR = "error",
+}
+
 export interface Process {
 	id: string;
 	type: ProcessType;
 	workspaceId: string;
+	status: ProcessStatus;
 
 	// Metadata
 	title: string;
 	createdAt: Date;
 	updatedAt: Date;
 	endedAt?: Date;
+	pid?: number;
+	lastHeartbeat?: Date;
+	launchCommand?: string;
 }
 
 export interface Terminal extends Process {
-	// Placeholder
+	type: ProcessType.TERMINAL;
 }
 
 export enum AgentType {
 	CODEX = "codex",
 	CLAUDE = "claude",
+	CURSOR = "cursor",
 }
 
 export interface Agent extends Process {
+	type: ProcessType.AGENT;
 	agentType: AgentType;
-	status: "idle" | "running" | "stopped" | "error";
 }
 
 export interface ProcessOrchestrator {
@@ -42,7 +54,7 @@ export interface ProcessOrchestrator {
 	) => Promise<Process>;
 	update: (id: string, process: Partial<Process>) => void;
 	stop: (id: string) => void;
-	stopAll: () => void;
+	stopAll: () => Promise<number>;
 
 	// Danger
 	delete: (id: string) => void;

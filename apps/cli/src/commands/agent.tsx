@@ -1,10 +1,17 @@
-import { Box, Text } from "ink";
+import { Box, Text, useApp } from "ink";
+import SelectInput from "ink-select-input";
 import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
+import { getDefaultLaunchCommand } from "../lib/launch/config";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import type { AgentType, Process, ProcessType } from "../types/process";
+import {
+	AgentType,
+	type Process,
+	ProcessStatus,
+	ProcessType,
+} from "../types/process";
 
 // Display type with formatted date strings
 type FormattedProcess = Omit<Process, "createdAt" | "updatedAt" | "endedAt"> & {
@@ -267,20 +274,60 @@ export function AgentStop({ id, onComplete }: AgentStopProps) {
 }
 
 interface AgentStopAllProps {
+	workspaceId?: string;
 	onComplete?: () => void;
 }
 
-export function AgentStopAll({ onComplete }: AgentStopAllProps) {
+export function AgentStopAll({ workspaceId, onComplete }: AgentStopAllProps) {
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 	const [success, setSuccess] = React.useState(false);
+	const [stoppedCount, setStoppedCount] = React.useState(0);
 
 	React.useEffect(() => {
 		const stopAll = async () => {
 			try {
 				const db = getDb();
-				const orchestrator = new ProcessOrchestrator(db);
-				await orchestrator.stopAll();
+				const processOrchestrator = new ProcessOrchestrator(db);
+				const workspaceOrchestrator = new WorkspaceOrchestrator(db);
+
+				// Determine which workspace to use
+				let targetWorkspaceId = workspaceId;
+				if (!targetWorkspaceId) {
+					const currentWorkspace = await workspaceOrchestrator.getCurrent();
+					if (!currentWorkspace) {
+						setError(
+							"No current workspace set. Specify --workspace or run 'superset workspace use <id>'",
+						);
+						setLoading(false);
+						return;
+					}
+					targetWorkspaceId = currentWorkspace.id;
+				}
+
+				// Get all AGENT processes for the workspace (not terminals)
+				const processes = await processOrchestrator.list(targetWorkspaceId);
+				const runningAgents = processes.filter(
+					(p) => !p.endedAt && p.type === ProcessType.AGENT,
+				);
+
+				// Stop each agent
+				let count = 0;
+				for (const agent of runningAgents) {
+					await processOrchestrator.stop(agent.id);
+					count++;
+				}
+
+				// Provide feedback if nothing was stopped
+				if (count === 0) {
+					setError(
+						`No running agents found in workspace ${targetWorkspaceId.slice(0, 8)}`,
+					);
+					setLoading(false);
+					return;
+				}
+
+				setStoppedCount(count);
 				setSuccess(true);
 			} catch (err) {
 				setError(err instanceof Error ? err.message : "Unknown error");
@@ -291,7 +338,7 @@ export function AgentStopAll({ onComplete }: AgentStopAllProps) {
 		};
 
 		stopAll();
-	}, [onComplete]);
+	}, [workspaceId, onComplete]);
 
 	if (loading) {
 		return <Text>Stopping all agents/processes...</Text>;
@@ -303,7 +350,14 @@ export function AgentStopAll({ onComplete }: AgentStopAllProps) {
 
 	if (success) {
 		return (
-			<Text color="green">✓ All agents/processes stopped successfully</Text>
+			<Box flexDirection="column">
+				<Text color="green">
+					✓ Stopped {stoppedCount} agent(s)/process(es) successfully
+				</Text>
+				{workspaceId && (
+					<Text dimColor>Workspace: {workspaceId.slice(0, 8)}...</Text>
+				)}
+			</Box>
 		);
 	}
 
@@ -354,6 +408,199 @@ export function AgentDelete({ id, onComplete }: AgentDeleteProps) {
 				<Text dimColor>
 					Note: All associated agent summaries have been removed.
 				</Text>
+			</Box>
+		);
+	}
+
+	return null;
+}
+
+enum StartStep {
+	LOADING = "LOADING",
+	SELECT_AGENTS = "SELECT_AGENTS",
+	STARTING = "STARTING",
+	COMPLETE = "COMPLETE",
+}
+
+interface AgentStartProps {
+	workspaceId?: string;
+	onComplete?: () => void;
+}
+
+export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
+	const { exit } = useApp();
+	const [step, setStep] = React.useState(StartStep.LOADING);
+	const [error, setError] = React.useState<string | null>(null);
+	const [workspace, setWorkspace] = React.useState<any>(null);
+	const [selectedAgents, setSelectedAgents] = React.useState<AgentType[]>([]);
+	const [startedAgents, setStartedAgents] = React.useState<Process[]>([]);
+
+	React.useEffect(() => {
+		const loadWorkspace = async () => {
+			try {
+				const db = getDb();
+				const workspaceOrchestrator = new WorkspaceOrchestrator(db);
+
+				let ws;
+				if (workspaceId) {
+					ws = await workspaceOrchestrator.get(workspaceId);
+				} else {
+					ws = await workspaceOrchestrator.getCurrent();
+					if (!ws) {
+						setError(
+							"No current workspace set. Run 'superset init' or 'superset workspace use <id>' first.",
+						);
+						return;
+					}
+				}
+
+				setWorkspace(ws);
+
+				// If workspace has default agents, use them automatically
+				if (ws.defaultAgents && ws.defaultAgents.length > 0) {
+					setSelectedAgents(ws.defaultAgents as AgentType[]);
+					setStep(StartStep.STARTING);
+					startAgents(ws, ws.defaultAgents as AgentType[]);
+				} else {
+					// No defaults, prompt user to select
+					setStep(StartStep.SELECT_AGENTS);
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Unknown error");
+			}
+		};
+
+		loadWorkspace();
+	}, [workspaceId]);
+
+	const startAgents = async (ws: any, agents: AgentType[]) => {
+		try {
+			const db = getDb();
+			const processOrchestrator = new ProcessOrchestrator(db);
+			const workspaceOrchestrator = new WorkspaceOrchestrator(db);
+
+			const created: Process[] = [];
+			for (const agentType of agents) {
+				// Get default launch command for this agent type
+				const launchCommand = getDefaultLaunchCommand(agentType);
+
+				// Create the process
+				const process = await processOrchestrator.create(
+					ProcessType.AGENT,
+					ws,
+					agentType,
+				);
+
+				// Transition to RUNNING status and set launch command
+				await processOrchestrator.update(process.id, {
+					status: ProcessStatus.RUNNING,
+					launchCommand,
+				});
+
+				created.push(process);
+			}
+
+			// Update workspace lastUsedAt and set as current if not already
+			await workspaceOrchestrator.use(ws.id);
+
+			setStartedAgents(created);
+			setStep(StartStep.COMPLETE);
+
+			// Auto-exit after showing success
+			setTimeout(() => {
+				exit();
+			}, 2000);
+		} catch (err) {
+			setError(err instanceof Error ? err.message : "Unknown error");
+		}
+	};
+
+	const handleAgentSelect = (item: { value: string }) => {
+		if (item.value === "done") {
+			if (selectedAgents.length === 0) {
+				setError("Please select at least one agent to start");
+				return;
+			}
+			setStep(StartStep.STARTING);
+			startAgents(workspace, selectedAgents);
+		} else if (item.value === "cancel") {
+			exit();
+		} else {
+			// Toggle agent selection
+			setSelectedAgents((current) =>
+				current.includes(item.value as AgentType)
+					? current.filter((a) => a !== item.value)
+					: [...current, item.value as AgentType],
+			);
+		}
+	};
+
+	if (error) {
+		return <Text color="red">Error: {error}</Text>;
+	}
+
+	if (step === StartStep.LOADING) {
+		return <Text>Loading workspace...</Text>;
+	}
+
+	if (step === StartStep.SELECT_AGENTS) {
+		const agentItems = [
+			...Object.values(AgentType).map((type) => ({
+				label: `${selectedAgents.includes(type) ? "✓" : "○"} ${type}`,
+				value: type,
+			})),
+			{ label: "→ Start selected agents", value: "done" },
+			{ label: "→ Cancel", value: "cancel" },
+		];
+
+		return (
+			<Box flexDirection="column">
+				<Text bold color="cyan">
+					Start Agents
+				</Text>
+				<Box marginTop={1}>
+					<Text>Workspace: {workspace?.name || workspace?.id}</Text>
+				</Box>
+				<Box marginTop={1}>
+					<Text>
+						Select which agents to start (use arrow keys, Enter to toggle):
+					</Text>
+				</Box>
+				{selectedAgents.length > 0 && (
+					<Box marginTop={1}>
+						<Text color="green">Selected: {selectedAgents.join(", ")}</Text>
+					</Box>
+				)}
+				<Box marginTop={1}>
+					<SelectInput items={agentItems} onSelect={handleAgentSelect} />
+				</Box>
+			</Box>
+		);
+	}
+
+	if (step === StartStep.STARTING) {
+		return (
+			<Box flexDirection="column">
+				<Text>Starting {selectedAgents.length} agent(s)...</Text>
+			</Box>
+		);
+	}
+
+	if (step === StartStep.COMPLETE) {
+		return (
+			<Box flexDirection="column">
+				<Text color="green">
+					✓ Started {startedAgents.length} agent(s) successfully!
+				</Text>
+				<Box marginTop={1}>
+					<Text dimColor>Workspace: {workspace?.name || workspace?.id}</Text>
+					<Text dimColor>Agents: {selectedAgents.join(", ")}</Text>
+				</Box>
+				<Box marginTop={1}>
+					<Text dimColor>
+						Run <Text bold>superset dashboard</Text> to view agent status
+					</Text>
+				</Box>
 			</Box>
 		);
 	}

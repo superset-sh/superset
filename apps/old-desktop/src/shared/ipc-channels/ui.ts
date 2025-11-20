@@ -2,8 +2,8 @@
  * UI-related IPC channels for Desktop app
  */
 
+import type { MosaicNode, Tab } from "../types";
 import type { IpcResponse, NoRequest } from "./types";
-import type { Tab, MosaicNode } from "../types";
 
 export interface UiChannels {
 	// Workspace UI state

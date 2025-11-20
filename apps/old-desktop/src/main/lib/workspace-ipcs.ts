@@ -10,9 +10,9 @@ import type {
 } from "shared/types";
 
 import configManager from "./config-manager";
+import windowManager from "./window-manager";
 import workspaceManager from "./workspace-manager";
 import worktreeManager from "./worktree-manager";
-import windowManager from "./window-manager";
 
 export function registerWorkspaceIPCs() {
 	// Open repository dialog

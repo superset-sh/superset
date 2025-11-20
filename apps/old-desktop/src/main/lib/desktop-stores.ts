@@ -1,15 +1,15 @@
+import { LegacyMigrator } from "./migration/migrator";
 import { ensureDesktopStorageDirs } from "./storage/config";
 import { DesktopLowdbAdapter } from "./storage/lowdb-adapter";
 import {
-	DesktopEnvironmentOrchestrator,
-	DesktopWorkspaceOrchestrator,
-	DesktopProcessOrchestrator,
 	DesktopChangeOrchestrator,
+	DesktopEnvironmentOrchestrator,
+	DesktopProcessOrchestrator,
+	DesktopWorkspaceOrchestrator,
 } from "./storage/orchestrators";
 import { DomainVersion } from "./storage/version";
 import { UiStore } from "./ui-store/store";
 import { WorkspaceComposer } from "./workspace-composition/composer";
-import { LegacyMigrator } from "./migration/migrator";
 
 /**
  * Desktop stores singleton

@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Agent } from "../../../types/process";
-import { AgentType, ProcessType } from "../../../types/process";
+import { AgentType, ProcessStatus, ProcessType } from "../../../types/process";
 import { WorkspaceType } from "../../../types/workspace";
 import { LowdbAdapter } from "../../storage/lowdb-adapter";
 import { EnvironmentOrchestrator } from "../environment-orchestrator";
@@ -36,7 +36,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const process = await orchestrator.create(
@@ -57,7 +57,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const process = (await orchestrator.create(
@@ -68,7 +68,7 @@ describe("ProcessOrchestrator", () => {
 
 			expect(process.type).toBe(ProcessType.AGENT);
 			expect(process.agentType).toBe(AgentType.CLAUDE);
-			expect(process.status).toBe("idle");
+			expect(process.status).toBe(ProcessStatus.IDLE);
 		});
 	});
 
@@ -78,7 +78,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -107,7 +107,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const p1 = await orchestrator.create(ProcessType.TERMINAL, workspace);
@@ -151,7 +151,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -172,7 +172,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -204,7 +204,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -222,7 +222,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = (await orchestrator.create(
 				ProcessType.AGENT,
@@ -233,7 +233,7 @@ describe("ProcessOrchestrator", () => {
 			await orchestrator.stop(process.id);
 			const retrieved = (await orchestrator.get(process.id)) as Agent;
 
-			expect(retrieved.status).toBe("stopped");
+			expect(retrieved.status).toBe(ProcessStatus.STOPPED);
 			expect(retrieved.endedAt).toBeInstanceOf(Date);
 		});
 	});
@@ -244,7 +244,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const p1 = await orchestrator.create(ProcessType.TERMINAL, workspace);
@@ -261,7 +261,7 @@ describe("ProcessOrchestrator", () => {
 
 			expect(retrieved1.endedAt).toBeInstanceOf(Date);
 			expect(retrieved2.endedAt).toBeInstanceOf(Date);
-			expect(retrieved2.status).toBe("stopped");
+			expect(retrieved2.status).toBe(ProcessStatus.STOPPED);
 		});
 
 		test("does not update already stopped processes", async () => {
@@ -269,7 +269,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 
 			const process = await orchestrator.create(
@@ -294,7 +294,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.TERMINAL,
@@ -310,7 +310,7 @@ describe("ProcessOrchestrator", () => {
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
 				WorkspaceType.LOCAL,
-				"/tmp/test",
+				"/tmp/test" },
 			);
 			const process = await orchestrator.create(
 				ProcessType.AGENT,

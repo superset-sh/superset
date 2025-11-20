@@ -10,6 +10,14 @@ import {
 	type SerializedDatabase,
 } from "./types";
 
+// Helper type to extract value type from Record collections
+type CollectionValue<K extends keyof Database> = Database[K] extends Record<
+	string,
+	infer V
+>
+	? V
+	: never;
+
 /**
  * Lowdb implementation of StorageAdapter
  * Handles JSON file persistence with date serialization/deserialization
@@ -36,10 +44,18 @@ export class LowdbAdapter implements StorageAdapter {
 			await mkdir(parentDir, { recursive: true, mode: 0o700 });
 		}
 
+		// Check if database file exists before creating
+		const dbExists = existsSync(this.dbPath);
+
 		this.db = await JSONFilePreset<SerializedDatabase>(
 			this.dbPath,
 			createEmptyDatabase(),
 		);
+
+		// If database was just created, write the default data to disk
+		if (!dbExists) {
+			await this.db.write();
+		}
 	}
 
 	/**
@@ -133,21 +149,23 @@ export class LowdbAdapter implements StorageAdapter {
 	async get<K extends keyof Database>(
 		collection: K,
 		id: string,
-	): Promise<Database[K][string] | undefined> {
+	): Promise<CollectionValue<K> | undefined> {
 		await this.init();
 		await this.db!.read();
-		const item = this.db!.data[collection][id];
+		const coll = this.db!.data[collection] as Record<string, unknown>;
+		const item = coll[id];
 		return item ? this.deserializeDates(item) : undefined;
 	}
 
 	async set<K extends keyof Database>(
 		collection: K,
 		id: string,
-		value: Database[K][string],
+		value: CollectionValue<K>,
 	): Promise<void> {
 		await this.init();
 		await this.db!.read();
-		this.db!.data[collection][id] = this.serializeDates(value);
+		const coll = this.db!.data[collection] as Record<string, unknown>;
+		coll[id] = this.serializeDates(value);
 		await this.db!.write();
 	}
 
@@ -157,7 +175,8 @@ export class LowdbAdapter implements StorageAdapter {
 	): Promise<void> {
 		await this.init();
 		await this.db!.read();
-		delete this.db!.data[collection][id];
+		const coll = this.db!.data[collection] as Record<string, unknown>;
+		delete coll[id];
 		await this.db!.write();
 	}
 
@@ -167,7 +186,8 @@ export class LowdbAdapter implements StorageAdapter {
 	): Promise<boolean> {
 		await this.init();
 		await this.db!.read();
-		return id in this.db!.data[collection];
+		const coll = this.db!.data[collection] as Record<string, unknown>;
+		return id in coll;
 	}
 
 	async clear(): Promise<void> {

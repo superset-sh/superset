@@ -4,10 +4,12 @@ import {
 	type AgentType,
 	type ProcessOrchestrator as IProcessOrchestrator,
 	type Process,
+	ProcessStatus,
 	ProcessType,
 	type Terminal,
 } from "../../types/process";
 import type { Workspace } from "../../types/workspace";
+import { getDefaultLaunchCommand } from "../launch/config";
 import type { StorageAdapter } from "../storage/adapter";
 
 /**
@@ -22,18 +24,87 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		if (!process) {
 			throw new Error(`Process with id ${id} not found`);
 		}
-		return process;
+
+		const backfilled = this.backfillDefaults(process);
+
+		// Persist backfilled defaults if they were added or updated
+		if (this.needsPersist(process)) {
+			await this.storage.set("processes", id, backfilled);
+		}
+
+		return backfilled;
 	}
 
 	async list(workspaceId?: string): Promise<Process[]> {
 		const processes = await this.storage.getCollection("processes");
-		const processList = Object.values(processes);
+		const processList: Process[] = [];
+
+		for (const [id, process] of Object.entries(processes)) {
+			const backfilled = this.backfillDefaults(process);
+
+			// Persist backfilled defaults if they were added or updated
+			if (this.needsPersist(process)) {
+				await this.storage.set("processes", id, backfilled);
+			}
+
+			processList.push(backfilled);
+		}
 
 		if (workspaceId) {
 			return processList.filter((p) => p.workspaceId === workspaceId);
 		}
 
 		return processList;
+	}
+
+	private needsPersist(process: Process): boolean {
+		return (
+			!process.status ||
+			!process.createdAt ||
+			!process.updatedAt ||
+			(process.type === ProcessType.AGENT &&
+				"agentType" in process &&
+				(!process.launchCommand ||
+					(process.agentType === "claude" &&
+						(process.launchCommand === "claude-code" ||
+							process.launchCommand === "claude-code shell")) ||
+					(process.agentType === "codex" && process.launchCommand === "code")))
+		);
+	}
+
+	private backfillDefaults(process: Process): Process {
+		const now = new Date();
+		// Determine status based on endedAt
+		const defaultStatus = process.endedAt
+			? ProcessStatus.STOPPED
+			: ProcessStatus.IDLE;
+
+		const backfilled = {
+			...process,
+			status: process.status || defaultStatus,
+			createdAt: process.createdAt || now,
+			updatedAt: process.updatedAt || now,
+		};
+
+		// Backfill or update launchCommand for agents
+		if (process.type === ProcessType.AGENT && "agentType" in process) {
+			const agent = backfilled as Agent;
+			const currentDefault = getDefaultLaunchCommand(agent.agentType);
+
+			// Update if missing or outdated
+			const isOutdated =
+				!agent.launchCommand ||
+				(agent.agentType === "claude" &&
+					(agent.launchCommand === "claude-code" ||
+						agent.launchCommand === "claude-code shell")) ||
+				(agent.agentType === "codex" && agent.launchCommand === "code");
+
+			if (isOutdated) {
+				agent.launchCommand = currentDefault;
+			}
+		}
+
+		return backfilled;
 	}
 
 	async create(
@@ -47,6 +118,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 			type,
 			workspaceId: workspace.id,
 			title: type === ProcessType.AGENT ? "Agent" : "Terminal",
+			status: ProcessStatus.IDLE,
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -56,7 +128,6 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 				? ({
 						...baseProcess,
 						agentType,
-						status: "idle",
 					} as Agent)
 				: type === ProcessType.TERMINAL
 					? (baseProcess as Terminal)
@@ -95,18 +166,20 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 
 		// Update status for agents
 		if ("status" in updated) {
-			(updated as Agent).status = "stopped";
+			(updated as Agent).status = ProcessStatus.STOPPED;
 		}
 
 		await this.storage.set("processes", id, updated);
 	}
 
-	async stopAll(): Promise<void> {
+	async stopAll(): Promise<number> {
 		const processes = await this.storage.getCollection("processes");
 		const now = new Date();
+		let stoppedCount = 0;
 
 		for (const [id, process] of Object.entries(processes)) {
-			if (!process.endedAt) {
+			// Only stop agents, not terminals
+			if (process.type === ProcessType.AGENT && !process.endedAt) {
 				const updated = {
 					...process,
 					endedAt: now,
@@ -115,12 +188,15 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 
 				// Update status for agents
 				if ("status" in updated) {
-					(updated as Agent).status = "stopped";
+					(updated as Agent).status = ProcessStatus.STOPPED;
 				}
 
 				await this.storage.set("processes", id, updated);
+				stoppedCount++;
 			}
 		}
+
+		return stoppedCount;
 	}
 
 	async delete(id: string): Promise<void> {
