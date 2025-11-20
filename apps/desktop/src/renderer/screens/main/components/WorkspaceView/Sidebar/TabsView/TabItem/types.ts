@@ -1,3 +1,5 @@
+import type { Tab } from "renderer/stores/tabs/types";
+
 export interface DragItem {
 	type: "TAB";
 	tabId: string;
@@ -6,7 +8,6 @@ export interface DragItem {
 export const TAB_DND_TYPE = "TAB";
 
 export interface TabItemProps {
-	tabId: string;
-	title: string;
+	tab: Tab;
 	isActive: boolean;
 }

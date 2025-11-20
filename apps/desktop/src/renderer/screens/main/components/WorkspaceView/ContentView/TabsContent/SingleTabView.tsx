@@ -32,7 +32,9 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 								: "border-border"
 						}`}
 					>
-						<p className="text-muted-foreground">Tab content will appear here</p>
+						<p className="text-muted-foreground">
+							Tab content will appear here
+						</p>
 						{isDropZone && (
 							<p className="text-primary text-sm mt-2 font-medium">
 								Drop here to create a split view

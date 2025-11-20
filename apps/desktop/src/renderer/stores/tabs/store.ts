@@ -26,8 +26,8 @@ interface TabsState {
 
 	// Tab group specific actions
 	updateTabGroupLayout: (id: string, layout: MosaicNode<string>) => void;
-	addPaneToTabGroup: (id: string, paneId: string, title: string) => void;
-	removePaneFromTabGroup: (id: string, paneId: string) => void;
+	addChildTabToGroup: (groupId: string, childTabId: string) => void;
+	removeChildTabFromGroup: (groupId: string, childTabId: string) => void;
 
 	// Drag and drop actions
 	dragTabToTab: (draggedTabId: string, targetTabId: string) => void;
@@ -51,7 +51,26 @@ const createInitialTabs = (): Tab[] => {
 		isNew: false,
 	};
 
-	// Create a group tab with two panes
+	// Create child tabs for the group
+	const childTab1: Tab = {
+		id: "tab-child-1",
+		title: "Left Pane",
+		workspaceId,
+		type: TabType.Single,
+		isNew: false,
+		parentId: "tab-group-1",
+	};
+
+	const childTab2: Tab = {
+		id: "tab-child-2",
+		title: "Right Pane",
+		workspaceId,
+		type: TabType.Single,
+		isNew: false,
+		parentId: "tab-group-1",
+	};
+
+	// Create a group tab with two child tabs
 	const groupTab: Tab = {
 		id: "tab-group-1",
 		title: "Split View Example",
@@ -60,14 +79,11 @@ const createInitialTabs = (): Tab[] => {
 		isNew: false,
 		layout: {
 			direction: "row",
-			first: "pane-1",
-			second: "pane-2",
+			first: "tab-child-1",
+			second: "tab-child-2",
 			splitPercentage: 50,
 		},
-		panes: {
-			"pane-1": { title: "Left Pane" },
-			"pane-2": { title: "Right Pane" },
-		},
+		childTabIds: ["tab-child-1", "tab-child-2"],
 	};
 
 	// Create another single tab
@@ -79,7 +95,7 @@ const createInitialTabs = (): Tab[] => {
 		isNew: false,
 	};
 
-	return [singleTab, groupTab, singleTab2];
+	return [singleTab, childTab1, childTab2, groupTab, singleTab2];
 };
 
 export const useTabsStore = create<TabsState>()(

@@ -12,6 +12,7 @@ interface BaseTab {
 	title: string;
 	workspaceId: string;
 	isNew?: boolean;
+	parentId?: string; // ID of parent tab if this is a child pane
 }
 
 // Single tab - single content view
@@ -23,9 +24,10 @@ export interface SingleTab extends BaseTab {
 export interface TabGroup extends BaseTab {
 	type: TabType.Group;
 	// MosaicNode describes the layout structure (split direction and children)
+	// Now uses tab IDs instead of pane IDs
 	layout: MosaicNode<string>;
-	// Map of pane IDs to their content/metadata
-	panes: Record<string, { title: string }>;
+	// Array of child tab IDs
+	childTabIds: string[];
 }
 
 // Union type for all tab types

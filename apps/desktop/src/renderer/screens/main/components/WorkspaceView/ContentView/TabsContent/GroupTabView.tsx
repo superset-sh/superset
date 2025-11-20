@@ -1,56 +1,82 @@
+import { useCallback } from "react";
+import {
+	Mosaic,
+	type MosaicBranch,
+	type MosaicNode,
+	MosaicWindow,
+} from "react-mosaic-component";
+import "react-mosaic-component/react-mosaic-component.css";
+import { dragDropManager } from "renderer/lib/dnd";
 import type { TabGroup } from "renderer/stores";
-import { useDropTabTarget } from "./useDropTabTarget";
+import "./mosaic-theme.css";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
 }
 
 export function GroupTabView({ tab }: GroupTabViewProps) {
-	const { drop, isDropZone } = useDropTabTarget(tab);
+	const handleLayoutChange = useCallback(
+		(newLayout: MosaicNode<string> | null) => {
+			// TODO: Persist layout changes to store
+			console.log("Layout changed:", newLayout);
+		},
+		[],
+	);
 
-	return (
-		<div
-			ref={drop as unknown as React.Ref<HTMLDivElement>}
-			className={`flex-1 h-full overflow-auto bg-background transition-colors ${
-				isDropZone ? "bg-primary/10" : ""
-			}`}
-		>
-			<div className="h-full w-full p-6">
-				<div className="flex flex-col h-full">
-					<div className="mb-4">
-						<h2 className="text-2xl font-semibold text-foreground mb-1">
-							{tab.title}
-						</h2>
-						<p className="text-sm text-muted-foreground">
-							Split view - {Object.keys(tab.panes).length} panes{" "}
-							{isDropZone && "- Drop to add pane"}
-						</p>
+	const renderPane = useCallback(
+		(paneId: string, path: MosaicBranch[]) => {
+			const pane = tab.panes[paneId];
+
+			if (!pane) {
+				return (
+					<div className="w-full h-full flex items-center justify-center text-muted-foreground">
+						Pane not found: {paneId}
 					</div>
-					<div
-						className={`flex-1 border rounded-lg p-4 transition-colors ${
-							isDropZone
-								? "border-primary border-2 bg-primary/5"
-								: "border-border"
-						}`}
-					>
-						<p className="text-muted-foreground">
-							React-mosaic split view will appear here
-						</p>
-						<div className="mt-2 text-xs text-muted-foreground">
-							{Object.entries(tab.panes).map(([paneId, pane]) => (
-								<div key={paneId}>
-									- {pane.title} ({paneId})
-								</div>
-							))}
+				);
+			}
+
+			return (
+				<MosaicWindow<string>
+					path={path}
+					title={pane.title}
+					toolbarControls={<div />}
+				>
+					<div className="w-full h-full bg-background p-2">
+						{/* TODO: Render actual pane content */}
+						<div className="text-muted-foreground">
+							{pane.title} content will appear here
 						</div>
-						{isDropZone && (
-							<p className="text-primary text-sm mt-2 font-medium">
-								Drop here to add to this split view
-							</p>
-						)}
 					</div>
+				</MosaicWindow>
+			);
+		},
+		[tab.panes],
+	);
+
+	const paneCount = Object.keys(tab.panes).length;
+
+	if (paneCount === 0) {
+		return (
+			<div className="w-full h-full flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-muted-foreground">No panes in this group</p>
+					<p className="text-xs text-muted-foreground/60 mt-2">
+						Create a new pane to get started
+					</p>
 				</div>
 			</div>
+		);
+	}
+
+	return (
+		<div className="w-full h-full mosaic-container">
+			<Mosaic<string>
+				renderTile={renderPane}
+				value={tab.layout}
+				onChange={handleLayoutChange}
+				className="mosaic-theme-dark"
+				dragAndDropManager={dragDropManager}
+			/>
 		</div>
 	);
 }

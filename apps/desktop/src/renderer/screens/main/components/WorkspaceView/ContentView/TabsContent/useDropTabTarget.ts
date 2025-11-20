@@ -1,7 +1,7 @@
 import { useDrop } from "react-dnd";
 import type { Tab } from "renderer/stores";
 import { useTabsStore } from "renderer/stores";
-import { TAB_DND_TYPE, type DragItem } from "./types";
+import { type DragItem, TAB_DND_TYPE } from "./types";
 
 export function useDropTabTarget(activeTab: Tab | null) {
 	const dragTabToTab = useTabsStore((state) => state.dragTabToTab);
