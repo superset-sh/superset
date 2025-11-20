@@ -2,9 +2,6 @@ import type { TabsState } from "../types";
 import { TabType } from "../types";
 import { createNewTab } from "../utils";
 
-/**
- * Creates a new tab and updates state
- */
 export const handleAddTab = (
 	state: TabsState,
 	workspaceId: string,
@@ -41,18 +38,17 @@ export const handleRemoveTab = (
 	const tabToRemove = state.tabs.find((tab) => tab.id === id);
 	if (!tabToRemove) return null;
 
-	// Don't allow closing group tabs directly
+	// Group tabs must be ungrouped first to prevent orphaned layouts
 	if (tabToRemove.type === TabType.Group) {
 		console.error("Cannot close group tabs directly. Ungroup the tabs first.");
 		return null;
 	}
 
-	// If this tab is a child of a group, return null to delegate to removeChildTabFromGroup
+	// Child tabs require group cleanup, so delegate to removeChildTabFromGroup
 	if (tabToRemove.parentId) {
 		return null;
 	}
 
-	// Otherwise, handle as a top-level tab
 	const workspaceId = tabToRemove.workspaceId;
 	const workspaceTabs = state.tabs.filter(
 		(tab) => tab.workspaceId === workspaceId && tab.id !== id,
@@ -93,9 +89,6 @@ export const handleRemoveTab = (
 	};
 };
 
-/**
- * Renames a tab
- */
 export const handleRenameTab = (
 	state: TabsState,
 	id: string,
@@ -108,9 +101,6 @@ export const handleRenameTab = (
 	};
 };
 
-/**
- * Marks a tab as used (removes isNew flag)
- */
 export const handleMarkTabAsUsed = (
 	state: TabsState,
 	id: string,

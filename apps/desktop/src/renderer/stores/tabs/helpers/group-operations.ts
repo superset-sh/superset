@@ -6,9 +6,6 @@ import { validateGroupLayouts } from "./validation";
 import { getChildTabIds } from "../utils";
 import { removeTabFromLayout } from "../drag-logic";
 
-/**
- * Updates the layout of a tab group
- */
 export const handleUpdateTabGroupLayout = (
 	state: TabsState,
 	id: string,
@@ -23,9 +20,6 @@ export const handleUpdateTabGroupLayout = (
 	};
 };
 
-/**
- * Adds a child tab to a group
- */
 export const handleAddChildTabToGroup = (
 	state: TabsState,
 	groupId: string,
@@ -41,17 +35,13 @@ export const handleAddChildTabToGroup = (
 		return tab;
 	});
 
-	// Note: This doesn't update layout - caller is responsible for layout updates
-	// This is typically used in conjunction with updateTabGroupLayout
+	// Layout updates are handled separately to allow callers to batch operations
 
 	return {
 		tabs: updatedTabs,
 	};
 };
 
-/**
- * Removes a child tab from a group
- */
 export const handleRemoveChildTabFromGroup = (
 	state: TabsState,
 	groupId: string,
@@ -62,13 +52,12 @@ export const handleRemoveChildTabFromGroup = (
 	);
 	if (!group || group.type !== TabType.Group) return {};
 
-	// Derive children from parentId
 	const updatedChildTabIds = getChildTabIds(
 		state.tabs,
 		groupId,
 	).filter((id: string) => id !== childTabId);
 
-	// If no children left, remove both the child and the group
+	// Empty groups are invalid and must be removed to prevent orphaned state
 	if (updatedChildTabIds.length === 0) {
 		return handleEmptyGroupRemoval(
 			state.tabs,
@@ -79,7 +68,7 @@ export const handleRemoveChildTabFromGroup = (
 		);
 	}
 
-	// Validate layouts after removing child tab
+	// Layouts may reference removed tabs, so clean them up
 	const validatedTabs = validateGroupLayouts(
 		state.tabs.filter((tab) => tab.id !== childTabId),
 	);
@@ -89,9 +78,6 @@ export const handleRemoveChildTabFromGroup = (
 	};
 };
 
-/**
- * Ungroups a single tab from its parent group
- */
 export const handleUngroupTab = (
 	state: TabsState,
 	tabId: string,
@@ -105,19 +91,16 @@ export const handleUngroupTab = (
 	);
 	if (!parentGroup || parentGroup.type !== TabType.Group) return {};
 
-	// Remove parentId from the tab
 	const updatedTab: Tab = {
 		...tab,
 		parentId: undefined,
 	};
 
-	// Remove tab from parent's layout
 	const updatedLayout = removeTabFromLayout(
 		parentGroup.layout,
 		tabId,
 	) as MosaicNode<string> | null;
 
-	// Get remaining children
 	const remainingChildren = state.tabs.filter(
 		(t) => t.parentId === parentGroup.id && t.id !== tabId,
 	);
@@ -133,7 +116,7 @@ export const handleUngroupTab = (
 		return t;
 	});
 
-	// If no children left, remove the group
+	// Empty groups are invalid and must be removed
 	if (remainingChildren.length === 0) {
 		const result = handleEmptyGroupRemoval(
 			updatedTabs,
@@ -141,10 +124,9 @@ export const handleUngroupTab = (
 			state.tabHistoryStacks,
 			tab.workspaceId,
 			[parentGroup.id],
-			tabId, // Prefer the ungrouped tab as the new active tab
+			tabId,
 		);
 
-		// Apply reordering if needed
 		if (targetIndex !== undefined) {
 			const workspaceTabs = result.tabs.filter(
 				(t) => t.workspaceId === tab.workspaceId && !t.parentId,
@@ -166,10 +148,9 @@ export const handleUngroupTab = (
 		return result;
 	}
 
-	// Validate layouts after removing tab
+	// Layouts may reference removed tabs, so clean them up
 	let validatedTabs = validateGroupLayouts(updatedTabs);
 
-	// Reorder if targetIndex is provided
 	if (targetIndex !== undefined) {
 		const workspaceId = tab.workspaceId;
 		const workspaceTabs = validatedTabs.filter(
@@ -193,9 +174,6 @@ export const handleUngroupTab = (
 	};
 };
 
-/**
- * Ungroups all tabs from a group
- */
 export const handleUngroupTabs = (
 	state: TabsState,
 	groupId: string,
@@ -205,18 +183,16 @@ export const handleUngroupTabs = (
 	);
 	if (!group || group.type !== TabType.Group) return {};
 
-	// Get all child tabs
 	const childTabIds = getChildTabIds(state.tabs, groupId);
 	if (childTabIds.length === 0) return {};
 
-	// Find the group's position in the workspace
+	// Preserve tab order by placing ungrouped tabs where the group was
 	const workspaceId = group.workspaceId;
 	const workspaceTabs = state.tabs.filter(
 		(t) => t.workspaceId === workspaceId && !t.parentId,
 	);
 	const groupIndex = workspaceTabs.findIndex((t) => t.id === groupId);
 
-	// Remove parentId from all child tabs
 	const updatedTabs = state.tabs
 		.map((tab) => {
 			if (childTabIds.includes(tab.id)) {
@@ -227,10 +203,8 @@ export const handleUngroupTabs = (
 			}
 			return tab;
 		})
-		// Remove the group tab itself
 		.filter((tab) => tab.id !== groupId);
 
-	// Reorder tabs to place ungrouped tabs where the group was
 	const newWorkspaceTabs = updatedTabs.filter(
 		(t) => t.workspaceId === workspaceId && !t.parentId,
 	);
@@ -238,28 +212,24 @@ export const handleUngroupTabs = (
 		(t) => t.workspaceId !== workspaceId || t.parentId,
 	);
 
-	// Get the ungrouped child tabs
 	const ungroupedTabs = newWorkspaceTabs.filter((t) =>
 		childTabIds.includes(t.id),
 	);
-	// Get tabs that are not the ungrouped children
 	const nonUngroupedTabs = newWorkspaceTabs.filter(
 		(t) => !childTabIds.includes(t.id),
 	);
 
-	// Insert ungrouped tabs at the group's original position
 	nonUngroupedTabs.splice(groupIndex, 0, ...ungroupedTabs);
 
 	const finalTabs = [...otherTabs, ...nonUngroupedTabs];
 
-	// Clean up active tab and history if the group was active
+	// Update active tab if the group was active to prevent UI confusion
 	const currentActiveId = state.activeTabIds[workspaceId];
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 	const newHistoryStack = historyStack.filter((id) => id !== groupId);
 
 	const newActiveTabIds = { ...state.activeTabIds };
 	if (currentActiveId === groupId) {
-		// Set the first ungrouped tab as active
 		if (ungroupedTabs.length > 0) {
 			newActiveTabIds[workspaceId] = ungroupedTabs[0].id;
 		} else if (nonUngroupedTabs.length > 0) {

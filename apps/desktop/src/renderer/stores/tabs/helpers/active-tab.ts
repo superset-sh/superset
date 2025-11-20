@@ -1,8 +1,5 @@
 import type { Tab, TabsState } from "../types";
 
-/**
- * Sets the active tab for a workspace and updates history
- */
 export const handleSetActiveTab = (
 	state: TabsState,
 	workspaceId: string,
@@ -31,9 +28,6 @@ export const handleSetActiveTab = (
 	};
 };
 
-/**
- * Gets tabs filtered by workspace
- */
 export const getTabsByWorkspace = (
 	state: TabsState,
 	workspaceId: string,
@@ -41,9 +35,6 @@ export const getTabsByWorkspace = (
 	return state.tabs.filter((tab) => tab.workspaceId === workspaceId);
 };
 
-/**
- * Gets the currently active tab for a workspace
- */
 export const getActiveTab = (
 	state: TabsState,
 	workspaceId: string,
@@ -53,9 +44,6 @@ export const getActiveTab = (
 	return state.tabs.find((tab) => tab.id === activeTabId) || null;
 };
 
-/**
- * Gets the last active tab ID from history
- */
 export const getLastActiveTabId = (
 	state: TabsState,
 	workspaceId: string,

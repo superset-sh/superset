@@ -1,8 +1,5 @@
 import type { TabsState } from "../types";
 
-/**
- * Reorders tabs within a workspace by index
- */
 export const handleReorderTabs = (
 	state: TabsState,
 	workspaceId: string,
@@ -12,9 +9,7 @@ export const handleReorderTabs = (
 	const workspaceTabs = state.tabs.filter(
 		(tab) => tab.workspaceId === workspaceId,
 	);
-	const otherTabs = state.tabs.filter(
-		(tab) => tab.workspaceId !== workspaceId,
-	);
+	const otherTabs = state.tabs.filter((tab) => tab.workspaceId !== workspaceId);
 
 	const [removed] = workspaceTabs.splice(startIndex, 1);
 	workspaceTabs.splice(endIndex, 0, removed);
@@ -22,16 +17,14 @@ export const handleReorderTabs = (
 	return { tabs: [...otherTabs, ...workspaceTabs] };
 };
 
-/**
- * Reorders a tab by ID to a target index
- */
 export const handleReorderTabById = (
 	state: TabsState,
 	tabId: string,
 	targetIndex: number,
 ): Partial<TabsState> => {
 	const tab = state.tabs.find((t) => t.id === tabId);
-	if (!tab || tab.parentId) return {}; // Only reorder top-level tabs
+	// Child tabs are ordered by their parent group's layout, not independently
+	if (!tab || tab.parentId) return {};
 
 	const workspaceId = tab.workspaceId;
 	const workspaceTabs = state.tabs.filter(
@@ -49,4 +42,3 @@ export const handleReorderTabById = (
 
 	return { tabs: [...otherTabs, ...filteredTabs] };
 };
-

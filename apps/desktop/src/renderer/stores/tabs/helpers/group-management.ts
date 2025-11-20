@@ -1,9 +1,5 @@
 import type { Tab, TabsState } from "../types";
 
-/**
- * Handles the logic for when an empty group needs to be removed
- * Returns updated state with the group removed and active tab/history updated
- */
 export const handleEmptyGroupRemoval = (
 	tabs: Tab[],
 	activeTabIds: Record<string, string | null>,
@@ -21,14 +17,14 @@ export const handleEmptyGroupRemoval = (
 		(id) => !idsToRemove.includes(id),
 	);
 
-	// Update active tab if needed
+	// Ensure a valid tab is active after removal to prevent UI confusion
 	if (idsToRemove.includes(currentActiveId || "")) {
 		const workspaceTabs = remainingTabs.filter(
 			(tab) => tab.workspaceId === workspaceId,
 		);
 
 		if (workspaceTabs.length > 0) {
-			// Try to use fallback (e.g., the ungrouped tab), then history, then first available
+			// Prefer fallback tab (e.g., ungrouped tab), then history, then first available
 			if (
 				fallbackActiveTabId &&
 				remainingTabs.some((t) => t.id === fallbackActiveTabId)
