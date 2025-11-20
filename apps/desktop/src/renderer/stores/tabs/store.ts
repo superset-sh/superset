@@ -16,6 +16,7 @@ interface TabsState {
 
 	addTab: (workspaceId: string, type?: TabType) => void;
 	removeTab: (id: string) => void;
+	renameTab: (id: string, newTitle: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
 	reorderTabs: (
 		workspaceId: string,
@@ -256,6 +257,14 @@ export const useTabsStore = create<TabsState>()(
 						},
 					};
 				});
+			},
+
+			renameTab: (id, newTitle) => {
+				set((state) => ({
+					tabs: state.tabs.map((tab) =>
+						tab.id === id ? { ...tab, title: newTitle } : tab,
+					),
+				}));
 			},
 
 			setActiveTab: (workspaceId, tabId) => {
@@ -524,6 +533,7 @@ export const useActiveTabIds = () =>
 
 export const useAddTab = () => useTabsStore((state) => state.addTab);
 export const useRemoveTab = () => useTabsStore((state) => state.removeTab);
+export const useRenameTab = () => useTabsStore((state) => state.renameTab);
 export const useSetActiveTab = () =>
 	useTabsStore((state) => state.setActiveTab);
 export const useReorderTabs = () => useTabsStore((state) => state.reorderTabs);

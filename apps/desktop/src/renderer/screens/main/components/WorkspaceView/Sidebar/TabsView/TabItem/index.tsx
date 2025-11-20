@@ -1,9 +1,10 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import {
 	useActiveTabIds,
 	useRemoveTab,
+	useRenameTab,
 	useSetActiveTab,
 	useWorkspacesStore,
 } from "renderer/stores";
@@ -15,12 +16,16 @@ import { useGroupDrop } from "./useGroupDrop";
 
 export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
+	const [isRenaming, setIsRenaming] = useState(false);
+	const [renameValue, setRenameValue] = useState(tab.title);
+	const inputRef = useRef<HTMLInputElement>(null);
 	const activeWorkspaceId = useWorkspacesStore(
 		(state) => state.activeWorkspaceId,
 	);
 	const activeTabIds = useActiveTabIds();
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();
+	const renameTab = useRenameTab();
 
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
@@ -36,6 +41,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	};
 
 	const handleTabClick = () => {
+		if (isRenaming) return;
 		if (activeWorkspaceId) {
 			setActiveTab(activeWorkspaceId, tab.id);
 		}
@@ -43,6 +49,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 
 	const handleToggleExpand = (e: React.MouseEvent) => {
 		e.stopPropagation();
+		if (isRenaming) return;
 		setIsExpanded(!isExpanded);
 	};
 
@@ -54,9 +61,45 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const isGroupTab = tab.type === TabType.Group;
 	const hasChildren = childTabs.length > 0;
 
+	// Select input text when rename mode is activated
+	useEffect(() => {
+		if (isRenaming && inputRef.current) {
+			inputRef.current.select();
+		}
+	}, [isRenaming]);
+
+	// Sync rename value when tab title changes
+	useEffect(() => {
+		setRenameValue(tab.title);
+	}, [tab.title]);
+
 	const handleRename = () => {
-		// TODO: Implement rename functionality
-		console.log("Rename tab:", tab.id);
+		setIsRenaming(true);
+	};
+
+	const handleRenameSubmit = () => {
+		const trimmedValue = renameValue.trim();
+		if (trimmedValue && trimmedValue !== tab.title) {
+			renameTab(tab.id, trimmedValue);
+		} else {
+			setRenameValue(tab.title);
+		}
+		setIsRenaming(false);
+	};
+
+	const handleRenameCancel = () => {
+		setRenameValue(tab.title);
+		setIsRenaming(false);
+	};
+
+	const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			handleRenameSubmit();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			handleRenameCancel();
+		}
 	};
 
 	const handleDuplicate = () => {
@@ -121,7 +164,20 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 								/>
 							</button>
 						)}
-						<span className="truncate flex-1">{tab.title}</span>
+						{isRenaming ? (
+							<input
+								ref={inputRef}
+								type="text"
+								value={renameValue}
+								onChange={(e) => setRenameValue(e.target.value)}
+								onBlur={handleRenameSubmit}
+								onKeyDown={handleRenameKeyDown}
+								onClick={(e) => e.stopPropagation()}
+								className="flex-1 bg-sidebar-accent border border-primary rounded px-1 py-0.5 text-sm outline-none"
+							/>
+						) : (
+							<span className="truncate flex-1">{tab.title}</span>
+						)}
 					</div>
 					{!isGroupTab && (
 						<button
