@@ -29,14 +29,14 @@ function isTmuxInstalled(): boolean {
 }
 
 /**
- * Check if a tmux session exists
+ * Check if a tmux session exists (synchronous to avoid promise hangs)
  */
-async function tmuxSessionExists(sessionName: string): Promise<boolean> {
+function tmuxSessionExists(sessionName: string): boolean {
 	if (!isTmuxInstalled()) {
 		return false;
 	}
 	try {
-		await execAsync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
+		execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`, { stdio: "ignore" });
 		return true;
 	} catch {
 		return false;
@@ -61,7 +61,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		// Sync agent status with tmux session reality
 		let needsSync = false;
 		if (backfilled.type === ProcessType.AGENT && "sessionName" in backfilled) {
-			needsSync = await this.syncAgentStatus(backfilled as Agent);
+			needsSync = this.syncAgentStatus(backfilled as Agent);
 		}
 
 		// Persist backfilled defaults or status sync if needed
@@ -82,7 +82,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 			// Sync agent status with tmux session reality
 			let needsSync = false;
 			if (backfilled.type === ProcessType.AGENT && "sessionName" in backfilled) {
-				needsSync = await this.syncAgentStatus(backfilled as Agent);
+				needsSync = this.syncAgentStatus(backfilled as Agent);
 			}
 
 			// Persist backfilled defaults or status sync if needed
@@ -121,12 +121,12 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 	 * Sync agent status with tmux session reality
 	 * Returns true if status was changed and needs persisting
 	 */
-	private async syncAgentStatus(agent: Agent): Promise<boolean> {
+	private syncAgentStatus(agent: Agent): boolean {
 		if (!agent.sessionName) {
 			return false;
 		}
 
-		const sessionExists = await tmuxSessionExists(agent.sessionName);
+		const sessionExists = tmuxSessionExists(agent.sessionName);
 
 		// If session doesn't exist but agent is marked as RUNNING, mark it STOPPED
 		if (!sessionExists && agent.status === ProcessStatus.RUNNING && !agent.endedAt) {
@@ -136,9 +136,15 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 			return true;
 		}
 
-		// If session exists but agent is marked STOPPED without endedAt, mark as RUNNING
-		if (sessionExists && agent.status === ProcessStatus.STOPPED && !agent.endedAt) {
+		// If session exists and agent is not STOPPED, upgrade to RUNNING
+		// This handles IDLE → RUNNING and clears endedAt for restarted agents
+		if (
+			sessionExists &&
+			(agent.status === ProcessStatus.IDLE ||
+				(agent.status === ProcessStatus.STOPPED && agent.endedAt))
+		) {
 			agent.status = ProcessStatus.RUNNING;
+			agent.endedAt = undefined; // Clear endedAt when restarting
 			agent.updatedAt = new Date();
 			return true;
 		}

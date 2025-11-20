@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
+import { LaunchOverlay } from "../components/LaunchOverlay";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
@@ -30,6 +31,9 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 	const [launching, setLaunching] = React.useState(false);
+	const [launchingAgent, setLaunchingAgent] = React.useState<Agent | null>(
+		null,
+	);
 	const [selectedWorkspaceIndex, setSelectedWorkspaceIndex] = React.useState(0);
 	const [selectedAgentIndex, setSelectedAgentIndex] = React.useState(0);
 	const [selectionMode, setSelectionMode] =
@@ -157,41 +161,33 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 					return;
 				}
 
-				// Exit the Ink app before launching
-				// The launchAgent function will be called after exit
-				setLaunching(true);
-
-				// Small delay to let the UI update, then exit and launch
+				// Exit Ink immediately and launch agent
 				const agentToLaunch = selectedAgent as Agent;
+				exit();
 				setTimeout(() => {
-					exit();
-					// Give the terminal time to reset after Ink exits
-					setTimeout(() => {
-						launchAgent(agentToLaunch, { attach: true })
-							.then((result) => {
-								if (!result.success) {
-									console.error(
-										`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
-									);
-									console.error(`Error: ${result.error}\n`);
-									if (result.exitCode !== undefined) {
-										console.error(`Exit code: ${result.exitCode}\n`);
-									}
-									process.exit(1);
-								}
-								// Detached successfully
-								process.exit(0);
-							})
-							.catch((error) => {
+					launchAgent(agentToLaunch, { attach: true })
+						.then((result) => {
+							if (!result.success) {
 								console.error(
 									`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
 								);
-								console.error(
-									`Error: ${error instanceof Error ? error.message : String(error)}\n`,
-								);
+								console.error(`Error: ${result.error}\n`);
+								if (result.exitCode !== undefined) {
+									console.error(`Exit code: ${result.exitCode}\n`);
+								}
 								process.exit(1);
-							});
-					}, 200);
+							}
+							process.exit(0);
+						})
+						.catch((error) => {
+							console.error(
+								`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
+							);
+							console.error(
+								`Error: ${error instanceof Error ? error.message : String(error)}\n`,
+							);
+							process.exit(1);
+						});
 				}, 100);
 			}
 		} else if (input === "r") {
@@ -227,8 +223,16 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 		return <Text>Loading dashboard...</Text>;
 	}
 
-	if (launching) {
-		return <Text color="cyan">Attaching to agent...</Text>;
+	if (launching && launchingAgent) {
+		return (
+			<LaunchOverlay
+				agentType={launchingAgent.agentType}
+				sessionName={
+					launchingAgent.sessionName ||
+					`agent-${launchingAgent.id.slice(0, 6)}`
+				}
+			/>
+		);
 	}
 
 	if (error) {

@@ -24,11 +24,13 @@ function isTmuxInstalled(): boolean {
 }
 
 /**
- * Check if a tmux session already exists
+ * Check if a tmux session already exists (synchronous to avoid hangs)
  */
-async function tmuxSessionExists(sessionName: string): Promise<boolean> {
+function tmuxSessionExists(sessionName: string): boolean {
 	try {
-		await execAsync(`tmux has-session -t "${sessionName}" 2>/dev/null`);
+		execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`, {
+			stdio: "ignore",
+		});
 		return true;
 	} catch {
 		return false;
@@ -40,10 +42,11 @@ async function tmuxSessionExists(sessionName: string): Promise<boolean> {
  * - If session exists: attach to it
  * - If session doesn't exist: create it in detached mode and return immediately
  * - Optional attach parameter: if true, attach after creating; if false, just create and return
+ * - Optional silent parameter: if true, suppress console output (for use with Ink overlays)
  */
 export async function launchAgent(
 	agent: Agent,
-	options: { attach?: boolean } = { attach: true },
+	options: { attach?: boolean; silent?: boolean } = { attach: true },
 ): Promise<LaunchResult> {
 	const command = getLaunchCommand(agent);
 
@@ -66,15 +69,15 @@ export async function launchAgent(
 	const sessionName = agent.sessionName || `agent-${agent.id.slice(0, 6)}`;
 
 	// Check if session already exists
-	const exists = await tmuxSessionExists(sessionName);
+	const exists = tmuxSessionExists(sessionName);
 
 	if (exists) {
 		// Session exists - attach if requested
 		if (options.attach) {
-			console.log(
-				`\nSession "${sessionName}" exists. Attaching...\n`,
-			);
-			return attachToAgent(agent);
+			if (!options.silent) {
+				console.log(`\nSession "${sessionName}" exists. Attaching...\n`);
+			}
+			return attachToAgent(agent, options.silent);
 		}
 		// Session exists but not attaching - just return success
 		return {
@@ -87,18 +90,29 @@ export async function launchAgent(
 	try {
 		await execAsync(`tmux new-session -d -s "${sessionName}" "${command}"`);
 
+		// Wait a moment and verify the session is still alive
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		const stillExists = tmuxSessionExists(sessionName);
+
+		if (!stillExists) {
+			return {
+				success: false,
+				error: `Session "${sessionName}" was created but exited immediately.\nThe launch command may be invalid or missing: ${command}\n\nPlease verify:\n  1. The command is installed and on PATH\n  2. The command doesn't exit immediately\n  3. Check 'which ${command.split(" ")[0]}' to verify the binary exists`,
+			};
+		}
+
 		if (options.attach) {
-			// Created successfully, now attach
-			console.log(
-				`\nSession "${sessionName}" created. Attaching...\n`,
-			);
-			return attachToAgent(agent);
+			// Created successfully and still alive, now attach
+			if (!options.silent) {
+				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
+			}
+			return attachToAgent(agent, options.silent);
 		}
 
 		// Created but not attaching - just return success
-		console.log(
-			`\n✓ Agent session created: ${sessionName}\n`,
-		);
+		if (!options.silent) {
+			console.log(`\n✓ Agent session created: ${sessionName}\n`);
+		}
 		return {
 			success: true,
 			exitCode: 0,
@@ -117,24 +131,39 @@ export async function launchAgent(
 /**
  * Attach to an existing agent's tmux session
  * Inherits stdio so user can interact, returns when user detaches
+ * If session doesn't exist, attempts to create it first
  */
-export async function attachToAgent(agent: Agent): Promise<LaunchResult> {
+export async function attachToAgent(
+	agent: Agent,
+	silent = false,
+): Promise<LaunchResult> {
 	const sessionName = agent.sessionName || `agent-${agent.id.slice(0, 6)}`;
 
 	// Check if session exists
-	const exists = await tmuxSessionExists(sessionName);
+	const exists = tmuxSessionExists(sessionName);
 	if (!exists) {
-		return {
-			success: false,
-			error: `Session "${sessionName}" not found. The agent may have stopped or never started.`,
-		};
+		// Session missing - try to recreate it by calling launchAgent
+		if (!silent) {
+			console.log(
+				`\nSession "${sessionName}" not found. Creating new session...\n`,
+			);
+		}
+		return launchAgent(agent, { attach: true, silent });
 	}
 
-	console.log(`\n╔════════════════════════════════════════════════════════════════╗`);
-	console.log(`║  Attaching to session: ${sessionName.padEnd(38)} ║`);
-	console.log(`║                                                                ║`);
-	console.log(`║  Press Ctrl-b then d to detach and keep agent running         ║`);
-	console.log(`╚════════════════════════════════════════════════════════════════╝\n`);
+	if (!silent) {
+		console.log(
+			`\n╔════════════════════════════════════════════════════════════════╗`,
+		);
+		console.log(`║  Attaching to session: ${sessionName.padEnd(38)} ║`);
+		console.log(`║                                                                ║`);
+		console.log(
+			`║  Press Ctrl-b then d to detach and keep agent running         ║`,
+		);
+		console.log(
+			`╚════════════════════════════════════════════════════════════════╝\n`,
+		);
+	}
 
 	return new Promise((resolve) => {
 		try {

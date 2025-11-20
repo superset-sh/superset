@@ -29,7 +29,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 	const [data, setData] = React.useState<PanelsData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
-	const [launching, setLaunching] = React.useState(false);
 	const [selectedWorkspaceIndex, setSelectedWorkspaceIndex] = React.useState(0);
 	const [selectedAgentIndex, setSelectedAgentIndex] = React.useState(0);
 	const [activePanel, setActivePanel] = React.useState<ActivePanel>("agents");
@@ -131,40 +130,38 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 		// Attach to agent
 		if (key.return && activePanel === "agents") {
 			const selectedAgent = filteredAgents[selectedAgentIndex];
-			if (selectedAgent && !launching) {
+			if (selectedAgent) {
 				if (selectedAgent.type !== ProcessType.AGENT) {
 					return;
 				}
 
-				setLaunching(true);
+				// Exit Ink immediately and launch agent
 				const agentToAttach = selectedAgent as Agent;
+				exit();
 				setTimeout(() => {
-					exit();
-					setTimeout(() => {
-						launchAgent(agentToAttach, { attach: true })
-							.then((result) => {
-								if (!result.success) {
-									console.error(
-										`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
-									);
-									console.error(`Error: ${result.error}\n`);
-									if (result.exitCode !== undefined) {
-										console.error(`Exit code: ${result.exitCode}\n`);
-									}
-									process.exit(1);
-								}
-								process.exit(0);
-							})
-							.catch((error) => {
+					launchAgent(agentToAttach, { attach: true })
+						.then((result) => {
+							if (!result.success) {
 								console.error(
 									`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
 								);
-								console.error(
-									`Error: ${error instanceof Error ? error.message : String(error)}\n`,
-								);
+								console.error(`Error: ${result.error}\n`);
+								if (result.exitCode !== undefined) {
+									console.error(`Exit code: ${result.exitCode}\n`);
+								}
 								process.exit(1);
-							});
-					}, 200);
+							}
+							process.exit(0);
+						})
+						.catch((error) => {
+							console.error(
+								`\n❌ Failed to attach to ${agentToAttach.agentType} agent\n`,
+							);
+							console.error(
+								`Error: ${error instanceof Error ? error.message : String(error)}\n`,
+							);
+							process.exit(1);
+						});
 				}, 100);
 			}
 		}
@@ -176,10 +173,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 
 	if (loading) {
 		return <Text>Loading panels...</Text>;
-	}
-
-	if (launching) {
-		return <Text color="cyan">Attaching to agent...</Text>;
 	}
 
 	if (error) {
