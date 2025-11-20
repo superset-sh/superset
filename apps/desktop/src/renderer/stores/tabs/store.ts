@@ -38,12 +38,56 @@ interface TabsState {
 	getLastActiveTabId: (workspaceId: string) => string | null;
 }
 
+// Create initial test tabs
+const createInitialTabs = (): Tab[] => {
+	const workspaceId = "workspace-1";
+
+	// Create a single tab
+	const singleTab: Tab = {
+		id: "tab-single-1",
+		title: "Welcome Tab",
+		workspaceId,
+		type: TabType.Single,
+		isNew: false,
+	};
+
+	// Create a group tab with two panes
+	const groupTab: Tab = {
+		id: "tab-group-1",
+		title: "Split View Example",
+		workspaceId,
+		type: TabType.Group,
+		isNew: false,
+		layout: {
+			direction: "row",
+			first: "pane-1",
+			second: "pane-2",
+			splitPercentage: 50,
+		},
+		panes: {
+			"pane-1": { title: "Left Pane" },
+			"pane-2": { title: "Right Pane" },
+		},
+	};
+
+	// Create another single tab
+	const singleTab2: Tab = {
+		id: "tab-single-2",
+		title: "Another Tab",
+		workspaceId,
+		type: TabType.Single,
+		isNew: false,
+	};
+
+	return [singleTab, groupTab, singleTab2];
+};
+
 export const useTabsStore = create<TabsState>()(
 	devtools(
 		(set, get) => ({
-			tabs: [],
-			activeTabIds: {},
-			tabHistoryStacks: {},
+			tabs: createInitialTabs(),
+			activeTabIds: { "workspace-1": "tab-single-1" },
+			tabHistoryStacks: { "workspace-1": [] },
 
 			addTab: (workspaceId, type = TabType.Single) => {
 				const newTab = createNewTab(workspaceId, type);
