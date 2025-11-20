@@ -13,12 +13,12 @@ export function useTabContentDrop(tabToRender: Tab | null) {
 	>({
 		accept: TAB_DND_TYPE,
 		drop: (item) => {
-			if (tabToRender && item.tabId !== tabToRender.id) {
+			if (tabToRender) {
 				dragTabToTab(item.tabId, tabToRender.id);
 			}
 		},
-		canDrop: (item) => {
-			return tabToRender !== null && item.tabId !== tabToRender.id;
+		canDrop: () => {
+			return tabToRender !== null;
 		},
 		collect: (monitor) => ({
 			isOver: monitor.isOver(),

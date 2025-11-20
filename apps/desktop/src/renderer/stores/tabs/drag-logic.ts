@@ -141,18 +141,115 @@ export const handleDragTabToTab = (
 	const workspaceId = draggedTab.workspaceId;
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 
-	// Rule 1: Dragging tab into itself - duplicates standalone tabs but prevents child duplication to preserve group structure
+	// Rule 1: Dragging tab into itself - creates new tab and makes a group
 	if (draggedTabId === targetTabId) {
-		if (draggedTab.parentId) {
-			return state;
-		}
 		const newTab = createNewTab(workspaceId, TabType.Single);
+
+		// If dragged tab is a child tab, add new tab to its parent group
+		if (draggedTab.parentId) {
+			const parentGroup = state.tabs.find(
+				(tab) => tab.id === draggedTab.parentId && tab.type === TabType.Group,
+			) as TabGroup | undefined;
+
+			if (!parentGroup) return state;
+
+			const updatedNewTab: Tab = {
+				...newTab,
+				parentId: parentGroup.id,
+			};
+
+			const updatedParentGroup = addToParentGroup(parentGroup, newTab.id);
+
+			const updatedTabs = state.tabs.map((tab) => {
+				if (tab.id === parentGroup.id) return updatedParentGroup;
+				return tab;
+			});
+
+			return {
+				...state,
+				tabs: [...updatedTabs, updatedNewTab],
+				activeTabIds: {
+					...state.activeTabIds,
+					[workspaceId]: parentGroup.id,
+				},
+			};
+		}
+
+		// If dragged tab is a group, add new tab to the group
+		if (draggedTab.type === TabType.Group) {
+			const updatedNewTab: Tab = {
+				...newTab,
+				parentId: draggedTab.id,
+			};
+
+			const updatedDraggedGroup = addToParentGroup(draggedTab, newTab.id);
+
+			const updatedTabs = state.tabs.map((tab) => {
+				if (tab.id === draggedTab.id) return updatedDraggedGroup;
+				return tab;
+			});
+
+			return {
+				...state,
+				tabs: [...updatedTabs, updatedNewTab],
+				activeTabIds: {
+					...state.activeTabIds,
+					[workspaceId]: draggedTab.id,
+				},
+			};
+		}
+
+		// If dragged tab is a single standalone tab, create a new group
+		const groupId = `tab-${Date.now()}-group`;
+
+		const updatedTargetTab: Tab = {
+			...draggedTab,
+			parentId: groupId,
+		};
+
+		const updatedNewTab: Tab = {
+			...newTab,
+			parentId: groupId,
+		};
+
+		const newGroupTab: TabGroup = {
+			id: groupId,
+			title: `${draggedTab.title} + ${newTab.title}`,
+			workspaceId,
+			type: TabType.Group,
+			layout: {
+				direction: "row",
+				first: draggedTab.id,
+				second: newTab.id,
+				splitPercentage: 50,
+			},
+		};
+
+		const workspaceTabs = state.tabs.filter(
+			(t) => t.workspaceId === workspaceId && !t.parentId,
+		);
+		const targetIndex = workspaceTabs.findIndex((t) => t.id === targetTabId);
+
+		const updatedTabs = state.tabs.map((tab) => {
+			if (tab.id === draggedTab.id) return updatedTargetTab;
+			return tab;
+		});
+
+		const workspaceTabsUpdated = updatedTabs.filter(
+			(t) => t.workspaceId === workspaceId && !t.parentId,
+		);
+		const otherTabsUpdated = updatedTabs.filter(
+			(t) => t.workspaceId !== workspaceId || t.parentId,
+		);
+
+		workspaceTabsUpdated.splice(targetIndex, 0, newGroupTab);
+
 		return {
 			...state,
-			tabs: [...state.tabs, newTab],
+			tabs: [...otherTabsUpdated, ...workspaceTabsUpdated, updatedNewTab],
 			activeTabIds: {
 				...state.activeTabIds,
-				[workspaceId]: newTab.id,
+				[workspaceId]: newGroupTab.id,
 			},
 		};
 	}
@@ -165,8 +262,30 @@ export const handleDragTabToTab = (
 
 		if (!parentGroup) return state;
 
+		// If dragging a child tab into another child tab of the same group, create a new tab
 		if (draggedTab.parentId === parentGroup.id) {
-			return state;
+			const newTab = createNewTab(workspaceId, TabType.Single);
+
+			const updatedNewTab: Tab = {
+				...newTab,
+				parentId: parentGroup.id,
+			};
+
+			const updatedParentGroup = addToParentGroup(parentGroup, newTab.id);
+
+			const updatedTabs = state.tabs.map((tab) => {
+				if (tab.id === parentGroup.id) return updatedParentGroup;
+				return tab;
+			});
+
+			return {
+				...state,
+				tabs: [...updatedTabs, updatedNewTab],
+				activeTabIds: {
+					...state.activeTabIds,
+					[workspaceId]: parentGroup.id,
+				},
+			};
 		}
 
 		const updatedDraggedTab: Tab = {
@@ -206,8 +325,30 @@ export const handleDragTabToTab = (
 
 	// Rule 3: Dragging into a group tab - adds tab to existing split view group
 	if (targetTab.type === TabType.Group && draggedTab.type === TabType.Single) {
+		// If dragging a tab from the same group, create a new tab and add to the group
 		if (draggedTab.parentId === targetTabId) {
-			return state;
+			const newTab = createNewTab(workspaceId, TabType.Single);
+
+			const updatedNewTab: Tab = {
+				...newTab,
+				parentId: targetTabId,
+			};
+
+			const updatedTargetTab = addToParentGroup(targetTab, newTab.id);
+
+			const updatedTabs = state.tabs.map((tab) => {
+				if (tab.id === targetTabId) return updatedTargetTab;
+				return tab;
+			});
+
+			return {
+				...state,
+				tabs: [...updatedTabs, updatedNewTab],
+				activeTabIds: {
+					...state.activeTabIds,
+					[workspaceId]: targetTabId,
+				},
+			};
 		}
 
 		const updatedDraggedTab: Tab = {

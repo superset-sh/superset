@@ -1,23 +1,24 @@
 import type { MosaicNode } from "react-mosaic-component";
+import { removeTabFromLayout } from "../drag-logic";
 import type { Tab, TabsState } from "../types";
 import { TabType } from "../types";
-import { validateGroupLayouts } from "./validation";
 import { getChildTabIds } from "../utils";
-import { removeTabFromLayout } from "../drag-logic";
+import { findNextTab } from "./next-tab-finder";
+import { validateGroupLayouts } from "./validation";
 
 const handleEmptyGroupRemoval = (
-	tabs: Tab[],
-	activeTabIds: Record<string, string | null>,
-	tabHistoryStacks: Record<string, string[]>,
+	state: TabsState,
 	workspaceId: string,
 	idsToRemove: string[],
 	fallbackActiveTabId?: string,
 ): TabsState => {
-	const remainingTabs = tabs.filter((tab) => !idsToRemove.includes(tab.id));
-	const currentActiveId = activeTabIds[workspaceId];
-	const historyStack = tabHistoryStacks[workspaceId] || [];
+	const remainingTabs = state.tabs.filter(
+		(tab) => !idsToRemove.includes(tab.id),
+	);
+	const currentActiveId = state.activeTabIds[workspaceId];
+	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 
-	const newActiveTabIds = { ...activeTabIds };
+	const newActiveTabIds = { ...state.activeTabIds };
 	const newHistoryStack = historyStack.filter(
 		(id) => !idsToRemove.includes(id),
 	);
@@ -29,18 +30,19 @@ const handleEmptyGroupRemoval = (
 		);
 
 		if (workspaceTabs.length > 0) {
-			// Prefer fallback tab (e.g., ungrouped tab), then history, then first available
+			// Prefer fallback tab (e.g., ungrouped tab), then find next by position
 			if (
 				fallbackActiveTabId &&
 				remainingTabs.some((t) => t.id === fallbackActiveTabId)
 			) {
 				newActiveTabIds[workspaceId] = fallbackActiveTabId;
+			} else if (currentActiveId) {
+				// Find the next tab based on position/index
+				const nextTabId = findNextTab(state, currentActiveId);
+				newActiveTabIds[workspaceId] = nextTabId;
 			} else {
-				const nextTabFromHistory = newHistoryStack.find((tabId) =>
-					workspaceTabs.some((tab) => tab.id === tabId),
-				);
-				newActiveTabIds[workspaceId] =
-					nextTabFromHistory || workspaceTabs[0].id;
+				// No current active tab, default to first workspace tab
+				newActiveTabIds[workspaceId] = workspaceTabs[0]?.id || null;
 			}
 		} else {
 			newActiveTabIds[workspaceId] = null;
@@ -51,7 +53,7 @@ const handleEmptyGroupRemoval = (
 		tabs: remainingTabs,
 		activeTabIds: newActiveTabIds,
 		tabHistoryStacks: {
-			...tabHistoryStacks,
+			...state.tabHistoryStacks,
 			[workspaceId]: newHistoryStack,
 		},
 	};
@@ -64,9 +66,7 @@ export const handleUpdateTabGroupLayout = (
 ): Partial<TabsState> => {
 	return {
 		tabs: state.tabs.map((tab) =>
-			tab.id === id && tab.type === TabType.Group
-				? { ...tab, layout }
-				: tab,
+			tab.id === id && tab.type === TabType.Group ? { ...tab, layout } : tab,
 		),
 	};
 };
@@ -103,20 +103,16 @@ export const handleRemoveChildTabFromGroup = (
 	);
 	if (!group || group.type !== TabType.Group) return {};
 
-	const updatedChildTabIds = getChildTabIds(
-		state.tabs,
-		groupId,
-	).filter((id: string) => id !== childTabId);
+	const updatedChildTabIds = getChildTabIds(state.tabs, groupId).filter(
+		(id: string) => id !== childTabId,
+	);
 
 	// Empty groups are invalid and must be removed to prevent orphaned state
 	if (updatedChildTabIds.length === 0) {
-		return handleEmptyGroupRemoval(
-			state.tabs,
-			state.activeTabIds,
-			state.tabHistoryStacks,
-			group.workspaceId,
-			[groupId, childTabId],
-		);
+		return handleEmptyGroupRemoval(state, group.workspaceId, [
+			groupId,
+			childTabId,
+		]);
 	}
 
 	// Layouts may reference removed tabs, so clean them up
@@ -170,9 +166,7 @@ export const handleUngroupTab = (
 	// Empty groups are invalid and must be removed
 	if (remainingChildren.length === 0) {
 		const result = handleEmptyGroupRemoval(
-			updatedTabs,
-			state.activeTabIds,
-			state.tabHistoryStacks,
+			{ ...state, tabs: updatedTabs },
 			tab.workspaceId,
 			[parentGroup.id],
 			tabId,
@@ -188,9 +182,7 @@ export const handleUngroupTab = (
 
 			const tabToMove = workspaceTabs.find((t) => t.id === tabId);
 			if (tabToMove) {
-				const filteredTabs = workspaceTabs.filter(
-					(t) => t.id !== tabId,
-				);
+				const filteredTabs = workspaceTabs.filter((t) => t.id !== tabId);
 				filteredTabs.splice(targetIndex, 0, tabToMove);
 				result.tabs = [...otherTabs, ...filteredTabs];
 			}
@@ -299,4 +291,3 @@ export const handleUngroupTabs = (
 		},
 	};
 };
-

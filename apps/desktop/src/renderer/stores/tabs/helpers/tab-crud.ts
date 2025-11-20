@@ -1,6 +1,7 @@
 import type { TabsState } from "../types";
 import { TabType } from "../types";
 import { createNewTab } from "../utils";
+import { findNextTab } from "./next-tab-finder";
 
 export const handleAddTab = (
 	state: TabsState,
@@ -50,9 +51,6 @@ export const handleRemoveTab = (
 	}
 
 	const workspaceId = tabToRemove.workspaceId;
-	const workspaceTabs = state.tabs.filter(
-		(tab) => tab.workspaceId === workspaceId && tab.id !== id,
-	);
 	const tabs = state.tabs.filter((tab) => tab.id !== id);
 
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -60,23 +58,8 @@ export const handleRemoveTab = (
 
 	const newActiveTabIds = { ...state.activeTabIds };
 	if (state.activeTabIds[workspaceId] === id) {
-		if (workspaceTabs.length > 0) {
-			const nextTabFromHistory = newHistoryStack.find((tabId) =>
-				workspaceTabs.some((tab) => tab.id === tabId),
-			);
-			if (nextTabFromHistory) {
-				newActiveTabIds[workspaceId] = nextTabFromHistory;
-			} else {
-				const closedIndex = state.tabs
-					.filter((tab) => tab.workspaceId === workspaceId)
-					.findIndex((tab) => tab.id === id);
-				const nextTab =
-					workspaceTabs[closedIndex] || workspaceTabs[closedIndex - 1];
-				newActiveTabIds[workspaceId] = nextTab.id;
-			}
-		} else {
-			newActiveTabIds[workspaceId] = null;
-		}
+		const nextTabId = findNextTab(state, id);
+		newActiveTabIds[workspaceId] = nextTabId;
 	}
 
 	return {
