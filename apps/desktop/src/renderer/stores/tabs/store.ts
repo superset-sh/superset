@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { cleanLayout, handleDragTabToTab } from "./drag-logic";
 import { type Tab, TabType } from "./types";
-import { createNewTab } from "./utils";
+import { createNewTab, getChildTabIds } from "./utils";
 
 interface TabsState {
 	tabs: Tab[];
@@ -72,7 +72,6 @@ const createInitialTabs = (): Tab[] => {
 			second: "tab-child-2",
 			splitPercentage: 50,
 		},
-		childTabIds: ["tab-child-1", "tab-child-2"],
 	};
 
 	const singleTab2: Tab = {
@@ -93,7 +92,8 @@ const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
 	return tabs.map((tab) => {
 		if (tab.type !== TabType.Group) return tab;
 
-		const validTabIds = new Set(tab.childTabIds);
+		// Derive children from parentId
+		const validTabIds = new Set(getChildTabIds(tabs, tab.id));
 		const cleanedLayout = cleanLayout(tab.layout, validTabIds);
 
 		// Only update if layout actually changed
@@ -250,12 +250,6 @@ export const useTabsStore = create<TabsState>()(
 			addChildTabToGroup: (groupId, childTabId) => {
 				set((state) => {
 					const updatedTabs = state.tabs.map((tab) => {
-						if (tab.id === groupId && tab.type === TabType.Group) {
-							return {
-								...tab,
-								childTabIds: [...tab.childTabIds, childTabId],
-							};
-						}
 						if (tab.id === childTabId) {
 							return {
 								...tab,
@@ -281,8 +275,9 @@ export const useTabsStore = create<TabsState>()(
 					);
 					if (!group || group.type !== TabType.Group) return state;
 
-					const updatedChildTabIds = group.childTabIds.filter(
-						(id) => id !== childTabId,
+					// Derive children from parentId
+					const updatedChildTabIds = getChildTabIds(state.tabs, groupId).filter(
+						(id: string) => id !== childTabId,
 					);
 
 					if (updatedChildTabIds.length === 0) {
@@ -327,19 +322,9 @@ export const useTabsStore = create<TabsState>()(
 						};
 					}
 
-					const updatedTabs = state.tabs.map((tab) => {
-						if (tab.id === groupId && tab.type === TabType.Group) {
-							return {
-								...tab,
-								childTabIds: updatedChildTabIds,
-							};
-						}
-						return tab;
-					});
-
 					// Validate layouts after removing child tab
 					const validatedTabs = validateGroupLayouts(
-						updatedTabs.filter((tab) => tab.id !== childTabId),
+						state.tabs.filter((tab) => tab.id !== childTabId),
 					);
 
 					return {

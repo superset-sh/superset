@@ -1,5 +1,12 @@
 import { type Tab, TabType } from "./types";
 
+/**
+ * Helper function to get child tab IDs for a given parent ID
+ */
+export const getChildTabIds = (tabs: Tab[], parentId: string): string[] => {
+	return tabs.filter((t) => t.parentId === parentId).map((t) => t.id);
+};
+
 export const createNewTab = (
 	workspaceId: string,
 	type: TabType = TabType.Single,
@@ -25,6 +32,5 @@ export const createNewTab = (
 		...baseTab,
 		type: TabType.Group,
 		layout: null,
-		childTabIds: [],
 	};
 };

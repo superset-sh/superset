@@ -76,12 +76,10 @@ const removeFromOldParent = (
 ): Tab[] => {
 	return tabs.map((tab) => {
 		if (tab.id === oldParentId && tab.type === TabType.Group) {
-			const updatedChildTabIds = tab.childTabIds.filter((id) => id !== tabId);
 			const updatedLayout = removeTabFromLayout(tab.layout, tabId);
 
 			return {
 				...tab,
-				childTabIds: updatedChildTabIds,
 				layout: updatedLayout,
 			};
 		}
@@ -105,7 +103,6 @@ const addToParentGroup = (
 
 	return {
 		...parentGroup,
-		childTabIds: [...parentGroup.childTabIds, childTabId],
 		layout: newLayout,
 	};
 };
@@ -257,7 +254,6 @@ export const handleDragTabToTab = (
 				second: draggedTab.id, // Use original ID, not new one
 				splitPercentage: 50,
 			},
-			childTabIds: [targetTab.id, draggedTab.id], // Use original IDs
 		};
 
 		return {

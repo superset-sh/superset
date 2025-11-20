@@ -20,7 +20,6 @@ export interface SingleTab extends BaseTab {
 export interface TabGroup extends BaseTab {
 	type: TabType.Group;
 	layout: MosaicNode<string> | null;
-	childTabIds: string[];
 }
 
 export type Tab = SingleTab | TabGroup;

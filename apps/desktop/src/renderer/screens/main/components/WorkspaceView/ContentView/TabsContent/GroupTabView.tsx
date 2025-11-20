@@ -9,7 +9,13 @@ import {
 	MosaicWindow,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
-import { type TabGroup, useTabs, useTabsStore } from "renderer/stores";
+import {
+	cleanLayout,
+	getChildTabIds,
+	type TabGroup,
+	useTabs,
+	useTabsStore,
+} from "renderer/stores";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
@@ -38,13 +44,18 @@ function extractTabIdsFromLayout(
 
 export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 	const allTabs = useTabs();
-	const childTabs = allTabs.filter((t) => tab.childTabIds.includes(t.id));
+	const childTabIds = getChildTabIds(allTabs, tab.id);
+	const childTabs = allTabs.filter((t) => childTabIds.includes(t.id));
 	const updateTabGroupLayout = useTabsStore(
 		(state) => state.updateTabGroupLayout,
 	);
 	const removeChildTabFromGroup = useTabsStore(
 		(state) => state.removeChildTabFromGroup,
 	);
+
+	// Clean the layout to only include tabs that currently exist as children
+	const validTabIds = new Set(childTabIds);
+	const cleanedLayout = cleanLayout(tab.layout, validTabIds);
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
@@ -98,7 +109,7 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 		[childTabs, focusedChildId],
 	);
 
-	if (childTabs.length === 0 || !tab.layout) {
+	if (childTabs.length === 0 || !cleanedLayout) {
 		return (
 			<div className="w-full h-full flex items-center justify-center">
 				<div className="text-center">
@@ -115,7 +126,7 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 		<div className="w-full h-full mosaic-container">
 			<Mosaic<string>
 				renderTile={renderPane}
-				value={tab.layout}
+				value={cleanedLayout}
 				onChange={handleLayoutChange}
 				className="mosaic-theme-dark"
 				dragAndDropManager={dragDropManager}
