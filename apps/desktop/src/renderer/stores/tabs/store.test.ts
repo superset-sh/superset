@@ -21,11 +21,11 @@ describe("removeTab", () => {
 			workspaceId: "workspace-1",
 			type: TabType.Single,
 			parentId: "group-1",
-		};
+		} as const;
 
 		// Manually set the tabs
 		useTabsStore.setState({
-			tabs: [groupTab, childTab],
+			tabs: [groupTab, childTab as any],
 			activeTabIds: { "workspace-1": "group-1" },
 			tabHistoryStacks: { "workspace-1": [] },
 		});
@@ -62,7 +62,7 @@ describe("removeTab", () => {
 			workspaceId: "workspace-1",
 			type: TabType.Single,
 			parentId: "group-1",
-		};
+		} as const;
 
 		const child2 = {
 			id: "child-2",
@@ -70,10 +70,10 @@ describe("removeTab", () => {
 			workspaceId: "workspace-1",
 			type: TabType.Single,
 			parentId: "group-1",
-		};
+		} as const;
 
 		useTabsStore.setState({
-			tabs: [groupTab, child1, child2],
+			tabs: [groupTab, child1 as any, child2 as any],
 			activeTabIds: { "workspace-1": "group-1" },
 			tabHistoryStacks: { "workspace-1": [] },
 		});
@@ -118,10 +118,10 @@ describe("removeTab", () => {
 			workspaceId: "workspace-1",
 			type: TabType.Single,
 			parentId: "group-1",
-		};
+		} as const;
 
 		useTabsStore.setState({
-			tabs: [topLevelTab, groupTab, childTab],
+			tabs: [topLevelTab, groupTab, childTab as any],
 			activeTabIds: { "workspace-1": "top-1" },
 			tabHistoryStacks: { "workspace-1": [] },
 		});
@@ -160,10 +160,10 @@ describe("removeTab", () => {
 			workspaceId: "workspace-1",
 			type: TabType.Single,
 			parentId: "group-1",
-		};
+		} as const;
 
 		useTabsStore.setState({
-			tabs: [otherTab, groupTab, childTab],
+			tabs: [otherTab, groupTab, childTab as any],
 			activeTabIds: { "workspace-1": "group-1" },
 			tabHistoryStacks: { "workspace-1": [] },
 		});
@@ -221,7 +221,12 @@ describe("splitTabVertical", () => {
 		// New child should exist
 		if (typeof groupTab.layout === "string" || !groupTab.layout) return;
 		const newChild = state.tabs.find(
-			(t) => t.id === groupTab.layout.second && t.type === TabType.Single,
+			(t) =>
+				typeof groupTab.layout !== "string" &&
+				groupTab.layout &&
+				"second" in groupTab.layout &&
+				t.id === groupTab.layout.second &&
+				t.type === TabType.Single,
 		);
 		expect(newChild).toBeDefined();
 		expect(newChild?.parentId).toBe(groupTab.id);
@@ -308,7 +313,12 @@ describe("splitTabHorizontal", () => {
 		// New child should exist
 		if (typeof groupTab.layout === "string" || !groupTab.layout) return;
 		const newChild = state.tabs.find(
-			(t) => t.id === groupTab.layout.second && t.type === TabType.Single,
+			(t) =>
+				typeof groupTab.layout !== "string" &&
+				groupTab.layout &&
+				"second" in groupTab.layout &&
+				t.id === groupTab.layout.second &&
+				t.type === TabType.Single,
 		);
 		expect(newChild).toBeDefined();
 		expect(newChild?.parentId).toBe(groupTab.id);

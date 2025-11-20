@@ -128,14 +128,14 @@ describe("handleDragTabToTab", () => {
 		expect(newTab?.parentId).toBe(groupTab?.id);
 
 		// Group should be active
-		expect(result.activeTabIds[workspaceId]).toBe(groupTab?.id);
+		expect(result.activeTabIds[workspaceId]).toBe(groupTab?.id ?? null);
 
 		// Verify group layout contains both tabs
-		if (groupTab?.type === TabType.Group) {
+		if (groupTab?.type === TabType.Group && newTab) {
 			expect(groupTab.layout).toEqual({
 				direction: "row",
 				first: "tab-1",
-				second: newTab?.id,
+				second: newTab.id,
 				splitPercentage: 50,
 			});
 		}
@@ -178,11 +178,11 @@ describe("handleDragTabToTab", () => {
 
 		// Group layout should be updated
 		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
-		if (updatedGroup?.type === TabType.Group) {
+		if (updatedGroup?.type === TabType.Group && newTab) {
 			expect(updatedGroup.layout).toEqual({
 				direction: "row",
 				first: "child-1",
-				second: newTab?.id,
+				second: newTab.id,
 				splitPercentage: 50,
 			});
 		}
@@ -760,7 +760,7 @@ describe("handleDragTabToTab", () => {
 
 		// Group layout should be updated to include new tab
 		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
-		if (updatedGroup?.type === TabType.Group) {
+		if (updatedGroup?.type === TabType.Group && newTab) {
 			expect(updatedGroup.layout).toEqual({
 				direction: "row",
 				first: {
@@ -769,7 +769,7 @@ describe("handleDragTabToTab", () => {
 					second: "child-2",
 					splitPercentage: 50,
 				},
-				second: newTab?.id,
+				second: newTab.id,
 				splitPercentage: 50,
 			});
 		}
@@ -829,7 +829,7 @@ describe("handleDragTabToTab", () => {
 
 		// Group layout should be updated to include new tab
 		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
-		if (updatedGroup?.type === TabType.Group) {
+		if (updatedGroup?.type === TabType.Group && newTab) {
 			expect(updatedGroup.layout).toEqual({
 				direction: "row",
 				first: {
@@ -838,7 +838,7 @@ describe("handleDragTabToTab", () => {
 					second: "child-2",
 					splitPercentage: 50,
 				},
-				second: newTab?.id,
+				second: newTab.id,
 				splitPercentage: 50,
 			});
 		}
@@ -898,7 +898,7 @@ describe("handleDragTabToTab", () => {
 
 		// Group layout should be updated to include new tab
 		const updatedGroup = result.tabs.find((t) => t.id === "group-1");
-		if (updatedGroup?.type === TabType.Group) {
+		if (updatedGroup?.type === TabType.Group && newTab) {
 			expect(updatedGroup.layout).toEqual({
 				direction: "row",
 				first: {
@@ -907,7 +907,7 @@ describe("handleDragTabToTab", () => {
 					second: "child-2",
 					splitPercentage: 50,
 				},
-				second: newTab?.id,
+				second: newTab.id,
 				splitPercentage: 50,
 			});
 		}
