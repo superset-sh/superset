@@ -13,13 +13,13 @@ import {
 	cleanLayout,
 	getChildTabIds,
 	type TabGroup,
+	useActiveTabIds,
 	useTabs,
 	useTabsStore,
 } from "renderer/stores";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
-	focusedChildId?: string | null;
 }
 
 // Extract all tab IDs from a mosaic layout tree
@@ -42,7 +42,7 @@ function extractTabIdsFromLayout(
 	return ids;
 }
 
-export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
+export function GroupTabView({ tab }: GroupTabViewProps) {
 	const allTabs = useTabs();
 	const childTabIds = getChildTabIds(allTabs, tab.id);
 	const childTabs = allTabs.filter((t) => childTabIds.includes(t.id));
@@ -52,6 +52,8 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 	const removeChildTabFromGroup = useTabsStore(
 		(state) => state.removeChildTabFromGroup,
 	);
+	const activeTabIds = useActiveTabIds();
+	const activeTabId = activeTabIds[tab.workspaceId];
 
 	// Clean the layout to only include tabs that currently exist as children
 	const validTabIds = new Set(childTabIds);
@@ -83,8 +85,8 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 
 	const renderPane = useCallback(
 		(tabId: string, path: MosaicBranch[]) => {
+			const isActive = tabId === activeTabId;
 			const childTab = childTabs.find((t) => t.id === tabId);
-
 			if (!childTab) {
 				return (
 					<div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -93,20 +95,18 @@ export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 				);
 			}
 
-			const isFocused = tabId === focusedChildId;
-
 			return (
 				<MosaicWindow<string>
 					path={path}
 					title={childTab.title}
 					toolbarControls={<div />}
-					className={isFocused ? "mosaic-window-focused" : ""}
+					className={isActive ? "mosaic-window-focused" : ""}
 				>
 					<div className="w-full h-full">{childTab.title}</div>
 				</MosaicWindow>
 			);
 		},
-		[childTabs, focusedChildId],
+		[childTabs, activeTabId],
 	);
 
 	if (childTabs.length === 0 || !cleanedLayout) {

@@ -1,12 +1,39 @@
+import { useDrop } from "react-dnd";
 import type { SingleTab } from "renderer/stores";
-import { useDropTabTarget } from "./useDropTabTarget";
+import { useTabsStore } from "renderer/stores";
+import { type DragItem, TAB_DND_TYPE } from "./types";
 
 interface SingleTabViewProps {
 	tab: SingleTab;
 }
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
-	const { drop, isDropZone } = useDropTabTarget(tab);
+	const dragTabToTab = useTabsStore((state) => state.dragTabToTab);
+
+	const [{ isOver, canDrop }, drop] = useDrop<
+		DragItem,
+		void,
+		{ isOver: boolean; canDrop: boolean }
+	>({
+		accept: TAB_DND_TYPE,
+		drop: (item) => {
+			// Allow drop if it's a different tab from the current one
+			if (item.tabId !== tab.id) {
+				dragTabToTab(item.tabId, tab.id);
+			}
+		},
+		canDrop: (item) => {
+			// Can only drop if it's different from the current tab
+			return item.tabId !== tab.id;
+		},
+		collect: (monitor) => ({
+			isOver: monitor.isOver(),
+			canDrop: monitor.canDrop(),
+		}),
+	});
+
+	const isDropZone = isOver && canDrop;
+
 	const attachDrop = (node: HTMLDivElement | null) => {
 		if (node) drop(node);
 	};
