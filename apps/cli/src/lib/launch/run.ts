@@ -230,16 +230,22 @@ export async function launchAgent(
 	}
 
 	// Preflight check: verify the launch command binary exists on PATH
-	// Skip check for shell wrappers (bash -c, env FOO=bar, etc.) to avoid false negatives
-	const parts = command.split(" ");
-	const firstPart = parts[0];
-	const isShellWrapper = ["bash", "sh", "zsh", "env"].includes(firstPart || "");
+	// Skip for complex commands (wrappers, env vars, quotes) to avoid false negatives
+	// The live pane check after creation will catch actual failures
+	const isComplexCommand =
+		command.includes("=") ||      // env var assignments (FOO=bar cmd)
+		command.includes("'") ||      // single quotes (bash -c 'cmd')
+		command.includes('"') ||      // double quotes (bash -c "cmd")
+		command.split(" ").length > 2; // multiple args (likely a wrapper)
 
-	if (!isShellWrapper && firstPart && !commandExists(firstPart)) {
-		return {
-			success: false,
-			error: `Command not found: ${firstPart}\n\nThe agent launch command is not available on your PATH.\nTo fix this:\n  1. Install the command: which ${firstPart}\n  2. Or set a custom command: export SUPERSET_AGENT_LAUNCH_${agent.agentType.toUpperCase()}=your-command`,
-		};
+	if (!isComplexCommand) {
+		const binary = command.split(" ")[0];
+		if (binary && !commandExists(binary)) {
+			return {
+				success: false,
+				error: `Command not found: ${binary}\n\nThe agent launch command is not available on your PATH.\nTo fix this:\n  1. Install the command: which ${binary}\n  2. Or set a custom command: export SUPERSET_AGENT_LAUNCH_${agent.agentType.toUpperCase()}=your-command`,
+			};
+		}
 	}
 
 	const sessionName = agent.sessionName || `agent-${agent.id.slice(0, 6)}`;
