@@ -84,7 +84,7 @@ export function WorkspacesTabs() {
 
 						return (
 							<Fragment key={workspace.id}>
-								<div className="flex items-end h-full">
+								<div className="flex items-end h-full no-drag">
 									<WorkspaceItem
 										id={workspace.id}
 										title={workspace.title}
@@ -117,7 +117,9 @@ export function WorkspacesTabs() {
 				)}
 			</div>
 
-			<AddWorkspaceButton />
+			<div className="no-drag">
+				<AddWorkspaceButton />
+			</div>
 		</div>
 	);
 }

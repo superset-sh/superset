@@ -16,7 +16,7 @@ export const handleAddTab = (
 		: historyStack;
 
 	return {
-		tabs: [...state.tabs, newTab],
+		tabs: [newTab, ...state.tabs],
 		activeTabIds: {
 			...state.activeTabIds,
 			[workspaceId]: newTab.id,

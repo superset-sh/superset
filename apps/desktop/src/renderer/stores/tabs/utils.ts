@@ -14,7 +14,7 @@ export const createNewTab = (
 	const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 	const baseTab = {
 		id,
-		title: type === TabType.Single ? "New Tab" : "New Split View",
+		title: type === TabType.Single ? "New Terminal" : "New Split View",
 		workspaceId,
 		isNew: true,
 	};
