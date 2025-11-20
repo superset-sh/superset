@@ -434,6 +434,9 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 	const [workspace, setWorkspace] = React.useState<any>(null);
 	const [selectedAgents, setSelectedAgents] = React.useState<AgentType[]>([]);
 	const [startedAgents, setStartedAgents] = React.useState<Process[]>([]);
+	const [failures, setFailures] = React.useState<
+		Array<{ agentType: AgentType; error: string }>
+	>([]);
 
 	React.useEffect(() => {
 		const loadWorkspace = async () => {
@@ -480,20 +483,21 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 			const workspaceOrchestrator = new WorkspaceOrchestrator(db);
 
 			const created: Process[] = [];
+			const failures: Array<{ agentType: AgentType; error: string }> = [];
+
 			for (const agentType of agents) {
 				// Get default launch command for this agent type
 				const launchCommand = getDefaultLaunchCommand(agentType);
 
-				// Create the process
+				// Create the process in IDLE state
 				const process = await processOrchestrator.create(
 					ProcessType.AGENT,
 					ws,
 					agentType,
 				);
 
-				// Transition to RUNNING status and set launch command
+				// Set launch command but keep in IDLE state
 				await processOrchestrator.update(process.id, {
-					status: ProcessStatus.RUNNING,
 					launchCommand,
 				});
 
@@ -503,14 +507,21 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 				const result = await launchAgent(agent, { attach: false });
 
 				if (!result.success) {
-					// If session creation fails, mark agent as error
+					// If session creation fails, mark agent as ERROR
 					await processOrchestrator.update(process.id, {
 						status: ProcessStatus.ERROR,
+						endedAt: new Date(),
 					});
-					console.error(
-						`Failed to create session for ${agentType}: ${result.error}`,
-					);
+					failures.push({
+						agentType,
+						error: result.error || "Unknown error",
+					});
 				} else {
+					// Only mark as RUNNING if session creation succeeded
+					await processOrchestrator.update(process.id, {
+						status: ProcessStatus.RUNNING,
+						endedAt: undefined, // Clear endedAt since session is alive
+					});
 					created.push(process);
 				}
 			}
@@ -519,12 +530,27 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 			await workspaceOrchestrator.use(ws.id);
 
 			setStartedAgents(created);
-			setStep(StartStep.COMPLETE);
+			setFailures(failures);
 
-			// Auto-exit after showing success
-			setTimeout(() => {
-				exit();
-			}, 2000);
+			// Only advance to COMPLETE if at least one agent succeeded
+			if (created.length > 0) {
+				setStep(StartStep.COMPLETE);
+
+				// Auto-exit after showing success (skip if there were partial failures)
+				if (failures.length === 0) {
+					setTimeout(() => {
+						exit();
+					}, 2000);
+				}
+			} else {
+				// All agents failed - show error
+				const errorMsg = failures
+					.map((f) => `${f.agentType}: ${f.error}`)
+					.join("\n");
+				setError(
+					`Failed to start all agents:\n${errorMsg}\n\nPlease check that tmux is installed and the agent commands are available.`,
+				);
+			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Unknown error");
 		}
@@ -602,20 +628,45 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 	}
 
 	if (step === StartStep.COMPLETE) {
+		const totalAttempted = selectedAgents.length;
+		const successCount = startedAgents.length;
+		const failureCount = failures.length;
+
 		return (
 			<Box flexDirection="column">
-				<Text color="green">
-					✓ Started {startedAgents.length} agent(s) successfully!
+				<Text color={failureCount > 0 ? "yellow" : "green"}>
+					{failureCount > 0 ? "⚠" : "✓"} Started {successCount}/{totalAttempted}{" "}
+					agent(s) successfully
+					{failureCount > 0 ? ` (${failureCount} failed)` : "!"}
 				</Text>
 				<Box marginTop={1}>
 					<Text dimColor>Workspace: {workspace?.name || workspace?.id}</Text>
-					<Text dimColor>Agents: {selectedAgents.join(", ")}</Text>
+					{successCount > 0 && (
+						<Text dimColor color="green">
+							Success: {startedAgents.map((a) => (a as any).agentType).join(", ")}
+						</Text>
+					)}
 				</Box>
+				{failureCount > 0 && (
+					<Box marginTop={1} flexDirection="column">
+						<Text color="red">Failed agents:</Text>
+						{failures.map((f, i) => (
+							<Text key={i} dimColor color="red">
+								• {f.agentType}: {f.error}
+							</Text>
+						))}
+					</Box>
+				)}
 				<Box marginTop={1}>
 					<Text dimColor>
 						Run <Text bold>superset dashboard</Text> to view agent status
 					</Text>
 				</Box>
+				{failureCount > 0 && (
+					<Box marginTop={1}>
+						<Text dimColor>Press Ctrl+C to exit</Text>
+					</Box>
+				)}
 			</Box>
 		);
 	}
