@@ -33,11 +33,11 @@ export function TabsView() {
 	};
 
 	return (
-		<nav className="space-y-2 flex flex-col h-full p-2">
+		<nav className="space-y-2 flex flex-col h-full px-2">
 			<UngroupDropZone>
 				{(draggedTab, isDragOver, dropIndex) => (
 					<LayoutGroup>
-						<div className="text-sm text-sidebar-foreground space-y-1">
+						<div className="text-sm text-sidebar-foreground space-y-2 relative pt-2">
 							{tabs.map((tab, index) => (
 								<motion.div
 									key={tab.id}
@@ -50,7 +50,7 @@ export function TabsView() {
 								>
 									{/* Drop line indicator before this tab */}
 									{isDragOver && draggedTab && index === dropIndex && (
-										<div className="absolute -top-0.5 left-0 right-0 h-0.5 bg-primary rounded-full z-10" />
+										<div className="absolute -top-px left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 									)}
 									<div data-tab-item>
 										<TabItem tab={tab} childTabs={getChildTabs(tab.id)} />
@@ -59,7 +59,7 @@ export function TabsView() {
 							))}
 							{/* Drop line indicator at the end */}
 							{isDragOver && draggedTab && dropIndex >= tabs.length && (
-								<div className="h-0.5 bg-sidebar-accent rounded-full" />
+								<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 							)}
 							<Button
 								variant="ghost"

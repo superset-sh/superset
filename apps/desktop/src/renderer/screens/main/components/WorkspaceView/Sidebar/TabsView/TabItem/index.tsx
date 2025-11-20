@@ -10,6 +10,7 @@ import {
 import { TabType } from "renderer/stores/tabs/types";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
+import { useGroupDrop } from "./useGroupDrop";
 
 export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
@@ -26,6 +27,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const isActive = tab.id === activeTabId;
 
 	const { drag, drop, isDragging, isDragOver } = useDragTab(tab.id);
+	const groupDrop = useGroupDrop(tab.id);
 
 	const handleRemoveTab = (e: React.MouseEvent) => {
 		e.stopPropagation();
@@ -97,7 +99,15 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 			</Button>
 
 			{isGroupTab && hasChildren && isExpanded && (
-				<div className="ml-4 mt-1 space-y-1">
+				<div
+					ref={(node) => {
+						groupDrop.drop(node);
+					}}
+					className="ml-4 mt-1 space-y-1 relative"
+				>
+					{groupDrop.isDragOver && (
+						<div className="absolute -top-px left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
+					)}
 					{childTabs.map((childTab) => {
 						return (
 							<div key={childTab.id} className="flex items-start gap-1">

@@ -256,16 +256,36 @@ export const handleDragTabToTab = (
 			},
 		};
 
+		// Find target tab's index in workspace to insert group at that position
+		const workspaceTabs = state.tabs.filter(
+			(t) => t.workspaceId === workspaceId && !t.parentId,
+		);
+		const targetIndex = workspaceTabs.findIndex((t) => t.id === targetTabId);
+		const otherTabs = state.tabs.filter(
+			(t) => t.workspaceId !== workspaceId || t.parentId,
+		);
+
+		// Update existing tabs to set parentId
+		const updatedTabs = state.tabs.map((tab) => {
+			if (tab.id === targetTab.id) return updatedTargetTab;
+			if (tab.id === draggedTab.id) return updatedDraggedTab;
+			return tab;
+		});
+
+		// Filter to get workspace tabs (excluding child tabs)
+		const workspaceTabsUpdated = updatedTabs.filter(
+			(t) => t.workspaceId === workspaceId && !t.parentId,
+		);
+		const otherTabsUpdated = updatedTabs.filter(
+			(t) => t.workspaceId !== workspaceId || t.parentId,
+		);
+
+		// Insert the new group at the target's original index
+		workspaceTabsUpdated.splice(targetIndex, 0, newGroupTab);
+
 		return {
 			...state,
-			tabs: [
-				...state.tabs.map((tab) => {
-					if (tab.id === targetTab.id) return updatedTargetTab;
-					if (tab.id === draggedTab.id) return updatedDraggedTab;
-					return tab;
-				}),
-				newGroupTab,
-			],
+			tabs: [...otherTabsUpdated, ...workspaceTabsUpdated],
 			activeTabIds: {
 				...state.activeTabIds,
 				[workspaceId]: newGroupTab.id,
