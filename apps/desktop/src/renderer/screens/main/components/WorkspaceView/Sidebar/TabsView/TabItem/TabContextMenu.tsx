@@ -15,7 +15,6 @@ interface TabContextMenuProps {
 	hasParent?: boolean;
 	onClose: () => void;
 	onRename: () => void;
-	onDuplicate?: () => void;
 	onUngroup?: () => void;
 	onMoveOutOfGroup?: () => void;
 }
@@ -26,7 +25,6 @@ export function TabContextMenu({
 	hasParent = false,
 	onClose,
 	onRename,
-	onDuplicate,
 	onUngroup,
 	onMoveOutOfGroup,
 }: TabContextMenuProps) {
@@ -44,11 +42,6 @@ export function TabContextMenu({
 				) : (
 					<>
 						<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
-						{onDuplicate && (
-							<ContextMenuItem onSelect={onDuplicate}>
-								Duplicate Tab
-							</ContextMenuItem>
-						)}
 						{hasParent && onMoveOutOfGroup && (
 							<>
 								<ContextMenuSeparator />

@@ -58,11 +58,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		setIsExpanded(!isExpanded);
 	};
 
-	const handleDuplicate = () => {
-		// TODO: Implement duplicate functionality
-		console.log("Duplicate tab:", tab.id);
-	};
-
 	const handleUngroup = () => {
 		ungroupTabs(tab.id);
 	};
@@ -98,7 +93,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 				hasParent={!!tab.parentId}
 				onClose={handleRemoveTab}
 				onRename={rename.startRename}
-				onDuplicate={!isGroupTab ? handleDuplicate : undefined}
 				onUngroup={isGroupTab ? handleUngroup : undefined}
 				onMoveOutOfGroup={tab.parentId ? handleMoveOutOfGroup : undefined}
 			>
