@@ -41,6 +41,7 @@ export enum AgentType {
 export interface Agent extends Process {
 	type: ProcessType.AGENT;
 	agentType: AgentType;
+	sessionName?: string;
 }
 
 export interface ProcessOrchestrator {

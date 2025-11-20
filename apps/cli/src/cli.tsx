@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { render } from "ink";
 import React from "react";
 import {
+	AgentAttach,
 	AgentCreate,
 	AgentDelete,
 	AgentGet,
@@ -19,6 +20,7 @@ import {
 	EnvGet,
 	EnvList,
 	Init,
+	Panels,
 	WorkspaceCreate,
 	WorkspaceDelete,
 	WorkspaceGet,
@@ -51,6 +53,14 @@ program
 	.description("Show dashboard with all agents and workspaces")
 	.action(() => {
 		render(<Dashboard />);
+	});
+
+// Panels command
+program
+	.command("panels")
+	.description("Show three-panel IDE-style interface")
+	.action(() => {
+		render(<Panels />);
 	});
 
 // Environment commands
@@ -196,6 +206,14 @@ agent
 	.argument("[workspaceId]", "Workspace ID (optional, uses current workspace)")
 	.action((workspaceId?: string) => {
 		render(<AgentStart workspaceId={workspaceId} />);
+	});
+
+agent
+	.command("attach")
+	.description("Attach to an agent's tmux session")
+	.argument("<id>", "Agent ID or session name (e.g., agent-abc123)")
+	.action((id: string) => {
+		render(<AgentAttach id={id} onComplete={() => process.exit(0)} />);
 	});
 
 agent
@@ -351,6 +369,9 @@ program.action(async () => {
 	console.log("Get started with these commands:\n");
 	console.log("  superset init                  Create workspace (wizard)");
 	console.log("  superset dashboard             Show dashboard overview");
+	console.log(
+		"  superset panels                Show three-panel IDE interface",
+	);
 	console.log("  superset workspace use <id>    Switch to a workspace");
 	console.log(
 		"  superset agent start           Start agents in current workspace",

@@ -10,7 +10,7 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node --packages=bundle",
+		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node",
 		"dev": "tsc --watch",
 		"start": "bun src/server.ts",
 		"typecheck": "tsc --noEmit",

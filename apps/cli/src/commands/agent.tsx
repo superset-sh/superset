@@ -497,7 +497,22 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 					launchCommand,
 				});
 
-				created.push(process);
+				// Actually create the tmux session in the background
+				const agent = process as import("../types/process").Agent;
+				const { launchAgent } = await import("../lib/launch/run");
+				const result = await launchAgent(agent, { attach: false });
+
+				if (!result.success) {
+					// If session creation fails, mark agent as error
+					await processOrchestrator.update(process.id, {
+						status: ProcessStatus.ERROR,
+					});
+					console.error(
+						`Failed to create session for ${agentType}: ${result.error}`,
+					);
+				} else {
+					created.push(process);
+				}
 			}
 
 			// Update workspace lastUsedAt and set as current if not already
@@ -603,6 +618,92 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 				</Box>
 			</Box>
 		);
+	}
+
+	return null;
+}
+
+interface AgentAttachProps {
+	id: string;
+	onComplete?: () => void;
+}
+
+export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
+	const { exit } = useApp();
+	const [error, setError] = React.useState<string | null>(null);
+	const [loading, setLoading] = React.useState(true);
+
+	React.useEffect(() => {
+		const attachToSession = async () => {
+			try {
+				const db = getDb();
+				const orchestrator = new ProcessOrchestrator(db);
+
+				// Try to get by ID first
+				let process;
+				try {
+					process = await orchestrator.get(id);
+				} catch {
+					// If not found by ID, try to find by sessionName
+					const allProcesses = await orchestrator.list();
+					const foundBySession = allProcesses.find(
+						(p) =>
+							p.type === ProcessType.AGENT &&
+							"sessionName" in p &&
+							(p as import("../types/process").Agent).sessionName === id,
+					);
+
+					if (!foundBySession) {
+						setError(
+							`Agent not found. Use the full agent ID or sessionName.\nRun 'superset agent list' to see available agents.`,
+						);
+						setLoading(false);
+						return;
+					}
+
+					process = foundBySession;
+				}
+
+				// Ensure it's an agent
+				if (process.type !== ProcessType.AGENT) {
+					setError("Cannot attach: process is not an agent");
+					setLoading(false);
+					return;
+				}
+
+				const agent = process as import("../types/process").Agent;
+
+				// Import and call attachToAgent
+				const { launchAgent } = await import("../lib/launch/run");
+
+				// Exit the Ink app before attaching
+				exit();
+
+				// Small delay to let Ink clean up
+				setTimeout(async () => {
+					const result = await launchAgent(agent, { attach: true });
+					if (!result.success) {
+						console.error(`\n❌ Failed to attach to agent\n`);
+						console.error(`Error: ${result.error}\n`);
+						globalThis.process.exit(1);
+					}
+					globalThis.process.exit(0);
+				}, 100);
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Unknown error");
+				setLoading(false);
+			}
+		};
+
+		attachToSession();
+	}, [id, exit]);
+
+	if (loading && !error) {
+		return <Text>Preparing to attach...</Text>;
+	}
+
+	if (error) {
+		return <Text color="red">Error: {error}</Text>;
 	}
 
 	return null;

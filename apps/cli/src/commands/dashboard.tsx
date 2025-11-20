@@ -167,11 +167,11 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 					exit();
 					// Give the terminal time to reset after Ink exits
 					setTimeout(() => {
-						launchAgent(agentToLaunch)
+						launchAgent(agentToLaunch, { attach: true })
 							.then((result) => {
 								if (!result.success) {
 									console.error(
-										`\n❌ Failed to launch ${agentToLaunch.agentType} agent\n`,
+										`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
 									);
 									console.error(`Error: ${result.error}\n`);
 									if (result.exitCode !== undefined) {
@@ -179,12 +179,12 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 									}
 									process.exit(1);
 								}
-								// Agent launched successfully and exited normally
+								// Detached successfully
 								process.exit(0);
 							})
 							.catch((error) => {
 								console.error(
-									`\n❌ Failed to launch ${agentToLaunch.agentType} agent\n`,
+									`\n❌ Failed to attach to ${agentToLaunch.agentType} agent\n`,
 								);
 								console.error(
 									`Error: ${error instanceof Error ? error.message : String(error)}\n`,
@@ -228,7 +228,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 	}
 
 	if (launching) {
-		return <Text color="cyan">Launching agent...</Text>;
+		return <Text color="cyan">Attaching to agent...</Text>;
 	}
 
 	if (error) {
@@ -467,6 +467,12 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 						{filteredAgents.map((agent, index) => {
 							const isSelected =
 								selectionMode === "agent" && index === selectedAgentIndex;
+							const sessionName =
+								agent.type === ProcessType.AGENT &&
+								"sessionName" in agent &&
+								agent.sessionName
+									? String(agent.sessionName)
+									: null;
 							return (
 								<Box key={agent.id} flexDirection="row" gap={1} paddingY={0}>
 									<Text color={isSelected ? "yellow" : undefined}>
@@ -481,7 +487,11 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 											"agentType" in agent &&
 											String(agent.agentType)}
 									</Text>
-									<Text dimColor>({agent.id.slice(0, 8)})</Text>
+									{sessionName && (
+										<Text dimColor>
+											[{truncate(sessionName, 16)}]
+										</Text>
+									)}
 									<Text dimColor>
 										{new Date(agent.createdAt).toLocaleTimeString()}
 									</Text>

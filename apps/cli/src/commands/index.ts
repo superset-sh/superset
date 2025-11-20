@@ -1,4 +1,5 @@
 export {
+	AgentAttach,
 	AgentCreate,
 	AgentDelete,
 	AgentGet,
@@ -11,6 +12,7 @@ export { ChangeCreate, ChangeDelete, ChangeList } from "./change";
 export { Dashboard } from "./dashboard";
 export { EnvCreate, EnvDelete, EnvGet, EnvList } from "./env";
 export { Init } from "./init";
+export { Panels } from "./panels";
 export {
 	WorkspaceCreate,
 	WorkspaceDelete,
