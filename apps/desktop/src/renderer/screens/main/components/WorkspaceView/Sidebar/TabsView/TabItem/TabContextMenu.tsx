@@ -12,21 +12,23 @@ interface TabContextMenuProps {
 	children: ReactNode;
 	tabId: string;
 	tabType: TabType;
-	onClose?: () => void;
-	onRename?: () => void;
+	hasParent?: boolean;
+	onClose: () => void;
+	onRename: () => void;
 	onDuplicate?: () => void;
 	onUngroup?: () => void;
-	onDeleteGroup?: () => void;
+	onMoveOutOfGroup?: () => void;
 }
 
 export function TabContextMenu({
 	children,
 	tabType,
+	hasParent = false,
 	onClose,
 	onRename,
 	onDuplicate,
 	onUngroup,
-	onDeleteGroup,
+	onMoveOutOfGroup,
 }: TabContextMenuProps) {
 	const isGroupTab = tabType === TabType.Group;
 
@@ -38,21 +40,23 @@ export function TabContextMenu({
 					<>
 						<ContextMenuItem onSelect={onRename}>Rename Group</ContextMenuItem>
 						<ContextMenuItem onSelect={onUngroup}>Ungroup Tabs</ContextMenuItem>
-						<ContextMenuSeparator />
-						<ContextMenuItem onSelect={onDuplicate}>
-							Duplicate Group
-						</ContextMenuItem>
-						<ContextMenuSeparator />
-						<ContextMenuItem variant="destructive" onSelect={onDeleteGroup}>
-							Delete Group
-						</ContextMenuItem>
 					</>
 				) : (
 					<>
 						<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
-						<ContextMenuItem onSelect={onDuplicate}>
-							Duplicate Tab
-						</ContextMenuItem>
+						{onDuplicate && (
+							<ContextMenuItem onSelect={onDuplicate}>
+								Duplicate Tab
+							</ContextMenuItem>
+						)}
+						{hasParent && onMoveOutOfGroup && (
+							<>
+								<ContextMenuSeparator />
+								<ContextMenuItem onSelect={onMoveOutOfGroup}>
+									Move Out of Group
+								</ContextMenuItem>
+							</>
+						)}
 						<ContextMenuSeparator />
 						<ContextMenuItem variant="destructive" onSelect={onClose}>
 							Close Tab

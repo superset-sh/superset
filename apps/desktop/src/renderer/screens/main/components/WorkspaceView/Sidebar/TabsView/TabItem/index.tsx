@@ -5,6 +5,8 @@ import {
 	useActiveTabIds,
 	useRemoveTab,
 	useSetActiveTab,
+	useTabs,
+	useUngroupTab,
 	useUngroupTabs,
 	useWorkspacesStore,
 } from "renderer/stores";
@@ -24,6 +26,8 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();
 	const ungroupTabs = useUngroupTabs();
+	const ungroupTab = useUngroupTab();
+	const tabs = useTabs();
 
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
@@ -49,6 +53,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 
 	const handleToggleExpand = (e: React.MouseEvent) => {
 		e.stopPropagation();
+		e.preventDefault();
 		if (rename.isRenaming) return;
 		setIsExpanded(!isExpanded);
 	};
@@ -62,9 +67,19 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		ungroupTabs(tab.id);
 	};
 
-	const handleDeleteGroup = () => {
-		// TODO: Implement delete group functionality
-		console.log("Delete group:", tab.id);
+	const handleMoveOutOfGroup = () => {
+		if (!tab.parentId) return;
+
+		// Find the parent group's index in the workspace tabs
+		const workspaceTabs = tabs.filter(
+			(t) => t.workspaceId === tab.workspaceId && !t.parentId,
+		);
+		const parentIndex = workspaceTabs.findIndex((t) => t.id === tab.parentId);
+
+		// Place after the parent (parentIndex + 1)
+		if (parentIndex !== -1) {
+			ungroupTab(tab.id, parentIndex + 1);
+		}
 	};
 
 	const attachRef = (el: HTMLButtonElement | null) => {
@@ -80,11 +95,12 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 			<TabContextMenu
 				tabId={tab.id}
 				tabType={tab.type}
+				hasParent={!!tab.parentId}
 				onClose={handleRemoveTab}
 				onRename={rename.startRename}
-				onDuplicate={handleDuplicate}
-				onUngroup={handleUngroup}
-				onDeleteGroup={handleDeleteGroup}
+				onDuplicate={!isGroupTab ? handleDuplicate : undefined}
+				onUngroup={isGroupTab ? handleUngroup : undefined}
+				onMoveOutOfGroup={tab.parentId ? handleMoveOutOfGroup : undefined}
 			>
 				<Button
 					ref={attachRef}
@@ -110,6 +126,10 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 							<button
 								type="button"
 								onClick={handleToggleExpand}
+								onDoubleClick={(e) => {
+									e.stopPropagation();
+									e.preventDefault();
+								}}
 								className="shrink-0 cursor-pointer hover:opacity-80"
 							>
 								<HiChevronRight
