@@ -1,6 +1,6 @@
 export function NewWorkspaceView() {
 	return (
-		<div className="flex-1 h-full flex items-center justify-center bg-background">
+		<div className="flex-1 h-full flex items-center justify-center">
 			<div className="text-center max-w-2xl px-6">
 				<h1 className="text-4xl font-bold text-foreground mb-4">
 					New Workspace

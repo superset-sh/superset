@@ -11,16 +11,18 @@ export function WorkspaceView() {
 
 	if (activeWorkspace?.isNew) {
 		return (
-			<div className="flex flex-1">
+			<div className="flex flex-1 bg-sidebar">
 				<NewWorkspaceView />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-1">
+		<div className="flex flex-1 bg-sidebar">
 			<Sidebar />
-			<ContentView />
+			<div className="flex-1 m-2 bg-background rounded-sm p-2">
+				<ContentView />
+			</div>
 		</div>
 	);
 }

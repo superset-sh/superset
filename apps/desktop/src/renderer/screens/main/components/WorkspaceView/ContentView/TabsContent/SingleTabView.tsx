@@ -11,8 +11,8 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 	return (
 		<div
 			ref={drop as unknown as React.Ref<HTMLDivElement>}
-			className={`flex-1 h-full overflow-auto bg-background transition-colors ${
-				isDropZone ? "bg-primary/10" : ""
+			className={`flex-1 h-full overflow-auto transition-colors bg-background ${
+				isDropZone ? "bg-sidebar/10" : ""
 			}`}
 		>
 			<div className="h-full w-full p-6">

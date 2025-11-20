@@ -16,20 +16,32 @@ export function TabsContent() {
 	const allTabs = useTabs();
 	const activeTabIds = useActiveTabIds();
 
-	const activeTab = useMemo(() => {
-		if (!activeWorkspaceId) return null;
+	const { tabToRender, focusedChildId } = useMemo(() => {
+		if (!activeWorkspaceId) return { tabToRender: null, focusedChildId: null };
 		const activeTabId = activeTabIds[activeWorkspaceId];
-		if (!activeTabId) return null;
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
+		if (!activeTabId) return { tabToRender: null, focusedChildId: null };
+
+		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
+		if (!activeTab) return { tabToRender: null, focusedChildId: null };
+
+		if (activeTab.parentId) {
+			const parentGroup = allTabs.find((tab) => tab.id === activeTab.parentId);
+			return {
+				tabToRender: parentGroup || null,
+				focusedChildId: activeTabId,
+			};
+		}
+
+		return { tabToRender: activeTab, focusedChildId: null };
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
-	if (!activeTab) {
+	if (!tabToRender) {
 		return <EmptyTabView />;
 	}
 
-	if (activeTab.type === TabType.Single) {
-		return <SingleTabView tab={activeTab} />;
+	if (tabToRender.type === TabType.Single) {
+		return <SingleTabView tab={tabToRender} />;
 	}
 
-	return <GroupTabView tab={activeTab} />;
+	return <GroupTabView tab={tabToRender} />;
 }

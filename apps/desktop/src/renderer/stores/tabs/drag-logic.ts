@@ -7,6 +7,41 @@ export interface DragTabToTabResult {
 	tabHistoryStacks: Record<string, string[]>;
 }
 
+// Helper: Remove tab from its old parent group
+const removeFromOldParent = (tabs: Tab[], tabId: string, oldParentId: string): Tab[] => {
+	return tabs.map((tab) => {
+		if (tab.id === oldParentId && tab.type === TabType.Group) {
+			return {
+				...tab,
+				childTabIds: tab.childTabIds.filter((id) => id !== tabId),
+			};
+		}
+		return tab;
+	});
+};
+
+// Helper: Add tab to a new parent group
+const addToParentGroup = (
+	parentGroup: TabGroup,
+	childTabId: string,
+): TabGroup => {
+	const newLayout =
+		parentGroup.layout === null
+			? childTabId
+			: {
+					direction: "row" as const,
+					first: parentGroup.layout,
+					second: childTabId,
+					splitPercentage: 50,
+				};
+
+	return {
+		...parentGroup,
+		childTabIds: [...parentGroup.childTabIds, childTabId],
+		layout: newLayout,
+	};
+};
+
 export const handleDragTabToTab = (
 	draggedTabId: string,
 	targetTabId: string,
@@ -24,8 +59,13 @@ export const handleDragTabToTab = (
 	const workspaceId = draggedTab.workspaceId;
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 
-	// Rule 1: Dragging into itself - create new tab
+	// Rule 1: Dragging tab into itself
 	if (draggedTabId === targetTabId) {
+		// If already a child tab, do nothing (can't create new tab from child)
+		if (draggedTab.parentId) {
+			return state;
+		}
+		// Create new tab for regular tabs
 		const newTab = createNewTab(workspaceId, TabType.Single);
 		return {
 			...state,
@@ -37,38 +77,91 @@ export const handleDragTabToTab = (
 		};
 	}
 
-	// Rule 2: Dragging into an existing group - join the group
+	// Rule 2: Dragging into a child tab (add to its parent group)
+	if (targetTab.parentId && draggedTab.type === TabType.Single) {
+		const parentGroup = state.tabs.find(
+			(tab) => tab.id === targetTab.parentId && tab.type === TabType.Group,
+		) as TabGroup | undefined;
+
+		if (!parentGroup) return state;
+
+		// Already a child of this group - do nothing
+		if (draggedTab.parentId === parentGroup.id) {
+			return state;
+		}
+
+		// Update dragged tab's parent
+		const updatedDraggedTab: Tab = {
+			...draggedTab,
+			parentId: parentGroup.id,
+		};
+
+		// Add to parent group
+		const updatedParentGroup = addToParentGroup(parentGroup, draggedTabId);
+
+		// Remove from old parent if needed
+		let updatedTabs = state.tabs.map((tab) => {
+			if (tab.id === parentGroup.id) return updatedParentGroup;
+			if (tab.id === draggedTabId) return updatedDraggedTab;
+			return tab;
+		});
+
+		if (draggedTab.parentId) {
+			updatedTabs = removeFromOldParent(
+				updatedTabs,
+				draggedTabId,
+				draggedTab.parentId,
+			);
+		}
+
+		return {
+			...state,
+			tabs: updatedTabs,
+			activeTabIds: {
+				...state.activeTabIds,
+				[workspaceId]: parentGroup.id,
+			},
+			tabHistoryStacks: {
+				...state.tabHistoryStacks,
+				[workspaceId]: historyStack.filter((id) => id !== draggedTabId),
+			},
+		};
+	}
+
+	// Rule 3: Dragging into a group tab directly
 	if (targetTab.type === TabType.Group && draggedTab.type === TabType.Single) {
-		// Convert dragged tab to a child tab
+		// Already a child of this group - do nothing
+		if (draggedTab.parentId === targetTabId) {
+			return state;
+		}
+
+		// Update dragged tab's parent
 		const updatedDraggedTab: Tab = {
 			...draggedTab,
 			parentId: targetTabId,
 		};
 
-		// Calculate new layout
-		const newLayout =
-			targetTab.layout === null
-				? draggedTabId // First child, just use its ID
-				: {
-						direction: "row" as const,
-						first: targetTab.layout,
-						second: draggedTabId,
-						splitPercentage: 50,
-					};
+		// Add to target group
+		const updatedTargetTab = addToParentGroup(targetTab, draggedTabId);
 
-		const updatedTargetTab: TabGroup = {
-			...targetTab,
-			childTabIds: [...targetTab.childTabIds, draggedTabId],
-			layout: newLayout,
-		};
+		// Remove from old parent if needed
+		let updatedTabs = state.tabs.map((tab) => {
+			if (tab.id === targetTabId) return updatedTargetTab;
+			if (tab.id === draggedTabId) return updatedDraggedTab;
+			return tab;
+		});
+
+		if (draggedTab.parentId) {
+			updatedTabs = removeFromOldParent(
+				updatedTabs,
+				draggedTabId,
+				draggedTab.parentId,
+			);
+		}
 
 		return {
 			...state,
-			tabs: state.tabs.map((tab) => {
-				if (tab.id === targetTabId) return updatedTargetTab;
-				if (tab.id === draggedTabId) return updatedDraggedTab;
-				return tab;
-			}),
+			tabs: updatedTabs,
 			activeTabIds: {
 				...state.activeTabIds,
 				[workspaceId]: targetTabId,
@@ -80,13 +173,13 @@ export const handleDragTabToTab = (
 		};
 	}
 
-	// Rule 3: Dragging into a different single tab - create new group
+	// Rule 4: Dragging single tab into another single tab (create new group)
 	if (targetTab.type === TabType.Single && draggedTab.type === TabType.Single) {
 		const groupId = `tab-${Date.now()}-group`;
 		const childTab1Id = `tab-${Date.now()}-child-1`;
 		const childTab2Id = `tab-${Date.now()}-child-2`;
 
-		// Create child tabs from the original tabs
+		// Create child tabs from originals
 		const childTab1: Tab = {
 			...targetTab,
 			id: childTab1Id,

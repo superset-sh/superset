@@ -6,14 +6,10 @@ import { type Tab, TabType } from "./types";
 import { createNewTab } from "./utils";
 
 interface TabsState {
-	// All tabs across all workspaces
 	tabs: Tab[];
-	// Active tab ID per workspace
 	activeTabIds: Record<string, string | null>;
-	// Tab history stack per workspace (ordered set - most recent first, no duplicates)
 	tabHistoryStacks: Record<string, string[]>;
 
-	// Tab management
 	addTab: (workspaceId: string, type?: TabType) => void;
 	removeTab: (id: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
@@ -24,25 +20,20 @@ interface TabsState {
 	) => void;
 	markTabAsUsed: (id: string) => void;
 
-	// Tab group specific actions
 	updateTabGroupLayout: (id: string, layout: MosaicNode<string>) => void;
 	addChildTabToGroup: (groupId: string, childTabId: string) => void;
 	removeChildTabFromGroup: (groupId: string, childTabId: string) => void;
 
-	// Drag and drop actions
 	dragTabToTab: (draggedTabId: string, targetTabId: string) => void;
 
-	// Helper to get tabs for a specific workspace
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
 	getLastActiveTabId: (workspaceId: string) => string | null;
 }
 
-// Create initial test tabs
 const createInitialTabs = (): Tab[] => {
 	const workspaceId = "workspace-1";
 
-	// Create a single tab
 	const singleTab: Tab = {
 		id: "tab-single-1",
 		title: "Welcome Tab",
@@ -51,7 +42,6 @@ const createInitialTabs = (): Tab[] => {
 		isNew: false,
 	};
 
-	// Create child tabs for the group
 	const childTab1: Tab = {
 		id: "tab-child-1",
 		title: "Left Pane",
@@ -70,7 +60,6 @@ const createInitialTabs = (): Tab[] => {
 		parentId: "tab-group-1",
 	};
 
-	// Create a group tab with two child tabs
 	const groupTab: Tab = {
 		id: "tab-group-1",
 		title: "Split View Example",
@@ -86,7 +75,6 @@ const createInitialTabs = (): Tab[] => {
 		childTabIds: ["tab-child-1", "tab-child-2"],
 	};
 
-	// Create another single tab
 	const singleTab2: Tab = {
 		id: "tab-single-2",
 		title: "Another Tab",
@@ -108,7 +96,6 @@ export const useTabsStore = create<TabsState>()(
 			addTab: (workspaceId, type = TabType.Single) => {
 				const newTab = createNewTab(workspaceId, type);
 				set((state) => {
-					// Push current active tab to history before switching
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
 					const newHistoryStack = currentActiveId
@@ -143,22 +130,18 @@ export const useTabsStore = create<TabsState>()(
 					);
 					const tabs = state.tabs.filter((tab) => tab.id !== id);
 
-					// Remove from history stack
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
 					const newHistoryStack = historyStack.filter((tabId) => tabId !== id);
 
-					// If removing active tab, use history stack to determine next tab
 					const newActiveTabIds = { ...state.activeTabIds };
 					if (state.activeTabIds[workspaceId] === id) {
 						if (workspaceTabs.length > 0) {
-							// Try to activate most recent tab from history
 							const nextTabFromHistory = newHistoryStack.find((tabId) =>
 								workspaceTabs.some((tab) => tab.id === tabId),
 							);
 							if (nextTabFromHistory) {
 								newActiveTabIds[workspaceId] = nextTabFromHistory;
 							} else {
-								// Fallback to positional logic
 								const closedIndex = state.tabs
 									.filter((tab) => tab.workspaceId === workspaceId)
 									.findIndex((tab) => tab.id === id);
@@ -184,11 +167,9 @@ export const useTabsStore = create<TabsState>()(
 
 			setActiveTab: (workspaceId, tabId) => {
 				set((state) => {
-					// Push current active tab to history before switching
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
 
-					// Create new history stack: remove tabId if exists, then add current to front
 					let newHistoryStack = historyStack.filter((id) => id !== tabId);
 					if (currentActiveId && currentActiveId !== tabId) {
 						newHistoryStack = [
@@ -266,17 +247,67 @@ export const useTabsStore = create<TabsState>()(
 
 			removeChildTabFromGroup: (groupId, childTabId) => {
 				set((state) => {
+					const group = state.tabs.find(
+						(tab) => tab.id === groupId && tab.type === TabType.Group,
+					);
+					if (!group || group.type !== TabType.Group) return state;
+
+					const updatedChildTabIds = group.childTabIds.filter(
+						(id) => id !== childTabId,
+					);
+
+					if (updatedChildTabIds.length === 0) {
+						const workspaceId = group.workspaceId;
+						const currentActiveId = state.activeTabIds[workspaceId];
+						const historyStack = state.tabHistoryStacks[workspaceId] || [];
+
+						const remainingTabs = state.tabs.filter(
+							(tab) => tab.id !== groupId && tab.id !== childTabId,
+						);
+
+						const newActiveTabIds = { ...state.activeTabIds };
+						const newHistoryStack = historyStack.filter(
+							(id) => id !== groupId && id !== childTabId,
+						);
+
+						if (currentActiveId === groupId) {
+							const workspaceTabs = remainingTabs.filter(
+								(tab) => tab.workspaceId === workspaceId,
+							);
+							if (workspaceTabs.length > 0) {
+								const nextTabFromHistory = newHistoryStack.find((tabId) =>
+									workspaceTabs.some((tab) => tab.id === tabId),
+								);
+								if (nextTabFromHistory) {
+									newActiveTabIds[workspaceId] = nextTabFromHistory;
+								} else {
+									newActiveTabIds[workspaceId] = workspaceTabs[0].id;
+								}
+							} else {
+								newActiveTabIds[workspaceId] = null;
+							}
+						}
+
+						return {
+							tabs: remainingTabs,
+							activeTabIds: newActiveTabIds,
+							tabHistoryStacks: {
+								...state.tabHistoryStacks,
+								[workspaceId]: newHistoryStack,
+							},
+						};
+					}
+
 					const updatedTabs = state.tabs.map((tab) => {
 						if (tab.id === groupId && tab.type === TabType.Group) {
 							return {
 								...tab,
-								childTabIds: tab.childTabIds.filter((id) => id !== childTabId),
+								childTabIds: updatedChildTabIds,
 							};
 						}
 						return tab;
 					});
 
-					// Remove the child tab entirely
 					return {
 						tabs: updatedTabs.filter((tab) => tab.id !== childTabId),
 					};
@@ -306,12 +337,10 @@ export const useTabsStore = create<TabsState>()(
 	),
 );
 
-// Selector hooks
 export const useTabs = () => useTabsStore((state) => state.tabs);
 export const useActiveTabIds = () =>
 	useTabsStore((state) => state.activeTabIds);
 
-// Action hooks
 export const useAddTab = () => useTabsStore((state) => state.addTab);
 export const useRemoveTab = () => useTabsStore((state) => state.removeTab);
 export const useSetActiveTab = () =>

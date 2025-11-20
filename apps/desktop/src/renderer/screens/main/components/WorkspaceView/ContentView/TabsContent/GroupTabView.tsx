@@ -1,3 +1,6 @@
+import "react-mosaic-component/react-mosaic-component.css";
+import "./mosaic-theme.css";
+
 import { useCallback } from "react";
 import {
 	Mosaic,
@@ -5,22 +8,20 @@ import {
 	type MosaicNode,
 	MosaicWindow,
 } from "react-mosaic-component";
-import "react-mosaic-component/react-mosaic-component.css";
 import { dragDropManager } from "renderer/lib/dnd";
 import { type TabGroup, useTabs } from "renderer/stores";
-import "./mosaic-theme.css";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
+	focusedChildId?: string | null;
 }
 
-export function GroupTabView({ tab }: GroupTabViewProps) {
+export function GroupTabView({ tab, focusedChildId }: GroupTabViewProps) {
 	const allTabs = useTabs();
 	const childTabs = allTabs.filter((t) => tab.childTabIds.includes(t.id));
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
-			// TODO: Persist layout changes to store
 			console.log("Layout changed:", newLayout);
 		},
 		[],
@@ -38,22 +39,20 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 				);
 			}
 
+			const isFocused = tabId === focusedChildId;
+
 			return (
 				<MosaicWindow<string>
 					path={path}
 					title={childTab.title}
 					toolbarControls={<div />}
+					className={isFocused ? "mosaic-window-focused" : ""}
 				>
-					<div className="w-full h-full bg-background p-2">
-						{/* TODO: Render actual tab content */}
-						<div className="text-muted-foreground">
-							{childTab.title} content will appear here
-						</div>
-					</div>
+					<div className="w-full h-full bg-red-900">{childTab.title}</div>
 				</MosaicWindow>
 			);
 		},
-		[childTabs],
+		[childTabs, focusedChildId],
 	);
 
 	if (childTabs.length === 0 || !tab.layout) {

@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import {
+	useActiveTabIds,
 	useRemoveTab,
 	useSetActiveTab,
 	useWorkspacesStore,
@@ -10,13 +11,19 @@ import { TabType } from "renderer/stores/tabs/types";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
 
-export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
+export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const activeWorkspaceId = useWorkspacesStore(
 		(state) => state.activeWorkspaceId,
 	);
+	const activeTabIds = useActiveTabIds();
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();
+
+	const activeTabId = activeWorkspaceId
+		? activeTabIds[activeWorkspaceId]
+		: null;
+	const isActive = tab.id === activeTabId;
 
 	const { drag, drop, isDragging, isDragOver } = useDragTab(tab.id);
 
@@ -27,7 +34,7 @@ export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 
 	const handleTabClick = () => {
 		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tab.parentId || tab.id);
+			setActiveTab(activeWorkspaceId, tab.id);
 		}
 	};
 
@@ -36,7 +43,6 @@ export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 		setIsExpanded(!isExpanded);
 	};
 
-	// Combine drag and drop refs
 	const attachRef = (el: HTMLButtonElement | null) => {
 		drag(el);
 		drop(el);
@@ -70,10 +76,10 @@ export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 						<button
 							type="button"
 							onClick={handleToggleExpand}
-							className="shrink-0"
+							className="shrink-0 cursor-pointer hover:opacity-80"
 						>
 							<HiChevronRight
-								className={`size-3 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+								className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
 							/>
 						</button>
 					)}
@@ -83,7 +89,7 @@ export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 					<button
 						type="button"
 						onClick={handleRemoveTab}
-						className="opacity-0 group-hover:opacity-100 ml-2 text-xs hover:text-destructive shrink-0"
+						className="opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
 					>
 						<HiMiniXMark className="size-4" />
 					</button>
@@ -92,14 +98,15 @@ export function TabItem({ tab, isActive, childTabs = [] }: TabItemProps) {
 
 			{isGroupTab && hasChildren && isExpanded && (
 				<div className="ml-4 mt-1 space-y-1">
-					{childTabs.map((childTab) => (
-						<div key={childTab.id} className="flex items-start gap-1">
-							<span className="text-xs opacity-50 mt-2">└</span>
-							<div className="flex-1">
-								<TabItem tab={childTab} isActive={isActive} childTabs={[]} />
+					{childTabs.map((childTab) => {
+						return (
+							<div key={childTab.id} className="flex items-start gap-1">
+								<div className="flex-1">
+									<TabItem tab={childTab} childTabs={[]} />
+								</div>
 							</div>
-						</div>
-					))}
+						);
+					})}
 				</div>
 			)}
 		</div>

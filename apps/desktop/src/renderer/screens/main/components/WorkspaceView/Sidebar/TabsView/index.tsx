@@ -2,7 +2,6 @@ import { Button } from "@superset/ui/button";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
 import {
-	useActiveTabIds,
 	useAddTab,
 	useTabs,
 	useWorkspacesStore,
@@ -14,7 +13,6 @@ export function TabsView() {
 		(state) => state.activeWorkspaceId,
 	);
 	const allTabs = useTabs();
-	const activeTabIds = useActiveTabIds();
 	const addTab = useAddTab();
 
 	const tabs = useMemo(
@@ -30,10 +28,6 @@ export function TabsView() {
 	const getChildTabs = (parentId: string) =>
 		allTabs.filter((tab) => tab.parentId === parentId);
 
-	const activeTabId = activeWorkspaceId
-		? activeTabIds[activeWorkspaceId]
-		: null;
-
 	const handleAddTab = () => {
 		if (activeWorkspaceId) {
 			addTab(activeWorkspaceId);
@@ -44,12 +38,7 @@ export function TabsView() {
 		<nav className="space-y-2 flex flex-col h-full p-2">
 			<div className="text-sm text-sidebar-foreground flex-1 overflow-auto space-y-1">
 				{tabs.map((tab) => (
-					<TabItem
-						key={tab.id}
-						tab={tab}
-						isActive={tab.id === activeTabId}
-						childTabs={getChildTabs(tab.id)}
-					/>
+					<TabItem key={tab.id} tab={tab} childTabs={getChildTabs(tab.id)} />
 				))}
 				<Button
 					variant="ghost"

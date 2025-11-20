@@ -20,7 +20,7 @@ export function Sidebar() {
 				duration: 0.2,
 				ease: "easeInOut",
 			}}
-			className="h-full border-r border-sidebar-border bg-sidebar flex flex-col overflow-hidden"
+			className="h-full flex flex-col overflow-hidden"
 			style={{
 				pointerEvents: isSidebarOpen ? "auto" : "none",
 			}}
