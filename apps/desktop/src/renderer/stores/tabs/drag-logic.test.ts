@@ -704,4 +704,167 @@ describe("handleDragTabToTab", () => {
 
 		expect(result).toEqual(state);
 	});
+
+	test("dragging last child from group to another tab removes the group", () => {
+		const groupTab: Tab = {
+			id: "group-1",
+			title: "Group",
+			workspaceId,
+			type: TabType.Group,
+			layout: "child-1",
+		};
+
+		const child1: Tab = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const singleTab: Tab = {
+			id: "tab-2",
+			title: "Tab 2",
+			workspaceId,
+			type: TabType.Single,
+		};
+
+		const state = {
+			tabs: [groupTab, child1, singleTab],
+			activeTabIds: { [workspaceId]: "group-1" },
+			tabHistoryStacks: { [workspaceId]: [] },
+		};
+
+		// Drag the only child from group-1 to tab-2
+		const result = handleDragTabToTab("child-1", "tab-2", state);
+
+		// The group should be removed
+		const groupStillExists = result.tabs.some((t) => t.id === "group-1");
+		expect(groupStillExists).toBe(false);
+
+		// Should have 3 tabs: child-1, tab-2, and a new group containing both
+		expect(result.tabs.length).toBe(3);
+
+		// Verify child-1 and tab-2 are now in a new group
+		const newGroup = result.tabs.find((t) => t.type === TabType.Group);
+		expect(newGroup).toBeDefined();
+		expect(newGroup?.id).not.toBe("group-1");
+
+		const updatedChild1 = result.tabs.find((t) => t.id === "child-1");
+		const updatedTab2 = result.tabs.find((t) => t.id === "tab-2");
+
+		expect(updatedChild1?.parentId).toBe(newGroup?.id);
+		expect(updatedTab2?.parentId).toBe(newGroup?.id);
+	});
+
+	test("dragging last child from group to another group removes the source group", () => {
+		const group1: Tab = {
+			id: "group-1",
+			title: "Group 1",
+			workspaceId,
+			type: TabType.Group,
+			layout: "child-1",
+		};
+
+		const child1: Tab = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const group2: Tab = {
+			id: "group-2",
+			title: "Group 2",
+			workspaceId,
+			type: TabType.Group,
+			layout: "child-2",
+		};
+
+		const child2: Tab = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-2",
+		};
+
+		const state = {
+			tabs: [group1, child1, group2, child2],
+			activeTabIds: { [workspaceId]: "group-1" },
+			tabHistoryStacks: { [workspaceId]: [] },
+		};
+
+		// Drag the only child from group-1 to group-2
+		const result = handleDragTabToTab("child-1", "group-2", state);
+
+		// group-1 should be removed
+		const group1StillExists = result.tabs.some((t) => t.id === "group-1");
+		expect(group1StillExists).toBe(false);
+
+		// group-2 should still exist
+		const updatedGroup2 = result.tabs.find((t) => t.id === "group-2");
+		expect(updatedGroup2).toBeDefined();
+
+		// group-2 should now contain both children
+		if (updatedGroup2?.type === TabType.Group) {
+			expect(updatedGroup2.layout).toEqual({
+				direction: "row",
+				first: "child-2",
+				second: "child-1",
+				splitPercentage: 50,
+			});
+		}
+
+		// Verify child-1 now has group-2 as parent
+		const updatedChild1 = result.tabs.find((t) => t.id === "child-1");
+		expect(updatedChild1?.parentId).toBe("group-2");
+
+		// Should have 3 tabs total: group-2, child-1, child-2
+		expect(result.tabs.length).toBe(3);
+	});
+
+	test("dragging last child from nested layout to another tab removes the group", () => {
+		// Group with only one child in a simple layout
+		const groupTab: Tab = {
+			id: "group-1",
+			title: "Group",
+			workspaceId,
+			type: TabType.Group,
+			layout: "child-1",
+		};
+
+		const child1: Tab = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId,
+			type: TabType.Single,
+			parentId: "group-1",
+		};
+
+		const targetTab: Tab = {
+			id: "target-tab",
+			title: "Target",
+			workspaceId,
+			type: TabType.Single,
+		};
+
+		const state = {
+			tabs: [groupTab, child1, targetTab],
+			activeTabIds: { [workspaceId]: "group-1" },
+			tabHistoryStacks: { [workspaceId]: [] },
+		};
+
+		const result = handleDragTabToTab("child-1", "target-tab", state);
+
+		// group-1 should be removed
+		expect(result.tabs.some((t) => t.id === "group-1")).toBe(false);
+
+		// Should create a new group with child-1 and target-tab
+		const newGroup = result.tabs.find(
+			(t) => t.type === TabType.Group && t.id !== "group-1",
+		);
+		expect(newGroup).toBeDefined();
+	});
 });

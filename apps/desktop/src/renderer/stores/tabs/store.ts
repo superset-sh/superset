@@ -114,6 +114,62 @@ const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
 	});
 };
 
+/**
+ * Handles the logic for when an empty group needs to be removed
+ * Returns updated state with the group removed and active tab/history updated
+ */
+const handleEmptyGroupRemoval = (
+	tabs: Tab[],
+	activeTabIds: Record<string, string | null>,
+	tabHistoryStacks: Record<string, string[]>,
+	workspaceId: string,
+	idsToRemove: string[],
+	fallbackActiveTabId?: string,
+) => {
+	const remainingTabs = tabs.filter((tab) => !idsToRemove.includes(tab.id));
+	const currentActiveId = activeTabIds[workspaceId];
+	const historyStack = tabHistoryStacks[workspaceId] || [];
+
+	const newActiveTabIds = { ...activeTabIds };
+	const newHistoryStack = historyStack.filter(
+		(id) => !idsToRemove.includes(id),
+	);
+
+	// Update active tab if needed
+	if (idsToRemove.includes(currentActiveId || "")) {
+		const workspaceTabs = remainingTabs.filter(
+			(tab) => tab.workspaceId === workspaceId,
+		);
+
+		if (workspaceTabs.length > 0) {
+			// Try to use fallback (e.g., the ungrouped tab), then history, then first available
+			if (
+				fallbackActiveTabId &&
+				remainingTabs.some((t) => t.id === fallbackActiveTabId)
+			) {
+				newActiveTabIds[workspaceId] = fallbackActiveTabId;
+			} else {
+				const nextTabFromHistory = newHistoryStack.find((tabId) =>
+					workspaceTabs.some((tab) => tab.id === tabId),
+				);
+				newActiveTabIds[workspaceId] =
+					nextTabFromHistory || workspaceTabs[0].id;
+			}
+		} else {
+			newActiveTabIds[workspaceId] = null;
+		}
+	}
+
+	return {
+		tabs: remainingTabs,
+		activeTabIds: newActiveTabIds,
+		tabHistoryStacks: {
+			...tabHistoryStacks,
+			[workspaceId]: newHistoryStack,
+		},
+	};
+};
+
 export const useTabsStore = create<TabsState>()(
 	devtools(
 		(set, get) => ({
@@ -148,10 +204,19 @@ export const useTabsStore = create<TabsState>()(
 			},
 
 			removeTab: (id) => {
-				set((state) => {
-					const tabToRemove = state.tabs.find((tab) => tab.id === id);
-					if (!tabToRemove) return state;
+				const state = get();
+				const tabToRemove = state.tabs.find((tab) => tab.id === id);
+				if (!tabToRemove) return;
 
+				// If this tab is a child of a group, delegate to removeChildTabFromGroup
+				// which handles empty group cleanup
+				if (tabToRemove.parentId) {
+					get().removeChildTabFromGroup(tabToRemove.parentId, id);
+					return;
+				}
+
+				// Otherwise, handle as a top-level tab
+				set((state) => {
 					const workspaceId = tabToRemove.workspaceId;
 					const workspaceTabs = state.tabs.filter(
 						(tab) => tab.workspaceId === workspaceId && tab.id !== id,
@@ -309,46 +374,15 @@ export const useTabsStore = create<TabsState>()(
 						(id: string) => id !== childTabId,
 					);
 
+					// If no children left, remove both the child and the group
 					if (updatedChildTabIds.length === 0) {
-						const workspaceId = group.workspaceId;
-						const currentActiveId = state.activeTabIds[workspaceId];
-						const historyStack = state.tabHistoryStacks[workspaceId] || [];
-
-						const remainingTabs = state.tabs.filter(
-							(tab) => tab.id !== groupId && tab.id !== childTabId,
+						return handleEmptyGroupRemoval(
+							state.tabs,
+							state.activeTabIds,
+							state.tabHistoryStacks,
+							group.workspaceId,
+							[groupId, childTabId],
 						);
-
-						const newActiveTabIds = { ...state.activeTabIds };
-						const newHistoryStack = historyStack.filter(
-							(id) => id !== groupId && id !== childTabId,
-						);
-
-						if (currentActiveId === groupId) {
-							const workspaceTabs = remainingTabs.filter(
-								(tab) => tab.workspaceId === workspaceId,
-							);
-							if (workspaceTabs.length > 0) {
-								const nextTabFromHistory = newHistoryStack.find((tabId) =>
-									workspaceTabs.some((tab) => tab.id === tabId),
-								);
-								if (nextTabFromHistory) {
-									newActiveTabIds[workspaceId] = nextTabFromHistory;
-								} else {
-									newActiveTabIds[workspaceId] = workspaceTabs[0].id;
-								}
-							} else {
-								newActiveTabIds[workspaceId] = null;
-							}
-						}
-
-						return {
-							tabs: remainingTabs,
-							activeTabIds: newActiveTabIds,
-							tabHistoryStacks: {
-								...state.tabHistoryStacks,
-								[workspaceId]: newHistoryStack,
-							},
-						};
 					}
 
 					// Validate layouts after removing child tab
@@ -393,7 +427,7 @@ export const useTabsStore = create<TabsState>()(
 						(t) => t.parentId === parentGroup.id && t.id !== tabId,
 					);
 
-					let updatedTabs = state.tabs.map((t) => {
+					const updatedTabs = state.tabs.map((t) => {
 						if (t.id === tabId) return updatedTab;
 						if (t.id === parentGroup.id && t.type === TabType.Group) {
 							return {
@@ -406,29 +440,22 @@ export const useTabsStore = create<TabsState>()(
 
 					// If no children left, remove the group
 					if (remainingChildren.length === 0) {
-						updatedTabs = updatedTabs.filter((t) => t.id !== parentGroup.id);
-
-						const workspaceId = tab.workspaceId;
-						const currentActiveId = state.activeTabIds[workspaceId];
-						const historyStack = state.tabHistoryStacks[workspaceId] || [];
-
-						const newActiveTabIds = { ...state.activeTabIds };
-						const newHistoryStack = historyStack.filter(
-							(id) => id !== parentGroup.id,
+						const result = handleEmptyGroupRemoval(
+							updatedTabs,
+							state.activeTabIds,
+							state.tabHistoryStacks,
+							tab.workspaceId,
+							[parentGroup.id],
+							tabId, // Prefer the ungrouped tab as the new active tab
 						);
 
-						// If the group was active, switch to the ungrouped tab
-						if (currentActiveId === parentGroup.id) {
-							newActiveTabIds[workspaceId] = tabId;
-						}
-
-						// Reorder if targetIndex is provided
+						// Apply reordering if needed
 						if (targetIndex !== undefined) {
-							const workspaceTabs = updatedTabs.filter(
-								(t) => t.workspaceId === workspaceId && !t.parentId,
+							const workspaceTabs = result.tabs.filter(
+								(t) => t.workspaceId === tab.workspaceId && !t.parentId,
 							);
-							const otherTabs = updatedTabs.filter(
-								(t) => t.workspaceId !== workspaceId || t.parentId,
+							const otherTabs = result.tabs.filter(
+								(t) => t.workspaceId !== tab.workspaceId || t.parentId,
 							);
 
 							const tabToMove = workspaceTabs.find((t) => t.id === tabId);
@@ -437,18 +464,11 @@ export const useTabsStore = create<TabsState>()(
 									(t) => t.id !== tabId,
 								);
 								filteredTabs.splice(targetIndex, 0, tabToMove);
-								updatedTabs = [...otherTabs, ...filteredTabs];
+								result.tabs = [...otherTabs, ...filteredTabs];
 							}
 						}
 
-						return {
-							tabs: updatedTabs,
-							activeTabIds: newActiveTabIds,
-							tabHistoryStacks: {
-								...state.tabHistoryStacks,
-								[workspaceId]: newHistoryStack,
-							},
-						};
+						return result;
 					}
 
 					// Validate layouts after removing tab

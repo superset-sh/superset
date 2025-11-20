@@ -91,7 +91,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 					<button
 						type="button"
 						onClick={handleRemoveTab}
-						className="opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
+						className="cursor-pointer opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
 					>
 						<HiMiniXMark className="size-4" />
 					</button>

@@ -79,17 +79,29 @@ const removeFromOldParent = (
 	tabId: string,
 	oldParentId: string,
 ): Tab[] => {
-	return tabs.map((tab) => {
-		if (tab.id === oldParentId && tab.type === TabType.Group) {
-			const updatedLayout = removeTabFromLayout(tab.layout, tabId);
+	return tabs
+		.map((tab) => {
+			if (tab.id === oldParentId && tab.type === TabType.Group) {
+				const updatedLayout = removeTabFromLayout(tab.layout, tabId);
 
-			return {
-				...tab,
-				layout: updatedLayout,
-			};
-		}
-		return tab;
-	});
+				return {
+					...tab,
+					layout: updatedLayout,
+				};
+			}
+			return tab;
+		})
+		.filter((tab) => {
+			// Remove the parent group if it no longer has any children
+			if (tab.id === oldParentId && tab.type === TabType.Group) {
+				// Check if any tabs still have this group as their parent
+				const hasChildren = tabs.some(
+					(t) => t.parentId === oldParentId && t.id !== tabId,
+				);
+				return hasChildren;
+			}
+			return true;
+		});
 };
 
 const addToParentGroup = (
@@ -266,16 +278,22 @@ export const handleDragTabToTab = (
 			(t) => t.workspaceId === workspaceId && !t.parentId,
 		);
 		const targetIndex = workspaceTabs.findIndex((t) => t.id === targetTabId);
-		const otherTabs = state.tabs.filter(
-			(t) => t.workspaceId !== workspaceId || t.parentId,
-		);
 
 		// Update existing tabs to set parentId
-		const updatedTabs = state.tabs.map((tab) => {
+		let updatedTabs = state.tabs.map((tab) => {
 			if (tab.id === targetTab.id) return updatedTargetTab;
 			if (tab.id === draggedTab.id) return updatedDraggedTab;
 			return tab;
 		});
+
+		// If dragged tab had an old parent, remove it from that parent (and potentially remove the parent group)
+		if (draggedTab.parentId) {
+			updatedTabs = removeFromOldParent(
+				updatedTabs,
+				draggedTabId,
+				draggedTab.parentId,
+			);
+		}
 
 		// Filter to get workspace tabs (excluding child tabs)
 		const workspaceTabsUpdated = updatedTabs.filter(
