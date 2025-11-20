@@ -239,7 +239,7 @@ describe("ProcessOrchestrator", () => {
 	});
 
 	describe("stopAll", () => {
-		test("stops all running processes", async () => {
+		test("stops all running agents (but not terminals)", async () => {
 			const env = await environmentOrchestrator.create();
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
@@ -247,8 +247,8 @@ describe("ProcessOrchestrator", () => {
 				{ path: "/tmp/test" },
 			);
 
-			const p1 = await orchestrator.create(ProcessType.TERMINAL, workspace);
-			const p2 = await orchestrator.create(
+			const terminal = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const agent = await orchestrator.create(
 				ProcessType.AGENT,
 				workspace,
 				AgentType.CLAUDE,
@@ -256,15 +256,18 @@ describe("ProcessOrchestrator", () => {
 
 			await orchestrator.stopAll();
 
-			const retrieved1 = await orchestrator.get(p1.id);
-			const retrieved2 = (await orchestrator.get(p2.id)) as Agent;
+			const retrievedTerminal = await orchestrator.get(terminal.id);
+			const retrievedAgent = (await orchestrator.get(agent.id)) as Agent;
 
-			expect(retrieved1.endedAt).toBeInstanceOf(Date);
-			expect(retrieved2.endedAt).toBeInstanceOf(Date);
-			expect(retrieved2.status).toBe(ProcessStatus.STOPPED);
+			// Terminal should NOT be stopped (stopAll only stops agents)
+			expect(retrievedTerminal.endedAt).toBeUndefined();
+
+			// Agent should be stopped
+			expect(retrievedAgent.endedAt).toBeInstanceOf(Date);
+			expect(retrievedAgent.status).toBe(ProcessStatus.STOPPED);
 		});
 
-		test("does not update already stopped processes", async () => {
+		test("does not update already stopped agents", async () => {
 			const env = await environmentOrchestrator.create();
 			const workspace = await workspaceOrchestrator.create(
 				env.id,
@@ -272,18 +275,19 @@ describe("ProcessOrchestrator", () => {
 				{ path: "/tmp/test" },
 			);
 
-			const process = await orchestrator.create(
-				ProcessType.TERMINAL,
+			const agent = await orchestrator.create(
+				ProcessType.AGENT,
 				workspace,
+				AgentType.CLAUDE,
 			);
-			await orchestrator.stop(process.id);
+			await orchestrator.stop(agent.id);
 
-			const firstStopped = await orchestrator.get(process.id);
+			const firstStopped = await orchestrator.get(agent.id);
 			const firstEndedAt = firstStopped.endedAt!;
 
 			await orchestrator.stopAll();
 
-			const secondStopped = await orchestrator.get(process.id);
+			const secondStopped = await orchestrator.get(agent.id);
 			expect(secondStopped.endedAt!.getTime()).toBe(firstEndedAt.getTime());
 		});
 	});

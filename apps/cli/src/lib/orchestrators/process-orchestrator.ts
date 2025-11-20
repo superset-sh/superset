@@ -269,6 +269,11 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		await this.storage.set("processes", id, updated);
 	}
 
+	/**
+	 * Stop all running agents (does not affect terminals)
+	 * Kills their tmux sessions and marks them as STOPPED
+	 * @returns The number of agents stopped
+	 */
 	async stopAll(): Promise<number> {
 		const processes = await this.storage.getCollection("processes");
 		const now = new Date();

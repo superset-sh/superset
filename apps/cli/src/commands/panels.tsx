@@ -4,12 +4,7 @@ import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import {
-	type Agent,
-	type Process,
-	ProcessStatus,
-	ProcessType,
-} from "../types/process";
+import { type Agent, type Process, ProcessStatus, ProcessType } from "../types/process";
 import type { Workspace } from "../types/workspace";
 
 interface PanelsData {

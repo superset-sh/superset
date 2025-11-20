@@ -341,7 +341,7 @@ export function AgentStopAll({ workspaceId, onComplete }: AgentStopAllProps) {
 	}, [workspaceId, onComplete]);
 
 	if (loading) {
-		return <Text>Stopping all agents/processes...</Text>;
+		return <Text>Stopping all agents...</Text>;
 	}
 
 	if (error) {

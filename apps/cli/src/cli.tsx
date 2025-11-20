@@ -271,7 +271,7 @@ agent
 agent
 	.command("stop-all")
 	.description(
-		"Stop all agents/processes (uses current workspace if --workspace not provided)",
+		"Stop all agents in workspace (kills tmux sessions, does not affect terminals)",
 	)
 	.option("--workspace <workspaceId>", "Workspace ID to stop agents in")
 	.action((options: { workspace?: string }) => {

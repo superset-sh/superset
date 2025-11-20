@@ -38,6 +38,169 @@ function tmuxSessionExists(sessionName: string): boolean {
 }
 
 /**
+ * Kill a tmux session if it exists
+ */
+function killTmuxSession(sessionName: string): void {
+	try {
+		execSync(`tmux kill-session -t "${sessionName}" 2>/dev/null`, {
+			stdio: "ignore",
+		});
+	} catch {
+		// Ignore errors - session might not exist
+	}
+}
+
+/**
+ * Check if a tmux session has at least one live pane (not dead)
+ * Dead panes indicate the command exited
+ */
+function tmuxSessionHasLivePane(sessionName: string): boolean {
+	try {
+		const output = execSync(
+			`tmux list-panes -t "${sessionName}" -F "#{pane_dead}" 2>/dev/null`,
+			{ encoding: "utf-8" },
+		);
+		// Check if any pane has pane_dead=0 (alive)
+		return output
+			.trim()
+			.split("\n")
+			.some((value) => value === "0");
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check if a command/binary exists on PATH
+ */
+function commandExists(binary: string): boolean {
+	try {
+		execSync(`command -v ${binary}`, { stdio: "ignore" });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Create a tmux session with retry logic
+ * Attempts to create session, waits for readiness, and retries once if it fails
+ */
+async function createSessionWithRetry(
+	agent: Agent,
+	sessionName: string,
+	command: string,
+	options: { attach?: boolean; silent?: boolean },
+	attempt = 1,
+): Promise<LaunchResult> {
+	const maxAttempts = 2;
+
+	try {
+		// Create the session with 10s timeout
+		await execAsync(`tmux new-session -d -s "${sessionName}" "${command}"`, {
+			timeout: 10000,
+		});
+
+		// Increased wait time for better readiness check (from 500ms to 1000ms)
+		await new Promise((resolve) => setTimeout(resolve, 1000));
+
+		// Verify session still exists and has a live pane (not dead)
+		const stillExists = tmuxSessionExists(sessionName);
+		const hasLivePane = stillExists ? tmuxSessionHasLivePane(sessionName) : false;
+
+		if (!stillExists || !hasLivePane) {
+			// Session died or has no live pane - kill any remnants
+			killTmuxSession(sessionName);
+
+			// Retry once if this was the first attempt
+			if (attempt < maxAttempts) {
+				if (!options.silent) {
+					console.log(
+						`\nSession creation failed (attempt ${attempt}/${maxAttempts}). Retrying...\n`,
+					);
+				}
+				// Wait before retry
+				await new Promise((resolve) => setTimeout(resolve, 500));
+				return createSessionWithRetry(
+					agent,
+					sessionName,
+					command,
+					options,
+					attempt + 1,
+				);
+			}
+
+			return {
+				success: false,
+				error: `Session "${sessionName}" exited immediately after ${maxAttempts} attempts.\nThe launch command may be invalid or exiting immediately: ${command}\n\nPlease verify:\n  1. Run '${command.split(" ")[0]}' directly to test if it stays alive\n  2. Check 'which ${command.split(" ")[0]}' to verify the binary exists\n  3. Ensure the command doesn't require interactive input`,
+			};
+		}
+
+		if (options.attach) {
+			// Final check before attach
+			const existsBeforeAttach = tmuxSessionExists(sessionName);
+			if (!existsBeforeAttach) {
+				killTmuxSession(sessionName);
+				return {
+					success: false,
+					error: `Session "${sessionName}" died before attach. The command may exit immediately: ${command}`,
+				};
+			}
+
+			// Created successfully and still alive, now attach
+			if (!options.silent) {
+				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
+			}
+			const result = await attachToAgent(agent, options.silent);
+
+			// If attach failed, kill the session
+			if (!result.success) {
+				killTmuxSession(sessionName);
+			}
+
+			return result;
+		}
+
+		// Created but not attaching - just return success
+		if (!options.silent) {
+			console.log(`\n✓ Agent session created: ${sessionName}\n`);
+		}
+		return {
+			success: true,
+			exitCode: 0,
+		};
+	} catch (error) {
+		// Kill any partial session on error
+		killTmuxSession(sessionName);
+
+		// Retry once if this was the first attempt
+		if (attempt < maxAttempts) {
+			if (!options.silent) {
+				console.log(
+					`\nSession creation error (attempt ${attempt}/${maxAttempts}). Retrying...\n`,
+				);
+			}
+			await new Promise((resolve) => setTimeout(resolve, 500));
+			return createSessionWithRetry(
+				agent,
+				sessionName,
+				command,
+				options,
+				attempt + 1,
+			);
+		}
+
+		return {
+			success: false,
+			error:
+				error instanceof Error
+					? `Failed to create tmux session after ${maxAttempts} attempts: ${error.message}`
+					: "Unknown error creating tmux session",
+		};
+	}
+}
+
+/**
  * Launch an agent in a tmux session (create-or-attach behavior)
  * - If session exists: attach to it
  * - If session doesn't exist: create it in detached mode and return immediately
@@ -66,6 +229,15 @@ export async function launchAgent(
 		};
 	}
 
+	// Preflight check: verify the launch command binary exists on PATH
+	const binary = command.split(" ")[0];
+	if (!binary || !commandExists(binary)) {
+		return {
+			success: false,
+			error: `Command not found: ${binary || "empty"}\n\nThe agent launch command is not available on your PATH.\nTo fix this:\n  1. Install the command: which ${binary}\n  2. Or set a custom command: export SUPERSET_AGENT_LAUNCH_${agent.agentType.toUpperCase()}=your-command`,
+		};
+	}
+
 	const sessionName = agent.sessionName || `agent-${agent.id.slice(0, 6)}`;
 
 	// Check if session already exists
@@ -86,55 +258,8 @@ export async function launchAgent(
 		};
 	}
 
-	// Session doesn't exist - create it in detached mode
-	try {
-		await execAsync(`tmux new-session -d -s "${sessionName}" "${command}"`);
-
-		// Wait longer and verify the session is still alive (increased from 200ms to 500ms)
-		await new Promise((resolve) => setTimeout(resolve, 500));
-		const stillExists = tmuxSessionExists(sessionName);
-
-		if (!stillExists) {
-			return {
-				success: false,
-				error: `Session "${sessionName}" was created but exited immediately.\nThe launch command may be invalid or missing: ${command}\n\nPlease verify:\n  1. The command is installed and on PATH\n  2. The command doesn't exit immediately\n  3. Check 'which ${command.split(" ")[0]}' to verify the binary exists`,
-			};
-		}
-
-		if (options.attach) {
-			// Double-check session still exists before attaching
-			const existsBeforeAttach = tmuxSessionExists(sessionName);
-			if (!existsBeforeAttach) {
-				return {
-					success: false,
-					error: `Session "${sessionName}" died before attach. The command may exit immediately: ${command}`,
-				};
-			}
-
-			// Created successfully and still alive, now attach
-			if (!options.silent) {
-				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
-			}
-			return attachToAgent(agent, options.silent);
-		}
-
-		// Created but not attaching - just return success
-		if (!options.silent) {
-			console.log(`\n✓ Agent session created: ${sessionName}\n`);
-		}
-		return {
-			success: true,
-			exitCode: 0,
-		};
-	} catch (error) {
-		return {
-			success: false,
-			error:
-				error instanceof Error
-					? `Failed to create tmux session: ${error.message}`
-					: "Unknown error creating tmux session",
-		};
-	}
+	// Session doesn't exist - create it in detached mode with retry
+	return createSessionWithRetry(agent, sessionName, command, options);
 }
 
 /**
@@ -183,28 +308,41 @@ export async function attachToAgent(
 			});
 
 			child.on("error", (error) => {
+				// Kill session on attach error
+				killTmuxSession(sessionName);
 				resolve({
 					success: false,
 					error: `Failed to attach to session: ${error.message}`,
 				});
 			});
 
-			child.on("exit", (code) => {
+			child.on("exit", async (code) => {
 				// Exit code 0 means user detached successfully
 				if (code === 0 || code === null) {
 					resolve({
 						success: true,
 						exitCode: code || 0,
 					});
-				} else {
-					resolve({
-						success: false,
-						exitCode: code,
-						error: `Attach process exited with code ${code}`,
-					});
+					return;
 				}
+
+				// Non-zero exit code indicates failure - kill the session
+				killTmuxSession(sessionName);
+
+				// One-time recovery: recreate the session and attach
+				// This handles cases where the pane died between session creation and attach
+				// The preflight and live-pane checks in launchAgent prevent infinite retries
+				if (!silent) {
+					console.log(
+						`\nSession pane died. Attempting to recreate session...\n`,
+					);
+				}
+				const retry = await launchAgent(agent, { attach: true, silent });
+				resolve(retry);
 			});
 		} catch (error) {
+			// Kill session on catch error
+			killTmuxSession(sessionName);
 			resolve({
 				success: false,
 				error: error instanceof Error ? error.message : "Unknown error",

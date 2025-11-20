@@ -114,11 +114,14 @@ await processOrch.update(claudeAgent.id, {
 // Stop a specific process
 await processOrch.stop(terminal.id);
 
-// Stop all processes
+// Stop all agents (not terminals)
 await processOrch.stopAll();
 
-// Check if stopped
-const stopped = await processOrch.get(terminal.id);
+// Note: terminal won't be stopped by stopAll (only agents are stopped)
+// To check if an agent was stopped:
+const agent = await processOrch.create(ProcessType.AGENT, workspace, AgentType.CLAUDE);
+await processOrch.stopAll();
+const stopped = await processOrch.get(agent.id);
 console.log("Ended at:", stopped.endedAt); // Date object
 ```
 

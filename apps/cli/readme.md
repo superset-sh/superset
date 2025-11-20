@@ -33,11 +33,14 @@ CLI for managing environments, workspaces (git worktrees/cloud branches), agents
 - Requires `tmux` installed and on PATH.
 - Sessions are named `agent-<shortId>` unless overridden in storage.
 - Launch commands resolve from agent `launchCommand`, env overrides `SUPERSET_AGENT_LAUNCH_<TYPE>`, or defaults (`claude`, `codex`, `cursor`).
+  - To customize: `export SUPERSET_AGENT_LAUNCH_CLAUDE="your-custom-command"` (similarly for `CODEX`, `CURSOR`)
+  - Ensure the command stays alive (doesn't exit immediately) to prevent tmux session failures.
 - If a session exists, attach; otherwise create detached then attach. Detach with `Ctrl-b d` to return to the dashboard/CLI; agents continue running.
 - `stop/stop-all` issue `tmux kill-session` and mark agent stopped.
 
 ## Storage
-- lowdb JSON at `~/.config/superset/cli.json` (default), seeded with a `default` environment and `state.currentWorkspaceId`.
+- lowdb JSON at `~/.superset/cli/db.json` (default), seeded with a `default` environment and `state.currentWorkspaceId`.
+- Can be overridden with `SUPERSET_CLI_DATA_DIR` environment variable.
 - Dates are serialized ISO strings; orchestrators backfill defaults and persist missing fields (status, launchCommand, sessionName, timestamps).
 
 ## Tips

@@ -166,22 +166,26 @@ export function Init({ onComplete }: InitProps) {
 			const db = getDb();
 			const orchestrator = new WorkspaceOrchestrator(db);
 
-			// Validate that the default environment exists
-			const environments = await db.read();
-			const defaultEnv = environments.environments["default"];
+			// Ensure at least one environment exists, create if missing
+			const { EnvironmentOrchestrator } = await import(
+				"../lib/orchestrators/environment-orchestrator"
+			);
+			const envOrchestrator = new EnvironmentOrchestrator(db);
+			const environments = await envOrchestrator.list();
 
-			if (!defaultEnv) {
-				setState((s) => ({
-					...s,
-					error:
-						'Default environment not found. Run "superset env create" first.',
-					step: InitStep.SELECT_TYPE,
-				}));
-				return;
+			let envId: string;
+			if (environments.length === 0) {
+				// No environments at all - create one
+				const newEnv = await envOrchestrator.create();
+				envId = newEnv.id;
+			} else {
+				// Use the first available environment (prefer "default" if it exists)
+				const defaultEnv = environments.find((e) => e.id === "default");
+				envId = defaultEnv ? defaultEnv.id : environments[0]!.id;
 			}
 
 			const workspace = await orchestrator.create(
-				"default",
+				envId,
 				state.workspaceType!,
 				{
 					path: state.path || undefined,
