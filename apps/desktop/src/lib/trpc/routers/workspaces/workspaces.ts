@@ -196,6 +196,72 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
+		canDelete: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+
+				if (!workspace) {
+					return {
+						canDelete: false,
+						reason: "Workspace not found",
+						workspace: null,
+					};
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				const project = db.data.projects.find(
+					(p) => p.id === workspace.projectId,
+				);
+
+				// Check if worktree can be removed
+				if (worktree && project) {
+					try {
+						// Dry-run: verify the worktree exists in git
+						const git = await import("simple-git").then((m) => m.default);
+						const gitInstance = git(project.mainRepoPath);
+						const worktrees = await gitInstance.raw(["worktree", "list"]);
+
+						// Check if our worktree path is in the list
+						const worktreeExists = worktrees.includes(worktree.path);
+
+						if (!worktreeExists) {
+							// Worktree doesn't exist in git, but we can still delete the workspace
+							return {
+								canDelete: true,
+								reason: null,
+								workspace,
+								warning:
+									"Worktree not found in git (may have been manually removed)",
+							};
+						}
+
+						return {
+							canDelete: true,
+							reason: null,
+							workspace,
+							warning: null,
+						};
+					} catch (error) {
+						return {
+							canDelete: false,
+							reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
+							workspace,
+						};
+					}
+				}
+
+				// No worktree to remove, can safely delete
+				return {
+					canDelete: true,
+					reason: null,
+					workspace,
+					warning: "No associated worktree found",
+				};
+			}),
+
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -212,14 +278,23 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				// Always attempt to remove the worktree first
 				if (worktree && project) {
 					try {
 						await removeWorktree(project.mainRepoPath, worktree.path);
 					} catch (error) {
-						console.error("Failed to remove worktree:", error);
+						// If worktree removal fails, return error and don't proceed with DB cleanup
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						console.error("Failed to remove worktree:", errorMessage);
+						return {
+							success: false,
+							error: `Failed to remove worktree: ${errorMessage}`,
+						};
 					}
 				}
 
+				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
 				await db.update((data) => {
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
