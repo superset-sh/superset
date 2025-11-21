@@ -34,10 +34,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const [isExited, setIsExited] = useState(false);
-	const isSubscribedRef = useRef(false);
-	const isResizingRef = useRef(false);
-	const writeQueueRef = useRef<string[]>([]);
-	const isInitialSetupRef = useRef(true);
 
 	// Mutations
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
@@ -45,27 +41,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const resize = trpc.terminal.resize.useMutation();
 	const detach = trpc.terminal.detach.useMutation();
 
-	// Process queued writes after resize completes
-	const processWriteQueue = useCallback(() => {
-		if (isResizingRef.current || writeQueueRef.current.length === 0) {
-			return;
-		}
-		const data = writeQueueRef.current.join("");
-		writeQueueRef.current = [];
-		xtermRef.current?.write(data);
-	}, []);
-
-	// Subscribe to terminal output - but only enable when mounted
+	// Subscribe to terminal output
 	trpc.terminal.stream.useSubscription(tabId, {
-		enabled: isSubscribedRef.current,
 		onData: (event) => {
 			if (event.type === "data") {
-				// Queue writes during resize to prevent cursor desync
-				if (isResizingRef.current) {
-					writeQueueRef.current.push(event.data);
-				} else {
-					xtermRef.current?.write(event.data);
-				}
+				xtermRef.current?.write(event.data);
 			} else if (event.type === "exit") {
 				setIsExited(true);
 				xtermRef.current?.writeln(
@@ -79,27 +59,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Debounced resize handler
 	const debouncedResize = useCallback(
 		debounce((cols: number, rows: number) => {
-			// Mark as resizing to queue incoming writes
-			isResizingRef.current = true;
-
 			resize.mutate({ tabId, cols, rows });
-
-			// Allow PTY to receive resize before processing writes
-			setTimeout(() => {
-				isResizingRef.current = false;
-				processWriteQueue();
-			}, 50);
 		}, 150),
-		[],
+		[resize, tabId],
 	);
 
 	// Initialize terminal
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Dependencies intentionally minimal to avoid recreating terminal
 	useEffect(() => {
 		if (!terminalRef.current) return;
-
-		// Enable subscription
-		isSubscribedRef.current = true;
 
 		// Create xterm instance
 		const xterm = new XTerm({
@@ -161,16 +128,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (!result.isNew && result.scrollback.length > 0) {
 						// Write history directly - it's already a raw string with ANSI codes
 						xterm.write(result.scrollback[0]);
-
-						// Delay initial setup completion after writing history
-						setTimeout(() => {
-							isInitialSetupRef.current = false;
-						}, 100);
-					} else {
-						// Mark setup complete for new terminals
-						setTimeout(() => {
-							isInitialSetupRef.current = false;
-						}, 100);
 					}
 				},
 			},
@@ -194,29 +151,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		});
 
-		// Track current dimensions to detect actual changes
-		let currentDimensions = { cols: xterm.cols, rows: xterm.rows };
-
-		// Handle xterm resize events
-		xterm.onResize(({ cols, rows }) => {
-			// Skip resize events during initial setup
-			if (isInitialSetupRef.current) {
-				return;
-			}
-
-			// Only send resize if dimensions actually changed
-			if (currentDimensions.cols === cols && currentDimensions.rows === rows) {
-				return;
-			}
-
-			currentDimensions = { cols, rows };
-			debouncedResize(cols, rows);
-		});
-
 		// Handle window and container resize
 		const handleResize = () => {
 			fitAddon.fit();
-			// Dimensions update will be sent via onResize handler
+			debouncedResize(xterm.cols, xterm.rows);
 		};
 
 		const resizeObserver = new ResizeObserver(handleResize);
@@ -228,9 +166,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Cleanup
 		return () => {
-			// Disable subscription
-			isSubscribedRef.current = false;
-
 			disposable.dispose();
 			window.removeEventListener("resize", handleResize);
 			resizeObserver.disconnect();
@@ -241,6 +176,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 			xterm.dispose();
 		};
+		// Note: Dependencies intentionally minimal to avoid recreating terminal on every state change
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [tabId, workspaceId]);
 
 	return (

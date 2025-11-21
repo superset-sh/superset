@@ -1,5 +1,5 @@
-import * as pty from "node-pty";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import * as pty from "node-pty";
 import { TerminalManager } from "./terminal-manager";
 
 // Mock node-pty
