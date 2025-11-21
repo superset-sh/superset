@@ -90,10 +90,11 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					tabId: z.string(),
+					deleteHistory: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.kill(input);
+				await terminalManager.kill(input);
 			}),
 
 		/**

@@ -67,7 +67,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
-		setSubscriptionEnabled(true);
+		// Don't enable subscription yet - wait until recovery is applied
 
 		// Flush any pending events that arrived before xterm was ready
 		const flushPendingEvents = () => {
@@ -125,6 +125,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
+					// Apply recovered scrollback first
 					if (result.wasRecovered && result.scrollback.length > 0) {
 						xterm.write(result.scrollback[0]);
 						xterm.write(
@@ -133,6 +134,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					} else if (!result.isNew && result.scrollback.length > 0) {
 						xterm.write(result.scrollback[0]);
 					}
+					// Now enable subscription after recovery is complete
+					setSubscriptionEnabled(true);
 				},
 			},
 		);

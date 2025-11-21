@@ -189,8 +189,11 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async kill(params: { tabId: string }): Promise<void> {
-		const { tabId } = params;
+	async kill(params: {
+		tabId: string;
+		deleteHistory?: boolean;
+	}): Promise<void> {
+		const { tabId, deleteHistory = false } = params;
 		const session = this.sessions.get(tabId);
 
 		if (!session) {
@@ -207,9 +210,11 @@ export class TerminalManager extends EventEmitter {
 			await session.historyWriter.finalize();
 		}
 
-		// Cleanup history directory (permanent deletion)
-		const historyReader = new HistoryReader(session.workspaceId, tabId);
-		await historyReader.cleanup();
+		// Only delete history if explicitly requested (e.g., tab closure)
+		if (deleteHistory) {
+			const historyReader = new HistoryReader(session.workspaceId, tabId);
+			await historyReader.cleanup();
+		}
 
 		this.sessions.delete(tabId);
 	}

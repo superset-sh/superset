@@ -80,6 +80,19 @@ export class HistoryWriter {
 		// Create directory
 		await fs.mkdir(dir, { recursive: true });
 
+		// Check existing data size by reading previous metadata
+		try {
+			const metaContent = await fs.readFile(this.metaPath, "utf-8");
+			const prevMetadata = JSON.parse(metaContent) as SessionMetadata;
+			// Continue from previous session's byte count
+			this.byteLength = prevMetadata.byteLength || 0;
+		} catch {
+			// No previous metadata, start at 0
+			this.byteLength = 0;
+		}
+
+		this.metadata.byteLength = this.byteLength;
+
 		// Append to existing file (or create new)
 		// We write raw NDJSON and compress on read for easier appending
 		this.writeStream = createWriteStream(this.filePath, { flags: "a" });
@@ -205,17 +218,40 @@ export class HistoryReader {
 
 	private async decodeHistory(filePath: string): Promise<string> {
 		const MAX_CHARS = 100000; // Cap at 100k chars
-		let scrollback = "";
+		const MAX_BYTES_TO_READ = 500000; // Read last ~500KB to capture ~100k chars
 
 		try {
-			const readStream = createReadStream(filePath);
+			// Get file size
+			const stats = await fs.stat(filePath);
+			const fileSize = stats.size;
+
+			if (fileSize === 0) {
+				return "";
+			}
+
+			// Calculate start position - read from end of file
+			const startPos = Math.max(0, fileSize - MAX_BYTES_TO_READ);
+
+			// Read from calculated position
+			const readStream = createReadStream(filePath, {
+				start: startPos,
+			});
 
 			const rl = readline.createInterface({
 				input: readStream,
 				crlfDelay: Number.POSITIVE_INFINITY,
 			});
 
+			let scrollback = "";
+			let isFirstLine = true;
+
 			for await (const line of rl) {
+				// Skip first partial line if we started mid-file
+				if (isFirstLine && startPos > 0) {
+					isFirstLine = false;
+					continue;
+				}
+
 				try {
 					const event = JSON.parse(line) as HistoryEvent;
 

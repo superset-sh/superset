@@ -232,7 +232,7 @@ describe("TerminalManager", () => {
 	});
 
 	describe("kill", () => {
-		it("should kill and remove session", async () => {
+		it("should kill and remove session without deleting history by default", async () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
@@ -244,6 +244,77 @@ describe("TerminalManager", () => {
 
 			const session = manager.getSession("tab-1");
 			expect(session).toBeNull();
+
+			// Verify history directory still exists
+			const historyDir = join(
+				homedir(),
+				".superset",
+				"terminal-history",
+				"workspace-1",
+				"tab-1",
+			);
+			const stats = await fs.stat(historyDir);
+			expect(stats.isDirectory()).toBe(true);
+		});
+
+		it("should delete history when deleteHistory flag is true", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-delete-history",
+				workspaceId: "workspace-1",
+			});
+
+			await manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
+
+			expect(mockPty.kill).toHaveBeenCalled();
+
+			const session = manager.getSession("tab-delete-history");
+			expect(session).toBeNull();
+
+			// Verify history directory is deleted
+			const historyDir = join(
+				homedir(),
+				".superset",
+				"terminal-history",
+				"workspace-1",
+				"tab-delete-history",
+			);
+			try {
+				await fs.stat(historyDir);
+				throw new Error("Directory should not exist");
+			} catch (error) {
+				// @ts-ignore
+				expect(error.code).toBe("ENOENT");
+			}
+		});
+
+		it("should preserve history for recovery after kill without deleteHistory", async () => {
+			// Create and write some data
+			await manager.createOrAttach({
+				tabId: "tab-preserve",
+				workspaceId: "workspace-1",
+			});
+
+			// Simulate some output
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("Preserved output\n");
+			}
+
+			// Kill without deleting history
+			await manager.kill({ tabId: "tab-preserve" });
+
+			// Wait for finalization
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			// Recreate session - should recover history
+			const result = await manager.createOrAttach({
+				tabId: "tab-preserve",
+				workspaceId: "workspace-1",
+			});
+
+			expect(result.wasRecovered).toBe(true);
+			expect(result.scrollback[0]).toContain("Preserved output");
 		});
 	});
 
