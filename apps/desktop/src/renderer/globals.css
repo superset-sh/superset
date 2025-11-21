@@ -129,10 +129,24 @@
 
 	html,
 	body {
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
+		margin: 0;
+		overflow: hidden; /* prevent scroll-lock adjustments from collapsing layout */
 		user-select: none;
 		scroll-behavior: smooth;
 		-webkit-app-region: no-drag;
 		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Ensure the React root fills the viewport and provides a positioning context */
+	app {
+		display: block;
+		position: relative;
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
 	}
 
 	/* Ensure xterm terminal fills container height */
