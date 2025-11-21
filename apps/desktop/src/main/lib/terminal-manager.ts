@@ -14,6 +14,7 @@ interface TerminalSession {
 	scrollback: string[];
 	isAlive: boolean;
 	historyWriter?: HistoryWriter;
+	deleteHistoryOnExit?: boolean;
 }
 
 export interface TerminalDataEvent {
@@ -120,6 +121,12 @@ export class TerminalManager extends EventEmitter {
 				await session.historyWriter.writeExit(exitCode, signal);
 			}
 
+			// Delete history if requested (e.g., tab closure)
+			if (session.deleteHistoryOnExit) {
+				const historyReader = new HistoryReader(session.workspaceId, tabId);
+				await historyReader.cleanup();
+			}
+
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
 			// Allow reconnection window before cleanup
@@ -189,10 +196,7 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async kill(params: {
-		tabId: string;
-		deleteHistory?: boolean;
-	}): Promise<void> {
+	kill(params: { tabId: string; deleteHistory?: boolean }): void {
 		const { tabId, deleteHistory = false } = params;
 		const session = this.sessions.get(tabId);
 
@@ -201,22 +205,25 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
+		// Mark session for history deletion if requested
+		// The exit handler will delete after finalization completes
+		if (deleteHistory) {
+			session.deleteHistoryOnExit = true;
+		}
+
+		// Kill the PTY process - exit handler will finalize history and cleanup
 		if (session.isAlive) {
 			session.pty.kill();
+		} else {
+			// If already dead, cleanup immediately since exit handler won't run
+			this.sessions.delete(tabId);
+			if (deleteHistory) {
+				const historyReader = new HistoryReader(session.workspaceId, tabId);
+				historyReader.cleanup().catch((error) => {
+					console.error(`Failed to cleanup history for ${tabId}:`, error);
+				});
+			}
 		}
-
-		// Finalize history writer if still open
-		if (session.historyWriter?.isOpen()) {
-			await session.historyWriter.finalize();
-		}
-
-		// Only delete history if explicitly requested (e.g., tab closure)
-		if (deleteHistory) {
-			const historyReader = new HistoryReader(session.workspaceId, tabId);
-			await historyReader.cleanup();
-		}
-
-		this.sessions.delete(tabId);
 	}
 
 	detach(params: { tabId: string }): void {

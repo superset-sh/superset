@@ -232,18 +232,25 @@ describe("TerminalManager", () => {
 	});
 
 	describe("kill", () => {
-		it("should kill and remove session without deleting history by default", async () => {
+		it("should kill and preserve history by default", async () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
-			await manager.kill({ tabId: "tab-1" });
+			manager.kill({ tabId: "tab-1" });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
-			const session = manager.getSession("tab-1");
-			expect(session).toBeNull();
+			// Simulate exit handler
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for exit handler to complete
+			await new Promise((resolve) => setTimeout(resolve, 50));
 
 			// Verify history directory still exists
 			const historyDir = join(
@@ -263,12 +270,19 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			await manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
+			manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
-			const session = manager.getSession("tab-delete-history");
-			expect(session).toBeNull();
+			// Simulate exit handler
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for exit handler and cleanup to complete
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			// Verify history directory is deleted
 			const historyDir = join(
@@ -282,7 +296,7 @@ describe("TerminalManager", () => {
 				await fs.stat(historyDir);
 				throw new Error("Directory should not exist");
 			} catch (error) {
-				// @ts-ignore
+				// @ts-expect-error
 				expect(error.code).toBe("ENOENT");
 			}
 		});
@@ -302,7 +316,14 @@ describe("TerminalManager", () => {
 			}
 
 			// Kill without deleting history
-			await manager.kill({ tabId: "tab-preserve" });
+			manager.kill({ tabId: "tab-preserve" });
+
+			// Simulate exit handler
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
 
 			// Wait for finalization
 			await new Promise((resolve) => setTimeout(resolve, 50));
