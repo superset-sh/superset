@@ -1,6 +1,8 @@
 import { Separator } from "@superset/ui/separator";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
+import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceItem } from "./WorkspaceItem";
 
@@ -12,6 +14,7 @@ export function WorkspacesTabs() {
 	const { data: workspaces = [] } = trpc.workspaces.getAll.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
+	const setActiveWorkspace = useSetActiveWorkspace();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showStartFade, setShowStartFade] = useState(false);
@@ -20,6 +23,23 @@ export function WorkspacesTabs() {
 	const [hoveredWorkspaceId, setHoveredWorkspaceId] = useState<string | null>(
 		null,
 	);
+
+	// Workspace switching shortcuts
+	useHotkeys('meta+alt+left', () => {
+		if (!activeWorkspaceId) return;
+		const index = workspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (index > 0) {
+			setActiveWorkspace.mutate({ id: workspaces[index - 1].id });
+		}
+	}, [activeWorkspaceId, workspaces, setActiveWorkspace]);
+
+	useHotkeys('meta+alt+right', () => {
+		if (!activeWorkspaceId) return;
+		const index = workspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (index < workspaces.length - 1) {
+			setActiveWorkspace.mutate({ id: workspaces[index + 1].id });
+		}
+	}, [activeWorkspaceId, workspaces, setActiveWorkspace]);
 
 	useEffect(() => {
 		const checkScroll = () => {
