@@ -247,7 +247,10 @@ describe("ProcessOrchestrator", () => {
 				{ path: "/tmp/test" },
 			);
 
-			const terminal = await orchestrator.create(ProcessType.TERMINAL, workspace);
+			const terminal = await orchestrator.create(
+				ProcessType.TERMINAL,
+				workspace,
+			);
 			const agent = await orchestrator.create(
 				ProcessType.AGENT,
 				workspace,
