@@ -189,7 +189,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	return (
 		<div className="h-full w-full overflow-hidden bg-black">
-			<div ref={terminalRef} className="h-full w-full p-2" />
+			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
 };
