@@ -16,6 +16,7 @@ interface TerminalSession {
 	historyWriter?: HistoryWriter;
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
+	historyFinalized?: boolean;
 }
 
 export interface TerminalDataEvent {
@@ -67,7 +68,6 @@ export class TerminalManager extends EventEmitter {
 		const terminalCols = cols || this.DEFAULT_COLS;
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
-		// Try to recover history from previous session
 		const historyReader = new HistoryReader(workspaceId, tabId);
 		const recovery = await historyReader.getLatestSession();
 
@@ -79,7 +79,6 @@ export class TerminalManager extends EventEmitter {
 			env: this.sanitizeEnv(process.env),
 		});
 
-		// Initialize history writer for new session
 		const historyWriter = new HistoryWriter(
 			workspaceId,
 			tabId,
@@ -104,11 +103,11 @@ export class TerminalManager extends EventEmitter {
 			isAlive: true,
 			historyWriter,
 			wasRecovered: recovery.wasRecovered,
+			historyFinalized: false,
 		};
 
 		ptyProcess.onData((data) => {
 			this.addToScrollback(session, data);
-			// Write to history
 			if (session.historyWriter) {
 				session.historyWriter.writeData(data);
 			}
@@ -118,25 +117,19 @@ export class TerminalManager extends EventEmitter {
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 
-			// Finalize history
-			if (session.historyWriter?.isOpen()) {
-				await session.historyWriter.writeExit(exitCode, signal);
-			} else if (session.historyWriter) {
-				await session.historyWriter.finalize(exitCode);
-			}
-
-			// Delete history if requested (e.g., tab closure)
-			if (session.deleteHistoryOnExit) {
-				const historyReader = new HistoryReader(session.workspaceId, tabId);
-				await historyReader.cleanup();
-			}
+			await this.finalizeHistory(session, {
+				exitCode,
+				signal,
+				cleanupDir: session.deleteHistoryOnExit ?? false,
+			});
 
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
 			// Allow reconnection window before cleanup
-			setTimeout(() => {
+			const timeout = setTimeout(() => {
 				this.sessions.delete(tabId);
 			}, 5000);
+			timeout.unref();
 		});
 
 		this.sessions.set(tabId, session);
@@ -209,26 +202,19 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Mark session for history deletion if requested
-		// The exit handler will delete after finalization completes
 		if (deleteHistory) {
 			session.deleteHistoryOnExit = true;
 		}
 
-		// Kill the PTY process - exit handler will finalize history and cleanup
 		if (session.isAlive) {
 			session.pty.kill();
 		} else {
-			// If already dead, cleanup immediately since exit handler won't run
-			if (session.historyWriter?.isOpen()) {
-				await session.historyWriter.writeExit();
-			} else if (session.historyWriter) {
-				await session.historyWriter.finalize();
-			}
-			if (deleteHistory) {
-				const historyReader = new HistoryReader(session.workspaceId, tabId);
-				await historyReader.cleanup();
-			}
+			// If already dead, finalize and cleanup immediately since exit handler won't run
+			await this.finalizeHistory(session, {
+				exitCode: undefined,
+				signal: undefined,
+				cleanupDir: deleteHistory,
+			});
 			this.sessions.delete(tabId);
 		}
 	}
@@ -263,37 +249,39 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	async cleanup(): Promise<void> {
-		// Create promises for all exit handlers to complete
 		const exitPromises: Promise<void>[] = [];
 
 		for (const [tabId, session] of this.sessions.entries()) {
 			if (session.isAlive) {
-				// Create a promise that resolves when this session's exit handler completes
 				const exitPromise = new Promise<void>((resolve) => {
 					const exitHandler = () => {
 						this.off(`exit:${tabId}`, exitHandler);
+						if (timeoutId) {
+							clearTimeout(timeoutId);
+						}
 						resolve();
 					};
 					this.once(`exit:${tabId}`, exitHandler);
 
 					// Set timeout to avoid hanging indefinitely
-					setTimeout(() => {
+					const timeoutId = setTimeout(() => {
 						this.off(`exit:${tabId}`, exitHandler);
 						resolve();
 					}, 2000);
+					timeoutId.unref();
 				});
 
 				exitPromises.push(exitPromise);
 				session.pty.kill();
 			} else {
-				// For sessions that already exited, ensure their writers are finalized
-				if (session.historyWriter?.isOpen()) {
-					await session.historyWriter.finalize();
-				}
+				await this.finalizeHistory(session, {
+					exitCode: undefined,
+					signal: undefined,
+					cleanupDir: session.deleteHistoryOnExit ?? false,
+				});
 			}
 		}
 
-		// Wait for all exit handlers to complete
 		await Promise.all(exitPromises);
 
 		this.sessions.clear();
@@ -354,6 +342,34 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		return Object.keys(sanitized).length > 0 ? sanitized : undefined;
+	}
+
+	private async finalizeHistory(
+		session: TerminalSession,
+		params: { exitCode?: number; signal?: number; cleanupDir: boolean },
+	): Promise<void> {
+		if (session.historyFinalized) {
+			return;
+		}
+
+		const writer = session.historyWriter;
+		session.historyWriter = undefined;
+		session.historyFinalized = true;
+
+		if (!writer) {
+			return;
+		}
+
+		if (writer.isOpen()) {
+			await writer.writeExit(params.exitCode, params.signal);
+		} else {
+			await writer.finalize(params.exitCode);
+		}
+
+		if (params.cleanupDir) {
+			const historyReader = new HistoryReader(session.workspaceId, session.tabId);
+			await historyReader.cleanup();
+		}
 	}
 }
 

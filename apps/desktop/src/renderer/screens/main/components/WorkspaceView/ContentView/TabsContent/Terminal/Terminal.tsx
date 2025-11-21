@@ -150,7 +150,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				onSuccess: (result) => {
 					applyInitialScrollback(result);
-					// Now enable subscription and flush any queued events
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
 				},

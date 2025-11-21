@@ -3,7 +3,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import readline from "node:readline";
 
-// Event log entry types
 export interface HistoryDataEvent {
 	t: number; // timestamp
 	type: "data";
@@ -19,7 +18,6 @@ export interface HistoryExitEvent {
 
 export type HistoryEvent = HistoryDataEvent | HistoryExitEvent;
 
-// Session metadata
 export interface SessionMetadata {
 	cwd: string;
 	cols: number;
@@ -30,7 +28,6 @@ export interface SessionMetadata {
 	byteLength: number;
 }
 
-// History directory structure
 export function getHistoryDir(workspaceId: string, tabId: string): string {
 	return join(homedir(), ".superset", "terminal-history", workspaceId, tabId);
 }
@@ -45,16 +42,15 @@ export function getMetadataPath(workspaceId: string, tabId: string): string {
 	return join(dir, "meta.json");
 }
 
-/**
- * Writer for terminal history
- * Appends to existing history file across multiple sessions
- */
 export class HistoryWriter {
 	private writeStream: ReturnType<typeof createWriteStream> | null = null;
 	private byteLength = 0;
 	private metadata: SessionMetadata;
 	private filePath: string;
 	private metaPath: string;
+	private isFinalizing = false;
+	private finalizePromise: Promise<void> | null = null;
+	private finalized = false;
 
 	constructor(
 		private workspaceId: string,
@@ -77,26 +73,21 @@ export class HistoryWriter {
 	async init(): Promise<void> {
 		const dir = getHistoryDir(this.workspaceId, this.tabId);
 
-		// Create directory
 		await fs.mkdir(dir, { recursive: true });
 
-		// Check existing file size by reading actual file stats
 		try {
 			const stats = await fs.stat(this.filePath);
-			// Use actual file size to track total bytes
 			this.byteLength = stats.size;
 		} catch {
-			// No existing file, start at 0
 			this.byteLength = 0;
 		}
 
 		this.metadata.byteLength = this.byteLength;
 
-		// Append to existing file (or create new)
 		// We write raw NDJSON and compress on read for easier appending
 		this.writeStream = createWriteStream(this.filePath, { flags: "a" });
+		this.finalized = false;
 
-		// Update metadata
 		await this.writeMetadata();
 	}
 
@@ -118,6 +109,11 @@ export class HistoryWriter {
 	}
 
 	async writeExit(exitCode?: number, signal?: number): Promise<void> {
+		if (this.isFinalizing || this.finalizePromise) {
+			await this.finalizePromise;
+			return;
+		}
+
 		if (!this.writeStream) {
 			console.warn("HistoryWriter not initialized");
 			return;
@@ -138,19 +134,35 @@ export class HistoryWriter {
 	}
 
 	async finalize(exitCode?: number): Promise<void> {
-		if (this.writeStream) {
-			this.writeStream.end();
-			await new Promise<void>((resolve) => {
-				this.writeStream?.on("finish", () => resolve());
-			});
-			this.writeStream = null;
+		if (this.finalizePromise) {
+			return this.finalizePromise;
 		}
 
-		// Update final metadata
-		this.metadata.endedAt = new Date().toISOString();
-		this.metadata.exitCode = exitCode;
-		this.metadata.byteLength = this.byteLength;
-		await this.writeMetadata();
+		this.isFinalizing = true;
+		this.finalized = true;
+		this.finalizePromise = (async () => {
+			if (this.writeStream) {
+				await new Promise<void>((resolve, reject) => {
+					this.writeStream?.once("finish", resolve);
+					this.writeStream?.once("error", reject);
+					this.writeStream?.end();
+				});
+				this.writeStream = null;
+			}
+
+			if (!this.metadata.endedAt) {
+				this.metadata.endedAt = new Date().toISOString();
+			}
+			if (exitCode !== undefined) {
+				this.metadata.exitCode = exitCode;
+			}
+			this.metadata.byteLength = this.byteLength;
+			await this.writeMetadata();
+		})().finally(() => {
+			this.isFinalizing = false;
+		});
+
+		return this.finalizePromise;
 	}
 
 	private async writeMetadata(): Promise<void> {
@@ -162,14 +174,10 @@ export class HistoryWriter {
 	}
 
 	isOpen(): boolean {
-		return this.writeStream !== null;
+		return this.writeStream !== null && !this.finalized;
 	}
 }
 
-/**
- * Reader for terminal history
- * Reads history from appended NDJSON file
- */
 export class HistoryReader {
 	constructor(
 		private workspaceId: string,
@@ -184,15 +192,12 @@ export class HistoryReader {
 		try {
 			const filePath = getHistoryFilePath(this.workspaceId, this.tabId);
 
-			// Check if file exists
 			try {
 				await fs.access(filePath);
 			} catch {
-				// No history file
 				return { scrollback: "", wasRecovered: false };
 			}
 
-			// Read metadata
 			let metadata: SessionMetadata | undefined;
 			try {
 				const metaPath = getMetadataPath(this.workspaceId, this.tabId);
@@ -202,7 +207,6 @@ export class HistoryReader {
 				// Metadata not available
 			}
 
-			// Decode entire history file
 			const scrollback = await this.decodeHistory(filePath);
 
 			return {
@@ -217,11 +221,10 @@ export class HistoryReader {
 	}
 
 	private async decodeHistory(filePath: string): Promise<string> {
-		const MAX_CHARS = 100000; // Cap at 100k chars
-		const MAX_BYTES_TO_READ = 500000; // Read last ~500KB to capture ~100k chars
+		const MAX_CHARS = 100000;
+		const MAX_BYTES_TO_READ = 500000;
 
 		try {
-			// Get file size
 			const stats = await fs.stat(filePath);
 			const fileSize = stats.size;
 
@@ -229,10 +232,8 @@ export class HistoryReader {
 				return "";
 			}
 
-			// Calculate start position - read from end of file
 			const startPos = Math.max(0, fileSize - MAX_BYTES_TO_READ);
 
-			// Read from calculated position
 			const readStream = createReadStream(filePath, {
 				start: startPos,
 			});
@@ -259,11 +260,9 @@ export class HistoryReader {
 						const data = Buffer.from(event.data, "base64").toString();
 						scrollback += data;
 
-						// Cap at MAX_CHARS to avoid huge payloads
-						if (scrollback.length > MAX_CHARS) {
+						// Trim periodically to prevent memory issues, but keep reading to the end
+						if (scrollback.length > MAX_CHARS * 2) {
 							scrollback = scrollback.slice(-MAX_CHARS);
-							// Stop early once we have enough for recovery
-							break;
 						}
 					}
 				} catch {
@@ -271,7 +270,7 @@ export class HistoryReader {
 				}
 			}
 
-			// Return last MAX_CHARS
+			// Final trim to MAX_CHARS to ensure we return the most recent data
 			if (scrollback.length > MAX_CHARS) {
 				scrollback = scrollback.slice(-MAX_CHARS);
 			}

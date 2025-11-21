@@ -69,11 +69,12 @@ describe("HistoryWriter", () => {
 
 		await writer1.finalize();
 
-		// Verify metadata shows correct byteLength
+		// Verify metadata shows correct byteLength (file size after session 1)
 		const metaPath = getMetadataPath(testWorkspaceId, testTabId);
 		const meta1Content = await fs.readFile(metaPath, "utf-8");
 		const meta1 = JSON.parse(meta1Content) as SessionMetadata;
-		expect(meta1.byteLength).toBe(testData.length);
+		const session1ByteLength = meta1.byteLength;
+		expect(session1ByteLength).toBeGreaterThan(0);
 
 		// Session 2: Append more data
 		const writer2 = new HistoryWriter(
@@ -90,10 +91,16 @@ describe("HistoryWriter", () => {
 
 		await writer2.finalize();
 
-		// Verify byteLength is cumulative
+		// Verify byteLength is cumulative (includes both sessions)
 		const meta2Content = await fs.readFile(metaPath, "utf-8");
 		const meta2 = JSON.parse(meta2Content) as SessionMetadata;
-		expect(meta2.byteLength).toBe(testData.length + moreData.length);
+		expect(meta2.byteLength).toBeGreaterThan(session1ByteLength);
+
+		// Verify the file actually contains both sessions' data
+		const historyPath = getHistoryFilePath(testWorkspaceId, testTabId);
+		const fileContent = await fs.readFile(historyPath, "utf-8");
+		expect(fileContent).toContain(Buffer.from(testData).toString("base64"));
+		expect(fileContent).toContain(Buffer.from(moreData).toString("base64"));
 	});
 
 	it("should track byteLength correctly with multiple writes", async () => {
@@ -107,7 +114,6 @@ describe("HistoryWriter", () => {
 		await writer.init();
 
 		const writes = ["First line\n", "Second line\n", "Third line\n"];
-		const totalBytes = writes.reduce((sum, str) => sum + str.length, 0);
 
 		for (const data of writes) {
 			writer.writeData(data);
@@ -119,7 +125,15 @@ describe("HistoryWriter", () => {
 		const metaContent = await fs.readFile(metaPath, "utf-8");
 		const metadata = JSON.parse(metaContent) as SessionMetadata;
 
-		expect(metadata.byteLength).toBe(totalBytes);
+		// byteLength should track the history file size (NDJSON events), not raw data
+		expect(metadata.byteLength).toBeGreaterThan(0);
+
+		// Verify all writes are in the file
+		const historyPath = getHistoryFilePath(testWorkspaceId, testTabId);
+		const fileContent = await fs.readFile(historyPath, "utf-8");
+		for (const data of writes) {
+			expect(fileContent).toContain(Buffer.from(data).toString("base64"));
+		}
 	});
 
 	it("should write exit events correctly", async () => {
