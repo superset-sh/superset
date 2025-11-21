@@ -1,1 +1,0 @@
-export { StartSection } from "./StartSection";

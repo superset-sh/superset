@@ -1,7 +1,7 @@
 import { Separator } from "@superset/ui/separator";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { AddWorkspaceButton } from "./AddWorkspaceButton";
+import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceItem } from "./WorkspaceItem";
 
 const MIN_WORKSPACE_WIDTH = 60;
@@ -119,9 +119,7 @@ export function WorkspacesTabs() {
 				)}
 			</div>
 
-			<div className="no-drag">
-				<AddWorkspaceButton />
-			</div>
+			<WorkspaceDropdown />
 		</div>
 	);
 }

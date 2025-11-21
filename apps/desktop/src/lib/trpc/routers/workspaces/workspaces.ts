@@ -1,43 +1,78 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { join } from "node:path";
 import { publicProcedure, router } from "../..";
 import { db } from "../../../../main/lib/db";
+import {
+	generateBranchName,
+	createWorktree,
+	removeWorktree,
+} from "./utils/git";
 
-/**
- * Workspaces router
- * Handles workspace CRUD operations
- */
 export const createWorkspacesRouter = () => {
 	return router({
-		/**
-		 * Create a new workspace
-		 */
 		create: publicProcedure
 			.input(
 				z.object({
-					name: z.string(),
-					path: z.string().nullable().optional(),
+					projectId: z.string(),
+					name: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				// Find the project
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const branch = generateBranchName();
+
+				const worktreePath = join(
+					project.mainRepoPath,
+					".superset",
+					branch,
+				);
+
+				// Create git worktree
+				await createWorktree(project.mainRepoPath, branch, worktreePath);
+
+				// Create worktree record
+				const worktree = {
+					id: nanoid(),
+					projectId: input.projectId,
+					path: worktreePath,
+					branch,
+					createdAt: Date.now(),
+				};
+
 				// Set order to be at the end of the list
-				const maxOrder = db.data.workspaces.length > 0
-					? Math.max(...db.data.workspaces.map((w) => w.order))
-					: -1;
+				const maxOrder =
+					db.data.workspaces.length > 0
+						? Math.max(...db.data.workspaces.map((w) => w.order))
+						: -1;
 
 				const workspace = {
 					id: nanoid(),
-					name: input.name,
-					path: input.path ?? null,
+					projectId: input.projectId,
+					worktreeId: worktree.id,
+					name: input.name ?? branch,
 					order: maxOrder + 1,
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
 					lastOpenedAt: Date.now(),
 				};
 
+				// Save to database
 				await db.update((data) => {
+					data.worktrees.push(worktree);
 					data.workspaces.push(workspace);
 					data.settings.lastActiveWorkspaceId = workspace.id;
+
+					// Update project lastOpenedAt
+					const p = data.projects.find((p) => p.id === input.projectId);
+					if (p) {
+						p.lastOpenedAt = Date.now();
+					}
 				});
 
 				return workspace;
@@ -45,12 +80,16 @@ export const createWorkspacesRouter = () => {
 
 		/**
 		 * Get a workspace by ID
+		 * Throws if workspace not found
 		 */
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
 				const workspace = db.data.workspaces.find((w) => w.id === input.id);
-				return workspace || null;
+				if (!workspace) {
+					throw new Error(`Workspace ${input.id} not found`);
+				}
+				return workspace;
 			}),
 
 		/**
@@ -64,6 +103,8 @@ export const createWorkspacesRouter = () => {
 
 		/**
 		 * Get the last active workspace
+		 * Returns null if no active workspace set (valid state)
+		 * Throws if active workspace ID exists but workspace not found (data inconsistency)
 		 */
 		getActive: publicProcedure.query(() => {
 			const { lastActiveWorkspaceId } = db.data.settings;
@@ -72,7 +113,16 @@ export const createWorkspacesRouter = () => {
 				return null;
 			}
 
-			return db.data.workspaces.find((w) => w.id === lastActiveWorkspaceId) || null;
+			const workspace = db.data.workspaces.find(
+				(w) => w.id === lastActiveWorkspaceId,
+			);
+			if (!workspace) {
+				throw new Error(
+					`Active workspace ${lastActiveWorkspaceId} not found in database`,
+				);
+			}
+
+			return workspace;
 		}),
 
 		/**
@@ -85,7 +135,6 @@ export const createWorkspacesRouter = () => {
 					id: z.string(),
 					patch: z.object({
 						name: z.string().optional(),
-						path: z.string().nullable().optional(),
 					}),
 				}),
 			)
@@ -100,9 +149,6 @@ export const createWorkspacesRouter = () => {
 					if (input.patch.name !== undefined) {
 						workspace.name = input.patch.name;
 					}
-					if (input.patch.path !== undefined) {
-						workspace.path = input.patch.path;
-					}
 
 					// Update timestamps
 					workspace.updatedAt = Date.now();
@@ -113,8 +159,7 @@ export const createWorkspacesRouter = () => {
 			}),
 
 		/**
-		 * Delete a workspace
-		 * Also removes from recents if no other workspace uses that path
+		 * Delete a workspace and its associated worktree
 		 */
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
@@ -125,21 +170,33 @@ export const createWorkspacesRouter = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				const workspacePath = workspace.path;
+				// Find associated worktree and project
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				const project = db.data.projects.find(
+					(p) => p.id === workspace.projectId,
+				);
 
+				// Remove git worktree if it exists
+				if (worktree && project) {
+					try {
+						await removeWorktree(project.mainRepoPath, worktree.path);
+					} catch (error) {
+						console.error("Failed to remove worktree:", error);
+						// Continue with database cleanup even if git operation fails
+					}
+				}
+
+				// Remove from database
 				await db.update((data) => {
 					// Remove workspace
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
-					// Check if any other workspace uses this path
-					const otherWorkspaceWithSamePath = data.workspaces.some(
-						(w) => w.path === workspacePath,
-					);
-
-					// If no other workspace uses this path, remove from recents
-					if (!otherWorkspaceWithSamePath) {
-						data.recentProjects = data.recentProjects.filter(
-							(p) => p.path !== workspacePath,
+					// Remove worktree
+					if (worktree) {
+						data.worktrees = data.worktrees.filter(
+							(wt) => wt.id !== worktree.id,
 						);
 					}
 
