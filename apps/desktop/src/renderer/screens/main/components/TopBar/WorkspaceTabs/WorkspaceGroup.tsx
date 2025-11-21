@@ -36,7 +36,7 @@ export function WorkspaceGroup({
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	return (
-		<div className="flex items-center h-full gap-2">
+		<div className="flex items-center h-full">
 			{/* Project group badge */}
 			<WorkspaceGroupHeader
 				projectId={projectId}
