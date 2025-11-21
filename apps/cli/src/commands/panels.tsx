@@ -1,10 +1,16 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
+import stringWidth from "string-width";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import { type Agent, type Process, ProcessStatus, ProcessType } from "../types/process";
+import {
+	type Agent,
+	type Process,
+	ProcessStatus,
+	ProcessType,
+} from "../types/process";
 import type { Workspace } from "../types/workspace";
 
 interface PanelsData {
@@ -30,11 +36,24 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 	const [selectedWorkspaceIndex, setSelectedWorkspaceIndex] = React.useState(0);
 	const [selectedAgentIndex, setSelectedAgentIndex] = React.useState(0);
 	const [activePanel, setActivePanel] = React.useState<ActivePanel>("agents");
+	const [spinnerFrame, setSpinnerFrame] = React.useState(0);
 	const { exit } = useApp();
 	const { stdout } = useStdout();
 
 	const terminalWidth = stdout?.columns || 120;
 	const terminalHeight = stdout?.rows || 30;
+	const isSmallTerminal = terminalWidth < SMALL_TERMINAL_THRESHOLD;
+	const contentWidth = Math.max(0, terminalWidth - 2); // account for outer padding
+	const workspacePanelWidth = isSmallTerminal
+		? Math.max(20, Math.floor(terminalWidth * 0.35))
+		: Math.max(24, Math.floor(terminalWidth * 0.25));
+	const agentsPanelWidth = isSmallTerminal
+		? Math.max(20, contentWidth - workspacePanelWidth - 1) // minus gap between panels
+		: Math.max(30, Math.floor(terminalWidth * 0.35));
+	// Inner width: panel width minus border (2) and padding (2) = 4 total
+	const agentsPanelInnerWidth = Math.max(0, agentsPanelWidth - 4);
+
+	const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 	const loadData = React.useCallback(async () => {
 		try {
@@ -73,6 +92,22 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 
 		return () => clearInterval(interval);
 	}, [loadData]);
+
+	// Spinner animation - only run when there are running agents
+	React.useEffect(() => {
+		const hasRunningAgents =
+			data?.processes.some((p) => p.status === ProcessStatus.RUNNING) ?? false;
+
+		if (!hasRunningAgents) {
+			return;
+		}
+
+		const interval = setInterval(() => {
+			setSpinnerFrame((prev) => (prev + 1) % spinnerFrames.length);
+		}, 80);
+
+		return () => clearInterval(interval);
+	}, [data?.processes, spinnerFrames.length]);
 
 	useInput((input, key) => {
 		if (!data) return;
@@ -216,11 +251,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 					borderStyle="round"
 					borderColor={activePanel === "workspaces" ? "cyan" : "gray"}
 					padding={1}
-					width={
-						terminalWidth < SMALL_TERMINAL_THRESHOLD
-							? Math.max(20, Math.floor(terminalWidth * 0.35))
-							: Math.max(24, Math.floor(terminalWidth * 0.25))
-					}
+					width={workspacePanelWidth}
 				>
 					<Box marginBottom={1}>
 						<Text bold>Workspaces ({workspaces.length})</Text>
@@ -236,8 +267,11 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								);
 								const isSelected = index === selectedWorkspaceIndex;
 								const isCurrent = ws.id === currentWorkspaceId;
-								const statusEmoji = wsRunning.length > 0 ? "●" : "○";
-								const statusColor = wsRunning.length > 0 ? "green" : "gray";
+								const hasRunning = wsRunning.length > 0;
+								const statusEmoji = hasRunning
+									? spinnerFrames[spinnerFrame]
+									: "○";
+								const statusColor = hasRunning ? "green" : "gray";
 
 								return (
 									<Box key={ws.id} flexDirection="column" marginBottom={1}>
@@ -273,12 +307,8 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 					borderStyle="round"
 					borderColor={activePanel === "agents" ? "yellow" : "gray"}
 					padding={1}
-					width={
-						terminalWidth < SMALL_TERMINAL_THRESHOLD
-							? undefined
-							: Math.max(30, Math.floor(terminalWidth * 0.35))
-					}
-					flexGrow={terminalWidth < SMALL_TERMINAL_THRESHOLD ? 1 : 0}
+					width={agentsPanelWidth}
+					flexGrow={isSmallTerminal ? 1 : 0}
 				>
 					<Box marginBottom={1}>
 						<Text bold>Agents ({filteredAgents.length})</Text>
@@ -286,21 +316,21 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 					{filteredAgents.length === 0 ? (
 						<Text dimColor>No agents</Text>
 					) : (
-						<Box flexDirection="column" gap={0}>
+						<Box flexDirection="column" gap={0} alignItems="stretch">
 							{filteredAgents.map((agent, index) => {
 								const isSelected = index === selectedAgentIndex;
 								const agentType =
 									agent.type === ProcessType.AGENT && "agentType" in agent
 										? String(agent.agentType)
 										: "unknown";
-								const statusEmoji =
-									agent.status === ProcessStatus.RUNNING
-										? "●"
-										: agent.status === ProcessStatus.IDLE
-											? "○"
-											: agent.status === ProcessStatus.ERROR
-												? "✗"
-												: "○";
+								const isRunning = agent.status === ProcessStatus.RUNNING;
+								const statusEmoji = isRunning
+									? spinnerFrames[spinnerFrame]
+									: agent.status === ProcessStatus.IDLE
+										? "○"
+										: agent.status === ProcessStatus.ERROR
+											? "✗"
+											: "○";
 								const statusColor =
 									agent.status === ProcessStatus.RUNNING
 										? "green"
@@ -310,23 +340,43 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 												? "red"
 												: "gray";
 
+								const backgroundColor = isSelected ? "yellow" : undefined;
+								const textColor = isSelected ? "black" : undefined;
+								const timeText = `(${new Date(agent.createdAt).toLocaleTimeString()})`;
+
+								// Build content parts
+								const arrow = isSelected ? "▸" : " ";
+								const parts = [arrow, statusEmoji, agentType, timeText];
+								const contentWidth = parts.reduce((sum, part) => sum + stringWidth(part), 0) + (parts.length - 1); // +spaces between
+								// Use the larger of agentsPanelInnerWidth or contentWidth to prevent truncation
+								const targetWidth = Math.max(agentsPanelInnerWidth, contentWidth);
+								const paddingNeeded = Math.max(0, targetWidth - contentWidth);
+
 								return (
-									<Box key={agent.id} flexDirection="column" marginBottom={1}>
-										<Box flexDirection="row" gap={1}>
-											<Text color={isSelected ? "yellow" : undefined}>
-												{isSelected ? "▸" : " "}
+									<Box
+										key={agent.id}
+										flexDirection="row"
+										marginBottom={1}
+										paddingY={0}
+										alignSelf="stretch"
+									>
+										<Text backgroundColor={backgroundColor}>
+											<Text color={textColor ?? "yellow"} bold={isSelected}>
+												{arrow}
 											</Text>
-											<Text color={statusColor}>{statusEmoji}</Text>
-											<Text
-												bold={isSelected}
-												color={isSelected ? "yellow" : undefined}
-											>
+											<Text> </Text>
+											<Text color={statusColor} bold={isSelected}>
+												{statusEmoji}
+											</Text>
+											<Text> </Text>
+											<Text bold={isSelected} color={textColor}>
 												{agentType}
 											</Text>
-										</Box>
-										<Text dimColor>
-											{"  "}
-											{new Date(agent.createdAt).toLocaleTimeString()}
+											<Text> </Text>
+											<Text dimColor={!isSelected} color={textColor}>
+												{timeText}
+											</Text>
+											{paddingNeeded > 0 && <Text>{" ".repeat(paddingNeeded)}</Text>}
 										</Text>
 									</Box>
 								);
@@ -354,8 +404,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								"agentType" in selectedAgent ? (
 									<>
 										<Text>
-											Agent:{" "}
-											<Text bold>{String(selectedAgent.agentType)}</Text>
+											Agent: <Text bold>{String(selectedAgent.agentType)}</Text>
 										</Text>
 										<Text dimColor>ID: {selectedAgent.id}</Text>
 										{"sessionName" in selectedAgent &&
@@ -367,7 +416,8 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 										<Text dimColor>Status: {selectedAgent.status}</Text>
 										{selectedAgent.endedAt && (
 											<Text dimColor>
-												Ended: {new Date(selectedAgent.endedAt).toLocaleString()}
+												Ended:{" "}
+												{new Date(selectedAgent.endedAt).toLocaleString()}
 											</Text>
 										)}
 									</>
@@ -383,36 +433,50 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 			</Box>
 
 			{/* Controls */}
-			<Box marginTop={1} flexDirection="row" gap={2}>
-				<Box flexDirection="row" gap={1}>
-					<Text bold>[1]</Text>
-					<Text>Workspaces</Text>
-				</Box>
-				<Box flexDirection="row" gap={1}>
-					<Text bold>[2]</Text>
-					<Text>Agents</Text>
-				</Box>
-				{terminalWidth >= SMALL_TERMINAL_THRESHOLD && (
+			<Box marginTop={1} flexDirection="column" gap={1}>
+				<Box flexDirection="row" gap={2}>
 					<Box flexDirection="row" gap={1}>
-						<Text bold>[3]</Text>
-						<Text>Details</Text>
+						<Text bold>[1]</Text>
+						<Text>Workspaces</Text>
 					</Box>
-				)}
-				<Box flexDirection="row" gap={1}>
-					<Text bold>↑↓</Text>
-					<Text>j k</Text>
+					<Box flexDirection="row" gap={1}>
+						<Text bold>[2]</Text>
+						<Text>Agents</Text>
+					</Box>
+					{terminalWidth >= SMALL_TERMINAL_THRESHOLD && (
+						<Box flexDirection="row" gap={1}>
+							<Text bold>[3]</Text>
+							<Text>Details</Text>
+						</Box>
+					)}
+					<Box flexDirection="row" gap={1}>
+						<Text bold>↑↓</Text>
+						<Text>j k</Text>
+					</Box>
+					<Box flexDirection="row" gap={1}>
+						<Text bold>[Enter]</Text>
+						<Text>Attach</Text>
+					</Box>
+					<Box flexDirection="row" gap={1}>
+						<Text bold>[r]</Text>
+						<Text>Refresh</Text>
+					</Box>
+					<Box flexDirection="row" gap={1}>
+						<Text bold>[q]</Text>
+						<Text>Exit</Text>
+					</Box>
 				</Box>
-				<Box flexDirection="row" gap={1}>
-					<Text bold>[Enter]</Text>
-					<Text>Attach</Text>
-				</Box>
-				<Box flexDirection="row" gap={1}>
-					<Text bold>[r]</Text>
-					<Text>Refresh</Text>
-				</Box>
-				<Box flexDirection="row" gap={1}>
-					<Text bold>[q]</Text>
-					<Text>Exit</Text>
+				<Box flexDirection="row" gap={2}>
+					<Text dimColor>Status:</Text>
+					<Text>
+						<Text color="green">●</Text> Running
+					</Text>
+					<Text>
+						<Text color="yellow">○</Text> Idle
+					</Text>
+					<Text>
+						<Text color="red">✗</Text> Error
+					</Text>
 				</Box>
 			</Box>
 		</Box>

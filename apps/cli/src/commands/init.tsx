@@ -184,16 +184,12 @@ export function Init({ onComplete }: InitProps) {
 				envId = defaultEnv ? defaultEnv.id : environments[0]!.id;
 			}
 
-			const workspace = await orchestrator.create(
-				envId,
-				state.workspaceType!,
-				{
-					path: state.path || undefined,
-					branch: state.branch || undefined,
-					name: state.name || undefined,
-					defaultAgents: state.defaultAgents,
-				},
-			);
+			const workspace = await orchestrator.create(envId, state.workspaceType!, {
+				path: state.path || undefined,
+				branch: state.branch || undefined,
+				name: state.name || undefined,
+				defaultAgents: state.defaultAgents,
+			});
 
 			setState((s) => ({
 				...s,

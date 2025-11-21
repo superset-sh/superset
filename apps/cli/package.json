@@ -36,7 +36,8 @@
 		"ink-text-input": "^6.0.0",
 		"lowdb": "^7.0.1",
 		"meow": "^11.0.0",
-		"react": "^19.1.1"
+		"react": "^19.1.1",
+		"string-width": "^8.1.0"
 	},
 	"devDependencies": {
 		"@sindresorhus/tsconfig": "^3.0.1",
