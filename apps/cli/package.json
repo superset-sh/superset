@@ -7,7 +7,7 @@
 	},
 	"type": "module",
 	"engines": {
-		"node": ">=16"
+		"node": ">=20"
 	},
 	"scripts": {
 		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node",
