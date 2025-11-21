@@ -6,6 +6,7 @@ export interface AgentCompleteEvent {
 	tabId: string;
 	tabTitle: string;
 	workspaceName: string;
+	workspaceId: string;
 }
 
 export const notificationsEmitter = new EventEmitter();
@@ -24,7 +25,7 @@ app.use((req, res, next) => {
 
 // Agent completion hook
 app.get("/hook/complete", (req, res) => {
-	const { tabId, tabTitle, workspaceName } = req.query;
+	const { tabId, tabTitle, workspaceName, workspaceId } = req.query;
 
 	if (!tabId || typeof tabId !== "string") {
 		return res.status(400).json({ error: "Missing tabId parameter" });
@@ -34,6 +35,7 @@ app.get("/hook/complete", (req, res) => {
 		tabId,
 		tabTitle: (tabTitle as string) || "Terminal",
 		workspaceName: (workspaceName as string) || "Workspace",
+		workspaceId: (workspaceId as string) || "",
 	};
 
 	notificationsEmitter.emit("agent-complete", event);

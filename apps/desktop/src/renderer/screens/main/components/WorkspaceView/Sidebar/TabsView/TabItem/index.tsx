@@ -6,7 +6,6 @@ import {
 	useActiveTabIds,
 	useRemoveTab,
 	useSetActiveTab,
-	useSetNeedsAttention,
 	useTabs,
 	useUngroupTab,
 	useUngroupTabs,
@@ -29,8 +28,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const ungroupTab = useUngroupTab();
 	const tabs = useTabs();
 
-	const setNeedsAttention = useSetNeedsAttention();
-
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
 		: null;
@@ -50,10 +47,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		if (rename.isRenaming) return;
 		if (activeWorkspaceId) {
 			setActiveTab(activeWorkspaceId, tab.id);
-		}
-		// Clear needsAttention when tab is clicked
-		if (tab.needsAttention) {
-			setNeedsAttention(tab.id, false);
 		}
 	};
 

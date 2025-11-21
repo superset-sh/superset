@@ -16,6 +16,13 @@ export const handleSetActiveTab = (
 		];
 	}
 
+	// Clear needsAttention for the tab being activated
+	const updatedTabs = state.tabs.map((tab) =>
+		tab.id === tabId && tab.needsAttention
+			? { ...tab, needsAttention: false }
+			: tab,
+	);
+
 	return {
 		activeTabIds: {
 			...state.activeTabIds,
@@ -25,6 +32,7 @@ export const handleSetActiveTab = (
 			...state.tabHistoryStacks,
 			[workspaceId]: newHistoryStack,
 		},
+		tabs: updatedTabs,
 	};
 };
 

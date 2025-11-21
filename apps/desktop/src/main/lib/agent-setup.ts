@@ -42,6 +42,7 @@ curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-31415}/hook/complete" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
   --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\
+  --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
   > /dev/null 2>&1
 `;
 	fs.writeFileSync(notifyPath, script, { mode: 0o755 });

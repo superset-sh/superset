@@ -5,22 +5,31 @@ import {
 } from "main/lib/notifications/server";
 import { publicProcedure, router } from "..";
 
+type NotificationEvent =
+	| { type: "agent-complete"; data: AgentCompleteEvent }
+	| { type: "focus-tab"; data: { tabId: string; workspaceId: string } };
+
 export const createNotificationsRouter = () => {
 	return router({
 		/**
-		 * Subscribe to all agent completion events.
-		 * Emits whenever any agent completes in any tab.
+		 * Subscribe to notification events (completions and focus requests).
 		 */
-		agentComplete: publicProcedure.subscription(() => {
-			return observable<AgentCompleteEvent>((emit) => {
+		subscribe: publicProcedure.subscription(() => {
+			return observable<NotificationEvent>((emit) => {
 				const onComplete = (event: AgentCompleteEvent) => {
-					emit.next(event);
+					emit.next({ type: "agent-complete", data: event });
+				};
+
+				const onFocusTab = (data: { tabId: string; workspaceId: string }) => {
+					emit.next({ type: "focus-tab", data });
 				};
 
 				notificationsEmitter.on("agent-complete", onComplete);
+				notificationsEmitter.on("focus-tab", onFocusTab);
 
 				return () => {
 					notificationsEmitter.off("agent-complete", onComplete);
+					notificationsEmitter.off("focus-tab", onFocusTab);
 				};
 			});
 		}),

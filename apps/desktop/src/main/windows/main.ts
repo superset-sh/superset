@@ -61,6 +61,11 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
+				// Request focus on the specific tab
+				notificationsEmitter.emit("focus-tab", {
+					tabId: event.tabId,
+					workspaceId: event.workspaceId,
+				});
 			});
 
 			notification.show();
