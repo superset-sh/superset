@@ -30,10 +30,12 @@ describe("TerminalManager", () => {
 				mockPty.onData.mockImplementation(() => callback);
 				return callback;
 			}),
-			onExit: mock((callback: (event: { exitCode: number; signal?: number }) => void) => {
-				mockPty.onExit.mockImplementation(() => callback);
-				return callback;
-			}),
+			onExit: mock(
+				(callback: (event: { exitCode: number; signal?: number }) => void) => {
+					mockPty.onExit.mockImplementation(() => callback);
+					return callback;
+				},
+			),
 		};
 
 		(pty.spawn as ReturnType<typeof mock>).mockReturnValue(
@@ -77,7 +79,8 @@ describe("TerminalManager", () => {
 				cwd: "/test/path",
 			});
 
-			const spawnCallCount = (pty.spawn as ReturnType<typeof mock>).mock.calls.length;
+			const spawnCallCount = (pty.spawn as ReturnType<typeof mock>).mock.calls
+				.length;
 
 			// Attempt to attach to same session
 			const result = manager.createOrAttach({
@@ -87,7 +90,9 @@ describe("TerminalManager", () => {
 
 			expect(result.isNew).toBe(false);
 			// Should not have spawned again
-			expect((pty.spawn as ReturnType<typeof mock>).mock.calls.length).toBe(spawnCallCount);
+			expect((pty.spawn as ReturnType<typeof mock>).mock.calls.length).toBe(
+				spawnCallCount,
+			);
 		});
 
 		it("should update size when reattaching with new dimensions", () => {
