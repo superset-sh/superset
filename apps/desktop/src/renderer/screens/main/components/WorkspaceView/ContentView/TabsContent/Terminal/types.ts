@@ -6,4 +6,3 @@ export interface TerminalProps {
 export type TerminalStreamEvent =
 	| { type: "data"; data: string }
 	| { type: "exit"; exitCode: number };
-
