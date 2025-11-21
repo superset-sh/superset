@@ -41,7 +41,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 			onSplitVertical={handleSplitVertical}
 			onClosePane={handleClosePane}
 		>
-			<div className="flex-1 h-full overflow-hidden bg-background">
+			<div className="w-full h-full overflow-hidden bg-background">
 				<Terminal
 					terminalId={tab.id}
 					cwd="~"
