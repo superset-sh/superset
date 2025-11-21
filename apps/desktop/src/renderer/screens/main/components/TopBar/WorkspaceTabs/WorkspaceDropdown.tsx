@@ -31,7 +31,7 @@ export function WorkspaceDropdown() {
 	const handleOpenNewProject = () => {
 		openNew.mutate(undefined, {
 			onSuccess: (result) => {
-				if (result.success) {
+				if (result.success && result.project) {
 					handleCreateWorkspace(result.project.id);
 				}
 			},

@@ -3,8 +3,8 @@ import {
 	TabType,
 	useActiveTabIds,
 	useTabs,
-	useWorkspacesStore,
 } from "renderer/stores";
+import { trpc } from "renderer/lib/trpc";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
@@ -12,9 +12,8 @@ import { useTabContentDrop } from "./useTabContentDrop";
 import { DropOverlay } from "./DropOverlay";
 
 export function TabsContent() {
-	const activeWorkspaceId = useWorkspacesStore(
-		(state) => state.activeWorkspaceId,
-	);
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabs();
 	const activeTabIds = useActiveTabIds();
 

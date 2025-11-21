@@ -8,8 +8,8 @@ import {
 	useTabs,
 	useUngroupTab,
 	useUngroupTabs,
-	useWorkspacesStore,
 } from "renderer/stores";
+import { trpc } from "renderer/lib/trpc";
 import { TabType } from "renderer/stores/tabs/types";
 import { TabContextMenu } from "./TabContextMenu";
 import type { TabItemProps } from "./types";
@@ -19,9 +19,8 @@ import { useTabRename } from "./useTabRename";
 
 export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
-	const activeWorkspaceId = useWorkspacesStore(
-		(state) => state.activeWorkspaceId,
-	);
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const activeWorkspaceId = activeWorkspace?.id;
 	const activeTabIds = useActiveTabIds();
 	const removeTab = useRemoveTab();
 	const setActiveTab = useSetActiveTab();

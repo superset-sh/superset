@@ -2,14 +2,14 @@ import { Button } from "@superset/ui/button";
 import { LayoutGroup, motion } from "framer-motion";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
-import { useAddTab, useTabs, useWorkspacesStore } from "renderer/stores";
+import { useAddTab, useTabs } from "renderer/stores";
+import { trpc } from "renderer/lib/trpc";
 import { TabItem } from "./TabItem";
 import { UngroupDropZone } from "./UngroupDropZone";
 
 export function TabsView() {
-	const activeWorkspaceId = useWorkspacesStore(
-		(state) => state.activeWorkspaceId,
-	);
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabs();
 	const addTab = useAddTab();
 

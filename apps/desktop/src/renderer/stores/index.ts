@@ -6,4 +6,3 @@
 
 export * from "./sidebar-state";
 export * from "./tabs"; // Now exports from tabs/index.ts
-export * from "./workspaces";

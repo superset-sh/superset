@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { publicProcedure, router } from "../..";
 import { db } from "../../../../main/lib/db";
 import type { Project } from "../../../../main/lib/db/schemas";
-import { isGitRepo } from "../workspaces/utils/git";
+import { getGitRoot } from "../workspaces/utils/git";
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
@@ -22,18 +22,22 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
-				return { success: false as const };
+				return { success: false };
 			}
 
-			const mainRepoPath = result.filePaths[0];
-			const name = basename(mainRepoPath);
+			const selectedPath = result.filePaths[0];
 
-			if (!(await isGitRepo(mainRepoPath))) {
+			let mainRepoPath: string;
+			try {
+				mainRepoPath = await getGitRoot(selectedPath);
+			} catch (_error) {
 				return {
-					success: false as const,
-					error: "Selected folder is not a git repository",
+					success: false,
+					error: "Selected folder is not in a git repository",
 				};
 			}
+
+			const name = basename(mainRepoPath);
 
 			let project = db.data.projects.find(
 				(p) => p.mainRepoPath === mainRepoPath,

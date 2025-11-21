@@ -15,7 +15,8 @@ import {
 	useSplitTabVertical,
 	useTabs,
 } from "../stores/tabs";
-import { useWorkspacesStore } from "../stores/workspaces";
+import { trpc } from "../lib/trpc";
+import { useSetActiveWorkspace } from "../react-query/workspaces";
 
 function findWorkspaceIndex(
 	workspaces: Array<{ id: string }>,
@@ -31,8 +32,9 @@ function findTabIndex(tabs: Array<{ id: string }>, id: string | null) {
 }
 
 export function useGlobalShortcuts() {
-	const { workspaces, activeWorkspaceId, setActiveWorkspace } =
-		useWorkspacesStore();
+	const { data: workspaces = [] } = trpc.workspaces.getAll.useQuery();
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const setActiveWorkspace = useSetActiveWorkspace();
 	const { toggleSidebar } = useSidebarStore();
 	const tabs = useTabs();
 	const activeTabIds = useActiveTabIds();
@@ -41,6 +43,8 @@ export function useGlobalShortcuts() {
 	const removeTab = useRemoveTab();
 	const splitTabVertical = useSplitTabVertical();
 	const splitTabHorizontal = useSplitTabHorizontal();
+
+	const activeWorkspaceId = activeWorkspace?.id;
 
 	const workspaceTabs = useMemo(() => {
 		if (!activeWorkspaceId) return [];
@@ -59,14 +63,14 @@ export function useGlobalShortcuts() {
 				if (!activeWorkspaceId) return;
 				const index = findWorkspaceIndex(workspaces, activeWorkspaceId);
 				if (index > 0) {
-					setActiveWorkspace(workspaces[index - 1].id);
+					setActiveWorkspace.mutate({ id: workspaces[index - 1].id });
 				}
 			},
 			switchToNextWorkspace: () => {
 				if (!activeWorkspaceId) return;
 				const index = findWorkspaceIndex(workspaces, activeWorkspaceId);
 				if (index < workspaces.length - 1) {
-					setActiveWorkspace(workspaces[index + 1].id);
+					setActiveWorkspace.mutate({ id: workspaces[index + 1].id });
 				}
 			},
 			toggleSidebar,
