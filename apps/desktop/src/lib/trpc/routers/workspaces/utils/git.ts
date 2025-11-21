@@ -1,6 +1,6 @@
-import simpleGit from "simple-git";
-import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import simpleGit from "simple-git";
 
 export function generateBranchName(): string {
 	const adjectives = [

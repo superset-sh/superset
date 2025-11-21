@@ -1,2 +1,2 @@
-export { createWorkspacesRouter } from "./workspaces";
 export type { WorkspacesRouter } from "./workspaces";
+export { createWorkspacesRouter } from "./workspaces";

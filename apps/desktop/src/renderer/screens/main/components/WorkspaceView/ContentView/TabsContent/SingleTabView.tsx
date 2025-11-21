@@ -42,7 +42,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<Terminal />
+				<Terminal tabId={tab.id} workspaceId={tab.workspaceId} />
 			</div>
 		</TabContentContextMenu>
 	);

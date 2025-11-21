@@ -13,21 +13,14 @@ export const handleSplitTabVertical = (
 	const tabToSplit = sourceTabId
 		? state.tabs.find((t) => t.id === sourceTabId)
 		: state.tabs.find(
-				(t) =>
-					t.id === state.activeTabIds[workspaceId] && !t.parentId,
+				(t) => t.id === state.activeTabIds[workspaceId] && !t.parentId,
 			);
 
 	if (!tabToSplit || tabToSplit.type === TabType.Group) return {};
 
 	// Groups can't be split - they already contain multiple panes
 	if (tabToSplit.parentId && path) {
-		return splitPaneInGroup(
-			state,
-			tabToSplit,
-			workspaceId,
-			path,
-			"row",
-		);
+		return splitPaneInGroup(state, tabToSplit, workspaceId, path, "row");
 	}
 
 	return convertTabToGroup(state, tabToSplit, workspaceId, "row");
@@ -42,21 +35,14 @@ export const handleSplitTabHorizontal = (
 	const tabToSplit = sourceTabId
 		? state.tabs.find((t) => t.id === sourceTabId)
 		: state.tabs.find(
-				(t) =>
-					t.id === state.activeTabIds[workspaceId] && !t.parentId,
+				(t) => t.id === state.activeTabIds[workspaceId] && !t.parentId,
 			);
 
 	if (!tabToSplit || tabToSplit.type === TabType.Group) return {};
 
 	// Groups can't be split - they already contain multiple panes
 	if (tabToSplit.parentId && path) {
-		return splitPaneInGroup(
-			state,
-			tabToSplit,
-			workspaceId,
-			path,
-			"column",
-		);
+		return splitPaneInGroup(state, tabToSplit, workspaceId, path, "column");
 	}
 
 	return convertTabToGroup(state, tabToSplit, workspaceId, "column");
@@ -177,4 +163,3 @@ const convertTabToGroup = (
 		},
 	};
 };
-

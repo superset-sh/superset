@@ -1,11 +1,11 @@
-import { z } from "zod";
-import { nanoid } from "nanoid";
 import { join } from "node:path";
-import { publicProcedure, router } from "../..";
+import { nanoid } from "nanoid";
+import { z } from "zod";
 import { db } from "../../../../main/lib/db";
+import { publicProcedure, router } from "../..";
 import {
-	generateBranchName,
 	createWorktree,
+	generateBranchName,
 	removeWorktree,
 } from "./utils/git";
 
@@ -26,11 +26,7 @@ export const createWorkspacesRouter = () => {
 
 				const branch = generateBranchName();
 
-				const worktreePath = join(
-					project.mainRepoPath,
-					".superset",
-					branch,
-				);
+				const worktreePath = join(project.mainRepoPath, ".superset", branch);
 
 				await createWorktree(project.mainRepoPath, branch, worktreePath);
 
@@ -97,9 +93,7 @@ export const createWorkspacesRouter = () => {
 			}),
 
 		getAll: publicProcedure.query(() => {
-			return db.data.workspaces
-				.slice()
-				.sort((a, b) => a.tabOrder - b.tabOrder);
+			return db.data.workspaces.slice().sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
 		getAllGrouped: publicProcedure.query(() => {
@@ -110,7 +104,12 @@ export const createWorkspacesRouter = () => {
 			const groupsMap = new Map<
 				string,
 				{
-					project: { id: string; name: string; color: string; tabOrder: number };
+					project: {
+						id: string;
+						name: string;
+						color: string;
+						tabOrder: number;
+					};
 					workspaces: Array<{
 						id: string;
 						projectId: string;

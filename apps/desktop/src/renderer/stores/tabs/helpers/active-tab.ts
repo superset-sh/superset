@@ -51,4 +51,3 @@ export const getLastActiveTabId = (
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 	return historyStack[0] || null;
 };
-

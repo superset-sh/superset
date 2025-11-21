@@ -1,9 +1,9 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
-import { createWindowRouter } from "./window";
 import { createProjectsRouter } from "./projects";
-import { createWorkspacesRouter } from "./workspaces";
 import { createTerminalRouter } from "./terminal";
+import { createWindowRouter } from "./window";
+import { createWorkspacesRouter } from "./workspaces";
 
 /**
  * Main application router

@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -6,9 +5,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { FolderOpen } from "lucide-react";
+import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useOpenNew } from "renderer/react-query/projects";
+import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 export interface WorkspaceDropdownProps {
 	className?: string;

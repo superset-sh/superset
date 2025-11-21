@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
+import { trpc } from "renderer/lib/trpc";
 import {
 	useActiveTabIds,
 	useRemoveTab,
@@ -9,7 +10,6 @@ import {
 	useUngroupTab,
 	useUngroupTabs,
 } from "renderer/stores";
-import { trpc } from "renderer/lib/trpc";
 import { TabType } from "renderer/stores/tabs/types";
 import { TabContextMenu } from "./TabContextMenu";
 import type { TabItemProps } from "./types";

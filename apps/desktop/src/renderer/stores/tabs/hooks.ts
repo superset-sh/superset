@@ -20,4 +20,3 @@ export const useSplitTabVertical = () =>
 	useTabsStore((state) => state.splitTabVertical);
 export const useSplitTabHorizontal = () =>
 	useTabsStore((state) => state.splitTabHorizontal);
-

@@ -74,7 +74,8 @@ exposeElectronTRPC();
 // Expose electron-store API via IPC
 const electronStoreAPI = {
 	get: (key: string) => ipcRenderer.invoke("storage:get", { key }),
-	set: (key: string, value: any) => ipcRenderer.invoke("storage:set", { key, value }),
+	set: (key: string, value: any) =>
+		ipcRenderer.invoke("storage:set", { key, value }),
 	delete: (key: string) => ipcRenderer.invoke("storage:delete", { key }),
 };
 

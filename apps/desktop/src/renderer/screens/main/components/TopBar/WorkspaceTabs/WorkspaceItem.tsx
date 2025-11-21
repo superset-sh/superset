@@ -3,9 +3,9 @@ import { cn } from "@superset/ui/utils";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import {
-	useSetActiveWorkspace,
 	useDeleteWorkspace,
 	useReorderWorkspaces,
+	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
 
 const WORKSPACE_TYPE = "WORKSPACE";

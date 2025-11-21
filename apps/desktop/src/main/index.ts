@@ -1,9 +1,10 @@
 import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { registerStorageHandlers } from "./lib/storage-ipcs";
-import { MainWindow } from "./windows/main";
 import { initDb } from "./lib/db";
+import { registerStorageHandlers } from "./lib/storage-ipcs";
+import { terminalManager } from "./lib/terminal-manager";
+import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -37,6 +38,8 @@ registerStorageHandlers();
 
 	await makeAppSetup(() => MainWindow());
 
-	// Stop all periodic rescans when app is quitting
-	app.on("before-quit", async () => {});
+	// Clean up all terminals when app is quitting
+	app.on("before-quit", async () => {
+		terminalManager.cleanup();
+	});
 })();

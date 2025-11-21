@@ -9,7 +9,7 @@
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
-	background:  var(--color-sidebar);
+	background: var(--color-sidebar);
 	border-top-left-radius: var(--radius-xs);
 	border-top-right-radius: var(--radius-xs);
 	height: 32px;
@@ -45,7 +45,6 @@
 	opacity: 1;
 	background: var(--color-border);
 }
-
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {

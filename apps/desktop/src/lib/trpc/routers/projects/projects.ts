@@ -1,11 +1,11 @@
-import { dialog } from "electron";
-import type { BrowserWindow } from "electron";
 import { basename } from "node:path";
+import type { BrowserWindow } from "electron";
+import { dialog } from "electron";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { publicProcedure, router } from "../..";
 import { db } from "../../../../main/lib/db";
 import type { Project } from "../../../../main/lib/db/schemas";
+import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 

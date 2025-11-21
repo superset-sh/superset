@@ -1,8 +1,11 @@
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
-import { useSidebarStore } from "renderer/stores/sidebar-state";
-import { useSplitTabHorizontal, useSplitTabVertical } from "renderer/stores/tabs";
 import { trpc } from "renderer/lib/trpc";
+import { useSidebarStore } from "renderer/stores/sidebar-state";
+import {
+	useSplitTabHorizontal,
+	useSplitTabVertical,
+} from "renderer/stores/tabs";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -18,16 +21,16 @@ export function MainScreen() {
 	const activeWorkspaceId = activeWorkspace?.id;
 
 	// Sidebar toggle shortcut
-	useHotkeys('meta+s', toggleSidebar, [toggleSidebar]);
+	useHotkeys("meta+s", toggleSidebar, [toggleSidebar]);
 
 	// Split view shortcuts
-	useHotkeys('meta+d', () => {
+	useHotkeys("meta+d", () => {
 		if (activeWorkspaceId) {
 			splitTabVertical(activeWorkspaceId);
 		}
 	}, [activeWorkspaceId, splitTabVertical]);
 
-	useHotkeys('meta+shift+d', () => {
+	useHotkeys("meta+shift+d", () => {
 		if (activeWorkspaceId) {
 			splitTabHorizontal(activeWorkspaceId);
 		}

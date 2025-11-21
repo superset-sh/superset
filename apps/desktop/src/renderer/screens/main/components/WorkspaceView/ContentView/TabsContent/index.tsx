@@ -1,15 +1,11 @@
 import { useMemo } from "react";
-import {
-	TabType,
-	useActiveTabIds,
-	useTabs,
-} from "renderer/stores";
 import { trpc } from "renderer/lib/trpc";
+import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
+import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
-import { DropOverlay } from "./DropOverlay";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();

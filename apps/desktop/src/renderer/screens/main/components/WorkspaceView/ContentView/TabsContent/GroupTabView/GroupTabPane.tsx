@@ -54,7 +54,7 @@ export function GroupTabPane({
 				onClosePane={() => removeChildTabFromGroup(groupId, tabId)}
 			>
 				<div className="w-full h-full overflow-hidden">
-					<Terminal />
+					<Terminal tabId={tabId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

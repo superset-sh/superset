@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { electronStorage } from "../../lib/electron-storage";
 import { handleDragTabToTab } from "./drag-logic";
 import {
 	getActiveTab,
@@ -15,6 +16,10 @@ import {
 	handleUpdateTabGroupLayout,
 } from "./helpers/group-operations";
 import {
+	handleSplitTabHorizontal,
+	handleSplitTabVertical,
+} from "./helpers/split-operations";
+import {
 	handleAddTab,
 	handleMarkTabAsUsed,
 	handleRemoveTab,
@@ -24,12 +29,7 @@ import {
 	handleReorderTabById,
 	handleReorderTabs,
 } from "./helpers/tab-ordering";
-import {
-	handleSplitTabHorizontal,
-	handleSplitTabVertical,
-} from "./helpers/split-operations";
-import { TabType, type TabsStore } from "./types";
-import { electronStorage } from "../../lib/electron-storage";
+import { type TabsStore, TabType } from "./types";
 
 export const useTabsStore = create<TabsStore>()(
 	devtools(

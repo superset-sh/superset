@@ -27,29 +27,21 @@ export function WorkspacesTabs() {
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
 	// Workspace switching shortcuts (work across groups)
-	useHotkeys(
-		"meta+alt+left",
-		() => {
-			if (!activeWorkspaceId) return;
-			const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-			if (index > 0) {
-				setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
-			}
-		},
-		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
-	);
+	useHotkeys("meta+alt+left", () => {
+		if (!activeWorkspaceId) return;
+		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (index > 0) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
+		}
+	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
-	useHotkeys(
-		"meta+alt+right",
-		() => {
-			if (!activeWorkspaceId) return;
-			const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-			if (index < allWorkspaces.length - 1) {
-				setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
-			}
-		},
-		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
-	);
+	useHotkeys("meta+alt+right", () => {
+		if (!activeWorkspaceId) return;
+		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (index < allWorkspaces.length - 1) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
+		}
+	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
 	useEffect(() => {
 		const checkScroll = () => {

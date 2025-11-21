@@ -1,6 +1,6 @@
+import { cleanLayout } from "../drag-logic";
 import type { Tab } from "../types";
 import { TabType } from "../types";
-import { cleanLayout } from "../drag-logic";
 import { getChildTabIds } from "../utils";
 
 export const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
@@ -21,4 +21,3 @@ export const validateGroupLayouts = (tabs: Tab[]): Tab[] => {
 		return tab;
 	});
 };
-

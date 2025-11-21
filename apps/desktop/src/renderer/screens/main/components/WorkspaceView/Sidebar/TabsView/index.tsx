@@ -2,8 +2,8 @@ import { Button } from "@superset/ui/button";
 import { LayoutGroup, motion } from "framer-motion";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
-import { useAddTab, useTabs } from "renderer/stores";
 import { trpc } from "renderer/lib/trpc";
+import { useAddTab, useTabs } from "renderer/stores";
 import { TabItem } from "./TabItem";
 import { UngroupDropZone } from "./UngroupDropZone";
 

@@ -1,6 +1,6 @@
-import { JSONFilePreset } from "lowdb/node";
 import { join } from "node:path";
 import { app } from "electron";
+import { JSONFilePreset } from "lowdb/node";
 import type { Database } from "./schemas";
 import { defaultDatabase } from "./schemas";
 
