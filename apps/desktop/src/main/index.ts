@@ -4,6 +4,7 @@ import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
+import { setupAgentHooks } from "./lib/agent-setup";
 import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
@@ -35,6 +36,9 @@ registerStorageHandlers();
 
 	// Initialize database
 	await initDb();
+
+	// Set up agent hook wrappers in ~/.superset
+	setupAgentHooks();
 
 	await makeAppSetup(() => MainWindow());
 

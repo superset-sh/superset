@@ -5,6 +5,7 @@ import { createAppRouter } from "lib/trpc/routers";
 import { createIPCHandler } from "trpc-electron/main";
 import { displayName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
+import { startHooksServer, stopHooksServer } from "../lib/hooks-server";
 
 export async function MainWindow() {
 	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -38,11 +39,16 @@ export async function MainWindow() {
 		windows: [window],
 	});
 
+	// Start HTTP server for agent hook callbacks
+	startHooksServer(window);
+
 	window.webContents.on("did-finish-load", async () => {
 		window.show();
 	});
 
-	window.on("close", () => {});
+	window.on("close", () => {
+		stopHooksServer();
+	});
 
 	return window;
 }
