@@ -114,7 +114,7 @@ export class HistoryWriter {
 
 		const line = `${JSON.stringify(event)}\n`;
 		this.writeStream.write(line);
-		this.byteLength += data.length;
+		this.byteLength += Buffer.byteLength(line);
 	}
 
 	async writeExit(exitCode?: number, signal?: number): Promise<void> {
@@ -132,6 +132,7 @@ export class HistoryWriter {
 
 		const line = `${JSON.stringify(event)}\n`;
 		this.writeStream.write(line);
+		this.byteLength += Buffer.byteLength(line);
 
 		await this.finalize(exitCode);
 	}
@@ -261,6 +262,8 @@ export class HistoryReader {
 						// Cap at MAX_CHARS to avoid huge payloads
 						if (scrollback.length > MAX_CHARS) {
 							scrollback = scrollback.slice(-MAX_CHARS);
+							// Stop early once we have enough for recovery
+							break;
 						}
 					}
 				} catch {

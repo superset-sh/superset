@@ -93,8 +93,8 @@ export const createTerminalRouter = () => {
 					deleteHistory: z.boolean().optional(),
 				}),
 			)
-			.mutation(({ input }) => {
-				terminalManager.kill(input);
+			.mutation(async ({ input }) => {
+				await terminalManager.kill(input);
 			}),
 
 		/**

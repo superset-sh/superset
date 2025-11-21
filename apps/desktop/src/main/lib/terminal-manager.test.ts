@@ -244,7 +244,7 @@ describe("TerminalManager", () => {
 				manager.once("exit:tab-1", () => resolve());
 			});
 
-			manager.kill({ tabId: "tab-1" });
+			await manager.kill({ tabId: "tab-1" });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
@@ -281,7 +281,7 @@ describe("TerminalManager", () => {
 				manager.once("exit:tab-delete-history", () => resolve());
 			});
 
-			manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
+			await manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
@@ -332,7 +332,7 @@ describe("TerminalManager", () => {
 			});
 
 			// Kill without deleting history
-			manager.kill({ tabId: "tab-preserve" });
+			await manager.kill({ tabId: "tab-preserve" });
 
 			// Simulate exit handler
 			const onExitCallback =

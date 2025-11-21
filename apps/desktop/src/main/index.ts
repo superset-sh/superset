@@ -40,6 +40,6 @@ registerStorageHandlers();
 
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
-		terminalManager.cleanup();
+		await terminalManager.cleanup();
 	});
 })();

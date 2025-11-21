@@ -121,6 +121,8 @@ export class TerminalManager extends EventEmitter {
 			// Finalize history
 			if (session.historyWriter?.isOpen()) {
 				await session.historyWriter.writeExit(exitCode, signal);
+			} else if (session.historyWriter) {
+				await session.historyWriter.finalize(exitCode);
 			}
 
 			// Delete history if requested (e.g., tab closure)
@@ -198,7 +200,7 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	kill(params: { tabId: string; deleteHistory?: boolean }): void {
+	async kill(params: { tabId: string; deleteHistory?: boolean }): Promise<void> {
 		const { tabId, deleteHistory = false } = params;
 		const session = this.sessions.get(tabId);
 
@@ -218,13 +220,16 @@ export class TerminalManager extends EventEmitter {
 			session.pty.kill();
 		} else {
 			// If already dead, cleanup immediately since exit handler won't run
-			this.sessions.delete(tabId);
+			if (session.historyWriter?.isOpen()) {
+				await session.historyWriter.writeExit();
+			} else if (session.historyWriter) {
+				await session.historyWriter.finalize();
+			}
 			if (deleteHistory) {
 				const historyReader = new HistoryReader(session.workspaceId, tabId);
-				historyReader.cleanup().catch((error) => {
-					console.error(`Failed to cleanup history for ${tabId}:`, error);
-				});
+				await historyReader.cleanup();
 			}
+			this.sessions.delete(tabId);
 		}
 	}
 

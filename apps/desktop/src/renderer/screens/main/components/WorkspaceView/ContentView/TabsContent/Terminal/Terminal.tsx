@@ -95,6 +95,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		};
 
+		const applyInitialScrollback = (result: {
+			wasRecovered: boolean;
+			isNew: boolean;
+			scrollback: string[];
+		}) => {
+			if (result.wasRecovered && result.scrollback.length > 0) {
+				xterm.write(result.scrollback[0]);
+				xterm.write("\r\n\r\n\x1b[2m[Recovered session history]\x1b[0m\r\n");
+			} else if (!result.isNew && result.scrollback.length > 0) {
+				xterm.write(result.scrollback[0]);
+			}
+		};
+
 		const restartTerminal = () => {
 			isExitedRef.current = false;
 			setSubscriptionEnabled(false);
@@ -107,7 +120,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					rows: xterm.rows,
 				},
 				{
-					onSuccess: () => {
+					onSuccess: (result) => {
+						applyInitialScrollback(result);
+						setSubscriptionEnabled(true);
+						flushPendingEvents();
+					},
+					onError: () => {
 						setSubscriptionEnabled(true);
 					},
 				},
@@ -131,18 +149,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
-					// Apply recovered scrollback first, before enabling subscription
-					if (result.wasRecovered && result.scrollback.length > 0) {
-						xterm.write(result.scrollback[0]);
-						xterm.write(
-							"\r\n\r\n\x1b[2m[Recovered session history]\x1b[0m\r\n",
-						);
-					} else if (!result.isNew && result.scrollback.length > 0) {
-						xterm.write(result.scrollback[0]);
-					}
+					applyInitialScrollback(result);
 					// Now enable subscription and flush any queued events
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
+				},
+				onError: () => {
+					setSubscriptionEnabled(true);
 				},
 			},
 		);
