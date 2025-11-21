@@ -34,16 +34,19 @@ registerStorageHandlers();
 (async () => {
 	await app.whenReady();
 
-	// Initialize database
 	await initDb();
 
-	// Set up agent hook wrappers in ~/.superset
-	setupAgentHooks();
+	try {  
+        setupAgentHooks();  
+    } catch (error) {  
+        console.error("[main] Failed to set up agent hooks:", error);  
+        // App can continue without agent hooks, but log the failure  
+    }  
 
 	await makeAppSetup(() => MainWindow());
 
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
-		terminalManager.cleanup();
+		await terminalManager.cleanup();
 	});
 })();

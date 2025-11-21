@@ -36,7 +36,7 @@ export function WorkspaceGroup({
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
 	return (
-		<div className="flex items-center h-full gap-2">
+		<div className="flex items-center h-full">
 			{/* Project group badge */}
 			<WorkspaceGroupHeader
 				projectId={projectId}
@@ -49,7 +49,7 @@ export function WorkspaceGroup({
 
 			{/* Workspaces with colored line (collapsed shows only active tab) */}
 			<div
-				className="flex items-end h-full"
+				className="flex items-end h-full gap-1"
 				style={{
 					borderBottom: `2px solid ${projectColor}`,
 				}}

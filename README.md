@@ -29,6 +29,7 @@ bun test
 apps/
 ├── website/          # Main website application
 ├── desktop/          # Electron desktop app
+├── cli/              # Command-line interface for managing workspaces & agents
 ├── docs/             # Documentation site
 └── blog/             # Blog site
 
@@ -97,6 +98,38 @@ Schema is defined in `packages/db/src/` using Drizzle ORM.
 **Neon Details:**
 - Org ID: `org-round-base-25422821`
 - Project ID: `tiny-cherry-82420694`
+
+## CLI Tool
+
+The CLI (`apps/cli`) provides terminal-based management of workspaces and agents:
+
+### Features
+
+- **Workspace Management**: List, create, and switch between workspaces
+- **Agent Monitoring**: Track running agents with real-time status updates
+- **Interactive Panels**: Navigate workspaces and agents with keyboard shortcuts
+- **Process Orchestration**: Manage agent lifecycle (start, stop, attach)
+
+### Usage
+
+```bash
+# View all commands
+superset --help
+
+# Interactive panels view
+superset panels
+
+# Dashboard view
+superset dashboard
+
+# Agent management
+superset agent list
+superset agent attach <agent-id>
+```
+
+### Requirements
+
+- Node.js >=20 (required by string-width dependency)
 
 ## Desktop App
 

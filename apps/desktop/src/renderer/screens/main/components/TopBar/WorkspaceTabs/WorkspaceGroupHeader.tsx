@@ -53,27 +53,34 @@ export function WorkspaceGroupHeader({
 	);
 
 	return (
-		<button
-			type="button"
-			ref={(node) => {
-				drag(node);
-				drop(node);
-			}}
-			className={`
-				flex items-center justify-center
-				px-3 py-1 rounded-full
-				text-xs font-medium cursor-pointer select-none
-				transition-all shrink-0 no-drag
-				${isDragging ? "opacity-30" : "opacity-100"}
-				${isOver ? "ring-2 ring-white/20" : ""}
-			`}
-			onClick={onToggleCollapse}
+		<div
+			className="flex items-center h-full"
 			style={{
-				backgroundColor: projectColor,
-				color: "white",
+				borderBottom: `2px solid ${projectColor}`,
 			}}
 		>
-			<span className="truncate max-w-[100px]">{projectName}</span>
-		</button>
+			<button
+				type="button"
+				ref={(node) => {
+					drag(node);
+					drop(node);
+				}}
+				className={`
+					flex items-center justify-center mr-2
+					px-3 py-1 rounded-full
+					text-xs font-medium cursor-pointer select-none
+					transition-all shrink-0 no-drag
+					${isDragging ? "opacity-30" : "opacity-100"}
+					${isOver ? "ring-2 ring-white/20" : ""}
+				`}
+				onClick={onToggleCollapse}
+				style={{
+					backgroundColor: projectColor,
+					color: "white",
+				}}
+			>
+				<span className="truncate max-w-[100px]">{projectName}</span>
+			</button>
+		</div>
 	);
 }

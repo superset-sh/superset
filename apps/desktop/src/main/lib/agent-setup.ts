@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { execSync } from "node:child_process";
+import { NOTIFICATIONS_PORT } from "shared/constants";
 
 const SUPERSET_DIR = path.join(os.homedir(), ".superset");
 const BIN_DIR = path.join(SUPERSET_DIR, "bin");
@@ -38,7 +39,7 @@ function createNotifyScript(): void {
 # Only run if inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0
 
-curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-31415}/hook/complete" \\
+curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${NOTIFICATIONS_PORT}}/hook/complete" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
   --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\
@@ -117,7 +118,7 @@ export function setupAgentHooks(): void {
 /**
  * Returns the PATH with our bin directory prepended
  */
-export function getSupsersetPath(): string {
+export function getSupersetPath(): string {
 	return `${BIN_DIR}:${process.env.PATH || ""}`;
 }
 
