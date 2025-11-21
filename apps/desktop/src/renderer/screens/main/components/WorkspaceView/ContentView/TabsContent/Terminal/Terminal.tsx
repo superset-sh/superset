@@ -58,7 +58,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const flushPendingEvents = () => {
 		if (!xtermRef.current || pendingEventsRef.current.length === 0) return;
-		const events = pendingEventsRef.current.splice(0, pendingEventsRef.current.length);
+		const events = pendingEventsRef.current.splice(
+			0,
+			pendingEventsRef.current.length,
+		);
 		for (const event of events) {
 			if (event.type === "data") {
 				xtermRef.current.write(event.data);
@@ -96,6 +99,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		enabled: subscriptionEnabled,
 	});
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: flushPendingEvents is intentionally excluded - it's stable and only called during initialization
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;

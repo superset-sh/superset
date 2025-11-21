@@ -31,4 +31,3 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 };
 
 export const RESIZE_DEBOUNCE_MS = 150;
-
