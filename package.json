@@ -1,15 +1,19 @@
 {
 	"name": "@superset/repo",
 	"version": "0.0.0",
+	"repository": {
+		"type": "git"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.2.6",
+		"sherif": "^1.7.0",
+		"turbo": "^2.5.8"
+	},
 	"description": "Superset Monorepo",
 	"homepage": "https://superset.sh",
 	"license": "Apache-2.0",
+	"packageManager": "bun@1.3.0",
 	"private": true,
-	"type": "module",
-	"workspaces": [
-		"packages/*",
-		"apps/*"
-	],
 	"scripts": {
 		"dev": "turbo dev",
 		"dev:desktop": "turbo dev --filter=@superset/desktop",
@@ -35,13 +39,9 @@
 		"clean:workspaces": "turbo clean",
 		"setup:env": "cd packages/scripts && bun run start"
 	},
-	"repository": {
-		"type": "git"
-	},
-	"packageManager": "bun@1.3.0",
-	"devDependencies": {
-		"@biomejs/biome": "^2.2.6",
-		"sherif": "^1.7.0",
-		"turbo": "^2.5.8"
-	}
+	"type": "module",
+	"workspaces": [
+		"packages/*",
+		"apps/*"
+	]
 }

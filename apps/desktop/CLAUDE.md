@@ -1,35 +1,3 @@
-# Agent Notification System
-
-The desktop app can show a notification (red dot) on tabs when an agent like Claude finishes its task.
-
-## How It Works
-
-1. **HTTP Hooks Server** (`src/main/lib/hooks-server.ts`): Listens on port 31415 for completion callbacks
-2. **IPC Event**: When a hook fires, sends `agent-hook:complete` event to renderer
-3. **Zustand Update**: `useAgentHookListener` hook updates tab's `needsAttention` flag
-4. **UI**: TabItem shows red dot when `needsAttention` is true, clears on click
-
-## Auto-Setup (No User Configuration Required)
-
-On app startup, `setupAgentHooks()` in `src/main/lib/agent-setup.ts`:
-1. Creates `~/.superset/bin/` with wrapper scripts for `claude` and `codex`
-2. Creates `~/.superset/hooks/notify.sh` shared notification script
-3. Wrapper scripts inject hook settings via CLI flags (e.g., `--settings` for Claude)
-
-When terminals spawn, PATH is prepended with `~/.superset/bin/` so our wrappers intercept agent commands.
-
-## Terminal Integration
-
-When creating terminals, pass these env vars via node-pty:
-- `SUPERSET_TAB_ID`: The tab's ID
-- `SUPERSET_TAB_TITLE`: The tab's display title
-- `SUPERSET_WORKSPACE_NAME`: The workspace name
-- `SUPERSET_PORT`: The hooks server port (31415)
-
-See `src/lib/trpc/routers/terminal/terminal.ts` for the interface.
-
----
-
 # Implementation details
 For Electron interprocess communnication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible
