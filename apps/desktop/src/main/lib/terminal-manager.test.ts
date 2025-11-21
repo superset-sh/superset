@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as pty from "node-pty";
+import { HistoryReader } from "./terminal-history";
 import { TerminalManager } from "./terminal-manager";
 
 // Mock node-pty
@@ -55,7 +56,7 @@ describe("TerminalManager", () => {
 	});
 
 	afterEach(async () => {
-		manager.cleanup();
+		await manager.cleanup();
 		mock.restore();
 
 		// Clean up test history files
@@ -238,6 +239,11 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
+			// Listen for exit event
+			const exitPromise = new Promise<void>((resolve) => {
+				manager.once("exit:tab-1", () => resolve());
+			});
+
 			manager.kill({ tabId: "tab-1" });
 
 			expect(mockPty.kill).toHaveBeenCalled();
@@ -249,8 +255,8 @@ describe("TerminalManager", () => {
 				await onExitCallback({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait for exit handler to complete
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			// Wait for exit event to be emitted
+			await exitPromise;
 
 			// Verify history directory still exists
 			const historyDir = join(
@@ -270,6 +276,11 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
+			// Listen for exit event
+			const exitPromise = new Promise<void>((resolve) => {
+				manager.once("exit:tab-delete-history", () => resolve());
+			});
+
 			manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
 
 			expect(mockPty.kill).toHaveBeenCalled();
@@ -281,8 +292,8 @@ describe("TerminalManager", () => {
 				await onExitCallback({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait for exit handler and cleanup to complete
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			// Wait for exit event to be emitted
+			await exitPromise;
 
 			// Verify history directory is deleted
 			const historyDir = join(
@@ -315,6 +326,11 @@ describe("TerminalManager", () => {
 				onDataCallback("Preserved output\n");
 			}
 
+			// Listen for exit event
+			const exitPromise = new Promise<void>((resolve) => {
+				manager.once("exit:tab-preserve", () => resolve());
+			});
+
 			// Kill without deleting history
 			manager.kill({ tabId: "tab-preserve" });
 
@@ -325,8 +341,8 @@ describe("TerminalManager", () => {
 				await onExitCallback({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait for finalization
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			// Wait for exit event to be emitted
+			await exitPromise;
 
 			// Recreate session - should recover history
 			const result = await manager.createOrAttach({
@@ -378,7 +394,7 @@ describe("TerminalManager", () => {
 	});
 
 	describe("cleanup", () => {
-		it("should kill all sessions", async () => {
+		it("should kill all sessions and wait for exit handlers", async () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
@@ -389,9 +405,67 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			manager.cleanup();
+			// Start cleanup (will wait for exit handlers)
+			const cleanupPromise = manager.cleanup();
+
+			// Simulate exit handlers
+			const onExitCallback1 = mockPty.onExit.mock.calls[0]?.[0];
+			const onExitCallback2 = mockPty.onExit.mock.calls[1]?.[0];
+
+			if (onExitCallback1) {
+				await onExitCallback1({ exitCode: 0, signal: undefined });
+			}
+			if (onExitCallback2) {
+				await onExitCallback2({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for cleanup to complete
+			await cleanupPromise;
 
 			expect(mockPty.kill).toHaveBeenCalledTimes(2);
+		});
+
+		it("should preserve history during cleanup", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-cleanup",
+				workspaceId: "workspace-1",
+			});
+
+			// Simulate some output
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("Test output during cleanup\n");
+			}
+
+			// Cleanup
+			const cleanupPromise = manager.cleanup();
+
+			// Simulate exit handler
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for cleanup to complete (this waits for exit handlers and finalization)
+			await cleanupPromise;
+
+			// Verify history directory still exists (not deleted)
+			const historyDir = join(
+				homedir(),
+				".superset",
+				"terminal-history",
+				"workspace-1",
+				"tab-cleanup",
+			);
+			const stats = await fs.stat(historyDir);
+			expect(stats.isDirectory()).toBe(true);
+
+			// Verify history was written
+			const historyReader = new HistoryReader("workspace-1", "tab-cleanup");
+			const result = await historyReader.getLatestSession();
+			expect(result.scrollback).toContain("Test output during cleanup");
 		});
 	});
 
@@ -423,6 +497,11 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
+			// Listen for exit event
+			const exitPromise = new Promise<void>((resolve) => {
+				manager.once("exit:tab-1", () => resolve());
+			});
+
 			manager.on("exit:tab-1", exitHandler);
 
 			// Simulate pty exit
@@ -431,8 +510,8 @@ describe("TerminalManager", () => {
 				await onExitCallback({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait a bit for async operations to complete
-			await new Promise((resolve) => setTimeout(resolve, 10));
+			// Wait for exit event to be emitted
+			await exitPromise;
 
 			expect(exitHandler).toHaveBeenCalledWith(0, undefined);
 		});
@@ -464,6 +543,11 @@ describe("TerminalManager", () => {
 				onDataCallback1("Session 1 output\n");
 			}
 
+			// Listen for exit event
+			const exitPromise1 = new Promise<void>((resolve) => {
+				manager.once("exit:tab-multi", () => resolve());
+			});
+
 			// Simulate exit by calling the PTY onExit callback
 			const onExitCallback1 =
 				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
@@ -471,11 +555,11 @@ describe("TerminalManager", () => {
 				await onExitCallback1({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait for finalization
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			// Wait for exit event to be emitted
+			await exitPromise1;
 
 			// Manually cleanup the session (instead of waiting for timeout)
-			manager.cleanup();
+			await manager.cleanup();
 
 			// Session 2: Attach again (should recover history)
 			const result2 = await manager.createOrAttach({
@@ -487,15 +571,17 @@ describe("TerminalManager", () => {
 			expect(result2.wasRecovered).toBe(true);
 			expect(result2.scrollback[0]).toContain("Session 1 output");
 
-			// Wait for writer to be fully initialized
-			await new Promise((resolve) => setTimeout(resolve, 50));
-
 			// Simulate session 2 output by calling the PTY onData callback
 			const onDataCallback2 =
 				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
 			if (onDataCallback2) {
 				onDataCallback2("Session 2 output\n");
 			}
+
+			// Listen for exit event
+			const exitPromise2 = new Promise<void>((resolve) => {
+				manager.once("exit:tab-multi", () => resolve());
+			});
 
 			// Simulate exit by calling the PTY onExit callback
 			const onExitCallback2 =
@@ -504,11 +590,11 @@ describe("TerminalManager", () => {
 				await onExitCallback2({ exitCode: 0, signal: undefined });
 			}
 
-			// Wait for finalization
-			await new Promise((resolve) => setTimeout(resolve, 50));
+			// Wait for exit event to be emitted
+			await exitPromise2;
 
 			// Manually cleanup the session
-			manager.cleanup();
+			await manager.cleanup();
 
 			// Session 3: Attach again (should recover both sessions' history)
 			const result3 = await manager.createOrAttach({

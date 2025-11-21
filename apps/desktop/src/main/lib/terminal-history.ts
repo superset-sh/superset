@@ -80,14 +80,13 @@ export class HistoryWriter {
 		// Create directory
 		await fs.mkdir(dir, { recursive: true });
 
-		// Check existing data size by reading previous metadata
+		// Check existing file size by reading actual file stats
 		try {
-			const metaContent = await fs.readFile(this.metaPath, "utf-8");
-			const prevMetadata = JSON.parse(metaContent) as SessionMetadata;
-			// Continue from previous session's byte count
-			this.byteLength = prevMetadata.byteLength || 0;
+			const stats = await fs.stat(this.filePath);
+			// Use actual file size to track total bytes
+			this.byteLength = stats.size;
 		} catch {
-			// No previous metadata, start at 0
+			// No existing file, start at 0
 			this.byteLength = 0;
 		}
 

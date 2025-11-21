@@ -38,6 +38,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
+			// Queue events that arrive before xterm is ready or before recovery is applied
+			pendingEventsRef.current.push(event);
+			return;
+		}
+
+		// Queue events while subscription is not enabled (recovery in progress)
+		if (!subscriptionEnabled) {
 			pendingEventsRef.current.push(event);
 			return;
 		}
@@ -56,7 +63,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
-		enabled: subscriptionEnabled,
+		enabled: true, // Always listen, but queue events internally until subscriptionEnabled is true
 	});
 
 	useEffect(() => {
@@ -69,7 +76,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		isExitedRef.current = false;
 		// Don't enable subscription yet - wait until recovery is applied
 
-		// Flush any pending events that arrived before xterm was ready
+		// Flush any pending events that arrived before xterm was ready or before recovery
 		const flushPendingEvents = () => {
 			if (pendingEventsRef.current.length === 0) return;
 			const events = pendingEventsRef.current.splice(
@@ -87,7 +94,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				}
 			}
 		};
-		flushPendingEvents();
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
@@ -125,7 +131,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
-					// Apply recovered scrollback first
+					// Apply recovered scrollback first, before enabling subscription
 					if (result.wasRecovered && result.scrollback.length > 0) {
 						xterm.write(result.scrollback[0]);
 						xterm.write(
@@ -134,8 +140,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					} else if (!result.isNew && result.scrollback.length > 0) {
 						xterm.write(result.scrollback[0]);
 					}
-					// Now enable subscription after recovery is complete
+					// Now enable subscription and flush any queued events
 					setSubscriptionEnabled(true);
+					flushPendingEvents();
 				},
 			},
 		);

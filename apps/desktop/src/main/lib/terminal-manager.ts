@@ -15,6 +15,7 @@ interface TerminalSession {
 	isAlive: boolean;
 	historyWriter?: HistoryWriter;
 	deleteHistoryOnExit?: boolean;
+	wasRecovered: boolean;
 }
 
 export interface TerminalDataEvent {
@@ -57,7 +58,7 @@ export class TerminalManager extends EventEmitter {
 			return {
 				isNew: false,
 				scrollback: existing.scrollback,
-				wasRecovered: false,
+				wasRecovered: existing.wasRecovered,
 			};
 		}
 
@@ -102,6 +103,7 @@ export class TerminalManager extends EventEmitter {
 					: [],
 			isAlive: true,
 			historyWriter,
+			wasRecovered: recovery.wasRecovered,
 		};
 
 		ptyProcess.onData((data) => {
@@ -255,12 +257,40 @@ export class TerminalManager extends EventEmitter {
 		};
 	}
 
-	cleanup(): void {
-		for (const [_tabId, session] of this.sessions.entries()) {
+	async cleanup(): Promise<void> {
+		// Create promises for all exit handlers to complete
+		const exitPromises: Promise<void>[] = [];
+
+		for (const [tabId, session] of this.sessions.entries()) {
 			if (session.isAlive) {
+				// Create a promise that resolves when this session's exit handler completes
+				const exitPromise = new Promise<void>((resolve) => {
+					const exitHandler = () => {
+						this.off(`exit:${tabId}`, exitHandler);
+						resolve();
+					};
+					this.once(`exit:${tabId}`, exitHandler);
+
+					// Set timeout to avoid hanging indefinitely
+					setTimeout(() => {
+						this.off(`exit:${tabId}`, exitHandler);
+						resolve();
+					}, 2000);
+				});
+
+				exitPromises.push(exitPromise);
 				session.pty.kill();
+			} else {
+				// For sessions that already exited, ensure their writers are finalized
+				if (session.historyWriter?.isOpen()) {
+					await session.historyWriter.finalize();
+				}
 			}
 		}
+
+		// Wait for all exit handlers to complete
+		await Promise.all(exitPromises);
+
 		this.sessions.clear();
 		this.removeAllListeners();
 	}
