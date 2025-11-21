@@ -98,6 +98,7 @@
         "fast-glob": "^3.3.3",
         "framer-motion": "^12.23.24",
         "http-proxy": "^1.18.1",
+        "lodash": "^4.17.21",
         "lowdb": "^7.0.1",
         "nanoid": "^5.1.6",
         "node-pty": "1.1.0-beta30",
@@ -124,6 +125,7 @@
         "@superset/ui": "workspace:*",
         "@tailwindcss/vite": "^4.0.9",
         "@types/http-proxy": "^1.17.17",
+        "@types/lodash": "^4.17.20",
         "@types/node": "^24.9.1",
         "@types/react": "^19.1.11",
         "@types/react-dom": "^19.1.7",
@@ -1246,6 +1248,8 @@
     "@types/katex": ["@types/katex@0.16.7", "", {}, "sha512-HMwFiRujE5PjrgwHQ25+bsLJgowjGjm5Z8FVSf0N6PwgJrwxH0QxzHYDcKsTfV3wva0vzrpqMTJS2jXPr5BMEQ=="],
 
     "@types/keyv": ["@types/keyv@3.1.4", "", { "dependencies": { "@types/node": "*" } }, "sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg=="],
+
+    "@types/lodash": ["@types/lodash@4.17.20", "", {}, "sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA=="],
 
     "@types/mdast": ["@types/mdast@4.0.4", "", { "dependencies": { "@types/unist": "*" } }, "sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA=="],
 
