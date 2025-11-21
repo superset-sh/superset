@@ -222,10 +222,19 @@ export const createWorkspacesRouter = () => {
 						// Dry-run: verify the worktree exists in git
 						const git = await import("simple-git").then((m) => m.default);
 						const gitInstance = git(project.mainRepoPath);
-						const worktrees = await gitInstance.raw(["worktree", "list"]);
+						const worktrees = await gitInstance.raw([
+							"worktree",
+							"list",
+							"--porcelain",
+						]);
 
-						// Check if our worktree path is in the list
-						const worktreeExists = worktrees.includes(worktree.path);
+						// Parse porcelain output line-by-line
+						// Format: "worktree /path/to/worktree" followed by HEAD, branch, etc.
+						const lines = worktrees.split("\n");
+						const worktreePrefix = `worktree ${worktree.path}`;
+						const worktreeExists = lines.some(
+							(line) => line.trim() === worktreePrefix,
+						);
 
 						if (!worktreeExists) {
 							// Worktree doesn't exist in git, but we can still delete the workspace
