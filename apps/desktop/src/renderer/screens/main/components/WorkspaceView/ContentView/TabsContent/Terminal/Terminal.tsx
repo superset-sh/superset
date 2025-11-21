@@ -34,10 +34,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const isExitedRef = useRef(false);
 
-	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
-	const write = trpc.terminal.write.useMutation();
-	const resize = trpc.terminal.resize.useMutation();
-	const detach = trpc.terminal.detach.useMutation();
+	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
+	const writeMutation = trpc.terminal.write.useMutation();
+	const resizeMutation = trpc.terminal.resize.useMutation();
+	const detachMutation = trpc.terminal.detach.useMutation();
+
+	// Avoid effect re-runs when mutations change
+	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
+	const writeRef = useRef(writeMutation.mutate);
+	const resizeRef = useRef(resizeMutation.mutate);
+	const detachRef = useRef(detachMutation.mutate);
+
+	createOrAttachRef.current = createOrAttachMutation.mutate;
+	writeRef.current = writeMutation.mutate;
+	resizeRef.current = resizeMutation.mutate;
+	detachRef.current = detachMutation.mutate;
 
 	const handleStreamData = (
 		event: { type: "data"; data: string } | { type: "exit"; exitCode: number },
@@ -57,6 +68,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
+		enabled: true,
 	});
 
 	useEffect(() => {
@@ -71,7 +83,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const restartTerminal = () => {
 			isExitedRef.current = false;
 			xterm.clear();
-			createOrAttach.mutate({
+			createOrAttachRef.current({
 				tabId,
 				workspaceId,
 				cols: xterm.cols,
@@ -80,14 +92,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const handleTerminalInput = (data: string) => {
+			// Read current state instead of relying on closure
 			if (isExitedRef.current) {
 				restartTerminal();
 			} else {
-				write.mutate({ tabId, data });
+				writeRef.current({ tabId, data });
 			}
 		};
 
-		createOrAttach.mutate(
+		createOrAttachRef.current(
 			{
 				tabId,
 				workspaceId,
@@ -106,7 +119,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 
 		const debouncedResize = debounce((cols: number, rows: number) => {
-			resize.mutate({ tabId, cols, rows });
+			resizeRef.current({ tabId, cols, rows });
 		}, RESIZE_DEBOUNCE_MS);
 
 		const handleResize = () => {
@@ -123,11 +136,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			window.removeEventListener("resize", handleResize);
 			resizeObserver.disconnect();
 			debouncedResize.cancel();
-			detach.mutate({ tabId });
+			// Keep PTY running for reattachment
+			detachRef.current({ tabId });
 			xterm.dispose();
 		};
-		// Dependencies intentionally minimal to avoid recreating terminal on every state change
-		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [tabId, workspaceId]);
 
 	return (

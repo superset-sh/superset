@@ -30,6 +30,7 @@ import {
 	handleReorderTabs,
 } from "./helpers/tab-ordering";
 import { type TabsStore, TabType } from "./types";
+import { killTerminalForTab } from "./utils/terminal-cleanup";
 
 export const useTabsStore = create<TabsStore>()(
 	devtools(
@@ -47,13 +48,13 @@ export const useTabsStore = create<TabsStore>()(
 					const state = get();
 					const result = handleRemoveTab(state, id);
 					if (result === null) {
-						// Delegate to removeChildTabFromGroup if tab has parentId
 						const tabToRemove = state.tabs.find((tab) => tab.id === id);
 						if (tabToRemove?.parentId) {
 							get().removeChildTabFromGroup(tabToRemove.parentId, id);
 						}
 						return;
 					}
+					killTerminalForTab(id);
 					set(() => result);
 				},
 
@@ -88,6 +89,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				removeChildTabFromGroup: (groupId, childTabId) => {
+					killTerminalForTab(childTabId);
 					set((state) =>
 						handleRemoveChildTabFromGroup(state, groupId, childTabId),
 					);
