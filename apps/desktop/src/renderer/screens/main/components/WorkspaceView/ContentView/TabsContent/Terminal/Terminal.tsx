@@ -5,6 +5,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { useSetActiveTab } from "renderer/stores";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 
 interface TerminalProps {
@@ -39,6 +40,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
+	const setActiveTab = useSetActiveTab();
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -157,6 +159,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 
+		// Activate tab when terminal receives focus (same logic as sidebar tab click)
+		const textarea = xterm.textarea;
+		const handleFocus = () => {
+			setActiveTab(workspaceId, tabId);
+		};
+		if (textarea) {
+			textarea.addEventListener("focus", handleFocus);
+		}
+
 		const debouncedResize = debounce((cols: number, rows: number) => {
 			resizeRef.current({ tabId, cols, rows });
 		}, RESIZE_DEBOUNCE_MS);
@@ -172,6 +183,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		return () => {
 			inputDisposable.dispose();
+			if (textarea) {
+				textarea.removeEventListener("focus", handleFocus);
+			}
 			window.removeEventListener("resize", handleResize);
 			resizeObserver.disconnect();
 			debouncedResize.cancel();
@@ -181,7 +195,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId]);
+	}, [tabId, workspaceId, setActiveTab]);
 
 	return (
 		<div className="h-full w-full overflow-hidden bg-black">
