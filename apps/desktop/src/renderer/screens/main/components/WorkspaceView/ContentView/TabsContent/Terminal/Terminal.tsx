@@ -1,37 +1,15 @@
 import "@xterm/xterm/css/xterm.css";
-import { FitAddon } from "@xterm/addon-fit";
-import { WebLinksAddon } from "@xterm/addon-web-links";
-import { Terminal as XTerm } from "@xterm/xterm";
-import { debounce } from "lodash";
+import type { FitAddon } from "@xterm/addon-fit";
+import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveTab } from "renderer/stores";
-import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-
-interface TerminalProps {
-	tabId: string;
-	workspaceId: string;
-}
-
-type TerminalStreamEvent =
-	| { type: "data"; data: string }
-	| { type: "exit"; exitCode: number };
-
-function createTerminalInstance(container: HTMLDivElement): {
-	xterm: XTerm;
-	fitAddon: FitAddon;
-} {
-	const xterm = new XTerm(TERMINAL_OPTIONS);
-	const fitAddon = new FitAddon();
-	const webLinksAddon = new WebLinksAddon();
-
-	xterm.loadAddon(fitAddon);
-	xterm.loadAddon(webLinksAddon);
-	xterm.open(container);
-	fitAddon.fit();
-
-	return { xterm, fitAddon };
-}
+import {
+	createTerminalInstance,
+	setupFocusListener,
+	setupResizeHandlers,
+} from "./helpers";
+import type { TerminalProps, TerminalStreamEvent } from "./types";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
@@ -58,26 +36,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
-	const flushPendingEvents = () => {
-		if (!xtermRef.current || pendingEventsRef.current.length === 0) return;
-		const events = pendingEventsRef.current.splice(
-			0,
-			pendingEventsRef.current.length,
-		);
-		for (const event of events) {
-			if (event.type === "data") {
-				xtermRef.current.write(event.data);
-			} else {
-				isExitedRef.current = true;
-				setSubscriptionEnabled(false);
-				xtermRef.current.writeln(
-					`\r\n\r\n[Process exited with code ${event.exitCode}]`,
-				);
-				xtermRef.current.writeln("[Press any key to restart]");
-			}
-		}
-	};
-
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
 			pendingEventsRef.current.push(event);
@@ -101,7 +59,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		enabled: subscriptionEnabled,
 	});
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: flushPendingEvents is intentionally excluded - it's stable and only called during initialization
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
@@ -111,6 +68,25 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
 		setSubscriptionEnabled(true);
+
+		// Flush any pending events that arrived before xterm was ready
+		const flushPendingEvents = () => {
+			if (pendingEventsRef.current.length === 0) return;
+			const events = pendingEventsRef.current.splice(
+				0,
+				pendingEventsRef.current.length,
+			);
+			for (const event of events) {
+				if (event.type === "data") {
+					xterm.write(event.data);
+				} else {
+					isExitedRef.current = true;
+					setSubscriptionEnabled(false);
+					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
+					xterm.writeln("[Press any key to restart]");
+				}
+			}
+		};
 		flushPendingEvents();
 
 		const restartTerminal = () => {
@@ -133,7 +109,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const handleTerminalInput = (data: string) => {
-			// Read current state instead of relying on closure
 			if (isExitedRef.current) {
 				restartTerminal();
 			} else {
@@ -158,37 +133,25 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
-
-		// Activate tab when terminal receives focus (same logic as sidebar tab click)
-		const textarea = xterm.textarea;
-		const handleFocus = () => {
-			setActiveTab(workspaceId, tabId);
-		};
-		if (textarea) {
-			textarea.addEventListener("focus", handleFocus);
-		}
-
-		const debouncedResize = debounce((cols: number, rows: number) => {
-			resizeRef.current({ tabId, cols, rows });
-		}, RESIZE_DEBOUNCE_MS);
-
-		const handleResize = () => {
-			fitAddon.fit();
-			debouncedResize(xterm.cols, xterm.rows);
-		};
-
-		const resizeObserver = new ResizeObserver(handleResize);
-		resizeObserver.observe(container);
-		window.addEventListener("resize", handleResize);
+		const cleanupFocus = setupFocusListener(
+			xterm,
+			workspaceId,
+			tabId,
+			setActiveTab,
+		);
+		const cleanupResize = setupResizeHandlers(
+			container,
+			xterm,
+			fitAddon,
+			(cols, rows) => {
+				resizeRef.current({ tabId, cols, rows });
+			},
+		);
 
 		return () => {
 			inputDisposable.dispose();
-			if (textarea) {
-				textarea.removeEventListener("focus", handleFocus);
-			}
-			window.removeEventListener("resize", handleResize);
-			resizeObserver.disconnect();
-			debouncedResize.cancel();
+			cleanupFocus?.();
+			cleanupResize();
 			// Keep PTY running for reattachment
 			detachRef.current({ tabId });
 			setSubscriptionEnabled(false);
