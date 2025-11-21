@@ -1,7 +1,7 @@
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
 import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal-manager";
+import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 /**

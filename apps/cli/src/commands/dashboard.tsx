@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
+import { Spinner } from "../components/Spinner";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
@@ -34,14 +35,11 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 	const [selectionMode, setSelectionMode] =
 		React.useState<SelectionMode>("workspace");
 	const [filterByCurrent, setFilterByCurrent] = React.useState(false);
-	const [spinnerFrame, setSpinnerFrame] = React.useState(0);
 	const { exit } = useApp();
 	const { stdout } = useStdout();
 
 	// Get terminal width, default to 80 if not available
 	const terminalWidth = stdout?.columns || 80;
-
-	const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 	// Helper to create responsive separator
 	const getSeparator = (width: number) => "─".repeat(Math.max(width - 4, 20));
@@ -92,22 +90,6 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 
 		return () => clearInterval(interval);
 	}, [loadDashboard]);
-
-	// Spinner animation - only run when there are running agents
-	React.useEffect(() => {
-		const hasRunningAgents =
-			data?.processes.some((p) => p.status === ProcessStatus.RUNNING) ?? false;
-
-		if (!hasRunningAgents) {
-			return;
-		}
-
-		const interval = setInterval(() => {
-			setSpinnerFrame((prev) => (prev + 1) % spinnerFrames.length);
-		}, 80);
-
-		return () => clearInterval(interval);
-	}, [data?.processes, spinnerFrames.length]);
 
 	// Keyboard shortcuts
 	useInput((input, key) => {
@@ -279,7 +261,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 		}
 		switch (agent.status) {
 			case ProcessStatus.RUNNING:
-				return <Text color="green">{spinnerFrames[spinnerFrame]}</Text>;
+				return <Spinner color="green" />;
 			case ProcessStatus.IDLE:
 				return <Text color="yellow">○</Text>;
 			case ProcessStatus.ERROR:

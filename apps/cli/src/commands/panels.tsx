@@ -1,6 +1,7 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
 import stringWidth from "string-width";
+import { useSpinner } from "../components/Spinner";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
@@ -36,7 +37,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 	const [selectedWorkspaceIndex, setSelectedWorkspaceIndex] = React.useState(0);
 	const [selectedAgentIndex, setSelectedAgentIndex] = React.useState(0);
 	const [activePanel, setActivePanel] = React.useState<ActivePanel>("agents");
-	const [spinnerFrame, setSpinnerFrame] = React.useState(0);
 	const { exit } = useApp();
 	const { stdout } = useStdout();
 
@@ -53,7 +53,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 	// Inner width: panel width minus border (2) and padding (2) = 4 total
 	const agentsPanelInnerWidth = Math.max(0, agentsPanelWidth - 4);
 
-	const spinnerFrames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+	const spinnerFrame = useSpinner();
 
 	const loadData = React.useCallback(async () => {
 		try {
@@ -92,22 +92,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 
 		return () => clearInterval(interval);
 	}, [loadData]);
-
-	// Spinner animation - only run when there are running agents
-	React.useEffect(() => {
-		const hasRunningAgents =
-			data?.processes.some((p) => p.status === ProcessStatus.RUNNING) ?? false;
-
-		if (!hasRunningAgents) {
-			return;
-		}
-
-		const interval = setInterval(() => {
-			setSpinnerFrame((prev) => (prev + 1) % spinnerFrames.length);
-		}, 80);
-
-		return () => clearInterval(interval);
-	}, [data?.processes, spinnerFrames.length]);
 
 	useInput((input, key) => {
 		if (!data) return;
@@ -268,9 +252,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								const isSelected = index === selectedWorkspaceIndex;
 								const isCurrent = ws.id === currentWorkspaceId;
 								const hasRunning = wsRunning.length > 0;
-								const statusEmoji = hasRunning
-									? spinnerFrames[spinnerFrame]
-									: "○";
+								const statusEmoji = hasRunning ? spinnerFrame : "○";
 								const statusColor = hasRunning ? "green" : "gray";
 
 								return (
@@ -325,7 +307,7 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 										: "unknown";
 								const isRunning = agent.status === ProcessStatus.RUNNING;
 								const statusEmoji = isRunning
-									? spinnerFrames[spinnerFrame]
+									? spinnerFrame
 									: agent.status === ProcessStatus.IDLE
 										? "○"
 										: agent.status === ProcessStatus.ERROR
@@ -347,9 +329,14 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 								// Build content parts
 								const arrow = isSelected ? "▸" : " ";
 								const parts = [arrow, statusEmoji, agentType, timeText];
-								const contentWidth = parts.reduce((sum, part) => sum + stringWidth(part), 0) + (parts.length - 1); // +spaces between
+								const contentWidth =
+									parts.reduce((sum, part) => sum + stringWidth(part), 0) +
+									(parts.length - 1); // +spaces between
 								// Use the larger of agentsPanelInnerWidth or contentWidth to prevent truncation
-								const targetWidth = Math.max(agentsPanelInnerWidth, contentWidth);
+								const targetWidth = Math.max(
+									agentsPanelInnerWidth,
+									contentWidth,
+								);
 								const paddingNeeded = Math.max(0, targetWidth - contentWidth);
 
 								return (
@@ -358,7 +345,6 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 										flexDirection="row"
 										marginBottom={1}
 										paddingY={0}
-										alignSelf="stretch"
 									>
 										<Text backgroundColor={backgroundColor}>
 											<Text color={textColor ?? "yellow"} bold={isSelected}>
@@ -376,7 +362,9 @@ export function Panels({ onComplete: _onComplete }: PanelsProps) {
 											<Text dimColor={!isSelected} color={textColor}>
 												{timeText}
 											</Text>
-											{paddingNeeded > 0 && <Text>{" ".repeat(paddingNeeded)}</Text>}
+											{paddingNeeded > 0 && (
+												<Text>{" ".repeat(paddingNeeded)}</Text>
+											)}
 										</Text>
 									</Box>
 								);
