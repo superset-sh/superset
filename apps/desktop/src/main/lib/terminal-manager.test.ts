@@ -158,6 +158,11 @@ describe("TerminalManager", () => {
 		});
 
 		it("should handle resize of non-existent session gracefully", () => {
+			// Mock console.warn to suppress the warning in test output
+			const warnSpy = mock(() => {});
+			const originalWarn = console.warn;
+			console.warn = warnSpy;
+
 			// Should not throw
 			expect(() => {
 				manager.resize({
@@ -166,6 +171,14 @@ describe("TerminalManager", () => {
 					rows: 24,
 				});
 			}).not.toThrow();
+
+			// Verify warning was called
+			expect(warnSpy).toHaveBeenCalledWith(
+				"Cannot resize terminal non-existent: session not found or not alive",
+			);
+
+			// Restore console.warn
+			console.warn = originalWarn;
 		});
 	});
 

@@ -1,4 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
+
+// Mock the terminal cleanup to avoid actually calling tRPC
+mock.module("./utils/terminal-cleanup", () => ({
+	killTerminalForTab: mock(() => {}),
+}));
+
 import { useTabsStore } from "./store";
 import { TabType } from "./types";
 

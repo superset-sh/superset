@@ -16,3 +16,9 @@ global.window = {
 		},
 	},
 } as any;
+
+// Mock globalThis.electronTRPC for trpc-electron/renderer
+(globalThis as any).electronTRPC = {
+	sendMessage: () => {},
+	onMessage: () => {},
+};
