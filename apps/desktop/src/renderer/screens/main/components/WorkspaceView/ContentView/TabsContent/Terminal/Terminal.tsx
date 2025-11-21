@@ -18,7 +18,7 @@ export const Terminal = () => {
 			fontSize: 14,
 			fontFamily: 'Menlo, Monaco, "Courier New", monospace',
 			theme: {
-				background: "#1e1e1e",
+				background: "#000000",
 				foreground: "#d4d4d4",
 				cursor: "#d4d4d4",
 				black: "#000000",
@@ -100,7 +100,7 @@ export const Terminal = () => {
 	}, []);
 
 	return (
-		<div className="h-full w-full overflow-hidden bg-[#1e1e1e]">
+		<div className="h-full w-full overflow-hidden bg-black">
 			<div ref={terminalRef} className="h-full w-full p-2" />
 		</div>
 	);
