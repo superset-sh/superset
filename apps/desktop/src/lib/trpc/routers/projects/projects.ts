@@ -85,7 +85,6 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				await db.update((data) => {
 					const { fromIndex, toIndex } = input;
 
-					// Get only active projects (those with tabOrder !== null), sorted by tabOrder
 					const activeProjects = data.projects
 						.filter((p) => p.tabOrder !== null)
 						.sort((a, b) => a.tabOrder! - b.tabOrder!);
@@ -99,11 +98,9 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 						throw new Error("Invalid fromIndex or toIndex");
 					}
 
-					// Move project from fromIndex to toIndex
 					const [removed] = activeProjects.splice(fromIndex, 1);
 					activeProjects.splice(toIndex, 0, removed);
 
-					// Update tabOrder fields for active projects
 					activeProjects.forEach((project, index) => {
 						const p = data.projects.find((p) => p.id === project.id);
 						if (p) {

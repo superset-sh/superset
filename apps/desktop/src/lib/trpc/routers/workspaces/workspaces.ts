@@ -19,7 +19,6 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				// Find the project
 				const project = db.data.projects.find((p) => p.id === input.projectId);
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
@@ -33,10 +32,8 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Create git worktree
 				await createWorktree(project.mainRepoPath, branch, worktreePath);
 
-				// Create worktree record
 				const worktree = {
 					id: nanoid(),
 					projectId: input.projectId,
@@ -45,7 +42,6 @@ export const createWorkspacesRouter = () => {
 					createdAt: Date.now(),
 				};
 
-				// Calculate workspace tabOrder within project
 				const projectWorkspaces = db.data.workspaces.filter(
 					(w) => w.projectId === input.projectId,
 				);
@@ -65,18 +61,15 @@ export const createWorkspacesRouter = () => {
 					lastOpenedAt: Date.now(),
 				};
 
-				// Save to database
 				await db.update((data) => {
 					data.worktrees.push(worktree);
 					data.workspaces.push(workspace);
 					data.settings.lastActiveWorkspaceId = workspace.id;
 
-					// Update project
 					const p = data.projects.find((p) => p.id === input.projectId);
 					if (p) {
 						p.lastOpenedAt = Date.now();
 
-						// Set tabOrder if this is the first workspace for this project
 						if (p.tabOrder === null) {
 							const activeProjects = data.projects.filter(
 								(proj) => proj.tabOrder !== null,
@@ -110,7 +103,6 @@ export const createWorkspacesRouter = () => {
 		}),
 
 		getAllGrouped: publicProcedure.query(() => {
-			// Only include projects with active workspaces (tabOrder !== null)
 			const activeProjects = db.data.projects.filter(
 				(p) => p.tabOrder !== null,
 			);
@@ -132,7 +124,6 @@ export const createWorkspacesRouter = () => {
 				}
 			>();
 
-			// Initialize groups for active projects
 			for (const project of activeProjects) {
 				groupsMap.set(project.id, {
 					project: {
@@ -145,7 +136,6 @@ export const createWorkspacesRouter = () => {
 				});
 			}
 
-			// Add workspaces to their project groups
 			const workspaces = db.data.workspaces
 				.slice()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
@@ -156,7 +146,6 @@ export const createWorkspacesRouter = () => {
 				}
 			}
 
-			// Sort by project tabOrder
 			return Array.from(groupsMap.values()).sort(
 				(a, b) => a.project.tabOrder - b.project.tabOrder,
 			);
@@ -197,12 +186,10 @@ export const createWorkspacesRouter = () => {
 						throw new Error(`Workspace ${input.id} not found`);
 					}
 
-					// Apply patches
 					if (input.patch.name !== undefined) {
 						workspace.name = input.patch.name;
 					}
 
-					// Update timestamps
 					workspace.updatedAt = Date.now();
 					workspace.lastOpenedAt = Date.now();
 				});
@@ -219,7 +206,6 @@ export const createWorkspacesRouter = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				// Find associated worktree and project
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,
 				);
@@ -227,29 +213,23 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
-				// Remove git worktree if it exists
 				if (worktree && project) {
 					try {
 						await removeWorktree(project.mainRepoPath, worktree.path);
 					} catch (error) {
 						console.error("Failed to remove worktree:", error);
-						// Continue with database cleanup even if git operation fails
 					}
 				}
 
-				// Remove from database
 				await db.update((data) => {
-					// Remove workspace
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
-					// Remove worktree
 					if (worktree) {
 						data.worktrees = data.worktrees.filter(
 							(wt) => wt.id !== worktree.id,
 						);
 					}
 
-					// Clear project tabOrder if this was the last workspace
 					if (project) {
 						const remainingWorkspaces = data.workspaces.filter(
 							(w) => w.projectId === workspace.projectId,
@@ -262,9 +242,7 @@ export const createWorkspacesRouter = () => {
 						}
 					}
 
-					// Update last active workspace if needed
 					if (data.settings.lastActiveWorkspaceId === input.id) {
-						// Set to the most recently opened workspace, if any
 						const sorted = data.workspaces
 							.slice()
 							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
@@ -304,7 +282,6 @@ export const createWorkspacesRouter = () => {
 				await db.update((data) => {
 					const { projectId, fromIndex, toIndex } = input;
 
-					// Get workspaces for this project only, sorted by tabOrder
 					const projectWorkspaces = data.workspaces
 						.filter((w) => w.projectId === projectId)
 						.sort((a, b) => a.tabOrder - b.tabOrder);
@@ -318,11 +295,9 @@ export const createWorkspacesRouter = () => {
 						throw new Error("Invalid fromIndex or toIndex");
 					}
 
-					// Move workspace from fromIndex to toIndex
 					const [removed] = projectWorkspaces.splice(fromIndex, 1);
 					projectWorkspaces.splice(toIndex, 0, removed);
 
-					// Update tabOrder fields for this project's workspaces
 					projectWorkspaces.forEach((workspace, index) => {
 						const ws = data.workspaces.find((w) => w.id === workspace.id);
 						if (ws) {
