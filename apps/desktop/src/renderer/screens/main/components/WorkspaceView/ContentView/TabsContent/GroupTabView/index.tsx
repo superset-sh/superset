@@ -6,7 +6,6 @@ import {
 	Mosaic,
 	type MosaicBranch,
 	type MosaicNode,
-	MosaicWindow,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
 import {
@@ -14,12 +13,13 @@ import {
 	getChildTabIds,
 	type TabGroup,
 	useActiveTabIds,
+	useSetActiveTab,
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 	useTabs,
 	useTabsStore,
 } from "renderer/stores";
-import { TabContentContextMenu } from "../TabContentContextMenu";
+import { GroupTabPane } from "./GroupTabPane";
 
 interface GroupTabViewProps {
 	tab: TabGroup;
@@ -56,6 +56,7 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 	);
 	const splitTabHorizontal = useSplitTabHorizontal();
 	const splitTabVertical = useSplitTabVertical();
+	const setActiveTab = useSetActiveTab();
 	const activeTabIds = useActiveTabIds();
 	const activeTabId = activeTabIds[tab.workspaceId];
 
@@ -82,27 +83,6 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		[tab.id, tab.layout, updateTabGroupLayout, removeChildTabFromGroup],
 	);
 
-	const handleSplitHorizontal = useCallback(
-		(tabId: string, path: MosaicBranch[]) => {
-			splitTabHorizontal(tab.workspaceId, tabId, path);
-		},
-		[tab.workspaceId, splitTabHorizontal],
-	);
-
-	const handleSplitVertical = useCallback(
-		(tabId: string, path: MosaicBranch[]) => {
-			splitTabVertical(tab.workspaceId, tabId, path);
-		},
-		[tab.workspaceId, splitTabVertical],
-	);
-
-	const handleClosePane = useCallback(
-		(tabId: string) => {
-			removeChildTabFromGroup(tab.id, tabId);
-		},
-		[tab.id, removeChildTabFromGroup],
-	);
-
 	const renderPane = useCallback(
 		(tabId: string, path: MosaicBranch[]) => {
 			const isActive = tabId === activeTabId;
@@ -116,28 +96,29 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 			}
 
 			return (
-				<MosaicWindow<string>
+				<GroupTabPane
+					tabId={tabId}
 					path={path}
-					title={childTab.title}
-					toolbarControls={<div />}
-					className={isActive ? "mosaic-window-focused" : ""}
-				>
-					<TabContentContextMenu
-						onSplitHorizontal={() => handleSplitHorizontal(tabId, path)}
-						onSplitVertical={() => handleSplitVertical(tabId, path)}
-						onClosePane={() => handleClosePane(tabId)}
-					>
-						<div className="w-full h-full">{childTab.title}</div>
-					</TabContentContextMenu>
-				</MosaicWindow>
+					childTab={childTab}
+					isActive={isActive}
+					workspaceId={tab.workspaceId}
+					groupId={tab.id}
+					splitTabHorizontal={splitTabHorizontal}
+					splitTabVertical={splitTabVertical}
+					removeChildTabFromGroup={removeChildTabFromGroup}
+					setActiveTab={setActiveTab}
+				/>
 			);
 		},
 		[
 			activeTabId,
 			childTabs,
-			handleSplitHorizontal,
-			handleSplitVertical,
-			handleClosePane,
+			splitTabHorizontal,
+			splitTabVertical,
+			removeChildTabFromGroup,
+			setActiveTab,
+			tab.workspaceId,
+			tab.id,
 		],
 	);
 

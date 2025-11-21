@@ -80,7 +80,7 @@ export function WorkspaceItem({
 					}
 					${isDragging ? "opacity-30" : "opacity-100"}
 				`}
-				style={{ cursor: isDragging ? "grabbing" : "grab" }}
+				style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 			>
 				<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
 					{title}

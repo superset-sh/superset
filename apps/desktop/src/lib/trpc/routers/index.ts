@@ -3,6 +3,7 @@ import { router } from "..";
 import { createWindowRouter } from "./window";
 import { createProjectsRouter } from "./projects";
 import { createWorkspacesRouter } from "./workspaces";
+import { createTerminalRouter } from "./terminal";
 
 /**
  * Main application router
@@ -13,6 +14,7 @@ export const createAppRouter = (window: BrowserWindow) => {
 		window: createWindowRouter(window),
 		projects: createProjectsRouter(window),
 		workspaces: createWorkspacesRouter(),
+		terminal: createTerminalRouter(),
 	});
 };
 

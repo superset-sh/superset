@@ -1,10 +1,12 @@
 import {
 	type SingleTab,
 	useRemoveTab,
+	useSetActiveTab,
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
+import { Terminal } from "./Terminal";
 
 interface SingleTabViewProps {
 	tab: SingleTab;
@@ -15,6 +17,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 	const splitTabHorizontal = useSplitTabHorizontal();
 	const splitTabVertical = useSplitTabVertical();
 	const removeTab = useRemoveTab();
+	const setActiveTab = useSetActiveTab();
 
 	const handleSplitHorizontal = () => {
 		splitTabHorizontal(tab.workspaceId, tab.id);
@@ -28,18 +31,22 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 		removeTab(tab.id);
 	};
 
+	const handleFocus = () => {
+		setActiveTab(tab.workspaceId, tab.id);
+	};
+
 	return (
 		<TabContentContextMenu
 			onSplitHorizontal={handleSplitHorizontal}
 			onSplitVertical={handleSplitVertical}
 			onClosePane={handleClosePane}
 		>
-			<div className="flex-1 h-full overflow-auto bg-background">
-				<div className="h-full w-full p-6">
-					<h2 className="text-2xl font-semibold text-foreground">
-						{tab.title}
-					</h2>
-				</div>
+			<div className="flex-1 h-full overflow-hidden bg-background">
+				<Terminal
+					terminalId={tab.id}
+					cwd="~"
+					onFocus={handleFocus}
+				/>
 			</div>
 		</TabContentContextMenu>
 	);
