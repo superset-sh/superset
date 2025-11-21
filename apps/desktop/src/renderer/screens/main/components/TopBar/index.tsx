@@ -19,7 +19,7 @@ export function TopBar() {
 			<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
 				<WorkspacesTabs />
 			</div>
-			<div className="no-drag flex items-center gap-2 h-full pr-4">
+			<div className="flex items-center gap-2 h-full pr-4">
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

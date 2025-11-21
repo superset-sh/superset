@@ -59,7 +59,7 @@ export function WorkspaceItem({
 
 	return (
 		<div
-			className="group relative flex items-end shrink-0 h-full"
+			className="group relative flex items-end shrink-0 h-full no-drag"
 			style={{ width: `${width}px` }}
 		>
 			{/* Main workspace button */}

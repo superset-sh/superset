@@ -10,7 +10,11 @@ import { trpc } from "renderer/lib/trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useOpenNew } from "renderer/react-query/projects";
 
-export function WorkspaceDropdown() {
+export interface WorkspaceDropdownProps {
+	className?: string;
+}
+
+export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -40,7 +44,7 @@ export function WorkspaceDropdown() {
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger className={className} asChild>
 				<Button variant="ghost" size="icon" aria-label="Add new workspace">
 					<span className="text-lg">+</span>
 				</Button>
