@@ -10,10 +10,6 @@ import { publicProcedure, router } from "../..";
  */
 export const createTerminalRouter = () => {
 	return router({
-		/**
-		 * Create or attach to an existing terminal session
-		 * Returns scrollback history if reattaching to an existing session
-		 */
 		createOrAttach: publicProcedure
 			.input(
 				z.object({
@@ -54,9 +50,6 @@ export const createTerminalRouter = () => {
 				};
 			}),
 
-		/**
-		 * Write data to the terminal (user input)
-		 */
 		write: publicProcedure
 			.input(
 				z.object({
@@ -68,9 +61,6 @@ export const createTerminalRouter = () => {
 				terminalManager.write(input);
 			}),
 
-		/**
-		 * Resize the terminal
-		 */
 		resize: publicProcedure
 			.input(
 				z.object({
@@ -84,9 +74,6 @@ export const createTerminalRouter = () => {
 				terminalManager.resize(input);
 			}),
 
-		/**
-		 * Send signal to terminal process
-		 */
 		signal: publicProcedure
 			.input(
 				z.object({
@@ -98,9 +85,6 @@ export const createTerminalRouter = () => {
 				terminalManager.signal(input);
 			}),
 
-		/**
-		 * Kill the terminal session
-		 */
 		kill: publicProcedure
 			.input(
 				z.object({
@@ -124,19 +108,12 @@ export const createTerminalRouter = () => {
 				terminalManager.detach(input);
 			}),
 
-		/**
-		 * Get terminal session metadata
-		 */
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: tabId }) => {
 				return terminalManager.getSession(tabId);
 			}),
 
-		/**
-		 * Subscribe to terminal output stream
-		 * Emits data and exit events
-		 */
 		stream: publicProcedure
 			.input(z.string())
 			.subscription(({ input: tabId }) => {
@@ -144,18 +121,15 @@ export const createTerminalRouter = () => {
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
 				>((emit) => {
-					// Handler for terminal data
 					const onData = (data: string) => {
 						emit.next({ type: "data", data });
 					};
 
-					// Handler for terminal exit
 					const onExit = (exitCode: number, signal?: number) => {
 						emit.next({ type: "exit", exitCode, signal });
 						emit.complete();
 					};
 
-					// Register event listeners
 					terminalManager.on(`data:${tabId}`, onData);
 					terminalManager.on(`exit:${tabId}`, onExit);
 

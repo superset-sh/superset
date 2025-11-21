@@ -242,7 +242,7 @@ export class TerminalManager extends EventEmitter {
 					return shell;
 				}
 			} catch {
-				// Continue to next shell
+				// Shell not available, try next
 			}
 		}
 
