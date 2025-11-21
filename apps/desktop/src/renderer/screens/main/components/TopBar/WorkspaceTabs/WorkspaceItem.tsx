@@ -76,10 +76,10 @@ export function WorkspaceItem({
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 				className={`
-					flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-full
+					flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]
 					${
 						isActive
-							? "text-foreground bg-sidebar"
+							? "text-foreground bg-muted"
 							: "text-muted-foreground hover:text-foreground hover:bg-muted/30"
 					}
 					${isDragging ? "opacity-30" : "opacity-100"}
