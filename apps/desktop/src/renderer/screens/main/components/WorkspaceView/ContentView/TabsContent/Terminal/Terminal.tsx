@@ -3,7 +3,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 
@@ -11,6 +11,10 @@ interface TerminalProps {
 	tabId: string;
 	workspaceId: string;
 }
+
+type TerminalStreamEvent =
+	| { type: "data"; data: string }
+	| { type: "exit"; exitCode: number };
 
 function createTerminalInstance(container: HTMLDivElement): {
 	xterm: XTerm;
@@ -33,6 +37,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const isExitedRef = useRef(false);
+	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
+	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -50,15 +56,34 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
-	const handleStreamData = (
-		event: { type: "data"; data: string } | { type: "exit"; exitCode: number },
-	) => {
-		if (!xtermRef.current) return;
+	const flushPendingEvents = () => {
+		if (!xtermRef.current || pendingEventsRef.current.length === 0) return;
+		const events = pendingEventsRef.current.splice(0, pendingEventsRef.current.length);
+		for (const event of events) {
+			if (event.type === "data") {
+				xtermRef.current.write(event.data);
+			} else {
+				isExitedRef.current = true;
+				setSubscriptionEnabled(false);
+				xtermRef.current.writeln(
+					`\r\n\r\n[Process exited with code ${event.exitCode}]`,
+				);
+				xtermRef.current.writeln("[Press any key to restart]");
+			}
+		}
+	};
+
+	const handleStreamData = (event: TerminalStreamEvent) => {
+		if (!xtermRef.current) {
+			pendingEventsRef.current.push(event);
+			return;
+		}
 
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
+			setSubscriptionEnabled(false);
 			xtermRef.current.writeln(
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
@@ -68,7 +93,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
-		enabled: true,
+		enabled: subscriptionEnabled,
 	});
 
 	useEffect(() => {
@@ -79,16 +104,26 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+		setSubscriptionEnabled(true);
+		flushPendingEvents();
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
+			setSubscriptionEnabled(false);
 			xterm.clear();
-			createOrAttachRef.current({
-				tabId,
-				workspaceId,
-				cols: xterm.cols,
-				rows: xterm.rows,
-			});
+			createOrAttachRef.current(
+				{
+					tabId,
+					workspaceId,
+					cols: xterm.cols,
+					rows: xterm.rows,
+				},
+				{
+					onSuccess: () => {
+						setSubscriptionEnabled(true);
+					},
+				},
+			);
 		};
 
 		const handleTerminalInput = (data: string) => {
@@ -138,7 +173,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			debouncedResize.cancel();
 			// Keep PTY running for reattachment
 			detachRef.current({ tabId });
+			setSubscriptionEnabled(false);
 			xterm.dispose();
+			xtermRef.current = null;
 		};
 	}, [tabId, workspaceId]);
 
