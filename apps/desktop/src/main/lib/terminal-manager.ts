@@ -193,7 +193,10 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async kill(params: { tabId: string; deleteHistory?: boolean }): Promise<void> {
+	async kill(params: {
+		tabId: string;
+		deleteHistory?: boolean;
+	}): Promise<void> {
 		const { tabId, deleteHistory = false } = params;
 		const session = this.sessions.get(tabId);
 
@@ -367,7 +370,10 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		if (params.cleanupDir) {
-			const historyReader = new HistoryReader(session.workspaceId, session.tabId);
+			const historyReader = new HistoryReader(
+				session.workspaceId,
+				session.tabId,
+			);
 			await historyReader.cleanup();
 		}
 	}
