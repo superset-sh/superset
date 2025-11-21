@@ -1,7 +1,7 @@
 import { observable } from "@trpc/server/observable";
-import { z } from "zod";
 import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal-manager";
+import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 /**
@@ -35,7 +35,7 @@ export const createTerminalRouter = () => {
 					}
 				}
 
-				const result = terminalManager.createOrAttach({
+				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
 					cwd,
@@ -47,6 +47,7 @@ export const createTerminalRouter = () => {
 					tabId,
 					isNew: result.isNew,
 					scrollback: result.scrollback,
+					wasRecovered: result.wasRecovered,
 				};
 			}),
 

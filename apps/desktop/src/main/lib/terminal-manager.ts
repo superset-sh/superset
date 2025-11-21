@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
+import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
 	pty: pty.IPty;
@@ -12,6 +13,7 @@ interface TerminalSession {
 	lastActive: number;
 	scrollback: string[];
 	isAlive: boolean;
+	historyWriter?: HistoryWriter;
 }
 
 export interface TerminalDataEvent {
@@ -32,16 +34,17 @@ export class TerminalManager extends EventEmitter {
 	private readonly DEFAULT_COLS = 80;
 	private readonly DEFAULT_ROWS = 24;
 
-	createOrAttach(params: {
+	async createOrAttach(params: {
 		tabId: string;
 		workspaceId: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
-	}): {
+	}): Promise<{
 		isNew: boolean;
 		scrollback: string[];
-	} {
+		wasRecovered: boolean;
+	}> {
 		const { tabId, workspaceId, cwd, cols, rows } = params;
 
 		const existing = this.sessions.get(tabId);
@@ -53,6 +56,7 @@ export class TerminalManager extends EventEmitter {
 			return {
 				isNew: false,
 				scrollback: existing.scrollback,
+				wasRecovered: false,
 			};
 		}
 
@@ -60,6 +64,10 @@ export class TerminalManager extends EventEmitter {
 		const workingDir = cwd || os.homedir();
 		const terminalCols = cols || this.DEFAULT_COLS;
 		const terminalRows = rows || this.DEFAULT_ROWS;
+
+		// Try to recover history from previous session
+		const historyReader = new HistoryReader(workspaceId, tabId);
+		const recovery = await historyReader.getLatestSession();
 
 		const ptyProcess = pty.spawn(shell, [], {
 			name: "xterm-256color",
@@ -69,6 +77,16 @@ export class TerminalManager extends EventEmitter {
 			env: this.sanitizeEnv(process.env),
 		});
 
+		// Initialize history writer for new session
+		const historyWriter = new HistoryWriter(
+			workspaceId,
+			tabId,
+			workingDir,
+			terminalCols,
+			terminalRows,
+		);
+		await historyWriter.init();
+
 		const session: TerminalSession = {
 			pty: ptyProcess,
 			tabId,
@@ -77,17 +95,31 @@ export class TerminalManager extends EventEmitter {
 			cols: terminalCols,
 			rows: terminalRows,
 			lastActive: Date.now(),
-			scrollback: [],
+			scrollback:
+				recovery.wasRecovered && recovery.scrollback
+					? [recovery.scrollback]
+					: [],
 			isAlive: true,
+			historyWriter,
 		};
 
 		ptyProcess.onData((data) => {
 			this.addToScrollback(session, data);
+			// Write to history
+			if (session.historyWriter) {
+				session.historyWriter.writeData(data);
+			}
 			this.emit(`data:${tabId}`, data);
 		});
 
-		ptyProcess.onExit(({ exitCode, signal }) => {
+		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
+
+			// Finalize history
+			if (session.historyWriter?.isOpen()) {
+				await session.historyWriter.writeExit(exitCode, signal);
+			}
+
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
 			// Allow reconnection window before cleanup
@@ -100,7 +132,11 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			scrollback: [],
+			scrollback:
+				recovery.wasRecovered && recovery.scrollback
+					? [recovery.scrollback]
+					: [],
+			wasRecovered: recovery.wasRecovered,
 		};
 	}
 
@@ -153,7 +189,7 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	kill(params: { tabId: string }): void {
+	async kill(params: { tabId: string }): Promise<void> {
 		const { tabId } = params;
 		const session = this.sessions.get(tabId);
 
@@ -165,6 +201,15 @@ export class TerminalManager extends EventEmitter {
 		if (session.isAlive) {
 			session.pty.kill();
 		}
+
+		// Finalize history writer if still open
+		if (session.historyWriter?.isOpen()) {
+			await session.historyWriter.finalize();
+		}
+
+		// Cleanup history directory (permanent deletion)
+		const historyReader = new HistoryReader(session.workspaceId, tabId);
+		await historyReader.cleanup();
 
 		this.sessions.delete(tabId);
 	}

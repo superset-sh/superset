@@ -125,7 +125,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
-					if (!result.isNew && result.scrollback.length > 0) {
+					if (result.wasRecovered && result.scrollback.length > 0) {
+						xterm.write(result.scrollback[0]);
+						xterm.write(
+							"\r\n\r\n\x1b[2m[Recovered session history]\x1b[0m\r\n",
+						);
+					} else if (!result.isNew && result.scrollback.length > 0) {
 						xterm.write(result.scrollback[0]);
 					}
 				},

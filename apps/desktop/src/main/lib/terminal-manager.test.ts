@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { promises as fs } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import * as pty from "node-pty";
 import { TerminalManager } from "./terminal-manager";
 
@@ -17,7 +20,15 @@ describe("TerminalManager", () => {
 		onExit: ReturnType<typeof mock>;
 	};
 
-	beforeEach(() => {
+	beforeEach(async () => {
+		// Clean up test history files before each test
+		const historyDir = join(homedir(), ".superset", "terminal-history");
+		try {
+			await fs.rm(historyDir, { recursive: true, force: true });
+		} catch {
+			// Ignore errors if directory doesn't exist
+		}
+
 		manager = new TerminalManager();
 
 		// Setup mock pty
@@ -43,14 +54,22 @@ describe("TerminalManager", () => {
 		);
 	});
 
-	afterEach(() => {
+	afterEach(async () => {
 		manager.cleanup();
 		mock.restore();
+
+		// Clean up test history files
+		const historyDir = join(homedir(), ".superset", "terminal-history");
+		try {
+			await fs.rm(historyDir, { recursive: true, force: true });
+		} catch {
+			// Ignore errors if directory doesn't exist
+		}
 	});
 
 	describe("createOrAttach", () => {
-		it("should create a new terminal session", () => {
-			const result = manager.createOrAttach({
+		it("should create a new terminal session", async () => {
+			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
@@ -60,6 +79,7 @@ describe("TerminalManager", () => {
 
 			expect(result.isNew).toBe(true);
 			expect(result.scrollback).toEqual([]);
+			expect(result.wasRecovered).toBe(false);
 			expect(pty.spawn).toHaveBeenCalledWith(
 				expect.any(String),
 				[],
@@ -71,9 +91,9 @@ describe("TerminalManager", () => {
 			);
 		});
 
-		it("should reuse existing terminal session", () => {
+		it("should reuse existing terminal session", async () => {
 			// Create initial session
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
@@ -83,7 +103,7 @@ describe("TerminalManager", () => {
 				.length;
 
 			// Attempt to attach to same session
-			const result = manager.createOrAttach({
+			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -95,9 +115,9 @@ describe("TerminalManager", () => {
 			);
 		});
 
-		it("should update size when reattaching with new dimensions", () => {
+		it("should update size when reattaching with new dimensions", async () => {
 			// Create initial session
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cols: 80,
@@ -105,7 +125,7 @@ describe("TerminalManager", () => {
 			});
 
 			// Reattach with different size
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cols: 100,
@@ -117,8 +137,8 @@ describe("TerminalManager", () => {
 	});
 
 	describe("write", () => {
-		it("should write data to terminal", () => {
-			manager.createOrAttach({
+		it("should write data to terminal", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -142,8 +162,8 @@ describe("TerminalManager", () => {
 	});
 
 	describe("resize", () => {
-		it("should resize terminal", () => {
-			manager.createOrAttach({
+		it("should resize terminal", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -183,8 +203,8 @@ describe("TerminalManager", () => {
 	});
 
 	describe("signal", () => {
-		it("should send signal to terminal", () => {
-			manager.createOrAttach({
+		it("should send signal to terminal", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -197,8 +217,8 @@ describe("TerminalManager", () => {
 			expect(mockPty.kill).toHaveBeenCalledWith("SIGINT");
 		});
 
-		it("should use SIGTERM by default", () => {
-			manager.createOrAttach({
+		it("should use SIGTERM by default", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -212,13 +232,13 @@ describe("TerminalManager", () => {
 	});
 
 	describe("kill", () => {
-		it("should kill and remove session", () => {
-			manager.createOrAttach({
+		it("should kill and remove session", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
-			manager.kill({ tabId: "tab-1" });
+			await manager.kill({ tabId: "tab-1" });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
@@ -228,8 +248,8 @@ describe("TerminalManager", () => {
 	});
 
 	describe("detach", () => {
-		it("should keep session alive after detach", () => {
-			manager.createOrAttach({
+		it("should keep session alive after detach", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -243,8 +263,8 @@ describe("TerminalManager", () => {
 	});
 
 	describe("getSession", () => {
-		it("should return session metadata", () => {
-			manager.createOrAttach({
+		it("should return session metadata", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
@@ -266,13 +286,13 @@ describe("TerminalManager", () => {
 	});
 
 	describe("cleanup", () => {
-		it("should kill all sessions", () => {
-			manager.createOrAttach({
+		it("should kill all sessions", async () => {
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-2",
 				workspaceId: "workspace-1",
 			});
@@ -284,10 +304,10 @@ describe("TerminalManager", () => {
 	});
 
 	describe("event handling", () => {
-		it("should emit data events", () => {
+		it("should emit data events", async () => {
 			const dataHandler = mock(() => {});
 
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -303,10 +323,10 @@ describe("TerminalManager", () => {
 			expect(dataHandler).toHaveBeenCalledWith("test output\n");
 		});
 
-		it("should emit exit events", () => {
+		it("should emit exit events", async () => {
 			const exitHandler = mock(() => {});
 
-			manager.createOrAttach({
+			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -316,10 +336,101 @@ describe("TerminalManager", () => {
 			// Simulate pty exit
 			const onExitCallback = mockPty.onExit.mock.results[0]?.value;
 			if (onExitCallback) {
-				onExitCallback({ exitCode: 0, signal: undefined });
+				await onExitCallback({ exitCode: 0, signal: undefined });
 			}
 
+			// Wait a bit for async operations to complete
+			await new Promise((resolve) => setTimeout(resolve, 10));
+
 			expect(exitHandler).toHaveBeenCalledWith(0, undefined);
+		});
+	});
+
+	describe("multi-session history persistence", () => {
+		it("should persist history across multiple sessions", async () => {
+			const historyDir = join(
+				homedir(),
+				".superset",
+				"terminal-history",
+				"workspace-1",
+				"tab-multi",
+			);
+
+			// Session 1: Create and write some data
+			const result1 = await manager.createOrAttach({
+				tabId: "tab-multi",
+				workspaceId: "workspace-1",
+			});
+
+			expect(result1.isNew).toBe(true);
+			expect(result1.wasRecovered).toBe(false);
+
+			// Simulate some terminal output by calling the PTY onData callback
+			const onDataCallback1 =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback1) {
+				onDataCallback1("Session 1 output\n");
+			}
+
+			// Simulate exit by calling the PTY onExit callback
+			const onExitCallback1 =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback1) {
+				await onExitCallback1({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for finalization
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			// Manually cleanup the session (instead of waiting for timeout)
+			manager.cleanup();
+
+			// Session 2: Attach again (should recover history)
+			const result2 = await manager.createOrAttach({
+				tabId: "tab-multi",
+				workspaceId: "workspace-1",
+			});
+
+			expect(result2.isNew).toBe(true);
+			expect(result2.wasRecovered).toBe(true);
+			expect(result2.scrollback[0]).toContain("Session 1 output");
+
+			// Wait for writer to be fully initialized
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			// Simulate session 2 output by calling the PTY onData callback
+			const onDataCallback2 =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback2) {
+				onDataCallback2("Session 2 output\n");
+			}
+
+			// Simulate exit by calling the PTY onExit callback
+			const onExitCallback2 =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback2) {
+				await onExitCallback2({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for finalization
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
+			// Manually cleanup the session
+			manager.cleanup();
+
+			// Session 3: Attach again (should recover both sessions' history)
+			const result3 = await manager.createOrAttach({
+				tabId: "tab-multi",
+				workspaceId: "workspace-1",
+			});
+
+			expect(result3.isNew).toBe(true);
+			expect(result3.wasRecovered).toBe(true);
+			expect(result3.scrollback[0]).toContain("Session 1 output");
+			expect(result3.scrollback[0]).toContain("Session 2 output");
+
+			// Cleanup
+			await fs.rm(historyDir, { recursive: true, force: true });
 		});
 	});
 });
