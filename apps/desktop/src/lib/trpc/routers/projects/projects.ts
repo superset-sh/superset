@@ -2,10 +2,12 @@ import { dialog } from "electron";
 import type { BrowserWindow } from "electron";
 import { basename } from "node:path";
 import { nanoid } from "nanoid";
+import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { db } from "../../../../main/lib/db";
 import type { Project } from "../../../../main/lib/db/schemas";
 import { getGitRoot } from "../workspaces/utils/git";
+import { assignRandomColor } from "./utils/colors";
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
@@ -55,6 +57,8 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					id: nanoid(),
 					mainRepoPath,
 					name,
+					color: assignRandomColor(),
+					tabOrder: null,
 					lastOpenedAt: Date.now(),
 					createdAt: Date.now(),
 				};
@@ -69,6 +73,47 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				project,
 			};
 		}),
+
+		reorder: publicProcedure
+			.input(
+				z.object({
+					fromIndex: z.number(),
+					toIndex: z.number(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await db.update((data) => {
+					const { fromIndex, toIndex } = input;
+
+					// Get only active projects (those with tabOrder !== null), sorted by tabOrder
+					const activeProjects = data.projects
+						.filter((p) => p.tabOrder !== null)
+						.sort((a, b) => a.tabOrder! - b.tabOrder!);
+
+					if (
+						fromIndex < 0 ||
+						fromIndex >= activeProjects.length ||
+						toIndex < 0 ||
+						toIndex >= activeProjects.length
+					) {
+						throw new Error("Invalid fromIndex or toIndex");
+					}
+
+					// Move project from fromIndex to toIndex
+					const [removed] = activeProjects.splice(fromIndex, 1);
+					activeProjects.splice(toIndex, 0, removed);
+
+					// Update tabOrder fields for active projects
+					activeProjects.forEach((project, index) => {
+						const p = data.projects.find((p) => p.id === project.id);
+						if (p) {
+							p.tabOrder = index;
+						}
+					});
+				});
+
+				return { success: true };
+			}),
 	});
 };
 

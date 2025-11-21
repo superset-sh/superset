@@ -1,0 +1,1 @@
+export { assignRandomColor } from "./colors";

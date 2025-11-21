@@ -45,10 +45,13 @@ export const createWorkspacesRouter = () => {
 					createdAt: Date.now(),
 				};
 
-				// Set order to be at the end of the list
-				const maxOrder =
-					db.data.workspaces.length > 0
-						? Math.max(...db.data.workspaces.map((w) => w.order))
+				// Calculate workspace tabOrder within project
+				const projectWorkspaces = db.data.workspaces.filter(
+					(w) => w.projectId === input.projectId,
+				);
+				const maxTabOrder =
+					projectWorkspaces.length > 0
+						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
 						: -1;
 
 				const workspace = {
@@ -56,7 +59,7 @@ export const createWorkspacesRouter = () => {
 					projectId: input.projectId,
 					worktreeId: worktree.id,
 					name: input.name ?? branch,
-					order: maxOrder + 1,
+					tabOrder: maxTabOrder + 1,
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
 					lastOpenedAt: Date.now(),
@@ -68,20 +71,28 @@ export const createWorkspacesRouter = () => {
 					data.workspaces.push(workspace);
 					data.settings.lastActiveWorkspaceId = workspace.id;
 
-					// Update project lastOpenedAt
+					// Update project
 					const p = data.projects.find((p) => p.id === input.projectId);
 					if (p) {
 						p.lastOpenedAt = Date.now();
+
+						// Set tabOrder if this is the first workspace for this project
+						if (p.tabOrder === null) {
+							const activeProjects = data.projects.filter(
+								(proj) => proj.tabOrder !== null,
+							);
+							const maxProjectTabOrder =
+								activeProjects.length > 0
+									? Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+									: -1;
+							p.tabOrder = maxProjectTabOrder + 1;
+						}
 					}
 				});
 
 				return workspace;
 			}),
 
-		/**
-		 * Get a workspace by ID
-		 * Throws if workspace not found
-		 */
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
@@ -92,20 +103,65 @@ export const createWorkspacesRouter = () => {
 				return workspace;
 			}),
 
-		/**
-		 * Get all workspaces sorted by order
-		 */
 		getAll: publicProcedure.query(() => {
 			return db.data.workspaces
 				.slice()
-				.sort((a, b) => a.order - b.order);
+				.sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
-		/**
-		 * Get the last active workspace
-		 * Returns null if no active workspace set (valid state)
-		 * Throws if active workspace ID exists but workspace not found (data inconsistency)
-		 */
+		getAllGrouped: publicProcedure.query(() => {
+			// Only include projects with active workspaces (tabOrder !== null)
+			const activeProjects = db.data.projects.filter(
+				(p) => p.tabOrder !== null,
+			);
+
+			const groupsMap = new Map<
+				string,
+				{
+					project: { id: string; name: string; color: string; tabOrder: number };
+					workspaces: Array<{
+						id: string;
+						projectId: string;
+						worktreeId: string;
+						name: string;
+						tabOrder: number;
+						createdAt: number;
+						updatedAt: number;
+						lastOpenedAt: number;
+					}>;
+				}
+			>();
+
+			// Initialize groups for active projects
+			for (const project of activeProjects) {
+				groupsMap.set(project.id, {
+					project: {
+						id: project.id,
+						name: project.name,
+						color: project.color,
+						tabOrder: project.tabOrder!,
+					},
+					workspaces: [],
+				});
+			}
+
+			// Add workspaces to their project groups
+			const workspaces = db.data.workspaces
+				.slice()
+				.sort((a, b) => a.tabOrder - b.tabOrder);
+
+			for (const workspace of workspaces) {
+				if (groupsMap.has(workspace.projectId)) {
+					groupsMap.get(workspace.projectId)!.workspaces.push(workspace);
+				}
+			}
+
+			// Sort by project tabOrder
+			return Array.from(groupsMap.values()).sort(
+				(a, b) => a.project.tabOrder - b.project.tabOrder,
+			);
+		}),
+
 		getActive: publicProcedure.query(() => {
 			const { lastActiveWorkspaceId } = db.data.settings;
 
@@ -125,10 +181,6 @@ export const createWorkspacesRouter = () => {
 			return workspace;
 		}),
 
-		/**
-		 * Update a workspace
-		 * Supports partial updates to workspace properties
-		 */
 		update: publicProcedure
 			.input(
 				z.object({
@@ -158,9 +210,6 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Delete a workspace and its associated worktree
-		 */
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -200,6 +249,19 @@ export const createWorkspacesRouter = () => {
 						);
 					}
 
+					// Clear project tabOrder if this was the last workspace
+					if (project) {
+						const remainingWorkspaces = data.workspaces.filter(
+							(w) => w.projectId === workspace.projectId,
+						);
+						if (remainingWorkspaces.length === 0) {
+							const p = data.projects.find((p) => p.id === workspace.projectId);
+							if (p) {
+								p.tabOrder = null;
+							}
+						}
+					}
+
 					// Update last active workspace if needed
 					if (data.settings.lastActiveWorkspaceId === input.id) {
 						// Set to the most recently opened workspace, if any
@@ -213,9 +275,6 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Set active workspace
-		 */
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -233,34 +292,41 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Reorder workspaces
-		 */
 		reorder: publicProcedure
 			.input(
 				z.object({
+					projectId: z.string(),
 					fromIndex: z.number(),
 					toIndex: z.number(),
 				}),
 			)
 			.mutation(async ({ input }) => {
 				await db.update((data) => {
-					const { fromIndex, toIndex } = input;
+					const { projectId, fromIndex, toIndex } = input;
 
-					// Get all workspaces sorted by order
-					const workspaces = data.workspaces
-						.slice()
-						.sort((a, b) => a.order - b.order);
+					// Get workspaces for this project only, sorted by tabOrder
+					const projectWorkspaces = data.workspaces
+						.filter((w) => w.projectId === projectId)
+						.sort((a, b) => a.tabOrder - b.tabOrder);
+
+					if (
+						fromIndex < 0 ||
+						fromIndex >= projectWorkspaces.length ||
+						toIndex < 0 ||
+						toIndex >= projectWorkspaces.length
+					) {
+						throw new Error("Invalid fromIndex or toIndex");
+					}
 
 					// Move workspace from fromIndex to toIndex
-					const [removed] = workspaces.splice(fromIndex, 1);
-					workspaces.splice(toIndex, 0, removed);
+					const [removed] = projectWorkspaces.splice(fromIndex, 1);
+					projectWorkspaces.splice(toIndex, 0, removed);
 
-					// Update order fields to reflect new positions
-					workspaces.forEach((workspace, index) => {
+					// Update tabOrder fields for this project's workspaces
+					projectWorkspaces.forEach((workspace, index) => {
 						const ws = data.workspaces.find((w) => w.id === workspace.id);
 						if (ws) {
-							ws.order = index;
+							ws.tabOrder = index;
 						}
 					});
 				});

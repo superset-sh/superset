@@ -1,17 +1,16 @@
-import { Separator } from "@superset/ui/separator";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
-import { WorkspaceItem } from "./WorkspaceItem";
+import { WorkspaceGroup } from "./WorkspaceGroup";
 
 const MIN_WORKSPACE_WIDTH = 60;
-const MAX_WORKSPACE_WIDTH = 240;
+const MAX_WORKSPACE_WIDTH = 160;
 const ADD_BUTTON_WIDTH = 48;
 
 export function WorkspacesTabs() {
-	const { data: workspaces = [] } = trpc.workspaces.getAll.useQuery();
+	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
@@ -24,22 +23,33 @@ export function WorkspacesTabs() {
 		null,
 	);
 
-	// Workspace switching shortcuts
-	useHotkeys('meta+alt+left', () => {
-		if (!activeWorkspaceId) return;
-		const index = workspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index > 0) {
-			setActiveWorkspace.mutate({ id: workspaces[index - 1].id });
-		}
-	}, [activeWorkspaceId, workspaces, setActiveWorkspace]);
+	// Flatten workspaces for keyboard navigation
+	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	useHotkeys('meta+alt+right', () => {
-		if (!activeWorkspaceId) return;
-		const index = workspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index < workspaces.length - 1) {
-			setActiveWorkspace.mutate({ id: workspaces[index + 1].id });
-		}
-	}, [activeWorkspaceId, workspaces, setActiveWorkspace]);
+	// Workspace switching shortcuts (work across groups)
+	useHotkeys(
+		"meta+alt+left",
+		() => {
+			if (!activeWorkspaceId) return;
+			const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+			if (index > 0) {
+				setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
+			}
+		},
+		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
+	);
+
+	useHotkeys(
+		"meta+alt+right",
+		() => {
+			if (!activeWorkspaceId) return;
+			const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+			if (index < allWorkspaces.length - 1) {
+				setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
+			}
+		},
+		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
+	);
 
 	useEffect(() => {
 		const checkScroll = () => {
@@ -59,7 +69,7 @@ export function WorkspacesTabs() {
 			// Calculate width: fill available space but respect min/max
 			const calculatedWidth = Math.max(
 				MIN_WORKSPACE_WIDTH,
-				Math.min(MAX_WORKSPACE_WIDTH, availableWidth / workspaces.length),
+				Math.min(MAX_WORKSPACE_WIDTH, availableWidth / allWorkspaces.length),
 			);
 			setWorkspaceWidth(calculatedWidth);
 		};
@@ -80,53 +90,35 @@ export function WorkspacesTabs() {
 			}
 			window.removeEventListener("resize", updateWorkspaceWidth);
 		};
-	}, [workspaces]);
+	}, [allWorkspaces]);
 
 	return (
-		<div
-			ref={containerRef}
-			className="flex items-center h-full w-full"
-		>
+		<div ref={containerRef} className="flex items-center h-full w-full">
 			<div className="relative flex-1 h-full overflow-hidden min-w-0">
 				<div
 					ref={scrollRef}
-					className="flex h-full overflow-x-auto hide-scrollbar gap-2"
+					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
 				>
-					{workspaces.map((workspace, index) => {
-						const nextWorkspace = workspaces[index + 1];
-						const isActive = workspace.id === activeWorkspaceId;
-						const isNextActive = nextWorkspace?.id === activeWorkspaceId;
-						const isHovered = workspace.id === hoveredWorkspaceId;
-						const isNextHovered = nextWorkspace?.id === hoveredWorkspaceId;
-						const separatorOpacity =
-							!isActive && !isNextActive && !isHovered && !isNextHovered
-								? 100
-								: 0;
-
-						return (
-							<Fragment key={workspace.id}>
-								<div className="flex items-end h-full no-drag">
-									<WorkspaceItem
-										id={workspace.id}
-										title={workspace.name}
-										isActive={isActive}
-										index={index}
-										width={workspaceWidth}
-										onMouseEnter={() => setHoveredWorkspaceId(workspace.id)}
-										onMouseLeave={() => setHoveredWorkspaceId(null)}
-									/>
+					{groups.map((group, groupIndex) => (
+						<Fragment key={group.project.id}>
+							<WorkspaceGroup
+								projectId={group.project.id}
+								projectName={group.project.name}
+								projectColor={group.project.color}
+								projectIndex={groupIndex}
+								workspaces={group.workspaces}
+								activeWorkspaceId={activeWorkspaceId}
+								workspaceWidth={workspaceWidth}
+								hoveredWorkspaceId={hoveredWorkspaceId}
+								onWorkspaceHover={setHoveredWorkspaceId}
+							/>
+							{groupIndex < groups.length - 1 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
 								</div>
-								{index < workspaces.length - 1 && (
-									<div
-										className="flex items-center h-full py-2 transition-opacity"
-										style={{ opacity: separatorOpacity / 100 }}
-									>
-										<Separator orientation="vertical" />
-									</div>
-								)}
-							</Fragment>
-						);
-					})}
+							)}
+						</Fragment>
+					))}
 				</div>
 
 				{/* Fade effects for scroll indication */}
@@ -138,7 +130,6 @@ export function WorkspacesTabs() {
 				)}
 			</div>
 			<WorkspaceDropdown className="no-drag" />
-
 		</div>
 	);
 }

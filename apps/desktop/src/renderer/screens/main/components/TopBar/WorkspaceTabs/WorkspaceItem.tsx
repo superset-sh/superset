@@ -12,6 +12,7 @@ const WORKSPACE_TYPE = "WORKSPACE";
 
 interface WorkspaceItemProps {
 	id: string;
+	projectId: string;
 	title: string;
 	isActive: boolean;
 	index: number;
@@ -22,6 +23,7 @@ interface WorkspaceItemProps {
 
 export function WorkspaceItem({
 	id,
+	projectId,
 	title,
 	isActive,
 	index,
@@ -36,19 +38,21 @@ export function WorkspaceItem({
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: WORKSPACE_TYPE,
-			item: { id, index },
+			item: { id, projectId, index },
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
 		}),
-		[id, index],
+		[id, projectId, index],
 	);
 
 	const [, drop] = useDrop({
 		accept: WORKSPACE_TYPE,
-		hover: (item: { id: string; index: number }) => {
-			if (item.index !== index) {
+		hover: (item: { id: string; projectId: string; index: number }) => {
+			// Only allow reordering within the same project
+			if (item.projectId === projectId && item.index !== index) {
 				reorderWorkspaces.mutate({
+					projectId,
 					fromIndex: item.index,
 					toIndex: index,
 				});
@@ -68,11 +72,11 @@ export function WorkspaceItem({
 				ref={(node) => {
 					drag(drop(node));
 				}}
-				onClick={() => setActive.mutate({ id })}
+				onMouseDown={() => setActive.mutate({ id })}
 				onMouseEnter={onMouseEnter}
 				onMouseLeave={onMouseLeave}
 				className={`
-					flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]
+					flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-full
 					${
 						isActive
 							? "text-foreground bg-sidebar"
