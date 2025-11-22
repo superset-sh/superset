@@ -24,6 +24,12 @@ const config: Configuration = {
 		buildResources: join(pkg.resources, "build"),
 	},
 
+	// ASAR configuration for native modules
+	asar: true,
+	asarUnpack: [
+		"**/node_modules/node-pty/**/*",
+	],
+
 	files: [
 		"dist/**/*",
 		"package.json",
@@ -32,10 +38,16 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
+		// Include specific production dependencies from monorepo root
+		{
+			from: "../../node_modules/node-pty",
+			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
 		"!node_modules/@superset/**/*",
 	],
 
-	// Build optimization
+	// Skip npm rebuild - dependencies already built in monorepo
 	npmRebuild: false,
 	buildDependenciesFromSource: false,
 	nodeGypRebuild: false,
