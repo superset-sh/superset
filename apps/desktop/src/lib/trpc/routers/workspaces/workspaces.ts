@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -216,20 +217,17 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
-				// Check if worktree can be removed
 				if (worktree && project) {
 					try {
-						// Dry-run: verify the worktree exists in git
-						const git = await import("simple-git").then((m) => m.default);
-						const gitInstance = git(project.mainRepoPath);
+						const gitInstance = simpleGit(project.mainRepoPath);
 						const worktrees = await gitInstance.raw([
 							"worktree",
 							"list",
 							"--porcelain",
 						]);
 
-						// Parse porcelain output line-by-line
-						// Format: "worktree /path/to/worktree" followed by HEAD, branch, etc.
+						// Parse porcelain format to verify worktree exists in git before deletion
+						// (porcelain format: "worktree /path/to/worktree" followed by HEAD, branch, etc.)
 						const lines = worktrees.split("\n");
 						const worktreePrefix = `worktree ${worktree.path}`;
 						const worktreeExists = lines.some(
@@ -262,7 +260,6 @@ export const createWorkspacesRouter = () => {
 					}
 				}
 
-				// No worktree to remove, can safely delete
 				return {
 					canDelete: true,
 					reason: null,
@@ -287,7 +284,6 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
-				// Always attempt to remove the worktree first
 				if (worktree && project) {
 					try {
 						await removeWorktree(project.mainRepoPath, worktree.path);
