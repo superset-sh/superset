@@ -6,6 +6,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
+import { trpc } from "renderer/lib/trpc";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
@@ -19,7 +20,7 @@ export function createTerminalInstance(container: HTMLDivElement): {
 	// WebLinks - Makes URLs clickable and opens them in default browser
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
 		event.preventDefault();
-		window.ipcRenderer.invoke("open-external", uri);
+		trpc.external.openUrl.mutate(uri);
 	});
 
 	// Search - Enable text searching (Ctrl+F or Cmd+F)
@@ -49,7 +50,7 @@ export function createTerminalInstance(container: HTMLDivElement): {
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			window.ipcRenderer.invoke("open-file-in-editor", {
+			trpc.external.openFileInEditor.mutate({
 				path,
 				line,
 				column,
