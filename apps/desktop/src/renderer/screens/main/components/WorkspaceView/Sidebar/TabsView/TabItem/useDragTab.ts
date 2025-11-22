@@ -1,10 +1,7 @@
 import { useDrag, useDrop } from "react-dnd";
-import { useTabsStore } from "renderer/stores";
 import { type DragItem, TAB_DND_TYPE } from "./types";
 
 export function useDragTab(tabId: string) {
-	const dragTabToTab = useTabsStore((state) => state.dragTabToTab);
-
 	// Set up drag source
 	const [{ isDragging }, drag] = useDrag<
 		DragItem,
@@ -27,7 +24,11 @@ export function useDragTab(tabId: string) {
 		accept: TAB_DND_TYPE,
 		drop: (item) => {
 			if (item.tabId !== tabId) {
-				dragTabToTab(item.tabId, tabId);
+				// TODO: Implement drag-tab-to-tab with tRPC mutations
+				console.log("Drag tab to tab not yet implemented", {
+					draggedTabId: item.tabId,
+					targetTabId: tabId,
+				});
 			}
 		},
 		collect: (monitor) => ({
