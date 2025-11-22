@@ -1,6 +1,7 @@
+import type { Tab } from "main/lib/trpc/routers/tabs";
+
 export interface TerminalProps {
-	tabId: string;
-	workspaceId: string;
+	tab: Tab & { type: "terminal" };
 }
 
 export type TerminalStreamEvent =

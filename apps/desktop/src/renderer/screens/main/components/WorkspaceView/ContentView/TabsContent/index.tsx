@@ -1,6 +1,4 @@
-import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
 import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
@@ -10,24 +8,27 @@ import { useTabContentDrop } from "./useTabContentDrop";
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allTabs = useTabs();
-	const activeTabIds = useActiveTabIds();
+	const { data: allTabs = [] } = trpc.tabs.getByWorkspace.useQuery(
+		{ workspaceId: activeWorkspaceId! },
+		{ enabled: !!activeWorkspaceId },
+	);
 
-	const tabToRender = useMemo(() => {
-		if (!activeWorkspaceId) return null;
-		const activeTabId = activeTabIds[activeWorkspaceId];
-		if (!activeTabId) return null;
-
-		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
-		if (!activeTab) return null;
-
-		if (activeTab.parentId) {
-			const parentGroup = allTabs.find((tab) => tab.id === activeTab.parentId);
-			return parentGroup || null;
+	let tabToRender = null;
+	if (activeWorkspace?.activeTabId) {
+		const activeTab = allTabs.find(
+			(tab) => tab.id === activeWorkspace.activeTabId,
+		);
+		if (activeTab) {
+			if (activeTab.parentId) {
+				const parentGroup = allTabs.find(
+					(tab) => tab.id === activeTab.parentId,
+				);
+				tabToRender = parentGroup || null;
+			} else {
+				tabToRender = activeTab;
+			}
 		}
-
-		return activeTab;
-	}, [activeWorkspaceId, activeTabIds, allTabs]);
+	}
 
 	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
 
@@ -41,7 +42,7 @@ export function TabsContent() {
 
 	return (
 		<div ref={attachDrop} className="flex-1 h-full relative">
-			{tabToRender.type === TabType.Single ? (
+			{tabToRender.type === "terminal" ? (
 				<>
 					<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
 					{isDropZone && <DropOverlay message="Drop to create split view" />}

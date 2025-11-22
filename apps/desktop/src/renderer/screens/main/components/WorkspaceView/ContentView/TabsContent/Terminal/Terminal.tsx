@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs } from "renderer/stores";
+import { useSetActiveTab } from "renderer/react-query/tabs";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -11,17 +11,17 @@ import {
 } from "./helpers";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 
-export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
-	const tabs = useTabs();
-	const tab = tabs.find((t) => t.id === tabId);
-	const tabTitle = tab?.title || "Terminal";
+export const Terminal = ({ tab }: TerminalProps) => {
+	const tabId = tab.id;
+	const workspaceId = tab.workspaceId;
+	const tabTitle = tab.title || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
-	const setActiveTab = useSetActiveTab();
+	const setActiveTabMutation = useSetActiveTab();
 
 	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
@@ -169,11 +169,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
-		const cleanupFocus = setupFocusListener(
-			xterm,
-			workspaceId,
-			tabId,
-			setActiveTab,
+		const cleanupFocus = setupFocusListener(xterm, tabId, (tabId) =>
+			setActiveTabMutation.mutate({ tabId }),
 		);
 		const cleanupResize = setupResizeHandlers(
 			container,

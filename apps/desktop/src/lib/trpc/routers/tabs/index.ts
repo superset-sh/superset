@@ -1,2 +1,2 @@
-export type { TabsRouter } from "./tabs";
+export type { TabsRouter, Tab } from "./tabs";
 export { createTabsRouter } from "./tabs";

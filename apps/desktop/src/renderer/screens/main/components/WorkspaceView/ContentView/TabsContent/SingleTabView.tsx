@@ -1,38 +1,27 @@
-import {
-	type SingleTab,
-	useRemoveTab,
-	useSetActiveTab,
-	useSplitTabHorizontal,
-	useSplitTabVertical,
-} from "renderer/stores";
+import type { Tab } from "main/lib/trpc/routers/tabs";
+import { useRemoveTab } from "renderer/react-query/tabs";
 import { TabContentContextMenu } from "./TabContentContextMenu";
 import { Terminal } from "./Terminal";
 
 interface SingleTabViewProps {
-	tab: SingleTab;
+	tab: Tab & { type: "terminal" };
 	isDropZone: boolean;
 }
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
-	const splitTabHorizontal = useSplitTabHorizontal();
-	const splitTabVertical = useSplitTabVertical();
-	const removeTab = useRemoveTab();
-	const setActiveTab = useSetActiveTab();
+	const removeTabMutation = useRemoveTab();
 
+	// TODO: Implement split operations
 	const handleSplitHorizontal = () => {
-		splitTabHorizontal(tab.workspaceId, tab.id);
+		console.log("Split horizontal not yet implemented");
 	};
 
 	const handleSplitVertical = () => {
-		splitTabVertical(tab.workspaceId, tab.id);
+		console.log("Split vertical not yet implemented");
 	};
 
 	const handleClosePane = () => {
-		removeTab(tab.id);
-	};
-
-	const handleFocus = () => {
-		setActiveTab(tab.workspaceId, tab.id);
+		removeTabMutation.mutate({ id: tab.id });
 	};
 
 	return (
@@ -42,7 +31,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<Terminal tabId={tab.id} workspaceId={tab.workspaceId} />
+				<Terminal tab={tab} />
 			</div>
 		</TabContentContextMenu>
 	);

@@ -7,120 +7,112 @@ import {
 	type MosaicBranch,
 	type MosaicNode,
 } from "react-mosaic-component";
+import type { Tab } from "main/lib/trpc/routers/tabs";
 import { dragDropManager } from "renderer/lib/dnd";
-import {
-	cleanLayout,
-	getChildTabIds,
-	type TabGroup,
-	useActiveTabIds,
-	useSetActiveTab,
-	useSplitTabHorizontal,
-	useSplitTabVertical,
-	useTabs,
-	useTabsStore,
-} from "renderer/stores";
+import { trpc } from "renderer/lib/trpc";
+import { useUpdateLayout } from "renderer/react-query/tabs";
 import { GroupTabPane } from "./GroupTabPane";
 
 interface GroupTabViewProps {
-	tab: TabGroup;
+	tab: Tab & { type: "group" };
 }
 
-function extractTabIdsFromLayout(
-	layout: MosaicNode<string> | null,
-): Set<string> {
-	const ids = new Set<string>();
-
-	if (!layout) return ids;
+// Helper to clean layout - remove tab IDs that don't exist
+function cleanLayout(
+	layout: MosaicNode<string> | null | undefined,
+	validTabIds: Set<string>,
+): MosaicNode<string> | null {
+	if (!layout) return null;
 
 	if (typeof layout === "string") {
-		ids.add(layout);
-	} else {
-		const firstIds = extractTabIdsFromLayout(layout.first);
-		const secondIds = extractTabIdsFromLayout(layout.second);
-		for (const id of firstIds) ids.add(id);
-		for (const id of secondIds) ids.add(id);
+		return validTabIds.has(layout) ? layout : null;
 	}
 
-	return ids;
+	const cleanedFirst = cleanLayout(layout.first, validTabIds);
+	const cleanedSecond = cleanLayout(layout.second, validTabIds);
+
+	if (!cleanedFirst && !cleanedSecond) return null;
+	if (!cleanedFirst) return cleanedSecond;
+	if (!cleanedSecond) return cleanedFirst;
+
+	return {
+		...layout,
+		first: cleanedFirst,
+		second: cleanedSecond,
+	};
 }
 
 export function GroupTabView({ tab }: GroupTabViewProps) {
-	const allTabs = useTabs();
-	const childTabIds = getChildTabIds(allTabs, tab.id);
-	const childTabs = allTabs.filter((t) => childTabIds.includes(t.id));
-	const updateTabGroupLayout = useTabsStore(
-		(state) => state.updateTabGroupLayout,
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: allTabs = [] } = trpc.tabs.getByWorkspace.useQuery(
+		{ workspaceId: tab.workspaceId },
+		{ enabled: !!tab.workspaceId },
 	);
-	const removeChildTabFromGroup = useTabsStore(
-		(state) => state.removeChildTabFromGroup,
-	);
-	const splitTabHorizontal = useSplitTabHorizontal();
-	const splitTabVertical = useSplitTabVertical();
-	const setActiveTab = useSetActiveTab();
-	const activeTabIds = useActiveTabIds();
-	const activeTabId = activeTabIds[tab.workspaceId];
+	const updateLayoutMutation = useUpdateLayout();
 
-	const validTabIds = new Set(childTabIds);
+	const childTabs = allTabs.filter((t) => t.parentId === tab.id);
+	const validTabIds = new Set(childTabs.map((t) => t.id));
 	const cleanedLayout = cleanLayout(tab.layout, validTabIds);
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
-			const oldTabIds = extractTabIdsFromLayout(tab.layout);
-			const newTabIds = extractTabIdsFromLayout(newLayout);
-
-			const removedTabIds = Array.from(oldTabIds).filter(
-				(id) => !newTabIds.has(id),
-			);
-
-			for (const removedId of removedTabIds) {
-				removeChildTabFromGroup(tab.id, removedId);
-			}
-
-			if (newLayout) {
-				updateTabGroupLayout(tab.id, newLayout);
-			}
+			// Just call the backend - it handles everything:
+			// - Extracting old/new tab IDs
+			// - Removing orphaned tabs
+			// - Killing terminals
+			// - Updating activeTabId if needed
+			updateLayoutMutation.mutate({
+				groupId: tab.id,
+				layout: newLayout,
+			});
 		},
-		[tab.id, tab.layout, updateTabGroupLayout, removeChildTabFromGroup],
+		[tab.id, updateLayoutMutation],
 	);
 
-	const renderPane = useCallback(
-		(tabId: string, path: MosaicBranch[]) => {
-			const isActive = tabId === activeTabId;
-			const childTab = childTabs.find((t) => t.id === tabId);
-			if (!childTab) {
-				return (
-					<div className="w-full h-full flex items-center justify-center text-muted-foreground">
-						Tab not found: {tabId}
-					</div>
-				);
-			}
+	const handleSplitHorizontal = (
+		sourceTabId?: string,
+		path?: MosaicBranch[],
+	) => {
+		console.log("Split horizontal not yet implemented", { sourceTabId, path });
+	};
 
+	const handleSplitVertical = (sourceTabId?: string, path?: MosaicBranch[]) => {
+		console.log("Split vertical not yet implemented", { sourceTabId, path });
+	};
+
+	const handleRemoveChild = (groupId: string, tabId: string) => {
+		// The Mosaic onChange will handle this automatically when user closes a pane
+		// But we can also call updateLayout directly if needed
+		console.log("Remove child will be handled by Mosaic onChange", {
+			groupId,
+			tabId,
+		});
+	};
+
+	const renderPane = (tabId: string, path: MosaicBranch[]) => {
+		const isActive = tabId === activeWorkspace?.activeTabId;
+		const childTab = childTabs.find((t) => t.id === tabId);
+
+		if (!childTab || childTab.type !== "terminal") {
 			return (
-				<GroupTabPane
-					tabId={tabId}
-					path={path}
-					childTab={childTab}
-					isActive={isActive}
-					workspaceId={tab.workspaceId}
-					groupId={tab.id}
-					splitTabHorizontal={splitTabHorizontal}
-					splitTabVertical={splitTabVertical}
-					removeChildTabFromGroup={removeChildTabFromGroup}
-					setActiveTab={setActiveTab}
-				/>
+				<div className="w-full h-full flex items-center justify-center text-muted-foreground">
+					Tab not found: {tabId}
+				</div>
 			);
-		},
-		[
-			activeTabId,
-			childTabs,
-			splitTabHorizontal,
-			splitTabVertical,
-			removeChildTabFromGroup,
-			setActiveTab,
-			tab.workspaceId,
-			tab.id,
-		],
-	);
+		}
+
+		return (
+			<GroupTabPane
+				path={path}
+				childTab={childTab}
+				isActive={isActive}
+				groupId={tab.id}
+				splitTabHorizontal={handleSplitHorizontal}
+				splitTabVertical={handleSplitVertical}
+				removeChildTabFromGroup={handleRemoveChild}
+			/>
+		);
+	};
 
 	if (childTabs.length === 0 || !cleanedLayout) {
 		return (

@@ -5,10 +5,7 @@ import { terminalManager } from "main/lib/terminal-manager";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import {
-	extractTabIdsFromLayout,
-	removeTabFromLayout,
-} from "./utils/layout";
+import { extractTabIdsFromLayout, removeTabFromLayout } from "./utils/layout";
 
 export const createTabsRouter = () => {
 	return router({
@@ -30,9 +27,7 @@ export const createTabsRouter = () => {
 				if (!workspace?.activeTabId) {
 					return null;
 				}
-				return (
-					db.data.tabs.find((t) => t.id === workspace.activeTabId) || null
-				);
+				return db.data.tabs.find((t) => t.id === workspace.activeTabId) || null;
 			}),
 
 		// Core Mutations
@@ -86,11 +81,16 @@ export const createTabsRouter = () => {
 				}
 
 				await db.update((data) => {
+					// Collect all removed tab IDs
+					const removedTabIds: string[] = [];
+
 					// If tab has children (is a group), delete them too
 					if (tab.type === "group") {
 						const childIds = data.tabs
 							.filter((t) => t.parentId === tab.id)
 							.map((t) => t.id);
+
+						removedTabIds.push(tab.id, ...childIds);
 
 						data.tabs = data.tabs.filter(
 							(t) => t.id !== tab.id && !childIds.includes(t.id),
@@ -109,11 +109,13 @@ export const createTabsRouter = () => {
 
 								// If parent becomes empty, delete it
 								if (!parent.layout) {
+									removedTabIds.push(parent.id);
 									data.tabs = data.tabs.filter((t) => t.id !== parent.id);
 								}
 							}
 						}
 
+						removedTabIds.push(tab.id);
 						data.tabs = data.tabs.filter((t) => t.id !== tab.id);
 
 						// Kill terminal if terminal type
@@ -126,7 +128,10 @@ export const createTabsRouter = () => {
 					const workspace = data.workspaces.find(
 						(w) => w.id === tab.workspaceId,
 					);
-					if (workspace?.activeTabId === tab.id) {
+					if (
+						workspace?.activeTabId &&
+						removedTabIds.includes(workspace.activeTabId)
+					) {
 						const remainingTabs = data.tabs
 							.filter((t) => t.workspaceId === tab.workspaceId && !t.parentId)
 							.sort((a, b) => a.position - b.position);
@@ -269,12 +274,27 @@ export const createTabsRouter = () => {
 
 						// If layout is null, delete the group
 						if (!input.layout) {
+							removedTabIds.push(input.groupId);
 							data.tabs = data.tabs.filter((t) => t.id !== input.groupId);
 						}
 					}
 
 					// Delete removed tabs
 					data.tabs = data.tabs.filter((t) => !removedTabIds.includes(t.id));
+
+					// Update active tab if needed
+					const workspace = data.workspaces.find(
+						(w) => w.id === group.workspaceId,
+					);
+					if (
+						workspace?.activeTabId &&
+						removedTabIds.includes(workspace.activeTabId)
+					) {
+						const remainingTabs = data.tabs
+							.filter((t) => t.workspaceId === group.workspaceId && !t.parentId)
+							.sort((a, b) => a.position - b.position);
+						workspace.activeTabId = remainingTabs[0]?.id;
+					}
 				});
 
 				// Kill terminals for removed tabs
@@ -326,7 +346,9 @@ export const createTabsRouter = () => {
 				}
 
 				await db.update((data) => {
-					const children = data.tabs.filter((t) => t.parentId === input.groupId);
+					const children = data.tabs.filter(
+						(t) => t.parentId === input.groupId,
+					);
 					const workspaceTabs = data.tabs.filter(
 						(t) => t.workspaceId === group.workspaceId && !t.parentId,
 					);
@@ -342,9 +364,7 @@ export const createTabsRouter = () => {
 
 					// Recompute positions for all workspace tabs
 					const allTabs = data.tabs
-						.filter(
-							(t) => t.workspaceId === group.workspaceId && !t.parentId,
-						)
+						.filter((t) => t.workspaceId === group.workspaceId && !t.parentId)
 						.filter((t) => t.id !== input.groupId)
 						.sort((a, b) => a.position - b.position);
 
@@ -362,3 +382,6 @@ export const createTabsRouter = () => {
 };
 
 export type TabsRouter = ReturnType<typeof createTabsRouter>;
+
+// Export Tab type for use in components
+export type Tab = TabsRouter["getByWorkspace"]["_def"]["_output_out"][number];
