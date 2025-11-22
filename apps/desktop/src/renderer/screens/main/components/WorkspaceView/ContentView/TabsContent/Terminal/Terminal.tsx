@@ -23,6 +23,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
 
+	// Get the workspace CWD for resolving relative file paths
+	const { data: workspaceCwd } =
+		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
+
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
 	const resizeMutation = trpc.terminal.resize.useMutation();
@@ -73,7 +77,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const { xterm, fitAddon } = createTerminalInstance(container);
+		const { xterm, fitAddon } = createTerminalInstance(container, workspaceCwd);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -190,7 +194,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab]);
+	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
 
 	return (
 		<div className="h-full w-full overflow-hidden bg-black">

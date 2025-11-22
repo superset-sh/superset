@@ -10,7 +10,10 @@ import { trpcClient } from "renderer/lib/trpc-client";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
-export function createTerminalInstance(container: HTMLDivElement): {
+export function createTerminalInstance(
+	container: HTMLDivElement,
+	cwd?: string,
+): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 } {
@@ -48,6 +51,7 @@ export function createTerminalInstance(container: HTMLDivElement): {
 				path,
 				line,
 				column,
+				cwd,
 			});
 		},
 	);

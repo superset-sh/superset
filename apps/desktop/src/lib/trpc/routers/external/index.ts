@@ -52,6 +52,7 @@ export const createExternalRouter = () => {
 					path: z.string(),
 					line: z.number().optional(),
 					column: z.number().optional(),
+					cwd: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -67,8 +68,11 @@ export const createExternalRouter = () => {
 				}
 
 				// Convert to absolute path - required for editor commands to work reliably
+				// Use the terminal's CWD if provided, otherwise use main process CWD
 				if (!path.isAbsolute(filePath)) {
-					filePath = path.resolve(filePath);
+					filePath = input.cwd
+						? path.resolve(input.cwd, filePath)
+						: path.resolve(filePath);
 				}
 
 				console.log("[external] Resolved file path:", filePath);

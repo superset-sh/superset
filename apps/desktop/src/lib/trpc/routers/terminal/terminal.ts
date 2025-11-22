@@ -131,6 +131,24 @@ export const createTerminalRouter = () => {
 				return terminalManager.getSession(tabId);
 			}),
 
+		/**
+		 * Get the current working directory for a workspace
+		 * This is used for resolving relative file paths in terminal output
+		 */
+		getWorkspaceCwd: publicProcedure
+			.input(z.string())
+			.query(async ({ input: workspaceId }) => {
+				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
+				if (!workspace) {
+					return undefined;
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				return worktree?.path;
+			}),
+
 		stream: publicProcedure
 			.input(z.string())
 			.subscription(({ input: tabId }) => {
