@@ -25,7 +25,7 @@ export default defineConfig({
 		plugins: [
 			tsconfigPaths,
 			externalizeDepsPlugin({
-				exclude: ["@superset/*", "electron-store"],
+				exclude: ["@superset/*", "electron-store", "lowdb"],
 			}),
 		],
 
