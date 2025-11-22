@@ -3,7 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import { defineConfig } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
@@ -22,14 +22,12 @@ const tsconfigPaths = tsconfigPathsPlugin({
 
 export default defineConfig({
 	main: {
-		plugins: [
-			tsconfigPaths,
-			externalizeDepsPlugin({
-				exclude: ["@superset/*", "electron-store", "lowdb"],
-			}),
-		],
+		plugins: [tsconfigPaths],
 
 		build: {
+			externalizeDeps: {
+				exclude: ["@superset/*", "electron-store", "lowdb"],
+			},
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
@@ -46,14 +44,12 @@ export default defineConfig({
 	},
 
 	preload: {
-		plugins: [
-			tsconfigPaths,
-			externalizeDepsPlugin({
-				exclude: ["trpc-electron"],
-			}),
-		],
+		plugins: [tsconfigPaths],
 
 		build: {
+			externalizeDeps: {
+				exclude: ["trpc-electron"],
+			},
 			outDir: resolve(devPath, "preload"),
 			rollupOptions: {
 				input: {
