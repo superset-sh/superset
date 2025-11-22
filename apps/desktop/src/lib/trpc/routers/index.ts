@@ -3,6 +3,7 @@ import { router } from "..";
 import { createExternalRouter } from "./external";
 import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
+import { createTabsRouter } from "./tabs";
 import { createTerminalRouter } from "./terminal";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
@@ -16,6 +17,7 @@ export const createAppRouter = (window: BrowserWindow) => {
 		window: createWindowRouter(window),
 		projects: createProjectsRouter(window),
 		workspaces: createWorkspacesRouter(),
+		tabs: createTabsRouter(),
 		terminal: createTerminalRouter(),
 		notifications: createNotificationsRouter(),
 		external: createExternalRouter(),

@@ -13,7 +13,7 @@ export function useReorderWorkspaces(
 		...options,
 		onSuccess: async (...args) => {
 			await utils.workspaces.getAll.invalidate();
-			await utils.workspaces.getAllGrouped.invalidate();
+			await utils.projects.getAllWithWorkspaces.invalidate();
 			await options?.onSuccess?.(...args);
 		},
 	});

@@ -5,7 +5,7 @@ export function useReorderProjects() {
 
 	return trpc.projects.reorder.useMutation({
 		onSuccess: () => {
-			utils.workspaces.getAllGrouped.invalidate();
+			utils.projects.getAllWithWorkspaces.invalidate();
 		},
 	});
 }

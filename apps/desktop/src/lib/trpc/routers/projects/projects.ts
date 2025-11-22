@@ -8,6 +8,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
+import { getAllWithWorkspaces } from "./utils";
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
@@ -111,7 +112,13 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 				return { success: true };
 			}),
+
+		getAllWithWorkspaces: publicProcedure.query(() => {
+			return getAllWithWorkspaces(db.data.projects, db.data.workspaces);
+		}),
 	});
 };
 
 export type ProjectsRouter = ReturnType<typeof createProjectsRouter>;
+
+export type ProjectWithWorkspaces = ReturnType<typeof getAllWithWorkspaces>[number];

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import { db } from "main/lib/db";
+import { terminalManager } from "main/lib/terminal-manager";
 import { nanoid } from "nanoid";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -9,6 +10,7 @@ import {
 	generateBranchName,
 	removeWorktree,
 } from "./utils/git";
+import { findAdjacentWorkspace } from "./utils";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -53,15 +55,21 @@ export const createWorkspacesRouter = () => {
 					worktreeId: worktree.id,
 					name: input.name ?? branch,
 					tabOrder: maxTabOrder + 1,
+					activeTabId: undefined,
+					isActive: true,
 					createdAt: Date.now(),
 					updatedAt: Date.now(),
 					lastOpenedAt: Date.now(),
 				};
 
 				await db.update((data) => {
+					// Deactivate all other workspaces
+					for (const ws of data.workspaces) {
+						ws.isActive = false;
+					}
+
 					data.worktrees.push(worktree);
 					data.workspaces.push(workspace);
-					data.settings.lastActiveWorkspaceId = workspace.id;
 
 					const p = data.projects.find((p) => p.id === input.projectId);
 					if (p) {
@@ -97,77 +105,9 @@ export const createWorkspacesRouter = () => {
 			return db.data.workspaces.slice().sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
-		getAllGrouped: publicProcedure.query(() => {
-			const activeProjects = db.data.projects.filter(
-				(p) => p.tabOrder !== null,
-			);
-
-			const groupsMap = new Map<
-				string,
-				{
-					project: {
-						id: string;
-						name: string;
-						color: string;
-						tabOrder: number;
-					};
-					workspaces: Array<{
-						id: string;
-						projectId: string;
-						worktreeId: string;
-						name: string;
-						tabOrder: number;
-						createdAt: number;
-						updatedAt: number;
-						lastOpenedAt: number;
-					}>;
-				}
-			>();
-
-			for (const project of activeProjects) {
-				groupsMap.set(project.id, {
-					project: {
-						id: project.id,
-						name: project.name,
-						color: project.color,
-						tabOrder: project.tabOrder!,
-					},
-					workspaces: [],
-				});
-			}
-
-			const workspaces = db.data.workspaces
-				.slice()
-				.sort((a, b) => a.tabOrder - b.tabOrder);
-
-			for (const workspace of workspaces) {
-				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)!.workspaces.push(workspace);
-				}
-			}
-
-			return Array.from(groupsMap.values()).sort(
-				(a, b) => a.project.tabOrder - b.project.tabOrder,
-			);
-		}),
-
 		getActive: publicProcedure.query(() => {
-			const { lastActiveWorkspaceId } = db.data.settings;
-
-			if (!lastActiveWorkspaceId) {
-				return null;
-			}
-
-			const workspace = db.data.workspaces.find(
-				(w) => w.id === lastActiveWorkspaceId,
-			);
-			if (!workspace) {
-				throw new Error(
-					`Active workspace ${lastActiveWorkspaceId} not found in database`,
-				);
-			}
-
-			return workspace;
+			const workspace = db.data.workspaces.find((w) => w.isActive);
+			return workspace || null;
 		}),
 
 		update: publicProcedure
@@ -299,8 +239,26 @@ export const createWorkspacesRouter = () => {
 					}
 				}
 
+				// Get deleted tab IDs before removing them
+				const deletedTabIds = db.data.tabs
+					.filter((t) => t.workspaceId === input.id)
+					.map((t) => t.id);
+
+				// Find adjacent workspace to activate (before deletion) if necessary
+				const adjacentWorkspace = workspace.isActive
+					? findAdjacentWorkspace(
+							db.data.projects,
+							db.data.workspaces,
+							input.id,
+						)
+					: undefined;
+
 				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
 				await db.update((data) => {
+					// Delete all tabs for this workspace
+					data.tabs = data.tabs.filter((t) => t.workspaceId !== input.id);
+
+					// Delete workspace
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
 					if (worktree) {
@@ -321,13 +279,21 @@ export const createWorkspacesRouter = () => {
 						}
 					}
 
-					if (data.settings.lastActiveWorkspaceId === input.id) {
-						const sorted = data.workspaces
-							.slice()
-							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
-						data.settings.lastActiveWorkspaceId = sorted[0]?.id || undefined;
+					// Activate adjacent workspace if one was found
+					if (adjacentWorkspace) {
+						const ws = data.workspaces.find(
+							(w) => w.id === adjacentWorkspace.id,
+						);
+						if (ws) {
+							ws.isActive = true;
+						}
 					}
 				});
+
+				// Kill terminals for deleted tabs
+				for (const tabId of deletedTabIds) {
+					terminalManager.kill({ tabId });
+				}
 
 				return { success: true };
 			}),
@@ -336,12 +302,18 @@ export const createWorkspacesRouter = () => {
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
 				await db.update((data) => {
+					// Deactivate all workspaces
+					for (const ws of data.workspaces) {
+						ws.isActive = false;
+					}
+
+					// Activate target workspace
 					const workspace = data.workspaces.find((w) => w.id === input.id);
 					if (!workspace) {
 						throw new Error(`Workspace ${input.id} not found`);
 					}
 
-					data.settings.lastActiveWorkspaceId = input.id;
+					workspace.isActive = true;
 					workspace.lastOpenedAt = Date.now();
 					workspace.updatedAt = Date.now();
 				});
