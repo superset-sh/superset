@@ -55,9 +55,10 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				console.log("[external] openFileInEditor called with:", input);
 				let filePath = input.path;
 
-				// Expand home directory
+				// Expand home directory - needed because editors expect absolute paths
 				if (filePath.startsWith("~")) {
 					const home = process.env.HOME || process.env.USERPROFILE;
 					if (home) {
@@ -65,15 +66,17 @@ export const createExternalRouter = () => {
 					}
 				}
 
-				// Convert to absolute path if relative
+				// Convert to absolute path - required for editor commands to work reliably
 				if (!path.isAbsolute(filePath)) {
 					filePath = path.resolve(filePath);
 				}
 
+				console.log("[external] Resolved file path:", filePath);
+
 				// Try Cursor first, then VSCode, then fall back to system default
 				const editors = ["cursor", "code"];
 
-				// Build the file location string (file:line:column)
+				// Build the file location string (file:line:column format expected by --goto flag)
 				let location = filePath;
 				if (input.line) {
 					location += `:${input.line}`;
@@ -82,15 +85,21 @@ export const createExternalRouter = () => {
 					}
 				}
 
-				// Try each editor in order
+				console.log("[external] Opening location:", location);
+
 				for (const editor of editors) {
 					try {
+						console.log(`[external] Trying editor: ${editor}`);
 						await spawnAsync(editor, ["--goto", location]);
-						return; // Success, exit
-					} catch {
+						console.log(`[external] Successfully opened with ${editor}`);
+						return;
+					} catch (error) {
+						console.log(`[external] ${editor} failed:`, error);
 						// Editor not found or failed, try next
 					}
 				}
+
+				console.log("[external] Falling back to system default");
 
 				// If no editor found, open with system default
 				await shell.openPath(filePath);

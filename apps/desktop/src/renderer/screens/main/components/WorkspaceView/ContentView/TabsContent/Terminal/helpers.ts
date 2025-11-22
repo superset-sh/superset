@@ -6,7 +6,7 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
-import { trpc } from "renderer/lib/trpc";
+import { trpcClient } from "renderer/lib/trpc-client";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
@@ -17,28 +17,22 @@ export function createTerminalInstance(container: HTMLDivElement): {
 	const xterm = new XTerm(TERMINAL_OPTIONS);
 	const fitAddon = new FitAddon();
 
-	// WebLinks - Makes URLs clickable and opens them in default browser
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
 		event.preventDefault();
-		trpc.external.openUrl.mutate(uri);
+		trpcClient.external.openUrl.mutate(uri);
 	});
 
-	// Search - Enable text searching (Ctrl+F or Cmd+F)
 	const searchAddon = new SearchAddon();
-
-	// Clipboard - copy/paste support
 	const clipboardAddon = new ClipboardAddon();
 
-	// Unicode 11 support - better emoji and unicode rendering
+	// Unicode 11 provides better emoji and unicode rendering than default
 	const unicode11Addon = new Unicode11Addon();
 
-	// Serialize - export terminal content
 	const serializeAddon = new SerializeAddon();
 
-	// Open terminal first
 	xterm.open(container);
 
-	// Load addons after terminal is opened
+	// Addons must be loaded after terminal is opened, otherwise they won't attach properly
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(searchAddon);
@@ -50,7 +44,7 @@ export function createTerminalInstance(container: HTMLDivElement): {
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			trpc.external.openFileInEditor.mutate({
+			trpcClient.external.openFileInEditor.mutate({
 				path,
 				line,
 				column,

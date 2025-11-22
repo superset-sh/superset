@@ -1,4 +1,4 @@
-import type { ILinkProvider, IViewportRange, Terminal } from "@xterm/xterm";
+import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
 import { parseLineColumnPath } from "line-column-path";
 
 /**
@@ -31,9 +31,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 
 	provideLinks(
 		bufferLineNumber: number,
-		callback: (
-			links: Array<{ range: IViewportRange; text: string }> | undefined,
-		) => void,
+		callback: (links: ILink[] | undefined) => void,
 	): void {
 		const line = this.terminal.buffer.active.getLine(bufferLineNumber - 1);
 		if (!line) {
@@ -42,7 +40,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 		}
 
 		const lineText = line.translateToString(true);
-		const links: Array<{ range: IViewportRange; text: string }> = [];
+		const links: ILink[] = [];
 
 		this.FILE_PATH_REGEX.lastIndex = 0;
 
@@ -64,8 +62,8 @@ export class FilePathLinkProvider implements ILinkProvider {
 				continue;
 			}
 
-			// Create viewport range for the match
-			const startColumn = match.index + 1; // 1-indexed
+			// xterm uses 1-indexed coordinates
+			const startColumn = match.index + 1;
 			const endColumn = startColumn + matchText.length;
 
 			links.push({
@@ -74,6 +72,18 @@ export class FilePathLinkProvider implements ILinkProvider {
 					end: { x: endColumn, y: bufferLineNumber },
 				},
 				text: matchText,
+				activate: (event: MouseEvent, text: string) => {
+					this.handleActivation(event, text);
+				},
+				hover: (event: MouseEvent, text: string) => {
+					this.handleHover(event, text);
+				},
+				leave: (event: MouseEvent, text: string) => {
+					this.handleLeave(event, text);
+				},
+				dispose: () => {
+					// No cleanup needed
+				},
 			});
 
 			match = this.FILE_PATH_REGEX.exec(lineText);
@@ -83,14 +93,12 @@ export class FilePathLinkProvider implements ILinkProvider {
 	}
 
 	handleHover(_event: MouseEvent, _text: string): void {
-		// Change cursor to pointer on hover
 		if (this.terminal.element) {
 			this.terminal.element.style.cursor = "pointer";
 		}
 	}
 
 	handleLeave(_event: MouseEvent, _text: string): void {
-		// Reset cursor when leaving
 		if (this.terminal.element) {
 			this.terminal.element.style.cursor = "default";
 		}
