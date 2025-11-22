@@ -1,7 +1,5 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
-import { SearchAddon } from "@xterm/addon-search";
-import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
@@ -22,37 +20,42 @@ export function createTerminalInstance(
 
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
 		event.preventDefault();
-		trpcClient.external.openUrl.mutate(uri);
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+		});
 	});
 
-	const searchAddon = new SearchAddon();
 	const clipboardAddon = new ClipboardAddon();
 
 	// Unicode 11 provides better emoji and unicode rendering than default
 	const unicode11Addon = new Unicode11Addon();
-
-	const serializeAddon = new SerializeAddon();
 
 	xterm.open(container);
 
 	// Addons must be loaded after terminal is opened, otherwise they won't attach properly
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(webLinksAddon);
-	xterm.loadAddon(searchAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
-	xterm.loadAddon(serializeAddon);
 
 	// Register file path link provider (Cmd+Click to open in Cursor/VSCode)
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			trpcClient.external.openFileInEditor.mutate({
-				path,
-				line,
-				column,
-				cwd,
-			});
+			trpcClient.external.openFileInEditor
+				.mutate({
+					path,
+					line,
+					column,
+					cwd,
+				})
+				.catch((error) => {
+					console.error(
+						"[Terminal] Failed to open file in editor:",
+						path,
+						error,
+					);
+				});
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);

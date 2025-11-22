@@ -60,6 +60,23 @@ export class FilePathLinkProvider implements ILinkProvider {
 				continue;
 			}
 
+			// Skip version numbers (e.g., "1.2.3", "v1.2.3")
+			// These have multiple dots but no slashes
+			if (/^v?\d+\.\d+(\.\d+)*$/.test(filePath)) {
+				continue;
+			}
+
+			// Skip npm package references (e.g., "package@1.0.0/dist/file.js")
+			// These contain @ followed by version numbers
+			if (/@\d+\.\d+/.test(filePath)) {
+				continue;
+			}
+
+			// Skip if it's just a number with colons (e.g., "12:34:56" from timestamps)
+			if (/^\d+(:\d+)*$/.test(matchText)) {
+				continue;
+			}
+
 			// xterm uses 1-indexed coordinates
 			const startColumn = (match.index ?? 0) + 1;
 			const endColumn = startColumn + matchText.length;
