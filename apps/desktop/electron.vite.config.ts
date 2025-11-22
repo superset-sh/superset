@@ -1,112 +1,101 @@
-import { dirname, normalize, resolve } from "node:path";
-import tailwindcss from "@tailwindcss/vite";
-import reactPlugin from "@vitejs/plugin-react";
-import { codeInspectorPlugin } from "code-inspector-plugin";
-import { config } from "dotenv";
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
-import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
-import tsconfigPathsPlugin from "vite-tsconfig-paths";
-import { main, resources } from "./package.json";
-import { getPortSync } from "./src/main/lib/port-manager";
+import react from '@vitejs/plugin-react';
+import { cpSync, rmSync } from 'node:fs';
+import path from 'node:path';
+import { defineConfig } from 'vite';
+import electron from 'vite-plugin-electron/simple';
+import pkg from './package.json';
 
-// Load .env from monorepo root
-// Use override: true to ensure .env values take precedence over inherited env vars
-config({ path: resolve(__dirname, "../../.env"), override: true });
+// https://vitejs.dev/config/
+export default defineConfig(({ command }) => {
+    rmSync('dist-electron', {
+        recursive: true,
+        force: true,
+    });
+    const isServe = command === 'serve';
+    const isBuild = command === 'build';
+    const sourcemap = isServe || !!process.env.VSCODE_DEBUG;
 
-// Extract base output directory (dist/) from main path
-const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
+    try {
+        cpSync('resources', 'dist-electron/main/resources', { recursive: true });
+        console.log('✓ Resources folder copied to dist-electron');
+    } catch (err) {
+        console.error('Failed to copy resources folder:', err);
+    }
 
-const tsconfigPaths = tsconfigPathsPlugin({
-	projects: [resolve("tsconfig.json")],
-});
-
-export default defineConfig({
-	main: {
-		plugins: [
-			tsconfigPaths,
-			externalizeDepsPlugin({
-				exclude: ["@superset/*", "electron-store"],
-			}),
-		],
-
-		build: {
-			rollupOptions: {
-				input: {
-					index: resolve("src/main/index.ts"),
-				},
-
-				output: {
-					dir: resolve(devPath, "main"),
-				},
-			},
-		},
-		resolve: {
-			alias: {},
-		},
-	},
-
-	preload: {
-		plugins: [
-			tsconfigPaths,
-			externalizeDepsPlugin({
-				exclude: ["trpc-electron"],
-			}),
-		],
-
-		build: {
-			outDir: resolve(devPath, "preload"),
-			rollupOptions: {
-				input: {
-					index: resolve("src/preload/index.ts"),
-				},
-			},
-		},
-	},
-
-	renderer: {
-		define: {
-			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
-			"process.platform": JSON.stringify(process.platform),
-			"import.meta.env.ENABLE_NEW_UI": JSON.stringify(
-				process.env.ENABLE_NEW_UI || "false",
-			),
-			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(getPortSync()),
-		},
-
-		server: {
-			port: getPortSync(),
-			strictPort: false, // Allow fallback to next available port
-		},
-
-		plugins: [
-			tsconfigPaths,
-			tailwindcss(),
-			reactPlugin(),
-
-			codeInspectorPlugin({
-				bundler: "vite",
-				hotKeys: ["altKey"],
-				hideConsole: true,
-			}),
-		],
-
-		publicDir: resolve(resources, "public"),
-
-		build: {
-			outDir: resolve(devPath, "renderer"),
-
-			rollupOptions: {
-				plugins: [
-					injectProcessEnvPlugin({
-						NODE_ENV: "production",
-						platform: process.platform,
-					}),
-				],
-
-				input: {
-					index: resolve("src/renderer/index.html"),
-				},
-			},
-		},
-	},
+    return {
+        resolve: {
+            alias: {
+                '@': path.join(__dirname, 'src'),
+                common: path.join(__dirname, 'common'),
+            },
+        },
+        optimizeDeps: {
+            exclude: ['node_modules/.vite/deps'],
+        },
+        plugins: [
+            react(),
+            electron({
+                main: {
+                    // Shortcut of `build.lib.entry`
+                    entry: 'electron/main/index.ts',
+                    onstart(args) {
+                        if (process.env.VSCODE_DEBUG) {
+                            console.log(
+                                /* For `.vscode/.debug.script.mjs` */ '[startup] Electron App',
+                            );
+                        } else {
+                            args.startup();
+                        }
+                    },
+                    vite: {
+                        build: {
+                            sourcemap: sourcemap ? 'inline' : undefined,
+                            minify: isBuild,
+                            outDir: 'dist-electron/main',
+                            rollupOptions: {
+                                external: Object.keys(
+                                    'dependencies' in pkg ? pkg.dependencies : {},
+                                ),
+                            },
+                        },
+                    },
+                },
+                preload: {
+                    input: {
+                        index: 'electron/preload/browserview/index.ts',
+                        webview: 'electron/preload/webview/index.ts',
+                    },
+                    vite: {
+                        build: {
+                            sourcemap: sourcemap ? 'inline' : undefined,
+                            minify: isBuild,
+                            outDir: 'dist-electron/preload',
+                            rollupOptions: {
+                                external: Object.keys(pkg.dependencies ?? {}),
+                                output: {
+                                    format: 'cjs',
+                                    entryFileNames: '[name].js',
+                                    inlineDynamicImports: false,
+                                },
+                            },
+                        },
+                    },
+                },
+                // Ployfill the Electron and Node.js API for Renderer process.
+                // If you want use Node.js in Renderer process, the `nodeIntegration` needs to be enabled in the Main process.
+                // See 👉 https://github.com/electron-vite/vite-plugin-electron-renderer
+                renderer: {},
+            }),
+        ],
+        server: process.env.VSCODE_DEBUG
+            ? (() => {
+                  const url = new URL(pkg.debug.env.VITE_DEV_SERVER_URL);
+                  return {
+                      host: url.hostname,
+                      port: +url.port,
+                  };
+              })()
+            : undefined,
+        clearScreen: false,
+    };
 });

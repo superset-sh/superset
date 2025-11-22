@@ -1,102 +1,83 @@
+import { Configuration, TargetConfiguration } from 'electron-builder';
+
 /**
- * Electron Builder Configuration
- * @see https://www.electron.build/configuration/configuration
+ * @see https://www.electron.build/#documentation
  */
-
-import { join } from "node:path";
-import type { Configuration } from "electron-builder";
-import pkg from "./package.json";
-
-const currentYear = new Date().getFullYear();
-const author = pkg.author?.name ?? pkg.author;
-const authorInKebabCase = author.replace(/\s+/g, "-");
-const appId = `com.${authorInKebabCase}.${pkg.name}`.toLowerCase();
-
 const config: Configuration = {
-	appId,
-	productName: pkg.displayName,
-	copyright: `Copyright © ${currentYear} — ${author}`,
-	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
-
-	// Directories
-	directories: {
-		output: "release",
-		buildResources: join(pkg.resources, "build"),
-	},
-
-	// ASAR configuration for native modules
-	asar: true,
-	asarUnpack: [
-		"**/node_modules/node-pty/**/*",
-	],
-
-	files: [
-		"dist/**/*",
-		"package.json",
-		{
-			from: pkg.resources,
-			to: "resources",
-			filter: ["**/*"],
-		},
-		// Include specific production dependencies from monorepo root
-		{
-			from: "../../node_modules/node-pty",
-			to: "node_modules/node-pty",
-			filter: ["**/*"],
-		},
-		"!node_modules/@superset/**/*",
-	],
-
-	// Skip npm rebuild - dependencies already built in monorepo
-	npmRebuild: false,
-	buildDependenciesFromSource: false,
-	nodeGypRebuild: false,
-
-	// macOS
-	mac: {
-		icon: join(pkg.resources, "build/icons/icon.icns"),
-		category: "public.app-category.utilities",
-		target: [
-			{
-				target: "default",
-				arch: ["universal"],
-			},
-		],
-		hardenedRuntime: true,
-		gatekeeperAssess: false,
-		notarize: false,
-	},
-
-	// Deep linking protocol
-	protocols: {
-		name: pkg.displayName,
-		schemes: ["superset"],
-	},
-
-	// Linux
-	linux: {
-		icon: join(pkg.resources, "build/icons"),
-		category: "Utility",
-		synopsis: pkg.description,
-		target: ["AppImage", "deb"],
-	},
-
-	// Windows
-	win: {
-		icon: join(pkg.resources, "build/icons/icon.ico"),
-		target: [
-			{
-				target: "nsis",
-				arch: ["x64"],
-			},
-		],
-	},
-
-	// NSIS installer (Windows)
-	nsis: {
-		oneClick: false,
-		allowToChangeInstallationDirectory: true,
-	},
+    appId: 'dev.onlook.studio',
+    asar: true,
+    directories: {
+        output: 'release/${version}',
+    },
+    files: ['dist-electron', 'dist'],
+    extraResources: [
+        {
+            from: 'resources/bun',
+            to: 'bun',
+            filter: ['**/*'],
+        },
+    ],
+    mac: {
+        artifactName: '${productName}-${arch}.${ext}',
+        category: 'public.app-category.developer-tools',
+        hardenedRuntime: true,
+        gatekeeperAssess: false,
+        target: [
+            {
+                target: 'dmg',
+                arch: ['x64', 'arm64'],
+            } as TargetConfiguration,
+            {
+                target: 'zip',
+                arch: ['x64', 'arm64'],
+            } as TargetConfiguration,
+        ],
+    },
+    win: {
+        target: [
+            {
+                target: 'nsis',
+                arch: ['x64'],
+            } as TargetConfiguration,
+        ],
+        artifactName: '${productName}-setup.${ext}',
+        azureSignOptions: {
+            publisherName: 'On Off, Inc',
+            certificateProfileName: 'public-trust-onlook',
+            codeSigningAccountName: 'trusted-onlook',
+            endpoint: 'https://eus.codesigning.azure.net',
+            timestampDigest: 'SHA256',
+            timestampRfc3161: 'http://timestamp.acs.microsoft.com',
+        },
+    },
+    linux: {
+        target: [
+            {
+                target: 'AppImage',
+                arch: ['x64', 'arm64'],
+            } as TargetConfiguration,
+            {
+                target: 'deb',
+                arch: ['x64', 'arm64'],
+            } as TargetConfiguration,
+        ],
+        artifactName: '${productName}-${arch}.${ext}',
+        category: 'Utility',
+        executableName: 'Onlook',
+        icon: 'build/icon.icns',
+        protocols: [
+            {
+                name: 'onlook',
+                schemes: ['onlook'],
+            },
+        ],
+    },
+    nsis: {},
+    publish: {
+        provider: 'github',
+        owner: 'onlook-dev',
+        repo: 'onlook',
+    },
 };
 
 export default config;
