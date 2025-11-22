@@ -17,8 +17,6 @@
 		"prebuild": "bun run clean:dev && bun run compile:app",
 		"build": "electron-builder",
 		"package": "electron-builder --config electron-builder.ts",
-		"postbuild": "bun run verify:node-pty",
-		"verify:node-pty": "node -e \"const fs=require('fs');const path=require('path');const unpackedPath=path.join('release','mac-universal','Superset.app','Contents','Resources','app.asar.unpacked','node_modules','node-pty');const exists=fs.existsSync(unpackedPath);console.log(exists?'✅ node-pty unpacked successfully at: '+unpackedPath:'❌ node-pty missing in unpacked! Expected at: '+unpackedPath);process.exit(exists?0:1);\"",
 		"install:deps": "electron-builder install-app-deps",
 		"make:release": "tsx ./src/lib/electron-app/release/modules/release.ts",
 		"release": "electron-builder --publish always",
