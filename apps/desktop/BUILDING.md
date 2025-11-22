@@ -1,0 +1,1 @@
+when building for release, make sure node-pty is built for the correct architecture with `bun install:deps` and then run `bun release`
