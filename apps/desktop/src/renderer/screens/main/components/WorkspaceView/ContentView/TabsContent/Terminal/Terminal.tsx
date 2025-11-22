@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab } from "renderer/stores";
+import { useSetActiveTab, useTabs } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -12,6 +12,9 @@ import {
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
+	const tabs = useTabs();
+	const tab = tabs.find((t) => t.id === tabId);
+	const tabTitle = tab?.title || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -116,6 +119,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				{
 					tabId,
 					workspaceId,
+					tabTitle,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -144,6 +148,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				tabId,
 				workspaceId,
+				tabTitle,
 				cols: xterm.cols,
 				rows: xterm.rows,
 			},

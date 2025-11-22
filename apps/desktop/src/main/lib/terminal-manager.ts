@@ -1,6 +1,8 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
+import { getSupersetPath } from "./agent-setup";
+import { NOTIFICATIONS_PORT } from "shared/constants";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -40,6 +42,8 @@ export class TerminalManager extends EventEmitter {
 	async createOrAttach(params: {
 		tabId: string;
 		workspaceId: string;
+		tabTitle: string;
+		workspaceName: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -48,7 +52,9 @@ export class TerminalManager extends EventEmitter {
 		scrollback: string[];
 		wasRecovered: boolean;
 	}> {
-		const { tabId, workspaceId, cwd, cols, rows } = params;
+		const { tabId, workspaceId, tabTitle, workspaceName, cwd, cols, rows } =
+			params;
+
 
 		const existing = this.sessions.get(tabId);
 		if (existing?.isAlive) {
@@ -68,6 +74,17 @@ export class TerminalManager extends EventEmitter {
 		const terminalCols = cols || this.DEFAULT_COLS;
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
+		// Build env with agent hook variables
+		const baseEnv = this.sanitizeEnv(process.env) || {};
+		const env = {
+			...baseEnv,
+			PATH: getSupersetPath(),
+			SUPERSET_TAB_ID: tabId,
+			SUPERSET_TAB_TITLE: tabTitle,
+			SUPERSET_WORKSPACE_NAME: workspaceName,
+			SUPERSET_WORKSPACE_ID: workspaceId,
+			SUPERSET_PORT: String(NOTIFICATIONS_PORT),
+		};
 		const historyReader = new HistoryReader(workspaceId, tabId);
 		const recovery = await historyReader.getLatestSession();
 
@@ -76,7 +93,7 @@ export class TerminalManager extends EventEmitter {
 			cols: terminalCols,
 			rows: terminalRows,
 			cwd: workingDir,
-			env: this.sanitizeEnv(process.env),
+			env,
 		});
 
 		const historyWriter = new HistoryWriter(

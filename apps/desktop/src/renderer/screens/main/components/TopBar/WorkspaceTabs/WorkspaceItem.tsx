@@ -8,6 +8,7 @@ import {
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
+import { useTabs } from "renderer/stores";
 
 const WORKSPACE_TYPE = "WORKSPACE";
 
@@ -35,6 +36,11 @@ export function WorkspaceItem({
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+	const tabs = useTabs();
+
+	const needsAttention = tabs
+		.filter((t) => t.workspaceId === id)
+		.some((t) => t.needsAttention);
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
@@ -91,6 +97,12 @@ export function WorkspaceItem({
 					<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
 						{title}
 					</span>
+					{needsAttention && (
+						<span className="relative flex size-2 shrink-0">
+							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+							<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+						</span>
+					)}
 				</button>
 
 				<Button

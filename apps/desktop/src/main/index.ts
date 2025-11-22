@@ -4,6 +4,7 @@ import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
+import { setupAgentHooks } from "./lib/agent-setup";
 import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
@@ -33,8 +34,14 @@ registerStorageHandlers();
 (async () => {
 	await app.whenReady();
 
-	// Initialize database
 	await initDb();
+
+	try {  
+        setupAgentHooks();  
+    } catch (error) {  
+        console.error("[main] Failed to set up agent hooks:", error);  
+        // App can continue without agent hooks, but log the failure  
+    }  
 
 	await makeAppSetup(() => MainWindow());
 
