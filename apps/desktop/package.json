@@ -33,6 +33,7 @@
 		"@dnd-kit/utilities": "^3.2.2",
 		"@radix-ui/react-dialog": "^1.1.15",
 		"@radix-ui/react-label": "^2.1.8",
+		"@superset/ui": "workspace:*",
 		"@tanstack/react-query": "^5.90.10",
 		"@trpc/client": "^11.7.1",
 		"@trpc/react-query": "^11.7.1",
@@ -77,9 +78,7 @@
 		"tailwind-merge": "^2.6.0",
 		"trpc-electron": "^0.1.2",
 		"zod": "^4.1.12",
-		"zustand": "^5.0.8",
-		"open": "^10.2.0",
-		"@superset/ui": "workspace:*"
+		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.6",
