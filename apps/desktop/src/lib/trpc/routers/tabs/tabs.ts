@@ -5,50 +5,10 @@ import { terminalManager } from "main/lib/terminal-manager";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-
-// Helper: Extract all tab IDs from a mosaic layout tree
-function extractTabIdsFromLayout(
-	layout: MosaicNode<string> | null,
-): Set<string> {
-	const ids = new Set<string>();
-	if (!layout) return ids;
-
-	if (typeof layout === "string") {
-		ids.add(layout);
-	} else {
-		const firstIds = extractTabIdsFromLayout(layout.first);
-		const secondIds = extractTabIdsFromLayout(layout.second);
-		for (const id of firstIds) ids.add(id);
-		for (const id of secondIds) ids.add(id);
-	}
-
-	return ids;
-}
-
-// Helper: Remove a tab ID from a mosaic layout tree
-function removeTabFromLayout(
-	layout: MosaicNode<string> | null,
-	tabIdToRemove: string,
-): MosaicNode<string> | null {
-	if (!layout) return null;
-
-	if (typeof layout === "string") {
-		return layout === tabIdToRemove ? null : layout;
-	}
-
-	const newFirst = removeTabFromLayout(layout.first, tabIdToRemove);
-	const newSecond = removeTabFromLayout(layout.second, tabIdToRemove);
-
-	if (!newFirst && !newSecond) return null;
-	if (!newFirst) return newSecond;
-	if (!newSecond) return newFirst;
-
-	return {
-		...layout,
-		first: newFirst,
-		second: newSecond,
-	};
-}
+import {
+	extractTabIdsFromLayout,
+	removeTabFromLayout,
+} from "./utils/layout";
 
 export const createTabsRouter = () => {
 	return router({

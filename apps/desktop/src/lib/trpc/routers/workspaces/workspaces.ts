@@ -63,7 +63,6 @@ export const createWorkspacesRouter = () => {
 				};
 
 				await db.update((data) => {
-					// Deactivate all other workspaces
 					for (const ws of data.workspaces) {
 						ws.isActive = false;
 					}
@@ -137,77 +136,6 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		canDelete: publicProcedure
-			.input(z.object({ id: z.string() }))
-			.query(async ({ input }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === input.id);
-
-				if (!workspace) {
-					return {
-						canDelete: false,
-						reason: "Workspace not found",
-						workspace: null,
-					};
-				}
-
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
-				const project = db.data.projects.find(
-					(p) => p.id === workspace.projectId,
-				);
-
-				if (worktree && project) {
-					try {
-						const gitInstance = simpleGit(project.mainRepoPath);
-						const worktrees = await gitInstance.raw([
-							"worktree",
-							"list",
-							"--porcelain",
-						]);
-
-						// Parse porcelain format to verify worktree exists in git before deletion
-						// (porcelain format: "worktree /path/to/worktree" followed by HEAD, branch, etc.)
-						const lines = worktrees.split("\n");
-						const worktreePrefix = `worktree ${worktree.path}`;
-						const worktreeExists = lines.some(
-							(line) => line.trim() === worktreePrefix,
-						);
-
-						if (!worktreeExists) {
-							// Worktree doesn't exist in git, but we can still delete the workspace
-							return {
-								canDelete: true,
-								reason: null,
-								workspace,
-								warning:
-									"Worktree not found in git (may have been manually removed)",
-							};
-						}
-
-						return {
-							canDelete: true,
-							reason: null,
-							workspace,
-							warning: null,
-						};
-					} catch (error) {
-						return {
-							canDelete: false,
-							reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
-							workspace,
-						};
-					}
-				}
-
-				return {
-					canDelete: true,
-					reason: null,
-					workspace,
-					warning: "No associated worktree found",
-				};
-			}),
-
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -224,22 +152,19 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				// Try to remove worktree, but continue with cleanup even if it fails
+				let worktreeWarning: string | null = null;
 				if (worktree && project) {
 					try {
 						await removeWorktree(project.mainRepoPath, worktree.path);
 					} catch (error) {
-						// If worktree removal fails, return error and don't proceed with DB cleanup
 						const errorMessage =
 							error instanceof Error ? error.message : String(error);
 						console.error("Failed to remove worktree:", errorMessage);
-						return {
-							success: false,
-							error: `Failed to remove worktree: ${errorMessage}`,
-						};
+						worktreeWarning = `Workspace deleted from app, but couldn't remove git worktree at ${worktree.path}. You may need to manually clean it up if it still exists.`;
 					}
 				}
 
-				// Get deleted tab IDs before removing them
 				const deletedTabIds = db.data.tabs
 					.filter((t) => t.workspaceId === input.id)
 					.map((t) => t.id);
@@ -253,12 +178,8 @@ export const createWorkspacesRouter = () => {
 						)
 					: undefined;
 
-				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
 				await db.update((data) => {
-					// Delete all tabs for this workspace
 					data.tabs = data.tabs.filter((t) => t.workspaceId !== input.id);
-
-					// Delete workspace
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
 					if (worktree) {
@@ -290,12 +211,14 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				// Kill terminals for deleted tabs
 				for (const tabId of deletedTabIds) {
 					terminalManager.kill({ tabId });
 				}
 
-				return { success: true };
+				return {
+					success: true,
+					warning: worktreeWarning,
+				};
 			}),
 
 		setActive: publicProcedure

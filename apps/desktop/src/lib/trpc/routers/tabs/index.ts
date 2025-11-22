@@ -1,1 +1,2 @@
-export * from "./tabs";
+export type { TabsRouter } from "./tabs";
+export { createTabsRouter } from "./tabs";
