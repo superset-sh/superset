@@ -35,17 +35,10 @@ const spawnAsync = (command: string, args: string[]): Promise<void> => {
  */
 export const createExternalRouter = () => {
 	return router({
-		/**
-		 * Open a URL in the default browser
-		 */
 		openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
 			await shell.openExternal(input);
 		}),
 
-		/**
-		 * Open a file in the default editor (Cursor/VSCode)
-		 * Supports opening at specific line and column numbers
-		 */
 		openFileInEditor: publicProcedure
 			.input(
 				z.object({
@@ -68,7 +61,6 @@ export const createExternalRouter = () => {
 				}
 
 				// Convert to absolute path - required for editor commands to work reliably
-				// Use the terminal's CWD if provided, otherwise use main process CWD
 				if (!path.isAbsolute(filePath)) {
 					filePath = input.cwd
 						? path.resolve(input.cwd, filePath)
@@ -77,7 +69,6 @@ export const createExternalRouter = () => {
 
 				console.log("[external] Resolved file path:", filePath);
 
-				// Try Cursor first, then VSCode, then fall back to system default
 				const editors = ["cursor", "code"];
 
 				// Build the file location string (file:line:column format expected by --goto flag)
@@ -99,13 +90,11 @@ export const createExternalRouter = () => {
 						return;
 					} catch (error) {
 						console.log(`[external] ${editor} failed:`, error);
-						// Editor not found or failed, try next
 					}
 				}
 
 				console.log("[external] Falling back to system default");
 
-				// If no editor found, open with system default
 				await shell.openPath(filePath);
 			}),
 	});
