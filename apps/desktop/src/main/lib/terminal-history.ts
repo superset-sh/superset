@@ -37,7 +37,13 @@ const getBaseDir = () => {
 };
 
 export function getHistoryDir(workspaceId: string, tabId: string): string {
-	return join(getBaseDir(), ".superset", "terminal-history", workspaceId, tabId);
+	return join(
+		getBaseDir(),
+		".superset",
+		"terminal-history",
+		workspaceId,
+		tabId,
+	);
 }
 
 export function getHistoryFilePath(workspaceId: string, tabId: string): string {
