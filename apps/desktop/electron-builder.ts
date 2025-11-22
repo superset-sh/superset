@@ -4,18 +4,19 @@ import { Configuration, TargetConfiguration } from 'electron-builder';
  * @see https://www.electron.build/#documentation
  */
 const config: Configuration = {
-    appId: 'dev.onlook.studio',
+    appId: 'sh.superset.desktop',
     asar: true,
     directories: {
         output: 'release/${version}',
     },
     files: ['dist-electron', 'dist'],
     extraResources: [
-        {
-            from: 'resources/bun',
-            to: 'bun',
-            filter: ['**/*'],
-        },
+		// TODO: This is where we can add the binary for the CLI agents, Example for bun:
+        // {
+        //     from: 'resources/bun',
+        //     to: 'bun',
+        //     filter: ['**/*'],
+        // },
     ],
     mac: {
         artifactName: '${productName}-${arch}.${ext}',
@@ -63,20 +64,20 @@ const config: Configuration = {
         ],
         artifactName: '${productName}-${arch}.${ext}',
         category: 'Utility',
-        executableName: 'Onlook',
+        executableName: 'Superset',
         icon: 'build/icon.icns',
         protocols: [
             {
-                name: 'onlook',
-                schemes: ['onlook'],
+                name: 'superset',
+                schemes: ['superset'],
             },
         ],
     },
     nsis: {},
     publish: {
         provider: 'github',
-        owner: 'onlook-dev',
-        repo: 'onlook',
+        owner: 'superset-sh',
+        repo: 'superset',
     },
 };
 
