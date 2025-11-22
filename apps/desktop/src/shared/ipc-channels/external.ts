@@ -10,6 +10,15 @@ export interface ExternalChannels {
 		response: NoResponse;
 	};
 
+	"open-file-in-editor": {
+		request: {
+			path: string;
+			line?: number;
+			column?: number;
+		};
+		response: NoResponse;
+	};
+
 	"open-app-settings": {
 		request: NoRequest;
 		response: SuccessResponse;

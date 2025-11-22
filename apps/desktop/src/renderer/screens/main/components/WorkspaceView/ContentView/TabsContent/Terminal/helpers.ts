@@ -1,8 +1,13 @@
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
+import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
 export function createTerminalInstance(container: HTMLDivElement): {
 	xterm: XTerm;
@@ -10,11 +15,53 @@ export function createTerminalInstance(container: HTMLDivElement): {
 } {
 	const xterm = new XTerm(TERMINAL_OPTIONS);
 	const fitAddon = new FitAddon();
-	const webLinksAddon = new WebLinksAddon();
 
+	// WebLinks - Makes URLs clickable and opens them in default browser
+	const webLinksAddon = new WebLinksAddon((event, uri) => {
+		event.preventDefault();
+		window.ipcRenderer.invoke("open-external", uri);
+	});
+
+	// Search - Enable text searching (Ctrl+F or Cmd+F)
+	const searchAddon = new SearchAddon();
+
+	// Clipboard - copy/paste support
+	const clipboardAddon = new ClipboardAddon();
+
+	// Unicode 11 support - better emoji and unicode rendering
+	const unicode11Addon = new Unicode11Addon();
+
+	// Serialize - export terminal content
+	const serializeAddon = new SerializeAddon();
+
+	// Open terminal first
+	xterm.open(container);
+
+	// Load addons after terminal is opened
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(webLinksAddon);
-	xterm.open(container);
+	xterm.loadAddon(searchAddon);
+	xterm.loadAddon(clipboardAddon);
+	xterm.loadAddon(unicode11Addon);
+	xterm.loadAddon(serializeAddon);
+
+	// Register file path link provider (Cmd+Click to open in Cursor/VSCode)
+	const filePathLinkProvider = new FilePathLinkProvider(
+		xterm,
+		(_event, path, line, column) => {
+			window.ipcRenderer.invoke("open-file-in-editor", {
+				path,
+				line,
+				column,
+			});
+		},
+	);
+	xterm.registerLinkProvider(filePathLinkProvider);
+
+	// Activate Unicode 11
+	xterm.unicode.activeVersion = "11";
+
+	// Fit after addons are loaded
 	fitAddon.fit();
 
 	return { xterm, fitAddon };

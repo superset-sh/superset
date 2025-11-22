@@ -2,6 +2,7 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { initDb } from "./lib/db";
+import { registerExternalHandlers } from "./lib/external-ipcs";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
 import { setupAgentHooks } from "./lib/agent-setup";
@@ -27,8 +28,9 @@ app.on("open-url", (event, url) => {
 	event.preventDefault();
 });
 
-// Register storage IPC handlers
+// Register IPC handlers
 registerStorageHandlers();
+registerExternalHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {
