@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import * as gitUtils from "./utils/git";
 import { createWorkspacesRouter } from "./workspaces";
 
 // Mock the database
@@ -51,15 +50,22 @@ mock.module("main/lib/db", () => ({
 	db: mockDb,
 }));
 
-// Mock the git utilities
+// Mock the git utilities - use a shared mock function that can be reassigned
+let mockRemoveWorktree = mock(() => Promise.resolve());
+const mockCreateWorktree = mock(() => Promise.resolve());
+const mockGenerateBranchName = mock(() => "test-branch-123");
+
 mock.module("./utils/git", () => ({
-	createWorktree: mock(() => Promise.resolve()),
-	removeWorktree: mock(() => Promise.resolve()),
-	generateBranchName: mock(() => "test-branch-123"),
+	createWorktree: mockCreateWorktree,
+	removeWorktree: (...args: any[]) => mockRemoveWorktree(...args),
+	generateBranchName: mockGenerateBranchName,
 }));
 
 // Reset mock data before each test
 beforeEach(() => {
+	// Reset the removeWorktree mock to default success behavior
+	mockRemoveWorktree = mock(() => Promise.resolve());
+
 	mockDb.data.workspaces = [
 		{
 			id: "workspace-1",
@@ -110,14 +116,10 @@ describe("workspaces router - delete", () => {
 	});
 
 	it("should fail deletion if worktree removal fails", async () => {
-		// Mock removeWorktree to fail
-		const removeWorktreeMock = mock(() =>
+		// Override the removeWorktree mock to fail for this test
+		mockRemoveWorktree = mock(() =>
 			Promise.reject(new Error("Failed to remove worktree")),
 		);
-		mock.module("./utils/git", () => ({
-			...gitUtils,
-			removeWorktree: removeWorktreeMock,
-		}));
 
 		const router = createWorkspacesRouter();
 		const caller = router.createCaller({});

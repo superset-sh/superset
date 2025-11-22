@@ -6,6 +6,9 @@ import { mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+// Set NODE_ENV to test so terminal-history uses tmpdir
+process.env.NODE_ENV = "test";
+
 // Use a temporary directory for tests instead of /mock
 const testTmpDir = join(tmpdir(), "superset-test");
 
