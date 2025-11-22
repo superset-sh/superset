@@ -7,8 +7,9 @@ import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useTabs } from "renderer/stores";
+import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
+import { useWorkspaceRename } from "./useWorkspaceRename";
 
 const WORKSPACE_TYPE = "WORKSPACE";
 
@@ -37,6 +38,7 @@ export function WorkspaceItem({
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const tabs = useTabs();
+	const rename = useWorkspaceRename(id, title);
 
 	const needsAttention = tabs
 		.filter((t) => t.workspaceId === id)
@@ -80,7 +82,8 @@ export function WorkspaceItem({
 					ref={(node) => {
 						drag(drop(node));
 					}}
-					onMouseDown={() => setActive.mutate({ id })}
+					onMouseDown={() => !rename.isRenaming && setActive.mutate({ id })}
+					onDoubleClick={rename.startRename}
 					onMouseEnter={onMouseEnter}
 					onMouseLeave={onMouseLeave}
 					className={`
@@ -94,14 +97,30 @@ export function WorkspaceItem({
 					`}
 					style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 				>
-					<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
-						{title}
-					</span>
-					{needsAttention && (
-						<span className="relative flex size-2 shrink-0">
-							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-							<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-						</span>
+					{rename.isRenaming ? (
+						<input
+							ref={rename.inputRef}
+							type="text"
+							value={rename.renameValue}
+							onChange={(e) => rename.setRenameValue(e.target.value)}
+							onBlur={rename.submitRename}
+							onKeyDown={rename.handleKeyDown}
+							onClick={(e) => e.stopPropagation()}
+							onMouseDown={(e) => e.stopPropagation()}
+							className="flex-1 min-w-0 bg-muted border border-primary rounded px-1 py-0.5 text-sm outline-none"
+						/>
+					) : (
+						<>
+							<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
+								{title}
+							</span>
+							{needsAttention && (
+								<span className="relative flex size-2 shrink-0">
+									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+									<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+								</span>
+							)}
+						</>
 					)}
 				</button>
 
