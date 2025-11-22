@@ -1,11 +1,33 @@
-import { exec } from "node:child_process";
+import { spawn } from "node:child_process";
 import path from "node:path";
-import { promisify } from "node:util";
 import { shell } from "electron";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-const execAsync = promisify(exec);
+/**
+ * Spawns a process and waits for it to complete
+ * @throws Error if the process exits with non-zero code or fails to spawn
+ */
+const spawnAsync = (command: string, args: string[]): Promise<void> => {
+	return new Promise((resolve, reject) => {
+		const child = spawn(command, args, {
+			stdio: "ignore",
+			detached: false,
+		});
+
+		child.on("error", (error) => {
+			reject(error);
+		});
+
+		child.on("exit", (code) => {
+			if (code === 0) {
+				resolve();
+			} else {
+				reject(new Error(`Process exited with code ${code}`));
+			}
+		});
+	});
+};
 
 /**
  * External operations router
@@ -49,10 +71,7 @@ export const createExternalRouter = () => {
 				}
 
 				// Try Cursor first, then VSCode, then fall back to system default
-				const editors = [
-					{ cmd: "cursor", args: "--goto" },
-					{ cmd: "code", args: "--goto" },
-				];
+				const editors = ["cursor", "code"];
 
 				// Build the file location string (file:line:column)
 				let location = filePath;
@@ -66,9 +85,11 @@ export const createExternalRouter = () => {
 				// Try each editor in order
 				for (const editor of editors) {
 					try {
-						await execAsync(`${editor.cmd} ${editor.args} "${location}"`);
+						await spawnAsync(editor, ["--goto", location]);
 						return; // Success, exit
-					} catch {}
+					} catch {
+						// Editor not found or failed, try next
+					}
 				}
 
 				// If no editor found, open with system default

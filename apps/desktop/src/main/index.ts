@@ -27,7 +27,6 @@ app.on("open-url", (event, url) => {
 	event.preventDefault();
 });
 
-// Register IPC handlers
 registerStorageHandlers();
 
 // Allow multiple instances - removed single instance lock
