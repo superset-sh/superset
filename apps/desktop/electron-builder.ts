@@ -52,7 +52,15 @@ const config: Configuration = {
 		],
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
-		notarize: false,
+		entitlements: join(pkg.resources, "build/entitlements.mac.plist"),
+		entitlementsInherit: join(
+			pkg.resources,
+			"build/entitlements.mac.inherit.plist",
+		),
+		// notarize: {
+		// 	teamId: "2HVBK29S3C",
+		// 	keychainProfile: "AC_PASSWORD",
+		// },
 	},
 
 	// Deep linking protocol
