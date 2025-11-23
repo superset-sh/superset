@@ -23,7 +23,7 @@ Superset helps you run 100 CLI coding agents on your machine without losing your
 - [ ] Seemlessly transition between local and cloud so you can code on the go
 - [ ] Automate reviewing and adjusting with minimal input
 
-<img width="1728" height="1077" alt="example-min" src="https://github.com/user-attachments/assets/9db68082-47f4-4076-92a0-85ac97572699" />
+<img alt="example-min" src="https://github.com/user-attachments/assets/9db68082-47f4-4076-92a0-85ac97572699" />
 
 ## Getting Started
 
@@ -34,44 +34,39 @@ Superset helps you run 100 CLI coding agents on your machine without losing your
 
 Superset creates a new workspace for each of your tasks. Each workspace is isolated and parallel.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
-
+<!-- [TODO: Add Image] -->
 <br>
 
 We automatically set up your workspace by cloning env variables, installing dependencies, etc.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
+<!-- [TODO: Add Image] -->
 
 <br>
 
 Coding agents can be spun up and organized. They can pass messages between each other ping you when they are done.
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
+<!-- [TODO: Add Image] -->
 
 <br>
 
 Superset gives you a high level view of all the changes made and help you create and merge a PR in a few clicks
 
-<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
-
-## Documentation
-
-For full documentation, visit [docs.superset.sh](https://docs.superset.sh)
-
-To see how to Contribute, visit
-[Contributing to Superset](https://docs.superset.sh/developers) in our docs.
-
-## How it works
-
-1. Coming soon
-
-For a full walkthrough, check out our
-[Architecture Docs](https://docs.superset.sh/developers/architecture).
+<!-- [TODO: Add Image] -->
 
 ### Our Tech Stack
 
-- [Electron]()
-- [React]()
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
+[![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
+[![Electron](https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-FFE873?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
+[![Neon](https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white)](https://neon.tech/)
+[![tRPC](https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white)](https://trpc.io/)
+[![Biome](https://img.shields.io/badge/Biome-339AF0?logo=biome&logoColor=white)](https://biomejs.dev/)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com/)
 
 ## Contributing
 
