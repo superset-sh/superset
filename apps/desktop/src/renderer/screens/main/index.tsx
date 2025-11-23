@@ -8,6 +8,7 @@ import {
 	useSplitTabVertical,
 } from "renderer/stores/tabs";
 import { dragDropManager } from "../../lib/dnd";
+import { StartView } from "./components/StartView";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { TopBar } from "./components/TopBar";
@@ -39,6 +40,11 @@ export function MainScreen() {
 			splitTabHorizontal(activeWorkspaceId);
 		}
 	}, [activeWorkspaceId, splitTabHorizontal]);
+
+	// Show start screen when no active workspace
+	if (!activeWorkspace) {
+		return <StartView />;
+	}
 
 	return (
 		<DndProvider manager={dragDropManager}>

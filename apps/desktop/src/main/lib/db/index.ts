@@ -13,6 +13,31 @@ export async function initDb(): Promise<void> {
 
 	const dbPath = join(app.getPath("userData"), "db.json");
 	_db = await JSONFilePreset<Database>(dbPath, defaultDatabase);
+
+	// Migration: ensure all required arrays exist
+	let needsWrite = false;
+	if (!Array.isArray(_db.data.projects)) {
+		_db.data.projects = [];
+		needsWrite = true;
+	}
+	if (!Array.isArray(_db.data.workspaces)) {
+		_db.data.workspaces = [];
+		needsWrite = true;
+	}
+	if (!Array.isArray(_db.data.worktrees)) {
+		_db.data.worktrees = [];
+		needsWrite = true;
+	}
+	if (!_db.data.settings || typeof _db.data.settings !== "object") {
+		_db.data.settings = {};
+		needsWrite = true;
+	}
+
+	if (needsWrite) {
+		await _db.write();
+		console.log("Database migrated: added missing arrays/objects");
+	}
+
 	console.log(`Database initialized at: ${dbPath}`);
 }
 

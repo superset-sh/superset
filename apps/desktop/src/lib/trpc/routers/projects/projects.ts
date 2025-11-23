@@ -12,7 +12,8 @@ import { assignRandomColor } from "./utils/colors";
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
 		getRecents: publicProcedure.query((): Project[] => {
-			return db.data.projects
+			const projects = db.data.projects ?? [];
+			return projects
 				.slice()
 				.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 		}),
@@ -41,13 +42,13 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 			const name = basename(mainRepoPath);
 
-			let project = db.data.projects.find(
-				(p) => p.mainRepoPath === mainRepoPath,
-			);
+			const projects = db.data.projects ?? [];
+			let project = projects.find((p) => p.mainRepoPath === mainRepoPath);
 
 			if (project) {
 				await db.update((data) => {
-					const p = data.projects.find((p) => p.id === project?.id);
+					const existingProjects = data.projects ?? [];
+					const p = existingProjects.find((p) => p.id === project?.id);
 					if (p) {
 						p.lastOpenedAt = Date.now();
 					}
@@ -64,6 +65,9 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				};
 
 				await db.update((data) => {
+					if (!data.projects) {
+						data.projects = [];
+					}
 					data.projects.push(project!);
 				});
 			}

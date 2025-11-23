@@ -1,3 +1,4 @@
+import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
@@ -150,20 +151,92 @@ export const createWorkspacesRouter = () => {
 			);
 		}),
 
-		getActive: publicProcedure.query(() => {
-			const { lastActiveWorkspaceId } = db.data.settings;
+		getActive: publicProcedure.query(async () => {
+			const settings = db.data.settings ?? {};
+			const { lastActiveWorkspaceId } = settings;
 
 			if (!lastActiveWorkspaceId) {
 				return null;
 			}
 
-			const workspace = db.data.workspaces.find(
-				(w) => w.id === lastActiveWorkspaceId,
-			);
+			const workspaces = db.data.workspaces ?? [];
+			const workspace = workspaces.find((w) => w.id === lastActiveWorkspaceId);
 			if (!workspace) {
-				throw new Error(
-					`Active workspace ${lastActiveWorkspaceId} not found in database`,
-				);
+				// Clear stale reference
+				await db.update((data) => {
+					if (!data.settings) {
+						data.settings = {};
+					}
+					data.settings.lastActiveWorkspaceId = undefined;
+				});
+				return null;
+			}
+
+			// Validate that the project exists
+			const projects = db.data.projects ?? [];
+			const project = projects.find((p) => p.id === workspace.projectId);
+			if (!project) {
+				// Clean up stale workspace and worktree
+				await db.update((data) => {
+					if (data.workspaces) {
+						data.workspaces = data.workspaces.filter(
+							(w) => w.id !== workspace.id,
+						);
+					}
+					if (data.worktrees) {
+						data.worktrees = data.worktrees.filter(
+							(wt) => wt.id !== workspace.worktreeId,
+						);
+					}
+					if (!data.settings) {
+						data.settings = {};
+					}
+					data.settings.lastActiveWorkspaceId = undefined;
+				});
+				return null;
+			}
+
+			// Validate that the worktree exists
+			const worktrees = db.data.worktrees ?? [];
+			const worktree = worktrees.find((wt) => wt.id === workspace.worktreeId);
+			if (!worktree) {
+				// Clean up workspace without worktree
+				await db.update((data) => {
+					if (data.workspaces) {
+						data.workspaces = data.workspaces.filter(
+							(w) => w.id !== workspace.id,
+						);
+					}
+					if (!data.settings) {
+						data.settings = {};
+					}
+					data.settings.lastActiveWorkspaceId = undefined;
+				});
+				return null;
+			}
+
+			// Validate that the worktree path exists on disk
+			try {
+				await access(worktree.path);
+			} catch {
+				// Worktree directory doesn't exist, clean up
+				await db.update((data) => {
+					if (data.workspaces) {
+						data.workspaces = data.workspaces.filter(
+							(w) => w.id !== workspace.id,
+						);
+					}
+					if (data.worktrees) {
+						data.worktrees = data.worktrees.filter(
+							(wt) => wt.id !== worktree.id,
+						);
+					}
+					if (!data.settings) {
+						data.settings = {};
+					}
+					data.settings.lastActiveWorkspaceId = undefined;
+				});
+				return null;
 			}
 
 			return workspace;
