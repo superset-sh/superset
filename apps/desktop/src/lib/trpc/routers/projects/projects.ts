@@ -1,9 +1,11 @@
-import { basename } from "node:path";
+import { mkdir } from "node:fs/promises";
+import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
-import { dialog } from "electron";
+import { app, dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
@@ -77,6 +79,144 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				project,
 			};
 		}),
+
+		cloneRepo: publicProcedure
+			.input(
+				z.object({
+					url: z.string().url(),
+					targetDirectory: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					// Determine target directory
+					let targetDir = input.targetDirectory;
+
+					if (!targetDir) {
+						// Show directory picker
+						const result = await dialog.showOpenDialog(window, {
+							properties: ["openDirectory", "createDirectory"],
+							title: "Select Clone Destination",
+						});
+
+						if (result.canceled || result.filePaths.length === 0) {
+							return { success: false as const, error: "No directory selected" };
+						}
+
+						targetDir = result.filePaths[0];
+					}
+
+					// Extract repo name from URL
+					const repoName = input.url
+						.split("/")
+						.pop()
+						?.replace(/\.git$/, "");
+					if (!repoName) {
+						return {
+							success: false as const,
+							error: "Invalid repository URL",
+						};
+					}
+
+					const clonePath = join(targetDir, repoName);
+
+					// Clone the repository
+					const git = simpleGit();
+					await git.clone(input.url, clonePath);
+
+					// Add to projects
+					const name = basename(clonePath);
+					const project: Project = {
+						id: nanoid(),
+						mainRepoPath: clonePath,
+						name,
+						color: assignRandomColor(),
+						tabOrder: null,
+						lastOpenedAt: Date.now(),
+						createdAt: Date.now(),
+					};
+
+					await db.update((data) => {
+						if (!data.projects) {
+							data.projects = [];
+						}
+						data.projects.push(project);
+					});
+
+					return {
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						success: false as const,
+						error: `Failed to clone repository: ${errorMessage}`,
+					};
+				}
+			}),
+
+		connectSSH: publicProcedure
+			.input(
+				z.object({
+					host: z.string(),
+					username: z.string(),
+					port: z.number().optional().default(22),
+					privateKeyPath: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					// Show directory picker for where to clone/mount
+					const result = await dialog.showOpenDialog(window, {
+						properties: ["openDirectory", "createDirectory"],
+						title: "Select Local Directory for SSH Connection",
+					});
+
+					if (result.canceled || result.filePaths.length === 0) {
+						return { success: false as const, error: "No directory selected" };
+					}
+
+					const localPath = result.filePaths[0];
+
+					// Create connection string
+					const connectionString = `${input.username}@${input.host}`;
+					const name = `SSH: ${connectionString}`;
+
+					// For now, we'll just create a project entry
+					// In a full implementation, you'd set up SSH tunnel/mount here
+					const project: Project = {
+						id: nanoid(),
+						mainRepoPath: localPath,
+						name,
+						color: assignRandomColor(),
+						tabOrder: null,
+						lastOpenedAt: Date.now(),
+						createdAt: Date.now(),
+					};
+
+					await db.update((data) => {
+						if (!data.projects) {
+							data.projects = [];
+						}
+						data.projects.push(project);
+					});
+
+					return {
+						success: true as const,
+						project,
+						message: "SSH connection placeholder created",
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						success: false as const,
+						error: `Failed to setup SSH connection: ${errorMessage}`,
+					};
+				}
+			}),
 
 		reorder: publicProcedure
 			.input(

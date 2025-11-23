@@ -4,12 +4,17 @@ import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
+import { CloneRepoDialog } from "./CloneRepoDialog";
+import { SSHConnectDialog } from "./SSHConnectDialog";
+import { StartTopBar } from "./StartTopBar";
 
 export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const openNew = useOpenNew();
 	const createWorkspace = useCreateWorkspace();
 	const [error, setError] = useState<string | null>(null);
+	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [isSSHDialogOpen, setIsSSHDialogOpen] = useState(false);
 
 	const handleOpenProject = () => {
 		setError(null);
@@ -43,12 +48,14 @@ export function StartView() {
 	const isLoading = openNew.isPending || createWorkspace.isPending;
 
 	return (
-		<div className="flex h-screen w-screen items-center justify-center bg-[#151110]">
-			<div className="flex flex-col items-center w-full max-w-3xl px-8">
-				{/* Logo */}
-				<h1 className="text-8xl font-normal tracking-normal text-foreground font-micro">
-					SUPERSET
-				</h1>
+		<div className="flex flex-col h-screen w-screen bg-[#151110]">
+			<StartTopBar />
+			<div className="flex flex-1 items-center justify-center">
+				<div className="flex flex-col items-center w-full max-w-3xl px-8">
+					{/* Logo */}
+					<h1 className="text-8xl font-normal tracking-normal text-foreground font-micro">
+						SUPERSET
+					</h1>
 
 				{/* Error Display */}
 				{error && (
@@ -71,13 +78,21 @@ export function StartView() {
 						<ActionCard
 							icon={FolderGit}
 							label="Clone repo"
-							disabled
+							onClick={() => {
+								setError(null);
+								setIsCloneDialogOpen(true);
+							}}
+							isLoading={isLoading}
 						/>
 
 						<ActionCard
 							icon={SquareTerminal}
 							label="Connect via SSH"
-							disabled
+							onClick={() => {
+								setError(null);
+								setIsSSHDialogOpen(true);
+							}}
+							isLoading={isLoading}
 						/>
 					</div>
 
@@ -87,7 +102,7 @@ export function StartView() {
 							<div className="flex-1 p-1 py-4 rounded-lg inline-flex flex-col justify-start items-start gap-1 overflow-hidden">
 								<div className="self-stretch inline-flex justify-between items-start">
 									<div className="flex justify-center items-center gap-2.5">
-										<div className="justify-start text-[#a8a5a3] text-xs px-2 font-normal">
+										<div className="justify-start text-[#a8a5a3] text-xs px-2 py-1 font-normal">
 											Recent projects
 										</div>
 									</div>
@@ -109,7 +124,7 @@ export function StartView() {
 										className="self-stretch inline-flex justify-between items-center px-2 py-1 rounded-md hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
 									>
 										<div className="flex justify-center items-center gap-2.5">
-											<div className="justify-start text-[#eae8e6] text-sm font-normal">
+											<div className="justify-start text-[#eae8e6] text-xs font-normal">
 												{project.name}
 											</div>
 										</div>
@@ -125,6 +140,19 @@ export function StartView() {
 					)}
 				</div>
 			</div>
+			</div>
+
+			{/* Dialogs */}
+			<CloneRepoDialog
+				isOpen={isCloneDialogOpen}
+				onClose={() => setIsCloneDialogOpen(false)}
+				onError={setError}
+			/>
+			<SSHConnectDialog
+				isOpen={isSSHDialogOpen}
+				onClose={() => setIsSSHDialogOpen(false)}
+				onError={setError}
+			/>
 		</div>
 	);
 }
