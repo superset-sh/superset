@@ -10,7 +10,7 @@ import {
 import type { Tab } from "main/lib/trpc/routers/tabs";
 import { dragDropManager } from "renderer/lib/dnd";
 import { trpc } from "renderer/lib/trpc";
-import { useUpdateLayout } from "renderer/react-query/tabs";
+import { useUpdateLayout, useSplit } from "renderer/react-query/tabs";
 import { GroupTabPane } from "./GroupTabPane";
 
 interface GroupTabViewProps {
@@ -49,6 +49,7 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		{ enabled: !!tab.workspaceId },
 	);
 	const updateLayoutMutation = useUpdateLayout();
+	const splitMutation = useSplit();
 
 	const childTabs = allTabs.filter((t) => t.parentId === tab.id);
 	const validTabIds = new Set(childTabs.map((t) => t.id));
@@ -73,11 +74,23 @@ export function GroupTabView({ tab }: GroupTabViewProps) {
 		sourceTabId?: string,
 		path?: MosaicBranch[],
 	) => {
-		console.log("Split horizontal not yet implemented", { sourceTabId, path });
+		if (sourceTabId && path) {
+			splitMutation.mutate({
+				tabId: sourceTabId,
+				direction: "column", // Horizontal split = column direction
+				path,
+			});
+		}
 	};
 
 	const handleSplitVertical = (sourceTabId?: string, path?: MosaicBranch[]) => {
-		console.log("Split vertical not yet implemented", { sourceTabId, path });
+		if (sourceTabId && path) {
+			splitMutation.mutate({
+				tabId: sourceTabId,
+				direction: "row", // Vertical split = row direction
+				path,
+			});
+		}
 	};
 
 	const handleRemoveChild = (groupId: string, tabId: string) => {

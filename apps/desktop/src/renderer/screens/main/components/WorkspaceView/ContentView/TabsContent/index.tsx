@@ -1,9 +1,7 @@
 import { trpc } from "renderer/lib/trpc";
-import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
-import { useTabContentDrop } from "./useTabContentDrop";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -30,28 +28,20 @@ export function TabsContent() {
 		}
 	}
 
-	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
-
 	if (!tabToRender) {
 		return (
-			<div ref={attachDrop} className="flex-1 h-full">
+			<div className="flex-1 h-full">
 				<EmptyTabView />
 			</div>
 		);
 	}
 
 	return (
-		<div ref={attachDrop} className="flex-1 h-full relative">
+		<div className="flex-1 h-full relative">
 			{tabToRender.type === "terminal" ? (
-				<>
-					<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
-					{isDropZone && <DropOverlay message="Drop to create split view" />}
-				</>
+				<SingleTabView tab={tabToRender} />
 			) : (
-				<>
-					<GroupTabView tab={tabToRender} />
-					{isDropZone && <DropOverlay message="Drop to add to split view" />}
-				</>
+				<GroupTabView tab={tabToRender} />
 			)}
 		</div>
 	);

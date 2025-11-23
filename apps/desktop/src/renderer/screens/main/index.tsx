@@ -2,11 +2,8 @@ import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
-import {
-	useAgentHookListener,
-	useSplitTabHorizontal,
-	useSplitTabVertical,
-} from "renderer/stores/tabs";
+import { useAgentHookListener } from "renderer/stores/tabs";
+import { useSplitActiveTab } from "renderer/react-query/tabs";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -16,29 +13,40 @@ import { WorkspaceView } from "./components/WorkspaceView";
 export function MainScreen() {
 	const { toggleSidebar } = useSidebarStore();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const splitTabVertical = useSplitTabVertical();
-	const splitTabHorizontal = useSplitTabHorizontal();
+	const splitActiveTabMutation = useSplitActiveTab();
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();
-
-	const activeWorkspaceId = activeWorkspace?.id;
 
 	// Sidebar toggle shortcut
 	useHotkeys("meta+s", toggleSidebar, [toggleSidebar]);
 
 	// Split view shortcuts
-	useHotkeys("meta+d", () => {
-		if (activeWorkspaceId) {
-			splitTabVertical(activeWorkspaceId);
-		}
-	}, [activeWorkspaceId, splitTabVertical]);
+	useHotkeys(
+		"meta+d",
+		() => {
+			if (activeWorkspace?.id) {
+				splitActiveTabMutation.mutate({
+					workspaceId: activeWorkspace.id,
+					direction: "row", // Vertical split
+				});
+			}
+		},
+		[activeWorkspace?.id, splitActiveTabMutation],
+	);
 
-	useHotkeys("meta+shift+d", () => {
-		if (activeWorkspaceId) {
-			splitTabHorizontal(activeWorkspaceId);
-		}
-	}, [activeWorkspaceId, splitTabHorizontal]);
+	useHotkeys(
+		"meta+shift+d",
+		() => {
+			if (activeWorkspace?.id) {
+				splitActiveTabMutation.mutate({
+					workspaceId: activeWorkspace.id,
+					direction: "column", // Horizontal split
+				});
+			}
+		},
+		[activeWorkspace?.id, splitActiveTabMutation],
+	);
 
 	return (
 		<DndProvider manager={dragDropManager}>

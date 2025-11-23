@@ -1,4 +1,5 @@
 import type { MosaicNode } from "react-mosaic-component";
+import { updateTree } from "react-mosaic-component";
 import { db } from "main/lib/db";
 import type { Tab } from "main/lib/db/schemas";
 import { terminalManager } from "main/lib/terminal-manager";
@@ -374,6 +375,288 @@ export const createTabsRouter = () => {
 
 					// Delete group
 					data.tabs = data.tabs.filter((t) => t.id !== input.groupId);
+				});
+
+				return { success: true };
+			}),
+
+		moveOutOfGroup: publicProcedure
+			.input(
+				z.object({
+					tabId: z.string(),
+					targetIndex: z.number(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const tab = db.data.tabs.find((t) => t.id === input.tabId);
+				if (!tab || !tab.parentId) {
+					throw new Error("Tab not found or not in a group");
+				}
+
+				await db.update((data) => {
+					const t = data.tabs.find((t) => t.id === input.tabId);
+					if (!t || !t.parentId) return;
+
+					// Remove from parent
+					delete t.parentId;
+
+					// Reorder to target position
+					const workspaceTabs = data.tabs
+						.filter((t) => t.workspaceId === tab.workspaceId && !t.parentId)
+						.sort((a, b) => a.position - b.position);
+
+					const currentIndex = workspaceTabs.findIndex(
+						(t) => t.id === input.tabId,
+					);
+					const [moved] = workspaceTabs.splice(currentIndex, 1);
+					workspaceTabs.splice(input.targetIndex, 0, moved);
+
+					// Update all positions
+					for (let i = 0; i < workspaceTabs.length; i++) {
+						const tab = data.tabs.find((t) => t.id === workspaceTabs[i].id);
+						if (tab) {
+							tab.position = i;
+						}
+					}
+				});
+
+				return { success: true };
+			}),
+
+		setParent: publicProcedure
+			.input(
+				z.object({
+					tabId: z.string(),
+					parentId: z.string().nullable(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const tab = db.data.tabs.find((t) => t.id === input.tabId);
+				if (!tab) {
+					throw new Error("Tab not found");
+				}
+
+				if (input.parentId) {
+					const parent = db.data.tabs.find((t) => t.id === input.parentId);
+					if (!parent || parent.type !== "group") {
+						throw new Error("Parent must be a group tab");
+					}
+				}
+
+				await db.update((data) => {
+					const t = data.tabs.find((t) => t.id === input.tabId);
+					if (!t) return;
+
+					if (input.parentId) {
+						t.parentId = input.parentId;
+					} else {
+						delete t.parentId;
+					}
+
+					t.updatedAt = Date.now();
+				});
+
+				return { success: true };
+			}),
+
+		splitActiveTab: publicProcedure
+			.input(
+				z.object({
+					workspaceId: z.string(),
+					direction: z.enum(["row", "column"]),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const workspace = db.data.workspaces.find(
+					(w) => w.id === input.workspaceId,
+				);
+				if (!workspace?.activeTabId) {
+					throw new Error("No active tab in workspace");
+				}
+
+				const activeTab = db.data.tabs.find(
+					(t) => t.id === workspace.activeTabId,
+				);
+				if (!activeTab) {
+					throw new Error("Active tab not found");
+				}
+
+				// Find the terminal to split
+				let terminalToSplit;
+				if (activeTab.type === "terminal") {
+					terminalToSplit = activeTab;
+				} else {
+					// Active tab is a group - find first child terminal
+					terminalToSplit = db.data.tabs.find(
+						(t) => t.parentId === activeTab.id && t.type === "terminal",
+					);
+				}
+
+				if (!terminalToSplit) {
+					throw new Error("No terminal found to split");
+				}
+
+				// Perform the split (inline logic from split procedure)
+				await db.update((data) => {
+					const t = data.tabs.find((t) => t.id === terminalToSplit!.id);
+					if (!t || t.type !== "terminal") return;
+
+					// Only handle standalone terminal case (no path for splitActiveTab)
+					if (!t.parentId) {
+						const groupId = nanoid();
+						const newChildId = nanoid();
+
+						// Create group tab
+						const groupTab: Tab = {
+							id: groupId,
+							workspaceId: t.workspaceId,
+							title: `${t.title} - Split`,
+							type: "group",
+							position: t.position,
+							layout: {
+								direction: input.direction,
+								first: t.id,
+								second: newChildId,
+								splitPercentage: 50,
+							},
+							createdAt: Date.now(),
+							updatedAt: Date.now(),
+						};
+
+						// Create new child terminal
+						const newChildTab: Tab = {
+							id: newChildId,
+							workspaceId: t.workspaceId,
+							parentId: groupId,
+							title: "New Terminal",
+							type: "terminal",
+							position: 0,
+							createdAt: Date.now(),
+							updatedAt: Date.now(),
+						};
+
+						// Update original tab to be child of group
+						t.parentId = groupId;
+
+						// Add tabs to data
+						data.tabs.push(groupTab, newChildTab);
+
+						// Set group as active
+						const ws = data.workspaces.find(
+							(w) => w.id === t.workspaceId,
+						);
+						if (ws) {
+							ws.activeTabId = groupId;
+						}
+					}
+				});
+
+				return { success: true };
+			}),
+
+		split: publicProcedure
+			.input(
+				z.object({
+					tabId: z.string(),
+					direction: z.enum(["row", "column"]),
+					path: z.array(z.enum(["first", "second"])).optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const tab = db.data.tabs.find((t) => t.id === input.tabId);
+				if (!tab || tab.type !== "terminal") {
+					throw new Error("Can only split terminal tabs");
+				}
+
+				await db.update((data) => {
+					const t = data.tabs.find((t) => t.id === input.tabId);
+					if (!t || t.type !== "terminal") return;
+
+					// Case 1: Splitting a standalone terminal → create group
+					if (!t.parentId) {
+						const groupId = nanoid();
+						const newChildId = nanoid();
+
+						// Create group tab
+						const groupTab: Tab = {
+							id: groupId,
+							workspaceId: t.workspaceId,
+							title: `${t.title} - Split`,
+							type: "group",
+							position: t.position,
+							layout: {
+								direction: input.direction,
+								first: t.id,
+								second: newChildId,
+								splitPercentage: 50,
+							},
+							createdAt: Date.now(),
+							updatedAt: Date.now(),
+						};
+
+						// Create new child terminal
+						const newChildTab: Tab = {
+							id: newChildId,
+							workspaceId: t.workspaceId,
+							parentId: groupId,
+							title: "New Terminal",
+							type: "terminal",
+							position: 0,
+							createdAt: Date.now(),
+							updatedAt: Date.now(),
+						};
+
+						// Update original tab to be child of group
+						t.parentId = groupId;
+
+						// Add tabs to data
+						data.tabs.push(groupTab, newChildTab);
+
+						// Set group as active
+						const workspace = data.workspaces.find(
+							(w) => w.id === t.workspaceId,
+						);
+						if (workspace) {
+							workspace.activeTabId = groupId;
+						}
+					}
+					// Case 2: Splitting within a group → add child and update layout
+					else if (input.path) {
+						const parent = data.tabs.find((tab) => tab.id === t.parentId);
+						if (!parent || parent.type !== "group" || !parent.layout) return;
+
+						const newChildId = nanoid();
+
+						// Create new child terminal
+						const newChildTab: Tab = {
+							id: newChildId,
+							workspaceId: t.workspaceId,
+							parentId: t.parentId,
+							title: "New Terminal",
+							type: "terminal",
+							position: 0,
+							createdAt: Date.now(),
+							updatedAt: Date.now(),
+						};
+
+						// Update layout using Mosaic's updateTree
+						parent.layout = updateTree(parent.layout, [
+							{
+								path: input.path,
+								spec: {
+									$set: {
+										direction: input.direction,
+										first: t.id,
+										second: newChildId,
+										splitPercentage: 50,
+									},
+								},
+							},
+						]);
+						parent.updatedAt = Date.now();
+
+						data.tabs.push(newChildTab);
+					}
 				});
 
 				return { success: true };

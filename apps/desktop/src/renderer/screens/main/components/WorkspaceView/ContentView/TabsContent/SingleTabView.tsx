@@ -1,23 +1,28 @@
 import type { Tab } from "main/lib/trpc/routers/tabs";
-import { useRemoveTab } from "renderer/react-query/tabs";
+import { useRemoveTab, useSplit } from "renderer/react-query/tabs";
 import { TabContentContextMenu } from "./TabContentContextMenu";
 import { Terminal } from "./Terminal";
 
 interface SingleTabViewProps {
 	tab: Tab & { type: "terminal" };
-	isDropZone: boolean;
 }
 
 export function SingleTabView({ tab }: SingleTabViewProps) {
 	const removeTabMutation = useRemoveTab();
+	const splitMutation = useSplit();
 
-	// TODO: Implement split operations
 	const handleSplitHorizontal = () => {
-		console.log("Split horizontal not yet implemented");
+		splitMutation.mutate({
+			tabId: tab.id,
+			direction: "column", // Horizontal split = column direction in Mosaic
+		});
 	};
 
 	const handleSplitVertical = () => {
-		console.log("Split vertical not yet implemented");
+		splitMutation.mutate({
+			tabId: tab.id,
+			direction: "row", // Vertical split = row direction in Mosaic
+		});
 	};
 
 	const handleClosePane = () => {
