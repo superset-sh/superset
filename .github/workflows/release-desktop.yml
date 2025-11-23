@@ -57,11 +57,11 @@ jobs:
       - name: Build Electron app
         working-directory: apps/desktop
         env:
-          # macOS code signing (optional - add secrets if needed)
-          # CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          # APPLEID: ${{ secrets.APPLE_ID }}
-          # APPLEIDPASS: ${{ secrets.APPLE_ID_PASSWORD }}
+          # macOS code signing and notarization
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLEID: ${{ secrets.APPLE_ID }}
+          APPLEIDPASS: ${{ secrets.APPLE_ID_PASSWORD }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run package
 
