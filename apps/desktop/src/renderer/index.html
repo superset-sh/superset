@@ -10,6 +10,9 @@
         <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
     -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' *; script-src 'self' *; style-src 'self' 'unsafe-inline' *;" />
+
+    <!-- Preload Micro 5 font to prevent FOUT (Flash of Unstyled Text) -->
+    <link rel="preload" as="font" href="/assets/fonts/Micro5-Regular.woff2" type="font/woff2" crossorigin />
   </head>
 
   <body>
