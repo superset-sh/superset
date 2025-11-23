@@ -2,8 +2,9 @@ name: Release Desktop App
 
 on:
   push:
-    tags:
-      - "desktop-v*.*.*"
+    branches: "*"
+    # tags:
+    #   - "release-v*.*.*"
   workflow_dispatch:
     inputs:
       version:
