@@ -13,14 +13,14 @@ const FEATURES = [
 			"Run multiple agents in parallel. Build features as quickly as you can come up with them.",
 	},
 	{
+		title: "Zero switching cost",
+		description:
+			"Be the human in the loop. We handle the context management so you're never overloaded.",
+	},
+	{
 		title: "No downtime",
 		description:
 			"Code on the go. Always-on agents that work even when you're away from your laptop.",
-	},
-	{
-		title: "Zero switching cost",
-		description:
-			"Be the human in the loop. We handle the port switching and context management so you're never overloaded.",
 	},
 	{
 		title: "Bring your own tools",
