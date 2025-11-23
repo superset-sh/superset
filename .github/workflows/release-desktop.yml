@@ -13,26 +13,8 @@ on:
 
 jobs:
   release:
-    name: Build & Release - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      matrix:
-        include:
-          # macOS (arm64 only as configured in electron-builder.ts)
-          - os: macos-latest
-            platform: mac
-            arch: arm64
-
-          # Windows (x64)
-          - os: windows-latest
-            platform: win
-            arch: x64
-
-          # Linux (AppImage + deb)
-          - os: ubuntu-latest
-            platform: linux
-            arch: x64
+    name: Build & Release - macOS
+    runs-on: macos-latest
 
     steps:
       - name: Checkout code
@@ -64,9 +46,8 @@ jobs:
         working-directory: apps/desktop
         run: bun run compile:app
 
-      # Build the Electron app
-      - name: Build Electron app (macOS)
-        if: matrix.platform == 'mac'
+      # Build the Electron app for macOS
+      - name: Build Electron app
         working-directory: apps/desktop
         env:
           # macOS code signing (optional - add secrets if needed)
@@ -77,52 +58,14 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run package
 
-      - name: Build Electron app (Windows)
-        if: matrix.platform == 'win'
-        working-directory: apps/desktop
-        env:
-          # Windows code signing (optional - add secrets if needed)
-          # CSC_LINK: ${{ secrets.WIN_CERTIFICATE }}
-          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CERTIFICATE_PASSWORD }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run package
-
-      - name: Build Electron app (Linux)
-        if: matrix.platform == 'linux'
-        working-directory: apps/desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run package
-
-      # Upload artifacts for each platform
-      - name: Upload artifacts (macOS)
-        if: matrix.platform == 'mac'
+      # Upload artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-mac-${{ matrix.arch }}
+          name: desktop-mac-arm64
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
-          retention-days: 30
-
-      - name: Upload artifacts (Windows)
-        if: matrix.platform == 'win'
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-win-${{ matrix.arch }}
-          path: |
-            apps/desktop/release/*.exe
-            apps/desktop/release/*.msi
-          retention-days: 30
-
-      - name: Upload artifacts (Linux)
-        if: matrix.platform == 'linux'
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-linux-${{ matrix.arch }}
-          path: |
-            apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
           retention-days: 30
 
   # Create GitHub Release after all builds complete
@@ -147,10 +90,6 @@ jobs:
           files: |
             release-artifacts/**/*.dmg
             release-artifacts/**/*.zip
-            release-artifacts/**/*.exe
-            release-artifacts/**/*.msi
-            release-artifacts/**/*.AppImage
-            release-artifacts/**/*.deb
           draft: true
           generate_release_notes: true
           name: Superset Desktop ${{ github.ref_name }}

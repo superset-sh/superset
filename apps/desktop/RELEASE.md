@@ -42,16 +42,13 @@ This method is useful for testing the workflow or creating builds without creati
 
 The release workflow (`.github/workflows/release-desktop.yml`) performs the following:
 
-### Build Matrix
+### Build Platform
 
 Builds are created for:
 - **macOS**: arm64 (Apple Silicon) - produces `.dmg` and `.zip`
-- **Windows**: x64 - produces `.exe` and `.msi` (NSIS installer)
-- **Linux**: x64 - produces `.AppImage` and `.deb`
 
 ### Build Steps
 
-For each platform:
 1. Checkout code
 2. Setup Bun
 3. Install dependencies
@@ -62,17 +59,15 @@ For each platform:
 
 ### Release Creation
 
-After all builds complete (tag-based releases only):
-1. Downloads all platform artifacts
+After the build completes (tag-based releases only):
+1. Downloads all artifacts
 2. Creates a draft GitHub release
 3. Attaches all binaries to the release
 4. Generates release notes from commits
 
 ## Code Signing (Optional)
 
-To enable code signing, add the following secrets to your GitHub repository:
-
-### macOS Code Signing
+To enable macOS code signing, add the following secrets to your GitHub repository:
 
 ```yaml
 CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
@@ -81,16 +76,7 @@ APPLEID: ${{ secrets.APPLE_ID }}
 APPLEIDPASS: ${{ secrets.APPLE_ID_PASSWORD }}
 ```
 
-Uncomment the environment variables in the workflow under "Build Electron app (macOS)".
-
-### Windows Code Signing
-
-```yaml
-CSC_LINK: ${{ secrets.WIN_CERTIFICATE }}
-CSC_KEY_PASSWORD: ${{ secrets.WIN_CERTIFICATE_PASSWORD }}
-```
-
-Uncomment the environment variables in the workflow under "Build Electron app (Windows)".
+Then uncomment the environment variables in the workflow under "Build Electron app".
 
 ## Publishing the Release
 
@@ -102,17 +88,9 @@ Uncomment the environment variables in the workflow under "Build Electron app (W
 
 ## Build Outputs
 
-### macOS
+### macOS (arm64)
 - `Superset-<version>-arm64.dmg` - DMG installer
 - `Superset-<version>-arm64-mac.zip` - Zipped app bundle
-
-### Windows
-- `Superset Setup <version>.exe` - NSIS installer
-- `Superset-<version>.msi` - MSI installer (if configured)
-
-### Linux
-- `Superset-<version>.AppImage` - Universal Linux binary
-- `superset_<version>_amd64.deb` - Debian package
 
 ## Troubleshooting
 
@@ -120,22 +98,18 @@ Uncomment the environment variables in the workflow under "Build Electron app (W
 
 - Ensure you're building for the correct architecture (arm64 is configured by default)
 - Check that icon files exist at `src/resources/build/icons/icon.icns`
-
-### Build fails on Windows
-
-- Check that icon files exist at `src/resources/build/icons/icon.ico`
-- Ensure NSIS configuration is correct in `electron-builder.ts`
-
-### Build fails on Linux
-
-- Check that icon files exist at `src/resources/build/icons/`
-- Ensure required Linux build tools are available
+- Verify that dependencies are properly installed
 
 ### Native module errors
 
 - `node-pty` is configured as a native module in both `electron.vite.config.ts` and `electron-builder.ts`
 - It's externalized during build and unpacked from ASAR
 - If you add more native modules, update both configuration files
+
+### Missing icons error
+
+- The macOS build requires `icon.icns` in `src/resources/build/icons/`
+- Ensure this file is committed to the repository
 
 ## Local Testing
 
@@ -154,9 +128,9 @@ bun run package
 
 The output will be in `apps/desktop/release/`.
 
-## Multi-Architecture Builds
+## Building for Intel Macs (x64)
 
-To build for multiple architectures, update `electron-builder.ts`:
+To also build for Intel Macs, update `electron-builder.ts`:
 
 ```typescript
 mac: {
@@ -170,3 +144,11 @@ mac: {
 ```
 
 Note: This will increase build time significantly.
+
+## Adding Windows/Linux Builds
+
+Currently only macOS builds are supported in CI/CD. To add Windows or Linux:
+
+1. Add PNG icon files to `src/resources/build/icons/` (for Linux)
+2. Update the workflow matrix in `.github/workflows/release-desktop.yml`
+3. Update `electron-builder.ts` configuration as needed
