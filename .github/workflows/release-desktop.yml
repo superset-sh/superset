@@ -1,0 +1,158 @@
+name: Release Desktop App
+
+on:
+  push:
+    tags:
+      - "desktop-v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 1.0.0)"
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Build & Release - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          # macOS (arm64 only as configured in electron-builder.ts)
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+
+          # Windows (x64)
+          - os: windows-latest
+            platform: win
+            arch: x64
+
+          # Linux (AppImage + deb)
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      # Run prebuild and compile steps before electron-builder
+      - name: Clean dev folder
+        working-directory: apps/desktop
+        run: bun run clean:dev
+
+      - name: Compile app with electron-vite
+        working-directory: apps/desktop
+        run: bun run compile:app
+
+      # Build the Electron app
+      - name: Build Electron app (macOS)
+        if: matrix.platform == 'mac'
+        working-directory: apps/desktop
+        env:
+          # macOS code signing (optional - add secrets if needed)
+          # CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          # APPLEID: ${{ secrets.APPLE_ID }}
+          # APPLEIDPASS: ${{ secrets.APPLE_ID_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run package
+
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'win'
+        working-directory: apps/desktop
+        env:
+          # Windows code signing (optional - add secrets if needed)
+          # CSC_LINK: ${{ secrets.WIN_CERTIFICATE }}
+          # CSC_KEY_PASSWORD: ${{ secrets.WIN_CERTIFICATE_PASSWORD }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run package
+
+      - name: Build Electron app (Linux)
+        if: matrix.platform == 'linux'
+        working-directory: apps/desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun run package
+
+      # Upload artifacts for each platform
+      - name: Upload artifacts (macOS)
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac-${{ matrix.arch }}
+          path: |
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+          retention-days: 30
+
+      - name: Upload artifacts (Windows)
+        if: matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-win-${{ matrix.arch }}
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.msi
+          retention-days: 30
+
+      - name: Upload artifacts (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux-${{ matrix.arch }}
+          path: |
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+          retention-days: 30
+
+  # Create GitHub Release after all builds complete
+  create-release:
+    name: Create GitHub Release
+    needs: release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/desktop-v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.zip
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.msi
+            release-artifacts/**/*.AppImage
+            release-artifacts/**/*.deb
+          draft: true
+          generate_release_notes: true
+          name: Superset Desktop ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
