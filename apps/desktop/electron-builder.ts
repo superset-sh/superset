@@ -59,6 +59,9 @@ const config: Configuration = {
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
 		notarize: true,
+		extendInfo: {
+			CFBundleName: pkg.displayName,
+		},
 	},
 
 	// Deep linking protocol
