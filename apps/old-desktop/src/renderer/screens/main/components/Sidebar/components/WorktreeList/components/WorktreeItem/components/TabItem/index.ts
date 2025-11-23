@@ -1,1 +1,0 @@
-export { TabItem } from "./TabItem";

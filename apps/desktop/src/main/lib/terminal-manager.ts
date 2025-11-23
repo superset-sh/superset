@@ -55,7 +55,6 @@ export class TerminalManager extends EventEmitter {
 		const { tabId, workspaceId, tabTitle, workspaceName, cwd, cols, rows } =
 			params;
 
-
 		const existing = this.sessions.get(tabId);
 		if (existing?.isAlive) {
 			existing.lastActive = Date.now();

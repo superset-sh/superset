@@ -1,10 +1,10 @@
 import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { setupAgentHooks } from "./lib/agent-setup";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
-import { setupAgentHooks } from "./lib/agent-setup";
 import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
@@ -27,7 +27,6 @@ app.on("open-url", (event, url) => {
 	event.preventDefault();
 });
 
-// Register storage IPC handlers
 registerStorageHandlers();
 
 // Allow multiple instances - removed single instance lock
@@ -36,12 +35,12 @@ registerStorageHandlers();
 
 	await initDb();
 
-	try {  
-        setupAgentHooks();  
-    } catch (error) {  
-        console.error("[main] Failed to set up agent hooks:", error);  
-        // App can continue without agent hooks, but log the failure  
-    }  
+	try {
+		setupAgentHooks();
+	} catch (error) {
+		console.error("[main] Failed to set up agent hooks:", error);
+		// App can continue without agent hooks, but log the failure
+	}
 
 	await makeAppSetup(() => MainWindow());
 

@@ -1,9 +1,9 @@
-import { GitBranch, LayoutList } from "lucide-react";
+import { HiMiniCodeBracket, HiMiniListBullet } from "react-icons/hi2";
 import type { SidebarMode } from "./types";
 
-export const modeIcons: Record<SidebarMode, typeof LayoutList> = {
-	tabs: LayoutList,
-	changes: GitBranch,
+export const modeIcons: Record<SidebarMode, typeof HiMiniListBullet> = {
+	tabs: HiMiniListBullet,
+	changes: HiMiniCodeBracket,
 };
 
 export const modeLabels: Record<SidebarMode, string> = {

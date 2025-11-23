@@ -24,6 +24,10 @@ const config: Configuration = {
 		buildResources: join(pkg.resources, "build"),
 	},
 
+	// ASAR configuration for native modules
+	asar: true,
+	asarUnpack: ["**/node_modules/node-pty/**/*"],
+
 	files: [
 		"dist/**/*",
 		"package.json",
@@ -32,10 +36,12 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
-		"!node_modules/@superset/**/*",
+		// Only include node-pty (native module that can't be bundled)
+		"node_modules/node-pty/**/*",
+		"!**/.DS_Store",
 	],
 
-	// Build optimization
+	// Skip npm rebuild - dependencies already built in monorepo
 	npmRebuild: false,
 	buildDependenciesFromSource: false,
 	nodeGypRebuild: false,
@@ -47,7 +53,7 @@ const config: Configuration = {
 		target: [
 			{
 				target: "default",
-				arch: ["universal"],
+				arch: ["arm64"], // Build for arm64 only for faster testing
 			},
 		],
 		hardenedRuntime: true,

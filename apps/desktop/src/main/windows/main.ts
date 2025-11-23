@@ -45,9 +45,15 @@ export async function MainWindow() {
 	});
 
 	// Start notifications HTTP server
-	const server = notificationsApp.listen(NOTIFICATIONS_PORT, "127.0.0.1", () => {
-		console.log(`[notifications] Listening on http://127.0.0.1:${NOTIFICATIONS_PORT}`);
-	});
+	const server = notificationsApp.listen(
+		NOTIFICATIONS_PORT,
+		"127.0.0.1",
+		() => {
+			console.log(
+				`[notifications] Listening on http://127.0.0.1:${NOTIFICATIONS_PORT}`,
+			);
+		},
+	);
 
 	// Handle agent completion notifications
 	notificationsEmitter.on("agent-complete", (event: AgentCompleteEvent) => {

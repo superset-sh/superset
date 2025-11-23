@@ -1,5 +1,5 @@
 import { createReadStream, createWriteStream, promises as fs } from "node:fs";
-import { homedir } from "node:os";
+import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import readline from "node:readline";
 
@@ -28,8 +28,22 @@ export interface SessionMetadata {
 	byteLength: number;
 }
 
+// Use environment variable or tmpdir for tests
+const getBaseDir = () => {
+	if (process.env.NODE_ENV === "test" || process.env.BUN_ENV === "test") {
+		return join(tmpdir(), "superset-test");
+	}
+	return homedir();
+};
+
 export function getHistoryDir(workspaceId: string, tabId: string): string {
-	return join(homedir(), ".superset", "terminal-history", workspaceId, tabId);
+	return join(
+		getBaseDir(),
+		".superset",
+		"terminal-history",
+		workspaceId,
+		tabId,
+	);
 }
 
 export function getHistoryFilePath(workspaceId: string, tabId: string): string {

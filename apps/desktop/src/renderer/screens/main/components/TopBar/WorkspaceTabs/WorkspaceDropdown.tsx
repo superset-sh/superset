@@ -4,7 +4,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { FolderOpen } from "lucide-react";
+import { HiMiniFolderOpen } from "react-icons/hi2";
 import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
@@ -79,7 +79,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 							disabled={openNew.isPending || createWorkspace.isPending}
 							className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-accent transition-colors flex items-center gap-2"
 						>
-							<FolderOpen className="h-4 w-4" />
+							<HiMiniFolderOpen className="h-4 w-4" />
 							<span>Open New Project...</span>
 						</button>
 					</div>

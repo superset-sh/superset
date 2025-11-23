@@ -139,10 +139,24 @@
 
 	html,
 	body {
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
+		margin: 0;
+		overflow: hidden; /* prevent scroll-lock adjustments from collapsing layout */
 		user-select: none;
 		scroll-behavior: smooth;
 		-webkit-app-region: no-drag;
 		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Ensure the React root fills the viewport and provides a positioning context */
+	app {
+		display: block;
+		position: relative;
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
 	}
 
 	/* Ensure xterm terminal fills container height */
@@ -154,6 +168,21 @@
 	.xterm-screen {
 		height: 100% !important;
 		width: 100% !important;
+	}
+
+	/* Style links in terminal (like iTerm) */
+	/* xterm uses underline-5 (dashed) for links on hover */
+	.xterm .xterm-rows a {
+		color: inherit;
+		cursor: pointer !important;
+	}
+
+	.xterm .xterm-rows a.xterm-underline-5 {
+		text-decoration-color: #3b8eea !important;
+	}
+
+	.xterm .xterm-rows a:hover.xterm-underline-5 {
+		text-decoration-color: #5ca8ff !important;
 	}
 
 	/* Hide scrollbar for workspace carousel and tabs */

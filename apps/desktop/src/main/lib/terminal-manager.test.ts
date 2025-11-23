@@ -1,40 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import { promises as fs } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import * as pty from "node-pty";
 import { TerminalManager } from "./terminal-manager";
 
-// Mock HistoryWriter and HistoryReader
-const mockHistoryWriterInstance = {
-	init: mock(async () => {}),
-	writeData: mock(() => {}),
-	writeExit: mock(async () => {}),
-	finalize: mock(async () => {}),
-	isOpen: mock(() => true),
-};
-
-const mockHistoryReaderInstance = {
-	getLatestSession: mock(async () => ({
-		scrollback: "",
-		wasRecovered: false,
-	})),
-	cleanup: mock(async () => {}),
-};
-
-mock.module("./terminal-history", () => ({
-	HistoryWriter: mock(() => mockHistoryWriterInstance),
-	HistoryReader: mock(() => mockHistoryReaderInstance),
-	getHistoryDir: mock(
-		(workspaceId: string, tabId: string) =>
-			`/mock/.superset/terminal-history/${workspaceId}/${tabId}`,
-	),
-	getHistoryFilePath: mock(
-		(workspaceId: string, tabId: string) =>
-			`/mock/.superset/terminal-history/${workspaceId}/${tabId}/history.ndjson`,
-	),
-	getMetadataPath: mock(
-		(workspaceId: string, tabId: string) =>
-			`/mock/.superset/terminal-history/${workspaceId}/${tabId}/meta.json`,
-	),
-}));
+// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
+const testTmpDir = join(tmpdir(), "superset-test");
 
 // Mock node-pty
 mock.module("node-pty", () => ({
@@ -52,13 +24,15 @@ describe("TerminalManager", () => {
 	};
 
 	beforeEach(async () => {
-		// Reset mock counters
-		mockHistoryWriterInstance.init.mockClear();
-		mockHistoryWriterInstance.writeData.mockClear();
-		mockHistoryWriterInstance.writeExit.mockClear();
-		mockHistoryWriterInstance.finalize.mockClear();
-		mockHistoryReaderInstance.getLatestSession.mockClear();
-		mockHistoryReaderInstance.cleanup.mockClear();
+		// Clean up test history directory before each test
+		try {
+			await fs.rm(join(testTmpDir, ".superset/terminal-history"), {
+				recursive: true,
+				force: true,
+			});
+		} catch {
+			// Ignore if doesn't exist
+		}
 
 		manager = new TerminalManager();
 
@@ -266,7 +240,13 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			// Listen for exit event
+			// Trigger some data to create history
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("test output\n");
+			}
+
 			const exitPromise = new Promise<void>((resolve) => {
 				manager.once("exit:tab-1", () => resolve());
 			});
@@ -283,8 +263,13 @@ describe("TerminalManager", () => {
 
 			await exitPromise;
 
-			// Verify history cleanup was NOT called (history preserved)
-			expect(mockHistoryReaderInstance.cleanup).not.toHaveBeenCalled();
+			// Verify history directory still exists (preserved)
+			const historyDir = join(
+				testTmpDir,
+				".superset/terminal-history/workspace-1/tab-1",
+			);
+			const stats = await fs.stat(historyDir);
+			expect(stats.isDirectory()).toBe(true);
 		});
 
 		it("should delete history when deleteHistory flag is true", async () => {
@@ -293,7 +278,13 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			// Listen for exit event
+			// Trigger some data to create history
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("test output\n");
+			}
+
 			const exitPromise = new Promise<void>((resolve) => {
 				manager.once("exit:tab-delete-history", () => resolve());
 			});
@@ -310,8 +301,17 @@ describe("TerminalManager", () => {
 
 			await exitPromise;
 
-			// Verify history cleanup WAS called (history deleted)
-			expect(mockHistoryReaderInstance.cleanup).toHaveBeenCalled();
+			// Verify history directory was deleted
+			const historyDir = join(
+				testTmpDir,
+				".superset/terminal-history/workspace-1/tab-delete-history",
+			);
+			try {
+				await fs.stat(historyDir);
+				throw new Error("Directory should not exist");
+			} catch (error: any) {
+				expect(error.code).toBe("ENOENT");
+			}
 		});
 
 		it("should preserve history for recovery after kill without deleteHistory", async () => {
@@ -341,20 +341,14 @@ describe("TerminalManager", () => {
 
 			await exitPromise;
 
-			// Setup mock to return preserved history on recovery (after session ends)
-			mockHistoryReaderInstance.getLatestSession.mockResolvedValueOnce({
-				scrollback: "Preserved output\n",
-				wasRecovered: true,
-			});
-
-			// Recreate session - should recover history
+			// Recreate session - should recover history from filesystem
 			const result = await manager.createOrAttach({
 				tabId: "tab-preserve",
 				workspaceId: "workspace-1",
 			});
 
 			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback[0]).toContain("Preserved output");
+			expect(result.scrollback.join("")).toContain("Preserved output");
 		});
 	});
 
@@ -437,10 +431,6 @@ describe("TerminalManager", () => {
 				onDataCallback("Test output during cleanup\n");
 			}
 
-			expect(mockHistoryWriterInstance.writeData).toHaveBeenCalledWith(
-				"Test output during cleanup\n",
-			);
-
 			const cleanupPromise = manager.cleanup();
 
 			const onExitCallback =
@@ -451,8 +441,13 @@ describe("TerminalManager", () => {
 
 			await cleanupPromise;
 
-			// Verify history was NOT cleaned up (preserved)
-			expect(mockHistoryReaderInstance.cleanup).not.toHaveBeenCalled();
+			// Verify history was preserved (directory still exists)
+			const historyDir = join(
+				testTmpDir,
+				".superset/terminal-history/workspace-1/tab-cleanup",
+			);
+			const stats = await fs.stat(historyDir);
+			expect(stats.isDirectory()).toBe(true);
 		});
 	});
 
@@ -503,6 +498,7 @@ describe("TerminalManager", () => {
 
 	describe("multi-session history persistence", () => {
 		it("should persist history across multiple sessions", async () => {
+			// Session 1: Create and write data
 			const result1 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
@@ -528,14 +524,9 @@ describe("TerminalManager", () => {
 			}
 
 			await exitPromise1;
-
 			await manager.cleanup();
 
-			mockHistoryReaderInstance.getLatestSession.mockResolvedValueOnce({
-				scrollback: "Session 1 output\n",
-				wasRecovered: true,
-			});
-
+			// Session 2: Should recover Session 1 data
 			const result2 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
@@ -543,7 +534,7 @@ describe("TerminalManager", () => {
 
 			expect(result2.isNew).toBe(true);
 			expect(result2.wasRecovered).toBe(true);
-			expect(result2.scrollback[0]).toContain("Session 1 output");
+			expect(result2.scrollback.join("")).toContain("Session 1 output");
 
 			const onDataCallback2 =
 				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
@@ -562,14 +553,9 @@ describe("TerminalManager", () => {
 			}
 
 			await exitPromise2;
-
 			await manager.cleanup();
 
-			mockHistoryReaderInstance.getLatestSession.mockResolvedValueOnce({
-				scrollback: "Session 1 output\nSession 2 output\n",
-				wasRecovered: true,
-			});
-
+			// Session 3: Should recover both Session 1 and Session 2 data
 			const result3 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
@@ -577,8 +563,9 @@ describe("TerminalManager", () => {
 
 			expect(result3.isNew).toBe(true);
 			expect(result3.wasRecovered).toBe(true);
-			expect(result3.scrollback[0]).toContain("Session 1 output");
-			expect(result3.scrollback[0]).toContain("Session 2 output");
+			const fullScrollback = result3.scrollback.join("");
+			expect(fullScrollback).toContain("Session 1 output");
+			expect(fullScrollback).toContain("Session 2 output");
 		});
 	});
 });
