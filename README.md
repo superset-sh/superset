@@ -1,34 +1,14 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
-
 <div align="center">
-<img width="800" alt="header image" src="assets/web-preview.png">
+<img width="600" alt="header image" src="apps/website/public/title.svg">
 <h3 align="center">Superset</h3>
   <p align="center">
     The last developer tool you'll ever need
-    <br />
-    <a href="https://superset.sh"><strong>Explore the docs »</strong></a>
-    <br />
   </p>
 
-  <!-- PROJECT SHIELDS -->
-<!--
-*** I'm using markdown "reference style" links for readability.
-*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
-*** See the bottom of this document for the declaration of the reference variables
-*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
-*** https://www.markdownguide.org/basic-syntax/#reference-style-links
--->
-<!-- [![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![Apache License][license-shield]][license-url] -->
-
-[![Twitter][twitter-shield]][twitter-url]
+[![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
 
 </div>
-
-# The Last Developer Tool You'll Ever Need
 
 Superset helps you run 100 CLI coding agents on your machine without losing your mind.
 
@@ -43,7 +23,7 @@ Superset helps you run 100 CLI coding agents on your machine without losing your
 - [ ] Seemlessly transition between local and cloud so you can code on the go
 - [ ] Automate reviewing and adjusting with minimal input
 
-![Superset-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
+<img width="1728" height="1077" alt="example-min" src="https://github.com/user-attachments/assets/9db68082-47f4-4076-92a0-85ac97572699" />
 
 ## Getting Started
 
@@ -83,8 +63,6 @@ To see how to Contribute, visit
 
 ## How it works
 
-<img width="676" alt="architecture" src="assets/architecture.png">
-
 1. Coming soon
 
 For a full walkthrough, check out our
@@ -96,8 +74,6 @@ For a full walkthrough, check out our
 - [React]()
 
 ## Contributing
-
-![image](https://github.com/user-attachments/assets/ecc94303-df23-46ae-87dc-66b040396e0b)
 
 If you have a suggestion that would make this better, please fork the repo and
 create a pull request. You can also
@@ -111,16 +87,11 @@ See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
 
-## Contact
+## Team
+- [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
+- [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle_paddle-555?logo=x)](https://x.com/saddle_paddle)
+- [![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)
 
-![image](https://github.com/user-attachments/assets/60684b68-1925-4550-8efd-51a1509fc953)
-
-- Team: 
-  [Twitter](https://twitter.com/superset-sh) -
-  [Email](mailto:hoakiet98@gmail.com)
-- Project:
-  [https://github.com/superset-sh/superset](https://github.com/superset-sh/superset)
-- Website: [https://superset.sh](https://superset.sh)
 
 ## License
 
@@ -129,6 +100,10 @@ information.
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
+[superset-twitter]: https://x.com/supersetdev
+[kiet-twitter]: https://x.com/flyakiet
+[satya-twitter]: https://x.com/saddle_paddle
+[avi-twitter]: https://x.com/avimakesrobots
 [contributors-shield]: https://img.shields.io/github/contributors/superset-sh/studio.svg?style=for-the-badge
 [contributors-url]: https://github.com/superset-sh/superset/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/superset-sh/studio.svg?style=for-the-badge
