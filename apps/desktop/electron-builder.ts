@@ -58,9 +58,7 @@ const config: Configuration = {
 		],
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
-		notarize: {
-			teamId: "2HVBK29S3C",
-		},
+		notarize: true,
 	},
 
 	// Deep linking protocol
