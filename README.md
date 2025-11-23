@@ -1,152 +1,128 @@
-# Superset
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
+<div align="center">
+<img width="600" alt="header image" src="apps/website/public/title.svg">
+<h3 align="center">Superset</h3>
+  <p align="center">
+    The last developer tool you'll ever need
+  </p>
 
-A modern monorepo for Superset - featuring a website, desktop app, docs, and blog.
+[![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
 
-## Quick Start
+</div>
 
-```bash
-# Install dependencies
-bun install
+Superset helps you run 100 CLI coding agents on your machine without losing your mind.
 
-# Start development servers
-bun dev
 
-# Run tests
-bun test
-```
+## What you can do with Superset:
 
-## Tech Stack
+- [X] Create and organize parallel coding environment
+- [X] Notify you when agents need your review
+- [ ] Share context between different CLI agents
+- [ ] Manage a lot of agents in parallel
+- [ ] Create and clone your standard environment
+- [ ] Seemlessly transition between local and cloud so you can code on the go
+- [ ] Automate reviewing and adjusting with minimal input
 
-- **Package Manager**: Bun
-- **Build System**: Turborepo
-- **Database**: Drizzle ORM + Neon PostgreSQL
-- **UI**: React + TailwindCSS v4 + shadcn/ui
-- **Code Quality**: Biome (formatting + linting)
+<img alt="example-min" src="https://github.com/user-attachments/assets/9db68082-47f4-4076-92a0-85ac97572699" />
 
-## Project Structure
+## Getting Started
 
-```
-apps/
-├── website/          # Main website application
-├── desktop/          # Electron desktop app
-├── cli/              # Command-line interface for managing workspaces & agents
-├── docs/             # Documentation site
-└── blog/             # Blog site
-
-packages/
-├── ui/               # Shared UI components (shadcn/ui)
-├── db/               # Drizzle ORM database schema
-├── constants/        # Shared constants
-├── models/           # Shared data models
-├── scripts/          # CLI tooling
-└── typescript-config/ # TypeScript configurations
-```
-
-## Development
-
-### Common Commands
-
-```bash
-# Development
-bun dev                    # Start all dev servers
-bun test                   # Run tests
-bun build                  # Build all packages
-
-# Code Quality
-bun run lint               # Format + lint + fix auto-fixable issues
-bun run lint:check         # Check only (no changes, for CI)
-bun run format             # Format code only
-bun run format:check       # Check formatting only (CI)
-bun run typecheck          # Type check all packages
-
-# Database
-bun run db:push            # Apply schema changes
-bun run db:seed            # Seed database
-bun run db:migrate         # Run migrations
-bun run db:studio          # Open Drizzle Studio
-
-# Maintenance
-bun run clean              # Clean root node_modules
-bun run clean:workspaces   # Clean all workspace node_modules
-```
-
-### Adding UI Components
-
-```bash
-cd packages/ui
-npx shadcn@latest add <component>
-```
-
-## Code Quality
-
-This project uses Biome for formatting and linting (configured at root level):
-
-- **Format + Lint**: `bun run lint` - Automatically fixes issues
-- **Check Only**: `bun run lint:check` - Validates without changes (CI)
-
-## Database
-
-Schema is defined in `packages/db/src/` using Drizzle ORM.
-
-### Migrations
-
-1. Spin up a new Neon branch for migrations
-2. Update root `.env` to point at the Neon branch
-3. Modify Drizzle schema in `packages/db/src/schema`
-4. Generate migration: `pnpm drizzle-kit generate --name="migration_name_snake_case"`
-
-**Neon Details:**
-- Org ID: `org-round-base-25422821`
-- Project ID: `tiny-cherry-82420694`
-
-## CLI Tool
-
-The CLI (`apps/cli`) provides terminal-based management of workspaces and agents:
-
-### Features
-
-- **Workspace Management**: List, create, and switch between workspaces
-- **Agent Monitoring**: Track running agents with real-time status updates
-- **Interactive Panels**: Navigate workspaces and agents with keyboard shortcuts
-- **Process Orchestration**: Manage agent lifecycle (start, stop, attach)
+[Download the app](https://superset.sh) or
+[run locally](https://superset.sh).
 
 ### Usage
 
-```bash
-# View all commands
-superset --help
+Superset creates a new workspace for each of your tasks. Each workspace is isolated and parallel.
 
-# Interactive panels view
-superset panels
+<!-- [TODO: Add Image] -->
+<br>
 
-# Dashboard view
-superset dashboard
+We automatically set up your workspace by cloning env variables, installing dependencies, etc.
 
-# Agent management
-superset agent list
-superset agent attach <agent-id>
-```
+<!-- [TODO: Add Image] -->
 
-### Requirements
+<br>
 
-- Node.js >=20 (required by string-width dependency)
+Coding agents can be spun up and organized. They can pass messages between each other ping you when they are done.
 
-## Desktop App
+<!-- [TODO: Add Image] -->
 
-The desktop app (`apps/desktop`) is built with Electron and features:
+<br>
 
-- Type-safe IPC communication
-- Terminal management with node-pty
-- Git worktree-based workspace management
+Superset gives you a high level view of all the changes made and help you create and merge a PR in a few clicks
 
-See `apps/desktop/docs/TYPE_SAFE_IPC.md` for IPC documentation.
+<!-- [TODO: Add Image] -->
+
+### Our Tech Stack
+
+[![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
+[![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
+[![Electron](https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white)](https://www.electronjs.org/)
+[![React](https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-FFE873?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
+[![Neon](https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white)](https://neon.tech/)
+[![tRPC](https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white)](https://trpc.io/)
+[![Biome](https://img.shields.io/badge/Biome-339AF0?logo=biome&logoColor=white)](https://biomejs.dev/)
+[![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000000?logo=shadcnui&logoColor=white)](https://ui.shadcn.com/)
 
 ## Contributing
 
-1. Keep diffs minimal and targeted
-2. Follow existing code patterns
-3. Maintain type safety (avoid `any`)
-4. Co-locate components by usage
-5. Run `bun run lint` before committing
+If you have a suggestion that would make this better, please fork the repo and
+create a pull request. You can also
+[open issues](https://github.com/superset-sh/superset/issues).
 
-For detailed architecture guidelines, see `AGENTS.md`.
+See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
+
+#### Contributors
+
+<a href="https://github.com/superset-sh/superset/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
+</a>
+
+## Team
+- [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
+- [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle_paddle-555?logo=x)](https://x.com/saddle_paddle)
+- [![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)
+
+
+## License
+
+Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more
+information.
+
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[superset-twitter]: https://x.com/supersetdev
+[kiet-twitter]: https://x.com/flyakiet
+[satya-twitter]: https://x.com/saddle_paddle
+[avi-twitter]: https://x.com/avimakesrobots
+[contributors-shield]: https://img.shields.io/github/contributors/superset-sh/studio.svg?style=for-the-badge
+[contributors-url]: https://github.com/superset-sh/superset/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/superset-sh/studio.svg?style=for-the-badge
+[forks-url]: https://github.com/superset-sh/superset/network/members
+[stars-shield]: https://img.shields.io/github/stars/superset-sh/studio.svg?style=for-the-badge
+[stars-url]: https://github.com/superset-sh/superset/stargazers
+[issues-shield]: https://img.shields.io/github/issues/superset-sh/studio.svg?style=for-the-badge
+[issues-url]: https://github.com/superset-sh/superset/issues
+[license-shield]: https://img.shields.io/github/license/superset-sh/studio.svg?style=for-the-badge
+[license-url]: https://github.com/superset-sh/superset/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/company/superset-sh
+[twitter-shield]: https://img.shields.io/badge/-Twitter-black?logo=x&colorB=555
+[twitter-url]: https://x.com/supersetdev
+[discord-shield]: https://img.shields.io/badge/-Discord-black?logo=discord&colorB=555
+[discord-url]: https://discord.gg/hERDfFZCsH
+[React.js]: https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB
+[React-url]: https://reactjs.org/
+[TailwindCSS]: https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white
+[Tailwind-url]: https://tailwindcss.com/
+[Electron.js]: https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white
+[Electron-url]: https://www.electronjs.org/
+[Vite.js]: https://img.shields.io/badge/vite-%23646CFF.svg?logo=vite&logoColor=white
+[Vite-url]: https://vitejs.dev/
+[product-screenshot]: assets/brand.png
+[weave-shield]: https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.workweave.ai%2Fapi%2Frepository%2Fbadge%2Forg_pWcXBHJo3Li2Te2Y4WkCPA33%2F820087727&cacheSeconds=3600&labelColor=#131313
+[weave-url]: https://app.workweave.ai/reports/repository/org_pWcXBHJo3Li2Te2Y4WkCPA33/820087727
