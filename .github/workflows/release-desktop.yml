@@ -2,20 +2,26 @@ name: Release Desktop App
 
 on:
   push:
-    branches: "*"
-    # tags:
-    #   - "release-v*.*.*"
+    tags:
+      - "desktop-v*.*.*"
   workflow_dispatch:
     inputs:
       version:
         description: "Version to release (e.g., 1.0.0)"
-        required: true
+        required: false
         type: string
 
 jobs:
-  release:
-    name: Build & Release - macOS
+  build:
+    name: Build - macOS (${{ matrix.arch }})
     runs-on: macos-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64]
+        # To build for Intel Macs too, uncomment:
+        # arch: [arm64, x64]
 
     steps:
       - name: Checkout code
@@ -63,16 +69,16 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-mac-arm64
+          name: desktop-mac-${{ matrix.arch }}
           path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
           retention-days: 30
 
-  # Create GitHub Release after all builds complete
-  create-release:
+  # Create GitHub Release after builds complete
+  release:
     name: Create GitHub Release
-    needs: release
+    needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/desktop-v')
 
@@ -88,9 +94,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release-artifacts/**/*.dmg
-            release-artifacts/**/*.zip
+          files: release-artifacts/**/*
           draft: true
           generate_release_notes: true
           name: Superset Desktop ${{ github.ref_name }}
