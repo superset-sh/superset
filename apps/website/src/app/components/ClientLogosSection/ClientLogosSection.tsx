@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import Marquee from "react-fast-marquee";
 import { CLIENT_LOGOS } from "./constants";
 
 export function ClientLogosSection() {
@@ -23,39 +24,24 @@ export function ClientLogosSection() {
 					transition={{ duration: 0.5, delay: 0.2 }}
 					className="relative"
 				>
-					<div className="flex overflow-hidden">
-						<motion.div
-							className="flex gap-12 sm:gap-16 md:gap-24"
-							animate={{
-								x: [0, -1000],
-							}}
-							transition={{
-								x: {
-									repeat: Number.POSITIVE_INFINITY,
-									repeatType: "loop",
-									duration: 20,
-									ease: "linear",
-								},
-							}}
-						>
-							{/* Render logos three times for seamless loop */}
-							{[...Array(3)].map((_, setIndex) => (
+					<Marquee
+						speed={30}
+						gradient={true}
+						gradientColor="rgb(0, 0, 0)"
+						gradientWidth={100}
+						pauseOnHover={false}
+					>
+						<div className="flex gap-12 sm:gap-16 md:gap-24 items-center mr-12 sm:mr-16 md:mr-24">
+							{CLIENT_LOGOS.map((client) => (
 								<div
-									key={setIndex}
-									className="flex gap-12 sm:gap-16 md:gap-24 items-center"
+									key={client.name}
+									className="text-white text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap"
 								>
-									{CLIENT_LOGOS.map((client) => (
-										<div
-											key={`${setIndex}-${client.name}`}
-											className="text-white text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap"
-										>
-											{client.logo}
-										</div>
-									))}
+									{client.logo}
 								</div>
 							))}
-						</motion.div>
-					</div>
+						</div>
+					</Marquee>
 				</motion.div>
 			</div>
 		</section>

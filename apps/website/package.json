@@ -25,6 +25,7 @@
 		"nextra-theme-docs": "^4.6.0",
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
+		"react-fast-marquee": "^1.6.5",
 		"superjson": "^2.2.5",
 		"three": "^0.181.1"
 	},
