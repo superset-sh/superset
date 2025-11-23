@@ -5,6 +5,10 @@
 	"version": "0.0.0",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/superset-sh/superset.git"
+	},
 	"author": {
 		"name": "Superset",
 		"email": "hi@superset.sh"
