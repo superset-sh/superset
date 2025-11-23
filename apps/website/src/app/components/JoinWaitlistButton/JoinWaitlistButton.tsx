@@ -10,9 +10,7 @@ export function JoinWaitlistButton({
 	className = "",
 }: JoinWaitlistButtonProps) {
 	const sizeClasses =
-		size === "sm"
-			? "px-4 py-2 text-sm"
-			: "px-6 py-3 text-base";
+		size === "sm" ? "px-4 py-2 text-sm" : "px-6 py-3 text-base";
 
 	return (
 		<button
@@ -24,4 +22,3 @@ export function JoinWaitlistButton({
 		</button>
 	);
 }
-

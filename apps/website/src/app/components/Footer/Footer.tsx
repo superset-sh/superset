@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 
 export function Footer() {
 	return (
@@ -14,8 +15,13 @@ export function Footer() {
 					className="flex flex-col sm:flex-row justify-between items-center gap-4"
 				>
 					<div className="flex items-center gap-2">
-						<span className="text-white font-bold text-2xl">⊇</span>
-						<span className="text-white font-semibold">Superset</span>
+						<Image
+							src="/title.svg"
+							alt="Superset"
+							width={200}
+							height={61}
+							className="h-8 sm:h-10 w-auto"
+						/>
 					</div>
 					<div className="flex items-center gap-6">
 						<a

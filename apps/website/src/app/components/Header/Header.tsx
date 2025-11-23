@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useState } from "react";
 import { WaitlistModal } from "../WaitlistModal";
 import { JoinWaitlistButton } from "../JoinWaitlistButton";
@@ -21,12 +22,13 @@ export function Header() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5 }}
 						>
-							<span className="text-white font-bold text-2xl group-hover:scale-110 transition-transform inline-block">
-								⊇
-							</span>
-							<span className="text-white font-semibold text-lg hidden sm:block">
-								Superset
-							</span>
+							<Image
+								src="/title.svg"
+								alt="Superset"
+								width={200}
+								height={61}
+								className="h-10 sm:h-12 w-auto group-hover:scale-105 transition-transform"
+							/>
 						</motion.a>
 
 						{/* CTA Button */}
