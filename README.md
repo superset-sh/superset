@@ -1,152 +1,158 @@
-# Superset
+<!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 
-A modern monorepo for Superset - featuring a website, desktop app, docs, and blog.
+<div align="center">
+<img width="800" alt="header image" src="assets/web-preview.png">
+<h3 align="center">Superset</h3>
+  <p align="center">
+    The last developer tool you'll ever need
+    <br />
+    <a href="https://superset.sh"><strong>Explore the docs »</strong></a>
+    <br />
+  </p>
 
-## Quick Start
+  <!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+<!-- [![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![Apache License][license-shield]][license-url] -->
 
-```bash
-# Install dependencies
-bun install
+[![Twitter][twitter-shield]][twitter-url]
 
-# Start development servers
-bun dev
+</div>
 
-# Run tests
-bun test
-```
+# The Last Developer Tool You'll Ever Need
 
-## Tech Stack
+Superset helps you run 100 CLI coding agents on your machine without losing your mind.
 
-- **Package Manager**: Bun
-- **Build System**: Turborepo
-- **Database**: Drizzle ORM + Neon PostgreSQL
-- **UI**: React + TailwindCSS v4 + shadcn/ui
-- **Code Quality**: Biome (formatting + linting)
 
-## Project Structure
+## What you can do with Superset:
 
-```
-apps/
-├── website/          # Main website application
-├── desktop/          # Electron desktop app
-├── cli/              # Command-line interface for managing workspaces & agents
-├── docs/             # Documentation site
-└── blog/             # Blog site
+- [X] Create and organize parallel coding environment
+- [X] Notify you when agents need your review
+- [ ] Share context between different CLI agents
+- [ ] Manage a lot of agents in parallel
+- [ ] Create and clone your standard environment
+- [ ] Seemlessly transition between local and cloud so you can code on the go
+- [ ] Automate reviewing and adjusting with minimal input
 
-packages/
-├── ui/               # Shared UI components (shadcn/ui)
-├── db/               # Drizzle ORM database schema
-├── constants/        # Shared constants
-├── models/           # Shared data models
-├── scripts/          # CLI tooling
-└── typescript-config/ # TypeScript configurations
-```
+![Superset-GitHub-Example](https://github.com/user-attachments/assets/642de37a-72cc-4056-8eb7-8eb42714cdc4)
 
-## Development
+## Getting Started
 
-### Common Commands
-
-```bash
-# Development
-bun dev                    # Start all dev servers
-bun test                   # Run tests
-bun build                  # Build all packages
-
-# Code Quality
-bun run lint               # Format + lint + fix auto-fixable issues
-bun run lint:check         # Check only (no changes, for CI)
-bun run format             # Format code only
-bun run format:check       # Check formatting only (CI)
-bun run typecheck          # Type check all packages
-
-# Database
-bun run db:push            # Apply schema changes
-bun run db:seed            # Seed database
-bun run db:migrate         # Run migrations
-bun run db:studio          # Open Drizzle Studio
-
-# Maintenance
-bun run clean              # Clean root node_modules
-bun run clean:workspaces   # Clean all workspace node_modules
-```
-
-### Adding UI Components
-
-```bash
-cd packages/ui
-npx shadcn@latest add <component>
-```
-
-## Code Quality
-
-This project uses Biome for formatting and linting (configured at root level):
-
-- **Format + Lint**: `bun run lint` - Automatically fixes issues
-- **Check Only**: `bun run lint:check` - Validates without changes (CI)
-
-## Database
-
-Schema is defined in `packages/db/src/` using Drizzle ORM.
-
-### Migrations
-
-1. Spin up a new Neon branch for migrations
-2. Update root `.env` to point at the Neon branch
-3. Modify Drizzle schema in `packages/db/src/schema`
-4. Generate migration: `pnpm drizzle-kit generate --name="migration_name_snake_case"`
-
-**Neon Details:**
-- Org ID: `org-round-base-25422821`
-- Project ID: `tiny-cherry-82420694`
-
-## CLI Tool
-
-The CLI (`apps/cli`) provides terminal-based management of workspaces and agents:
-
-### Features
-
-- **Workspace Management**: List, create, and switch between workspaces
-- **Agent Monitoring**: Track running agents with real-time status updates
-- **Interactive Panels**: Navigate workspaces and agents with keyboard shortcuts
-- **Process Orchestration**: Manage agent lifecycle (start, stop, attach)
+[Download the app](https://superset.sh) or
+[run locally](https://superset.sh).
 
 ### Usage
 
-```bash
-# View all commands
-superset --help
+Superset creates a new workspace for each of your tasks. Each workspace is isolated and parallel.
 
-# Interactive panels view
-superset panels
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
 
-# Dashboard view
-superset dashboard
+<br>
 
-# Agent management
-superset agent list
-superset agent attach <agent-id>
-```
+We automatically set up your workspace by cloning env variables, installing dependencies, etc.
 
-### Requirements
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
 
-- Node.js >=20 (required by string-width dependency)
+<br>
 
-## Desktop App
+Coding agents can be spun up and organized. They can pass messages between each other ping you when they are done.
 
-The desktop app (`apps/desktop`) is built with Electron and features:
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
 
-- Type-safe IPC communication
-- Terminal management with node-pty
-- Git worktree-based workspace management
+<br>
 
-See `apps/desktop/docs/TYPE_SAFE_IPC.md` for IPC documentation.
+Superset gives you a high level view of all the changes made and help you create and merge a PR in a few clicks
+
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/4ad9f411-b172-4430-81ef-650f4f314666" />
+
+## Documentation
+
+For full documentation, visit [docs.superset.sh](https://docs.superset.sh)
+
+To see how to Contribute, visit
+[Contributing to Superset](https://docs.superset.sh/developers) in our docs.
+
+## How it works
+
+<img width="676" alt="architecture" src="assets/architecture.png">
+
+1. Coming soon
+
+For a full walkthrough, check out our
+[Architecture Docs](https://docs.superset.sh/developers/architecture).
+
+### Our Tech Stack
+
+- [Electron]()
+- [React]()
 
 ## Contributing
 
-1. Keep diffs minimal and targeted
-2. Follow existing code patterns
-3. Maintain type safety (avoid `any`)
-4. Co-locate components by usage
-5. Run `bun run lint` before committing
+![image](https://github.com/user-attachments/assets/ecc94303-df23-46ae-87dc-66b040396e0b)
 
-For detailed architecture guidelines, see `AGENTS.md`.
+If you have a suggestion that would make this better, please fork the repo and
+create a pull request. You can also
+[open issues](https://github.com/superset-sh/superset/issues).
+
+See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
+
+#### Contributors
+
+<a href="https://github.com/superset-sh/superset/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
+</a>
+
+## Contact
+
+![image](https://github.com/user-attachments/assets/60684b68-1925-4550-8efd-51a1509fc953)
+
+- Team: 
+  [Twitter](https://twitter.com/superset-sh) -
+  [Email](mailto:hoakiet98@gmail.com)
+- Project:
+  [https://github.com/superset-sh/superset](https://github.com/superset-sh/superset)
+- Website: [https://superset.sh](https://superset.sh)
+
+## License
+
+Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more
+information.
+
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+
+[contributors-shield]: https://img.shields.io/github/contributors/superset-sh/studio.svg?style=for-the-badge
+[contributors-url]: https://github.com/superset-sh/superset/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/superset-sh/studio.svg?style=for-the-badge
+[forks-url]: https://github.com/superset-sh/superset/network/members
+[stars-shield]: https://img.shields.io/github/stars/superset-sh/studio.svg?style=for-the-badge
+[stars-url]: https://github.com/superset-sh/superset/stargazers
+[issues-shield]: https://img.shields.io/github/issues/superset-sh/studio.svg?style=for-the-badge
+[issues-url]: https://github.com/superset-sh/superset/issues
+[license-shield]: https://img.shields.io/github/license/superset-sh/studio.svg?style=for-the-badge
+[license-url]: https://github.com/superset-sh/superset/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
+[linkedin-url]: https://www.linkedin.com/company/superset-sh
+[twitter-shield]: https://img.shields.io/badge/-Twitter-black?logo=x&colorB=555
+[twitter-url]: https://x.com/supersetdev
+[discord-shield]: https://img.shields.io/badge/-Discord-black?logo=discord&colorB=555
+[discord-url]: https://discord.gg/hERDfFZCsH
+[React.js]: https://img.shields.io/badge/react-%2320232a.svg?logo=react&logoColor=%2361DAFB
+[React-url]: https://reactjs.org/
+[TailwindCSS]: https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white
+[Tailwind-url]: https://tailwindcss.com/
+[Electron.js]: https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white
+[Electron-url]: https://www.electronjs.org/
+[Vite.js]: https://img.shields.io/badge/vite-%23646CFF.svg?logo=vite&logoColor=white
+[Vite-url]: https://vitejs.dev/
+[product-screenshot]: assets/brand.png
+[weave-shield]: https://img.shields.io/endpoint?url=https%3A%2F%2Fapp.workweave.ai%2Fapi%2Frepository%2Fbadge%2Forg_pWcXBHJo3Li2Te2Y4WkCPA33%2F820087727&cacheSeconds=3600&labelColor=#131313
+[weave-url]: https://app.workweave.ai/reports/repository/org_pWcXBHJo3Li2Te2Y4WkCPA33/820087727
