@@ -1,0 +1,27 @@
+interface JoinWaitlistButtonProps {
+	onClick: () => void;
+	size?: "sm" | "md";
+	className?: string;
+}
+
+export function JoinWaitlistButton({
+	onClick,
+	size = "md",
+	className = "",
+}: JoinWaitlistButtonProps) {
+	const sizeClasses =
+		size === "sm"
+			? "px-4 py-2 text-sm"
+			: "px-6 py-3 text-base";
+
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className={`bg-white text-black ${sizeClasses} rounded-lg font-medium hover:bg-zinc-200 transition-colors ${className}`}
+		>
+			Join waitlist
+		</button>
+	);
+}
+
