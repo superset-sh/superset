@@ -43,6 +43,7 @@ export function Header() {
 							<SocialLinks />
 							<DownloadButton
 								size="sm"
+								className="hidden"
 								onJoinWindowsWaitlist={() => setIsWaitlistOpen(true)}
 							/>
 							<JoinWaitlistButton
