@@ -52,8 +52,8 @@ export function StartView() {
 			<StartTopBar />
 			<div className="flex flex-1 items-center justify-center">
 				<div className="flex flex-col items-center w-full max-w-3xl px-8">
-					{/* Logo */}
-					<h1 className="text-8xl font-normal tracking-normal text-foreground font-micro">
+					{/* Logo - fixed height prevents layout shift during font swap */}
+					<h1 className="text-8xl font-normal tracking-normal text-foreground font-micro min-h-[7rem] flex items-center">
 						SUPERSET
 					</h1>
 

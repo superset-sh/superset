@@ -20,13 +20,13 @@ export function StartTopBar() {
 				{/* Empty middle section - no tabs */}
 			</div>
 			<div className="flex items-center gap-2 h-full pr-4 no-drag">
-				<button
+				{/* add later <button
 					type="button"
 					className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-accent transition-colors"
 					aria-label="Settings"
 				>
 					<Settings className="w-4 h-4 text-muted-foreground" />
-				</button>
+				</button> */}
 				{!isMac && <WindowControls />}
 			</div>
 		</div>
