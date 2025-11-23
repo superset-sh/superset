@@ -54,30 +54,6 @@ jobs:
       - name: Run type checking
         run: bun run typecheck
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
-
-      - name: Install dependencies
-        run: bun install --frozen
-
-      - name: Build all packages
-        run: bun run build
-
   test:
     name: Unit Test
     runs-on: ubuntu-latest
