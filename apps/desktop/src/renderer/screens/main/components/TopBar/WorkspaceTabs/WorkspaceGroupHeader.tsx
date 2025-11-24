@@ -56,7 +56,8 @@ export function WorkspaceGroupHeader({
 		<div
 			className="flex items-center h-full"
 			style={{
-				borderBottom: `2px solid ${projectColor}`,
+				transition: "border-bottom 0.3s ease",
+				borderBottom: `2px solid ${isCollapsed ? "transparent" : projectColor}`,
 			}}
 		>
 			<button

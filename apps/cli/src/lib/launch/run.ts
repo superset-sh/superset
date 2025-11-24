@@ -106,7 +106,9 @@ async function createSessionWithRetry(
 
 		// Verify session still exists and has a live pane (not dead)
 		const stillExists = tmuxSessionExists(sessionName);
-		const hasLivePane = stillExists ? tmuxSessionHasLivePane(sessionName) : false;
+		const hasLivePane = stillExists
+			? tmuxSessionHasLivePane(sessionName)
+			: false;
 
 		if (!stillExists || !hasLivePane) {
 			// Session died or has no live pane - kill any remnants
@@ -151,7 +153,11 @@ async function createSessionWithRetry(
 			if (!options.silent) {
 				console.log(`\nSession "${sessionName}" created. Attaching...\n`);
 			}
-			const result = await attachToAgent(agent, options.silent, options.retryCount || 0);
+			const result = await attachToAgent(
+				agent,
+				options.silent,
+				options.retryCount || 0,
+			);
 
 			// If attach failed, kill the session
 			if (!result.success) {
@@ -209,7 +215,9 @@ async function createSessionWithRetry(
  */
 export async function launchAgent(
 	agent: Agent,
-	options: { attach?: boolean; silent?: boolean; retryCount?: number } = { attach: true },
+	options: { attach?: boolean; silent?: boolean; retryCount?: number } = {
+		attach: true,
+	},
 ): Promise<LaunchResult> {
 	const command = getLaunchCommand(agent);
 
@@ -233,9 +241,9 @@ export async function launchAgent(
 	// Skip for complex commands (wrappers, env vars, quotes) to avoid false negatives
 	// The live pane check after creation will catch actual failures
 	const isComplexCommand =
-		command.includes("=") ||      // env var assignments (FOO=bar cmd)
-		command.includes("'") ||      // single quotes (bash -c 'cmd')
-		command.includes('"') ||      // double quotes (bash -c "cmd")
+		command.includes("=") || // env var assignments (FOO=bar cmd)
+		command.includes("'") || // single quotes (bash -c 'cmd')
+		command.includes('"') || // double quotes (bash -c "cmd")
 		command.split(" ").length > 2; // multiple args (likely a wrapper)
 
 	if (!isComplexCommand) {
@@ -300,7 +308,11 @@ export async function attachToAgent(
 				`\nSession "${sessionName}" not found. Creating new session...\n`,
 			);
 		}
-		return launchAgent(agent, { attach: true, silent, retryCount: retryCount + 1 });
+		return launchAgent(agent, {
+			attach: true,
+			silent,
+			retryCount: retryCount + 1,
+		});
 	}
 
 	if (!silent) {
@@ -308,7 +320,9 @@ export async function attachToAgent(
 			`\n╔════════════════════════════════════════════════════════════════╗`,
 		);
 		console.log(`║  Attaching to session: ${sessionName.padEnd(38)} ║`);
-		console.log(`║                                                                ║`);
+		console.log(
+			`║                                                                ║`,
+		);
 		console.log(
 			`║  Press Ctrl-b then d to detach and keep agent running         ║`,
 		);
@@ -363,7 +377,11 @@ export async function attachToAgent(
 						`\nSession pane died. Attempting to recreate session...\n`,
 					);
 				}
-				const retry = await launchAgent(agent, { attach: true, silent, retryCount: retryCount + 1 });
+				const retry = await launchAgent(agent, {
+					attach: true,
+					silent,
+					retryCount: retryCount + 1,
+				});
 				resolve(retry);
 			});
 		} catch (error) {

@@ -143,7 +143,7 @@ export const handleDragTabToTab = (
 
 	// Rule 1: Dragging tab into itself - creates new tab and makes a group
 	if (draggedTabId === targetTabId) {
-		const newTab = createNewTab(workspaceId, TabType.Single);
+		const newTab = createNewTab(workspaceId, TabType.Single, state.tabs);
 
 		// If dragged tab is a child tab, add new tab to its parent group
 		if (draggedTab.parentId) {
@@ -264,7 +264,7 @@ export const handleDragTabToTab = (
 
 		// If dragging a child tab into another child tab of the same group, create a new tab
 		if (draggedTab.parentId === parentGroup.id) {
-			const newTab = createNewTab(workspaceId, TabType.Single);
+			const newTab = createNewTab(workspaceId, TabType.Single, state.tabs);
 
 			const updatedNewTab: Tab = {
 				...newTab,
@@ -327,7 +327,7 @@ export const handleDragTabToTab = (
 	if (targetTab.type === TabType.Group && draggedTab.type === TabType.Single) {
 		// If dragging a tab from the same group, create a new tab and add to the group
 		if (draggedTab.parentId === targetTabId) {
-			const newTab = createNewTab(workspaceId, TabType.Single);
+			const newTab = createNewTab(workspaceId, TabType.Single, state.tabs);
 
 			const updatedNewTab: Tab = {
 				...newTab,

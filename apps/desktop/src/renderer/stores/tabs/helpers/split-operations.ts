@@ -60,7 +60,7 @@ const splitPaneInGroup = (
 	);
 	if (!group || group.type !== TabType.Group || !group.layout) return state;
 
-	const newTab = createNewTab(workspaceId, TabType.Single);
+	const newTab = createNewTab(workspaceId, TabType.Single, state.tabs);
 	const newTabWithParent: Tab = {
 		...newTab,
 		parentId: tabToSplit.parentId,
@@ -106,13 +106,10 @@ const convertTabToGroup = (
 		isNew: false,
 	};
 
-	const newChildTab: Tab = {
-		id: `tab-${Date.now() + 1}-${Math.random().toString(36).substring(2, 11)}`,
-		title: "New Tab",
-		workspaceId,
-		type: TabType.Single,
+	const newChildTab = createNewTab(workspaceId, TabType.Single, state.tabs);
+	const newChildTabWithParent: Tab = {
+		...newChildTab,
 		parentId: groupTab.id,
-		isNew: true,
 	};
 
 	const updatedSourceTab: Tab = {
@@ -123,7 +120,7 @@ const convertTabToGroup = (
 	const layout: MosaicNode<string> = {
 		direction,
 		first: tabToSplit.id,
-		second: newChildTab.id,
+		second: newChildTabWithParent.id,
 		splitPercentage: 50,
 	};
 
@@ -152,7 +149,7 @@ const convertTabToGroup = (
 		...nonWorkspaceTabs,
 		...otherWorkspaceTabs,
 		updatedSourceTab,
-		newChildTab,
+		newChildTabWithParent,
 	];
 
 	return {

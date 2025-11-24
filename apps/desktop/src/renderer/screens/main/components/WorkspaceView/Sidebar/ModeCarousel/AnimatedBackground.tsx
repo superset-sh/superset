@@ -24,7 +24,7 @@ export function AnimatedBackground({
 
 	return (
 		<motion.div
-			className="absolute h-8 w-8 rounded-sm bg-sidebar-accent"
+			className="absolute h-8 w-8 rounded-sm bg-tertiary-active"
 			style={{
 				x: translateX,
 			}}

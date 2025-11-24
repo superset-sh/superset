@@ -120,8 +120,26 @@ export const handleRemoveChildTabFromGroup = (
 		state.tabs.filter((tab) => tab.id !== childTabId),
 	);
 
+	// Update active tab if the removed child was active
+	const workspaceId = group.workspaceId;
+	const currentActiveId = state.activeTabIds[workspaceId];
+	const historyStack = state.tabHistoryStacks[workspaceId] || [];
+	const newHistoryStack = historyStack.filter((id) => id !== childTabId);
+
+	const newActiveTabIds = { ...state.activeTabIds };
+	if (currentActiveId === childTabId) {
+		// Find next tab to activate
+		const nextTabId = findNextTab(state, childTabId);
+		newActiveTabIds[workspaceId] = nextTabId;
+	}
+
 	return {
 		tabs: validatedTabs,
+		activeTabIds: newActiveTabIds,
+		tabHistoryStacks: {
+			...state.tabHistoryStacks,
+			[workspaceId]: newHistoryStack,
+		},
 	};
 };
 

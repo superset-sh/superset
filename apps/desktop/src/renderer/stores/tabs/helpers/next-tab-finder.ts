@@ -2,11 +2,11 @@ import type { TabsState } from "../types";
 
 /**
  * Finds the next best tab to activate when closing a tab.
- * Priority (only move to next if previous couldn't be found):
- * 1. From history stack
- * 2. Next tab in the same group (front then back)
- * 3. Next tab outside of group (front then back)
- * 4. Any remaining tab in the workspace (ultimate fallback)
+ * Priority order (tries each until a tab is found):
+ * 1. Most recently used tab from history stack
+ * 2. Next sibling in the same group (for child tabs)
+ * 3. Next/previous top-level tab by position
+ * 4. Any remaining tab in the workspace
  */
 export const findNextTab = (
 	state: TabsState,
@@ -16,52 +16,45 @@ export const findNextTab = (
 	if (!tabToClose) return null;
 
 	const workspaceId = tabToClose.workspaceId;
-
-	// Get all tabs in workspace (excluding the one being closed)
-	const allWorkspaceTabs = state.tabs.filter(
+	const workspaceTabs = state.tabs.filter(
 		(tab) => tab.workspaceId === workspaceId && tab.id !== tabIdToClose,
 	);
 
-	// If no tabs remain in workspace, return null
-	if (allWorkspaceTabs.length === 0) return null;
+	// Early exit if no tabs remain
+	if (workspaceTabs.length === 0) return null;
 
-	// Priority 1: Try history stack first
-	const nextFromHistory = findNextFromHistory(state, tabIdToClose, workspaceId);
-	if (nextFromHistory) return nextFromHistory;
+	// Try each strategy in priority order
+	let nextTabId: string | null = null;
 
-	// Priority 2: If closing a child tab, try siblings in the same group
+	nextTabId = findNextFromHistory(state, workspaceId, tabIdToClose);
+	if (nextTabId) return nextTabId;
+
 	if (tabToClose.parentId) {
-		const nextInGroup = findNextInGroup(
-			state,
-			tabIdToClose,
-			tabToClose.parentId,
-		);
-		if (nextInGroup) return nextInGroup;
+		nextTabId = findNextInGroup(state, tabIdToClose, tabToClose.parentId);
+		if (nextTabId) return nextTabId;
 	}
 
-	// Priority 3: Try top-level tabs (by position)
-	const nextTopLevel = findNextTopLevelTab(state, tabIdToClose, workspaceId);
-	if (nextTopLevel) return nextTopLevel;
+	nextTabId = findNextTopLevelTab(state, tabIdToClose, workspaceId);
+	if (nextTabId) return nextTabId;
 
-	// Ultimate fallback: return any available tab in the workspace
-	return ultimateFallback(state, workspaceId, tabIdToClose);
+	// Ultimate fallback: return any available tab
+	return workspaceTabs[0]?.id || null;
 };
 
 /**
- * Priority 1: Find next tab from history stack
+ * Priority 1: Find next tab from history stack (most recently used)
  */
 function findNextFromHistory(
 	state: TabsState,
-	tabIdToClose: string,
 	workspaceId: string,
+	tabIdToClose: string,
 ): string | null {
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
-	const newHistoryStack = historyStack.filter((id) => id !== tabIdToClose);
 
-	if (newHistoryStack.length === 0) return null;
+	// Find the first tab in history that still exists and isn't being closed
+	for (const historyTabId of historyStack) {
+		if (historyTabId === tabIdToClose) continue;
 
-	// Find the first tab in history that still exists
-	for (const historyTabId of newHistoryStack) {
 		const historyTab = state.tabs.find((tab) => tab.id === historyTabId);
 		if (historyTab && historyTab.workspaceId === workspaceId) {
 			return historyTabId;
@@ -72,33 +65,28 @@ function findNextFromHistory(
 }
 
 /**
- * Priority 2: Find next tab within the same group
+ * Priority 2: Find next sibling tab within the same group
  */
 function findNextInGroup(
 	state: TabsState,
 	tabIdToClose: string,
 	parentId: string,
 ): string | null {
-	const siblingsInGroup = state.tabs.filter(
-		(tab) => tab.parentId === parentId && tab.id !== tabIdToClose,
-	);
+	const siblings = state.tabs.filter((tab) => tab.parentId === parentId);
+	const currentIndex = siblings.findIndex((tab) => tab.id === tabIdToClose);
 
-	if (siblingsInGroup.length === 0) return null;
+	if (currentIndex === -1) return null;
 
-	// Get all tabs in the group ordered by their appearance in state.tabs
-	const orderedSiblings = state.tabs.filter((tab) => tab.parentId === parentId);
-	const currentIndex = orderedSiblings.findIndex(
-		(tab) => tab.id === tabIdToClose,
-	);
+	// Try next sibling, then previous sibling
+	const nextIndex = currentIndex + 1;
+	const prevIndex = currentIndex - 1;
 
-	// Try next tab in group (front)
-	if (currentIndex < orderedSiblings.length - 1) {
-		return orderedSiblings[currentIndex + 1].id;
+	if (nextIndex < siblings.length) {
+		return siblings[nextIndex].id;
 	}
 
-	// Then try previous tab in group (back)
-	if (currentIndex > 0) {
-		return orderedSiblings[currentIndex - 1].id;
+	if (prevIndex >= 0) {
+		return siblings[prevIndex].id;
 	}
 
 	return null;
@@ -106,6 +94,7 @@ function findNextInGroup(
 
 /**
  * Priority 3: Find next top-level tab by position
+ * For child tabs, uses parent group's position
  */
 function findNextTopLevelTab(
 	state: TabsState,
@@ -115,97 +104,27 @@ function findNextTopLevelTab(
 	const tabToClose = state.tabs.find((tab) => tab.id === tabIdToClose);
 	if (!tabToClose) return null;
 
-	const workspaceTabs = state.tabs.filter(
+	const topLevelTabs = state.tabs.filter(
 		(tab) => tab.workspaceId === workspaceId && !tab.parentId,
 	);
 
-	const currentIndex = workspaceTabs.findIndex(
-		(tab) => tab.id === tabIdToClose,
-	);
+	// Determine which top-level tab/group to use as reference
+	const referenceId = tabToClose.parentId || tabIdToClose;
+	const currentIndex = topLevelTabs.findIndex((tab) => tab.id === referenceId);
 
-	// For tabs in a group, find where the parent group is
-	if (tabToClose.parentId && currentIndex === -1) {
-		return findNextRelativeToParentGroup(
-			state,
-			tabToClose.parentId,
-			workspaceTabs,
-		);
+	if (currentIndex === -1) return null;
+
+	// Try next, then previous
+	const nextIndex = currentIndex + 1;
+	const prevIndex = currentIndex - 1;
+
+	if (nextIndex < topLevelTabs.length) {
+		return topLevelTabs[nextIndex].id;
 	}
 
-	// For top-level tabs, find by position
-	if (currentIndex !== -1) {
-		const remainingTabs = workspaceTabs.filter(
-			(tab) => tab.id !== tabIdToClose,
-		);
-		if (remainingTabs.length === 0) return null;
-
-		// Try next tab (front)
-		if (currentIndex < workspaceTabs.length - 1) {
-			return remainingTabs[currentIndex]?.id || null;
-		}
-
-		// Then try previous tab (back)
-		if (currentIndex > 0) {
-			return remainingTabs[currentIndex - 1]?.id || null;
-		}
+	if (prevIndex >= 0) {
+		return topLevelTabs[prevIndex].id;
 	}
 
 	return null;
-}
-
-/**
- * Helper: Find next tab relative to parent group position
- */
-function findNextRelativeToParentGroup(
-	state: TabsState,
-	parentId: string,
-	workspaceTabs: typeof state.tabs,
-): string | null {
-	const parentGroup = state.tabs.find((tab) => tab.id === parentId);
-	if (!parentGroup) return null;
-
-	const parentIndex = workspaceTabs.findIndex(
-		(tab) => tab.id === parentGroup.id,
-	);
-	if (parentIndex === -1) return null;
-
-	// Try next tab after parent group (front)
-	if (parentIndex < workspaceTabs.length - 1) {
-		return workspaceTabs[parentIndex + 1]?.id || null;
-	}
-
-	// Then try previous tab before parent group (back)
-	if (parentIndex > 0) {
-		return workspaceTabs[parentIndex - 1]?.id || null;
-	}
-
-	return null;
-}
-
-/**
- * Ultimate fallback: Return any available tab in the workspace
- */
-function ultimateFallback(
-	state: TabsState,
-	workspaceId: string,
-	tabIdToClose: string,
-): string | null {
-	const topLevelTabs = state.tabs.filter(
-		(tab) =>
-			tab.workspaceId === workspaceId &&
-			!tab.parentId &&
-			tab.id !== tabIdToClose,
-	);
-
-	// Prefer top-level tabs first
-	if (topLevelTabs.length > 0) {
-		return topLevelTabs[0].id;
-	}
-
-	// If no top-level tabs, return any child tab in the workspace
-	const allWorkspaceTabs = state.tabs.filter(
-		(tab) => tab.workspaceId === workspaceId && tab.id !== tabIdToClose,
-	);
-
-	return allWorkspaceTabs[0]?.id || null;
 }
