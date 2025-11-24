@@ -12,6 +12,10 @@ interface BaseTab {
 	isNew?: boolean;
 	parentId?: string;
 	needsAttention?: boolean;
+	setupCommands?: string[];
+	setupCwd?: string;
+	setupPending?: boolean;
+	setupCopyResults?: { copied: string[]; errors: string[] };
 }
 
 export interface SingleTab extends BaseTab {
@@ -33,6 +37,12 @@ export interface TabsState {
 
 export interface TabsStore extends TabsState {
 	addTab: (workspaceId: string, type?: TabType) => void;
+	addSetupTab: (
+		workspaceId: string,
+		setupCommands: string[],
+		setupCwd: string,
+		setupCopyResults?: { copied: string[]; errors: string[] },
+	) => void;
 	removeTab: (id: string) => void;
 	renameTab: (id: string, newTitle: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;

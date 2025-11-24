@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs } from "renderer/stores";
+import { useSetActiveTab, useTabs, useTabsStore } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -22,6 +22,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
+	const setupExecutedRef = useRef(false);
+
+	// Store setup data in refs to avoid effect re-runs
+	const setupPendingRef = useRef(tab?.setupPending);
+	const setupCommandsRef = useRef(tab?.setupCommands);
+	const setupCopyResultsRef = useRef(tab?.setupCopyResults);
+
+	// Update refs when tab changes
+	setupPendingRef.current = tab?.setupPending;
+	setupCommandsRef.current = tab?.setupCommands;
+	setupCopyResultsRef.current = tab?.setupCopyResults;
 
 	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
@@ -161,6 +172,46 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					applyInitialScrollback(result);
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
+
+					// Execute setup commands if this is a setup tab and setup hasn't been executed yet
+					if (
+						setupPendingRef.current &&
+						setupCommandsRef.current &&
+						!setupExecutedRef.current
+					) {
+						setupExecutedRef.current = true;
+
+						// Print copy results if available
+						if (setupCopyResultsRef.current) {
+							const { copied, errors } = setupCopyResultsRef.current;
+							if (copied.length > 0) {
+								xterm.writeln(
+									`\r\n\x1b[32m✓ Copied ${copied.length} file(s):\x1b[0m`,
+								);
+								for (const file of copied) {
+									xterm.writeln(`  - ${file}`);
+								}
+							}
+							if (errors.length > 0) {
+								xterm.writeln(`\r\n\x1b[33m⚠ Copy warnings:\x1b[0m`);
+								for (const error of errors) {
+									xterm.writeln(`  ${error}`);
+								}
+							}
+							xterm.writeln("\r\n");
+						}
+
+						// Send all commands sequentially
+						const commands = `${setupCommandsRef.current.join("\n")}\n`;
+						writeRef.current({ tabId, data: commands });
+
+						// Mark setup as no longer pending
+						useTabsStore.setState((state) => ({
+							tabs: state.tabs.map((t) =>
+								t.id === tabId ? { ...t, setupPending: false } : t,
+							),
+						}));
+					}
 				},
 				onError: () => {
 					setSubscriptionEnabled(true);
