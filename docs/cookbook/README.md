@@ -4,15 +4,18 @@ How to run 100 agents in parallel without losing your mind, a practical guide.
 
 ## Table of Contents
 
-1. [Why would I want to do this?](#whywould-i-want-to-do-this)
-2. [Coding environment]()
-3. [Handling conflicts](#handling-merge-conflicts)
-4. [What agents should I use]()
+1. [Why would I want to do this?](#why-would-i-want-to-do-this)
+2. [Which agents should I use?](#which-agents-should-i-use)
+   - [Coding environment](#coding-environment)
+3. [Handling Conflicts](#handling-conflicts)
+4. [Workflow](#workflow)
+5. [Unorganized Tips](#unorganized-tips)
 
 ## Why would I want to do this?
-- Coding has changed, old man. You need to level up and drive a team of junior engineers instead. 
 
-- Time == money. Instead of hiring 1-2 more engineers, you can increase your output at the same rate for $100-$200 / month.
+Time === money. Instead of hiring 1-2 more engineers, you can increase your output at the same rate for $100-$200 / month. 
+
+You can realistically ship 1-3 features in an hour that would take 1-3 days pre-LLM. Just develop them in parallel.
 
 ## Which agents should I use?
 
@@ -41,8 +44,11 @@ Tips:
 5. Use a reasoning (Codex) or review agent (CodeRabbit) to review the work and spot bug
 6. Pass the feedback (if you agree with them) to the coding agent
 7. Repeat until monkey brain happy
-8. Bonus: Have CI/CD for review tool like CodeRabbit for PR review
-9. Bonus 1: Have the coding model write unit tests for edge cases. 
+
+Bonus:
+1. Have CI/CD for review tool like CodeRabbit for PR review.
+2. Have the coding model write unit tests for edge cases. 
+3. Use fast agent like composer to clean up comments and refactor code.
 
 ### Unorganized Tips:
 1. Use worktrees. But automate the setup. 
