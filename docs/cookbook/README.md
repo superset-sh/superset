@@ -1,4 +1,4 @@
-# Parallel Coding Agent cookbook
+# WIP - Parallel Coding Agent cookbook 
 
 How to run 100 agents in parallel without losing your mind, a practical guide.
 
@@ -9,22 +9,42 @@ How to run 100 agents in parallel without losing your mind, a practical guide.
 3. [Handling conflicts](#handling-merge-conflicts)
 4. [What agents should I use]()
 
-## Why...would I want to do this?
+## Why would I want to do this?
 - Coding has changed, old man. You need to level up and drive a team of junior engineers instead. 
 
 - Time == money. Instead of hiring 1-2 more engineers, you can increase your output at the same rate for $100-$200 / month.
 
-## Not all agents are created equal
-- Some CLI agents and configs are good at certain things. Use them accordingly.
-- Codex (high) is good at planning and reviewing
-- Sonnet 4.5 is good at coding
-- Composer-1 is good at refactoring and making quick changes
+## Which agents should I use?
+
+Some CLI agents and configs are good at certain things. Use them accordingly.
+- Codex (high) is good at planning and reviewing - https://github.com/openai/codex 
+- Sonnet 4.5 is good at coding - https://www.claude.com/product/claude-code 
+- Composer-1 is good at refactoring and making quick changes - https://cursor.com/cli 
+- CodeRabbit CLI is also good at reviewing
+
+### Coding environment
+It's untenable to develop more than 2-3 features on the same codebase. Git Worktrees can help keep each change in a separate branch that can avoid overwriting each other. It's still best to develop the same feature on 1 worktree.
+
+Tips:
+1. Use tooling for worktree creation and setup https://github.com/coderabbitai/git-worktree-runner
+2. Instrument your codebase with environment variable-based port mapping so ports don't conflict
 
 ### Handling Conflicts
 - Keep PRs per feature
 - Prefer merging main into the PR instead of the PR into main, have an agent look at the current PR and the merge conflicts and plan before coding. Treat merging as its own feature work. 
 
-### Unorganized Notes:
+### Workflow
+1. Plan with a high reasoning agent/model. I prefer Codex (high) at the time of writing
+2. Refine the plan until you're happy with it
+3. Record the plan in and MD or copy and past to a coding agent directly
+4. Pass over to Claude Code or other coding agent for implementation
+5. Use a reasoning (Codex) or review agent (CodeRabbit) to review the work and spot bug
+6. Pass the feedback (if you agree with them) to the coding agent
+7. Repeat until monkey brain happy
+8. Bonus: Have CI/CD for review tool like CodeRabbit for PR review
+9. Bonus 1: Have the coding model write unit tests for edge cases. 
+
+### Unorganized Tips:
 1. Use worktrees. But automate the setup. 
 - https://git-scm.com/docs/git-worktree
 - https://github.com/coderabbitai/git-worktree-runner
@@ -34,4 +54,6 @@ How to run 100 agents in parallel without losing your mind, a practical guide.
 3. Color/name code your workspace 
 - https://marketplace.visualstudio.com/items?itemName=johnpapa.vscode-peacock
 4. Plan as a separate step
-- Explore codebase and write/refine a plan as MD. Commit it for a different/fresh agent to pick up. 
+- Explore codebase and write/refine a plan as MD. 
+- Commit it for a different/fresh agent to pick up. 
+5. Linter, Unit Tests, and Type-safety can be huge help. This gives valuable feedback to agents. 
