@@ -134,19 +134,14 @@ function findNextTopLevelTab(
 
 	// For top-level tabs, find by position
 	if (currentIndex !== -1) {
-		const remainingTabs = workspaceTabs.filter(
-			(tab) => tab.id !== tabIdToClose,
-		);
-		if (remainingTabs.length === 0) return null;
-
 		// Try next tab (front)
 		if (currentIndex < workspaceTabs.length - 1) {
-			return remainingTabs[currentIndex]?.id || null;
+			return workspaceTabs[currentIndex + 1]?.id || null;
 		}
 
 		// Then try previous tab (back)
 		if (currentIndex > 0) {
-			return remainingTabs[currentIndex - 1]?.id || null;
+			return workspaceTabs[currentIndex - 1]?.id || null;
 		}
 	}
 
