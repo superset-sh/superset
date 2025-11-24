@@ -86,3 +86,23 @@ Plan as a separate step:
 ### Code Quality
 
 Linter, unit tests, and type-safety can be huge help. This gives valuable feedback to agents. 
+
+
+<!-- 
+Drafts:
+
+#### 1. Create clones of your codebase
+[Git Worktree](https://example.com) is a good tool for this. Automate any worktree setup you might have. 
+
+Treat each worktree/branch as a separate task assigned to a different engineer.
+
+#### 2. Use different agents for different jobs 
+Different CLI agents are better for certain tasks such as planning, implementing, reviewing, and refactoring.
+
+At the point of writing (Nov 2025), we use Codex for planning and reviewing, Claude Code for implementing, and Cursor Composer for refacting and cleanup. 
+
+#### 3. Organize your workspace
+There's a high switching cost between
+
+#### 4. Enforce type-safety, lint, and coding standards
+ -->
