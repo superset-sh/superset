@@ -101,7 +101,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 					onClick={handleTabClick}
 					onDoubleClick={rename.startRename}
 					onKeyDown={(e) => {
-						if (e.key === "Enter" || e.key === " ") {
+						if (!rename.isRenaming && (e.key === "Enter" || e.key === " ")) {
 							e.preventDefault();
 							handleTabClick();
 						}
