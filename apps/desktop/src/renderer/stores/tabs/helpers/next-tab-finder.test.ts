@@ -459,4 +459,89 @@ describe("findNextTab", () => {
 		const nextTabId = findNextTab(state, "tab1");
 		expect(nextTabId).toBe("group1"); // Should select next top-level tab
 	});
+
+	it("should select next sibling when closing a child in a group with multiple children", () => {
+		const state: TabsState = {
+			tabs: [
+				{
+					id: "group1",
+					title: "Group 1",
+					workspaceId: "workspace1",
+					type: TabType.Group,
+					layout: {
+						direction: "row",
+						first: "child1",
+						second: {
+							direction: "column",
+							first: "child2",
+							second: "child3",
+						},
+					},
+				},
+				{
+					id: "child1",
+					title: "Child 1",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+				{
+					id: "child2",
+					title: "Child 2",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+				{
+					id: "child3",
+					title: "Child 3",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+			],
+			activeTabIds: { workspace1: "child1" },
+			tabHistoryStacks: { workspace1: [] },
+		};
+
+		const nextTabId = findNextTab(state, "child1");
+		expect(nextTabId).toBe("child2"); // Should select next sibling in group
+	});
+
+	it("should select previous sibling when closing the last child in a group", () => {
+		const state: TabsState = {
+			tabs: [
+				{
+					id: "group1",
+					title: "Group 1",
+					workspaceId: "workspace1",
+					type: TabType.Group,
+					layout: {
+						direction: "row",
+						first: "child1",
+						second: "child2",
+					},
+				},
+				{
+					id: "child1",
+					title: "Child 1",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+				{
+					id: "child2",
+					title: "Child 2",
+					workspaceId: "workspace1",
+					type: TabType.Single,
+					parentId: "group1",
+				},
+			],
+			activeTabIds: { workspace1: "child2" },
+			tabHistoryStacks: { workspace1: [] },
+		};
+
+		const nextTabId = findNextTab(state, "child2");
+		expect(nextTabId).toBe("child1"); // Should select previous sibling in group
+	});
 });
