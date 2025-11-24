@@ -3,5 +3,5 @@ interface AppFrameProps {
 }
 
 export function AppFrame({ children }: AppFrameProps) {
-	return <div className="absolute inset-0 bg-stone-950 flex">{children}</div>;
+	return <div className="absolute inset-0 bg-background flex">{children}</div>;
 }
