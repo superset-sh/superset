@@ -8,7 +8,7 @@ export const handleAddTab = (
 	workspaceId: string,
 	type: TabType = TabType.Single,
 ): Partial<TabsState> => {
-	const newTab = createNewTab(workspaceId, type);
+	const newTab = createNewTab(workspaceId, type, state.tabs);
 	const currentActiveId = state.activeTabIds[workspaceId];
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 	const newHistoryStack = currentActiveId
