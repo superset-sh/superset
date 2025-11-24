@@ -3,6 +3,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import {
+	useAgentHookListener,
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores/tabs";
@@ -17,6 +18,9 @@ export function MainScreen() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const splitTabVertical = useSplitTabVertical();
 	const splitTabHorizontal = useSplitTabHorizontal();
+
+	// Listen for agent completion hooks from main process
+	useAgentHookListener();
 
 	const activeWorkspaceId = activeWorkspace?.id;
 

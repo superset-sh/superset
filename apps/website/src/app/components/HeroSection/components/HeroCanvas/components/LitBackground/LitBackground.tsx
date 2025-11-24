@@ -31,6 +31,11 @@ export function LitBackground() {
 		intensity: 0,
 	});
 
+	// Frame throttling for performance
+	const frameCountRef = useRef(0);
+	const lastMousePositionRef = useRef({ x: 0, y: 0 });
+	const mouseMovedRef = useRef(false);
+
 	// Start glare animation cycle on mount
 	useEffect(() => {
 		const timer = setTimeout(() => {
@@ -63,9 +68,31 @@ export function LitBackground() {
 		// Skip expensive operations when hero is not visible
 		if (!isVisible) return;
 
-		// Update glare properties based on animation progress
-		const glareProps = calculateGlareProperties(glareStartTime, Date.now());
-		glarePropertiesRef.current = glareProps;
+		// Frame throttling: update every frame for smooth animation, but skip expensive calculations
+		frameCountRef.current += 1;
+
+		// Check if mouse has moved (with threshold to avoid micro-movements)
+		const mouseDeltaX = Math.abs(
+			state.mouse.x - lastMousePositionRef.current.x,
+		);
+		const mouseDeltaY = Math.abs(
+			state.mouse.y - lastMousePositionRef.current.y,
+		);
+		mouseMovedRef.current = mouseDeltaX > 0.001 || mouseDeltaY > 0.001;
+
+		if (mouseMovedRef.current) {
+			lastMousePositionRef.current = { x: state.mouse.x, y: state.mouse.y };
+		}
+
+		// Update glare properties based on animation progress (only every 2 frames when mouse isn't moving)
+		const shouldUpdateGlare =
+			mouseMovedRef.current || frameCountRef.current % 2 === 0;
+		if (shouldUpdateGlare) {
+			glarePropertiesRef.current = calculateGlareProperties(
+				glareStartTime,
+				Date.now(),
+			);
+		}
 
 		// Mouse-controlled light position (always active)
 		const hasMouseMoved = state.mouse.x !== 0 || state.mouse.y !== 0;
@@ -111,6 +138,7 @@ export function LitBackground() {
 
 		// Update glare light (separate from mouse light)
 		if (glareLightRef.current) {
+			const glareProps = glarePropertiesRef.current;
 			if (glareProps.isActive) {
 				glareLightRef.current.position.set(
 					glareProps.lightX,
@@ -124,14 +152,20 @@ export function LitBackground() {
 			}
 		}
 
-		// Make the text group face the camera
-		if (textGroupRef.current) {
+		// Make the text group face the camera (only update every 3 frames when mouse isn't moving)
+		if (
+			textGroupRef.current &&
+			(mouseMovedRef.current || frameCountRef.current % 3 === 0)
+		) {
 			textGroupRef.current.lookAt(camera.position);
 		}
 
 		// Make the plane always face the camera and update shader uniforms
 		if (meshRef.current) {
-			meshRef.current.lookAt(camera.position);
+			// Only update lookAt every 5 frames when mouse isn't moving (camera position rarely changes)
+			if (mouseMovedRef.current || frameCountRef.current % 5 === 0) {
+				meshRef.current.lookAt(camera.position);
+			}
 
 			// Update shader uniforms (GPU handles the animation and lighting)
 			const material = meshRef.current.material as THREE.ShaderMaterial;
@@ -198,40 +232,43 @@ export function LitBackground() {
 				</Text>
 
 				{/* Create depth by layering multiple text instances - reduced from 30 to 15 for performance */}
-				{Array.from({ length: TEXT_CONFIG.LAYER_COUNT }, (_, i) => (
-					<Text
-						key={i}
-						position={[0, 0, -i * TEXT_CONFIG.LAYER_SPACING]}
-						fontSize={TEXT_CONFIG.FONT_SIZE}
-						color="#0a0a0a"
-						anchorX="center"
-						anchorY="middle"
-					>
-						⊇
-						<meshStandardMaterial
-							color={TEXT_CONFIG.COLOR}
-							metalness={TEXT_CONFIG.METALNESS}
-							roughness={TEXT_CONFIG.ROUGHNESS}
-							emissive="#000000"
-							emissiveIntensity={0}
-							envMapIntensity={1.5}
-						/>
-					</Text>
-				))}
+				{Array.from({ length: TEXT_CONFIG.LAYER_COUNT }, (_, i) => {
+					const layerId = `layer-${i}`;
+					return (
+						<Text
+							key={layerId}
+							position={[0, 0, -i * TEXT_CONFIG.LAYER_SPACING]}
+							fontSize={TEXT_CONFIG.FONT_SIZE}
+							color="#0a0a0a"
+							anchorX="center"
+							anchorY="middle"
+						>
+							⊇
+							<meshStandardMaterial
+								color={TEXT_CONFIG.COLOR}
+								metalness={TEXT_CONFIG.METALNESS}
+								roughness={TEXT_CONFIG.ROUGHNESS}
+								emissive="#000000"
+								emissiveIntensity={0}
+								envMapIntensity={1.5}
+							/>
+						</Text>
+					);
+				})}
 			</group>
 
 			{/* Ambient light for base visibility */}
-			<ambientLight intensity={1} />
+			<ambientLight intensity={0.9} />
 
-			{/* Static directional lights for consistent highlights */}
+			{/* Static directional lights for consistent highlights - reduced intensity */}
 			<directionalLight
 				position={[10, 10, 5]}
-				intensity={1.2}
+				intensity={1.0}
 				color="#ffffff"
 			/>
 			<directionalLight
 				position={[-8, -8, 5]}
-				intensity={0.6}
+				intensity={0.5}
 				color="#4488ff"
 			/>
 

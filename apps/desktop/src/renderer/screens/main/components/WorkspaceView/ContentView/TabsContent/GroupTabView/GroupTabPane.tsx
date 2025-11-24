@@ -1,8 +1,10 @@
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { HiMiniXMark } from "react-icons/hi2";
 import type { Tab } from "renderer/stores";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { Button } from "@superset/ui/button";
 
 interface GroupTabPaneProps {
 	tabId: string;
@@ -41,11 +43,26 @@ export function GroupTabPane({
 		setActiveTab(workspaceId, tabId);
 	};
 
+	const handleCloseTab = (e: React.MouseEvent) => {
+		e.stopPropagation();
+		removeChildTabFromGroup(groupId, tabId);
+	};
+
 	return (
 		<MosaicWindow<string>
 			path={path}
 			title={childTab.title}
-			toolbarControls={<div />}
+			toolbarControls={
+				<Button
+					variant="link"
+					size="icon"
+					onClick={handleCloseTab}
+					title="Close pane"
+					className=" hover:text-white/80"
+				>
+					<HiMiniXMark className="size-4" />
+				</Button>
+			}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu

@@ -1,4 +1,5 @@
 import { type Tab, TabType } from "./types";
+import { generateTerminalName } from "./utils/terminal-naming";
 
 /**
  * Helper function to get child tab IDs for a given parent ID
@@ -10,11 +11,20 @@ export const getChildTabIds = (tabs: Tab[], parentId: string): string[] => {
 export const createNewTab = (
 	workspaceId: string,
 	type: TabType = TabType.Single,
+	existingTabs: Tab[] = [],
 ): Tab => {
 	const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+
+	// Generate unique terminal name based on existing tabs
+	const existingNames = existingTabs.map((tab) => tab.title);
+	const title =
+		type === TabType.Single
+			? generateTerminalName(existingNames)
+			: "New Split View";
+
 	const baseTab = {
 		id,
-		title: type === TabType.Single ? "New Terminal" : "New Split View",
+		title,
 		workspaceId,
 		isNew: true,
 	};

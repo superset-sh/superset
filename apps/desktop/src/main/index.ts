@@ -1,6 +1,7 @@
 import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import { setupAgentHooks } from "./lib/agent-setup";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
@@ -26,20 +27,25 @@ app.on("open-url", (event, url) => {
 	event.preventDefault();
 });
 
-// Register storage IPC handlers
 registerStorageHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {
 	await app.whenReady();
 
-	// Initialize database
 	await initDb();
+
+	try {
+		setupAgentHooks();
+	} catch (error) {
+		console.error("[main] Failed to set up agent hooks:", error);
+		// App can continue without agent hooks, but log the failure
+	}
 
 	await makeAppSetup(() => MainWindow());
 
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
-		terminalManager.cleanup();
+		await terminalManager.cleanup();
 	});
 })();

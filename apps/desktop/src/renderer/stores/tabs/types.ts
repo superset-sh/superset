@@ -11,6 +11,7 @@ interface BaseTab {
 	workspaceId: string;
 	isNew?: boolean;
 	parentId?: string;
+	needsAttention?: boolean;
 }
 
 export interface SingleTab extends BaseTab {
@@ -61,4 +62,5 @@ export interface TabsStore extends TabsState {
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
 	getLastActiveTabId: (workspaceId: string) => string | null;
+	setNeedsAttention: (tabId: string, needsAttention: boolean) => void;
 }

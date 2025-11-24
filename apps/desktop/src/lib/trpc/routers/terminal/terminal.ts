@@ -7,6 +7,17 @@ import { publicProcedure, router } from "../..";
 /**
  * Terminal router using TerminalManager with node-pty
  * Sessions are keyed by tabId and linked to workspaces for cwd resolution
+ *
+ * IMPORTANT: When creating terminals, ensure these env vars are passed:
+ * - PATH: Prepend ~/.superset/bin (use getSupersetBinDir() from agent-setup)
+ * - SUPERSET_TAB_ID: The tab's ID
+ * - SUPERSET_TAB_TITLE: The tab's display title
+ * - SUPERSET_WORKSPACE_NAME: The workspace name
+ * - SUPERSET_PORT: The hooks server port (use getHooksServerPort())
+ *
+ * PATH prepending ensures our wrapper scripts (~/.superset/bin/claude, codex)
+ * are used instead of system binaries. These wrappers inject hook settings
+ * that notify the app when agents complete their tasks.
  */
 export const createTerminalRouter = () => {
 	return router({
@@ -15,16 +26,18 @@ export const createTerminalRouter = () => {
 				z.object({
 					tabId: z.string(),
 					workspaceId: z.string(),
+					tabTitle: z.string(),
 					cols: z.number().optional(),
 					rows: z.number().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const { tabId, workspaceId, cols, rows } = input;
+				const { tabId, workspaceId, tabTitle, cols, rows } = input;
 
-				// Get workspace to determine cwd from worktree path
+				// Get workspace to determine cwd and workspace name
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
 				let cwd: string | undefined;
+				const workspaceName = workspace?.name || "Workspace";
 
 				if (workspace) {
 					const worktree = db.data.worktrees.find(
@@ -35,9 +48,11 @@ export const createTerminalRouter = () => {
 					}
 				}
 
-				const result = terminalManager.createOrAttach({
+				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
+					tabTitle,
+					workspaceName,
 					cwd,
 					cols,
 					rows,
@@ -47,6 +62,7 @@ export const createTerminalRouter = () => {
 					tabId,
 					isNew: result.isNew,
 					scrollback: result.scrollback,
+					wasRecovered: result.wasRecovered,
 				};
 			}),
 
@@ -89,10 +105,11 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					tabId: z.string(),
+					deleteHistory: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.kill(input);
+				await terminalManager.kill(input);
 			}),
 
 		/**
@@ -112,6 +129,24 @@ export const createTerminalRouter = () => {
 			.input(z.string())
 			.query(async ({ input: tabId }) => {
 				return terminalManager.getSession(tabId);
+			}),
+
+		/**
+		 * Get the current working directory for a workspace
+		 * This is used for resolving relative file paths in terminal output
+		 */
+		getWorkspaceCwd: publicProcedure
+			.input(z.string())
+			.query(async ({ input: workspaceId }) => {
+				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
+				if (!workspace) {
+					return undefined;
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				return worktree?.path;
 			}),
 
 		stream: publicProcedure

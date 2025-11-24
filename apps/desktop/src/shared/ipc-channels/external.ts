@@ -1,17 +1,7 @@
 /**
  * External operations IPC channels
+ * Note: External operations now use TRPC (see src/lib/trpc/routers/external)
+ * This file exists for backwards compatibility with the IPC channels type system
  */
 
-import type { NoRequest, NoResponse, SuccessResponse } from "./types";
-
-export interface ExternalChannels {
-	"open-external": {
-		request: string;
-		response: NoResponse;
-	};
-
-	"open-app-settings": {
-		request: NoRequest;
-		response: SuccessResponse;
-	};
-}
+export interface ExternalChannels {}

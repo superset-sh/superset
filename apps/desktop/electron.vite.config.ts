@@ -22,22 +22,21 @@ const tsconfigPaths = tsconfigPathsPlugin({
 
 export default defineConfig({
 	main: {
-		plugins: [
-			tsconfigPaths,
-			externalizeDepsPlugin({
-				exclude: ["@superset/*", "electron-store"],
-			}),
-		],
+		plugins: [tsconfigPaths],
 
 		build: {
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
 				},
-
 				output: {
 					dir: resolve(devPath, "main"),
 				},
+				// Only externalize native modules that can't be bundled
+				external: [
+					"electron",
+					"node-pty", // Native module - must stay external
+				],
 			},
 		},
 		resolve: {

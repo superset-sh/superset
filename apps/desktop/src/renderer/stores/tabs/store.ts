@@ -129,6 +129,15 @@ export const useTabsStore = create<TabsStore>()(
 						handleSplitTabHorizontal(state, workspaceId, sourceTabId, path),
 					);
 				},
+
+				setNeedsAttention: (tabId, needsAttention) => {
+					set((state) => ({
+						...state,
+						tabs: state.tabs.map((tab) =>
+							tab.id === tabId ? { ...tab, needsAttention } : tab,
+						),
+					}));
+				},
 			}),
 			{
 				name: "tabs-storage",

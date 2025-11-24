@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -196,6 +197,77 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
+		canDelete: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+
+				if (!workspace) {
+					return {
+						canDelete: false,
+						reason: "Workspace not found",
+						workspace: null,
+					};
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				const project = db.data.projects.find(
+					(p) => p.id === workspace.projectId,
+				);
+
+				if (worktree && project) {
+					try {
+						const gitInstance = simpleGit(project.mainRepoPath);
+						const worktrees = await gitInstance.raw([
+							"worktree",
+							"list",
+							"--porcelain",
+						]);
+
+						// Parse porcelain format to verify worktree exists in git before deletion
+						// (porcelain format: "worktree /path/to/worktree" followed by HEAD, branch, etc.)
+						const lines = worktrees.split("\n");
+						const worktreePrefix = `worktree ${worktree.path}`;
+						const worktreeExists = lines.some(
+							(line) => line.trim() === worktreePrefix,
+						);
+
+						if (!worktreeExists) {
+							// Worktree doesn't exist in git, but we can still delete the workspace
+							return {
+								canDelete: true,
+								reason: null,
+								workspace,
+								warning:
+									"Worktree not found in git (may have been manually removed)",
+							};
+						}
+
+						return {
+							canDelete: true,
+							reason: null,
+							workspace,
+							warning: null,
+						};
+					} catch (error) {
+						return {
+							canDelete: false,
+							reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
+							workspace,
+						};
+					}
+				}
+
+				return {
+					canDelete: true,
+					reason: null,
+					workspace,
+					warning: "No associated worktree found",
+				};
+			}),
+
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -216,10 +288,18 @@ export const createWorkspacesRouter = () => {
 					try {
 						await removeWorktree(project.mainRepoPath, worktree.path);
 					} catch (error) {
-						console.error("Failed to remove worktree:", error);
+						// If worktree removal fails, return error and don't proceed with DB cleanup
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						console.error("Failed to remove worktree:", errorMessage);
+						return {
+							success: false,
+							error: `Failed to remove worktree: ${errorMessage}`,
+						};
 					}
 				}
 
+				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
 				await db.update((data) => {
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 

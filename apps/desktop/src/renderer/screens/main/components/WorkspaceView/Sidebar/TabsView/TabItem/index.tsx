@@ -101,7 +101,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 					onClick={handleTabClick}
 					onDoubleClick={rename.startRename}
 					onKeyDown={(e) => {
-						if (e.key === "Enter" || e.key === " ") {
+						if (!rename.isRenaming && (e.key === "Enter" || e.key === " ")) {
 							e.preventDefault();
 							handleTabClick();
 						}
@@ -109,9 +109,9 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 					tabIndex={0}
 					className={`
 					w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between
-					${isActive ? "bg-sidebar-accent" : ""}
+					${isActive ? "bg-tertiary-active" : ""}
 					${isDragging ? "opacity-50" : ""}
-					${isDragOver ? "bg-sidebar-accent/50" : ""}
+					${isDragOver ? "bg-tertiary-active/50" : ""}
 				`}
 				>
 					<div className="flex items-center gap-1 flex-1 min-w-0">
@@ -146,10 +146,21 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 								onBlur={rename.submitRename}
 								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-sidebar-accent border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1 bg-stone-800 border border-primary rounded px-1 py-0.5 text-sm outline-none"
 							/>
 						) : (
-							<span className="truncate flex-1">{tab.title}</span>
+							<>
+								<span className="truncate flex-1">{tab.title}</span>
+								{tab.needsAttention && (
+									<span
+										className="relative flex size-2 shrink-0 ml-1"
+										title="Agent completed"
+									>
+										<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+										<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+									</span>
+								)}
+							</>
 						)}
 					</div>
 					{!isGroupTab && (

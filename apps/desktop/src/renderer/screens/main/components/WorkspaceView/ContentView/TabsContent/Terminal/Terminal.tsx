@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab } from "renderer/stores";
+import { useSetActiveTab, useTabs } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -12,6 +12,9 @@ import {
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
+	const tabs = useTabs();
+	const tab = tabs.find((t) => t.id === tabId);
+	const tabTitle = tab?.title || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -19,6 +22,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
+
+	// Get the workspace CWD for resolving relative file paths
+	const { data: workspaceCwd } =
+		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -38,6 +45,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
+			// Queue events that arrive before xterm is ready or before recovery is applied
+			pendingEventsRef.current.push(event);
+			return;
+		}
+
+		// Queue events while subscription is not enabled (recovery in progress)
+		if (!subscriptionEnabled) {
 			pendingEventsRef.current.push(event);
 			return;
 		}
@@ -56,20 +70,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
-		enabled: subscriptionEnabled,
+		enabled: true, // Always listen, but queue events internally until subscriptionEnabled is true
 	});
 
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const { xterm, fitAddon } = createTerminalInstance(container);
+		const { xterm, fitAddon } = createTerminalInstance(container, workspaceCwd);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
-		setSubscriptionEnabled(true);
+		// Don't enable subscription yet - wait until recovery is applied
 
-		// Flush any pending events that arrived before xterm was ready
+		// Flush any pending events that arrived before xterm was ready or before recovery
 		const flushPendingEvents = () => {
 			if (pendingEventsRef.current.length === 0) return;
 			const events = pendingEventsRef.current.splice(
@@ -87,7 +101,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				}
 			}
 		};
-		flushPendingEvents();
+
+		const applyInitialScrollback = (result: {
+			wasRecovered: boolean;
+			isNew: boolean;
+			scrollback: string[];
+		}) => {
+			if (result.wasRecovered && result.scrollback.length > 0) {
+				xterm.write(result.scrollback[0]);
+				xterm.write("\r\n\r\n\x1b[2m[Recovered session history]\x1b[0m\r\n");
+			} else if (!result.isNew && result.scrollback.length > 0) {
+				xterm.write(result.scrollback[0]);
+			}
+		};
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
@@ -97,11 +123,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				{
 					tabId,
 					workspaceId,
+					tabTitle,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
 				{
-					onSuccess: () => {
+					onSuccess: (result) => {
+						applyInitialScrollback(result);
+						setSubscriptionEnabled(true);
+						flushPendingEvents();
+					},
+					onError: () => {
 						setSubscriptionEnabled(true);
 					},
 				},
@@ -120,14 +152,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				tabId,
 				workspaceId,
+				tabTitle,
 				cols: xterm.cols,
 				rows: xterm.rows,
 			},
 			{
 				onSuccess: (result) => {
-					if (!result.isNew && result.scrollback.length > 0) {
-						xterm.write(result.scrollback[0]);
-					}
+					applyInitialScrollback(result);
+					setSubscriptionEnabled(true);
+					flushPendingEvents();
+				},
+				onError: () => {
+					setSubscriptionEnabled(true);
 				},
 			},
 		);
@@ -158,11 +194,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab]);
+	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
 
 	return (
 		<div className="h-full w-full overflow-hidden bg-black">
-			<div ref={terminalRef} className="h-full w-full p-2" />
+			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
 };

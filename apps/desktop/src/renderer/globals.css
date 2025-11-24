@@ -22,6 +22,8 @@
 	--muted-foreground: oklch(0.556 0 0);
 	--accent: oklch(0.97 0 0);
 	--accent-foreground: oklch(0.205 0 0);
+	--tertiary: oklch(0.12 0.003 40);
+	--tertiary-active: oklch(0.20 0.003 40); 
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.577 0.245 27.325);
 	--border: oklch(0.922 0 0);
@@ -58,6 +60,8 @@
 	--muted-foreground: oklch(0.708 0 0);
 	--accent: oklch(0.269 0 0);
 	--accent-foreground: oklch(0.985 0 0);
+	--tertiary: oklch(0.18 0.005 40);
+	--tertiary-active: oklch(0.24 0.005 40); 
 	--destructive: oklch(0.396 0.141 25.723);
 	--destructive-foreground: oklch(0.637 0.237 25.331);
 	--border: oklch(0.269 0 0);
@@ -93,6 +97,8 @@
 	--color-muted-foreground: var(--muted-foreground);
 	--color-accent: var(--accent);
 	--color-accent-foreground: var(--accent-foreground);
+	--color-tertiary: var(--tertiary);
+	--color-tertiary-active: var(--tertiary-active);
 	--color-destructive: var(--destructive);
 	--color-destructive-foreground: var(--destructive-foreground);
 	--color-border: var(--border);
@@ -129,10 +135,24 @@
 
 	html,
 	body {
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
+		margin: 0;
+		overflow: hidden; /* prevent scroll-lock adjustments from collapsing layout */
 		user-select: none;
 		scroll-behavior: smooth;
 		-webkit-app-region: no-drag;
 		-webkit-font-smoothing: antialiased;
+	}
+
+	/* Ensure the React root fills the viewport and provides a positioning context */
+	app {
+		display: block;
+		position: relative;
+		width: 100vw;
+		height: 100vh;
+		min-height: 100vh;
 	}
 
 	/* Ensure xterm terminal fills container height */
@@ -144,6 +164,21 @@
 	.xterm-screen {
 		height: 100% !important;
 		width: 100% !important;
+	}
+
+	/* Style links in terminal (like iTerm) */
+	/* xterm uses underline-5 (dashed) for links on hover */
+	.xterm .xterm-rows a {
+		color: inherit;
+		cursor: pointer !important;
+	}
+
+	.xterm .xterm-rows a.xterm-underline-5 {
+		text-decoration-color: #3b8eea !important;
+	}
+
+	.xterm .xterm-rows a:hover.xterm-underline-5 {
+		text-decoration-color: #5ca8ff !important;
 	}
 
 	/* Hide scrollbar for workspace carousel and tabs */
