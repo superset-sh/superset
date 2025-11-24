@@ -1,51 +1,40 @@
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
 import { HiMiniXMark } from "react-icons/hi2";
-import type { Tab } from "renderer/stores";
+import type { Tab } from "main/lib/trpc/routers/tabs";
+import { useSetActiveTab } from "renderer/react-query/tabs";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
 import { Button } from "@superset/ui/button";
 
 interface GroupTabPaneProps {
-	tabId: string;
 	path: MosaicBranch[];
-	childTab: Tab;
+	childTab: Tab & { type: "terminal" };
 	isActive: boolean;
-	workspaceId: string;
 	groupId: string;
-	splitTabHorizontal: (
-		workspaceId: string,
-		sourceTabId?: string,
-		path?: MosaicBranch[],
-	) => void;
-	splitTabVertical: (
-		workspaceId: string,
-		sourceTabId?: string,
-		path?: MosaicBranch[],
-	) => void;
+	splitTabHorizontal: (sourceTabId?: string, path?: MosaicBranch[]) => void;
+	splitTabVertical: (sourceTabId?: string, path?: MosaicBranch[]) => void;
 	removeChildTabFromGroup: (groupId: string, tabId: string) => void;
-	setActiveTab: (workspaceId: string, tabId: string) => void;
 }
 
 export function GroupTabPane({
-	tabId,
 	path,
 	childTab,
 	isActive,
-	workspaceId,
 	groupId,
 	splitTabHorizontal,
 	splitTabVertical,
 	removeChildTabFromGroup,
-	setActiveTab,
 }: GroupTabPaneProps) {
+	const setActiveTabMutation = useSetActiveTab();
+
 	const handleFocus = () => {
-		setActiveTab(workspaceId, tabId);
+		setActiveTabMutation.mutate({ tabId: childTab.id });
 	};
 
 	const handleCloseTab = (e: React.MouseEvent) => {
 		e.stopPropagation();
-		removeChildTabFromGroup(groupId, tabId);
+		removeChildTabFromGroup(groupId, childTab.id);
 	};
 
 	return (
@@ -66,12 +55,12 @@ export function GroupTabPane({
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu
-				onSplitHorizontal={() => splitTabHorizontal(workspaceId, tabId, path)}
-				onSplitVertical={() => splitTabVertical(workspaceId, tabId, path)}
-				onClosePane={() => removeChildTabFromGroup(groupId, tabId)}
+				onSplitHorizontal={() => splitTabHorizontal(childTab.id, path)}
+				onSplitVertical={() => splitTabVertical(childTab.id, path)}
+				onClosePane={() => removeChildTabFromGroup(groupId, childTab.id)}
 			>
 				<div className="w-full h-full overflow-hidden">
-					<Terminal tabId={tabId} workspaceId={workspaceId} />
+					<Terminal tab={childTab} />
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

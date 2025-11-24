@@ -71,15 +71,14 @@ export function createTerminalInstance(
 
 export function setupFocusListener(
 	xterm: XTerm,
-	workspaceId: string,
 	tabId: string,
-	setActiveTab: (workspaceId: string, tabId: string) => void,
+	setActiveTab: (tabId: string) => void,
 ): (() => void) | null {
 	const textarea = xterm.textarea;
 	if (!textarea) return null;
 
 	const handleFocus = () => {
-		setActiveTab(workspaceId, tabId);
+		setActiveTab(tabId);
 	};
 
 	textarea.addEventListener("focus", handleFocus);

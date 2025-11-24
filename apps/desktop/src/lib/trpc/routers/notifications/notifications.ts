@@ -35,3 +35,5 @@ export const createNotificationsRouter = () => {
 		}),
 	});
 };
+
+export type NotificationsRouter = ReturnType<typeof createNotificationsRouter>;

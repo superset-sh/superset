@@ -1,3 +1,5 @@
+import type { MosaicNode } from "react-mosaic-component";
+
 export interface Project {
 	id: string;
 	mainRepoPath: string;
@@ -22,34 +24,41 @@ export interface Workspace {
 	worktreeId: string;
 	name: string;
 	tabOrder: number;
+	activeTabId?: string;
+	isActive: boolean;
 	createdAt: number;
 	updatedAt: number;
 	lastOpenedAt: number;
 }
 
-export interface Tab {
+// Shared fields for all tab types
+export interface BaseTab {
 	id: string;
+	workspaceId: string;
 	title: string;
-	terminalId?: string;
-	type: "single" | "group";
+	position: number;
+	parentId?: string;
+	layout?: MosaicNode<string>;
+	needsAttention?: boolean;
 	createdAt: number;
 	updatedAt: number;
 }
 
-export interface Settings {
-	lastActiveWorkspaceId?: string;
-}
+// Discriminated union for type safety (future-proof for other tab types)
+export type Tab =
+	| (BaseTab & { type: "terminal" })
+	| (BaseTab & { type: "group" });
 
 export interface Database {
 	projects: Project[];
 	worktrees: Worktree[];
 	workspaces: Workspace[];
-	settings: Settings;
+	tabs: Tab[];
 }
 
 export const defaultDatabase: Database = {
 	projects: [],
 	worktrees: [],
 	workspaces: [],
-	settings: {},
+	tabs: [],
 };

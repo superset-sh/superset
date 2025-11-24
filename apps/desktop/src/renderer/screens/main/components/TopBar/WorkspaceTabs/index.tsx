@@ -10,9 +10,7 @@ const MAX_WORKSPACE_WIDTH = 160;
 const ADD_BUTTON_WIDTH = 48;
 
 export function WorkspacesTabs() {
-	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id || null;
+	const { data: groups = [] } = trpc.projects.getAllWithWorkspaces.useQuery();
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
@@ -25,23 +23,24 @@ export function WorkspacesTabs() {
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
+	const activeWorkspace = allWorkspaces.find((w) => w.isActive);
 
 	// Workspace switching shortcuts (work across groups)
 	useHotkeys("meta+alt+left", () => {
-		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (!activeWorkspace) return;
+		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspace.id);
 		if (index > 0) {
 			setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
 		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+	}, [activeWorkspace, allWorkspaces, setActiveWorkspace]);
 
 	useHotkeys("meta+alt+right", () => {
-		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+		if (!activeWorkspace) return;
+		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspace.id);
 		if (index < allWorkspaces.length - 1) {
 			setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
 		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+	}, [activeWorkspace, allWorkspaces, setActiveWorkspace]);
 
 	useEffect(() => {
 		const checkScroll = () => {
@@ -91,20 +90,16 @@ export function WorkspacesTabs() {
 					ref={scrollRef}
 					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
 				>
-					{groups.map((group, groupIndex) => (
-						<Fragment key={group.project.id}>
+					{groups.map((project, projectIndex) => (
+						<Fragment key={project.id}>
 							<WorkspaceGroup
-								projectId={group.project.id}
-								projectName={group.project.name}
-								projectColor={group.project.color}
-								projectIndex={groupIndex}
-								workspaces={group.workspaces}
-								activeWorkspaceId={activeWorkspaceId}
+								project={project}
+								projectIndex={projectIndex}
 								workspaceWidth={workspaceWidth}
 								hoveredWorkspaceId={hoveredWorkspaceId}
 								onWorkspaceHover={setHoveredWorkspaceId}
 							/>
-							{groupIndex < groups.length - 1 && (
+							{projectIndex < groups.length - 1 && (
 								<div className="flex items-center h-full py-2">
 									<div className="w-px h-full bg-border" />
 								</div>

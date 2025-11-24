@@ -177,3 +177,5 @@ export const createTerminalRouter = () => {
 			}),
 	});
 };
+
+export type TerminalRouter = ReturnType<typeof createTerminalRouter>;

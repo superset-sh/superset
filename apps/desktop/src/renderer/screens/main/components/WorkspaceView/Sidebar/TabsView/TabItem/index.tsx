@@ -3,51 +3,42 @@ import { useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import {
-	useActiveTabIds,
 	useRemoveTab,
 	useSetActiveTab,
-	useTabs,
-	useUngroupTab,
-	useUngroupTabs,
-} from "renderer/stores";
-import { TabType } from "renderer/stores/tabs/types";
+	useUngroup,
+	useMoveOutOfGroup,
+} from "renderer/react-query/tabs";
 import { TabContextMenu } from "./TabContextMenu";
 import type { TabItemProps } from "./types";
 import { useDragTab } from "./useDragTab";
-import { useGroupDrop } from "./useGroupDrop";
 import { useTabRename } from "./useTabRename";
 
 export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id;
-	const activeTabIds = useActiveTabIds();
-	const removeTab = useRemoveTab();
-	const setActiveTab = useSetActiveTab();
-	const ungroupTabs = useUngroupTabs();
-	const ungroupTab = useUngroupTab();
-	const tabs = useTabs();
+	const { data: allTabs = [] } = trpc.tabs.getByWorkspace.useQuery(
+		{ workspaceId: activeWorkspace?.id! },
+		{ enabled: !!activeWorkspace?.id },
+	);
+	const removeTabMutation = useRemoveTab();
+	const setActiveTabMutation = useSetActiveTab();
+	const ungroupMutation = useUngroup();
+	const moveOutOfGroupMutation = useMoveOutOfGroup();
 
-	const activeTabId = activeWorkspaceId
-		? activeTabIds[activeWorkspaceId]
-		: null;
-	const isActive = tab.id === activeTabId;
+	const isActive = tab.id === activeWorkspace?.activeTabId;
 
 	const { drag, drop, isDragging, isDragOver } = useDragTab(tab.id);
-	const groupDrop = useGroupDrop(tab.id);
 
 	const rename = useTabRename(tab.id, tab.title);
 
 	const handleRemoveTab = (e?: React.MouseEvent) => {
 		e?.stopPropagation();
-		removeTab(tab.id);
+		removeTabMutation.mutate({ id: tab.id });
 	};
 
 	const handleTabClick = () => {
 		if (rename.isRenaming) return;
-		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tab.id);
-		}
+		setActiveTabMutation.mutate({ tabId: tab.id });
 	};
 
 	const handleToggleExpand = (e: React.MouseEvent) => {
@@ -58,21 +49,24 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	};
 
 	const handleUngroup = () => {
-		ungroupTabs(tab.id);
+		ungroupMutation.mutate({ groupId: tab.id });
 	};
 
 	const handleMoveOutOfGroup = () => {
 		if (!tab.parentId) return;
 
 		// Find the parent group's index in the workspace tabs
-		const workspaceTabs = tabs.filter(
+		const workspaceTabs = allTabs.filter(
 			(t) => t.workspaceId === tab.workspaceId && !t.parentId,
 		);
 		const parentIndex = workspaceTabs.findIndex((t) => t.id === tab.parentId);
 
 		// Place after the parent (parentIndex + 1)
 		if (parentIndex !== -1) {
-			ungroupTab(tab.id, parentIndex + 1);
+			moveOutOfGroupMutation.mutate({
+				tabId: tab.id,
+				targetIndex: parentIndex + 1,
+			});
 		}
 	};
 
@@ -81,7 +75,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 		drop(el);
 	};
 
-	const isGroupTab = tab.type === TabType.Group;
+	const isGroupTab = tab.type === "group";
 	const hasChildren = childTabs.length > 0;
 
 	return (
@@ -183,15 +177,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 			</TabContextMenu>
 
 			{isGroupTab && hasChildren && isExpanded && (
-				<div
-					ref={(node) => {
-						groupDrop.drop(node);
-					}}
-					className="ml-4 mt-1 space-y-1 relative"
-				>
-					{groupDrop.isDragOver && (
-						<div className="absolute -top-px left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
-					)}
+				<div className="ml-4 mt-1 space-y-1 relative">
 					{childTabs.map((childTab) => {
 						return (
 							<div key={childTab.id} className="flex items-start gap-1">
