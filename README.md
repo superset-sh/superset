@@ -12,6 +12,10 @@
 
 Superset helps you run 100 CLI coding agents on your machine without losing your mind.
 
+## Docs
+
+See the Markdown wiki in `docs/`: [docs/README.md](docs/README.md).
+
 
 ## What you can do with Superset:
 
