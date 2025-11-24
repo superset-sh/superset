@@ -1,11 +1,10 @@
-import { FolderGit, FolderOpen, SquareTerminal } from "lucide-react";
+import { FolderGit, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
-import { SSHConnectDialog } from "./SSHConnectDialog";
 import { StartTopBar } from "./StartTopBar";
 
 export function StartView() {
@@ -14,7 +13,6 @@ export function StartView() {
 	const createWorkspace = useCreateWorkspace();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
-	const [isSSHDialogOpen, setIsSSHDialogOpen] = useState(false);
 
 	const handleOpenProject = () => {
 		setError(null);
@@ -84,16 +82,6 @@ export function StartView() {
 							}}
 							isLoading={isLoading}
 						/>
-
-						<ActionCard
-							icon={SquareTerminal}
-							label="Connect via SSH"
-							onClick={() => {
-								setError(null);
-								setIsSSHDialogOpen(true);
-							}}
-							isLoading={isLoading}
-						/>
 					</div>
 
 					{/* Recent Projects */}
@@ -146,11 +134,6 @@ export function StartView() {
 			<CloneRepoDialog
 				isOpen={isCloneDialogOpen}
 				onClose={() => setIsCloneDialogOpen(false)}
-				onError={setError}
-			/>
-			<SSHConnectDialog
-				isOpen={isSSHDialogOpen}
-				onClose={() => setIsSSHDialogOpen(false)}
 				onError={setError}
 			/>
 		</div>
