@@ -39,19 +39,19 @@ For each parallel tasks, Superset uses git worktree to clone a new branch on you
 Automate copying env variables, installing dependencies, etc. through the app or with a setup script `./superset/setup.json`
 
 <!-- [TODO: Add Image] -->
-<img alt="example-min" src="assets/example.png" />
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
 
 Each workspace gets their own organized terminal system. You can create default presets.
 
 <!-- [TODO: Add Image] -->
-<img alt="example-min" src="assets/example.png" />
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
 
 Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
 
 <!-- [TODO: Add Image] -->
-<img alt="example-min" src="assets/example.png" />
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
 
 ### Our Tech Stack
