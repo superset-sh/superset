@@ -1,6 +1,9 @@
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <div align="center">
-<img width="600" alt="header image" src="apps/website/public/title.svg">
+<img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" />
+
+
+
 <h3 align="center">Superset</h3>
   <p align="center">
     The last developer tool you'll ever need
@@ -10,52 +13,49 @@
 
 </div>
 
-Superset helps you run 100 CLI coding agents on your machine without losing your mind.
+## Motivation
+What do you do when your coding agent is running? Our answer is to start another coding task in parallel. The best developer can run 10+ tasks in parallel. 
 
-## Docs
-
-See the Markdown wiki in `docs/`: [docs/README.md](docs/README.md).
-
+With Superset, you can run 100.
 
 ## What you can do with Superset:
 
 - [X] Create and organize parallel coding environment
-- [X] Notify you when agents need your review
-- [ ] Share context between different CLI agents
-- [ ] Manage a lot of agents in parallel
-- [ ] Create and clone your standard environment
-- [ ] Seemlessly transition between local and cloud so you can code on the go
-- [ ] Automate reviewing and adjusting with minimal input
+- [X] Get notified when an agent needs your review
+- [ ] Share context between your agents
+- [ ] Code on the go with a cloud environment
+- [ ] Automate reviewing and feedback
+- [ ] Create and manage Git pull requests
 
-<img alt="example-min" src="https://github.com/user-attachments/assets/9db68082-47f4-4076-92a0-85ac97572699" />
+<img alt="example-min" src="assets/example.png" />
 
 ## Getting Started
 
+<!-- TODO: Update links -->
 [Download the app](https://superset.sh) or
 [run locally](https://superset.sh).
 
 ### Usage
 
-Superset creates a new workspace for each of your tasks. Each workspace is isolated and parallel.
+For each parallel tasks, Superset uses git worktree to clone a new branch on your machine. 
+
+Automate copying env variables, installing dependencies, etc. through the app or with a setup script `./superset/setup.json`
 
 <!-- [TODO: Add Image] -->
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
 
-We automatically set up your workspace by cloning env variables, installing dependencies, etc.
+Each workspace gets their own organized terminal system. You can create default presets.
 
 <!-- [TODO: Add Image] -->
-
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
 
-Coding agents can be spun up and organized. They can pass messages between each other ping you when they are done.
+Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
 
 <!-- [TODO: Add Image] -->
-
+<!-- <img alt="example-min" src="assets/example.png" /> -->
 <br>
-
-Superset gives you a high level view of all the changes made and help you create and merge a PR in a few clicks
-
-<!-- [TODO: Add Image] -->
 
 ### Our Tech Stack
 
@@ -80,13 +80,15 @@ create a pull request. You can also
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
 
-#### Contributors
-
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
 
-## Team
+## Cookbook
+
+See tips and motivation under `docs`: [docs/cookbook/README.md](docs/cookbook/README.md).
+
+## Contact Us
 - [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
 - [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle_paddle-555?logo=x)](https://x.com/saddle_paddle)
 - [![Avi Twitter](https://img.shields.io/badge/Avi-@avimakesrobots-555?logo=x)](https://x.com/avimakesrobots)

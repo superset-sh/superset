@@ -1,5 +1,6 @@
 import { Box, Text, useApp, useInput, useStdout } from "ink";
 import React from "react";
+import { Spinner } from "../components/Spinner";
 import { getDb } from "../lib/db";
 import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
@@ -253,20 +254,20 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 		(a) => a.status === ProcessStatus.ERROR,
 	);
 
-	// Status badge helper
-	const getStatusBadge = (agent: Process) => {
+	// Status emoji helper
+	const getStatusEmoji = (agent: Process) => {
 		if (agent.endedAt) {
-			return <Text dimColor>[stopped]</Text>;
+			return <Text color="gray">○</Text>;
 		}
 		switch (agent.status) {
 			case ProcessStatus.RUNNING:
-				return <Text color="green">[running]</Text>;
+				return <Spinner color="green" />;
 			case ProcessStatus.IDLE:
-				return <Text color="yellow">[idle]</Text>;
+				return <Text color="yellow">○</Text>;
 			case ProcessStatus.ERROR:
-				return <Text color="red">[error]</Text>;
+				return <Text color="red">✗</Text>;
 			default:
-				return <Text dimColor>[unknown]</Text>;
+				return <Text color="gray">○</Text>;
 		}
 	};
 
@@ -332,6 +333,25 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 							</Box>
 						</>
 					)}
+				</Box>
+			</Box>
+
+			{/* Status Legend */}
+			<Box marginBottom={1} paddingX={2}>
+				<Box flexDirection="row" gap={2}>
+					<Text dimColor>Status:</Text>
+					<Text>
+						<Text color="green">●</Text> Running
+					</Text>
+					<Text>
+						<Text color="yellow">○</Text> Idle
+					</Text>
+					<Text>
+						<Text color="red">✗</Text> Error
+					</Text>
+					<Text>
+						<Text color="gray">○</Text> Stopped
+					</Text>
 				</Box>
 			</Box>
 
@@ -455,6 +475,7 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 						{filteredAgents.map((agent, index) => {
 							const isSelected =
 								selectionMode === "agent" && index === selectedAgentIndex;
+							const isRunning = agent.status === ProcessStatus.RUNNING;
 							const sessionName =
 								agent.type === ProcessType.AGENT &&
 								"sessionName" in agent &&
@@ -466,19 +487,19 @@ export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
 									<Text color={isSelected ? "yellow" : undefined}>
 										{isSelected ? "▸" : " "}
 									</Text>
-									{getStatusBadge(agent)}
+									{getStatusEmoji(agent)}
 									<Text
-										bold={isSelected}
-										color={isSelected ? "yellow" : undefined}
+										bold={isSelected || isRunning}
+										color={
+											isSelected ? "yellow" : isRunning ? "green" : undefined
+										}
 									>
 										{agent.type === ProcessType.AGENT &&
 											"agentType" in agent &&
 											String(agent.agentType)}
 									</Text>
 									{sessionName && (
-										<Text dimColor>
-											[{truncate(sessionName, 16)}]
-										</Text>
+										<Text dimColor>[{truncate(sessionName, 16)}]</Text>
 									)}
 									<Text dimColor>
 										{new Date(agent.createdAt).toLocaleTimeString()}
