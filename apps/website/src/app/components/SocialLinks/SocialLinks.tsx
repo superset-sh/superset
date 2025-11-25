@@ -45,4 +45,3 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 		</div>
 	);
 }
-
