@@ -146,7 +146,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 								onBlur={rename.submitRename}
 								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-stone-800 border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1 bg-tertiary-active border border-primary rounded px-1 py-0.5 text-sm outline-none"
 							/>
 						) : (
 							<>

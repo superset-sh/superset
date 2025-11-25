@@ -11,10 +11,11 @@ const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
 const authorInKebabCase = author.replace(/\s+/g, "-");
 const appId = `com.${authorInKebabCase}.${pkg.name}`.toLowerCase();
+const productName = pkg.productName;
 
 const config: Configuration = {
 	appId,
-	productName: pkg.displayName,
+	productName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
 
@@ -53,17 +54,21 @@ const config: Configuration = {
 		target: [
 			{
 				target: "default",
-				arch: ["arm64"], // Build for arm64 only for faster testing
+				arch: ["arm64"], 
 			},
 		],
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
-		notarize: false,
+		notarize: true,
+		extendInfo: {
+			CFBundleName: productName,
+			CFBundleDisplayName: productName,
+		},
 	},
 
 	// Deep linking protocol
 	protocols: {
-		name: pkg.displayName,
+		name: productName,
 		schemes: ["superset"],
 	},
 
@@ -84,6 +89,7 @@ const config: Configuration = {
 				arch: ["x64"],
 			},
 		],
+		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
 	},
 
 	// NSIS installer (Windows)
