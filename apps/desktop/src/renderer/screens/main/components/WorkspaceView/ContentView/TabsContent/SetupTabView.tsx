@@ -5,7 +5,7 @@ import {
 	useSplitTabVertical,
 } from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
-import { SimpleTerminal } from "./Terminal/SimpleTerminal";
+import { SetupTerminal } from "./Terminal/SetupTerminal";
 
 interface SetupTabViewProps {
 	tab: SetupTab;
@@ -36,7 +36,7 @@ export function SetupTabView({ tab }: SetupTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<SimpleTerminal
+				<SetupTerminal
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
 					setupCommands={tab.setupCommands}

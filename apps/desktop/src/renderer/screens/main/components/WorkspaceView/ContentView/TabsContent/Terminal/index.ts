@@ -1,2 +1,2 @@
-export { SetupTerminal } from "./SetupTerminal";
 export { Terminal } from "./Terminal";
+export { SetupTerminal } from "./SetupTerminal";
