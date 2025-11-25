@@ -97,8 +97,8 @@ CURRENT_VERSION=$(node -p "require('./package.json').version")
 if [ "${CURRENT_VERSION}" == "${VERSION}" ]; then
     warn "package.json already has version ${VERSION}"
 else
-    # Use bun to update the version
-    bun version "${VERSION}" --no-git-tag-version
+    # Update the version using npm (which bun supports)
+    npm version "${VERSION}" --no-git-tag-version --allow-same-version
     success "Updated package.json from ${CURRENT_VERSION} to ${VERSION}"
 
     # Commit the version change
