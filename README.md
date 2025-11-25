@@ -77,15 +77,13 @@ create a pull request. You can also
 
 See the [CONTRIBUTING.md](CONTRIBUTING.md) for instructions and code of conduct.
 
-## Cookbook
-
-See tips and motivation under `docs`: [docs/cookbook/README.md](docs/cookbook/README.md).
-
-#### Contributors
-
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
 </a>
+
+## Cookbook
+
+See tips and motivation under `docs`: [docs/cookbook/README.md](docs/cookbook/README.md).
 
 ## Contact Us
 - [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
