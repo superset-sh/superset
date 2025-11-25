@@ -6,7 +6,7 @@ import {
 	useSplitTabVertical,
 } from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
-import { SetupTerminal } from "./Terminal";
+import { SetupTerminal, Terminal } from "./Terminal";
 
 interface SingleTabViewProps {
 	tab: SingleTab;
@@ -35,6 +35,9 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 		setActiveTab(tab.workspaceId, tab.id);
 	};
 
+	// Use SetupTerminal wrapper only for setup tabs, otherwise use base Terminal
+	const TerminalComponent = tab.setupPending ? SetupTerminal : Terminal;
+
 	return (
 		<TabContentContextMenu
 			onSplitHorizontal={handleSplitHorizontal}
@@ -42,7 +45,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<SetupTerminal tabId={tab.id} workspaceId={tab.workspaceId} />
+				<TerminalComponent tabId={tab.id} workspaceId={tab.workspaceId} />
 			</div>
 		</TabContentContextMenu>
 	);
