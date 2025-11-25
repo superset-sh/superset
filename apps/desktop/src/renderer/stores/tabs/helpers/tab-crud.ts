@@ -102,13 +102,13 @@ export const handleAddSetupTab = (
 	setupCwd: string,
 	setupCopyResults?: { copied: string[]; errors: string[] },
 ): Partial<TabsState> => {
-	const newTab = createNewTab(workspaceId, TabType.Single, state.tabs);
+	const baseTab = createNewTab(workspaceId, TabType.Setup, state.tabs);
 	const setupTab = {
-		...newTab,
+		...baseTab,
+		type: TabType.Setup as const,
 		title: "Setup Worktree",
 		setupCommands,
 		setupCwd,
-		setupPending: true,
 		setupCopyResults,
 	};
 

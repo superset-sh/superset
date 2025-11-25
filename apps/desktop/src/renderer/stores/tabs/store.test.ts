@@ -6,7 +6,7 @@ mock.module("./utils/terminal-cleanup", () => ({
 }));
 
 import { useTabsStore } from "./store";
-import { TabType } from "./types";
+import { type TabGroup, TabType } from "./types";
 
 describe("removeTab", () => {
 	test("removing last child from group removes the group", () => {
@@ -49,7 +49,7 @@ describe("removeTab", () => {
 		const store = useTabsStore.getState();
 
 		// Create a group with two children
-		const groupTab = {
+		const groupTab: TabGroup = {
 			id: "group-1",
 			title: "Group",
 			workspaceId: "workspace-1",
@@ -244,7 +244,7 @@ describe("splitTabVertical", () => {
 	test("does not split a group tab", () => {
 		const store = useTabsStore.getState();
 
-		const groupTab = {
+		const groupTab: TabGroup = {
 			id: "group-1",
 			title: "Group",
 			workspaceId: "workspace-1",

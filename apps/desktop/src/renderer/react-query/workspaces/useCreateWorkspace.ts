@@ -18,13 +18,13 @@ export function useCreateWorkspace(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
-			// Create setup tab if setup commands are present
-			if (data.setupConfig && data.setupConfig.length > 0) {
+			// Create setup tab if setup commands are present and is an array
+			if (Array.isArray(data.setupConfig) && data.setupConfig.length > 0) {
 				addSetupTab(
 					data.workspace.id,
 					data.setupConfig,
 					data.worktreePath,
-					data.setupCopyResults || undefined,
+					data.setupCopyResults ?? undefined,
 				);
 			}
 
