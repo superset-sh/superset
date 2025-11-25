@@ -15,8 +15,10 @@ export const createNewTab = (
 ): Tab => {
 	const id = `tab-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 
-	// Generate unique terminal name based on existing tabs
-	const existingNames = existingTabs.map((tab) => tab.title);
+	// Generate unique terminal name based on existing single tabs in the current workspace
+	const existingNames = existingTabs
+		.filter((tab) => tab.workspaceId === workspaceId && tab.type === TabType.Single)
+		.map((tab) => tab.title);
 	const title =
 		type === TabType.Single
 			? generateTerminalName(existingNames)
