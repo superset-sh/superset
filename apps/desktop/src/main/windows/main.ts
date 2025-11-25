@@ -3,7 +3,7 @@ import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { createIPCHandler } from "trpc-electron/main";
-import { displayName } from "~/package.json";
+import { productName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import {
 	notificationsApp,
@@ -17,7 +17,7 @@ export async function MainWindow() {
 
 	const window = createWindow({
 		id: "main",
-		title: displayName,
+		title: productName,
 		width,
 		height,
 		show: false,
