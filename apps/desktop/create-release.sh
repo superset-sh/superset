@@ -4,14 +4,21 @@
 # Based on apps/desktop/RELEASE.md
 #
 # Usage:
-#   ./create-release-0.0.1.sh <version>
-#   Example: ./create-release-0.0.1.sh 0.0.1
+#   ./create-release.sh <version>
+#   Example: ./create-release.sh 0.0.1
 #
 # This script will:
-# 1. Verify prerequisites (clean git, build works)
+# 1. Verify prerequisites (clean git, GitHub CLI authenticated)
 # 2. Update package.json version
-# 3. Create and push a git tag to trigger the release workflow
-# 4. The GitHub Action will build for macOS (arm64) and create a draft release
+# 3. Verify build works locally
+# 4. Create and push a git tag to trigger the release workflow
+# 5. Monitor the GitHub Actions workflow in real-time
+# 6. Display the draft release URL when ready
+#
+# Requirements:
+# - GitHub CLI (gh) installed and authenticated
+# - Clean working directory
+# - Running from monorepo root
 
 set -e  # Exit on error
 
@@ -48,6 +55,16 @@ fi
 VERSION="$1"
 TAG_NAME="desktop-v${VERSION}"
 DESKTOP_DIR="apps/desktop"
+
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+    error "GitHub CLI (gh) is required but not installed.\nInstall it from: https://cli.github.com/"
+fi
+
+# Check if authenticated with gh
+if ! gh auth status &> /dev/null; then
+    error "Not authenticated with GitHub CLI.\nRun: gh auth login"
+fi
 
 info "Starting release process for version ${VERSION}"
 echo ""
@@ -118,16 +135,95 @@ echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━
 echo -e "${GREEN}🎉 Release process initiated successfully!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
+
+# Get repository information
+REPO=$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
+
+# 7. Monitor the workflow
+info "Monitoring GitHub Actions workflow..."
+echo "  Waiting for workflow to start (this may take a few seconds)..."
+
+# Wait and retry to find the workflow run
+MAX_RETRIES=6
+RETRY_COUNT=0
+WORKFLOW_RUN=""
+
+while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ -z "$WORKFLOW_RUN" ]; do
+    sleep 5
+    WORKFLOW_RUN=$(gh run list --workflow=release-desktop.yml --json databaseId,headBranch,status --jq ".[] | select(.headBranch == \"${TAG_NAME}\") | .databaseId" | head -1)
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+
+    if [ -z "$WORKFLOW_RUN" ] && [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+        echo "  Still waiting... (attempt $RETRY_COUNT/$MAX_RETRIES)"
+    fi
+done
+
+if [ -z "$WORKFLOW_RUN" ]; then
+    warn "Could not find workflow run automatically"
+    echo "  Manual monitoring URL:"
+    echo "  https://github.com/${REPO}/actions"
+    echo ""
+    warn "The workflow may still be starting. Check the URL above in a few moments."
+else
+    success "Found workflow run: ${WORKFLOW_RUN}"
+    echo ""
+    info "Watching workflow progress..."
+    echo "  View in browser: https://github.com/${REPO}/actions/runs/${WORKFLOW_RUN}"
+    echo ""
+
+    # Watch the workflow (this will stream the status)
+    gh run watch "${WORKFLOW_RUN}" || warn "Workflow monitoring interrupted"
+
+    # Check final status
+    WORKFLOW_STATUS=$(gh run view "${WORKFLOW_RUN}" --json conclusion --jq .conclusion)
+
+    if [ "$WORKFLOW_STATUS" == "success" ]; then
+        success "Workflow completed successfully!"
+    elif [ "$WORKFLOW_STATUS" == "failure" ]; then
+        error "Workflow failed. Please check the logs at: https://github.com/${REPO}/actions/runs/${WORKFLOW_RUN}"
+    else
+        warn "Workflow ended with status: ${WORKFLOW_STATUS}"
+    fi
+fi
+
+echo ""
+
+# 8. Get and display draft release URL
+info "Fetching draft release..."
+
+# Retry logic for draft release (it may take time to be created)
+MAX_RELEASE_RETRIES=10
+RELEASE_RETRY_COUNT=0
+RELEASE_FOUND=""
+
+while [ $RELEASE_RETRY_COUNT -lt $MAX_RELEASE_RETRIES ] && [ -z "$RELEASE_FOUND" ]; do
+    sleep 3
+    RELEASE_FOUND=$(gh release list --json tagName,isDraft --jq ".[] | select(.tagName == \"${TAG_NAME}\" and .isDraft == true) | .tagName")
+    RELEASE_RETRY_COUNT=$((RELEASE_RETRY_COUNT + 1))
+
+    if [ -z "$RELEASE_FOUND" ] && [ $RELEASE_RETRY_COUNT -lt $MAX_RELEASE_RETRIES ]; then
+        echo "  Waiting for draft release to be created... (attempt $RELEASE_RETRY_COUNT/$MAX_RELEASE_RETRIES)"
+    fi
+done
+
+if [ -z "$RELEASE_FOUND" ]; then
+    warn "Draft release not found yet. It may still be processing."
+    echo "  Check releases at: https://github.com/${REPO}/releases"
+else
+    RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG_NAME}"
+    success "Draft release created!"
+    echo ""
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BLUE}📦 Draft Release URL:${NC}"
+    echo -e "${GREEN}${RELEASE_URL}${NC}"
+    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+fi
+
+echo ""
 info "Next steps:"
-echo "  1. Monitor the GitHub Actions workflow at:"
-echo "     https://github.com/$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')/actions"
-echo ""
-echo "  2. Once the workflow completes, a draft release will be created"
-echo ""
-echo "  3. Review the draft release at:"
-echo "     https://github.com/$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')/releases"
-echo ""
-echo "  4. Edit the release notes if needed and publish the release"
+echo "  1. Review the draft release and edit release notes if needed"
+echo "  2. Publish the release when ready"
 echo ""
 info "Release artifacts will include:"
 echo "  • Superset-${VERSION}-arm64.dmg (macOS DMG installer)"
