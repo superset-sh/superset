@@ -1,7 +1,7 @@
 import { observable } from "@trpc/server/observable";
 import {
-	notificationsEmitter,
 	type AgentCompleteEvent,
+	notificationsEmitter,
 } from "main/lib/notifications/server";
 import { publicProcedure, router } from "..";
 

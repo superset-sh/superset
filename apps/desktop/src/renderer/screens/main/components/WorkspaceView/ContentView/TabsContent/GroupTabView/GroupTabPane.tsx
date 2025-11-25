@@ -1,10 +1,10 @@
+import { Button } from "@superset/ui/button";
+import { HiMiniXMark } from "react-icons/hi2";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
-import { HiMiniXMark } from "react-icons/hi2";
 import type { Tab } from "renderer/stores";
 import { TabContentContextMenu } from "../TabContentContextMenu";
-import { Terminal } from "../Terminal";
-import { Button } from "@superset/ui/button";
+import { SetupTerminal } from "../Terminal";
 
 interface GroupTabPaneProps {
 	tabId: string;
@@ -71,7 +71,7 @@ export function GroupTabPane({
 				onClosePane={() => removeChildTabFromGroup(groupId, tabId)}
 			>
 				<div className="w-full h-full overflow-hidden">
-					<Terminal tabId={tabId} workspaceId={workspaceId} />
+					<SetupTerminal tabId={tabId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

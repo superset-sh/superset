@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs, useTabsStore } from "renderer/stores";
+import { useSetActiveTab } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -11,10 +11,13 @@ import {
 } from "./helpers";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 
-export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
-	const tabs = useTabs();
-	const tab = tabs.find((t) => t.id === tabId);
-	const tabTitle = tab?.title || "Terminal";
+export const Terminal = ({
+	tabId,
+	workspaceId,
+	title,
+	onSessionReady,
+}: TerminalProps) => {
+	const tabTitle = title || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -22,17 +25,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
-	const setupExecutedRef = useRef(false);
-
-	// Store setup data in refs to avoid effect re-runs
-	const setupPendingRef = useRef(tab?.setupPending);
-	const setupCommandsRef = useRef(tab?.setupCommands);
-	const setupCopyResultsRef = useRef(tab?.setupCopyResults);
-
-	// Update refs when tab changes
-	setupPendingRef.current = tab?.setupPending;
-	setupCommandsRef.current = tab?.setupCommands;
-	setupCopyResultsRef.current = tab?.setupCopyResults;
+	const sessionReadyCalledRef = useRef(false);
 
 	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
@@ -173,44 +166,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
 
-					// Execute setup commands if this is a setup tab and setup hasn't been executed yet
-					if (
-						setupPendingRef.current &&
-						setupCommandsRef.current &&
-						!setupExecutedRef.current
-					) {
-						setupExecutedRef.current = true;
-
-						// Print copy results if available
-						if (setupCopyResultsRef.current) {
-							const { copied, errors } = setupCopyResultsRef.current;
-							if (copied.length > 0) {
-								xterm.writeln(
-									`\r\n\x1b[32m✓ Copied ${copied.length} file(s):\x1b[0m`,
-								);
-								for (const file of copied) {
-									xterm.writeln(`  - ${file}`);
-								}
-							}
-							if (errors.length > 0) {
-								xterm.writeln(`\r\n\x1b[33m⚠ Copy warnings:\x1b[0m`);
-								for (const error of errors) {
-									xterm.writeln(`  ${error}`);
-								}
-							}
-							xterm.writeln("\r\n");
-						}
-
-						// Send all commands sequentially
-						const commands = `${setupCommandsRef.current.join("\n")}\n`;
-						writeRef.current({ tabId, data: commands });
-
-						// Mark setup as no longer pending
-						useTabsStore.setState((state) => ({
-							tabs: state.tabs.map((t) =>
-								t.id === tabId ? { ...t, setupPending: false } : t,
-							),
-						}));
+					// Call onSessionReady callback if provided and not already called
+					if (onSessionReady && !sessionReadyCalledRef.current) {
+						sessionReadyCalledRef.current = true;
+						onSessionReady({
+							xterm,
+							write: (data: string) => writeRef.current({ tabId, data }),
+						});
 					}
 				},
 				onError: () => {
@@ -245,7 +207,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
+	}, [
+		tabId,
+		workspaceId,
+		setActiveTab,
+		workspaceCwd,
+		tabTitle,
+		onSessionReady,
+	]);
 
 	return (
 		<div className="h-full w-full overflow-hidden bg-black">

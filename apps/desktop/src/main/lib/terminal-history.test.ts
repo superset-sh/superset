@@ -2,11 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import {
-	HistoryReader,
-	HistoryWriter,
 	getHistoryDir,
 	getHistoryFilePath,
 	getMetadataPath,
+	HistoryReader,
+	HistoryWriter,
 	type SessionMetadata,
 } from "./terminal-history";
 
@@ -379,7 +379,7 @@ describe("Terminal history integration", () => {
 			await fs.stat(historyDir);
 			throw new Error("Directory should not exist");
 		} catch (error) {
-			// @ts-ignore
+			// @ts-expect-error
 			expect(error.code).toBe("ENOENT");
 		}
 	});
