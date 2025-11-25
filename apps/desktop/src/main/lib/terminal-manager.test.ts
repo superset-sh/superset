@@ -79,6 +79,8 @@ describe("TerminalManager", () => {
 			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cwd: "/test/path",
 				cols: 80,
 				rows: 24,
@@ -102,6 +104,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cwd: "/test/path",
 			});
 
@@ -111,6 +115,8 @@ describe("TerminalManager", () => {
 			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result.isNew).toBe(false);
@@ -124,6 +130,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cols: 80,
 				rows: 24,
 			});
@@ -131,6 +139,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cols: 100,
 				rows: 30,
 			});
@@ -144,6 +154,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.write({
@@ -169,6 +181,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.resize({

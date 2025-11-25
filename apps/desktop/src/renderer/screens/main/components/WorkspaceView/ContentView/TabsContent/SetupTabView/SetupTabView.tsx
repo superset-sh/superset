@@ -4,8 +4,8 @@ import {
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores";
-import { TabContentContextMenu } from "./TabContentContextMenu";
-import { SetupTerminal } from "./Terminal/SetupTerminal";
+import { TabContentContextMenu } from "../TabContentContextMenu";
+import { SetupTerminal } from "./SetupTerminal";
 
 interface SetupTabViewProps {
 	tab: SetupTab;
