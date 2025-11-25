@@ -3,21 +3,23 @@
 }
 
 .mosaic-theme-dark .mosaic-window {
+	border: 1px solid var(--color-tertiary-active);
+	border-radius: var(--radius-sm);
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease;
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
-	background: var(--color-sidebar);
-	border-top-left-radius: var(--radius-xs);
-	border-top-right-radius: var(--radius-xs);
+	background: var(--color-tertiary);
+	border-top-left-radius: var(--radius-sm);
+	border-top-right-radius: var(--radius-sm);
 	height: 32px;
 	padding: 0 8px;
 	transition: background-color 0.15s ease;
 }
 .mosaic-window-focused .mosaic-window-toolbar {
-	background: var(--color-border) !important;
+	background: var(--color-tertiary-active) !important;
 }
 .mosaic-theme-dark .mosaic-window .mosaic-window-title {
 	color: var(--color-foreground);

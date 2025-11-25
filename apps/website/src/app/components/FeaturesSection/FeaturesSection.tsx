@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { JoinWaitlistButton } from "../JoinWaitlistButton";
 
 interface FeaturesSectionProps {
 	onOpenWaitlist: () => void;
@@ -12,14 +13,14 @@ const FEATURES = [
 			"Run multiple agents in parallel. Build features as quickly as you can come up with them.",
 	},
 	{
+		title: "Zero switching cost",
+		description:
+			"Be the human in the loop. We handle the context management so you're never overloaded.",
+	},
+	{
 		title: "No downtime",
 		description:
 			"Code on the go. Always-on agents that work even when you're away from your laptop.",
-	},
-	{
-		title: "Zero switching cost",
-		description:
-			"Be the human in the loop. We handle the port switching and context management so you're never overloaded.",
 	},
 	{
 		title: "Bring your own tools",
@@ -70,13 +71,7 @@ export function FeaturesSection({ onOpenWaitlist }: FeaturesSectionProps) {
 					transition={{ duration: 0.5, delay: 0.4 }}
 					className="flex justify-center mt-16 sm:mt-20"
 				>
-					<button
-						type="button"
-						onClick={onOpenWaitlist}
-						className="bg-white text-black px-6 py-3 rounded-lg text-base font-medium hover:bg-zinc-200 transition-colors"
-					>
-						Join waitlist
-					</button>
+					<JoinWaitlistButton onClick={onOpenWaitlist} />
 				</motion.div>
 			</div>
 		</section>

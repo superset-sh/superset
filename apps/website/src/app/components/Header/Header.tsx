@@ -1,8 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useState } from "react";
 import { WaitlistModal } from "../WaitlistModal";
+import { JoinWaitlistButton } from "../JoinWaitlistButton";
+import { DownloadButton } from "../DownloadButton";
+import { SocialLinks } from "../SocialLinks";
 
 export function Header() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
@@ -20,12 +24,13 @@ export function Header() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5 }}
 						>
-							<span className="text-white font-bold text-2xl group-hover:scale-110 transition-transform inline-block">
-								⊇
-							</span>
-							<span className="text-white font-semibold text-lg hidden sm:block">
-								Superset
-							</span>
+							<Image
+								src="/title.svg"
+								alt="Superset"
+								width={200}
+								height={61}
+								className="h-10 sm:h-12 w-auto group-hover:scale-105 transition-transform"
+							/>
 						</motion.a>
 
 						{/* CTA Button */}
@@ -35,13 +40,16 @@ export function Header() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5, delay: 0.2 }}
 						>
-							<button
-								type="button"
+							<SocialLinks />
+							<DownloadButton
+								size="sm"
+								className="hidden"
+								onJoinWindowsWaitlist={() => setIsWaitlistOpen(true)}
+							/>
+							<JoinWaitlistButton
 								onClick={() => setIsWaitlistOpen(true)}
-								className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
-							>
-								Join waitlist
-							</button>
+								size="sm"
+							/>
 						</motion.div>
 					</div>
 				</nav>

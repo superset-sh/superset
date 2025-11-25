@@ -36,7 +36,9 @@ function tmuxSessionExists(sessionName: string): boolean {
 		return false;
 	}
 	try {
-		execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`, { stdio: "ignore" });
+		execSync(`tmux has-session -t "${sessionName}" 2>/dev/null`, {
+			stdio: "ignore",
+		});
 		return true;
 	} catch {
 		return false;
@@ -81,7 +83,10 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 
 			// Sync agent status with tmux session reality
 			let needsSync = false;
-			if (backfilled.type === ProcessType.AGENT && "sessionName" in backfilled) {
+			if (
+				backfilled.type === ProcessType.AGENT &&
+				"sessionName" in backfilled
+			) {
 				needsSync = this.syncAgentStatus(backfilled as Agent);
 			}
 
@@ -248,7 +253,9 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 			const agent = existing as Agent;
 			if (agent.sessionName) {
 				try {
-					await execAsync(`tmux kill-session -t "${agent.sessionName}" 2>/dev/null`);
+					await execAsync(
+						`tmux kill-session -t "${agent.sessionName}" 2>/dev/null`,
+					);
 				} catch {
 					// Ignore errors (session might already be dead)
 				}
@@ -287,7 +294,9 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 					const agent = process as Agent;
 					if (agent.sessionName) {
 						try {
-							await execAsync(`tmux kill-session -t "${agent.sessionName}" 2>/dev/null`);
+							await execAsync(
+								`tmux kill-session -t "${agent.sessionName}" 2>/dev/null`,
+							);
 						} catch {
 							// Ignore errors (session might already be dead)
 						}

@@ -7,6 +7,7 @@ import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { HeroSection } from "./components/HeroSection";
 import { TestimonialsSection } from "./components/TestimonialsSection";
+import { VideoSection } from "./components/VideoSection";
 import { WaitlistModal } from "./components/WaitlistModal";
 
 export default function Home() {
@@ -17,6 +18,7 @@ export default function Home() {
 			<Header />
 			<main className="flex min-h-screen flex-col bg-black">
 				<HeroSection />
+				<VideoSection />
 				<ClientLogosSection />
 				<FeaturesSection onOpenWaitlist={() => setIsWaitlistOpen(true)} />
 				<TestimonialsSection />

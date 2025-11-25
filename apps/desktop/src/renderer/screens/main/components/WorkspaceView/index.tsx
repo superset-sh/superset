@@ -78,7 +78,7 @@ export function WorkspaceView() {
 	);
 
 	return (
-		<div className="flex flex-1 bg-sidebar">
+		<div className="flex flex-1 bg-tertiary">
 			<Sidebar />
 			<div className="flex-1 m-3 bg-background rounded p-2">
 				<ContentView />

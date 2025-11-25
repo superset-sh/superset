@@ -1,0 +1,2 @@
+export { JoinWaitlistButton } from "./JoinWaitlistButton";
+

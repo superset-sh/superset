@@ -8,7 +8,7 @@ export const WAVE_CONFIG = {
 } as const;
 
 export const LIGHT_CONFIG = {
-	INTENSITY: 28,
+	INTENSITY: 22, // Reduced from 28 for better performance
 	Z_POSITION: 2,
 	DEFAULT_X_RATIO: 0.18,
 	DEFAULT_Y_RATIO: 0.01,
@@ -34,13 +34,13 @@ export const TEXT_CONFIG = {
 	POSITION: [0, 0.5, 1] as [number, number, number],
 	FONT_SIZE: 1.8,
 	FONT_SIZE_OUTER: 1.805,
-	LAYER_COUNT: 15,
+	LAYER_COUNT: 10, // Reduced from 15 for better performance
 	LAYER_SPACING: 0.05,
 	COLOR: "#2c3539",
 	METALNESS: 0.85,
 	ROUGHNESS: 0.25,
 	GLARE_DURATION: 2.0, // Duration of glare animation in seconds
-	GLARE_LIGHT_INTENSITY: 80, // Increased light intensity during glare
+	GLARE_LIGHT_INTENSITY: 60, // Reduced from 80 for better performance
 	GLARE_DELAY: 0.3, // Initial delay before first glare starts
 	GLARE_INTERVAL: 5.0, // Interval between glare animations in seconds
 	GLARE_START_X: -3, // Starting X position for light sweep
@@ -50,5 +50,5 @@ export const TEXT_CONFIG = {
 
 export const GEOMETRY_CONFIG = {
 	PLANE_SIZE_MULTIPLIER: 1.5,
-	PLANE_SEGMENTS: 40,
+	PLANE_SEGMENTS: 24, // Reduced from 40 for better performance
 } as const;

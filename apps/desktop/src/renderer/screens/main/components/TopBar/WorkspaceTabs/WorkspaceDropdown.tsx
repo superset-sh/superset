@@ -4,7 +4,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiMiniFolderOpen } from "react-icons/hi2";
+import { HiMiniFolderOpen, HiMiniPlus } from "react-icons/hi2";
 import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
@@ -46,7 +46,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger className={className} asChild>
 				<Button variant="ghost" size="icon" aria-label="Add new workspace">
-					<span className="text-lg">+</span>
+					<HiMiniPlus className="size-4" />
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent className="w-80 p-0" align="start">

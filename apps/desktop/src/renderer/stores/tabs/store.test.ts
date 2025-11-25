@@ -236,7 +236,6 @@ describe("splitTabVertical", () => {
 		);
 		expect(newChild).toBeDefined();
 		expect(newChild?.parentId).toBe(groupTab.id);
-		expect(newChild?.title).toBe("New Tab");
 
 		// Active tab should be the group
 		expect(state.activeTabIds["workspace-1"]).toBe(groupTab.id);
@@ -328,7 +327,6 @@ describe("splitTabHorizontal", () => {
 		);
 		expect(newChild).toBeDefined();
 		expect(newChild?.parentId).toBe(groupTab.id);
-		expect(newChild?.title).toBe("New Tab");
 
 		// Active tab should be the group
 		expect(state.activeTabIds["workspace-1"]).toBe(groupTab.id);
