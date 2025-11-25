@@ -119,32 +119,41 @@ export function WorkspaceGroupContextMenu({
 
 				<ContextMenuSeparator />
 
-				<div className="space-y-1">
-					<ContextMenuLabel className="text-xs text-muted-foreground">
-						Color
-					</ContextMenuLabel>
-					<div className="space-y-0.5 px-2">
-						{PROJECT_COLORS.map((color) => (
-							<button
-								key={color.value}
-								type="button"
-								onClick={() => {
-									handleColorChange(color.value);
-									inputRef.current?.focus();
-								}}
-								className={`flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent ${
-									color.value === projectColor ? "bg-accent" : ""
-								}`}
-							>
-								<span
-									className="size-4 rounded-full border border-border shadow-sm"
-									style={{ backgroundColor: color.value }}
-								/>
-								<span className="text-sm text-foreground">{color.name}</span>
-							</button>
-						))}
-					</div>
+				<div className="flex gap-2 overflow-x-auto px-2 py-1.5">
+					{PROJECT_COLORS.map((color) => (
+						<button
+							key={color.value}
+							type="button"
+							onClick={() => {
+								handleColorChange(color.value);
+								inputRef.current?.focus();
+							}}
+							className={`shrink-0 rounded-full p-0.5 transition-all ${
+								color.value === projectColor
+									? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+									: "hover:ring-2 hover:ring-muted-foreground/50 hover:ring-offset-2 hover:ring-offset-background"
+							}`}
+						>
+							<span
+								className="block size-5 rounded-full border border-border shadow-sm"
+								style={{ backgroundColor: color.value }}
+							/>
+						</button>
+					))}
 				</div>
+
+				<ContextMenuSeparator />
+
+				<button
+					type="button"
+					onClick={() => {
+						// TODO: Implement worktree configuration
+						inputRef.current?.focus();
+					}}
+					className="w-full px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
+				>
+					Configure worktree setup
+				</button>
 			</ContextMenuContent>
 		</ContextMenu>
 	);
