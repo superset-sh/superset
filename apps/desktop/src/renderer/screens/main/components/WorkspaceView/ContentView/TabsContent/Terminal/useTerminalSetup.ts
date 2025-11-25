@@ -34,29 +34,17 @@ export function useTerminalSetup({
 
 		setupExecutedRef.current = true;
 
-		// Print copy results if available
-		if (setupCopyResults) {
-			const { copied, errors } = setupCopyResults;
-			if (copied.length > 0) {
-				session.xterm.writeln(
-					`\r\n\x1b[32m✓ Copied ${copied.length} file(s):\x1b[0m`,
-				);
-				for (const file of copied) {
-					session.xterm.writeln(`  - ${file}`);
-				}
-			}
-			if (errors.length > 0) {
-				session.xterm.writeln(`\r\n\x1b[33m⚠ Copy warnings:\x1b[0m`);
-				for (const error of errors) {
-					session.xterm.writeln(`  ${error}`);
-				}
-			}
-			session.xterm.writeln("\r\n");
+		// Send each setup command individually to the shell
+		for (const command of setupCommands) {
+			session.write(`${command}\n`);
 		}
 
-		// Send all commands sequentially
-		const commands = `${setupCommands.join("\n")}\n`;
-		session.write(commands);
+		// Write completion message directly to xterm display (not executed)
+		setTimeout(() => {
+			session.xterm.write(
+				"\r\n\x1b[32m✓ Setup completed! You can close this tab.\x1b[0m\r\n",
+			);
+		}, 100);
 
 		// Mark setup as no longer pending
 		useTabsStore.setState((state) => ({

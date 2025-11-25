@@ -3,6 +3,6 @@
 		"**/.env*"
 	],
 	"commands": [
-		"bun i"
+		"echo 'Hello world'"
 	]
 }

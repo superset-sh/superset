@@ -47,6 +47,7 @@ export async function copySetupFiles(
 				dot: true,
 				followSymbolicLinks: false,
 				onlyFiles: true,
+				ignore: [".superset/**"],
 			});
 
 			if (matches.length === 0) {

@@ -1,12 +1,11 @@
 import {
 	type SetupTab,
 	useRemoveTab,
-	useSetActiveTab,
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
-import { SetupTerminal } from "./Terminal";
+import { SimpleTerminal } from "./Terminal/SimpleTerminal";
 
 interface SetupTabViewProps {
 	tab: SetupTab;
@@ -17,7 +16,6 @@ export function SetupTabView({ tab }: SetupTabViewProps) {
 	const splitTabHorizontal = useSplitTabHorizontal();
 	const splitTabVertical = useSplitTabVertical();
 	const removeTab = useRemoveTab();
-	const setActiveTab = useSetActiveTab();
 
 	const handleSplitHorizontal = () => {
 		splitTabHorizontal(tab.workspaceId, tab.id);
@@ -31,10 +29,6 @@ export function SetupTabView({ tab }: SetupTabViewProps) {
 		removeTab(tab.id);
 	};
 
-	const handleFocus = () => {
-		setActiveTab(tab.workspaceId, tab.id);
-	};
-
 	return (
 		<TabContentContextMenu
 			onSplitHorizontal={handleSplitHorizontal}
@@ -42,7 +36,13 @@ export function SetupTabView({ tab }: SetupTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<SetupTerminal tabId={tab.id} workspaceId={tab.workspaceId} />
+				<SimpleTerminal
+					tabId={tab.id}
+					workspaceId={tab.workspaceId}
+					setupCommands={tab.setupCommands}
+					setupCopyResults={tab.setupCopyResults}
+					setupCwd={tab.setupCwd}
+				/>
 			</div>
 		</TabContentContextMenu>
 	);
