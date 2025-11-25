@@ -1,19 +1,19 @@
 import {
-	type SingleTab,
+	type SetupTab,
 	useRemoveTab,
 	useSetActiveTab,
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores";
 import { TabContentContextMenu } from "./TabContentContextMenu";
-import { Terminal } from "./Terminal";
+import { SetupTerminal } from "./Terminal";
 
-interface SingleTabViewProps {
-	tab: SingleTab;
+interface SetupTabViewProps {
+	tab: SetupTab;
 	isDropZone: boolean;
 }
 
-export function SingleTabView({ tab }: SingleTabViewProps) {
+export function SetupTabView({ tab }: SetupTabViewProps) {
 	const splitTabHorizontal = useSplitTabHorizontal();
 	const splitTabVertical = useSplitTabVertical();
 	const removeTab = useRemoveTab();
@@ -42,7 +42,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 			onClosePane={handleClosePane}
 		>
 			<div className="w-full h-full overflow-hidden bg-background">
-				<Terminal tabId={tab.id} workspaceId={tab.workspaceId} />
+				<SetupTerminal tabId={tab.id} workspaceId={tab.workspaceId} />
 			</div>
 		</TabContentContextMenu>
 	);

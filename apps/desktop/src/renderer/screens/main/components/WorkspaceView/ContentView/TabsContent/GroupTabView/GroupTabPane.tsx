@@ -4,7 +4,7 @@ import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
 import type { Tab } from "renderer/stores";
 import { TabContentContextMenu } from "../TabContentContextMenu";
-import { SetupTerminal, Terminal } from "../Terminal";
+import { Terminal } from "../Terminal";
 
 interface GroupTabPaneProps {
 	tabId: string;
@@ -48,9 +48,6 @@ export function GroupTabPane({
 		removeChildTabFromGroup(groupId, tabId);
 	};
 
-	// Use SetupTerminal wrapper only for setup tabs, otherwise use base Terminal
-	const TerminalComponent = childTab.setupPending ? SetupTerminal : Terminal;
-
 	return (
 		<MosaicWindow<string>
 			path={path}
@@ -74,7 +71,7 @@ export function GroupTabPane({
 				onClosePane={() => removeChildTabFromGroup(groupId, tabId)}
 			>
 				<div className="w-full h-full overflow-hidden">
-					<TerminalComponent tabId={tabId} workspaceId={workspaceId} />
+					<Terminal tabId={tabId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

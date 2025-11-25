@@ -4,6 +4,7 @@ import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
 import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
+import { SetupTabView } from "./SetupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
 
@@ -44,6 +45,11 @@ export function TabsContent() {
 			{tabToRender.type === TabType.Single ? (
 				<>
 					<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
+					{isDropZone && <DropOverlay message="Drop to create split view" />}
+				</>
+			) : tabToRender.type === TabType.Setup ? (
+				<>
+					<SetupTabView tab={tabToRender} isDropZone={isDropZone} />
 					{isDropZone && <DropOverlay message="Drop to create split view" />}
 				</>
 			) : (

@@ -1,4 +1,4 @@
-import { useTabs } from "renderer/stores";
+import { TabType, useTabs } from "renderer/stores";
 import { Terminal } from "./Terminal";
 import type { TerminalSession } from "./types";
 import { useTerminalSetup } from "./useTerminalSetup";
@@ -16,11 +16,16 @@ export function SetupTerminal({ tabId, workspaceId }: SetupTerminalProps) {
 	const tabs = useTabs();
 	const tab = tabs.find((t) => t.id === tabId);
 
+	// Only process if this is actually a setup tab
+	if (!tab || tab.type !== TabType.Setup) {
+		return <Terminal tabId={tabId} workspaceId={workspaceId} />;
+	}
+
 	const { executeSetup } = useTerminalSetup({
 		tabId,
-		setupPending: tab?.setupPending,
-		setupCommands: tab?.setupCommands,
-		setupCopyResults: tab?.setupCopyResults,
+		setupPending: tab.setupPending,
+		setupCommands: tab.setupCommands,
+		setupCopyResults: tab.setupCopyResults,
 	});
 
 	const handleSessionReady = (session: TerminalSession) => {
@@ -32,7 +37,7 @@ export function SetupTerminal({ tabId, workspaceId }: SetupTerminalProps) {
 		<Terminal
 			tabId={tabId}
 			workspaceId={workspaceId}
-			title={tab?.title}
+			title={tab.title}
 			onSessionReady={handleSessionReady}
 		/>
 	);
