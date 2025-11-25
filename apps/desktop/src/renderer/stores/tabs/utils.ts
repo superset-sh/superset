@@ -17,7 +17,9 @@ export const createNewTab = (
 
 	// Generate unique terminal name based on existing single tabs in the current workspace
 	const existingNames = existingTabs
-		.filter((tab) => tab.workspaceId === workspaceId && tab.type === TabType.Single)
+		.filter(
+			(tab) => tab.workspaceId === workspaceId && tab.type === TabType.Single,
+		)
 		.map((tab) => tab.title);
 	const title =
 		type === TabType.Single
