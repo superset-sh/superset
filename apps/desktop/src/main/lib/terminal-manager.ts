@@ -68,6 +68,11 @@ export class TerminalManager extends EventEmitter {
 			};
 		}
 
+		// Use in-memory scrollback from dead session if available (e.g., reattaching
+		// during the cleanup window). Only load from disk when creating fresh.
+		const existingScrollback =
+			existing && existing.scrollback.length > 0 ? existing.scrollback : null;
+
 		const shell = this.getDefaultShell();
 		const workingDir = cwd || os.homedir();
 		const terminalCols = cols || this.DEFAULT_COLS;
@@ -84,8 +89,16 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_WORKSPACE_ID: workspaceId,
 			SUPERSET_PORT: String(NOTIFICATIONS_PORT),
 		};
-		const historyReader = new HistoryReader(workspaceId, tabId);
-		const recovery = await historyReader.getLatestSession();
+
+		// Only load history from disk when no in-memory scrollback is available
+		let recovery: { wasRecovered: boolean; scrollback: string | null } = {
+			wasRecovered: false,
+			scrollback: null,
+		};
+		if (!existingScrollback) {
+			const historyReader = new HistoryReader(workspaceId, tabId);
+			recovery = await historyReader.getLatestSession();
+		}
 
 		// Spawn as login shell (-l for zsh/bash) to source profile files
 		// This ensures pyenv, nvm, etc. are initialized before .zshrc runs
