@@ -1,7 +1,6 @@
-import { createReadStream, createWriteStream, promises as fs } from "node:fs";
+import { createWriteStream, promises as fs } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
-import readline from "node:readline";
 
 export interface HistoryDataEvent {
 	t: number; // timestamp
@@ -17,16 +16,6 @@ export interface HistoryExitEvent {
 }
 
 export type HistoryEvent = HistoryDataEvent | HistoryExitEvent;
-
-export interface SessionMetadata {
-	cwd: string;
-	cols: number;
-	rows: number;
-	startedAt: string;
-	endedAt?: string;
-	exitCode?: number;
-	byteLength: number;
-}
 
 // Use environment variable or tmpdir for tests
 const getBaseDir = () => {
@@ -51,37 +40,16 @@ export function getHistoryFilePath(workspaceId: string, tabId: string): string {
 	return join(dir, "history.ndjson");
 }
 
-export function getMetadataPath(workspaceId: string, tabId: string): string {
-	const dir = getHistoryDir(workspaceId, tabId);
-	return join(dir, "meta.json");
-}
-
 export class HistoryWriter {
 	private writeStream: ReturnType<typeof createWriteStream> | null = null;
-	private byteLength = 0;
-	private metadata: SessionMetadata;
 	private filePath: string;
-	private metaPath: string;
-	private isFinalizing = false;
 	private finalizePromise: Promise<void> | null = null;
-	private finalized = false;
 
 	constructor(
 		private workspaceId: string,
 		private tabId: string,
-		cwd: string,
-		cols: number,
-		rows: number,
 	) {
 		this.filePath = getHistoryFilePath(workspaceId, tabId);
-		this.metaPath = getMetadataPath(workspaceId, tabId);
-		this.metadata = {
-			cwd,
-			cols,
-			rows,
-			startedAt: new Date().toISOString(),
-			byteLength: 0,
-		};
 	}
 
 	async init(): Promise<void> {
@@ -89,20 +57,7 @@ export class HistoryWriter {
 
 		await fs.mkdir(dir, { recursive: true });
 
-		try {
-			const stats = await fs.stat(this.filePath);
-			this.byteLength = stats.size;
-		} catch {
-			this.byteLength = 0;
-		}
-
-		this.metadata.byteLength = this.byteLength;
-
-		// We write raw NDJSON and compress on read for easier appending
 		this.writeStream = createWriteStream(this.filePath, { flags: "a" });
-		this.finalized = false;
-
-		await this.writeMetadata();
 	}
 
 	writeData(data: string): void {
@@ -119,15 +74,9 @@ export class HistoryWriter {
 
 		const line = `${JSON.stringify(event)}\n`;
 		this.writeStream.write(line);
-		this.byteLength += Buffer.byteLength(line);
 	}
 
 	async writeExit(exitCode?: number, signal?: number): Promise<void> {
-		if (this.isFinalizing || this.finalizePromise) {
-			await this.finalizePromise;
-			return;
-		}
-
 		if (!this.writeStream) {
 			console.warn("HistoryWriter not initialized");
 			return;
@@ -142,18 +91,15 @@ export class HistoryWriter {
 
 		const line = `${JSON.stringify(event)}\n`;
 		this.writeStream.write(line);
-		this.byteLength += Buffer.byteLength(line);
 
-		await this.finalize(exitCode);
+		await this.finalize();
 	}
 
-	async finalize(exitCode?: number): Promise<void> {
+	async finalize(): Promise<void> {
 		if (this.finalizePromise) {
 			return this.finalizePromise;
 		}
 
-		this.isFinalizing = true;
-		this.finalized = true;
 		this.finalizePromise = (async () => {
 			if (this.writeStream) {
 				await new Promise<void>((resolve, reject) => {
@@ -163,32 +109,15 @@ export class HistoryWriter {
 				});
 				this.writeStream = null;
 			}
-
-			if (!this.metadata.endedAt) {
-				this.metadata.endedAt = new Date().toISOString();
-			}
-			if (exitCode !== undefined) {
-				this.metadata.exitCode = exitCode;
-			}
-			this.metadata.byteLength = this.byteLength;
-			await this.writeMetadata();
 		})().finally(() => {
-			this.isFinalizing = false;
+			this.finalizePromise = null;
 		});
 
 		return this.finalizePromise;
 	}
 
-	private async writeMetadata(): Promise<void> {
-		try {
-			await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
-		} catch (error) {
-			console.error("Failed to write metadata:", error);
-		}
-	}
-
 	isOpen(): boolean {
-		return this.writeStream !== null && !this.finalized;
+		return this.writeStream !== null;
 	}
 }
 
@@ -201,7 +130,6 @@ export class HistoryReader {
 	async getLatestSession(): Promise<{
 		scrollback: string;
 		wasRecovered: boolean;
-		metadata?: SessionMetadata;
 	}> {
 		try {
 			const filePath = getHistoryFilePath(this.workspaceId, this.tabId);
@@ -212,21 +140,11 @@ export class HistoryReader {
 				return { scrollback: "", wasRecovered: false };
 			}
 
-			let metadata: SessionMetadata | undefined;
-			try {
-				const metaPath = getMetadataPath(this.workspaceId, this.tabId);
-				const metaContent = await fs.readFile(metaPath, "utf-8");
-				metadata = JSON.parse(metaContent);
-			} catch {
-				// Metadata not available
-			}
-
 			const scrollback = await this.decodeHistory(filePath);
 
 			return {
 				scrollback,
 				wasRecovered: scrollback.length > 0,
-				metadata,
 			};
 		} catch (error) {
 			console.error("Failed to read history:", error);
@@ -235,58 +153,23 @@ export class HistoryReader {
 	}
 
 	private async decodeHistory(filePath: string): Promise<string> {
-		const MAX_CHARS = 100000;
-		const MAX_BYTES_TO_READ = 500000;
-
 		try {
-			const stats = await fs.stat(filePath);
-			const fileSize = stats.size;
-
-			if (fileSize === 0) {
-				return "";
-			}
-
-			const startPos = Math.max(0, fileSize - MAX_BYTES_TO_READ);
-
-			const readStream = createReadStream(filePath, {
-				start: startPos,
-			});
-
-			const rl = readline.createInterface({
-				input: readStream,
-				crlfDelay: Number.POSITIVE_INFINITY,
-			});
-
 			let scrollback = "";
-			let isFirstLine = true;
+			const content = await fs.readFile(filePath, "utf-8");
+			const lines = content.split("\n");
 
-			for await (const line of rl) {
-				// Skip first partial line if we started mid-file
-				if (isFirstLine && startPos > 0) {
-					isFirstLine = false;
-					continue;
-				}
-
+			for (const line of lines) {
+				if (!line.trim()) continue;
 				try {
 					const event = JSON.parse(line) as HistoryEvent;
 
 					if (event.type === "data") {
 						const data = Buffer.from(event.data, "base64").toString();
 						scrollback += data;
-
-						// Trim periodically to prevent memory issues, but keep reading to the end
-						if (scrollback.length > MAX_CHARS * 2) {
-							scrollback = scrollback.slice(-MAX_CHARS);
-						}
 					}
 				} catch {
 					// Skip malformed lines
 				}
-			}
-
-			// Final trim to MAX_CHARS to ensure we return the most recent data
-			if (scrollback.length > MAX_CHARS) {
-				scrollback = scrollback.slice(-MAX_CHARS);
 			}
 
 			return scrollback;

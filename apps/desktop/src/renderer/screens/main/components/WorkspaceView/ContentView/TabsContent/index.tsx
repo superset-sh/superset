@@ -11,95 +11,94 @@ import { useTabContentDrop } from "./useTabContentDrop";
 
 interface RenderTabContentProps {
 	tab: Tab;
-	isDropZone: boolean;
-}
-
-function renderTabContent({ tab, isDropZone }: RenderTabContentProps) {
-	switch (tab.type) {
-		case TabType.Setup:
-			return <SetupTabView tab={tab} />;
-		case TabType.Single:
-			return <SingleTabView tab={tab} isDropZone={isDropZone} />;
-		case TabType.Group:
-			return <GroupTabView tab={tab} />;
-		default:
-			return null;
-	}
-}
-
-interface RenderTabsProps {
-	tabs: Tab[];
 	activeTabId: string | null;
 	isDropZone: boolean;
 }
 
-function renderTabs({ tabs, activeTabId, isDropZone }: RenderTabsProps) {
-	return tabs.map((tab) => {
-		const isActive = tab.id === activeTabId;
-		return (
-			<div
-				key={tab.id}
-				className="w-full h-full absolute inset-0"
-				style={{
-					visibility: isActive ? "visible" : "hidden",
-					pointerEvents: isActive ? "auto" : "none",
-				}}
-			>
-				{renderTabContent({ tab, isDropZone: isActive && isDropZone })}
-			</div>
-		);
-	});
+function renderTabContent({
+	tab,
+	activeTabId,
+	isDropZone,
+}: RenderTabContentProps) {
+	const isActive = tab.id === activeTabId;
+	const content = (() => {
+		switch (tab.type) {
+			case TabType.Setup:
+				return <SetupTabView tab={tab} />;
+			case TabType.Single:
+				return <SingleTabView tab={tab} isDropZone={isActive && isDropZone} />;
+			case TabType.Group:
+				return <GroupTabView tab={tab} />;
+			default:
+				return null;
+		}
+	})();
+
+	const style: React.CSSProperties = {
+		visibility: isActive ? "visible" : "hidden",
+		pointerEvents: isActive ? "auto" : "none",
+	};
+
+	return (
+		<div className="w-full h-full absolute inset-0" style={style}>
+			{content}
+		</div>
+	);
 }
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allTabs = useTabs();
+	const tabs = useTabs();
 	const activeTabIds = useActiveTabIds();
 
-	const { tabToRender, workspaceTabs } = useMemo(() => {
-		if (!activeWorkspaceId) return { tabToRender: null, workspaceTabs: [] };
-		const activeTabId = activeTabIds[activeWorkspaceId];
+	const { tabToRender, allTabs } = useMemo(() => {
+		// Get all top-level tabs (tabs without parent) across all workspaces
+		const allTabs = tabs.filter((tab) => !tab.parentId);
 
-		// Get all top-level tabs (tabs without parent) for this workspace
-		const workspaceTabs = allTabs.filter(
-			(tab) => tab.workspaceId === activeWorkspaceId && !tab.parentId,
-		);
-
-		if (!activeTabId) {
-			return { tabToRender: null, workspaceTabs };
+		if (!activeWorkspaceId) {
+			return { tabToRender: null, allTabs };
 		}
 
-		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
+		const activeTabId = activeTabIds[activeWorkspaceId];
+
+		if (!activeTabId) {
+			return { tabToRender: null, allTabs };
+		}
+
+		const activeTab = tabs.find((tab) => tab.id === activeTabId);
 		if (!activeTab) {
-			return { tabToRender: null, workspaceTabs };
+			return { tabToRender: null, allTabs };
 		}
 
 		let displayTab = activeTab;
 		if (activeTab.parentId) {
-			const parentGroup = allTabs.find((tab) => tab.id === activeTab.parentId);
+			const parentGroup = tabs.find((tab) => tab.id === activeTab.parentId);
 			displayTab = parentGroup || activeTab;
 		}
 
-		return { tabToRender: displayTab, workspaceTabs };
-	}, [activeWorkspaceId, activeTabIds, allTabs]);
+		return { tabToRender: displayTab, allTabs };
+	}, [activeWorkspaceId, activeTabIds, tabs]);
 
 	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
 
+	const activeTabId = tabToRender?.id ?? null;
+
 	if (!tabToRender) {
 		return (
-			<div ref={attachDrop} className="flex-1 h-full">
+			<div ref={attachDrop} className="flex-1 h-full relative">
 				<EmptyTabView />
-				{/* Render all workspace tabs hidden to preserve terminal scrollback */}
-				{workspaceTabs.map((tab) => (
-					<div
-						key={tab.id}
-						className="w-full h-full absolute inset-0"
-						style={{ visibility: "hidden", pointerEvents: "none" }}
-					>
-						{renderTabContent({ tab, isDropZone: false })}
-					</div>
-				))}
+				{allTabs.map((tab) => {
+					return (
+						<div key={tab.id}>
+							{renderTabContent({
+								tab,
+								activeTabId: null,
+								isDropZone: false,
+							})}
+						</div>
+					);
+				})}
 			</div>
 		);
 	}
@@ -111,11 +110,16 @@ export function TabsContent() {
 
 	return (
 		<div ref={attachDrop} className="flex-1 h-full relative">
-			{/* Render all workspace tabs - active visible, others hidden (xterm.js auto-pauses) */}
-			{renderTabs({
-				tabs: workspaceTabs,
-				activeTabId: tabToRender.id,
-				isDropZone,
+			{allTabs.map((tab) => {
+				return (
+					<div key={tab.id}>
+						{renderTabContent({
+							tab,
+							activeTabId,
+							isDropZone,
+						})}
+					</div>
+				);
 			})}
 			{isDropZone && <DropOverlay message={dropOverlayMessage} />}
 		</div>

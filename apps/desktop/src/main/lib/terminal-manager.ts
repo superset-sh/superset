@@ -38,6 +38,7 @@ export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
 	private readonly DEFAULT_COLS = 80;
 	private readonly DEFAULT_ROWS = 24;
+	private readonly MAX_SCROLLBACK_CHARS = 100000;
 
 	async createOrAttach(params: {
 		tabId: string;
@@ -61,6 +62,7 @@ export class TerminalManager extends EventEmitter {
 			if (cols !== undefined && rows !== undefined) {
 				this.resize({ tabId, cols, rows });
 			}
+
 			return {
 				isNew: false,
 				scrollback: existing.scrollback,
@@ -89,7 +91,8 @@ export class TerminalManager extends EventEmitter {
 
 		// Spawn as login shell (-l for zsh/bash) to source profile files
 		// This ensures pyenv, nvm, etc. are initialized before .zshrc runs
-		const shellArgs = shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
+		const shellArgs =
+			shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
 
 		const ptyProcess = pty.spawn(shell, shellArgs, {
 			name: "xterm-256color",
@@ -319,9 +322,10 @@ export class TerminalManager extends EventEmitter {
 			session.scrollback[0] += data;
 		}
 
-		const MAX_CHARS = 50000;
-		if (session.scrollback[0].length > MAX_CHARS) {
-			session.scrollback[0] = session.scrollback[0].slice(-MAX_CHARS);
+		if (session.scrollback[0].length > this.MAX_SCROLLBACK_CHARS) {
+			session.scrollback[0] = session.scrollback[0].slice(
+				-this.MAX_SCROLLBACK_CHARS,
+			);
 		}
 	}
 
