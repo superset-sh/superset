@@ -4,9 +4,9 @@ import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
 import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
-import { SetupTabView } from "./SetupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
+import { SetupTabView } from "./SetupTabView";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
