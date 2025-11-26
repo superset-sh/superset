@@ -10,10 +10,9 @@
 # This script will:
 # 1. Verify prerequisites (clean git, GitHub CLI authenticated)
 # 2. Update package.json version
-# 3. Verify build works locally
-# 4. Create and push a git tag to trigger the release workflow
-# 5. Monitor the GitHub Actions workflow in real-time
-# 6. Display the draft release URL when ready
+# 3. Create and push a git tag to trigger the release workflow
+# 4. Monitor the GitHub Actions workflow in real-time
+# 5. Display the draft release URL when ready
 #
 # Requirements:
 # - GitHub CLI (gh) installed and authenticated
@@ -108,21 +107,13 @@ else
     success "Committed version change"
 fi
 
-# 4. Verify build works locally
-info "Testing build locally (this may take a few minutes)..."
-info "Running: bun run package"
-if ! bun run package; then
-    error "Build failed. Please fix the issues before releasing."
-fi
-success "Build completed successfully"
-
-# 5. Push changes
+# 4. Push changes
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
 git push origin "${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
 
-# 6. Create and push tag
+# 5. Create and push tag
 info "Creating tag ${TAG_NAME}..."
 git tag "${TAG_NAME}"
 success "Tag ${TAG_NAME} created"
@@ -140,7 +131,7 @@ echo ""
 # Get repository information
 REPO=$(git remote get-url origin | sed 's/.*github.com[:/]\(.*\)\.git/\1/')
 
-# 7. Monitor the workflow
+# 6. Monitor the workflow
 info "Monitoring GitHub Actions workflow..."
 echo "  Waiting for workflow to start (this may take a few seconds)..."
 
@@ -189,7 +180,7 @@ fi
 
 echo ""
 
-# 8. Get and display draft release URL
+# 7. Get and display draft release URL
 info "Fetching draft release..."
 
 # Retry logic for draft release (it may take time to be created)
