@@ -3,13 +3,13 @@ import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	createWorktree,
 	generateBranchName,
 	removeWorktree,
+	worktreeExists,
 } from "./utils/git";
 import { copySetupFiles, loadSetupConfig } from "./utils/setup";
 
@@ -257,23 +257,12 @@ export const createWorkspacesRouter = () => {
 
 				if (worktree && project) {
 					try {
-						const gitInstance = simpleGit(project.mainRepoPath);
-						const worktrees = await gitInstance.raw([
-							"worktree",
-							"list",
-							"--porcelain",
-						]);
-
-						// Parse porcelain format to verify worktree exists in git before deletion
-						// (porcelain format: "worktree /path/to/worktree" followed by HEAD, branch, etc.)
-						const lines = worktrees.split("\n");
-						const worktreePrefix = `worktree ${worktree.path}`;
-						const worktreeExists = lines.some(
-							(line) => line.trim() === worktreePrefix,
+						const exists = await worktreeExists(
+							project.mainRepoPath,
+							worktree.path,
 						);
 
-						if (!worktreeExists) {
-							// Worktree doesn't exist in git, but we can still delete the workspace
+						if (!exists) {
 							return {
 								canDelete: true,
 								reason: null,
@@ -324,9 +313,19 @@ export const createWorkspacesRouter = () => {
 
 				if (worktree && project) {
 					try {
-						await removeWorktree(project.mainRepoPath, worktree.path);
+						const exists = await worktreeExists(
+							project.mainRepoPath,
+							worktree.path,
+						);
+
+						if (exists) {
+							await removeWorktree(project.mainRepoPath, worktree.path);
+						} else {
+							console.warn(
+								`Worktree ${worktree.path} not found in git, skipping removal`,
+							);
+						}
 					} catch (error) {
-						// If worktree removal fails, return error and don't proceed with DB cleanup
 						const errorMessage =
 							error instanceof Error ? error.message : String(error);
 						console.error("Failed to remove worktree:", errorMessage);

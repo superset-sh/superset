@@ -89,3 +89,28 @@ export async function getGitRoot(path: string): Promise<string> {
 		throw new Error(`Not a git repository: ${path}`);
 	}
 }
+
+/**
+ * Checks if a worktree exists in git's worktree list
+ * @param mainRepoPath - Path to the main repository
+ * @param worktreePath - Path to the worktree to check
+ * @returns true if the worktree exists in git, false otherwise
+ */
+export async function worktreeExists(
+	mainRepoPath: string,
+	worktreePath: string,
+): Promise<boolean> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
+
+		// Parse porcelain format to verify worktree exists
+		// Format: "worktree /path/to/worktree" followed by HEAD, branch, etc.
+		const lines = worktrees.split("\n");
+		const worktreePrefix = `worktree ${worktreePath}`;
+		return lines.some((line) => line.trim() === worktreePrefix);
+	} catch (error) {
+		console.error(`Failed to check worktree existence: ${error}`);
+		throw error;
+	}
+}

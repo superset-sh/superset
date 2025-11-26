@@ -39,6 +39,12 @@ export const createExternalRouter = () => {
 			await shell.openExternal(input);
 		}),
 
+		openInFinder: publicProcedure
+			.input(z.string())
+			.mutation(async ({ input }) => {
+				shell.showItemInFolder(input);
+			}),
+
 		openFileInEditor: publicProcedure
 			.input(
 				z.object({

@@ -1,4 +1,4 @@
-export const PROJECT_COLORS = [
+export const PROJECT_COLORS: { name: string; value: string }[] = [
 	{ name: "Blue", value: "#3b82f6" },
 	{ name: "Green", value: "#22c55e" },
 	{ name: "Yellow", value: "#eab308" },
