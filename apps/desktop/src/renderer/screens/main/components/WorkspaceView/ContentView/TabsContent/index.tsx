@@ -52,22 +52,20 @@ export function TabsContent() {
 	const allTabs = useTabs();
 	const activeTabIds = useActiveTabIds();
 
-	const { tabToRender, workspaceTabs } = useMemo(() => {
-		if (!activeWorkspaceId) return { tabToRender: null, workspaceTabs: [] };
+	const { tabToRender, allTabs: renderedTabs } = useMemo(() => {
+		if (!activeWorkspaceId) return { tabToRender: null, allTabs: [] };
 		const activeTabId = activeTabIds[activeWorkspaceId];
 
-		// Get all top-level tabs (tabs without parent) for this workspace
-		const workspaceTabs = allTabs.filter(
-			(tab) => tab.workspaceId === activeWorkspaceId && !tab.parentId,
-		);
+		// Get all top-level tabs (tabs without parent)
+		const topLevelTabs = allTabs.filter((tab) => !tab.parentId);
 
 		if (!activeTabId) {
-			return { tabToRender: null, workspaceTabs };
+			return { tabToRender: null, allTabs: topLevelTabs };
 		}
 
 		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
 		if (!activeTab) {
-			return { tabToRender: null, workspaceTabs };
+			return { tabToRender: null, allTabs: topLevelTabs };
 		}
 
 		let displayTab = activeTab;
@@ -76,7 +74,7 @@ export function TabsContent() {
 			displayTab = parentGroup || activeTab;
 		}
 
-		return { tabToRender: displayTab, workspaceTabs };
+		return { tabToRender: displayTab, allTabs: topLevelTabs };
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
 	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
@@ -87,7 +85,7 @@ export function TabsContent() {
 		return (
 			<div ref={attachDrop} className="flex-1 h-full relative">
 				<EmptyTabView />
-				{workspaceTabs.map((tab) => {
+				{renderedTabs.map((tab) => {
 					return (
 						<div key={tab.id}>
 							{renderTabContent({
@@ -109,7 +107,7 @@ export function TabsContent() {
 
 	return (
 		<div ref={attachDrop} className="flex-1 h-full relative">
-			{workspaceTabs.map((tab) => {
+			{renderedTabs.map((tab) => {
 				return (
 					<div key={tab.id}>
 						{renderTabContent({
