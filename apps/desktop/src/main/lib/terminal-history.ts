@@ -1,3 +1,4 @@
+import { createWriteStream, type WriteStream } from "node:fs";
 import { promises as fs } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,7 +30,7 @@ export function getHistoryDir(workspaceId: string, tabId: string): string {
 }
 
 function getHistoryFilePath(workspaceId: string, tabId: string): string {
-	return join(getHistoryDir(workspaceId, tabId), "scrollback.txt");
+	return join(getHistoryDir(workspaceId, tabId), "scrollback.bin");
 }
 
 function getMetadataPath(workspaceId: string, tabId: string): string {
@@ -37,6 +38,9 @@ function getMetadataPath(workspaceId: string, tabId: string): string {
 }
 
 export class HistoryWriter {
+	private stream: WriteStream | null = null;
+	private filePath: string;
+	private metaPath: string;
 	private metadata: SessionMetadata;
 
 	constructor(
@@ -46,6 +50,8 @@ export class HistoryWriter {
 		cols: number,
 		rows: number,
 	) {
+		this.filePath = getHistoryFilePath(workspaceId, tabId);
+		this.metaPath = getMetadataPath(workspaceId, tabId);
 		this.metadata = {
 			cwd,
 			cols,
@@ -54,18 +60,41 @@ export class HistoryWriter {
 		};
 	}
 
-	async write(scrollback: string, exitCode?: number): Promise<void> {
+	async init(initialScrollback?: string): Promise<void> {
 		const dir = getHistoryDir(this.workspaceId, this.tabId);
 		await fs.mkdir(dir, { recursive: true });
 
-		const filePath = getHistoryFilePath(this.workspaceId, this.tabId);
-		await fs.writeFile(filePath, scrollback);
+		// Write initial scrollback (recovered from previous session) or truncate
+		if (initialScrollback) {
+			await fs.writeFile(this.filePath, Buffer.from(initialScrollback));
+		} else {
+			await fs.writeFile(this.filePath, Buffer.alloc(0));
+		}
+
+		// Open stream in append mode for subsequent writes
+		this.stream = createWriteStream(this.filePath, { flags: "a" });
+	}
+
+	write(data: string): void {
+		if (this.stream) {
+			this.stream.write(Buffer.from(data));
+		}
+	}
+
+	async close(exitCode?: number): Promise<void> {
+		if (this.stream) {
+			await new Promise<void>((resolve, reject) => {
+				this.stream!.end((err: Error | null) => {
+					if (err) reject(err);
+					else resolve();
+				});
+			});
+			this.stream = null;
+		}
 
 		this.metadata.endedAt = new Date().toISOString();
 		this.metadata.exitCode = exitCode;
-
-		const metaPath = getMetadataPath(this.workspaceId, this.tabId);
-		await fs.writeFile(metaPath, JSON.stringify(this.metadata, null, 2));
+		await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
 	}
 }
 

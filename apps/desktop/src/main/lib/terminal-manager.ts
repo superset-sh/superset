@@ -17,6 +17,7 @@ interface TerminalSession {
 	isAlive: boolean;
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
+	historyWriter?: HistoryWriter;
 }
 
 export interface TerminalDataEvent {
@@ -111,6 +112,16 @@ export class TerminalManager extends EventEmitter {
 			env,
 		});
 
+		// Initialize history writer with recovered scrollback
+		const historyWriter = new HistoryWriter(
+			workspaceId,
+			tabId,
+			workingDir,
+			terminalCols,
+			terminalRows,
+		);
+		await historyWriter.init(recoveredScrollback || undefined);
+
 		const session: TerminalSession = {
 			pty: ptyProcess,
 			tabId,
@@ -122,17 +133,19 @@ export class TerminalManager extends EventEmitter {
 			scrollback: recoveredScrollback,
 			isAlive: true,
 			wasRecovered,
+			historyWriter,
 		};
 
 		ptyProcess.onData((data) => {
 			session.scrollback += data;
+			session.historyWriter?.write(data);
 			this.emit(`data:${tabId}`, data);
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 
-			await this.writeHistory(session, exitCode);
+			await this.closeHistory(session, exitCode);
 
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
@@ -219,7 +232,7 @@ export class TerminalManager extends EventEmitter {
 		if (session.isAlive) {
 			session.pty.kill();
 		} else {
-			await this.writeHistory(session);
+			await this.closeHistory(session);
 			this.sessions.delete(tabId);
 		}
 	}
@@ -278,7 +291,7 @@ export class TerminalManager extends EventEmitter {
 				exitPromises.push(exitPromise);
 				session.pty.kill();
 			} else {
-				await this.writeHistory(session);
+				await this.closeHistory(session);
 			}
 		}
 
@@ -288,11 +301,16 @@ export class TerminalManager extends EventEmitter {
 		this.removeAllListeners();
 	}
 
-	private async writeHistory(
+	private async closeHistory(
 		session: TerminalSession,
 		exitCode?: number,
 	): Promise<void> {
 		if (session.deleteHistoryOnExit) {
+			// Close stream first, then cleanup
+			if (session.historyWriter) {
+				await session.historyWriter.close();
+				session.historyWriter = undefined;
+			}
 			const historyReader = new HistoryReader(
 				session.workspaceId,
 				session.tabId,
@@ -301,14 +319,10 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		const historyWriter = new HistoryWriter(
-			session.workspaceId,
-			session.tabId,
-			session.cwd,
-			session.cols,
-			session.rows,
-		);
-		await historyWriter.write(session.scrollback, exitCode);
+		if (session.historyWriter) {
+			await session.historyWriter.close(exitCode);
+			session.historyWriter = undefined;
+		}
 	}
 
 	private getDefaultShell(): string {

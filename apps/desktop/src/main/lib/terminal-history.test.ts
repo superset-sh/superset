@@ -37,13 +37,16 @@ describe("HistoryWriter", () => {
 			24,
 		);
 
-		const testData = "Hello, World!\nLine 2\nLine 3";
-		await writer.write(testData, 0);
+		await writer.init();
+		writer.write("Hello, World!\n");
+		writer.write("Line 2\n");
+		writer.write("Line 3");
+		await writer.close(0);
 
 		const reader = new HistoryReader(testWorkspaceId, testTabId);
 		const result = await reader.read();
 
-		expect(result.scrollback).toBe(testData);
+		expect(result.scrollback).toBe("Hello, World!\nLine 2\nLine 3");
 	});
 
 	it("should write metadata with exit code", async () => {
@@ -55,7 +58,9 @@ describe("HistoryWriter", () => {
 			40,
 		);
 
-		await writer.write("Some output", 42);
+		await writer.init();
+		writer.write("Some output");
+		await writer.close(42);
 
 		const reader = new HistoryReader(testWorkspaceId, testTabId);
 		const result = await reader.read();
@@ -68,7 +73,8 @@ describe("HistoryWriter", () => {
 		expect(result.metadata?.endedAt).toBeDefined();
 	});
 
-	it("should overwrite previous history", async () => {
+	it("should preserve initial scrollback and append new data", async () => {
+		// First session
 		const writer1 = new HistoryWriter(
 			testWorkspaceId,
 			testTabId,
@@ -76,7 +82,13 @@ describe("HistoryWriter", () => {
 			80,
 			24,
 		);
-		await writer1.write("First session", 0);
+		await writer1.init();
+		writer1.write("First session");
+		await writer1.close(0);
+
+		// Second session - recover and append
+		const reader1 = new HistoryReader(testWorkspaceId, testTabId);
+		const recovered = await reader1.read();
 
 		const writer2 = new HistoryWriter(
 			testWorkspaceId,
@@ -85,13 +97,86 @@ describe("HistoryWriter", () => {
 			80,
 			24,
 		);
-		await writer2.write("Second session", 0);
+		await writer2.init(recovered.scrollback);
+		writer2.write(" + Second session");
+		await writer2.close(0);
+
+		const reader2 = new HistoryReader(testWorkspaceId, testTabId);
+		const result = await reader2.read();
+
+		expect(result.scrollback).toBe("First session + Second session");
+	});
+
+	it("should preserve ANSI escape codes", async () => {
+		const writer = new HistoryWriter(
+			testWorkspaceId,
+			testTabId,
+			"/test/cwd",
+			80,
+			24,
+		);
+
+		// ANSI codes for colors, cursor movement, etc.
+		const ansiData =
+			"\x1b[32mGreen text\x1b[0m\r\n\x1b[1;34mBold blue\x1b[0m\x1b[2J\x1b[H";
+
+		await writer.init();
+		writer.write(ansiData);
+		await writer.close(0);
 
 		const reader = new HistoryReader(testWorkspaceId, testTabId);
 		const result = await reader.read();
 
-		expect(result.scrollback).toBe("Second session");
-		expect(result.scrollback).not.toContain("First session");
+		expect(result.scrollback).toBe(ansiData);
+	});
+
+	it("should handle many small writes", async () => {
+		const writer = new HistoryWriter(
+			testWorkspaceId,
+			testTabId,
+			"/test/cwd",
+			80,
+			24,
+		);
+
+		await writer.init();
+
+		// Simulate terminal output - many small chunks
+		const chunks = [];
+		for (let i = 0; i < 100; i++) {
+			const chunk = `line ${i}\r\n`;
+			chunks.push(chunk);
+			writer.write(chunk);
+		}
+		await writer.close(0);
+
+		const reader = new HistoryReader(testWorkspaceId, testTabId);
+		const result = await reader.read();
+
+		expect(result.scrollback).toBe(chunks.join(""));
+	});
+
+	it("should handle binary-like terminal data", async () => {
+		const writer = new HistoryWriter(
+			testWorkspaceId,
+			testTabId,
+			"/test/cwd",
+			80,
+			24,
+		);
+
+		// Mix of printable, control chars, and unicode
+		const binaryLikeData =
+			"Hello\x00World\x1b[31m红色\x1b[0m\t\r\n\x07Bell🔔";
+
+		await writer.init();
+		writer.write(binaryLikeData);
+		await writer.close(0);
+
+		const reader = new HistoryReader(testWorkspaceId, testTabId);
+		const result = await reader.read();
+
+		expect(result.scrollback).toBe(binaryLikeData);
 	});
 });
 
@@ -136,7 +221,9 @@ describe("HistoryReader", () => {
 
 		// Write 200KB of data
 		const largeData = "X".repeat(200000);
-		await writer.write(largeData, 0);
+		await writer.init();
+		writer.write(largeData);
+		await writer.close(0);
 
 		const reader = new HistoryReader(testWorkspaceId, testTabId);
 		const result = await reader.read();
@@ -154,7 +241,9 @@ describe("HistoryReader", () => {
 			80,
 			24,
 		);
-		await writer.write("Test data", 0);
+		await writer.init();
+		writer.write("Test data");
+		await writer.close(0);
 
 		// Verify files exist
 		expect(await fs.stat(historyDir)).toBeDefined();
