@@ -42,6 +42,7 @@ export class HistoryWriter {
 	private filePath: string;
 	private metaPath: string;
 	private metadata: SessionMetadata;
+	private streamErrored = false;
 
 	constructor(
 		private workspaceId: string,
@@ -73,28 +74,41 @@ export class HistoryWriter {
 
 		// Open stream in append mode for subsequent writes
 		this.stream = createWriteStream(this.filePath, { flags: "a" });
+		this.stream.on("error", () => {
+			this.streamErrored = true;
+			this.stream = null;
+		});
 	}
 
 	write(data: string): void {
-		if (this.stream) {
-			this.stream.write(Buffer.from(data));
+		if (this.stream && !this.streamErrored) {
+			try {
+				this.stream.write(Buffer.from(data));
+			} catch {
+				this.streamErrored = true;
+			}
 		}
 	}
 
 	async close(exitCode?: number): Promise<void> {
-		if (this.stream) {
-			await new Promise<void>((resolve, reject) => {
-				this.stream!.end((err: Error | null) => {
-					if (err) reject(err);
-					else resolve();
+		if (this.stream && !this.streamErrored) {
+			try {
+				await new Promise<void>((resolve) => {
+					this.stream!.end(() => resolve());
 				});
-			});
-			this.stream = null;
+			} catch {
+				// Ignore close errors
+			}
 		}
+		this.stream = null;
 
 		this.metadata.endedAt = new Date().toISOString();
 		this.metadata.exitCode = exitCode;
-		await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
+		try {
+			await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
+		} catch {
+			// Ignore metadata write errors on shutdown
+		}
 	}
 }
 
