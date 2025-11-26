@@ -10,6 +10,7 @@ import {
 	createWorktree,
 	generateBranchName,
 	removeWorktree,
+	worktreeExists,
 } from "./utils/git";
 import { copySetupFiles, loadSetupConfig } from "./utils/setup";
 
