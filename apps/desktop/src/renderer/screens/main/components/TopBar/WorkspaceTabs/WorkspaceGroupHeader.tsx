@@ -1,5 +1,6 @@
 import { useDrag, useDrop } from "react-dnd";
 import { useReorderProjects } from "renderer/react-query/projects";
+import { WorkspaceGroupContextMenu } from "./WorkspaceGroupContextMenu";
 
 const PROJECT_GROUP_TYPE = "PROJECT_GROUP";
 
@@ -53,20 +54,25 @@ export function WorkspaceGroupHeader({
 	);
 
 	return (
-		<div
-			className="flex items-center h-full"
-			style={{
-				transition: "border-bottom 0.3s ease",
-				borderBottom: `2px solid ${isCollapsed ? "transparent" : projectColor}`,
-			}}
+		<WorkspaceGroupContextMenu
+			projectId={projectId}
+			projectName={projectName}
+			projectColor={projectColor}
 		>
-			<button
-				type="button"
-				ref={(node) => {
-					drag(node);
-					drop(node);
+			<div
+				className="flex items-center h-full"
+				style={{
+					transition: "border-bottom 0.3s ease",
+					borderBottom: `2px solid ${isCollapsed ? "transparent" : projectColor}`,
 				}}
-				className={`
+			>
+				<button
+					type="button"
+					ref={(node) => {
+						drag(node);
+						drop(node);
+					}}
+					className={`
 					flex items-center justify-center mr-2
 					px-3 py-1 rounded-full
 					text-xs font-medium cursor-pointer select-none
@@ -74,14 +80,15 @@ export function WorkspaceGroupHeader({
 					${isDragging ? "opacity-30" : "opacity-100"}
 					${isOver ? "ring-2 ring-white/20" : ""}
 				`}
-				onClick={onToggleCollapse}
-				style={{
-					backgroundColor: projectColor,
-					color: "white",
-				}}
-			>
-				<span className="truncate max-w-[100px]">{projectName}</span>
-			</button>
-		</div>
+					onClick={onToggleCollapse}
+					style={{
+						backgroundColor: projectColor,
+						color: "white",
+					}}
+				>
+					<span className="truncate max-w-[100px]">{projectName}</span>
+				</button>
+			</div>
+		</WorkspaceGroupContextMenu>
 	);
 }
