@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createWorkspacesRouter } from "./workspaces";
 
 // Mock the database

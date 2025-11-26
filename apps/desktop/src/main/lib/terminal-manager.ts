@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
-import { getSupersetPath } from "./agent-setup";
 import { NOTIFICATIONS_PORT } from "shared/constants";
+import { getSupersetPath } from "./agent-setup";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -13,12 +13,10 @@ interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	scrollback: string[];
+	scrollback: string;
 	isAlive: boolean;
-	historyWriter?: HistoryWriter;
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
-	historyFinalized?: boolean;
 }
 
 export interface TerminalDataEvent {
@@ -49,7 +47,7 @@ export class TerminalManager extends EventEmitter {
 		rows?: number;
 	}): Promise<{
 		isNew: boolean;
-		scrollback: string[];
+		scrollback: string;
 		wasRecovered: boolean;
 	}> {
 		const { tabId, workspaceId, tabTitle, workspaceName, cwd, cols, rows } =
@@ -68,17 +66,14 @@ export class TerminalManager extends EventEmitter {
 			};
 		}
 
-		// Use in-memory scrollback from dead session if available (e.g., reattaching
-		// during the cleanup window). Only load from disk when creating fresh.
-		const existingScrollback =
-			existing && existing.scrollback.length > 0 ? existing.scrollback : null;
+		// Use in-memory scrollback from dead session if available
+		const existingScrollback = existing?.scrollback || null;
 
 		const shell = this.getDefaultShell();
 		const workingDir = cwd || os.homedir();
 		const terminalCols = cols || this.DEFAULT_COLS;
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
-		// Build env with agent hook variables
 		const baseEnv = this.sanitizeEnv(process.env) || {};
 		const env = {
 			...baseEnv,
@@ -90,18 +85,21 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_PORT: String(NOTIFICATIONS_PORT),
 		};
 
-		// Only load history from disk when no in-memory scrollback is available
-		let recovery: { wasRecovered: boolean; scrollback: string | null } = {
-			wasRecovered: false,
-			scrollback: null,
-		};
-		if (!existingScrollback) {
+		// Recover scrollback from in-memory dead session or disk
+		let recoveredScrollback = "";
+		let wasRecovered = false;
+		if (existingScrollback) {
+			recoveredScrollback = existingScrollback;
+			wasRecovered = true;
+		} else {
 			const historyReader = new HistoryReader(workspaceId, tabId);
-			recovery = await historyReader.getLatestSession();
+			const history = await historyReader.read();
+			if (history.scrollback) {
+				recoveredScrollback = history.scrollback;
+				wasRecovered = true;
+			}
 		}
 
-		// Spawn as login shell (-l for zsh/bash) to source profile files
-		// This ensures pyenv, nvm, etc. are initialized before .zshrc runs
 		const shellArgs =
 			shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
 
@@ -113,15 +111,6 @@ export class TerminalManager extends EventEmitter {
 			env,
 		});
 
-		const historyWriter = new HistoryWriter(
-			workspaceId,
-			tabId,
-			workingDir,
-			terminalCols,
-			terminalRows,
-		);
-		await historyWriter.init();
-
 		const session: TerminalSession = {
 			pty: ptyProcess,
 			tabId,
@@ -130,36 +119,23 @@ export class TerminalManager extends EventEmitter {
 			cols: terminalCols,
 			rows: terminalRows,
 			lastActive: Date.now(),
-			scrollback:
-				recovery.wasRecovered && recovery.scrollback
-					? [recovery.scrollback]
-					: [],
+			scrollback: recoveredScrollback,
 			isAlive: true,
-			historyWriter,
-			wasRecovered: recovery.wasRecovered,
-			historyFinalized: false,
+			wasRecovered,
 		};
 
 		ptyProcess.onData((data) => {
-			this.addToScrollback(session, data);
-			if (session.historyWriter) {
-				session.historyWriter.writeData(data);
-			}
+			session.scrollback += data;
 			this.emit(`data:${tabId}`, data);
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 
-			await this.finalizeHistory(session, {
-				exitCode,
-				signal,
-				cleanupDir: session.deleteHistoryOnExit ?? false,
-			});
+			await this.writeHistory(session, exitCode);
 
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
-			// Allow reconnection window before cleanup
 			const timeout = setTimeout(() => {
 				this.sessions.delete(tabId);
 			}, 5000);
@@ -170,11 +146,8 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			scrollback:
-				recovery.wasRecovered && recovery.scrollback
-					? [recovery.scrollback]
-					: [],
-			wasRecovered: recovery.wasRecovered,
+			scrollback: session.scrollback,
+			wasRecovered,
 		};
 	}
 
@@ -246,12 +219,7 @@ export class TerminalManager extends EventEmitter {
 		if (session.isAlive) {
 			session.pty.kill();
 		} else {
-			// If already dead, finalize and cleanup immediately since exit handler won't run
-			await this.finalizeHistory(session, {
-				exitCode: undefined,
-				signal: undefined,
-				cleanupDir: deleteHistory,
-			});
+			await this.writeHistory(session);
 			this.sessions.delete(tabId);
 		}
 	}
@@ -300,7 +268,6 @@ export class TerminalManager extends EventEmitter {
 					};
 					this.once(`exit:${tabId}`, exitHandler);
 
-					// Set timeout to avoid hanging indefinitely
 					const timeoutId = setTimeout(() => {
 						this.off(`exit:${tabId}`, exitHandler);
 						resolve();
@@ -311,11 +278,7 @@ export class TerminalManager extends EventEmitter {
 				exitPromises.push(exitPromise);
 				session.pty.kill();
 			} else {
-				await this.finalizeHistory(session, {
-					exitCode: undefined,
-					signal: undefined,
-					cleanupDir: session.deleteHistoryOnExit ?? false,
-				});
+				await this.writeHistory(session);
 			}
 		}
 
@@ -325,18 +288,27 @@ export class TerminalManager extends EventEmitter {
 		this.removeAllListeners();
 	}
 
-	private addToScrollback(session: TerminalSession, data: string): void {
-		// Preserve ANSI escape sequences for proper terminal rendering
-		if (session.scrollback.length === 0) {
-			session.scrollback.push(data);
-		} else {
-			session.scrollback[0] += data;
+	private async writeHistory(
+		session: TerminalSession,
+		exitCode?: number,
+	): Promise<void> {
+		if (session.deleteHistoryOnExit) {
+			const historyReader = new HistoryReader(
+				session.workspaceId,
+				session.tabId,
+			);
+			await historyReader.cleanup();
+			return;
 		}
 
-		const MAX_CHARS = 50000;
-		if (session.scrollback[0].length > MAX_CHARS) {
-			session.scrollback[0] = session.scrollback[0].slice(-MAX_CHARS);
-		}
+		const historyWriter = new HistoryWriter(
+			session.workspaceId,
+			session.tabId,
+			session.cwd,
+			session.cols,
+			session.rows,
+		);
+		await historyWriter.write(session.scrollback, exitCode);
 	}
 
 	private getDefaultShell(): string {
@@ -372,44 +344,12 @@ export class TerminalManager extends EventEmitter {
 		const sanitized: Record<string, string> = {};
 
 		for (const [key, value] of Object.entries(env)) {
-			// node-pty requires all values to be strings
 			if (typeof value === "string") {
 				sanitized[key] = value;
 			}
 		}
 
 		return Object.keys(sanitized).length > 0 ? sanitized : undefined;
-	}
-
-	private async finalizeHistory(
-		session: TerminalSession,
-		params: { exitCode?: number; signal?: number; cleanupDir: boolean },
-	): Promise<void> {
-		if (session.historyFinalized) {
-			return;
-		}
-
-		const writer = session.historyWriter;
-		session.historyWriter = undefined;
-		session.historyFinalized = true;
-
-		if (!writer) {
-			return;
-		}
-
-		if (writer.isOpen()) {
-			await writer.writeExit(params.exitCode, params.signal);
-		} else {
-			await writer.finalize(params.exitCode);
-		}
-
-		if (params.cleanupDir) {
-			const historyReader = new HistoryReader(
-				session.workspaceId,
-				session.tabId,
-			);
-			await historyReader.cleanup();
-		}
 	}
 }
 

@@ -87,11 +87,11 @@ describe("TerminalManager", () => {
 			});
 
 			expect(result.isNew).toBe(true);
-			expect(result.scrollback).toEqual([]);
+			expect(result.scrollback).toBe("");
 			expect(result.wasRecovered).toBe(false);
 			expect(pty.spawn).toHaveBeenCalledWith(
 				expect.any(String),
-				[],
+				expect.any(Array),
 				expect.objectContaining({
 					cwd: "/test/path",
 					cols: 80,
@@ -374,7 +374,7 @@ describe("TerminalManager", () => {
 			});
 
 			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback.join("")).toContain("Preserved output");
+			expect(result.scrollback).toContain("Preserved output");
 		});
 	});
 
@@ -578,7 +578,7 @@ describe("TerminalManager", () => {
 
 			expect(result2.isNew).toBe(true);
 			expect(result2.wasRecovered).toBe(true);
-			expect(result2.scrollback.join("")).toContain("Session 1 output");
+			expect(result2.scrollback).toContain("Session 1 output");
 
 			const onDataCallback2 =
 				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
@@ -609,9 +609,8 @@ describe("TerminalManager", () => {
 
 			expect(result3.isNew).toBe(true);
 			expect(result3.wasRecovered).toBe(true);
-			const fullScrollback = result3.scrollback.join("");
-			expect(fullScrollback).toContain("Session 1 output");
-			expect(fullScrollback).toContain("Session 2 output");
+			expect(result3.scrollback).toContain("Session 1 output");
+			expect(result3.scrollback).toContain("Session 2 output");
 		});
 	});
 });

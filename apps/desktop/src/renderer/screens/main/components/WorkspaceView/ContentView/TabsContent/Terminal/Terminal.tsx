@@ -105,9 +105,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const applyInitialScrollback = (result: {
 			wasRecovered: boolean;
 			isNew: boolean;
-			scrollback: string[];
+			scrollback: string;
 		}) => {
-			xterm.write(result.scrollback[0]);
+			xterm.write(result.scrollback);
 		};
 
 		const restartTerminal = () => {

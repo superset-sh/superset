@@ -4,9 +4,9 @@ import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
+import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 

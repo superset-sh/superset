@@ -4,4 +4,4 @@
  * This file exists for backwards compatibility with the IPC channels type system
  */
 
-export interface ExternalChannels {}
+export type ExternalChannels = {};

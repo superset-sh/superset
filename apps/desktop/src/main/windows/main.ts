@@ -6,10 +6,10 @@ import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import {
+	type AgentCompleteEvent,
+	NOTIFICATIONS_PORT,
 	notificationsApp,
 	notificationsEmitter,
-	NOTIFICATIONS_PORT,
-	type AgentCompleteEvent,
 } from "../lib/notifications/server";
 
 export async function MainWindow() {
