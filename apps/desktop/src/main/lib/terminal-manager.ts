@@ -87,7 +87,11 @@ export class TerminalManager extends EventEmitter {
 		const historyReader = new HistoryReader(workspaceId, tabId);
 		const recovery = await historyReader.getLatestSession();
 
-		const ptyProcess = pty.spawn(shell, [], {
+		// Spawn as login shell (-l for zsh/bash) to source profile files
+		// This ensures pyenv, nvm, etc. are initialized before .zshrc runs
+		const shellArgs = shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
+
+		const ptyProcess = pty.spawn(shell, shellArgs, {
 			name: "xterm-256color",
 			cols: terminalCols,
 			rows: terminalRows,
