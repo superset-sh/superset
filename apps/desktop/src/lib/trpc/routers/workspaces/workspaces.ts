@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
@@ -28,7 +29,12 @@ export const createWorkspacesRouter = () => {
 
 				const branch = generateBranchName();
 
-				const worktreePath = join(project.mainRepoPath, ".superset", branch);
+				const worktreePath = join(
+					homedir(),
+					".superset",
+					"worktrees",
+					branch,
+				);
 
 				await createWorktree(project.mainRepoPath, branch, worktreePath);
 

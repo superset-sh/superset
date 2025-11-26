@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -54,7 +56,10 @@ mock.module("main/lib/db", () => ({
 let mockRemoveWorktree = mock((_mainRepoPath: string, _worktreePath: string) =>
 	Promise.resolve(),
 );
-const mockCreateWorktree = mock(() => Promise.resolve());
+const mockCreateWorktree = mock(
+	(_mainRepoPath: string, _branch: string, _worktreePath: string) =>
+		Promise.resolve(),
+);
 const mockGenerateBranchName = mock(() => "test-branch-123");
 
 mock.module("./utils/git", () => ({
@@ -106,6 +111,50 @@ beforeEach(() => {
 	mockDb.data.settings = {
 		lastActiveWorkspaceId: "workspace-1",
 	};
+});
+
+describe("workspaces router - create", () => {
+	it("creates worktree under home superset worktrees path", async () => {
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+
+		const result = await caller.create({
+			projectId: "project-1",
+			name: "New Workspace",
+		});
+
+		const expectedPath = join(
+			homedir(),
+			".superset",
+			"worktrees",
+			"test-branch-123",
+		);
+
+		expect(mockCreateWorktree).toHaveBeenCalledWith(
+			"/path/to/repo",
+			"test-branch-123",
+			expectedPath,
+		);
+		expect(result.worktreePath).toBe(expectedPath);
+		expect(result.workspace.name).toBe("New Workspace");
+		expect(result.workspace.tabOrder).toBe(1);
+
+		const createdWorktree = mockDb.data.worktrees.find(
+			(worktree) =>
+				worktree.branch === "test-branch-123" &&
+				worktree.path === expectedPath &&
+				worktree.projectId === "project-1",
+		);
+		expect(createdWorktree).toBeTruthy();
+
+		const createdWorkspace = mockDb.data.workspaces.find(
+			(workspace) => workspace.id === result.workspace.id,
+		);
+		expect(createdWorkspace?.worktreeId).toBe(createdWorktree?.id);
+		expect(mockDb.data.settings.lastActiveWorkspaceId).toBe(
+			result.workspace.id,
+		);
+	});
 });
 
 describe("workspaces router - delete", () => {

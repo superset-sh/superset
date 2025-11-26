@@ -9,3 +9,6 @@ export const PLATFORM = {
 };
 
 export const NOTIFICATIONS_PORT = 31415;
+
+export const SUPERSET_DIR_NAME = ".superset";
+export const WORKTREES_DIR_NAME = "worktrees";
