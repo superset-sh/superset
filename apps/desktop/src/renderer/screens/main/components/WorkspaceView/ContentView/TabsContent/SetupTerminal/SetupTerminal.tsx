@@ -3,10 +3,9 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabsStore } from "renderer/stores";
+import { useTabsStore } from "renderer/stores";
 import {
 	createTerminalInstance,
-	setupFocusListener,
 	setupResizeHandlers,
 } from "../Terminal/helpers";
 import type { TerminalStreamEvent } from "../Terminal/types";
@@ -29,13 +28,11 @@ export const SetupTerminal = ({
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
-	const isExitedRef = useRef(false);
-	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
-	const setActiveTab = useSetActiveTab();
 	const setupExecutedRef = useRef(false);
+	const hasInitializedRef = useRef(false);
+	const removeTab = useTabsStore((state) => state.removeTab);
 
-	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
@@ -44,7 +41,6 @@ export const SetupTerminal = ({
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
 
-	// Avoid effect re-runs when mutations change
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
@@ -56,84 +52,72 @@ export const SetupTerminal = ({
 	detachRef.current = detachMutation.mutate;
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
-		if (!xtermRef.current) {
-			// Queue events that arrive before xterm is ready or before recovery is applied
-			pendingEventsRef.current.push(event);
-			return;
-		}
-
-		// Queue events while subscription is not enabled (recovery in progress)
-		if (!subscriptionEnabled) {
-			pendingEventsRef.current.push(event);
-			return;
-		}
+		if (!xtermRef.current || !subscriptionEnabled) return;
 
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
 		} else if (event.type === "exit") {
-			isExitedRef.current = true;
+			xtermRef.current.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
+
+			if (event.exitCode === 0) {
+				// Success - show completion message and auto-close after a brief delay
+				xtermRef.current.writeln("\r\n\x1b[32m✓ Setup completed successfully!\x1b[0m");
+				xtermRef.current.writeln("Closing tab...");
+
+				setTimeout(() => {
+					removeTab(tabId);
+				}, 1500);
+			} else {
+				// Failed - don't auto-close, let user see the error
+				xtermRef.current.writeln("\r\n\x1b[31m✗ Setup failed\x1b[0m");
+				xtermRef.current.writeln("Please check the errors above.");
+			}
+
 			setSubscriptionEnabled(false);
-			xtermRef.current.writeln(
-				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
-			);
-			xtermRef.current.writeln("\r\n\x1b[32m✓ Setup completed\x1b[0m");
-			xtermRef.current.writeln("You can now close this tab and start working!");
 		}
 	};
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
-		enabled: true, // Always listen, but queue events internally until subscriptionEnabled is true
+		enabled: true,
 	});
 
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
 
+		// Use the same helper as Terminal component (this works!)
 		const { xterm, fitAddon } = createTerminalInstance(container, workspaceCwd);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
-		isExitedRef.current = false;
 
-		// Flush any pending events that arrived before xterm was ready or before recovery
-		const flushPendingEvents = () => {
-			if (pendingEventsRef.current.length === 0) return;
-			const events = pendingEventsRef.current.splice(
-				0,
-				pendingEventsRef.current.length,
-			);
-			for (const event of events) {
-				if (event.type === "data") {
-					xterm.write(event.data);
-				} else {
-					isExitedRef.current = true;
-					setSubscriptionEnabled(false);
-					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
-					xterm.writeln("\r\n\x1b[32m✓ Setup completed\x1b[0m");
-					xterm.writeln("You can now close this tab and start working!");
+		// Write initial setup info
+		xterm.writeln("\x1b[1m\x1b[34mSetting up worktree...\x1b[0m\r\n");
+
+		if (setupCopyResults) {
+			const { copied, errors } = setupCopyResults;
+			if (copied.length > 0) {
+				xterm.writeln(`\x1b[32m✓ Copied ${copied.length} file(s):\x1b[0m`);
+				for (const file of copied) {
+					xterm.writeln(`  - ${file}`);
 				}
 			}
-		};
-
-		const applyInitialScrollback = (result: {
-			wasRecovered: boolean;
-			isNew: boolean;
-			scrollback: string[];
-		}) => {
-			if (result.wasRecovered && result.scrollback.length > 0) {
-				xterm.write(result.scrollback[0]);
-				xterm.write("\r\n\r\n\x1b[2m[Recovered session history]\x1b[0m\r\n");
-			} else if (!result.isNew && result.scrollback.length > 0) {
-				xterm.write(result.scrollback[0]);
+			if (errors.length > 0) {
+				xterm.writeln("\r\n\x1b[33m⚠ Copy warnings:\x1b[0m");
+				for (const error of errors) {
+					xterm.writeln(`  ${error}`);
+				}
 			}
-		};
+			xterm.writeln("\r");
+		}
 
-		const handleTerminalInput = (data: string) => {
-			if (!isExitedRef.current) {
-				writeRef.current({ tabId, data });
-			}
-		};
+		xterm.writeln("\x1b[1mRunning setup commands:\x1b[0m");
+		for (const cmd of setupCommands) {
+			xterm.writeln(`  $ ${cmd}`);
+		}
+		xterm.writeln("\r");
 
+		// Create terminal session and execute commands
 		createOrAttachRef.current(
 			{
 				tabId,
@@ -144,47 +128,14 @@ export const SetupTerminal = ({
 				cwd: setupCwd,
 			},
 			{
-				onSuccess: (result) => {
-					applyInitialScrollback(result);
+				onSuccess: () => {
 					setSubscriptionEnabled(true);
-					flushPendingEvents();
 
-					// Execute setup commands if setup hasn't been executed yet
+					// Execute setup commands once
 					if (!setupExecutedRef.current) {
 						setupExecutedRef.current = true;
-
-						// Print header
-						xterm.writeln("\x1b[1m\x1b[34mSetting up worktree...\x1b[0m\r\n");
-
-						// Print copy results if available
-						if (setupCopyResults) {
-							const { copied, errors } = setupCopyResults;
-							if (copied.length > 0) {
-								xterm.writeln(
-									`\x1b[32m✓ Copied ${copied.length} file(s):\x1b[0m`,
-								);
-								for (const file of copied) {
-									xterm.writeln(`  - ${file}`);
-								}
-							}
-							if (errors.length > 0) {
-								xterm.writeln(`\r\n\x1b[33m⚠ Copy warnings:\x1b[0m`);
-								for (const error of errors) {
-									xterm.writeln(`  ${error}`);
-								}
-							}
-							xterm.writeln("\r");
-						}
-
-						// Print commands being run
-						xterm.writeln("\x1b[1mRunning setup commands:\x1b[0m");
-						for (const cmd of setupCommands) {
-							xterm.writeln(`  $ ${cmd}`);
-						}
-						xterm.writeln("\r");
-
-						// Send all commands sequentially
-						const commands = `${setupCommands.join("\n")}\n`;
+						// Add 'exit' command to close shell after setup completes
+						const commands = `${setupCommands.join("\n")}\nexit\n`;
 						writeRef.current({ tabId, data: commands });
 					}
 				},
@@ -194,13 +145,11 @@ export const SetupTerminal = ({
 			},
 		);
 
-		const inputDisposable = xterm.onData(handleTerminalInput);
-		const cleanupFocus = setupFocusListener(
-			xterm,
-			workspaceId,
-			tabId,
-			setActiveTab,
-		);
+		// Don't allow user input (read-only display)
+		const inputDisposable = xterm.onData(() => {
+			// Ignore input
+		});
+
 		const cleanupResize = setupResizeHandlers(
 			container,
 			xterm,
@@ -212,9 +161,7 @@ export const SetupTerminal = ({
 
 		return () => {
 			inputDisposable.dispose();
-			cleanupFocus?.();
 			cleanupResize();
-			// Keep PTY running for reattachment
 			detachRef.current({ tabId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
@@ -226,7 +173,6 @@ export const SetupTerminal = ({
 		setupCommands,
 		setupCwd,
 		setupCopyResults,
-		setActiveTab,
 		workspaceCwd,
 	]);
 
