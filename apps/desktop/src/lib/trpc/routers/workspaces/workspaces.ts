@@ -324,7 +324,29 @@ export const createWorkspacesRouter = () => {
 
 				if (worktree && project) {
 					try {
-						await removeWorktree(project.mainRepoPath, worktree.path);
+						// Check if worktree exists in git before attempting removal
+						const gitInstance = simpleGit(project.mainRepoPath);
+						const worktrees = await gitInstance.raw([
+							"worktree",
+							"list",
+							"--porcelain",
+						]);
+
+						// Parse porcelain format to verify worktree exists
+						const lines = worktrees.split("\n");
+						const worktreePrefix = `worktree ${worktree.path}`;
+						const worktreeExists = lines.some(
+							(line) => line.trim() === worktreePrefix,
+						);
+
+						// Only attempt removal if worktree exists in git
+						if (worktreeExists) {
+							await removeWorktree(project.mainRepoPath, worktree.path);
+						} else {
+							console.warn(
+								`Worktree ${worktree.path} not found in git, skipping removal`,
+							);
+						}
 					} catch (error) {
 						// If worktree removal fails, return error and don't proceed with DB cleanup
 						const errorMessage =
