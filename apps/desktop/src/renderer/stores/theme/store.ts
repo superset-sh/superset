@@ -52,11 +52,13 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 /**
  * Sync theme data to localStorage for instant access before hydration.
  * This enables flash-free terminal rendering on app start.
+ * Caches terminal colors directly to support custom themes without lookup.
  */
 function syncThemeToLocalStorage(theme: Theme): void {
 	try {
 		localStorage.setItem("theme-type", theme.type);
 		localStorage.setItem("theme-id", theme.id);
+		localStorage.setItem("theme-terminal", JSON.stringify(theme.terminal));
 	} catch {
 		// localStorage may not be available
 	}

@@ -12,12 +12,18 @@ import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
 /**
- * Get the default terminal theme based on stored theme ID.
- * This reads from localStorage before store hydration to prevent flash.
- * Looks up the actual theme colors from built-in themes for accurate rendering.
+ * Get the default terminal theme from localStorage cache.
+ * This reads cached terminal colors before store hydration to prevent flash.
+ * Supports both built-in and custom themes via direct color cache.
  */
 export function getDefaultTerminalTheme(): ITheme {
 	try {
+		// First try cached terminal colors (works for all themes including custom)
+		const cachedTerminal = localStorage.getItem("theme-terminal");
+		if (cachedTerminal) {
+			return toXtermTheme(JSON.parse(cachedTerminal));
+		}
+		// Fallback to looking up by theme ID (for fresh installs before first theme apply)
 		const themeId = localStorage.getItem("theme-id") ?? DEFAULT_THEME_ID;
 		const theme = builtInThemes.find((t) => t.id === themeId);
 		if (theme) {
@@ -26,7 +32,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	} catch {
 		// Fall through to default
 	}
-	// Fallback to default dark theme
+	// Final fallback to default theme
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
 		? toXtermTheme(defaultTheme.terminal)
