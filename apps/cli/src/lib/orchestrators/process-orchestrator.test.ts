@@ -2,13 +2,13 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Agent } from "../../../types/process";
-import { AgentType, ProcessStatus, ProcessType } from "../../../types/process";
-import { WorkspaceType } from "../../../types/workspace";
-import { LowdbAdapter } from "../../storage/lowdb-adapter";
-import { EnvironmentOrchestrator } from "../environment-orchestrator";
-import { ProcessOrchestrator } from "../process-orchestrator";
-import { WorkspaceOrchestrator } from "../workspace-orchestrator";
+import type { Agent } from "../../types/process";
+import { AgentType, ProcessStatus, ProcessType } from "../../types/process";
+import { WorkspaceType } from "../../types/workspace";
+import { LowdbAdapter } from "../storage/lowdb-adapter";
+import { EnvironmentOrchestrator } from "./environment-orchestrator";
+import { ProcessOrchestrator } from "./process-orchestrator";
+import { WorkspaceOrchestrator } from "./workspace-orchestrator";
 
 describe("ProcessOrchestrator", () => {
 	let tempDir: string;

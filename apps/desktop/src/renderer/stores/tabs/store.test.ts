@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
 // Mock the terminal cleanup to avoid actually calling tRPC
 mock.module("./utils/terminal-cleanup", () => ({
@@ -7,6 +7,14 @@ mock.module("./utils/terminal-cleanup", () => ({
 
 import { useTabsStore } from "./store";
 import { type TabGroup, TabType } from "./types";
+
+// Store initial state for cleanup
+const initialState = useTabsStore.getState();
+
+afterEach(() => {
+	// Reset store to initial state between tests
+	useTabsStore.setState(initialState, true);
+});
 
 describe("removeTab", () => {
 	test("removing last child from group removes the group", () => {

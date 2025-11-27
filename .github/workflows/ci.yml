@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    name: Lint & Format
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -79,7 +79,7 @@ jobs:
         run: bun run build
 
   test:
-    name: Unit Test
+    name: Test
     runs-on: ubuntu-latest
 
     steps:

@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { LocalWorkspace } from "../../../types/workspace";
-import { WorkspaceType } from "../../../types/workspace";
-import { LowdbAdapter } from "../../storage/lowdb-adapter";
-import { ChangeOrchestrator } from "../change-orchestrator";
-import { EnvironmentOrchestrator } from "../environment-orchestrator";
-import { WorkspaceOrchestrator } from "../workspace-orchestrator";
+import type { LocalWorkspace } from "../../types/workspace";
+import { WorkspaceType } from "../../types/workspace";
+import { LowdbAdapter } from "../storage/lowdb-adapter";
+import { ChangeOrchestrator } from "./change-orchestrator";
+import { EnvironmentOrchestrator } from "./environment-orchestrator";
+import { WorkspaceOrchestrator } from "./workspace-orchestrator";
 
 describe("WorkspaceOrchestrator", () => {
 	let tempDir: string;
@@ -20,6 +20,8 @@ describe("WorkspaceOrchestrator", () => {
 		tempDir = await mkdtemp(join(tmpdir(), "workspace-test-"));
 		const dbPath = join(tempDir, "test-db.json");
 		adapter = new LowdbAdapter(dbPath);
+		// Ensure clean state for each test
+		await adapter.clear();
 		orchestrator = new WorkspaceOrchestrator(adapter);
 		environmentOrchestrator = new EnvironmentOrchestrator(adapter);
 		changeOrchestrator = new ChangeOrchestrator(adapter);
@@ -42,9 +44,11 @@ describe("WorkspaceOrchestrator", () => {
 			expect((workspace as LocalWorkspace).path).toBe("/tmp/test");
 		});
 
-		test("creates cloud workspace without path", async () => {
+		test("creates cloud workspace with branch", async () => {
 			const env = await environmentOrchestrator.create();
-			const workspace = await orchestrator.create(env.id, WorkspaceType.CLOUD);
+			const workspace = await orchestrator.create(env.id, WorkspaceType.CLOUD, {
+				branch: "main",
+			});
 
 			expect(workspace.id).toBeDefined();
 			expect(workspace.type).toBe(WorkspaceType.CLOUD);
@@ -60,7 +64,12 @@ describe("WorkspaceOrchestrator", () => {
 			});
 
 			const retrieved = await orchestrator.get(workspace.id);
-			expect(retrieved).toEqual(workspace);
+			// Compare relevant fields (lastUsedAt is set by use() call in create())
+			expect(retrieved.id).toBe(workspace.id);
+			expect(retrieved.type).toBe(workspace.type);
+			expect(retrieved.environmentId).toBe(workspace.environmentId);
+			expect((retrieved as LocalWorkspace).path).toBe("/tmp/test");
+			expect(retrieved.lastUsedAt).toBeInstanceOf(Date);
 		});
 
 		test("throws error for non-existent workspace", async () => {

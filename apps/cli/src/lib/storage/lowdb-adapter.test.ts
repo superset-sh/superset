@@ -3,9 +3,9 @@ import { existsSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { Change, Environment, Process } from "../../../types/index";
-import { ProcessStatus, ProcessType } from "../../../types/process";
-import { LowdbAdapter } from "../lowdb-adapter";
+import type { Change, Environment, Process } from "../../types/index";
+import { ProcessStatus, ProcessType } from "../../types/process";
+import { LowdbAdapter } from "./lowdb-adapter";
 
 describe("LowdbAdapter", () => {
 	let tempDir: string;
@@ -17,6 +17,8 @@ describe("LowdbAdapter", () => {
 		tempDir = await mkdtemp(join(tmpdir(), "lowdb-test-"));
 		dbPath = join(tempDir, "test-db.json");
 		adapter = new LowdbAdapter(dbPath);
+		// Ensure clean state for each test
+		await adapter.clear();
 	});
 
 	afterEach(async () => {
@@ -27,9 +29,11 @@ describe("LowdbAdapter", () => {
 	});
 
 	describe("initialization", () => {
-		test("initializes with empty collections", async () => {
+		test("initializes with default environment", async () => {
 			const data = await adapter.read();
-			expect(Object.keys(data.environments)).toHaveLength(0);
+			// createEmptyDatabase() includes a default environment
+			expect(Object.keys(data.environments)).toHaveLength(1);
+			expect(data.environments["default"]).toBeDefined();
 			expect(Object.keys(data.workspaces)).toHaveLength(0);
 			expect(Object.keys(data.processes)).toHaveLength(0);
 			expect(Object.keys(data.changes)).toHaveLength(0);
@@ -75,14 +79,16 @@ describe("LowdbAdapter", () => {
 			expect(await adapter.has("environments", "env-2")).toBe(false);
 		});
 
-		test("clear all data", async () => {
+		test("clear resets to default database", async () => {
 			const environment: Environment = { id: "env-1" };
 			await adapter.set("environments", "env-1", environment);
 
 			await adapter.clear();
 			const data = await adapter.read();
 
-			expect(Object.keys(data.environments)).toHaveLength(0);
+			// clear() resets to createEmptyDatabase() which has default env
+			expect(Object.keys(data.environments)).toHaveLength(1);
+			expect(data.environments["default"]).toBeDefined();
 		});
 	});
 
@@ -95,9 +101,11 @@ describe("LowdbAdapter", () => {
 			await adapter.set("environments", "env-2", env2);
 
 			const collection = await adapter.getCollection("environments");
-			expect(Object.keys(collection)).toHaveLength(2);
+			// 2 added + 1 default environment
+			expect(Object.keys(collection)).toHaveLength(3);
 			expect(collection["env-1"]).toEqual(env1);
 			expect(collection["env-2"]).toEqual(env2);
+			expect(collection["default"]).toBeDefined();
 		});
 
 		test("updateCollection replaces entire collection", async () => {
@@ -183,7 +191,8 @@ describe("LowdbAdapter", () => {
 			await Promise.all(writes);
 			const collection = await adapter.getCollection("environments");
 
-			expect(Object.keys(collection)).toHaveLength(10);
+			// 10 added + 1 default environment
+			expect(Object.keys(collection)).toHaveLength(11);
 		});
 	});
 });

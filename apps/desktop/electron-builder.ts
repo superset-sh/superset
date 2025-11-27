@@ -9,12 +9,10 @@ import pkg from "./package.json";
 
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
-const authorInKebabCase = author.replace(/\s+/g, "-");
-const appId = `com.${authorInKebabCase}.${pkg.name}`.toLowerCase();
 const productName = pkg.productName;
 
 const config: Configuration = {
-	appId,
+	appId: "com.superset.desktop",
 	productName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
@@ -81,6 +79,7 @@ const config: Configuration = {
 		category: "Utility",
 		synopsis: pkg.description,
 		target: ["AppImage", "deb"],
+		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 	},
 
 	// Windows

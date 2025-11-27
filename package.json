@@ -22,7 +22,7 @@
 		"dev:cli": "turbo dev --filter=@superset/cli",
 		"dev:website": "turbo dev --filter=@superset/website",
 		"test": "turbo test",
-		"build": "turbo build",
+		"build": "turbo build --filter=!@superset/website",
 		"db:generate": "turbo db:generate",
 		"db:push": "cd packages/db && bun db:push",
 		"db:seed": "cd packages/db && bun db:seed",

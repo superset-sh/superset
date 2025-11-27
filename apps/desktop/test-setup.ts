@@ -1,19 +1,54 @@
 /**
  * Global test setup for Bun tests
- * This file mocks the Electron environment for unit tests
+ *
+ * This file mocks EXTERNAL dependencies only:
+ * - Electron APIs (app, dialog, BrowserWindow, ipcMain)
+ * - Browser globals (document, window)
+ * - trpc-electron renderer requirements
+ *
+ * DO NOT mock internal code here - tests should use real implementations
+ * or mock at the individual test level when necessary.
  */
 import { mock } from "bun:test";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Set NODE_ENV to test so terminal-history uses tmpdir
 process.env.NODE_ENV = "test";
 
-// Use a temporary directory for tests instead of /mock
 const testTmpDir = join(tmpdir(), "superset-test");
 
-// Mock window.electronStore for all tests
+// =============================================================================
+// Browser Global Mocks (required for renderer code that touches DOM)
+// =============================================================================
+
+const mockStyleMap = new Map<string, string>();
+const mockClassList = new Set<string>();
+
+(globalThis as any).document = {
+	documentElement: {
+		style: {
+			setProperty: (key: string, value: string) => mockStyleMap.set(key, value),
+			getPropertyValue: (key: string) => mockStyleMap.get(key) || "",
+		},
+		classList: {
+			add: (className: string) => mockClassList.add(className),
+			remove: (className: string) => mockClassList.delete(className),
+			toggle: (className: string) => {
+				mockClassList.has(className)
+					? mockClassList.delete(className)
+					: mockClassList.add(className);
+			},
+			contains: (className: string) => mockClassList.has(className),
+		},
+	},
+};
+
+// =============================================================================
+// Electron Preload Mocks (exposed via contextBridge in real app)
+// =============================================================================
+
 const mockStorage = new Map<string, string>();
+
 global.window = {
 	electronStore: {
 		get: async (key: string) => mockStorage.get(key) || null,
@@ -26,13 +61,16 @@ global.window = {
 	},
 } as any;
 
-// Mock globalThis.electronTRPC for trpc-electron/renderer
+// trpc-electron expects this global for renderer-side communication
 (globalThis as any).electronTRPC = {
 	sendMessage: () => {},
-	onMessage: () => {},
+	onMessage: (_callback: (msg: unknown) => void) => {},
 };
 
-// Mock electron module
+// =============================================================================
+// Electron Module Mock (the actual electron package)
+// =============================================================================
+
 mock.module("electron", () => ({
 	app: {
 		getPath: mock(() => testTmpDir),
@@ -49,9 +87,7 @@ mock.module("electron", () => ({
 		showMessageBox: mock(() => Promise.resolve({ response: 0 })),
 	},
 	BrowserWindow: mock(() => ({
-		webContents: {
-			send: mock(),
-		},
+		webContents: { send: mock() },
 		loadURL: mock(),
 		on: mock(),
 	})),

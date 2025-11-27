@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ProcessType } from "../../../types/process";
-import { WorkspaceType } from "../../../types/workspace";
-import { LowdbAdapter } from "../../storage/lowdb-adapter";
-import { EnvironmentOrchestrator } from "../environment-orchestrator";
-import { ProcessOrchestrator } from "../process-orchestrator";
-import { WorkspaceOrchestrator } from "../workspace-orchestrator";
+import { ProcessType } from "../../types/process";
+import { WorkspaceType } from "../../types/workspace";
+import { LowdbAdapter } from "../storage/lowdb-adapter";
+import { EnvironmentOrchestrator } from "./environment-orchestrator";
+import { ProcessOrchestrator } from "./process-orchestrator";
+import { WorkspaceOrchestrator } from "./workspace-orchestrator";
 
 describe("EnvironmentOrchestrator", () => {
 	let tempDir: string;
@@ -20,6 +20,8 @@ describe("EnvironmentOrchestrator", () => {
 		tempDir = await mkdtemp(join(tmpdir(), "env-test-"));
 		const dbPath = join(tempDir, "test-db.json");
 		adapter = new LowdbAdapter(dbPath);
+		// Ensure clean state for each test
+		await adapter.clear();
 		orchestrator = new EnvironmentOrchestrator(adapter);
 		workspaceOrchestrator = new WorkspaceOrchestrator(adapter);
 		processOrchestrator = new ProcessOrchestrator(adapter);
@@ -61,20 +63,24 @@ describe("EnvironmentOrchestrator", () => {
 	});
 
 	describe("list", () => {
-		test("returns empty array when no environments", async () => {
+		test("returns default environment when no custom environments created", async () => {
 			const environments = await orchestrator.list();
-			expect(environments).toHaveLength(0);
+			// createEmptyDatabase() includes a default environment
+			expect(environments).toHaveLength(1);
+			expect(environments[0]?.id).toBe("default");
 		});
 
-		test("returns all environments", async () => {
+		test("returns all environments including default", async () => {
 			const env1 = await orchestrator.create();
 			const env2 = await orchestrator.create();
 
 			const environments = await orchestrator.list();
 
-			expect(environments).toHaveLength(2);
+			// 2 created + 1 default
+			expect(environments).toHaveLength(3);
 			expect(environments.map((e) => e.id)).toContain(env1.id);
 			expect(environments.map((e) => e.id)).toContain(env2.id);
+			expect(environments.map((e) => e.id)).toContain("default");
 		});
 	});
 

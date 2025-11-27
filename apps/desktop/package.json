@@ -26,6 +26,7 @@
 		"release": "electron-builder --publish always",
 		"clean:dev": "rimraf ./node_modules/.dev",
 		"typecheck": "tsc --noEmit",
+		"test": "bun test",
 		"lint": "biome check --no-errors-on-unmatched",
 		"lint:fix": "biome check --write --no-errors-on-unmatched --assist-enabled=true",
 		"format": "biome format --write --no-errors-on-unmatched",
