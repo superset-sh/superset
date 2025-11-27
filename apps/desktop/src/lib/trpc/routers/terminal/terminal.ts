@@ -3,6 +3,7 @@ import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getWorktreePath } from "../workspaces/utils/worktree";
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -44,17 +45,10 @@ export const createTerminalRouter = () => {
 
 				// Get workspace to determine cwd and workspace name
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				let cwd: string | undefined = cwdOverride;
 				const workspaceName = workspace?.name || "Workspace";
-
-				if (!cwd && workspace) {
-					const worktree = db.data.worktrees.find(
-						(wt) => wt.id === workspace.worktreeId,
-					);
-					if (worktree) {
-						cwd = worktree.path;
-					}
-				}
+				const cwd =
+					cwdOverride ||
+					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
 
 				const result = await terminalManager.createOrAttach({
 					tabId,
