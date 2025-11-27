@@ -69,14 +69,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run package
 
-      # Upload artifacts
-      - name: Upload artifacts
+      # Upload artifacts separately to avoid nested zips
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-mac-${{ matrix.arch }}
-          path: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
+          name: desktop-mac-${{ matrix.arch }}-dmg
+          path: apps/desktop/release/*.dmg
+          retention-days: 30
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac-${{ matrix.arch }}-zip
+          path: apps/desktop/release/*.zip
           retention-days: 30
 
   # Create GitHub Release after builds complete
@@ -94,11 +99,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
+          merge-multiple: true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-artifacts/**/*
+          files: release-artifacts/*
           draft: true
           generate_release_notes: true
           name: Superset Desktop ${{ github.ref_name }}
