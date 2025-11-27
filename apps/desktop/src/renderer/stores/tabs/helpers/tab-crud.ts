@@ -94,3 +94,39 @@ export const handleMarkTabAsUsed = (
 		),
 	};
 };
+
+export const handleAddSetupTab = (
+	state: TabsState,
+	workspaceId: string,
+	setupCommands: string[],
+	setupCwd: string,
+	setupCopyResults?: { copied: string[]; errors: string[] },
+): Partial<TabsState> => {
+	const baseTab = createNewTab(workspaceId, TabType.Setup, state.tabs);
+	const setupTab = {
+		...baseTab,
+		type: TabType.Setup as const,
+		title: "Setup Worktree",
+		setupCommands,
+		setupCwd,
+		setupCopyResults,
+	};
+
+	const currentActiveId = state.activeTabIds[workspaceId];
+	const historyStack = state.tabHistoryStacks[workspaceId] || [];
+	const newHistoryStack = currentActiveId
+		? [currentActiveId, ...historyStack.filter((id) => id !== currentActiveId)]
+		: historyStack;
+
+	return {
+		tabs: [setupTab, ...state.tabs],
+		activeTabIds: {
+			...state.activeTabIds,
+			[workspaceId]: setupTab.id,
+		},
+		tabHistoryStacks: {
+			...state.tabHistoryStacks,
+			[workspaceId]: newHistoryStack,
+		},
+	};
+};

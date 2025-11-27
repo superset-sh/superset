@@ -4,8 +4,8 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiMiniFolderOpen, HiMiniPlus } from "react-icons/hi2";
 import { useState } from "react";
+import { HiMiniFolderOpen, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";

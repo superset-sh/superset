@@ -3,10 +3,10 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
-import { WaitlistModal } from "../WaitlistModal";
-import { JoinWaitlistButton } from "../JoinWaitlistButton";
 import { DownloadButton } from "../DownloadButton";
+import { JoinWaitlistButton } from "../JoinWaitlistButton";
 import { SocialLinks } from "../SocialLinks";
+import { WaitlistModal } from "../WaitlistModal";
 
 export function Header() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);

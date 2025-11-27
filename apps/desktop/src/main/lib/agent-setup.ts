@@ -1,7 +1,7 @@
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
 import { NOTIFICATIONS_PORT } from "shared/constants";
 
 const SUPERSET_DIR = path.join(os.homedir(), ".superset");

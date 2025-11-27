@@ -4,6 +4,7 @@ import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
+import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
@@ -73,6 +74,43 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				project,
 			};
 		}),
+
+		update: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					patch: z.object({
+						name: z.string().trim().min(1).optional(),
+						color: z
+							.string()
+							.refine(
+								(value) => PROJECT_COLOR_VALUES.includes(value),
+								"Invalid project color",
+							)
+							.optional(),
+					}),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await db.update((data) => {
+					const project = data.projects.find((p) => p.id === input.id);
+					if (!project) {
+						throw new Error(`Project ${input.id} not found`);
+					}
+
+					if (input.patch.name !== undefined) {
+						project.name = input.patch.name;
+					}
+
+					if (input.patch.color !== undefined) {
+						project.color = input.patch.color;
+					}
+
+					project.lastOpenedAt = Date.now();
+				});
+
+				return { success: true };
+			}),
 
 		reorder: publicProcedure
 			.input(

@@ -3,6 +3,7 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 export enum TabType {
 	Single = "single",
 	Group = "group",
+	Setup = "setup",
 }
 
 interface BaseTab {
@@ -23,7 +24,14 @@ export interface TabGroup extends BaseTab {
 	layout: MosaicNode<string> | null;
 }
 
-export type Tab = SingleTab | TabGroup;
+export interface SetupTab extends BaseTab {
+	type: TabType.Setup;
+	setupCommands: string[];
+	setupCwd: string;
+	setupCopyResults?: { copied: string[]; errors: string[] };
+}
+
+export type Tab = SingleTab | TabGroup | SetupTab;
 
 export interface TabsState {
 	tabs: Tab[];
@@ -33,6 +41,12 @@ export interface TabsState {
 
 export interface TabsStore extends TabsState {
 	addTab: (workspaceId: string, type?: TabType) => void;
+	addSetupTab: (
+		workspaceId: string,
+		setupCommands: string[],
+		setupCwd: string,
+		setupCopyResults?: { copied: string[]; errors: string[] },
+	) => void;
 	removeTab: (id: string) => void;
 	renameTab: (id: string, newTitle: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;

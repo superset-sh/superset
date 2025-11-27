@@ -79,17 +79,19 @@ describe("TerminalManager", () => {
 			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cwd: "/test/path",
 				cols: 80,
 				rows: 24,
 			});
 
 			expect(result.isNew).toBe(true);
-			expect(result.scrollback).toEqual([]);
+			expect(result.scrollback).toBe("");
 			expect(result.wasRecovered).toBe(false);
 			expect(pty.spawn).toHaveBeenCalledWith(
 				expect.any(String),
-				[],
+				expect.any(Array),
 				expect.objectContaining({
 					cwd: "/test/path",
 					cols: 80,
@@ -102,6 +104,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cwd: "/test/path",
 			});
 
@@ -111,6 +115,8 @@ describe("TerminalManager", () => {
 			const result = await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result.isNew).toBe(false);
@@ -124,6 +130,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cols: 80,
 				rows: 24,
 			});
@@ -131,6 +139,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cols: 100,
 				rows: 30,
 			});
@@ -144,6 +154,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.write({
@@ -169,6 +181,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.resize({
@@ -209,6 +223,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.signal({
@@ -223,6 +239,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.signal({
@@ -238,6 +256,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			// Trigger some data to create history
@@ -276,6 +296,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-delete-history",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			// Trigger some data to create history
@@ -319,6 +341,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-preserve",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			const onDataCallback =
@@ -345,10 +369,12 @@ describe("TerminalManager", () => {
 			const result = await manager.createOrAttach({
 				tabId: "tab-preserve",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback.join("")).toContain("Preserved output");
+			expect(result.scrollback).toContain("Preserved output");
 		});
 	});
 
@@ -357,6 +383,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.detach({ tabId: "tab-1" });
@@ -372,6 +400,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 				cwd: "/test/path",
 			});
 
@@ -395,11 +425,15 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab 1",
+				workspaceName: "Test Workspace",
 			});
 
 			await manager.createOrAttach({
 				tabId: "tab-2",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab 2",
+				workspaceName: "Test Workspace",
 			});
 
 			const cleanupPromise = manager.cleanup();
@@ -423,6 +457,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-cleanup",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			const onDataCallback =
@@ -458,6 +494,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			manager.on("data:tab-1", dataHandler);
@@ -476,6 +514,8 @@ describe("TerminalManager", () => {
 			await manager.createOrAttach({
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			// Listen for exit event
@@ -502,6 +542,8 @@ describe("TerminalManager", () => {
 			const result1 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result1.isNew).toBe(true);
@@ -530,11 +572,13 @@ describe("TerminalManager", () => {
 			const result2 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result2.isNew).toBe(true);
 			expect(result2.wasRecovered).toBe(true);
-			expect(result2.scrollback.join("")).toContain("Session 1 output");
+			expect(result2.scrollback).toContain("Session 1 output");
 
 			const onDataCallback2 =
 				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
@@ -559,13 +603,14 @@ describe("TerminalManager", () => {
 			const result3 = await manager.createOrAttach({
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
 			});
 
 			expect(result3.isNew).toBe(true);
 			expect(result3.wasRecovered).toBe(true);
-			const fullScrollback = result3.scrollback.join("");
-			expect(fullScrollback).toContain("Session 1 output");
-			expect(fullScrollback).toContain("Session 2 output");
+			expect(result3.scrollback).toContain("Session 1 output");
+			expect(result3.scrollback).toContain("Session 2 output");
 		});
 	});
 });

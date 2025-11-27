@@ -48,15 +48,13 @@ mock.module("electron", () => ({
 		),
 		showMessageBox: mock(() => Promise.resolve({ response: 0 })),
 	},
-	BrowserWindow: mock(function () {
-		return {
-			webContents: {
-				send: mock(),
-			},
-			loadURL: mock(),
-			on: mock(),
-		};
-	}),
+	BrowserWindow: mock(() => ({
+		webContents: {
+			send: mock(),
+		},
+		loadURL: mock(),
+		on: mock(),
+	})),
 	ipcMain: {
 		handle: mock(),
 		on: mock(),

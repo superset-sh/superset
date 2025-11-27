@@ -29,17 +29,25 @@ export const createTerminalRouter = () => {
 					tabTitle: z.string(),
 					cols: z.number().optional(),
 					rows: z.number().optional(),
+					cwd: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const { tabId, workspaceId, tabTitle, cols, rows } = input;
+				const {
+					tabId,
+					workspaceId,
+					tabTitle,
+					cols,
+					rows,
+					cwd: cwdOverride,
+				} = input;
 
 				// Get workspace to determine cwd and workspace name
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				let cwd: string | undefined;
+				let cwd: string | undefined = cwdOverride;
 				const workspaceName = workspace?.name || "Workspace";
 
-				if (workspace) {
+				if (!cwd && workspace) {
 					const worktree = db.data.worktrees.find(
 						(wt) => wt.id === workspace.worktreeId,
 					);

@@ -6,6 +6,7 @@ import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
+import { SetupTabView } from "./SetupTabView";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -41,17 +42,12 @@ export function TabsContent() {
 
 	return (
 		<div ref={attachDrop} className="flex-1 h-full relative">
-			{tabToRender.type === TabType.Single ? (
-				<>
-					<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
-					{isDropZone && <DropOverlay message="Drop to create split view" />}
-				</>
-			) : (
-				<>
-					<GroupTabView tab={tabToRender} />
-					{isDropZone && <DropOverlay message="Drop to add to split view" />}
-				</>
+			{tabToRender.type === TabType.Setup && <SetupTabView tab={tabToRender} />}
+			{tabToRender.type === TabType.Single && (
+				<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
 			)}
+			{tabToRender.type === TabType.Group && <GroupTabView tab={tabToRender} />}
+			{isDropZone && <DropOverlay message="Drop to create split view" />}
 		</div>
 	);
 }

@@ -1,14 +1,17 @@
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
-import simpleGit from "simple-git";
+import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	createWorktree,
 	generateBranchName,
 	removeWorktree,
+	worktreeExists,
 } from "./utils/git";
+import { copySetupFiles, loadSetupConfig } from "./utils/setup";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -27,7 +30,12 @@ export const createWorkspacesRouter = () => {
 
 				const branch = generateBranchName();
 
-				const worktreePath = join(project.mainRepoPath, ".superset", branch);
+				const worktreePath = join(
+					homedir(),
+					SUPERSET_DIR_NAME,
+					WORKTREES_DIR_NAME,
+					branch,
+				);
 
 				await createWorktree(project.mainRepoPath, branch, worktreePath);
 
@@ -80,7 +88,37 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				return workspace;
+				// Load setup configuration
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+				let setupCopyResults: { copied: string[]; errors: string[] } | null =
+					null;
+
+				// Copy setup files if config exists and has copy patterns
+				if (setupConfig?.copy && setupConfig.copy.length > 0) {
+					try {
+						setupCopyResults = await copySetupFiles(
+							project.mainRepoPath,
+							worktreePath,
+							setupConfig.copy,
+						);
+					} catch (error) {
+						console.error("Failed to copy setup files:", error);
+						// Non-fatal: return error info but continue
+						setupCopyResults = {
+							copied: [],
+							errors: [
+								`Setup file copy failed: ${error instanceof Error ? error.message : String(error)}`,
+							],
+						};
+					}
+				}
+
+				return {
+					workspace,
+					setupConfig: setupConfig?.commands || null,
+					setupCopyResults,
+					worktreePath,
+				};
 			}),
 
 		get: publicProcedure
@@ -142,7 +180,7 @@ export const createWorkspacesRouter = () => {
 
 			for (const workspace of workspaces) {
 				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)!.workspaces.push(workspace);
+					groupsMap.get(workspace.projectId)?.workspaces.push(workspace);
 				}
 			}
 
@@ -219,23 +257,12 @@ export const createWorkspacesRouter = () => {
 
 				if (worktree && project) {
 					try {
-						const gitInstance = simpleGit(project.mainRepoPath);
-						const worktrees = await gitInstance.raw([
-							"worktree",
-							"list",
-							"--porcelain",
-						]);
-
-						// Parse porcelain format to verify worktree exists in git before deletion
-						// (porcelain format: "worktree /path/to/worktree" followed by HEAD, branch, etc.)
-						const lines = worktrees.split("\n");
-						const worktreePrefix = `worktree ${worktree.path}`;
-						const worktreeExists = lines.some(
-							(line) => line.trim() === worktreePrefix,
+						const exists = await worktreeExists(
+							project.mainRepoPath,
+							worktree.path,
 						);
 
-						if (!worktreeExists) {
-							// Worktree doesn't exist in git, but we can still delete the workspace
+						if (!exists) {
 							return {
 								canDelete: true,
 								reason: null,
@@ -286,9 +313,19 @@ export const createWorkspacesRouter = () => {
 
 				if (worktree && project) {
 					try {
-						await removeWorktree(project.mainRepoPath, worktree.path);
+						const exists = await worktreeExists(
+							project.mainRepoPath,
+							worktree.path,
+						);
+
+						if (exists) {
+							await removeWorktree(project.mainRepoPath, worktree.path);
+						} else {
+							console.warn(
+								`Worktree ${worktree.path} not found in git, skipping removal`,
+							);
+						}
 					} catch (error) {
-						// If worktree removal fails, return error and don't proceed with DB cleanup
 						const errorMessage =
 							error instanceof Error ? error.message : String(error);
 						console.error("Failed to remove worktree:", errorMessage);
