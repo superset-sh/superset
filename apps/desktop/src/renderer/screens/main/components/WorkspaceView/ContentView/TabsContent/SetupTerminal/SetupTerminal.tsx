@@ -6,6 +6,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore, useTerminalTheme } from "renderer/stores";
 import {
 	createTerminalInstance,
+	getDefaultTerminalBg,
 	setupResizeHandlers,
 } from "../Terminal/helpers";
 import type { TerminalStreamEvent } from "../Terminal/types";
@@ -221,8 +222,8 @@ export const SetupTerminal = ({
 		xterm.options.theme = terminalTheme;
 	}, [terminalTheme]);
 
-	// Get terminal background color from theme
-	const terminalBg = terminalTheme?.background ?? "#1a1a1a";
+	// Get terminal background color from theme, with theme-aware default
+	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	return (
 		<div

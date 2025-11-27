@@ -375,6 +375,26 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result1 + result2).toBe("hello");
 		});
 
+		it("should reassemble split standard mode report", () => {
+			const filter = new TerminalEscapeFilter();
+			// Standard mode report ESC[12;2$y split across chunks
+			const chunk1 = `text${ESC}[1`;
+			const chunk2 = `2;2$y`;
+			const result1 = filter.filter(chunk1);
+			const result2 = filter.filter(chunk2);
+			expect(result1 + result2).toBe("text");
+		});
+
+		it("should reassemble split CPR with row only", () => {
+			const filter = new TerminalEscapeFilter();
+			// CPR ESC[2R split across chunks
+			const chunk1 = `prompt${ESC}[2`;
+			const chunk2 = `R`;
+			const result1 = filter.filter(chunk1);
+			const result2 = filter.filter(chunk2);
+			expect(result1 + result2).toBe("prompt");
+		});
+
 		it("should reassemble split OSC color response", () => {
 			const filter = new TerminalEscapeFilter();
 			// OSC 10 response split across chunks
@@ -385,16 +405,17 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result1 + result2).toBe("textmore");
 		});
 
-		it("should NOT buffer normal escape sequences", () => {
+		it("should buffer digit CSI but pass through color codes when complete", () => {
 			const filter = new TerminalEscapeFilter();
-			// Normal color sequence - should NOT be buffered
+			// Color sequence is buffered initially (could be CPR/mode report)
 			const chunk1 = `text${ESC}[32`;
 			const chunk2 = `mgreen`;
 			const result1 = filter.filter(chunk1);
 			const result2 = filter.filter(chunk2);
-			// Both chunks should pass through immediately
-			expect(result1).toBe(`text${ESC}[32`);
-			expect(result2).toBe("mgreen");
+			// First chunk buffered, second chunk completes sequence
+			// Color code doesn't match filter patterns, so passes through
+			expect(result1).toBe("text");
+			expect(result2).toBe(`${ESC}[32mgreen`);
 		});
 
 		it("should NOT buffer ESC alone at end", () => {
@@ -413,12 +434,27 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result1).toBe(`text${ESC}[`);
 		});
 
-		it("should NOT buffer ESC [ digit (could be cursor/color)", () => {
+		it("should buffer ESC [ digit (could be CPR/mode report/DA)", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}[2`;
 			const result1 = filter.filter(chunk1);
-			// ESC [ digit should pass through (could be cursor position, color, etc.)
-			expect(result1).toBe(`text${ESC}[2`);
+			// ESC [ digit is buffered - could be start of CPR, mode report, or DA
+			// When complete, if it's a color code it will pass through (no match)
+			expect(result1).toBe("text");
+			// Complete with R (CPR) - should be filtered
+			const result2 = filter.filter("R");
+			expect(result2).toBe("");
+		});
+
+		it("should pass through color codes when complete", () => {
+			const filter = new TerminalEscapeFilter();
+			// Color code split at chunk boundary
+			const chunk1 = `text${ESC}[32`;
+			const result1 = filter.filter(chunk1);
+			expect(result1).toBe("text"); // Buffered
+			// Complete with m - not a query response, passes through
+			const result2 = filter.filter("mgreen");
+			expect(result2).toBe(`${ESC}[32mgreen`);
 		});
 	});
 

@@ -139,23 +139,33 @@ export class TerminalEscapeFilter {
 
 	/**
 	 * Check if a string looks like the START of a query response we want to filter.
-	 * Very conservative: only matches specific query response prefixes to avoid
-	 * buffering normal escape sequences (cursor movement, colors, styling, etc.)
+	 * Conservative but must handle chunked sequences: buffers potential query responses
+	 * at chunk boundaries. If the complete sequence doesn't match our filter, it passes through.
 	 */
 	private looksLikeQueryResponse(str: string): boolean {
 		if (str.length < 2) return false; // Just ESC alone - don't buffer, could be anything
 
 		const secondChar = str[1];
 
-		// CSI private mode responses: ESC [ ? (DA1, DECRPM)
-		// CSI secondary DA: ESC [ > (DA2)
-		// These are the only CSI query responses we filter
+		// CSI query responses we want to buffer:
+		// - ESC [ ? (DA1, DECRPM private mode)
+		// - ESC [ > (DA2 secondary)
+		// - ESC [ digit (CPR, standard mode reports, device attributes)
 		if (secondChar === "[") {
 			if (str.length < 3) return false; // ESC [ alone - don't buffer
 			const thirdChar = str[2];
-			// Only buffer for ? (private mode) or > (secondary DA)
-			// NOT for digits - those could be cursor position, colors, etc.
-			return thirdChar === "?" || thirdChar === ">";
+			// Buffer ? (private mode) or > (secondary DA)
+			if (thirdChar === "?" || thirdChar === ">") return true;
+			// Buffer digit-starting CSI sequences that could be query responses:
+			// - CPR: ESC[24;1R or ESC[1R
+			// - Standard mode report: ESC[12;2$y
+			// - Device attributes: ESC[0;276;0c
+			// Color codes like ESC[32m will complete quickly and pass through
+			// since they don't match our filter patterns.
+			if (/\d/.test(thirdChar)) {
+				return true;
+			}
+			return false;
 		}
 
 		// OSC color responses: ESC ] 1 (OSC 10-19)
