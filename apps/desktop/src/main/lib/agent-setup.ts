@@ -36,16 +36,24 @@ function createNotifyScript(): void {
 	const notifyPath = path.join(HOOKS_DIR, "notify.sh");
 	const script = `#!/bin/bash
 # Superset agent notification hook
-# Called by CLI agents (Claude Code, Codex, etc.) when they complete
+# Called by CLI agents (Claude Code, Codex, etc.) when they complete or need input
 
 # Only run if inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0
+
+# Read JSON from stdin and extract hook_event_name
+INPUT=$(cat)
+EVENT_TYPE=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | cut -d'"' -f4)
+
+# Default to "Stop" if not found
+[ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
 
 curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${NOTIFICATIONS_PORT}}/hook/complete" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
   --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
+  --data-urlencode "eventType=$EVENT_TYPE" \\
   > /dev/null 2>&1
 `;
 	fs.writeFileSync(notifyPath, script, { mode: 0o755 });
@@ -67,7 +75,7 @@ function createClaudeWrapper(): void {
 # Superset wrapper for Claude Code
 # Injects notification hook settings
 
-SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}]}}'
+SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}],"PermissionRequest":[{"matcher":"*","hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}]}}'
 
 exec "${realClaude}" --settings "$SUPERSET_CLAUDE_SETTINGS" "$@"
 `;
