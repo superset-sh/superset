@@ -1,10 +1,19 @@
 import { join } from "node:path";
-import { BrowserWindow } from "electron";
+import { BrowserWindow, shell } from "electron";
 import { registerRoute } from "lib/electron-router-dom";
 import type { WindowProps } from "shared/types";
 
 export function createWindow({ id, ...settings }: WindowProps) {
 	const window = new BrowserWindow(settings);
+
+	// Open external URLs in the system browser instead of Electron
+	window.webContents.setWindowOpenHandler(({ url }) => {
+		if (url.startsWith("http://") || url.startsWith("https://")) {
+			shell.openExternal(url);
+			return { action: "deny" };
+		}
+		return { action: "deny" };
+	});
 
 	registerRoute({
 		id,

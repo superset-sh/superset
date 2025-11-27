@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 
 import {
 	installExtension,
@@ -53,10 +53,13 @@ export async function makeAppSetup(
 	});
 
 	app.on("web-contents-created", (_, contents) =>
-		contents.on(
-			"will-navigate",
-			(event, _) => !ENVIRONMENT.IS_DEV && event.preventDefault(),
-		),
+		contents.on("will-navigate", (event, url) => {
+			// Always prevent in-app navigation for external URLs
+			if (url.startsWith("http://") || url.startsWith("https://")) {
+				event.preventDefault();
+				shell.openExternal(url);
+			}
+		}),
 	);
 
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
