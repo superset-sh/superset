@@ -11,6 +11,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Build - macOS (${{ matrix.arch }})
@@ -66,14 +69,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run package
 
-      # Upload artifacts
-      - name: Upload artifacts
+      # Upload artifacts separately to avoid nested zips
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-mac-${{ matrix.arch }}
-          path: |
-            apps/desktop/release/*.dmg
-            apps/desktop/release/*.zip
+          name: desktop-mac-${{ matrix.arch }}-dmg
+          path: apps/desktop/release/*.dmg
+          retention-days: 30
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac-${{ matrix.arch }}-zip
+          path: apps/desktop/release/*.zip
           retention-days: 30
 
   # Create GitHub Release after builds complete
@@ -91,11 +99,35 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
+          merge-multiple: true
+
+      - name: Create stable-named copies for latest download URLs
+        run: |
+          cd release-artifacts
+          # Create stable-named copies (without version) for /releases/latest/download/ URLs
+          for file in *.dmg; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., Superset-0.0.1-arm64.dmg -> arm64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)\.dmg$/\1/')
+              cp "$file" "Superset-${arch}.dmg"
+              echo "Created stable copy: Superset-${arch}.dmg"
+            fi
+          done
+          for file in *-mac.zip; do
+            if [[ -f "$file" ]]; then
+              # Extract architecture from filename (e.g., Superset-0.0.1-arm64-mac.zip -> arm64)
+              arch=$(echo "$file" | sed -E 's/.*-([^-]+)-mac\.zip$/\1/')
+              cp "$file" "Superset-${arch}-mac.zip"
+              echo "Created stable copy: Superset-${arch}-mac.zip"
+            fi
+          done
+          echo "Release artifacts:"
+          ls -la
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: release-artifacts/**/*
+          files: release-artifacts/*
           draft: true
           generate_release_notes: true
           name: Superset Desktop ${{ github.ref_name }}
