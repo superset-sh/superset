@@ -508,6 +508,57 @@ describe("TerminalManager", () => {
 			expect(dataHandler).toHaveBeenCalledWith("test output\n");
 		});
 
+		it("should filter escape sequences from scrollback but emit raw data to xterm", async () => {
+			// Integration test: verifies that filterTerminalQueryResponses is properly
+			// integrated - raw data goes to xterm, filtered data goes to scrollback.
+			// See terminal-escape-filter.test.ts for detailed filter behavior tests.
+			const dataHandler = mock(() => {});
+
+			await manager.createOrAttach({
+				tabId: "tab-filter",
+				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			manager.on("data:tab-filter", dataHandler);
+
+			const onDataCallback = mockPty.onData.mock.results[0]?.value;
+			const dataWithResponses =
+				"hello\x1b[2;1R\x1b[?1;0cworld\x1b]10;rgb:ffff/ffff/ffff\x07\n";
+			if (onDataCallback) {
+				onDataCallback(dataWithResponses);
+			}
+
+			// Raw data emitted to xterm (needs to process the responses)
+			expect(dataHandler).toHaveBeenCalledWith(dataWithResponses);
+
+			// Terminate and recover to check scrollback
+			const exitPromise = new Promise<void>((resolve) => {
+				manager.once("exit:tab-filter", () => resolve());
+			});
+
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			await exitPromise;
+			await manager.cleanup();
+
+			const result = await manager.createOrAttach({
+				tabId: "tab-filter",
+				workspaceId: "workspace-1",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			// Scrollback has filtered data (no escape sequence responses)
+			expect(result.wasRecovered).toBe(true);
+			expect(result.scrollback).toBe("helloworld\n");
+		});
+
 		it("should emit exit events", async () => {
 			const exitHandler = mock(() => {});
 

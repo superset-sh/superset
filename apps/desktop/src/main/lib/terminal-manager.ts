@@ -3,6 +3,7 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { NOTIFICATIONS_PORT } from "shared/constants";
 import { getSupersetPath } from "./agent-setup";
+import { filterTerminalQueryResponses } from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -137,8 +138,12 @@ export class TerminalManager extends EventEmitter {
 		};
 
 		ptyProcess.onData((data) => {
-			session.scrollback += data;
-			session.historyWriter?.write(data);
+			// Filter terminal query responses before storing in scrollback
+			// These are responses to xterm.js queries that display as garbage on reattach
+			const filteredData = filterTerminalQueryResponses(data);
+			session.scrollback += filteredData;
+			session.historyWriter?.write(filteredData);
+			// Emit original data to xterm - it needs to process the responses
 			this.emit(`data:${tabId}`, data);
 		});
 
