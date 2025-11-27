@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
+import { CgSpinner } from "react-icons/cg";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import {
@@ -82,6 +83,7 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	};
 
 	const isGroupTab = tab.type === TabType.Group;
+	const isSetupTab = tab.type === TabType.Setup;
 	const hasChildren = childTabs.length > 0;
 
 	return (
@@ -136,6 +138,9 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 									className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
 								/>
 							</div>
+						)}
+						{isSetupTab && (
+							<CgSpinner className="size-4 shrink-0 animate-spin mr-1" />
 						)}
 						{rename.isRenaming ? (
 							<input
