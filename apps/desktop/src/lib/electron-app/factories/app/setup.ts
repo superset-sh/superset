@@ -21,7 +21,7 @@ export async function makeAppSetup(
 					allowFileAccess: true,
 				},
 			});
-		} catch (error) {
+		} catch (_error) {
 			//   console.warn('Failed to install React DevTools extension:', error)
 		}
 	}

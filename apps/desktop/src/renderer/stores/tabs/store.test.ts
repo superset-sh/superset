@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: Test file uses type casts for test data setup
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
 // Mock the terminal cleanup to avoid actually calling tRPC

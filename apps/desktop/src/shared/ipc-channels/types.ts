@@ -14,12 +14,12 @@ export interface IpcResponse<T = void> {
 /**
  * Helper type for channels with no request data
  */
-export type NoRequest = void;
+export type NoRequest = undefined;
 
 /**
  * Helper type for channels with no response data
  */
-export type NoResponse = void;
+export type NoResponse = undefined;
 
 /**
  * Helper type for simple success/error responses

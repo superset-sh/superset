@@ -7,11 +7,13 @@ import { getDefaultLaunchCommand } from "../lib/launch/config";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
 import {
+	type Agent,
 	AgentType,
 	type Process,
 	ProcessStatus,
 	ProcessType,
 } from "../types/process";
+import type { Workspace } from "../types/workspace";
 
 // Display type with formatted date strings
 type FormattedProcess = Omit<Process, "createdAt" | "updatedAt" | "endedAt"> & {
@@ -424,19 +426,101 @@ enum StartStep {
 
 interface AgentStartProps {
 	workspaceId?: string;
-	onComplete?: () => void;
 }
 
-export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
+export function AgentStart({ workspaceId }: AgentStartProps) {
 	const { exit } = useApp();
 	const [step, setStep] = React.useState(StartStep.LOADING);
 	const [error, setError] = React.useState<string | null>(null);
-	const [workspace, setWorkspace] = React.useState<any>(null);
+	const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
 	const [selectedAgents, setSelectedAgents] = React.useState<AgentType[]>([]);
 	const [startedAgents, setStartedAgents] = React.useState<Process[]>([]);
 	const [failures, setFailures] = React.useState<
 		Array<{ agentType: AgentType; error: string }>
 	>([]);
+
+	const startAgents = React.useCallback(
+		async (ws: Workspace, agents: AgentType[]) => {
+			try {
+				const db = getDb();
+				const processOrchestrator = new ProcessOrchestrator(db);
+				const workspaceOrchestrator = new WorkspaceOrchestrator(db);
+
+				const created: Process[] = [];
+				const failures: Array<{ agentType: AgentType; error: string }> = [];
+
+				for (const agentType of agents) {
+					// Get default launch command for this agent type
+					const launchCommand = getDefaultLaunchCommand(agentType);
+
+					// Create the process in IDLE state
+					const process = await processOrchestrator.create(
+						ProcessType.AGENT,
+						ws,
+						agentType,
+					);
+
+					// Set launch command but keep in IDLE state
+					await processOrchestrator.update(process.id, {
+						launchCommand,
+					});
+
+					// Actually create the tmux session in the background
+					const agent = process as Agent;
+					const { launchAgent } = await import("../lib/launch/run");
+					const result = await launchAgent(agent, { attach: false });
+
+					if (!result.success) {
+						// If session creation fails, mark agent as ERROR
+						await processOrchestrator.update(process.id, {
+							status: ProcessStatus.ERROR,
+							endedAt: new Date(),
+						});
+						failures.push({
+							agentType,
+							error: result.error || "Unknown error",
+						});
+					} else {
+						// Only mark as RUNNING if session creation succeeded
+						await processOrchestrator.update(process.id, {
+							status: ProcessStatus.RUNNING,
+							endedAt: undefined, // Clear endedAt since session is alive
+						});
+						created.push(process);
+					}
+				}
+
+				// Update workspace lastUsedAt and set as current if not already
+				await workspaceOrchestrator.use(ws.id);
+
+				setStartedAgents(created);
+				setFailures(failures);
+
+				// Only advance to COMPLETE if at least one agent succeeded
+				if (created.length > 0) {
+					setStep(StartStep.COMPLETE);
+
+					// Auto-exit after showing success (skip if there were partial failures)
+					if (failures.length === 0) {
+						setTimeout(() => {
+							exit();
+						}, 2000);
+					}
+				} else {
+					// All agents failed - show error
+					const errorMsg = failures
+						.map((f) => `${f.agentType}: ${f.error}`)
+						.join("\n");
+					setError(
+						`Failed to start all agents:\n${errorMsg}\n\nPlease check that tmux is installed and the agent commands are available.`,
+					);
+				}
+			} catch (err) {
+				setError(err instanceof Error ? err.message : "Unknown error");
+			}
+		},
+		[exit],
+	);
 
 	React.useEffect(() => {
 		const loadWorkspace = async () => {
@@ -444,7 +528,7 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 				const db = getDb();
 				const workspaceOrchestrator = new WorkspaceOrchestrator(db);
 
-				let ws;
+				let ws: Workspace | null;
 				if (workspaceId) {
 					ws = await workspaceOrchestrator.get(workspaceId);
 				} else {
@@ -474,87 +558,7 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 		};
 
 		loadWorkspace();
-	}, [workspaceId]);
-
-	const startAgents = async (ws: any, agents: AgentType[]) => {
-		try {
-			const db = getDb();
-			const processOrchestrator = new ProcessOrchestrator(db);
-			const workspaceOrchestrator = new WorkspaceOrchestrator(db);
-
-			const created: Process[] = [];
-			const failures: Array<{ agentType: AgentType; error: string }> = [];
-
-			for (const agentType of agents) {
-				// Get default launch command for this agent type
-				const launchCommand = getDefaultLaunchCommand(agentType);
-
-				// Create the process in IDLE state
-				const process = await processOrchestrator.create(
-					ProcessType.AGENT,
-					ws,
-					agentType,
-				);
-
-				// Set launch command but keep in IDLE state
-				await processOrchestrator.update(process.id, {
-					launchCommand,
-				});
-
-				// Actually create the tmux session in the background
-				const agent = process as import("../types/process").Agent;
-				const { launchAgent } = await import("../lib/launch/run");
-				const result = await launchAgent(agent, { attach: false });
-
-				if (!result.success) {
-					// If session creation fails, mark agent as ERROR
-					await processOrchestrator.update(process.id, {
-						status: ProcessStatus.ERROR,
-						endedAt: new Date(),
-					});
-					failures.push({
-						agentType,
-						error: result.error || "Unknown error",
-					});
-				} else {
-					// Only mark as RUNNING if session creation succeeded
-					await processOrchestrator.update(process.id, {
-						status: ProcessStatus.RUNNING,
-						endedAt: undefined, // Clear endedAt since session is alive
-					});
-					created.push(process);
-				}
-			}
-
-			// Update workspace lastUsedAt and set as current if not already
-			await workspaceOrchestrator.use(ws.id);
-
-			setStartedAgents(created);
-			setFailures(failures);
-
-			// Only advance to COMPLETE if at least one agent succeeded
-			if (created.length > 0) {
-				setStep(StartStep.COMPLETE);
-
-				// Auto-exit after showing success (skip if there were partial failures)
-				if (failures.length === 0) {
-					setTimeout(() => {
-						exit();
-					}, 2000);
-				}
-			} else {
-				// All agents failed - show error
-				const errorMsg = failures
-					.map((f) => `${f.agentType}: ${f.error}`)
-					.join("\n");
-				setError(
-					`Failed to start all agents:\n${errorMsg}\n\nPlease check that tmux is installed and the agent commands are available.`,
-				);
-			}
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Unknown error");
-		}
-	};
+	}, [workspaceId, startAgents]);
 
 	const handleAgentSelect = (item: { value: string }) => {
 		if (item.value === "done") {
@@ -563,7 +567,9 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 				return;
 			}
 			setStep(StartStep.STARTING);
-			startAgents(workspace, selectedAgents);
+			if (workspace) {
+				startAgents(workspace, selectedAgents);
+			}
 		} else if (item.value === "cancel") {
 			exit();
 		} else {
@@ -644,15 +650,15 @@ export function AgentStart({ workspaceId, onComplete }: AgentStartProps) {
 					{successCount > 0 && (
 						<Text dimColor color="green">
 							Success:{" "}
-							{startedAgents.map((a) => (a as any).agentType).join(", ")}
+							{startedAgents.map((a) => (a as Agent).agentType).join(", ")}
 						</Text>
 					)}
 				</Box>
 				{failureCount > 0 && (
 					<Box marginTop={1} flexDirection="column">
 						<Text color="red">Failed agents:</Text>
-						{failures.map((f, i) => (
-							<Text key={i} dimColor color="red">
+						{failures.map((f) => (
+							<Text key={f.agentType} dimColor color="red">
 								• {f.agentType}: {f.error}
 							</Text>
 						))}
@@ -692,7 +698,7 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 				const orchestrator = new ProcessOrchestrator(db);
 
 				// Try to get by ID first
-				let process;
+				let process: Process | undefined;
 				try {
 					process = await orchestrator.get(id);
 				} catch {
@@ -702,7 +708,7 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 						(p) =>
 							p.type === ProcessType.AGENT &&
 							"sessionName" in p &&
-							(p as import("../types/process").Agent).sessionName === id,
+							(p as Agent).sessionName === id,
 					);
 
 					if (!foundBySession) {
@@ -723,7 +729,7 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 					return;
 				}
 
-				const agent = process as import("../types/process").Agent;
+				const agent = process as Agent;
 
 				// Import and call launchAgent
 				const { launchAgent } = await import("../lib/launch/run");

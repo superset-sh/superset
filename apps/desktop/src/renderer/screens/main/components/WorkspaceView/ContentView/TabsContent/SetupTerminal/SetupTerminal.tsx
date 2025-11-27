@@ -210,6 +210,7 @@ export const SetupTerminal = ({
 		setupCwd,
 		setupCopyResults,
 		workspaceCwd,
+		terminalTheme,
 	]);
 
 	// Update terminal theme when it changes

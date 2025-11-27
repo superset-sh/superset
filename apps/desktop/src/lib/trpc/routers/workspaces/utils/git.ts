@@ -85,7 +85,7 @@ export async function getGitRoot(path: string): Promise<string> {
 		const git = simpleGit(path);
 		const root = await git.revparse(["--show-toplevel"]);
 		return root.trim();
-	} catch (error) {
+	} catch (_error) {
 		throw new Error(`Not a git repository: ${path}`);
 	}
 }

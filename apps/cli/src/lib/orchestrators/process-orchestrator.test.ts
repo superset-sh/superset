@@ -286,12 +286,13 @@ describe("ProcessOrchestrator", () => {
 			await orchestrator.stop(agent.id);
 
 			const firstStopped = await orchestrator.get(agent.id);
-			const firstEndedAt = firstStopped.endedAt!;
+			expect(firstStopped.endedAt).toBeDefined();
+			const firstEndedAt = firstStopped.endedAt as Date;
 
 			await orchestrator.stopAll();
 
 			const secondStopped = await orchestrator.get(agent.id);
-			expect(secondStopped.endedAt!.getTime()).toBe(firstEndedAt.getTime());
+			expect(secondStopped.endedAt?.getTime()).toBe(firstEndedAt.getTime());
 		});
 	});
 

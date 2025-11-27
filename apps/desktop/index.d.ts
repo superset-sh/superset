@@ -8,6 +8,7 @@ interface ImportMetaEnv {
 	readonly ENABLE_NEW_UI?: string;
 }
 
+// biome-ignore lint/correctness/noUnusedVariables: Augments global import.meta type for Vite
 interface ImportMeta {
 	readonly env: ImportMetaEnv;
 }

@@ -2,7 +2,7 @@
  * Terminal-related IPC channels
  */
 
-import type { NoRequest, NoResponse } from "./types";
+import type { NoResponse } from "./types";
 
 export interface TerminalChannels {
 	"terminal-create": {

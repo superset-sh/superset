@@ -24,6 +24,7 @@ const testTmpDir = join(tmpdir(), "superset-test");
 const mockStyleMap = new Map<string, string>();
 const mockClassList = new Set<string>();
 
+// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
 	documentElement: {
 		style: {
@@ -59,9 +60,11 @@ global.window = {
 			mockStorage.delete(key);
 		},
 	},
+	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires partial window mock
 } as any;
 
 // trpc-electron expects this global for renderer-side communication
+// biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).electronTRPC = {
 	sendMessage: () => {},
 	onMessage: (_callback: (msg: unknown) => void) => {},

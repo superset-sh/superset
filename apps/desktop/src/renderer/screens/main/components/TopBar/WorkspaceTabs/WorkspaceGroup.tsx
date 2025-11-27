@@ -31,7 +31,7 @@ export function WorkspaceGroup({
 	workspaces,
 	activeWorkspaceId,
 	workspaceWidth,
-	hoveredWorkspaceId,
+	hoveredWorkspaceId: _hoveredWorkspaceId,
 	onWorkspaceHover,
 }: WorkspaceGroupProps) {
 	const [isCollapsed, setIsCollapsed] = useState(false);

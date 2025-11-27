@@ -23,7 +23,7 @@ if (process.defaultApp) {
 }
 
 // TODO: Handle deep link when app is already running
-app.on("open-url", (event, url) => {
+app.on("open-url", (event, _url) => {
 	event.preventDefault();
 });
 

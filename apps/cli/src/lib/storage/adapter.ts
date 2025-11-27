@@ -1,12 +1,8 @@
 import type { Database } from "./types";
 
 // Helper type to extract value type from Record collections
-type CollectionValue<K extends keyof Database> = Database[K] extends Record<
-	string,
-	infer V
->
-	? V
-	: never;
+type CollectionValue<K extends keyof Database> =
+	Database[K] extends Record<string, infer V> ? V : never;
 
 /**
  * Generic storage adapter interface

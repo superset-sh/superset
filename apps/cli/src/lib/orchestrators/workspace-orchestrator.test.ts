@@ -147,7 +147,7 @@ describe("WorkspaceOrchestrator", () => {
 			const workspace = await orchestrator.create(env.id, WorkspaceType.LOCAL, {
 				path: "/tmp/test",
 			});
-			const change = await changeOrchestrator.create({
+			const _change = await changeOrchestrator.create({
 				workspaceId: workspace.id,
 				summary: "Test change",
 				createdAt: new Date(),

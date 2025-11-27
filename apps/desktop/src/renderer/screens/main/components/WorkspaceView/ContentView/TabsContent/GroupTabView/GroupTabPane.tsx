@@ -39,7 +39,7 @@ export function GroupTabPane({
 	removeChildTabFromGroup,
 	setActiveTab,
 }: GroupTabPaneProps) {
-	const handleFocus = () => {
+	const _handleFocus = () => {
 		setActiveTab(workspaceId, tabId);
 	};
 

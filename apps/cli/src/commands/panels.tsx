@@ -21,16 +21,12 @@ interface PanelsData {
 	lastRefresh: Date;
 }
 
-interface PanelsProps {
-	onComplete?: () => void;
-}
-
 type ActivePanel = "workspaces" | "agents" | "details";
 
 // Threshold for responsive layout - hide details panel and adjust widths below this
 const SMALL_TERMINAL_THRESHOLD = 80;
 
-export function Panels({ onComplete: _onComplete }: PanelsProps) {
+export function Panels() {
 	const [data, setData] = React.useState<PanelsData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);

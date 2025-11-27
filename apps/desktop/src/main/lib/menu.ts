@@ -24,7 +24,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 							return;
 						}
 
-						const repoPath = result.filePaths[0];
+						const _repoPath = result.filePaths[0];
 						console.log("[Menu] Event sent");
 					},
 				},

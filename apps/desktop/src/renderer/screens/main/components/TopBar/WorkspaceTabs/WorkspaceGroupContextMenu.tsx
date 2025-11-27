@@ -1,7 +1,6 @@
 import {
 	ContextMenu,
 	ContextMenuContent,
-	ContextMenuLabel,
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";

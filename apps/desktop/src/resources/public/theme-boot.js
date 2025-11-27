@@ -1,12 +1,13 @@
 // Apply saved theme class immediately to prevent flash of wrong colors
 // This runs before React hydration to ensure correct initial appearance
 (() => {
+	let themeType;
 	try {
-		var themeType = localStorage.getItem("theme-type");
+		themeType = localStorage.getItem("theme-type");
 		document.documentElement.classList.add(
 			themeType === "light" ? "light" : "dark",
 		);
-	} catch (e) {
+	} catch (_e) {
 		document.documentElement.classList.add("dark");
 	}
 })();

@@ -3,6 +3,12 @@ import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { ChangeOrchestrator } from "../lib/orchestrators/change-orchestrator";
+import type { Change } from "../types/change";
+
+// Display type with formatted date strings
+type FormattedChange = Omit<Change, "createdAt"> & {
+	createdAt: string;
+};
 
 interface ChangeListProps {
 	workspaceId: string;
@@ -10,7 +16,7 @@ interface ChangeListProps {
 }
 
 export function ChangeList({ workspaceId, onComplete }: ChangeListProps) {
-	const [changes, setChanges] = React.useState<any[]>([]);
+	const [changes, setChanges] = React.useState<FormattedChange[]>([]);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -78,7 +84,7 @@ export function ChangeCreate({
 	summary,
 	onComplete,
 }: ChangeCreateProps) {
-	const [change, setChange] = React.useState<any | null>(null);
+	const [change, setChange] = React.useState<FormattedChange | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -122,7 +128,7 @@ export function ChangeCreate({
 	return (
 		<Box flexDirection="column">
 			<Text color="green">✓ Change created successfully</Text>
-			<Table data={[change]} />
+			{change && <Table data={[change]} />}
 		</Box>
 	);
 }

@@ -20,13 +20,9 @@ interface DashboardData {
 	lastRefresh: Date;
 }
 
-interface DashboardProps {
-	onComplete?: () => void;
-}
-
 type SelectionMode = "workspace" | "agent";
 
-export function Dashboard({ onComplete: _onComplete }: DashboardProps) {
+export function Dashboard() {
 	const [data, setData] = React.useState<DashboardData | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);

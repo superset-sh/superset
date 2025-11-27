@@ -11,8 +11,8 @@ declare global {
 		App: typeof API;
 		ipcRenderer: typeof ipcRendererAPI;
 		electronStore: {
-			get: (key: string) => any;
-			set: (key: string, value: any) => void;
+			get: (key: string) => unknown;
+			set: (key: string, value: unknown) => void;
 			delete: (key: string) => void;
 		};
 	}
@@ -24,7 +24,8 @@ const API = {
 };
 
 // Store mapping of user listeners to wrapped listeners for proper cleanup
-const listenerMap = new WeakMap<Function, Function>();
+type IpcListener = (...args: unknown[]) => void;
+const listenerMap = new WeakMap<IpcListener, IpcListener>();
 
 /**
  * Type-safe IPC renderer API
@@ -46,12 +47,16 @@ const ipcRendererAPI = {
 	 * Legacy untyped invoke for backwards compatibility
 	 * @deprecated Use typed invoke instead
 	 */
+	// biome-ignore lint/suspicious/noExplicitAny: Legacy API requires any for backwards compatibility
 	invokeUntyped: (channel: string, ...args: any[]) =>
 		ipcRenderer.invoke(channel, ...args),
 
+	// biome-ignore lint/suspicious/noExplicitAny: IPC send requires any for dynamic channel types
 	send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
 
+	// biome-ignore lint/suspicious/noExplicitAny: IPC listener requires any for dynamic event types
 	on: (channel: string, listener: (...args: any[]) => void) => {
+		// biome-ignore lint/suspicious/noExplicitAny: IPC event wrapper requires any
 		const wrappedListener = (_event: any, ...args: any[]) => {
 			listener(...args);
 		};
@@ -59,11 +64,13 @@ const ipcRendererAPI = {
 		ipcRenderer.on(channel, wrappedListener);
 	},
 
+	// biome-ignore lint/suspicious/noExplicitAny: IPC listener requires any for dynamic event types
 	off: (channel: string, listener: (...args: any[]) => void) => {
-		const wrappedListener = listenerMap.get(listener);
+		const wrappedListener = listenerMap.get(listener as IpcListener);
 		if (wrappedListener) {
+			// biome-ignore lint/suspicious/noExplicitAny: Electron IPC API requires this cast
 			ipcRenderer.removeListener(channel, wrappedListener as any);
-			listenerMap.delete(listener);
+			listenerMap.delete(listener as IpcListener);
 		}
 	},
 };
@@ -74,7 +81,7 @@ exposeElectronTRPC();
 // Expose electron-store API via IPC
 const electronStoreAPI = {
 	get: (key: string) => ipcRenderer.invoke("storage:get", { key }),
-	set: (key: string, value: any) =>
+	set: (key: string, value: unknown) =>
 		ipcRenderer.invoke("storage:set", { key, value }),
 	delete: (key: string) => ipcRenderer.invoke("storage:delete", { key }),
 };

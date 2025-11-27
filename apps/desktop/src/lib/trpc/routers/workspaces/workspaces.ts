@@ -82,7 +82,8 @@ export const createWorkspacesRouter = () => {
 							);
 							const maxProjectTabOrder =
 								activeProjects.length > 0
-									? Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+									? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+										Math.max(...activeProjects.map((proj) => proj.tabOrder!))
 									: -1;
 							p.tabOrder = maxProjectTabOrder + 1;
 						}
@@ -170,6 +171,7 @@ export const createWorkspacesRouter = () => {
 						id: project.id,
 						name: project.name,
 						color: project.color,
+						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
 						tabOrder: project.tabOrder!,
 					},
 					workspaces: [],

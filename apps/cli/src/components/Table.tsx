@@ -1,8 +1,7 @@
 import { Box, Text } from "ink";
-import React from "react";
 
 interface TableProps {
-	data: Record<string, any>[];
+	data: Record<string, unknown>[];
 }
 
 export default function Table({ data }: TableProps) {
@@ -10,23 +9,28 @@ export default function Table({ data }: TableProps) {
 		return null;
 	}
 
-	const keys = Object.keys(data[0]!);
+	const firstRow = data[0];
+	if (!firstRow) {
+		return null;
+	}
+	const keys = Object.keys(firstRow);
 
 	return (
 		<Box flexDirection="column">
-			{data.map((row, index) => (
-				<Box
-					key={index}
-					flexDirection="column"
-					marginBottom={index < data.length - 1 ? 1 : 0}
-				>
-					{keys.map((key) => (
-						<Text key={key}>
-							<Text bold>{key}:</Text> {String(row[key])}
-						</Text>
-					))}
-				</Box>
-			))}
+			{data.map((row) => {
+				// Create a stable key from the row data
+				const rowKey =
+					"id" in row ? String(row.id) : JSON.stringify(row).slice(0, 50);
+				return (
+					<Box key={rowKey} flexDirection="column" marginBottom={1}>
+						{keys.map((key) => (
+							<Text key={key}>
+								<Text bold>{key}:</Text> {String(row[key])}
+							</Text>
+						))}
+					</Box>
+				);
+			})}
 		</Box>
 	);
 }

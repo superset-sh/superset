@@ -65,6 +65,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				};
 
 				await db.update((data) => {
+					// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
 					data.projects.push(project!);
 				});
 			}
@@ -125,6 +126,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 					const activeProjects = data.projects
 						.filter((p) => p.tabOrder !== null)
+						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
 						.sort((a, b) => a.tabOrder! - b.tabOrder!);
 
 					if (

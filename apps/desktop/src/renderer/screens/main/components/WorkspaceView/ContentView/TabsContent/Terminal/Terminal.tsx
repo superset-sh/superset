@@ -195,7 +195,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
+	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle, terminalTheme]);
 
 	// Update terminal theme when it changes
 	useEffect(() => {

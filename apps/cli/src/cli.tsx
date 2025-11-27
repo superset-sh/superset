@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
-import React from "react";
 import {
 	AgentAttach,
 	AgentCreate,
@@ -362,7 +361,7 @@ program.action(async () => {
 				"💡 No workspace selected. Run 'superset init' to get started!\n",
 			);
 		}
-	} catch (err) {
+	} catch (_err) {
 		// Silently ignore errors (e.g., no database yet)
 	}
 

@@ -12,7 +12,7 @@ export function registerStorageHandlers() {
 
 	ipcMain.handle(
 		"storage:set",
-		async (_event, input: { key: string; value: any }) => {
+		async (_event, input: { key: string; value: unknown }) => {
 			store.set(input.key, input.value);
 		},
 	);

@@ -86,7 +86,7 @@
 		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.2.6",
+		"@biomejs/biome": "^2.3.8",
 		"@tailwindcss/vite": "^4.0.9",
 		"@types/http-proxy": "^1.17.17",
 		"@types/lodash": "^4.17.20",

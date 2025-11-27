@@ -8,15 +8,6 @@ import * as THREE from "three";
 import { useHeroVisibility } from "../motion/HeroParallax";
 
 // Configuration constants
-const WAVE_CONFIG = {
-	WAVE1_FREQUENCY: 0.5,
-	WAVE1_SPEED: 0.5,
-	WAVE1_AMPLITUDE: 0.1,
-	WAVE2_FREQUENCY: 0.5,
-	WAVE2_SPEED: 0.3,
-	WAVE2_AMPLITUDE: 0.1,
-} as const;
-
 const LIGHT_CONFIG = {
 	INTENSITY: 25,
 	Z_POSITION: 2,
@@ -253,6 +244,7 @@ function LitBackground() {
 				{/* Create depth by layering multiple text instances - reduced from 30 to 15 for performance */}
 				{Array.from({ length: TEXT_CONFIG.LAYER_COUNT }, (_, i) => (
 					<Text
+						// biome-ignore lint/suspicious/noArrayIndexKey: Static list with fixed order - index is the appropriate key
 						key={i}
 						position={[0, 0, -i * TEXT_CONFIG.LAYER_SPACING]}
 						fontSize={TEXT_CONFIG.FONT_SIZE}

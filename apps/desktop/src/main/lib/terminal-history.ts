@@ -84,7 +84,7 @@ export class HistoryWriter {
 		if (this.stream && !this.streamErrored) {
 			try {
 				await new Promise<void>((resolve) => {
-					this.stream!.end(() => resolve());
+					this.stream?.end(() => resolve());
 				});
 			} catch {
 				// Ignore close errors

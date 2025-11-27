@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { useState } from "react";
 
 const NAV_LINKS = [
@@ -40,14 +41,14 @@ export function Header() {
 						animate={{ opacity: 1, y: 0 }}
 						transition={{ duration: 0.5, delay: 0.1 }}
 					>
-						{NAV_LINKS.map((link, idx) => (
-							<a
+						{NAV_LINKS.map((link) => (
+							<Link
 								key={link.label}
 								href={link.href}
 								className="text-zinc-400 hover:text-white transition-colors text-sm font-medium"
 							>
 								{link.label}
-							</a>
+							</Link>
 						))}
 					</motion.div>
 
@@ -58,18 +59,18 @@ export function Header() {
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.5, delay: 0.2 }}
 					>
-						<a
+						<Link
 							href="#"
 							className="text-zinc-400 hover:text-white transition-colors text-sm font-medium"
 						>
 							Sign in
-						</a>
-						<a
+						</Link>
+						<Link
 							href="#"
 							className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors"
 						>
 							Get started
-						</a>
+						</Link>
 					</motion.div>
 
 					{/* Mobile Menu Button */}
@@ -87,6 +88,7 @@ export function Header() {
 							strokeWidth="2"
 							viewBox="0 0 24 24"
 							stroke="currentColor"
+							aria-hidden="true"
 						>
 							{isMenuOpen ? (
 								<path d="M6 18L18 6M6 6l12 12" />
@@ -108,28 +110,28 @@ export function Header() {
 					>
 						<div className="flex flex-col gap-4">
 							{NAV_LINKS.map((link) => (
-								<a
+								<Link
 									key={link.label}
 									href={link.href}
 									className="text-zinc-400 hover:text-white transition-colors text-sm font-medium"
 									onClick={() => setIsMenuOpen(false)}
 								>
 									{link.label}
-								</a>
+								</Link>
 							))}
 							<div className="pt-4 border-t border-zinc-800 flex flex-col gap-3">
-								<a
+								<Link
 									href="#"
 									className="text-zinc-400 hover:text-white transition-colors text-sm font-medium"
 								>
 									Sign in
-								</a>
-								<a
+								</Link>
+								<Link
 									href="#"
 									className="bg-white text-black px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-200 transition-colors text-center"
 								>
 									Get started
-								</a>
+								</Link>
 							</div>
 						</div>
 					</motion.div>
