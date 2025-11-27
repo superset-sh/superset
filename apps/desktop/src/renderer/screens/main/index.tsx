@@ -29,34 +29,22 @@ export function MainScreen() {
 	const isWorkspaceView = currentView === "workspace";
 
 	// Sidebar toggle shortcut - only in workspace view
-	useHotkeys(
-		"meta+s",
-		() => {
-			if (isWorkspaceView) toggleSidebar();
-		},
-		[toggleSidebar, isWorkspaceView],
-	);
+	useHotkeys("meta+s", () => {
+		if (isWorkspaceView) toggleSidebar();
+	}, [toggleSidebar, isWorkspaceView]);
 
 	// Split view shortcuts - only in workspace view
-	useHotkeys(
-		"meta+d",
-		() => {
-			if (isWorkspaceView && activeWorkspaceId) {
-				splitTabVertical(activeWorkspaceId);
-			}
-		},
-		[activeWorkspaceId, splitTabVertical, isWorkspaceView],
-	);
+	useHotkeys("meta+d", () => {
+		if (isWorkspaceView && activeWorkspaceId) {
+			splitTabVertical(activeWorkspaceId);
+		}
+	}, [activeWorkspaceId, splitTabVertical, isWorkspaceView]);
 
-	useHotkeys(
-		"meta+shift+d",
-		() => {
-			if (isWorkspaceView && activeWorkspaceId) {
-				splitTabHorizontal(activeWorkspaceId);
-			}
-		},
-		[activeWorkspaceId, splitTabHorizontal, isWorkspaceView],
-	);
+	useHotkeys("meta+shift+d", () => {
+		if (isWorkspaceView && activeWorkspaceId) {
+			splitTabHorizontal(activeWorkspaceId);
+		}
+	}, [activeWorkspaceId, splitTabHorizontal, isWorkspaceView]);
 
 	return (
 		<DndProvider manager={dragDropManager}>

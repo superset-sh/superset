@@ -153,6 +153,7 @@ export const createWorkspacesRouter = () => {
 						id: string;
 						projectId: string;
 						worktreeId: string;
+						worktreePath: string;
 						name: string;
 						tabOrder: number;
 						createdAt: number;
@@ -180,7 +181,13 @@ export const createWorkspacesRouter = () => {
 
 			for (const workspace of workspaces) {
 				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)?.workspaces.push(workspace);
+					const worktree = db.data.worktrees.find(
+						(w) => w.id === workspace.worktreeId,
+					);
+					groupsMap.get(workspace.projectId)?.workspaces.push({
+						...workspace,
+						worktreePath: worktree?.path ?? "",
+					});
 				}
 			}
 
