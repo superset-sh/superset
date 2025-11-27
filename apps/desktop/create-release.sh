@@ -88,27 +88,54 @@ if ! git diff-index --quiet HEAD --; then
 fi
 success "Working directory is clean"
 
-# 2. Check if tag/release already exists and clean up if needed
+# 2. Check if tag/release already exists
 info "Checking if tag ${TAG_NAME} already exists..."
 if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
-    warn "Tag ${TAG_NAME} already exists. Cleaning up for republish..."
+    echo ""
+    warn "Tag ${TAG_NAME} already exists!"
 
-    # Delete the GitHub release if it exists
+    # Check if there's also a GitHub release
     if gh release view "${TAG_NAME}" &>/dev/null; then
-        info "Deleting existing GitHub release..."
-        gh release delete "${TAG_NAME}" --yes
-        success "Deleted existing release"
+        RELEASE_STATUS=$(gh release view "${TAG_NAME}" --json isDraft --jq 'if .isDraft then "draft" else "published"' 2>/dev/null || echo "unknown")
+        echo -e "  GitHub release: ${YELLOW}${RELEASE_STATUS}${NC}"
+    else
+        echo -e "  GitHub release: ${YELLOW}none${NC}"
     fi
+    echo ""
 
-    # Delete remote tag
-    info "Deleting remote tag..."
-    git push origin --delete "${TAG_NAME}" 2>/dev/null || true
-    success "Deleted remote tag"
+    # Ask user what to do
+    echo "What would you like to do?"
+    echo "  1) Republish - Delete existing release/tag and create new one"
+    echo "  2) Cancel - Exit without changes"
+    echo ""
+    read -p "Enter choice [1-2]: " choice
 
-    # Delete local tag
-    info "Deleting local tag..."
-    git tag -d "${TAG_NAME}" 2>/dev/null || true
-    success "Deleted local tag"
+    case $choice in
+        1)
+            info "Cleaning up for republish..."
+
+            # Delete the GitHub release if it exists
+            if gh release view "${TAG_NAME}" &>/dev/null; then
+                info "Deleting existing GitHub release..."
+                gh release delete "${TAG_NAME}" --yes
+                success "Deleted existing release"
+            fi
+
+            # Delete remote tag
+            info "Deleting remote tag..."
+            git push origin --delete "${TAG_NAME}" 2>/dev/null || true
+            success "Deleted remote tag"
+
+            # Delete local tag
+            info "Deleting local tag..."
+            git tag -d "${TAG_NAME}" 2>/dev/null || true
+            success "Deleted local tag"
+            ;;
+        2|*)
+            info "Cancelled. No changes made."
+            exit 0
+            ;;
+    esac
 fi
 success "Tag ${TAG_NAME} is available"
 
