@@ -126,7 +126,10 @@ export class TerminalEscapeFilter {
 			const afterEsc = combined.slice(lastEscIndex);
 
 			// Only buffer if it looks like an incomplete query response pattern
-			if (this.looksLikeQueryResponse(afterEsc) && this.isIncomplete(afterEsc)) {
+			if (
+				this.looksLikeQueryResponse(afterEsc) &&
+				this.isIncomplete(afterEsc)
+			) {
 				this.buffer = afterEsc;
 				const toFilter = combined.slice(0, lastEscIndex);
 				return toFilter.replace(COMBINED_PATTERN, "");
@@ -205,13 +208,13 @@ export class TerminalEscapeFilter {
 		// OSC sequence: ESC ]
 		if (secondChar === "]") {
 			// OSC ends with BEL or ST (ESC \)
-			return !str.includes(BEL) && !str.includes(ESC + "\\");
+			return !str.includes(BEL) && !str.includes(`${ESC}\\`);
 		}
 
 		// DCS sequence: ESC P
 		if (secondChar === "P") {
 			// DCS ends with ST (ESC \)
-			return !str.includes(ESC + "\\");
+			return !str.includes(`${ESC}\\`);
 		}
 
 		return false;

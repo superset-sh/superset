@@ -111,9 +111,9 @@ function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
 
 				{/* Color palette strip */}
 				<div className="flex gap-1 mt-2">
-					{accentColors.map((color, i) => (
+					{accentColors.map((color) => (
 						<div
-							key={i}
+							key={color}
 							className="h-2 w-5 rounded-sm"
 							style={{ backgroundColor: color }}
 						/>
