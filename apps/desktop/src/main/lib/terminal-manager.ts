@@ -5,6 +5,37 @@ import { NOTIFICATIONS_PORT } from "shared/constants";
 import { getSupersetPath } from "./agent-setup";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
+// ESC character for regex patterns
+const ESC = "\x1b";
+const BEL = "\x07";
+
+/**
+ * Filters out terminal query responses from PTY output before storing in scrollback.
+ * These are responses to xterm.js queries that shouldn't be replayed on reattach:
+ * - Cursor Position Reports (CPR): ESC [ row ; col R
+ * - Device Attributes (DA): ESC [ ? Ps c
+ * - OSC color responses: ESC ] 10;rgb:... or ESC ] 11;rgb:... etc.
+ * - DECRPM responses: ESC [ ? Ps ; Pm $ y
+ */
+function filterTerminalQueryResponses(data: string): string {
+	// Cursor Position Report: ESC[<row>;<col>R
+	// Device Attributes: ESC[?<params>c or ESC[<params>c
+	// DECRPM: ESC[?<param>;<mode>$y
+	const csiPattern = new RegExp(
+		`${ESC}\\[\\??[\\d;]*[Rc]|${ESC}\\[\\?\\d+;\\d+\\$y`,
+		"g",
+	);
+
+	// OSC responses for colors (10=fg, 11=bg, 12=cursor, etc.): ESC]<num>;rgb:...<ST>
+	// String terminator can be BEL or ST (ESC\)
+	const oscPattern = new RegExp(
+		`${ESC}\\]1[0-9];rgb:[0-9a-fA-F]{4}/[0-9a-fA-F]{4}/[0-9a-fA-F]{4}(?:${BEL}|${ESC}\\\\)`,
+		"g",
+	);
+
+	return data.replace(csiPattern, "").replace(oscPattern, "");
+}
+
 interface TerminalSession {
 	pty: pty.IPty;
 	tabId: string;
@@ -137,8 +168,12 @@ export class TerminalManager extends EventEmitter {
 		};
 
 		ptyProcess.onData((data) => {
-			session.scrollback += data;
-			session.historyWriter?.write(data);
+			// Filter terminal query responses before storing in scrollback
+			// These are responses to xterm.js queries that display as garbage on reattach
+			const filteredData = filterTerminalQueryResponses(data);
+			session.scrollback += filteredData;
+			session.historyWriter?.write(filteredData);
+			// Emit original data to xterm - it needs to process the responses
 			this.emit(`data:${tabId}`, data);
 		});
 
