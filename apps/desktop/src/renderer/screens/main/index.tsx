@@ -10,6 +10,7 @@ import {
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
+import { StartView } from "./components/StartView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceView } from "./components/WorkspaceView";
 
@@ -39,6 +40,11 @@ export function MainScreen() {
 			splitTabHorizontal(activeWorkspaceId);
 		}
 	}, [activeWorkspaceId, splitTabHorizontal]);
+
+	// Show start screen when no active workspace
+	if (!activeWorkspace) {
+		return <StartView />;
+	}
 
 	return (
 		<DndProvider manager={dragDropManager}>

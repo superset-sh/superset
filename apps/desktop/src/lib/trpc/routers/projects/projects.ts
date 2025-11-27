@@ -1,10 +1,11 @@
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
@@ -74,6 +75,83 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				project,
 			};
 		}),
+
+		cloneRepo: publicProcedure
+			.input(
+				z.object({
+					url: z.string().url(),
+					targetDirectory: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					// Determine target directory
+					let targetDir = input.targetDirectory;
+
+					if (!targetDir) {
+						// Show directory picker
+						const result = await dialog.showOpenDialog(window, {
+							properties: ["openDirectory", "createDirectory"],
+							title: "Select Clone Destination",
+						});
+
+						if (result.canceled || result.filePaths.length === 0) {
+							return {
+								success: false as const,
+								error: "No directory selected",
+							};
+						}
+
+						targetDir = result.filePaths[0];
+					}
+
+					// Extract repo name from URL
+					const repoName = input.url
+						.split("/")
+						.pop()
+						?.replace(/\.git$/, "");
+					if (!repoName) {
+						return {
+							success: false as const,
+							error: "Invalid repository URL",
+						};
+					}
+
+					const clonePath = join(targetDir, repoName);
+
+					// Clone the repository
+					const git = simpleGit();
+					await git.clone(input.url, clonePath);
+
+					// Add to projects
+					const name = basename(clonePath);
+					const project: Project = {
+						id: nanoid(),
+						mainRepoPath: clonePath,
+						name,
+						color: assignRandomColor(),
+						tabOrder: null,
+						lastOpenedAt: Date.now(),
+						createdAt: Date.now(),
+					};
+
+					await db.update((data) => {
+						data.projects.push(project);
+					});
+
+					return {
+						success: true as const,
+						project,
+					};
+				} catch (error) {
+					const errorMessage =
+						error instanceof Error ? error.message : String(error);
+					return {
+						success: false as const,
+						error: `Failed to clone repository: ${errorMessage}`,
+					};
+				}
+			}),
 
 		update: publicProcedure
 			.input(
