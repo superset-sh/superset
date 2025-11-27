@@ -29,15 +29,14 @@
 		"db:migrate": "cd packages/db && bun db:migrate",
 		"db:studio": "cd packages/db && bun db:studio",
 		"db:reset": "cd apps/backend && bun run reset",
-		"lint": "biome check --write .",
-		"lint:check": "biome check .",
+		"lint": "./scripts/lint.sh",
+		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",
 		"postinstall": "sherif",
 		"clean": "git clean -xdf node_modules",
-		"clean:workspaces": "turbo clean",
-		"setup:env": "cd packages/scripts && bun run start"
+		"clean:workspaces": "turbo clean"
 	},
 	"type": "module",
 	"workspaces": [

@@ -33,7 +33,7 @@ describe("LowdbAdapter", () => {
 			const data = await adapter.read();
 			// createEmptyDatabase() includes a default environment
 			expect(Object.keys(data.environments)).toHaveLength(1);
-			expect(data.environments["default"]).toBeDefined();
+			expect(data.environments.default).toBeDefined();
 			expect(Object.keys(data.workspaces)).toHaveLength(0);
 			expect(Object.keys(data.processes)).toHaveLength(0);
 			expect(Object.keys(data.changes)).toHaveLength(0);
@@ -88,7 +88,7 @@ describe("LowdbAdapter", () => {
 
 			// clear() resets to createEmptyDatabase() which has default env
 			expect(Object.keys(data.environments)).toHaveLength(1);
-			expect(data.environments["default"]).toBeDefined();
+			expect(data.environments.default).toBeDefined();
 		});
 	});
 
@@ -105,7 +105,7 @@ describe("LowdbAdapter", () => {
 			expect(Object.keys(collection)).toHaveLength(3);
 			expect(collection["env-1"]).toEqual(env1);
 			expect(collection["env-2"]).toEqual(env2);
-			expect(collection["default"]).toBeDefined();
+			expect(collection.default).toBeDefined();
 		});
 
 		test("updateCollection replaces entire collection", async () => {

@@ -14,11 +14,7 @@
 		"dev": "tsc --watch",
 		"start": "bun src/server.ts",
 		"typecheck": "tsc --noEmit",
-		"test": "bun test",
-		"lint": "biome check --write .",
-		"lint:check": "biome check .",
-		"format": "biome format --write .",
-		"format:check": "biome format ."
+		"test": "bun test"
 	},
 	"files": [
 		"dist",
