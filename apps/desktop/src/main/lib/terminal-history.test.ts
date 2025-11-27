@@ -166,8 +166,7 @@ describe("HistoryWriter", () => {
 		);
 
 		// Mix of printable, control chars, and unicode
-		const binaryLikeData =
-			"Hello\x00World\x1b[31m红色\x1b[0m\t\r\n\x07Bell🔔";
+		const binaryLikeData = "Hello\x00World\x1b[31m红色\x1b[0m\t\r\n\x07Bell🔔";
 
 		await writer.init();
 		writer.write(binaryLikeData);
