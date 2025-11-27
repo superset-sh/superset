@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import express from "express";
-import { NOTIFICATIONS_PORT } from "../app-environment";
+import { PORTS } from "shared/constants";
 
 export interface AgentCompleteEvent {
 	tabId: string;
@@ -56,4 +56,3 @@ app.use((req, res) => {
 });
 
 export const notificationsApp = app;
-export { NOTIFICATIONS_PORT };

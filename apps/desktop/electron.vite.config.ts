@@ -8,7 +8,7 @@ import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
 
-// Dev server port - this is just the starting point, Vite will find next available if taken
+// Dev server port - must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
 const DEV_SERVER_PORT = 5927;
 
 // Load .env from monorepo root

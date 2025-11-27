@@ -1,11 +1,8 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import {
-	NOTIFICATIONS_PORT,
-	SUPERSET_DIR_NAME,
-	SUPERSET_HOME_DIR,
-} from "./app-environment";
+import { PORTS, SUPERSET_DIR_NAME } from "shared/constants";
+import { SUPERSET_HOME_DIR } from "./app-environment";
 
 const BIN_DIR = path.join(SUPERSET_HOME_DIR, "bin");
 const HOOKS_DIR = path.join(SUPERSET_HOME_DIR, "hooks");
@@ -48,7 +45,7 @@ EVENT_TYPE=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | cut -d'"' -f4
 # Default to "Stop" if not found
 [ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
 
-curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${NOTIFICATIONS_PORT}}/hook/complete" \\
+curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/complete" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
   --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\

@@ -2,12 +2,12 @@ import { join } from "node:path";
 import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
+import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import {
 	type AgentCompleteEvent,
-	NOTIFICATIONS_PORT,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
@@ -46,11 +46,11 @@ export async function MainWindow() {
 
 	// Start notifications HTTP server
 	const server = notificationsApp.listen(
-		NOTIFICATIONS_PORT,
+		PORTS.NOTIFICATIONS,
 		"127.0.0.1",
 		() => {
 			console.log(
-				`[notifications] Listening on http://127.0.0.1:${NOTIFICATIONS_PORT}`,
+				`[notifications] Listening on http://127.0.0.1:${PORTS.NOTIFICATIONS}`,
 			);
 		},
 	);
