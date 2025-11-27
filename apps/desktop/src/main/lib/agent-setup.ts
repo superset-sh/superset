@@ -1,12 +1,14 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
-import { NOTIFICATIONS_PORT } from "shared/constants";
+import {
+	NOTIFICATIONS_PORT,
+	SUPERSET_DIR_NAME,
+	SUPERSET_HOME_DIR,
+} from "./app-environment";
 
-const SUPERSET_DIR = path.join(os.homedir(), ".superset");
-const BIN_DIR = path.join(SUPERSET_DIR, "bin");
-const HOOKS_DIR = path.join(SUPERSET_DIR, "hooks");
+const BIN_DIR = path.join(SUPERSET_HOME_DIR, "bin");
+const HOOKS_DIR = path.join(SUPERSET_HOME_DIR, "hooks");
 
 /**
  * Finds the real path of a binary, skipping our wrapper scripts
@@ -65,7 +67,7 @@ function createClaudeWrapper(): void {
 # Superset wrapper for Claude Code
 # Injects notification hook settings
 
-SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"~/.superset/hooks/notify.sh"}]}]}}'
+SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}]}}'
 
 exec "${realClaude}" --settings "$SUPERSET_CLAUDE_SETTINGS" "$@"
 `;

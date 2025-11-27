@@ -8,7 +8,7 @@ export const PLATFORM = {
 	IS_LINUX: process.platform === "linux",
 };
 
-export const NOTIFICATIONS_PORT = 31415;
-
+// Note: For environment-aware paths and ports, use main/lib/app-environment.ts instead.
+// These constants are for code that runs in both main and renderer processes.
 export const SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";

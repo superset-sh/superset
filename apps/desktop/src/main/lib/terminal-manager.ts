@@ -1,8 +1,8 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
-import { NOTIFICATIONS_PORT } from "shared/constants";
 import { getSupersetPath } from "./agent-setup";
+import { NOTIFICATIONS_PORT } from "./app-environment";
 import { TerminalEscapeFilter } from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 

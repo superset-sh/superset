@@ -1,6 +1,7 @@
 import { createWriteStream, promises as fs, type WriteStream } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { IS_TEST, SUPERSET_HOME_DIR } from "./app-environment";
 
 export interface SessionMetadata {
 	cwd: string;
@@ -11,21 +12,11 @@ export interface SessionMetadata {
 	exitCode?: number;
 }
 
-const getBaseDir = () => {
-	if (process.env.NODE_ENV === "test" || process.env.BUN_ENV === "test") {
-		return join(tmpdir(), "superset-test");
-	}
-	return homedir();
-};
-
 export function getHistoryDir(workspaceId: string, tabId: string): string {
-	return join(
-		getBaseDir(),
-		".superset",
-		"terminal-history",
-		workspaceId,
-		tabId,
-	);
+	const baseDir = IS_TEST
+		? join(tmpdir(), "superset-test", ".superset")
+		: SUPERSET_HOME_DIR;
+	return join(baseDir, "terminal-history", workspaceId, tabId);
 }
 
 function getHistoryFilePath(workspaceId: string, tabId: string): string {
