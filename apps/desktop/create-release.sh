@@ -9,10 +9,15 @@
 #
 # This script will:
 # 1. Verify prerequisites (clean git, GitHub CLI authenticated)
-# 2. Update package.json version
-# 3. Create and push a git tag to trigger the release workflow
-# 4. Monitor the GitHub Actions workflow in real-time
-# 5. Display the draft release URL when ready
+# 2. Delete existing release/tag if republishing same version
+# 3. Update package.json version
+# 4. Create and push a git tag to trigger the release workflow
+# 5. Monitor the GitHub Actions workflow in real-time
+# 6. Auto-publish the release when build completes
+#
+# Features:
+# - Supports republishing: Running with same version will clean up and rebuild
+# - Auto-publishes release (no manual publish step needed)
 #
 # Requirements:
 # - GitHub CLI (gh) installed and authenticated
@@ -83,10 +88,27 @@ if ! git diff-index --quiet HEAD --; then
 fi
 success "Working directory is clean"
 
-# 2. Check if tag already exists
+# 2. Check if tag/release already exists and clean up if needed
 info "Checking if tag ${TAG_NAME} already exists..."
 if git rev-parse "${TAG_NAME}" >/dev/null 2>&1; then
-    error "Tag ${TAG_NAME} already exists. Use a different version or delete the existing tag."
+    warn "Tag ${TAG_NAME} already exists. Cleaning up for republish..."
+
+    # Delete the GitHub release if it exists
+    if gh release view "${TAG_NAME}" &>/dev/null; then
+        info "Deleting existing GitHub release..."
+        gh release delete "${TAG_NAME}" --yes
+        success "Deleted existing release"
+    fi
+
+    # Delete remote tag
+    info "Deleting remote tag..."
+    git push origin --delete "${TAG_NAME}" 2>/dev/null || true
+    success "Deleted remote tag"
+
+    # Delete local tag
+    info "Deleting local tag..."
+    git tag -d "${TAG_NAME}" 2>/dev/null || true
+    success "Deleted local tag"
 fi
 success "Tag ${TAG_NAME} is available"
 
@@ -180,8 +202,8 @@ fi
 
 echo ""
 
-# 7. Get and display draft release URL
-info "Fetching draft release..."
+# 7. Wait for release and publish it
+info "Waiting for draft release to be created..."
 
 # Retry logic for draft release (it may take time to be created)
 MAX_RELEASE_RETRIES=10
@@ -190,34 +212,35 @@ RELEASE_FOUND=""
 
 while [ $RELEASE_RETRY_COUNT -lt $MAX_RELEASE_RETRIES ] && [ -z "$RELEASE_FOUND" ]; do
     sleep 3
-    RELEASE_FOUND=$(gh release list --json tagName,isDraft --jq ".[] | select(.tagName == \"${TAG_NAME}\" and .isDraft == true) | .tagName")
+    RELEASE_FOUND=$(gh release list --json tagName,isDraft --jq ".[] | select(.tagName == \"${TAG_NAME}\") | .tagName")
     RELEASE_RETRY_COUNT=$((RELEASE_RETRY_COUNT + 1))
 
     if [ -z "$RELEASE_FOUND" ] && [ $RELEASE_RETRY_COUNT -lt $MAX_RELEASE_RETRIES ]; then
-        echo "  Waiting for draft release to be created... (attempt $RELEASE_RETRY_COUNT/$MAX_RELEASE_RETRIES)"
+        echo "  Waiting for release to be created... (attempt $RELEASE_RETRY_COUNT/$MAX_RELEASE_RETRIES)"
     fi
 done
 
 if [ -z "$RELEASE_FOUND" ]; then
-    warn "Draft release not found yet. It may still be processing."
+    warn "Release not found yet. It may still be processing."
     echo "  Check releases at: https://github.com/${REPO}/releases"
 else
+    # Publish the release
+    info "Publishing release..."
+    gh release edit "${TAG_NAME}" --draft=false
+    success "Release published!"
+
     RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG_NAME}"
-    success "Draft release created!"
+    LATEST_URL="https://github.com/${REPO}/releases/latest"
     echo ""
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLUE}📦 Draft Release URL:${NC}"
-    echo -e "${GREEN}${RELEASE_URL}${NC}"
-    echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${GREEN}🎉 Release Published!${NC}"
+    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "${BLUE}Release URL:${NC} ${RELEASE_URL}"
+    echo -e "${BLUE}Latest URL:${NC}  ${LATEST_URL}"
+    echo ""
+    echo -e "${BLUE}Direct downloads:${NC}"
+    echo "  • ${LATEST_URL}/download/Superset-${VERSION}-arm64.dmg"
+    echo "  • ${LATEST_URL}/download/Superset-${VERSION}-arm64-mac.zip"
     echo ""
 fi
-
-echo ""
-info "Next steps:"
-echo "  1. Review the draft release and edit release notes if needed"
-echo "  2. Publish the release when ready"
-echo ""
-info "Release artifacts will include:"
-echo "  • Superset-${VERSION}-arm64.dmg (macOS DMG installer)"
-echo "  • Superset-${VERSION}-arm64-mac.zip (macOS zipped app bundle)"
-echo ""
