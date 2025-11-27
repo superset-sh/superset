@@ -1,6 +1,5 @@
 import { EventEmitter } from "node:events";
 import express from "express";
-import { PORTS } from "shared/constants";
 
 export interface AgentCompleteEvent {
 	tabId: string;
