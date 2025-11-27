@@ -103,10 +103,10 @@ const COMBINED_PATTERN = new RegExp(
 /**
  * Stateful filter that handles escape sequences split across data chunks.
  * Maintains a buffer to reassemble split sequences before filtering.
+ * Only buffers sequences that look like query responses we want to filter.
  */
 export class TerminalEscapeFilter {
 	private buffer = "";
-	private readonly maxBufferSize = 256; // Max bytes to buffer
 
 	/**
 	 * Filter terminal query responses from data.
@@ -117,63 +117,93 @@ export class TerminalEscapeFilter {
 		const combined = this.buffer + data;
 		this.buffer = "";
 
-		// Check if the data ends with a potential incomplete escape sequence
+		// Check if the data ends with a potential incomplete query response
 		const lastEscIndex = combined.lastIndexOf(ESC);
 
-		if (lastEscIndex !== -1 && lastEscIndex > combined.length - 50) {
-			// There's an ESC near the end - it might be incomplete
+		// Only consider buffering if ESC is very close to end (max 30 chars for reasonable sequence)
+		// and the sequence looks like one of our target patterns
+		if (lastEscIndex !== -1 && lastEscIndex > combined.length - 30) {
 			const afterEsc = combined.slice(lastEscIndex);
 
-			// Check if this looks like a complete sequence or clearly incomplete
-			if (this.isIncompleteSequence(afterEsc)) {
-				// Buffer the incomplete part for next chunk
+			// Only buffer if it looks like an incomplete query response pattern
+			if (this.looksLikeQueryResponse(afterEsc) && this.isIncomplete(afterEsc)) {
 				this.buffer = afterEsc;
 				const toFilter = combined.slice(0, lastEscIndex);
 				return toFilter.replace(COMBINED_PATTERN, "");
 			}
 		}
 
-		// No incomplete sequence, filter the whole thing
+		// No incomplete query response, filter the whole thing
 		return combined.replace(COMBINED_PATTERN, "");
 	}
 
 	/**
-	 * Check if a string starting with ESC looks like an incomplete escape sequence.
+	 * Check if a string looks like the START of a query response we want to filter.
+	 * Very conservative: only matches specific query response prefixes to avoid
+	 * buffering normal escape sequences (cursor movement, colors, styling, etc.)
 	 */
-	private isIncompleteSequence(str: string): boolean {
-		if (str.length < 2) return true; // Just ESC alone
+	private looksLikeQueryResponse(str: string): boolean {
+		if (str.length < 2) return false; // Just ESC alone - don't buffer, could be anything
+
+		const secondChar = str[1];
+
+		// CSI private mode responses: ESC [ ? (DA1, DECRPM)
+		// CSI secondary DA: ESC [ > (DA2)
+		// These are the only CSI query responses we filter
+		if (secondChar === "[") {
+			if (str.length < 3) return false; // ESC [ alone - don't buffer
+			const thirdChar = str[2];
+			// Only buffer for ? (private mode) or > (secondary DA)
+			// NOT for digits - those could be cursor position, colors, etc.
+			return thirdChar === "?" || thirdChar === ">";
+		}
+
+		// OSC color responses: ESC ] 1 (OSC 10-19)
+		if (secondChar === "]") {
+			if (str.length < 3) return false; // ESC ] alone - don't buffer
+			// Only buffer if it starts with 1 (OSC 10-19 color responses)
+			return str[2] === "1";
+		}
+
+		// DCS responses: ESC P > (XTVERSION) or ESC P ! (DA3)
+		if (secondChar === "P") {
+			if (str.length < 3) return false; // ESC P alone - don't buffer
+			const thirdChar = str[2];
+			return thirdChar === ">" || thirdChar === "!";
+		}
+
+		return false;
+	}
+
+	/**
+	 * Check if a potential query response sequence is incomplete.
+	 */
+	private isIncomplete(str: string): boolean {
+		if (str.length < 2) return true;
 
 		const secondChar = str[1];
 
 		// CSI sequence: ESC [
 		if (secondChar === "[") {
-			// CSI sequences end with a letter (typically)
-			// If we don't see a terminating letter, it's incomplete
-			// Complete CSI sequences typically end with: c, R, y, n, m, etc.
 			const csiBody = str.slice(2);
 			if (csiBody.length === 0) return true;
-			// Check if it ends with a CSI terminator
+			// CSI ends with a letter
 			const lastChar = csiBody[csiBody.length - 1];
-			if (/[a-zA-Z~]/.test(lastChar)) return false; // Looks complete
-			return true; // Still building
+			return !/[a-zA-Z~]/.test(lastChar);
 		}
 
 		// OSC sequence: ESC ]
 		if (secondChar === "]") {
-			// OSC sequences end with BEL or ST (ESC \)
-			if (str.includes(BEL)) return false;
-			if (str.includes(ESC + "\\")) return false;
-			return true; // Still building
+			// OSC ends with BEL or ST (ESC \)
+			return !str.includes(BEL) && !str.includes(ESC + "\\");
 		}
 
 		// DCS sequence: ESC P
 		if (secondChar === "P") {
-			// DCS sequences end with ST (ESC \)
-			if (str.includes(ESC + "\\")) return false;
-			return true;
+			// DCS ends with ST (ESC \)
+			return !str.includes(ESC + "\\");
 		}
 
-		// Other single-char sequences are complete
 		return false;
 	}
 

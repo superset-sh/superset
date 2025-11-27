@@ -140,17 +140,24 @@ export class TerminalManager extends EventEmitter {
 		};
 
 		ptyProcess.onData((data) => {
-			// Filter terminal query responses (cursor position reports, color queries, etc.)
-			// Uses stateful filter to handle sequences split across data chunks
+			// Filter terminal query responses for storage only
+			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
 			const filteredData = session.escapeFilter.filter(data);
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
-			// Emit filtered data to xterm to avoid displaying garbage
-			this.emit(`data:${tabId}`, filteredData);
+			// Emit ORIGINAL data to xterm - it needs to process query responses
+			this.emit(`data:${tabId}`, data);
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
+
+			// Flush any buffered data from the escape filter
+			const remaining = session.escapeFilter.flush();
+			if (remaining) {
+				session.scrollback += remaining;
+				session.historyWriter?.write(remaining);
+			}
 
 			await this.closeHistory(session, exitCode);
 
