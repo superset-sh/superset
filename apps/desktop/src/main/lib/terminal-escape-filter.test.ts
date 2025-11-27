@@ -456,6 +456,23 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			const result2 = filter.filter("mgreen");
 			expect(result2).toBe(`${ESC}[32mgreen`);
 		});
+
+		it("should NOT buffer complete CSI followed by text", () => {
+			const filter = new TerminalEscapeFilter();
+			// Complete color code followed by text at chunk end
+			const chunk = `hello${ESC}[31mworld\n`;
+			const result = filter.filter(chunk);
+			// Should pass through immediately - CSI is complete
+			expect(result).toBe(`hello${ESC}[31mworld\n`);
+		});
+
+		it("should NOT buffer SGR reset followed by prompt", () => {
+			const filter = new TerminalEscapeFilter();
+			// Reset code followed by prompt
+			const chunk = `${ESC}[0m$ `;
+			const result = filter.filter(chunk);
+			expect(result).toBe(`${ESC}[0m$ `);
+		});
 	});
 
 	describe("flush behavior", () => {

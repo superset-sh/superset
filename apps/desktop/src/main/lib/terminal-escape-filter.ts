@@ -200,9 +200,10 @@ export class TerminalEscapeFilter {
 		if (secondChar === "[") {
 			const csiBody = str.slice(2);
 			if (csiBody.length === 0) return true;
-			// CSI ends with a letter
-			const lastChar = csiBody[csiBody.length - 1];
-			return !/[a-zA-Z~]/.test(lastChar);
+			// CSI is complete once we encounter the first final byte (A–Z, a–z, or ~)
+			// Scan from the start to avoid treating trailing text as part of the CSI
+			const finalIndex = csiBody.search(/[A-Za-z~]/);
+			return finalIndex === -1;
 		}
 
 		// OSC sequence: ESC ]
