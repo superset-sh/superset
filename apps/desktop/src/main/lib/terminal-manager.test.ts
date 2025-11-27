@@ -508,7 +508,10 @@ describe("TerminalManager", () => {
 			expect(dataHandler).toHaveBeenCalledWith("test output\n");
 		});
 
-		it("should filter terminal query responses from scrollback but emit raw data", async () => {
+		it("should filter escape sequences from scrollback but emit raw data to xterm", async () => {
+			// Integration test: verifies that filterTerminalQueryResponses is properly
+			// integrated - raw data goes to xterm, filtered data goes to scrollback.
+			// See terminal-escape-filter.test.ts for detailed filter behavior tests.
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
@@ -521,20 +524,16 @@ describe("TerminalManager", () => {
 			manager.on("data:tab-filter", dataHandler);
 
 			const onDataCallback = mockPty.onData.mock.results[0]?.value;
+			const dataWithResponses =
+				"hello\x1b[2;1R\x1b[?1;0cworld\x1b]10;rgb:ffff/ffff/ffff\x07\n";
 			if (onDataCallback) {
-				// Simulate terminal query responses mixed with actual output
-				// CPR: \x1b[2;1R, DA: \x1b[?1;0c, OSC 10: \x1b]10;rgb:ffff/ffff/ffff\x07
-				const dataWithResponses =
-					"hello\x1b[2;1R\x1b[?1;0cworld\x1b]10;rgb:ffff/ffff/ffff\x07\n";
 				onDataCallback(dataWithResponses);
 			}
 
-			// Raw data should still be emitted to xterm (including escape sequences)
-			expect(dataHandler).toHaveBeenCalledWith(
-				"hello\x1b[2;1R\x1b[?1;0cworld\x1b]10;rgb:ffff/ffff/ffff\x07\n",
-			);
+			// Raw data emitted to xterm (needs to process the responses)
+			expect(dataHandler).toHaveBeenCalledWith(dataWithResponses);
 
-			// Kill and check scrollback for recovery
+			// Terminate and recover to check scrollback
 			const exitPromise = new Promise<void>((resolve) => {
 				manager.once("exit:tab-filter", () => resolve());
 			});
@@ -548,7 +547,6 @@ describe("TerminalManager", () => {
 			await exitPromise;
 			await manager.cleanup();
 
-			// Recover session
 			const result = await manager.createOrAttach({
 				tabId: "tab-filter",
 				workspaceId: "workspace-1",
@@ -556,13 +554,9 @@ describe("TerminalManager", () => {
 				workspaceName: "Test Workspace",
 			});
 
-			// Scrollback should have filtered output (no escape sequences)
+			// Scrollback has filtered data (no escape sequence responses)
 			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback).toContain("hello");
-			expect(result.scrollback).toContain("world");
-			expect(result.scrollback).not.toContain("\x1b[2;1R");
-			expect(result.scrollback).not.toContain("\x1b[?1;0c");
-			expect(result.scrollback).not.toContain("rgb:ffff/ffff/ffff");
+			expect(result.scrollback).toBe("helloworld\n");
 		});
 
 		it("should emit exit events", async () => {
