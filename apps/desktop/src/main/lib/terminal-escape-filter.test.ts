@@ -211,6 +211,33 @@ describe("filterTerminalQueryResponses", () => {
 				`${ESC}]12;rgb:00ff/00ff/00ff${BEL}`;
 			expect(filterTerminalQueryResponses(input)).toBe("");
 		});
+
+		it("should filter short-form (2-digit) hex color responses", () => {
+			const osc10 = `${ESC}]10;rgb:f5/f5/f5${BEL}`;
+			expect(filterTerminalQueryResponses(osc10)).toBe("");
+		});
+
+		it("should filter short-form hex with ST terminator", () => {
+			const osc11 = `${ESC}]11;rgb:1a/1a/1a${ESC}\\`;
+			expect(filterTerminalQueryResponses(osc11)).toBe("");
+		});
+
+		it("should filter 3-digit hex color responses", () => {
+			const osc10 = `${ESC}]10;rgb:fff/fff/fff${BEL}`;
+			expect(filterTerminalQueryResponses(osc10)).toBe("");
+		});
+	});
+
+	describe("filters Standard Mode Reports", () => {
+		it("should filter standard mode report", () => {
+			const report = `${ESC}[12;2$y`;
+			expect(filterTerminalQueryResponses(report)).toBe("");
+		});
+
+		it("should filter mode report with different values", () => {
+			const report = `${ESC}[4;1$y`;
+			expect(filterTerminalQueryResponses(report)).toBe("");
+		});
 	});
 
 	describe("filters Tertiary Device Attributes (DA3)", () => {

@@ -1,5 +1,4 @@
-import { createWriteStream, type WriteStream } from "node:fs";
-import { promises as fs } from "node:fs";
+import { createWriteStream, promises as fs, type WriteStream } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 

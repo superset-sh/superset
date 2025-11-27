@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useTabsStore } from "renderer/stores";
+import { useTabsStore, useTerminalTheme } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupResizeHandlers,
@@ -48,6 +48,7 @@ export const SetupTerminal = ({
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 
 	const removeTab = useTabsStore((state) => state.removeTab);
+	const terminalTheme = useTerminalTheme();
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
@@ -102,7 +103,11 @@ export const SetupTerminal = ({
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const { xterm, fitAddon } = createTerminalInstance(container, workspaceCwd);
+		const { xterm, fitAddon } = createTerminalInstance(
+			container,
+			workspaceCwd,
+			terminalTheme,
+		);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 
@@ -206,8 +211,24 @@ export const SetupTerminal = ({
 		workspaceCwd,
 	]);
 
+	// Update terminal theme when it changes
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || !terminalTheme) return;
+
+		// Set theme via property setter - preserves all other options
+		// xterm.js v5 uses setters that trigger internal repaint
+		xterm.options.theme = terminalTheme;
+	}, [terminalTheme]);
+
+	// Get terminal background color from theme
+	const terminalBg = terminalTheme?.background ?? "#1a1a1a";
+
 	return (
-		<div className="h-full w-full overflow-hidden bg-black">
+		<div
+			className="h-full w-full overflow-hidden"
+			style={{ backgroundColor: terminalBg }}
+		>
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

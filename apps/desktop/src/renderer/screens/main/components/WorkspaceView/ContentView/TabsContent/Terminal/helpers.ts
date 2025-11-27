@@ -2,6 +2,7 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
@@ -11,11 +12,16 @@ import { FilePathLinkProvider } from "./FilePathLinkProvider";
 export function createTerminalInstance(
 	container: HTMLDivElement,
 	cwd?: string,
+	initialTheme?: ITheme | null,
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 } {
-	const xterm = new XTerm(TERMINAL_OPTIONS);
+	// Apply initial theme to prevent FOUC
+	const options = initialTheme
+		? { ...TERMINAL_OPTIONS, theme: initialTheme }
+		: TERMINAL_OPTIONS;
+	const xterm = new XTerm(options);
 	const fitAddon = new FitAddon();
 
 	const webLinksAddon = new WebLinksAddon((event, uri) => {

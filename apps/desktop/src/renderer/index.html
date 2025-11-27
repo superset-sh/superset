@@ -1,15 +1,21 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-
+    <!-- Theme boot script must run before body to prevent flash -->
+    <script src="theme-boot.js"></script>
     <!--
+      Content Security Policy
       https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
 
-      If you want restrict the sources from where you can load resources:
-        <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+      - default-src 'self': Only allow resources from same origin
+      - script-src 'self': Only allow scripts from same origin (no inline)
+      - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
+      - connect-src 'self' ws: wss:: Allow WebSocket connections for HMR in dev
+      - img-src 'self' data:: Allow images from same origin + data URIs
+      - font-src 'self': Allow fonts from same origin
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' *; script-src 'self' *; style-src 'self' 'unsafe-inline' *;" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:; font-src 'self';" />
   </head>
 
   <body>

@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs } from "renderer/stores";
+import { useSetActiveTab, useTabs, useTerminalTheme } from "renderer/stores";
 import {
 	createTerminalInstance,
 	setupFocusListener,
@@ -22,6 +22,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
+	const terminalTheme = useTerminalTheme();
 
 	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
@@ -77,7 +78,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const { xterm, fitAddon } = createTerminalInstance(container, workspaceCwd);
+		const { xterm, fitAddon } = createTerminalInstance(
+			container,
+			workspaceCwd,
+			terminalTheme,
+		);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -191,8 +196,24 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
 
+	// Update terminal theme when it changes
+	useEffect(() => {
+		const xterm = xtermRef.current;
+		if (!xterm || !terminalTheme) return;
+
+		// Set theme via property setter - preserves all other options
+		// xterm.js v5 uses setters that trigger internal repaint
+		xterm.options.theme = terminalTheme;
+	}, [terminalTheme]);
+
+	// Get terminal background color from theme
+	const terminalBg = terminalTheme?.background ?? "#1a1a1a";
+
 	return (
-		<div className="h-full w-full overflow-hidden bg-black">
+		<div
+			className="h-full w-full overflow-hidden"
+			style={{ backgroundColor: terminalBg }}
+		>
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
