@@ -14,7 +14,7 @@ export const monokaiTheme: Theme = {
 	ui: {
 		background: "#272822",
 		foreground: "#f8f8f2",
-		card: "#272822",
+		card: "#3e3d32",
 		cardForeground: "#f8f8f2",
 		popover: "#3e3d32",
 		popoverForeground: "#f8f8f2",
