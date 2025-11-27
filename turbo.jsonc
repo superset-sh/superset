@@ -1,5 +1,13 @@
 {
 	"$schema": "https://turbo.build/schema.json",
+	"globalEnv": ["DATABASE_URL"],
+	"globalPassThroughEnv": [
+		"NODE_ENV",
+		"CI",
+		"VERCEL",
+		"VERCEL_ENV",
+		"VERCEL_URL"
+	],
 	"tasks": {
 		"build": {
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
