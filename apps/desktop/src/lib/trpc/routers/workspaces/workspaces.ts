@@ -12,7 +12,7 @@ import {
 	worktreeExists,
 } from "./utils/git";
 import { copySetupFiles, loadSetupConfig } from "./utils/setup";
-import { getWorktreePathOrEmpty } from "./utils/worktree";
+import { getWorktreePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -184,7 +184,7 @@ export const createWorkspacesRouter = () => {
 				if (groupsMap.has(workspace.projectId)) {
 					groupsMap.get(workspace.projectId)?.workspaces.push({
 						...workspace,
-						worktreePath: getWorktreePathOrEmpty(workspace.worktreeId),
+						worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
 					});
 				}
 			}
