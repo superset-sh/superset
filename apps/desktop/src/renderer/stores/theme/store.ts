@@ -50,11 +50,13 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 }
 
 /**
- * Sync theme type to localStorage for instant access before hydration
+ * Sync theme data to localStorage for instant access before hydration.
+ * This enables flash-free terminal rendering on app start.
  */
-function syncThemeTypeToLocalStorage(themeType: "dark" | "light"): void {
+function syncThemeToLocalStorage(theme: Theme): void {
 	try {
-		localStorage.setItem("theme-type", themeType);
+		localStorage.setItem("theme-type", theme.type);
+		localStorage.setItem("theme-id", theme.id);
 	} catch {
 		// localStorage may not be available
 	}
@@ -70,8 +72,8 @@ function applyTheme(theme: Theme): ITheme {
 	// Update dark/light class
 	updateThemeClass(theme.type);
 
-	// Sync theme type to localStorage for instant flash-free loading
-	syncThemeTypeToLocalStorage(theme.type);
+	// Sync theme to localStorage for instant flash-free loading
+	syncThemeToLocalStorage(theme);
 
 	// Convert terminal colors to xterm format
 	return toXtermTheme(theme.terminal);

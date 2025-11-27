@@ -6,74 +6,35 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
+import { toXtermTheme } from "renderer/stores/theme/utils";
+import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 
-// Default terminal themes that match the built-in themes (Dark and Light)
-// These are used before the store hydrates to prevent flash
-const DARK_DEFAULT_THEME: ITheme = {
-	background: "#1a1a1a",
-	foreground: "#d4d4d4",
-	cursor: "#d4d4d4",
-	cursorAccent: "#1a1a1a",
-	selectionBackground: "#264f78",
-	black: "#1e1e1e",
-	red: "#f44747",
-	green: "#6a9955",
-	yellow: "#dcdcaa",
-	blue: "#569cd6",
-	magenta: "#c586c0",
-	cyan: "#4ec9b0",
-	white: "#d4d4d4",
-	brightBlack: "#808080",
-	brightRed: "#f44747",
-	brightGreen: "#6a9955",
-	brightYellow: "#dcdcaa",
-	brightBlue: "#569cd6",
-	brightMagenta: "#c586c0",
-	brightCyan: "#4ec9b0",
-	brightWhite: "#ffffff",
-};
-
-const LIGHT_DEFAULT_THEME: ITheme = {
-	background: "#f5f5f5",
-	foreground: "#1a1a1a",
-	cursor: "#1a1a1a",
-	cursorAccent: "#f5f5f5",
-	selectionBackground: "#add6ff",
-	black: "#1e1e1e",
-	red: "#cd3131",
-	green: "#14ce14",
-	yellow: "#b5ba00",
-	blue: "#0451a5",
-	magenta: "#bc05bc",
-	cyan: "#0598bc",
-	white: "#555555",
-	brightBlack: "#666666",
-	brightRed: "#cd3131",
-	brightGreen: "#14ce14",
-	brightYellow: "#b5ba00",
-	brightBlue: "#0451a5",
-	brightMagenta: "#bc05bc",
-	brightCyan: "#0598bc",
-	brightWhite: "#1a1a1a",
-};
-
 /**
- * Get the default terminal theme based on stored theme type.
+ * Get the default terminal theme based on stored theme ID.
  * This reads from localStorage before store hydration to prevent flash.
+ * Looks up the actual theme colors from built-in themes for accurate rendering.
  */
 export function getDefaultTerminalTheme(): ITheme {
 	try {
-		const themeType = localStorage.getItem("theme-type");
-		return themeType === "light" ? LIGHT_DEFAULT_THEME : DARK_DEFAULT_THEME;
+		const themeId = localStorage.getItem("theme-id") ?? DEFAULT_THEME_ID;
+		const theme = builtInThemes.find((t) => t.id === themeId);
+		if (theme) {
+			return toXtermTheme(theme.terminal);
+		}
 	} catch {
-		return DARK_DEFAULT_THEME;
+		// Fall through to default
 	}
+	// Fallback to default dark theme
+	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
+	return defaultTheme
+		? toXtermTheme(defaultTheme.terminal)
+		: { background: "#1a1a1a", foreground: "#d4d4d4" };
 }
 
 /**
- * Get the default terminal background based on stored theme type.
+ * Get the default terminal background based on stored theme.
  * This reads from localStorage before store hydration to prevent flash.
  */
 export function getDefaultTerminalBg(): string {
