@@ -19,6 +19,9 @@ const config: Configuration = {
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
 
+	// Disable auto-publish - handled by separate workflow step
+	publish: null,
+
 	// Directories
 	directories: {
 		output: "release",
