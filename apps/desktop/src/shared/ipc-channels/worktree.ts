@@ -11,7 +11,6 @@ export interface WorktreeChannels {
 		response: {
 			success: boolean;
 			worktree?: Worktree;
-			setupResult?: import("../types").SetupResult;
 			error?: string;
 		};
 	};

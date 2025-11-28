@@ -11,7 +11,7 @@ import {
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
-import { copySetupFiles, loadSetupConfig } from "./utils/setup";
+import { loadSetupConfig } from "./utils/setup";
 import { getWorktreePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
@@ -92,33 +92,10 @@ export const createWorkspacesRouter = () => {
 
 				// Load setup configuration
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
-				let setupCopyResults: { copied: string[]; errors: string[] } | null =
-					null;
-
-				// Copy setup files if config exists and has copy patterns
-				if (setupConfig?.copy && setupConfig.copy.length > 0) {
-					try {
-						setupCopyResults = await copySetupFiles(
-							project.mainRepoPath,
-							worktreePath,
-							setupConfig.copy,
-						);
-					} catch (error) {
-						console.error("Failed to copy setup files:", error);
-						// Non-fatal: return error info but continue
-						setupCopyResults = {
-							copied: [],
-							errors: [
-								`Setup file copy failed: ${error instanceof Error ? error.message : String(error)}`,
-							],
-						};
-					}
-				}
 
 				return {
 					workspace,
 					setupConfig: setupConfig?.commands || null,
-					setupCopyResults,
 					worktreePath,
 				};
 			}),

@@ -45,6 +45,7 @@ export class TerminalManager extends EventEmitter {
 		workspaceId: string;
 		tabTitle: string;
 		workspaceName: string;
+		mainRepoPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -53,8 +54,16 @@ export class TerminalManager extends EventEmitter {
 		scrollback: string;
 		wasRecovered: boolean;
 	}> {
-		const { tabId, workspaceId, tabTitle, workspaceName, cwd, cols, rows } =
-			params;
+		const {
+			tabId,
+			workspaceId,
+			tabTitle,
+			workspaceName,
+			mainRepoPath,
+			cwd,
+			cols,
+			rows,
+		} = params;
 
 		const existing = this.sessions.get(tabId);
 		if (existing?.isAlive) {
@@ -85,6 +94,7 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_TAB_TITLE: tabTitle,
 			SUPERSET_WORKSPACE_NAME: workspaceName,
 			SUPERSET_WORKSPACE_ID: workspaceId,
+			SUPERSET_MAIN_REPO_PATH: mainRepoPath || "",
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
 

@@ -20,7 +20,6 @@ import {
 	handleSplitTabVertical,
 } from "./helpers/split-operations";
 import {
-	handleAddSetupTab,
 	handleAddTab,
 	handleMarkTabAsUsed,
 	handleRemoveTab,
@@ -42,24 +41,13 @@ export const useTabsStore = create<TabsStore>()(
 				tabHistoryStacks: {},
 
 				addTab: (workspaceId, type = TabType.Single) => {
-					set((state) => handleAddTab(state, workspaceId, type));
-				},
-
-				addSetupTab: (
-					workspaceId,
-					setupCommands,
-					setupCwd,
-					setupCopyResults,
-				) => {
-					set((state) =>
-						handleAddSetupTab(
-							state,
-							workspaceId,
-							setupCommands,
-							setupCwd,
-							setupCopyResults,
-						),
-					);
+					let tabId = "";
+					set((state) => {
+						const result = handleAddTab(state, workspaceId, type);
+						tabId = result.tabId;
+						return result.newState;
+					});
+					return tabId;
 				},
 
 				removeTab: (id) => {

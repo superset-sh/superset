@@ -1,1 +1,0 @@
-export { SetupTerminal } from "./SetupTerminal";

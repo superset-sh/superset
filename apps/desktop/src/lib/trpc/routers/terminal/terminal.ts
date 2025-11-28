@@ -31,6 +31,7 @@ export const createTerminalRouter = () => {
 					cols: z.number().optional(),
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
+					initialCommands: z.array(z.string()).optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -41,6 +42,7 @@ export const createTerminalRouter = () => {
 					cols,
 					rows,
 					cwd: cwdOverride,
+					initialCommands,
 				} = input;
 
 				// Get workspace to determine cwd and workspace name
@@ -50,15 +52,28 @@ export const createTerminalRouter = () => {
 					cwdOverride ||
 					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
 
+				// Get project to get main repo path for setup scripts
+				const project = workspace
+					? db.data.projects.find((p) => p.id === workspace.projectId)
+					: undefined;
+				const mainRepoPath = project?.mainRepoPath;
+
 				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
 					tabTitle,
 					workspaceName,
+					mainRepoPath,
 					cwd,
 					cols,
 					rows,
 				});
+
+				// Run initial commands on new terminals
+				if (result.isNew && initialCommands && initialCommands.length > 0) {
+					const commandString = `${initialCommands.join(" && ")}\n`;
+					terminalManager.write({ tabId, data: commandString });
+				}
 
 				return {
 					tabId,

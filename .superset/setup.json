@@ -1,8 +1,5 @@
 {
-	"copy": [
-		"**/.env*"
-	],
 	"commands": [
-		"bun i"
+		"./superset-setup.sh"
 	]
 }
