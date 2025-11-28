@@ -22,6 +22,7 @@
 		"./select": "./src/components/select.tsx",
 		"./separator": "./src/components/separator.tsx",
 		"./textarea": "./src/components/textarea.tsx",
+		"./kbd": "./src/components/kbd.tsx",
 		"./utils": "./src/lib/utils.ts",
 		"./hooks": "./src/hooks/index.ts",
 		"./globals.css": "./src/globals.css"

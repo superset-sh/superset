@@ -26,22 +26,17 @@ export function WorkspacesTabs() {
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	// Workspace switching shortcuts (work across groups)
-	useHotkeys("meta+alt+left", () => {
-		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index > 0) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
+	// Workspace switching shortcuts (⌘+1-9) - combined into single hook call
+	const workspaceKeys = Array.from({ length: 9 }, (_, i) => `meta+${i + 1}`).join(", ");
+	useHotkeys(workspaceKeys, (event) => {
+		const num = Number(event.key);
+		if (num >= 1 && num <= 9) {
+			const workspace = allWorkspaces[num - 1];
+			if (workspace) {
+				setActiveWorkspace.mutate({ id: workspace.id });
+			}
 		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
-
-	useHotkeys("meta+alt+right", () => {
-		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index < allWorkspaces.length - 1) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
-		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+	}, [allWorkspaces, setActiveWorkspace]);
 
 	useEffect(() => {
 		const checkScroll = () => {

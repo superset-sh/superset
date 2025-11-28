@@ -8,6 +8,7 @@ import {
 	useSetActiveTab,
 	useTabs,
 } from "renderer/stores";
+import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
 
@@ -34,20 +35,21 @@ export function WorkspaceView() {
 		? activeTabIds[activeWorkspaceId]
 		: null;
 
-	// Tab management shortcuts - work even when sidebar is closed
-	useHotkeys("meta+t", () => {
+	// Terminal management shortcuts
+	useHotkeys(HOTKEYS.NEW_TERMINAL.keys, () => {
 		if (activeWorkspaceId) {
 			addTab(activeWorkspaceId);
 		}
 	}, [activeWorkspaceId, addTab]);
 
-	useHotkeys("meta+w", () => {
+	useHotkeys(HOTKEYS.CLOSE_TERMINAL.keys, () => {
 		if (activeTabId) {
 			removeTab(activeTabId);
 		}
 	}, [activeTabId, removeTab]);
 
-	useHotkeys("meta+alt+up", () => {
+	// Switch between visible terminal panes (⌘+Up/Down)
+	useHotkeys(HOTKEYS.PREV_TERMINAL.keys, () => {
 		if (!activeWorkspaceId || !activeTabId) return;
 		const index = tabs.findIndex((t) => t.id === activeTabId);
 		if (index > 0) {
@@ -55,27 +57,13 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
-	useHotkeys("meta+alt+down", () => {
+	useHotkeys(HOTKEYS.NEXT_TERMINAL.keys, () => {
 		if (!activeWorkspaceId || !activeTabId) return;
 		const index = tabs.findIndex((t) => t.id === activeTabId);
 		if (index < tabs.length - 1) {
 			setActiveTab(activeWorkspaceId, tabs[index + 1].id);
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
-
-	// Jump to tab by number (Cmd+1 through Cmd+9)
-	useHotkeys(
-		"meta+1,meta+2,meta+3,meta+4,meta+5,meta+6,meta+7,meta+8,meta+9",
-		(_, handler) => {
-			if (!activeWorkspaceId) return;
-			const key = handler.keys?.join("");
-			const num = key ? Number.parseInt(key, 10) : null;
-			if (num && tabs[num - 1]) {
-				setActiveTab(activeWorkspaceId, tabs[num - 1].id);
-			}
-		},
-		[activeWorkspaceId, tabs, setActiveTab],
-	);
 
 	return (
 		<div className="flex flex-1 bg-tertiary">
