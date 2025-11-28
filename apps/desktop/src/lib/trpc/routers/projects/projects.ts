@@ -25,7 +25,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
-				return { success: false };
+				return { canceled: true };
 			}
 
 			const selectedPath = result.filePaths[0];
@@ -34,10 +34,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			try {
 				mainRepoPath = await getGitRoot(selectedPath);
 			} catch (_error) {
-				return {
-					success: false,
-					error: "Selected folder is not in a git repository",
-				};
+				throw new Error("Selected folder is not in a git repository");
 			}
 
 			const name = basename(mainRepoPath);
@@ -71,7 +68,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			}
 
 			return {
-				success: true as const,
+				canceled: false,
 				project,
 			};
 		}),

@@ -4,6 +4,7 @@ import {
 	DropdownMenuContent,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { HiMiniFolderOpen, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -22,24 +23,29 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const openNew = useOpenNew();
 
 	const handleCreateWorkspace = (projectId: string) => {
-		createWorkspace.mutate(
-			{ projectId },
-			{
-				onSuccess: () => {
-					setIsOpen(false);
-				},
+		toast.promise(createWorkspace.mutateAsync({ projectId }), {
+			loading: "Creating workspace...",
+			success: () => {
+				setIsOpen(false);
+				return "Workspace created";
 			},
-		);
+			error: (err) =>
+				err instanceof Error ? err.message : "Failed to create workspace",
+		});
 	};
 
-	const handleOpenNewProject = () => {
-		openNew.mutate(undefined, {
-			onSuccess: (result) => {
-				if (result.success && result.project) {
-					handleCreateWorkspace(result.project.id);
-				}
-			},
-		});
+	const handleOpenNewProject = async () => {
+		try {
+			const result = await openNew.mutateAsync(undefined);
+			if (!result.canceled && result.project) {
+				handleCreateWorkspace(result.project.id);
+			}
+		} catch (error) {
+			toast.error("Failed to open project", {
+				description:
+					error instanceof Error ? error.message : "An unknown error occurred",
+			});
+		}
 	};
 
 	return (
