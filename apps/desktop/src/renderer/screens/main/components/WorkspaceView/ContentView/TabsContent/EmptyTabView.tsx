@@ -1,9 +1,8 @@
-import { HiMiniCommandLine, HiMiniPlus, HiMiniSquares2X2 } from "react-icons/hi2";
+import { Kbd, KbdGroup } from "@superset/ui/kbd";
+import { HiMiniCommandLine } from "react-icons/hi2";
+import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
 
-const shortcuts = [
-	{ keys: ["⌘", "T"], label: "New terminal", icon: HiMiniPlus },
-	{ keys: ["⌘", "D"], label: "Split view", icon: HiMiniSquares2X2 },
-];
+const shortcuts = [HOTKEYS.NEW_TERMINAL, HOTKEYS.SPLIT_HORIZONTAL];
 
 export function EmptyTabView() {
 	return (
@@ -12,24 +11,16 @@ export function EmptyTabView() {
 				<HiMiniCommandLine className="size-8 text-muted-foreground" />
 			</div>
 
-			<div className="flex flex-col items-center gap-1">
-				<p className="text-sm text-muted-foreground">No terminal open</p>
-			</div>
+			<p className="text-sm text-muted-foreground">No terminal open</p>
 
 			<div className="flex items-center gap-4 text-xs text-muted-foreground">
 				{shortcuts.map((shortcut) => (
 					<div key={shortcut.label} className="flex items-center gap-2">
-						<shortcut.icon className="size-3.5" />
-						<div className="flex items-center gap-1">
-							{shortcut.keys.map((key) => (
-								<kbd
-									key={key}
-									className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono text-[10px]"
-								>
-									{key}
-								</kbd>
+						<KbdGroup>
+							{formatKeysForDisplay(shortcut.keys).map((key) => (
+								<Kbd key={key}>{key}</Kbd>
 							))}
-						</div>
+						</KbdGroup>
 						<span>{shortcut.label}</span>
 					</div>
 				))}
