@@ -133,7 +133,7 @@ export const HOTKEYS = {
 
 	// Help
 	SHOW_HOTKEYS: {
-		keys: "meta+/",
+		keys: "meta+slash",
 		label: "Show Keyboard Shortcuts",
 		category: "Help",
 	},
@@ -182,6 +182,7 @@ export function formatKeysForDisplay(keys: string): string[] {
 		left: "←",
 		right: "→",
 		space: "␣",
+		slash: "/",
 	};
 
 	return keys.split("+").map((key) => {
@@ -227,7 +228,11 @@ export function matchesHotkey(
 	if (key === "right" && eventKey === "arrowright") return true;
 
 	// Special characters - check both key and code (code is more reliable with modifiers)
-	if (key === "/" && (eventKey === "/" || eventCode === "slash")) return true;
+	if (
+		(key === "/" || key === "slash") &&
+		(eventKey === "/" || eventCode === "slash")
+	)
+		return true;
 
 	// Direct match (letters, numbers)
 	if (eventKey === key) return true;
