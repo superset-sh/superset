@@ -6,8 +6,8 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiChevronDown } from "react-icons/hi2";
 import type { Commit } from "lib/trpc/routers/diff/types";
+import { HiChevronDown } from "react-icons/hi2";
 import type { CommitRange, DiffMode } from "renderer/stores/diff/types";
 
 interface DiffModeSelectorProps {

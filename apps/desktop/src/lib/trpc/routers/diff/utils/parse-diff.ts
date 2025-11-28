@@ -92,9 +92,7 @@ export function parseGitDiff(rawDiff: string, filePath: string): FileDiff {
 		}
 
 		// Detect hunk header: @@ -oldStart,oldCount +newStart,newCount @@
-		const hunkMatch = line.match(
-			/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/,
-		);
+		const hunkMatch = line.match(/^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/);
 
 		if (hunkMatch) {
 			// Save previous hunk if exists

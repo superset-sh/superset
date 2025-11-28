@@ -30,7 +30,7 @@ export function ChangesContent() {
 		error,
 	} = trpc.diff.getAllDiffs.useQuery(
 		{
-			worktreePath: worktreePath!,
+			worktreePath: worktreePath ?? "",
 			mode: mode,
 			range: commitRange || undefined,
 		},

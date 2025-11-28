@@ -56,11 +56,7 @@ export const useDiffStore = create<DiffStore>()(
 				),
 
 			expandAllFolders: (paths) =>
-				set(
-					{ expandedFolders: new Set(paths) },
-					false,
-					"expandAllFolders",
-				),
+				set({ expandedFolders: new Set(paths) }, false, "expandAllFolders"),
 
 			collapseAllFolders: () =>
 				set(

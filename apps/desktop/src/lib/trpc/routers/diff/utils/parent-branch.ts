@@ -4,7 +4,9 @@ import simpleGit from "simple-git";
  * Detect the parent branch for "all changes" comparison
  * Tries common main branch names in order
  */
-export async function detectParentBranch(worktreePath: string): Promise<string> {
+export async function detectParentBranch(
+	worktreePath: string,
+): Promise<string> {
 	const git = simpleGit(worktreePath);
 
 	// Common parent branch candidates

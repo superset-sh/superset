@@ -1,7 +1,7 @@
-import { FileNode } from "../FileNode";
-import { FolderNode } from "../FolderNode";
 import { useFileTree } from "../../hooks/useFileTree";
 import type { FileTreeNode, FileTreeProps } from "../../types";
+import { FileNode } from "../FileNode";
+import { FolderNode } from "../FolderNode";
 
 interface TreeNodeRendererProps {
 	node: FileTreeNode;

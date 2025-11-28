@@ -48,7 +48,7 @@ export function ChangesView() {
 		error: filesError,
 	} = trpc.diff.getChangedFiles.useQuery(
 		{
-			worktreePath: worktreePath!,
+			worktreePath: worktreePath ?? "",
 			mode: mode,
 			range: commitRange || undefined,
 		},
@@ -62,7 +62,7 @@ export function ChangesView() {
 	const { data: commits, isLoading: isLoadingCommits } =
 		trpc.diff.getCommitHistory.useQuery(
 			{
-				worktreePath: worktreePath!,
+				worktreePath: worktreePath ?? "",
 				limit: 20,
 			},
 			{
@@ -73,7 +73,7 @@ export function ChangesView() {
 	// Query for parent branch
 	const { data: parentBranch } = trpc.diff.getParentBranch.useQuery(
 		{
-			worktreePath: worktreePath!,
+			worktreePath: worktreePath ?? "",
 		},
 		{
 			enabled: !!worktreePath,

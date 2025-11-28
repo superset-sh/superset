@@ -70,11 +70,15 @@ export function FileNode({ file, depth, onClick }: FileNodeProps) {
 			{(file.additions > 0 || file.deletions > 0) && (
 				<span className="text-xs text-muted-foreground shrink-0">
 					{file.additions > 0 && (
-						<span style={{ color: colors.addedIndicator }}>+{file.additions}</span>
+						<span style={{ color: colors.addedIndicator }}>
+							+{file.additions}
+						</span>
 					)}
 					{file.additions > 0 && file.deletions > 0 && " "}
 					{file.deletions > 0 && (
-						<span style={{ color: colors.deletedIndicator }}>-{file.deletions}</span>
+						<span style={{ color: colors.deletedIndicator }}>
+							-{file.deletions}
+						</span>
 					)}
 				</span>
 			)}

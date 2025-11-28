@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { VariableSizeList, type ListChildComponentProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
+import { type ListChildComponentProps, VariableSizeList } from "react-window";
 import { useClearScrollTarget, useScrollToFilePath } from "renderer/stores";
+import type { DiffHunk, DiffLine as DiffLineType, FileDiff } from "../../types";
 import { DiffHeader } from "../DiffHeader";
 import { DiffHunkHeader } from "../DiffHunkHeader";
 import { DiffLine } from "../DiffLine";
-import type { DiffHunk, DiffLine as DiffLineType, FileDiff } from "../../types";
 
 interface AllDiffsViewerProps {
 	diffs: FileDiff[];
@@ -29,7 +29,10 @@ const SPACER_HEIGHT = 24;
 /**
  * Count additions and deletions in hunks
  */
-function countChanges(hunks: DiffHunk[]): { additions: number; deletions: number } {
+function countChanges(hunks: DiffHunk[]): {
+	additions: number;
+	deletions: number;
+} {
 	let additions = 0;
 	let deletions = 0;
 	for (const hunk of hunks) {

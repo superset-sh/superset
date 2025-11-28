@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useRef } from "react";
-import { FixedSizeList, type ListChildComponentProps } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList, type ListChildComponentProps } from "react-window";
+import type { DiffHunk, DiffLine as DiffLineType, FileDiff } from "../../types";
 import { DiffHeader } from "../DiffHeader";
 import { DiffHunkHeader } from "../DiffHunkHeader";
 import { DiffLine } from "../DiffLine";
-import type { DiffHunk, DiffLine as DiffLineType, FileDiff } from "../../types";
 
 interface DiffViewerProps {
 	diff: FileDiff;
@@ -47,7 +47,10 @@ function flattenHunks(hunks: DiffHunk[]): FlatLine[] {
 /**
  * Count total additions and deletions
  */
-function countChanges(hunks: DiffHunk[]): { additions: number; deletions: number } {
+function countChanges(hunks: DiffHunk[]): {
+	additions: number;
+	deletions: number;
+} {
 	let additions = 0;
 	let deletions = 0;
 

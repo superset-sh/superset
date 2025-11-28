@@ -2,8 +2,8 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import type { ChangedFile, Commit, FileStatus } from "./types";
-import { parseGitDiff } from "./utils/parse-diff";
 import { detectParentBranch, getCurrentBranch } from "./utils/parent-branch";
+import { parseGitDiff } from "./utils/parse-diff";
 
 /**
  * Parse git status --porcelain output into ChangedFile array
@@ -252,7 +252,11 @@ export const createDiffRouter = () => {
 						}
 
 						// Get line counts
-						const numstat = await git.raw(["diff", "--numstat", `${from}..${to}`]);
+						const numstat = await git.raw([
+							"diff",
+							"--numstat",
+							`${from}..${to}`,
+						]);
 						const stats = parseNumstat(numstat);
 
 						for (const file of files) {
