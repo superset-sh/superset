@@ -50,15 +50,18 @@ export async function createWorktree(
 	mainRepoPath: string,
 	branch: string,
 	worktreePath: string,
+	startPoint = "origin/main",
 ): Promise<void> {
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
 		const git = simpleGit(mainRepoPath);
-		await git.raw(["worktree", "add", worktreePath, "-b", branch]);
+		await git.raw(["worktree", "add", worktreePath, "-b", branch, startPoint]);
 
-		console.log(`Created worktree at ${worktreePath} with branch ${branch}`);
+		console.log(
+			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
+		);
 	} catch (error) {
 		console.error(`Failed to create worktree: ${error}`);
 		throw new Error(`Failed to create worktree: ${error}`);
@@ -113,4 +116,31 @@ export async function worktreeExists(
 		console.error(`Failed to check worktree existence: ${error}`);
 		throw error;
 	}
+}
+
+/**
+ * Fetches origin/main and returns the latest commit SHA
+ * @param mainRepoPath - Path to the main repository
+ * @returns The commit SHA of origin/main after fetch
+ */
+export async function fetchOriginMain(mainRepoPath: string): Promise<string> {
+	const git = simpleGit(mainRepoPath);
+	await git.fetch("origin", "main");
+	const commit = await git.revparse("origin/main");
+	return commit.trim();
+}
+
+/**
+ * Checks if a worktree's branch is behind origin/main
+ * @param worktreePath - Path to the worktree
+ * @returns true if the branch has commits on origin/main that it doesn't have
+ */
+export async function checkNeedsRebase(worktreePath: string): Promise<boolean> {
+	const git = simpleGit(worktreePath);
+	const behindCount = await git.raw([
+		"rev-list",
+		"--count",
+		"HEAD..origin/main",
+	]);
+	return Number.parseInt(behindCount.trim(), 10) > 0;
 }

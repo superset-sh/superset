@@ -8,12 +8,32 @@ export interface Project {
 	createdAt: number;
 }
 
+export interface GitStatus {
+	branch: string;
+	needsRebase: boolean;
+	lastRefreshed: number;
+}
+
+export interface GitHubStatus {
+	pr: {
+		number: number;
+		title: string;
+		url: string;
+		state: "open" | "draft" | "merged" | "closed";
+		mergedAt?: number;
+	} | null;
+	repoUrl: string;
+	lastRefreshed: number;
+}
+
 export interface Worktree {
 	id: string;
 	projectId: string;
 	path: string;
 	branch: string;
 	createdAt: number;
+	gitStatus?: GitStatus;
+	githubStatus?: GitHubStatus;
 }
 
 export interface Workspace {

@@ -6,7 +6,9 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	checkNeedsRebase,
 	createWorktree,
+	fetchOriginMain,
 	generateBranchName,
 	removeWorktree,
 	worktreeExists,
@@ -39,7 +41,19 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				await createWorktree(project.mainRepoPath, branch, worktreePath);
+				// Fetch origin/main to ensure we're branching from latest (best-effort)
+				try {
+					await fetchOriginMain(project.mainRepoPath);
+				} catch {
+					// Silently continue - origin/main still exists locally, just might be stale
+				}
+
+				await createWorktree(
+					project.mainRepoPath,
+					branch,
+					worktreePath,
+					"origin/main",
+				);
 
 				const worktree = {
 					id: nanoid(),
@@ -47,6 +61,11 @@ export const createWorkspacesRouter = () => {
 					path: worktreePath,
 					branch,
 					createdAt: Date.now(),
+					gitStatus: {
+						branch,
+						needsRebase: false, // Fresh off main, doesn't need rebase
+						lastRefreshed: Date.now(),
+					},
 				};
 
 				const projectWorkspaces = db.data.workspaces.filter(
@@ -425,6 +444,55 @@ export const createWorkspacesRouter = () => {
 				});
 
 				return { success: true };
+			}),
+
+		refreshGitStatus: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(async ({ input }) => {
+				const workspace = db.data.workspaces.find(
+					(w) => w.id === input.workspaceId,
+				);
+				if (!workspace) {
+					throw new Error(`Workspace ${input.workspaceId} not found`);
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				if (!worktree) {
+					throw new Error(
+						`Worktree for workspace ${input.workspaceId} not found`,
+					);
+				}
+
+				const project = db.data.projects.find(
+					(p) => p.id === workspace.projectId,
+				);
+				if (!project) {
+					throw new Error(`Project ${workspace.projectId} not found`);
+				}
+
+				// Fetch origin/main to get latest
+				await fetchOriginMain(project.mainRepoPath);
+
+				// Check if worktree branch is behind origin/main
+				const needsRebase = await checkNeedsRebase(worktree.path);
+
+				const gitStatus = {
+					branch: worktree.branch,
+					needsRebase,
+					lastRefreshed: Date.now(),
+				};
+
+				// Update worktree in db
+				await db.update((data) => {
+					const wt = data.worktrees.find((w) => w.id === worktree.id);
+					if (wt) {
+						wt.gitStatus = gitStatus;
+					}
+				});
+
+				return { gitStatus };
 			}),
 	});
 };
