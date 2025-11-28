@@ -36,8 +36,18 @@ export interface Tab {
 	updatedAt: number;
 }
 
+export type ExternalApp =
+	| "finder"
+	| "vscode"
+	| "cursor"
+	| "xcode"
+	| "iterm"
+	| "warp"
+	| "terminal";
+
 export interface Settings {
 	lastActiveWorkspaceId?: string;
+	lastUsedApp?: ExternalApp;
 }
 
 export interface Database {

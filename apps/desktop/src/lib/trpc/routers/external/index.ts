@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { clipboard, shell } from "electron";
+import { db } from "main/lib/db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -93,6 +94,11 @@ export const createExternalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				console.log("[external] openInApp called with:", input);
+
+				// Save last used app to DB
+				await db.update((data) => {
+					data.settings.lastUsedApp = input.app;
+				});
 
 				if (input.app === "finder") {
 					shell.showItemInFolder(input.path);

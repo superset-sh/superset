@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { ButtonGroup } from "@superset/ui/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -57,11 +58,10 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 
 	const { data: lastUsedApp = "cursor" } =
 		trpc.settings.getLastUsedApp.useQuery();
-	const setLastUsedApp = trpc.settings.setLastUsedApp.useMutation({
+
+	const openInApp = trpc.external.openInApp.useMutation({
 		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
 	});
-
-	const openInApp = trpc.external.openInApp.useMutation();
 	const copyPath = trpc.external.copyPath.useMutation();
 
 	const folderName =
@@ -69,7 +69,6 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 	const currentApp = getAppOption(lastUsedApp);
 
 	const handleOpenIn = (app: ExternalApp) => {
-		setLastUsedApp.mutate(app);
 		openInApp.mutate({ path: worktreePath, app });
 		setIsOpen(false);
 	};
@@ -85,28 +84,20 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 
 	return (
 		<div className="flex items-center px-2 py-1.5 border-b border-border/50">
-			{/* Button group: Path + Open dropdown */}
-			<div className="flex items-center">
-				{/* Path button - opens in last used app */}
+			<ButtonGroup>
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="sm"
-					className="rounded-r-none gap-1.5 text-muted-foreground hover:text-foreground pr-2"
+					className="gap-1.5"
 					onClick={handleOpenLastUsed}
 					title={`Open in ${currentApp.label} (⌘O)`}
 				>
 					<img src={currentApp.icon} alt="" className="size-4 object-contain" />
 					<span className="font-medium">/{folderName}</span>
 				</Button>
-
-				{/* Open dropdown */}
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							className="rounded-l-none gap-1 text-muted-foreground hover:text-foreground px-1.5 border-l border-border/50"
-						>
+						<Button variant="outline" size="icon-sm" aria-label="Open in...">
 							<HiChevronDown className="size-3" />
 						</Button>
 					</DropdownMenuTrigger>
@@ -143,7 +134,7 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
-			</div>
+			</ButtonGroup>
 		</div>
 	);
 }
