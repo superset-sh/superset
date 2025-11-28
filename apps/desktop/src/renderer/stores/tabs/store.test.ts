@@ -1,13 +1,36 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Test file uses type casts for test data setup
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// Mock the terminal cleanup to avoid actually calling tRPC
-mock.module("./utils/terminal-cleanup", () => ({
-	killTerminalForTab: mock(() => {}),
+// Mock window.electronStore for persistence layer
+const mockStore = new Map<string, string>();
+// @ts-expect-error - mocking global window for tests
+globalThis.window = {
+	electronStore: {
+		get: mock((key: string) => Promise.resolve(mockStore.get(key))),
+		set: mock((key: string, value: unknown) => {
+			mockStore.set(key, value as string);
+			return Promise.resolve();
+		}),
+		delete: mock((key: string) => {
+			mockStore.delete(key);
+			return Promise.resolve();
+		}),
+	},
+};
+
+// Mock trpc-client to avoid electronTRPC dependency
+mock.module("renderer/lib/trpc-client", () => ({
+	trpcClient: {
+		terminal: {
+			kill: { mutate: mock(() => Promise.resolve()) },
+		},
+	},
 }));
 
-import { useTabsStore } from "./store";
-import { type TabGroup, TabType } from "./types";
+// Import after mocks are set up
+const { useTabsStore } = await import("./store");
+const { TabType } = await import("./types");
+type TabGroup = import("./types").TabGroup;
 
 // Store initial state for cleanup
 const initialState = useTabsStore.getState();
