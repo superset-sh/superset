@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"outDir": "dist",
 		"noEmit": false,
-		"allowImportingTsExtensions": false
+		"allowImportingTsExtensions": false,
+		"types": ["bun-types"]
 	},
 	"include": ["src"]
 }

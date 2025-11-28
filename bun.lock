@@ -25,7 +25,7 @@
         "nextra-theme-docs": "^4.6.0",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "three": "^0.181.1",
+        "three": "^0.181.2",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -57,7 +57,7 @@
         "string-width": "^8.1.0",
       },
       "devDependencies": {
-        "@sindresorhus/tsconfig": "^3.0.1",
+        "@superset/typescript": "workspace:*",
         "@types/react": "^19.1.11",
         "bun-types": "^1.3.1",
         "chalk": "^5.6.2",
@@ -134,6 +134,7 @@
         "@types/react-syntax-highlighter": "^15.5.13",
         "@types/semver": "^7.7.1",
         "@vitejs/plugin-react": "^5.0.1",
+        "bun-types": "^1.3.1",
         "code-inspector-plugin": "^1.2.2",
         "cross-env": "^10.0.0",
         "electron": "39.1.2",
@@ -165,7 +166,7 @@
         "nextra-theme-docs": "^4.6.0",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "three": "^0.181.1",
+        "three": "^0.181.2",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -201,8 +202,10 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-fast-marquee": "^1.6.5",
+        "react-icons": "^5.5.0",
         "superjson": "^2.2.5",
-        "three": "^0.181.1",
+        "three": "^0.181.2",
+        "zod": "^4.1.12",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -211,6 +214,7 @@
         "@types/node": "^24.9.1",
         "@types/react": "^19.1.11",
         "@types/react-dom": "^19.1.7",
+        "@types/three": "^0.181.0",
         "tailwindcss": "^4.0.9",
         "typescript": "^5.9.3",
       },
@@ -231,20 +235,11 @@
         "typescript": "^5.9.3",
       },
     },
-    "packages/constants": {
-      "name": "@superset/constants",
-      "version": "0.0.0",
-      "devDependencies": {
-        "@superset/typescript": "*",
-        "typescript": "^5.9.3",
-      },
-    },
     "packages/db": {
       "name": "@superset/db",
       "version": "0.0.0",
       "dependencies": {
         "@neondatabase/serverless": "1.0.1",
-        "@superset/constants": "*",
         "@t3-oss/env-core": "^0.13.8",
         "dotenv": "^17.2.3",
         "drizzle-orm": "0.44.3",
@@ -818,15 +813,11 @@
 
     "@sindresorhus/merge-streams": ["@sindresorhus/merge-streams@4.0.0", "", {}, "sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ=="],
 
-    "@sindresorhus/tsconfig": ["@sindresorhus/tsconfig@3.0.1", "", {}, "sha512-0/gtPNTY3++0J2BZM5nHHULg0BIMw886gqdn8vWN+Av6bgF5ZU2qIcHubAn+Z9KNvJhO8WFE+9kDOU3n6OcKtA=="],
-
     "@superset/api": ["@superset/api@workspace:packages/api"],
 
     "@superset/blog": ["@superset/blog@workspace:apps/blog"],
 
     "@superset/cli": ["@superset/cli@workspace:apps/cli"],
-
-    "@superset/constants": ["@superset/constants@workspace:packages/constants"],
 
     "@superset/db": ["@superset/db@workspace:packages/db"],
 

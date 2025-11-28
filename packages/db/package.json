@@ -30,7 +30,6 @@
 	},
 	"dependencies": {
 		"@neondatabase/serverless": "1.0.1",
-		"@superset/constants": "*",
 		"@t3-oss/env-core": "^0.13.8",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.44.3",

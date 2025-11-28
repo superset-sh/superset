@@ -27,8 +27,10 @@
 		"react": "^19.1.1",
 		"react-dom": "^19.1.1",
 		"react-fast-marquee": "^1.6.5",
+		"react-icons": "^5.5.0",
 		"superjson": "^2.2.5",
-		"three": "^0.181.1"
+		"three": "^0.181.2",
+		"zod": "^4.1.12"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
@@ -37,6 +39,7 @@
 		"@types/node": "^24.9.1",
 		"@types/react": "^19.1.11",
 		"@types/react-dom": "^19.1.7",
+		"@types/three": "^0.181.0",
 		"tailwindcss": "^4.0.9",
 		"typescript": "^5.9.3"
 	}
