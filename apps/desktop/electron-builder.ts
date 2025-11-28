@@ -38,8 +38,14 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
-		// Only include node-pty (native module that can't be bundled)
-		"node_modules/node-pty/**/*",
+		// Native module that can't be bundled by Vite.
+		// The copy:native-modules script replaces symlinks with real files
+		// before building (required for Bun 1.3+ isolated installs).
+		{
+			from: "node_modules/node-pty",
+			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
 		"!**/.DS_Store",
 	],
 
