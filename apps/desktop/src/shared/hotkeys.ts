@@ -125,10 +125,11 @@ export const HOTKEYS = {
 		label: "Close Window",
 		category: "Window",
 	},
-	OPEN_REPO: {
+	OPEN_IN_APP: {
 		keys: "meta+o",
-		label: "Open Repository",
+		label: "Open in App",
 		category: "Window",
+		description: "Open workspace in external app (Cursor, VS Code, etc.)",
 	},
 
 	// Help

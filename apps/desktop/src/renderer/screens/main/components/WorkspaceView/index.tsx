@@ -11,7 +11,6 @@ import {
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
-import { WorkspaceHeader } from "./WorkspaceHeader";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -91,9 +90,6 @@ export function WorkspaceView() {
 		<div className="flex flex-1 bg-tertiary">
 			<Sidebar />
 			<div className="flex-1 m-3 bg-background rounded flex flex-col overflow-hidden">
-				{activeWorkspace?.worktreePath && (
-					<WorkspaceHeader worktreePath={activeWorkspace.worktreePath} />
-				)}
 				<div className="flex-1 p-2 overflow-hidden">
 					<ContentView />
 				</div>

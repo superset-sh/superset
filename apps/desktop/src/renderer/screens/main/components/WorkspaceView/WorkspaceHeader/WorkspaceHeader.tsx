@@ -83,7 +83,7 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 	};
 
 	return (
-		<div className="flex items-center px-2 py-1.5 border-b border-border/50">
+		<div className="no-drag flex items-center">
 			<ButtonGroup>
 				<Button
 					variant="outline"
