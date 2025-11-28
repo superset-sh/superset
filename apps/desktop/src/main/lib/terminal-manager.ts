@@ -45,7 +45,7 @@ export class TerminalManager extends EventEmitter {
 		workspaceId: string;
 		tabTitle: string;
 		workspaceName: string;
-		mainRepoPath?: string;
+		rootPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -59,7 +59,7 @@ export class TerminalManager extends EventEmitter {
 			workspaceId,
 			tabTitle,
 			workspaceName,
-			mainRepoPath,
+			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -94,7 +94,8 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_TAB_TITLE: tabTitle,
 			SUPERSET_WORKSPACE_NAME: workspaceName,
 			SUPERSET_WORKSPACE_ID: workspaceId,
-			SUPERSET_MAIN_REPO_PATH: mainRepoPath || "",
+			SUPERSET_WORKSPACE_PATH: workingDir,
+			SUPERSET_ROOT_PATH: rootPath || "",
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
 

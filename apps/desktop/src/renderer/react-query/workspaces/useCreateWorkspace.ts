@@ -20,7 +20,10 @@ export function useCreateWorkspace(
 			await utils.workspaces.invalidate();
 
 			// Create terminal tab with setup commands if present
-			if (Array.isArray(data.setupConfig) && data.setupConfig.length > 0) {
+			if (
+				Array.isArray(data.initialCommands) &&
+				data.initialCommands.length > 0
+			) {
 				const tabId = addTab(data.workspace.id);
 				// Pre-create terminal session with initial commands
 				// Terminal component will attach to this session when it mounts
@@ -28,7 +31,7 @@ export function useCreateWorkspace(
 					tabId,
 					workspaceId: data.workspace.id,
 					tabTitle: "Terminal",
-					initialCommands: data.setupConfig,
+					initialCommands: data.initialCommands,
 				});
 			}
 

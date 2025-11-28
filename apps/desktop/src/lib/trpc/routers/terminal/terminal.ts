@@ -52,18 +52,18 @@ export const createTerminalRouter = () => {
 					cwdOverride ||
 					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
 
-				// Get project to get main repo path for setup scripts
+				// Get project to get root path for setup scripts
 				const project = workspace
 					? db.data.projects.find((p) => p.id === workspace.projectId)
 					: undefined;
-				const mainRepoPath = project?.mainRepoPath;
+				const rootPath = project?.mainRepoPath;
 
 				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
 					tabTitle,
 					workspaceName,
-					mainRepoPath,
+					rootPath,
 					cwd,
 					cols,
 					rows,

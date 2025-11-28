@@ -20,10 +20,10 @@ echo "📥 Installing dependencies..."
 bun install
 success "Dependencies installed"
 
-# Link direnv config from main repo if it exists
-if [ -n "$SUPERSET_MAIN_REPO_PATH" ] && [ -f "$SUPERSET_MAIN_REPO_PATH/.envrc" ]; then
+# Link direnv config from root repo if it exists
+if [ -n "$SUPERSET_ROOT_PATH" ] && [ -f "$SUPERSET_ROOT_PATH/.envrc" ]; then
   echo "🔧 Linking .envrc..."
-  ln -sf "$SUPERSET_MAIN_REPO_PATH/.envrc" .envrc
+  ln -sf "$SUPERSET_ROOT_PATH/.envrc" .envrc
   success "direnv configured"
 fi
 
