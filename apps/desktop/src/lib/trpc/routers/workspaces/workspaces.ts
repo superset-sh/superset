@@ -189,7 +189,10 @@ export const createWorkspacesRouter = () => {
 				);
 			}
 
-			return workspace;
+			return {
+				...workspace,
+				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+			};
 		}),
 
 		update: publicProcedure

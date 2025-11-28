@@ -1,8 +1,47 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { shell } from "electron";
+import { clipboard, shell } from "electron";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+const ExternalApp = z.enum([
+	"finder",
+	"vscode",
+	"cursor",
+	"xcode",
+	"iterm",
+	"warp",
+	"terminal",
+]);
+
+type ExternalAppType = z.infer<typeof ExternalApp>;
+
+/**
+ * Get the command and args to open a path in the specified app
+ */
+const getAppCommand = (
+	app: ExternalAppType,
+	targetPath: string,
+): { command: string; args: string[] } | null => {
+	switch (app) {
+		case "finder":
+			return null; // Handled specially with shell.showItemInFolder
+		case "vscode":
+			return { command: "code", args: [targetPath] };
+		case "cursor":
+			return { command: "cursor", args: [targetPath] };
+		case "xcode":
+			return { command: "open", args: ["-a", "Xcode", targetPath] };
+		case "iterm":
+			return { command: "open", args: ["-a", "iTerm", targetPath] };
+		case "warp":
+			return { command: "open", args: ["-a", "Warp", targetPath] };
+		case "terminal":
+			return { command: "open", args: ["-a", "Terminal", targetPath] };
+		default:
+			return null;
+	}
+};
 
 /**
  * Spawns a process and waits for it to complete
@@ -44,6 +83,39 @@ export const createExternalRouter = () => {
 			.mutation(async ({ input }) => {
 				shell.showItemInFolder(input);
 			}),
+
+		openInApp: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+					app: ExternalApp,
+				}),
+			)
+			.mutation(async ({ input }) => {
+				console.log("[external] openInApp called with:", input);
+
+				if (input.app === "finder") {
+					shell.showItemInFolder(input.path);
+					return;
+				}
+
+				const cmd = getAppCommand(input.app, input.path);
+				if (!cmd) {
+					throw new Error(`Unknown app: ${input.app}`);
+				}
+
+				try {
+					await spawnAsync(cmd.command, cmd.args);
+					console.log(`[external] Successfully opened in ${input.app}`);
+				} catch (error) {
+					console.error(`[external] Failed to open in ${input.app}:`, error);
+					throw error;
+				}
+			}),
+
+		copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {
+			clipboard.writeText(input);
+		}),
 
 		openFileInEditor: publicProcedure
 			.input(
