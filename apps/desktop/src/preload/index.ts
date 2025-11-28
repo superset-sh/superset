@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import type {
 	IpcChannelName,
 	IpcRequest,
@@ -14,6 +14,9 @@ declare global {
 			get: (key: string) => unknown;
 			set: (key: string, value: unknown) => void;
 			delete: (key: string) => void;
+		};
+		webUtils: {
+			getPathForFile: (file: File) => string;
 		};
 	}
 }
@@ -89,3 +92,6 @@ const electronStoreAPI = {
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
 contextBridge.exposeInMainWorld("electronStore", electronStoreAPI);
+contextBridge.exposeInMainWorld("webUtils", {
+	getPathForFile: (file: File) => webUtils.getPathForFile(file),
+});

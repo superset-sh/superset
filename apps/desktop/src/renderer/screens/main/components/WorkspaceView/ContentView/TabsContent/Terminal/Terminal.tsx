@@ -11,6 +11,7 @@ import {
 	setupResizeHandlers,
 } from "./helpers";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
+import { shellEscapePaths } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const tabs = useTabs();
@@ -210,10 +211,34 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Get terminal background color from theme, with theme-aware default
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
+	const handleDragOver = (event: React.DragEvent) => {
+		event.preventDefault();
+		event.dataTransfer.dropEffect = "copy";
+	};
+
+	const handleDrop = (event: React.DragEvent) => {
+		event.preventDefault();
+
+		const files = Array.from(event.dataTransfer.files);
+		if (files.length === 0) return;
+
+		// Get file paths via Electron's webUtils API (contextIsolation-safe)
+		const paths = files.map((file) => window.webUtils.getPathForFile(file));
+		const text = shellEscapePaths(paths);
+
+		// Write to terminal (same as typing)
+		if (!isExitedRef.current) {
+			writeRef.current({ tabId, data: text });
+		}
+	};
+
 	return (
 		<div
+			role="application"
 			className="h-full w-full overflow-hidden"
 			style={{ backgroundColor: terminalBg }}
+			onDragOver={handleDragOver}
+			onDrop={handleDrop}
 		>
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
