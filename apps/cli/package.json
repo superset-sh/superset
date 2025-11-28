@@ -33,6 +33,7 @@
 		"lowdb": "^7.0.1",
 		"meow": "^11.0.0",
 		"react": "^19.1.1",
+		"react-devtools-core": "^7.0.1",
 		"string-width": "^8.1.0"
 	},
 	"devDependencies": {
