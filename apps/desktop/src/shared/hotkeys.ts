@@ -203,19 +203,22 @@ export function matchesHotkey(
 	const requiresMeta = parts.includes("meta");
 	const requiresShift = parts.includes("shift");
 	const requiresAlt = parts.includes("alt");
+	const requiresCtrl = parts.includes("ctrl");
 
 	// Get the actual key (last part that's not a modifier)
 	const key = parts.find((p) => !["meta", "shift", "alt", "ctrl"].includes(p));
 
 	if (!key) return false;
 
-	const hasMeta = event.metaKey || event.ctrlKey;
+	const hasMeta = event.metaKey;
 	const hasShift = event.shiftKey;
 	const hasAlt = event.altKey;
+	const hasCtrl = event.ctrlKey;
 
 	if (requiresMeta !== hasMeta) return false;
 	if (requiresShift !== hasShift) return false;
 	if (requiresAlt !== hasAlt) return false;
+	if (requiresCtrl !== hasCtrl) return false;
 
 	// Match the key
 	const eventKey = event.key.toLowerCase();
