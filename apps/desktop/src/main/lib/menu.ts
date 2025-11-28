@@ -1,4 +1,4 @@
-import { app, type BrowserWindow, dialog, Menu } from "electron";
+import { app, type BrowserWindow, Menu } from "electron";
 
 export function createApplicationMenu(mainWindow: BrowserWindow) {
 	const template: Electron.MenuItemConstructorOptions[] = [
@@ -9,24 +9,6 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 					label: "New Window",
 					accelerator: "CmdOrCtrl+Shift+N",
 					click: async () => {},
-				},
-				{ type: "separator" },
-				{
-					label: "Open Repository...",
-					accelerator: "CmdOrCtrl+O",
-					click: async () => {
-						const result = await dialog.showOpenDialog(mainWindow, {
-							properties: ["openDirectory"],
-							title: "Select Repository",
-						});
-
-						if (result.canceled || result.filePaths.length === 0) {
-							return;
-						}
-
-						const _repoPath = result.filePaths[0];
-						console.log("[Menu] Event sent");
-					},
 				},
 				{ type: "separator" },
 				{ role: "quit" },

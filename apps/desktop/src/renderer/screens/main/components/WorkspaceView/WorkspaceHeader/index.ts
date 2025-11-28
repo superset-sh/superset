@@ -1,1 +1,1 @@
-export { WorkspaceHeader } from "./WorkspaceHeader";
+export { WorkspaceHeader, type ExternalApp } from "./WorkspaceHeader";

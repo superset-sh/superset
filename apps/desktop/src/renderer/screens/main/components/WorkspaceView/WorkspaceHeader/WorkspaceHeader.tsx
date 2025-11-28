@@ -1,24 +1,149 @@
-import { HiFolder } from "react-icons/hi2";
-import { OpenInDropdown } from "./OpenInDropdown";
+import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { useState } from "react";
+import { HiChevronDown } from "react-icons/hi2";
+import { LuCopy } from "react-icons/lu";
+import { trpc } from "renderer/lib/trpc";
+
+import cursorIcon from "./assets/cursor.svg";
+import finderIcon from "./assets/finder.png";
+import itermIcon from "./assets/iterm.png";
+import terminalIcon from "./assets/terminal.png";
+import vscodeIcon from "./assets/vscode.svg";
+import warpIcon from "./assets/warp.png";
+import xcodeIcon from "./assets/xcode.svg";
+
+export type ExternalApp =
+	| "finder"
+	| "vscode"
+	| "cursor"
+	| "xcode"
+	| "iterm"
+	| "warp"
+	| "terminal";
+
+interface AppOption {
+	id: ExternalApp;
+	label: string;
+	icon: string;
+}
+
+const APP_OPTIONS: AppOption[] = [
+	{ id: "finder", label: "Finder", icon: finderIcon },
+	{ id: "cursor", label: "Cursor", icon: cursorIcon },
+	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
+	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
+	{ id: "iterm", label: "iTerm", icon: itermIcon },
+	{ id: "warp", label: "Warp", icon: warpIcon },
+	{ id: "terminal", label: "Terminal", icon: terminalIcon },
+];
+
+const getAppOption = (id: ExternalApp) =>
+	APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
 
 interface WorkspaceHeaderProps {
 	worktreePath: string;
 }
 
 export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
-	// Extract just the folder name from the full path for display
+	const [isOpen, setIsOpen] = useState(false);
+	const utils = trpc.useUtils();
+
+	const { data: lastUsedApp = "cursor" } =
+		trpc.settings.getLastUsedApp.useQuery();
+	const setLastUsedApp = trpc.settings.setLastUsedApp.useMutation({
+		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
+	});
+
+	const openInApp = trpc.external.openInApp.useMutation();
+	const copyPath = trpc.external.copyPath.useMutation();
+
 	const folderName =
 		worktreePath.split("/").filter(Boolean).pop() || worktreePath;
+	const currentApp = getAppOption(lastUsedApp);
+
+	const handleOpenIn = (app: ExternalApp) => {
+		setLastUsedApp.mutate(app);
+		openInApp.mutate({ path: worktreePath, app });
+		setIsOpen(false);
+	};
+
+	const handleCopyPath = () => {
+		copyPath.mutate(worktreePath);
+		setIsOpen(false);
+	};
+
+	const handleOpenLastUsed = () => {
+		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
+	};
 
 	return (
-		<div className="flex items-center justify-between px-2 py-1.5 border-b border-border/50">
-			<div className="flex items-center gap-2 text-sm text-muted-foreground">
-				<HiFolder className="size-4" />
-				<span className="font-medium" title={worktreePath}>
-					/{folderName}
-				</span>
+		<div className="flex items-center px-2 py-1.5 border-b border-border/50">
+			{/* Button group: Path + Open dropdown */}
+			<div className="flex items-center">
+				{/* Path button - opens in last used app */}
+				<Button
+					variant="ghost"
+					size="sm"
+					className="rounded-r-none gap-1.5 text-muted-foreground hover:text-foreground pr-2"
+					onClick={handleOpenLastUsed}
+					title={`Open in ${currentApp.label} (⌘O)`}
+				>
+					<img src={currentApp.icon} alt="" className="size-4 object-contain" />
+					<span className="font-medium">/{folderName}</span>
+				</Button>
+
+				{/* Open dropdown */}
+				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="rounded-l-none gap-1 text-muted-foreground hover:text-foreground px-1.5 border-l border-border/50"
+						>
+							<HiChevronDown className="size-3" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-48">
+						{APP_OPTIONS.map((app) => (
+							<DropdownMenuItem
+								key={app.id}
+								onClick={() => handleOpenIn(app.id)}
+								className="flex items-center justify-between"
+							>
+								<div className="flex items-center gap-2">
+									<img
+										src={app.icon}
+										alt={app.label}
+										className="size-4 object-contain"
+									/>
+									<span>{app.label}</span>
+								</div>
+								{app.id === lastUsedApp && (
+									<span className="text-xs text-muted-foreground">⌘O</span>
+								)}
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							onClick={handleCopyPath}
+							className="flex items-center justify-between"
+						>
+							<div className="flex items-center gap-2">
+								<LuCopy className="size-4" />
+								<span>Copy path</span>
+							</div>
+							<span className="text-xs text-muted-foreground">⌘⇧C</span>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</div>
-			<OpenInDropdown worktreePath={worktreePath} />
 		</div>
 	);
 }
