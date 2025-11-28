@@ -27,16 +27,23 @@ export function WorkspacesTabs() {
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
 	// Workspace switching shortcuts (⌘+1-9) - combined into single hook call
-	const workspaceKeys = Array.from({ length: 9 }, (_, i) => `meta+${i + 1}`).join(", ");
-	useHotkeys(workspaceKeys, (event) => {
-		const num = Number(event.key);
-		if (num >= 1 && num <= 9) {
-			const workspace = allWorkspaces[num - 1];
-			if (workspace) {
-				setActiveWorkspace.mutate({ id: workspace.id });
+	const workspaceKeys = Array.from(
+		{ length: 9 },
+		(_, i) => `meta+${i + 1}`,
+	).join(", ");
+	useHotkeys(
+		workspaceKeys,
+		(event) => {
+			const num = Number(event.key);
+			if (num >= 1 && num <= 9) {
+				const workspace = allWorkspaces[num - 1];
+				if (workspace) {
+					setActiveWorkspace.mutate({ id: workspace.id });
+				}
 			}
-		}
-	}, [allWorkspaces, setActiveWorkspace]);
+		},
+		[allWorkspaces, setActiveWorkspace],
+	);
 
 	useEffect(() => {
 		const checkScroll = () => {
