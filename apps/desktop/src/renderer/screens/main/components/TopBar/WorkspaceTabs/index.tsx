@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -124,6 +125,7 @@ export function WorkspacesTabs() {
 				)}
 			</div>
 			<WorkspaceDropdown className="no-drag" />
+			<CloudWorkspaceButton className="no-drag" />
 		</div>
 	);
 }

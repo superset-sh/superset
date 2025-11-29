@@ -1,9 +1,9 @@
 import { Button } from "@superset/ui/button";
 import { LayoutGroup, motion } from "framer-motion";
-import { useMemo, useState } from "react";
-import { HiMiniCloud, HiMiniCommandLine, HiMiniPlus } from "react-icons/hi2";
+import { useMemo } from "react";
+import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
-import { TabType, useAddTab, useTabs } from "renderer/stores";
+import { useAddTab, useTabs } from "renderer/stores";
 import { TabItem } from "./TabItem";
 import { UngroupDropZone } from "./UngroupDropZone";
 
@@ -12,7 +12,6 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabs();
 	const addTab = useAddTab();
-	const [isCreatingCloud, setIsCreatingCloud] = useState(false);
 
 	const tabs = useMemo(
 		() =>
@@ -33,113 +32,11 @@ export function TabsView() {
 		}
 	};
 
-	const generateSandboxName = () => {
-		const adjectives = [
-			"happy",
-			"sleepy",
-			"brave",
-			"clever",
-			"gentle",
-			"bright",
-			"calm",
-			"bold",
-			"swift",
-			"quiet",
-		];
-		const nouns = [
-			"cat",
-			"fox",
-			"owl",
-			"bear",
-			"wolf",
-			"deer",
-			"hawk",
-			"lynx",
-			"seal",
-			"dove",
-		];
-		const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
-		const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
-		const timestamp = Date.now().toString(36);
-		return `${randomAdj}-${randomNoun}-${timestamp}`;
-	};
-
-	const createCloudSandbox = async () => {
-		if (!activeWorkspace) return null;
-
-		const sandboxName = generateSandboxName();
-
-		const result = await window.ipcRenderer.invoke("cloud-sandbox-create", {
-			name: sandboxName,
-			projectId: activeWorkspace.projectId,
-			taskDescription: `Cloud development for ${activeWorkspace.name}`,
-		});
-
-		if (!result.success) {
-			throw new Error(result.error || "Unknown error");
-		}
-
-		return result.sandbox;
-	};
-
-	const handleAddCloudChat = async () => {
-		if (!activeWorkspace) return;
-
-		setIsCreatingCloud(true);
-		try {
-			const sandbox = await createCloudSandbox();
-			if (sandbox?.claudeHost) {
-				// Create WebView tab for Claude chat UI (port 7030)
-				const claudeUrl = sandbox.claudeHost.startsWith("http")
-					? sandbox.claudeHost
-					: `https://${sandbox.claudeHost}`;
-				addTab(activeWorkspace.id, TabType.WebView, {
-					url: claudeUrl,
-					title: `Cloud: ${sandbox.name}`,
-				});
-			}
-		} catch (error) {
-			console.error("Error creating cloud chat:", error);
-			alert(
-				`Error creating cloud chat: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		} finally {
-			setIsCreatingCloud(false);
-		}
-	};
-
-	const handleAddCloudTerminal = async () => {
-		if (!activeWorkspace) return;
-
-		setIsCreatingCloud(true);
-		try {
-			const sandbox = await createCloudSandbox();
-			if (sandbox?.websshHost) {
-				// Create WebView tab for WebSSH terminal (port 8888)
-				const websshUrl = sandbox.websshHost.startsWith("http")
-					? sandbox.websshHost
-					: `https://${sandbox.websshHost}`;
-				addTab(activeWorkspace.id, TabType.WebView, {
-					url: websshUrl,
-					title: `SSH: ${sandbox.name}`,
-				});
-			}
-		} catch (error) {
-			console.error("Error creating cloud terminal:", error);
-			alert(
-				`Error creating cloud terminal: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		} finally {
-			setIsCreatingCloud(false);
-		}
-	};
-
 	return (
 		<nav className="space-y-2 flex flex-col h-full p-2">
 			<UngroupDropZone>
 				{(draggedTab, isDragOver, dropIndex) => (
 					<LayoutGroup>
-						{/* Local Terminals Section */}
 						<Button
 							variant="ghost"
 							onClick={handleAddTab}
@@ -173,32 +70,6 @@ export function TabsView() {
 							{isDragOver && draggedTab && dropIndex >= tabs.length && (
 								<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 							)}
-						</div>
-
-						{/* Cloud Section */}
-						<div className="pt-4 border-t border-sidebar-border mt-4 space-y-1">
-							<Button
-								variant="ghost"
-								onClick={handleAddCloudChat}
-								className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center gap-2 text-blue-400 hover:text-blue-300"
-								disabled={!activeWorkspaceId || isCreatingCloud}
-							>
-								<HiMiniCloud className="size-4" />
-								<span className="truncate flex-1">
-									{isCreatingCloud ? "Creating..." : "New Cloud Agent"}
-								</span>
-							</Button>
-							<Button
-								variant="ghost"
-								onClick={handleAddCloudTerminal}
-								className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center gap-2 text-blue-400 hover:text-blue-300"
-								disabled={!activeWorkspaceId || isCreatingCloud}
-							>
-								<HiMiniCommandLine className="size-4" />
-								<span className="truncate flex-1">
-									{isCreatingCloud ? "Creating..." : "New Cloud Terminal"}
-								</span>
-							</Button>
 						</div>
 					</LayoutGroup>
 				)}
