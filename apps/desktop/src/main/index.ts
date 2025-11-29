@@ -45,7 +45,25 @@ registerStorageHandlers();
 	await makeAppSetup(() => MainWindow());
 
 	// Clean up all terminals when app is quitting
-	app.on("before-quit", async () => {
-		await terminalManager.cleanup();
+	// Use a flag to prevent infinite loop since we call app.quit() after cleanup
+	let isCleaningUp = false;
+	app.on("before-quit", (event) => {
+		if (isCleaningUp) {
+			return; // Already cleaning up, allow quit to proceed
+		}
+
+		// Prevent the quit until cleanup is complete
+		event.preventDefault();
+		isCleaningUp = true;
+
+		terminalManager
+			.cleanup()
+			.catch((error) => {
+				console.error("[main] Terminal cleanup failed:", error);
+			})
+			.finally(() => {
+				// Now actually quit
+				app.quit();
+			});
 	});
 })();
