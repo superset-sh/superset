@@ -65,11 +65,34 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
+	// Open in last used app shortcut
+	const { data: lastUsedApp = "cursor" } =
+		trpc.settings.getLastUsedApp.useQuery();
+	const openInApp = trpc.external.openInApp.useMutation();
+	useHotkeys("meta+o", () => {
+		if (activeWorkspace?.worktreePath) {
+			openInApp.mutate({
+				path: activeWorkspace.worktreePath,
+				app: lastUsedApp,
+			});
+		}
+	}, [activeWorkspace?.worktreePath, lastUsedApp]);
+
+	// Copy path shortcut
+	const copyPath = trpc.external.copyPath.useMutation();
+	useHotkeys("meta+shift+c", () => {
+		if (activeWorkspace?.worktreePath) {
+			copyPath.mutate(activeWorkspace.worktreePath);
+		}
+	}, [activeWorkspace?.worktreePath]);
+
 	return (
 		<div className="flex flex-1 bg-tertiary">
 			<Sidebar />
-			<div className="flex-1 m-3 bg-background rounded p-2">
-				<ContentView />
+			<div className="flex-1 m-3 bg-background rounded flex flex-col overflow-hidden">
+				<div className="flex-1 p-2 overflow-hidden">
+					<ContentView />
+				</div>
 			</div>
 		</div>
 	);

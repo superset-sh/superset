@@ -26,7 +26,7 @@ describe("loadSetupConfig", () => {
 
 	test("loads valid setup config", () => {
 		const setupConfig = {
-			commands: ["npm install", "npm run build"],
+			setup: ["npm install", "npm run build"],
 		};
 
 		writeFileSync(
@@ -45,10 +45,10 @@ describe("loadSetupConfig", () => {
 		expect(config).toBeNull();
 	});
 
-	test("validates commands field must be an array", () => {
+	test("validates setup field must be an array", () => {
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "setup.json"),
-			JSON.stringify({ commands: "not-an-array" }),
+			JSON.stringify({ setup: "not-an-array" }),
 		);
 
 		const config = loadSetupConfig(MAIN_REPO);

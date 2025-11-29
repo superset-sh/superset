@@ -13,8 +13,8 @@ export function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
 		const content = readFileSync(configPath, "utf-8");
 		const parsed = JSON.parse(content) as SetupConfig;
 
-		if (parsed.commands && !Array.isArray(parsed.commands)) {
-			throw new Error("'commands' field must be an array of strings");
+		if (parsed.setup && !Array.isArray(parsed.setup)) {
+			throw new Error("'setup' field must be an array of strings");
 		}
 
 		return parsed;

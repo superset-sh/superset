@@ -2,7 +2,7 @@ import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
 
-const shortcuts = [HOTKEYS.NEW_TERMINAL, HOTKEYS.SPLIT_HORIZONTAL];
+const shortcuts = [HOTKEYS.NEW_TERMINAL, HOTKEYS.OPEN_IN_APP];
 
 export function EmptyTabView() {
 	return (

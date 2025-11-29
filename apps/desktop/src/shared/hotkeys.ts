@@ -72,6 +72,16 @@ export const HOTKEYS = {
 		label: "Switch to Workspace 9",
 		category: "Workspace",
 	},
+	PREV_WORKSPACE: {
+		keys: "meta+left",
+		label: "Previous Workspace",
+		category: "Workspace",
+	},
+	NEXT_WORKSPACE: {
+		keys: "meta+right",
+		label: "Next Workspace",
+		category: "Workspace",
+	},
 
 	// Layout
 	TOGGLE_SIDEBAR: {
@@ -125,10 +135,11 @@ export const HOTKEYS = {
 		label: "Close Window",
 		category: "Window",
 	},
-	OPEN_REPO: {
+	OPEN_IN_APP: {
 		keys: "meta+o",
-		label: "Open Repository",
+		label: "Open in App",
 		category: "Window",
+		description: "Open workspace in external app (Cursor, VS Code, etc.)",
 	},
 
 	// Help

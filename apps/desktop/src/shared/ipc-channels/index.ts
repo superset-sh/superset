@@ -5,6 +5,7 @@
  * Use these types in both main and renderer processes for type safety.
  */
 
+import type { CloudChannels } from "./cloud";
 import type { DeepLinkChannels } from "./deep-link";
 import type { ExternalChannels } from "./external";
 import type { ProxyChannels } from "./proxy";
@@ -13,8 +14,6 @@ import type { TabChannels } from "./tab";
 import type { TerminalChannels } from "./terminal";
 import type { UiChannels } from "./ui";
 import type { WindowChannels } from "./window";
-import type { WorkspaceChannels } from "./workspace";
-import type { WorktreeChannels } from "./worktree";
 
 // Re-export shared types
 export type {
@@ -28,16 +27,15 @@ export type {
  * Combine all channel definitions into a single interface
  */
 export interface IpcChannels
-	extends WorkspaceChannels,
-		WorktreeChannels,
-		TabChannels,
+	extends TabChannels,
 		TerminalChannels,
 		ProxyChannels,
 		ExternalChannels,
 		DeepLinkChannels,
 		WindowChannels,
 		UiChannels,
-		StorageChannels {}
+		StorageChannels,
+		CloudChannels {}
 
 /**
  * Type-safe IPC channel names
