@@ -1,13 +1,16 @@
-import { basename } from "node:path";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
+import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getGitRoot } from "../workspaces/utils/git";
+import { getGitRoot, listWorktrees } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
 export const createProjectsRouter = (window: BrowserWindow) => {
@@ -65,6 +68,89 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
 					data.projects.push(project!);
 				});
+
+				// Import existing worktrees for this new project
+				const supersetWorktreesDir = join(
+					homedir(),
+					SUPERSET_DIR_NAME,
+					WORKTREES_DIR_NAME,
+				);
+
+				const existingWorktrees = await listWorktrees(mainRepoPath);
+
+				// Filter to only worktrees in the superset worktrees directory that exist on disk
+				const supersetWorktrees = existingWorktrees.filter(
+					(wt) =>
+						wt.path.startsWith(supersetWorktreesDir) && existsSync(wt.path),
+				);
+
+				if (supersetWorktrees.length > 0) {
+					await db.update((data) => {
+						for (const wt of supersetWorktrees) {
+							// Check if worktree already exists in db
+							const existingWorktree = data.worktrees.find(
+								(w) => w.path === wt.path,
+							);
+							if (existingWorktree) {
+								continue;
+							}
+
+							const worktreeId = nanoid();
+							const worktree = {
+								id: worktreeId,
+								// biome-ignore lint/style/noNonNullAssertion: project is assigned above
+								projectId: project!.id,
+								path: wt.path,
+								branch: wt.branch,
+								createdAt: Date.now(),
+								gitStatus: {
+									branch: wt.branch,
+									needsRebase: false,
+									lastRefreshed: Date.now(),
+								},
+							};
+							data.worktrees.push(worktree);
+
+							// Calculate next tab order for workspace
+							const projectWorkspaces = data.workspaces.filter(
+								// biome-ignore lint/style/noNonNullAssertion: project is assigned above
+								(w) => w.projectId === project!.id,
+							);
+							const maxTabOrder =
+								projectWorkspaces.length > 0
+									? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
+									: -1;
+
+							const workspace = {
+								id: nanoid(),
+								// biome-ignore lint/style/noNonNullAssertion: project is assigned above
+								projectId: project!.id,
+								worktreeId,
+								name: wt.branch,
+								tabOrder: maxTabOrder + 1,
+								createdAt: Date.now(),
+								updatedAt: Date.now(),
+								lastOpenedAt: Date.now(),
+							};
+							data.workspaces.push(workspace);
+
+							// Mark project as active since we found workspaces
+							// biome-ignore lint/style/noNonNullAssertion: project is assigned above
+							const p = data.projects.find((proj) => proj.id === project!.id);
+							if (p && p.tabOrder === null) {
+								const activeProjects = data.projects.filter(
+									(proj) => proj.tabOrder !== null,
+								);
+								const maxProjectTabOrder =
+									activeProjects.length > 0
+										? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+											Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+										: -1;
+								p.tabOrder = maxProjectTabOrder + 1;
+							}
+						}
+					});
+				}
 			}
 
 			return {

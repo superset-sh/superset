@@ -144,3 +144,50 @@ export async function checkNeedsRebase(worktreePath: string): Promise<boolean> {
 	]);
 	return Number.parseInt(behindCount.trim(), 10) > 0;
 }
+
+export interface WorktreeInfo {
+	path: string;
+	branch: string;
+}
+
+/**
+ * Lists all worktrees for a repository
+ * @param mainRepoPath - Path to the main repository
+ * @returns Array of worktree information (path and branch)
+ */
+export async function listWorktrees(
+	mainRepoPath: string,
+): Promise<WorktreeInfo[]> {
+	const git = simpleGit(mainRepoPath);
+	const output = await git.raw(["worktree", "list", "--porcelain"]);
+
+	const worktrees: WorktreeInfo[] = [];
+	const lines = output.split("\n");
+
+	let currentWorktree: Partial<WorktreeInfo> = {};
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+
+		if (trimmed.startsWith("worktree ")) {
+			// Start of a new worktree entry
+			if (currentWorktree.path && currentWorktree.branch) {
+				worktrees.push(currentWorktree as WorktreeInfo);
+			}
+			currentWorktree = { path: trimmed.slice("worktree ".length) };
+		} else if (trimmed.startsWith("branch ")) {
+			// Branch reference (e.g., "branch refs/heads/branch-name")
+			const branchRef = trimmed.slice("branch ".length);
+			// Extract branch name from refs/heads/branch-name
+			const branchName = branchRef.replace("refs/heads/", "");
+			currentWorktree.branch = branchName;
+		}
+	}
+
+	// Don't forget the last worktree
+	if (currentWorktree.path && currentWorktree.branch) {
+		worktrees.push(currentWorktree as WorktreeInfo);
+	}
+
+	return worktrees;
+}
