@@ -96,7 +96,7 @@ export const createWorkspacesRouter = () => {
 
 				return {
 					workspace,
-					initialCommands: setupConfig?.commands || null,
+					initialCommands: setupConfig?.setup || null,
 					worktreePath,
 				};
 			}),

@@ -1,4 +1,4 @@
 {
-	"commands": ["./superset-setup.sh"],
+	"setup": ["./superset-setup.sh"],
 	"teardown": ["./superset-teardown.sh"]
 }
