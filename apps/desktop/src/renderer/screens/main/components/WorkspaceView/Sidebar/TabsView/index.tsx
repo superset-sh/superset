@@ -40,7 +40,7 @@ export function TabsView() {
 						<Button
 							variant="ghost"
 							onClick={handleAddTab}
-							className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
+							className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center gap-2"
 							disabled={!activeWorkspaceId}
 						>
 							<HiMiniPlus className="size-4" />

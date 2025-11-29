@@ -8,12 +8,23 @@ export interface Project {
 	createdAt: number;
 }
 
+export interface CloudSandbox {
+	id: string;
+	name: string;
+	status: "creating" | "running" | "stopped" | "error";
+	websshHost?: string;
+	claudeHost?: string;
+	createdAt: string;
+	error?: string;
+}
+
 export interface Worktree {
 	id: string;
 	projectId: string;
 	path: string;
 	branch: string;
 	createdAt: number;
+	cloudSandbox?: CloudSandbox;
 }
 
 export interface Workspace {

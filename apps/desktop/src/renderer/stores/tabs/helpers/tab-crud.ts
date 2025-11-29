@@ -1,14 +1,15 @@
 import type { TabsState } from "../types";
 import { TabType } from "../types";
-import { createNewTab } from "../utils";
+import { type CreateTabOptions, createNewTab } from "../utils";
 import { findNextTab } from "./next-tab-finder";
 
 export const handleAddTab = (
 	state: TabsState,
 	workspaceId: string,
 	type: TabType = TabType.Single,
+	options?: CreateTabOptions,
 ): { newState: Partial<TabsState>; tabId: string } => {
-	const newTab = createNewTab(workspaceId, type, state.tabs);
+	const newTab = createNewTab(workspaceId, type, state.tabs, options);
 	const currentActiveId = state.activeTabIds[workspaceId];
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
 	const newHistoryStack = currentActiveId

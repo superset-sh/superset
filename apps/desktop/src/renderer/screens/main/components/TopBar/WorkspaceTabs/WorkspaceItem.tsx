@@ -1,8 +1,12 @@
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark } from "react-icons/hi2";
+import {
+	HiExclamationTriangle,
+	HiMiniCloud,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
@@ -24,6 +28,8 @@ interface WorkspaceItemProps {
 	width: number;
 	onMouseEnter?: () => void;
 	onMouseLeave?: () => void;
+	cloudSandboxId?: string;
+	cloudSandboxStatus?: string;
 }
 
 export function WorkspaceItem({
@@ -36,12 +42,47 @@ export function WorkspaceItem({
 	width,
 	onMouseEnter,
 	onMouseLeave,
+	cloudSandboxId,
+	cloudSandboxStatus: initialSandboxStatus,
 }: WorkspaceItemProps) {
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const tabs = useTabs();
 	const rename = useWorkspaceRename(id, title);
+
+	// Track sandbox status with polling
+	const [sandboxStatus, setSandboxStatus] = useState<string | undefined>(
+		initialSandboxStatus,
+	);
+
+	// Poll for sandbox status every 30 seconds if this is a cloud workspace
+	useEffect(() => {
+		if (!cloudSandboxId) return;
+
+		const checkStatus = async () => {
+			try {
+				const result = await window.ipcRenderer.invoke("cloud-sandbox-status", {
+					sandboxId: cloudSandboxId,
+				});
+				if (result.success && result.status) {
+					setSandboxStatus(result.status);
+				}
+			} catch (error) {
+				console.error("Failed to check sandbox status:", error);
+			}
+		};
+
+		// Check immediately
+		checkStatus();
+
+		// Then poll every 30 seconds
+		const interval = setInterval(checkStatus, 30000);
+		return () => clearInterval(interval);
+	}, [cloudSandboxId]);
+
+	const isCloudWorkspace = !!cloudSandboxId;
+	const isSandboxStopped = sandboxStatus === "stopped";
 
 	const needsAttention = tabs
 		.filter((t) => t.workspaceId === id)
@@ -118,6 +159,22 @@ export function WorkspaceItem({
 							/>
 						) : (
 							<>
+								{/* Cloud workspace icon */}
+								{isCloudWorkspace && (
+									<span className="shrink-0 mr-1">
+										{isSandboxStopped ? (
+											<HiExclamationTriangle
+												className="size-3 text-yellow-500"
+												title="Cloud sandbox stopped"
+											/>
+										) : (
+											<HiMiniCloud
+												className="size-3 text-blue-400"
+												title="Cloud workspace"
+											/>
+										)}
+									</span>
+								)}
 								<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
 									{title}
 								</span>

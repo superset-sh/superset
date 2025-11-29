@@ -3,6 +3,7 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 export enum TabType {
 	Single = "single",
 	Group = "group",
+	WebView = "webview",
 }
 
 interface BaseTab {
@@ -18,12 +19,17 @@ export interface SingleTab extends BaseTab {
 	type: TabType.Single;
 }
 
+export interface WebViewTab extends BaseTab {
+	type: TabType.WebView;
+	url: string;
+}
+
 export interface TabGroup extends BaseTab {
 	type: TabType.Group;
 	layout: MosaicNode<string> | null;
 }
 
-export type Tab = SingleTab | TabGroup;
+export type Tab = SingleTab | TabGroup | WebViewTab;
 
 export interface TabsState {
 	tabs: Tab[];
@@ -32,7 +38,11 @@ export interface TabsState {
 }
 
 export interface TabsStore extends TabsState {
-	addTab: (workspaceId: string, type?: TabType) => string;
+	addTab: (
+		workspaceId: string,
+		type?: TabType,
+		options?: { url?: string; title?: string },
+	) => string;
 	removeTab: (id: string) => void;
 	renameTab: (id: string, newTitle: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;

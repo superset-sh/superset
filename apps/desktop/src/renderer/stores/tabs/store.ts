@@ -40,10 +40,10 @@ export const useTabsStore = create<TabsStore>()(
 				activeTabIds: {},
 				tabHistoryStacks: {},
 
-				addTab: (workspaceId, type = TabType.Single) => {
+				addTab: (workspaceId, type = TabType.Single, options) => {
 					let tabId = "";
 					set((state) => {
-						const result = handleAddTab(state, workspaceId, type);
+						const result = handleAddTab(state, workspaceId, type, options);
 						tabId = result.tabId;
 						return result.newState;
 					});

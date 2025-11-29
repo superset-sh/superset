@@ -6,6 +6,7 @@ import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
+import { WebViewTabView } from "./WebViewTabView";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -45,6 +46,9 @@ export function TabsContent() {
 				<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
 			)}
 			{tabToRender.type === TabType.Group && <GroupTabView tab={tabToRender} />}
+			{tabToRender.type === TabType.WebView && (
+				<WebViewTabView tab={tabToRender} />
+			)}
 			{isDropZone && <DropOverlay message="Drop to create split view" />}
 		</div>
 	);

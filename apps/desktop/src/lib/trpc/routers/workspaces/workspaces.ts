@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { cloudApiClient } from "main/lib/cloud-api-client";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
@@ -114,9 +115,15 @@ export const createWorkspacesRouter = () => {
 			return db.data.workspaces.slice().sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
-		getAllGrouped: publicProcedure.query(() => {
+		getAllGrouped: publicProcedure.query(async () => {
 			const activeProjects = db.data.projects.filter(
 				(p) => p.tabOrder !== null,
+			);
+
+			// Fetch live sandbox statuses
+			const sandboxResult = await cloudApiClient.listSandboxes();
+			const liveSandboxes = new Map(
+				(sandboxResult.sandboxes ?? []).map((s) => [s.id, s.status]),
 			);
 
 			const groupsMap = new Map<
@@ -138,6 +145,8 @@ export const createWorkspacesRouter = () => {
 						createdAt: number;
 						updatedAt: number;
 						lastOpenedAt: number;
+						cloudSandboxId?: string;
+						cloudSandboxStatus?: string;
 					}>;
 				}
 			>();
@@ -161,9 +170,24 @@ export const createWorkspacesRouter = () => {
 
 			for (const workspace of workspaces) {
 				if (groupsMap.has(workspace.projectId)) {
+					const worktree = db.data.worktrees.find(
+						(wt) => wt.id === workspace.worktreeId,
+					);
+					const sandboxId = worktree?.cloudSandbox?.id;
+					// Use live status if available, fallback to stored status
+					const liveStatus = sandboxId
+						? liveSandboxes.get(sandboxId)
+						: undefined;
+					// If sandbox exists in db but not in live list, it's stopped/deleted
+					const status = sandboxId
+						? (liveStatus ?? "stopped")
+						: worktree?.cloudSandbox?.status;
+
 					groupsMap.get(workspace.projectId)?.workspaces.push({
 						...workspace,
 						worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+						cloudSandboxId: sandboxId,
+						cloudSandboxStatus: status,
 					});
 				}
 			}
@@ -298,6 +322,19 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				// Kill cloud sandbox if present
+				if (worktree?.cloudSandbox?.id) {
+					try {
+						console.log(
+							`Deleting cloud sandbox ${worktree.cloudSandbox.id} for worktree ${worktree.id}`,
+						);
+						await cloudApiClient.deleteSandbox(worktree.cloudSandbox.id);
+					} catch (error) {
+						console.error("Failed to delete cloud sandbox:", error);
+						// Continue with deletion even if sandbox deletion fails
+					}
+				}
+
 				if (worktree && project) {
 					try {
 						const exists = await worktreeExists(
@@ -411,6 +448,26 @@ export const createWorkspacesRouter = () => {
 
 				return { success: true };
 			}),
+
+		getDanglingSandboxes: publicProcedure.query(async () => {
+			// Get all sandboxes from the cloud API
+			const result = await cloudApiClient.listSandboxes();
+			if (!result.success || !result.sandboxes) {
+				return [];
+			}
+
+			// Get all sandbox IDs that are linked to worktrees
+			const linkedSandboxIds = new Set(
+				db.data.worktrees
+					.filter((wt) => wt.cloudSandbox?.id)
+					.map((wt) => wt.cloudSandbox?.id),
+			);
+
+			// Return only running sandboxes that are not linked to any worktree
+			return result.sandboxes.filter(
+				(s) => !linkedSandboxIds.has(s.id) && s.status === "running",
+			);
+		}),
 	});
 };
 

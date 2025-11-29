@@ -2,6 +2,8 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
+import { DanglingSandboxItem } from "./DanglingSandboxItem";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -12,6 +14,10 @@ const ADD_BUTTON_WIDTH = 48;
 export function WorkspacesTabs() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: danglingSandboxes = [] } =
+		trpc.workspaces.getDanglingSandboxes.useQuery(undefined, {
+			refetchInterval: 30000, // Refetch every 30 seconds
+		});
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const containerRef = useRef<HTMLDivElement>(null);
@@ -113,6 +119,29 @@ export function WorkspacesTabs() {
 							)}
 						</Fragment>
 					))}
+
+					{/* Dangling sandboxes - orphaned cloud instances */}
+					{danglingSandboxes.length > 0 && (
+						<>
+							{groups.length > 0 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
+								</div>
+							)}
+							<div className="flex items-end h-full gap-1">
+								{danglingSandboxes.map((sandbox) => (
+									<DanglingSandboxItem
+										key={sandbox.id}
+										id={sandbox.id}
+										name={sandbox.name}
+										status={sandbox.status}
+										claudeHost={sandbox.claudeHost}
+										websshHost={sandbox.websshHost}
+									/>
+								))}
+							</div>
+						</>
+					)}
 				</div>
 
 				{/* Fade effects for scroll indication */}
@@ -124,6 +153,7 @@ export function WorkspacesTabs() {
 				)}
 			</div>
 			<WorkspaceDropdown className="no-drag" />
+			<CloudWorkspaceButton className="no-drag" />
 		</div>
 	);
 }
