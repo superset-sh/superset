@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
-import { getSupersetPath } from "./agent-setup";
+import { getShellArgs, getShellEnv } from "./agent-setup";
 import { TerminalEscapeFilter } from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
@@ -87,9 +87,10 @@ export class TerminalManager extends EventEmitter {
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
 		const baseEnv = this.sanitizeEnv(process.env) || {};
+		const shellEnv = getShellEnv(shell);
 		const env = {
 			...baseEnv,
-			PATH: getSupersetPath(),
+			...shellEnv,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_TAB_TITLE: tabTitle,
 			SUPERSET_WORKSPACE_NAME: workspaceName,
@@ -114,8 +115,7 @@ export class TerminalManager extends EventEmitter {
 			}
 		}
 
-		const shellArgs =
-			shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
+		const shellArgs = getShellArgs(shell);
 
 		const ptyProcess = pty.spawn(shell, shellArgs, {
 			name: "xterm-256color",

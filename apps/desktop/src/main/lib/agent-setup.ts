@@ -1,11 +1,14 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { PORTS, SUPERSET_DIR_NAME } from "shared/constants";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
 const BIN_DIR = path.join(SUPERSET_HOME_DIR, "bin");
 const HOOKS_DIR = path.join(SUPERSET_HOME_DIR, "hooks");
+const ZSH_DIR = path.join(SUPERSET_HOME_DIR, "zsh");
+const BASH_DIR = path.join(SUPERSET_HOME_DIR, "bash");
 
 /**
  * Finds the real path of a binary, skipping our wrapper scripts
@@ -104,6 +107,65 @@ exec "${realCodex}" -c 'notify=["bash","${notifyPath}"]' "$@"
 }
 
 /**
+ * Creates zsh initialization wrapper that intercepts shell startup
+ * Sources user's real .zshrc then prepends our bin to PATH
+ */
+function createZshWrapper(): void {
+	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
+	const script = `# Superset zsh initialization wrapper
+# This file intercepts zsh startup to ensure ~/.superset/bin is in PATH
+
+# Restore original ZDOTDIR for any nested shells
+export ZDOTDIR="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+
+# Source user's real zshrc if it exists
+if [[ -f "$ZDOTDIR/.zshrc" ]]; then
+  source "$ZDOTDIR/.zshrc"
+fi
+
+# Prepend superset bin to PATH (after user's rc has run)
+export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+`;
+	fs.writeFileSync(zshrcPath, script, { mode: 0o644 });
+	console.log("[agent-setup] Created zsh wrapper");
+}
+
+/**
+ * Creates bash initialization wrapper that intercepts shell startup
+ * Sources user's real bashrc/profile then prepends our bin to PATH
+ */
+function createBashWrapper(): void {
+	const rcfilePath = path.join(BASH_DIR, "rcfile");
+	const script = `# Superset bash initialization wrapper
+# This file intercepts bash startup to ensure ~/.superset/bin is in PATH
+
+# Source system profile for login shell behavior
+if [[ -f /etc/profile ]]; then
+  source /etc/profile
+fi
+
+# Source user's bash_profile or bashrc
+if [[ -f "$HOME/.bash_profile" ]]; then
+  source "$HOME/.bash_profile"
+elif [[ -f "$HOME/.bash_login" ]]; then
+  source "$HOME/.bash_login"
+elif [[ -f "$HOME/.profile" ]]; then
+  source "$HOME/.profile"
+fi
+
+# Also source bashrc if it exists (some setups separate these)
+if [[ -f "$HOME/.bashrc" ]]; then
+  source "$HOME/.bashrc"
+fi
+
+# Prepend superset bin to PATH (after user's rc has run)
+export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+`;
+	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
+	console.log("[agent-setup] Created bash wrapper");
+}
+
+/**
  * Sets up the ~/.superset directory structure and agent wrappers
  * Called on app startup
  */
@@ -113,20 +175,49 @@ export function setupAgentHooks(): void {
 	// Create directories
 	fs.mkdirSync(BIN_DIR, { recursive: true });
 	fs.mkdirSync(HOOKS_DIR, { recursive: true });
+	fs.mkdirSync(ZSH_DIR, { recursive: true });
+	fs.mkdirSync(BASH_DIR, { recursive: true });
 
 	// Create scripts
 	createNotifyScript();
 	createClaudeWrapper();
 	createCodexWrapper();
 
+	// Create shell initialization wrappers
+	createZshWrapper();
+	createBashWrapper();
+
 	console.log("[agent-setup] Agent hooks initialized");
 }
 
 /**
- * Returns the PATH with our bin directory prepended
+ * Returns shell-specific environment variables for intercepting shell initialization
  */
-export function getSupersetPath(): string {
-	return `${BIN_DIR}:${process.env.PATH || ""}`;
+export function getShellEnv(shell: string): Record<string, string> {
+	if (shell.includes("zsh")) {
+		return {
+			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
+			ZDOTDIR: ZSH_DIR,
+		};
+	}
+	// Bash doesn't need special env vars - we use --rcfile instead
+	return {};
+}
+
+/**
+ * Returns shell-specific arguments for intercepting shell initialization
+ */
+export function getShellArgs(shell: string): string[] {
+	if (shell.includes("zsh")) {
+		// Zsh uses ZDOTDIR env var, no special args needed
+		// -l for login shell behavior
+		return ["-l"];
+	}
+	if (shell.includes("bash")) {
+		// Use our custom rcfile that sources user's files then fixes PATH
+		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
+	}
+	return [];
 }
 
 /**
