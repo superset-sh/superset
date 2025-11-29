@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createDiffRouter } from "./diff";
 import { createExternalRouter } from "./external";
 import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
@@ -19,6 +20,7 @@ export const createAppRouter = (window: BrowserWindow) => {
 		terminal: createTerminalRouter(),
 		notifications: createNotificationsRouter(),
 		external: createExternalRouter(),
+		diff: createDiffRouter(),
 	});
 };
 
