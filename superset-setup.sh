@@ -36,11 +36,15 @@ WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 NEON_OUTPUT=$(neonctl branches create \
   --project-id tiny-cherry-82420694 \
   --name "$WORKSPACE_NAME" \
-  --output json)
+  --output json 2>&1 | grep -v "^WARNING:")
 
-# Parse connection strings and create .env
+# Parse connection strings from create output
 DATABASE_URL=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_uri')
-DATABASE_POOLED_URL=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[1].connection_uri // empty')
+POOLER_HOST=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.pooler_host')
+PASSWORD=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.password')
+ROLE=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.role')
+DATABASE=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.database')
+DATABASE_POOLED_URL="postgresql://${ROLE}:${PASSWORD}@${POOLER_HOST}/${DATABASE}?sslmode=require"
 
 cat > .env << EOF
 DATABASE_URL=$DATABASE_URL
