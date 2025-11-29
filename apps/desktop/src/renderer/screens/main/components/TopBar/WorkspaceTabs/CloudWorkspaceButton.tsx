@@ -93,9 +93,11 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 			}
 
 			if (sandbox?.websshHost) {
-				const websshUrl = sandbox.websshHost.startsWith("http")
+				const baseUrl = sandbox.websshHost.startsWith("http")
 					? sandbox.websshHost
 					: `https://${sandbox.websshHost}`;
+				// Pre-fill webssh with localhost connection for user
+				const websshUrl = `${baseUrl}/?hostname=localhost&username=user`;
 				addTab(workspaceId, TabType.WebView, {
 					url: websshUrl,
 					title: "Cloud Terminal",
