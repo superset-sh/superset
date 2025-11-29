@@ -12,6 +12,7 @@ import {
 	worktreeExists,
 } from "./utils/git";
 import { loadSetupConfig } from "./utils/setup";
+import { runTeardown } from "./utils/teardown";
 import { getWorktreePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
@@ -295,13 +296,27 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				let teardownError: string | undefined;
+
 				if (worktree && project) {
-					try {
-						const exists = await worktreeExists(
+					// Run teardown scripts before removing worktree
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
+
+					if (exists) {
+						const teardownResult = runTeardown(
 							project.mainRepoPath,
 							worktree.path,
+							workspace.name,
 						);
+						if (!teardownResult.success) {
+							teardownError = teardownResult.error;
+						}
+					}
 
+					try {
 						if (exists) {
 							await removeWorktree(project.mainRepoPath, worktree.path);
 						} else {
@@ -350,7 +365,7 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				return { success: true };
+				return { success: true, teardownError };
 			}),
 
 		setActive: publicProcedure

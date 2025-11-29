@@ -129,6 +129,7 @@ export interface UpdateWorkspaceInput {
 // Setup script configuration
 export interface SetupConfig {
 	commands?: string[]; // Shell commands to run in worktree directory
+	teardown?: string[]; // Shell commands to run when workspace is deleted
 }
 
 // Port detection types
