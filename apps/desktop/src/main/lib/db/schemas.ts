@@ -36,14 +36,17 @@ export interface Tab {
 	updatedAt: number;
 }
 
-export type ExternalApp =
-	| "finder"
-	| "vscode"
-	| "cursor"
-	| "xcode"
-	| "iterm"
-	| "warp"
-	| "terminal";
+export const EXTERNAL_APPS = [
+	"finder",
+	"vscode",
+	"cursor",
+	"xcode",
+	"iterm",
+	"warp",
+	"terminal",
+] as const;
+
+export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
 export interface Settings {
 	lastActiveWorkspaceId?: string;

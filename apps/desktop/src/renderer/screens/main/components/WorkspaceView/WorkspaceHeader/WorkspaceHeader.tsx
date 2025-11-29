@@ -7,6 +7,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import type { ExternalApp } from "main/lib/db/schemas";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
@@ -19,15 +20,6 @@ import terminalIcon from "./assets/terminal.png";
 import vscodeIcon from "./assets/vscode.svg";
 import warpIcon from "./assets/warp.png";
 import xcodeIcon from "./assets/xcode.svg";
-
-export type ExternalApp =
-	| "finder"
-	| "vscode"
-	| "cursor"
-	| "xcode"
-	| "iterm"
-	| "warp"
-	| "terminal";
 
 interface AppOption {
 	id: ExternalApp;

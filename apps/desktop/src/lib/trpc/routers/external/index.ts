@@ -2,26 +2,17 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { clipboard, shell } from "electron";
 import { db } from "main/lib/db";
+import { type ExternalApp, EXTERNAL_APPS } from "main/lib/db/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-const ExternalApp = z.enum([
-	"finder",
-	"vscode",
-	"cursor",
-	"xcode",
-	"iterm",
-	"warp",
-	"terminal",
-]);
-
-type ExternalAppType = z.infer<typeof ExternalApp>;
+const ExternalAppSchema = z.enum(EXTERNAL_APPS);
 
 /**
  * Get the command and args to open a path in the specified app
  */
 const getAppCommand = (
-	app: ExternalAppType,
+	app: ExternalApp,
 	targetPath: string,
 ): { command: string; args: string[] } | null => {
 	switch (app) {
@@ -89,7 +80,7 @@ export const createExternalRouter = () => {
 			.input(
 				z.object({
 					path: z.string(),
-					app: ExternalApp,
+					app: ExternalAppSchema,
 				}),
 			)
 			.mutation(async ({ input }) => {
