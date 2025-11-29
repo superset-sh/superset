@@ -103,28 +103,16 @@ export function TabsView() {
 			<UngroupDropZone>
 				{(draggedTab, isDragOver, dropIndex) => (
 					<LayoutGroup>
-						<div className="flex gap-2">
-							<Button
-								variant="ghost"
-								onClick={handleAddTab}
-								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
-								disabled={!activeWorkspaceId}
-							>
-								<HiMiniPlus className="size-4" />
-								<span className="truncate flex-1">New Terminal</span>
-							</Button>
-							<Button
-								variant="ghost"
-								onClick={handleAddCloudTerminal}
-								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between text-blue-400 hover:text-blue-300"
-								disabled={!activeWorkspaceId || isCreatingCloud}
-							>
-								<HiMiniCloud className="size-4" />
-								<span className="truncate flex-1">
-									{isCreatingCloud ? "Creating..." : "New Cloud Terminal"}
-								</span>
-							</Button>
-						</div>
+						{/* Local Terminals Section */}
+						<Button
+							variant="ghost"
+							onClick={handleAddTab}
+							className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center gap-2"
+							disabled={!activeWorkspaceId}
+						>
+							<HiMiniPlus className="size-4" />
+							<span className="truncate flex-1">New Terminal</span>
+						</Button>
 						<div className="text-sm text-sidebar-foreground space-y-2 relative pt-2">
 							{tabs.map((tab, index) => (
 								<motion.div
@@ -149,6 +137,21 @@ export function TabsView() {
 							{isDragOver && draggedTab && dropIndex >= tabs.length && (
 								<div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 							)}
+						</div>
+
+						{/* Cloud Terminals Section */}
+						<div className="pt-4 border-t border-sidebar-border mt-4">
+							<Button
+								variant="ghost"
+								onClick={handleAddCloudTerminal}
+								className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center gap-2 text-blue-400 hover:text-blue-300"
+								disabled={!activeWorkspaceId || isCreatingCloud}
+							>
+								<HiMiniCloud className="size-4" />
+								<span className="truncate flex-1">
+									{isCreatingCloud ? "Creating..." : "New Cloud Terminal"}
+								</span>
+							</Button>
 						</div>
 					</LayoutGroup>
 				)}
