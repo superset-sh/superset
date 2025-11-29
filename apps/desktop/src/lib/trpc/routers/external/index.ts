@@ -9,7 +9,8 @@ import { publicProcedure, router } from "../..";
 const ExternalAppSchema = z.enum(EXTERNAL_APPS);
 
 /**
- * Get the command and args to open a path in the specified app
+ * Get the command and args to open a path in the specified app.
+ * Uses `open -a` for macOS apps to avoid PATH issues in production builds.
  */
 const getAppCommand = (
 	app: ExternalApp,
@@ -19,9 +20,12 @@ const getAppCommand = (
 		case "finder":
 			return null; // Handled specially with shell.showItemInFolder
 		case "vscode":
-			return { command: "code", args: [targetPath] };
+			return {
+				command: "open",
+				args: ["-a", "Visual Studio Code", targetPath],
+			};
 		case "cursor":
-			return { command: "cursor", args: [targetPath] };
+			return { command: "open", args: ["-a", "Cursor", targetPath] };
 		case "xcode":
 			return { command: "open", args: ["-a", "Xcode", targetPath] };
 		case "iterm":
@@ -47,14 +51,22 @@ const spawnAsync = (command: string, args: string[]): Promise<void> => {
 		});
 
 		child.on("error", (error) => {
-			reject(error);
+			reject(
+				new Error(
+					`Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`,
+				),
+			);
 		});
 
 		child.on("exit", (code) => {
 			if (code === 0) {
 				resolve();
 			} else {
-				reject(new Error(`Process exited with code ${code}`));
+				reject(
+					new Error(
+						`'${command}' exited with code ${code}. The application may not be installed.`,
+					),
+				);
 			}
 		});
 	});
@@ -116,7 +128,6 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				console.log("[external] openFileInEditor called with:", input);
 				let filePath = input.path;
 
 				// Expand home directory - needed because editors expect absolute paths
@@ -134,11 +145,7 @@ export const createExternalRouter = () => {
 						: path.resolve(filePath);
 				}
 
-				console.log("[external] Resolved file path:", filePath);
-
-				const editors = ["cursor", "code"];
-
-				// Build the file location string (file:line:column format expected by --goto flag)
+				// Build the file location string (file:line:column format for URL schemes)
 				let location = filePath;
 				if (input.line) {
 					location += `:${input.line}`;
@@ -147,21 +154,21 @@ export const createExternalRouter = () => {
 					}
 				}
 
-				console.log("[external] Opening location:", location);
+				// Try editor URL schemes - these work reliably without PATH issues
+				// Format: cursor://file/path:line:column or vscode://file/path:line:column
+				const editorSchemes = ["cursor", "vscode"];
 
-				for (const editor of editors) {
+				for (const scheme of editorSchemes) {
 					try {
-						console.log(`[external] Trying editor: ${editor}`);
-						await spawnAsync(editor, ["--goto", location]);
-						console.log(`[external] Successfully opened with ${editor}`);
+						const url = `${scheme}://file${location}`;
+						await shell.openExternal(url);
 						return;
-					} catch (error) {
-						console.log(`[external] ${editor} failed:`, error);
+					} catch {
+						// Editor not installed or URL scheme not registered, try next
 					}
 				}
 
-				console.log("[external] Falling back to system default");
-
+				// Fall back to system default
 				await shell.openPath(filePath);
 			}),
 	});
