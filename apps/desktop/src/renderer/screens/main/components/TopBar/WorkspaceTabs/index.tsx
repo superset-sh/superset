@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { HOTKEYS } from "shared/hotkeys";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -44,6 +45,28 @@ export function WorkspacesTabs() {
 		},
 		[allWorkspaces, setActiveWorkspace],
 	);
+
+	// Navigate to previous workspace (⌘+←)
+	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, () => {
+		if (!activeWorkspaceId) return;
+		const currentIndex = allWorkspaces.findIndex(
+			(w) => w.id === activeWorkspaceId,
+		);
+		if (currentIndex > 0) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex - 1].id });
+		}
+	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+
+	// Navigate to next workspace (⌘+→)
+	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, () => {
+		if (!activeWorkspaceId) return;
+		const currentIndex = allWorkspaces.findIndex(
+			(w) => w.id === activeWorkspaceId,
+		);
+		if (currentIndex < allWorkspaces.length - 1) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
+		}
+	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
 	useEffect(() => {
 		const checkScroll = () => {

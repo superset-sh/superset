@@ -72,6 +72,16 @@ export const HOTKEYS = {
 		label: "Switch to Workspace 9",
 		category: "Workspace",
 	},
+	PREV_WORKSPACE: {
+		keys: "meta+left",
+		label: "Previous Workspace",
+		category: "Workspace",
+	},
+	NEXT_WORKSPACE: {
+		keys: "meta+right",
+		label: "Next Workspace",
+		category: "Workspace",
+	},
 
 	// Layout
 	TOGGLE_SIDEBAR: {
