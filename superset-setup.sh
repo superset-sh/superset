@@ -24,6 +24,9 @@ success "Dependencies installed"
 if [ -n "$SUPERSET_ROOT_PATH" ] && [ -f "$SUPERSET_ROOT_PATH/.envrc" ]; then
   echo "🔧 Linking .envrc..."
   ln -sf "$SUPERSET_ROOT_PATH/.envrc" .envrc
+  if command -v direnv &> /dev/null; then
+    direnv allow
+  fi
   success "direnv configured"
 fi
 
