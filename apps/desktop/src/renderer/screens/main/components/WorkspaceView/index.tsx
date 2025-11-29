@@ -10,6 +10,7 @@ import {
 } from "renderer/stores";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
+import { WorkspaceTopBar } from "./WorkspaceTopBar";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -78,10 +79,13 @@ export function WorkspaceView() {
 	);
 
 	return (
-		<div className="flex flex-1 bg-tertiary">
-			<Sidebar />
-			<div className="flex-1 m-3 bg-background rounded p-2">
-				<ContentView />
+		<div className="flex flex-col flex-1 bg-tertiary">
+			<WorkspaceTopBar />
+			<div className="flex flex-1 min-h-0">
+				<Sidebar />
+				<div className="flex-1 m-3 mt-0 bg-background rounded p-2">
+					<ContentView />
+				</div>
 			</div>
 		</div>
 	);

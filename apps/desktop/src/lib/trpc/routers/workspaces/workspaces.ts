@@ -208,6 +208,43 @@ export const createWorkspacesRouter = () => {
 			return workspace;
 		}),
 
+		getActiveWithDetails: publicProcedure.query(() => {
+			const { lastActiveWorkspaceId } = db.data.settings;
+
+			if (!lastActiveWorkspaceId) {
+				return null;
+			}
+
+			const workspace = db.data.workspaces.find(
+				(w) => w.id === lastActiveWorkspaceId,
+			);
+			if (!workspace) {
+				throw new Error(
+					`Active workspace ${lastActiveWorkspaceId} not found in database`,
+				);
+			}
+
+			const worktree = db.data.worktrees.find(
+				(wt) => wt.id === workspace.worktreeId,
+			);
+			const project = db.data.projects.find(
+				(p) => p.id === workspace.projectId,
+			);
+
+			return {
+				workspace,
+				worktree: worktree ?? null,
+				project: project
+					? {
+							id: project.id,
+							name: project.name,
+							color: project.color,
+							mainRepoPath: project.mainRepoPath,
+						}
+					: null,
+			};
+		}),
+
 		update: publicProcedure
 			.input(
 				z.object({
