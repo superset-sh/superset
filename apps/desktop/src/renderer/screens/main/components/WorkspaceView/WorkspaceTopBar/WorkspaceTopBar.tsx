@@ -14,7 +14,7 @@ export function WorkspaceTopBar() {
 	const displayBranch = worktree?.branch ?? "No branch";
 
 	return (
-		<div className="flex items-center gap-4 px-3 py-2 border-b border-border text-sm text-muted-foreground">
+		<div className="flex items-center gap-4 px-3 py-2 text-sm text-muted-foreground">
 			<div className="flex items-center gap-2 min-w-0">
 				<HiMiniFolderOpen className="size-4 shrink-0" />
 				<span className="truncate" title={displayPath}>
