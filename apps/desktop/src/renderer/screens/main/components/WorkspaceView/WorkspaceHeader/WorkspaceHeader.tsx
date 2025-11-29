@@ -41,7 +41,7 @@ const getAppOption = (id: ExternalApp) =>
 	APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
 
 interface WorkspaceHeaderProps {
-	worktreePath: string;
+	worktreePath: string | undefined;
 }
 
 export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
@@ -56,44 +56,60 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 	});
 	const copyPath = trpc.external.copyPath.useMutation();
 
-	const folderName =
-		worktreePath.split("/").filter(Boolean).pop() || worktreePath;
+	const folderName = worktreePath
+		? worktreePath.split("/").filter(Boolean).pop() || worktreePath
+		: null;
 	const currentApp = getAppOption(lastUsedApp);
 
 	const handleOpenIn = (app: ExternalApp) => {
+		if (!worktreePath) return;
 		openInApp.mutate({ path: worktreePath, app });
 		setIsOpen(false);
 	};
 
 	const handleCopyPath = () => {
+		if (!worktreePath) return;
 		copyPath.mutate(worktreePath);
 		setIsOpen(false);
 	};
 
 	const handleOpenLastUsed = () => {
+		if (!worktreePath) return;
 		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
 	};
 
 	return (
 		<div className="no-drag flex items-center">
 			<ButtonGroup>
-				<Button
-					variant="outline"
-					size="sm"
-					className="gap-1.5"
-					onClick={handleOpenLastUsed}
-					title={`Open in ${currentApp.label} (⌘O)`}
-				>
-					<img src={currentApp.icon} alt="" className="size-4 object-contain" />
-					<span className="font-medium">/{folderName}</span>
-				</Button>
+				{folderName && (
+					<Button
+						variant="outline"
+						size="sm"
+						className="gap-1.5"
+						onClick={handleOpenLastUsed}
+						title={`Open in ${currentApp.label} (⌘O)`}
+					>
+						<img
+							src={currentApp.icon}
+							alt=""
+							className="size-4 object-contain"
+						/>
+						<span className="font-medium">/{folderName}</span>
+					</Button>
+				)}
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="icon-sm" aria-label="Open in...">
+						<Button
+							variant="outline"
+							size="sm"
+							className="gap-1"
+							disabled={!worktreePath}
+						>
+							<span>Open</span>
 							<HiChevronDown className="size-3" />
 						</Button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align="start" className="w-48">
+					<DropdownMenuContent align="end" className="w-48">
 						{APP_OPTIONS.map((app) => (
 							<DropdownMenuItem
 								key={app.id}

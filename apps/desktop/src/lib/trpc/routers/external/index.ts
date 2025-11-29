@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { clipboard, shell } from "electron";
 import { db } from "main/lib/db";
-import { type ExternalApp, EXTERNAL_APPS } from "main/lib/db/schemas";
+import { EXTERNAL_APPS, type ExternalApp } from "main/lib/db/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -84,8 +84,6 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				console.log("[external] openInApp called with:", input);
-
 				// Save last used app to DB
 				await db.update((data) => {
 					data.settings.lastUsedApp = input.app;
@@ -101,13 +99,7 @@ export const createExternalRouter = () => {
 					throw new Error(`Unknown app: ${input.app}`);
 				}
 
-				try {
-					await spawnAsync(cmd.command, cmd.args);
-					console.log(`[external] Successfully opened in ${input.app}`);
-				} catch (error) {
-					console.error(`[external] Failed to open in ${input.app}:`, error);
-					throw error;
-				}
+				await spawnAsync(cmd.command, cmd.args);
 			}),
 
 		copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {

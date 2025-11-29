@@ -23,9 +23,7 @@ export function TopBar() {
 				<WorkspacesTabs />
 			</div>
 			<div className="flex items-center gap-2 h-full pr-4">
-				{activeWorkspace?.worktreePath && (
-					<WorkspaceHeader worktreePath={activeWorkspace.worktreePath} />
-				)}
+				<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
 				<SettingsButton />
 				{!isMac && <WindowControls />}
 			</div>
