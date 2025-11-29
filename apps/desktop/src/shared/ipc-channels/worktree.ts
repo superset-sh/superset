@@ -2,7 +2,7 @@
  * Worktree-related IPC channels
  */
 
-import type { CreateWorktreeInput, Worktree } from "../types";
+import type { CloudSandbox, CreateWorktreeInput, Worktree } from "../types";
 import type { IpcResponse, SuccessResponse } from "./types";
 
 export interface WorktreeChannels {
@@ -179,5 +179,27 @@ export interface WorktreeChannels {
 	"worktree-merge-pr": {
 		request: { workspaceId: string; worktreeId: string };
 		response: SuccessResponse;
+	};
+
+	// Cloud sandbox operations
+	"cloud-sandbox-create": {
+		request: {
+			name: string;
+			projectId: string; // Project ID - main process will look up the repo path
+			taskDescription?: string;
+		};
+		response: {
+			success: boolean;
+			sandbox?: CloudSandbox;
+			error?: string;
+		};
+	};
+
+	"cloud-sandbox-delete": {
+		request: { sandboxId: string };
+		response: {
+			success: boolean;
+			error?: string;
+		};
 	};
 }

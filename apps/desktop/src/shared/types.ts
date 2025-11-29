@@ -55,6 +55,17 @@ export interface Tab {
 	createdAt: string;
 }
 
+// Cloud sandbox types
+export interface CloudSandbox {
+	id: string; // E2B sandbox ID
+	name: string; // Sandbox name
+	status: "creating" | "running" | "stopped" | "error";
+	websshHost?: string; // WebSSH terminal URL (port 8888)
+	claudeHost?: string; // Claude SSE server URL (port 9999)
+	createdAt: string;
+	error?: string; // Error message if status is "error"
+}
+
 export interface Worktree {
 	id: string;
 	branch: string;
@@ -65,6 +76,7 @@ export interface Worktree {
 	merged?: boolean; // Indicates if this worktree has been merged into another worktree
 	description?: string; // Optional description of the worktree's goal or purpose
 	prUrl?: string; // Pull request URL if a PR has been created for this worktree
+	cloudSandbox?: CloudSandbox; // Cloud sandbox instance for this worktree
 }
 
 export interface Workspace {

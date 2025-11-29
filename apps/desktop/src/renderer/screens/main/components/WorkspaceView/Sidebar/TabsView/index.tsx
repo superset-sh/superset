@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { LayoutGroup, motion } from "framer-motion";
-import { useMemo } from "react";
-import { HiMiniPlus } from "react-icons/hi2";
+import { useMemo, useState } from "react";
+import { HiMiniCloud, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useAddTab, useTabs } from "renderer/stores";
 import { TabItem } from "./TabItem";
@@ -12,6 +12,7 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabs();
 	const addTab = useAddTab();
+	const [isCreatingCloud, setIsCreatingCloud] = useState(false);
 
 	const tabs = useMemo(
 		() =>
@@ -32,20 +33,98 @@ export function TabsView() {
 		}
 	};
 
+	const handleAddCloudTerminal = async () => {
+		if (!activeWorkspace) return;
+
+		setIsCreatingCloud(true);
+		try {
+			// Generate random two-word name for cloud sandbox
+			const adjectives = [
+				"happy",
+				"sleepy",
+				"brave",
+				"clever",
+				"gentle",
+				"bright",
+				"calm",
+				"bold",
+				"swift",
+				"quiet",
+			];
+			const nouns = [
+				"cat",
+				"fox",
+				"owl",
+				"bear",
+				"wolf",
+				"deer",
+				"hawk",
+				"lynx",
+				"seal",
+				"dove",
+			];
+			const randomAdj =
+				adjectives[Math.floor(Math.random() * adjectives.length)];
+			const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+			const timestamp = Date.now().toString(36);
+			const sandboxName = `${randomAdj}-${randomNoun}-${timestamp}`;
+
+			// Create cloud sandbox
+			const result = await window.ipcRenderer.invoke("cloud-sandbox-create", {
+				name: sandboxName,
+				projectId: activeWorkspace.projectId,
+				taskDescription: `Cloud development for ${activeWorkspace.name}`,
+			});
+
+			if (result.success && result.sandbox?.claudeHost) {
+				// Open the Claude host URL in the default browser
+				const claudeUrl = result.sandbox.claudeHost.startsWith("http")
+					? result.sandbox.claudeHost
+					: `https://${result.sandbox.claudeHost}`;
+				window.open(claudeUrl, "_blank");
+			} else {
+				console.error("Failed to create cloud sandbox:", result.error);
+				alert(
+					`Failed to create cloud terminal: ${result.error || "Unknown error"}`,
+				);
+			}
+		} catch (error) {
+			console.error("Error creating cloud terminal:", error);
+			alert(
+				`Error creating cloud terminal: ${error instanceof Error ? error.message : String(error)}`,
+			);
+		} finally {
+			setIsCreatingCloud(false);
+		}
+	};
+
 	return (
 		<nav className="space-y-2 flex flex-col h-full p-2">
 			<UngroupDropZone>
 				{(draggedTab, isDragOver, dropIndex) => (
 					<LayoutGroup>
-						<Button
-							variant="ghost"
-							onClick={handleAddTab}
-							className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
-							disabled={!activeWorkspaceId}
-						>
-							<HiMiniPlus className="size-4" />
-							<span className="truncate flex-1">New Terminal</span>
-						</Button>
+						<div className="flex gap-2">
+							<Button
+								variant="ghost"
+								onClick={handleAddTab}
+								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
+								disabled={!activeWorkspaceId}
+							>
+								<HiMiniPlus className="size-4" />
+								<span className="truncate flex-1">New Terminal</span>
+							</Button>
+							<Button
+								variant="ghost"
+								onClick={handleAddCloudTerminal}
+								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between text-blue-400 hover:text-blue-300"
+								disabled={!activeWorkspaceId || isCreatingCloud}
+							>
+								<HiMiniCloud className="size-4" />
+								<span className="truncate flex-1">
+									{isCreatingCloud ? "Creating..." : "New Cloud Terminal"}
+								</span>
+							</Button>
+						</div>
 						<div className="text-sm text-sidebar-foreground space-y-2 relative pt-2">
 							{tabs.map((tab, index) => (
 								<motion.div
