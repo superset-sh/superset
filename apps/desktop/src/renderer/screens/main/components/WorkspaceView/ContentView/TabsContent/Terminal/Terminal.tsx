@@ -1,9 +1,14 @@
 import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs, useTerminalTheme } from "renderer/stores";
+import {
+	useSetActiveTab,
+	useTabs,
+	useTabsStore,
+	useTerminalTheme,
+} from "renderer/stores";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -21,9 +26,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
+	const closeTabRef = useRef<() => void>(() => {});
+	const hasClosedRef = useRef(false);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const setActiveTab = useSetActiveTab();
 	const terminalTheme = useTerminalTheme();
+	const removeTab = useTabsStore((state) => state.removeTab);
+	const removeChildTabFromGroup = useTabsStore(
+		(state) => state.removeChildTabFromGroup,
+	);
 
 	// Get the workspace CWD for resolving relative file paths
 	const { data: workspaceCwd } =
@@ -45,6 +56,32 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
+	useEffect(() => {
+		hasClosedRef.current = false;
+	}, [tabId]);
+
+	useEffect(() => {
+		closeTabRef.current = () => {
+			if (hasClosedRef.current) return;
+			hasClosedRef.current = true;
+
+			if (tab?.parentId) {
+				removeChildTabFromGroup(tab.parentId, tabId);
+			} else {
+				removeTab(tabId);
+			}
+		};
+	}, [removeChildTabFromGroup, removeTab, tab?.parentId, tabId]);
+
+	const handleTerminalExit = useCallback(
+		(_exitCode: number) => {
+			isExitedRef.current = true;
+			setSubscriptionEnabled(false);
+			closeTabRef.current();
+		},
+		[setSubscriptionEnabled],
+	);
+
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
 			// Queue events that arrive before xterm is ready or before recovery is applied
@@ -61,12 +98,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
 		} else if (event.type === "exit") {
-			isExitedRef.current = true;
-			setSubscriptionEnabled(false);
-			xtermRef.current.writeln(
-				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
-			);
-			xtermRef.current.writeln("[Press any key to restart]");
+			handleTerminalExit(event.exitCode);
 		}
 	};
 
@@ -100,10 +132,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				if (event.type === "data") {
 					xterm.write(event.data);
 				} else {
-					isExitedRef.current = true;
-					setSubscriptionEnabled(false);
-					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
-					xterm.writeln("[Press any key to restart]");
+					handleTerminalExit(event.exitCode);
+					break;
 				}
 			}
 		};
@@ -169,6 +199,30 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		);
 
+		const shortcutHandler = (event: KeyboardEvent) => {
+			const isMetaOnly = event.metaKey && !event.ctrlKey && !event.altKey;
+			if (!isMetaOnly || event.shiftKey) return true;
+
+			if (event.code === "KeyK") {
+				event.preventDefault();
+				event.stopPropagation();
+				xterm.clear();
+				writeRef.current({ tabId, data: "\u000c" });
+				return false;
+			}
+
+			if (event.code === "KeyW") {
+				event.preventDefault();
+				event.stopPropagation();
+				closeTabRef.current();
+				return false;
+			}
+
+			return true;
+		};
+
+		xterm.attachCustomKeyEventHandler(shortcutHandler);
+
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const cleanupFocus = setupFocusListener(
 			xterm,
@@ -195,7 +249,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle]);
+	}, [
+		tabId,
+		workspaceId,
+		setActiveTab,
+		workspaceCwd,
+		tabTitle,
+		handleTerminalExit,
+	]);
 
 	// Update terminal theme when it changes
 	useEffect(() => {
