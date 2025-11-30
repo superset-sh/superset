@@ -68,9 +68,6 @@ export default defineConfig({
 		define: {
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),
-			"import.meta.env.ENABLE_NEW_UI": JSON.stringify(
-				process.env.ENABLE_NEW_UI || "false",
-			),
 			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
 		},
 
