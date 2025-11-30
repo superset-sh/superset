@@ -32,6 +32,12 @@ With Superset, you can run 100.
 
 Prerequesite:
 
+1. Install [Bun](https://bun.sh/) (better alternative to npm)
+
+2. Clone the repo from GitHub
+```
+git clone https://github.com/superset-sh/superset.git
+```
 
 Install dependencies:
 ```bash
@@ -44,7 +50,7 @@ bun install
 bun run dev
 ```
 
-Build for release:
+Build desktop app:
 ```bash
 bun run build
 open apps/desktop/release
@@ -133,7 +139,7 @@ information.
 [issues-shield]: https://img.shields.io/github/issues/superset-sh/studio.svg?style=for-the-badge
 [issues-url]: https://github.com/superset-sh/superset/issues
 [license-shield]: https://img.shields.io/github/license/superset-sh/studio.svg?style=for-the-badge
-[license-url]: https://github.com/superset-sh/superset/blob/master/LICENSE.txt
+[license-url]: ./LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/company/superset-sh
 [twitter-shield]: https://img.shields.io/badge/-Twitter-black?logo=x&colorB=555
