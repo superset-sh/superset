@@ -111,7 +111,8 @@ export function WorkspacesTabs() {
 
 	return (
 		<div ref={containerRef} className="flex items-center h-full w-full">
-			<div className="relative flex-1 h-full overflow-hidden min-w-0">
+			{/* Scroll wrapper - shrinks to fit content, scrolls when overflow */}
+			<div className="relative h-full min-w-0 overflow-hidden">
 				<div
 					ref={scrollRef}
 					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
@@ -146,7 +147,12 @@ export function WorkspacesTabs() {
 					<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
 				)}
 			</div>
-			<WorkspaceDropdown className="no-drag" />
+
+			{/* Add workspace controls - outside scroll area, always visible */}
+			<WorkspaceDropdown
+				className="no-drag flex-shrink-0"
+				activeProjectId={activeWorkspace?.projectId}
+			/>
 		</div>
 	);
 }
