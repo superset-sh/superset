@@ -5,17 +5,16 @@
 
 <h3 align="center">Superset</h3>
   <p align="center">
-    The last developer tool you'll ever need
+    Run 10+ parallel coding agents on your machine
   </p>
 
 [![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
 
 </div>
 
-## Motivation
-What do you do when your coding agent is running? Our answer is to start another coding task in parallel. The best developer can run 10+ tasks in parallel. 
-
-With Superset, you can run 100.
+## A Terminal Built for Coding Agents
+Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
+Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
 
 ## What you can do with Superset:
 
@@ -32,7 +31,7 @@ With Superset, you can run 100.
 
 Prerequesite:
 
-1. Install [Bun](https://bun.sh/) (better alternative to npm)
+1. Install [Bun](https://bun.sh/) (package manager and Node runtime)
 
 2. Clone the repo from GitHub
 ```
@@ -53,7 +52,7 @@ bun run dev
 Build desktop app:
 ```bash
 bun run build
-open apps/desktop/release
+open apps/desktop/release       
 ```
 
 > [!NOTE]  
@@ -61,24 +60,34 @@ open apps/desktop/release
 
 ### Usage
 
-For each parallel tasks, Superset uses git worktree to clone a new branch on your machine. 
+For each parallel tasks, Superset uses git worktree to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a setup script `./superset/setup.json`
 
-Automate copying env variables, installing dependencies, etc. through the app or with a setup script `./superset/setup.json`
-
-<!-- [TODO: Add Image] -->
-<!-- <img alt="example-min" src="assets/example.png" /> -->
+<div align="center">
+<video width="600" controls>
+  <source src="assets/create-worktree.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+</div>
 <br>
+
 
 Each workspace gets their own organized terminal system. You can create default presets.
 
-<!-- [TODO: Add Image] -->
-<!-- <img alt="example-min" src="assets/example.png" /> -->
+
+<div align="center">
+<video width="600" controls>
+  <source src="assets/create-tabs.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+</div>
 <br>
 
 Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
 
-<!-- [TODO: Add Image] -->
-<!-- <img alt="example-min" src="assets/example.png" /> -->
+
+<div align="center">
+<img width="500" alt="Notifications" src="assets/notifs.png" />
+</div>
 <br>
 
 ### Tech Stack
@@ -87,12 +96,10 @@ Superset monitors your running processes, notify you when changes are ready, and
 [![Electron](https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/Tailwindcss-%2338B2AC.svg?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-
 [![Bun](https://img.shields.io/badge/Bun-000000?logo=bun&logoColor=white)](https://bun.sh/)
 [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
 [![Vite](https://img.shields.io/badge/Vite-%23646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Biome](https://img.shields.io/badge/Biome-339AF0?logo=biome&logoColor=white)](https://biomejs.dev/)
-
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle%20ORM-FFE873?logo=drizzle&logoColor=black)](https://orm.drizzle.team/)
 [![Neon](https://img.shields.io/badge/Neon-00E9CA?logo=neon&logoColor=white)](https://neon.tech/)
 [![tRPC](https://img.shields.io/badge/tRPC-2596BE?logo=trpc&logoColor=white)](https://trpc.io/)
