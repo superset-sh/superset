@@ -8,7 +8,7 @@ export function SettingsButton() {
 		<button
 			type="button"
 			onClick={openSettings}
-			className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+			className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
 			aria-label="Open settings"
 		>
 			<HiOutlineCog6Tooth className="h-4 w-4" />
