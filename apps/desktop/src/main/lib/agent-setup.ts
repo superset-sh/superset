@@ -108,25 +108,28 @@ exec "${realCodex}" -c 'notify=["bash","${notifyPath}"]' "$@"
 
 /**
  * Creates zsh initialization wrapper that intercepts shell startup
- * Sources user's real .zshrc then prepends our bin to PATH
+ * Sources user's real shell config files then prepends our bin to PATH
  */
 function createZshWrapper(): void {
-	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
-	const script = `# Superset zsh initialization wrapper
-# This file intercepts zsh startup to ensure ~/.superset/bin is in PATH
-
-# Restore original ZDOTDIR for any nested shells
-export ZDOTDIR="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-
-# Source user's real zshrc if it exists
-if [[ -f "$ZDOTDIR/.zshrc" ]]; then
-  source "$ZDOTDIR/.zshrc"
-fi
-
-# Prepend superset bin to PATH (after user's rc has run)
-export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+	// Create .zprofile to source user's .zprofile (runs for login shells before .zshrc)
+	// This is critical - without it, brew/nvm PATH setup in ~/.zprofile is skipped
+	// Don't change ZDOTDIR here - we need our .zshrc to run after this
+	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
+	const zprofileScript = `# Superset zsh profile wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+[[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
 `;
-	fs.writeFileSync(zshrcPath, script, { mode: 0o644 });
+	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
+
+	// Create .zshrc to source user's .zshrc then prepend our bin
+	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
+	const zshrcScript = `# Superset zsh rc wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+[[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
+export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+export ZDOTDIR="$_superset_home"
+`;
+	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");
 }
 
@@ -136,15 +139,12 @@ export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
  */
 function createBashWrapper(): void {
 	const rcfilePath = path.join(BASH_DIR, "rcfile");
-	const script = `# Superset bash initialization wrapper
-# This file intercepts bash startup to ensure ~/.superset/bin is in PATH
+	const script = `# Superset bash rcfile wrapper
 
-# Source system profile for login shell behavior
-if [[ -f /etc/profile ]]; then
-  source /etc/profile
-fi
+# Source system profile
+[[ -f /etc/profile ]] && source /etc/profile
 
-# Source user's bash_profile or bashrc
+# Source user's login profile
 if [[ -f "$HOME/.bash_profile" ]]; then
   source "$HOME/.bash_profile"
 elif [[ -f "$HOME/.bash_login" ]]; then
@@ -153,12 +153,10 @@ elif [[ -f "$HOME/.profile" ]]; then
   source "$HOME/.profile"
 fi
 
-# Also source bashrc if it exists (some setups separate these)
-if [[ -f "$HOME/.bashrc" ]]; then
-  source "$HOME/.bashrc"
-fi
+# Source bashrc if separate
+[[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
 
-# Prepend superset bin to PATH (after user's rc has run)
+# Prepend superset bin to PATH
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
 `;
 	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
