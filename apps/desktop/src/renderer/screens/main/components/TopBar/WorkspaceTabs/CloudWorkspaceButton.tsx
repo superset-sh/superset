@@ -85,7 +85,7 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 
 			// 3. Save sandbox to worktree
 			if (sandbox) {
-				await window.ipcRenderer.invoke("worktree-set-cloud-sandbox", {
+				await trpcClient.cloud.setWorktreeSandbox.mutate({
 					worktreeId,
 					cloudSandbox: sandbox,
 				});

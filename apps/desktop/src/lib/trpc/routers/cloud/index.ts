@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { cloudApiClient } from "main/lib/cloud-api-client";
 import { db } from "main/lib/db";
+import type { CloudSandbox } from "main/lib/db/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -37,6 +38,16 @@ function getGithubRepoUrl(repoPath: string): string | null {
 		return null;
 	}
 }
+
+const cloudSandboxSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	status: z.enum(["creating", "running", "stopped", "error"]),
+	websshHost: z.string().optional(),
+	claudeHost: z.string().optional(),
+	createdAt: z.string(),
+	error: z.string().optional(),
+});
 
 export const createCloudRouter = () => {
 	return router({
@@ -83,6 +94,48 @@ export const createCloudRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				return cloudApiClient.deleteSandbox(input.sandboxId);
+			}),
+
+		listSandboxes: publicProcedure.query(async () => {
+			return cloudApiClient.listSandboxes();
+		}),
+
+		getSandboxStatus: publicProcedure
+			.input(
+				z.object({
+					sandboxId: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				return cloudApiClient.getSandboxStatus(input.sandboxId);
+			}),
+
+		setWorktreeSandbox: publicProcedure
+			.input(
+				z.object({
+					worktreeId: z.string(),
+					cloudSandbox: cloudSandboxSchema.nullable(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				try {
+					await db.update((data) => {
+						const worktree = data.worktrees.find(
+							(wt) => wt.id === input.worktreeId,
+						);
+						if (worktree) {
+							worktree.cloudSandbox =
+								(input.cloudSandbox as CloudSandbox) ?? undefined;
+						}
+					});
+					return { success: true as const };
+				} catch (error) {
+					console.error("Failed to update worktree sandbox:", error);
+					return {
+						success: false as const,
+						error: error instanceof Error ? error.message : String(error),
+					};
+				}
 			}),
 	});
 };

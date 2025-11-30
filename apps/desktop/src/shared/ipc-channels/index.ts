@@ -5,7 +5,6 @@
  * Use these types in both main and renderer processes for type safety.
  */
 
-import type { CloudChannels } from "./cloud";
 import type { DeepLinkChannels } from "./deep-link";
 import type { ExternalChannels } from "./external";
 import type { ProxyChannels } from "./proxy";
@@ -34,8 +33,7 @@ export interface IpcChannels
 		DeepLinkChannels,
 		WindowChannels,
 		UiChannels,
-		StorageChannels,
-		CloudChannels {}
+		StorageChannels {}
 
 /**
  * Type-safe IPC channel names

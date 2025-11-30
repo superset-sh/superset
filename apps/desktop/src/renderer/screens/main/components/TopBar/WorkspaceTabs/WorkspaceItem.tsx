@@ -7,6 +7,7 @@ import {
 	HiMiniCloud,
 	HiMiniXMark,
 } from "react-icons/hi2";
+import { trpc } from "renderer/lib/trpc";
 import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
@@ -57,29 +58,19 @@ export function WorkspaceItem({
 	);
 
 	// Poll for sandbox status every 30 seconds if this is a cloud workspace
+	const { data: statusResult } = trpc.cloud.getSandboxStatus.useQuery(
+		{ sandboxId: cloudSandboxId ?? "" },
+		{
+			enabled: !!cloudSandboxId,
+			refetchInterval: 30000,
+		},
+	);
+
 	useEffect(() => {
-		if (!cloudSandboxId) return;
-
-		const checkStatus = async () => {
-			try {
-				const result = await window.ipcRenderer.invoke("cloud-sandbox-status", {
-					sandboxId: cloudSandboxId,
-				});
-				if (result.success && result.status) {
-					setSandboxStatus(result.status);
-				}
-			} catch (error) {
-				console.error("Failed to check sandbox status:", error);
-			}
-		};
-
-		// Check immediately
-		checkStatus();
-
-		// Then poll every 30 seconds
-		const interval = setInterval(checkStatus, 30000);
-		return () => clearInterval(interval);
-	}, [cloudSandboxId]);
+		if (statusResult?.success && statusResult.status) {
+			setSandboxStatus(statusResult.status);
+		}
+	}, [statusResult]);
 
 	const isCloudWorkspace = !!cloudSandboxId;
 	const isSandboxStopped = sandboxStatus === "stopped";

@@ -60,7 +60,7 @@ export function DanglingSandboxItem({
 			const worktreeId = result.workspace.worktreeId;
 
 			// Link sandbox to worktree
-			await window.ipcRenderer.invoke("worktree-set-cloud-sandbox", {
+			await trpcClient.cloud.setWorktreeSandbox.mutate({
 				worktreeId,
 				cloudSandbox: {
 					id,

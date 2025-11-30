@@ -2,7 +2,6 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
-import { registerCloudHandlers } from "./lib/cloud-ipcs";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
@@ -29,7 +28,6 @@ app.on("open-url", (event, _url) => {
 });
 
 registerStorageHandlers();
-registerCloudHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {
