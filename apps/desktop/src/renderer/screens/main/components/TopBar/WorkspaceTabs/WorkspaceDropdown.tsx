@@ -69,7 +69,7 @@ export function WorkspaceDropdown({
 				aria-label="Add workspace to current project"
 				onClick={handleAddToCurrentProject}
 				disabled={!activeProjectId || createWorkspace.isPending}
-				className="flex items-center justify-center h-6 w-6 rounded-md transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
+				className="flex items-center justify-center h-6 w-6 rounded-l-md transition-colors hover:bg-accent disabled:opacity-50 disabled:pointer-events-none"
 			>
 				<HiMiniPlus className="size-5" />
 			</button>
@@ -80,9 +80,9 @@ export function WorkspaceDropdown({
 					<button
 						type="button"
 						aria-label="More workspace options"
-						className="flex items-center justify-center h-6 w-4 rounded-md transition-colors hover:bg-accent"
+						className="flex items-center justify-center h-6 w-4 rounded-r-md transition-colors hover:bg-accent"
 					>
-						<HiChevronDown className="size-3" />
+						<HiChevronDown className="size-2.5" />
 					</button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent className="w-80 p-0" align="end">
