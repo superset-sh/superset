@@ -63,10 +63,7 @@ open apps/desktop/release
 For each parallel tasks, Superset uses git worktree to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a setup script `./superset/setup.json`
 
 <div align="center">
-<video width="600" controls>
-  <source src="assets/create-worktree.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+  <img width="600" alt="Creating a worktree" src="assets/create-worktree.gif" />
 </div>
 <br>
 
@@ -75,10 +72,7 @@ Each workspace gets their own organized terminal system. You can create default 
 
 
 <div align="center">
-<video width="600" controls>
-  <source src="assets/create-tabs.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+  <img width="600" alt="Creating tabs" src="assets/create-tabs.gif" />
 </div>
 <br>
 
