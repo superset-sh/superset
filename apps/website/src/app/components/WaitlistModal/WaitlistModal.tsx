@@ -60,18 +60,16 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 					</button>
 
 					{/* Iframe container with fixed height to cut off branding */}
-					<div className="w-full h-[500px] overflow-hidden">
-						<iframe
-							src="https://tally.so/r/wv7Q0A"
-							width="100%"
-							height="650"
-							frameBorder="0"
-							marginHeight={0}
-							marginWidth={0}
-							title="Superset Waitlist"
-							className="w-full"
-						/>
-					</div>
+					<iframe
+						src="https://tally.so/r/wv7Q0A"
+						width="100%"
+						height="750px"
+						frameBorder="0"
+						marginHeight={0}
+						marginWidth={0}
+						title="Superset Waitlist"
+						className="w-full"
+					/>
 				</div>
 			</div>
 		</>

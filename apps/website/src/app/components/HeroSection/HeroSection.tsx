@@ -18,7 +18,7 @@ export function HeroSection() {
 				</FadeUp>
 				<FadeUp delay={0.2}>
 					<h2 className="text-lg sm:text-xl md:text-2xl font-thin px-4">
-						The last developer tool you'll ever need
+						Run 10+ parallel coding agents on your machine
 					</h2>
 				</FadeUp>
 			</div>
