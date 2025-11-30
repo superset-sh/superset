@@ -29,7 +29,7 @@ Spin up new coding tasks while waiting for your current agent to finish. Quickly
 
 ## Getting Started
 
-Prerequesite:
+Prerequisites:
 
 1. Install [Bun](https://bun.sh/) (package manager and Node runtime)
 
@@ -45,7 +45,6 @@ bun install
 
 Run in dev mode:
 ```bash
-bun install
 bun run dev
 ```
 
