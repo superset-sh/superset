@@ -1,9 +1,21 @@
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import type { Metadata } from "next";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
+import { ThemeProvider } from "next-themes";
 import { TRPCReactProvider } from "@/trpc/react";
 import "./globals.css";
+
+const ibmPlexMono = IBM_Plex_Mono({
+	weight: ["300", "400", "500"],
+	subsets: ["latin"],
+	variable: "--font-ibm-plex-mono",
+});
+
+const inter = Inter({
+	weight: ["300", "400", "500"],
+	subsets: ["latin"],
+	variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
 	title: "Superset - Run 10+ parallel coding agents on your machine",
@@ -19,7 +31,8 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
-			className={`overscroll-none ${GeistSans.variable} ${GeistMono.variable}`}
+			className={`overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
+			suppressHydrationWarning
 		>
 			<head>
 				<Script
@@ -28,7 +41,9 @@ export default function RootLayout({
 				/>
 			</head>
 			<body className="overscroll-none font-sans">
-				<TRPCReactProvider>{children}</TRPCReactProvider>
+				<ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
+					<TRPCReactProvider>{children}</TRPCReactProvider>
+				</ThemeProvider>
 			</body>
 		</html>
 	);

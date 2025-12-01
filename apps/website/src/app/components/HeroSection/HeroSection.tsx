@@ -3,11 +3,58 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { HiMiniArrowDownTray } from "react-icons/hi2";
 
 export function HeroSection() {
 	return (
-		<section className="relative min-h-[calc(100vh-64px)] flex items-center">
-			<div className="w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
+		<section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden">
+			{/* Grid background */}
+			<motion.div
+				className="absolute inset-0 pointer-events-none"
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 0.8, ease: "easeOut" }}
+			>
+				<svg
+					className="absolute inset-0 w-full h-full"
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<title>grid</title>
+					<defs>
+						<pattern
+							id="hero-grid"
+							width="60"
+							height="60"
+							patternUnits="userSpaceOnUse"
+						>
+							<path
+								d="M 60 0 L 0 0 0 60"
+								fill="none"
+								stroke="rgba(255,255,255,0.06)"
+								strokeWidth="1"
+							/>
+						</pattern>
+						<radialGradient id="grid-fade" cx="50%" cy="50%" r="50%">
+							<stop offset="0%" stopColor="white" stopOpacity="1" />
+							<stop offset="75%" stopColor="white" stopOpacity="0.95" />
+							<stop offset="85%" stopColor="white" stopOpacity="0.7" />
+							<stop offset="92%" stopColor="white" stopOpacity="0.3" />
+							<stop offset="96%" stopColor="white" stopOpacity="0.1" />
+							<stop offset="100%" stopColor="white" stopOpacity="0" />
+						</radialGradient>
+						<mask id="grid-mask">
+							<rect width="100%" height="100%" fill="url(#grid-fade)" />
+						</mask>
+					</defs>
+					<rect
+						width="100%"
+						height="100%"
+						fill="url(#hero-grid)"
+						mask="url(#grid-mask)"
+					/>
+				</svg>
+			</motion.div>
+			<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
 				<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
 					{/* Left column - Text content */}
 					<motion.div
@@ -18,14 +65,15 @@ export function HeroSection() {
 					>
 						{/* Heading */}
 						<div className="space-y-6">
-							<h1 className="text-[36px] sm:text-[40px] lg:text-[45px] font-normal tracking-[-0.03em] leading-[1em] text-white">
-								The intelligent
-								<br />
-								coding environment
+							<h1
+								className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-white"
+								style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+							>
+								The terminal app for parallel cli agents.
 							</h1>
-							<p className="text-lg lg:text-xl tracking-[-0.03em] text-white/50 max-w-[400px]">
-								From prompt to production, Superset is where developers build
-								enduring software.
+							<p className="text-lg text-muted-foreground max-w-[400px]">
+								Run dozens of Claude Code, Codex, or any other cli agents you
+								love.
 							</p>
 						</div>
 
@@ -53,56 +101,32 @@ function DownloadButton() {
 	return (
 		<a
 			href="https://github.com/superset-sh/superset/releases"
-			className="group inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] pl-4 pr-1 py-1 transition-colors"
+			className="group inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] pl-4 pr-3 py-2 transition-colors"
 		>
-			<div className="flex items-center gap-1">
-				<span className="text-base font-medium leading-4 text-[#2a2b25]">
-					Download
-				</span>
-				<span className="text-base font-medium leading-4 text-[#2a2b25]">
-					{" "}
-					for Mac
-				</span>
-			</div>
-			<div className="ml-2 rounded-sm p-1.5 transition-colors">
-				<svg
-					width="16"
-					height="16"
-					viewBox="0 0 16 16"
-					fill="none"
-					xmlns="http://www.w3.org/2000/svg"
-				>
-					<title>Download</title>
-					<path
-						d="M15.125 9.844L15.125 14.51C15.125 14.833 14.864 15.094 14.542 15.094L1.708 15.094C1.386 15.094 1.125 14.833 1.125 14.51L1.125 9.844C1.125 9.522 1.386 9.26 1.708 9.26C2.03 9.26 2.292 9.522 2.292 9.844L2.292 13.927L13.958 13.927L13.958 9.844C13.958 9.522 14.22 9.26 14.542 9.26C14.864 9.26 15.125 9.522 15.125 9.844ZM7.712 10.256C7.822 10.366 7.97 10.428 8.125 10.428C8.28 10.428 8.428 10.366 8.538 10.256L11.454 7.34C11.682 7.112 11.682 6.742 11.454 6.514C11.226 6.286 10.857 6.286 10.629 6.514L8.708 8.436L8.708 1.677C8.708 1.355 8.447 1.094 8.125 1.094C7.803 1.094 7.542 1.355 7.542 1.677L7.542 8.436L5.621 6.514C5.393 6.286 5.024 6.286 4.796 6.514C4.568 6.742 4.568 7.112 4.796 7.34Z"
-						fill="#2a2b25"
-					/>
-				</svg>
-			</div>
+			<span className="text-base font-medium leading-4 text-[#2a2b25]">
+				Download for MacOS
+			</span>
+			<HiMiniArrowDownTray className="ml-2 size-4 text-[#2a2b25]" />
 		</a>
 	);
 }
 
 const SELECTOR_OPTIONS = [
-	"Build features",
-	"Fix bugs",
-	"Debug prod",
+	"Use Agents",
+	"Open Worktrees",
 	"Customize Themes",
 ] as const;
 
 const BACKGROUND_GRADIENTS: Record<string, string> = {
-	"Build features": "from-amber-900/80 via-orange-950/70 to-amber-950/80",
-	"Fix bugs": "from-rose-900/80 via-pink-950/70 to-rose-950/80",
-	"Debug prod": "from-violet-900/80 via-purple-950/70 to-violet-950/80",
+	"Use Agents": "from-rose-900/80 via-pink-950/70 to-rose-950/80",
+	"Open Worktrees": "from-blue-900/80 via-blue-950/70 to-blue-950/80",
 	"Customize Themes": "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
 };
 
-// Using customize.gif as placeholder for all screens until other GIFs are ready
 const DEMO_GIFS: Record<string, string> = {
-	"Build features": "/hero/customize-themes.gif",
-	"Fix bugs": "/hero/customize-themes.gif",
-	"Debug prod": "/hero/customize-themes.gif",
-	"Customize Themes": "/hero/customize-themes.gif",
+	"Use Agents": "/hero/use-agents.gif",
+	"Open Worktrees": "/hero/open-worktrees.gif",
+	"Customize Themes": "/hero/change-themes.gif",
 };
 
 function ProductDemo() {
@@ -161,7 +185,6 @@ function ProductDemo() {
 				</motion.div>
 			))}
 
-			{/* Selector pills at bottom */}
 			<div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 overflow-x-auto pb-1">
 				{SELECTOR_OPTIONS.map((option) => (
 					<SelectorPill

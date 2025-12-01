@@ -25,7 +25,7 @@ Spin up new coding tasks while waiting for your current agent to finish. Quickly
 - [ ] Automate reviewing and feedback
 - [ ] Create and manage Git pull requests
 
-<img alt="example-min" src="assets/example.png" />
+<img alt="example" src="assets/example.gif" />
 
 ## Getting Started
 
