@@ -77,12 +77,13 @@ jobs:
           path: apps/desktop/release/*.dmg
           retention-days: 30
 
-      - name: Upload ZIP artifact
+      - name: Upload auto-update manifest
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-mac-${{ matrix.arch }}-zip
-          path: apps/desktop/release/*.zip
+          name: desktop-mac-update-manifest
+          path: apps/desktop/release/latest-mac.yml
           retention-days: 30
+          if-no-files-found: error
 
   # Create GitHub Release after builds complete
   release:

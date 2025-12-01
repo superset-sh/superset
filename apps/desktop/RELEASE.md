@@ -65,6 +65,21 @@ After the build completes (tag-based releases only):
 3. Attaches all binaries to the release
 4. Generates release notes from commits
 
+## Auto-update
+
+The desktop app checks for updates on macOS at launch (and every 6 hours) using the GitHub release tagged with the `desktop-v*.*.*` pattern. The workflow creates stable artifact names and uploads the auto-update manifest so the updater and direct download links always point to the latest build.
+
+- Update manifest (macOS): `https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml`
+- Update payload (macOS arm64 zip): `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64-mac.zip`
+- Installer fallback: `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg`
+
+To keep auto-update working:
+1. Ship releases via the tag-based workflow so `releases/latest` advances.
+2. Keep `latest-mac.yml` attached in the release (the workflow uploads it by default).
+3. Do not rename or delete the stable copies created in `.github/workflows/release-desktop.yml`.
+4. If you add another architecture, upload its auto-update manifest and create a stable copy for the zip so it has a `releases/latest/download/` URL.
+5. macOS auto-update requires signed builds; ensure signing is configured when publishing.
+
 ## Code Signing (Optional)
 
 To enable macOS code signing, add the following secrets to your GitHub repository:

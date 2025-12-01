@@ -2,6 +2,7 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
@@ -43,6 +44,7 @@ registerStorageHandlers();
 	}
 
 	await makeAppSetup(() => MainWindow());
+	setupAutoUpdater();
 
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
