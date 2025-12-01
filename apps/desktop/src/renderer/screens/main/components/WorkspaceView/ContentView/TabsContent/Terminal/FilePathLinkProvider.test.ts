@@ -378,34 +378,6 @@ describe("FilePathLinkProvider", () => {
 		});
 	});
 
-	describe("cursor styling", () => {
-		it("should change cursor to pointer on hover", async () => {
-			const terminal = createMockTerminal([{ text: "/path/file.ts" }]);
-			const onOpen = mock();
-			const provider = new FilePathLinkProvider(terminal, onOpen);
-
-			const links = await getLinks(provider, 1);
-			const mockEvent = {} as MouseEvent;
-
-			links[0].hover?.(mockEvent, "/path/file.ts");
-
-			expect(terminal.element?.style.cursor).toBe("pointer");
-		});
-
-		it("should change cursor back to default on leave", async () => {
-			const terminal = createMockTerminal([{ text: "/path/file.ts" }]);
-			const onOpen = mock();
-			const provider = new FilePathLinkProvider(terminal, onOpen);
-
-			const links = await getLinks(provider, 1);
-			const mockEvent = {} as MouseEvent;
-
-			links[0].leave?.(mockEvent, "/path/file.ts");
-
-			expect(terminal.element?.style.cursor).toBe("default");
-		});
-	});
-
 	describe("edge cases", () => {
 		it("should handle empty lines", async () => {
 			const terminal = createMockTerminal([{ text: "" }]);

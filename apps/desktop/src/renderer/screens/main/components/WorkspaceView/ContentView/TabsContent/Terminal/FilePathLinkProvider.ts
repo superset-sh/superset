@@ -114,13 +114,6 @@ export class FilePathLinkProvider implements ILinkProvider {
 				activate: (event: MouseEvent, text: string) => {
 					this.handleActivation(event, text);
 				},
-				hover: (event: MouseEvent, text: string) => {
-					this.handleHover(event, text);
-				},
-				leave: (event: MouseEvent, text: string) => {
-					this.handleLeave(event, text);
-				},
-				dispose: () => {},
 			});
 		}
 
@@ -179,19 +172,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 		};
 	}
 
-	handleHover(_event: MouseEvent, _text: string): void {
-		if (this.terminal.element) {
-			this.terminal.element.style.cursor = "pointer";
-		}
-	}
-
-	handleLeave(_event: MouseEvent, _text: string): void {
-		if (this.terminal.element) {
-			this.terminal.element.style.cursor = "default";
-		}
-	}
-
-	handleActivation(event: MouseEvent, text: string): void {
+	private handleActivation(event: MouseEvent, text: string): void {
 		if (!event.metaKey && !event.ctrlKey) {
 			return;
 		}
