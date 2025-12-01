@@ -43,7 +43,7 @@ export function PlatformDropdown({
 				className={`w-80 bg-white border border-zinc-200 rounded-[5px] shadow-lg p-2 ${className}`}
 			>
 				{sections.map((section, sectionIndex) => (
-					<div key={section.title}>
+					<div key={section.title || sectionIndex}>
 						{sectionIndex > 0 && (
 							<div className="mt-2 pt-2 border-t border-zinc-200" />
 						)}
