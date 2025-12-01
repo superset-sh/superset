@@ -1,4 +1,5 @@
 import { useDrag, useDrop } from "react-dnd";
+import { HiChevronRight } from "react-icons/hi2";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { WorkspaceGroupContextMenu } from "./WorkspaceGroupContextMenu";
 
@@ -9,6 +10,7 @@ interface WorkspaceGroupHeaderProps {
 	projectName: string;
 	projectColor: string;
 	isCollapsed: boolean;
+	isBeforeActive: boolean;
 	index: number;
 	onToggleCollapse: () => void;
 }
@@ -18,6 +20,7 @@ export function WorkspaceGroupHeader({
 	projectName,
 	projectColor,
 	isCollapsed,
+	isBeforeActive,
 	index,
 	onToggleCollapse,
 }: WorkspaceGroupHeaderProps) {
@@ -59,13 +62,7 @@ export function WorkspaceGroupHeader({
 			projectName={projectName}
 			projectColor={projectColor}
 		>
-			<div
-				className="flex items-center h-full"
-				style={{
-					transition: "border-bottom 0.3s ease",
-					borderBottom: `2px solid ${isCollapsed ? "transparent" : projectColor}`,
-				}}
-			>
+			<div className="flex items-center h-7">
 				<button
 					type="button"
 					ref={(node) => {
@@ -73,19 +70,24 @@ export function WorkspaceGroupHeader({
 						drop(node);
 					}}
 					className={`
-					flex items-center justify-center mr-2
-					px-3 py-1 rounded-full
-					text-xs font-medium cursor-pointer select-none
-					transition-all shrink-0 no-drag
-					${isDragging ? "opacity-30" : "opacity-100"}
-					${isOver ? "ring-2 ring-white/20" : ""}
-				`}
-					onClick={onToggleCollapse}
+						flex items-center justify-center gap-1 h-6
+						px-2
+						text-xs font-medium cursor-pointer select-none
+						transition-all duration-150 shrink-0 no-drag
+						text-muted-foreground hover:text-foreground hover:bg-accent/40
+						${isDragging ? "opacity-30" : "opacity-100"}
+						${isOver ? "bg-accent/30" : ""}
+					`}
 					style={{
-						backgroundColor: projectColor,
-						color: "white",
+						borderBottom: `2px solid color-mix(in srgb, ${projectColor} 50%, transparent)`,
+						borderRadius: isBeforeActive ? "0 0 6px 0" : "0",
 					}}
+					onClick={onToggleCollapse}
 				>
+					<HiChevronRight
+						className={`size-3 transition-transform duration-150 ${isCollapsed ? "" : "rotate-90"}`}
+						style={{ color: projectColor }}
+					/>
 					<span className="truncate max-w-[100px]">{projectName}</span>
 				</button>
 			</div>

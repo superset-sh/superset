@@ -20,8 +20,11 @@ interface WorkspaceItemProps {
 	worktreePath: string;
 	title: string;
 	isActive: boolean;
+	isBeforeActive: boolean;
+	isAfterActive: boolean;
 	index: number;
 	width: number;
+	projectColor: string;
 	onMouseEnter?: () => void;
 	onMouseLeave?: () => void;
 }
@@ -32,8 +35,11 @@ export function WorkspaceItem({
 	worktreePath,
 	title,
 	isActive,
+	isBeforeActive,
+	isAfterActive,
 	index,
 	width,
+	projectColor,
 	onMouseEnter,
 	onMouseLeave,
 }: WorkspaceItemProps) {
@@ -80,7 +86,7 @@ export function WorkspaceItem({
 				onRename={rename.startRename}
 			>
 				<div
-					className="group relative flex items-end shrink-0 h-full no-drag"
+					className="group relative flex items-center shrink-0 h-6 no-drag"
 					style={{ width: `${width}px` }}
 				>
 					{/* Main workspace button */}
@@ -93,16 +99,40 @@ export function WorkspaceItem({
 						onDoubleClick={rename.startRename}
 						onMouseEnter={onMouseEnter}
 						onMouseLeave={onMouseLeave}
-						className={`
-							flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]
-							${
-								isActive
-									? "text-foreground bg-tertiary-active"
-									: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30"
-							}
-							${isDragging ? "opacity-30" : "opacity-100"}
-						`}
-						style={{ cursor: isDragging ? "grabbing" : "pointer" }}
+						className={cn(
+							"flex items-center gap-1 w-full h-6 shrink-0 pr-6 pl-3 transition-all duration-150 m-0",
+							isActive
+								? "text-foreground bg-background"
+								: "text-muted-foreground hover:text-foreground hover:bg-accent/40",
+							isDragging ? "opacity-30" : "opacity-100",
+						)}
+						style={{
+							cursor: isDragging ? "grabbing" : "pointer",
+							// All tabs have 2px borders - just different colors
+							// Active: colored top/left/right, transparent bottom
+							// Inactive: transparent top/left/right, colored bottom
+							border: "2px solid transparent",
+							borderTopColor: isActive
+								? `color-mix(in srgb, ${projectColor} 60%, transparent)`
+								: "transparent",
+							borderLeftColor: isActive
+								? `color-mix(in srgb, ${projectColor} 60%, transparent)`
+								: "transparent",
+							borderRightColor: isActive
+								? `color-mix(in srgb, ${projectColor} 60%, transparent)`
+								: "transparent",
+							borderBottomColor: isActive
+								? "transparent"
+								: `color-mix(in srgb, ${projectColor} 50%, transparent)`,
+							// Border radius: active has top corners, adjacent tabs have corner touching active
+							borderRadius: isActive
+								? "6px 6px 0 0"
+								: isBeforeActive
+									? "0 0 6px 0"
+									: isAfterActive
+										? "0 0 0 6px"
+										: "0",
+						}}
 					>
 						{rename.isRenaming ? (
 							<input
@@ -140,7 +170,7 @@ export function WorkspaceItem({
 							setShowDeleteDialog(true);
 						}}
 						className={cn(
-							"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
+							"absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-4 group-hover:opacity-100",
 							isActive ? "opacity-90" : "opacity-0",
 						)}
 						aria-label="Close workspace"

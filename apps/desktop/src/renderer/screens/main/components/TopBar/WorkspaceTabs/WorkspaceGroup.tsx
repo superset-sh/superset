@@ -36,37 +36,37 @@ export function WorkspaceGroup({
 }: WorkspaceGroupProps) {
 	const [isCollapsed, setIsCollapsed] = useState(false);
 
+	const displayedWorkspaces = isCollapsed
+		? workspaces.filter((w) => w.id === activeWorkspaceId)
+		: workspaces;
+
+	const activeIndex = displayedWorkspaces.findIndex(
+		(w) => w.id === activeWorkspaceId,
+	);
+
 	return (
-		<div className="flex items-center h-full">
-			{/* Project group badge */}
+		<div className="flex items-center">
+			{/* Project group header with collapse control */}
 			<WorkspaceGroupHeader
 				projectId={projectId}
 				projectName={projectName}
 				projectColor={projectColor}
 				index={projectIndex}
 				isCollapsed={isCollapsed}
+				isBeforeActive={activeIndex === 0}
 				onToggleCollapse={() => setIsCollapsed(!isCollapsed)}
 			/>
 
-			{/* Workspaces with colored line (collapsed shows only active tab) */}
-			<div
-				className="flex items-end h-full gap-1"
-				style={{
-					borderBottom: `2px solid ${projectColor}`,
-				}}
-			>
+			{/* Workspaces - each tab handles its own border */}
+			<div className="flex items-center">
 				<AnimatePresence initial={false}>
-					{(isCollapsed
-						? workspaces.filter((w) => w.id === activeWorkspaceId)
-						: workspaces
-					).map((workspace, index) => (
+					{displayedWorkspaces.map((workspace, index) => (
 						<motion.div
 							key={workspace.id}
 							initial={{ width: 0, opacity: 0 }}
 							animate={{ width: "auto", opacity: 1 }}
 							exit={{ width: 0, opacity: 0 }}
 							transition={{ duration: 0.15, ease: "easeOut" }}
-							className="h-full"
 							style={{ overflow: "hidden" }}
 						>
 							<WorkspaceItem
@@ -75,8 +75,11 @@ export function WorkspaceGroup({
 								worktreePath={workspace.worktreePath}
 								title={workspace.name}
 								isActive={workspace.id === activeWorkspaceId}
+								isBeforeActive={index === activeIndex - 1}
+								isAfterActive={index === activeIndex + 1}
 								index={index}
 								width={workspaceWidth}
+								projectColor={projectColor}
 								onMouseEnter={() => onWorkspaceHover(workspace.id)}
 								onMouseLeave={() => onWorkspaceHover(null)}
 							/>
