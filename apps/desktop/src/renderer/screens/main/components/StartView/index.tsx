@@ -33,7 +33,7 @@ function formatPath(
 	// Replace home directory with ~ if we know the home dir
 	let fullPath = normalizedPath;
 	if (normalizedHome && normalizedPath.startsWith(normalizedHome)) {
-		fullPath = "~" + normalizedPath.slice(normalizedHome.length);
+		fullPath = `~${normalizedPath.slice(normalizedHome.length)}`;
 	} else {
 		// Fallback: try common Unix patterns if home dir not available
 		fullPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
