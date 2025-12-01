@@ -51,7 +51,12 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 			<DropdownMenuTrigger className={className} asChild>
-				<Button variant="ghost" size="icon" aria-label="Add new workspace">
+				<Button
+					variant="ghost"
+					size="icon"
+					aria-label="Add new workspace"
+					className="ml-1 size-7 text-muted-foreground hover:text-foreground"
+				>
 					<HiMiniPlus className="size-4" />
 				</Button>
 			</DropdownMenuTrigger>
