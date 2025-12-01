@@ -94,7 +94,7 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 							alt=""
 							className="size-4 object-contain"
 						/>
-						<span className="font-medium">/{folderName}</span>
+						<span className="font-medium">{folderName}</span>
 					</Button>
 				)}
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
