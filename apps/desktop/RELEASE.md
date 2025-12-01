@@ -6,7 +6,7 @@ From the monorepo root:
 
 ```bash
 ./apps/desktop/create-release.sh <version>
-# Example: ./apps/desktop/create-release.sh 0.0.1
+# Example: ./apps/desktop/create-release.sh desktop-v0.0.1
 ```
 
 The script will:
@@ -18,7 +18,7 @@ The script will:
 To auto-publish instead of creating a draft:
 
 ```bash
-./apps/desktop/create-release.sh 0.0.1 --publish
+./apps/desktop/create-release.sh desktop-v0.0.1 --publish
 ```
 
 To publish a draft:
@@ -45,7 +45,7 @@ This creates a draft release. Publish it manually at GitHub Releases.
 
 ## Auto-update
 
-The app checks for updates at launch and every 6 hours using:
+The app checks for updates at launch and every x hours using:
 
 - **Manifest**: `https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml`
 - **Installer**: `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg`
