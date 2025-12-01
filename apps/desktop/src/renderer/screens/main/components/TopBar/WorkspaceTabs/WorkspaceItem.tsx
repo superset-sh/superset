@@ -8,7 +8,7 @@ import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { useTabs } from "renderer/stores";
+import { usePanes, useWindows } from "renderer/stores";
 import { useCloseSettings } from "renderer/stores/app-state";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
@@ -43,12 +43,37 @@ export function WorkspaceItem({
 	const reorderWorkspaces = useReorderWorkspaces();
 	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const tabs = useTabs();
+	const windows = useWindows();
+	const panes = usePanes();
 	const rename = useWorkspaceRename(id, title);
 
-	const needsAttention = tabs
-		.filter((t) => t.workspaceId === id)
-		.some((t) => t.needsAttention);
+	// Check if any pane in windows belonging to this workspace needs attention
+	const workspaceWindows = windows.filter((w) => w.workspaceId === id);
+	const workspacePaneIds = new Set(
+		workspaceWindows.flatMap((w) => {
+			// Extract pane IDs from the layout (which is a MosaicNode<string>)
+			const collectPaneIds = (node: unknown): string[] => {
+				if (typeof node === "string") return [node];
+				if (
+					node &&
+					typeof node === "object" &&
+					"first" in node &&
+					"second" in node
+				) {
+					const branch = node as { first: unknown; second: unknown };
+					return [
+						...collectPaneIds(branch.first),
+						...collectPaneIds(branch.second),
+					];
+				}
+				return [];
+			};
+			return collectPaneIds(w.layout);
+		}),
+	);
+	const needsAttention = Object.values(panes)
+		.filter((p) => workspacePaneIds.has(p.id))
+		.some((p) => p.needsAttention);
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({

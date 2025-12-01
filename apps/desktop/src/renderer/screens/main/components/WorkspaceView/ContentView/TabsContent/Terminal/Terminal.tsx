@@ -1,9 +1,9 @@
 import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveTab, useTabs, useTerminalTheme } from "renderer/stores";
+import { usePanes, useSetFocusedPane, useTerminalTheme } from "renderer/stores";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -15,16 +15,18 @@ import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
-	const tabs = useTabs();
-	const tab = tabs.find((t) => t.id === tabId);
-	const tabTitle = tab?.title || "Terminal";
+	// tabId is actually paneId in the new model
+	const paneId = tabId;
+	const panes = usePanes();
+	const pane = panes[paneId];
+	const paneName = pane?.name || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
-	const setActiveTab = useSetActiveTab();
+	const setFocusedPane = useSetFocusedPane();
 	const terminalTheme = useTerminalTheme();
 
 	// Required for resolving relative file paths in terminal commands
@@ -72,11 +74,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	trpc.terminal.stream.useSubscription(tabId, {
+	// Use paneId (tabId) for stream subscription
+	trpc.terminal.stream.useSubscription(paneId, {
 		onData: handleStreamData,
 		// Always listen to prevent missing events during initialization
 		enabled: true,
 	});
+
+	// Handler to set focused pane when terminal gains focus
+	const handleTerminalFocus = useCallback(() => {
+		if (pane?.windowId) {
+			setFocusedPane(pane.windowId, paneId);
+		}
+	}, [pane?.windowId, paneId, setFocusedPane]);
 
 	useEffect(() => {
 		const container = terminalRef.current;
@@ -124,9 +134,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.clear();
 			createOrAttachRef.current(
 				{
-					tabId,
+					tabId: paneId,
 					workspaceId,
-					tabTitle,
+					tabTitle: paneName,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -147,15 +157,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			if (isExitedRef.current) {
 				restartTerminal();
 			} else {
-				writeRef.current({ tabId, data });
+				writeRef.current({ tabId: paneId, data });
 			}
 		};
 
 		createOrAttachRef.current(
 			{
-				tabId,
+				tabId: paneId,
 				workspaceId,
-				tabTitle,
+				tabTitle: paneName,
 				cols: xterm.cols,
 				rows: xterm.rows,
 			},
@@ -182,23 +192,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
 					// Use shell's native continuation syntax to avoid shell-specific parsing
-					writeRef.current({ tabId, data: "\\\n" });
+					writeRef.current({ tabId: paneId, data: "\\\n" });
 				}
 			},
 		});
 
-		const cleanupFocus = setupFocusListener(
-			xterm,
-			workspaceId,
-			tabId,
-			setActiveTab,
-		);
+		// Setup focus listener to track focused pane
+		const cleanupFocus = setupFocusListener(xterm, handleTerminalFocus);
 		const cleanupResize = setupResizeHandlers(
 			container,
 			xterm,
 			fitAddon,
 			(cols, rows) => {
-				resizeRef.current({ tabId, cols, rows });
+				resizeRef.current({ tabId: paneId, cols, rows });
 			},
 		);
 
@@ -208,12 +214,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupResize();
 			cleanupQuerySuppression();
 			// Keep PTY running for reattachment
-			detachRef.current({ tabId });
+			detachRef.current({ tabId: paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
 		};
-	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle, terminalTheme]);
+	}, [
+		paneId,
+		workspaceId,
+		workspaceCwd,
+		paneName,
+		terminalTheme,
+		handleTerminalFocus,
+	]);
 
 	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
@@ -242,7 +255,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const text = shellEscapePaths(paths);
 
 		if (!isExitedRef.current) {
-			writeRef.current({ tabId, data: text });
+			writeRef.current({ tabId: paneId, data: text });
 		}
 	};
 

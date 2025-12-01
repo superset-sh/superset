@@ -1,6 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
-import { useTabsStore } from "./store";
+import { useWindowsStore } from "./store";
 
 /**
  * Hook that listens for notification events via tRPC subscription.
@@ -13,25 +13,43 @@ export function useAgentHookListener() {
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "agent-complete") {
-				const { tabId, workspaceId } = event.data;
-				const state = useTabsStore.getState();
+				// paneId is passed as tabId for backwards compatibility
+				const { tabId: paneId, workspaceId } = event.data;
+				const state = useWindowsStore.getState();
 
-				// Only show red dot if not already viewing this tab
+				// Find the window containing this pane
+				const pane = state.panes[paneId];
+				if (!pane) return;
+
+				// Only show red dot if not already viewing this pane
+				const activeWindowId = state.activeWindowIds[workspaceId];
+				const focusedPaneId =
+					activeWindowId && state.focusedPaneIds[activeWindowId];
 				const isAlreadyActive =
-					activeWorkspace?.id === workspaceId &&
-					state.activeTabIds[workspaceId] === tabId;
+					activeWorkspace?.id === workspaceId && focusedPaneId === paneId;
 
 				if (!isAlreadyActive) {
-					state.setNeedsAttention(tabId, true);
+					state.setNeedsAttention(paneId, true);
 				}
 			} else if (event.type === "focus-tab") {
-				const { tabId, workspaceId } = event.data;
-				// Switch to the workspace first (with proper invalidation), then set active tab
+				// paneId is passed as tabId for backwards compatibility
+				const { tabId: paneId, workspaceId } = event.data;
+				const state = useWindowsStore.getState();
+
+				// Find the window containing this pane
+				const pane = state.panes[paneId];
+				if (!pane) return;
+
+				const windowId = pane.windowId;
+
+				// Switch to the workspace first (with proper invalidation), then set active window and focused pane
 				setActiveWorkspace.mutate(
 					{ id: workspaceId },
 					{
 						onSuccess: () => {
-							useTabsStore.getState().setActiveTab(workspaceId, tabId);
+							const currentState = useWindowsStore.getState();
+							currentState.setActiveWindow(workspaceId, windowId);
+							currentState.setFocusedPane(windowId, paneId);
 						},
 					},
 				);

@@ -8,9 +8,11 @@ import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import {
+	useActiveWindowIds,
 	useAgentHookListener,
-	useSplitTabHorizontal,
-	useSplitTabVertical,
+	useFocusedPaneIds,
+	useSplitPaneHorizontal,
+	useSplitPaneVertical,
 } from "renderer/stores/tabs";
 import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
@@ -39,13 +41,19 @@ export function MainScreen() {
 		refetch,
 	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
-	const splitTabVertical = useSplitTabVertical();
-	const splitTabHorizontal = useSplitTabHorizontal();
+	const splitPaneVertical = useSplitPaneVertical();
+	const splitPaneHorizontal = useSplitPaneHorizontal();
+	const activeWindowIds = useActiveWindowIds();
+	const focusedPaneIds = useFocusedPaneIds();
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();
 
 	const activeWorkspaceId = activeWorkspace?.id;
+	const activeWindowId = activeWorkspaceId
+		? activeWindowIds[activeWorkspaceId]
+		: null;
+	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
 	const isWorkspaceView = currentView === "workspace";
 
 	// Register global shortcuts
@@ -58,16 +66,16 @@ export function MainScreen() {
 	}, [toggleSidebar, isWorkspaceView]);
 
 	useHotkeys(HOTKEYS.SPLIT_HORIZONTAL.keys, () => {
-		if (isWorkspaceView && activeWorkspaceId) {
-			splitTabVertical(activeWorkspaceId);
+		if (isWorkspaceView && activeWindowId && focusedPaneId) {
+			splitPaneVertical(activeWindowId, focusedPaneId);
 		}
-	}, [activeWorkspaceId, splitTabVertical, isWorkspaceView]);
+	}, [activeWindowId, focusedPaneId, splitPaneVertical, isWorkspaceView]);
 
 	useHotkeys(HOTKEYS.SPLIT_VERTICAL.keys, () => {
-		if (isWorkspaceView && activeWorkspaceId) {
-			splitTabHorizontal(activeWorkspaceId);
+		if (isWorkspaceView && activeWindowId && focusedPaneId) {
+			splitPaneHorizontal(activeWindowId, focusedPaneId);
 		}
-	}, [activeWorkspaceId, splitTabHorizontal, isWorkspaceView]);
+	}, [activeWindowId, focusedPaneId, splitPaneHorizontal, isWorkspaceView]);
 
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";

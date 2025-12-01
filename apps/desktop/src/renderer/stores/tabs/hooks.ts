@@ -1,24 +1,57 @@
-import { useTabsStore } from "./store";
+import { useWindowsStore } from "./store";
 
-export const useTabs = () => useTabsStore((state) => state.tabs);
-export const useActiveTabIds = () =>
-	useTabsStore((state) => state.activeTabIds);
+// Window hooks
+export const useWindows = () => useWindowsStore((state) => state.windows);
+export const usePanes = () => useWindowsStore((state) => state.panes);
+export const useActiveWindowIds = () =>
+	useWindowsStore((state) => state.activeWindowIds);
+export const useFocusedPaneIds = () =>
+	useWindowsStore((state) => state.focusedPaneIds);
 
-export const useAddTab = () => useTabsStore((state) => state.addTab);
-export const useRemoveTab = () => useTabsStore((state) => state.removeTab);
-export const useRenameTab = () => useTabsStore((state) => state.renameTab);
-export const useSetActiveTab = () =>
-	useTabsStore((state) => state.setActiveTab);
-export const useReorderTabs = () => useTabsStore((state) => state.reorderTabs);
-export const useReorderTabById = () =>
-	useTabsStore((state) => state.reorderTabById);
-export const useMarkTabAsUsed = () =>
-	useTabsStore((state) => state.markTabAsUsed);
-export const useUngroupTab = () => useTabsStore((state) => state.ungroupTab);
-export const useUngroupTabs = () => useTabsStore((state) => state.ungroupTabs);
-export const useSplitTabVertical = () =>
-	useTabsStore((state) => state.splitTabVertical);
-export const useSplitTabHorizontal = () =>
-	useTabsStore((state) => state.splitTabHorizontal);
+export const useAddWindow = () => useWindowsStore((state) => state.addWindow);
+export const useRemoveWindow = () =>
+	useWindowsStore((state) => state.removeWindow);
+export const useRenameWindow = () =>
+	useWindowsStore((state) => state.renameWindow);
+export const useSetActiveWindow = () =>
+	useWindowsStore((state) => state.setActiveWindow);
+export const useReorderWindows = () =>
+	useWindowsStore((state) => state.reorderWindows);
+export const useReorderWindowById = () =>
+	useWindowsStore((state) => state.reorderWindowById);
+export const useUpdateWindowLayout = () =>
+	useWindowsStore((state) => state.updateWindowLayout);
+
+// Pane hooks
+export const useAddPane = () => useWindowsStore((state) => state.addPane);
+export const useRemovePane = () => useWindowsStore((state) => state.removePane);
+export const useSetFocusedPane = () =>
+	useWindowsStore((state) => state.setFocusedPane);
+export const useMarkPaneAsUsed = () =>
+	useWindowsStore((state) => state.markPaneAsUsed);
 export const useSetNeedsAttention = () =>
-	useTabsStore((state) => state.setNeedsAttention);
+	useWindowsStore((state) => state.setNeedsAttention);
+
+// Split hooks
+export const useSplitPaneVertical = () =>
+	useWindowsStore((state) => state.splitPaneVertical);
+export const useSplitPaneHorizontal = () =>
+	useWindowsStore((state) => state.splitPaneHorizontal);
+
+// Query hooks
+export const useGetWindowsByWorkspace = () =>
+	useWindowsStore((state) => state.getWindowsByWorkspace);
+export const useGetActiveWindow = () =>
+	useWindowsStore((state) => state.getActiveWindow);
+export const useGetPanesForWindow = () =>
+	useWindowsStore((state) => state.getPanesForWindow);
+export const useGetFocusedPane = () =>
+	useWindowsStore((state) => state.getFocusedPane);
+
+// Derived state hooks (efficient selectors)
+export const useWindowNeedsAttention = (windowId: string) =>
+	useWindowsStore((state) =>
+		Object.values(state.panes).some(
+			(p) => p.windowId === windowId && p.needsAttention,
+		),
+	);

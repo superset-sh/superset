@@ -2,11 +2,12 @@ import { useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import {
-	useActiveTabIds,
-	useAddTab,
-	useRemoveTab,
-	useSetActiveTab,
-	useTabs,
+	useActiveWindowIds,
+	useAddWindow,
+	useFocusedPaneIds,
+	useRemovePane,
+	useSetActiveWindow,
+	useWindows,
 } from "renderer/stores";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
@@ -15,55 +16,58 @@ import { Sidebar } from "./Sidebar";
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allTabs = useTabs();
-	const activeTabIds = useActiveTabIds();
-	const addTab = useAddTab();
-	const setActiveTab = useSetActiveTab();
-	const removeTab = useRemoveTab();
+	const allWindows = useWindows();
+	const activeWindowIds = useActiveWindowIds();
+	const focusedPaneIds = useFocusedPaneIds();
+	const addWindow = useAddWindow();
+	const setActiveWindow = useSetActiveWindow();
+	const removePane = useRemovePane();
 
-	const tabs = useMemo(
+	const windows = useMemo(
 		() =>
 			activeWorkspaceId
-				? allTabs.filter(
-						(tab) => tab.workspaceId === activeWorkspaceId && !tab.parentId,
-					)
+				? allWindows.filter((win) => win.workspaceId === activeWorkspaceId)
 				: [],
-		[activeWorkspaceId, allTabs],
+		[activeWorkspaceId, allWindows],
 	);
 
-	const activeTabId = activeWorkspaceId
-		? activeTabIds[activeWorkspaceId]
+	const activeWindowId = activeWorkspaceId
+		? activeWindowIds[activeWorkspaceId]
 		: null;
 
-	// Terminal management shortcuts
+	// Get focused pane ID for the active window
+	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
+
+	// Window management shortcuts
 	useHotkeys(HOTKEYS.NEW_TERMINAL.keys, () => {
 		if (activeWorkspaceId) {
-			addTab(activeWorkspaceId);
+			addWindow(activeWorkspaceId);
 		}
-	}, [activeWorkspaceId, addTab]);
+	}, [activeWorkspaceId, addWindow]);
 
 	useHotkeys(HOTKEYS.CLOSE_TERMINAL.keys, () => {
-		if (activeTabId) {
-			removeTab(activeTabId);
+		// Close focused pane (which may close the window if it's the last pane)
+		if (focusedPaneId) {
+			removePane(focusedPaneId);
 		}
-	}, [activeTabId, removeTab]);
+	}, [focusedPaneId, removePane]);
 
-	// Switch between visible terminal panes (⌘+Up/Down)
+	// Switch between windows (⌘+Up/Down)
 	useHotkeys(HOTKEYS.PREV_TERMINAL.keys, () => {
-		if (!activeWorkspaceId || !activeTabId) return;
-		const index = tabs.findIndex((t) => t.id === activeTabId);
+		if (!activeWorkspaceId || !activeWindowId) return;
+		const index = windows.findIndex((w) => w.id === activeWindowId);
 		if (index > 0) {
-			setActiveTab(activeWorkspaceId, tabs[index - 1].id);
+			setActiveWindow(activeWorkspaceId, windows[index - 1].id);
 		}
-	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
+	}, [activeWorkspaceId, activeWindowId, windows, setActiveWindow]);
 
 	useHotkeys(HOTKEYS.NEXT_TERMINAL.keys, () => {
-		if (!activeWorkspaceId || !activeTabId) return;
-		const index = tabs.findIndex((t) => t.id === activeTabId);
-		if (index < tabs.length - 1) {
-			setActiveTab(activeWorkspaceId, tabs[index + 1].id);
+		if (!activeWorkspaceId || !activeWindowId) return;
+		const index = windows.findIndex((w) => w.id === activeWindowId);
+		if (index < windows.length - 1) {
+			setActiveWindow(activeWorkspaceId, windows[index + 1].id);
 		}
-	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
+	}, [activeWorkspaceId, activeWindowId, windows, setActiveWindow]);
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =
