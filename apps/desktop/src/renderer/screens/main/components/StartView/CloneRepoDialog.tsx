@@ -14,6 +14,7 @@ export function CloneRepoDialog({
 	onError,
 }: CloneRepoDialogProps) {
 	const [url, setUrl] = useState("");
+	const utils = trpc.useUtils();
 	const cloneRepo = trpc.projects.cloneRepo.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
@@ -27,12 +28,20 @@ export function CloneRepoDialog({
 			{ url: url.trim() },
 			{
 				onSuccess: (result) => {
+					// User canceled the directory picker - silent no-op
+					if (result.canceled) {
+						return;
+					}
+
 					if (result.success && result.project) {
+						// Invalidate recents so the new/updated project appears
+						utils.projects.getRecents.invalidate();
 						createWorkspace.mutate({ projectId: result.project.id });
 						onClose();
 						setUrl("");
-					} else if (!result.success && result.error) {
-						onError(result.error);
+					} else if (!result.success) {
+						// Show user-friendly error message
+						onError(result.error ?? "Failed to clone repository");
 					}
 				},
 				onError: (err) => {

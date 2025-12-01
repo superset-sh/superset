@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
@@ -91,11 +92,9 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 							title: "Select Clone Destination",
 						});
 
+						// User canceled - return canceled state (not an error)
 						if (result.canceled || result.filePaths.length === 0) {
-							return {
-								success: false as const,
-								error: "No directory selected",
-							};
+							return { canceled: true as const, success: false as const };
 						}
 
 						targetDir = result.filePaths[0];
@@ -107,6 +106,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 						?.replace(/\.git$/, "");
 					if (!repoName) {
 						return {
+							canceled: false as const,
 							success: false as const,
 							error: "Invalid repository URL",
 						};
@@ -114,9 +114,40 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 					const clonePath = join(targetDir, repoName);
 
+					// Check if we already have a project for this path
+					const existingProject = db.data.projects.find(
+						(p) => p.mainRepoPath === clonePath,
+					);
+
+					if (existingProject) {
+						// Update lastOpenedAt and return existing project
+						await db.update((data) => {
+							const p = data.projects.find((p) => p.id === existingProject.id);
+							if (p) {
+								p.lastOpenedAt = Date.now();
+							}
+						});
+						return {
+							canceled: false as const,
+							success: true as const,
+							project: existingProject,
+						};
+					}
+
+					// Check if target directory already exists (but not our project)
+					if (existsSync(clonePath)) {
+						return {
+							canceled: false as const,
+							success: false as const,
+							error: `A folder named "${repoName}" already exists at this location. Please choose a different destination.`,
+						};
+					}
+
+					// Clone the repository
 					const git = simpleGit();
 					await git.clone(input.url, clonePath);
 
+					// Create new project
 					const name = basename(clonePath);
 					const project: Project = {
 						id: nanoid(),
@@ -133,6 +164,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					});
 
 					return {
+						canceled: false as const,
 						success: true as const,
 						project,
 					};
@@ -140,6 +172,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					const errorMessage =
 						error instanceof Error ? error.message : String(error);
 					return {
+						canceled: false as const,
 						success: false as const,
 						error: `Failed to clone repository: ${errorMessage}`,
 					};
