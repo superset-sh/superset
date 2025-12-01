@@ -87,14 +87,14 @@ const SELECTOR_OPTIONS = [
 	"Build features",
 	"Fix bugs",
 	"Debug prod",
-	"Customize",
+	"Customize Themes",
 ] as const;
 
 const BACKGROUND_GRADIENTS: Record<string, string> = {
 	"Build features": "from-amber-900/80 via-orange-950/70 to-amber-950/80",
 	"Fix bugs": "from-rose-900/80 via-pink-950/70 to-rose-950/80",
 	"Debug prod": "from-violet-900/80 via-purple-950/70 to-violet-950/80",
-	Customize: "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
+	"Customize Themes": "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
 };
 
 // Using customize.gif as placeholder for all screens until other GIFs are ready
