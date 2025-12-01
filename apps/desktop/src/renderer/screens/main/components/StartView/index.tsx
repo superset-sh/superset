@@ -9,24 +9,49 @@ import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { StartTopBar } from "./StartTopBar";
 
+/**
+ * Normalizes path separators to forward slashes for consistent handling
+ */
+function normalizeSeparators(path: string): string {
+	return path.replace(/\\/g, "/");
+}
+
+/**
+ * Formats a path for display, replacing the home directory with ~ and optionally
+ * removing the trailing project name directory.
+ * Handles both Unix and Windows paths.
+ */
 function formatPath(
 	path: string,
 	projectName: string,
+	homeDir: string | undefined,
 ): { display: string; full: string } {
-	// Replace home directory patterns with ~
-	const fullPath = path.replace(/^\/(?:Users|home)\/[^/]+/, "~");
+	// Normalize both path and homeDir to use forward slashes
+	const normalizedPath = normalizeSeparators(path);
+	const normalizedHome = homeDir ? normalizeSeparators(homeDir) : null;
+
+	// Replace home directory with ~ if we know the home dir
+	let fullPath = normalizedPath;
+	if (normalizedHome && normalizedPath.startsWith(normalizedHome)) {
+		fullPath = "~" + normalizedPath.slice(normalizedHome.length);
+	} else {
+		// Fallback: try common Unix patterns if home dir not available
+		fullPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
+	}
+
+	// Escape special regex characters in project name
+	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
 
 	// Remove trailing project name directory if it matches
-	const suffix = `/${projectName}`;
-	const displayPath = fullPath.endsWith(suffix)
-		? fullPath.slice(0, -suffix.length)
-		: fullPath;
+	const displayPath = fullPath.replace(suffixPattern, "");
 
 	return { display: displayPath, full: fullPath };
 }
 
 export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
+	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
 	const createWorkspace = useCreateWorkspace();
 	const [error, setError] = useState<string | null>(null);
@@ -115,7 +140,7 @@ export function StartView() {
 					{/* Action Cards and Recent Projects Container */}
 					<div className="flex flex-col items-center gap-0 w-full px-2">
 						{/* Action Cards */}
-						<div className="w-full max-w-[650px] min-w-[526px] inline-flex justify-center items-center gap-4 px-2">
+						<div className="w-full max-w-[650px] min-w-[280px] inline-flex justify-center items-center gap-4 px-2">
 							<ActionCard
 								icon={FolderOpen}
 								label="Open project"
@@ -168,6 +193,7 @@ export function StartView() {
 											const pathInfo = formatPath(
 												project.mainRepoPath,
 												project.name,
+												homeDir,
 											);
 											return (
 												<button

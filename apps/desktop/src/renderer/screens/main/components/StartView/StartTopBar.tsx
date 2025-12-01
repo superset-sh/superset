@@ -3,8 +3,9 @@ import { SettingsButton } from "../TopBar/SettingsButton";
 import { WindowControls } from "../TopBar/WindowControls";
 
 export function StartTopBar() {
-	const { data: platform } = trpc.window.getPlatform.useQuery();
-	const isMac = platform === "darwin";
+	const { data: platform, isLoading } = trpc.window.getPlatform.useQuery();
+	const isMac = !isLoading && platform === "darwin";
+	const showWindowControls = !isLoading && !isMac;
 
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between border-b border-sidebar bg-background">
@@ -21,7 +22,7 @@ export function StartTopBar() {
 			</div>
 			<div className="flex items-center gap-2 h-full pr-4 no-drag">
 				<SettingsButton />
-				{!isMac && <WindowControls />}
+				{showWindowControls && <WindowControls />}
 			</div>
 		</div>
 	);

@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
@@ -11,6 +12,73 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
+
+// Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
+// Allows most valid Git repo names while avoiding path traversal characters
+const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
+
+/**
+ * Extracts and validates a repository name from a git URL.
+ * Handles HTTP/HTTPS URLs, SSH-style URLs (git@host:user/repo), and edge cases.
+ */
+function extractRepoName(urlInput: string): string | null {
+	// Normalize: trim whitespace and strip trailing slashes
+	let normalized = urlInput.trim().replace(/\/+$/, "");
+
+	if (!normalized) return null;
+
+	let repoSegment: string | undefined;
+
+	// Try parsing as HTTP/HTTPS URL first
+	try {
+		const parsed = new URL(normalized);
+		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+			// Get pathname and strip query/hash (URL constructor handles this)
+			const pathname = parsed.pathname;
+			// Get the last segment of the path
+			repoSegment = pathname.split("/").filter(Boolean).pop();
+		}
+	} catch {
+		// Not a valid URL, try SSH-style parsing
+	}
+
+	// Fallback to SSH-style parsing (git@github.com:user/repo.git)
+	if (!repoSegment) {
+		// Handle SSH format: git@host:path or just path segments
+		const colonIndex = normalized.indexOf(":");
+		if (colonIndex !== -1 && !normalized.includes("://")) {
+			// SSH-style: take everything after the colon
+			normalized = normalized.slice(colonIndex + 1);
+		}
+		// Split by '/' and get the last segment
+		repoSegment = normalized.split("/").filter(Boolean).pop();
+	}
+
+	if (!repoSegment) return null;
+
+	// Strip query string and hash if present (for edge cases)
+	repoSegment = repoSegment.split("?")[0].split("#")[0];
+
+	// Remove trailing .git extension
+	repoSegment = repoSegment.replace(/\.git$/, "");
+
+	// Decode percent-encoded characters
+	try {
+		repoSegment = decodeURIComponent(repoSegment);
+	} catch {
+		// Invalid encoding, continue with raw value
+	}
+
+	// Trim any remaining whitespace or special characters at boundaries
+	repoSegment = repoSegment.trim();
+
+	// Validate against safe filename regex
+	if (!repoSegment || !SAFE_REPO_NAME_REGEX.test(repoSegment)) {
+		return null;
+	}
+
+	return repoSegment;
+}
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
@@ -79,7 +147,12 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			.input(
 				z.object({
 					url: z.string().url(),
-					targetDirectory: z.string().optional(),
+					// Trim and convert empty/whitespace strings to undefined
+					targetDirectory: z
+						.string()
+						.trim()
+						.optional()
+						.transform((v) => (v && v.length > 0 ? v : undefined)),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -100,10 +173,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 						targetDir = result.filePaths[0];
 					}
 
-					const repoName = input.url
-						.split("/")
-						.pop()
-						?.replace(/\.git$/, "");
+					const repoName = extractRepoName(input.url);
 					if (!repoName) {
 						return {
 							canceled: false as const,
@@ -120,18 +190,35 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					);
 
 					if (existingProject) {
-						// Update lastOpenedAt and return existing project
-						await db.update((data) => {
-							const p = data.projects.find((p) => p.id === existingProject.id);
-							if (p) {
-								p.lastOpenedAt = Date.now();
-							}
-						});
-						return {
-							canceled: false as const,
-							success: true as const,
-							project: existingProject,
-						};
+						// Verify the filesystem path still exists
+						try {
+							await access(clonePath);
+							// Directory exists - update lastOpenedAt and return existing project
+							await db.update((data) => {
+								const p = data.projects.find(
+									(p) => p.id === existingProject.id,
+								);
+								if (p) {
+									p.lastOpenedAt = Date.now();
+								}
+							});
+							return {
+								canceled: false as const,
+								success: true as const,
+								project: existingProject,
+							};
+						} catch {
+							// Directory is missing - remove the stale project record and continue with clone
+							await db.update((data) => {
+								const index = data.projects.findIndex(
+									(p) => p.id === existingProject.id,
+								);
+								if (index !== -1) {
+									data.projects.splice(index, 1);
+								}
+							});
+							// Continue to normal creation flow below
+						}
 					}
 
 					// Check if target directory already exists (but not our project)

@@ -1,3 +1,4 @@
+import { homedir } from "node:os";
 import type { BrowserWindow } from "electron";
 import { publicProcedure, router } from "..";
 
@@ -32,6 +33,10 @@ export const createWindowRouter = (window: BrowserWindow) => {
 
 		getPlatform: publicProcedure.query(() => {
 			return process.platform;
+		}),
+
+		getHomeDir: publicProcedure.query(() => {
+			return homedir();
 		}),
 	});
 };

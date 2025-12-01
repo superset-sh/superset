@@ -1,6 +1,6 @@
 import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
 	formatKeysForDisplay,
@@ -8,6 +8,14 @@ import {
 	type HotkeyCategory,
 	type HotkeyDefinition,
 } from "shared/hotkeys";
+
+function useIsMac(): boolean {
+	return useMemo(() => {
+		const platform = navigator.platform?.toUpperCase() ?? "";
+		const userAgent = navigator.userAgent?.toUpperCase() ?? "";
+		return platform.includes("MAC") || userAgent.includes("MAC");
+	}, []);
+}
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Workspace",
@@ -68,6 +76,8 @@ function consolidateWorkspaceJumps(
 export function KeyboardShortcutsSettings() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const hotkeysByCategory = getHotkeysByCategory();
+	const isMac = useIsMac();
+	const modifierKey = isMac ? "⌘" : "Ctrl";
 
 	// Flatten and consolidate all hotkeys
 	const allHotkeys = CATEGORY_ORDER.flatMap((category) =>
@@ -88,7 +98,7 @@ export function KeyboardShortcutsSettings() {
 				<h2 className="text-lg font-semibold">Keyboard Shortcuts</h2>
 				<p className="text-sm text-muted-foreground mt-1">
 					View all available keyboard shortcuts. Press{" "}
-					<Kbd className="mx-1">⌘</Kbd>
+					<Kbd className="mx-1">{modifierKey}</Kbd>
 					<Kbd>?</Kbd> to open this page anytime.
 				</p>
 			</div>

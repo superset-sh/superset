@@ -20,6 +20,8 @@ export async function MainWindow() {
 		title: productName,
 		width,
 		height,
+		minWidth: 400,
+		minHeight: 400,
 		show: false,
 		center: true,
 		movable: true,
