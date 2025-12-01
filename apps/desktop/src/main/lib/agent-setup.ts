@@ -41,9 +41,22 @@ function createNotifyScript(): void {
 # Only run if inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0
 
-# Read JSON from stdin and extract hook_event_name
-INPUT=$(cat)
+# Get JSON input - Codex passes as argument, Claude pipes to stdin
+if [ -n "$1" ]; then
+  INPUT="$1"
+else
+  INPUT=$(cat)
+fi
+
+# Extract event type - Claude uses "hook_event_name", Codex uses "type"
 EVENT_TYPE=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | cut -d'"' -f4)
+if [ -z "$EVENT_TYPE" ]; then
+  # Check for Codex "type" field (e.g., "agent-turn-complete")
+  CODEX_TYPE=$(echo "$INPUT" | grep -o '"type":"[^"]*"' | cut -d'"' -f4)
+  if [ "$CODEX_TYPE" = "agent-turn-complete" ]; then
+    EVENT_TYPE="Stop"
+  fi
+fi
 
 # Default to "Stop" if not found
 [ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
