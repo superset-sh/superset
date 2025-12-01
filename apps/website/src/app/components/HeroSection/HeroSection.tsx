@@ -121,18 +121,21 @@ export function HeroSection() {
 
 const SELECTOR_OPTIONS = [
 	"Use Agents",
+	"Manage Terminals",
 	"Open Worktrees",
 	"Customize Themes",
 ] as const;
 
 const BACKGROUND_GRADIENTS: Record<string, string> = {
 	"Use Agents": "from-rose-900/80 via-pink-950/70 to-rose-950/80",
+	"Manage Terminals": "from-amber-900/80 via-yellow-950/70 to-orange-950/80",
 	"Open Worktrees": "from-blue-900/80 via-blue-950/70 to-blue-950/80",
 	"Customize Themes": "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
 };
 
 const DEMO_GIFS: Record<string, string> = {
 	"Use Agents": "/hero/use-agents.gif",
+	"Manage Terminals": "/hero/manage-terminals.gif",
 	"Open Worktrees": "/hero/open-worktrees.gif",
 	"Customize Themes": "/hero/change-themes.gif",
 };
