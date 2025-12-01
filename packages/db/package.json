@@ -39,7 +39,7 @@
 	"devDependencies": {
 		"@superset/typescript": "*",
 		"@types/node": "^24.9.1",
-		"drizzle-kit": "0.31.1",
+		"drizzle-kit": "0.31.7",
 		"typescript": "^5.9.3"
 	}
 }
