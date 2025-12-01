@@ -1,1 +1,0 @@
-export { LitBackground } from "./LitBackground";

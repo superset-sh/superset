@@ -10,7 +10,7 @@ export const env = createEnv({
 			.default("development"),
 	},
 	server: {
-		DATABASE_URL: z.string().url(),
+		DATABASE_URL: z.url(),
 	},
 	client: {},
 	/**
