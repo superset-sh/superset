@@ -8,6 +8,7 @@ import {
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
 import { useTabs } from "renderer/stores";
+import { useCloseSettings } from "renderer/stores/app-state";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
 import { WorkspaceItemContextMenu } from "./WorkspaceItemContextMenu";
@@ -39,6 +40,7 @@ export function WorkspaceItem({
 }: WorkspaceItemProps) {
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
+	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const tabs = useTabs();
 	const rename = useWorkspaceRename(id, title);
@@ -89,7 +91,12 @@ export function WorkspaceItem({
 						ref={(node) => {
 							drag(drop(node));
 						}}
-						onMouseDown={() => !rename.isRenaming && setActive.mutate({ id })}
+						onMouseDown={() => {
+							if (!rename.isRenaming) {
+								closeSettings();
+								setActive.mutate({ id });
+							}
+						}}
 						onDoubleClick={rename.startRename}
 						onMouseEnter={onMouseEnter}
 						onMouseLeave={onMouseLeave}

@@ -2,7 +2,12 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCurrentView,
+	useIsSettingsTabOpen,
+} from "renderer/stores/app-state";
 import { HOTKEYS } from "shared/hotkeys";
+import { SettingsTab } from "./SettingsTab";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -15,6 +20,9 @@ export function WorkspacesTabs() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
+	const currentView = useCurrentView();
+	const isSettingsTabOpen = useIsSettingsTabOpen();
+	const isSettingsActive = currentView === "settings";
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showStartFade, setShowStartFade] = useState(false);
@@ -125,7 +133,9 @@ export function WorkspacesTabs() {
 									projectColor={group.project.color}
 									projectIndex={groupIndex}
 									workspaces={group.workspaces}
-									activeWorkspaceId={activeWorkspaceId}
+									activeWorkspaceId={
+										isSettingsActive ? null : activeWorkspaceId
+									}
 									workspaceWidth={workspaceWidth}
 									hoveredWorkspaceId={hoveredWorkspaceId}
 									onWorkspaceHover={setHoveredWorkspaceId}
@@ -137,6 +147,19 @@ export function WorkspacesTabs() {
 								)}
 							</Fragment>
 						))}
+						{isSettingsTabOpen && (
+							<>
+								{groups.length > 0 && (
+									<div className="flex items-center h-full py-2">
+										<div className="w-px h-full bg-border" />
+									</div>
+								)}
+								<SettingsTab
+									width={workspaceWidth}
+									isActive={isSettingsActive}
+								/>
+							</>
+						)}
 					</div>
 
 					{/* Fade effects for scroll indication */}

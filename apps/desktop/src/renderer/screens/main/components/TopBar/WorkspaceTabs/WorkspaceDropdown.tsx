@@ -55,7 +55,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 					variant="ghost"
 					size="icon"
 					aria-label="Add new workspace"
-					className="ml-1 size-7 text-muted-foreground hover:text-foreground"
+					className="ml-1 mt-1 size-7 text-muted-foreground hover:text-foreground"
 				>
 					<HiMiniPlus className="size-4" />
 				</Button>
