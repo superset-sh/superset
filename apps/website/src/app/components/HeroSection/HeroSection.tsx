@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { GITHUB_REPO_URL } from "@/constants";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 
@@ -85,6 +87,15 @@ export function HeroSection() {
 								<DownloadButton
 									onJoinWaitlist={() => setIsWaitlistOpen(true)}
 								/>
+								<button
+									type="button"
+									className="px-6 py-3 text-base rounded-[5px] font-medium bg-white/3 text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+									onClick={() => window.open(GITHUB_REPO_URL, "_blank")}
+									aria-label="View on GitHub"
+								>
+									View on GitHub
+									<FaGithub className="size-4" />
+								</button>
 							</div>
 						</motion.div>
 
