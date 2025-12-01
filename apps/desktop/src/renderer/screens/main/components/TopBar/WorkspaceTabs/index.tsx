@@ -110,11 +110,15 @@ export function WorkspacesTabs() {
 	}, [allWorkspaces]);
 
 	return (
-		<div ref={containerRef} className="flex items-center h-full w-full">
-			<div className="relative flex-1 h-full overflow-hidden min-w-0">
+		<div
+			ref={containerRef}
+			className="flex items-center h-full w-full border-b border-border"
+		>
+			{/* Scroll wrapper - shrinks to fit content, scrolls when overflow */}
+			<div className="relative h-full min-w-0 overflow-hidden flex items-center">
 				<div
 					ref={scrollRef}
-					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
+					className="flex items-center overflow-x-auto hide-scrollbar gap-4"
 				>
 					{groups.map((group, groupIndex) => (
 						<Fragment key={group.project.id}>
@@ -130,8 +134,8 @@ export function WorkspacesTabs() {
 								onWorkspaceHover={setHoveredWorkspaceId}
 							/>
 							{groupIndex < groups.length - 1 && (
-								<div className="flex items-center h-full py-2">
-									<div className="w-px h-full bg-border" />
+								<div className="flex items-center h-6">
+									<div className="w-px h-4 bg-border/50" />
 								</div>
 							)}
 						</Fragment>
@@ -146,7 +150,20 @@ export function WorkspacesTabs() {
 					<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
 				)}
 			</div>
-			<WorkspaceDropdown className="no-drag" />
+
+			{/* Add workspace controls - outside scroll area, always visible */}
+			<WorkspaceDropdown
+				className="no-drag flex-shrink-0"
+				activeProjectId={activeWorkspace?.projectId}
+				activeProjectName={
+					groups.find((g) => g.project.id === activeWorkspace?.projectId)
+						?.project.name
+				}
+				activeProjectColor={
+					groups.find((g) => g.project.id === activeWorkspace?.projectId)
+						?.project.color
+				}
+			/>
 		</div>
 	);
 }
