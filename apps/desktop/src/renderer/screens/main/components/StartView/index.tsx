@@ -1,4 +1,5 @@
-import { FolderGit, FolderOpen, X } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { ChevronUp, FolderGit, FolderOpen, X } from "lucide-react";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -8,12 +9,30 @@ import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { StartTopBar } from "./StartTopBar";
 
+function formatPath(
+	path: string,
+	projectName: string,
+): { display: string; full: string } {
+	// Replace home directory patterns with ~
+	const fullPath = path.replace(/^\/(?:Users|home)\/[^/]+/, "~");
+
+	// Remove trailing project name directory if it matches
+	const suffix = `/${projectName}`;
+	const displayPath = fullPath.endsWith(suffix)
+		? fullPath.slice(0, -suffix.length)
+		: fullPath;
+
+	return { display: displayPath, full: fullPath };
+}
+
 export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const openNew = useOpenNew();
 	const createWorkspace = useCreateWorkspace();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [showAllProjects, setShowAllProjects] = useState(false);
+	const [visibleCount, setVisibleCount] = useState(50);
 
 	const handleOpenProject = () => {
 		setError(null);
@@ -41,7 +60,11 @@ export function StartView() {
 		);
 	};
 
-	const displayedProjects = recentProjects.slice(0, 5);
+	const hasMoreProjects = recentProjects.length > 5;
+	const displayedProjects = showAllProjects
+		? recentProjects.slice(0, visibleCount)
+		: recentProjects.slice(0, 5);
+	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
 	const isLoading = openNew.isPending || createWorkspace.isPending;
 
 	return (
@@ -113,43 +136,79 @@ export function StartView() {
 
 						{/* Recent Projects */}
 						{displayedProjects.length > 0 && (
-							<div className="w-full max-w-[650px] min-w-[526px] inline-flex justify-center items-center gap-4 ">
-								<div className="flex-1 p-1 py-4 rounded-lg inline-flex flex-col justify-start items-start gap-1 overflow-hidden">
-									<div className="self-stretch inline-flex justify-between items-start">
-										<div className="flex justify-center items-center gap-2.5">
-											<div className="justify-start text-muted-foreground text-xs px-2 py-1 font-normal">
-												Recent projects
-											</div>
-										</div>
-										{recentProjects.length > 5 && (
-											<div className="flex justify-center items-center gap-2.5">
-												<div className="justify-start text-muted-foreground text-xs font-normal">
-													View all ({recentProjects.length})
-												</div>
-											</div>
+							<div className="w-full max-w-[650px]">
+								<div className="flex-1 p-1 py-4 rounded-lg flex flex-col gap-1">
+									<div className="flex justify-between items-center px-2 py-1">
+										<span className="text-muted-foreground text-xs font-normal">
+											Recent projects
+										</span>
+										{hasMoreProjects && (
+											<button
+												type="button"
+												onClick={() => {
+													setShowAllProjects(!showAllProjects);
+													if (showAllProjects) setVisibleCount(50);
+												}}
+												className="flex items-center gap-1 text-muted-foreground text-xs font-normal hover:text-foreground transition-colors"
+											>
+												{showAllProjects ? (
+													<>
+														Show less
+														<ChevronUp className="h-3 w-3" />
+													</>
+												) : (
+													<>View all ({recentProjects.length})</>
+												)}
+											</button>
 										)}
 									</div>
 
-									{displayedProjects.map((project) => (
-										<button
-											key={project.id}
-											type="button"
-											onClick={() => handleOpenRecentProject(project.id)}
-											disabled={isLoading}
-											className="self-stretch inline-flex justify-between items-center px-2 py-1 rounded-md hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-										>
-											<div className="flex justify-center items-center gap-2.5">
-												<div className="justify-start text-foreground text-xs font-normal">
-													{project.name}
-												</div>
-											</div>
-											<div className="flex justify-center items-center gap-2.5">
-												<div className="justify-start text-muted-foreground text-xs font-normal">
-													{project.mainRepoPath}
-												</div>
-											</div>
-										</button>
-									))}
+									<div className="max-h-64 overflow-y-auto flex flex-col gap-1">
+										{displayedProjects.map((project) => {
+											const pathInfo = formatPath(
+												project.mainRepoPath,
+												project.name,
+											);
+											return (
+												<button
+													key={project.id}
+													type="button"
+													onClick={() => handleOpenRecentProject(project.id)}
+													disabled={isLoading}
+													className="w-full flex justify-between items-center px-2 py-1 rounded-md hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+												>
+													<span className="text-foreground text-xs font-normal truncate">
+														{project.name}
+													</span>
+													<Tooltip delayDuration={500}>
+														<TooltipTrigger asChild>
+															<span className="text-muted-foreground text-xs font-normal truncate ml-4">
+																{pathInfo.display}
+															</span>
+														</TooltipTrigger>
+														<TooltipContent
+															side="top"
+															showArrow={false}
+															className="bg-card text-foreground border border-border shadow-md"
+														>
+															{pathInfo.full}
+														</TooltipContent>
+													</Tooltip>
+												</button>
+											);
+										})}
+
+										{hasMoreToLoad && (
+											<button
+												type="button"
+												onClick={() => setVisibleCount((c) => c + 50)}
+												className="w-full px-2 py-2 text-muted-foreground text-xs font-normal hover:text-foreground transition-colors"
+											>
+												Load more ({recentProjects.length - visibleCount}{" "}
+												remaining)
+											</button>
+										)}
+									</div>
 								</div>
 							</div>
 						)}
