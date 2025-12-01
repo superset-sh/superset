@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
 import { DownloadButton } from "../DownloadButton";
-import { JoinWaitlistButton } from "../JoinWaitlistButton";
 import { SocialLinks } from "../SocialLinks";
 import { WaitlistModal } from "../WaitlistModal";
 
@@ -47,11 +46,11 @@ export function Header() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.3, delay: 0.1 }}
 						>
-						<SocialLinks />
-						<DownloadButton
-							size="sm"
-							onJoinWaitlist={() => setIsWaitlistOpen(true)}
-						/>
+							<SocialLinks />
+							<DownloadButton
+								size="sm"
+								onJoinWaitlist={() => setIsWaitlistOpen(true)}
+							/>
 						</motion.div>
 					</div>
 				</nav>

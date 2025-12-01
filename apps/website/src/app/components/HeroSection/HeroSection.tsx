@@ -3,112 +3,108 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { HiMiniArrowDownTray } from "react-icons/hi2";
-import { DOWNLOAD_URL_MAC_ARM64 } from "@/constants";
+import { DownloadButton } from "../DownloadButton";
+import { WaitlistModal } from "../WaitlistModal";
 
 export function HeroSection() {
+	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
+
 	return (
-		<section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden">
-			{/* Grid background */}
-			<motion.div
-				className="absolute inset-0 pointer-events-none"
-				initial={{ opacity: 0 }}
-				animate={{ opacity: 1 }}
-				transition={{ duration: 0.8, ease: "easeOut" }}
-			>
-				<svg
-					className="absolute inset-0 w-full h-full"
-					xmlns="http://www.w3.org/2000/svg"
+		<>
+			<section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden">
+				{/* Grid background */}
+				<motion.div
+					className="absolute inset-0 pointer-events-none"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.8, ease: "easeOut" }}
 				>
-					<title>grid</title>
-					<defs>
-						<pattern
-							id="hero-grid"
-							width="60"
-							height="60"
-							patternUnits="userSpaceOnUse"
-						>
-							<path
-								d="M 60 0 L 0 0 0 60"
-								fill="none"
-								stroke="rgba(255,255,255,0.06)"
-								strokeWidth="1"
-							/>
-						</pattern>
-						<radialGradient id="grid-fade" cx="50%" cy="50%" r="50%">
-							<stop offset="0%" stopColor="white" stopOpacity="1" />
-							<stop offset="75%" stopColor="white" stopOpacity="0.95" />
-							<stop offset="85%" stopColor="white" stopOpacity="0.7" />
-							<stop offset="92%" stopColor="white" stopOpacity="0.3" />
-							<stop offset="96%" stopColor="white" stopOpacity="0.1" />
-							<stop offset="100%" stopColor="white" stopOpacity="0" />
-						</radialGradient>
-						<mask id="grid-mask">
-							<rect width="100%" height="100%" fill="url(#grid-fade)" />
-						</mask>
-					</defs>
-					<rect
-						width="100%"
-						height="100%"
-						fill="url(#hero-grid)"
-						mask="url(#grid-mask)"
-					/>
-				</svg>
-			</motion.div>
-			<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
-				<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
-					{/* Left column - Text content */}
-					<motion.div
-						className="space-y-8"
-						initial={{ opacity: 0, y: 20 }}
-						animate={{ opacity: 1, y: 0 }}
-						transition={{ duration: 0.5 }}
+					<svg
+						className="absolute inset-0 w-full h-full"
+						xmlns="http://www.w3.org/2000/svg"
 					>
-						{/* Heading */}
-						<div className="space-y-6">
-							<h1
-								className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-white"
-								style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+						<title>grid</title>
+						<defs>
+							<pattern
+								id="hero-grid"
+								width="60"
+								height="60"
+								patternUnits="userSpaceOnUse"
 							>
-								The terminal app for parallel cli agents.
-							</h1>
-							<p className="text-lg text-muted-foreground max-w-[400px]">
-								Run dozens of Claude Code, Codex, or any other cli agents you
-								love.
-							</p>
-						</div>
+								<path
+									d="M 60 0 L 0 0 0 60"
+									fill="none"
+									stroke="rgba(255,255,255,0.06)"
+									strokeWidth="1"
+								/>
+							</pattern>
+							<radialGradient id="grid-fade" cx="50%" cy="50%" r="50%">
+								<stop offset="0%" stopColor="white" stopOpacity="1" />
+								<stop offset="75%" stopColor="white" stopOpacity="0.95" />
+								<stop offset="85%" stopColor="white" stopOpacity="0.7" />
+								<stop offset="92%" stopColor="white" stopOpacity="0.3" />
+								<stop offset="96%" stopColor="white" stopOpacity="0.1" />
+								<stop offset="100%" stopColor="white" stopOpacity="0" />
+							</radialGradient>
+							<mask id="grid-mask">
+								<rect width="100%" height="100%" fill="url(#grid-fade)" />
+							</mask>
+						</defs>
+						<rect
+							width="100%"
+							height="100%"
+							fill="url(#hero-grid)"
+							mask="url(#grid-mask)"
+						/>
+					</svg>
+				</motion.div>
+				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
+					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
+						{/* Left column - Text content */}
+						<motion.div
+							className="space-y-8"
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5 }}
+						>
+							{/* Heading */}
+							<div className="space-y-6">
+								<h1
+									className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-white"
+									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
+								>
+									The terminal app for parallel cli agents.
+								</h1>
+								<p className="text-lg text-muted-foreground max-w-[400px]">
+									Run dozens of Claude Code, Codex, or any other cli agents you
+									love.
+								</p>
+							</div>
 
-						<div className="flex flex-wrap items-center gap-4">
-							<DownloadButton />
-						</div>
-					</motion.div>
+							<div className="flex flex-wrap items-center gap-4">
+								<DownloadButton
+									onJoinWaitlist={() => setIsWaitlistOpen(true)}
+								/>
+							</div>
+						</motion.div>
 
-					{/* Right column - Product Demo */}
-					<motion.div
-						className="relative"
-						initial={{ opacity: 0, x: 20 }}
-						animate={{ opacity: 1, x: 0 }}
-						transition={{ duration: 0.5, delay: 0.2 }}
-					>
-						<ProductDemo />
-					</motion.div>
+						{/* Right column - Product Demo */}
+						<motion.div
+							className="relative"
+							initial={{ opacity: 0, x: 20 }}
+							animate={{ opacity: 1, x: 0 }}
+							transition={{ duration: 0.5, delay: 0.2 }}
+						>
+							<ProductDemo />
+						</motion.div>
+					</div>
 				</div>
-			</div>
-		</section>
-	);
-}
-
-function DownloadButton() {
-	return (
-		<a
-			href={DOWNLOAD_URL_MAC_ARM64}
-			className="group inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] pl-4 pr-3 py-2 transition-colors"
-		>
-			<span className="text-base font-medium leading-4 text-[#2a2b25]">
-				Download for Apple Silicon Mac
-			</span>
-			<HiMiniArrowDownTray className="ml-2 size-4 text-[#2a2b25]" />
-		</a>
+			</section>
+			<WaitlistModal
+				isOpen={isWaitlistOpen}
+				onClose={() => setIsWaitlistOpen(false)}
+			/>
+		</>
 	);
 }
 
