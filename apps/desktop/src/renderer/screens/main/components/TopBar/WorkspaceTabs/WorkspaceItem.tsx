@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -112,16 +113,16 @@ export function WorkspaceItem({
 						style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 					>
 						{rename.isRenaming ? (
-							<input
+							<Input
 								ref={rename.inputRef}
-								type="text"
+								variant="ghost"
 								value={rename.renameValue}
 								onChange={(e) => rename.setRenameValue(e.target.value)}
 								onBlur={rename.submitRename}
 								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
 								onMouseDown={(e) => e.stopPropagation()}
-								className="flex-1 min-w-0 bg-muted border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1 min-w-0 px-1 py-0.5"
 							/>
 						) : (
 							<>

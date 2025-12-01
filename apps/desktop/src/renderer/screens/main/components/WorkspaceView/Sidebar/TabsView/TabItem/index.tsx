@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { useState } from "react";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -132,15 +133,15 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 							</button>
 						)}
 						{rename.isRenaming ? (
-							<input
+							<Input
 								ref={rename.inputRef}
-								type="text"
+								variant="ghost"
 								value={rename.renameValue}
 								onChange={(e) => rename.setRenameValue(e.target.value)}
 								onBlur={rename.submitRename}
 								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-tertiary-active border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1 px-1 py-0.5"
 							/>
 						) : (
 							<>
