@@ -8,6 +8,7 @@ import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
 	setupFocusListener,
+	setupKeyboardHandler,
 	setupResizeHandlers,
 } from "./helpers";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
@@ -171,6 +172,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
+
+		// Setup keyboard handler for app hotkeys and Shift+Enter (line continuation like iTerm)
+		setupKeyboardHandler(xterm, {
+			onShiftEnter: () => {
+				// Send Ctrl+V (\x16) followed by Enter (\r) to insert a literal newline
+				// Ctrl+V triggers "quoted-insert" in readline/zsh, making the next char literal
+				// This is the standard way to insert a newline without executing in shells
+				if (!isExitedRef.current) {
+					writeRef.current({ tabId, data: "\x16\r" });
+				}
+			},
+		});
+
 		const cleanupFocus = setupFocusListener(
 			xterm,
 			workspaceId,
