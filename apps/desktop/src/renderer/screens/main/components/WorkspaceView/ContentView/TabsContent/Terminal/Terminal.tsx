@@ -80,11 +80,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const container = terminalRef.current;
 		if (!container) return;
 
-		const { xterm, fitAddon } = createTerminalInstance(
-			container,
-			workspaceCwd,
-			terminalTheme,
-		);
+		const {
+			xterm,
+			fitAddon,
+			cleanup: cleanupQuerySuppression,
+		} = createTerminalInstance(container, workspaceCwd, terminalTheme);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -190,6 +190,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			inputDisposable.dispose();
 			cleanupFocus?.();
 			cleanupResize();
+			cleanupQuerySuppression();
 			// Keep PTY running for reattachment
 			detachRef.current({ tabId });
 			setSubscriptionEnabled(false);
