@@ -6,6 +6,7 @@ export interface Project {
 	tabOrder: number | null;
 	lastOpenedAt: number;
 	createdAt: number;
+	configToastDismissed?: boolean;
 }
 
 export interface GitStatus {

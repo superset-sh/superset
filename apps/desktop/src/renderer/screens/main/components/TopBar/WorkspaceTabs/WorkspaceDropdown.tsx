@@ -10,6 +10,7 @@ import { HiMiniFolderOpen, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useOpenConfigModal } from "renderer/stores/config-modal";
 
 export interface WorkspaceDropdownProps {
 	className?: string;
@@ -21,12 +22,29 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
+	const openConfigModal = useOpenConfigModal();
+	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
 
-	const handleCreateWorkspace = (projectId: string) => {
+	const handleCreateWorkspace = async (projectId: string) => {
 		toast.promise(createWorkspace.mutateAsync({ projectId }), {
 			loading: "Creating workspace...",
-			success: () => {
+			success: (data) => {
 				setIsOpen(false);
+				// Show config toast if no setup commands
+				if (!data.initialCommands || data.initialCommands.length === 0) {
+					setTimeout(() => {
+						toast.info("No setup script configured", {
+							description: "Automate workspace setup with a config.json file",
+							action: {
+								label: "Configure",
+								onClick: () => openConfigModal(projectId),
+							},
+							onDismiss: () => {
+								dismissConfigToast.mutate({ projectId });
+							},
+						});
+					}, 500);
+				}
 				return "Workspace created";
 			},
 			error: (err) =>

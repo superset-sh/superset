@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { ChevronUp, FolderGit, FolderOpen, X } from "lucide-react";
 import { useState } from "react";
@@ -5,6 +6,7 @@ import { HiExclamationTriangle } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { StartTopBar } from "./StartTopBar";
@@ -54,17 +56,42 @@ export function StartView() {
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
 	const createWorkspace = useCreateWorkspace();
+	const openConfigModal = useOpenConfigModal();
+	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [showAllProjects, setShowAllProjects] = useState(false);
 	const [visibleCount, setVisibleCount] = useState(50);
+
+	const showConfigToastIfNeeded = (data: {
+		initialCommands: string[] | null;
+		projectId: string;
+	}) => {
+		if (!data.initialCommands || data.initialCommands.length === 0) {
+			toast.info("No setup script configured", {
+				description: "Automate workspace setup with a config.json file",
+				action: {
+					label: "Configure",
+					onClick: () => openConfigModal(data.projectId),
+				},
+				onDismiss: () => {
+					dismissConfigToast.mutate({ projectId: data.projectId });
+				},
+			});
+		}
+	};
 
 	const handleOpenProject = () => {
 		setError(null);
 		openNew.mutate(undefined, {
 			onSuccess: (result) => {
 				if (!result.canceled && result.project) {
-					createWorkspace.mutate({ projectId: result.project.id });
+					createWorkspace.mutate(
+						{ projectId: result.project.id },
+						{
+							onSuccess: showConfigToastIfNeeded,
+						},
+					);
 				}
 			},
 			onError: (err) => {
@@ -78,6 +105,7 @@ export function StartView() {
 		createWorkspace.mutate(
 			{ projectId },
 			{
+				onSuccess: showConfigToastIfNeeded,
 				onError: (err) => {
 					setError(err.message || "Failed to create workspace");
 				},

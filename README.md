@@ -50,7 +50,7 @@ open apps/desktop/release
 
 ### Usage
 
-For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a setup script (`./superset/setup.json`)
+For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`)
 
 <div align="center">
   <img width="600" alt="Creating a worktree" src="assets/create-worktree.gif" />

@@ -55,7 +55,7 @@ mise.toml
 # Superset
 # Ignore .superset directory except for config and scripts
 .superset/*
-!.superset/setup.json
+!.superset/config.json
 !.superset/setup.sh
 !.superset/teardown.sh
 
