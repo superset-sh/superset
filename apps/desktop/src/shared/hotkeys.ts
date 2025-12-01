@@ -91,15 +91,15 @@ export const HOTKEYS = {
 	},
 	SPLIT_HORIZONTAL: {
 		keys: "meta+d",
-		label: "Split Terminal Window Horizontal",
+		label: "Split Right",
 		category: "Layout",
-		description: "Create a horizontal split view",
+		description: "Split the current pane to the right",
 	},
 	SPLIT_VERTICAL: {
 		keys: "meta+shift+d",
-		label: "Split Terminal Window Vertical",
+		label: "Split Down",
 		category: "Layout",
-		description: "Create a vertical split view",
+		description: "Split the current pane downward",
 	},
 
 	// Terminal
