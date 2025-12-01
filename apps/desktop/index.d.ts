@@ -5,7 +5,6 @@ import type { WebviewTag } from "electron";
 
 interface ImportMetaEnv {
 	readonly DEV_SERVER_PORT?: string;
-	readonly ENABLE_NEW_UI?: string;
 }
 
 // biome-ignore lint/correctness/noUnusedVariables: Augments global import.meta type for Vite

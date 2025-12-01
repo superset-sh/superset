@@ -6,9 +6,9 @@ import { TRPCReactProvider } from "@/trpc/react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-	title: "Superset - The last developer tool you'll ever need",
+	title: "Superset - Run 10+ parallel coding agents on your machine",
 	description:
-		"The last developer tool you'll ever need. Work in parallel with always-on agents, zero switching cost, and bring your own tools.",
+		"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.",
 };
 
 export default function RootLayout({

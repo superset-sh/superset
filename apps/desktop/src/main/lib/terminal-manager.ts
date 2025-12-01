@@ -2,8 +2,7 @@ import { EventEmitter } from "node:events";
 import os from "node:os";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
-import { getSupersetPath } from "./agent-setup";
-import { TerminalEscapeFilter } from "./terminal-escape-filter";
+import { getShellArgs, getShellEnv } from "./agent-setup";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -19,7 +18,6 @@ interface TerminalSession {
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
-	escapeFilter: TerminalEscapeFilter;
 }
 
 export interface TerminalDataEvent {
@@ -87,9 +85,10 @@ export class TerminalManager extends EventEmitter {
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
 		const baseEnv = this.sanitizeEnv(process.env) || {};
+		const shellEnv = getShellEnv(shell);
 		const env = {
 			...baseEnv,
-			PATH: getSupersetPath(),
+			...shellEnv,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_TAB_TITLE: tabTitle,
 			SUPERSET_WORKSPACE_NAME: workspaceName,
@@ -114,8 +113,7 @@ export class TerminalManager extends EventEmitter {
 			}
 		}
 
-		const shellArgs =
-			shell.includes("zsh") || shell.includes("bash") ? ["-l"] : [];
+		const shellArgs = getShellArgs(shell);
 
 		const ptyProcess = pty.spawn(shell, shellArgs, {
 			name: "xterm-256color",
@@ -147,31 +145,17 @@ export class TerminalManager extends EventEmitter {
 			isAlive: true,
 			wasRecovered,
 			historyWriter,
-			escapeFilter: new TerminalEscapeFilter(),
 		};
 
 		ptyProcess.onData((data) => {
-			// Filter terminal query responses for storage only
-			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
-			const filteredData = session.escapeFilter.filter(data);
-			session.scrollback += filteredData;
-			session.historyWriter?.write(filteredData);
-			// Emit ORIGINAL data to xterm - it needs to process query responses
+			session.scrollback += data;
+			session.historyWriter?.write(data);
 			this.emit(`data:${tabId}`, data);
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
-
-			// Flush any buffered data from the escape filter
-			const remaining = session.escapeFilter.flush();
-			if (remaining) {
-				session.scrollback += remaining;
-				session.historyWriter?.write(remaining);
-			}
-
 			await this.closeHistory(session, exitCode);
-
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
 			const timeout = setTimeout(() => {
