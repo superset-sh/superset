@@ -1,154 +1,76 @@
 # Desktop App Release Process
 
-This document describes how to create a release for the Superset Desktop application.
+## Quick Start
 
-## Prerequisites
-
-- Ensure all changes are committed and pushed to the repository
-- Ensure the build works locally: `bun run package`
-- Update version in `package.json` if needed
-
-## Release Methods
-
-### Method 1: Tag-Based Release (Recommended)
-
-Create and push a git tag with the format `desktop-v*.*.*`:
+From the monorepo root:
 
 ```bash
-# Create a tag (e.g., desktop-v1.0.0)
-git tag desktop-v1.0.0
+./apps/desktop/create-release.sh <version>
+# Example: ./apps/desktop/create-release.sh desktop-v0.0.1
+```
 
-# Push the tag to trigger the release workflow
+The script will:
+1. Update `package.json` version
+2. Create and push a `desktop-v<version>` tag
+3. Monitor the GitHub Actions build
+4. Create a **draft release** for review
+
+To auto-publish instead of creating a draft:
+
+```bash
+./apps/desktop/create-release.sh desktop-v0.0.1 --publish
+```
+
+To publish a draft:
+
+```bash
+gh release edit desktop-v0.0.1 --draft=false
+```
+
+### Requirements
+
+- GitHub CLI (`gh`) installed and authenticated
+- Clean git working directory
+
+## Manual Release
+
+If you prefer not to use the script:
+
+```bash
+git tag desktop-v1.0.0
 git push origin desktop-v1.0.0
 ```
 
-This will automatically:
-1. Build the app for macOS (arm64), Windows (x64), and Linux (x64)
-2. Create artifacts for each platform
-3. Create a draft GitHub release with all binaries attached
+This creates a draft release. Publish it manually at GitHub Releases.
 
-### Method 2: Manual Workflow Dispatch
+## Auto-update
 
-You can also trigger a release manually from GitHub Actions:
+The app checks for updates at launch and every x hours using:
 
-1. Go to Actions → Release Desktop App
-2. Click "Run workflow"
-3. Enter the version number (e.g., `1.0.0`)
-4. Click "Run workflow"
+- **Manifest**: `https://github.com/superset-sh/superset/releases/latest/download/latest-mac.yml`
+- **Installer**: `https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg`
 
-This method is useful for testing the workflow or creating builds without creating a tag.
+The workflow creates stable-named copies (without version) so these URLs always point to the latest build.
 
-## Workflow Overview
+## Code Signing
 
-The release workflow (`.github/workflows/release-desktop.yml`) performs the following:
+macOS code signing uses these repository secrets:
 
-### Build Platform
-
-Builds are created for:
-- **macOS**: arm64 (Apple Silicon) - produces `.dmg` and `.zip`
-
-### Build Steps
-
-1. Checkout code
-2. Setup Bun
-3. Install dependencies
-4. Clean dev folder (`bun run clean:dev`)
-5. Compile app with electron-vite (`bun run compile:app`)
-6. Package with electron-builder (`bun run package`)
-7. Upload artifacts
-
-### Release Creation
-
-After the build completes (tag-based releases only):
-1. Downloads all artifacts
-2. Creates a draft GitHub release
-3. Attaches all binaries to the release
-4. Generates release notes from commits
-
-## Code Signing (Optional)
-
-To enable macOS code signing, add the following secrets to your GitHub repository:
-
-```yaml
-CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-APPLEID: ${{ secrets.APPLE_ID }}
-APPLEIDPASS: ${{ secrets.APPLE_ID_PASSWORD }}
-```
-
-Then uncomment the environment variables in the workflow under "Build Electron app".
-
-## Publishing the Release
-
-1. After the workflow completes, go to GitHub Releases
-2. Find the draft release
-3. Review the release notes and binaries
-4. Edit the release description if needed
-5. Click "Publish release" to make it public
-
-## Build Outputs
-
-### macOS (arm64)
-- `Superset-<version>-arm64.dmg` - DMG installer
-- `Superset-<version>-arm64-mac.zip` - Zipped app bundle
-
-## Troubleshooting
-
-### Build fails on macOS
-
-- Ensure you're building for the correct architecture (arm64 is configured by default)
-- Check that icon files exist at `src/resources/build/icons/icon.icns`
-- Verify that dependencies are properly installed
-
-### Native module errors
-
-- `node-pty` is configured as a native module in both `electron.vite.config.ts` and `electron-builder.ts`
-- It's externalized during build and unpacked from ASAR
-- If you add more native modules, update both configuration files
-
-### Missing icons error
-
-- The macOS build requires `icon.icns` in `src/resources/build/icons/`
-- Ensure this file is committed to the repository
+- `MAC_CERTIFICATE` / `MAC_CERTIFICATE_PASSWORD`
+- `APPLE_ID` / `APPLE_ID_PASSWORD` / `APPLE_TEAM_ID`
 
 ## Local Testing
 
-To test the build locally before releasing:
-
 ```bash
 cd apps/desktop
-
-# Clean and compile
 bun run clean:dev
 bun run compile:app
-
-# Package the app
 bun run package
 ```
 
-The output will be in `apps/desktop/release/`.
+Output: `apps/desktop/release/`
 
-## Building for Intel Macs (x64)
+## Troubleshooting
 
-To also build for Intel Macs, update `electron-builder.ts`:
-
-```typescript
-mac: {
-  target: [
-    {
-      target: "default",
-      arch: ["arm64", "x64"], // Add x64 for Intel Macs
-    },
-  ],
-}
-```
-
-Note: This will increase build time significantly.
-
-## Adding Windows/Linux Builds
-
-Currently only macOS builds are supported in CI/CD. To add Windows or Linux:
-
-1. Add PNG icon files to `src/resources/build/icons/` (for Linux)
-2. Update the workflow matrix in `.github/workflows/release-desktop.yml`
-3. Update `electron-builder.ts` configuration as needed
+- **Build fails**: Check `src/resources/build/icons/icon.icns` exists
+- **Native module errors**: Ensure `node-pty` is in externals in both `electron.vite.config.ts` and `electron-builder.ts`
