@@ -142,36 +142,30 @@ export function setupKeyboardHandler(
 	options: KeyboardHandlerOptions = {},
 ): void {
 	xterm.attachCustomKeyEventHandler((event: KeyboardEvent) => {
-		// Only intercept keydown events
-		if (event.type !== "keydown") return true;
-
-		// Handle Shift+Enter for line continuation (like iTerm)
-		if (
+		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&
 			!event.metaKey &&
 			!event.ctrlKey &&
-			!event.altKey
-		) {
-			if (options.onShiftEnter) {
+			!event.altKey;
+
+		if (isShiftEnter) {
+			// Block both keydown and keyup to prevent Enter from leaking through
+			if (event.type === "keydown" && options.onShiftEnter) {
 				options.onShiftEnter();
 			}
-			// Return false to prevent xterm from handling this as a regular Enter
 			return false;
 		}
 
-		// For app hotkeys, require meta/ctrl modifier
+		if (event.type !== "keydown") return true;
 		if (!event.metaKey && !event.ctrlKey) return true;
 
-		// Check if this is an app hotkey
 		if (isAppHotkey(event)) {
 			// Re-dispatch to document for react-hotkeys-hook to catch
 			document.dispatchEvent(new KeyboardEvent(event.type, event));
-			// Return false to tell xterm to ignore this event
 			return false;
 		}
 
-		// Let xterm handle all other keys
 		return true;
 	});
 }
