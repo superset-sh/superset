@@ -59,7 +59,10 @@ export function SetupConfigModal() {
 						<span className="text-sm text-muted-foreground font-mono">
 							{projectName}/.superset/config.json
 						</span>
-						<OpenInButton path={configFilePath ?? undefined} label="config.json" />
+						<OpenInButton
+							path={configFilePath ?? undefined}
+							label="config.json"
+						/>
 					</div>
 
 					{/* Code preview */}

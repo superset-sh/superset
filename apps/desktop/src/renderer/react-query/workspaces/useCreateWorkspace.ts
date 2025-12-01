@@ -1,10 +1,13 @@
+import { toast } from "@superset/ui/sonner";
 import { trpc } from "renderer/lib/trpc";
+import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 /**
  * Mutation hook for creating a new workspace
  * Automatically invalidates all workspace queries on success
  * Creates a terminal tab with setup commands if present
+ * Shows config toast if no setup commands are configured
  */
 export function useCreateWorkspace(
 	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
@@ -12,6 +15,8 @@ export function useCreateWorkspace(
 	const utils = trpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
+	const openConfigModal = useOpenConfigModal();
+	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
 
 	return trpc.workspaces.create.useMutation({
 		...options,
@@ -32,6 +37,18 @@ export function useCreateWorkspace(
 					workspaceId: data.workspace.id,
 					tabTitle: "Terminal",
 					initialCommands: data.initialCommands,
+				});
+			} else {
+				// Show config toast if no setup commands
+				toast.info("No setup script configured", {
+					description: "Automate workspace setup with a config.json file",
+					action: {
+						label: "Configure",
+						onClick: () => openConfigModal(data.projectId),
+					},
+					onDismiss: () => {
+						dismissConfigToast.mutate({ projectId: data.projectId });
+					},
 				});
 			}
 
