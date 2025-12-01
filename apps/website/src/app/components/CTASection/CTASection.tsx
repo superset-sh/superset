@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { HiMiniArrowDownTray } from "react-icons/hi2";
+import { DOWNLOAD_URL_MAC_ARM64 } from "@/constants";
 
 export function CTASection() {
 	return (
@@ -19,7 +20,7 @@ export function CTASection() {
 				</motion.h2>
 
 				<motion.a
-					href="https://github.com/superset-sh/superset/releases"
+					href={DOWNLOAD_URL_MAC_ARM64}
 					className="inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] px-8 py-4 transition-colors"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}

@@ -8,6 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { HiMiniArrowDownTray } from "react-icons/hi2";
+import { DOWNLOAD_URL_MAC_ARM64 } from "@/constants";
 
 interface DownloadButtonProps {
 	size?: "sm" | "md";
@@ -24,8 +25,7 @@ export function DownloadButton({
 		size === "sm" ? "px-4 py-2 text-sm" : "px-6 py-3 text-base";
 
 	const handleAppleSiliconDownload = () => {
-		// TODO: Add actual download link for Apple Silicon Macs
-		console.log("Downloading for Apple Silicon Macs");
+		window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
 	};
 
 	const handleIntelDownload = () => {

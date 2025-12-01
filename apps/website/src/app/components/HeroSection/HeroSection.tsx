@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { HiMiniArrowDownTray } from "react-icons/hi2";
+import { DOWNLOAD_URL_MAC_ARM64 } from "@/constants";
 
 export function HeroSection() {
 	return (
@@ -100,7 +101,7 @@ export function HeroSection() {
 function DownloadButton() {
 	return (
 		<a
-			href="https://github.com/superset-sh/superset/releases"
+			href={DOWNLOAD_URL_MAC_ARM64}
 			className="group inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] pl-4 pr-3 py-2 transition-colors"
 		>
 			<span className="text-base font-medium leading-4 text-[#2a2b25]">
