@@ -125,7 +125,15 @@ export function WorkspaceItem({
 							/>
 						) : (
 							<>
-								<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
+								<span
+									className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left"
+									style={{
+										maskImage:
+											"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+										WebkitMaskImage:
+											"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+									}}
+								>
 									{title}
 								</span>
 								{needsAttention && (
