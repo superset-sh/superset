@@ -4,8 +4,9 @@
 # Based on apps/desktop/RELEASE.md
 #
 # Usage:
-#   ./create-release.sh <version>
+#   ./create-release.sh <version> [--publish]
 #   Example: ./create-release.sh 0.0.1
+#   Example: ./create-release.sh 0.0.1 --publish
 #
 # This script will:
 # 1. Verify prerequisites (clean git, GitHub CLI authenticated)
@@ -13,11 +14,12 @@
 # 3. Update package.json version
 # 4. Create and push a git tag to trigger the release workflow
 # 5. Monitor the GitHub Actions workflow in real-time
-# 6. Auto-publish the release when build completes
+# 6. Leave release as draft (default) or auto-publish with --publish flag
 #
 # Features:
 # - Supports republishing: Running with same version will clean up and rebuild
-# - Auto-publishes release (no manual publish step needed)
+# - Draft by default for review before publishing
+# - Use --publish flag to auto-publish when build completes
 #
 # Requirements:
 # - GitHub CLI (gh) installed and authenticated
@@ -51,12 +53,32 @@ error() {
     exit 1
 }
 
-# Check if version argument is provided
-if [ -z "$1" ]; then
-    error "Usage: $0 <version>\nExample: $0 0.0.1"
+# Parse arguments
+VERSION=""
+AUTO_PUBLISH=false
+
+for arg in "$@"; do
+    case $arg in
+        --publish)
+            AUTO_PUBLISH=true
+            ;;
+        -*)
+            error "Unknown option: $arg\nUsage: $0 <version> [--publish]"
+            ;;
+        *)
+            if [ -z "$VERSION" ]; then
+                VERSION="$arg"
+            else
+                error "Unexpected argument: $arg\nUsage: $0 <version> [--publish]"
+            fi
+            ;;
+    esac
+done
+
+if [ -z "$VERSION" ]; then
+    error "Usage: $0 <version> [--publish]\nExample: $0 0.0.1"
 fi
 
-VERSION="$1"
 TAG_NAME="desktop-v${VERSION}"
 DESKTOP_DIR="apps/desktop"
 
@@ -251,23 +273,38 @@ if [ -z "$RELEASE_FOUND" ]; then
     warn "Release not found yet. It may still be processing."
     echo "  Check releases at: https://github.com/${REPO}/releases"
 else
-    # Publish the release
-    info "Publishing release..."
-    gh release edit "${TAG_NAME}" --draft=false
-    success "Release published!"
-
     RELEASE_URL="https://github.com/${REPO}/releases/tag/${TAG_NAME}"
     LATEST_URL="https://github.com/${REPO}/releases/latest"
-    echo ""
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}🎉 Release Published!${NC}"
-    echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    echo -e "${BLUE}Release URL:${NC} ${RELEASE_URL}"
-    echo -e "${BLUE}Latest URL:${NC}  ${LATEST_URL}"
-    echo ""
-    echo -e "${BLUE}Direct downloads:${NC}"
-    echo "  • ${LATEST_URL}/download/Superset-${VERSION}-arm64.dmg"
-    echo "  • ${LATEST_URL}/download/Superset-${VERSION}-arm64-mac.zip"
-    echo ""
+
+    if [ "$AUTO_PUBLISH" = true ]; then
+        # Publish the release
+        info "Publishing release..."
+        gh release edit "${TAG_NAME}" --draft=false
+        success "Release published!"
+
+        echo ""
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}🎉 Release Published!${NC}"
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${BLUE}Release URL:${NC} ${RELEASE_URL}"
+        echo -e "${BLUE}Latest URL:${NC}  ${LATEST_URL}"
+        echo ""
+        echo -e "${BLUE}Direct download:${NC}"
+        echo "  • ${LATEST_URL}/download/Superset-arm64.dmg"
+        echo ""
+    else
+        success "Draft release created!"
+
+        echo ""
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}📝 Draft Release Ready for Review${NC}"
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${BLUE}Review URL:${NC} ${RELEASE_URL}"
+        echo ""
+        echo "To publish:"
+        echo "  gh release edit ${TAG_NAME} --draft=false"
+        echo ""
+    fi
 fi
