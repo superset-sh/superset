@@ -65,6 +65,10 @@ export function createTerminalInstance(
 	const fitAddon = new FitAddon();
 
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
+		// Only open URLs on CMD+click (Mac) or Ctrl+click (Windows/Linux)
+		if (!event.metaKey && !event.ctrlKey) {
+			return;
+		}
 		event.preventDefault();
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
