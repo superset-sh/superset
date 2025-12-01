@@ -38,6 +38,7 @@ export const createWorkspacesRouter = () => {
 					homedir(),
 					SUPERSET_DIR_NAME,
 					WORKTREES_DIR_NAME,
+					project.name,
 					branch,
 				);
 
