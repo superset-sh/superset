@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
-interface HeroSectionProps {
-	onJoinWaitlist: () => void;
-}
-
-export function HeroSection({ onJoinWaitlist }: HeroSectionProps) {
+export function HeroSection() {
 	return (
 		<section className="relative min-h-[calc(100vh-64px)] flex items-center">
 			<div className="w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">

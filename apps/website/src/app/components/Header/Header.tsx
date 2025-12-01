@@ -15,10 +15,10 @@ export function Header() {
 		<>
 			<header className="fixed top-0 left-0 right-0 z-50">
 				<div
-					className="absolute inset-0 h-32 pointer-events-none"
+					className="absolute inset-0 h-24 pointer-events-none"
 					style={{
 						background:
-							"linear-gradient(to bottom, rgb(23, 23, 23) 0%, rgb(23, 23, 23) 50%, rgba(23, 23, 23, 0.98) 60%, rgba(23, 23, 23, 0.9) 70%, rgba(23, 23, 23, 0.7) 80%, rgba(23, 23, 23, 0.4) 90%, rgba(23, 23, 23, 0) 100%)",
+							"linear-gradient(to bottom, rgb(23, 23, 23) 0%, rgb(23, 23, 23) 65%, rgba(23, 23, 23, 0.9) 80%, rgba(23, 23, 23, 0.5) 90%, rgba(23, 23, 23, 0) 100%)",
 					}}
 				/>
 				<nav className="relative max-w-[1600px] mx-auto px-8 lg:px-[30px]">
