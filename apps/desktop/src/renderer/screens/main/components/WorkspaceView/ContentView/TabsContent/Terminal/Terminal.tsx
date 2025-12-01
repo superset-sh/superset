@@ -161,7 +161,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
-					applyInitialScrollback(result);
+					// Avoid duplication when pending events already contain scrollback data
+					const hasPendingEvents = pendingEventsRef.current.length > 0;
+					if (result.isNew || !hasPendingEvents) {
+						applyInitialScrollback(result);
+					}
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
 				},
