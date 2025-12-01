@@ -1,6 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { shell } from "electron";
 import { db } from "main/lib/db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -77,42 +76,6 @@ export const createConfigRouter = () => {
 					return null;
 				}
 				return ensureConfigExists(project.mainRepoPath);
-			}),
-
-		openConfigFile: publicProcedure
-			.input(z.object({ projectId: z.string() }))
-			.mutation(async ({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
-				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
-				}
-
-				const configPath = ensureConfigExists(project.mainRepoPath);
-
-				// Open in default editor
-				const result = await shell.openPath(configPath);
-				if (result) {
-					// Non-empty string means error
-					throw new Error(`Failed to open config file: ${result}`);
-				}
-
-				return { success: true };
-			}),
-
-		revealConfigFile: publicProcedure
-			.input(z.object({ projectId: z.string() }))
-			.mutation(async ({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
-				if (!project) {
-					throw new Error(`Project ${input.projectId} not found`);
-				}
-
-				const configPath = ensureConfigExists(project.mainRepoPath);
-
-				// Reveal in Finder
-				shell.showItemInFolder(configPath);
-
-				return { success: true };
 			}),
 	});
 };

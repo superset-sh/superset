@@ -44,7 +44,7 @@ export function SetupConfigModal() {
 
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && closeModal()}>
-			<DialogContent className="sm:max-w-xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle>Configure scripts</DialogTitle>
 					<DialogDescription>
@@ -55,11 +55,11 @@ export function SetupConfigModal() {
 
 				<div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
 					{/* Header */}
-					<div className="flex items-center justify-between px-4 py-3 border-b border-border">
+					<div className="flex items-center justify-between gap-6 px-4 py-3 border-b border-border">
 						<span className="text-sm text-muted-foreground font-mono">
 							{projectName}/.superset/config.json
 						</span>
-						<OpenInButton path={configFilePath ?? undefined} />
+						<OpenInButton path={configFilePath ?? undefined} label="config.json" />
 					</div>
 
 					{/* Code preview */}
