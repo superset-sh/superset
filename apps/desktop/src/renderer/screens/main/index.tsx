@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
-import { HotkeyModal } from "renderer/components/HotkeyModal";
 import { trpc } from "renderer/lib/trpc";
-import { useCurrentView } from "renderer/stores/app-state";
+import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import {
 	useAgentHookListener,
@@ -21,11 +19,11 @@ import { WorkspaceView } from "./components/WorkspaceView";
 
 export function MainScreen() {
 	const currentView = useCurrentView();
+	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const splitTabVertical = useSplitTabVertical();
 	const splitTabHorizontal = useSplitTabHorizontal();
-	const [hotkeyModalOpen, setHotkeyModalOpen] = useState(false);
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();
@@ -34,7 +32,9 @@ export function MainScreen() {
 	const isWorkspaceView = currentView === "workspace";
 
 	// Register global shortcuts
-	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => setHotkeyModalOpen(true), []);
+	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => openSettings("keyboard"), [
+		openSettings,
+	]);
 
 	useHotkeys(HOTKEYS.TOGGLE_SIDEBAR.keys, () => {
 		if (isWorkspaceView) toggleSidebar();
@@ -52,18 +52,12 @@ export function MainScreen() {
 		}
 	}, [activeWorkspaceId, splitTabHorizontal, isWorkspaceView]);
 
-	// Show start screen when no active workspace and not in settings
-	if (!activeWorkspace && currentView !== "settings") {
-		return <StartView />;
-	}
+	const showStartView = !activeWorkspace && currentView !== "settings";
 
 	// Determine which content view to show
 	const renderContent = () => {
 		if (currentView === "settings") {
 			return <SettingsView />;
-		}
-		if (!activeWorkspace) {
-			return <StartView />;
 		}
 		return <WorkspaceView />;
 	};
@@ -72,12 +66,15 @@ export function MainScreen() {
 		<DndProvider manager={dragDropManager}>
 			<Background />
 			<AppFrame>
-				<div className="flex flex-col h-full w-full">
-					<TopBar />
-					<div className="flex flex-1 overflow-hidden">{renderContent()}</div>
-				</div>
+				{showStartView ? (
+					<StartView />
+				) : (
+					<div className="flex flex-col h-full w-full">
+						<TopBar />
+						<div className="flex flex-1 overflow-hidden">{renderContent()}</div>
+					</div>
+				)}
 			</AppFrame>
-			<HotkeyModal open={hotkeyModalOpen} onOpenChange={setHotkeyModalOpen} />
 		</DndProvider>
 	);
 }

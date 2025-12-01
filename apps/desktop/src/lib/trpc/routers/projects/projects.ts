@@ -1,11 +1,11 @@
 import { basename, join } from "node:path";
-import simpleGit from "simple-git";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
+import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getGitRoot } from "../workspaces/utils/git";
@@ -92,7 +92,10 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 						});
 
 						if (result.canceled || result.filePaths.length === 0) {
-							return { success: false as const, error: "No directory selected" };
+							return {
+								success: false as const,
+								error: "No directory selected",
+							};
 						}
 
 						targetDir = result.filePaths[0];

@@ -1,12 +1,13 @@
-import { useState } from "react";
+import {
+	useSetSettingsSection,
+	useSettingsSection,
+} from "renderer/stores/app-state";
 import { SettingsContent } from "./SettingsContent";
 import { SettingsSidebar } from "./SettingsSidebar";
 
-export type SettingsSection = "appearance";
-
 export function SettingsView() {
-	const [activeSection, setActiveSection] =
-		useState<SettingsSection>("appearance");
+	const activeSection = useSettingsSection();
+	const setActiveSection = useSetSettingsSection();
 
 	return (
 		<div className="flex flex-1 bg-tertiary">

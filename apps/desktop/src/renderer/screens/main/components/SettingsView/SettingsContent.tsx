@@ -1,5 +1,6 @@
+import type { SettingsSection } from "renderer/stores";
 import { AppearanceSettings } from "./AppearanceSettings";
-import type { SettingsSection } from "./index";
+import { KeyboardShortcutsSettings } from "./KeyboardShortcutsSettings";
 
 interface SettingsContentProps {
 	activeSection: SettingsSection;
@@ -7,8 +8,9 @@ interface SettingsContentProps {
 
 export function SettingsContent({ activeSection }: SettingsContentProps) {
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full overflow-y-auto flex justify-center">
 			{activeSection === "appearance" && <AppearanceSettings />}
+			{activeSection === "keyboard" && <KeyboardShortcutsSettings />}
 		</div>
 	);
 }

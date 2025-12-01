@@ -1,7 +1,10 @@
 import { cn } from "@superset/ui/utils";
-import { HiArrowLeft, HiOutlinePaintBrush } from "react-icons/hi2";
-import { useCloseSettings } from "renderer/stores";
-import type { SettingsSection } from "./index";
+import {
+	HiArrowLeft,
+	HiOutlineCommandLine,
+	HiOutlinePaintBrush,
+} from "react-icons/hi2";
+import { type SettingsSection, useCloseSettings } from "renderer/stores";
 
 interface SettingsSidebarProps {
 	activeSection: SettingsSection;
@@ -17,6 +20,11 @@ const SECTIONS: {
 		id: "appearance",
 		label: "Appearance",
 		icon: <HiOutlinePaintBrush className="h-4 w-4" />,
+	},
+	{
+		id: "keyboard",
+		label: "Keyboard Shortcuts",
+		icon: <HiOutlineCommandLine className="h-4 w-4" />,
 	},
 ];
 

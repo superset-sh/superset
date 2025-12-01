@@ -18,10 +18,8 @@ export function StartView() {
 		setError(null);
 		openNew.mutate(undefined, {
 			onSuccess: (result) => {
-				if (result.success && result.project) {
+				if (!result.canceled && result.project) {
 					createWorkspace.mutate({ projectId: result.project.id });
-				} else if (!result.success && result.error) {
-					setError(result.error);
 				}
 			},
 			onError: (err) => {
@@ -46,7 +44,7 @@ export function StartView() {
 	const isLoading = openNew.isPending || createWorkspace.isPending;
 
 	return (
-		<div className="flex flex-col h-screen w-screen bg-background">
+		<div className="flex flex-col h-full w-full bg-background">
 			<StartTopBar />
 			<div className="flex flex-1 items-center justify-center">
 				<div className="flex flex-col items-center w-full max-w-3xl px-8">
