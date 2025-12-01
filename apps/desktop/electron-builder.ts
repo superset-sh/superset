@@ -9,12 +9,10 @@ import pkg from "./package.json";
 
 const currentYear = new Date().getFullYear();
 const author = pkg.author?.name ?? pkg.author;
-const authorInKebabCase = author.replace(/\s+/g, "-");
-const appId = `com.${authorInKebabCase}.${pkg.name}`.toLowerCase();
 const productName = pkg.productName;
 
 const config: Configuration = {
-	appId,
+	appId: "com.superset.desktop",
 	productName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
@@ -40,8 +38,14 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
-		// Only include node-pty (native module that can't be bundled)
-		"node_modules/node-pty/**/*",
+		// Native module that can't be bundled by Vite.
+		// The copy:native-modules script replaces symlinks with real files
+		// before building (required for Bun 1.3+ isolated installs).
+		{
+			from: "node_modules/node-pty",
+			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
 		"!**/.DS_Store",
 	],
 
@@ -81,6 +85,7 @@ const config: Configuration = {
 		category: "Utility",
 		synopsis: pkg.description,
 		target: ["AppImage", "deb"],
+		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 	},
 
 	// Windows

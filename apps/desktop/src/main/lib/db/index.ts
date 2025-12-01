@@ -1,6 +1,5 @@
-import { join } from "node:path";
-import { app } from "electron";
 import { JSONFilePreset } from "lowdb/node";
+import { DB_PATH } from "../app-environment";
 import type { Database } from "./schemas";
 import { defaultDatabase } from "./schemas";
 
@@ -11,7 +10,7 @@ let _db: DB | null = null;
 export async function initDb(): Promise<void> {
 	if (_db) return;
 
-	const dbPath = join(app.getPath("userData"), "db.json");
+	const dbPath = DB_PATH;
 	_db = await JSONFilePreset<Database>(dbPath, defaultDatabase);
 	console.log(`Database initialized at: ${dbPath}`);
 }

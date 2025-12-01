@@ -71,7 +71,7 @@
 	--accent: oklch(0.97 0 0);
 	--accent-foreground: oklch(0.205 0 0);
 	--tertiary: oklch(0.95 0.003 40);
-	--tertiary-active: oklch(0.90 0.003 40);
+	--tertiary-active: oklch(0.9 0.003 40);
 	--destructive: oklch(0.577 0.245 27.325);
 	--destructive-foreground: oklch(0.985 0 0);
 	--border: oklch(0.922 0 0);
@@ -157,6 +157,7 @@
 	}
 
 	/* Ensure the React root fills the viewport and provides a positioning context */
+	/* biome-ignore lint/correctness/noUnknownTypeSelector: app is a custom element in index.html */
 	app {
 		display: block;
 		position: relative;
@@ -167,28 +168,28 @@
 
 	/* Ensure xterm terminal fills container height */
 	.xterm {
-		height: 100% !important;
-		width: 100% !important;
+		height: 100%;
+		width: 100%;
 	}
 
 	.xterm-screen {
-		height: 100% !important;
-		width: 100% !important;
+		height: 100%;
+		width: 100%;
 	}
 
 	/* Style links in terminal (like iTerm) */
 	/* xterm uses underline-5 (dashed) for links on hover */
 	.xterm .xterm-rows a {
 		color: inherit;
-		cursor: pointer !important;
+		cursor: pointer;
 	}
 
 	.xterm .xterm-rows a.xterm-underline-5 {
-		text-decoration-color: #3b8eea !important;
+		text-decoration-color: #3b8eea;
 	}
 
 	.xterm .xterm-rows a:hover.xterm-underline-5 {
-		text-decoration-color: #5ca8ff !important;
+		text-decoration-color: #5ca8ff;
 	}
 
 	/* Hide scrollbar for workspace carousel and tabs */

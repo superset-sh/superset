@@ -6,6 +6,7 @@ import { WorkspaceItem } from "./WorkspaceItem";
 interface Workspace {
 	id: string;
 	projectId: string;
+	worktreePath: string;
 	name: string;
 	tabOrder: number;
 }
@@ -30,7 +31,7 @@ export function WorkspaceGroup({
 	workspaces,
 	activeWorkspaceId,
 	workspaceWidth,
-	hoveredWorkspaceId,
+	hoveredWorkspaceId: _hoveredWorkspaceId,
 	onWorkspaceHover,
 }: WorkspaceGroupProps) {
 	const [isCollapsed, setIsCollapsed] = useState(false);
@@ -71,6 +72,7 @@ export function WorkspaceGroup({
 							<WorkspaceItem
 								id={workspace.id}
 								projectId={workspace.projectId}
+								worktreePath={workspace.worktreePath}
 								title={workspace.name}
 								isActive={workspace.id === activeWorkspaceId}
 								index={index}

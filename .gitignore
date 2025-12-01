@@ -53,7 +53,11 @@ mise.toml
 .envrc
 
 # Superset
-.superset
+# Ignore .superset directory except for config and scripts
+.superset/*
+!.superset/setup.json
+!.superset/setup.sh
+!.superset/teardown.sh
 
 # tsbuildinfo
 *.tsbuildinfo

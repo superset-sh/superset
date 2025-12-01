@@ -26,7 +26,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			});
 
 			if (result.canceled || result.filePaths.length === 0) {
-				return { success: false };
+				return { canceled: true };
 			}
 
 			const selectedPath = result.filePaths[0];
@@ -35,10 +35,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			try {
 				mainRepoPath = await getGitRoot(selectedPath);
 			} catch (_error) {
-				return {
-					success: false,
-					error: "Selected folder is not in a git repository",
-				};
+				throw new Error("Selected folder is not in a git repository");
 			}
 
 			const name = basename(mainRepoPath);
@@ -66,12 +63,13 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				};
 
 				await db.update((data) => {
+					// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
 					data.projects.push(project!);
 				});
 			}
 
 			return {
-				success: true as const,
+				canceled: false,
 				project,
 			};
 		}),
@@ -195,6 +193,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 					const activeProjects = data.projects
 						.filter((p) => p.tabOrder !== null)
+						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
 						.sort((a, b) => a.tabOrder! - b.tabOrder!);
 
 					if (

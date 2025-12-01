@@ -11,12 +11,8 @@ import {
 } from "./types";
 
 // Helper type to extract value type from Record collections
-type CollectionValue<K extends keyof Database> = Database[K] extends Record<
-	string,
-	infer V
->
-	? V
-	: never;
+type CollectionValue<K extends keyof Database> =
+	Database[K] extends Record<string, infer V> ? V : never;
 
 /**
  * Lowdb implementation of StorageAdapter
@@ -61,32 +57,32 @@ export class LowdbAdapter implements StorageAdapter {
 	/**
 	 * Deserialize dates from ISO strings to Date objects
 	 */
-	private deserializeDates<T>(obj: any): T {
-		if (obj === null || obj === undefined) return obj;
+	private deserializeDates<T>(obj: unknown): T {
+		if (obj === null || obj === undefined) return obj as T;
 
 		if (typeof obj === "string" && this.isISODate(obj)) {
-			return new Date(obj) as any;
+			return new Date(obj) as T;
 		}
 
 		if (Array.isArray(obj)) {
-			return obj.map((item) => this.deserializeDates(item)) as any;
+			return obj.map((item) => this.deserializeDates(item)) as T;
 		}
 
 		if (typeof obj === "object") {
-			const result: any = {};
+			const result: Record<string, unknown> = {};
 			for (const [key, value] of Object.entries(obj)) {
 				result[key] = this.deserializeDates(value);
 			}
-			return result;
+			return result as T;
 		}
 
-		return obj;
+		return obj as T;
 	}
 
 	/**
 	 * Serialize dates to ISO strings
 	 */
-	private serializeDates<T>(obj: T): any {
+	private serializeDates<T>(obj: T): unknown {
 		if (obj === null || obj === undefined) return obj;
 
 		if (obj instanceof Date) {
@@ -98,8 +94,8 @@ export class LowdbAdapter implements StorageAdapter {
 		}
 
 		if (typeof obj === "object") {
-			const result: any = {};
-			for (const [key, value] of Object.entries(obj)) {
+			const result: Record<string, unknown> = {};
+			for (const [key, value] of Object.entries(obj as object)) {
 				result[key] = this.serializeDates(value);
 			}
 			return result;
@@ -118,22 +114,24 @@ export class LowdbAdapter implements StorageAdapter {
 
 	async read(): Promise<Database> {
 		await this.init();
-		await this.db!.read();
-		return this.deserializeDates<Database>(this.db!.data);
+		await this.db?.read();
+		return this.deserializeDates<Database>(this.db?.data);
 	}
 
 	async write(data: Database): Promise<void> {
 		await this.init();
-		this.db!.data = this.serializeDates(data);
-		await this.db!.write();
+		if (this.db) {
+			this.db.data = this.serializeDates(data) as SerializedDatabase;
+			await this.db.write();
+		}
 	}
 
 	async getCollection<K extends keyof Database>(
 		collection: K,
 	): Promise<Database[K]> {
 		await this.init();
-		await this.db!.read();
-		return this.deserializeDates<Database[K]>(this.db!.data[collection]);
+		await this.db?.read();
+		return this.deserializeDates<Database[K]>(this.db?.data[collection]);
 	}
 
 	async updateCollection<K extends keyof Database>(
@@ -141,9 +139,13 @@ export class LowdbAdapter implements StorageAdapter {
 		data: Database[K],
 	): Promise<void> {
 		await this.init();
-		await this.db!.read();
-		this.db!.data[collection] = this.serializeDates(data);
-		await this.db!.write();
+		await this.db?.read();
+		if (this.db) {
+			this.db.data[collection] = this.serializeDates(
+				data,
+			) as SerializedDatabase[K];
+		}
+		await this.db?.write();
 	}
 
 	async get<K extends keyof Database>(
@@ -151,8 +153,8 @@ export class LowdbAdapter implements StorageAdapter {
 		id: string,
 	): Promise<CollectionValue<K> | undefined> {
 		await this.init();
-		await this.db!.read();
-		const coll = this.db!.data[collection] as Record<string, unknown>;
+		await this.db?.read();
+		const coll = this.db?.data[collection] as Record<string, unknown>;
 		const item = coll[id];
 		return item ? this.deserializeDates(item) : undefined;
 	}
@@ -163,10 +165,10 @@ export class LowdbAdapter implements StorageAdapter {
 		value: CollectionValue<K>,
 	): Promise<void> {
 		await this.init();
-		await this.db!.read();
-		const coll = this.db!.data[collection] as Record<string, unknown>;
+		await this.db?.read();
+		const coll = this.db?.data[collection] as Record<string, unknown>;
 		coll[id] = this.serializeDates(value);
-		await this.db!.write();
+		await this.db?.write();
 	}
 
 	async delete<K extends keyof Database>(
@@ -174,10 +176,10 @@ export class LowdbAdapter implements StorageAdapter {
 		id: string,
 	): Promise<void> {
 		await this.init();
-		await this.db!.read();
-		const coll = this.db!.data[collection] as Record<string, unknown>;
+		await this.db?.read();
+		const coll = this.db?.data[collection] as Record<string, unknown>;
 		delete coll[id];
-		await this.db!.write();
+		await this.db?.write();
 	}
 
 	async has<K extends keyof Database>(
@@ -185,14 +187,16 @@ export class LowdbAdapter implements StorageAdapter {
 		id: string,
 	): Promise<boolean> {
 		await this.init();
-		await this.db!.read();
-		const coll = this.db!.data[collection] as Record<string, unknown>;
+		await this.db?.read();
+		const coll = this.db?.data[collection] as Record<string, unknown>;
 		return id in coll;
 	}
 
 	async clear(): Promise<void> {
 		await this.init();
-		this.db!.data = createEmptyDatabase();
-		await this.db!.write();
+		if (this.db) {
+			this.db.data = createEmptyDatabase();
+			await this.db.write();
+		}
 	}
 }

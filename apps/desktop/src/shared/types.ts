@@ -128,14 +128,8 @@ export interface UpdateWorkspaceInput {
 
 // Setup script configuration
 export interface SetupConfig {
-	copy?: string[]; // File patterns to copy from main repo (supports globs)
-	commands?: string[]; // Shell commands to run in worktree directory
-}
-
-export interface SetupResult {
-	success: boolean;
-	output: string; // Combined stdout/stderr
-	error?: string; // Error message if failed
+	setup?: string[]; // Shell commands to run when workspace is created
+	teardown?: string[]; // Shell commands to run when workspace is deleted
 }
 
 // Port detection types

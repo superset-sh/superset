@@ -3,7 +3,7 @@ import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
-import type { WorkspaceType } from "../types/workspace";
+import type { Workspace, WorkspaceType } from "../types/workspace";
 
 interface WorkspaceListProps {
 	environmentId?: string;
@@ -14,7 +14,7 @@ export function WorkspaceList({
 	environmentId,
 	onComplete,
 }: WorkspaceListProps) {
-	const [workspaces, setWorkspaces] = React.useState<any[]>([]);
+	const [workspaces, setWorkspaces] = React.useState<Workspace[]>([]);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -66,7 +66,7 @@ export function WorkspaceList({
 			<Text bold>
 				Workspaces{environmentId ? ` (Environment: ${environmentId})` : ""}
 			</Text>
-			<Table data={workspaces} />
+			<Table data={workspaces as unknown as Record<string, unknown>[]} />
 		</Box>
 	);
 }
@@ -77,7 +77,7 @@ interface WorkspaceGetProps {
 }
 
 export function WorkspaceGet({ id, onComplete }: WorkspaceGetProps) {
-	const [workspace, setWorkspace] = React.useState<any | null>(null);
+	const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -110,7 +110,9 @@ export function WorkspaceGet({ id, onComplete }: WorkspaceGetProps) {
 	return (
 		<Box flexDirection="column">
 			<Text bold>Workspace Details</Text>
-			<Table data={[workspace]} />
+			{workspace && (
+				<Table data={[workspace as unknown as Record<string, unknown>]} />
+			)}
 		</Box>
 	);
 }
@@ -128,7 +130,7 @@ export function WorkspaceCreate({
 	path,
 	onComplete,
 }: WorkspaceCreateProps) {
-	const [workspace, setWorkspace] = React.useState<any | null>(null);
+	const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -161,7 +163,9 @@ export function WorkspaceCreate({
 	return (
 		<Box flexDirection="column">
 			<Text color="green">✓ Workspace created successfully</Text>
-			<Table data={[workspace]} />
+			{workspace && (
+				<Table data={[workspace as unknown as Record<string, unknown>]} />
+			)}
 			<Text dimColor>
 				Current workspace set to{" "}
 				<Text bold>{workspace?.name || workspace?.id}</Text>.
@@ -232,10 +236,10 @@ interface WorkspaceUseProps {
 export function WorkspaceUse({ id, onComplete }: WorkspaceUseProps) {
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
-	const [workspace, setWorkspace] = React.useState<any | null>(null);
+	const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
 
 	React.useEffect(() => {
-		const useWorkspace = async () => {
+		const setCurrentWorkspace = async () => {
 			try {
 				const db = getDb();
 				const orchestrator = new WorkspaceOrchestrator(db);
@@ -255,7 +259,7 @@ export function WorkspaceUse({ id, onComplete }: WorkspaceUseProps) {
 			}
 		};
 
-		useWorkspace();
+		setCurrentWorkspace();
 	}, [id, onComplete]);
 
 	if (loading) {

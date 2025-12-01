@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { HOTKEYS } from "shared/hotkeys";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -26,20 +27,44 @@ export function WorkspacesTabs() {
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	// Workspace switching shortcuts (work across groups)
-	useHotkeys("meta+alt+left", () => {
+	// Workspace switching shortcuts (⌘+1-9) - combined into single hook call
+	const workspaceKeys = Array.from(
+		{ length: 9 },
+		(_, i) => `meta+${i + 1}`,
+	).join(", ");
+	useHotkeys(
+		workspaceKeys,
+		(event) => {
+			const num = Number(event.key);
+			if (num >= 1 && num <= 9) {
+				const workspace = allWorkspaces[num - 1];
+				if (workspace) {
+					setActiveWorkspace.mutate({ id: workspace.id });
+				}
+			}
+		},
+		[allWorkspaces, setActiveWorkspace],
+	);
+
+	// Navigate to previous workspace (⌘+←)
+	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, () => {
 		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index > 0) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[index - 1].id });
+		const currentIndex = allWorkspaces.findIndex(
+			(w) => w.id === activeWorkspaceId,
+		);
+		if (currentIndex > 0) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex - 1].id });
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
-	useHotkeys("meta+alt+right", () => {
+	// Navigate to next workspace (⌘+→)
+	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, () => {
 		if (!activeWorkspaceId) return;
-		const index = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
-		if (index < allWorkspaces.length - 1) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[index + 1].id });
+		const currentIndex = allWorkspaces.findIndex(
+			(w) => w.id === activeWorkspaceId,
+		);
+		if (currentIndex < allWorkspaces.length - 1) {
+			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 

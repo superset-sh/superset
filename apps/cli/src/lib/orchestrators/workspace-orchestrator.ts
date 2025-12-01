@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type {
+	CloudWorkspace,
 	WorkspaceOrchestrator as IWorkspaceOrchestrator,
 	LocalWorkspace,
 	Workspace,
@@ -124,17 +125,23 @@ export class WorkspaceOrchestrator implements IWorkspaceOrchestrator {
 
 		let workspace: Workspace;
 		if (type === WorkspaceType.LOCAL) {
+			if (!options?.path) {
+				throw new Error("Path is required for local workspace");
+			}
 			workspace = {
 				...baseWorkspace,
 				type: WorkspaceType.LOCAL,
-				path: options!.path!,
+				path: options.path,
 			} as LocalWorkspace;
 		} else if (type === WorkspaceType.CLOUD) {
+			if (!options?.branch) {
+				throw new Error("Branch is required for cloud workspace");
+			}
 			workspace = {
 				...baseWorkspace,
 				type: WorkspaceType.CLOUD,
-				branch: options!.branch!,
-			} as any; // CloudWorkspace
+				branch: options.branch,
+			} as CloudWorkspace;
 		} else {
 			throw new Error(`Unknown workspace type: ${type}`);
 		}

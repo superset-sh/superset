@@ -1,4 +1,4 @@
-import { Banner, Head } from "nextra/components";
+import { Banner } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import type * as React from "react";

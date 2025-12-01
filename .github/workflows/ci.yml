@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    name: Lint & Format
+    name: Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
-      - name: Run Biome check (lint + format)
-        run: bun run lint:check
+      - name: Run lint
+        run: bun run lint
 
   typecheck:
     name: Typecheck
@@ -51,7 +51,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
-      - name: Run type checking
+      - name: Run typecheck
         run: bun run typecheck
 
   build:
@@ -75,11 +75,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
-      - name: Build all packages
+      - name: Run build
         run: bun run build
 
   test:
-    name: Unit Test
+    name: Test
     runs-on: ubuntu-latest
 
     steps:
@@ -99,5 +99,5 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
-      - name: Run tests
+      - name: Run test
         run: bun run test

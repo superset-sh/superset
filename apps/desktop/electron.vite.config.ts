@@ -7,7 +7,9 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
-import { getPortSync } from "./src/main/lib/port-manager";
+
+// Dev server port - must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
+const DEV_SERVER_PORT = 5927;
 
 // Load .env from monorepo root
 // Use override: true to ensure .env values take precedence over inherited env vars
@@ -66,14 +68,11 @@ export default defineConfig({
 		define: {
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),
-			"import.meta.env.ENABLE_NEW_UI": JSON.stringify(
-				process.env.ENABLE_NEW_UI || "false",
-			),
-			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(getPortSync()),
+			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
 		},
 
 		server: {
-			port: getPortSync(),
+			port: DEV_SERVER_PORT,
 			strictPort: false, // Allow fallback to next available port
 		},
 

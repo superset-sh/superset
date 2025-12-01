@@ -2,12 +2,12 @@ import { join } from "node:path";
 import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
+import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { createApplicationMenu } from "../lib/menu";
 import {
 	type AgentCompleteEvent,
-	NOTIFICATIONS_PORT,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
@@ -46,11 +46,11 @@ export async function MainWindow() {
 
 	// Start notifications HTTP server
 	const server = notificationsApp.listen(
-		NOTIFICATIONS_PORT,
+		PORTS.NOTIFICATIONS,
 		"127.0.0.1",
 		() => {
 			console.log(
-				`[notifications] Listening on http://127.0.0.1:${NOTIFICATIONS_PORT}`,
+				`[notifications] Listening on http://127.0.0.1:${PORTS.NOTIFICATIONS}`,
 			);
 		},
 	);
@@ -58,9 +58,15 @@ export async function MainWindow() {
 	// Handle agent completion notifications
 	notificationsEmitter.on("agent-complete", (event: AgentCompleteEvent) => {
 		if (Notification.isSupported()) {
+			const isPermissionRequest = event.eventType === "PermissionRequest";
+
 			const notification = new Notification({
-				title: `Agent Complete — ${event.workspaceName}`,
-				body: `"${event.tabTitle}" has finished its task`,
+				title: isPermissionRequest
+					? `Input Needed — ${event.workspaceName}`
+					: `Agent Complete — ${event.workspaceName}`,
+				body: isPermissionRequest
+					? `"${event.tabTitle}" needs your attention`
+					: `"${event.tabTitle}" has finished its task`,
 				silent: false,
 			});
 

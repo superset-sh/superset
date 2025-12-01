@@ -85,7 +85,7 @@ export function Init({ onComplete }: InitProps) {
 				}));
 				return;
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Ignore database errors during validation
 		}
 
@@ -123,7 +123,7 @@ export function Init({ onComplete }: InitProps) {
 				}));
 				return;
 			}
-		} catch (err) {
+		} catch (_err) {
 			// Ignore database errors during validation
 		}
 
@@ -181,10 +181,22 @@ export function Init({ onComplete }: InitProps) {
 			} else {
 				// Use the first available environment (prefer "default" if it exists)
 				const defaultEnv = environments.find((e) => e.id === "default");
-				envId = defaultEnv ? defaultEnv.id : environments[0]!.id;
+				if (defaultEnv) {
+					envId = defaultEnv.id;
+				} else {
+					const firstEnv = environments[0];
+					if (!firstEnv) {
+						throw new Error("No environment available");
+					}
+					envId = firstEnv.id;
+				}
 			}
 
-			const workspace = await orchestrator.create(envId, state.workspaceType!, {
+			if (!state.workspaceType) {
+				throw new Error("Workspace type not selected");
+			}
+
+			const workspace = await orchestrator.create(envId, state.workspaceType, {
 				path: state.path || undefined,
 				branch: state.branch || undefined,
 				name: state.name || undefined,

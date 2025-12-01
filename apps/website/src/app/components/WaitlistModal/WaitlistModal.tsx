@@ -26,9 +26,11 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 	return (
 		<>
 			{/* Backdrop */}
-			<div
-				className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+			<button
+				type="button"
+				className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 cursor-default"
 				onClick={onClose}
+				aria-label="Close modal backdrop"
 			/>
 
 			{/* Modal Container with overflow hidden */}
@@ -50,6 +52,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 							strokeWidth="2"
 							strokeLinecap="round"
 							strokeLinejoin="round"
+							aria-hidden="true"
 						>
 							<line x1="18" y1="6" x2="6" y2="18" />
 							<line x1="6" y1="6" x2="18" y2="18" />
@@ -57,18 +60,16 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 					</button>
 
 					{/* Iframe container with fixed height to cut off branding */}
-					<div className="w-full h-[500px] overflow-hidden">
-						<iframe
-							src="https://tally.so/r/wv7Q0A"
-							width="100%"
-							height="650"
-							frameBorder="0"
-							marginHeight={0}
-							marginWidth={0}
-							title="Superset Waitlist"
-							className="w-full"
-						/>
-					</div>
+					<iframe
+						src="https://tally.so/r/wv7Q0A"
+						width="100%"
+						height="750px"
+						frameBorder="0"
+						marginHeight={0}
+						marginWidth={0}
+						title="Superset Waitlist"
+						className="w-full"
+					/>
 				</div>
 			</div>
 		</>

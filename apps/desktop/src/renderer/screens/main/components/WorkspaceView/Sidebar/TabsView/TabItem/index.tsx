@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
-import { CgSpinner } from "react-icons/cg";
 import { HiChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import {
@@ -83,7 +82,6 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 	};
 
 	const isGroupTab = tab.type === TabType.Group;
-	const isSetupTab = tab.type === TabType.Setup;
 	const hasChildren = childTabs.length > 0;
 
 	return (
@@ -118,29 +116,20 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 				>
 					<div className="flex items-center gap-1 flex-1 min-w-0">
 						{isGroupTab && hasChildren && (
-							<div
-								role="button"
+							<button
+								type="button"
 								tabIndex={-1}
 								onClick={handleToggleExpand}
 								onDoubleClick={(e) => {
 									e.stopPropagation();
 									e.preventDefault();
 								}}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault();
-										handleToggleExpand(e as unknown as React.MouseEvent);
-									}
-								}}
 								className="shrink-0 cursor-pointer hover:opacity-80"
 							>
 								<HiChevronRight
 									className={`size-4 transition-transform ${isExpanded ? "rotate-90" : ""}`}
 								/>
-							</div>
-						)}
-						{isSetupTab && (
-							<CgSpinner className="size-4 shrink-0 animate-spin mr-1" />
+							</button>
 						)}
 						{rename.isRenaming ? (
 							<input
@@ -169,20 +158,14 @@ export function TabItem({ tab, childTabs = [] }: TabItemProps) {
 						)}
 					</div>
 					{!isGroupTab && (
-						<div
-							role="button"
+						<button
+							type="button"
 							tabIndex={-1}
 							onClick={handleRemoveTab}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									e.preventDefault();
-									handleRemoveTab();
-								}
-							}}
 							className="cursor-pointer opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
 						>
 							<HiMiniXMark className="size-4" />
-						</div>
+						</button>
 					)}
 				</Button>
 			</TabContextMenu>

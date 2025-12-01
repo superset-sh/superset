@@ -31,7 +31,7 @@ export function SingleTabView({ tab }: SingleTabViewProps) {
 		removeTab(tab.id);
 	};
 
-	const handleFocus = () => {
+	const _handleFocus = () => {
 		setActiveTab(tab.workspaceId, tab.id);
 	};
 

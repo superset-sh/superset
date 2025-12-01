@@ -1,11 +1,9 @@
 import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
-import type { SetupTab } from "renderer/stores";
 import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
 import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
 import { GroupTabView } from "./GroupTabView";
-import { SetupTabView } from "./SetupTabView";
 import { SingleTabView } from "./SingleTabView";
 import { useTabContentDrop } from "./useTabContentDrop";
 
@@ -31,42 +29,18 @@ export function TabsContent() {
 		return activeTab;
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
-	// Get all setup tabs to keep them mounted (so they can complete and auto-close)
-	const setupTabs = useMemo(() => {
-		if (!activeWorkspaceId) return [];
-		return allTabs.filter(
-			(tab): tab is SetupTab =>
-				tab.type === TabType.Setup && tab.workspaceId === activeWorkspaceId,
-		);
-	}, [allTabs, activeWorkspaceId]);
-
 	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
 
 	if (!tabToRender) {
 		return (
 			<div ref={attachDrop} className="flex-1 h-full">
 				<EmptyTabView />
-				{/* Keep setup tabs mounted so they can complete and auto-close */}
-				{setupTabs.map((tab) => (
-					<div key={tab.id} className="hidden">
-						<SetupTabView tab={tab} />
-					</div>
-				))}
 			</div>
 		);
 	}
 
 	return (
 		<div ref={attachDrop} className="flex-1 h-full relative">
-			{/* Keep all setup tabs mounted (hidden when not active) so they can complete and auto-close */}
-			{setupTabs.map((tab) => (
-				<div
-					key={tab.id}
-					className={tabToRender.id === tab.id ? "h-full w-full" : "hidden"}
-				>
-					<SetupTabView tab={tab} />
-				</div>
-			))}
 			{tabToRender.type === TabType.Single && (
 				<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
 			)}

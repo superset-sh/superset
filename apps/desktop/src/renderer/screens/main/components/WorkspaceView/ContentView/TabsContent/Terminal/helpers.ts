@@ -7,6 +7,7 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
+import { isAppHotkey } from "shared/hotkeys";
 import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
@@ -106,10 +107,37 @@ export function createTerminalInstance(
 	// Activate Unicode 11
 	xterm.unicode.activeVersion = "11";
 
+	// Forward app hotkeys to document so useHotkeys can catch them
+	setupShortcutForwarding(xterm);
+
 	// Fit after addons are loaded
 	fitAddon.fit();
 
 	return { xterm, fitAddon };
+}
+
+/**
+ * Setup shortcut forwarding for xterm.
+ * When an app hotkey is pressed while terminal is focused, re-dispatch to document
+ * so react-hotkeys-hook handlers can catch it.
+ */
+function setupShortcutForwarding(xterm: XTerm): void {
+	xterm.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+		// Only intercept keydown events with meta/ctrl modifier
+		if (event.type !== "keydown") return true;
+		if (!event.metaKey && !event.ctrlKey) return true;
+
+		// Check if this is an app hotkey
+		if (isAppHotkey(event)) {
+			// Re-dispatch to document for react-hotkeys-hook to catch
+			document.dispatchEvent(new KeyboardEvent(event.type, event));
+			// Return false to tell xterm to ignore this event
+			return false;
+		}
+
+		// Let xterm handle all other keys
+		return true;
+	});
 }
 
 export function setupFocusListener(

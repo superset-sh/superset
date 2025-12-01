@@ -40,7 +40,8 @@ describe("TerminalManager", () => {
 		mockPty = {
 			write: mock(() => {}),
 			resize: mock(() => {}),
-			kill: mock(function (this: any, signal?: string) {
+			// biome-ignore lint/suspicious/noExplicitAny: Mock requires this binding for proper context
+			kill: mock(function (this: any, _signal?: string) {
 				// Automatically trigger onExit when kill is called to avoid timeouts in cleanup
 				const onExitCallback =
 					mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
@@ -331,8 +332,8 @@ describe("TerminalManager", () => {
 			try {
 				await fs.stat(historyDir);
 				throw new Error("Directory should not exist");
-			} catch (error: any) {
-				expect(error.code).toBe("ENOENT");
+			} catch (error) {
+				expect((error as NodeJS.ErrnoException).code).toBe("ENOENT");
 			}
 		});
 

@@ -8,6 +8,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
+import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
@@ -37,7 +38,12 @@ export function DeleteWorkspaceDialog({
 	const handleDelete = async () => {
 		setIsDeleting(true);
 		try {
-			await deleteWorkspace.mutateAsync({ id: workspaceId });
+			const result = await deleteWorkspace.mutateAsync({ id: workspaceId });
+			if (result.teardownError) {
+				toast.warning("Workspace deleted with teardown warning", {
+					description: result.teardownError,
+				});
+			}
 			onOpenChange(false);
 		} catch (error) {
 			console.error("Failed to delete workspace:", error);

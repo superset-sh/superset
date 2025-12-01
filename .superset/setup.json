@@ -1,8 +1,4 @@
 {
-	"copy": [
-		"**/.env*"
-	],
-	"commands": [
-		"bun i"
-	]
+	"setup": ["./.superset/setup.sh"],
+	"teardown": ["./.superset/teardown.sh"]
 }

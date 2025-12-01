@@ -3,6 +3,7 @@ import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getWorktreePath } from "../workspaces/utils/worktree";
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -30,6 +31,7 @@ export const createTerminalRouter = () => {
 					cols: z.number().optional(),
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
+					initialCommands: z.array(z.string()).optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -40,31 +42,38 @@ export const createTerminalRouter = () => {
 					cols,
 					rows,
 					cwd: cwdOverride,
+					initialCommands,
 				} = input;
 
 				// Get workspace to determine cwd and workspace name
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				let cwd: string | undefined = cwdOverride;
 				const workspaceName = workspace?.name || "Workspace";
+				const cwd =
+					cwdOverride ||
+					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
 
-				if (!cwd && workspace) {
-					const worktree = db.data.worktrees.find(
-						(wt) => wt.id === workspace.worktreeId,
-					);
-					if (worktree) {
-						cwd = worktree.path;
-					}
-				}
+				// Get project to get root path for setup scripts
+				const project = workspace
+					? db.data.projects.find((p) => p.id === workspace.projectId)
+					: undefined;
+				const rootPath = project?.mainRepoPath;
 
 				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
 					tabTitle,
 					workspaceName,
+					rootPath,
 					cwd,
 					cols,
 					rows,
 				});
+
+				// Run initial commands on new terminals
+				if (result.isNew && initialCommands && initialCommands.length > 0) {
+					const commandString = `${initialCommands.join(" && ")}\n`;
+					terminalManager.write({ tabId, data: commandString });
+				}
 
 				return {
 					tabId,

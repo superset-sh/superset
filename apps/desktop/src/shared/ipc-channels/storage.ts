@@ -5,16 +5,16 @@
 export interface StorageChannels {
 	"storage:get": {
 		request: { key: string };
-		response: any;
+		response: unknown;
 	};
 
 	"storage:set": {
-		request: { key: string; value: any };
-		response: void;
+		request: { key: string; value: unknown };
+		response: undefined;
 	};
 
 	"storage:delete": {
 		request: { key: string };
-		response: void;
+		response: undefined;
 	};
 }

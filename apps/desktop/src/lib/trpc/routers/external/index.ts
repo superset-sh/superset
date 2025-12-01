@@ -1,8 +1,43 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
-import { shell } from "electron";
+import { clipboard, shell } from "electron";
+import { db } from "main/lib/db";
+import { EXTERNAL_APPS, type ExternalApp } from "main/lib/db/schemas";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+const ExternalAppSchema = z.enum(EXTERNAL_APPS);
+
+/**
+ * Get the command and args to open a path in the specified app.
+ * Uses `open -a` for macOS apps to avoid PATH issues in production builds.
+ */
+const getAppCommand = (
+	app: ExternalApp,
+	targetPath: string,
+): { command: string; args: string[] } | null => {
+	switch (app) {
+		case "finder":
+			return null; // Handled specially with shell.showItemInFolder
+		case "vscode":
+			return {
+				command: "open",
+				args: ["-a", "Visual Studio Code", targetPath],
+			};
+		case "cursor":
+			return { command: "open", args: ["-a", "Cursor", targetPath] };
+		case "xcode":
+			return { command: "open", args: ["-a", "Xcode", targetPath] };
+		case "iterm":
+			return { command: "open", args: ["-a", "iTerm", targetPath] };
+		case "warp":
+			return { command: "open", args: ["-a", "Warp", targetPath] };
+		case "terminal":
+			return { command: "open", args: ["-a", "Terminal", targetPath] };
+		default:
+			return null;
+	}
+};
 
 /**
  * Spawns a process and waits for it to complete
@@ -16,14 +51,22 @@ const spawnAsync = (command: string, args: string[]): Promise<void> => {
 		});
 
 		child.on("error", (error) => {
-			reject(error);
+			reject(
+				new Error(
+					`Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`,
+				),
+			);
 		});
 
 		child.on("exit", (code) => {
 			if (code === 0) {
 				resolve();
 			} else {
-				reject(new Error(`Process exited with code ${code}`));
+				reject(
+					new Error(
+						`'${command}' exited with code ${code}. The application may not be installed.`,
+					),
+				);
 			}
 		});
 	});
@@ -45,6 +88,36 @@ export const createExternalRouter = () => {
 				shell.showItemInFolder(input);
 			}),
 
+		openInApp: publicProcedure
+			.input(
+				z.object({
+					path: z.string(),
+					app: ExternalAppSchema,
+				}),
+			)
+			.mutation(async ({ input }) => {
+				// Save last used app to DB
+				await db.update((data) => {
+					data.settings.lastUsedApp = input.app;
+				});
+
+				if (input.app === "finder") {
+					shell.showItemInFolder(input.path);
+					return;
+				}
+
+				const cmd = getAppCommand(input.app, input.path);
+				if (!cmd) {
+					throw new Error(`Unknown app: ${input.app}`);
+				}
+
+				await spawnAsync(cmd.command, cmd.args);
+			}),
+
+		copyPath: publicProcedure.input(z.string()).mutation(async ({ input }) => {
+			clipboard.writeText(input);
+		}),
+
 		openFileInEditor: publicProcedure
 			.input(
 				z.object({
@@ -55,7 +128,6 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				console.log("[external] openFileInEditor called with:", input);
 				let filePath = input.path;
 
 				// Expand home directory - needed because editors expect absolute paths
@@ -73,11 +145,7 @@ export const createExternalRouter = () => {
 						: path.resolve(filePath);
 				}
 
-				console.log("[external] Resolved file path:", filePath);
-
-				const editors = ["cursor", "code"];
-
-				// Build the file location string (file:line:column format expected by --goto flag)
+				// Build the file location string (file:line:column format for URL schemes)
 				let location = filePath;
 				if (input.line) {
 					location += `:${input.line}`;
@@ -86,21 +154,21 @@ export const createExternalRouter = () => {
 					}
 				}
 
-				console.log("[external] Opening location:", location);
+				// Try editor URL schemes - these work reliably without PATH issues
+				// Format: cursor://file/path:line:column or vscode://file/path:line:column
+				const editorSchemes = ["cursor", "vscode"];
 
-				for (const editor of editors) {
+				for (const scheme of editorSchemes) {
 					try {
-						console.log(`[external] Trying editor: ${editor}`);
-						await spawnAsync(editor, ["--goto", location]);
-						console.log(`[external] Successfully opened with ${editor}`);
+						const url = `${scheme}://file${location}`;
+						await shell.openExternal(url);
 						return;
-					} catch (error) {
-						console.log(`[external] ${editor} failed:`, error);
+					} catch {
+						// Editor not installed or URL scheme not registered, try next
 					}
 				}
 
-				console.log("[external] Falling back to system default");
-
+				// Fall back to system default
 				await shell.openPath(filePath);
 			}),
 	});

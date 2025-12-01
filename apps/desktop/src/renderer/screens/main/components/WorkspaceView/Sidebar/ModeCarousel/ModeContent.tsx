@@ -11,14 +11,14 @@ interface ModeContentProps {
 export function ModeContent({ mode, children }: ModeContentProps) {
 	return (
 		<div
-			className="overflow-y-auto h-full"
+			className="overflow-y-auto flex flex-col h-full"
 			style={{
 				scrollSnapAlign: "start",
 				scrollSnapStop: "always",
 			}}
 		>
 			<ModeHeader mode={mode} />
-			<div className="px-1 h-full">{children}</div>
+			<div className="px-1 flex-1 min-h-0">{children}</div>
 		</div>
 	);
 }

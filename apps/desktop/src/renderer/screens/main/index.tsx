@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
+import { HotkeyModal } from "renderer/components/HotkeyModal";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -8,6 +10,7 @@ import {
 	useSplitTabHorizontal,
 	useSplitTabVertical,
 } from "renderer/stores/tabs";
+import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -22,6 +25,7 @@ export function MainScreen() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const splitTabVertical = useSplitTabVertical();
 	const splitTabHorizontal = useSplitTabHorizontal();
+	const [hotkeyModalOpen, setHotkeyModalOpen] = useState(false);
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();
@@ -29,35 +33,24 @@ export function MainScreen() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const isWorkspaceView = currentView === "workspace";
 
-	// Sidebar toggle shortcut - only in workspace view
-	useHotkeys(
-		"meta+s",
-		() => {
-			if (isWorkspaceView) toggleSidebar();
-		},
-		[toggleSidebar, isWorkspaceView],
-	);
+	// Register global shortcuts
+	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => setHotkeyModalOpen(true), []);
 
-	// Split view shortcuts - only in workspace view
-	useHotkeys(
-		"meta+d",
-		() => {
-			if (isWorkspaceView && activeWorkspaceId) {
-				splitTabVertical(activeWorkspaceId);
-			}
-		},
-		[activeWorkspaceId, splitTabVertical, isWorkspaceView],
-	);
+	useHotkeys(HOTKEYS.TOGGLE_SIDEBAR.keys, () => {
+		if (isWorkspaceView) toggleSidebar();
+	}, [toggleSidebar, isWorkspaceView]);
 
-	useHotkeys(
-		"meta+shift+d",
-		() => {
-			if (isWorkspaceView && activeWorkspaceId) {
-				splitTabHorizontal(activeWorkspaceId);
-			}
-		},
-		[activeWorkspaceId, splitTabHorizontal, isWorkspaceView],
-	);
+	useHotkeys(HOTKEYS.SPLIT_HORIZONTAL.keys, () => {
+		if (isWorkspaceView && activeWorkspaceId) {
+			splitTabVertical(activeWorkspaceId);
+		}
+	}, [activeWorkspaceId, splitTabVertical, isWorkspaceView]);
+
+	useHotkeys(HOTKEYS.SPLIT_VERTICAL.keys, () => {
+		if (isWorkspaceView && activeWorkspaceId) {
+			splitTabHorizontal(activeWorkspaceId);
+		}
+	}, [activeWorkspaceId, splitTabHorizontal, isWorkspaceView]);
 
 	// Show start screen when no active workspace and not in settings
 	if (!activeWorkspace && currentView !== "settings") {
@@ -84,6 +77,7 @@ export function MainScreen() {
 					<div className="flex flex-1 overflow-hidden">{renderContent()}</div>
 				</div>
 			</AppFrame>
+			<HotkeyModal open={hotkeyModalOpen} onOpenChange={setHotkeyModalOpen} />
 		</DndProvider>
 	);
 }

@@ -7,7 +7,7 @@ export const handleAddTab = (
 	state: TabsState,
 	workspaceId: string,
 	type: TabType = TabType.Single,
-): Partial<TabsState> => {
+): { newState: Partial<TabsState>; tabId: string } => {
 	const newTab = createNewTab(workspaceId, type, state.tabs);
 	const currentActiveId = state.activeTabIds[workspaceId];
 	const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -16,15 +16,18 @@ export const handleAddTab = (
 		: historyStack;
 
 	return {
-		tabs: [newTab, ...state.tabs],
-		activeTabIds: {
-			...state.activeTabIds,
-			[workspaceId]: newTab.id,
+		newState: {
+			tabs: [newTab, ...state.tabs],
+			activeTabIds: {
+				...state.activeTabIds,
+				[workspaceId]: newTab.id,
+			},
+			tabHistoryStacks: {
+				...state.tabHistoryStacks,
+				[workspaceId]: newHistoryStack,
+			},
 		},
-		tabHistoryStacks: {
-			...state.tabHistoryStacks,
-			[workspaceId]: newHistoryStack,
-		},
+		tabId: newTab.id,
 	};
 };
 
@@ -92,41 +95,5 @@ export const handleMarkTabAsUsed = (
 		tabs: state.tabs.map((tab) =>
 			tab.id === id ? { ...tab, isNew: false } : tab,
 		),
-	};
-};
-
-export const handleAddSetupTab = (
-	state: TabsState,
-	workspaceId: string,
-	setupCommands: string[],
-	setupCwd: string,
-	setupCopyResults?: { copied: string[]; errors: string[] },
-): Partial<TabsState> => {
-	const baseTab = createNewTab(workspaceId, TabType.Setup, state.tabs);
-	const setupTab = {
-		...baseTab,
-		type: TabType.Setup as const,
-		title: "Setup Worktree",
-		setupCommands,
-		setupCwd,
-		setupCopyResults,
-	};
-
-	const currentActiveId = state.activeTabIds[workspaceId];
-	const historyStack = state.tabHistoryStacks[workspaceId] || [];
-	const newHistoryStack = currentActiveId
-		? [currentActiveId, ...historyStack.filter((id) => id !== currentActiveId)]
-		: historyStack;
-
-	return {
-		tabs: [setupTab, ...state.tabs],
-		activeTabIds: {
-			...state.activeTabIds,
-			[workspaceId]: setupTab.id,
-		},
-		tabHistoryStacks: {
-			...state.tabHistoryStacks,
-			[workspaceId]: newHistoryStack,
-		},
 	};
 };

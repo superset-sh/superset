@@ -6,12 +6,16 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	checkNeedsRebase,
 	createWorktree,
+	fetchOriginMain,
 	generateBranchName,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
-import { copySetupFiles, loadSetupConfig } from "./utils/setup";
+import { loadSetupConfig } from "./utils/setup";
+import { runTeardown } from "./utils/teardown";
+import { getWorktreePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -37,7 +41,19 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				await createWorktree(project.mainRepoPath, branch, worktreePath);
+				// Fetch origin/main to ensure we're branching from latest (best-effort)
+				try {
+					await fetchOriginMain(project.mainRepoPath);
+				} catch {
+					// Silently continue - origin/main still exists locally, just might be stale
+				}
+
+				await createWorktree(
+					project.mainRepoPath,
+					branch,
+					worktreePath,
+					"origin/main",
+				);
 
 				const worktree = {
 					id: nanoid(),
@@ -45,6 +61,11 @@ export const createWorkspacesRouter = () => {
 					path: worktreePath,
 					branch,
 					createdAt: Date.now(),
+					gitStatus: {
+						branch,
+						needsRebase: false, // Fresh off main, doesn't need rebase
+						lastRefreshed: Date.now(),
+					},
 				};
 
 				const projectWorkspaces = db.data.workspaces.filter(
@@ -81,7 +102,8 @@ export const createWorkspacesRouter = () => {
 							);
 							const maxProjectTabOrder =
 								activeProjects.length > 0
-									? Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+									? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+										Math.max(...activeProjects.map((proj) => proj.tabOrder!))
 									: -1;
 							p.tabOrder = maxProjectTabOrder + 1;
 						}
@@ -90,33 +112,10 @@ export const createWorkspacesRouter = () => {
 
 				// Load setup configuration
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
-				let setupCopyResults: { copied: string[]; errors: string[] } | null =
-					null;
-
-				// Copy setup files if config exists and has copy patterns
-				if (setupConfig?.copy && setupConfig.copy.length > 0) {
-					try {
-						setupCopyResults = await copySetupFiles(
-							project.mainRepoPath,
-							worktreePath,
-							setupConfig.copy,
-						);
-					} catch (error) {
-						console.error("Failed to copy setup files:", error);
-						// Non-fatal: return error info but continue
-						setupCopyResults = {
-							copied: [],
-							errors: [
-								`Setup file copy failed: ${error instanceof Error ? error.message : String(error)}`,
-							],
-						};
-					}
-				}
 
 				return {
 					workspace,
-					setupConfig: setupConfig?.commands || null,
-					setupCopyResults,
+					initialCommands: setupConfig?.setup || null,
 					worktreePath,
 				};
 			}),
@@ -153,6 +152,7 @@ export const createWorkspacesRouter = () => {
 						id: string;
 						projectId: string;
 						worktreeId: string;
+						worktreePath: string;
 						name: string;
 						tabOrder: number;
 						createdAt: number;
@@ -168,6 +168,7 @@ export const createWorkspacesRouter = () => {
 						id: project.id,
 						name: project.name,
 						color: project.color,
+						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
 						tabOrder: project.tabOrder!,
 					},
 					workspaces: [],
@@ -180,7 +181,10 @@ export const createWorkspacesRouter = () => {
 
 			for (const workspace of workspaces) {
 				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)?.workspaces.push(workspace);
+					groupsMap.get(workspace.projectId)?.workspaces.push({
+						...workspace,
+						worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+					});
 				}
 			}
 
@@ -205,7 +209,10 @@ export const createWorkspacesRouter = () => {
 				);
 			}
 
-			return workspace;
+			return {
+				...workspace,
+				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+			};
 		}),
 
 		update: publicProcedure
@@ -311,13 +318,27 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				let teardownError: string | undefined;
+
 				if (worktree && project) {
-					try {
-						const exists = await worktreeExists(
+					// Run teardown scripts before removing worktree
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
+
+					if (exists) {
+						const teardownResult = runTeardown(
 							project.mainRepoPath,
 							worktree.path,
+							workspace.name,
 						);
+						if (!teardownResult.success) {
+							teardownError = teardownResult.error;
+						}
+					}
 
+					try {
 						if (exists) {
 							await removeWorktree(project.mainRepoPath, worktree.path);
 						} else {
@@ -366,7 +387,7 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				return { success: true };
+				return { success: true, teardownError };
 			}),
 
 		setActive: publicProcedure
@@ -423,6 +444,55 @@ export const createWorkspacesRouter = () => {
 				});
 
 				return { success: true };
+			}),
+
+		refreshGitStatus: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(async ({ input }) => {
+				const workspace = db.data.workspaces.find(
+					(w) => w.id === input.workspaceId,
+				);
+				if (!workspace) {
+					throw new Error(`Workspace ${input.workspaceId} not found`);
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				if (!worktree) {
+					throw new Error(
+						`Worktree for workspace ${input.workspaceId} not found`,
+					);
+				}
+
+				const project = db.data.projects.find(
+					(p) => p.id === workspace.projectId,
+				);
+				if (!project) {
+					throw new Error(`Project ${workspace.projectId} not found`);
+				}
+
+				// Fetch origin/main to get latest
+				await fetchOriginMain(project.mainRepoPath);
+
+				// Check if worktree branch is behind origin/main
+				const needsRebase = await checkNeedsRebase(worktree.path);
+
+				const gitStatus = {
+					branch: worktree.branch,
+					needsRebase,
+					lastRefreshed: Date.now(),
+				};
+
+				// Update worktree in db
+				await db.update((data) => {
+					const wt = data.worktrees.find((w) => w.id === worktree.id);
+					if (wt) {
+						wt.gitStatus = gitStatus;
+					}
+				});
+
+				return { gitStatus };
 			}),
 	});
 };

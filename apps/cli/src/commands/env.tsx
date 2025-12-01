@@ -3,13 +3,14 @@ import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { EnvironmentOrchestrator } from "../lib/orchestrators/environment-orchestrator";
+import type { Environment } from "../types/environment";
 
 interface EnvListProps {
 	onComplete?: () => void;
 }
 
 export function EnvList({ onComplete }: EnvListProps) {
-	const [environments, setEnvironments] = React.useState<any[]>([]);
+	const [environments, setEnvironments] = React.useState<Environment[]>([]);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -55,7 +56,7 @@ export function EnvList({ onComplete }: EnvListProps) {
 	return (
 		<Box flexDirection="column">
 			<Text bold>Environments</Text>
-			<Table data={environments} />
+			<Table data={environments as unknown as Record<string, unknown>[]} />
 		</Box>
 	);
 }
@@ -66,7 +67,9 @@ interface EnvGetProps {
 }
 
 export function EnvGet({ id, onComplete }: EnvGetProps) {
-	const [environment, setEnvironment] = React.useState<any | null>(null);
+	const [environment, setEnvironment] = React.useState<Environment | null>(
+		null,
+	);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -99,7 +102,9 @@ export function EnvGet({ id, onComplete }: EnvGetProps) {
 	return (
 		<Box flexDirection="column">
 			<Text bold>Environment Details</Text>
-			<Table data={[environment]} />
+			{environment && (
+				<Table data={[environment as unknown as Record<string, unknown>]} />
+			)}
 		</Box>
 	);
 }
@@ -109,7 +114,9 @@ interface EnvCreateProps {
 }
 
 export function EnvCreate({ onComplete }: EnvCreateProps) {
-	const [environment, setEnvironment] = React.useState<any | null>(null);
+	const [environment, setEnvironment] = React.useState<Environment | null>(
+		null,
+	);
 	const [error, setError] = React.useState<string | null>(null);
 	const [loading, setLoading] = React.useState(true);
 
@@ -142,7 +149,9 @@ export function EnvCreate({ onComplete }: EnvCreateProps) {
 	return (
 		<Box flexDirection="column">
 			<Text color="green">✓ Environment created successfully</Text>
-			<Table data={[environment]} />
+			{environment && (
+				<Table data={[environment as unknown as Record<string, unknown>]} />
+			)}
 		</Box>
 	);
 }

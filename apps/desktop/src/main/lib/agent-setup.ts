@@ -2,11 +2,13 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { NOTIFICATIONS_PORT } from "shared/constants";
+import { PORTS, SUPERSET_DIR_NAME } from "shared/constants";
+import { SUPERSET_HOME_DIR } from "./app-environment";
 
-const SUPERSET_DIR = path.join(os.homedir(), ".superset");
-const BIN_DIR = path.join(SUPERSET_DIR, "bin");
-const HOOKS_DIR = path.join(SUPERSET_DIR, "hooks");
+const BIN_DIR = path.join(SUPERSET_HOME_DIR, "bin");
+const HOOKS_DIR = path.join(SUPERSET_HOME_DIR, "hooks");
+const ZSH_DIR = path.join(SUPERSET_HOME_DIR, "zsh");
+const BASH_DIR = path.join(SUPERSET_HOME_DIR, "bash");
 
 /**
  * Finds the real path of a binary, skipping our wrapper scripts
@@ -34,16 +36,24 @@ function createNotifyScript(): void {
 	const notifyPath = path.join(HOOKS_DIR, "notify.sh");
 	const script = `#!/bin/bash
 # Superset agent notification hook
-# Called by CLI agents (Claude Code, Codex, etc.) when they complete
+# Called by CLI agents (Claude Code, Codex, etc.) when they complete or need input
 
 # Only run if inside a Superset terminal
 [ -z "$SUPERSET_TAB_ID" ] && exit 0
 
-curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${NOTIFICATIONS_PORT}}/hook/complete" \\
+# Read JSON from stdin and extract hook_event_name
+INPUT=$(cat)
+EVENT_TYPE=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | cut -d'"' -f4)
+
+# Default to "Stop" if not found
+[ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
+
+curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/complete" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
   --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
+  --data-urlencode "eventType=$EVENT_TYPE" \\
   > /dev/null 2>&1
 `;
 	fs.writeFileSync(notifyPath, script, { mode: 0o755 });
@@ -65,7 +75,7 @@ function createClaudeWrapper(): void {
 # Superset wrapper for Claude Code
 # Injects notification hook settings
 
-SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"matcher":"","hooks":[{"type":"command","command":"~/.superset/hooks/notify.sh"}]}]}}'
+SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}],"PermissionRequest":[{"matcher":"*","hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}]}}'
 
 exec "${realClaude}" --settings "$SUPERSET_CLAUDE_SETTINGS" "$@"
 `;
@@ -97,6 +107,63 @@ exec "${realCodex}" -c 'notify=["bash","${notifyPath}"]' "$@"
 }
 
 /**
+ * Creates zsh initialization wrapper that intercepts shell startup
+ * Sources user's real shell config files then prepends our bin to PATH
+ */
+function createZshWrapper(): void {
+	// Create .zprofile to source user's .zprofile (runs for login shells before .zshrc)
+	// This is critical - without it, brew/nvm PATH setup in ~/.zprofile is skipped
+	// Don't change ZDOTDIR here - we need our .zshrc to run after this
+	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
+	const zprofileScript = `# Superset zsh profile wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+[[ -f "$_superset_home/.zprofile" ]] && source "$_superset_home/.zprofile"
+`;
+	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
+
+	// Create .zshrc to source user's .zshrc then prepend our bin
+	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
+	const zshrcScript = `# Superset zsh rc wrapper
+_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+[[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
+export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+export ZDOTDIR="$_superset_home"
+`;
+	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
+	console.log("[agent-setup] Created zsh wrapper");
+}
+
+/**
+ * Creates bash initialization wrapper that intercepts shell startup
+ * Sources user's real bashrc/profile then prepends our bin to PATH
+ */
+function createBashWrapper(): void {
+	const rcfilePath = path.join(BASH_DIR, "rcfile");
+	const script = `# Superset bash rcfile wrapper
+
+# Source system profile
+[[ -f /etc/profile ]] && source /etc/profile
+
+# Source user's login profile
+if [[ -f "$HOME/.bash_profile" ]]; then
+  source "$HOME/.bash_profile"
+elif [[ -f "$HOME/.bash_login" ]]; then
+  source "$HOME/.bash_login"
+elif [[ -f "$HOME/.profile" ]]; then
+  source "$HOME/.profile"
+fi
+
+# Source bashrc if separate
+[[ -f "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+
+# Prepend superset bin to PATH
+export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+`;
+	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
+	console.log("[agent-setup] Created bash wrapper");
+}
+
+/**
  * Sets up the ~/.superset directory structure and agent wrappers
  * Called on app startup
  */
@@ -106,20 +173,49 @@ export function setupAgentHooks(): void {
 	// Create directories
 	fs.mkdirSync(BIN_DIR, { recursive: true });
 	fs.mkdirSync(HOOKS_DIR, { recursive: true });
+	fs.mkdirSync(ZSH_DIR, { recursive: true });
+	fs.mkdirSync(BASH_DIR, { recursive: true });
 
 	// Create scripts
 	createNotifyScript();
 	createClaudeWrapper();
 	createCodexWrapper();
 
+	// Create shell initialization wrappers
+	createZshWrapper();
+	createBashWrapper();
+
 	console.log("[agent-setup] Agent hooks initialized");
 }
 
 /**
- * Returns the PATH with our bin directory prepended
+ * Returns shell-specific environment variables for intercepting shell initialization
  */
-export function getSupersetPath(): string {
-	return `${BIN_DIR}:${process.env.PATH || ""}`;
+export function getShellEnv(shell: string): Record<string, string> {
+	if (shell.includes("zsh")) {
+		return {
+			SUPERSET_ORIG_ZDOTDIR: process.env.ZDOTDIR || os.homedir(),
+			ZDOTDIR: ZSH_DIR,
+		};
+	}
+	// Bash doesn't need special env vars - we use --rcfile instead
+	return {};
+}
+
+/**
+ * Returns shell-specific arguments for intercepting shell initialization
+ */
+export function getShellArgs(shell: string): string[] {
+	if (shell.includes("zsh")) {
+		// Zsh uses ZDOTDIR env var, no special args needed
+		// -l for login shell behavior
+		return ["-l"];
+	}
+	if (shell.includes("bash")) {
+		// Use our custom rcfile that sources user's files then fixes PATH
+		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
+	}
+	return [];
 }
 
 /**
