@@ -81,7 +81,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				// Filter to only worktrees in the superset worktrees directory that exist on disk
 				const supersetWorktrees = existingWorktrees.filter(
 					(wt) =>
-						wt.path.startsWith(supersetWorktreesDir) && existsSync(wt.path),
+						wt.path.startsWith(`${supersetWorktreesDir}/`) && existsSync(wt.path),
 				);
 
 				if (supersetWorktrees.length > 0) {
