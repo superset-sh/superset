@@ -113,7 +113,6 @@ exec "${realCodex}" -c 'notify=["bash","${notifyPath}"]' "$@"
 function createZshWrapper(): void {
 	// Create .zprofile to source user's .zprofile (runs for login shells before .zshrc)
 	// This is critical - without it, brew/nvm PATH setup in ~/.zprofile is skipped
-	// Don't change ZDOTDIR here - we need our .zshrc to run after this
 	const zprofilePath = path.join(ZSH_DIR, ".zprofile");
 	const zprofileScript = `# Superset zsh profile wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
@@ -123,11 +122,31 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 
 	// Create .zshrc to source user's .zshrc then prepend our bin
 	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
-	const zshrcScript = `# Superset zsh rc wrapper
-_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
-[[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
+	const zshrcScript = `# Superset zsh initialization wrapper
+# This file intercepts zsh startup to ensure ~/.superset/bin is in PATH
+
+# Restore original ZDOTDIR for any nested shells
+export ZDOTDIR="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+
+ORIG_ZDOTDIR="$ZDOTDIR"
+
+# Source the same user-level startup files zsh normally would
+if [[ -f "$ORIG_ZDOTDIR/.zshenv" ]]; then
+  source "$ORIG_ZDOTDIR/.zshenv"
+fi
+
+# Source user's real zshrc if it exists
+if [[ -f "$ORIG_ZDOTDIR/.zshrc" ]]; then
+  source "$ORIG_ZDOTDIR/.zshrc"
+fi
+
+# Finish login shell sequence
+if [[ -o login && -f "$ORIG_ZDOTDIR/.zlogin" ]]; then
+  source "$ORIG_ZDOTDIR/.zlogin"
+fi
+
+# Prepend superset bin to PATH (after user's rc has run)
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
-export ZDOTDIR="$_superset_home"
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");
