@@ -28,7 +28,7 @@ export function CTASection() {
 					transition={{ duration: 0.5, delay: 0.1 }}
 				>
 					<span className="text-lg font-medium text-[#2a2b25]">
-						Download for MacOS
+						Download for Apple Silicon Mac
 					</span>
 					<HiMiniArrowDownTray className="ml-3 size-5 text-[#2a2b25]" />
 				</motion.a>

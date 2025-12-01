@@ -47,16 +47,11 @@ export function Header() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.3, delay: 0.1 }}
 						>
-							<SocialLinks />
-							<DownloadButton
-								size="sm"
-								className="hidden"
-								onJoinWindowsWaitlist={() => setIsWaitlistOpen(true)}
-							/>
-							<JoinWaitlistButton
-								onClick={() => setIsWaitlistOpen(true)}
-								size="sm"
-							/>
+						<SocialLinks />
+						<DownloadButton
+							size="sm"
+							onJoinWaitlist={() => setIsWaitlistOpen(true)}
+						/>
 						</motion.div>
 					</div>
 				</nav>

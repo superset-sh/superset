@@ -105,7 +105,7 @@ function DownloadButton() {
 			className="group inline-flex items-center bg-[#f9f9f5] hover:bg-[#f0efeb] rounded-[5px] pl-4 pr-3 py-2 transition-colors"
 		>
 			<span className="text-base font-medium leading-4 text-[#2a2b25]">
-				Download for MacOS
+				Download for Apple Silicon Mac
 			</span>
 			<HiMiniArrowDownTray className="ml-2 size-4 text-[#2a2b25]" />
 		</a>

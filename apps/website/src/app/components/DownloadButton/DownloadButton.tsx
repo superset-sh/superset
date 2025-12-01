@@ -4,22 +4,21 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiMiniArrowDownTray } from "react-icons/hi2";
-import { DOWNLOAD_URL_MAC_ARM64 } from "@/constants";
+import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
+import { DOWNLOAD_URL_MAC_ARM64, GITHUB_REPO_URL } from "@/constants";
 
 interface DownloadButtonProps {
 	size?: "sm" | "md";
 	className?: string;
-	onJoinWindowsWaitlist?: () => void;
+	onJoinWaitlist?: () => void;
 }
 
 export function DownloadButton({
 	size = "md",
 	className = "",
-	onJoinWindowsWaitlist,
+	onJoinWaitlist,
 }: DownloadButtonProps) {
 	const sizeClasses =
 		size === "sm" ? "px-4 py-2 text-sm" : "px-6 py-3 text-base";
@@ -28,9 +27,8 @@ export function DownloadButton({
 		window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
 	};
 
-	const handleIntelDownload = () => {
-		// TODO: Add actual download link for Intel-based Macs
-		console.log("Downloading for Intel-based Macs");
+	const handleBuildFromSource = () => {
+		window.open(GITHUB_REPO_URL, "_blank");
 	};
 
 	return (
@@ -38,7 +36,7 @@ export function DownloadButton({
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					className={`bg-white text-black ${sizeClasses} rounded-lg font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 ${className}`}
+					className={`bg-white text-black ${sizeClasses} rounded-[5px] font-medium hover:bg-zinc-200 transition-colors flex items-center gap-2 ${className}`}
 				>
 					Download
 					<HiMiniArrowDownTray className="size-4" />
@@ -46,7 +44,7 @@ export function DownloadButton({
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align="end"
-				className="w-80 bg-white border border-zinc-200 rounded-lg shadow-lg p-2"
+				className="w-82 bg-white border border-zinc-200 rounded-[5px] shadow-lg p-2"
 			>
 				{/* Download for Apple Silicon Macs */}
 				<DropdownMenuItem
@@ -55,7 +53,7 @@ export function DownloadButton({
 				>
 					<button
 						type="button"
-						className="w-full bg-zinc-900 text-white rounded-lg px-4 py-3 flex items-center justify-between hover:bg-zinc-800 transition-colors gap-4"
+						className="w-full bg-zinc-900 text-white rounded-[5px] px-4 py-3 flex items-center justify-between hover:bg-zinc-800 transition-colors gap-4"
 					>
 						<div className="flex items-center gap-3">
 							<svg
@@ -74,52 +72,46 @@ export function DownloadButton({
 						<span className="text-xs text-zinc-400">APPLE SILICON</span>
 					</button>
 				</DropdownMenuItem>
-
-				{/* Join Windows Waitlist */}
-				<DropdownMenuItem
-					onClick={onJoinWindowsWaitlist}
-					className="p-0 mt-2 focus:bg-transparent"
-				>
-					<button
-						type="button"
-						className="w-full bg-zinc-100 text-black rounded-lg px-4 py-3 flex items-center hover:bg-zinc-200 transition-colors"
-					>
-						<div className="flex items-center gap-3">
-							<svg
-								width="20"
-								height="20"
-								viewBox="0 0 24 24"
-								fill="currentColor"
-								xmlns="http://www.w3.org/2000/svg"
-								aria-label="Windows logo"
-							>
-								<title>Windows logo</title>
-								<path d="M3 12V6.75l6-1.32v6.48L3 12zm17-9v8.75l-10 .15V5.21L20 3zM3 13l6 .09v6.81l-6-1.15V13zm17 .25V22l-10-1.8v-7.55l10 .15z" />
-							</svg>
-							<span className="font-medium">Join Windows waitlist</span>
-						</div>
-					</button>
-				</DropdownMenuItem>
-
-				<DropdownMenuSeparator className="my-2 bg-zinc-200 hidden" />
-
-				{/* Download for Intel-based Macs */}
-				<DropdownMenuItem
-					onClick={handleIntelDownload}
-					className="p-0 focus:bg-transparent hidden"
-				>
-					<div className="w-full px-2 py-2">
-						<p className="text-sm text-zinc-500 mb-1">
-							Mac older than November 2020?
-						</p>
-						<button
-							type="button"
-							className="text-sm text-black font-medium hover:text-zinc-700 transition-colors"
+				{/* Other platforms */}
+				<div className="mt-2 pt-2 border-t border-zinc-200">
+					<p className="text-xs text-zinc-500 px-2 mb-2">Other platforms</p>
+					<div className="flex flex-col gap-1.5">
+						<DropdownMenuItem
+							onClick={onJoinWaitlist}
+							className="p-0 focus:bg-transparent"
 						>
-							Download for Intel-based Macs
-						</button>
+							<button
+								type="button"
+								className="w-full bg-zinc-50 text-black rounded-[5px] px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 transition-colors text-sm"
+							>
+								<HiMiniClock className="size-4" />
+								<span>Join waitlist for Windows & Linux</span>
+							</button>
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={handleBuildFromSource}
+							className="p-0 focus:bg-transparent"
+						>
+							<button
+								type="button"
+								className="w-full bg-zinc-50 text-black rounded-[5px] px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 transition-colors text-sm"
+							>
+								<svg
+									width="16"
+									height="16"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									xmlns="http://www.w3.org/2000/svg"
+									aria-label="GitHub logo"
+								>
+									<title>GitHub logo</title>
+									<path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.17 6.839 9.49.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.167 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
+								</svg>
+								<span>Build from source on GitHub</span>
+							</button>
+						</DropdownMenuItem>
 					</div>
-				</DropdownMenuItem>
+				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
