@@ -27,7 +27,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const setActiveTab = useSetActiveTab();
 	const terminalTheme = useTerminalTheme();
 
-	// Get the workspace CWD for resolving relative file paths
+	// Required for resolving relative file paths in terminal commands
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
@@ -49,12 +49,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
-			// Queue events that arrive before xterm is ready or before recovery is applied
+			// Prevent data loss during terminal initialization
 			pendingEventsRef.current.push(event);
 			return;
 		}
 
-		// Queue events while subscription is not enabled (recovery in progress)
+		// Prevent race condition where events arrive before scrollback recovery completes
 		if (!subscriptionEnabled) {
 			pendingEventsRef.current.push(event);
 			return;
@@ -74,7 +74,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	trpc.terminal.stream.useSubscription(tabId, {
 		onData: handleStreamData,
-		enabled: true, // Always listen, but queue events internally until subscriptionEnabled is true
+		// Always listen to prevent missing events during initialization
+		enabled: true,
 	});
 
 	useEffect(() => {
@@ -89,9 +90,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
-		// Don't enable subscription yet - wait until recovery is applied
+		// Delay enabling subscription to ensure scrollback is applied first, preventing duplicate output
 
-		// Flush any pending events that arrived before xterm was ready or before recovery
 		const flushPendingEvents = () => {
 			if (pendingEventsRef.current.length === 0) return;
 			const events = pendingEventsRef.current.splice(
@@ -173,11 +173,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
 
-		// Setup keyboard handler for app hotkeys and Shift+Enter (line continuation like iTerm)
+		// Intercept keyboard events to handle app hotkeys and provide iTerm-like line continuation UX
 		setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
-					// Backslash + newline triggers shell's native line continuation
+					// Use shell's native continuation syntax to avoid shell-specific parsing
 					writeRef.current({ tabId, data: "\\\n" });
 				}
 			},
@@ -211,17 +211,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 	}, [tabId, workspaceId, setActiveTab, workspaceCwd, tabTitle, terminalTheme]);
 
-	// Update terminal theme when it changes
+	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
 
-		// Set theme via property setter - preserves all other options
-		// xterm.js v5 uses setters that trigger internal repaint
 		xterm.options.theme = terminalTheme;
 	}, [terminalTheme]);
 
-	// Get terminal background color from theme, with theme-aware default
+	// Match container background to terminal theme for seamless visual integration
 	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	const handleDragOver = (event: React.DragEvent) => {
@@ -235,11 +233,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const files = Array.from(event.dataTransfer.files);
 		if (files.length === 0) return;
 
-		// Get file paths via Electron's webUtils API (contextIsolation-safe)
+		// Use Electron's webUtils API to access file paths in context-isolated renderer process
 		const paths = files.map((file) => window.webUtils.getPathForFile(file));
 		const text = shellEscapePaths(paths);
 
-		// Write to terminal (same as typing)
 		if (!isExitedRef.current) {
 			writeRef.current({ tabId, data: text });
 		}
