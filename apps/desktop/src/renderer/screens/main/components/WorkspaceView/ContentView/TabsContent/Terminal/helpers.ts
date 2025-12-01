@@ -11,6 +11,7 @@ import { isAppHotkey } from "shared/hotkeys";
 import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
+import { suppressQueryResponses } from "./suppressQueryResponses";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -55,6 +56,7 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	cleanup: () => void;
 } {
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
@@ -63,6 +65,10 @@ export function createTerminalInstance(
 	const fitAddon = new FitAddon();
 
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
+		// Only open URLs on CMD+click (Mac) or Ctrl+click (Windows/Linux)
+		if (!event.metaKey && !event.ctrlKey) {
+			return;
+		}
 		event.preventDefault();
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
@@ -81,6 +87,10 @@ export function createTerminalInstance(
 	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
+
+	// Suppress terminal query responses (DA1, DA2, CPR, OSC color responses, etc.)
+	// These are protocol-level responses that should be handled internally, not displayed
+	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	// Register file path link provider (Cmd+Click to open in Cursor/VSCode)
 	const filePathLinkProvider = new FilePathLinkProvider(
@@ -113,7 +123,11 @@ export function createTerminalInstance(
 	// Fit after addons are loaded
 	fitAddon.fit();
 
-	return { xterm, fitAddon };
+	return {
+		xterm,
+		fitAddon,
+		cleanup: cleanupQuerySuppression,
+	};
 }
 
 /**
