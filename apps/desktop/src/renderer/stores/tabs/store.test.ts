@@ -273,7 +273,7 @@ describe("splitTabVertical", () => {
 		expect(state.activeTabIds["workspace-1"]).toBe(groupTab.id);
 	});
 
-	test("does not split a group tab", () => {
+	test("active group uses last-focused child from history", () => {
 		const store = useTabsStore.getState();
 
 		const groupTab: TabGroup = {
@@ -289,20 +289,187 @@ describe("splitTabVertical", () => {
 			},
 		};
 
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
 		useTabsStore.setState({
-			tabs: [groupTab],
+			tabs: [groupTab, child1 as any, child2 as any],
 			activeTabIds: { "workspace-1": "group-1" },
-			tabHistoryStacks: { "workspace-1": [] },
+			// child-2 was most recently focused
+			tabHistoryStacks: { "workspace-1": ["child-2", "child-1"] },
 		});
 
-		// Try to split the group
+		// Split with group as active - should use child-2 from history
 		store.splitTabVertical("workspace-1");
 
 		const state = useTabsStore.getState();
 
-		// Should remain unchanged
-		expect(state.tabs.length).toBe(1);
-		expect(state.tabs[0].id).toBe("group-1");
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-2 was split
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-2's position should now be a nested layout
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.second).toEqual({
+			direction: "row",
+			first: "child-2",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+	});
+
+	test("active group falls back to first child when history is empty", () => {
+		const store = useTabsStore.getState();
+
+		const groupTab: TabGroup = {
+			id: "group-1",
+			title: "Group",
+			workspaceId: "workspace-1",
+			type: TabType.Group,
+			layout: {
+				direction: "row" as const,
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		useTabsStore.setState({
+			tabs: [groupTab, child1 as any, child2 as any],
+			activeTabIds: { "workspace-1": "group-1" },
+			// Empty history
+			tabHistoryStacks: { "workspace-1": [] },
+		});
+
+		// Split with group as active - should fall back to first child (child-1)
+		store.splitTabVertical("workspace-1");
+
+		const state = useTabsStore.getState();
+
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-1 was split (first in layout)
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-1's position should now be a nested layout
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.first).toEqual({
+			direction: "row",
+			first: "child-1",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+	});
+
+	test("active child tab splits within group without explicit path", () => {
+		const store = useTabsStore.getState();
+
+		const groupTab: TabGroup = {
+			id: "group-1",
+			title: "Group",
+			workspaceId: "workspace-1",
+			type: TabType.Group,
+			layout: {
+				direction: "row" as const,
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		useTabsStore.setState({
+			tabs: [groupTab, child1 as any, child2 as any],
+			// child-1 is the active tab (not the group)
+			activeTabIds: { "workspace-1": "child-1" },
+			tabHistoryStacks: { "workspace-1": [] },
+		});
+
+		// Split with child as active - should split child-1 within the group
+		store.splitTabVertical("workspace-1");
+
+		const state = useTabsStore.getState();
+
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-1 was split
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-1's position should now be a nested layout
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.first).toEqual({
+			direction: "row",
+			first: "child-1",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+
+		// New child should have the group as parent
+		const newChild = state.tabs.find(
+			(t) =>
+				t.type === TabType.Single &&
+				t.parentId === "group-1" &&
+				t.id !== "child-1" &&
+				t.id !== "child-2",
+		);
+		expect(newChild).toBeDefined();
 	});
 });
 
@@ -406,5 +573,204 @@ describe("splitTabHorizontal", () => {
 		// Tab-1 should remain unchanged
 		const tab1After = state.tabs.find((t) => t.id === "tab-1");
 		expect(tab1After?.parentId).toBeUndefined();
+	});
+
+	test("active group uses last-focused child from history", () => {
+		const store = useTabsStore.getState();
+
+		const groupTab: TabGroup = {
+			id: "group-1",
+			title: "Group",
+			workspaceId: "workspace-1",
+			type: TabType.Group,
+			layout: {
+				direction: "column" as const,
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		useTabsStore.setState({
+			tabs: [groupTab, child1 as any, child2 as any],
+			activeTabIds: { "workspace-1": "group-1" },
+			// child-2 was most recently focused
+			tabHistoryStacks: { "workspace-1": ["child-2", "child-1"] },
+		});
+
+		// Split with group as active - should use child-2 from history
+		store.splitTabHorizontal("workspace-1");
+
+		const state = useTabsStore.getState();
+
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-2 was split
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-2's position should now be a nested layout with column direction
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.second).toEqual({
+			direction: "column",
+			first: "child-2",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+	});
+
+	test("active group falls back to first child when history is empty", () => {
+		const store = useTabsStore.getState();
+
+		const groupTab: TabGroup = {
+			id: "group-1",
+			title: "Group",
+			workspaceId: "workspace-1",
+			type: TabType.Group,
+			layout: {
+				direction: "column" as const,
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		useTabsStore.setState({
+			tabs: [groupTab, child1 as any, child2 as any],
+			activeTabIds: { "workspace-1": "group-1" },
+			// Empty history
+			tabHistoryStacks: { "workspace-1": [] },
+		});
+
+		// Split with group as active - should fall back to first child (child-1)
+		store.splitTabHorizontal("workspace-1");
+
+		const state = useTabsStore.getState();
+
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-1 was split (first in layout)
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-1's position should now be a nested layout with column direction
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.first).toEqual({
+			direction: "column",
+			first: "child-1",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+	});
+
+	test("active child tab splits within group without explicit path", () => {
+		const store = useTabsStore.getState();
+
+		const groupTab: TabGroup = {
+			id: "group-1",
+			title: "Group",
+			workspaceId: "workspace-1",
+			type: TabType.Group,
+			layout: {
+				direction: "column" as const,
+				first: "child-1",
+				second: "child-2",
+				splitPercentage: 50,
+			},
+		};
+
+		const child1 = {
+			id: "child-1",
+			title: "Child 1",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		const child2 = {
+			id: "child-2",
+			title: "Child 2",
+			workspaceId: "workspace-1",
+			type: TabType.Single,
+			parentId: "group-1",
+		} as const;
+
+		useTabsStore.setState({
+			tabs: [groupTab, child1 as any, child2 as any],
+			// child-1 is the active tab (not the group)
+			activeTabIds: { "workspace-1": "child-1" },
+			tabHistoryStacks: { "workspace-1": [] },
+		});
+
+		// Split with child as active - should split child-1 within the group
+		store.splitTabHorizontal("workspace-1");
+
+		const state = useTabsStore.getState();
+
+		// Should have 4 tabs now (group + 3 children)
+		expect(state.tabs.length).toBe(4);
+
+		// The group's layout should show child-1 was split
+		const updatedGroup = state.tabs.find(
+			(t) => t.id === "group-1" && t.type === TabType.Group,
+		) as TabGroup;
+		expect(updatedGroup).toBeDefined();
+
+		// child-1's position should now be a nested layout with column direction
+		if (typeof updatedGroup.layout === "string" || !updatedGroup.layout) return;
+		expect(updatedGroup.layout.first).toEqual({
+			direction: "column",
+			first: "child-1",
+			second: expect.any(String),
+			splitPercentage: 50,
+		});
+
+		// New child should have the group as parent
+		const newChild = state.tabs.find(
+			(t) =>
+				t.type === TabType.Single &&
+				t.parentId === "group-1" &&
+				t.id !== "child-1" &&
+				t.id !== "child-2",
+		);
+		expect(newChild).toBeDefined();
 	});
 });

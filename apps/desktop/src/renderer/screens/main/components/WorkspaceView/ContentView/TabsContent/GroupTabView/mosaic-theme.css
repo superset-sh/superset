@@ -3,36 +3,68 @@
 }
 
 .mosaic-theme-dark .mosaic-window {
-	border: 1px solid var(--color-tertiary-active);
-	border-radius: var(--radius-sm);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius-md);
+	overflow: hidden;
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease;
 }
+.mosaic-theme-dark .mosaic-window-focused {
+	border-color: var(--color-tertiary-active);
+}
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
 	background: var(--color-tertiary);
-	border-top-left-radius: var(--radius-sm);
-	border-top-right-radius: var(--radius-sm);
-	height: 32px;
+	height: 28px;
 	padding: 0 8px;
+	display: flex;
+	align-items: center;
 	transition: background-color 0.15s ease;
+}
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar
+	.mosaic-window-controls {
+	opacity: 0;
+	transition: opacity 0.15s ease;
+	display: flex;
+	align-items: center;
+	height: 100%;
+}
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar:hover
+	.mosaic-window-controls,
+.mosaic-theme-dark
+	.mosaic-window-focused
+	.mosaic-window-toolbar
+	.mosaic-window-controls,
+.mosaic-theme-dark
+	.mosaic-window
+	.mosaic-window-toolbar:focus-within
+	.mosaic-window-controls {
+	opacity: 1;
 }
 .mosaic-theme-dark .mosaic-window-focused .mosaic-window-toolbar {
 	background: var(--color-tertiary-active);
 }
 .mosaic-theme-dark .mosaic-window .mosaic-window-title {
-	color: var(--color-foreground);
-	font-size: 12px;
+	color: var(--color-muted-foreground);
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.01em;
 	transition: color 0.15s ease;
+}
+.mosaic-theme-dark .mosaic-window-focused .mosaic-window-title {
+	color: var(--color-foreground);
 }
 .mosaic-window-content {
 	outline: none;
 }
 .mosaic-window-content:focus-visible {
-	outline: 2px solid #303030;
+	outline: 2px solid var(--color-ring);
 	outline-offset: -2px;
-	box-shadow: inset 0 0 0 4px rgba(59, 130, 246, 0.2);
 }
 .mosaic-theme-dark .mosaic-split {
 	background: var(--color-border);
@@ -50,10 +82,8 @@
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
-	background: rgba(59, 130, 246, 0.3);
-	border: 4px solid rgba(59, 131, 246, 0.5);
+	background: rgba(59, 130, 246, 0.2);
+	border: 2px solid rgba(59, 131, 246, 0.4);
+	border-radius: var(--radius-md);
 	opacity: 1;
-	box-shadow:
-		inset 0 0 50px rgba(59, 130, 246, 0.4),
-		0 0 30px rgba(59, 130, 246, 0.7);
 }

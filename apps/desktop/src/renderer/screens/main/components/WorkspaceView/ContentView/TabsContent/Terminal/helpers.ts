@@ -162,7 +162,22 @@ export function setupKeyboardHandler(
 
 		if (isAppHotkey(event)) {
 			// Re-dispatch to document for react-hotkeys-hook to catch
-			document.dispatchEvent(new KeyboardEvent(event.type, event));
+			// Must explicitly copy modifier properties since they're prototype getters, not own properties
+			document.dispatchEvent(
+				new KeyboardEvent(event.type, {
+					key: event.key,
+					code: event.code,
+					keyCode: event.keyCode,
+					which: event.which,
+					ctrlKey: event.ctrlKey,
+					shiftKey: event.shiftKey,
+					altKey: event.altKey,
+					metaKey: event.metaKey,
+					repeat: event.repeat,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
 			return false;
 		}
 

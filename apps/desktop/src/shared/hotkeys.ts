@@ -85,7 +85,7 @@ export const HOTKEYS = {
 
 	// Layout
 	TOGGLE_SIDEBAR: {
-		keys: "meta+s",
+		keys: "meta+b",
 		label: "Toggle Sidebar",
 		category: "Layout",
 	},

@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import { HiMiniXMark } from "react-icons/hi2";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
@@ -53,15 +52,14 @@ export function GroupTabPane({
 			path={path}
 			title={childTab.title}
 			toolbarControls={
-				<Button
-					variant="link"
-					size="icon"
+				<button
+					type="button"
 					onClick={handleCloseTab}
 					title="Close pane"
-					className=" hover:text-white/80"
+					className="flex items-center justify-center size-5 rounded text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors"
 				>
-					<HiMiniXMark className="size-4" />
-				</Button>
+					<HiMiniXMark className="size-3.5" />
+				</button>
 			}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
