@@ -76,6 +76,15 @@ jobs:
           name: desktop-mac-${{ matrix.arch }}-dmg
           path: apps/desktop/release/*.dmg
           retention-days: 30
+          if-no-files-found: error
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac-${{ matrix.arch }}-zip
+          path: apps/desktop/release/*-mac.zip
+          retention-days: 30
+          if-no-files-found: error
 
       - name: Upload auto-update manifest
         uses: actions/upload-artifact@v4
