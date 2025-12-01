@@ -17,8 +17,12 @@ const config: Configuration = {
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
 
-	// Disable auto-publish - handled by separate workflow step
-	publish: null,
+	// Generate latest-mac.yml for auto-update (workflow handles actual upload)
+	publish: {
+		provider: "github",
+		owner: "superset-sh",
+		repo: "superset",
+	},
 
 	// Directories
 	directories: {
