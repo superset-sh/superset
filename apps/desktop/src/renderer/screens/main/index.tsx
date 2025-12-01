@@ -94,8 +94,9 @@ export function MainScreen() {
 	}
 
 	// Show error state with retry option
+	// Note: failureCount resets automatically on successful query
 	if (isError) {
-		const hasRepeatedFailures = failureCount >= 3;
+		const hasRepeatedFailures = failureCount >= 5;
 
 		const handleRetry = async () => {
 			setIsRetrying(true);
