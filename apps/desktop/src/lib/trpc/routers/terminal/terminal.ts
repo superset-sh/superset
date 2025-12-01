@@ -47,7 +47,11 @@ export const createTerminalRouter = () => {
 
 				// Get workspace to determine cwd and workspace name
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				const workspaceName = workspace?.name || "Workspace";
+				const worktree = workspace
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: undefined;
+				const workspaceName =
+					workspace?.name || worktree?.branch || "Workspace";
 				const cwd =
 					cwdOverride ||
 					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
