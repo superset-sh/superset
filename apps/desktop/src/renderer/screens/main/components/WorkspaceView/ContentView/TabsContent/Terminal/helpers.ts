@@ -205,15 +205,21 @@ export function setupKeyboardHandler(
 
 export function setupFocusListener(
 	xterm: XTerm,
-	onFocus: () => void,
+	workspaceId: string,
+	tabId: string,
+	setActiveTab: (workspaceId: string, tabId: string) => void,
 ): (() => void) | null {
 	const textarea = xterm.textarea;
 	if (!textarea) return null;
 
-	textarea.addEventListener("focus", onFocus);
+	const handleFocus = () => {
+		setActiveTab(workspaceId, tabId);
+	};
+
+	textarea.addEventListener("focus", handleFocus);
 
 	return () => {
-		textarea.removeEventListener("focus", onFocus);
+		textarea.removeEventListener("focus", handleFocus);
 	};
 }
 

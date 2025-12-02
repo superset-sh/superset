@@ -1,35 +1,51 @@
 import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { TabType, useActiveTabIds, useTabs } from "renderer/stores";
+import { DropOverlay } from "./DropOverlay";
 import { EmptyTabView } from "./EmptyTabView";
-import { WindowView } from "./WindowView";
+import { GroupTabView } from "./GroupTabView";
+import { SingleTabView } from "./SingleTabView";
+import { useTabContentDrop } from "./useTabContentDrop";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindowsStore((s) => s.windows);
-	const panes = useWindowsStore((s) => s.panes);
-	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
+	const allTabs = useTabs();
+	const activeTabIds = useActiveTabIds();
 
-	const windowToRender = useMemo(() => {
+	const tabToRender = useMemo(() => {
 		if (!activeWorkspaceId) return null;
-		const activeWindowId = activeWindowIds[activeWorkspaceId];
-		if (!activeWindowId) return null;
+		const activeTabId = activeTabIds[activeWorkspaceId];
+		if (!activeTabId) return null;
 
-		return allWindows.find((win) => win.id === activeWindowId) || null;
-	}, [activeWorkspaceId, activeWindowIds, allWindows]);
+		const activeTab = allTabs.find((tab) => tab.id === activeTabId);
+		if (!activeTab) return null;
 
-	if (!windowToRender) {
+		if (activeTab.parentId) {
+			const parentGroup = allTabs.find((tab) => tab.id === activeTab.parentId);
+			return parentGroup || null;
+		}
+
+		return activeTab;
+	}, [activeWorkspaceId, activeTabIds, allTabs]);
+
+	const { isDropZone, attachDrop } = useTabContentDrop(tabToRender);
+
+	if (!tabToRender) {
 		return (
-			<div className="flex-1 h-full">
+			<div ref={attachDrop} className="flex-1 h-full">
 				<EmptyTabView />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex-1 h-full">
-			<WindowView window={windowToRender} panes={panes} />
+		<div ref={attachDrop} className="flex-1 h-full relative">
+			{tabToRender.type === TabType.Single && (
+				<SingleTabView tab={tabToRender} isDropZone={isDropZone} />
+			)}
+			{tabToRender.type === TabType.Group && <GroupTabView tab={tabToRender} />}
+			{isDropZone && <DropOverlay message="Drop to create split view" />}
 		</div>
 	);
 }
