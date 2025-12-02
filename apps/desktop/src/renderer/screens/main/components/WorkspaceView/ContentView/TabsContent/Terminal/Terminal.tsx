@@ -185,6 +185,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					writeRef.current({ tabId, data: "\\\n" });
 				}
 			},
+			onClear: () => {
+				xterm.clear();
+			},
 		});
 
 		const cleanupFocus = setupFocusListener(

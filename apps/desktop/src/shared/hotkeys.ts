@@ -113,6 +113,11 @@ export const HOTKEYS = {
 		label: "Close Terminal",
 		category: "Terminal",
 	},
+	CLEAR_TERMINAL: {
+		keys: "meta+k",
+		label: "Clear Terminal",
+		category: "Terminal",
+	},
 	PREV_TERMINAL: {
 		keys: "meta+up",
 		label: "Previous Terminal",

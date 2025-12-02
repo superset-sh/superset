@@ -130,12 +130,15 @@ export function createTerminalInstance(
 export interface KeyboardHandlerOptions {
 	/** Callback for Shift+Enter to create a line continuation (like iTerm) */
 	onShiftEnter?: () => void;
+	/** Callback for Cmd+K to clear the terminal */
+	onClear?: () => void;
 }
 
 /**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
  * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
+ * - Cmd+K: Clears the terminal
  */
 export function setupKeyboardHandler(
 	xterm: XTerm,
@@ -153,6 +156,21 @@ export function setupKeyboardHandler(
 			// Block both keydown and keyup to prevent Enter from leaking through
 			if (event.type === "keydown" && options.onShiftEnter) {
 				options.onShiftEnter();
+			}
+			return false;
+		}
+
+		// Handle Cmd+K to clear terminal (handle directly since it needs xterm access)
+		const isClearShortcut =
+			event.key.toLowerCase() === "k" &&
+			event.metaKey &&
+			!event.shiftKey &&
+			!event.ctrlKey &&
+			!event.altKey;
+
+		if (isClearShortcut) {
+			if (event.type === "keydown" && options.onClear) {
+				options.onClear();
 			}
 			return false;
 		}
