@@ -1,3 +1,4 @@
+import type { MosaicNode } from "react-mosaic-component";
 import type { Pane, PaneType, Window } from "./types";
 import { generateTerminalName } from "./utils/terminal-naming";
 
@@ -20,7 +21,7 @@ export const getWindowDisplayName = (window: Window): string => {
  * Extracts all pane IDs from a mosaic layout tree
  */
 export const extractPaneIdsFromLayout = (
-	layout: import("react-mosaic-component").MosaicNode<string>,
+	layout: MosaicNode<string>,
 ): string[] => {
 	if (typeof layout === "string") {
 		return [layout];
@@ -134,9 +135,9 @@ export const isLastPaneInWindow = (
  * Returns null if the layout becomes empty after removal
  */
 export const removePaneFromLayout = (
-	layout: import("react-mosaic-component").MosaicNode<string> | null,
+	layout: MosaicNode<string> | null,
 	paneIdToRemove: string,
-): import("react-mosaic-component").MosaicNode<string> | null => {
+): MosaicNode<string> | null => {
 	if (!layout) return null;
 
 	// If layout is a leaf node (single pane ID)
@@ -167,9 +168,9 @@ export const removePaneFromLayout = (
  * Validates layout against valid pane IDs and removes any invalid references
  */
 export const cleanLayout = (
-	layout: import("react-mosaic-component").MosaicNode<string> | null,
+	layout: MosaicNode<string> | null,
 	validPaneIds: Set<string>,
-): import("react-mosaic-component").MosaicNode<string> | null => {
+): MosaicNode<string> | null => {
 	if (!layout) return null;
 
 	if (typeof layout === "string") {
@@ -198,9 +199,7 @@ export const cleanLayout = (
 /**
  * Gets the first pane ID from a layout (useful for focus fallback)
  */
-export const getFirstPaneId = (
-	layout: import("react-mosaic-component").MosaicNode<string>,
-): string => {
+export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 	if (typeof layout === "string") {
 		return layout;
 	}
