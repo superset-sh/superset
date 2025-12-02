@@ -167,7 +167,7 @@ export function TerminalSearch({
 			<button
 				type="button"
 				onClick={handleClose}
-				className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+				className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
 				title="Close (Escape)"
 			>
 				<HiXMark className="h-4 w-4" />
