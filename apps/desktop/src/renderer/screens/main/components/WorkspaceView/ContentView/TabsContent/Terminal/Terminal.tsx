@@ -1,10 +1,13 @@
 import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
+import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
+import { HOTKEYS } from "shared/hotkeys";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -12,6 +15,7 @@ import {
 	setupKeyboardHandler,
 	setupResizeHandlers,
 } from "./helpers";
+import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
 
@@ -24,11 +28,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
+	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
+	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
+	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
+
+	// Check if this terminal is the focused pane in its window
+	const isFocused = pane?.windowId
+		? focusedPaneIds[pane.windowId] === paneId
+		: false;
 
 	// Required for resolving relative file paths in terminal commands
 	const { data: workspaceCwd } =
@@ -89,6 +101,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [pane?.windowId, paneId, setFocusedPane]);
 
+	// Toggle search with Cmd+F (only for the focused terminal)
+	useHotkeys(
+		HOTKEYS.FIND_IN_TERMINAL.keys,
+		() => {
+			setIsSearchOpen((prev) => !prev);
+		},
+		{ enabled: isFocused },
+		[isFocused],
+	);
+
 	useEffect(() => {
 		const container = terminalRef.current;
 		if (!container) return;
@@ -101,6 +123,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+
+		// Load search addon for Cmd+F functionality
+		import("@xterm/addon-search").then(({ SearchAddon }) => {
+			const searchAddon = new SearchAddon();
+			xterm.loadAddon(searchAddon);
+			searchAddonRef.current = searchAddon;
+		});
+
 		// Delay enabling subscription to ensure scrollback is applied first, preventing duplicate output
 
 		const flushPendingEvents = () => {
@@ -222,6 +252,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
+			searchAddonRef.current = null;
 		};
 	}, [
 		paneId,
@@ -266,11 +297,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	return (
 		<div
 			role="application"
-			className="h-full w-full overflow-hidden"
+			className="relative h-full w-full overflow-hidden"
 			style={{ backgroundColor: terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
+			<TerminalSearch
+				searchAddon={searchAddonRef.current}
+				isOpen={isSearchOpen}
+				onClose={() => setIsSearchOpen(false)}
+			/>
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

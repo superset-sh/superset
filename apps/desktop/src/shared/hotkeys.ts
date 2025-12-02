@@ -103,6 +103,12 @@ export const HOTKEYS = {
 	},
 
 	// Terminal
+	FIND_IN_TERMINAL: {
+		keys: "meta+f",
+		label: "Find in Terminal",
+		category: "Terminal",
+		description: "Search text in the active terminal",
+	},
 	NEW_TERMINAL: {
 		keys: "meta+t",
 		label: "New Terminal",
