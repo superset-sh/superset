@@ -22,7 +22,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
 
-	const handleCreateWorkspace = (projectId: string) => {
+	const handleCreateWorkspace = async (projectId: string) => {
 		toast.promise(createWorkspace.mutateAsync({ projectId }), {
 			loading: "Creating workspace...",
 			success: () => {

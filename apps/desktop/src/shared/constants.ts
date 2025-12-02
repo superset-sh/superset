@@ -22,3 +22,6 @@ export const SUPERSET_DIR_NAME = ENVIRONMENT.IS_DEV
 	? ".superset-dev"
 	: ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
+
+// Website URL - defaults to production, can be overridden via env var for local dev
+export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.dev";

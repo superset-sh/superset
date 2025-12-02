@@ -82,6 +82,12 @@ function extractRepoName(urlInput: string): string | null {
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
+		get: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(({ input }): Project | null => {
+				return db.data.projects.find((p) => p.id === input.id) ?? null;
+			}),
+
 		getRecents: publicProcedure.query((): Project[] => {
 			return db.data.projects
 				.slice()

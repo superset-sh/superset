@@ -118,6 +118,7 @@ export const createWorkspacesRouter = () => {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
 					worktreePath,
+					projectId: project.id,
 				};
 			}),
 
