@@ -7,6 +7,7 @@ import { useWindowsStore } from "renderer/stores/tabs/store";
 import type { Window } from "renderer/stores/tabs/types";
 import { getWindowDisplayName } from "renderer/stores/tabs/utils";
 import { WindowContextMenu } from "./WindowContextMenu";
+import { Input } from "@superset/ui/input";
 
 const DRAG_TYPE = "WINDOW";
 
@@ -133,15 +134,15 @@ export function WindowItem({ window, index, isActive }: WindowItemProps) {
 				>
 					<div className="flex items-center gap-1 flex-1 min-w-0">
 						{isRenaming ? (
-							<input
+							<Input
 								ref={inputRef}
-								type="text"
+								variant="ghost"
 								value={renameValue}
 								onChange={(e) => setRenameValue(e.target.value)}
 								onBlur={submitRename}
 								onKeyDown={handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
-								className="flex-1 bg-tertiary-active border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1"
 							/>
 						) : (
 							<>
