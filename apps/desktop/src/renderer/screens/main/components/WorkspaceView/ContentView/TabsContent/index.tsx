@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useActiveWindowIds, usePanes, useWindows } from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import { EmptyTabView } from "./EmptyTabView";
 import { WindowView } from "./WindowView";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindows();
-	const panes = usePanes();
-	const activeWindowIds = useActiveWindowIds();
+	const allWindows = useWindowsStore((s) => s.windows);
+	const panes = useWindowsStore((s) => s.panes);
+	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 
 	const windowToRender = useMemo(() => {
 		if (!activeWorkspaceId) return null;

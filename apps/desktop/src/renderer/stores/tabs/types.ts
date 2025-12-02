@@ -3,7 +3,7 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 /**
  * Pane types that can be displayed within a window
  */
-export type PaneType = "terminal" | "editor" | "browser" | "preview" | "port";
+export type PaneType = "terminal";
 
 /**
  * A Pane represents a single terminal or content area within a Window.
@@ -16,11 +16,6 @@ export interface Pane {
 	name: string;
 	isNew?: boolean;
 	needsAttention?: boolean;
-	// Terminal-specific properties
-	command?: string | null;
-	cwd?: string;
-	// Browser/preview-specific properties
-	url?: string;
 }
 
 /**

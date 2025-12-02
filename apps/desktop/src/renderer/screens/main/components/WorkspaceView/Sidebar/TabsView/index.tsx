@@ -4,12 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
-import {
-	useActiveWindowIds,
-	useAddWindow,
-	useReorderWindowById,
-	useWindows,
-} from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import { WindowItem } from "./WindowItem";
 
 const DRAG_TYPE = "WINDOW";
@@ -23,10 +18,10 @@ interface DragItem {
 export function TabsView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindows();
-	const addWindow = useAddWindow();
-	const reorderWindowById = useReorderWindowById();
-	const activeWindowIds = useActiveWindowIds();
+	const allWindows = useWindowsStore((s) => s.windows);
+	const addWindow = useWindowsStore((s) => s.addWindow);
+	const reorderWindowById = useWindowsStore((s) => s.reorderWindowById);
+	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const containerRef = useRef<HTMLElement>(null);
 

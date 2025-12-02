@@ -1,14 +1,7 @@
 import { useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
-import {
-	useActiveWindowIds,
-	useAddWindow,
-	useFocusedPaneIds,
-	useRemovePane,
-	useSetActiveWindow,
-	useWindows,
-} from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
@@ -16,12 +9,12 @@ import { Sidebar } from "./Sidebar";
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindows();
-	const activeWindowIds = useActiveWindowIds();
-	const focusedPaneIds = useFocusedPaneIds();
-	const addWindow = useAddWindow();
-	const setActiveWindow = useSetActiveWindow();
-	const removePane = useRemovePane();
+	const allWindows = useWindowsStore((s) => s.windows);
+	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
+	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
+	const addWindow = useWindowsStore((s) => s.addWindow);
+	const setActiveWindow = useWindowsStore((s) => s.setActiveWindow);
+	const removePane = useWindowsStore((s) => s.removePane);
 
 	const windows = useMemo(
 		() =>

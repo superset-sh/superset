@@ -7,13 +7,8 @@ import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
-import {
-	useActiveWindowIds,
-	useAgentHookListener,
-	useFocusedPaneIds,
-	useSplitPaneHorizontal,
-	useSplitPaneVertical,
-} from "renderer/stores/tabs";
+import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
@@ -41,10 +36,10 @@ export function MainScreen() {
 		refetch,
 	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
-	const splitPaneVertical = useSplitPaneVertical();
-	const splitPaneHorizontal = useSplitPaneHorizontal();
-	const activeWindowIds = useActiveWindowIds();
-	const focusedPaneIds = useFocusedPaneIds();
+	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
+	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
+	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
+	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();

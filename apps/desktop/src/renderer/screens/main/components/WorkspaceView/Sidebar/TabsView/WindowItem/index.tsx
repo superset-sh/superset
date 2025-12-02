@@ -3,12 +3,7 @@ import { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
-import {
-	useRemoveWindow,
-	useRenameWindow,
-	useSetActiveWindow,
-	useWindowNeedsAttention,
-} from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import type { Window } from "renderer/stores/tabs/types";
 import { getWindowDisplayName } from "renderer/stores/tabs/utils";
 import { WindowContextMenu } from "./WindowContextMenu";
@@ -30,10 +25,14 @@ interface WindowItemProps {
 export function WindowItem({ window, index, isActive }: WindowItemProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const removeWindow = useRemoveWindow();
-	const setActiveWindow = useSetActiveWindow();
-	const renameWindow = useRenameWindow();
-	const needsAttention = useWindowNeedsAttention(window.id);
+	const removeWindow = useWindowsStore((s) => s.removeWindow);
+	const setActiveWindow = useWindowsStore((s) => s.setActiveWindow);
+	const renameWindow = useWindowsStore((s) => s.renameWindow);
+	const needsAttention = useWindowsStore((s) =>
+		Object.values(s.panes).some(
+			(p) => p.windowId === window.id && p.needsAttention,
+		),
+	);
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");

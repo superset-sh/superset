@@ -8,8 +8,8 @@ import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { usePanes, useWindows } from "renderer/stores";
 import { useCloseSettings } from "renderer/stores/app-state";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
 import { WorkspaceItemContextMenu } from "./WorkspaceItemContextMenu";
@@ -43,8 +43,8 @@ export function WorkspaceItem({
 	const reorderWorkspaces = useReorderWorkspaces();
 	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const windows = useWindows();
-	const panes = usePanes();
+	const windows = useWindowsStore((s) => s.windows);
+	const panes = useWindowsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
 
 	// Check if any pane in windows belonging to this workspace needs attention

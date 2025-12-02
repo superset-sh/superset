@@ -8,15 +8,7 @@ import {
 	type MosaicNode,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
-import {
-	useFocusedPaneIds,
-	useRemovePane,
-	useRemoveWindow,
-	useSetFocusedPane,
-	useSplitPaneHorizontal,
-	useSplitPaneVertical,
-	useUpdateWindowLayout,
-} from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import type { Pane, Window } from "renderer/stores/tabs/types";
 import {
 	cleanLayout,
@@ -31,13 +23,13 @@ interface WindowViewProps {
 }
 
 export function WindowView({ window, panes }: WindowViewProps) {
-	const updateWindowLayout = useUpdateWindowLayout();
-	const removePane = useRemovePane();
-	const removeWindow = useRemoveWindow();
-	const splitPaneHorizontal = useSplitPaneHorizontal();
-	const splitPaneVertical = useSplitPaneVertical();
-	const setFocusedPane = useSetFocusedPane();
-	const focusedPaneIds = useFocusedPaneIds();
+	const updateWindowLayout = useWindowsStore((s) => s.updateWindowLayout);
+	const removePane = useWindowsStore((s) => s.removePane);
+	const removeWindow = useWindowsStore((s) => s.removeWindow);
+	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
+	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
+	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
+	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
 
 	const focusedPaneId = focusedPaneIds[window.id];
 

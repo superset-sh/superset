@@ -3,7 +3,8 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { usePanes, useSetFocusedPane, useTerminalTheme } from "renderer/stores";
+import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTerminalTheme } from "renderer/stores/theme";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -17,7 +18,7 @@ import { shellEscapePaths } from "./utils";
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// tabId is actually paneId in the new model
 	const paneId = tabId;
-	const panes = usePanes();
+	const panes = useWindowsStore((s) => s.panes);
 	const pane = panes[paneId];
 	const paneName = pane?.name || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
@@ -26,7 +27,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
-	const setFocusedPane = useSetFocusedPane();
+	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
 	const terminalTheme = useTerminalTheme();
 
 	// Required for resolving relative file paths in terminal commands
