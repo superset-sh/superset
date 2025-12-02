@@ -1,10 +1,28 @@
-import { HiOutlineCodeBracketSquare, HiOutlineFolder } from "react-icons/hi2";
+import { Button } from "@superset/ui/button";
+import {
+	HiArrowTopRightOnSquare,
+	HiOutlineCodeBracketSquare,
+	HiOutlineCog6Tooth,
+	HiOutlineFolder,
+} from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
+import { OpenInButton } from "renderer/components/OpenInButton";
 import { trpc } from "renderer/lib/trpc";
+import { WEBSITE_URL } from "shared/constants";
+
+const CONFIG_TEMPLATE = `{
+  "setup": [],
+  "teardown": []
+}`;
 
 export function WorkspaceSettings() {
 	const { data: activeWorkspace, isLoading } =
 		trpc.workspaces.getActive.useQuery();
+
+	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
+		{ projectId: activeWorkspace?.projectId ?? "" },
+		{ enabled: !!activeWorkspace?.projectId },
+	);
 
 	if (isLoading) {
 		return (
@@ -122,6 +140,51 @@ export function WorkspaceSettings() {
 						</div>
 					</div>
 				</div>
+
+				{/* Configure Scripts */}
+				{activeWorkspace.project && (
+					<div className="pt-4 border-t space-y-4">
+						<div className="space-y-2">
+							<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+								<HiOutlineCog6Tooth className="h-4 w-4" />
+								Setup & Teardown Scripts
+							</h3>
+							<p className="text-sm text-muted-foreground">
+								Automate workspace setup with config.json
+							</p>
+						</div>
+
+						<div className="rounded-lg border border-border bg-card overflow-hidden">
+							{/* Header */}
+							<div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+								<span className="text-sm text-muted-foreground font-mono truncate">
+									{activeWorkspace.project.name}/.superset/config.json
+								</span>
+								<OpenInButton
+									path={configFilePath ?? undefined}
+									label="config.json"
+								/>
+							</div>
+
+							{/* Code preview */}
+							<div className="p-4 bg-background/50">
+								<pre className="text-sm font-mono text-foreground leading-relaxed">
+									{CONFIG_TEMPLATE}
+								</pre>
+							</div>
+						</div>
+
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => window.open(`${WEBSITE_URL}/scripts`, "_blank")}
+							className="gap-2"
+						>
+							Learn how to use scripts
+							<HiArrowTopRightOnSquare className="h-4 w-4" />
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	);

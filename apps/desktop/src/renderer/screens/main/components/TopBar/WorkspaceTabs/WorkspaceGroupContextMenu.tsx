@@ -118,7 +118,7 @@ export function WorkspaceGroupContextMenu({
 
 				<ContextMenuSeparator />
 
-				<div className="flex gap-2 overflow-x-auto px-2 py-1.5">
+				<div className="flex gap-2 overflow-x-auto hide-scrollbar px-2 py-1.5">
 					{PROJECT_COLORS.map((color) => (
 						<button
 							key={color.value}
