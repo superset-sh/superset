@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { CheckItem } from "main/lib/db/schemas";
 import { useState } from "react";
-import { CheckItemRow } from "./CheckItemRow";
+import { CheckItemRow } from "./components/CheckItemRow";
 
 interface ChecksListProps {
 	checks: CheckItem[];

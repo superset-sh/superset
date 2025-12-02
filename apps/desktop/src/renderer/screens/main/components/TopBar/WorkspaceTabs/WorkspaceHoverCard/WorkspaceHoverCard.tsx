@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { formatDistanceToNow } from "date-fns";
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { trpc } from "renderer/lib/trpc";
@@ -6,7 +7,6 @@ import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
 import { PRStatusBadge } from "./components/PRStatusBadge";
 import { ReviewStatus } from "./components/ReviewStatus";
-import { formatRelativeTime } from "./utils";
 
 interface WorkspaceHoverCardContentProps {
 	workspaceId: string;
@@ -39,7 +39,7 @@ export function WorkspaceHoverCardContent({
 					</code>
 					{worktreeInfo?.createdAt && (
 						<span className="text-xs text-muted-foreground whitespace-nowrap">
-							{formatRelativeTime(worktreeInfo.createdAt)}
+							{formatDistanceToNow(worktreeInfo.createdAt, { addSuffix: true })}
 						</span>
 					)}
 				</div>
