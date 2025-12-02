@@ -8,8 +8,9 @@ import { publicProcedure, router } from "../..";
 import {
 	checkNeedsRebase,
 	createWorktree,
-	fetchOriginMain,
+	fetchDefaultBranch,
 	generateBranchName,
+	getDefaultBranch,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
@@ -42,18 +43,29 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Fetch origin/main to ensure we're branching from latest (best-effort)
+				// Get default branch (lazy migration for existing projects without defaultBranch)
+				let defaultBranch = project.defaultBranch;
+				if (!defaultBranch) {
+					defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					// Save it for future use
+					await db.update((data) => {
+						const p = data.projects.find((p) => p.id === project.id);
+						if (p) p.defaultBranch = defaultBranch;
+					});
+				}
+
+				// Fetch default branch to ensure we're branching from latest (best-effort)
 				try {
-					await fetchOriginMain(project.mainRepoPath);
+					await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
 				} catch {
-					// Silently continue - origin/main still exists locally, just might be stale
+					// Silently continue - branch still exists locally, just might be stale
 				}
 
 				await createWorktree(
 					project.mainRepoPath,
 					branch,
 					worktreePath,
-					"origin/main",
+					`origin/${defaultBranch}`,
 				);
 
 				const worktree = {
@@ -474,11 +486,25 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				// Fetch origin/main to get latest
-				await fetchOriginMain(project.mainRepoPath);
+				// Get default branch (lazy migration for existing projects without defaultBranch)
+				let defaultBranch = project.defaultBranch;
+				if (!defaultBranch) {
+					defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					// Save it for future use
+					await db.update((data) => {
+						const p = data.projects.find((p) => p.id === project.id);
+						if (p) p.defaultBranch = defaultBranch;
+					});
+				}
 
-				// Check if worktree branch is behind origin/main
-				const needsRebase = await checkNeedsRebase(worktree.path);
+				// Fetch default branch to get latest
+				await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+
+				// Check if worktree branch is behind origin/{defaultBranch}
+				const needsRebase = await checkNeedsRebase(
+					worktree.path,
+					defaultBranch,
+				);
 
 				const gitStatus = {
 					branch: worktree.branch,

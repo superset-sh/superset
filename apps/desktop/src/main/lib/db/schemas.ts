@@ -7,6 +7,7 @@ export interface Project {
 	lastOpenedAt: number;
 	createdAt: number;
 	configToastDismissed?: boolean;
+	defaultBranch?: string; // Detected default branch (e.g., 'main', 'master')
 }
 
 export interface GitStatus {
