@@ -1,4 +1,4 @@
-import { app, dialog, type BrowserWindow } from "electron";
+import { app, type BrowserWindow, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { ENVIRONMENT, PLATFORM } from "shared/constants";
 

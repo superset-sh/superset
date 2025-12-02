@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
@@ -7,7 +8,6 @@ import { useWindowsStore } from "renderer/stores/tabs/store";
 import type { Window } from "renderer/stores/tabs/types";
 import { getWindowDisplayName } from "renderer/stores/tabs/utils";
 import { WindowContextMenu } from "./WindowContextMenu";
-import { Input } from "@superset/ui/input";
 
 const DRAG_TYPE = "WINDOW";
 
