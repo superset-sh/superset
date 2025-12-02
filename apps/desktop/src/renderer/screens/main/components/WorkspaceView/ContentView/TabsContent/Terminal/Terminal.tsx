@@ -115,6 +115,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const container = terminalRef.current;
 		if (!container) return;
 
+		let isUnmounted = false;
+
 		const {
 			xterm,
 			fitAddon,
@@ -126,6 +128,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Load search addon for Cmd+F functionality
 		import("@xterm/addon-search").then(({ SearchAddon }) => {
+			if (isUnmounted) return;
 			const searchAddon = new SearchAddon();
 			xterm.loadAddon(searchAddon);
 			searchAddonRef.current = searchAddon;
@@ -243,6 +246,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		return () => {
+			isUnmounted = true;
 			inputDisposable.dispose();
 			cleanupFocus?.();
 			cleanupResize();
