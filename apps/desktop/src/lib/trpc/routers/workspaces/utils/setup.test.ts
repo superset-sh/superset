@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import { loadSetupConfig } from "./setup";
 
 const TEST_DIR = join(__dirname, ".test-tmp");
@@ -9,7 +10,7 @@ const MAIN_REPO = join(TEST_DIR, "main-repo");
 describe("loadSetupConfig", () => {
 	beforeEach(() => {
 		// Create test directories
-		mkdirSync(join(MAIN_REPO, ".superset"), { recursive: true });
+		mkdirSync(join(MAIN_REPO, PROJECT_SUPERSET_DIR_NAME), { recursive: true });
 	});
 
 	afterEach(() => {
@@ -30,7 +31,7 @@ describe("loadSetupConfig", () => {
 		};
 
 		writeFileSync(
-			join(MAIN_REPO, ".superset", "config.json"),
+			join(MAIN_REPO, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME),
 			JSON.stringify(setupConfig),
 		);
 
@@ -40,7 +41,7 @@ describe("loadSetupConfig", () => {
 
 	test("returns null for invalid JSON", () => {
 		writeFileSync(
-			join(MAIN_REPO, ".superset", "config.json"),
+			join(MAIN_REPO, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME),
 			"{ invalid json",
 		);
 
@@ -50,7 +51,7 @@ describe("loadSetupConfig", () => {
 
 	test("validates setup field must be an array", () => {
 		writeFileSync(
-			join(MAIN_REPO, ".superset", "config.json"),
+			join(MAIN_REPO, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME),
 			JSON.stringify({ setup: "not-an-array" }),
 		);
 

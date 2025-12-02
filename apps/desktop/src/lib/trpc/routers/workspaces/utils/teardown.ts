@@ -1,6 +1,7 @@
 import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import type { SetupConfig } from "shared/types";
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
@@ -11,7 +12,7 @@ export interface TeardownResult {
 }
 
 function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
-	const configPath = join(mainRepoPath, ".superset", "config.json");
+	const configPath = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 
 	if (!existsSync(configPath)) {
 		return null;

@@ -1,6 +1,4 @@
-import { Button } from "@superset/ui/button";
 import {
-	HiArrowTopRightOnSquare,
 	HiOutlineCodeBracketSquare,
 	HiOutlineCog6Tooth,
 	HiOutlineFolder,
@@ -8,7 +6,6 @@ import {
 import { LuGitBranch } from "react-icons/lu";
 import { OpenInButton } from "renderer/components/OpenInButton";
 import { trpc } from "renderer/lib/trpc";
-import { WEBSITE_URL } from "shared/constants";
 
 const CONFIG_TEMPLATE = `{
   "setup": [],
@@ -48,49 +45,20 @@ export function WorkspaceSettings() {
 		);
 	}
 
-	const formatDate = (timestamp: number) => {
-		return new Date(timestamp).toLocaleDateString(undefined, {
-			year: "numeric",
-			month: "short",
-			day: "numeric",
-			hour: "2-digit",
-			minute: "2-digit",
-		});
-	};
-
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Workspace</h2>
-				<p className="text-sm text-muted-foreground mt-1">
-					Details about the current active workspace
-				</p>
 			</div>
 
 			<div className="space-y-6">
-				{/* Workspace Name */}
 				<div className="space-y-2">
 					<h3 className="text-sm font-medium text-muted-foreground">
-						Workspace Name
+						Name
 					</h3>
 					<p className="text-lg font-medium">{activeWorkspace.name}</p>
 				</div>
 
-				{/* Project Info */}
-				{activeWorkspace.project && (
-					<div className="space-y-2">
-						<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-							<HiOutlineCodeBracketSquare className="h-4 w-4" />
-							Project
-						</h3>
-						<p className="text-base">{activeWorkspace.project.name}</p>
-						<p className="text-sm text-muted-foreground font-mono">
-							{activeWorkspace.project.mainRepoPath}
-						</p>
-					</div>
-				)}
-
-				{/* Branch Info */}
 				{activeWorkspace.worktree && (
 					<div className="space-y-2">
 						<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -110,38 +78,16 @@ export function WorkspaceSettings() {
 					</div>
 				)}
 
-				{/* Worktree Path */}
 				<div className="space-y-2">
 					<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
 						<HiOutlineFolder className="h-4 w-4" />
-						Worktree Path
+						Path
 					</h3>
 					<p className="text-sm font-mono text-muted-foreground break-all">
 						{activeWorkspace.worktreePath}
 					</p>
 				</div>
 
-				{/* Timestamps */}
-				<div className="pt-4 border-t space-y-4">
-					<div className="grid grid-cols-2 gap-4">
-						<div className="space-y-1">
-							<h3 className="text-sm font-medium text-muted-foreground">
-								Created
-							</h3>
-							<p className="text-sm">{formatDate(activeWorkspace.createdAt)}</p>
-						</div>
-						<div className="space-y-1">
-							<h3 className="text-sm font-medium text-muted-foreground">
-								Last Opened
-							</h3>
-							<p className="text-sm">
-								{formatDate(activeWorkspace.lastOpenedAt)}
-							</p>
-						</div>
-					</div>
-				</div>
-
-				{/* Configure Scripts */}
 				{activeWorkspace.project && (
 					<div className="pt-4 border-t space-y-4">
 						<div className="space-y-2">
@@ -149,13 +95,9 @@ export function WorkspaceSettings() {
 								<HiOutlineCog6Tooth className="h-4 w-4" />
 								Setup & Teardown Scripts
 							</h3>
-							<p className="text-sm text-muted-foreground">
-								Automate workspace setup with config.json
-							</p>
 						</div>
 
 						<div className="rounded-lg border border-border bg-card overflow-hidden">
-							{/* Header */}
 							<div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
 								<span className="text-sm text-muted-foreground font-mono truncate">
 									{activeWorkspace.project.name}/.superset/config.json
@@ -166,23 +108,12 @@ export function WorkspaceSettings() {
 								/>
 							</div>
 
-							{/* Code preview */}
 							<div className="p-4 bg-background/50">
 								<pre className="text-sm font-mono text-foreground leading-relaxed">
 									{CONFIG_TEMPLATE}
 								</pre>
 							</div>
 						</div>
-
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => window.open(`${WEBSITE_URL}/scripts`, "_blank")}
-							className="gap-2"
-						>
-							Learn how to use scripts
-							<HiArrowTopRightOnSquare className="h-4 w-4" />
-						</Button>
 					</div>
 				)}
 			</div>

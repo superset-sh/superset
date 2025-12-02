@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { db } from "main/lib/db";
+import { CONFIG_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 function configExists(mainRepoPath: string): boolean {
-	const configPath = join(mainRepoPath, ".superset", "config.json");
+	const configPath = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 	return existsSync(configPath);
 }
 
@@ -16,12 +17,12 @@ const CONFIG_TEMPLATE = `{
 `;
 
 function getConfigPath(mainRepoPath: string): string {
-	return join(mainRepoPath, ".superset", "config.json");
+	return join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 }
 
 function ensureConfigExists(mainRepoPath: string): string {
 	const configPath = getConfigPath(mainRepoPath);
-	const supersetDir = join(mainRepoPath, ".superset");
+	const supersetDir = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME);
 
 	if (!existsSync(configPath)) {
 		// Create .superset directory if it doesn't exist
