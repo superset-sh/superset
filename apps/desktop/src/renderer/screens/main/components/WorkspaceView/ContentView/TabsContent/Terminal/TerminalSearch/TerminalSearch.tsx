@@ -1,7 +1,8 @@
+import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HiChevronDown, HiChevronUp, HiXMark } from "react-icons/hi2";
+import { HiChevronDown, HiChevronUp, HiMiniXMark } from "react-icons/hi2";
 import { PiTextAa } from "react-icons/pi";
 
 interface TerminalSearchProps {
@@ -164,14 +165,14 @@ export function TerminalSearch({
 			>
 				<HiChevronDown className="h-4 w-4" />
 			</button>
-			<button
-				type="button"
+			<Button
+				variant="ghost"
+				size="icon-sm"
 				onClick={handleClose}
-				className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
 				title="Close (Escape)"
 			>
-				<HiXMark className="h-4 w-4" />
-			</button>
+				<HiMiniXMark className="size-4" />
+			</Button>
 		</div>
 	);
 }
