@@ -11,9 +11,9 @@ declare global {
 		App: typeof API;
 		ipcRenderer: typeof ipcRendererAPI;
 		electronStore: {
-			get: (key: string) => unknown;
-			set: (key: string, value: unknown) => void;
-			delete: (key: string) => void;
+			get: (key: string) => Promise<unknown>;
+			set: (key: string, value: unknown) => Promise<void>;
+			delete: (key: string) => Promise<void>;
 		};
 		webUtils: {
 			getPathForFile: (file: File) => string;
