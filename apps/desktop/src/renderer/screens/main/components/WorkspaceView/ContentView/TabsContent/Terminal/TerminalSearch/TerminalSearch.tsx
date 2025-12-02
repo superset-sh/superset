@@ -92,7 +92,7 @@ export function TerminalSearch({
 			const found = searchAddon.findNext(query, searchOptions);
 			setMatchCount(found ? 1 : 0);
 		}
-	}, [caseSensitive, searchAddon, query, searchOptions]);
+	}, [searchAddon, query, searchOptions]);
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Escape") {
@@ -117,7 +117,7 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-3 right-4 z-10 flex items-center gap-0.5 rounded-lg border border-border/50 bg-background/90 px-1.5 py-1 shadow-md backdrop-blur-sm">
+		<div className="absolute top-2 right-3 z-10 flex items-center rounded-md bg-popover/95 shadow-lg ring-1 ring-border/40 backdrop-blur">
 			<input
 				ref={inputRef}
 				type="text"
@@ -125,24 +125,26 @@ export function TerminalSearch({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				placeholder="Find"
-				className="h-5 w-40 bg-transparent px-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
+				className="h-7 w-44 bg-transparent px-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (
-				<span className="text-xs text-muted-foreground/70 pr-1">No results</span>
+				<span className="text-xs text-muted-foreground whitespace-nowrap pr-2">
+					No results
+				</span>
 			)}
-			<div className="flex items-center border-l border-border/50 pl-1">
+			<div className="flex items-center gap-0.5 pr-1">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
 							onClick={toggleCaseSensitive}
-							className={`rounded-sm p-1 transition-colors ${
+							className={`rounded p-1.5 transition-colors ${
 								caseSensitive
-									? "bg-muted text-foreground"
-									: "text-muted-foreground/70 hover:text-foreground"
+									? "bg-primary/20 text-foreground"
+									: "text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
 							}`}
 						>
-							<PiTextAa className="size-3.5" />
+							<PiTextAa className="size-4" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">Match case</TooltipContent>
@@ -150,26 +152,26 @@ export function TerminalSearch({
 				<button
 					type="button"
 					onClick={() => handleSearch("previous")}
-					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Previous (Shift+Enter)"
 				>
-					<HiChevronUp className="size-3.5" />
+					<HiChevronUp className="size-4" />
 				</button>
 				<button
 					type="button"
 					onClick={() => handleSearch("next")}
-					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Next (Enter)"
 				>
-					<HiChevronDown className="size-3.5" />
+					<HiChevronDown className="size-4" />
 				</button>
 				<button
 					type="button"
 					onClick={handleClose}
-					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Close (Esc)"
 				>
-					<HiMiniXMark className="size-3.5" />
+					<HiMiniXMark className="size-4" />
 				</button>
 			</div>
 		</div>

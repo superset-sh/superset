@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import { HiMiniXMark } from "react-icons/hi2";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
@@ -53,15 +52,14 @@ export function WindowPane({
 			path={path}
 			title={pane.name}
 			toolbarControls={
-				<Button
-					variant="link"
-					size="icon"
+				<button
+					type="button"
 					onClick={handleClosePane}
 					title="Close pane"
-					className="hover:text-white/80"
+					className="rounded-full p-0.5 hover:bg-white/10"
 				>
 					<HiMiniXMark className="size-4" />
-				</Button>
+				</button>
 			}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>

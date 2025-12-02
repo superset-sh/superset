@@ -101,13 +101,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [pane?.windowId, paneId, setFocusedPane]);
 
+	// Auto-close search when terminal loses focus
+	useEffect(() => {
+		if (!isFocused) {
+			setIsSearchOpen(false);
+		}
+	}, [isFocused]);
+
 	// Toggle search with Cmd+F (only for the focused terminal)
 	useHotkeys(
 		HOTKEYS.FIND_IN_TERMINAL.keys,
 		() => {
 			setIsSearchOpen((prev) => !prev);
 		},
-		{ enabled: isFocused },
+		{ enabled: isFocused, preventDefault: true },
 		[isFocused],
 	);
 
