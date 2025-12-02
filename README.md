@@ -16,7 +16,7 @@
 Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
 Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
 
-<img alt="example" src="assets/example.gif" />
+<img alt="example" src="apps/website/public/hero/use-agents.gif" />
 
 ## Getting Started
 
@@ -53,7 +53,7 @@ open apps/desktop/release
 For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`)
 
 <div align="center">
-  <img width="600" alt="Creating a worktree" src="assets/create-worktree.gif" />
+  <img width="600" alt="Creating a worktree" src="apps/website/public/hero/open-worktrees.gif" />
 </div>
 <br>
 
@@ -62,7 +62,7 @@ Each workspace gets their own organized terminal system. You can create default 
 
 
 <div align="center">
-  <img width="600" alt="Creating tabs" src="assets/create-tabs.gif" />
+  <img width="600" alt="Managing terminals" src="apps/website/public/hero/manage-terminals.gif" />
 </div>
 <br>
 
