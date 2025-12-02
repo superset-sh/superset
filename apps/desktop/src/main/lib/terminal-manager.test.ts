@@ -329,12 +329,11 @@ describe("TerminalManager", () => {
 				testTmpDir,
 				".superset/terminal-history/workspace-1/tab-delete-history",
 			);
-			try {
-				await fs.stat(historyDir);
-				throw new Error("Directory should not exist");
-			} catch (error) {
-				expect((error as NodeJS.ErrnoException).code).toBe("ENOENT");
-			}
+			const exists = await fs
+				.stat(historyDir)
+				.then(() => true)
+				.catch(() => false);
+			expect(exists).toBe(false);
 		});
 
 		it("should preserve history for recovery after kill without deleteHistory", async () => {
