@@ -1,6 +1,5 @@
 import type { MosaicNode } from "react-mosaic-component";
 import type { Pane, PaneType, Window } from "./types";
-import { generateTerminalName } from "./utils/terminal-naming";
 
 /**
  * Generates a unique ID with the given prefix
@@ -39,22 +38,14 @@ export const extractPaneIdsFromLayout = (
 export const createPane = (
 	windowId: string,
 	type: PaneType = "terminal",
-	existingPanes: Record<string, Pane> = {},
 ): Pane => {
 	const id = generateId("pane");
-
-	// Generate unique terminal name based on existing panes
-	const existingNames = Object.values(existingPanes)
-		.filter((pane) => pane.type === "terminal")
-		.map((pane) => pane.name);
-	const name =
-		type === "terminal" ? generateTerminalName(existingNames) : `${type} 1`;
 
 	return {
 		id,
 		windowId,
 		type,
-		name,
+		name: "Terminal",
 		isNew: true,
 	};
 };
@@ -86,11 +77,10 @@ export const generateWindowName = (existingWindows: Window[]): string => {
  */
 export const createWindowWithPane = (
 	workspaceId: string,
-	existingPanes: Record<string, Pane> = {},
 	existingWindows: Window[] = [],
 ): { window: Window; pane: Pane } => {
 	const windowId = generateId("win");
-	const pane = createPane(windowId, "terminal", existingPanes);
+	const pane = createPane(windowId);
 
 	// Filter to same workspace for window naming
 	const workspaceWindows = existingWindows.filter(

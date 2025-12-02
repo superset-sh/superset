@@ -90,7 +90,6 @@ export const useWindowsStore = create<WindowsStore>()(
 					const state = get();
 					const { window, pane } = createWindowWithPane(
 						workspaceId,
-						state.panes,
 						state.windows,
 					);
 
@@ -306,7 +305,7 @@ export const useWindowsStore = create<WindowsStore>()(
 					const window = state.windows.find((w) => w.id === windowId);
 					if (!window) return "";
 
-					const newPane = createPane(windowId, "terminal", state.panes);
+					const newPane = createPane(windowId);
 
 					// Add pane to layout (append to the right)
 					const newLayout: MosaicNode<string> = {
@@ -430,7 +429,7 @@ export const useWindowsStore = create<WindowsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.windowId !== windowId) return;
 
-					const newPane = createPane(windowId, "terminal", state.panes);
+					const newPane = createPane(windowId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -478,7 +477,7 @@ export const useWindowsStore = create<WindowsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.windowId !== windowId) return;
 
-					const newPane = createPane(windowId, "terminal", state.panes);
+					const newPane = createPane(windowId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
