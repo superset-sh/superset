@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -118,61 +117,61 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md border border-border bg-background/95 px-2 py-1 shadow-lg backdrop-blur-sm">
+		<div className="absolute top-3 right-4 z-10 flex items-center gap-0.5 rounded-lg border border-border/50 bg-background/90 px-1.5 py-1 shadow-md backdrop-blur-sm">
 			<input
 				ref={inputRef}
 				type="text"
 				value={query}
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
-				placeholder="Find..."
-				className="h-6 w-48 bg-transparent px-1 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+				placeholder="Find"
+				className="h-5 w-40 bg-transparent px-1.5 text-xs text-foreground placeholder:text-muted-foreground/70 focus:outline-none"
 			/>
-			{matchCount !== null && query && (
-				<span className="text-xs text-muted-foreground">
-					{matchCount === 0 ? "No matches" : ""}
-				</span>
+			{matchCount === 0 && query && (
+				<span className="text-xs text-muted-foreground/70 pr-1">No results</span>
 			)}
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={toggleCaseSensitive}
-						className={`rounded p-1 ${
-							caseSensitive
-								? "bg-muted text-foreground"
-								: "text-muted-foreground hover:bg-muted hover:text-foreground"
-						}`}
-					>
-						<PiTextAa className="h-4 w-4" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent>Match case</TooltipContent>
-			</Tooltip>
-			<button
-				type="button"
-				onClick={() => handleSearch("previous")}
-				className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-				title="Previous match (Shift+Enter)"
-			>
-				<HiChevronUp className="h-4 w-4" />
-			</button>
-			<button
-				type="button"
-				onClick={() => handleSearch("next")}
-				className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-				title="Next match (Enter)"
-			>
-				<HiChevronDown className="h-4 w-4" />
-			</button>
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				onClick={handleClose}
-				title="Close (Escape)"
-			>
-				<HiMiniXMark className="size-4" />
-			</Button>
+			<div className="flex items-center border-l border-border/50 pl-1">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={toggleCaseSensitive}
+							className={`rounded-sm p-1 transition-colors ${
+								caseSensitive
+									? "bg-muted text-foreground"
+									: "text-muted-foreground/70 hover:text-foreground"
+							}`}
+						>
+							<PiTextAa className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">Match case</TooltipContent>
+				</Tooltip>
+				<button
+					type="button"
+					onClick={() => handleSearch("previous")}
+					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					title="Previous (Shift+Enter)"
+				>
+					<HiChevronUp className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={() => handleSearch("next")}
+					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					title="Next (Enter)"
+				>
+					<HiChevronDown className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={handleClose}
+					className="rounded-sm p-1 text-muted-foreground/70 transition-colors hover:text-foreground"
+					title="Close (Esc)"
+				>
+					<HiMiniXMark className="size-3.5" />
+				</button>
+			</div>
 		</div>
 	);
 }
