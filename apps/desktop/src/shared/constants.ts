@@ -27,7 +27,7 @@ export const WORKTREES_DIR_NAME = "worktrees";
 export const CONFIG_FILE_NAME = "config.json";
 
 // Website URL - defaults to production, can be overridden via env var for local dev
-export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.dev";
+export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.sh";
 
 // Config file template
 export const CONFIG_TEMPLATE = `{

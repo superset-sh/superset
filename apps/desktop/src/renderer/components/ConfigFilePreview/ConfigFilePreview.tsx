@@ -1,7 +1,13 @@
 import { cn } from "@superset/ui/utils";
 import { OpenInButton } from "renderer/components/OpenInButton";
-import { CONFIG_FILE_NAME, CONFIG_TEMPLATE, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
-
+import {
+	CONFIG_FILE_NAME,
+	CONFIG_TEMPLATE,
+	PROJECT_SUPERSET_DIR_NAME,
+	WEBSITE_URL,
+} from "shared/constants";
+import { Button } from "@superset/ui/button";
+import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 export interface ConfigFilePreviewProps {
 	projectName: string;
 	configFilePath?: string;
@@ -13,21 +19,43 @@ export function ConfigFilePreview({
 	configFilePath,
 	className,
 }: ConfigFilePreviewProps) {
+	const handleLearnMore = () => {
+		window.open(`${WEBSITE_URL}/scripts`, "_blank");
+	};
+
 	return (
-		<div className={cn("rounded-lg border border-border bg-card overflow-hidden", className)}>
-			<div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
-				<span className="text-sm text-muted-foreground font-mono truncate">
-					{projectName}/{PROJECT_SUPERSET_DIR_NAME}/{CONFIG_FILE_NAME}
-				</span>
-				<OpenInButton path={configFilePath} label={CONFIG_FILE_NAME} />
+		<>
+			<div
+				className={cn(
+					"rounded-lg border border-border bg-card overflow-hidden",
+					className,
+				)}
+			>
+				<div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
+					<span className="text-sm text-muted-foreground font-mono truncate">
+						{projectName}/{PROJECT_SUPERSET_DIR_NAME}/{CONFIG_FILE_NAME}
+					</span>
+					<OpenInButton path={configFilePath} label={CONFIG_FILE_NAME} />
+				</div>
+
+				<div className="p-4 bg-background/50">
+					<pre className="text-sm font-mono text-foreground leading-relaxed">
+						{CONFIG_TEMPLATE}
+					</pre>
+				</div>
 			</div>
 
-			<div className="p-4 bg-background/50">
-				<pre className="text-sm font-mono text-foreground leading-relaxed">
-					{CONFIG_TEMPLATE}
-				</pre>
+			<div className="mt-4">
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={handleLearnMore}
+					className="gap-2"
+				>
+					Learn how to use scripts
+					<HiArrowTopRightOnSquare className="h-4 w-4" />
+				</Button>
 			</div>
-		</div>
+		</>
 	);
 }
-

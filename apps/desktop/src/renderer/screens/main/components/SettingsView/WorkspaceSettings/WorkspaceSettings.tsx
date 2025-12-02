@@ -55,9 +55,7 @@ export function WorkspaceSettings() {
 
 			<div className="space-y-6">
 				<div className="space-y-2">
-					<h3 className="text-base font-semibold text-foreground">
-						Name
-					</h3>
+					<h3 className="text-base font-semibold text-foreground">Name</h3>
 					{rename.isRenaming ? (
 						<Input
 							ref={rename.inputRef}
@@ -87,9 +85,7 @@ export function WorkspaceSettings() {
 							Branch
 						</h3>
 						<div className="flex items-center gap-3">
-							<p>
-								{activeWorkspace.worktree.branch}
-							</p>
+							<p>{activeWorkspace.worktree.branch}</p>
 							{activeWorkspace.worktree.gitStatus?.needsRebase && (
 								<span className="px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full">
 									Needs Rebase

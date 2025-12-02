@@ -6,7 +6,11 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 function configExists(mainRepoPath: string): boolean {
-	const configPath = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
+	const configPath = join(
+		mainRepoPath,
+		PROJECT_SUPERSET_DIR_NAME,
+		CONFIG_FILE_NAME,
+	);
 	return existsSync(configPath);
 }
 

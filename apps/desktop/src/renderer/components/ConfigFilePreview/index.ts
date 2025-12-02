@@ -1,2 +1,4 @@
-export { ConfigFilePreview, type ConfigFilePreviewProps } from "./ConfigFilePreview";
-
+export {
+	ConfigFilePreview,
+	type ConfigFilePreviewProps,
+} from "./ConfigFilePreview";

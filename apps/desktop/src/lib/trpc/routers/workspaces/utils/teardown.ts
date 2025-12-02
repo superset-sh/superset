@@ -12,7 +12,11 @@ export interface TeardownResult {
 }
 
 function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
-	const configPath = join(mainRepoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
+	const configPath = join(
+		mainRepoPath,
+		PROJECT_SUPERSET_DIR_NAME,
+		CONFIG_FILE_NAME,
+	);
 
 	if (!existsSync(configPath)) {
 		return null;
