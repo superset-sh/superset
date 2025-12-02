@@ -28,3 +28,9 @@ export const CONFIG_FILE_NAME = "config.json";
 
 // Website URL - defaults to production, can be overridden via env var for local dev
 export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.dev";
+
+// Config file template
+export const CONFIG_TEMPLATE = `{
+  "setup": [],
+  "teardown": []
+}`;

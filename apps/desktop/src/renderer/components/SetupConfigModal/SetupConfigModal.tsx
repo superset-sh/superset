@@ -7,19 +7,14 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
-import { OpenInButton } from "renderer/components/OpenInButton";
+import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useCloseConfigModal,
 	useConfigModalOpen,
 	useConfigModalProjectId,
 } from "renderer/stores/config-modal";
-import { WEBSITE_URL } from "shared/constants";
-
-const CONFIG_TEMPLATE = `{
-  "setup": [],
-  "teardown": []
-}`;
+import { CONFIG_FILE_NAME, WEBSITE_URL } from "shared/constants";
 
 export function SetupConfigModal() {
 	const isOpen = useConfigModalOpen();
@@ -48,30 +43,16 @@ export function SetupConfigModal() {
 				<DialogHeader>
 					<DialogTitle>Configure scripts</DialogTitle>
 					<DialogDescription>
-						Edit config.json to automate setting up workspaces and running your
+						Edit {CONFIG_FILE_NAME} to automate setting up workspaces and running your
 						app.
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="mt-4 rounded-lg border border-border bg-card overflow-hidden">
-					{/* Header */}
-					<div className="flex items-center justify-between gap-6 px-4 py-3 border-b border-border">
-						<span className="text-sm text-muted-foreground font-mono">
-							{projectName}/.superset/config.json
-						</span>
-						<OpenInButton
-							path={configFilePath ?? undefined}
-							label="config.json"
-						/>
-					</div>
-
-					{/* Code preview */}
-					<div className="p-4 bg-background/50">
-						<pre className="text-sm font-mono text-foreground leading-relaxed">
-							{CONFIG_TEMPLATE}
-						</pre>
-					</div>
-				</div>
+				<ConfigFilePreview
+					projectName={projectName}
+					configFilePath={configFilePath ?? undefined}
+					className="mt-4"
+				/>
 
 				<div className="mt-4">
 					<Button

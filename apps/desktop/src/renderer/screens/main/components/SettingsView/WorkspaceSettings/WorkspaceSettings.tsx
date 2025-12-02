@@ -1,16 +1,13 @@
+import { Input } from "@superset/ui/input";
 import {
-	HiOutlineCodeBracketSquare,
 	HiOutlineCog6Tooth,
 	HiOutlineFolder,
+	HiOutlinePencilSquare,
 } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
-import { OpenInButton } from "renderer/components/OpenInButton";
+import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
 import { trpc } from "renderer/lib/trpc";
-
-const CONFIG_TEMPLATE = `{
-  "setup": [],
-  "teardown": []
-}`;
+import { useWorkspaceRename } from "renderer/screens/main/components/TopBar/WorkspaceTabs/useWorkspaceRename";
 
 export function WorkspaceSettings() {
 	const { data: activeWorkspace, isLoading } =
@@ -21,9 +18,14 @@ export function WorkspaceSettings() {
 		{ enabled: !!activeWorkspace?.projectId },
 	);
 
+	const rename = useWorkspaceRename(
+		activeWorkspace?.id ?? "",
+		activeWorkspace?.name ?? "",
+	);
+
 	if (isLoading) {
 		return (
-			<div className="p-6 max-w-4xl">
+			<div className="p-6 max-w-4xl select-text">
 				<div className="animate-pulse space-y-4">
 					<div className="h-8 bg-muted rounded w-1/3" />
 					<div className="h-4 bg-muted rounded w-1/2" />
@@ -46,27 +48,46 @@ export function WorkspaceSettings() {
 	}
 
 	return (
-		<div className="p-6 max-w-4xl w-full">
+		<div className="p-6 max-w-4xl w-full select-text">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Workspace</h2>
 			</div>
 
 			<div className="space-y-6">
 				<div className="space-y-2">
-					<h3 className="text-sm font-medium text-muted-foreground">
+					<h3 className="text-base font-semibold text-foreground">
 						Name
 					</h3>
-					<p className="text-lg font-medium">{activeWorkspace.name}</p>
+					{rename.isRenaming ? (
+						<Input
+							ref={rename.inputRef}
+							variant="ghost"
+							value={rename.renameValue}
+							onChange={(e) => rename.setRenameValue(e.target.value)}
+							onBlur={rename.submitRename}
+							onKeyDown={rename.handleKeyDown}
+							className="text-base"
+						/>
+					) : (
+						<button
+							type="button"
+							className="group flex items-center gap-2 cursor-pointer hover:text-foreground/80 transition-colors text-left"
+							onClick={rename.startRename}
+						>
+							<span>{activeWorkspace.name}</span>
+							<HiOutlinePencilSquare className="h-4 w-4 opacity-0 group-hover:opacity-70 transition-opacity shrink-0" />
+						</button>
+					)}
 				</div>
 
 				{activeWorkspace.worktree && (
 					<div className="space-y-2">
-						<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+						<h3 className="font-semibold text-foreground flex items-center gap-2">
 							<LuGitBranch className="h-4 w-4" />
 							Branch
 						</h3>
 						<div className="flex items-center gap-3">
-							<p className="text-base font-mono">
+							<p>
 								{activeWorkspace.worktree.branch}
 							</p>
 							{activeWorkspace.worktree.gitStatus?.needsRebase && (
@@ -79,11 +100,11 @@ export function WorkspaceSettings() {
 				)}
 
 				<div className="space-y-2">
-					<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+					<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
 						<HiOutlineFolder className="h-4 w-4" />
 						Path
 					</h3>
-					<p className="text-sm font-mono text-muted-foreground break-all">
+					<p className="text-sm font-mono break-all">
 						{activeWorkspace.worktreePath}
 					</p>
 				</div>
@@ -91,29 +112,15 @@ export function WorkspaceSettings() {
 				{activeWorkspace.project && (
 					<div className="pt-4 border-t space-y-4">
 						<div className="space-y-2">
-							<h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+							<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
 								<HiOutlineCog6Tooth className="h-4 w-4" />
-								Setup & Teardown Scripts
+								Scripts
 							</h3>
 						</div>
-
-						<div className="rounded-lg border border-border bg-card overflow-hidden">
-							<div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-border">
-								<span className="text-sm text-muted-foreground font-mono truncate">
-									{activeWorkspace.project.name}/.superset/config.json
-								</span>
-								<OpenInButton
-									path={configFilePath ?? undefined}
-									label="config.json"
-								/>
-							</div>
-
-							<div className="p-4 bg-background/50">
-								<pre className="text-sm font-mono text-foreground leading-relaxed">
-									{CONFIG_TEMPLATE}
-								</pre>
-							</div>
-						</div>
+						<ConfigFilePreview
+							projectName={activeWorkspace.project.name}
+							configFilePath={configFilePath ?? undefined}
+						/>
 					</div>
 				)}
 			</div>
