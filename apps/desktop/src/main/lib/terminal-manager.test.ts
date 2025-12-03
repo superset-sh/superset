@@ -3,8 +3,8 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pty from "node-pty";
-import { TerminalManager } from "./terminal-manager";
 import { getHistoryDir } from "./terminal-history";
+import { TerminalManager } from "./terminal-manager";
 
 // Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
 const testTmpDir = join(tmpdir(), "superset-test");
