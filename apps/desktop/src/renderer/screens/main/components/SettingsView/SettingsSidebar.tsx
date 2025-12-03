@@ -107,77 +107,86 @@ export function SettingsSidebar({
 								{section.label}
 							</button>
 						))}
-
-						{/* Projects under General */}
-						{groups.map((group) => (
-							<div key={group.project.id}>
-								{/* Project header */}
-								<div className="flex items-center">
-									<button
-										type="button"
-										onClick={() =>
-											handleProjectClick(group.workspaces[0]?.id ?? "")
-										}
-										className={cn(
-											"flex-1 flex items-center gap-2 pl-3 pr-1 py-1.5 text-sm text-left rounded-l-md transition-colors",
-											activeWorkspace?.projectId === group.project.id &&
-												activeSection === "project"
-												? "bg-accent text-accent-foreground"
-												: "hover:bg-accent/50",
-										)}
-									>
-										<div
-											className="w-2 h-2 rounded-full shrink-0"
-											style={{ backgroundColor: group.project.color }}
-										/>
-										<span className="flex-1 truncate font-medium">
-											{group.project.name}
-										</span>
-									</button>
-									<button
-										type="button"
-										onClick={() => toggleProject(group.project.id)}
-										className={cn(
-											"px-2 py-1.5 rounded-r-md transition-colors",
-											activeWorkspace?.projectId === group.project.id &&
-												activeSection === "project"
-												? "bg-accent text-accent-foreground"
-												: "hover:bg-accent/50 text-muted-foreground",
-										)}
-									>
-										{expandedProjects.has(group.project.id) ? (
-											<HiChevronDown className="h-3.5 w-3.5" />
-										) : (
-											<HiChevronRight className="h-3.5 w-3.5" />
-										)}
-									</button>
-								</div>
-
-								{/* Workspaces */}
-								{expandedProjects.has(group.project.id) && (
-									<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
-										{group.workspaces.map((workspace) => (
-											<button
-												key={workspace.id}
-												type="button"
-												onClick={() => handleWorkspaceClick(workspace.id)}
-												className={cn(
-													"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-													activeWorkspace?.id === workspace.id &&
-														activeSection === "workspace"
-														? "bg-accent text-accent-foreground"
-														: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-												)}
-											>
-												<span className="truncate">{workspace.name}</span>
-											</button>
-										))}
-									</div>
-								)}
-							</div>
-						))}
 					</nav>
 				</div>
+
+				{/* Projects */}
+				{groups.length > 0 && (
+					<div className="mb-4">
+						<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
+							Projects
+						</h2>
+						<nav className="flex flex-col gap-0.5">
+							{groups.map((group) => (
+								<div key={group.project.id}>
+									{/* Project header */}
+									<div className="flex items-center">
+										<button
+											type="button"
+											onClick={() =>
+												handleProjectClick(group.workspaces[0]?.id ?? "")
+											}
+											className={cn(
+												"flex-1 flex items-center gap-2 pl-3 pr-1 py-1.5 text-sm text-left rounded-l-md transition-colors",
+												activeWorkspace?.projectId === group.project.id &&
+													activeSection === "project"
+													? "bg-accent text-accent-foreground"
+													: "hover:bg-accent/50",
+											)}
+										>
+											<div
+												className="w-2 h-2 rounded-full shrink-0"
+												style={{ backgroundColor: group.project.color }}
+											/>
+											<span className="flex-1 truncate font-medium">
+												{group.project.name}
+											</span>
+										</button>
+										<button
+											type="button"
+											onClick={() => toggleProject(group.project.id)}
+											className={cn(
+												"px-2 py-1.5 rounded-r-md transition-colors",
+												activeWorkspace?.projectId === group.project.id &&
+													activeSection === "project"
+													? "bg-accent text-accent-foreground"
+													: "hover:bg-accent/50 text-muted-foreground",
+											)}
+										>
+											{expandedProjects.has(group.project.id) ? (
+												<HiChevronDown className="h-3.5 w-3.5" />
+											) : (
+												<HiChevronRight className="h-3.5 w-3.5" />
+											)}
+										</button>
+									</div>
+
+									{/* Workspaces */}
+									{expandedProjects.has(group.project.id) && (
+										<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
+											{group.workspaces.map((workspace) => (
+												<button
+													key={workspace.id}
+													type="button"
+													onClick={() => handleWorkspaceClick(workspace.id)}
+													className={cn(
+														"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
+														activeWorkspace?.id === workspace.id &&
+															activeSection === "workspace"
+															? "bg-accent text-accent-foreground"
+															: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+													)}
+												>
+													<span className="truncate">{workspace.name}</span>
+												</button>
+											))}
+										</div>
+									)}
+								</div>
+							))}
+						</nav>
+					</div>
+				)}
 			</div>
 		</div>
 	);
