@@ -1,22 +1,12 @@
 import { Input } from "@superset/ui/input";
-import {
-	HiOutlineCog6Tooth,
-	HiOutlineFolder,
-	HiOutlinePencilSquare,
-} from "react-icons/hi2";
+import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
-import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
 import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceRename } from "renderer/screens/main/components/TopBar/WorkspaceTabs/useWorkspaceRename";
 
 export function WorkspaceSettings() {
 	const { data: activeWorkspace, isLoading } =
 		trpc.workspaces.getActive.useQuery();
-
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
-		{ projectId: activeWorkspace?.projectId ?? "" },
-		{ enabled: !!activeWorkspace?.projectId },
-	);
 
 	const rename = useWorkspaceRename(
 		activeWorkspace?.id ?? "",
@@ -104,22 +94,6 @@ export function WorkspaceSettings() {
 						{activeWorkspace.worktreePath}
 					</p>
 				</div>
-
-				{activeWorkspace.project && (
-					<div className="pt-4 border-t space-y-4">
-						<div className="space-y-2">
-							<h3 className="text-base font-semibold text-foreground flex items-center gap-2">
-								<HiOutlineCog6Tooth className="h-4 w-4" />
-								Scripts
-							</h3>
-						</div>
-						<ConfigFilePreview
-							projectId={activeWorkspace.project.id}
-							projectName={activeWorkspace.project.name}
-							configFilePath={configFilePath ?? undefined}
-						/>
-					</div>
-				)}
 			</div>
 		</div>
 	);

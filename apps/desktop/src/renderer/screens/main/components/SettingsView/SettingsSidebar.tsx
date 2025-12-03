@@ -4,8 +4,8 @@ import {
 	HiArrowLeft,
 	HiChevronDown,
 	HiChevronRight,
+	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
-	HiOutlineFolder,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -22,11 +22,6 @@ const GENERAL_SECTIONS: {
 	label: string;
 	icon: React.ReactNode;
 }[] = [
-	{
-		id: "workspace",
-		label: "Workspace",
-		icon: <HiOutlineFolder className="h-4 w-4" />,
-	},
 	{
 		id: "appearance",
 		label: "Appearance",
@@ -64,6 +59,12 @@ export function SettingsSidebar({
 		});
 	};
 
+	const handleProjectClick = (workspaceId: string) => {
+		// Set a workspace from this project as active to show project settings
+		setActiveWorkspace.mutate({ id: workspaceId });
+		onSectionChange("project");
+	};
+
 	const handleWorkspaceClick = (workspaceId: string) => {
 		setActiveWorkspace.mutate({ id: workspaceId });
 		onSectionChange("workspace");
@@ -88,7 +89,7 @@ export function SettingsSidebar({
 			<div className="flex-1 overflow-y-auto min-h-0">
 				<div className="mb-4">
 					<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
-						Workspaces
+						Projects
 					</h2>
 					<nav className="flex flex-col gap-0.5">
 						{groups.map((group) => (
@@ -113,9 +114,28 @@ export function SettingsSidebar({
 									)}
 								</button>
 
-								{/* Workspaces */}
+								{/* Project Settings & Workspaces */}
 								{expandedProjects.has(group.project.id) && (
 									<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
+										{/* Project Settings */}
+										<button
+											type="button"
+											onClick={() =>
+												handleProjectClick(group.workspaces[0]?.id ?? "")
+											}
+											className={cn(
+												"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
+												activeWorkspace?.projectId === group.project.id &&
+													activeSection === "project"
+													? "bg-accent text-accent-foreground"
+													: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+											)}
+										>
+											<HiOutlineCog6Tooth className="h-3.5 w-3.5" />
+											<span className="truncate">Project Settings</span>
+										</button>
+
+										{/* Workspaces */}
 										{group.workspaces.map((workspace) => (
 											<button
 												key={workspace.id}
