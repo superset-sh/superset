@@ -143,6 +143,7 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 					size="icon"
 					aria-label="Add new cloud workspace"
 					disabled={isCreating}
+					className="ml-1 mt-1 size-7"
 				>
 					<HiMiniCloud className="size-4 text-blue-400" />
 				</Button>
