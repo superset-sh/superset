@@ -85,13 +85,31 @@ export function SettingsSidebar({
 			{/* Settings title */}
 			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
 
-			{/* Projects & Workspaces */}
 			<div className="flex-1 overflow-y-auto min-h-0">
+				{/* General Settings */}
 				<div className="mb-4">
 					<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
-						Projects
+						General
 					</h2>
 					<nav className="flex flex-col gap-0.5">
+						{GENERAL_SECTIONS.map((section) => (
+							<button
+								key={section.id}
+								type="button"
+								onClick={() => onSectionChange(section.id)}
+								className={cn(
+									"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
+									activeSection === section.id
+										? "bg-accent text-accent-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+								)}
+							>
+								{section.icon}
+								{section.label}
+							</button>
+						))}
+
+						{/* Projects under General */}
 						{groups.map((group) => (
 							<div key={group.project.id}>
 								{/* Project header */}
@@ -155,31 +173,6 @@ export function SettingsSidebar({
 									</div>
 								)}
 							</div>
-						))}
-					</nav>
-				</div>
-
-				{/* General Settings */}
-				<div>
-					<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
-						General
-					</h2>
-					<nav className="flex flex-col gap-0.5">
-						{GENERAL_SECTIONS.map((section) => (
-							<button
-								key={section.id}
-								type="button"
-								onClick={() => onSectionChange(section.id)}
-								className={cn(
-									"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
-									activeSection === section.id
-										? "bg-accent text-accent-foreground"
-										: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-								)}
-							>
-								{section.icon}
-								{section.label}
-							</button>
 						))}
 					</nav>
 				</div>
