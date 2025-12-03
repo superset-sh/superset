@@ -4,7 +4,6 @@ import {
 	HiArrowLeft,
 	HiChevronDown,
 	HiChevronRight,
-	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
@@ -113,47 +112,50 @@ export function SettingsSidebar({
 						{groups.map((group) => (
 							<div key={group.project.id}>
 								{/* Project header */}
-								<button
-									type="button"
-									onClick={() => toggleProject(group.project.id)}
-									className="flex items-center gap-2 px-3 py-1.5 text-sm w-full text-left hover:bg-accent/50 rounded-md transition-colors"
-								>
-									<div
-										className="w-2 h-2 rounded-full shrink-0"
-										style={{ backgroundColor: group.project.color }}
-									/>
-									<span className="flex-1 truncate font-medium">
-										{group.project.name}
-									</span>
-									{expandedProjects.has(group.project.id) ? (
-										<HiChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-									) : (
-										<HiChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-									)}
-								</button>
+								<div className="flex items-center">
+									<button
+										type="button"
+										onClick={() =>
+											handleProjectClick(group.workspaces[0]?.id ?? "")
+										}
+										className={cn(
+											"flex-1 flex items-center gap-2 pl-3 pr-1 py-1.5 text-sm text-left rounded-l-md transition-colors",
+											activeWorkspace?.projectId === group.project.id &&
+												activeSection === "project"
+												? "bg-accent text-accent-foreground"
+												: "hover:bg-accent/50",
+										)}
+									>
+										<div
+											className="w-2 h-2 rounded-full shrink-0"
+											style={{ backgroundColor: group.project.color }}
+										/>
+										<span className="flex-1 truncate font-medium">
+											{group.project.name}
+										</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => toggleProject(group.project.id)}
+										className={cn(
+											"px-2 py-1.5 rounded-r-md transition-colors",
+											activeWorkspace?.projectId === group.project.id &&
+												activeSection === "project"
+												? "bg-accent text-accent-foreground"
+												: "hover:bg-accent/50 text-muted-foreground",
+										)}
+									>
+										{expandedProjects.has(group.project.id) ? (
+											<HiChevronDown className="h-3.5 w-3.5" />
+										) : (
+											<HiChevronRight className="h-3.5 w-3.5" />
+										)}
+									</button>
+								</div>
 
-								{/* Project Settings & Workspaces */}
+								{/* Workspaces */}
 								{expandedProjects.has(group.project.id) && (
 									<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
-										{/* Project Settings */}
-										<button
-											type="button"
-											onClick={() =>
-												handleProjectClick(group.workspaces[0]?.id ?? "")
-											}
-											className={cn(
-												"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
-												activeWorkspace?.projectId === group.project.id &&
-													activeSection === "project"
-													? "bg-accent text-accent-foreground"
-													: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-											)}
-										>
-											<HiOutlineCog6Tooth className="h-3.5 w-3.5" />
-											<span className="truncate">Project Settings</span>
-										</button>
-
-										{/* Workspaces */}
 										{group.workspaces.map((workspace) => (
 											<button
 												key={workspace.id}
