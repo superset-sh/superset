@@ -114,6 +114,7 @@ export function WorkspaceSettings() {
 							</h3>
 						</div>
 						<ConfigFilePreview
+							projectId={activeWorkspace.project.id}
 							projectName={activeWorkspace.project.name}
 							configFilePath={configFilePath ?? undefined}
 						/>

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { db } from "main/lib/db";
 import { z } from "zod";
@@ -76,6 +76,28 @@ export const createConfigRouter = () => {
 					return null;
 				}
 				return ensureConfigExists(project.mainRepoPath);
+			}),
+
+		// Get the config file content
+		getConfigContent: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) {
+					return { content: null, exists: false };
+				}
+
+				const configPath = getConfigPath(project.mainRepoPath);
+				if (!existsSync(configPath)) {
+					return { content: null, exists: false };
+				}
+
+				try {
+					const content = readFileSync(configPath, "utf-8");
+					return { content, exists: true };
+				} catch {
+					return { content: null, exists: false };
+				}
 			}),
 	});
 };

@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { OpenInButton } from "renderer/components/OpenInButton";
+import { trpc } from "renderer/lib/trpc";
 import {
 	CONFIG_FILE_NAME,
 	CONFIG_TEMPLATE,
@@ -10,19 +11,31 @@ import {
 } from "shared/constants";
 
 export interface ConfigFilePreviewProps {
+	projectId: string;
 	projectName: string;
 	configFilePath?: string;
 	className?: string;
 }
 
 export function ConfigFilePreview({
+	projectId,
 	projectName,
 	configFilePath,
 	className,
 }: ConfigFilePreviewProps) {
+	const { data: configData } = trpc.config.getConfigContent.useQuery(
+		{ projectId },
+		{ enabled: !!projectId },
+	);
+
 	const handleLearnMore = () => {
 		window.open(`${WEBSITE_URL}/scripts`, "_blank");
 	};
+
+	const displayContent =
+		configData?.exists && configData.content
+			? configData.content
+			: CONFIG_TEMPLATE;
 
 	return (
 		<>
@@ -40,8 +53,8 @@ export function ConfigFilePreview({
 				</div>
 
 				<div className="p-4 bg-background/50">
-					<pre className="text-sm font-mono text-foreground leading-relaxed">
-						{CONFIG_TEMPLATE}
+					<pre className="text-sm font-mono text-foreground leading-relaxed whitespace-pre-wrap">
+						{displayContent}
 					</pre>
 				</div>
 			</div>
