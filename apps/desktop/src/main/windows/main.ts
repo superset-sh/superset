@@ -65,11 +65,16 @@ export async function MainWindow() {
 	notificationsEmitter.on("agent-complete", (event: AgentCompleteEvent) => {
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
+			const hasWorkspaceName =
+				event.workspaceName && event.workspaceName !== "Workspace";
+
+			const baseTitle = isPermissionRequest ? "Input Needed" : "Agent Complete";
+			const title = hasWorkspaceName
+				? `${baseTitle} — ${event.workspaceName}`
+				: baseTitle;
 
 			const notification = new Notification({
-				title: isPermissionRequest
-					? `Input Needed — ${event.workspaceName}`
-					: `Agent Complete — ${event.workspaceName}`,
+				title,
 				body: isPermissionRequest
 					? `"${event.tabTitle}" needs your attention`
 					: `"${event.tabTitle}" has finished its task`,
