@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	HiArrowLeft,
 	HiChevronDown,
@@ -42,9 +42,15 @@ export function SettingsSidebar({
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
-		() =>
-			new Set(activeWorkspace?.projectId ? [activeWorkspace.projectId] : []),
+		new Set(),
 	);
+
+	// Expand all projects by default when groups are loaded
+	useEffect(() => {
+		if (groups.length > 0) {
+			setExpandedProjects(new Set(groups.map((g) => g.project.id)));
+		}
+	}, [groups]);
 
 	const toggleProject = (projectId: string) => {
 		setExpandedProjects((prev) => {
