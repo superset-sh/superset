@@ -4,6 +4,7 @@ import { MosaicWindow } from "react-mosaic-component";
 import type { Pane } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { WebView } from "../WebView";
 
 interface WindowPaneProps {
 	paneId: string;
@@ -70,7 +71,10 @@ export function WindowPane({
 			>
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Terminal handles its own keyboard events and focus */}
 				<div className="w-full h-full overflow-hidden" onClick={handleFocus}>
-					<Terminal tabId={paneId} workspaceId={workspaceId} />
+					{pane.type === "terminal" && (
+						<Terminal tabId={paneId} workspaceId={workspaceId} />
+					)}
+					{pane.type === "webview" && <WebView url={pane.url} />}
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

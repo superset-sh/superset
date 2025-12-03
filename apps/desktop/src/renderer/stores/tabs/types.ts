@@ -3,20 +3,39 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 /**
  * Pane types that can be displayed within a window
  */
-export type PaneType = "terminal";
+export type PaneType = "terminal" | "webview";
+
+/**
+ * Base pane properties shared by all pane types
+ */
+interface BasePaneProps {
+	id: string;
+	windowId: string;
+	name: string;
+	isNew?: boolean;
+	needsAttention?: boolean;
+}
+
+/**
+ * Terminal pane - displays a terminal emulator
+ */
+export interface TerminalPane extends BasePaneProps {
+	type: "terminal";
+}
+
+/**
+ * Webview pane - displays a web page (used for cloud workspaces)
+ */
+export interface WebviewPane extends BasePaneProps {
+	type: "webview";
+	url: string;
+}
 
 /**
  * A Pane represents a single terminal or content area within a Window.
  * Panes always belong to a Window and are referenced by ID in the Window's layout.
  */
-export interface Pane {
-	id: string;
-	windowId: string;
-	type: PaneType;
-	name: string;
-	isNew?: boolean;
-	needsAttention?: boolean;
-}
+export type Pane = TerminalPane | WebviewPane;
 
 /**
  * A Window is a container that holds one or more Panes in a Mosaic layout.
@@ -64,6 +83,9 @@ export interface WindowsStore extends WindowsState {
 	setFocusedPane: (windowId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
+
+	// Cloud/Webview operations
+	addWebviewWindow: (workspaceId: string, url: string, name?: string) => string;
 
 	// Split operations
 	splitPaneVertical: (

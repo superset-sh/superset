@@ -1,5 +1,5 @@
 import type { MosaicNode } from "react-mosaic-component";
-import type { Pane, PaneType, Window } from "./types";
+import type { Pane, TerminalPane, WebviewPane, Window } from "./types";
 
 /**
  * Generates a unique ID with the given prefix
@@ -33,21 +33,57 @@ export const extractPaneIdsFromLayout = (
 };
 
 /**
- * Creates a new pane with the given properties
+ * Creates a new terminal pane
  */
-export const createPane = (
-	windowId: string,
-	type: PaneType = "terminal",
-): Pane => {
+export const createPane = (windowId: string): TerminalPane => {
 	const id = generateId("pane");
 
 	return {
 		id,
 		windowId,
-		type,
+		type: "terminal",
 		name: "Terminal",
 		isNew: true,
 	};
+};
+
+/**
+ * Creates a new webview pane for cloud workspaces
+ */
+export const createWebviewPane = (
+	windowId: string,
+	url: string,
+	name?: string,
+): WebviewPane => {
+	const id = generateId("pane");
+
+	// Derive name from URL if not provided
+	const derivedName = name || getWebviewNameFromUrl(url);
+
+	return {
+		id,
+		windowId,
+		type: "webview",
+		name: derivedName,
+		url,
+		isNew: true,
+	};
+};
+
+/**
+ * Extract a friendly name from a cloud URL
+ * URLs look like: https://7030-sandboxid.e2b.app or https://8888-sandboxid.e2b.app
+ */
+const getWebviewNameFromUrl = (url: string): string => {
+	const portMatch = url.match(/(\d+)-[a-z0-9-]+\.e2b\.app/);
+	if (portMatch) {
+		const port = portMatch[1];
+		// 7030 = claude agent, 8888 = webssh terminal
+		if (port === "7030") return "Cloud Agent";
+		if (port === "8888") return "Cloud SSH";
+		return `Cloud (${port})`;
+	}
+	return "Cloud View";
 };
 
 /**

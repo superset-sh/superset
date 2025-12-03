@@ -3,11 +3,13 @@ import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { electronStorage } from "../../lib/electron-storage";
-import type { WindowsState, WindowsStore } from "./types";
+import type { Window, WindowsState, WindowsStore } from "./types";
 import {
 	createPane,
+	createWebviewPane,
 	createWindowWithPane,
 	extractPaneIdsFromLayout,
+	generateId,
 	getFirstPaneId,
 	getPaneIdsForWindow,
 	isLastPaneInWindow,
@@ -418,6 +420,50 @@ export const useWindowsStore = create<WindowsStore>()(
 								: state.panes[paneId],
 						},
 					}));
+				},
+
+				// Cloud/Webview operations
+				addWebviewWindow: (workspaceId, url, name) => {
+					const state = get();
+					const windowId = generateId("win");
+					const pane = createWebviewPane(windowId, url, name);
+
+					// Use the pane name as the window name for cloud windows
+					const window: Window = {
+						id: windowId,
+						name: pane.name,
+						workspaceId,
+						layout: pane.id, // Single pane = leaf node
+						createdAt: Date.now(),
+					};
+
+					const currentActiveId = state.activeWindowIds[workspaceId];
+					const historyStack = state.windowHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						windows: [...state.windows, window],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeWindowIds: {
+							...state.activeWindowIds,
+							[workspaceId]: window.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[window.id]: pane.id,
+						},
+						windowHistoryStacks: {
+							...state.windowHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return window.id;
 				},
 
 				// Split operations
