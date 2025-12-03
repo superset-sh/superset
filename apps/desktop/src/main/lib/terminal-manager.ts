@@ -116,6 +116,7 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		if (recoveredScrollback) {
+			// Strip protocol responses from recovered history so replays stay clean
 			const recoveryFilter = new TerminalEscapeFilter();
 			recoveredScrollback =
 				recoveryFilter.filter(recoveredScrollback) + recoveryFilter.flush();
