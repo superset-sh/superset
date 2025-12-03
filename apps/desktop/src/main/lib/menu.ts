@@ -1,4 +1,5 @@
 import { app, type BrowserWindow, Menu } from "electron";
+import { checkForUpdatesInteractive } from "./auto-updater";
 
 export function createApplicationMenu(mainWindow: BrowserWindow) {
 	const template: Electron.MenuItemConstructorOptions[] = [
@@ -63,6 +64,12 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 			label: app.name,
 			submenu: [
 				{ role: "about" },
+				{
+					label: "Check for Updates...",
+					click: () => {
+						checkForUpdatesInteractive();
+					},
+				},
 				{ type: "separator" },
 				{ role: "services" },
 				{ type: "separator" },

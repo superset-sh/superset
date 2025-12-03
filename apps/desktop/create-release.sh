@@ -170,6 +170,8 @@ else
     # Update the version using jq to handle workspace dependencies
     TMP_FILE=$(mktemp)
     jq ".version = \"${VERSION}\"" package.json > "${TMP_FILE}" && mv "${TMP_FILE}" package.json
+    # Format package.json to match project conventions (jq reformats the JSON)
+    bunx biome format --write package.json
     success "Updated package.json from ${CURRENT_VERSION} to ${VERSION}"
 
     # Commit the version change

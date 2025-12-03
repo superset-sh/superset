@@ -3,7 +3,7 @@ import { join } from "node:path";
 import type { SetupConfig } from "shared/types";
 
 export function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
-	const configPath = join(mainRepoPath, ".superset", "setup.json");
+	const configPath = join(mainRepoPath, ".superset", "config.json");
 
 	if (!existsSync(configPath)) {
 		return null;

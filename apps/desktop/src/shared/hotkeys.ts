@@ -85,24 +85,30 @@ export const HOTKEYS = {
 
 	// Layout
 	TOGGLE_SIDEBAR: {
-		keys: "meta+s",
+		keys: "meta+b",
 		label: "Toggle Sidebar",
 		category: "Layout",
 	},
 	SPLIT_HORIZONTAL: {
 		keys: "meta+d",
-		label: "Split Terminal Window Horizontal",
+		label: "Split Right",
 		category: "Layout",
-		description: "Create a horizontal split view",
+		description: "Split the current pane to the right",
 	},
 	SPLIT_VERTICAL: {
 		keys: "meta+shift+d",
-		label: "Split Terminal Window Vertical",
+		label: "Split Down",
 		category: "Layout",
-		description: "Create a vertical split view",
+		description: "Split the current pane downward",
 	},
 
 	// Terminal
+	FIND_IN_TERMINAL: {
+		keys: "meta+f",
+		label: "Find in Terminal",
+		category: "Terminal",
+		description: "Search text in the active terminal",
+	},
 	NEW_TERMINAL: {
 		keys: "meta+t",
 		label: "New Terminal",
@@ -111,6 +117,11 @@ export const HOTKEYS = {
 	CLOSE_TERMINAL: {
 		keys: "meta+w",
 		label: "Close Terminal",
+		category: "Terminal",
+	},
+	CLEAR_TERMINAL: {
+		keys: "meta+k",
+		label: "Clear Terminal",
 		category: "Terminal",
 	},
 	PREV_TERMINAL: {

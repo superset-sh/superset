@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useState } from "react";
 import { DownloadButton } from "../DownloadButton";
-import { JoinWaitlistButton } from "../JoinWaitlistButton";
 import { SocialLinks } from "../SocialLinks";
 import { WaitlistModal } from "../WaitlistModal";
 
@@ -50,12 +49,7 @@ export function Header() {
 							<SocialLinks />
 							<DownloadButton
 								size="sm"
-								className="hidden"
-								onJoinWindowsWaitlist={() => setIsWaitlistOpen(true)}
-							/>
-							<JoinWaitlistButton
-								onClick={() => setIsWaitlistOpen(true)}
-								size="sm"
+								onJoinWaitlist={() => setIsWaitlistOpen(true)}
 							/>
 						</motion.div>
 					</div>

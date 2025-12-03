@@ -6,6 +6,8 @@ export interface Project {
 	tabOrder: number | null;
 	lastOpenedAt: number;
 	createdAt: number;
+	configToastDismissed?: boolean;
+	defaultBranch?: string; // Detected default branch (e.g., 'main', 'master')
 }
 
 export interface CloudSandbox {

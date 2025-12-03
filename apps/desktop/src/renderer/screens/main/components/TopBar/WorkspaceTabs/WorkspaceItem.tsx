@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -12,7 +13,8 @@ import {
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { useTabs } from "renderer/stores";
+import { useCloseSettings } from "renderer/stores/app-state";
+import { useWindowsStore } from "renderer/stores/tabs/store";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
 import { WorkspaceItemContextMenu } from "./WorkspaceItemContextMenu";
@@ -46,8 +48,10 @@ export function WorkspaceItem({
 }: WorkspaceItemProps) {
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
+	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const tabs = useTabs();
+	const windows = useWindowsStore((s) => s.windows);
+	const panes = useWindowsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
 
 	// Fetch cloud status for this worktree (polls every 30s if it has a sandbox)
@@ -59,9 +63,33 @@ export function WorkspaceItem({
 	const isCloudWorkspace = cloudStatus?.hasCloud === true;
 	const isSandboxStopped = isCloudWorkspace && cloudStatus.status === "stopped";
 
-	const needsAttention = tabs
-		.filter((t) => t.workspaceId === id)
-		.some((t) => t.needsAttention);
+	// Check if any pane in windows belonging to this workspace needs attention
+	const workspaceWindows = windows.filter((w) => w.workspaceId === id);
+	const workspacePaneIds = new Set(
+		workspaceWindows.flatMap((w) => {
+			// Extract pane IDs from the layout (which is a MosaicNode<string>)
+			const collectPaneIds = (node: unknown): string[] => {
+				if (typeof node === "string") return [node];
+				if (
+					node &&
+					typeof node === "object" &&
+					"first" in node &&
+					"second" in node
+				) {
+					const branch = node as { first: unknown; second: unknown };
+					return [
+						...collectPaneIds(branch.first),
+						...collectPaneIds(branch.second),
+					];
+				}
+				return [];
+			};
+			return collectPaneIds(w.layout);
+		}),
+	);
+	const needsAttention = Object.values(panes)
+		.filter((p) => workspacePaneIds.has(p.id))
+		.some((p) => p.needsAttention);
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
@@ -105,7 +133,12 @@ export function WorkspaceItem({
 						ref={(node) => {
 							drag(drop(node));
 						}}
-						onMouseDown={() => !rename.isRenaming && setActive.mutate({ id })}
+						onMouseDown={() => {
+							if (!rename.isRenaming) {
+								closeSettings();
+								setActive.mutate({ id });
+							}
+						}}
 						onDoubleClick={rename.startRename}
 						onMouseEnter={onMouseEnter}
 						onMouseLeave={onMouseLeave}
@@ -121,16 +154,16 @@ export function WorkspaceItem({
 						style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 					>
 						{rename.isRenaming ? (
-							<input
+							<Input
 								ref={rename.inputRef}
-								type="text"
+								variant="ghost"
 								value={rename.renameValue}
 								onChange={(e) => rename.setRenameValue(e.target.value)}
 								onBlur={rename.submitRename}
 								onKeyDown={rename.handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
 								onMouseDown={(e) => e.stopPropagation()}
-								className="flex-1 min-w-0 bg-muted border border-primary rounded px-1 py-0.5 text-sm outline-none"
+								className="flex-1 min-w-0 px-1 py-0.5"
 							/>
 						) : (
 							<>
@@ -150,7 +183,15 @@ export function WorkspaceItem({
 										)}
 									</span>
 								)}
-								<span className="text-sm whitespace-nowrap truncate flex-1 text-left">
+								<span
+									className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left"
+									style={{
+										maskImage:
+											"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+										WebkitMaskImage:
+											"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+									}}
+								>
 									{title}
 								</span>
 								{needsAttention && (

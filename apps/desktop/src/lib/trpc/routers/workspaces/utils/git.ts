@@ -119,28 +119,73 @@ export async function worktreeExists(
 }
 
 /**
- * Fetches origin/main and returns the latest commit SHA
- * @param mainRepoPath - Path to the main repository
- * @returns The commit SHA of origin/main after fetch
+ * Detects the default branch of a repository by checking:
+ * 1. Remote HEAD reference (origin/HEAD -> origin/main or origin/master)
+ * 2. Common branch names (main, master, develop, trunk)
+ * 3. Fallback to 'main'
  */
-export async function fetchOriginMain(mainRepoPath: string): Promise<string> {
+export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	const git = simpleGit(mainRepoPath);
-	await git.fetch("origin", "main");
-	const commit = await git.revparse("origin/main");
+
+	// Method 1: Check origin/HEAD symbolic ref
+	try {
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
+		// Returns something like 'refs/remotes/origin/main'
+		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+		if (match) return match[1];
+	} catch {
+		// origin/HEAD not set, continue to fallback
+	}
+
+	// Method 2: Check which common branches exist on remote
+	try {
+		const branches = await git.branch(["-r"]);
+		const remoteBranches = branches.all.map((b) => b.replace("origin/", ""));
+
+		for (const candidate of ["main", "master", "develop", "trunk"]) {
+			if (remoteBranches.includes(candidate)) {
+				return candidate;
+			}
+		}
+	} catch {
+		// Failed to list branches
+	}
+
+	// Fallback
+	return "main";
+}
+
+/**
+ * Fetches the default branch from origin and returns the latest commit SHA
+ * @param mainRepoPath - Path to the main repository
+ * @param defaultBranch - The default branch name (e.g., 'main', 'master')
+ * @returns The commit SHA of origin/{defaultBranch} after fetch
+ */
+export async function fetchDefaultBranch(
+	mainRepoPath: string,
+	defaultBranch: string,
+): Promise<string> {
+	const git = simpleGit(mainRepoPath);
+	await git.fetch("origin", defaultBranch);
+	const commit = await git.revparse(`origin/${defaultBranch}`);
 	return commit.trim();
 }
 
 /**
- * Checks if a worktree's branch is behind origin/main
+ * Checks if a worktree's branch is behind the default branch
  * @param worktreePath - Path to the worktree
- * @returns true if the branch has commits on origin/main that it doesn't have
+ * @param defaultBranch - The default branch name (e.g., 'main', 'master')
+ * @returns true if the branch has commits on origin/{defaultBranch} that it doesn't have
  */
-export async function checkNeedsRebase(worktreePath: string): Promise<boolean> {
+export async function checkNeedsRebase(
+	worktreePath: string,
+	defaultBranch: string,
+): Promise<boolean> {
 	const git = simpleGit(worktreePath);
 	const behindCount = await git.raw([
 		"rev-list",
 		"--count",
-		"HEAD..origin/main",
+		`HEAD..origin/${defaultBranch}`,
 	]);
 	return Number.parseInt(behindCount.trim(), 10) > 0;
 }

@@ -2,9 +2,14 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCurrentView,
+	useIsSettingsTabOpen,
+} from "renderer/stores/app-state";
 import { HOTKEYS } from "shared/hotkeys";
 import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
 import { DanglingSandboxItem } from "./DanglingSandboxItem";
+import { SettingsTab } from "./SettingsTab";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
@@ -21,6 +26,9 @@ export function WorkspacesTabs() {
 		});
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
+	const currentView = useCurrentView();
+	const isSettingsTabOpen = useIsSettingsTabOpen();
+	const isSettingsActive = currentView === "settings";
 	const containerRef = useRef<HTMLDivElement>(null);
 	const scrollRef = useRef<HTMLDivElement>(null);
 	const [showStartFade, setShowStartFade] = useState(false);
@@ -117,65 +125,83 @@ export function WorkspacesTabs() {
 
 	return (
 		<div ref={containerRef} className="flex items-center h-full w-full">
-			<div className="relative flex-1 h-full overflow-hidden min-w-0">
-				<div
-					ref={scrollRef}
-					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
-				>
-					{groups.map((group, groupIndex) => (
-						<Fragment key={group.project.id}>
-							<WorkspaceGroup
-								projectId={group.project.id}
-								projectName={group.project.name}
-								projectColor={group.project.color}
-								projectIndex={groupIndex}
-								workspaces={group.workspaces}
-								activeWorkspaceId={activeWorkspaceId}
-								workspaceWidth={workspaceWidth}
-								hoveredWorkspaceId={hoveredWorkspaceId}
-								onWorkspaceHover={setHoveredWorkspaceId}
-							/>
-							{groupIndex < groups.length - 1 && (
-								<div className="flex items-center h-full py-2">
-									<div className="w-px h-full bg-border" />
-								</div>
-							)}
-						</Fragment>
-					))}
+			<div className="flex items-center h-full min-w-0">
+				<div className="relative h-full overflow-hidden min-w-0">
+					<div
+						ref={scrollRef}
+						className="flex h-full overflow-x-auto hide-scrollbar gap-4"
+					>
+						{groups.map((group, groupIndex) => (
+							<Fragment key={group.project.id}>
+								<WorkspaceGroup
+									projectId={group.project.id}
+									projectName={group.project.name}
+									projectColor={group.project.color}
+									projectIndex={groupIndex}
+									workspaces={group.workspaces}
+									activeWorkspaceId={
+										isSettingsActive ? null : activeWorkspaceId
+									}
+									workspaceWidth={workspaceWidth}
+									hoveredWorkspaceId={hoveredWorkspaceId}
+									onWorkspaceHover={setHoveredWorkspaceId}
+								/>
+								{groupIndex < groups.length - 1 && (
+									<div className="flex items-center h-full py-2">
+										<div className="w-px h-full bg-border" />
+									</div>
+								)}
+							</Fragment>
+						))}
 
-					{/* Dangling sandboxes - orphaned cloud instances */}
-					{danglingSandboxes.length > 0 && (
-						<>
-							{groups.length > 0 && (
-								<div className="flex items-center h-full py-2">
-									<div className="w-px h-full bg-border" />
+						{/* Dangling sandboxes - orphaned cloud instances */}
+						{danglingSandboxes.length > 0 && (
+							<>
+								{groups.length > 0 && (
+									<div className="flex items-center h-full py-2">
+										<div className="w-px h-full bg-border" />
+									</div>
+								)}
+								<div className="flex items-end h-full gap-1">
+									{danglingSandboxes.map((sandbox) => (
+										<DanglingSandboxItem
+											key={sandbox.id}
+											id={sandbox.id}
+											name={sandbox.name}
+											status={sandbox.status}
+											claudeHost={sandbox.claudeHost}
+											websshHost={sandbox.websshHost}
+										/>
+									))}
 								</div>
-							)}
-							<div className="flex items-end h-full gap-1">
-								{danglingSandboxes.map((sandbox) => (
-									<DanglingSandboxItem
-										key={sandbox.id}
-										id={sandbox.id}
-										name={sandbox.name}
-										status={sandbox.status}
-										claudeHost={sandbox.claudeHost}
-										websshHost={sandbox.websshHost}
-									/>
-								))}
-							</div>
-						</>
+							</>
+						)}
+
+						{isSettingsTabOpen && (
+							<>
+								{(groups.length > 0 || danglingSandboxes.length > 0) && (
+									<div className="flex items-center h-full py-2">
+										<div className="w-px h-full bg-border" />
+									</div>
+								)}
+								<SettingsTab
+									width={workspaceWidth}
+									isActive={isSettingsActive}
+								/>
+							</>
+						)}
+					</div>
+
+					{/* Fade effects for scroll indication */}
+					{showStartFade && (
+						<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
+					)}
+					{showEndFade && (
+						<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
 					)}
 				</div>
-
-				{/* Fade effects for scroll indication */}
-				{showStartFade && (
-					<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
-				)}
-				{showEndFade && (
-					<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
-				)}
+				<WorkspaceDropdown className="no-drag" />
 			</div>
-			<WorkspaceDropdown className="no-drag" />
 			<CloudWorkspaceButton className="no-drag" />
 		</div>
 	);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -36,9 +36,10 @@ WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 NEON_OUTPUT=$(neonctl branches create \
   --project-id tiny-cherry-82420694 \
   --name "$WORKSPACE_NAME" \
-  --output json 2>&1 | grep -v "^WARNING:")
+  --output json)
 
 # Parse connection strings from create output
+BRANCH_ID=$(echo "$NEON_OUTPUT" | jq -r '.branch.id')
 DATABASE_URL=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_uri')
 POOLER_HOST=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.pooler_host')
 PASSWORD=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.password')
@@ -47,6 +48,7 @@ DATABASE=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameter
 DATABASE_POOLED_URL="postgresql://${ROLE}:${PASSWORD}@${POOLER_HOST}/${DATABASE}?sslmode=require"
 
 cat > .env << EOF
+NEON_BRANCH_ID=$BRANCH_ID
 DATABASE_URL=$DATABASE_URL
 DATABASE_POOLED_URL=$DATABASE_POOLED_URL
 EOF

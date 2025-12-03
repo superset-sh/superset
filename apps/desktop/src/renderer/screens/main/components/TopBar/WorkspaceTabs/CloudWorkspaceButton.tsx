@@ -11,7 +11,6 @@ import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
-import { useAddCloudTab } from "renderer/stores";
 
 export interface CloudWorkspaceButtonProps {
 	className?: string;
@@ -24,7 +23,6 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
-	const addCloudTab = useAddCloudTab();
 
 	const generateSandboxName = () => {
 		const adjectives = [
@@ -66,7 +64,6 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 		try {
 			// 1. Create local workspace first
 			const workspaceResult = await createWorkspace.mutateAsync({ projectId });
-			const workspaceId = workspaceResult.workspace.id;
 			const worktreeId = workspaceResult.workspace.worktreeId;
 
 			// 2. Create cloud sandbox
@@ -91,22 +88,9 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 				});
 			}
 
-			// 4. Add two cloud tabs: Claude chat (7030) and WebSSH (8888)
-			if (sandbox?.claudeHost) {
-				const claudeUrl = sandbox.claudeHost.startsWith("http")
-					? sandbox.claudeHost
-					: `https://${sandbox.claudeHost}`;
-				addCloudTab(workspaceId, claudeUrl);
-			}
-
-			if (sandbox?.websshHost) {
-				const baseUrl = sandbox.websshHost.startsWith("http")
-					? sandbox.websshHost
-					: `https://${sandbox.websshHost}`;
-				// Pre-fill webssh with localhost connection for user
-				const websshUrl = `${baseUrl}/?hostname=localhost&username=user`;
-				addCloudTab(workspaceId, websshUrl);
-			}
+			// TODO: Add cloud webview support to the new windows/panes model
+			// The old tab-based cloud views are not supported in the new architecture
+			// For now, users can access cloud URLs directly
 
 			toast.success("Cloud workspace created", { id: toastId });
 		} catch (error) {

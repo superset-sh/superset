@@ -5,6 +5,7 @@ import { createAppRouter } from "lib/trpc/routers";
 import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
+import { setMainWindow } from "../lib/auto-updater";
 import { createApplicationMenu } from "../lib/menu";
 import {
 	type AgentCompleteEvent,
@@ -36,6 +37,9 @@ export async function MainWindow() {
 			webviewTag: true,
 		},
 	});
+
+	// Set main window for auto-updater dialogs
+	setMainWindow(window);
 
 	// Create application menu
 	createApplicationMenu(window);

@@ -6,10 +6,12 @@ export type SettingsSection = "appearance" | "keyboard";
 
 interface AppState {
 	currentView: AppView;
+	isSettingsTabOpen: boolean;
 	settingsSection: SettingsSection;
 	setView: (view: AppView) => void;
 	openSettings: (section?: SettingsSection) => void;
 	closeSettings: () => void;
+	closeSettingsTab: () => void;
 	setSettingsSection: (section: SettingsSection) => void;
 }
 
@@ -17,6 +19,7 @@ export const useAppStore = create<AppState>()(
 	devtools(
 		(set) => ({
 			currentView: "workspace",
+			isSettingsTabOpen: false,
 			settingsSection: "appearance",
 
 			setView: (view) => {
@@ -26,12 +29,17 @@ export const useAppStore = create<AppState>()(
 			openSettings: (section) => {
 				set({
 					currentView: "settings",
+					isSettingsTabOpen: true,
 					...(section && { settingsSection: section }),
 				});
 			},
 
 			closeSettings: () => {
 				set({ currentView: "workspace" });
+			},
+
+			closeSettingsTab: () => {
+				set({ currentView: "workspace", isSettingsTabOpen: false });
 			},
 
 			setSettingsSection: (section) => {
@@ -44,6 +52,8 @@ export const useAppStore = create<AppState>()(
 
 // Convenience hooks
 export const useCurrentView = () => useAppStore((state) => state.currentView);
+export const useIsSettingsTabOpen = () =>
+	useAppStore((state) => state.isSettingsTabOpen);
 export const useSettingsSection = () =>
 	useAppStore((state) => state.settingsSection);
 export const useSetSettingsSection = () =>
@@ -51,3 +61,5 @@ export const useSetSettingsSection = () =>
 export const useOpenSettings = () => useAppStore((state) => state.openSettings);
 export const useCloseSettings = () =>
 	useAppStore((state) => state.closeSettings);
+export const useCloseSettingsTab = () =>
+	useAppStore((state) => state.closeSettingsTab);

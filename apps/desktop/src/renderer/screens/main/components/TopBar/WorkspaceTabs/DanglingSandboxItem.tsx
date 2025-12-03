@@ -4,7 +4,6 @@ import { useState } from "react";
 import { HiMiniCloud, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
-import { useAddCloudTab } from "renderer/stores";
 
 interface DanglingSandboxItemProps {
 	id: string;
@@ -24,7 +23,6 @@ export function DanglingSandboxItem({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isCreating, setIsCreating] = useState(false);
 	const utils = trpc.useUtils();
-	const addCloudTab = useAddCloudTab();
 
 	// Get first project to create workspace in
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -56,7 +54,6 @@ export function DanglingSandboxItem({
 				name: name,
 			});
 
-			const workspaceId = result.workspace.id;
 			const worktreeId = result.workspace.worktreeId;
 
 			// Link sandbox to worktree
@@ -72,21 +69,9 @@ export function DanglingSandboxItem({
 				},
 			});
 
-			// Add cloud tabs
-			if (claudeHost) {
-				const claudeUrl = claudeHost.startsWith("http")
-					? claudeHost
-					: `https://${claudeHost}`;
-				addCloudTab(workspaceId, claudeUrl);
-			}
-
-			if (websshHost) {
-				const baseUrl = websshHost.startsWith("http")
-					? websshHost
-					: `https://${websshHost}`;
-				const websshUrl = `${baseUrl}/?hostname=localhost&username=user`;
-				addCloudTab(workspaceId, websshUrl);
-			}
+			// TODO: Add cloud webview support to the new windows/panes model
+			// The old tab-based cloud views are not supported in the new architecture
+			// For now, users can access cloud URLs directly
 
 			// Invalidate dangling sandboxes query since this one is now linked
 			await utils.workspaces.getDanglingSandboxes.invalidate();

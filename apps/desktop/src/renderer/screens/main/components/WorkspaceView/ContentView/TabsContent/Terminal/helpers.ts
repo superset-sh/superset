@@ -130,12 +130,15 @@ export function createTerminalInstance(
 export interface KeyboardHandlerOptions {
 	/** Callback for Shift+Enter to create a line continuation (like iTerm) */
 	onShiftEnter?: () => void;
+	/** Callback for Cmd+K to clear the terminal */
+	onClear?: () => void;
 }
 
 /**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
  * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
+ * - Cmd+K: Clears the terminal
  */
 export function setupKeyboardHandler(
 	xterm: XTerm,
@@ -157,12 +160,42 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		// Handle Cmd+K to clear terminal (handle directly since it needs xterm access)
+		const isClearShortcut =
+			event.key.toLowerCase() === "k" &&
+			event.metaKey &&
+			!event.shiftKey &&
+			!event.ctrlKey &&
+			!event.altKey;
+
+		if (isClearShortcut) {
+			if (event.type === "keydown" && options.onClear) {
+				options.onClear();
+			}
+			return false;
+		}
+
 		if (event.type !== "keydown") return true;
 		if (!event.metaKey && !event.ctrlKey) return true;
 
 		if (isAppHotkey(event)) {
 			// Re-dispatch to document for react-hotkeys-hook to catch
-			document.dispatchEvent(new KeyboardEvent(event.type, event));
+			// Must explicitly copy modifier properties since they're prototype getters, not own properties
+			document.dispatchEvent(
+				new KeyboardEvent(event.type, {
+					key: event.key,
+					code: event.code,
+					keyCode: event.keyCode,
+					which: event.which,
+					ctrlKey: event.ctrlKey,
+					shiftKey: event.shiftKey,
+					altKey: event.altKey,
+					metaKey: event.metaKey,
+					repeat: event.repeat,
+					bubbles: true,
+					cancelable: true,
+				}),
+			);
 			return false;
 		}
 
@@ -172,21 +205,15 @@ export function setupKeyboardHandler(
 
 export function setupFocusListener(
 	xterm: XTerm,
-	workspaceId: string,
-	tabId: string,
-	setActiveTab: (workspaceId: string, tabId: string) => void,
+	onFocus: () => void,
 ): (() => void) | null {
 	const textarea = xterm.textarea;
 	if (!textarea) return null;
 
-	const handleFocus = () => {
-		setActiveTab(workspaceId, tabId);
-	};
-
-	textarea.addEventListener("focus", handleFocus);
+	textarea.addEventListener("focus", onFocus);
 
 	return () => {
-		textarea.removeEventListener("focus", handleFocus);
+		textarea.removeEventListener("focus", onFocus);
 	};
 }
 

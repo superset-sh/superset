@@ -19,7 +19,7 @@ describe("loadSetupConfig", () => {
 		}
 	});
 
-	test("returns null when setup.json does not exist", () => {
+	test("returns null when config.json does not exist", () => {
 		const config = loadSetupConfig(MAIN_REPO);
 		expect(config).toBeNull();
 	});
@@ -30,7 +30,7 @@ describe("loadSetupConfig", () => {
 		};
 
 		writeFileSync(
-			join(MAIN_REPO, ".superset", "setup.json"),
+			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify(setupConfig),
 		);
 
@@ -39,7 +39,10 @@ describe("loadSetupConfig", () => {
 	});
 
 	test("returns null for invalid JSON", () => {
-		writeFileSync(join(MAIN_REPO, ".superset", "setup.json"), "{ invalid json");
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			"{ invalid json",
+		);
 
 		const config = loadSetupConfig(MAIN_REPO);
 		expect(config).toBeNull();
@@ -47,7 +50,7 @@ describe("loadSetupConfig", () => {
 
 	test("validates setup field must be an array", () => {
 		writeFileSync(
-			join(MAIN_REPO, ".superset", "setup.json"),
+			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({ setup: "not-an-array" }),
 		);
 

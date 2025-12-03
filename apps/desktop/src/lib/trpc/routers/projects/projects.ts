@@ -10,7 +10,7 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getGitRoot } from "../workspaces/utils/git";
+import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
@@ -82,6 +82,12 @@ function extractRepoName(urlInput: string): string | null {
 
 export const createProjectsRouter = (window: BrowserWindow) => {
 	return router({
+		get: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(({ input }): Project | null => {
+				return db.data.projects.find((p) => p.id === input.id) ?? null;
+			}),
+
 		getRecents: publicProcedure.query((): Project[] => {
 			return db.data.projects
 				.slice()
@@ -121,6 +127,8 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					}
 				});
 			} else {
+				const defaultBranch = await getDefaultBranch(mainRepoPath);
+
 				project = {
 					id: nanoid(),
 					mainRepoPath,
@@ -129,6 +137,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					tabOrder: null,
 					lastOpenedAt: Date.now(),
 					createdAt: Date.now(),
+					defaultBranch,
 				};
 
 				await db.update((data) => {
@@ -236,6 +245,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 
 					// Create new project
 					const name = basename(clonePath);
+					const defaultBranch = await getDefaultBranch(clonePath);
 					const project: Project = {
 						id: nanoid(),
 						mainRepoPath: clonePath,
@@ -244,6 +254,7 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 						tabOrder: null,
 						lastOpenedAt: Date.now(),
 						createdAt: Date.now(),
+						defaultBranch,
 					};
 
 					await db.update((data) => {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,12 +15,20 @@ command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm insta
 
 # Delete Neon branch for this workspace
 WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+if [ -f ".env" ]; then
+  # shellcheck disable=SC1091
+  source .env
+fi
+BRANCH_ID="${NEON_BRANCH_ID:-}"
+if [ -z "$BRANCH_ID" ]; then
+  error "No NEON_BRANCH_ID found in .env; cannot delete branch"
+fi
 
-echo "🗄️  Deleting Neon branch: $WORKSPACE_NAME"
-if neonctl branches delete "$WORKSPACE_NAME" --project-id tiny-cherry-82420694 --force 2>/dev/null; then
+echo "🗄️  Deleting Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
+if neonctl branches delete "$BRANCH_ID" --project-id tiny-cherry-82420694 --force 2>/dev/null; then
   success "Neon branch deleted: $WORKSPACE_NAME"
 else
-  echo "⚠️  Neon branch '$WORKSPACE_NAME' not found or already deleted"
+  echo "⚠️  Neon branch '$WORKSPACE_NAME' ($BRANCH_ID) not found or already deleted"
 fi
 
 echo "✨ Teardown complete!"
