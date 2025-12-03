@@ -45,7 +45,12 @@ export function WorkspaceSettings() {
 
 			<div className="space-y-6">
 				<div className="space-y-2">
-					<h3 className="text-base font-semibold text-foreground">Name</h3>
+					<h3
+						id="workspace-name-label"
+						className="text-base font-semibold text-foreground"
+					>
+						Name
+					</h3>
 					{rename.isRenaming ? (
 						<Input
 							ref={rename.inputRef}
@@ -53,7 +58,15 @@ export function WorkspaceSettings() {
 							value={rename.renameValue}
 							onChange={(e) => rename.setRenameValue(e.target.value)}
 							onBlur={rename.submitRename}
-							onKeyDown={rename.handleKeyDown}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									e.preventDefault();
+									e.currentTarget.blur();
+								} else {
+									rename.handleKeyDown(e);
+								}
+							}}
+							aria-labelledby="workspace-name-label"
 							className="text-base"
 						/>
 					) : (
