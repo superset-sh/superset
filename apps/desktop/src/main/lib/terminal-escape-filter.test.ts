@@ -4,7 +4,6 @@ import {
 	TerminalEscapeFilter,
 } from "./terminal-escape-filter";
 
-// Control characters for building test sequences
 const ESC = "\x1b";
 const BEL = "\x07";
 

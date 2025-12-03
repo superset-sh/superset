@@ -115,6 +115,12 @@ export class TerminalManager extends EventEmitter {
 			}
 		}
 
+		if (recoveredScrollback) {
+			const recoveryFilter = new TerminalEscapeFilter();
+			recoveredScrollback =
+				recoveryFilter.filter(recoveredScrollback) + recoveryFilter.flush();
+		}
+
 		const shellArgs = getShellArgs(shell);
 
 		const ptyProcess = pty.spawn(shell, shellArgs, {

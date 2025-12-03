@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pty from "node-pty";
 import { TerminalManager } from "./terminal-manager";
+import { getHistoryDir } from "./terminal-history";
 
 // Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
 const testTmpDir = join(tmpdir(), "superset-test");
@@ -147,6 +148,26 @@ describe("TerminalManager", () => {
 			});
 
 			expect(mockPty.resize).toHaveBeenCalledWith(100, 30);
+		});
+
+		it("should filter recovered scrollback from history", async () => {
+			const workspaceId = "workspace-1";
+			const tabId = "tab-recover";
+			const historyDir = getHistoryDir(workspaceId, tabId);
+			await fs.mkdir(historyDir, { recursive: true });
+			const ESC = "\x1b";
+			const rawScrollback = `before${ESC}[1;1Rafter${ESC}[?1;0c`;
+			await fs.writeFile(join(historyDir, "scrollback.bin"), rawScrollback);
+
+			const result = await manager.createOrAttach({
+				tabId,
+				workspaceId,
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			expect(result.wasRecovered).toBe(true);
+			expect(result.scrollback).toBe("beforeafter");
 		});
 	});
 
@@ -509,8 +530,6 @@ describe("TerminalManager", () => {
 		});
 
 		it("should pass through raw data including escape sequences", async () => {
-			// Terminal manager passes raw data through to xterm - filtering happens
-			// before storing in scrollback/history (terminal-escape-filter.ts)
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
