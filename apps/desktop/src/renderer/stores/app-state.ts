@@ -2,7 +2,11 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 export type AppView = "workspace" | "settings";
-export type SettingsSection = "appearance" | "keyboard";
+export type SettingsSection =
+	| "project"
+	| "workspace"
+	| "appearance"
+	| "keyboard";
 
 interface AppState {
 	currentView: AppView;
@@ -20,7 +24,7 @@ export const useAppStore = create<AppState>()(
 		(set) => ({
 			currentView: "workspace",
 			isSettingsTabOpen: false,
-			settingsSection: "appearance",
+			settingsSection: "project",
 
 			setView: (view) => {
 				set({ currentView: view });
