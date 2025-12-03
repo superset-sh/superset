@@ -86,6 +86,11 @@ export interface WindowsStore extends WindowsState {
 
 	// Cloud/Webview operations
 	addWebviewWindow: (workspaceId: string, url: string, name?: string) => string;
+	addCloudWindow: (
+		workspaceId: string,
+		agentUrl: string,
+		sshUrl: string,
+	) => string;
 
 	// Split operations
 	splitPaneVertical: (

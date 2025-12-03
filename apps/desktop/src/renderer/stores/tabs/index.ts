@@ -8,3 +8,6 @@ import { useWindowsStore } from "./store";
 
 export const useAddWebviewWindow = () =>
 	useWindowsStore((state) => state.addWebviewWindow);
+
+export const useAddCloudWindow = () =>
+	useWindowsStore((state) => state.addCloudWindow);

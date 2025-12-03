@@ -11,7 +11,7 @@ import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
-import { useAddWebviewWindow } from "renderer/stores";
+import { useAddCloudWindow } from "renderer/stores";
 
 export interface CloudWorkspaceButtonProps {
 	className?: string;
@@ -24,7 +24,7 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
-	const addWebviewWindow = useAddWebviewWindow();
+	const addCloudWindow = useAddCloudWindow();
 
 	const generateSandboxName = () => {
 		const adjectives = [
@@ -91,21 +91,18 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 				});
 			}
 
-			// 4. Add cloud webview windows: Claude chat (7030) and WebSSH (8888)
-			if (sandbox?.claudeHost) {
-				const claudeUrl = sandbox.claudeHost.startsWith("http")
+			// 4. Add cloud split window with Agent (left) + SSH (right)
+			if (sandbox?.claudeHost && sandbox?.websshHost) {
+				const agentUrl = sandbox.claudeHost.startsWith("http")
 					? sandbox.claudeHost
 					: `https://${sandbox.claudeHost}`;
-				addWebviewWindow(workspaceId, claudeUrl, "Cloud Agent");
-			}
 
-			if (sandbox?.websshHost) {
-				const baseUrl = sandbox.websshHost.startsWith("http")
+				const sshBaseUrl = sandbox.websshHost.startsWith("http")
 					? sandbox.websshHost
 					: `https://${sandbox.websshHost}`;
-				// Pre-fill webssh with localhost connection for user
-				const websshUrl = `${baseUrl}/?hostname=localhost&username=user`;
-				addWebviewWindow(workspaceId, websshUrl, "Cloud SSH");
+				const sshUrl = `${sshBaseUrl}/?hostname=localhost&username=user`;
+
+				addCloudWindow(workspaceId, agentUrl, sshUrl);
 			}
 
 			toast.success("Cloud workspace created", { id: toastId });

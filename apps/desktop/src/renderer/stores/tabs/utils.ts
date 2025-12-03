@@ -231,3 +231,34 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 	}
 	return getFirstPaneId(layout.first);
 };
+
+/**
+ * Creates a cloud window with split view (Agent on left, SSH on right)
+ */
+export const createCloudWindowWithPanes = (
+	workspaceId: string,
+	agentUrl: string,
+	sshUrl: string,
+): { window: Window; agentPane: WebviewPane; sshPane: WebviewPane } => {
+	const windowId = generateId("win");
+	const agentPane = createWebviewPane(windowId, agentUrl, "Cloud Agent");
+	const sshPane = createWebviewPane(windowId, sshUrl, "Cloud SSH");
+
+	// Split layout: agent on left (70%), ssh on right (30%)
+	const layout: MosaicNode<string> = {
+		direction: "row",
+		first: agentPane.id,
+		second: sshPane.id,
+		splitPercentage: 70,
+	};
+
+	const window: Window = {
+		id: windowId,
+		name: "Cloud",
+		workspaceId,
+		layout,
+		createdAt: Date.now(),
+	};
+
+	return { window, agentPane, sshPane };
+};

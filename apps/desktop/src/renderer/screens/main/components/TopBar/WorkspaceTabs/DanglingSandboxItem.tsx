@@ -4,7 +4,7 @@ import { useState } from "react";
 import { HiMiniCloud, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
-import { useAddWebviewWindow } from "renderer/stores/tabs";
+import { useAddCloudWindow } from "renderer/stores/tabs";
 
 interface DanglingSandboxItemProps {
 	id: string;
@@ -24,7 +24,7 @@ export function DanglingSandboxItem({
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isCreating, setIsCreating] = useState(false);
 	const utils = trpc.useUtils();
-	const addWebviewWindow = useAddWebviewWindow();
+	const addCloudWindow = useAddCloudWindow();
 
 	// Get first project to create workspace in
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -71,12 +71,15 @@ export function DanglingSandboxItem({
 				},
 			});
 
-			// Open cloud webview windows for this sandbox
-			if (claudeHost) {
-				addWebviewWindow(result.workspace.id, claudeHost, "Cloud Agent");
-			}
-			if (websshHost) {
-				addWebviewWindow(result.workspace.id, websshHost, "Cloud SSH");
+			// Open cloud split window with Agent + SSH
+			if (claudeHost && websshHost) {
+				const agentUrl = claudeHost.startsWith("http")
+					? claudeHost
+					: `https://${claudeHost}`;
+				const sshUrl = websshHost.startsWith("http")
+					? `${websshHost}/?hostname=localhost&username=user`
+					: `https://${websshHost}/?hostname=localhost&username=user`;
+				addCloudWindow(result.workspace.id, agentUrl, sshUrl);
 			}
 
 			// Invalidate dangling sandboxes query since this one is now linked

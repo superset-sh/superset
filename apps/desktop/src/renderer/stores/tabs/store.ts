@@ -5,6 +5,7 @@ import { devtools, persist } from "zustand/middleware";
 import { electronStorage } from "../../lib/electron-storage";
 import type { Window, WindowsState, WindowsStore } from "./types";
 import {
+	createCloudWindowWithPanes,
 	createPane,
 	createWebviewPane,
 	createWindowWithPane,
@@ -456,6 +457,47 @@ export const useWindowsStore = create<WindowsStore>()(
 						focusedPaneIds: {
 							...state.focusedPaneIds,
 							[window.id]: pane.id,
+						},
+						windowHistoryStacks: {
+							...state.windowHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return window.id;
+				},
+
+				addCloudWindow: (workspaceId, agentUrl, sshUrl) => {
+					const state = get();
+					const { window, agentPane, sshPane } = createCloudWindowWithPanes(
+						workspaceId,
+						agentUrl,
+						sshUrl,
+					);
+
+					const currentActiveId = state.activeWindowIds[workspaceId];
+					const historyStack = state.windowHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						windows: [...state.windows, window],
+						panes: {
+							...state.panes,
+							[agentPane.id]: agentPane,
+							[sshPane.id]: sshPane,
+						},
+						activeWindowIds: {
+							...state.activeWindowIds,
+							[workspaceId]: window.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[window.id]: agentPane.id, // Focus agent pane by default
 						},
 						windowHistoryStacks: {
 							...state.windowHistoryStacks,
