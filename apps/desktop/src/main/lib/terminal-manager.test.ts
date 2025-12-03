@@ -509,8 +509,8 @@ describe("TerminalManager", () => {
 		});
 
 		it("should pass through raw data including escape sequences", async () => {
-			// Terminal manager passes raw data through - filtering happens at the
-			// display layer (xterm.js parser hooks in suppressQueryResponses.ts)
+			// Terminal manager passes raw data through to xterm - filtering happens
+			// before storing in scrollback/history (terminal-escape-filter.ts)
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
