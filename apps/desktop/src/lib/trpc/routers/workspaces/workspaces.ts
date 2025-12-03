@@ -223,9 +223,26 @@ export const createWorkspacesRouter = () => {
 				);
 			}
 
+			const project = db.data.projects.find(
+				(p) => p.id === workspace.projectId,
+			);
+			const worktree = db.data.worktrees.find(
+				(wt) => wt.id === workspace.worktreeId,
+			);
+
 			return {
 				...workspace,
 				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+				project: project
+					? {
+							id: project.id,
+							name: project.name,
+							mainRepoPath: project.mainRepoPath,
+						}
+					: null,
+				worktree: worktree
+					? { branch: worktree.branch, gitStatus: worktree.gitStatus }
+					: null,
 			};
 		}),
 

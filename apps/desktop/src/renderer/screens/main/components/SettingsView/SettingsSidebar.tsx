@@ -1,9 +1,15 @@
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import {
 	HiArrowLeft,
+	HiChevronDown,
+	HiChevronRight,
 	HiOutlineCommandLine,
+	HiOutlineFolder,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
+import { trpc } from "renderer/lib/trpc";
+import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { type SettingsSection, useCloseSettings } from "renderer/stores";
 
 interface SettingsSidebarProps {
@@ -11,11 +17,16 @@ interface SettingsSidebarProps {
 	onSectionChange: (section: SettingsSection) => void;
 }
 
-const SECTIONS: {
+const GENERAL_SECTIONS: {
 	id: SettingsSection;
 	label: string;
 	icon: React.ReactNode;
 }[] = [
+	{
+		id: "workspace",
+		label: "Workspace",
+		icon: <HiOutlineFolder className="h-4 w-4" />,
+	},
 	{
 		id: "appearance",
 		label: "Appearance",
@@ -33,9 +44,33 @@ export function SettingsSidebar({
 	onSectionChange,
 }: SettingsSidebarProps) {
 	const closeSettings = useCloseSettings();
+	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const setActiveWorkspace = useSetActiveWorkspace();
+	const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
+		() =>
+			new Set(activeWorkspace?.projectId ? [activeWorkspace.projectId] : []),
+	);
+
+	const toggleProject = (projectId: string) => {
+		setExpandedProjects((prev) => {
+			const next = new Set(prev);
+			if (next.has(projectId)) {
+				next.delete(projectId);
+			} else {
+				next.add(projectId);
+			}
+			return next;
+		});
+	};
+
+	const handleWorkspaceClick = (workspaceId: string) => {
+		setActiveWorkspace.mutate({ id: workspaceId });
+		onSectionChange("workspace");
+	};
 
 	return (
-		<div className="w-56 flex flex-col p-3">
+		<div className="w-56 flex flex-col p-3 overflow-hidden">
 			{/* Back button */}
 			<button
 				type="button"
@@ -49,25 +84,86 @@ export function SettingsSidebar({
 			{/* Settings title */}
 			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
 
-			{/* Navigation */}
-			<nav className="flex flex-col gap-1">
-				{SECTIONS.map((section) => (
-					<button
-						key={section.id}
-						type="button"
-						onClick={() => onSectionChange(section.id)}
-						className={cn(
-							"flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors text-left",
-							activeSection === section.id
-								? "bg-accent text-accent-foreground"
-								: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
-						)}
-					>
-						{section.icon}
-						{section.label}
-					</button>
-				))}
-			</nav>
+			{/* Projects & Workspaces */}
+			<div className="flex-1 overflow-y-auto min-h-0">
+				<div className="mb-4">
+					<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
+						Workspaces
+					</h2>
+					<nav className="flex flex-col gap-0.5">
+						{groups.map((group) => (
+							<div key={group.project.id}>
+								{/* Project header */}
+								<button
+									type="button"
+									onClick={() => toggleProject(group.project.id)}
+									className="flex items-center gap-2 px-3 py-1.5 text-sm w-full text-left hover:bg-accent/50 rounded-md transition-colors"
+								>
+									<div
+										className="w-2 h-2 rounded-full shrink-0"
+										style={{ backgroundColor: group.project.color }}
+									/>
+									<span className="flex-1 truncate font-medium">
+										{group.project.name}
+									</span>
+									{expandedProjects.has(group.project.id) ? (
+										<HiChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+									) : (
+										<HiChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+									)}
+								</button>
+
+								{/* Workspaces */}
+								{expandedProjects.has(group.project.id) && (
+									<div className="ml-4 border-l border-border pl-2 mt-0.5 mb-1">
+										{group.workspaces.map((workspace) => (
+											<button
+												key={workspace.id}
+												type="button"
+												onClick={() => handleWorkspaceClick(workspace.id)}
+												className={cn(
+													"flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded-md transition-colors",
+													activeWorkspace?.id === workspace.id &&
+														activeSection === "workspace"
+														? "bg-accent text-accent-foreground"
+														: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+												)}
+											>
+												<span className="truncate">{workspace.name}</span>
+											</button>
+										))}
+									</div>
+								)}
+							</div>
+						))}
+					</nav>
+				</div>
+
+				{/* General Settings */}
+				<div>
+					<h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-3 mb-2">
+						General
+					</h2>
+					<nav className="flex flex-col gap-0.5">
+						{GENERAL_SECTIONS.map((section) => (
+							<button
+								key={section.id}
+								type="button"
+								onClick={() => onSectionChange(section.id)}
+								className={cn(
+									"flex items-center gap-3 px-3 py-1.5 text-sm rounded-md transition-colors text-left",
+									activeSection === section.id
+										? "bg-accent text-accent-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground",
+								)}
+							>
+								{section.icon}
+								{section.label}
+							</button>
+						))}
+					</nav>
+				</div>
+			</div>
 		</div>
 	);
 }
