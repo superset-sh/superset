@@ -1,6 +1,6 @@
 import { useSetTheme, useThemeId, useThemeStore } from "renderer/stores";
 import { builtInThemes } from "shared/themes";
-import { ThemeCard } from "./components/ThemeCard";
+import { ThemeCard } from "./ThemeCard";
 
 export function AppearanceSettings() {
 	const activeThemeId = useThemeId();
