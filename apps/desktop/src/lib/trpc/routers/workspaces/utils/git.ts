@@ -1,12 +1,67 @@
+import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import simpleGit from "simple-git";
 import {
 	adjectives,
 	animals,
 	uniqueNamesGenerator,
 } from "unique-names-generator";
+import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Builds the merged environment for git operations.
+ * Merges process.env with shell environment so that:
+ * - Runtime vars (git credentials, proxy, etc.) from process.env are preserved
+ * - PATH from shell environment picks up tools like git-lfs from homebrew
+ */
+async function getGitEnv(): Promise<Record<string, string>> {
+	const shellEnv = await getShellEnvironment();
+	const baseEnv: Record<string, string> = {};
+
+	// Convert process.env to Record<string, string>
+	for (const [key, value] of Object.entries(process.env)) {
+		if (typeof value === "string") {
+			baseEnv[key] = value;
+		}
+	}
+
+	// Shell env wins for PATH, but base env preserved for everything else
+	return { ...baseEnv, ...shellEnv };
+}
+
+/**
+ * Checks if a repository uses Git LFS by looking for filter=lfs in .gitattributes.
+ * Uses a simple file read instead of `git check-attr` to avoid full-tree scan latency.
+ */
+async function repoUsesLfs(repoPath: string): Promise<boolean> {
+	const { readFile } = await import("node:fs/promises");
+
+	try {
+		const gitattributes = await readFile(
+			join(repoPath, ".gitattributes"),
+			"utf-8",
+		);
+		return gitattributes.includes("filter=lfs");
+	} catch (error) {
+		// File doesn't exist or can't be read - no LFS configured at repo root
+		// Don't default to true; let git surface the real error if LFS is actually needed
+		if (
+			error instanceof Error &&
+			"code" in error &&
+			(error as NodeJS.ErrnoException).code === "ENOENT"
+		) {
+			return false;
+		}
+		// Log unexpected errors but don't block on them
+		console.warn(`[git] Failed to check .gitattributes for LFS: ${error}`);
+		return false;
+	}
+}
 
 export function generateBranchName(): string {
 	const name = uniqueNamesGenerator({
@@ -30,15 +85,57 @@ export async function createWorktree(
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		const git = simpleGit(mainRepoPath);
-		await git.raw(["worktree", "add", worktreePath, "-b", branch, startPoint]);
+		// Get merged environment (process.env + shell env for PATH)
+		const env = await getGitEnv();
+
+		// Proactive LFS check: detect early if repo uses LFS but git-lfs is missing
+		const usesLfs = await repoUsesLfs(mainRepoPath);
+		if (usesLfs) {
+			const lfsAvailable = await checkGitLfsAvailable(env);
+			if (!lfsAvailable) {
+				throw new Error(
+					`This repository uses Git LFS, but git-lfs was not found. ` +
+						`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
+				);
+			}
+		}
+
+		// Use execFile with arg array for proper POSIX compatibility (no shell escaping needed)
+		await execFileAsync(
+			"git",
+			[
+				"-C",
+				mainRepoPath,
+				"worktree",
+				"add",
+				worktreePath,
+				"-b",
+				branch,
+				startPoint,
+			],
+			{ env, timeout: 120_000 },
+		);
 
 		console.log(
 			`Created worktree at ${worktreePath} with branch ${branch} from ${startPoint}`,
 		);
 	} catch (error) {
-		console.error(`Failed to create worktree: ${error}`);
-		throw new Error(`Failed to create worktree: ${error}`);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+
+		// Check for git-lfs specific error and provide helpful message
+		if (
+			errorMessage.includes("git-lfs") ||
+			errorMessage.includes("filter-process")
+		) {
+			console.error(`Git LFS error during worktree creation: ${errorMessage}`);
+			throw new Error(
+				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found. ` +
+					`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
+			);
+		}
+
+		console.error(`Failed to create worktree: ${errorMessage}`);
+		throw new Error(`Failed to create worktree: ${errorMessage}`);
 	}
 }
 
@@ -47,13 +144,21 @@ export async function removeWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	try {
-		const git = simpleGit(mainRepoPath);
-		await git.raw(["worktree", "remove", worktreePath, "--force"]);
+		// Get merged environment (process.env + shell env for PATH)
+		const env = await getGitEnv();
+
+		// Use execFile with arg array for proper POSIX compatibility
+		await execFileAsync(
+			"git",
+			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
+			{ env, timeout: 60_000 },
+		);
 
 		console.log(`Removed worktree at ${worktreePath}`);
 	} catch (error) {
-		console.error(`Failed to remove worktree: ${error}`);
-		throw new Error(`Failed to remove worktree: ${error}`);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(`Failed to remove worktree: ${errorMessage}`);
+		throw new Error(`Failed to remove worktree: ${errorMessage}`);
 	}
 }
 
