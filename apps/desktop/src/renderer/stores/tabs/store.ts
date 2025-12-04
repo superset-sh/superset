@@ -518,8 +518,6 @@ export const useWindowsStore = create<WindowsStore>()(
 				},
 
 				splitPaneAuto: (windowId, sourcePaneId, dimensions, path) => {
-					// Split along the longer axis: wide panes split vertically (side-by-side),
-					// tall panes split horizontally (top-bottom)
 					if (dimensions.width >= dimensions.height) {
 						get().splitPaneVertical(windowId, sourcePaneId, path);
 					} else {

@@ -54,11 +54,9 @@ export function WindowPane({
 	setFocusedPane,
 }: WindowPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	// Track split orientation based on pane dimensions (default to vertical as most panes are wider)
 	const [splitOrientation, setSplitOrientation] =
 		useState<SplitOrientation>("vertical");
 
-	// Register pane ref for global hotkey access to dimensions
 	useEffect(() => {
 		const container = containerRef.current;
 		if (container) {
@@ -69,7 +67,6 @@ export function WindowPane({
 		};
 	}, [paneId]);
 
-	// Update split orientation when pane dimensions change
 	useEffect(() => {
 		const container = containerRef.current;
 		if (!container) return;
@@ -79,10 +76,8 @@ export function WindowPane({
 			setSplitOrientation(width >= height ? "vertical" : "horizontal");
 		};
 
-		// Set initial orientation
 		updateOrientation();
 
-		// Watch for size changes
 		const resizeObserver = new ResizeObserver(updateOrientation);
 		resizeObserver.observe(container);
 

@@ -1,8 +1,3 @@
-/**
- * Registry for pane element refs.
- * Used to access pane dimensions for smart split operations.
- */
-
 const paneRefs = new Map<string, HTMLElement>();
 
 export function registerPaneRef(paneId: string, element: HTMLElement) {
