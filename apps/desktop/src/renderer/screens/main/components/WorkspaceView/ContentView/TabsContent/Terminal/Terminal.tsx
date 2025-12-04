@@ -76,7 +76,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 
 		if (event.type === "data") {
-			xtermRef.current.write(event.data);
+			const xterm = xtermRef.current;
+			// Check if viewport is at the bottom before writing
+			const buffer = xterm.buffer.active;
+			const isAtBottom =
+				buffer.viewportY >= buffer.baseY + buffer.cursorY - xterm.rows + 1;
+
+			xterm.write(event.data);
+
+			// Scroll to bottom after write if user was at bottom (prevents scroll-to-top on cursor moves)
+			if (isAtBottom) {
+				xterm.scrollToBottom();
+			}
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
 			setSubscriptionEnabled(false);
@@ -159,6 +170,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					xterm.writeln("[Press any key to restart]");
 				}
 			}
+			// Scroll to bottom after flushing pending events
+			xterm.scrollToBottom();
 		};
 
 		const applyInitialScrollback = (result: {
@@ -167,6 +180,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			scrollback: string;
 		}) => {
 			xterm.write(result.scrollback);
+			// Scroll to bottom after applying scrollback to show latest content
+			xterm.scrollToBottom();
 		};
 
 		const restartTerminal = () => {
