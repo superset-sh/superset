@@ -15,23 +15,28 @@ const execFileAsync = promisify(execFile);
 
 /**
  * Builds the merged environment for git operations.
- * Merges process.env with shell environment so that:
- * - Runtime vars (git credentials, proxy, etc.) from process.env are preserved
- * - PATH from shell environment picks up tools like git-lfs from homebrew
+ * Takes process.env as base, then overrides only PATH from shell environment.
+ * This preserves runtime vars (git credentials, proxy, ELECTRON_*, etc.)
+ * while picking up PATH modifications from shell profiles (e.g., homebrew git-lfs).
  */
 async function getGitEnv(): Promise<Record<string, string>> {
 	const shellEnv = await getShellEnvironment();
-	const baseEnv: Record<string, string> = {};
+	const result: Record<string, string> = {};
 
-	// Convert process.env to Record<string, string>
+	// Start with process.env as base
 	for (const [key, value] of Object.entries(process.env)) {
 		if (typeof value === "string") {
-			baseEnv[key] = value;
+			result[key] = value;
 		}
 	}
 
-	// Shell env wins for PATH, but base env preserved for everything else
-	return { ...baseEnv, ...shellEnv };
+	// Only override PATH from shell env (use platform-appropriate key)
+	const pathKey = process.platform === "win32" ? "Path" : "PATH";
+	if (shellEnv[pathKey]) {
+		result[pathKey] = shellEnv[pathKey];
+	}
+
+	return result;
 }
 
 /**
@@ -41,6 +46,7 @@ async function getGitEnv(): Promise<Record<string, string>> {
  *    - Root .gitattributes
  *    - .git/info/attributes (local overrides)
  *    - .lfsconfig (LFS-specific config)
+ * 3. Final fallback: check git config for LFS filter (catches nested .gitattributes)
  */
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
 	// Fast path: .git/lfs exists when LFS is initialized or objects fetched
@@ -74,6 +80,30 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 				console.warn(`[git] Could not read ${filePath}: ${error}`);
 			}
 		}
+	}
+
+	// Final fallback: sample a few tracked files with git check-attr
+	// This catches nested .gitattributes that declare filter=lfs
+	try {
+		const git = simpleGit(repoPath);
+		// Get a small sample of tracked files (limit to 20 for performance)
+		const lsFiles = await git.raw(["ls-files"]);
+		const sampleFiles = lsFiles.split("\n").filter(Boolean).slice(0, 20);
+
+		if (sampleFiles.length > 0) {
+			// Check filter attribute on sampled files
+			const checkAttr = await git.raw([
+				"check-attr",
+				"filter",
+				"--",
+				...sampleFiles,
+			]);
+			if (checkAttr.includes("filter: lfs")) {
+				return true;
+			}
+		}
+	} catch {
+		// If git commands fail, assume no LFS to avoid blocking
 	}
 
 	return false;
@@ -151,13 +181,13 @@ export async function createWorktree(
 
 		// Broad check for LFS-related errors:
 		// - "git-lfs" / "filter-process" (original)
-		// - "smudge filter lfs failed"
+		// - "smudge filter" (more specific than just "smudge" to avoid false positives)
 		// - "git: 'lfs' is not a git command"
 		// - Any mention of "lfs" when we detected LFS usage
 		const isLfsError =
 			lowerError.includes("git-lfs") ||
 			lowerError.includes("filter-process") ||
-			lowerError.includes("smudge") ||
+			lowerError.includes("smudge filter") ||
 			(lowerError.includes("lfs") && lowerError.includes("not")) ||
 			(lowerError.includes("lfs") && usesLfs);
 

@@ -7,7 +7,9 @@ const execFileAsync = promisify(execFile);
 // Cache the shell environment to avoid repeated shell spawns
 let cachedEnv: Record<string, string> | null = null;
 let cacheTime = 0;
+let isFallbackCache = false;
 const CACHE_TTL_MS = 60_000; // 1 minute cache
+const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry sooner)
 
 /**
  * Gets the full shell environment by spawning a login shell.
@@ -21,8 +23,10 @@ const CACHE_TTL_MS = 60_000; // 1 minute cache
  */
 export async function getShellEnvironment(): Promise<Record<string, string>> {
 	const now = Date.now();
-	if (cachedEnv && now - cacheTime < CACHE_TTL_MS) {
-		return cachedEnv;
+	const ttl = isFallbackCache ? FALLBACK_CACHE_TTL_MS : CACHE_TTL_MS;
+	if (cachedEnv && now - cacheTime < ttl) {
+		// Return a copy to prevent caller mutations from corrupting cache
+		return { ...cachedEnv };
 	}
 
 	const shell = process.env.SHELL || "/bin/bash";
@@ -52,19 +56,24 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 
 		cachedEnv = env;
 		cacheTime = now;
-		return env;
+		isFallbackCache = false;
+		return { ...env };
 	} catch (error) {
 		console.warn(
 			`[shell-env] Failed to get shell environment: ${error}. Falling back to process.env`,
 		);
 		// Fall back to process.env if shell spawn fails
+		// Cache with shorter TTL so we retry sooner
 		const fallback: Record<string, string> = {};
 		for (const [key, value] of Object.entries(process.env)) {
 			if (typeof value === "string") {
 				fallback[key] = value;
 			}
 		}
-		return fallback;
+		cachedEnv = fallback;
+		cacheTime = now;
+		isFallbackCache = true;
+		return { ...fallback };
 	}
 }
 
@@ -92,4 +101,5 @@ export async function checkGitLfsAvailable(
 export function clearShellEnvCache(): void {
 	cachedEnv = null;
 	cacheTime = 0;
+	isFallbackCache = false;
 }
