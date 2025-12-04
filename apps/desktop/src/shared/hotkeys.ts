@@ -89,11 +89,11 @@ export const HOTKEYS = {
 		label: "Toggle Sidebar",
 		category: "Layout",
 	},
-	SPLIT_HORIZONTAL: {
+	SPLIT_AUTO: {
 		keys: "meta+d",
-		label: "Split Right",
+		label: "Split Pane",
 		category: "Layout",
-		description: "Split the current pane to the right",
+		description: "Split the current pane along its longer side",
 	},
 	SPLIT_VERTICAL: {
 		keys: "meta+shift+d",

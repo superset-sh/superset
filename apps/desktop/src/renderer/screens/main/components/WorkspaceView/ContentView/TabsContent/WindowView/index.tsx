@@ -26,6 +26,7 @@ export function WindowView({ window, panes }: WindowViewProps) {
 	const updateWindowLayout = useWindowsStore((s) => s.updateWindowLayout);
 	const removePane = useWindowsStore((s) => s.removePane);
 	const removeWindow = useWindowsStore((s) => s.removeWindow);
+	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
 	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
 	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
 	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
@@ -91,6 +92,7 @@ export function WindowView({ window, panes }: WindowViewProps) {
 					isActive={isActive}
 					windowId={window.id}
 					workspaceId={window.workspaceId}
+					splitPaneAuto={splitPaneAuto}
 					splitPaneHorizontal={splitPaneHorizontal}
 					splitPaneVertical={splitPaneVertical}
 					removePane={removePane}
@@ -103,6 +105,7 @@ export function WindowView({ window, panes }: WindowViewProps) {
 			focusedPaneId,
 			window.id,
 			window.workspaceId,
+			splitPaneAuto,
 			splitPaneHorizontal,
 			splitPaneVertical,
 			removePane,

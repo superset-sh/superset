@@ -1,8 +1,12 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import {
+	registerPaneRef,
+	unregisterPaneRef,
+} from "renderer/stores/tabs/pane-refs";
 import type { Pane } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
@@ -14,6 +18,12 @@ interface WindowPaneProps {
 	isActive: boolean;
 	windowId: string;
 	workspaceId: string;
+	splitPaneAuto: (
+		windowId: string,
+		sourcePaneId: string,
+		dimensions: { width: number; height: number },
+		path?: MosaicBranch[],
+	) => void;
 	splitPaneHorizontal: (
 		windowId: string,
 		sourcePaneId: string,
@@ -35,12 +45,24 @@ export function WindowPane({
 	isActive,
 	windowId,
 	workspaceId,
+	splitPaneAuto,
 	splitPaneHorizontal,
 	splitPaneVertical,
 	removePane,
 	setFocusedPane,
 }: WindowPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	// Register pane ref for global hotkey access to dimensions
+	useEffect(() => {
+		const container = containerRef.current;
+		if (container) {
+			registerPaneRef(paneId, container);
+		}
+		return () => {
+			unregisterPaneRef(paneId);
+		};
+	}, [paneId]);
 
 	const handleFocus = () => {
 		setFocusedPane(windowId, paneId);
@@ -57,13 +79,7 @@ export function WindowPane({
 		if (!container) return;
 
 		const { width, height } = container.getBoundingClientRect();
-		// Split along the longer axis: wide panes split vertically (side-by-side),
-		// tall panes split horizontally (top-bottom)
-		if (width >= height) {
-			splitPaneVertical(windowId, paneId, path);
-		} else {
-			splitPaneHorizontal(windowId, paneId, path);
-		}
+		splitPaneAuto(windowId, paneId, { width, height }, path);
 	};
 
 	// Determine which icon to show based on current dimensions
