@@ -15,7 +15,7 @@ export function generateBranchName(): string {
 		length: 2,
 		style: "lowerCase",
 	});
-	const suffix = randomBytes(3).toString("base64url");
+	const suffix = randomBytes(3).toString("hex");
 
 	return `${name}-${suffix}`;
 }
