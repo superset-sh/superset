@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import simpleGit from "simple-git";
@@ -14,9 +15,9 @@ export function generateBranchName(): string {
 		length: 2,
 		style: "lowerCase",
 	});
-	const number = Math.floor(Math.random() * 100);
+	const suffix = randomBytes(3).toString("base64url");
 
-	return `${name}-${number}`;
+	return `${name}-${suffix}`;
 }
 
 export async function createWorktree(
