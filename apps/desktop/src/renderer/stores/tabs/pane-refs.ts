@@ -1,3 +1,5 @@
+// Global registry so CMD+D hotkey handler can access focused pane dimensions
+// without prop-drilling refs through the component tree
 const paneRefs = new Map<string, HTMLElement>();
 
 export function registerPaneRef(paneId: string, element: HTMLElement) {
