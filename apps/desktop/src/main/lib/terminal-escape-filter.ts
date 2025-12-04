@@ -117,6 +117,19 @@ export class TerminalEscapeFilter {
 		const combined = this.buffer + data;
 		this.buffer = "";
 
+		// Pre-check: Buffer trailing prefix fragments (ESC or ESC[) at chunk boundaries
+		// These could be the start of query responses split across chunks
+		if (combined.endsWith(ESC)) {
+			this.buffer = ESC;
+			const toFilter = combined.slice(0, -1);
+			return toFilter.replace(COMBINED_PATTERN, "");
+		}
+		if (combined.endsWith(`${ESC}[`)) {
+			this.buffer = `${ESC}[`;
+			const toFilter = combined.slice(0, -2);
+			return toFilter.replace(COMBINED_PATTERN, "");
+		}
+
 		// Check if the data ends with a potential incomplete query response
 		const lastEscIndex = combined.lastIndexOf(ESC);
 
@@ -224,10 +237,16 @@ export class TerminalEscapeFilter {
 	/**
 	 * Flush any remaining buffered data.
 	 * Call this when the terminal session ends.
+	 * Preserves standalone ESC or ESC[ that never formed a query response.
 	 */
 	flush(): string {
 		const remaining = this.buffer;
 		this.buffer = "";
+		// Preserve prefix fragments that never completed into a query response
+		// These are genuine ESC bytes, not query responses to filter
+		if (remaining === ESC || remaining === `${ESC}[`) {
+			return remaining;
+		}
 		return remaining.replace(COMBINED_PATTERN, "");
 	}
 

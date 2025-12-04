@@ -417,20 +417,36 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result2).toBe(`${ESC}[32mgreen`);
 		});
 
-		it("should NOT buffer ESC alone at end", () => {
+		it("should buffer ESC alone at end (could be start of query response)", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}`;
 			const result1 = filter.filter(chunk1);
-			// ESC alone should pass through (conservative - don't buffer)
-			expect(result1).toBe(`text${ESC}`);
+			// ESC alone should be buffered - could be start of query response
+			expect(result1).toBe("text");
 		});
 
-		it("should NOT buffer ESC [ alone at end", () => {
+		it("should buffer ESC [ alone at end (could be start of query response)", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}[`;
 			const result1 = filter.filter(chunk1);
-			// ESC [ alone should pass through (could be any CSI)
-			expect(result1).toBe(`text${ESC}[`);
+			// ESC [ alone should be buffered - could be start of CPR/DA/etc
+			expect(result1).toBe("text");
+		});
+
+		it("should reassemble CPR split with ESC at chunk boundary", () => {
+			const filter = new TerminalEscapeFilter();
+			// CPR response ESC[1;1R split with just ESC at boundary
+			const result1 = filter.filter(`text${ESC}`);
+			const result2 = filter.filter("[1;1R");
+			expect(result1 + result2).toBe("text");
+		});
+
+		it("should reassemble CPR split with ESC[ at chunk boundary", () => {
+			const filter = new TerminalEscapeFilter();
+			// CPR response ESC[1;1R split with ESC[ at boundary
+			const result1 = filter.filter(`text${ESC}[`);
+			const result2 = filter.filter("1;1R");
+			expect(result1 + result2).toBe("text");
 		});
 
 		it("should buffer ESC [ digit (could be CPR/mode report/DA)", () => {
@@ -490,6 +506,24 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			filter.filter("complete data");
 			expect(filter.flush()).toBe("");
 		});
+
+		it("should preserve standalone ESC on flush (not a query response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const result = filter.filter(`text${ESC}`);
+			expect(result).toBe("text");
+			// Flush should return the standalone ESC - it never formed a query response
+			const flushed = filter.flush();
+			expect(flushed).toBe(ESC);
+		});
+
+		it("should preserve standalone ESC[ on flush (not a query response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const result = filter.filter(`text${ESC}[`);
+			expect(result).toBe("text");
+			// Flush should return ESC[ - it never formed a query response
+			const flushed = filter.flush();
+			expect(flushed).toBe(`${ESC}[`);
+		});
 	});
 
 	describe("reset behavior", () => {
@@ -514,7 +548,10 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			const chunk2 = `[0mnormal`;
 			const result1 = filter.filter(chunk1);
 			const result2 = filter.filter(chunk2);
-			// Colors should pass through
+			// Trailing ESC is buffered, then reassembled with next chunk
+			// Colors should pass through (not matching query response patterns)
+			expect(result1).toBe(`${ESC}[31mred`);
+			expect(result2).toBe(`${ESC}[0mnormal`);
 			expect(result1 + result2).toBe(`${ESC}[31mred${ESC}[0mnormal`);
 		});
 	});
