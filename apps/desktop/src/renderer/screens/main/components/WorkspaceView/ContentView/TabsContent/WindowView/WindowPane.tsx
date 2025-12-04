@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
@@ -10,6 +10,8 @@ import {
 import type { Pane } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+
+type SplitOrientation = "vertical" | "horizontal";
 
 interface WindowPaneProps {
 	paneId: string;
@@ -52,6 +54,9 @@ export function WindowPane({
 	setFocusedPane,
 }: WindowPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	// Track split orientation based on pane dimensions (default to vertical as most panes are wider)
+	const [splitOrientation, setSplitOrientation] =
+		useState<SplitOrientation>("vertical");
 
 	// Register pane ref for global hotkey access to dimensions
 	useEffect(() => {
@@ -63,6 +68,28 @@ export function WindowPane({
 			unregisterPaneRef(paneId);
 		};
 	}, [paneId]);
+
+	// Update split orientation when pane dimensions change
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+
+		const updateOrientation = () => {
+			const { width, height } = container.getBoundingClientRect();
+			setSplitOrientation(width >= height ? "vertical" : "horizontal");
+		};
+
+		// Set initial orientation
+		updateOrientation();
+
+		// Watch for size changes
+		const resizeObserver = new ResizeObserver(updateOrientation);
+		resizeObserver.observe(container);
+
+		return () => {
+			resizeObserver.disconnect();
+		};
+	}, []);
 
 	const handleFocus = () => {
 		setFocusedPane(windowId, paneId);
@@ -82,20 +109,12 @@ export function WindowPane({
 		splitPaneAuto(windowId, paneId, { width, height }, path);
 	};
 
-	// Determine which icon to show based on current dimensions
-	const getSplitIcon = () => {
-		const container = containerRef.current;
-		if (!container) {
-			// Default to vertical split icon (columns) as most panes are wider
-			return <TbLayoutColumns className="size-4" />;
-		}
-		const { width, height } = container.getBoundingClientRect();
-		return width >= height ? (
+	const splitIcon =
+		splitOrientation === "vertical" ? (
 			<TbLayoutColumns className="size-4" />
 		) : (
 			<TbLayoutRows className="size-4" />
 		);
-	};
 
 	return (
 		<MosaicWindow<string>
@@ -109,7 +128,7 @@ export function WindowPane({
 						title="Split pane"
 						className="rounded-full p-0.5 hover:bg-white/10"
 					>
-						{getSplitIcon()}
+						{splitIcon}
 					</button>
 					<button
 						type="button"
