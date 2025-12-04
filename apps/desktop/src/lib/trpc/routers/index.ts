@@ -5,6 +5,7 @@ import { createExternalRouter } from "./external";
 import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
 import { createSettingsRouter } from "./settings";
+import { createSSHRouter } from "./ssh";
 import { createTerminalRouter } from "./terminal";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
@@ -19,6 +20,7 @@ export const createAppRouter = (window: BrowserWindow) => {
 		projects: createProjectsRouter(window),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
+		ssh: createSSHRouter(),
 		notifications: createNotificationsRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),

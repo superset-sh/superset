@@ -70,6 +70,19 @@ export const EXTERNAL_APPS = [
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
+export interface SSHConnection {
+	id: string;
+	name: string;
+	host: string;
+	port: number;
+	username: string;
+	authMethod: "key" | "password";
+	privateKeyPath?: string;
+	// Note: password is stored in memory only during active session, never persisted
+	lastUsedAt: number;
+	createdAt: number;
+}
+
 export interface Settings {
 	lastActiveWorkspaceId?: string;
 	lastUsedApp?: ExternalApp;
@@ -79,6 +92,7 @@ export interface Database {
 	projects: Project[];
 	worktrees: Worktree[];
 	workspaces: Workspace[];
+	sshConnections: SSHConnection[];
 	settings: Settings;
 }
 
@@ -86,5 +100,6 @@ export const defaultDatabase: Database = {
 	projects: [],
 	worktrees: [],
 	workspaces: [],
+	sshConnections: [],
 	settings: {},
 };
