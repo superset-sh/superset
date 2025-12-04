@@ -449,6 +449,38 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result1 + result2).toBe("text");
 		});
 
+		it("should buffer ESC ] alone at end (could be start of OSC response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const chunk1 = `text${ESC}]`;
+			const result1 = filter.filter(chunk1);
+			// ESC ] alone should be buffered - could be start of OSC color response
+			expect(result1).toBe("text");
+		});
+
+		it("should reassemble OSC split with ESC] at chunk boundary", () => {
+			const filter = new TerminalEscapeFilter();
+			// OSC 10 response split with ESC] at boundary
+			const result1 = filter.filter(`text${ESC}]`);
+			const result2 = filter.filter(`10;rgb:ffff/ffff/ffff${BEL}more`);
+			expect(result1 + result2).toBe("textmore");
+		});
+
+		it("should buffer ESC P alone at end (could be start of DCS response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const chunk1 = `text${ESC}P`;
+			const result1 = filter.filter(chunk1);
+			// ESC P alone should be buffered - could be start of XTVERSION/DA3
+			expect(result1).toBe("text");
+		});
+
+		it("should reassemble XTVERSION split with ESC P at chunk boundary", () => {
+			const filter = new TerminalEscapeFilter();
+			// XTVERSION response split with ESC P at boundary
+			const result1 = filter.filter(`text${ESC}P`);
+			const result2 = filter.filter(`>|XTerm(354)${ESC}\\more`);
+			expect(result1 + result2).toBe("textmore");
+		});
+
 		it("should buffer ESC [ digit (could be CPR/mode report/DA)", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}[2`;
@@ -523,6 +555,24 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			// Flush should return ESC[ - it never formed a query response
 			const flushed = filter.flush();
 			expect(flushed).toBe(`${ESC}[`);
+		});
+
+		it("should preserve standalone ESC] on flush (not a query response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const result = filter.filter(`text${ESC}]`);
+			expect(result).toBe("text");
+			// Flush should return ESC] - it never formed a query response
+			const flushed = filter.flush();
+			expect(flushed).toBe(`${ESC}]`);
+		});
+
+		it("should preserve standalone ESC P on flush (not a query response)", () => {
+			const filter = new TerminalEscapeFilter();
+			const result = filter.filter(`text${ESC}P`);
+			expect(result).toBe("text");
+			// Flush should return ESC P - it never formed a query response
+			const flushed = filter.flush();
+			expect(flushed).toBe(`${ESC}P`);
 		});
 	});
 
