@@ -77,10 +77,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		if (event.type === "data") {
 			const xterm = xtermRef.current;
-			// Check if viewport is at the bottom before writing
+			// Check if viewport is at the bottom before writing (xterm.js recommended pattern)
 			const buffer = xterm.buffer.active;
-			const isAtBottom =
-				buffer.viewportY >= buffer.baseY + buffer.cursorY - xterm.rows + 1;
+			const isAtBottom = buffer.viewportY === buffer.baseY;
 
 			xterm.write(event.data);
 
