@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { db } from "main/lib/db";
+import { terminalManager } from "main/lib/terminal-manager";
 import { nanoid } from "nanoid";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
@@ -283,8 +284,12 @@ export const createWorkspacesRouter = () => {
 						canDelete: false,
 						reason: "Workspace not found",
 						workspace: null,
+						activeTerminalCount: 0,
 					};
 				}
+
+				const activeTerminalCount =
+					terminalManager.getSessionCountByWorkspaceId(input.id);
 
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,
@@ -307,6 +312,7 @@ export const createWorkspacesRouter = () => {
 								workspace,
 								warning:
 									"Worktree not found in git (may have been manually removed)",
+								activeTerminalCount,
 							};
 						}
 
@@ -315,12 +321,14 @@ export const createWorkspacesRouter = () => {
 							reason: null,
 							workspace,
 							warning: null,
+							activeTerminalCount,
 						};
 					} catch (error) {
 						return {
 							canDelete: false,
 							reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
 							workspace,
+							activeTerminalCount,
 						};
 					}
 				}
@@ -330,6 +338,7 @@ export const createWorkspacesRouter = () => {
 					reason: null,
 					workspace,
 					warning: "No associated worktree found",
+					activeTerminalCount,
 				};
 			}),
 
@@ -341,6 +350,9 @@ export const createWorkspacesRouter = () => {
 				if (!workspace) {
 					return { success: false, error: "Workspace not found" };
 				}
+
+				// Kill all terminal processes in this workspace first
+				await terminalManager.killByWorkspaceId(input.id);
 
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,

@@ -173,7 +173,7 @@ export function WorkspaceItem({
 						)}
 					</button>
 
-					<Tooltip>
+					<Tooltip delayDuration={500}>
 						<TooltipTrigger asChild>
 							<Button
 								type="button"

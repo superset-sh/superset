@@ -297,6 +297,74 @@ export class TerminalManager extends EventEmitter {
 		};
 	}
 
+	async killByWorkspaceId(workspaceId: string): Promise<number> {
+		const sessionsToKill = Array.from(this.sessions.entries()).filter(
+			([, session]) => session.workspaceId === workspaceId,
+		);
+
+		if (sessionsToKill.length === 0) {
+			return 0;
+		}
+
+		const exitPromises: Promise<void>[] = [];
+
+		for (const [tabId, session] of sessionsToKill) {
+			if (session.isAlive) {
+				session.deleteHistoryOnExit = true;
+
+				const exitPromise = new Promise<void>((resolve) => {
+					const exitHandler = () => {
+						this.off(`exit:${tabId}`, exitHandler);
+						if (timeoutId) {
+							clearTimeout(timeoutId);
+						}
+						resolve();
+					};
+					this.once(`exit:${tabId}`, exitHandler);
+
+					const timeoutId = setTimeout(() => {
+						this.off(`exit:${tabId}`, exitHandler);
+						// If SIGTERM didn't work, send SIGKILL and force cleanup
+						if (session.isAlive) {
+							try {
+								session.pty.kill("SIGKILL");
+							} catch {
+								// Ignore kill errors
+							}
+							// Force mark as dead and clean up asynchronously
+							session.isAlive = false;
+							this.closeHistory(session)
+								.catch(() => {})
+								.finally(() => {
+									this.sessions.delete(tabId);
+								});
+						}
+						resolve();
+					}, 2000);
+					timeoutId.unref();
+				});
+
+				exitPromises.push(exitPromise);
+				session.pty.kill();
+			} else {
+				// Clean up history for already-dead sessions
+				session.deleteHistoryOnExit = true;
+				await this.closeHistory(session);
+				this.sessions.delete(tabId);
+			}
+		}
+
+		await Promise.all(exitPromises);
+
+		return sessionsToKill.length;
+	}
+
+	getSessionCountByWorkspaceId(workspaceId: string): number {
+		return Array.from(this.sessions.values()).filter(
+			(session) => session.workspaceId === workspaceId && session.isAlive,
+		).length;
+	}
+
 	async cleanup(): Promise<void> {
 		const exitPromises: Promise<void>[] = [];
 
