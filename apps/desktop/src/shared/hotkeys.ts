@@ -95,8 +95,14 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	},
-	SPLIT_VERTICAL: {
+	SPLIT_RIGHT: {
 		keys: "meta+shift+d",
+		label: "Split Right",
+		category: "Layout",
+		description: "Split the current pane to the right",
+	},
+	SPLIT_DOWN: {
+		keys: "meta+alt+d",
 		label: "Split Down",
 		category: "Layout",
 		description: "Split the current pane downward",

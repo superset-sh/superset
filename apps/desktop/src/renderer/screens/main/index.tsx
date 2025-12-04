@@ -38,6 +38,7 @@ export function MainScreen() {
 	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
 	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
+	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
 	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
 	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
@@ -70,7 +71,13 @@ export function MainScreen() {
 		}
 	}, [activeWindowId, focusedPaneId, splitPaneAuto, isWorkspaceView]);
 
-	useHotkeys(HOTKEYS.SPLIT_VERTICAL.keys, () => {
+	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
+		if (isWorkspaceView && activeWindowId && focusedPaneId) {
+			splitPaneVertical(activeWindowId, focusedPaneId);
+		}
+	}, [activeWindowId, focusedPaneId, splitPaneVertical, isWorkspaceView]);
+
+	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId) {
 			splitPaneHorizontal(activeWindowId, focusedPaneId);
 		}
