@@ -33,7 +33,11 @@ function formatPath(
 	const normalizedHome = homeDir ? homeDir.replace(/\\/g, "/") : null;
 
 	let displayPath = normalizedPath;
-	if (normalizedHome && normalizedPath.startsWith(normalizedHome)) {
+	if (
+		normalizedHome &&
+		(normalizedPath === normalizedHome ||
+			normalizedPath.startsWith(`${normalizedHome}/`))
+	) {
 		displayPath = `~${normalizedPath.slice(normalizedHome.length)}`;
 	} else {
 		displayPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
@@ -103,8 +107,17 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		}
 	};
 
+	const handleOpenChange = (open: boolean) => {
+		setIsOpen(open);
+		if (!open) {
+			setShowAllProjects(false);
+		}
+	};
+
 	return (
-		<ButtonGroup className={`${className} group/split`}>
+		<ButtonGroup
+			className={[className, "group/split"].filter(Boolean).join(" ")}
+		>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
@@ -124,7 +137,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 						: "New workspace"}
 				</TooltipContent>
 			</Tooltip>
-			<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+			<DropdownMenu open={isOpen} onOpenChange={handleOpenChange}>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
