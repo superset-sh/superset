@@ -352,7 +352,9 @@ export const createWorkspacesRouter = () => {
 				}
 
 				// Kill all terminal processes in this workspace first
-				const terminalResult = await terminalManager.killByWorkspaceId(input.id);
+				const terminalResult = await terminalManager.killByWorkspaceId(
+					input.id,
+				);
 
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,
