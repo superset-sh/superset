@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import simpleGit from "simple-git";
@@ -37,11 +37,12 @@ async function getGitEnv(): Promise<Record<string, string>> {
 /**
  * Checks if a repository uses Git LFS using a hybrid approach:
  * 1. Fast path: check if .git/lfs directory exists (LFS already initialized)
- * 2. Fallback: check root .gitattributes for filter=lfs (fresh clone, LFS not yet installed)
+ * 2. Check multiple attribute sources for filter=lfs:
+ *    - Root .gitattributes
+ *    - .git/info/attributes (local overrides)
+ *    - .lfsconfig (LFS-specific config)
  */
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
-	const { readFile, stat } = await import("node:fs/promises");
-
 	// Fast path: .git/lfs exists when LFS is initialized or objects fetched
 	try {
 		const lfsDir = join(repoPath, ".git", "lfs");
@@ -51,29 +52,31 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 		}
 	} catch (error) {
 		if (!isEnoent(error)) {
-			// Permission/mount error on .git/lfs check - log but continue to fallback
 			console.warn(`[git] Could not check .git/lfs directory: ${error}`);
 		}
 	}
 
-	// Fallback: check root .gitattributes for filter=lfs
-	// Catches fresh clones where LFS isn't initialized yet
-	try {
-		const gitattributes = await readFile(
-			join(repoPath, ".gitattributes"),
-			"utf-8",
-		);
-		return gitattributes.includes("filter=lfs");
-	} catch (error) {
-		if (isEnoent(error)) {
-			// No .gitattributes at root - likely no LFS
-			return false;
+	// Check multiple attribute sources for filter=lfs
+	const attributeFiles = [
+		join(repoPath, ".gitattributes"),
+		join(repoPath, ".git", "info", "attributes"),
+		join(repoPath, ".lfsconfig"),
+	];
+
+	for (const filePath of attributeFiles) {
+		try {
+			const content = await readFile(filePath, "utf-8");
+			if (content.includes("filter=lfs") || content.includes("[lfs]")) {
+				return true;
+			}
+		} catch (error) {
+			if (!isEnoent(error)) {
+				console.warn(`[git] Could not read ${filePath}: ${error}`);
+			}
 		}
-		// Permission/mount error reading .gitattributes
-		// Log and return false; if LFS is actually needed, git will fail with real error
-		console.warn(`[git] Could not read .gitattributes: ${error}`);
-		return false;
 	}
+
+	return false;
 }
 
 function isEnoent(error: unknown): boolean {
@@ -102,6 +105,9 @@ export async function createWorktree(
 	worktreePath: string,
 	startPoint = "origin/main",
 ): Promise<void> {
+	// Check LFS usage before try block so it's available in catch for error messaging
+	const usesLfs = await repoUsesLfs(mainRepoPath);
+
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
@@ -110,7 +116,6 @@ export async function createWorktree(
 		const env = await getGitEnv();
 
 		// Proactive LFS check: detect early if repo uses LFS but git-lfs is missing
-		const usesLfs = await repoUsesLfs(mainRepoPath);
 		if (usesLfs) {
 			const lfsAvailable = await checkGitLfsAvailable(env);
 			if (!lfsAvailable) {
@@ -142,15 +147,24 @@ export async function createWorktree(
 		);
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
+		const lowerError = errorMessage.toLowerCase();
 
-		// Check for git-lfs specific error and provide helpful message
-		if (
-			errorMessage.includes("git-lfs") ||
-			errorMessage.includes("filter-process")
-		) {
+		// Broad check for LFS-related errors:
+		// - "git-lfs" / "filter-process" (original)
+		// - "smudge filter lfs failed"
+		// - "git: 'lfs' is not a git command"
+		// - Any mention of "lfs" when we detected LFS usage
+		const isLfsError =
+			lowerError.includes("git-lfs") ||
+			lowerError.includes("filter-process") ||
+			lowerError.includes("smudge") ||
+			(lowerError.includes("lfs") && lowerError.includes("not")) ||
+			(lowerError.includes("lfs") && usesLfs);
+
+		if (isLfsError) {
 			console.error(`Git LFS error during worktree creation: ${errorMessage}`);
 			throw new Error(
-				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found. ` +
+				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found or failed. ` +
 					`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
 			);
 		}
