@@ -14,6 +14,7 @@ import { LuCopy } from "react-icons/lu";
 import cursorIcon from "renderer/assets/app-icons/cursor.svg";
 import finderIcon from "renderer/assets/app-icons/finder.png";
 import itermIcon from "renderer/assets/app-icons/iterm.png";
+import sublimeIcon from "renderer/assets/app-icons/sublime.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
@@ -30,6 +31,7 @@ const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
 	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
+	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
 	{ id: "iterm", label: "iTerm", icon: itermIcon },
 	{ id: "warp", label: "Warp", icon: warpIcon },

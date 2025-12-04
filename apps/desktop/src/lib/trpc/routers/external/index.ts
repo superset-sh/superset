@@ -34,6 +34,8 @@ const getAppCommand = (
 			return { command: "open", args: ["-a", "Warp", targetPath] };
 		case "terminal":
 			return { command: "open", args: ["-a", "Terminal", targetPath] };
+		case "sublime":
+			return { command: "open", args: ["-a", "Sublime Text", targetPath] };
 		default:
 			return null;
 	}

@@ -62,6 +62,7 @@ export const EXTERNAL_APPS = [
 	"finder",
 	"vscode",
 	"cursor",
+	"sublime",
 	"xcode",
 	"iterm",
 	"warp",
