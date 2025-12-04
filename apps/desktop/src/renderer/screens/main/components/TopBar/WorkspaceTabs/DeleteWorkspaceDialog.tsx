@@ -9,7 +9,6 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { toast } from "@superset/ui/sonner";
-import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 
@@ -26,7 +25,6 @@ export function DeleteWorkspaceDialog({
 	open,
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
-	const [isDeleting, setIsDeleting] = useState(false);
 	const deleteWorkspace = useDeleteWorkspace();
 
 	// Query to check if workspace can be deleted
@@ -35,21 +33,26 @@ export function DeleteWorkspaceDialog({
 		{ enabled: open }, // Only run when dialog is open
 	);
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			const result = await deleteWorkspace.mutateAsync({ id: workspaceId });
-			if (result.teardownError) {
-				toast.warning("Workspace deleted with teardown warning", {
-					description: result.teardownError,
-				});
-			}
-			onOpenChange(false);
-		} catch (error) {
-			console.error("Failed to delete workspace:", error);
-		} finally {
-			setIsDeleting(false);
-		}
+	const handleDelete = () => {
+		onOpenChange(false);
+
+		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
+			loading: `Deleting "${workspaceName}"...`,
+			success: (result) => {
+				if (result.teardownError) {
+					setTimeout(() => {
+						toast.warning("Workspace deleted with teardown warning", {
+							description: result.teardownError,
+						});
+					}, 100);
+				}
+				return `Workspace "${workspaceName}" deleted`;
+			},
+			error: (error) =>
+				error instanceof Error
+					? `Failed to delete workspace: ${error.message}`
+					: "Failed to delete workspace",
+		});
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
@@ -85,16 +88,16 @@ export function DeleteWorkspaceDialog({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={(e: React.MouseEvent) => {
 							e.preventDefault();
 							handleDelete();
 						}}
-						disabled={!canDelete || isDeleting || isLoading}
+						disabled={!canDelete || isLoading}
 						className="bg-destructive text-white hover:bg-destructive/90"
 					>
-						{isDeleting ? "Deleting..." : "Delete"}
+						Delete
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>
