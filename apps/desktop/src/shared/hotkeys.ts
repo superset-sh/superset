@@ -91,7 +91,7 @@ export const HOTKEYS = {
 	},
 	SPLIT_AUTO: {
 		keys: "meta+d",
-		label: "Split Pane",
+		label: "Split Pane Auto",
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	},
