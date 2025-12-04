@@ -73,11 +73,16 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		: otherProjects.slice(0, INITIAL_PROJECTS_LIMIT);
 	const hasMoreProjects = otherProjects.length > INITIAL_PROJECTS_LIMIT;
 
+	const closeDropdown = () => {
+		setIsOpen(false);
+		setShowAllProjects(false);
+	};
+
 	const handleCreateWorkspace = async (projectId: string) => {
 		toast.promise(createWorkspace.mutateAsync({ projectId }), {
 			loading: "Creating workspace...",
 			success: () => {
-				setIsOpen(false);
+				closeDropdown();
 				return "Workspace created";
 			},
 			error: (err) =>
@@ -86,6 +91,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	};
 
 	const handleOpenNewProject = async () => {
+		closeDropdown();
 		try {
 			const result = await openNew.mutateAsync(undefined);
 			if (!result.canceled && result.project) {
@@ -108,9 +114,10 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	};
 
 	const handleOpenChange = (open: boolean) => {
-		setIsOpen(open);
-		if (!open) {
-			setShowAllProjects(false);
+		if (open) {
+			setIsOpen(true);
+		} else {
+			closeDropdown();
 		}
 	};
 
