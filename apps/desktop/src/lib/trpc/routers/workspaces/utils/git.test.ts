@@ -75,7 +75,10 @@ describe("LFS Detection", () => {
 		const repoPath = createTestRepo("lfs-config-test");
 
 		// Create .lfsconfig
-		writeFileSync(join(repoPath, ".lfsconfig"), "[lfs]\n\turl = https://example.com/lfs\n");
+		writeFileSync(
+			join(repoPath, ".lfsconfig"),
+			"[lfs]\n\turl = https://example.com/lfs\n",
+		);
 
 		const content = await Bun.file(join(repoPath, ".lfsconfig")).text();
 		expect(content.includes("[lfs]")).toBe(true);
