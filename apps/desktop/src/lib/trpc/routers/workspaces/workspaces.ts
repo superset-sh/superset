@@ -352,7 +352,7 @@ export const createWorkspacesRouter = () => {
 				}
 
 				// Kill all terminal processes in this workspace first
-				await terminalManager.killByWorkspaceId(input.id);
+				const terminalResult = await terminalManager.killByWorkspaceId(input.id);
 
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,
@@ -430,7 +430,12 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				return { success: true, teardownError };
+				const terminalWarning =
+					terminalResult.failed > 0
+						? `${terminalResult.failed} terminal process(es) may still be running`
+						: undefined;
+
+				return { success: true, teardownError, terminalWarning };
 			}),
 
 		setActive: publicProcedure

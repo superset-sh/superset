@@ -43,11 +43,18 @@ export function DeleteWorkspaceDialog({
 		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
 			loading: `Deleting "${workspaceName}"...`,
 			success: (result) => {
-				if (result.teardownError) {
+				if (result.teardownError || result.terminalWarning) {
 					setTimeout(() => {
-						toast.warning("Workspace deleted with teardown warning", {
-							description: result.teardownError,
-						});
+						if (result.teardownError) {
+							toast.warning("Workspace deleted with teardown warning", {
+								description: result.teardownError,
+							});
+						}
+						if (result.terminalWarning) {
+							toast.warning("Workspace deleted with terminal warning", {
+								description: result.terminalWarning,
+							});
+						}
 					}, 100);
 				}
 				return `Workspace "${workspaceName}" deleted`;
