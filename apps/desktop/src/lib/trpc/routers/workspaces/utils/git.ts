@@ -35,12 +35,29 @@ async function getGitEnv(): Promise<Record<string, string>> {
 }
 
 /**
- * Checks if a repository uses Git LFS by looking for filter=lfs in .gitattributes.
- * Uses a simple file read instead of `git check-attr` to avoid full-tree scan latency.
+ * Checks if a repository uses Git LFS using a hybrid approach:
+ * 1. Fast path: check if .git/lfs directory exists (LFS already initialized)
+ * 2. Fallback: check root .gitattributes for filter=lfs (fresh clone, LFS not yet installed)
  */
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
-	const { readFile } = await import("node:fs/promises");
+	const { readFile, stat } = await import("node:fs/promises");
 
+	// Fast path: .git/lfs exists when LFS is initialized or objects fetched
+	try {
+		const lfsDir = join(repoPath, ".git", "lfs");
+		const stats = await stat(lfsDir);
+		if (stats.isDirectory()) {
+			return true;
+		}
+	} catch (error) {
+		if (!isEnoent(error)) {
+			// Permission/mount error on .git/lfs check - log but continue to fallback
+			console.warn(`[git] Could not check .git/lfs directory: ${error}`);
+		}
+	}
+
+	// Fallback: check root .gitattributes for filter=lfs
+	// Catches fresh clones where LFS isn't initialized yet
 	try {
 		const gitattributes = await readFile(
 			join(repoPath, ".gitattributes"),
@@ -48,19 +65,23 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 		);
 		return gitattributes.includes("filter=lfs");
 	} catch (error) {
-		// File doesn't exist or can't be read - no LFS configured at repo root
-		// Don't default to true; let git surface the real error if LFS is actually needed
-		if (
-			error instanceof Error &&
-			"code" in error &&
-			(error as NodeJS.ErrnoException).code === "ENOENT"
-		) {
+		if (isEnoent(error)) {
+			// No .gitattributes at root - likely no LFS
 			return false;
 		}
-		// Log unexpected errors but don't block on them
-		console.warn(`[git] Failed to check .gitattributes for LFS: ${error}`);
+		// Permission/mount error reading .gitattributes
+		// Log and return false; if LFS is actually needed, git will fail with real error
+		console.warn(`[git] Could not read .gitattributes: ${error}`);
 		return false;
 	}
+}
+
+function isEnoent(error: unknown): boolean {
+	return (
+		error instanceof Error &&
+		"code" in error &&
+		(error as NodeJS.ErrnoException).code === "ENOENT"
+	);
 }
 
 export function generateBranchName(): string {
