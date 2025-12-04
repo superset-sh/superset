@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
 	HiChevronDown,
 	HiChevronUp,
@@ -55,6 +55,8 @@ export interface WorkspaceDropdownProps {
 export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [showAllProjects, setShowAllProjects] = useState(false);
+	const primaryButtonRef = useRef<HTMLButtonElement>(null);
+	const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -76,6 +78,8 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const closeDropdown = () => {
 		setIsOpen(false);
 		setShowAllProjects(false);
+		primaryButtonRef.current?.blur();
+		dropdownTriggerRef.current?.blur();
 	};
 
 	const handleCreateWorkspace = async (projectId: string) => {
@@ -106,6 +110,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	};
 
 	const handlePrimaryAction = () => {
+		primaryButtonRef.current?.blur();
 		if (currentProject) {
 			handleCreateWorkspace(currentProject.id);
 		} else {
@@ -116,6 +121,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const handleOpenChange = (open: boolean) => {
 		if (open) {
 			setIsOpen(true);
+			dropdownTriggerRef.current?.blur();
 		} else {
 			closeDropdown();
 		}
@@ -128,6 +134,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
+						ref={primaryButtonRef}
 						variant="ghost"
 						size="icon"
 						aria-label="New workspace"
@@ -149,6 +156,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button
+								ref={dropdownTriggerRef}
 								variant="ghost"
 								size="icon"
 								aria-label="More workspace options"
