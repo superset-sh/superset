@@ -108,6 +108,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [isFocused]);
 
+	// Autofocus terminal when it becomes the focused pane (e.g., after split)
+	useEffect(() => {
+		if (isFocused && xtermRef.current) {
+			xtermRef.current.focus();
+		}
+	}, [isFocused]);
+
 	// Toggle search with Cmd+F (only for the focused terminal)
 	useHotkeys(
 		HOTKEYS.FIND_IN_TERMINAL.keys,
