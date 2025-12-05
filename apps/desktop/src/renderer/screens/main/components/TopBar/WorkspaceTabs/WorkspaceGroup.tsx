@@ -6,6 +6,7 @@ import { WorkspaceItem } from "./WorkspaceItem";
 interface Workspace {
 	id: string;
 	projectId: string;
+	worktreeId: string;
 	worktreePath: string;
 	name: string;
 	tabOrder: number;
@@ -72,6 +73,7 @@ export function WorkspaceGroup({
 							<WorkspaceItem
 								id={workspace.id}
 								projectId={workspace.projectId}
+								worktreeId={workspace.worktreeId}
 								worktreePath={workspace.worktreePath}
 								title={workspace.name}
 								isActive={workspace.id === activeWorkspaceId}

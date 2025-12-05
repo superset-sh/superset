@@ -7,6 +7,8 @@ import {
 	useIsSettingsTabOpen,
 } from "renderer/stores/app-state";
 import { HOTKEYS } from "shared/hotkeys";
+import { CloudWorkspaceButton } from "./CloudWorkspaceButton";
+import { DanglingSandboxItem } from "./DanglingSandboxItem";
 import { SettingsTab } from "./SettingsTab";
 import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
@@ -18,6 +20,10 @@ const ADD_BUTTON_WIDTH = 48;
 export function WorkspacesTabs() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: danglingSandboxes = [] } =
+		trpc.workspaces.getDanglingSandboxes.useQuery(undefined, {
+			refetchInterval: 30000, // Refetch every 30 seconds
+		});
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const currentView = useCurrentView();
@@ -147,9 +153,33 @@ export function WorkspacesTabs() {
 								)}
 							</Fragment>
 						))}
-						{isSettingsTabOpen && (
+
+						{/* Dangling sandboxes - orphaned cloud instances */}
+						{danglingSandboxes.length > 0 && (
 							<>
 								{groups.length > 0 && (
+									<div className="flex items-center h-full py-2">
+										<div className="w-px h-full bg-border" />
+									</div>
+								)}
+								<div className="flex items-end h-full gap-1">
+									{danglingSandboxes.map((sandbox) => (
+										<DanglingSandboxItem
+											key={sandbox.id}
+											id={sandbox.id}
+											name={sandbox.name}
+											status={sandbox.status}
+											claudeHost={sandbox.claudeHost}
+											websshHost={sandbox.websshHost}
+										/>
+									))}
+								</div>
+							</>
+						)}
+
+						{isSettingsTabOpen && (
+							<>
+								{(groups.length > 0 || danglingSandboxes.length > 0) && (
 									<div className="flex items-center h-full py-2">
 										<div className="w-px h-full bg-border" />
 									</div>
@@ -172,6 +202,7 @@ export function WorkspacesTabs() {
 				</div>
 				<WorkspaceDropdown className="no-drag" />
 			</div>
+			<CloudWorkspaceButton className="no-drag" />
 		</div>
 	);
 }

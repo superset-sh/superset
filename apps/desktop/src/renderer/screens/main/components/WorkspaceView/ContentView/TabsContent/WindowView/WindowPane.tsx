@@ -10,6 +10,7 @@ import {
 import type { Pane } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { WebView } from "../WebView";
 
 type SplitOrientation = "vertical" | "horizontal";
 
@@ -148,7 +149,10 @@ export function WindowPane({
 					className="w-full h-full overflow-hidden"
 					onClick={handleFocus}
 				>
-					<Terminal tabId={paneId} workspaceId={workspaceId} />
+					{pane.type === "terminal" && (
+						<Terminal tabId={paneId} workspaceId={workspaceId} />
+					)}
+					{pane.type === "webview" && <WebView url={pane.url} />}
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

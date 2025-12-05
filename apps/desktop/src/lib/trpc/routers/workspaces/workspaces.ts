@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { cloudApiClient } from "main/lib/cloud-api-client";
 import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal-manager";
 import { nanoid } from "nanoid";
@@ -363,6 +364,19 @@ export const createWorkspacesRouter = () => {
 					(p) => p.id === workspace.projectId,
 				);
 
+				// Kill cloud sandbox if present
+				if (worktree?.cloudSandbox?.id) {
+					try {
+						console.log(
+							`Deleting cloud sandbox ${worktree.cloudSandbox.id} for worktree ${worktree.id}`,
+						);
+						await cloudApiClient.deleteSandbox(worktree.cloudSandbox.id);
+					} catch (error) {
+						console.error("Failed to delete cloud sandbox:", error);
+						// Continue with deletion even if sandbox deletion fails
+					}
+				}
+
 				let teardownError: string | undefined;
 
 				if (worktree && project) {
@@ -495,6 +509,26 @@ export const createWorkspacesRouter = () => {
 
 				return { success: true };
 			}),
+
+		getDanglingSandboxes: publicProcedure.query(async () => {
+			// Get all sandboxes from the cloud API
+			const result = await cloudApiClient.listSandboxes();
+			if (!result.success || !result.sandboxes) {
+				return [];
+			}
+
+			// Get all sandbox IDs that are linked to worktrees
+			const linkedSandboxIds = new Set(
+				db.data.worktrees
+					.filter((wt) => wt.cloudSandbox?.id)
+					.map((wt) => wt.cloudSandbox?.id),
+			);
+
+			// Return only running sandboxes that are not linked to any worktree
+			return result.sandboxes.filter(
+				(s) => !linkedSandboxIds.has(s.id) && s.status === "running",
+			);
+		}),
 
 		refreshGitStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))

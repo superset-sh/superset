@@ -12,7 +12,7 @@ interface TabContentContextMenuProps {
 	children: ReactNode;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
-	onClosePane: () => void;
+	onClosePane?: () => void;
 }
 
 export function TabContentContextMenu({
@@ -33,11 +33,15 @@ export function TabContentContextMenu({
 					<Columns2 className="size-4" />
 					Split Vertically
 				</ContextMenuItem>
-				<ContextMenuSeparator />
-				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
-					<X className="size-4" />
-					Close Pane
-				</ContextMenuItem>
+				{onClosePane && (
+					<>
+						<ContextMenuSeparator />
+						<ContextMenuItem variant="destructive" onSelect={onClosePane}>
+							<X className="size-4" />
+							Close Pane
+						</ContextMenuItem>
+					</>
+				)}
 			</ContextMenuContent>
 		</ContextMenu>
 	);
