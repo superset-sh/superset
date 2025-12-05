@@ -229,6 +229,10 @@ export function setupResizeHandlers(
 
 	const handleResize = () => {
 		fitAddon.fit();
+		// Defer scroll to next frame to ensure xterm has finished reflowing the buffer
+		requestAnimationFrame(() => {
+			xterm.scrollToBottom();
+		});
 		debouncedResize(xterm.cols, xterm.rows);
 	};
 
