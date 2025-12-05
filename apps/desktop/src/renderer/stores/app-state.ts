@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type AppView = "workspace" | "settings";
+export type AppView = "workspace" | "settings" | InvalidType;
 export type SettingsSection =
 	| "project"
 	| "workspace"
