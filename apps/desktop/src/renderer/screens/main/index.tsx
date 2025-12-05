@@ -73,13 +73,13 @@ export function MainScreen() {
 	 * falls back to first pane and corrects focus state.
 	 */
 	const resolveSplitTarget = useCallback(
-		(paneId: string, windowId: string, window: Window) => {
-			const path = findPanePath(window.layout, paneId);
+		(paneId: string, windowId: string, targetWindow: Window) => {
+			const path = findPanePath(targetWindow.layout, paneId);
 			if (path !== null) return { path, paneId };
 
 			// Focused pane not in layout - correct focus and use first pane
-			const firstPaneId = getFirstPaneId(window.layout);
-			const firstPanePath = findPanePath(window.layout, firstPaneId);
+			const firstPaneId = getFirstPaneId(targetWindow.layout);
+			const firstPanePath = findPanePath(targetWindow.layout, firstPaneId);
 			setFocusedPane(windowId, firstPaneId);
 			return { path: firstPanePath ?? [], paneId: firstPaneId };
 		},
