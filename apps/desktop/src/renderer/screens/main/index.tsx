@@ -7,6 +7,7 @@ import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
+import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { HOTKEYS } from "shared/hotkeys";
@@ -36,6 +37,7 @@ export function MainScreen() {
 		refetch,
 	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
+	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
 	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
 	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
@@ -60,13 +62,22 @@ export function MainScreen() {
 		if (isWorkspaceView) toggleSidebar();
 	}, [toggleSidebar, isWorkspaceView]);
 
-	useHotkeys(HOTKEYS.SPLIT_HORIZONTAL.keys, () => {
+	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
+		if (isWorkspaceView && activeWindowId && focusedPaneId) {
+			const dimensions = getPaneDimensions(focusedPaneId);
+			if (dimensions) {
+				splitPaneAuto(activeWindowId, focusedPaneId, dimensions);
+			}
+		}
+	}, [activeWindowId, focusedPaneId, splitPaneAuto, isWorkspaceView]);
+
+	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId) {
 			splitPaneVertical(activeWindowId, focusedPaneId);
 		}
 	}, [activeWindowId, focusedPaneId, splitPaneVertical, isWorkspaceView]);
 
-	useHotkeys(HOTKEYS.SPLIT_VERTICAL.keys, () => {
+	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId) {
 			splitPaneHorizontal(activeWindowId, focusedPaneId);
 		}

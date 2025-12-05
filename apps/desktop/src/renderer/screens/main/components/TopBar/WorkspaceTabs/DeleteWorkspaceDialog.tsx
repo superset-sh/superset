@@ -9,7 +9,6 @@ import {
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
 import { toast } from "@superset/ui/sonner";
-import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 
@@ -26,35 +25,51 @@ export function DeleteWorkspaceDialog({
 	open,
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
-	const [isDeleting, setIsDeleting] = useState(false);
 	const deleteWorkspace = useDeleteWorkspace();
 
 	// Query to check if workspace can be deleted
+	// Refetch every 2 seconds while dialog is open to keep terminal count fresh
 	const { data: canDeleteData, isLoading } = trpc.workspaces.canDelete.useQuery(
 		{ id: workspaceId },
-		{ enabled: open }, // Only run when dialog is open
+		{
+			enabled: open,
+			refetchInterval: open ? 2000 : false,
+		},
 	);
 
-	const handleDelete = async () => {
-		setIsDeleting(true);
-		try {
-			const result = await deleteWorkspace.mutateAsync({ id: workspaceId });
-			if (result.teardownError) {
-				toast.warning("Workspace deleted with teardown warning", {
-					description: result.teardownError,
-				});
-			}
-			onOpenChange(false);
-		} catch (error) {
-			console.error("Failed to delete workspace:", error);
-		} finally {
-			setIsDeleting(false);
-		}
+	const handleDelete = () => {
+		onOpenChange(false);
+
+		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
+			loading: `Deleting "${workspaceName}"...`,
+			success: (result) => {
+				if (result.teardownError || result.terminalWarning) {
+					setTimeout(() => {
+						if (result.teardownError) {
+							toast.warning("Workspace deleted with teardown warning", {
+								description: result.teardownError,
+							});
+						}
+						if (result.terminalWarning) {
+							toast.warning("Workspace deleted with terminal warning", {
+								description: result.terminalWarning,
+							});
+						}
+					}, 100);
+				}
+				return `Workspace "${workspaceName}" deleted`;
+			},
+			error: (error) =>
+				error instanceof Error
+					? `Failed to delete workspace: ${error.message}`
+					: "Failed to delete workspace",
+		});
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
 	const reason = canDeleteData?.reason;
 	const warning = canDeleteData?.warning;
+	const activeTerminalCount = canDeleteData?.activeTerminalCount ?? 0;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -76,6 +91,12 @@ export function DeleteWorkspaceDialog({
 										Warning: {warning}
 									</span>
 								)}
+								{activeTerminalCount > 0 && (
+									<span className="block mt-2 text-muted-foreground">
+										{activeTerminalCount} active terminal
+										{activeTerminalCount === 1 ? "" : "s"} will be terminated.
+									</span>
+								)}
 								<span className="block mt-2">
 									This will remove the workspace and its associated git
 									worktree. This action cannot be undone.
@@ -85,16 +106,16 @@ export function DeleteWorkspaceDialog({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={(e: React.MouseEvent) => {
 							e.preventDefault();
 							handleDelete();
 						}}
-						disabled={!canDelete || isDeleting || isLoading}
+						disabled={!canDelete || isLoading}
 						className="bg-destructive text-white hover:bg-destructive/90"
 					>
-						{isDeleting ? "Deleting..." : "Delete"}
+						Delete
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

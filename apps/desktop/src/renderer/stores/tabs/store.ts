@@ -605,6 +605,14 @@ export const useWindowsStore = create<WindowsStore>()(
 					});
 				},
 
+				splitPaneAuto: (windowId, sourcePaneId, dimensions, path) => {
+					if (dimensions.width >= dimensions.height) {
+						get().splitPaneVertical(windowId, sourcePaneId, path);
+					} else {
+						get().splitPaneHorizontal(windowId, sourcePaneId, path);
+					}
+				},
+
 				// Query helpers
 				getWindowsByWorkspace: (workspaceId) => {
 					return get().windows.filter((w) => w.workspaceId === workspaceId);

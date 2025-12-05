@@ -580,6 +580,160 @@ describe("TerminalManager", () => {
 		});
 	});
 
+	describe("killByWorkspaceId", () => {
+		it("should kill session for a workspace and return count", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-kill-single",
+				workspaceId: "workspace-kill-single",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			const result = await manager.killByWorkspaceId("workspace-kill-single");
+
+			// With the mock, the session exits cleanly via the kill mock's setImmediate
+			expect(result.killed + result.failed).toBe(1);
+		});
+
+		it("should not kill sessions from other workspaces", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-other",
+				workspaceId: "workspace-other",
+				tabTitle: "Test Tab",
+				workspaceName: "Other Workspace",
+			});
+
+			await manager.killByWorkspaceId("workspace-different");
+
+			// Session should still exist
+			expect(manager.getSession("tab-other")).not.toBeNull();
+			expect(manager.getSession("tab-other")?.isAlive).toBe(true);
+		});
+
+		it("should return zero counts for non-existent workspace", async () => {
+			const result = await manager.killByWorkspaceId("non-existent");
+
+			expect(result.killed).toBe(0);
+			expect(result.failed).toBe(0);
+		});
+
+		it("should delete history for killed sessions", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-kill-history",
+				workspaceId: "workspace-kill",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			// Trigger some data to create history
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("test output\n");
+			}
+
+			await manager.killByWorkspaceId("workspace-kill");
+
+			// Wait a bit for cleanup to complete
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			// Verify history directory was deleted
+			const historyDir = join(
+				testTmpDir,
+				".superset/terminal-history/workspace-kill/tab-kill-history",
+			);
+			const exists = await fs
+				.stat(historyDir)
+				.then(() => true)
+				.catch(() => false);
+			expect(exists).toBe(false);
+		});
+
+		it("should clean up already-dead sessions", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-dead",
+				workspaceId: "workspace-dead",
+				tabTitle: "Test Tab",
+				workspaceName: "Test Workspace",
+			});
+
+			// Simulate the session dying naturally
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for the dead session to be kept in map (5s timeout in onExit)
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			const result = await manager.killByWorkspaceId("workspace-dead");
+
+			expect(result.killed).toBe(1);
+			expect(result.failed).toBe(0);
+		});
+	});
+
+	describe("getSessionCountByWorkspaceId", () => {
+		it("should return count of active sessions for workspace", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-1",
+				workspaceId: "workspace-count",
+				tabTitle: "Test Tab 1",
+				workspaceName: "Test Workspace",
+			});
+
+			await manager.createOrAttach({
+				tabId: "tab-2",
+				workspaceId: "workspace-count",
+				tabTitle: "Test Tab 2",
+				workspaceName: "Test Workspace",
+			});
+
+			await manager.createOrAttach({
+				tabId: "tab-3",
+				workspaceId: "other-workspace",
+				tabTitle: "Test Tab 3",
+				workspaceName: "Other Workspace",
+			});
+
+			expect(manager.getSessionCountByWorkspaceId("workspace-count")).toBe(2);
+			expect(manager.getSessionCountByWorkspaceId("other-workspace")).toBe(1);
+		});
+
+		it("should return zero for non-existent workspace", () => {
+			expect(manager.getSessionCountByWorkspaceId("non-existent")).toBe(0);
+		});
+
+		it("should not count dead sessions", async () => {
+			await manager.createOrAttach({
+				tabId: "tab-alive",
+				workspaceId: "workspace-mixed",
+				tabTitle: "Test Tab Alive",
+				workspaceName: "Test Workspace",
+			});
+
+			await manager.createOrAttach({
+				tabId: "tab-dead",
+				workspaceId: "workspace-mixed",
+				tabTitle: "Test Tab Dead",
+				workspaceName: "Test Workspace",
+			});
+
+			// Simulate the second session dying
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			// Wait for state to update
+			await new Promise((resolve) => setTimeout(resolve, 100));
+
+			expect(manager.getSessionCountByWorkspaceId("workspace-mixed")).toBe(1);
+		});
+	});
+
 	describe("multi-session history persistence", () => {
 		it("should persist history across multiple sessions", async () => {
 			// Session 1: Create and write data

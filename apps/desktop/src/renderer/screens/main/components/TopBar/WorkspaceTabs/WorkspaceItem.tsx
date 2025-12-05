@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -204,22 +205,29 @@ export function WorkspaceItem({
 						)}
 					</button>
 
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						onClick={(e) => {
-							e.stopPropagation();
-							setShowDeleteDialog(true);
-						}}
-						className={cn(
-							"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
-							isActive ? "opacity-90" : "opacity-0",
-						)}
-						aria-label="Close workspace"
-					>
-						<HiMiniXMark />
-					</Button>
+					<Tooltip delayDuration={500}>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								onClick={(e) => {
+									e.stopPropagation();
+									setShowDeleteDialog(true);
+								}}
+								className={cn(
+									"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
+									isActive ? "opacity-90" : "opacity-0",
+								)}
+								aria-label="Delete workspace"
+							>
+								<HiMiniXMark />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Delete workspace
+						</TooltipContent>
+					</Tooltip>
 				</div>
 			</WorkspaceItemContextMenu>
 

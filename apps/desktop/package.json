@@ -83,6 +83,7 @@
 		"superjson": "^2.2.5",
 		"tailwind-merge": "^3.4.0",
 		"trpc-electron": "^0.1.2",
+		"unique-names-generator": "^4.7.1",
 		"zod": "^4.1.12",
 		"zustand": "^5.0.8"
 	},

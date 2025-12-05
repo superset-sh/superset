@@ -103,6 +103,12 @@ export interface WindowsStore extends WindowsState {
 		sourcePaneId: string,
 		path?: MosaicBranch[],
 	) => void;
+	splitPaneAuto: (
+		windowId: string,
+		sourcePaneId: string,
+		dimensions: { width: number; height: number },
+		path?: MosaicBranch[],
+	) => void;
 
 	// Query helpers
 	getWindowsByWorkspace: (workspaceId: string) => Window[];

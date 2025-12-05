@@ -5,6 +5,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { Columns2, Rows2, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface TabContentContextMenuProps {
@@ -25,15 +26,18 @@ export function TabContentContextMenu({
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={onSplitHorizontal}>
+					<Rows2 className="size-4" />
 					Split Horizontally
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onSplitVertical}>
+					<Columns2 className="size-4" />
 					Split Vertically
 				</ContextMenuItem>
 				{onClosePane && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem variant="destructive" onSelect={onClosePane}>
+							<X className="size-4" />
 							Close Pane
 						</ContextMenuItem>
 					</>
