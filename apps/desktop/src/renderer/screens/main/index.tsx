@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
@@ -9,6 +9,7 @@ import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useWindowsStore } from "renderer/stores/tabs/store";
+import type { Window } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
@@ -66,30 +67,36 @@ export function MainScreen() {
 		if (isWorkspaceView) toggleSidebar();
 	}, [toggleSidebar, isWorkspaceView]);
 
-	// Helper to get pane path with fallback to first pane if focused pane is desynced
-	const getPanePathWithFallback = (paneId: string, windowId: string) => {
-		if (!activeWindow) return null;
+	/**
+	 * Resolves the target pane for split operations.
+	 * If the focused pane is desynced from layout (e.g., was removed),
+	 * falls back to first pane and corrects focus state.
+	 */
+	const resolveSplitTarget = useCallback(
+		(paneId: string, windowId: string, window: Window) => {
+			const path = findPanePath(window.layout, paneId);
+			if (path !== null) return { path, paneId };
 
-		const path = findPanePath(activeWindow.layout, paneId);
-		if (path !== null) return { path, paneId };
-
-		// Focused pane not found in layout - refocus to first pane and find its path
-		console.warn(
-			`Focused pane ${paneId} not found in layout, refocusing to first pane`,
-		);
-		const firstPaneId = getFirstPaneId(activeWindow.layout);
-		const firstPanePath = findPanePath(activeWindow.layout, firstPaneId);
-		setFocusedPane(windowId, firstPaneId);
-		return { path: firstPanePath ?? [], paneId: firstPaneId };
-	};
+			// Focused pane not in layout - correct focus and use first pane
+			const firstPaneId = getFirstPaneId(window.layout);
+			const firstPanePath = findPanePath(window.layout, firstPaneId);
+			setFocusedPane(windowId, firstPaneId);
+			return { path: firstPanePath ?? [], paneId: firstPaneId };
+		},
+		[setFocusedPane],
+	);
 
 	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
-			if (!result) return;
-			const dimensions = getPaneDimensions(result.paneId);
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			const dimensions = getPaneDimensions(target.paneId);
 			if (dimensions) {
-				splitPaneAuto(activeWindowId, result.paneId, dimensions, result.path);
+				splitPaneAuto(activeWindowId, target.paneId, dimensions, target.path);
 			}
 		}
 	}, [
@@ -97,37 +104,45 @@ export function MainScreen() {
 		focusedPaneId,
 		activeWindow,
 		splitPaneAuto,
-		setFocusedPane,
+		resolveSplitTarget,
 		isWorkspaceView,
 	]);
 
 	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
-			if (!result) return;
-			splitPaneVertical(activeWindowId, result.paneId, result.path);
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			splitPaneVertical(activeWindowId, target.paneId, target.path);
 		}
 	}, [
 		activeWindowId,
 		focusedPaneId,
 		activeWindow,
 		splitPaneVertical,
-		setFocusedPane,
+		resolveSplitTarget,
 		isWorkspaceView,
 	]);
 
 	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
-			if (!result) return;
-			splitPaneHorizontal(activeWindowId, result.paneId, result.path);
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			splitPaneHorizontal(activeWindowId, target.paneId, target.path);
 		}
 	}, [
 		activeWindowId,
 		focusedPaneId,
 		activeWindow,
 		splitPaneHorizontal,
-		setFocusedPane,
+		resolveSplitTarget,
 		isWorkspaceView,
 	]);
 
