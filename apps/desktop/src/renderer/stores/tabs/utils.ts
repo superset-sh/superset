@@ -209,10 +209,16 @@ export const findPanePath = (
 		return layout === paneId ? currentPath : null;
 	}
 
-	const firstPath = findPanePath(layout.first, paneId, [...currentPath, "first"]);
+	const firstPath = findPanePath(layout.first, paneId, [
+		...currentPath,
+		"first",
+	]);
 	if (firstPath) return firstPath;
 
-	const secondPath = findPanePath(layout.second, paneId, [...currentPath, "second"]);
+	const secondPath = findPanePath(layout.second, paneId, [
+		...currentPath,
+		"second",
+	]);
 	if (secondPath) return secondPath;
 
 	return null;

@@ -102,7 +102,7 @@ export const HOTKEYS = {
 		description: "Split the current pane downward",
 	},
 	SPLIT_AUTO: {
-		keys: "meta+\\",
+		keys: "meta+e",
 		label: "Split Pane Auto",
 		category: "Layout",
 		description: "Split the current pane along its longer side",

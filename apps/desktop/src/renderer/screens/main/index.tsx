@@ -10,7 +10,7 @@ import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
-import { findPanePath } from "renderer/stores/tabs/utils";
+import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
@@ -41,6 +41,7 @@ export function MainScreen() {
 	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
 	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
+	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
 	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
 	const windows = useWindowsStore((s) => s.windows);
@@ -65,33 +66,70 @@ export function MainScreen() {
 		if (isWorkspaceView) toggleSidebar();
 	}, [toggleSidebar, isWorkspaceView]);
 
+	// Helper to get pane path with fallback to first pane if focused pane is desynced
+	const getPanePathWithFallback = (paneId: string, windowId: string) => {
+		if (!activeWindow) return null;
+
+		const path = findPanePath(activeWindow.layout, paneId);
+		if (path !== null) return { path, paneId };
+
+		// Focused pane not found in layout - refocus to first pane and find its path
+		console.warn(
+			`Focused pane ${paneId} not found in layout, refocusing to first pane`,
+		);
+		const firstPaneId = getFirstPaneId(activeWindow.layout);
+		const firstPanePath = findPanePath(activeWindow.layout, firstPaneId);
+		setFocusedPane(windowId, firstPaneId);
+		return { path: firstPanePath ?? [], paneId: firstPaneId };
+	};
+
 	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const dimensions = getPaneDimensions(focusedPaneId);
-			const path = findPanePath(activeWindow.layout, focusedPaneId);
-			if (dimensions && path) {
-				splitPaneAuto(activeWindowId, focusedPaneId, dimensions, path);
+			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
+			if (!result) return;
+			const dimensions = getPaneDimensions(result.paneId);
+			if (dimensions) {
+				splitPaneAuto(activeWindowId, result.paneId, dimensions, result.path);
 			}
 		}
-	}, [activeWindowId, focusedPaneId, activeWindow, splitPaneAuto, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneAuto,
+		setFocusedPane,
+		isWorkspaceView,
+	]);
 
 	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const path = findPanePath(activeWindow.layout, focusedPaneId);
-			if (path) {
-				splitPaneVertical(activeWindowId, focusedPaneId, path);
-			}
+			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
+			if (!result) return;
+			splitPaneVertical(activeWindowId, result.paneId, result.path);
 		}
-	}, [activeWindowId, focusedPaneId, activeWindow, splitPaneVertical, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneVertical,
+		setFocusedPane,
+		isWorkspaceView,
+	]);
 
 	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
 		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
-			const path = findPanePath(activeWindow.layout, focusedPaneId);
-			if (path) {
-				splitPaneHorizontal(activeWindowId, focusedPaneId, path);
-			}
+			const result = getPanePathWithFallback(focusedPaneId, activeWindowId);
+			if (!result) return;
+			splitPaneHorizontal(activeWindowId, result.paneId, result.path);
 		}
-	}, [activeWindowId, focusedPaneId, activeWindow, splitPaneHorizontal, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneHorizontal,
+		setFocusedPane,
+		isWorkspaceView,
+	]);
 
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
