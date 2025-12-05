@@ -186,7 +186,9 @@ export async function createWorktree(
 			(lowerError.includes(".lock") && lowerError.includes("file exists"));
 
 		if (isLockError) {
-			console.error(`Git lock file error during worktree creation: ${errorMessage}`);
+			console.error(
+				`Git lock file error during worktree creation: ${errorMessage}`,
+			);
 			throw new Error(
 				`Failed to create worktree: The git repository is locked by another process. ` +
 					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +

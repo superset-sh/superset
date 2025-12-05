@@ -2,7 +2,7 @@ import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useWindowsStore } from "renderer/stores/tabs/store";
@@ -100,11 +100,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	// Handler to set focused pane when terminal gains focus
 	// Use ref to avoid triggering full terminal recreation when focus handler changes
-	const handleTerminalFocusRef = useRef(() => {
-		if (pane?.windowId) {
-			setFocusedPane(pane.windowId, paneId);
-		}
-	});
+	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
 		if (pane?.windowId) {
 			setFocusedPane(pane.windowId, paneId);
