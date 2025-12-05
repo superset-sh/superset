@@ -99,11 +99,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	});
 
 	// Handler to set focused pane when terminal gains focus
-	const handleTerminalFocus = useCallback(() => {
+	// Use ref to avoid triggering full terminal recreation when focus handler changes
+	const handleTerminalFocusRef = useRef(() => {
 		if (pane?.windowId) {
 			setFocusedPane(pane.windowId, paneId);
 		}
-	}, [pane?.windowId, paneId, setFocusedPane]);
+	});
+	handleTerminalFocusRef.current = () => {
+		if (pane?.windowId) {
+			setFocusedPane(pane.windowId, paneId);
+		}
+	};
 
 	// Auto-close search when terminal loses focus
 	useEffect(() => {
@@ -245,7 +251,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 
 		// Intercept keyboard events to handle app hotkeys and provide iTerm-like line continuation UX
-		setupKeyboardHandler(xterm, {
+		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
 					// Use shell's native continuation syntax to avoid shell-specific parsing
@@ -257,8 +263,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		});
 
-		// Setup focus listener to track focused pane
-		const cleanupFocus = setupFocusListener(xterm, handleTerminalFocus);
+		// Setup focus listener to track focused pane (use ref to get latest handler)
+		const cleanupFocus = setupFocusListener(xterm, () =>
+			handleTerminalFocusRef.current(),
+		);
 		const cleanupResize = setupResizeHandlers(
 			container,
 			xterm,
@@ -271,6 +279,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		return () => {
 			isUnmounted = true;
 			inputDisposable.dispose();
+			cleanupKeyboard();
 			cleanupFocus?.();
 			cleanupResize();
 			cleanupQuerySuppression();
@@ -281,14 +290,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [
-		paneId,
-		workspaceId,
-		workspaceCwd,
-		paneName,
-		terminalTheme,
-		handleTerminalFocus,
-	]);
+	}, [paneId, workspaceId, workspaceCwd, paneName, terminalTheme]);
 
 	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
