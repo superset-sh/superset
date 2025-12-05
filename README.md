@@ -112,8 +112,7 @@ See tips and motivation under `docs`: [docs/cookbook/README.md](docs/cookbook/RE
 
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more
-information.
+Distributed under the Apache 2.0 License. See [LICENSE.md](LICENSE.md) for more information.
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
