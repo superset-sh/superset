@@ -5,7 +5,7 @@
 
 <h3 align="center">Superset</h3>
   <p align="center">
-    Run 10+ parallel coding agents on your machine
+    Run 10+ parallel coding agents on any machine
   </p>
 
 [![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
