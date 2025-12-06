@@ -77,13 +77,30 @@ app/
 ├── page.tsx
 ├── dashboard/
 │   ├── page.tsx
-│   └── components/
-│       └── MetricsChart/
-│           ├── MetricsChart.tsx
-│           ├── MetricsChart.test.tsx      # Tests co-located
-│           ├── index.ts
-│           ├── useMetricsData.ts          # Hook used only here
-│           └── constants.ts
+│   ├── components/
+│   │   └── MetricsChart/
+│   │       ├── MetricsChart.tsx
+│   │       ├── MetricsChart.test.tsx      # Tests co-located
+│   │       ├── index.ts
+│   │       └── constants.ts
+│   ├── hooks/                             # Hooks used only in dashboard
+│   │   └── useMetrics/
+│   │       ├── useMetrics.ts
+│   │       ├── useMetrics.test.ts
+│   │       └── index.ts
+│   ├── utils/                             # Utils used only in dashboard
+│   │   └── formatData/
+│   │       ├── formatData.ts
+│   │       ├── formatData.test.ts
+│   │       └── index.ts
+│   ├── stores/                            # Stores used only in dashboard
+│   │   └── dashboardStore/
+│   │       ├── dashboardStore.ts
+│   │       └── index.ts
+│   └── providers/                         # Providers for dashboard context
+│       └── DashboardProvider/
+│           ├── DashboardProvider.tsx
+│           └── index.ts
 └── components/
     ├── Sidebar/
     │   ├── Sidebar.tsx
@@ -120,6 +137,10 @@ components/                                # Used in 2+ pages (last resort)
 2. **Co-locate by usage**: If used once, nest under parent's `components/`. If used 2+ times, promote to **highest shared parent's** `components/` (or `components/` as last resort)
 3. **One component per file**: No multi-component files
 4. **Co-locate dependencies**: Utils, hooks, constants, config, tests, stories live next to the file using them
+
+### Exception: shadcn/ui Components
+
+The `src/components/ui/`, `src/components/ai-elements`, and `src/components/react-flow/` directories contain shadcn/ui components. These use **kebab-case single files** (e.g., `button.tsx`, `base-node.tsx`) instead of the folder structure above. This is intentional—shadcn CLI expects this format for updates via `bunx shadcn@latest add`.
 
 ## Database Rules
 

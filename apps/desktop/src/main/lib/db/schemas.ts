@@ -16,6 +16,12 @@ export interface GitStatus {
 	lastRefreshed: number;
 }
 
+export interface CheckItem {
+	name: string;
+	status: "success" | "failure" | "pending" | "skipped" | "cancelled";
+	url?: string;
+}
+
 export interface GitHubStatus {
 	pr: {
 		number: number;
@@ -23,6 +29,11 @@ export interface GitHubStatus {
 		url: string;
 		state: "open" | "draft" | "merged" | "closed";
 		mergedAt?: number;
+		additions: number;
+		deletions: number;
+		reviewDecision: "approved" | "changes_requested" | "pending";
+		checksStatus: "success" | "failure" | "pending" | "none";
+		checks: CheckItem[];
 	} | null;
 	repoUrl: string;
 	lastRefreshed: number;
