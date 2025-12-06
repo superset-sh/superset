@@ -14,26 +14,23 @@ import {
 	HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
 import { useOpenSettings } from "renderer/stores";
+import { HELP_MENU } from "shared/constants";
 import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
-
-const CONTACT_EMAIL = "mailto:support@superset.dev";
-const REPORT_ISSUE_URL = "https://github.com/superset/superset/issues/new";
-const DISCORD_URL = "https://discord.gg/superset";
 
 export function HelpMenu() {
 	const openSettings = useOpenSettings();
 	const hotkeyKeys = formatKeysForDisplay(HOTKEYS.SHOW_HOTKEYS.keys);
 
 	const handleContactUs = () => {
-		window.open(CONTACT_EMAIL, "_blank");
+		window.open(HELP_MENU.CONTACT_EMAIL, "_blank");
 	};
 
 	const handleReportIssue = () => {
-		window.open(REPORT_ISSUE_URL, "_blank");
+		window.open(HELP_MENU.REPORT_ISSUE_URL, "_blank");
 	};
 
 	const handleJoinDiscord = () => {
-		window.open(DISCORD_URL, "_blank");
+		window.open(HELP_MENU.DISCORD_URL, "_blank");
 	};
 
 	const handleViewHotkeys = () => {

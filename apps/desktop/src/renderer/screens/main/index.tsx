@@ -1,11 +1,15 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { trpc } from "renderer/lib/trpc";
-import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
+import {
+	type SettingsSection,
+	useCurrentView,
+	useOpenSettings,
+} from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useWindowsStore } from "renderer/stores/tabs/store";
@@ -45,6 +49,18 @@ export function MainScreen() {
 
 	// Listen for agent completion hooks from main process
 	useAgentHookListener();
+
+	// Listen for menu commands from main process
+	useEffect(() => {
+		const handleOpenSettings = (section?: SettingsSection) => {
+			openSettings(section);
+		};
+
+		window.ipcRenderer.on("menu:open-settings", handleOpenSettings);
+		return () => {
+			window.ipcRenderer.off("menu:open-settings", handleOpenSettings);
+		};
+	}, [openSettings]);
 
 	const activeWorkspaceId = activeWorkspace?.id;
 	const activeWindowId = activeWorkspaceId

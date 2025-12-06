@@ -1,4 +1,5 @@
-import { app, type BrowserWindow, Menu } from "electron";
+import { app, type BrowserWindow, Menu, shell } from "electron";
+import { HELP_MENU } from "shared/constants";
 import { checkForUpdatesInteractive } from "./auto-updater";
 
 export function createApplicationMenu(mainWindow: BrowserWindow) {
@@ -52,6 +53,36 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 					accelerator: "CmdOrCtrl+Shift+W",
 					click: () => {
 						mainWindow.close();
+					},
+				},
+			],
+		},
+		{
+			label: "Help",
+			submenu: [
+				{
+					label: "Contact Us",
+					click: () => {
+						shell.openExternal(HELP_MENU.CONTACT_EMAIL);
+					},
+				},
+				{
+					label: "Report Issue",
+					click: () => {
+						shell.openExternal(HELP_MENU.REPORT_ISSUE_URL);
+					},
+				},
+				{
+					label: "Join Discord",
+					click: () => {
+						shell.openExternal(HELP_MENU.DISCORD_URL);
+					},
+				},
+				{ type: "separator" },
+				{
+					label: "Keyboard Shortcuts",
+					click: () => {
+						mainWindow.webContents.send("menu:open-settings", "keyboard");
 					},
 				},
 			],
