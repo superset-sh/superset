@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Delete Neon branch
         id: delete-branch
-        uses: neondatabase/delete-branch-action@v3
+        uses: neondatabase/delete-branch-action@v3.2.0
         continue-on-error: true
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
