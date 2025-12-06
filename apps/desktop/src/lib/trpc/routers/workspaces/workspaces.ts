@@ -125,8 +125,8 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				// Load setup configuration
-				const setupConfig = loadSetupConfig(project.mainRepoPath);
+				// Load setup configuration from the worktree itself
+				const setupConfig = loadSetupConfig(worktreePath);
 
 				return {
 					workspace,

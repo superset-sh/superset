@@ -39,7 +39,8 @@ export function runTeardown(
 	worktreePath: string,
 	workspaceName: string,
 ): TeardownResult {
-	const config = loadSetupConfig(mainRepoPath);
+	// Load config from the worktree itself, not the main repo
+	const config = loadSetupConfig(worktreePath);
 
 	if (!config?.teardown || config.teardown.length === 0) {
 		return { success: true };
