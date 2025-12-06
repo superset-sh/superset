@@ -403,16 +403,24 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	/**
-	 * Remove all event listeners without killing terminals.
+	 * Remove terminal stream subscription listeners without killing terminals.
 	 * Used when window closes on macOS to prevent duplicate listeners
 	 * when window reopens.
 	 *
-	 * Note: This removes subscription listeners (data:*, exit:*) that would
-	 * otherwise accumulate across window open/close cycles. On app quit,
-	 * cleanup() has its own timeout fallback if listeners are removed early.
+	 * Only removes data:* and exit:* listeners (from tRPC subscriptions),
+	 * preserving any other listeners that may be registered.
+	 *
+	 * Note: On app quit, cleanup() has its own timeout fallback if
+	 * listeners are removed early.
 	 */
 	detachAllListeners(): void {
-		this.removeAllListeners();
+		const eventNames = this.eventNames();
+		for (const event of eventNames) {
+			const name = String(event);
+			if (name.startsWith("data:") || name.startsWith("exit:")) {
+				this.removeAllListeners(event);
+			}
+		}
 	}
 
 	async cleanup(): Promise<void> {

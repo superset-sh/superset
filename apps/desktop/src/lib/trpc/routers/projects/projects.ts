@@ -97,7 +97,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		openNew: publicProcedure.mutation(async () => {
 			const window = getWindow();
 			if (!window) {
-				throw new Error("No window available");
+				return { canceled: false, error: "No window available" };
 			}
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory"],
