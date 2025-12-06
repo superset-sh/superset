@@ -7,6 +7,7 @@ const UPDATE_FEED_URL =
 	"https://github.com/superset-sh/superset/releases/latest/download";
 
 let mainWindow: BrowserWindow | null = null;
+let isUpdateDialogOpen = false;
 
 export function setMainWindow(window: BrowserWindow): void {
 	mainWindow = window;
@@ -89,9 +90,17 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
+		// Prevent showing multiple dialogs
+		if (isUpdateDialogOpen) {
+			console.info("[auto-updater] Update dialog already open, skipping");
+			return;
+		}
+
 		console.info(
 			`[auto-updater] Update downloaded (${info.version}). Prompting user to restart.`,
 		);
+
+		isUpdateDialogOpen = true;
 
 		const dialogOptions = {
 			type: "info" as const,
@@ -110,11 +119,13 @@ export function setupAutoUpdater(): void {
 
 		showDialog
 			.then((response) => {
+				isUpdateDialogOpen = false;
 				if (response.response === 0) {
 					autoUpdater.quitAndInstall(false, true);
 				}
 			})
 			.catch((error) => {
+				isUpdateDialogOpen = false;
 				console.error("[auto-updater] Failed to show update dialog:", error);
 			});
 	});
