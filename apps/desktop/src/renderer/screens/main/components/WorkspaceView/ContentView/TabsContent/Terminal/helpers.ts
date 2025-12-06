@@ -139,12 +139,14 @@ export interface KeyboardHandlerOptions {
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
  * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
  * - Cmd+K: Clears the terminal
+ *
+ * Returns a cleanup function to remove the handler.
  */
 export function setupKeyboardHandler(
 	xterm: XTerm,
 	options: KeyboardHandlerOptions = {},
-): void {
-	xterm.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+): () => void {
+	const handler = (event: KeyboardEvent): boolean => {
 		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&
@@ -200,7 +202,14 @@ export function setupKeyboardHandler(
 		}
 
 		return true;
-	});
+	};
+
+	xterm.attachCustomKeyEventHandler(handler);
+
+	// Return cleanup function that removes the handler by setting a no-op
+	return () => {
+		xterm.attachCustomKeyEventHandler(() => true);
+	};
 }
 
 export function setupFocusListener(

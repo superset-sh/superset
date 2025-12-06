@@ -1,4 +1,4 @@
-import type { MosaicNode } from "react-mosaic-component";
+import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { Pane, PaneType, Window } from "./types";
 
 /**
@@ -194,4 +194,32 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 		return layout;
 	}
 	return getFirstPaneId(layout.first);
+};
+
+/**
+ * Finds the path to a specific pane ID in a mosaic layout
+ * Returns the path as an array of MosaicBranch ("first" | "second"), or null if not found
+ */
+export const findPanePath = (
+	layout: MosaicNode<string>,
+	paneId: string,
+	currentPath: MosaicBranch[] = [],
+): MosaicBranch[] | null => {
+	if (typeof layout === "string") {
+		return layout === paneId ? currentPath : null;
+	}
+
+	const firstPath = findPanePath(layout.first, paneId, [
+		...currentPath,
+		"first",
+	]);
+	if (firstPath) return firstPath;
+
+	const secondPath = findPanePath(layout.second, paneId, [
+		...currentPath,
+		"second",
+	]);
+	if (secondPath) return secondPath;
+
+	return null;
 };

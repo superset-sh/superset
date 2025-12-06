@@ -2,7 +2,7 @@ import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useWindowsStore } from "renderer/stores/tabs/store";
@@ -41,6 +41,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const isFocused = pane?.windowId
 		? focusedPaneIds[pane.windowId] === paneId
 		: false;
+
+	// Ref to track focus state for use in terminal creation effect
+	const isFocusedRef = useRef(isFocused);
+	isFocusedRef.current = isFocused;
 
 	// Required for resolving relative file paths in terminal commands
 	const { data: workspaceCwd } =
@@ -95,16 +99,25 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	});
 
 	// Handler to set focused pane when terminal gains focus
-	const handleTerminalFocus = useCallback(() => {
+	// Use ref to avoid triggering full terminal recreation when focus handler changes
+	const handleTerminalFocusRef = useRef(() => {});
+	handleTerminalFocusRef.current = () => {
 		if (pane?.windowId) {
 			setFocusedPane(pane.windowId, paneId);
 		}
-	}, [pane?.windowId, paneId, setFocusedPane]);
+	};
 
 	// Auto-close search when terminal loses focus
 	useEffect(() => {
 		if (!isFocused) {
 			setIsSearchOpen(false);
+		}
+	}, [isFocused]);
+
+	// Autofocus terminal when it becomes the focused pane (e.g., after split)
+	useEffect(() => {
+		if (isFocused && xtermRef.current) {
+			xtermRef.current.focus();
 		}
 	}, [isFocused]);
 
@@ -132,6 +145,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+
+		// Autofocus on initial render if this terminal is the focused pane
+		if (isFocusedRef.current) {
+			xterm.focus();
+		}
 
 		// Load search addon for Cmd+F functionality
 		import("@xterm/addon-search").then(({ SearchAddon }) => {
@@ -229,7 +247,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 
 		// Intercept keyboard events to handle app hotkeys and provide iTerm-like line continuation UX
-		setupKeyboardHandler(xterm, {
+		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
 					// Use shell's native continuation syntax to avoid shell-specific parsing
@@ -241,8 +259,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		});
 
-		// Setup focus listener to track focused pane
-		const cleanupFocus = setupFocusListener(xterm, handleTerminalFocus);
+		// Setup focus listener to track focused pane (use ref to get latest handler)
+		const cleanupFocus = setupFocusListener(xterm, () =>
+			handleTerminalFocusRef.current(),
+		);
 		const cleanupResize = setupResizeHandlers(
 			container,
 			xterm,
@@ -255,6 +275,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		return () => {
 			isUnmounted = true;
 			inputDisposable.dispose();
+			cleanupKeyboard();
 			cleanupFocus?.();
 			cleanupResize();
 			cleanupQuerySuppression();
@@ -265,14 +286,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [
-		paneId,
-		workspaceId,
-		workspaceCwd,
-		paneName,
-		terminalTheme,
-		handleTerminalFocus,
-	]);
+	}, [paneId, workspaceId, workspaceCwd, paneName, terminalTheme]);
 
 	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {

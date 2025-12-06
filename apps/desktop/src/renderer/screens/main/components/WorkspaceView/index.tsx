@@ -1,6 +1,13 @@
-import { useMemo } from "react";
+import {
+	ResizableHandle,
+	ResizablePanel,
+	ResizablePanelGroup,
+} from "@superset/ui/resizable";
+import { useEffect, useMemo, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import { trpc } from "renderer/lib/trpc";
+import { useSidebarStore } from "renderer/stores";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
@@ -83,14 +90,47 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspace?.worktreePath]);
 
+	const { isSidebarOpen, sidebarSize, setSidebarSize, setIsResizing } =
+		useSidebarStore();
+	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
+
+	useEffect(() => {
+		const panel = sidebarPanelRef.current;
+		if (!panel) return;
+
+		if (isSidebarOpen) {
+			panel.expand();
+		} else {
+			panel.collapse();
+		}
+	}, [isSidebarOpen]);
+
 	return (
-		<div className="flex flex-1 bg-tertiary">
-			<Sidebar />
-			<div className="flex-1 m-3 bg-background rounded flex flex-col overflow-hidden">
-				<div className="flex-1 p-2 overflow-hidden">
-					<ContentView />
+		<ResizablePanelGroup direction="horizontal" className="flex-1 bg-tertiary">
+			<ResizablePanel
+				ref={sidebarPanelRef}
+				defaultSize={sidebarSize}
+				minSize={10}
+				maxSize={40}
+				collapsible
+				collapsedSize={0}
+				onCollapse={() => setSidebarSize(0)}
+				onExpand={() => setSidebarSize(15)}
+				onResize={setSidebarSize}
+			>
+				{isSidebarOpen && <Sidebar />}
+			</ResizablePanel>
+			<ResizableHandle
+				className="bg-tertiary hover:bg-border transition-colors"
+				onDragging={setIsResizing}
+			/>
+			<ResizablePanel defaultSize={100 - sidebarSize}>
+				<div className="flex-1 h-full m-3 ml-0 bg-background rounded flex flex-col overflow-hidden">
+					<div className="flex-1 p-2 overflow-hidden">
+						<ContentView />
+					</div>
 				</div>
-			</div>
-		</div>
+			</ResizablePanel>
+		</ResizablePanelGroup>
 	);
 }

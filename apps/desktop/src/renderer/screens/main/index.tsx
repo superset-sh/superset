@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
@@ -9,7 +9,9 @@ import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useWindowsStore } from "renderer/stores/tabs/store";
+import type { Window } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
@@ -40,8 +42,10 @@ export function MainScreen() {
 	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
 	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
+	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
 	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
+	const windows = useWindowsStore((s) => s.windows);
 
 	useAgentHookListener();
 
@@ -58,6 +62,7 @@ export function MainScreen() {
 		? activeWindowIds[activeWorkspaceId]
 		: null;
 	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
+	const activeWindow = windows.find((w) => w.id === activeWindowId);
 	const isWorkspaceView = currentView === "workspace";
 
 	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => openSettings("keyboard"), [
@@ -68,26 +73,84 @@ export function MainScreen() {
 		if (isWorkspaceView) toggleSidebar();
 	}, [toggleSidebar, isWorkspaceView]);
 
+	/**
+	 * Resolves the target pane for split operations.
+	 * If the focused pane is desynced from layout (e.g., was removed),
+	 * falls back to first pane and corrects focus state.
+	 */
+	const resolveSplitTarget = useCallback(
+		(paneId: string, windowId: string, targetWindow: Window) => {
+			const path = findPanePath(targetWindow.layout, paneId);
+			if (path !== null) return { path, paneId };
+
+			// Focused pane not in layout - correct focus and use first pane
+			const firstPaneId = getFirstPaneId(targetWindow.layout);
+			const firstPanePath = findPanePath(targetWindow.layout, firstPaneId);
+			setFocusedPane(windowId, firstPaneId);
+			return { path: firstPanePath ?? [], paneId: firstPaneId };
+		},
+		[setFocusedPane],
+	);
+
 	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId) {
-			const dimensions = getPaneDimensions(focusedPaneId);
+		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			const dimensions = getPaneDimensions(target.paneId);
 			if (dimensions) {
-				splitPaneAuto(activeWindowId, focusedPaneId, dimensions);
+				splitPaneAuto(activeWindowId, target.paneId, dimensions, target.path);
 			}
 		}
-	}, [activeWindowId, focusedPaneId, splitPaneAuto, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneAuto,
+		resolveSplitTarget,
+		isWorkspaceView,
+	]);
 
 	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId) {
-			splitPaneVertical(activeWindowId, focusedPaneId);
+		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			splitPaneVertical(activeWindowId, target.paneId, target.path);
 		}
-	}, [activeWindowId, focusedPaneId, splitPaneVertical, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneVertical,
+		resolveSplitTarget,
+		isWorkspaceView,
+	]);
 
 	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId) {
-			splitPaneHorizontal(activeWindowId, focusedPaneId);
+		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+			const target = resolveSplitTarget(
+				focusedPaneId,
+				activeWindowId,
+				activeWindow,
+			);
+			if (!target) return;
+			splitPaneHorizontal(activeWindowId, target.paneId, target.path);
 		}
-	}, [activeWindowId, focusedPaneId, splitPaneHorizontal, isWorkspaceView]);
+	}, [
+		activeWindowId,
+		focusedPaneId,
+		activeWindow,
+		splitPaneHorizontal,
+		resolveSplitTarget,
+		isWorkspaceView,
+	]);
 
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
