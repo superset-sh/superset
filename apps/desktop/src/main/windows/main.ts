@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import type { BrowserWindow } from "electron";
 import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
@@ -12,6 +13,16 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
+import { terminalManager } from "../lib/terminal-manager";
+
+// Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
+let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
+
+// Current window reference - updated on window create/close
+let currentWindow: BrowserWindow | null = null;
+
+// Getter for routers to access current window without stale references
+const getWindow = () => currentWindow;
 
 export async function MainWindow() {
 	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -44,11 +55,19 @@ export async function MainWindow() {
 	// Create application menu
 	createApplicationMenu(window);
 
-	// Set up tRPC handler
-	createIPCHandler({
-		router: createAppRouter(window),
-		windows: [window],
-	});
+	// Update current window reference for router getter
+	currentWindow = window;
+
+	// Set up tRPC handler - reuse existing handler on macOS window reopen
+	// Router uses getWindow() to always access current window
+	if (ipcHandler) {
+		ipcHandler.attachWindow(window);
+	} else {
+		ipcHandler = createIPCHandler({
+			router: createAppRouter(getWindow),
+			windows: [window],
+		});
+	}
 
 	// Start notifications HTTP server
 	const server = notificationsApp.listen(
@@ -97,6 +116,12 @@ export async function MainWindow() {
 	window.on("close", () => {
 		server.close();
 		notificationsEmitter.removeAllListeners();
+		// Remove terminal listeners to prevent duplicates when window reopens on macOS
+		terminalManager.detachAllListeners();
+		// Detach window from IPC handler (handler stays alive for window reopen)
+		ipcHandler?.detachWindow(window);
+		// Clear current window reference
+		currentWindow = null;
 	});
 
 	return window;

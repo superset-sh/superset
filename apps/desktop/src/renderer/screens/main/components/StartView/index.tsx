@@ -72,7 +72,12 @@ export function StartView() {
 					return;
 				}
 
-				if ("needsGitInit" in result && result.needsGitInit) {
+				if ("error" in result) {
+					setError(result.error);
+					return;
+				}
+
+				if ("needsGitInit" in result) {
 					// Show dialog to offer git initialization
 					setInitGitDialog({
 						isOpen: true,
@@ -81,9 +86,7 @@ export function StartView() {
 					return;
 				}
 
-				if ("project" in result && result.project) {
-					createWorkspace.mutate({ projectId: result.project.id });
-				}
+				createWorkspace.mutate({ projectId: result.project.id });
 			},
 			onError: (err) => {
 				setError(err.message || "Failed to open project");

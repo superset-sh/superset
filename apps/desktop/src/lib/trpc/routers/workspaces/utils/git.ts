@@ -179,6 +179,24 @@ export async function createWorktree(
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
 
+		// Check for git lock file errors (e.g., .git/config.lock, .git/index.lock)
+		const isLockError =
+			lowerError.includes("could not lock") ||
+			lowerError.includes("unable to lock") ||
+			(lowerError.includes(".lock") && lowerError.includes("file exists"));
+
+		if (isLockError) {
+			console.error(
+				`Git lock file error during worktree creation: ${errorMessage}`,
+			);
+			throw new Error(
+				`Failed to create worktree: The git repository is locked by another process. ` +
+					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
+					`Please wait for the other operation to complete, or manually remove the lock file ` +
+					`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
+			);
+		}
+
 		// Broad check for LFS-related errors:
 		// - "git-lfs" / "filter-process" (original)
 		// - "smudge filter" (more specific than just "smudge" to avoid false positives)

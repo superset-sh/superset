@@ -21,10 +21,12 @@ type OpenNewNeedsGitInit = {
 	needsGitInit: true;
 	selectedPath: string;
 };
+type OpenNewError = { canceled: false; error: string };
 export type OpenNewResult =
 	| OpenNewCanceled
 	| OpenNewSuccess
-	| OpenNewNeedsGitInit;
+	| OpenNewNeedsGitInit
+	| OpenNewError;
 
 /**
  * Creates or updates a project record in the database.
@@ -135,7 +137,7 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
-export const createProjectsRouter = (window: BrowserWindow) => {
+export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
@@ -150,6 +152,10 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 		}),
 
 		openNew: publicProcedure.mutation(async (): Promise<OpenNewResult> => {
+			const window = getWindow();
+			if (!window) {
+				return { canceled: false, error: "No window available" };
+			}
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory"],
 				title: "Open Project",
@@ -246,6 +252,14 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					let targetDir = input.targetDirectory;
 
 					if (!targetDir) {
+						const window = getWindow();
+						if (!window) {
+							return {
+								canceled: false as const,
+								success: false as const,
+								error: "No window available",
+							};
+						}
 						const result = await dialog.showOpenDialog(window, {
 							properties: ["openDirectory", "createDirectory"],
 							title: "Select Clone Destination",
