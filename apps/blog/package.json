@@ -14,7 +14,7 @@
 		"@superset/ui": "workspace:*",
 		"framer-motion": "^12.23.24",
 		"geist": "^1.5.1",
-		"next": "^15.1.6",
+		"next": "^15.5.7",
 		"nextra": "^4.6.0",
 		"nextra-theme-blog": "^4.6.0",
 		"nextra-theme-docs": "^4.6.0",
