@@ -98,9 +98,24 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		closeDropdown();
 		try {
 			const result = await openNew.mutateAsync(undefined);
-			if (!result.canceled && result.project) {
-				handleCreateWorkspace(result.project.id);
+			if (result.canceled) {
+				return;
 			}
+			if ("error" in result) {
+				toast.error("Failed to open project", {
+					description: result.error,
+				});
+				return;
+			}
+			if ("needsGitInit" in result) {
+				// Folder is not a git repository - inform user to use Start view
+				toast.error("Selected folder is not a git repository", {
+					description:
+						"Please use 'Open project' from the start view to initialize git.",
+				});
+				return;
+			}
+			handleCreateWorkspace(result.project.id);
 		} catch (error) {
 			toast.error("Failed to open project", {
 				description:

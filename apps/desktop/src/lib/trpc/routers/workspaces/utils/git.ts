@@ -281,6 +281,19 @@ export async function worktreeExists(
 }
 
 /**
+ * Checks if the repository has an 'origin' remote configured
+ */
+export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		const remotes = await git.getRemotes();
+		return remotes.some((r) => r.name === "origin");
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Detects the default branch of a repository by checking:
  * 1. Remote HEAD reference (origin/HEAD -> origin/main or origin/master)
  * 2. Common branch names (main, master, develop, trunk)
