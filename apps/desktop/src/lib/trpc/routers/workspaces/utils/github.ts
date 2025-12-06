@@ -11,6 +11,7 @@ const GHCheckContextSchema = z.object({
 	name: z.string().optional(),
 	context: z.string().optional(), // StatusContext uses 'context' instead of 'name'
 	state: z.enum(["SUCCESS", "FAILURE", "PENDING", "ERROR"]).optional(),
+	status: z.string().optional(), // CheckRun status: COMPLETED, IN_PROGRESS, etc.
 	conclusion: z
 		.enum([
 			"SUCCESS",
@@ -20,11 +21,14 @@ const GHCheckContextSchema = z.object({
 			"TIMED_OUT",
 			"ACTION_REQUIRED",
 			"NEUTRAL",
+			"", // Can be empty string when in progress
 		])
-		.nullable()
 		.optional(),
 	detailsUrl: z.string().optional(),
 	targetUrl: z.string().optional(), // StatusContext uses 'targetUrl' instead of 'detailsUrl'
+	startedAt: z.string().optional(),
+	completedAt: z.string().optional(),
+	workflowName: z.string().optional(),
 });
 
 const GHPRResponseSchema = z.object({
@@ -37,13 +41,10 @@ const GHPRResponseSchema = z.object({
 	additions: z.number(),
 	deletions: z.number(),
 	reviewDecision: z
-		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"])
+		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
 		.nullable(),
-	statusCheckRollup: z
-		.object({
-			contexts: z.array(GHCheckContextSchema),
-		})
-		.nullable(),
+	// statusCheckRollup is an array directly, not { contexts: [...] }
+	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
 });
 
 const GHRepoResponseSchema = z.object({
@@ -101,8 +102,14 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 		const { stdout } = await execAsync("gh repo view --json url", {
 			cwd: worktreePath,
 		});
-		const data = GHRepoResponseSchema.parse(JSON.parse(stdout));
-		return data.url;
+		const raw = JSON.parse(stdout);
+		const result = GHRepoResponseSchema.safeParse(raw);
+		if (!result.success) {
+			console.error("[GitHub] Repo schema validation failed:", result.error);
+			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
+			return null;
+		}
+		return result.data.url;
 	} catch {
 		return null;
 	}
@@ -123,7 +130,14 @@ async function getPRForCurrentBranch(
 			`gh pr view ${branch} --json number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup`,
 			{ cwd: worktreePath },
 		);
-		const data = GHPRResponseSchema.parse(JSON.parse(stdout));
+		const raw = JSON.parse(stdout);
+		const result = GHPRResponseSchema.safeParse(raw);
+		if (!result.success) {
+			console.error("[GitHub] PR schema validation failed:", result.error);
+			console.error("[GitHub] Raw data:", JSON.stringify(raw, null, 2));
+			throw new Error("PR schema validation failed");
+		}
+		const data = result.data;
 
 		const checks = parseChecks(data.statusCheckRollup);
 
@@ -171,11 +185,11 @@ function mapReviewDecision(
 }
 
 function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
-	if (!rollup || !rollup.contexts || rollup.contexts.length === 0) {
+	if (!rollup || rollup.length === 0) {
 		return [];
 	}
 
-	return rollup.contexts.map((ctx) => {
+	return rollup.map((ctx) => {
 		// CheckRun uses 'name', StatusContext uses 'context'
 		const name = ctx.name || ctx.context || "Unknown check";
 		// CheckRun uses 'detailsUrl', StatusContext uses 'targetUrl'
@@ -207,14 +221,14 @@ function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
 function computeChecksStatus(
 	rollup: GHPRResponse["statusCheckRollup"],
 ): NonNullable<GitHubStatus["pr"]>["checksStatus"] {
-	if (!rollup || !rollup.contexts || rollup.contexts.length === 0) {
+	if (!rollup || rollup.length === 0) {
 		return "none";
 	}
 
 	let hasFailure = false;
 	let hasPending = false;
 
-	for (const ctx of rollup.contexts) {
+	for (const ctx of rollup) {
 		// StatusContext uses 'state', CheckRun uses 'conclusion'
 		const status = ctx.state || ctx.conclusion;
 
@@ -222,6 +236,7 @@ function computeChecksStatus(
 			hasFailure = true;
 		} else if (
 			status === "PENDING" ||
+			status === "" ||
 			status === null ||
 			status === undefined
 		) {
