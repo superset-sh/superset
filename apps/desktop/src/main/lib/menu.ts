@@ -1,8 +1,9 @@
-import { app, type BrowserWindow, Menu, shell } from "electron";
+import { app, Menu, shell } from "electron";
 import { HELP_MENU } from "shared/constants";
 import { checkForUpdatesInteractive } from "./auto-updater";
+import { menuEmitter } from "./menu-events";
 
-export function createApplicationMenu(mainWindow: BrowserWindow) {
+export function createApplicationMenu() {
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
 			label: "File",
@@ -48,13 +49,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 				{ role: "minimize" },
 				{ role: "zoom" },
 				{ type: "separator" },
-				{
-					label: "Close Window",
-					accelerator: "CmdOrCtrl+Shift+W",
-					click: () => {
-						mainWindow.close();
-					},
-				},
+				{ role: "close", accelerator: "CmdOrCtrl+Shift+W" },
 			],
 		},
 		{
@@ -63,7 +58,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 				{
 					label: "Contact Us",
 					click: () => {
-						shell.openExternal(HELP_MENU.CONTACT_EMAIL);
+						shell.openExternal(HELP_MENU.CONTACT_URL);
 					},
 				},
 				{
@@ -82,7 +77,7 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 				{
 					label: "Keyboard Shortcuts",
 					click: () => {
-						mainWindow.webContents.send("menu:open-settings", "keyboard");
+						menuEmitter.emit("open-settings", "keyboard");
 					},
 				},
 			],

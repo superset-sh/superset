@@ -31,9 +31,9 @@ export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.sh";
 
 // Help menu URLs
 export const HELP_MENU = {
-	CONTACT_EMAIL: "mailto:support@superset.dev",
-	REPORT_ISSUE_URL: "https://github.com/superset/superset/issues/new",
-	DISCORD_URL: "https://discord.gg/superset",
+	CONTACT_URL: "https://x.com/superset_sh",
+	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
+	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 } as const;
 
 // Config file template

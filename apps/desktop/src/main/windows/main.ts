@@ -42,7 +42,7 @@ export async function MainWindow() {
 	setMainWindow(window);
 
 	// Create application menu
-	createApplicationMenu(window);
+	createApplicationMenu();
 
 	// Set up tRPC handler
 	createIPCHandler({
