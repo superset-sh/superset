@@ -1,53 +1,75 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "main/lib/db/schemas";
+import { z } from "zod";
 
 const execAsync = promisify(exec);
 
-interface GHCheckContext {
-	__typename: string;
-	name?: string;
-	context?: string; // StatusContext uses 'context' instead of 'name'
-	state?: "SUCCESS" | "FAILURE" | "PENDING" | "ERROR";
-	conclusion?:
-		| "SUCCESS"
-		| "FAILURE"
-		| "CANCELLED"
-		| "SKIPPED"
-		| "TIMED_OUT"
-		| "ACTION_REQUIRED"
-		| "NEUTRAL"
-		| null;
-	detailsUrl?: string;
-	targetUrl?: string; // StatusContext uses 'targetUrl' instead of 'detailsUrl'
-}
+// Zod schemas for gh CLI output validation
+const GHCheckContextSchema = z.object({
+	__typename: z.string(),
+	name: z.string().optional(),
+	context: z.string().optional(), // StatusContext uses 'context' instead of 'name'
+	state: z.enum(["SUCCESS", "FAILURE", "PENDING", "ERROR"]).optional(),
+	conclusion: z
+		.enum([
+			"SUCCESS",
+			"FAILURE",
+			"CANCELLED",
+			"SKIPPED",
+			"TIMED_OUT",
+			"ACTION_REQUIRED",
+			"NEUTRAL",
+		])
+		.nullable()
+		.optional(),
+	detailsUrl: z.string().optional(),
+	targetUrl: z.string().optional(), // StatusContext uses 'targetUrl' instead of 'detailsUrl'
+});
 
-interface GHPRResponse {
-	number: number;
-	title: string;
-	url: string;
-	state: "OPEN" | "CLOSED" | "MERGED";
-	isDraft: boolean;
-	mergedAt: string | null;
-	additions: number;
-	deletions: number;
-	reviewDecision: "APPROVED" | "CHANGES_REQUESTED" | "REVIEW_REQUIRED" | null;
-	statusCheckRollup: {
-		contexts: GHCheckContext[];
-	} | null;
-}
+const GHPRResponseSchema = z.object({
+	number: z.number(),
+	title: z.string(),
+	url: z.string(),
+	state: z.enum(["OPEN", "CLOSED", "MERGED"]),
+	isDraft: z.boolean(),
+	mergedAt: z.string().nullable(),
+	additions: z.number(),
+	deletions: z.number(),
+	reviewDecision: z
+		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"])
+		.nullable(),
+	statusCheckRollup: z
+		.object({
+			contexts: z.array(GHCheckContextSchema),
+		})
+		.nullable(),
+});
 
-interface GHRepoResponse {
-	url: string;
-}
+const GHRepoResponseSchema = z.object({
+	url: z.string(),
+});
+
+type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+
+// Cache for GitHub status (30 second TTL)
+const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
+const CACHE_TTL_MS = 30_000;
 
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.
  * Returns null if `gh` is not installed, not authenticated, or on error.
+ * Results are cached for 30 seconds.
  */
 export async function fetchGitHubPRStatus(
 	worktreePath: string,
 ): Promise<GitHubStatus | null> {
+	// Check cache first
+	const cached = cache.get(worktreePath);
+	if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+		return cached.data;
+	}
+
 	try {
 		// First, get the repo URL
 		const repoUrl = await getRepoUrl(worktreePath);
@@ -58,11 +80,16 @@ export async function fetchGitHubPRStatus(
 		// Try to get PR info for current branch
 		const prInfo = await getPRForCurrentBranch(worktreePath);
 
-		return {
+		const result: GitHubStatus = {
 			pr: prInfo,
 			repoUrl,
 			lastRefreshed: Date.now(),
 		};
+
+		// Cache the result
+		cache.set(worktreePath, { data: result, timestamp: Date.now() });
+
+		return result;
 	} catch {
 		// Any error (gh not installed, not auth'd, etc.) - return null
 		return null;
@@ -74,7 +101,7 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 		const { stdout } = await execAsync("gh repo view --json url", {
 			cwd: worktreePath,
 		});
-		const data = JSON.parse(stdout) as GHRepoResponse;
+		const data = GHRepoResponseSchema.parse(JSON.parse(stdout));
 		return data.url;
 	} catch {
 		return null;
@@ -96,7 +123,7 @@ async function getPRForCurrentBranch(
 			`gh pr view ${branch} --json number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup`,
 			{ cwd: worktreePath },
 		);
-		const data = JSON.parse(stdout) as GHPRResponse;
+		const data = GHPRResponseSchema.parse(JSON.parse(stdout));
 
 		const checks = parseChecks(data.statusCheckRollup);
 
