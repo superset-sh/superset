@@ -22,7 +22,7 @@ export function HelpMenu() {
 	const hotkeyKeys = formatKeysForDisplay(HOTKEYS.SHOW_HOTKEYS.keys);
 
 	const handleContactUs = () => {
-		window.open(HELP_MENU.CONTACT_EMAIL, "_blank");
+		window.open(HELP_MENU.CONTACT_URL, "_blank");
 	};
 
 	const handleReportIssue = () => {
@@ -48,7 +48,7 @@ export function HelpMenu() {
 					<HiOutlineQuestionMarkCircle className="h-4 w-4" />
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" side="bottom" className="w-56">
+			<DropdownMenuContent align="end" side="bottom" className="w-64">
 				<DropdownMenuItem onClick={handleContactUs}>
 					<HiOutlineEnvelope className="h-4 w-4" />
 					Contact Us
