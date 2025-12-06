@@ -84,7 +84,6 @@ export function createApplicationMenu() {
 		},
 	];
 
-	// Add About menu on macOS
 	if (process.platform === "darwin") {
 		template.unshift({
 			label: app.name,

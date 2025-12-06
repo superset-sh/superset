@@ -10,9 +10,6 @@ type MenuEvent = { type: "open-settings"; data: OpenSettingsEvent };
 
 export const createMenuRouter = () => {
 	return router({
-		/**
-		 * Subscribe to menu events from the application menu bar.
-		 */
 		subscribe: publicProcedure.subscription(() => {
 			return observable<MenuEvent>((emit) => {
 				const onOpenSettings = (section?: SettingsSection) => {

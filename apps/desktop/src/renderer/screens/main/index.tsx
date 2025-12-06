@@ -43,10 +43,8 @@ export function MainScreen() {
 	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
 	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
 
-	// Listen for agent completion hooks from main process
 	useAgentHookListener();
 
-	// Listen for menu commands from main process via trpc subscription
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
@@ -62,7 +60,6 @@ export function MainScreen() {
 	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
 	const isWorkspaceView = currentView === "workspace";
 
-	// Register global shortcuts
 	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => openSettings("keyboard"), [
 		openSettings,
 	]);
@@ -95,7 +92,6 @@ export function MainScreen() {
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
 
-	// Determine which content view to show
 	const renderContent = () => {
 		if (currentView === "settings") {
 			return <SettingsView />;
@@ -103,7 +99,6 @@ export function MainScreen() {
 		return <WorkspaceView />;
 	};
 
-	// Show loading spinner while query is in flight
 	if (isLoading) {
 		return (
 			<DndProvider manager={dragDropManager}>
@@ -117,8 +112,6 @@ export function MainScreen() {
 		);
 	}
 
-	// Show error state with retry option
-	// Note: failureCount resets automatically on successful query
 	if (isError) {
 		const hasRepeatedFailures = failureCount >= 5;
 

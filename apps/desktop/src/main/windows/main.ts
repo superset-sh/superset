@@ -38,13 +38,9 @@ export async function MainWindow() {
 		},
 	});
 
-	// Set main window for auto-updater dialogs
 	setMainWindow(window);
-
-	// Create application menu
 	createApplicationMenu();
 
-	// Set up tRPC handler
 	createIPCHandler({
 		router: createAppRouter(window),
 		windows: [window],
