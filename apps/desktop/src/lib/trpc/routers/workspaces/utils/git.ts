@@ -351,3 +351,16 @@ export async function checkNeedsRebase(
 	]);
 	return Number.parseInt(behindCount.trim(), 10) > 0;
 }
+
+/**
+ * Checks if a worktree has uncommitted changes (staged, unstaged, or untracked files)
+ * @param worktreePath - Path to the worktree
+ * @returns true if there are any uncommitted changes
+ */
+export async function hasUncommittedChanges(
+	worktreePath: string,
+): Promise<boolean> {
+	const git = simpleGit(worktreePath);
+	const status = await git.status();
+	return !status.isClean();
+}

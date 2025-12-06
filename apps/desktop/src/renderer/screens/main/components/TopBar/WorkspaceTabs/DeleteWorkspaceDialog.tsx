@@ -70,6 +70,7 @@ export function DeleteWorkspaceDialog({
 	const reason = canDeleteData?.reason;
 	const warning = canDeleteData?.warning;
 	const activeTerminalCount = canDeleteData?.activeTerminalCount ?? 0;
+	const hasChanges = canDeleteData?.hasChanges ?? false;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -89,6 +90,11 @@ export function DeleteWorkspaceDialog({
 								{warning && (
 									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
 										Warning: {warning}
+									</span>
+								)}
+								{hasChanges && (
+									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
+										This workspace has uncommitted changes that will be lost.
 									</span>
 								)}
 								{activeTerminalCount > 0 && (
