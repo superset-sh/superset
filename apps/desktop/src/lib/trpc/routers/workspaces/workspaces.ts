@@ -12,6 +12,7 @@ import {
 	fetchDefaultBranch,
 	generateBranchName,
 	getDefaultBranch,
+	hasOriginRemote,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
@@ -55,18 +56,29 @@ export const createWorkspacesRouter = () => {
 					});
 				}
 
-				// Fetch default branch to ensure we're branching from latest (best-effort)
-				try {
-					await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
-				} catch {
-					// Silently continue - branch still exists locally, just might be stale
+				// Check if this repo has a remote origin
+				const hasRemote = await hasOriginRemote(project.mainRepoPath);
+
+				// Determine the start point for the worktree
+				let startPoint: string;
+				if (hasRemote) {
+					// Fetch default branch to ensure we're branching from latest (best-effort)
+					try {
+						await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+					} catch {
+						// Silently continue - branch still exists locally, just might be stale
+					}
+					startPoint = `origin/${defaultBranch}`;
+				} else {
+					// For local-only repos, use the local default branch
+					startPoint = defaultBranch;
 				}
 
 				await createWorktree(
 					project.mainRepoPath,
 					branch,
 					worktreePath,
-					`origin/${defaultBranch}`,
+					startPoint,
 				);
 
 				const worktree = {
