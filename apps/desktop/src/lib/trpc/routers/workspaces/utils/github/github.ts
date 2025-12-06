@@ -9,9 +9,9 @@ import {
 
 const execFileAsync = promisify(execFile);
 
-// Cache for GitHub status (30 second TTL)
+// Cache for GitHub status (10 second TTL)
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
-const CACHE_TTL_MS = 30_000;
+const CACHE_TTL_MS = 10_000;
 
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.
