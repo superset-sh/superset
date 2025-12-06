@@ -1,57 +1,13 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "main/lib/db/schemas";
-import { z } from "zod";
+import {
+	type GHPRResponse,
+	GHPRResponseSchema,
+	GHRepoResponseSchema,
+} from "./types";
 
-const execAsync = promisify(exec);
-
-// Zod schemas for gh CLI output validation
-const GHCheckContextSchema = z.object({
-	__typename: z.string(),
-	name: z.string().optional(),
-	context: z.string().optional(), // StatusContext uses 'context' instead of 'name'
-	state: z.enum(["SUCCESS", "FAILURE", "PENDING", "ERROR"]).optional(),
-	status: z.string().optional(), // CheckRun status: COMPLETED, IN_PROGRESS, etc.
-	conclusion: z
-		.enum([
-			"SUCCESS",
-			"FAILURE",
-			"CANCELLED",
-			"SKIPPED",
-			"TIMED_OUT",
-			"ACTION_REQUIRED",
-			"NEUTRAL",
-			"", // Can be empty string when in progress
-		])
-		.optional(),
-	detailsUrl: z.string().optional(),
-	targetUrl: z.string().optional(), // StatusContext uses 'targetUrl' instead of 'detailsUrl'
-	startedAt: z.string().optional(),
-	completedAt: z.string().optional(),
-	workflowName: z.string().optional(),
-});
-
-const GHPRResponseSchema = z.object({
-	number: z.number(),
-	title: z.string(),
-	url: z.string(),
-	state: z.enum(["OPEN", "CLOSED", "MERGED"]),
-	isDraft: z.boolean(),
-	mergedAt: z.string().nullable(),
-	additions: z.number(),
-	deletions: z.number(),
-	reviewDecision: z
-		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
-		.nullable(),
-	// statusCheckRollup is an array directly, not { contexts: [...] }
-	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
-});
-
-const GHRepoResponseSchema = z.object({
-	url: z.string(),
-});
-
-type GHPRResponse = z.infer<typeof GHPRResponseSchema>;
+const execFileAsync = promisify(execFile);
 
 // Cache for GitHub status (30 second TTL)
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
@@ -99,9 +55,13 @@ export async function fetchGitHubPRStatus(
 
 async function getRepoUrl(worktreePath: string): Promise<string | null> {
 	try {
-		const { stdout } = await execAsync("gh repo view --json url", {
-			cwd: worktreePath,
-		});
+		const { stdout } = await execFileAsync(
+			"gh",
+			["repo", "view", "--json", "url"],
+			{
+				cwd: worktreePath,
+			},
+		);
 		const raw = JSON.parse(stdout);
 		const result = GHRepoResponseSchema.safeParse(raw);
 		if (!result.success) {
@@ -120,14 +80,23 @@ async function getPRForCurrentBranch(
 ): Promise<GitHubStatus["pr"]> {
 	try {
 		// Get the current branch name explicitly (worktrees don't work well with gh's auto-detection)
-		const { stdout: branchName } = await execAsync(
-			"git rev-parse --abbrev-ref HEAD",
+		const { stdout: branchName } = await execFileAsync(
+			"git",
+			["rev-parse", "--abbrev-ref", "HEAD"],
 			{ cwd: worktreePath },
 		);
 		const branch = branchName.trim();
 
-		const { stdout } = await execAsync(
-			`gh pr view ${branch} --json number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup`,
+		// Use execFile with args array to prevent command injection
+		const { stdout } = await execFileAsync(
+			"gh",
+			[
+				"pr",
+				"view",
+				branch,
+				"--json",
+				"number,title,url,state,isDraft,mergedAt,additions,deletions,reviewDecision,statusCheckRollup",
+			],
 			{ cwd: worktreePath },
 		);
 		const raw = JSON.parse(stdout);
