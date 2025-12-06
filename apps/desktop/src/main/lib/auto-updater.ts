@@ -90,7 +90,6 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
-		// Prevent showing multiple dialogs
 		if (isUpdateDialogOpen) {
 			console.info("[auto-updater] Update dialog already open, skipping");
 			return;
