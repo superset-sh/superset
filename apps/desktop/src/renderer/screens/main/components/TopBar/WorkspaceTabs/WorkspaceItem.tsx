@@ -1,11 +1,14 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
+import { trpc } from "renderer/lib/trpc";
 import {
+	useDeleteWorkspace,
 	useReorderWorkspaces,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
@@ -42,11 +45,38 @@ export function WorkspaceItem({
 }: WorkspaceItemProps) {
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
+	const deleteWorkspace = useDeleteWorkspace();
 	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 	const windows = useWindowsStore((s) => s.windows);
 	const panes = useWindowsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
+
+	// Query to check if workspace is empty (no active terminals)
+	const { data: canDeleteData } = trpc.workspaces.canDelete.useQuery({ id });
+
+	const handleDeleteClick = () => {
+		const isEmpty =
+			canDeleteData?.canDelete &&
+			canDeleteData.activeTerminalCount === 0 &&
+			!canDeleteData.warning &&
+			!canDeleteData.hasChanges;
+
+		if (isEmpty) {
+			// Delete directly without confirmation
+			toast.promise(deleteWorkspace.mutateAsync({ id }), {
+				loading: `Deleting "${title}"...`,
+				success: `Workspace "${title}" deleted`,
+				error: (error) =>
+					error instanceof Error
+						? `Failed to delete workspace: ${error.message}`
+						: "Failed to delete workspace",
+			});
+		} else {
+			// Show confirmation dialog
+			setShowDeleteDialog(true);
+		}
+	};
 
 	// Check if any pane in windows belonging to this workspace needs attention
 	const workspaceWindows = windows.filter((w) => w.workspaceId === id);
@@ -181,7 +211,7 @@ export function WorkspaceItem({
 								size="icon"
 								onClick={(e) => {
 									e.stopPropagation();
-									setShowDeleteDialog(true);
+									handleDeleteClick();
 								}}
 								className={cn(
 									"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",

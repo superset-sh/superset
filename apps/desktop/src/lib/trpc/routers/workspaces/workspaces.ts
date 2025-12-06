@@ -12,6 +12,7 @@ import {
 	fetchDefaultBranch,
 	generateBranchName,
 	getDefaultBranch,
+	hasUncommittedChanges,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
@@ -285,6 +286,7 @@ export const createWorkspacesRouter = () => {
 						reason: "Workspace not found",
 						workspace: null,
 						activeTerminalCount: 0,
+						hasChanges: false,
 					};
 				}
 
@@ -313,8 +315,12 @@ export const createWorkspacesRouter = () => {
 								warning:
 									"Worktree not found in git (may have been manually removed)",
 								activeTerminalCount,
+								hasChanges: false,
 							};
 						}
+
+						// Check for uncommitted changes
+						const hasChanges = await hasUncommittedChanges(worktree.path);
 
 						return {
 							canDelete: true,
@@ -322,6 +328,7 @@ export const createWorkspacesRouter = () => {
 							workspace,
 							warning: null,
 							activeTerminalCount,
+							hasChanges,
 						};
 					} catch (error) {
 						return {
@@ -329,6 +336,7 @@ export const createWorkspacesRouter = () => {
 							reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
 							workspace,
 							activeTerminalCount,
+							hasChanges: false,
 						};
 					}
 				}
@@ -339,6 +347,7 @@ export const createWorkspacesRouter = () => {
 					workspace,
 					warning: "No associated worktree found",
 					activeTerminalCount,
+					hasChanges: false,
 				};
 			}),
 
