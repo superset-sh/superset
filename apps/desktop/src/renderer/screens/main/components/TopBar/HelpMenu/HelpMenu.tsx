@@ -6,6 +6,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { FaDiscord } from "react-icons/fa";
 import {
 	HiOutlineBugAnt,
@@ -39,15 +40,22 @@ export function HelpMenu() {
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
-				<button
-					type="button"
-					className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-					aria-label="Help menu"
-				>
-					<HiOutlineQuestionMarkCircle className="h-4 w-4" />
-				</button>
-			</DropdownMenuTrigger>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+							aria-label="Help menu"
+						>
+							<HiOutlineQuestionMarkCircle className="h-4 w-4" />
+						</button>
+					</DropdownMenuTrigger>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Help
+				</TooltipContent>
+			</Tooltip>
 			<DropdownMenuContent align="end" side="bottom" className="w-64">
 				<DropdownMenuItem onClick={handleContactUs}>
 					<HiOutlineEnvelope className="h-4 w-4" />
