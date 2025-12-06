@@ -1,3 +1,5 @@
+
+
 <!-- Improved compatibility of back to top link: See: https://github.com/othneildrew/Best-README-Template/pull/73 -->
 <div align="center">
 <img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" />
@@ -13,7 +15,7 @@
 </div>
 
 ## A Terminal Built for Coding Agents
-Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
+Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine.
 Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
 
 <img alt="example" src="apps/website/public/hero/use-agents.gif" />
@@ -42,10 +44,10 @@ bun run dev
 Build desktop app:
 ```bash
 bun run build
-open apps/desktop/release       
+open apps/desktop/release
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > While Electron is cross-platform, Superset Desktop has only been built and tested on **macOS**. Other platforms are currently untested and may not work as expected.
 
 ### Usage
@@ -66,7 +68,7 @@ Each workspace gets their own organized terminal system. You can create default 
 </div>
 <br>
 
-Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
+Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents.
 
 
 <div align="center">
