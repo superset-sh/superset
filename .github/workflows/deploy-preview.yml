@@ -1,0 +1,67 @@
+name: Deploy Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  create-neon-branch:
+    name: Create Neon Branch
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lockb') }}
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Create Neon branch
+        id: create-branch
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: ${{ github.head_ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Validate and run migrations
+        env:
+          DATABASE_URL: ${{ steps.create-branch.outputs.db_url }}
+        run: |
+          cd packages/db
+          # Validate schema consistency
+          bunx drizzle-kit check
+          # Run migrations on Neon branch
+          bunx drizzle-kit migrate
+
+      - name: Post PR comment
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          comment-tag: "🚀-preview-deployment"
+          message: |
+            ## 🚀 Preview Deployment
+
+            ### 🔗 Preview Links
+
+            | Service | Status | Link |
+            |---------|:------:|------|
+            | <img src="https://neon.tech/favicon.ico" width="16" height="16"> **Database (Neon)** | ✅ | [View Branch](https://console.neon.tech/app/projects/${{ vars.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables) |
+
+            ---
+
+            *Preview updates automatically with new commits*

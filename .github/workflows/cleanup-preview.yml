@@ -1,0 +1,35 @@
+name: Cleanup Preview
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Cleanup Preview Resources
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Delete Neon branch
+        id: delete-branch
+        uses: neondatabase/delete-branch-action@v3
+        continue-on-error: true
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ github.event.pull_request.head.ref }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Update comment with cleanup status
+        if: always()
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          comment-tag: "🚀-preview-deployment"
+          message: |
+            ## 🧹 Preview Cleanup Complete
+
+            The following preview resources have been cleaned up:
+            - ${{ steps.delete-branch.outcome == 'success' && '✅' || '⚠️' }} Neon database branch
+
+            Thank you for your contribution! 🎉
