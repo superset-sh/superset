@@ -7,6 +7,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ExternalApp } from "main/lib/db/schemas";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
@@ -87,17 +88,27 @@ export function OpenInButton({
 	return (
 		<ButtonGroup>
 			{label && (
-				<Button
-					variant="outline"
-					size="sm"
-					className="gap-1.5"
-					onClick={handleOpenLastUsed}
-					disabled={!path}
-					title={`Open in ${currentApp.label}${showShortcuts ? " (⌘O)" : ""}`}
-				>
-					<img src={currentApp.icon} alt="" className="size-4 object-contain" />
-					<span className="font-medium">{label}</span>
-				</Button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="outline"
+							size="sm"
+							className="gap-1.5"
+							onClick={handleOpenLastUsed}
+							disabled={!path}
+						>
+							<img
+								src={currentApp.icon}
+								alt=""
+								className="size-4 object-contain"
+							/>
+							<span className="font-medium">{label}</span>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{`Open in ${currentApp.label}${showShortcuts ? " (⌘O)" : ""}`}
+					</TooltipContent>
+				</Tooltip>
 			)}
 			<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 				<DropdownMenuTrigger asChild>
