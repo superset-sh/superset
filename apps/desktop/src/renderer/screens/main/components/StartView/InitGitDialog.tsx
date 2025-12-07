@@ -59,9 +59,8 @@ export function InitGitDialog({
 			previouslyFocusedRef.current = document.activeElement as HTMLElement;
 			// Move focus to the first focusable element in the dialog
 			requestAnimationFrame(() => {
-				const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
-					FOCUSABLE_SELECTOR,
-				);
+				const firstFocusable =
+					dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
 				firstFocusable?.focus();
 			});
 		} else {
@@ -81,9 +80,8 @@ export function InitGitDialog({
 
 			if (e.key !== "Tab") return;
 
-			const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
-				FOCUSABLE_SELECTOR,
-			);
+			const focusableElements =
+				dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
 			if (!focusableElements || focusableElements.length === 0) return;
 
 			const firstElement = focusableElements[0];
@@ -148,7 +146,7 @@ export function InitGitDialog({
 	const folderName = getBasename(selectedPath);
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents: Focus trap handles keyboard events on dialog
+		// biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Modal backdrop dismiss pattern
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
 			onClick={handleBackdropClick}
