@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
@@ -8,6 +8,10 @@ function getBasename(path: string): string {
 	const normalized = path.replace(/\\/g, "/");
 	const segments = normalized.split("/").filter(Boolean);
 	return segments[segments.length - 1] || path;
+}
+
+function getErrorMessage(err: unknown): string {
+	return err instanceof Error ? err.message : "Unknown error";
 }
 
 interface InitGitDialogProps {
@@ -27,60 +31,73 @@ export function InitGitDialog({
 	const initGitAndOpen = trpc.projects.initGitAndOpen.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
-	const isLoading = initGitAndOpen.isPending || createWorkspace.isPending;
+	// Track the entire async sequence to keep modal locked
+	const [isProcessing, setIsProcessing] = useState(false);
+
+	// Guard against setState after unmount
+	const isMountedRef = useRef(true);
+	useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+		};
+	}, []);
 
 	// Handle Escape key to close dialog
 	useEffect(() => {
 		if (!isOpen) return;
 
 		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape" && !isLoading) {
+			if (e.key === "Escape" && !isProcessing) {
 				onClose();
 			}
 		};
 
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, isLoading, onClose]);
+	}, [isOpen, isProcessing, onClose]);
 
 	const handleBackdropClick = (e: React.MouseEvent) => {
 		// Only close if clicking the backdrop, not the dialog content
-		if (e.target === e.currentTarget && !isLoading) {
+		if (e.target === e.currentTarget && !isProcessing) {
 			onClose();
 		}
 	};
 
 	const handleInitGit = async () => {
-		if (isLoading) return; // Prevent double-clicks
-
-		let result: Awaited<ReturnType<typeof initGitAndOpen.mutateAsync>>;
-		try {
-			result = await initGitAndOpen.mutateAsync({ path: selectedPath });
-		} catch (err) {
-			const message =
-				err instanceof Error ? err.message : "Unknown error";
-			onError(`Failed to initialize git repository: ${message}`);
-			return;
-		}
-
-		if (!result.project) {
-			onError("Unexpected error: project was not created");
-			return;
-		}
-
-		// Invalidate cache in background - don't block the primary workflow
-		utils.projects.getRecents.invalidate();
+		if (isProcessing) return; // Prevent double-clicks
+		setIsProcessing(true);
 
 		try {
-			await createWorkspace.mutateAsync({ projectId: result.project.id });
-		} catch (err) {
-			const message =
-				err instanceof Error ? err.message : "Unknown error";
-			onError(`Failed to create workspace: ${message}`);
-			return;
-		}
+			let result: Awaited<ReturnType<typeof initGitAndOpen.mutateAsync>>;
+			try {
+				result = await initGitAndOpen.mutateAsync({ path: selectedPath });
+			} catch (err) {
+				onError(`Failed to initialize git repository: ${getErrorMessage(err)}`);
+				return;
+			}
 
-		onClose();
+			if (!result.project) {
+				onError("Unexpected error: project was not created");
+				return;
+			}
+
+			// Invalidate cache in background - don't block the primary workflow
+			utils.projects.getRecents.invalidate().catch(console.error);
+
+			try {
+				await createWorkspace.mutateAsync({ projectId: result.project.id });
+			} catch (err) {
+				onError(`Failed to create workspace: ${getErrorMessage(err)}`);
+				return;
+			}
+
+			onClose();
+		} finally {
+			if (isMountedRef.current) {
+				setIsProcessing(false);
+			}
+		}
 	};
 
 	if (!isOpen) return null;
@@ -116,11 +133,11 @@ export function InitGitDialog({
 				</p>
 
 				<div className="flex gap-3 justify-end">
-					<Button variant="outline" onClick={onClose} disabled={isLoading}>
+					<Button variant="outline" onClick={onClose} disabled={isProcessing}>
 						Cancel
 					</Button>
-					<Button onClick={handleInitGit} disabled={isLoading}>
-						{isLoading ? "Initializing..." : "Initialize Git"}
+					<Button onClick={handleInitGit} disabled={isProcessing}>
+						{isProcessing ? "Initializing..." : "Initialize Git"}
 					</Button>
 				</div>
 			</div>
