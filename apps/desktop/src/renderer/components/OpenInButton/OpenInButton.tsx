@@ -12,140 +12,68 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ExternalApp } from "main/lib/db/schemas";
-import type { ComponentType } from "react";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
-import {
-	SiClion,
-	SiDatagrip,
-	SiGoland,
-	SiIntellijidea,
-	SiJetbrains,
-	SiPhpstorm,
-	SiPycharm,
-	SiRider,
-	SiRubymine,
-	SiWebstorm,
-} from "react-icons/si";
+import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
+import clionIcon from "renderer/assets/app-icons/clion.svg";
 import cursorIcon from "renderer/assets/app-icons/cursor.svg";
+import datagripIcon from "renderer/assets/app-icons/datagrip.svg";
 import finderIcon from "renderer/assets/app-icons/finder.png";
+import fleetIcon from "renderer/assets/app-icons/fleet.svg";
+import golandIcon from "renderer/assets/app-icons/goland.svg";
+import intellijIcon from "renderer/assets/app-icons/intellij.svg";
 import itermIcon from "renderer/assets/app-icons/iterm.png";
+import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
+import phpstormIcon from "renderer/assets/app-icons/phpstorm.svg";
+import pycharmIcon from "renderer/assets/app-icons/pycharm.svg";
+import riderIcon from "renderer/assets/app-icons/rider.svg";
+import rubymineIcon from "renderer/assets/app-icons/rubymine.svg";
+import rustroverIcon from "renderer/assets/app-icons/rustrover.svg";
 import sublimeIcon from "renderer/assets/app-icons/sublime.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
+import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import { trpc } from "renderer/lib/trpc";
 
-interface AppOptionWithImage {
+interface AppOption {
 	id: ExternalApp;
 	label: string;
 	icon: string;
-	iconType: "image";
 }
-
-interface AppOptionWithComponent {
-	id: ExternalApp;
-	label: string;
-	icon: ComponentType<{ className?: string }>;
-	iconType: "component";
-}
-
-type AppOption = AppOptionWithImage | AppOptionWithComponent;
 
 const APP_OPTIONS: AppOption[] = [
-	{ id: "finder", label: "Finder", icon: finderIcon, iconType: "image" },
-	{ id: "cursor", label: "Cursor", icon: cursorIcon, iconType: "image" },
-	{ id: "vscode", label: "VS Code", icon: vscodeIcon, iconType: "image" },
-	{
-		id: "sublime",
-		label: "Sublime Text",
-		icon: sublimeIcon,
-		iconType: "image",
-	},
-	{ id: "xcode", label: "Xcode", icon: xcodeIcon, iconType: "image" },
-	{ id: "iterm", label: "iTerm", icon: itermIcon, iconType: "image" },
-	{ id: "warp", label: "Warp", icon: warpIcon, iconType: "image" },
-	{ id: "terminal", label: "Terminal", icon: terminalIcon, iconType: "image" },
+	{ id: "finder", label: "Finder", icon: finderIcon },
+	{ id: "cursor", label: "Cursor", icon: cursorIcon },
+	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
+	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
+	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
+	{ id: "iterm", label: "iTerm", icon: itermIcon },
+	{ id: "warp", label: "Warp", icon: warpIcon },
+	{ id: "terminal", label: "Terminal", icon: terminalIcon },
 ];
 
 const JETBRAINS_OPTIONS: AppOption[] = [
-	{
-		id: "intellij",
-		label: "IntelliJ IDEA",
-		icon: SiIntellijidea,
-		iconType: "component",
-	},
-	{
-		id: "webstorm",
-		label: "WebStorm",
-		icon: SiWebstorm,
-		iconType: "component",
-	},
-	{ id: "pycharm", label: "PyCharm", icon: SiPycharm, iconType: "component" },
-	{
-		id: "phpstorm",
-		label: "PhpStorm",
-		icon: SiPhpstorm,
-		iconType: "component",
-	},
-	{
-		id: "rubymine",
-		label: "RubyMine",
-		icon: SiRubymine,
-		iconType: "component",
-	},
-	{ id: "goland", label: "GoLand", icon: SiGoland, iconType: "component" },
-	{ id: "clion", label: "CLion", icon: SiClion, iconType: "component" },
-	{ id: "rider", label: "Rider", icon: SiRider, iconType: "component" },
-	{
-		id: "datagrip",
-		label: "DataGrip",
-		icon: SiDatagrip,
-		iconType: "component",
-	},
-	// AppCode, Fleet, and RustRover don't have icons in react-icons/si
-	// They will use the JetBrains logo as fallback
-	{
-		id: "appcode",
-		label: "AppCode",
-		icon: SiJetbrains,
-		iconType: "component",
-	},
-	{ id: "fleet", label: "Fleet", icon: SiJetbrains, iconType: "component" },
-	{
-		id: "rustrover",
-		label: "RustRover",
-		icon: SiJetbrains,
-		iconType: "component",
-	},
+	{ id: "intellij", label: "IntelliJ IDEA", icon: intellijIcon },
+	{ id: "webstorm", label: "WebStorm", icon: webstormIcon },
+	{ id: "pycharm", label: "PyCharm", icon: pycharmIcon },
+	{ id: "phpstorm", label: "PhpStorm", icon: phpstormIcon },
+	{ id: "rubymine", label: "RubyMine", icon: rubymineIcon },
+	{ id: "goland", label: "GoLand", icon: golandIcon },
+	{ id: "clion", label: "CLion", icon: clionIcon },
+	{ id: "rider", label: "Rider", icon: riderIcon },
+	{ id: "datagrip", label: "DataGrip", icon: datagripIcon },
+	{ id: "appcode", label: "AppCode", icon: appcodeIcon },
+	{ id: "fleet", label: "Fleet", icon: fleetIcon },
+	{ id: "rustrover", label: "RustRover", icon: rustroverIcon },
 ];
 
 const ALL_APP_OPTIONS = [...APP_OPTIONS, ...JETBRAINS_OPTIONS];
 
 const getAppOption = (id: ExternalApp) =>
 	ALL_APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
-
-function AppIcon({
-	app,
-	className = "size-4",
-}: {
-	app: AppOption;
-	className?: string;
-}) {
-	if (app.iconType === "image") {
-		return (
-			<img
-				src={app.icon}
-				alt={app.label}
-				className={`${className} object-contain`}
-			/>
-		);
-	}
-	const IconComponent = app.icon;
-	return <IconComponent className={className} />;
-}
 
 export interface OpenInButtonProps {
 	path: string | undefined;
@@ -202,7 +130,11 @@ export function OpenInButton({
 							onClick={handleOpenLastUsed}
 							disabled={!path}
 						>
-							<AppIcon app={currentApp} />
+							<img
+								src={currentApp.icon}
+								alt=""
+								className="size-4 object-contain"
+							/>
 							<span className="font-medium">{label}</span>
 						</Button>
 					</TooltipTrigger>
@@ -231,7 +163,11 @@ export function OpenInButton({
 							className="flex items-center justify-between"
 						>
 							<div className="flex items-center gap-2">
-								<AppIcon app={app} />
+								<img
+									src={app.icon}
+									alt={app.label}
+									className="size-4 object-contain"
+								/>
 								<span>{app.label}</span>
 							</div>
 							{showShortcuts && app.id === lastUsedApp && (
@@ -241,7 +177,11 @@ export function OpenInButton({
 					))}
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger className="flex items-center gap-2">
-							<SiJetbrains className="size-4" />
+							<img
+								src={jetbrainsIcon}
+								alt="JetBrains"
+								className="size-4 object-contain"
+							/>
 							<span>JetBrains</span>
 						</DropdownMenuSubTrigger>
 						<DropdownMenuSubContent className="w-48">
@@ -252,7 +192,11 @@ export function OpenInButton({
 									className="flex items-center justify-between"
 								>
 									<div className="flex items-center gap-2">
-										<AppIcon app={app} />
+										<img
+											src={app.icon}
+											alt={app.label}
+											className="size-4 object-contain"
+										/>
 										<span>{app.label}</span>
 									</div>
 									{showShortcuts && app.id === lastUsedApp && (
