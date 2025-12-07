@@ -13,9 +13,11 @@ import {
 	fetchDefaultBranch,
 	generateBranchName,
 	getDefaultBranch,
+	hasOriginRemote,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
+import { fetchGitHubPRStatus } from "./utils/github";
 import { loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
 import { getWorktreePath } from "./utils/worktree";
@@ -56,18 +58,29 @@ export const createWorkspacesRouter = () => {
 					});
 				}
 
-				// Fetch default branch to ensure we're branching from latest (best-effort)
-				try {
-					await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
-				} catch {
-					// Silently continue - branch still exists locally, just might be stale
+				// Check if this repo has a remote origin
+				const hasRemote = await hasOriginRemote(project.mainRepoPath);
+
+				// Determine the start point for the worktree
+				let startPoint: string;
+				if (hasRemote) {
+					// Fetch default branch to ensure we're branching from latest (best-effort)
+					try {
+						await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+					} catch {
+						// Silently continue - branch still exists locally, just might be stale
+					}
+					startPoint = `origin/${defaultBranch}`;
+				} else {
+					// For local-only repos, use the local default branch
+					startPoint = defaultBranch;
 				}
 
 				await createWorktree(
 					project.mainRepoPath,
 					branch,
 					worktreePath,
-					`origin/${defaultBranch}`,
+					startPoint,
 				);
 
 				const worktree = {
@@ -125,8 +138,8 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				// Load setup configuration
-				const setupConfig = loadSetupConfig(project.mainRepoPath);
+				// Load setup configuration from the worktree itself
+				const setupConfig = loadSetupConfig(worktreePath);
 
 				return {
 					workspace,
@@ -591,6 +604,67 @@ export const createWorkspacesRouter = () => {
 				});
 
 				return { gitStatus };
+			}),
+
+		getGitHubStatus: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(async ({ input }) => {
+				const workspace = db.data.workspaces.find(
+					(w) => w.id === input.workspaceId,
+				);
+				if (!workspace) {
+					return null;
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				if (!worktree) {
+					return null;
+				}
+
+				// Always fetch fresh data on hover
+				const freshStatus = await fetchGitHubPRStatus(worktree.path);
+
+				// Update cache if we got data
+				if (freshStatus) {
+					await db.update((data) => {
+						const wt = data.worktrees.find((w) => w.id === worktree.id);
+						if (wt) {
+							wt.githubStatus = freshStatus;
+						}
+					});
+				}
+
+				return freshStatus;
+			}),
+
+		getWorktreeInfo: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const workspace = db.data.workspaces.find(
+					(w) => w.id === input.workspaceId,
+				);
+				if (!workspace) {
+					return null;
+				}
+
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === workspace.worktreeId,
+				);
+				if (!worktree) {
+					return null;
+				}
+
+				// Extract worktree name from path (last segment)
+				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
+
+				return {
+					worktreeName,
+					createdAt: worktree.createdAt,
+					gitStatus: worktree.gitStatus ?? null,
+					githubStatus: worktree.githubStatus ?? null,
+				};
 			}),
 	});
 };

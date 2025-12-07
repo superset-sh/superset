@@ -3,6 +3,7 @@ import { router } from "..";
 import { createCloudRouter } from "./cloud";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
+import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
 import { createSettingsRouter } from "./settings";
@@ -13,14 +14,18 @@ import { createWorkspacesRouter } from "./workspaces";
 /**
  * Main application router
  * Combines all domain-specific routers into a single router
+ *
+ * Uses a getter function to access the current window, allowing
+ * window recreation on macOS without stale references.
  */
-export const createAppRouter = (window: BrowserWindow) => {
+export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
-		window: createWindowRouter(window),
-		projects: createProjectsRouter(window),
+		window: createWindowRouter(getWindow),
+		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
 		notifications: createNotificationsRouter(),
+		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		cloud: createCloudRouter(),

@@ -13,6 +13,63 @@ import { publicProcedure, router } from "../..";
 import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
+// Return types for openNew procedure
+type OpenNewCanceled = { canceled: true };
+type OpenNewSuccess = { canceled: false; project: Project };
+type OpenNewNeedsGitInit = {
+	canceled: false;
+	needsGitInit: true;
+	selectedPath: string;
+};
+type OpenNewError = { canceled: false; error: string };
+export type OpenNewResult =
+	| OpenNewCanceled
+	| OpenNewSuccess
+	| OpenNewNeedsGitInit
+	| OpenNewError;
+
+/**
+ * Creates or updates a project record in the database.
+ * If a project with the same mainRepoPath exists, updates lastOpenedAt.
+ * Otherwise, creates a new project.
+ */
+async function upsertProject(
+	mainRepoPath: string,
+	defaultBranch: string,
+): Promise<Project> {
+	const name = basename(mainRepoPath);
+
+	let project = db.data.projects.find((p) => p.mainRepoPath === mainRepoPath);
+
+	if (project) {
+		await db.update((data) => {
+			const p = data.projects.find((p) => p.id === project?.id);
+			if (p) {
+				p.lastOpenedAt = Date.now();
+				p.defaultBranch = defaultBranch;
+			}
+		});
+	} else {
+		project = {
+			id: nanoid(),
+			mainRepoPath,
+			name,
+			color: assignRandomColor(),
+			tabOrder: null,
+			lastOpenedAt: Date.now(),
+			createdAt: Date.now(),
+			defaultBranch,
+		};
+
+		await db.update((data) => {
+			// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
+			data.projects.push(project!);
+		});
+	}
+
+	return project;
+}
+
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
 // Allows most valid Git repo names while avoiding path traversal characters
 const SAFE_REPO_NAME_REGEX = /^[a-zA-Z0-9._\- ]+$/;
@@ -80,7 +137,7 @@ function extractRepoName(urlInput: string): string | null {
 	return repoSegment;
 }
 
-export const createProjectsRouter = (window: BrowserWindow) => {
+export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
@@ -94,7 +151,11 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 				.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 		}),
 
-		openNew: publicProcedure.mutation(async () => {
+		openNew: publicProcedure.mutation(async (): Promise<OpenNewResult> => {
+			const window = getWindow();
+			if (!window) {
+				return { canceled: false, error: "No window available" };
+			}
 			const result = await dialog.showOpenDialog(window, {
 				properties: ["openDirectory"],
 				title: "Open Project",
@@ -110,47 +171,69 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 			try {
 				mainRepoPath = await getGitRoot(selectedPath);
 			} catch (_error) {
-				throw new Error("Selected folder is not in a git repository");
-			}
-
-			const name = basename(mainRepoPath);
-
-			let project = db.data.projects.find(
-				(p) => p.mainRepoPath === mainRepoPath,
-			);
-
-			if (project) {
-				await db.update((data) => {
-					const p = data.projects.find((p) => p.id === project?.id);
-					if (p) {
-						p.lastOpenedAt = Date.now();
-					}
-				});
-			} else {
-				const defaultBranch = await getDefaultBranch(mainRepoPath);
-
-				project = {
-					id: nanoid(),
-					mainRepoPath,
-					name,
-					color: assignRandomColor(),
-					tabOrder: null,
-					lastOpenedAt: Date.now(),
-					createdAt: Date.now(),
-					defaultBranch,
+				// Return a special response so the UI can offer to initialize git
+				return {
+					canceled: false,
+					needsGitInit: true,
+					selectedPath,
 				};
-
-				await db.update((data) => {
-					// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
-					data.projects.push(project!);
-				});
 			}
+
+			const defaultBranch = await getDefaultBranch(mainRepoPath);
+			const project = await upsertProject(mainRepoPath, defaultBranch);
 
 			return {
 				canceled: false,
 				project,
 			};
 		}),
+
+		initGitAndOpen: publicProcedure
+			.input(z.object({ path: z.string() }))
+			.mutation(async ({ input }) => {
+				const git = simpleGit(input.path);
+
+				// Initialize git repository with 'main' as default branch
+				// Try with --initial-branch=main (Git 2.28+), fall back to plain init
+				try {
+					await git.init(["--initial-branch=main"]);
+				} catch (err) {
+					// Likely an older Git version that doesn't support --initial-branch
+					console.warn(
+						"Git init with --initial-branch failed, using fallback:",
+						err,
+					);
+					await git.init();
+				}
+
+				// Create initial commit so we have a valid branch ref
+				try {
+					await git.raw(["commit", "--allow-empty", "-m", "Initial commit"]);
+				} catch (err) {
+					const errorMessage = err instanceof Error ? err.message : String(err);
+					// Check for common git config issues
+					if (
+						errorMessage.includes("empty ident") ||
+						errorMessage.includes("user.email") ||
+						errorMessage.includes("user.name")
+					) {
+						throw new Error(
+							"Git user not configured. Please run:\n" +
+								'  git config --global user.name "Your Name"\n' +
+								'  git config --global user.email "you@example.com"',
+						);
+					}
+					throw new Error(`Failed to create initial commit: ${errorMessage}`);
+				}
+
+				// Get the current branch name (will be 'main' or 'master' depending on git version/config)
+				const branchSummary = await git.branch();
+				const defaultBranch = branchSummary.current || "main";
+
+				const project = await upsertProject(input.path, defaultBranch);
+
+				return { project };
+			}),
 
 		cloneRepo: publicProcedure
 			.input(
@@ -169,6 +252,14 @@ export const createProjectsRouter = (window: BrowserWindow) => {
 					let targetDir = input.targetDirectory;
 
 					if (!targetDir) {
+						const window = getWindow();
+						if (!window) {
+							return {
+								canceled: false as const,
+								success: false as const,
+								error: "No window available",
+							};
+						}
 						const result = await dialog.showOpenDialog(window, {
 							properties: ["openDirectory", "createDirectory"],
 							title: "Select Clone Destination",

@@ -1,7 +1,9 @@
-import { app, type BrowserWindow, Menu } from "electron";
+import { app, Menu, shell } from "electron";
+import { HELP_MENU } from "shared/constants";
 import { checkForUpdatesInteractive } from "./auto-updater";
+import { menuEmitter } from "./menu-events";
 
-export function createApplicationMenu(mainWindow: BrowserWindow) {
+export function createApplicationMenu() {
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
 			label: "File",
@@ -47,18 +49,41 @@ export function createApplicationMenu(mainWindow: BrowserWindow) {
 				{ role: "minimize" },
 				{ role: "zoom" },
 				{ type: "separator" },
+				{ role: "close", accelerator: "CmdOrCtrl+Shift+W" },
+			],
+		},
+		{
+			label: "Help",
+			submenu: [
 				{
-					label: "Close Window",
-					accelerator: "CmdOrCtrl+Shift+W",
+					label: "Contact Us",
 					click: () => {
-						mainWindow.close();
+						shell.openExternal(HELP_MENU.CONTACT_URL);
+					},
+				},
+				{
+					label: "Report Issue",
+					click: () => {
+						shell.openExternal(HELP_MENU.REPORT_ISSUE_URL);
+					},
+				},
+				{
+					label: "Join Discord",
+					click: () => {
+						shell.openExternal(HELP_MENU.DISCORD_URL);
+					},
+				},
+				{ type: "separator" },
+				{
+					label: "Keyboard Shortcuts",
+					click: () => {
+						menuEmitter.emit("open-settings", "keyboard");
 					},
 				},
 			],
 		},
 	];
 
-	// Add About menu on macOS
 	if (process.platform === "darwin") {
 		template.unshift({
 			label: app.name,

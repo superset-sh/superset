@@ -89,23 +89,23 @@ export const HOTKEYS = {
 		label: "Toggle Sidebar",
 		category: "Layout",
 	},
-	SPLIT_AUTO: {
-		keys: "meta+d",
-		label: "Split Pane Auto",
-		category: "Layout",
-		description: "Split the current pane along its longer side",
-	},
 	SPLIT_RIGHT: {
-		keys: "meta+shift+d",
+		keys: "meta+d",
 		label: "Split Right",
 		category: "Layout",
 		description: "Split the current pane to the right",
 	},
 	SPLIT_DOWN: {
-		keys: "meta+alt+d",
+		keys: "meta+shift+d",
 		label: "Split Down",
 		category: "Layout",
 		description: "Split the current pane downward",
+	},
+	SPLIT_AUTO: {
+		keys: "meta+e",
+		label: "Split Pane Auto",
+		category: "Layout",
+		description: "Split the current pane along its longer side",
 	},
 
 	// Terminal
