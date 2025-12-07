@@ -36,6 +36,31 @@ const getAppCommand = (
 			return { command: "open", args: ["-a", "Terminal", targetPath] };
 		case "sublime":
 			return { command: "open", args: ["-a", "Sublime Text", targetPath] };
+		// JetBrains IDEs
+		case "intellij":
+			return { command: "open", args: ["-a", "IntelliJ IDEA", targetPath] };
+		case "webstorm":
+			return { command: "open", args: ["-a", "WebStorm", targetPath] };
+		case "pycharm":
+			return { command: "open", args: ["-a", "PyCharm", targetPath] };
+		case "phpstorm":
+			return { command: "open", args: ["-a", "PhpStorm", targetPath] };
+		case "rubymine":
+			return { command: "open", args: ["-a", "RubyMine", targetPath] };
+		case "goland":
+			return { command: "open", args: ["-a", "GoLand", targetPath] };
+		case "clion":
+			return { command: "open", args: ["-a", "CLion", targetPath] };
+		case "rider":
+			return { command: "open", args: ["-a", "Rider", targetPath] };
+		case "datagrip":
+			return { command: "open", args: ["-a", "DataGrip", targetPath] };
+		case "appcode":
+			return { command: "open", args: ["-a", "AppCode", targetPath] };
+		case "fleet":
+			return { command: "open", args: ["-a", "Fleet", targetPath] };
+		case "rustrover":
+			return { command: "open", args: ["-a", "RustRover", targetPath] };
 		default:
 			return null;
 	}

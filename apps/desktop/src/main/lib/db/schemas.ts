@@ -78,6 +78,19 @@ export const EXTERNAL_APPS = [
 	"iterm",
 	"warp",
 	"terminal",
+	// JetBrains IDEs
+	"intellij",
+	"webstorm",
+	"pycharm",
+	"phpstorm",
+	"rubymine",
+	"goland",
+	"clion",
+	"rider",
+	"datagrip",
+	"appcode",
+	"fleet",
+	"rustrover",
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
