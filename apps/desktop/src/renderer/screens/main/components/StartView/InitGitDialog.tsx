@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
@@ -13,6 +13,9 @@ function getBasename(path: string): string {
 function getErrorMessage(err: unknown): string {
 	return err instanceof Error ? err.message : "Unknown error";
 }
+
+const FOCUSABLE_SELECTOR =
+	'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface InitGitDialogProps {
 	isOpen: boolean;
@@ -43,19 +46,59 @@ export function InitGitDialog({
 		};
 	}, []);
 
-	// Handle Escape key to close dialog
-	useEffect(() => {
-		if (!isOpen) return;
+	// Accessibility: unique ID for aria-labelledby
+	const titleId = useId();
 
-		const handleKeyDown = (e: KeyboardEvent) => {
+	// Focus management refs
+	const dialogRef = useRef<HTMLDivElement>(null);
+	const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+	// Save previous focus and move focus into dialog when opening
+	useEffect(() => {
+		if (isOpen) {
+			previouslyFocusedRef.current = document.activeElement as HTMLElement;
+			// Move focus to the first focusable element in the dialog
+			requestAnimationFrame(() => {
+				const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+					FOCUSABLE_SELECTOR,
+				);
+				firstFocusable?.focus();
+			});
+		} else {
+			// Restore focus when closing
+			previouslyFocusedRef.current?.focus();
+			previouslyFocusedRef.current = null;
+		}
+	}, [isOpen]);
+
+	// Focus trap: cycle focus within the dialog
+	const handleKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
 			if (e.key === "Escape" && !isProcessing) {
 				onClose();
+				return;
 			}
-		};
 
-		document.addEventListener("keydown", handleKeyDown);
-		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, isProcessing, onClose]);
+			if (e.key !== "Tab") return;
+
+			const focusableElements = dialogRef.current?.querySelectorAll<HTMLElement>(
+				FOCUSABLE_SELECTOR,
+			);
+			if (!focusableElements || focusableElements.length === 0) return;
+
+			const firstElement = focusableElements[0];
+			const lastElement = focusableElements[focusableElements.length - 1];
+
+			if (e.shiftKey && document.activeElement === firstElement) {
+				e.preventDefault();
+				lastElement.focus();
+			} else if (!e.shiftKey && document.activeElement === lastElement) {
+				e.preventDefault();
+				firstElement.focus();
+			}
+		},
+		[isProcessing, onClose],
+	);
 
 	const handleBackdropClick = (e: React.MouseEvent) => {
 		// Only close if clicking the backdrop, not the dialog content
@@ -105,13 +148,20 @@ export function InitGitDialog({
 	const folderName = getBasename(selectedPath);
 
 	return (
-		// biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Modal backdrop dismiss pattern
+		// biome-ignore lint/a11y/useKeyWithClickEvents: Focus trap handles keyboard events on dialog
 		<div
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
 			onClick={handleBackdropClick}
 		>
-			<div className="bg-card border border-border rounded-lg p-8 w-full max-w-md shadow-2xl">
-				<h2 className="text-xl font-normal text-foreground mb-4">
+			<div
+				ref={dialogRef}
+				role="dialog"
+				aria-modal="true"
+				aria-labelledby={titleId}
+				onKeyDown={handleKeyDown}
+				className="bg-card border border-border rounded-lg p-8 w-full max-w-md shadow-2xl"
+			>
+				<h2 id={titleId} className="text-xl font-normal text-foreground mb-4">
 					Initialize Git Repository
 				</h2>
 
