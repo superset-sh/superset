@@ -50,25 +50,37 @@ export function InitGitDialog({
 		}
 	};
 
-	const handleInitGit = () => {
+	const handleInitGit = async () => {
 		if (isLoading) return; // Prevent double-clicks
-		initGitAndOpen.mutate(
-			{ path: selectedPath },
-			{
-				onSuccess: (result) => {
-					if (result.project) {
-						utils.projects.getRecents.invalidate();
-						createWorkspace.mutate({ projectId: result.project.id });
-						onClose();
-					} else {
-						onError("Unexpected error: project was not created");
-					}
-				},
-				onError: (err) => {
-					onError(err.message || "Failed to initialize git repository");
-				},
-			},
-		);
+
+		let result: Awaited<ReturnType<typeof initGitAndOpen.mutateAsync>>;
+		try {
+			result = await initGitAndOpen.mutateAsync({ path: selectedPath });
+		} catch (err) {
+			const message =
+				err instanceof Error ? err.message : "Unknown error";
+			onError(`Failed to initialize git repository: ${message}`);
+			return;
+		}
+
+		if (!result.project) {
+			onError("Unexpected error: project was not created");
+			return;
+		}
+
+		// Invalidate cache in background - don't block the primary workflow
+		utils.projects.getRecents.invalidate();
+
+		try {
+			await createWorkspace.mutateAsync({ projectId: result.project.id });
+		} catch (err) {
+			const message =
+				err instanceof Error ? err.message : "Unknown error";
+			onError(`Failed to create workspace: ${message}`);
+			return;
+		}
+
+		onClose();
 	};
 
 	if (!isOpen) return null;
