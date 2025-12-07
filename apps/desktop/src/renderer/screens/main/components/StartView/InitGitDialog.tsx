@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { useEffect } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -103,22 +104,12 @@ export function InitGitDialog({
 				</p>
 
 				<div className="flex gap-3 justify-end">
-					<button
-						type="button"
-						onClick={onClose}
-						disabled={isLoading}
-						className="px-4 py-2 rounded-md border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-					>
+					<Button variant="outline" onClick={onClose} disabled={isLoading}>
 						Cancel
-					</button>
-					<button
-						type="button"
-						onClick={handleInitGit}
-						disabled={isLoading}
-						className="px-4 py-2 rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
-					>
+					</Button>
+					<Button onClick={handleInitGit} disabled={isLoading}>
 						{isLoading ? "Initializing..." : "Initialize Git"}
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>
