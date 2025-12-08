@@ -18,11 +18,13 @@ const FILTER_PATTERNS = {
 	/**
 	 * Cursor Position Report (CPR): ESC [ Pl ; Pc R or ESC [ Pl R
 	 * Response to DSR (Device Status Report) query ESC [ 6 n
+	 * Some terminals omit row/column, sending ESC[;1R or ESC[R
 	 * Examples:
 	 * - ESC[24;1R (cursor at row 24, column 1)
 	 * - ESC[2R (cursor at row 2, column defaults to 1)
+	 * - ESC[;1R (row omitted, column 1)
 	 */
-	cursorPositionReport: `${ESC}\\[\\d+(?:;\\d+)?R`,
+	cursorPositionReport: `${ESC}\\[\\d*(?:;\\d*)?R`,
 
 	/**
 	 * Primary Device Attributes (DA1): ESC [ ? Ps c
@@ -153,14 +155,18 @@ export class TerminalEscapeFilter {
 		const secondChar = str[1];
 
 		// CSI query responses we want to buffer:
+		// - ESC [ alone (need to see next char)
 		// - ESC [ ? (DA1, DECRPM private mode)
 		// - ESC [ > (DA2 secondary)
 		// - ESC [ digit (CPR, standard mode reports, device attributes)
+		// - ESC [ ; (CPR with omitted row, e.g., ESC[;1R)
 		if (secondChar === "[") {
-			if (str.length < 3) return false; // ESC [ alone - don't buffer
+			if (str.length < 3) return true; // ESC [ alone - buffer to see what follows
 			const thirdChar = str[2];
 			// Buffer ? (private mode) or > (secondary DA)
 			if (thirdChar === "?" || thirdChar === ">") return true;
+			// Buffer ; for CPR with omitted parameters (ESC[;1R)
+			if (thirdChar === ";") return true;
 			// Buffer digit-starting CSI sequences that could be query responses:
 			// - CPR: ESC[24;1R or ESC[1R
 			// - Standard mode report: ESC[12;2$y

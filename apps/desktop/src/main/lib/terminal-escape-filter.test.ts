@@ -429,12 +429,16 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result2).toBe("");
 		});
 
-		it("should NOT buffer ESC [ alone at end", () => {
+		it("should buffer ESC [ alone at end", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}[`;
 			const result1 = filter.filter(chunk1);
-			// ESC [ alone should pass through (could be any CSI)
-			expect(result1).toBe(`text${ESC}[`);
+			// ESC [ alone must be buffered to see what follows
+			// This prevents ";1R" from leaking when next chunk is ";1R..."
+			expect(result1).toBe("text");
+			// Complete with a query response
+			const result2 = filter.filter(";1R");
+			expect(result2).toBe("");
 		});
 
 		it("should buffer ESC [ digit (could be CPR/mode report/DA)", () => {
