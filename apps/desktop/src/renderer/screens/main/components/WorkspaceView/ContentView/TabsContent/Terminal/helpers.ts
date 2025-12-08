@@ -1,5 +1,6 @@
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
+import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import type { ITheme } from "@xterm/xterm";
@@ -56,6 +57,7 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	serializeAddon: SerializeAddon;
 	cleanup: () => void;
 } {
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
@@ -80,6 +82,9 @@ export function createTerminalInstance(
 	// Unicode 11 provides better emoji and unicode rendering than default
 	const unicode11Addon = new Unicode11Addon();
 
+	// Serialize addon for saving terminal state (scrollback, colors, cursor)
+	const serializeAddon = new SerializeAddon();
+
 	xterm.open(container);
 
 	// Addons must be loaded after terminal is opened, otherwise they won't attach properly
@@ -87,6 +92,7 @@ export function createTerminalInstance(
 	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
+	xterm.loadAddon(serializeAddon);
 
 	// Suppress terminal query responses (DA1, DA2, CPR, OSC color responses, etc.)
 	// These are protocol-level responses that should be handled internally, not displayed
@@ -123,6 +129,7 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
+		serializeAddon,
 		cleanup: cleanupQuerySuppression,
 	};
 }

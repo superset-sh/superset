@@ -146,6 +146,21 @@ export const createTerminalRouter = () => {
 				terminalManager.detach(input);
 			}),
 
+		/**
+		 * Save serialized terminal state from renderer.
+		 * Uses xterm.js serialize addon output for clean scrollback persistence.
+		 */
+		saveScrollback: publicProcedure
+			.input(
+				z.object({
+					tabId: z.string(),
+					serialized: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await terminalManager.saveScrollback(input);
+			}),
+
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: tabId }) => {

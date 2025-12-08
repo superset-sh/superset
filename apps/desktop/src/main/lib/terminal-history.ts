@@ -2,7 +2,6 @@ import { createWriteStream, promises as fs, type WriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_TEST, SUPERSET_HOME_DIR } from "./app-environment";
-import { TerminalEscapeFilter } from "./terminal-escape-filter";
 
 export interface SessionMetadata {
 	cwd: string;
@@ -57,11 +56,9 @@ export class HistoryWriter {
 		await fs.mkdir(dir, { recursive: true });
 
 		// Write initial scrollback (recovered from previous session) or truncate
-		// Filter escape sequences to ensure clean storage
+		// Serialized data from xterm.js is already clean, no filtering needed
 		if (initialScrollback) {
-			const filter = new TerminalEscapeFilter();
-			const filtered = filter.filter(initialScrollback) + filter.flush();
-			await fs.writeFile(this.filePath, Buffer.from(filtered));
+			await fs.writeFile(this.filePath, Buffer.from(initialScrollback));
 		} else {
 			await fs.writeFile(this.filePath, Buffer.alloc(0));
 		}
@@ -82,6 +79,36 @@ export class HistoryWriter {
 				this.streamErrored = true;
 			}
 		}
+	}
+
+	/**
+	 * Save a complete serialized terminal snapshot.
+	 * This replaces the entire scrollback file with clean serialized data
+	 * from xterm.js serialize addon, which doesn't contain query responses.
+	 */
+	async saveSnapshot(serialized: string): Promise<void> {
+		// Close existing stream before replacing file
+		if (this.stream && !this.streamErrored) {
+			try {
+				await new Promise<void>((resolve) => {
+					this.stream?.end(() => resolve());
+				});
+			} catch {
+				// Ignore close errors
+			}
+		}
+		this.stream = null;
+		this.streamErrored = false;
+
+		// Write serialized data (already clean, no filtering needed)
+		await fs.writeFile(this.filePath, Buffer.from(serialized));
+
+		// Reopen stream for any subsequent writes
+		this.stream = createWriteStream(this.filePath, { flags: "a" });
+		this.stream.on("error", () => {
+			this.streamErrored = true;
+			this.stream = null;
+		});
 	}
 
 	async close(exitCode?: number): Promise<void> {

@@ -1,10 +1,12 @@
 import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
+import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
+import { trpcClient } from "renderer/lib/trpc-client";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
@@ -29,6 +31,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
+	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
@@ -140,10 +143,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const {
 			xterm,
 			fitAddon,
+			serializeAddon,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, workspaceCwd, terminalTheme);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
+		serializeAddonRef.current = serializeAddon;
 		isExitedRef.current = false;
 
 		// Autofocus on initial render if this terminal is the focused pane
@@ -279,12 +284,34 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupFocus?.();
 			cleanupResize();
 			cleanupQuerySuppression();
+
+			// Serialize terminal state before detaching for clean persistence
+			// This captures the rendered buffer state without query response garbage
+			if (serializeAddon && !isExitedRef.current) {
+				try {
+					const serialized = serializeAddon.serialize({
+						excludeAltBuffer: true, // Don't save TUI app alternate screen
+					});
+					if (serialized) {
+						// Fire and forget - don't block unmount on save
+						trpcClient.terminal.saveScrollback
+							.mutate({ tabId: paneId, serialized })
+							.catch((err) => {
+								console.error("[Terminal] Failed to save scrollback:", err);
+							});
+					}
+				} catch (err) {
+					console.error("[Terminal] Failed to serialize terminal:", err);
+				}
+			}
+
 			// Keep PTY running for reattachment
 			detachRef.current({ tabId: paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
+			serializeAddonRef.current = null;
 		};
 	}, [paneId, workspaceId, workspaceCwd, paneName, terminalTheme]);
 

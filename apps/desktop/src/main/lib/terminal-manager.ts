@@ -19,7 +19,6 @@ interface TerminalSession {
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
-	escapeFilter: TerminalEscapeFilter;
 }
 
 export interface TerminalDataEvent {
@@ -115,8 +114,9 @@ export class TerminalManager extends EventEmitter {
 			}
 		}
 
-		// Filter escape sequences from recovered scrollback
-		// This handles legacy unfiltered data and ensures clean display
+		// Filter escape sequences from recovered scrollback for legacy data
+		// New serialized data from xterm.js is already clean, but old raw
+		// scrollback files may still contain query responses
 		if (recoveredScrollback) {
 			const recoveryFilter = new TerminalEscapeFilter();
 			recoveredScrollback =
@@ -155,29 +155,18 @@ export class TerminalManager extends EventEmitter {
 			isAlive: true,
 			wasRecovered,
 			historyWriter,
-			escapeFilter: new TerminalEscapeFilter(),
 		};
 
 		ptyProcess.onData((data) => {
-			// Filter terminal query responses for storage only
-			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
-			const filteredData = session.escapeFilter.filter(data);
-			session.scrollback += filteredData;
-			session.historyWriter?.write(filteredData);
-			// Emit ORIGINAL data to xterm - it needs to process query responses
+			// Accumulate raw data in memory for quick reattach
+			// This is NOT persisted to disk - only saveScrollback() persists
+			// The renderer uses xterm.js serialize addon for clean persistence
+			session.scrollback += data;
 			this.emit(`data:${tabId}`, data);
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
-
-			// Flush any buffered data from the escape filter
-			const remaining = session.escapeFilter.flush();
-			if (remaining) {
-				session.scrollback += remaining;
-				session.historyWriter?.write(remaining);
-			}
-
 			await this.closeHistory(session, exitCode);
 			this.emit(`exit:${tabId}`, exitCode, signal);
 
@@ -279,6 +268,34 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
+	}
+
+	/**
+	 * Save serialized terminal state from renderer.
+	 * This replaces the raw scrollback with clean xterm.js serialized output
+	 * that doesn't contain terminal query responses.
+	 */
+	async saveScrollback(params: {
+		tabId: string;
+		serialized: string;
+	}): Promise<void> {
+		const { tabId, serialized } = params;
+		const session = this.sessions.get(tabId);
+
+		if (!session) {
+			console.warn(
+				`Cannot save scrollback for terminal ${tabId}: session not found`,
+			);
+			return;
+		}
+
+		// Replace in-memory scrollback with clean serialized data
+		session.scrollback = serialized;
+
+		// Save to disk via history writer
+		if (session.historyWriter) {
+			await session.historyWriter.saveSnapshot(serialized);
+		}
 	}
 
 	getSession(tabId: string): {

@@ -372,6 +372,12 @@ describe("TerminalManager", () => {
 				onDataCallback("Preserved output\n");
 			}
 
+			// Simulate what the renderer does: save serialized scrollback before detach
+			await manager.saveScrollback({
+				tabId: "tab-preserve",
+				serialized: "Preserved output\n",
+			});
+
 			const exitPromise = new Promise<void>((resolve) => {
 				manager.once("exit:tab-preserve", () => resolve());
 			});
@@ -753,6 +759,12 @@ describe("TerminalManager", () => {
 				onDataCallback1("Session 1 output\n");
 			}
 
+			// Simulate renderer saving scrollback before exit
+			await manager.saveScrollback({
+				tabId: "tab-multi",
+				serialized: "Session 1 output\n",
+			});
+
 			const exitPromise1 = new Promise<void>((resolve) => {
 				manager.once("exit:tab-multi", () => resolve());
 			});
@@ -783,6 +795,12 @@ describe("TerminalManager", () => {
 			if (onDataCallback2) {
 				onDataCallback2("Session 2 output\n");
 			}
+
+			// Simulate renderer saving scrollback with both sessions' output
+			await manager.saveScrollback({
+				tabId: "tab-multi",
+				serialized: "Session 1 output\nSession 2 output\n",
+			});
 
 			const exitPromise2 = new Promise<void>((resolve) => {
 				manager.once("exit:tab-multi", () => resolve());
