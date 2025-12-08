@@ -103,18 +103,16 @@ describe("processCommandInput", () => {
 });
 
 describe("sanitizeForTitle", () => {
-	it("should strip ANSI color codes", () => {
-		expect(sanitizeForTitle("\x1b[32mgreen text\x1b[0m")).toBe("green text");
+	it("should keep alphanumeric and common chars", () => {
+		expect(sanitizeForTitle("ls -la ./src")).toBe("ls -la ./src");
 	});
 
-	it("should strip multiple escape sequences", () => {
-		expect(sanitizeForTitle("\x1b[1m\x1b[31mbold red\x1b[0m normal")).toBe(
-			"bold red normal",
-		);
+	it("should strip special characters", () => {
+		expect(sanitizeForTitle("[?1016;2$y command")).toBe("10162y command");
 	});
 
-	it("should strip non-printable characters", () => {
-		expect(sanitizeForTitle("hello\x00\x01\x02world")).toBe("helloworld");
+	it("should strip escape sequences", () => {
+		expect(sanitizeForTitle("\x1b[32mtext\x1b[0m")).toBe("32mtext0m");
 	});
 
 	it("should truncate to max length", () => {
@@ -124,11 +122,11 @@ describe("sanitizeForTitle", () => {
 	});
 
 	it("should return null for empty result", () => {
-		expect(sanitizeForTitle("\x1b[32m\x1b[0m")).toBeNull();
+		expect(sanitizeForTitle("[]$;?")).toBeNull();
 	});
 
 	it("should return null for whitespace-only result", () => {
-		expect(sanitizeForTitle("   \t  ")).toBeNull();
+		expect(sanitizeForTitle("   ")).toBeNull();
 	});
 
 	it("should trim whitespace", () => {

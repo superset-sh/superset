@@ -1,5 +1,3 @@
-import stripAnsi from "strip-ansi";
-
 const ENTER = ["\r", "\n"];
 const BACKSPACE = ["\x7f", "\b"];
 const CANCEL = ["\x03", "\x15"]; // Ctrl+C, Ctrl+U
@@ -11,8 +9,8 @@ export type CommandBufferResult = {
 };
 
 export function sanitizeForTitle(text: string): string | null {
-	const cleaned = stripAnsi(text)
-		.replace(/[^\x20-\x7e]/g, "")
+	const cleaned = text
+		.replace(/[^a-zA-Z0-9 _\-./]/g, "")
 		.trim()
 		.slice(0, MAX_TITLE_LENGTH);
 
