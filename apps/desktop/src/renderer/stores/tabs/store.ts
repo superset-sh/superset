@@ -3,19 +3,16 @@ import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { electronStorage } from "../../lib/electron-storage";
+import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
-	addPaneToLayout,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
-	generateId,
-	generateTabName,
 	getFirstPaneId,
 	getPaneIdsForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
-	updateHistoryStack,
 } from "./utils";
 import { killTerminalForTab } from "./utils/terminal-cleanup";
 
@@ -534,65 +531,8 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				movePaneToTab: (paneId, targetTabId) => {
-					const state = get();
-					const pane = state.panes[paneId];
-					if (!pane) return;
-
-					const sourceTab = state.tabs.find((t) => t.id === pane.tabId);
-					const targetTab = state.tabs.find((t) => t.id === targetTabId);
-					if (!sourceTab || !targetTab || sourceTab.id === targetTabId) return;
-
-					const isLastPane = isLastPaneInTab(state.panes, sourceTab.id);
-					const newSourceLayout = removePaneFromLayout(
-						sourceTab.layout,
-						paneId,
-					);
-					const newTargetLayout = addPaneToLayout(targetTab.layout, paneId);
-					const workspaceId = sourceTab.workspaceId;
-
-					const newTabs = isLastPane
-						? state.tabs
-								.filter((t) => t.id !== sourceTab.id)
-								.map((t) =>
-									t.id === targetTabId ? { ...t, layout: newTargetLayout } : t,
-								)
-						: state.tabs.map((t) => {
-								if (t.id === sourceTab.id && newSourceLayout)
-									return { ...t, layout: newSourceLayout };
-								if (t.id === targetTabId)
-									return { ...t, layout: newTargetLayout };
-								return t;
-							});
-
-					const newFocusedPaneIds = { ...state.focusedPaneIds };
-					if (isLastPane) {
-						delete newFocusedPaneIds[sourceTab.id];
-					} else if (
-						state.focusedPaneIds[sourceTab.id] === paneId &&
-						newSourceLayout
-					) {
-						newFocusedPaneIds[sourceTab.id] = getFirstPaneId(newSourceLayout);
-					}
-					newFocusedPaneIds[targetTabId] = paneId;
-
-					set({
-						tabs: newTabs,
-						panes: {
-							...state.panes,
-							[paneId]: { ...pane, tabId: targetTabId },
-						},
-						activeTabIds: { ...state.activeTabIds, [workspaceId]: targetTabId },
-						focusedPaneIds: newFocusedPaneIds,
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: updateHistoryStack(
-								state.tabHistoryStacks[workspaceId] || [],
-								state.activeTabIds[workspaceId] ?? null,
-								targetTabId,
-								isLastPane ? sourceTab.id : undefined,
-							),
-						},
-					});
+					const result = movePaneToTab(get(), paneId, targetTabId);
+					if (result) set(result);
 				},
 
 				movePaneToNewTab: (paneId) => {
@@ -606,56 +546,11 @@ export const useTabsStore = create<TabsStore>()(
 					// Already in its own tab
 					if (isLastPaneInTab(state.panes, sourceTab.id)) return sourceTab.id;
 
-					const workspaceId = sourceTab.workspaceId;
-					const newSourceLayout = removePaneFromLayout(
-						sourceTab.layout,
-						paneId,
-					);
-					const newTabId = generateId("tab");
-					const workspaceTabs = state.tabs.filter(
-						(t) => t.workspaceId === workspaceId,
-					);
+					const moveResult = movePaneToNewTab(state, paneId);
+					if (!moveResult) return "";
 
-					const newTab = {
-						id: newTabId,
-						name: generateTabName(workspaceTabs),
-						workspaceId,
-						layout: paneId as MosaicNode<string>,
-						createdAt: Date.now(),
-					};
-
-					const newTabs = state.tabs.map((t) =>
-						t.id === sourceTab.id && newSourceLayout
-							? { ...t, layout: newSourceLayout }
-							: t,
-					);
-					newTabs.push(newTab);
-
-					const newFocusedPaneIds = { ...state.focusedPaneIds };
-					if (
-						state.focusedPaneIds[sourceTab.id] === paneId &&
-						newSourceLayout
-					) {
-						newFocusedPaneIds[sourceTab.id] = getFirstPaneId(newSourceLayout);
-					}
-					newFocusedPaneIds[newTabId] = paneId;
-
-					set({
-						tabs: newTabs,
-						panes: { ...state.panes, [paneId]: { ...pane, tabId: newTabId } },
-						activeTabIds: { ...state.activeTabIds, [workspaceId]: newTabId },
-						focusedPaneIds: newFocusedPaneIds,
-						tabHistoryStacks: {
-							...state.tabHistoryStacks,
-							[workspaceId]: updateHistoryStack(
-								state.tabHistoryStacks[workspaceId] || [],
-								state.activeTabIds[workspaceId] ?? null,
-								newTabId,
-							),
-						},
-					});
-
-					return newTabId;
+					set(moveResult.result);
+					return moveResult.newTabId;
 				},
 
 				// Query helpers
