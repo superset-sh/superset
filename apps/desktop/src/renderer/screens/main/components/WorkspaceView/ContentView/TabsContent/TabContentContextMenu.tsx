@@ -50,7 +50,7 @@ export function TabContentContextMenu({
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuSub>
-					<ContextMenuSubTrigger>
+					<ContextMenuSubTrigger className="gap-2">
 						<MoveRight className="size-4" />
 						Move to Tab
 					</ContextMenuSubTrigger>
