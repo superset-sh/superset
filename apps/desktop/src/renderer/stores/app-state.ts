@@ -6,7 +6,8 @@ export type SettingsSection =
 	| "project"
 	| "workspace"
 	| "appearance"
-	| "keyboard";
+	| "keyboard"
+	| "presets";
 
 interface AppState {
 	currentView: AppView;

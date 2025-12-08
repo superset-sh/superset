@@ -1,5 +1,9 @@
 import { cn } from "@superset/ui/utils";
-import { HiOutlineCommandLine, HiOutlinePaintBrush } from "react-icons/hi2";
+import {
+	HiOutlineCommandLine,
+	HiOutlineCog6Tooth,
+	HiOutlinePaintBrush,
+} from "react-icons/hi2";
 import type { SettingsSection } from "renderer/stores";
 
 interface GeneralSettingsProps {
@@ -21,6 +25,11 @@ const GENERAL_SECTIONS: {
 		id: "keyboard",
 		label: "Keyboard Shortcuts",
 		icon: <HiOutlineCommandLine className="h-4 w-4" />,
+	},
+	{
+		id: "presets",
+		label: "Presets",
+		icon: <HiOutlineCog6Tooth className="h-4 w-4" />,
 	},
 ];
 

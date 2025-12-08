@@ -1,6 +1,7 @@
 import type { SettingsSection } from "renderer/stores";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { KeyboardShortcutsSettings } from "./KeyboardShortcutsSettings";
+import { PresetsSettings } from "./PresetsSettings";
 import { ProjectSettings } from "./ProjectSettings";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 
@@ -15,6 +16,7 @@ export function SettingsContent({ activeSection }: SettingsContentProps) {
 			{activeSection === "workspace" && <WorkspaceSettings />}
 			{activeSection === "appearance" && <AppearanceSettings />}
 			{activeSection === "keyboard" && <KeyboardShortcutsSettings />}
+			{activeSection === "presets" && <PresetsSettings />}
 		</div>
 	);
 }
