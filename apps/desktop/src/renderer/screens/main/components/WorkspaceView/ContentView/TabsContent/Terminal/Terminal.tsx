@@ -34,7 +34,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
-	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -229,7 +228,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		const handleTerminalInput = (data: string) => {
 			if (isExitedRef.current) {
-				commandBufferRef.current = "";
 				restartTerminal();
 				return;
 			}
@@ -242,21 +240,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}) => {
 			const { domEvent } = event;
 			if (domEvent.key === "Enter") {
-				const command = commandBufferRef.current.trim();
+				// Read current line from terminal buffer to capture autocompleted text
+				const buffer = xterm.buffer.active;
+				const line = buffer.getLine(buffer.cursorY);
+				const command = line?.translateToString(true).trim();
 				if (command && parentTabIdRef.current) {
 					debouncedSetTabAutoTitle(parentTabIdRef.current, command);
 				}
-				commandBufferRef.current = "";
-			} else if (domEvent.key === "Backspace") {
-				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
-				commandBufferRef.current = "";
-			} else if (
-				domEvent.key.length === 1 &&
-				!domEvent.ctrlKey &&
-				!domEvent.metaKey
-			) {
-				commandBufferRef.current += domEvent.key;
 			}
 		};
 
@@ -313,11 +303,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		);
 		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
-		const cleanupPaste = setupPasteHandler(xterm, {
-			onPaste: (text) => {
-				commandBufferRef.current += text;
-			},
-		});
+		const cleanupPaste = setupPasteHandler(xterm);
 
 		return () => {
 			isUnmounted = true;
