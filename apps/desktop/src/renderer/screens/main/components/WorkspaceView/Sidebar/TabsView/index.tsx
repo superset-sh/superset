@@ -51,8 +51,7 @@ export function TabsView() {
 			if (!clientOffset) return;
 
 			// Find all tab items in the container
-			const tabItems =
-				containerRef.current.querySelectorAll("[data-tab-item]");
+			const tabItems = containerRef.current.querySelectorAll("[data-tab-item]");
 			let newDropIndex = tabs.length;
 
 			tabItems.forEach((element, index) => {
@@ -117,9 +116,7 @@ export function TabsView() {
 								<WindowItem
 									window={tab}
 									index={index}
-									isActive={
-										activeTabIds[activeWorkspaceId || ""] === tab.id
-									}
+									isActive={activeTabIds[activeWorkspaceId || ""] === tab.id}
 								/>
 							</div>
 						</motion.div>

@@ -22,10 +22,7 @@ import { killTerminalForTab } from "./utils/terminal-cleanup";
  * 2. Next/previous tab by position
  * 3. Any remaining tab in the workspace
  */
-const findNextTab = (
-	state: TabsState,
-	tabIdToClose: string,
-): string | null => {
+const findNextTab = (state: TabsState, tabIdToClose: string): string | null => {
 	const tabToClose = state.tabs.find((t) => t.id === tabIdToClose);
 	if (!tabToClose) return null;
 
@@ -49,9 +46,7 @@ const findNextTab = (
 	const allWorkspaceTabs = state.tabs.filter(
 		(t) => t.workspaceId === workspaceId,
 	);
-	const currentIndex = allWorkspaceTabs.findIndex(
-		(t) => t.id === tabIdToClose,
-	);
+	const currentIndex = allWorkspaceTabs.findIndex((t) => t.id === tabIdToClose);
 
 	if (currentIndex !== -1) {
 		const nextIndex = currentIndex + 1;
@@ -63,10 +58,7 @@ const findNextTab = (
 		) {
 			return allWorkspaceTabs[nextIndex].id;
 		}
-		if (
-			prevIndex >= 0 &&
-			allWorkspaceTabs[prevIndex].id !== tabIdToClose
-		) {
+		if (prevIndex >= 0 && allWorkspaceTabs[prevIndex].id !== tabIdToClose) {
 			return allWorkspaceTabs[prevIndex].id;
 		}
 	}
@@ -88,10 +80,7 @@ export const useTabsStore = create<TabsStore>()(
 				// Tab operations
 				addTab: (workspaceId) => {
 					const state = get();
-					const { tab, pane } = createTabWithPane(
-						workspaceId,
-						state.tabs,
-					);
+					const { tab, pane } = createTabWithPane(workspaceId, state.tabs);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -246,9 +235,7 @@ export const useTabsStore = create<TabsStore>()(
 						(t) => t.workspaceId !== workspaceId,
 					);
 
-					const currentIndex = workspaceTabs.findIndex(
-						(t) => t.id === tabId,
-					);
+					const currentIndex = workspaceTabs.findIndex((t) => t.id === tabId);
 					if (currentIndex === -1) return;
 
 					workspaceTabs.splice(currentIndex, 1);
@@ -539,9 +526,7 @@ export const useTabsStore = create<TabsStore>()(
 
 				getPanesForTab: (tabId) => {
 					const state = get();
-					return Object.values(state.panes).filter(
-						(p) => p.tabId === tabId,
-					);
+					return Object.values(state.panes).filter((p) => p.tabId === tabId);
 				},
 
 				getFocusedPane: (tabId) => {

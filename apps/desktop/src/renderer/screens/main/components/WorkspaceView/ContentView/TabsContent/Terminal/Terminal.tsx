@@ -39,9 +39,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const terminalTheme = useTerminalTheme();
 
 	// Check if this terminal is the focused pane in its tab
-	const isFocused = pane?.tabId
-		? focusedPaneIds[pane.tabId] === paneId
-		: false;
+	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
 
 	// Ref to track focus state for use in terminal creation effect
 	const isFocusedRef = useRef(isFocused);

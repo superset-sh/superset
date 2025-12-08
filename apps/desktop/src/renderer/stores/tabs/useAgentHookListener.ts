@@ -24,8 +24,7 @@ export function useAgentHookListener() {
 
 				// Only show red dot if not already viewing this pane
 				const activeTabId = state.activeTabIds[workspaceId];
-				const focusedPaneId =
-					activeTabId && state.focusedPaneIds[activeTabId];
+				const focusedPaneId = activeTabId && state.focusedPaneIds[activeTabId];
 				const isAlreadyActive =
 					activeWorkspace?.id === workspaceId && focusedPaneId === paneId;
 
@@ -57,9 +56,7 @@ export function useAgentHookListener() {
 							const tabId = pane.tabId;
 
 							// Validate tab belongs to the target workspace
-							const tab = currentState.tabs.find(
-								(t) => t.id === tabId,
-							);
+							const tab = currentState.tabs.find((t) => t.id === tabId);
 							if (!tab || tab.workspaceId !== workspaceId) return;
 
 							// Set active tab and focused pane

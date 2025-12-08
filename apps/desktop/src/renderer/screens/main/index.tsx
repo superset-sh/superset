@@ -94,11 +94,7 @@ export function MainScreen() {
 
 	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
 		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(
-				focusedPaneId,
-				activeTabId,
-				activeTab,
-			);
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
 			if (!target) return;
 			const dimensions = getPaneDimensions(target.paneId);
 			if (dimensions) {
@@ -116,11 +112,7 @@ export function MainScreen() {
 
 	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
 		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(
-				focusedPaneId,
-				activeTabId,
-				activeTab,
-			);
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
 			if (!target) return;
 			splitPaneVertical(activeTabId, target.paneId, target.path);
 		}
@@ -135,11 +127,7 @@ export function MainScreen() {
 
 	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
 		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(
-				focusedPaneId,
-				activeTabId,
-				activeTab,
-			);
+			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
 			if (!target) return;
 			splitPaneHorizontal(activeTabId, target.paneId, target.path);
 		}
