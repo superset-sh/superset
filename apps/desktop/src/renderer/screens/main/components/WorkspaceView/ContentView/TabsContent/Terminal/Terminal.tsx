@@ -2,6 +2,7 @@ import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import debounce from "lodash/debounce";
 import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
@@ -69,10 +70,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
-	const setTabAutoTitleRef = useRef(setTabAutoTitle);
-	setTabAutoTitleRef.current = setTabAutoTitle;
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
+
+	const debouncedSetTabAutoTitleRef = useRef(debounce(setTabAutoTitle, 100));
+	debouncedSetTabAutoTitleRef.current = debounce(setTabAutoTitle, 100);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
@@ -231,7 +233,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			commandBufferRef.current = result.buffer;
 
 			if (result.submittedCommand && parentTabIdRef.current) {
-				setTabAutoTitleRef.current(
+				debouncedSetTabAutoTitleRef.current(
 					parentTabIdRef.current,
 					result.submittedCommand,
 				);

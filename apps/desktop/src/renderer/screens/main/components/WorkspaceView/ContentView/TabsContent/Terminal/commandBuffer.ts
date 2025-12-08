@@ -1,11 +1,23 @@
+import stripAnsi from "strip-ansi";
+
 const ENTER = ["\r", "\n"];
 const BACKSPACE = ["\x7f", "\b"];
 const CANCEL = ["\x03", "\x15"]; // Ctrl+C, Ctrl+U
+const MAX_TITLE_LENGTH = 32;
 
 export type CommandBufferResult = {
 	buffer: string;
 	submittedCommand: string | null;
 };
+
+export function sanitizeForTitle(text: string): string | null {
+	const cleaned = stripAnsi(text)
+		.replace(/[^\x20-\x7e]/g, "")
+		.trim()
+		.slice(0, MAX_TITLE_LENGTH);
+
+	return cleaned || null;
+}
 
 export function processCommandInput(
 	currentBuffer: string,
@@ -16,10 +28,9 @@ export function processCommandInput(
 	const hasCancel = CANCEL.some((char) => input.includes(char));
 
 	if (hasEnter) {
-		const command = currentBuffer.trim();
 		return {
 			buffer: "",
-			submittedCommand: command || null,
+			submittedCommand: sanitizeForTitle(currentBuffer),
 		};
 	}
 

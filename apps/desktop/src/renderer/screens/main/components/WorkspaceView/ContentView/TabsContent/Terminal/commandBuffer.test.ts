@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { processCommandInput } from "./commandBuffer";
+import { processCommandInput, sanitizeForTitle } from "./commandBuffer";
 
 describe("processCommandInput", () => {
 	describe("enter key submission", () => {
@@ -99,5 +99,39 @@ describe("processCommandInput", () => {
 			const result = processCommandInput("", "first");
 			expect(result.buffer).toBe("first");
 		});
+	});
+});
+
+describe("sanitizeForTitle", () => {
+	it("should strip ANSI color codes", () => {
+		expect(sanitizeForTitle("\x1b[32mgreen text\x1b[0m")).toBe("green text");
+	});
+
+	it("should strip multiple escape sequences", () => {
+		expect(sanitizeForTitle("\x1b[1m\x1b[31mbold red\x1b[0m normal")).toBe(
+			"bold red normal",
+		);
+	});
+
+	it("should strip non-printable characters", () => {
+		expect(sanitizeForTitle("hello\x00\x01\x02world")).toBe("helloworld");
+	});
+
+	it("should truncate to max length", () => {
+		const longCommand = "a".repeat(100);
+		const result = sanitizeForTitle(longCommand);
+		expect(result?.length).toBe(32);
+	});
+
+	it("should return null for empty result", () => {
+		expect(sanitizeForTitle("\x1b[32m\x1b[0m")).toBeNull();
+	});
+
+	it("should return null for whitespace-only result", () => {
+		expect(sanitizeForTitle("   \t  ")).toBeNull();
+	});
+
+	it("should trim whitespace", () => {
+		expect(sanitizeForTitle("  command  ")).toBe("command");
 	});
 });
