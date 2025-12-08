@@ -43,22 +43,26 @@ export function WorkspaceHoverCardContent({
 					<div className="text-sm font-medium">{workspaceAlias}</div>
 				)}
 				{worktreeName && (
-					<div
-						className={`flex items-center gap-1.5 ${hasCustomAlias ? "text-xs text-muted-foreground" : "text-sm"}`}
-					>
-						<span className="text-muted-foreground">Branch:</span>
+					<div className="space-y-0.5">
+						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+							Branch
+						</span>
 						{githubStatus?.repoUrl && githubStatus.branchExistsOnRemote ? (
 							<a
 								href={`${githubStatus.repoUrl}/tree/${worktreeName}`}
 								target="_blank"
 								rel="noopener noreferrer"
-								className="inline-flex items-center gap-1 font-mono break-all hover:underline"
+								className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
 							>
 								{worktreeName}
 								<ExternalLink className="size-3 shrink-0" />
 							</a>
 						) : (
-							<code className="font-mono break-all">{worktreeName}</code>
+							<code
+								className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+							>
+								{worktreeName}
+							</code>
 						)}
 					</div>
 				)}
