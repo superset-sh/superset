@@ -141,6 +141,9 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
 export ZDOTDIR="$_superset_home"
+# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
+export PROMPT=$'%B%F{#34d399}❯%f%b '
+export PS1=$'%B%F{#34d399}❯%f%b '
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");
@@ -171,6 +174,8 @@ fi
 
 # Prepend superset bin to PATH
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
+export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
 	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
 	console.log("[agent-setup] Created bash wrapper");

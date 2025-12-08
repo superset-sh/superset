@@ -16,7 +16,7 @@ export interface Pane {
 	name: string;
 	isNew?: boolean;
 	needsAttention?: boolean;
-	venv?: string | null;
+	venvs?: string[];
 	cwd?: string | null;
 }
 
@@ -67,7 +67,7 @@ export interface TabsStore extends TabsState {
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
 	updatePaneName: (paneId: string, name: string) => void;
-	updatePaneVenv: (paneId: string, venv: string | null) => void;
+	updatePaneVenvs: (paneId: string, venvs: string[]) => void;
 	updatePaneCwd: (paneId: string, cwd: string | null) => void;
 
 	// Split operations

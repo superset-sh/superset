@@ -36,10 +36,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
-	const [terminalVenv, setTerminalVenv] = useState<string | null>(null);
+	const [terminalVenvs, setTerminalVenvs] = useState<string[]>([]);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const updatePaneName = useTabsStore((s) => s.updatePaneName);
-	const updatePaneVenv = useTabsStore((s) => s.updatePaneVenv);
+	const updatePaneVenvs = useTabsStore((s) => s.updatePaneVenvs);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
@@ -72,10 +72,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [terminalCwd, paneId, updatePaneName, updatePaneCwd]);
 
-	// Update pane venv for mosaic window toolbar display
+	// Update pane venvs for mosaic window toolbar display
 	useEffect(() => {
-		updatePaneVenv(paneId, terminalVenv);
-	}, [terminalVenv, paneId, updatePaneVenv]);
+		updatePaneVenvs(paneId, terminalVenvs);
+	}, [terminalVenvs, paneId, updatePaneVenvs]);
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -93,14 +93,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
-	// Parse terminal data for metadata (cwd, venv)
+	// Parse terminal data for metadata (cwd, venvs)
 	const updateMetadataFromData = useCallback((data: string) => {
 		const metadata = parseTerminalMetadata(data);
 		if (metadata.cwd !== null) {
 			setTerminalCwd(metadata.cwd);
 		}
-		if (metadata.venv !== null) {
-			setTerminalVenv(metadata.venv);
+		if (metadata.venvs.length > 0) {
+			setTerminalVenvs((prev) => {
+				// Merge new venvs with existing ones, keeping unique values
+				const merged = new Set([...prev, ...metadata.venvs]);
+				return Array.from(merged);
+			});
 		}
 	}, []);
 
@@ -231,9 +235,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}) => {
 			xterm.write(result.scrollback);
 			updateMetadataRef.current(result.scrollback);
-			// Set venv from environment detection
-			if (result.venv) {
-				setTerminalVenv(result.venv);
+			// Set venv from environment detection (adds to existing venvs)
+			const venv = result.venv;
+			if (venv) {
+				setTerminalVenvs((prev) => {
+					if (prev.includes(venv)) return prev;
+					return [...prev, venv];
+				});
 			}
 		};
 
@@ -284,9 +292,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					const hasPendingEvents = pendingEventsRef.current.length > 0;
 					if (result.isNew || !hasPendingEvents) {
 						applyInitialState(result);
-					} else if (result.venv) {
+					} else {
 						// Still apply venv even if not applying scrollback
-						setTerminalVenv(result.venv);
+						const venv = result.venv;
+						if (venv) {
+							setTerminalVenvs((prev) => {
+								if (prev.includes(venv)) return prev;
+								return [...prev, venv];
+							});
+						}
 					}
 					setSubscriptionEnabled(true);
 					flushPendingEvents();

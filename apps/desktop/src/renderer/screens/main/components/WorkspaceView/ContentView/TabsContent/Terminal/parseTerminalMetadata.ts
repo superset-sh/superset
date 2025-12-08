@@ -58,7 +58,7 @@ const VENV_INDICATORS = [
 
 export interface TerminalMetadata {
 	cwd: string | null;
-	venv: string | null;
+	venvs: string[];
 }
 
 /**
@@ -113,12 +113,12 @@ function isVenvLikeName(name: string): boolean {
 }
 
 /**
- * Extracts virtual environment name from terminal output.
+ * Extracts virtual environment names from terminal output.
  * Looks for patterns like (venv), (base), [nix-shell], etc.
- * Returns the last (most recent) venv found in the data.
+ * Returns all unique venvs found in the data (most recent occurrence kept).
  */
-export function parseVenv(data: string): string | null {
-	let lastVenv: string | null = null;
+export function parseVenvs(data: string): string[] {
+	const venvSet = new Set<string>();
 
 	for (const match of data.matchAll(VENV_PATTERN)) {
 		const fullMatch = match[1]; // e.g., "(venv)" or "[nix-shell]"
@@ -126,11 +126,11 @@ export function parseVenv(data: string): string | null {
 		const name = fullMatch.slice(1, -1);
 
 		if (isVenvLikeName(name)) {
-			lastVenv = name;
+			venvSet.add(name);
 		}
 	}
 
-	return lastVenv;
+	return Array.from(venvSet);
 }
 
 /**
@@ -140,6 +140,6 @@ export function parseVenv(data: string): string | null {
 export function parseTerminalMetadata(data: string): TerminalMetadata {
 	return {
 		cwd: parseOsc7Cwd(data),
-		venv: parseVenv(data),
+		venvs: parseVenvs(data),
 	};
 }

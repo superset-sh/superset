@@ -109,6 +109,7 @@ export class TerminalManager extends EventEmitter {
 		const env = {
 			...baseEnv,
 			...shellEnv,
+			// Superset-specific env vars
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_TAB_TITLE: tabTitle,
 			SUPERSET_WORKSPACE_NAME: workspaceName,

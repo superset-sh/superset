@@ -56,11 +56,9 @@ export function DirectoryNavigator({
 		}
 	}, [directoryData?.parentPath]);
 
-	const formatDisplayPath = (path: string) => {
-		if (homeDir && path.startsWith(homeDir)) {
-			return `~${path.slice(homeDir.length)}`;
-		}
-		return path;
+	const getBasename = (path: string) => {
+		const segments = path.split("/").filter(Boolean);
+		return segments[segments.length - 1] || "/";
 	};
 
 	const getPathSegments = (path: string) => {
@@ -109,9 +107,7 @@ export function DirectoryNavigator({
 					className="flex min-w-0 items-center gap-1.5 rounded px-1 -ml-1 hover:bg-accent/50 transition-colors"
 				>
 					<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
-					<span className="truncate text-sm">
-						{formatDisplayPath(currentPath)}
-					</span>
+					<span className="truncate text-sm">{getBasename(currentPath)}</span>
 				</button>
 			</PopoverTrigger>
 			<PopoverContent

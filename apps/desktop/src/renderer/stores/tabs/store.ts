@@ -435,12 +435,12 @@ export const useTabsStore = create<TabsStore>()(
 					}));
 				},
 
-				updatePaneVenv: (paneId, venv) => {
+				updatePaneVenvs: (paneId, venvs) => {
 					set((state) => ({
 						panes: {
 							...state.panes,
 							[paneId]: state.panes[paneId]
-								? { ...state.panes[paneId], venv }
+								? { ...state.panes[paneId], venvs }
 								: state.panes[paneId],
 						},
 					}));
