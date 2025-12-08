@@ -117,7 +117,7 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-2 right-3 z-10 flex items-center rounded-md bg-popover/95 shadow-lg ring-1 ring-border/40 backdrop-blur">
+		<div className="absolute top-1 right-1 z-10 flex items-center max-w-[calc(100%-0.5rem)] rounded bg-popover/95 pl-2 pr-0.5 shadow-lg ring-1 ring-border/40 backdrop-blur">
 			<input
 				ref={inputRef}
 				type="text"
@@ -125,26 +125,26 @@ export function TerminalSearch({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				placeholder="Find"
-				className="h-7 w-44 bg-transparent px-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (
-				<span className="text-xs text-muted-foreground whitespace-nowrap pr-2">
+				<span className="text-xs text-muted-foreground whitespace-nowrap px-1">
 					No results
 				</span>
 			)}
-			<div className="flex items-center gap-0.5 pr-1">
+			<div className="flex items-center flex-shrink-0">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
 							onClick={toggleCaseSensitive}
-							className={`rounded p-1.5 transition-colors ${
+							className={`rounded p-1 transition-colors ${
 								caseSensitive
 									? "bg-primary/20 text-foreground"
 									: "text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
 							}`}
 						>
-							<PiTextAa className="size-4" />
+							<PiTextAa className="size-3.5" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">Match case</TooltipContent>
@@ -152,26 +152,26 @@ export function TerminalSearch({
 				<button
 					type="button"
 					onClick={() => handleSearch("previous")}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Previous (Shift+Enter)"
 				>
-					<HiChevronUp className="size-4" />
+					<HiChevronUp className="size-3.5" />
 				</button>
 				<button
 					type="button"
 					onClick={() => handleSearch("next")}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Next (Enter)"
 				>
-					<HiChevronDown className="size-4" />
+					<HiChevronDown className="size-3.5" />
 				</button>
 				<button
 					type="button"
 					onClick={handleClose}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Close (Esc)"
 				>
-					<HiMiniXMark className="size-4" />
+					<HiMiniXMark className="size-3.5" />
 				</button>
 			</div>
 		</div>

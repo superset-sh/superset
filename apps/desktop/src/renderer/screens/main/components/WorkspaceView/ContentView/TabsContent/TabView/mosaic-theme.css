@@ -67,23 +67,21 @@
 	outline-offset: -2px;
 }
 .mosaic-theme-dark .mosaic-split {
-	background: var(--color-border);
-	opacity: 0;
-	border-radius: var(--radius-full);
-	transition:
-		opacity 0.2s ease,
-		background-color 0.2s ease;
+	background: transparent;
+	opacity: 1;
+	transition: background-color 0.15s ease;
 }
 
-.mosaic-theme-dark .mosaic-split.mosaic-split-dragging .mosaic-split:hover {
-	opacity: 1;
-	background: var(--color-border);
+.mosaic-theme-dark .mosaic-split:hover,
+.mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
+	background: transparent;
+	cursor: col-resize;
 }
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
-	background: rgba(59, 130, 246, 0.2);
-	border: 2px solid rgba(59, 131, 246, 0.4);
+	background: rgba(59, 130, 246, 0.15);
+	border: 2px solid rgba(59, 130, 246, 0.4);
 	border-radius: var(--radius-md);
 	opacity: 1;
 }
