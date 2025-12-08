@@ -141,6 +141,7 @@ export function WorkspaceItem({
 	return (
 		<>
 			<WorkspaceItemContextMenu
+				workspaceId={id}
 				worktreePath={worktreePath}
 				onRename={rename.startRename}
 			>

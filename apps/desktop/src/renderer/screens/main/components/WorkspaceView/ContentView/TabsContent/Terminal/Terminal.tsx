@@ -13,6 +13,7 @@ import {
 	getDefaultTerminalBg,
 	setupFocusListener,
 	setupKeyboardHandler,
+	setupPasteHandler,
 	setupResizeHandlers,
 } from "./helpers";
 import { TerminalSearch } from "./TerminalSearch";
@@ -271,6 +272,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				resizeRef.current({ tabId: paneId, cols, rows });
 			},
 		);
+		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
+		const cleanupPaste = setupPasteHandler(xterm);
 
 		return () => {
 			isUnmounted = true;
@@ -278,6 +281,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupKeyboard();
 			cleanupFocus?.();
 			cleanupResize();
+			cleanupPaste();
 			cleanupQuerySuppression();
 			// Keep PTY running for reattachment
 			detachRef.current({ tabId: paneId });

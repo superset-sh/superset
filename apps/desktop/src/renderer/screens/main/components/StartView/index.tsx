@@ -7,6 +7,7 @@ import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
+import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
 
 /**
@@ -56,6 +57,10 @@ export function StartView() {
 	const createWorkspace = useCreateWorkspace();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [initGitDialog, setInitGitDialog] = useState<{
+		isOpen: boolean;
+		selectedPath: string;
+	}>({ isOpen: false, selectedPath: "" });
 	const [showAllProjects, setShowAllProjects] = useState(false);
 	const [visibleCount, setVisibleCount] = useState(50);
 
@@ -63,9 +68,25 @@ export function StartView() {
 		setError(null);
 		openNew.mutate(undefined, {
 			onSuccess: (result) => {
-				if (!result.canceled && result.project) {
-					createWorkspace.mutate({ projectId: result.project.id });
+				if (result.canceled) {
+					return;
 				}
+
+				if ("error" in result) {
+					setError(result.error);
+					return;
+				}
+
+				if ("needsGitInit" in result) {
+					// Show dialog to offer git initialization
+					setInitGitDialog({
+						isOpen: true,
+						selectedPath: result.selectedPath,
+					});
+					return;
+				}
+
+				createWorkspace.mutate({ projectId: result.project.id });
 			},
 			onError: (err) => {
 				setError(err.message || "Failed to open project");
@@ -246,6 +267,12 @@ export function StartView() {
 			<CloneRepoDialog
 				isOpen={isCloneDialogOpen}
 				onClose={() => setIsCloneDialogOpen(false)}
+				onError={setError}
+			/>
+			<InitGitDialog
+				isOpen={initGitDialog.isOpen}
+				selectedPath={initGitDialog.selectedPath}
+				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
 				onError={setError}
 			/>
 		</div>

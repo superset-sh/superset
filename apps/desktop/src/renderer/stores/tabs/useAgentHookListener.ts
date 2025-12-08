@@ -1,5 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
+import { useAppStore } from "../app-state";
 import { useWindowsStore } from "./store";
 
 /**
@@ -34,20 +35,34 @@ export function useAgentHookListener() {
 			} else if (event.type === "focus-tab") {
 				// paneId is passed as tabId for backwards compatibility
 				const { tabId: paneId, workspaceId } = event.data;
-				const state = useWindowsStore.getState();
 
-				// Find the window containing this pane
-				const pane = state.panes[paneId];
-				if (!pane) return;
+				// Switch to workspace view if not already there
+				const appState = useAppStore.getState();
+				if (appState.currentView !== "workspace") {
+					appState.setView("workspace");
+				}
 
-				const windowId = pane.windowId;
-
-				// Switch to the workspace first (with proper invalidation), then set active window and focused pane
+				// Switch to the workspace first, then look up pane/window from fresh state
 				setActiveWorkspace.mutate(
 					{ id: workspaceId },
 					{
 						onSuccess: () => {
+							// Get fresh state after workspace switch
 							const currentState = useWindowsStore.getState();
+
+							// Look up pane from current state
+							const pane = currentState.panes[paneId];
+							if (!pane) return;
+
+							const windowId = pane.windowId;
+
+							// Validate window belongs to the target workspace
+							const window = currentState.windows.find(
+								(w) => w.id === windowId,
+							);
+							if (!window || window.workspaceId !== workspaceId) return;
+
+							// Set active window and focused pane
 							currentState.setActiveWindow(workspaceId, windowId);
 							currentState.setFocusedPane(windowId, paneId);
 						},

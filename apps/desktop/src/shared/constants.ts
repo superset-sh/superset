@@ -29,6 +29,13 @@ export const CONFIG_FILE_NAME = "config.json";
 // Website URL - defaults to production, can be overridden via env var for local dev
 export const WEBSITE_URL = process.env.WEBSITE_URL || "https://superset.sh";
 
+// Help menu URLs
+export const HELP_MENU = {
+	CONTACT_URL: "https://x.com/superset_sh",
+	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
+	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+} as const;
+
 // Config file template
 export const CONFIG_TEMPLATE = `{
   "setup": [],

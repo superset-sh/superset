@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
+import { useSidebarStore } from "renderer/stores";
 import { useWindowsStore } from "renderer/stores/tabs/store";
 import { WindowItem } from "./WindowItem";
 
@@ -16,6 +17,7 @@ interface DragItem {
 }
 
 export function TabsView() {
+	const isResizing = useSidebarStore((s) => s.isResizing);
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allWindows = useWindowsStore((s) => s.windows);
@@ -100,7 +102,7 @@ export function TabsView() {
 					{windows.map((window, index) => (
 						<motion.div
 							key={window.id}
-							layout
+							layout={!isResizing}
 							initial={false}
 							transition={{
 								layout: { duration: 0.2, ease: "easeInOut" },
@@ -128,7 +130,7 @@ export function TabsView() {
 					)}
 				</div>
 				<motion.div
-					layout
+					layout={!isResizing}
 					transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
 				>
 					<Button

@@ -49,17 +49,11 @@ export async function MainWindow() {
 		},
 	});
 
-	// Set main window for auto-updater dialogs
 	setMainWindow(window);
+	createApplicationMenu();
 
-	// Create application menu
-	createApplicationMenu(window);
-
-	// Update current window reference for router getter
 	currentWindow = window;
 
-	// Set up tRPC handler - reuse existing handler on macOS window reopen
-	// Router uses getWindow() to always access current window
 	if (ipcHandler) {
 		ipcHandler.attachWindow(window);
 	} else {
