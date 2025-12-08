@@ -78,12 +78,30 @@ export class TerminalManager extends EventEmitter {
 			let scrollback = existing.serializedScrollback || "";
 			const rawLen = existing.scrollback.length;
 			const serializedLen = existing.serializedScrollback.length;
+			console.log(
+				"[TerminalManager] reattach:",
+				tabId,
+				"serializedLen:",
+				serializedLen,
+				"rawLen:",
+				rawLen,
+				"delta:",
+				rawLen - serializedLen,
+			);
 			if (rawLen > serializedLen) {
 				// There's new data since last serialization - filter it
 				const newData = existing.scrollback.slice(serializedLen);
+				console.log(
+					"[TerminalManager] filtering delta, first 200:",
+					newData.slice(0, 200),
+				);
 				const filter = new TerminalEscapeFilter();
 				scrollback += filter.filter(newData) + filter.flush();
 			}
+			console.log(
+				"[TerminalManager] returning scrollback, first 200:",
+				scrollback.slice(0, 200),
+			);
 			return {
 				isNew: false,
 				scrollback,
@@ -307,6 +325,14 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		// Update the clean serialized snapshot (used for reattach)
+		console.log(
+			"[TerminalManager] saveScrollback:",
+			tabId,
+			"length:",
+			serialized.length,
+			"first 200:",
+			serialized.slice(0, 200),
+		);
 		session.serializedScrollback = serialized;
 
 		// Save to disk via history writer

@@ -292,6 +292,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					const serialized = serializeAddon.serialize({
 						excludeAltBuffer: true, // Don't save TUI app alternate screen
 					});
+					console.log(
+						"[Terminal] Serialized scrollback:",
+						serialized?.length,
+						"chars, first 200:",
+						serialized?.slice(0, 200),
+					);
 					if (serialized) {
 						// Fire and forget - don't block unmount on save
 						trpcClient.terminal.saveScrollback
@@ -303,6 +309,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				} catch (err) {
 					console.error("[Terminal] Failed to serialize terminal:", err);
 				}
+			} else {
+				console.log(
+					"[Terminal] Skipping serialize:",
+					!serializeAddon ? "no addon" : "exited",
+				);
 			}
 
 			// Keep PTY running for reattachment
