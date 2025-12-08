@@ -37,17 +37,22 @@ export function TerminalPresets({
 		},
 	});
 
-	const handlePresetClick = async (preset: TerminalPreset) => {
+	const handlePresetClick = (preset: TerminalPreset) => {
 		if (!workspaceId) return;
 
-		// Create new window with pane
-		const { paneId } = addWindow(workspaceId);
-
-		// Resolve cwd - join with worktree path if relative
+		// Resolve cwd - join with worktree path if relative (not starting with /)
 		let cwd: string | undefined;
 		if (preset.cwd) {
 			const isAbsolute = preset.cwd.startsWith("/");
-			cwd = isAbsolute ? preset.cwd : `${worktreePath}/${preset.cwd}`;
+			if (isAbsolute) {
+				cwd = preset.cwd;
+			} else if (worktreePath) {
+				// Remove leading ./ if present, then join with worktree path
+				const relativeCwd = preset.cwd.startsWith("./")
+					? preset.cwd.slice(2)
+					: preset.cwd;
+				cwd = `${worktreePath}/${relativeCwd}`;
+			}
 		}
 
 		// Normalize commands to array
@@ -55,8 +60,14 @@ export function TerminalPresets({
 			? preset.commands
 			: [preset.commands];
 
-		// Create terminal with preset settings
-		await createOrAttachMutation.mutateAsync({
+		// Create new window with pane - this triggers React to render Terminal component
+		const { paneId } = addWindow(workspaceId);
+
+		// Pre-create terminal session with initial commands
+		// Terminal component will attach to this session when it mounts
+		// Using mutate (not mutateAsync) to fire-and-forget, avoiding race condition
+		// where Terminal component's createOrAttach might arrive at server first
+		createOrAttachMutation.mutate({
 			tabId: paneId,
 			workspaceId,
 			tabTitle: preset.name,
