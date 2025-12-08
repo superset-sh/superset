@@ -117,7 +117,7 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-2 right-2 z-10 flex items-center max-w-[calc(100%-1rem)] rounded bg-popover/95 pl-2 pr-0.5 shadow-lg ring-1 ring-border/40 backdrop-blur">
+		<div className="absolute top-1 right-1 z-10 flex items-center max-w-[calc(100%-0.5rem)] rounded bg-popover/95 pl-2 pr-0.5 shadow-lg ring-1 ring-border/40 backdrop-blur">
 			<input
 				ref={inputRef}
 				type="text"

@@ -67,18 +67,15 @@
 	outline-offset: -2px;
 }
 .mosaic-theme-dark .mosaic-split {
-	background: var(--color-border);
-	opacity: 0;
-	border-radius: var(--radius-full);
-	transition:
-		opacity 0.15s ease,
-		background-color 0.15s ease;
+	background: transparent;
+	opacity: 1;
+	transition: background-color 0.15s ease;
 }
 
 .mosaic-theme-dark .mosaic-split:hover,
 .mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
-	opacity: 1;
-	background: var(--color-tertiary-active);
+	background: transparent;
+	cursor: col-resize;
 }
 
 /* Drop target when hovering - shows the split preview */
