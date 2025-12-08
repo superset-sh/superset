@@ -1,5 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { Pane, PaneType, Window } from "./types";
+import type { Pane, PaneType, Tab } from "./types";
 
 /**
  * Generates a unique ID with the given prefix
@@ -9,11 +9,11 @@ export const generateId = (prefix: string): string => {
 };
 
 /**
- * Gets the display name for a window
+ * Gets the display name for a tab
  * Now just returns the stored name since names are static at creation
  */
-export const getWindowDisplayName = (window: Window): string => {
-	return window.name || "Window";
+export const getTabDisplayName = (tab: Tab): string => {
+	return tab.name || "Tab";
 };
 
 /**
@@ -36,14 +36,14 @@ export const extractPaneIdsFromLayout = (
  * Creates a new pane with the given properties
  */
 export const createPane = (
-	windowId: string,
+	tabId: string,
 	type: PaneType = "terminal",
 ): Pane => {
 	const id = generateId("pane");
 
 	return {
 		id,
-		windowId,
+		tabId,
 		type,
 		name: "Terminal",
 		isNew: true,
@@ -51,13 +51,13 @@ export const createPane = (
 };
 
 /**
- * Generates a static window name based on existing windows
- * (e.g., "Window 1", "Window 2", finding the next available number)
+ * Generates a static tab name based on existing tabs
+ * (e.g., "Tab 1", "Tab 2", finding the next available number)
  */
-export const generateWindowName = (existingWindows: Window[]): string => {
-	const existingNumbers = existingWindows
-		.map((w) => {
-			const match = w.name.match(/^Window (\d+)$/);
+export const generateTabName = (existingTabs: Tab[]): string => {
+	const existingNumbers = existingTabs
+		.map((t) => {
+			const match = t.name.match(/^Tab (\d+)$/);
 			return match ? Number.parseInt(match[1], 10) : 0;
 		})
 		.filter((n) => n > 0);
@@ -68,56 +68,56 @@ export const generateWindowName = (existingWindows: Window[]): string => {
 		nextNumber++;
 	}
 
-	return `Window ${nextNumber}`;
+	return `Tab ${nextNumber}`;
 };
 
 /**
- * Creates a new window with an initial pane atomically
- * This ensures the invariant that windows always have at least one pane
+ * Creates a new tab with an initial pane atomically
+ * This ensures the invariant that tabs always have at least one pane
  */
-export const createWindowWithPane = (
+export const createTabWithPane = (
 	workspaceId: string,
-	existingWindows: Window[] = [],
-): { window: Window; pane: Pane } => {
-	const windowId = generateId("win");
-	const pane = createPane(windowId);
+	existingTabs: Tab[] = [],
+): { tab: Tab; pane: Pane } => {
+	const tabId = generateId("tab");
+	const pane = createPane(tabId);
 
-	// Filter to same workspace for window naming
-	const workspaceWindows = existingWindows.filter(
-		(w) => w.workspaceId === workspaceId,
+	// Filter to same workspace for tab naming
+	const workspaceTabs = existingTabs.filter(
+		(t) => t.workspaceId === workspaceId,
 	);
 
-	const window: Window = {
-		id: windowId,
-		name: generateWindowName(workspaceWindows),
+	const tab: Tab = {
+		id: tabId,
+		name: generateTabName(workspaceTabs),
 		workspaceId,
 		layout: pane.id, // Single pane = leaf node
 		createdAt: Date.now(),
 	};
 
-	return { window, pane };
+	return { tab, pane };
 };
 
 /**
- * Gets all pane IDs that belong to a specific window
+ * Gets all pane IDs that belong to a specific tab
  */
-export const getPaneIdsForWindow = (
+export const getPaneIdsForTab = (
 	panes: Record<string, Pane>,
-	windowId: string,
+	tabId: string,
 ): string[] => {
 	return Object.values(panes)
-		.filter((pane) => pane.windowId === windowId)
+		.filter((pane) => pane.tabId === tabId)
 		.map((pane) => pane.id);
 };
 
 /**
- * Checks if a window has only one pane remaining
+ * Checks if a tab has only one pane remaining
  */
-export const isLastPaneInWindow = (
+export const isLastPaneInTab = (
 	panes: Record<string, Pane>,
-	windowId: string,
+	tabId: string,
 ): boolean => {
-	return getPaneIdsForWindow(panes, windowId).length === 1;
+	return getPaneIdsForTab(panes, tabId).length === 1;
 };
 
 /**

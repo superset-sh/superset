@@ -13,7 +13,7 @@ import {
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
 import { useCloseSettings } from "renderer/stores/app-state";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
 import { WorkspaceItemContextMenu } from "./WorkspaceItemContextMenu";
@@ -48,8 +48,8 @@ export function WorkspaceItem({
 	const deleteWorkspace = useDeleteWorkspace();
 	const closeSettings = useCloseSettings();
 	const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-	const windows = useWindowsStore((s) => s.windows);
-	const panes = useWindowsStore((s) => s.panes);
+	const tabs = useTabsStore((s) => s.tabs);
+	const panes = useTabsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
 
 	// Query to check if workspace is empty - only enabled when needed
@@ -93,10 +93,10 @@ export function WorkspaceItem({
 		}
 	};
 
-	// Check if any pane in windows belonging to this workspace needs attention
-	const workspaceWindows = windows.filter((w) => w.workspaceId === id);
+	// Check if any pane in tabs belonging to this workspace needs attention
+	const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
 	const workspacePaneIds = new Set(
-		workspaceWindows.flatMap((w) => {
+		workspaceTabs.flatMap((t) => {
 			// Extract pane IDs from the layout (which is a MosaicNode<string>)
 			const collectPaneIds = (node: unknown): string[] => {
 				if (typeof node === "string") return [node];
@@ -114,7 +114,7 @@ export function WorkspaceItem({
 				}
 				return [];
 			};
-			return collectPaneIds(w.layout);
+			return collectPaneIds(t.layout);
 		}),
 	);
 	const needsAttention = Object.values(panes)

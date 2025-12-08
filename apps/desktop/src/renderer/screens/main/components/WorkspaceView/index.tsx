@@ -8,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
@@ -16,58 +16,58 @@ import { Sidebar } from "./Sidebar";
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindowsStore((s) => s.windows);
-	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
-	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
-	const addWindow = useWindowsStore((s) => s.addWindow);
-	const setActiveWindow = useWindowsStore((s) => s.setActiveWindow);
-	const removePane = useWindowsStore((s) => s.removePane);
+	const allTabs = useTabsStore((s) => s.tabs);
+	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	const addTab = useTabsStore((s) => s.addTab);
+	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const removePane = useTabsStore((s) => s.removePane);
 
-	const windows = useMemo(
+	const tabs = useMemo(
 		() =>
 			activeWorkspaceId
-				? allWindows.filter((win) => win.workspaceId === activeWorkspaceId)
+				? allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
 				: [],
-		[activeWorkspaceId, allWindows],
+		[activeWorkspaceId, allTabs],
 	);
 
-	const activeWindowId = activeWorkspaceId
-		? activeWindowIds[activeWorkspaceId]
+	const activeTabId = activeWorkspaceId
+		? activeTabIds[activeWorkspaceId]
 		: null;
 
-	// Get focused pane ID for the active window
-	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
+	// Get focused pane ID for the active tab
+	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Window management shortcuts
+	// Tab management shortcuts
 	useHotkeys(HOTKEYS.NEW_TERMINAL.keys, () => {
 		if (activeWorkspaceId) {
-			addWindow(activeWorkspaceId);
+			addTab(activeWorkspaceId);
 		}
-	}, [activeWorkspaceId, addWindow]);
+	}, [activeWorkspaceId, addTab]);
 
 	useHotkeys(HOTKEYS.CLOSE_TERMINAL.keys, () => {
-		// Close focused pane (which may close the window if it's the last pane)
+		// Close focused pane (which may close the tab if it's the last pane)
 		if (focusedPaneId) {
 			removePane(focusedPaneId);
 		}
 	}, [focusedPaneId, removePane]);
 
-	// Switch between windows (⌘+Up/Down)
+	// Switch between tabs (⌘+Up/Down)
 	useHotkeys(HOTKEYS.PREV_TERMINAL.keys, () => {
-		if (!activeWorkspaceId || !activeWindowId) return;
-		const index = windows.findIndex((w) => w.id === activeWindowId);
+		if (!activeWorkspaceId || !activeTabId) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
 		if (index > 0) {
-			setActiveWindow(activeWorkspaceId, windows[index - 1].id);
+			setActiveTab(activeWorkspaceId, tabs[index - 1].id);
 		}
-	}, [activeWorkspaceId, activeWindowId, windows, setActiveWindow]);
+	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
 	useHotkeys(HOTKEYS.NEXT_TERMINAL.keys, () => {
-		if (!activeWorkspaceId || !activeWindowId) return;
-		const index = windows.findIndex((w) => w.id === activeWindowId);
-		if (index < windows.length - 1) {
-			setActiveWindow(activeWorkspaceId, windows[index + 1].id);
+		if (!activeWorkspaceId || !activeTabId) return;
+		const index = tabs.findIndex((t) => t.id === activeTabId);
+		if (index < tabs.length - 1) {
+			setActiveTab(activeWorkspaceId, tabs[index + 1].id);
 		}
-	}, [activeWorkspaceId, activeWindowId, windows, setActiveWindow]);
+	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =

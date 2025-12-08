@@ -5,14 +5,14 @@ import { useDrop } from "react-dnd";
 import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { WindowItem } from "./WindowItem";
 
-const DRAG_TYPE = "WINDOW";
+const DRAG_TYPE = "TAB";
 
 interface DragItem {
 	type: typeof DRAG_TYPE;
-	windowId: string;
+	tabId: string;
 	index: number;
 }
 
@@ -20,28 +20,28 @@ export function TabsView() {
 	const isResizing = useSidebarStore((s) => s.isResizing);
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
-	const allWindows = useWindowsStore((s) => s.windows);
-	const addWindow = useWindowsStore((s) => s.addWindow);
-	const reorderWindowById = useWindowsStore((s) => s.reorderWindowById);
-	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
+	const allTabs = useTabsStore((s) => s.tabs);
+	const addTab = useTabsStore((s) => s.addTab);
+	const reorderTabById = useTabsStore((s) => s.reorderTabById);
+	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const containerRef = useRef<HTMLElement>(null);
 
-	const windows = useMemo(
+	const tabs = useMemo(
 		() =>
 			activeWorkspaceId
-				? allWindows.filter((win) => win.workspaceId === activeWorkspaceId)
+				? allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
 				: [],
-		[activeWorkspaceId, allWindows],
+		[activeWorkspaceId, allTabs],
 	);
 
-	const handleAddWindow = () => {
+	const handleAddTab = () => {
 		if (activeWorkspaceId) {
-			addWindow(activeWorkspaceId);
+			addTab(activeWorkspaceId);
 		}
 	};
 
-	// Drop zone for reordering windows
+	// Drop zone for reordering tabs
 	const [{ isOver }, drop] = useDrop<DragItem, void, { isOver: boolean }>({
 		accept: DRAG_TYPE,
 		hover: (item, monitor) => {
@@ -50,12 +50,12 @@ export function TabsView() {
 			const clientOffset = monitor.getClientOffset();
 			if (!clientOffset) return;
 
-			// Find all window items in the container
-			const windowItems =
-				containerRef.current.querySelectorAll("[data-window-item]");
-			let newDropIndex = windows.length;
+			// Find all tab items in the container
+			const tabItems =
+				containerRef.current.querySelectorAll("[data-tab-item]");
+			let newDropIndex = tabs.length;
 
-			windowItems.forEach((element, index) => {
+			tabItems.forEach((element, index) => {
 				const rect = element.getBoundingClientRect();
 				const midY = rect.top + rect.height / 2;
 
@@ -74,7 +74,7 @@ export function TabsView() {
 		drop: (item) => {
 			if (dropIndex !== null && dropIndex !== item.index) {
 				const targetIndex = dropIndex > item.index ? dropIndex - 1 : dropIndex;
-				reorderWindowById(item.windowId, targetIndex);
+				reorderTabById(item.tabId, targetIndex);
 			}
 			setDropIndex(null);
 		},
@@ -99,9 +99,9 @@ export function TabsView() {
 		>
 			<LayoutGroup>
 				<div className="text-sm text-sidebar-foreground space-y-1 relative">
-					{windows.map((window, index) => (
+					{tabs.map((tab, index) => (
 						<motion.div
-							key={window.id}
+							key={tab.id}
 							layout={!isResizing}
 							initial={false}
 							transition={{
@@ -109,23 +109,23 @@ export function TabsView() {
 							}}
 							className="relative"
 						>
-							{/* Drop line indicator before this window */}
+							{/* Drop line indicator before this tab */}
 							{isOver && dropIndex === index && (
 								<div className="absolute -top-1 left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 							)}
-							<div data-window-item>
+							<div data-tab-item>
 								<WindowItem
-									window={window}
+									window={tab}
 									index={index}
 									isActive={
-										activeWindowIds[activeWorkspaceId || ""] === window.id
+										activeTabIds[activeWorkspaceId || ""] === tab.id
 									}
 								/>
 							</div>
 						</motion.div>
 					))}
 					{/* Drop line indicator at the end */}
-					{isOver && dropIndex === windows.length && (
+					{isOver && dropIndex === tabs.length && (
 						<div className="h-0.5 bg-primary rounded-full z-20 pointer-events-none mt-1" />
 					)}
 				</div>
@@ -135,12 +135,12 @@ export function TabsView() {
 				>
 					<Button
 						variant="ghost"
-						onClick={handleAddWindow}
+						onClick={handleAddTab}
 						className="w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between mt-1"
 						disabled={!activeWorkspaceId}
 					>
 						<HiMiniPlus className="size-4" />
-						<span className="truncate flex-1">New Window</span>
+						<span className="truncate flex-1">New Tab</span>
 					</Button>
 				</motion.div>
 			</LayoutGroup>

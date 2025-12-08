@@ -8,8 +8,8 @@ import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
-import { useWindowsStore } from "renderer/stores/tabs/store";
-import type { Window } from "renderer/stores/tabs/types";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
@@ -39,13 +39,13 @@ export function MainScreen() {
 		refetch,
 	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
-	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
-	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
-	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
-	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
-	const activeWindowIds = useWindowsStore((s) => s.activeWindowIds);
-	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
-	const windows = useWindowsStore((s) => s.windows);
+	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
+	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
+	const splitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	const tabs = useTabsStore((s) => s.tabs);
 
 	useAgentHookListener();
 
@@ -58,11 +58,11 @@ export function MainScreen() {
 	});
 
 	const activeWorkspaceId = activeWorkspace?.id;
-	const activeWindowId = activeWorkspaceId
-		? activeWindowIds[activeWorkspaceId]
+	const activeTabId = activeWorkspaceId
+		? activeTabIds[activeWorkspaceId]
 		: null;
-	const focusedPaneId = activeWindowId ? focusedPaneIds[activeWindowId] : null;
-	const activeWindow = windows.find((w) => w.id === activeWindowId);
+	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
+	const activeTab = tabs.find((t) => t.id === activeTabId);
 	const isWorkspaceView = currentView === "workspace";
 
 	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => openSettings("keyboard"), [
@@ -79,74 +79,74 @@ export function MainScreen() {
 	 * falls back to first pane and corrects focus state.
 	 */
 	const resolveSplitTarget = useCallback(
-		(paneId: string, windowId: string, targetWindow: Window) => {
-			const path = findPanePath(targetWindow.layout, paneId);
+		(paneId: string, tabId: string, targetTab: Tab) => {
+			const path = findPanePath(targetTab.layout, paneId);
 			if (path !== null) return { path, paneId };
 
 			// Focused pane not in layout - correct focus and use first pane
-			const firstPaneId = getFirstPaneId(targetWindow.layout);
-			const firstPanePath = findPanePath(targetWindow.layout, firstPaneId);
-			setFocusedPane(windowId, firstPaneId);
+			const firstPaneId = getFirstPaneId(targetTab.layout);
+			const firstPanePath = findPanePath(targetTab.layout, firstPaneId);
+			setFocusedPane(tabId, firstPaneId);
 			return { path: firstPanePath ?? [], paneId: firstPaneId };
 		},
 		[setFocusedPane],
 	);
 
 	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
 			const target = resolveSplitTarget(
 				focusedPaneId,
-				activeWindowId,
-				activeWindow,
+				activeTabId,
+				activeTab,
 			);
 			if (!target) return;
 			const dimensions = getPaneDimensions(target.paneId);
 			if (dimensions) {
-				splitPaneAuto(activeWindowId, target.paneId, dimensions, target.path);
+				splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
 			}
 		}
 	}, [
-		activeWindowId,
+		activeTabId,
 		focusedPaneId,
-		activeWindow,
+		activeTab,
 		splitPaneAuto,
 		resolveSplitTarget,
 		isWorkspaceView,
 	]);
 
 	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
 			const target = resolveSplitTarget(
 				focusedPaneId,
-				activeWindowId,
-				activeWindow,
+				activeTabId,
+				activeTab,
 			);
 			if (!target) return;
-			splitPaneVertical(activeWindowId, target.paneId, target.path);
+			splitPaneVertical(activeTabId, target.paneId, target.path);
 		}
 	}, [
-		activeWindowId,
+		activeTabId,
 		focusedPaneId,
-		activeWindow,
+		activeTab,
 		splitPaneVertical,
 		resolveSplitTarget,
 		isWorkspaceView,
 	]);
 
 	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
-		if (isWorkspaceView && activeWindowId && focusedPaneId && activeWindow) {
+		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
 			const target = resolveSplitTarget(
 				focusedPaneId,
-				activeWindowId,
-				activeWindow,
+				activeTabId,
+				activeTab,
 			);
 			if (!target) return;
-			splitPaneHorizontal(activeWindowId, target.paneId, target.path);
+			splitPaneHorizontal(activeTabId, target.paneId, target.path);
 		}
 	}, [
-		activeWindowId,
+		activeTabId,
 		focusedPaneId,
-		activeWindow,
+		activeTab,
 		splitPaneHorizontal,
 		resolveSplitTarget,
 		isWorkspaceView,

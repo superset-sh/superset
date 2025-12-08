@@ -1,19 +1,19 @@
 import { toast } from "@superset/ui/sonner";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 
 /**
  * Mutation hook for creating a new workspace
  * Automatically invalidates all workspace queries on success
- * Creates a terminal window with setup commands if present
+ * Creates a terminal tab with setup commands if present
  * Shows config toast if no setup commands are configured
  */
 export function useCreateWorkspace(
 	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
 ) {
 	const utils = trpc.useUtils();
-	const addWindow = useWindowsStore((state) => state.addWindow);
+	const addTab = useTabsStore((state) => state.addTab);
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
@@ -24,12 +24,12 @@ export function useCreateWorkspace(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
-			// Create terminal window with setup commands if present
+			// Create terminal tab with setup commands if present
 			if (
 				Array.isArray(data.initialCommands) &&
 				data.initialCommands.length > 0
 			) {
-				const { paneId } = addWindow(data.workspace.id);
+				const { paneId } = addTab(data.workspace.id);
 				// Pre-create terminal session with initial commands
 				// Terminal component will attach to this session when it mounts
 				createOrAttach.mutate({

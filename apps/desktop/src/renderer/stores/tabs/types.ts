@@ -1,17 +1,17 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 
 /**
- * Pane types that can be displayed within a window
+ * Pane types that can be displayed within a tab
  */
 export type PaneType = "terminal";
 
 /**
- * A Pane represents a single terminal or content area within a Window.
- * Panes always belong to a Window and are referenced by ID in the Window's layout.
+ * A Pane represents a single terminal or content area within a Tab.
+ * Panes always belong to a Tab and are referenced by ID in the Tab's layout.
  */
 export interface Pane {
 	id: string;
-	windowId: string;
+	tabId: string;
 	type: PaneType;
 	name: string;
 	isNew?: boolean;
@@ -19,10 +19,10 @@ export interface Pane {
 }
 
 /**
- * A Window is a container that holds one or more Panes in a Mosaic layout.
- * Windows are displayed in the sidebar and always have at least one Pane.
+ * A Tab is a container that holds one or more Panes in a Mosaic layout.
+ * Tabs are displayed in the sidebar and always have at least one Pane.
  */
-export interface Window {
+export interface Tab {
 	id: string;
 	name: string;
 	workspaceId: string;
@@ -31,61 +31,61 @@ export interface Window {
 }
 
 /**
- * State for the windows/panes store
+ * State for the tabs/panes store
  */
-export interface WindowsState {
-	windows: Window[];
+export interface TabsState {
+	tabs: Tab[];
 	panes: Record<string, Pane>;
-	activeWindowIds: Record<string, string | null>; // workspaceId → windowId
-	focusedPaneIds: Record<string, string>; // windowId → paneId (last focused pane in each window)
-	windowHistoryStacks: Record<string, string[]>; // workspaceId → windowId[] (MRU history)
+	activeTabIds: Record<string, string | null>; // workspaceId → tabId
+	focusedPaneIds: Record<string, string>; // tabId → paneId (last focused pane in each tab)
+	tabHistoryStacks: Record<string, string[]>; // workspaceId → tabId[] (MRU history)
 }
 
 /**
- * Actions available on the windows store
+ * Actions available on the tabs store
  */
-export interface WindowsStore extends WindowsState {
-	// Window operations
-	addWindow: (workspaceId: string) => { windowId: string; paneId: string };
-	removeWindow: (windowId: string) => void;
-	renameWindow: (windowId: string, newName: string) => void;
-	setActiveWindow: (workspaceId: string, windowId: string) => void;
-	reorderWindows: (
+export interface TabsStore extends TabsState {
+	// Tab operations
+	addTab: (workspaceId: string) => { tabId: string; paneId: string };
+	removeTab: (tabId: string) => void;
+	renameTab: (tabId: string, newName: string) => void;
+	setActiveTab: (workspaceId: string, tabId: string) => void;
+	reorderTabs: (
 		workspaceId: string,
 		startIndex: number,
 		endIndex: number,
 	) => void;
-	reorderWindowById: (windowId: string, targetIndex: number) => void;
-	updateWindowLayout: (windowId: string, layout: MosaicNode<string>) => void;
+	reorderTabById: (tabId: string, targetIndex: number) => void;
+	updateTabLayout: (tabId: string, layout: MosaicNode<string>) => void;
 
 	// Pane operations
-	addPane: (windowId: string) => string;
+	addPane: (tabId: string) => string;
 	removePane: (paneId: string) => void;
-	setFocusedPane: (windowId: string, paneId: string) => void;
+	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
 
 	// Split operations
 	splitPaneVertical: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
 	) => void;
 	splitPaneHorizontal: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
 	) => void;
 	splitPaneAuto: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
 
 	// Query helpers
-	getWindowsByWorkspace: (workspaceId: string) => Window[];
-	getActiveWindow: (workspaceId: string) => Window | null;
-	getPanesForWindow: (windowId: string) => Pane[];
-	getFocusedPane: (windowId: string) => Pane | null;
+	getTabsByWorkspace: (workspaceId: string) => Tab[];
+	getActiveTab: (workspaceId: string) => Tab | null;
+	getPanesForTab: (tabId: string) => Pane[];
+	getFocusedPane: (tabId: string) => Pane | null;
 }

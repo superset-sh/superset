@@ -5,7 +5,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
-import { useWindowsStore } from "renderer/stores/tabs/store";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
 import {
@@ -23,7 +23,7 @@ import { shellEscapePaths } from "./utils";
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// tabId is actually paneId in the new model
 	const paneId = tabId;
-	const panes = useWindowsStore((s) => s.panes);
+	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
 	const paneName = pane?.name || "Terminal";
 	const terminalRef = useRef<HTMLDivElement>(null);
@@ -34,13 +34,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
-	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
-	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
 
-	// Check if this terminal is the focused pane in its window
-	const isFocused = pane?.windowId
-		? focusedPaneIds[pane.windowId] === paneId
+	// Check if this terminal is the focused pane in its tab
+	const isFocused = pane?.tabId
+		? focusedPaneIds[pane.tabId] === paneId
 		: false;
 
 	// Ref to track focus state for use in terminal creation effect
@@ -103,8 +103,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Use ref to avoid triggering full terminal recreation when focus handler changes
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
-		if (pane?.windowId) {
-			setFocusedPane(pane.windowId, paneId);
+		if (pane?.tabId) {
+			setFocusedPane(pane.tabId, paneId);
 		}
 	};
 

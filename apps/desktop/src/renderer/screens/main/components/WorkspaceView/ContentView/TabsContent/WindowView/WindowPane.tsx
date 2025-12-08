@@ -21,23 +21,23 @@ interface WindowPaneProps {
 	windowId: string;
 	workspaceId: string;
 	splitPaneAuto: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
 	splitPaneHorizontal: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
 	) => void;
 	splitPaneVertical: (
-		windowId: string,
+		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
 	) => void;
 	removePane: (paneId: string) => void;
-	setFocusedPane: (windowId: string, paneId: string) => void;
+	setFocusedPane: (tabId: string, paneId: string) => void;
 }
 
 export function WindowPane({

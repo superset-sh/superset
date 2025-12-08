@@ -8,42 +8,42 @@ import {
 	type MosaicNode,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
-import { useWindowsStore } from "renderer/stores/tabs/store";
-import type { Pane, Window } from "renderer/stores/tabs/types";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Pane, Tab } from "renderer/stores/tabs/types";
 import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
-	getPaneIdsForWindow,
+	getPaneIdsForTab,
 } from "renderer/stores/tabs/utils";
 import { WindowPane } from "./WindowPane";
 
 interface WindowViewProps {
-	window: Window;
+	window: Tab;
 	panes: Record<string, Pane>;
 }
 
 export function WindowView({ window, panes }: WindowViewProps) {
-	const updateWindowLayout = useWindowsStore((s) => s.updateWindowLayout);
-	const removePane = useWindowsStore((s) => s.removePane);
-	const removeWindow = useWindowsStore((s) => s.removeWindow);
-	const splitPaneAuto = useWindowsStore((s) => s.splitPaneAuto);
-	const splitPaneHorizontal = useWindowsStore((s) => s.splitPaneHorizontal);
-	const splitPaneVertical = useWindowsStore((s) => s.splitPaneVertical);
-	const setFocusedPane = useWindowsStore((s) => s.setFocusedPane);
-	const focusedPaneIds = useWindowsStore((s) => s.focusedPaneIds);
+	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
+	const removePane = useTabsStore((s) => s.removePane);
+	const removeTab = useTabsStore((s) => s.removeTab);
+	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
+	const splitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
+	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 
 	const focusedPaneId = focusedPaneIds[window.id];
 
-	// Get valid pane IDs for this window
-	const validPaneIds = new Set(getPaneIdsForWindow(panes, window.id));
+	// Get valid pane IDs for this tab
+	const validPaneIds = new Set(getPaneIdsForTab(panes, window.id));
 	const cleanedLayout = cleanLayout(window.layout, validPaneIds);
 
-	// Auto-remove window when all panes are gone
+	// Auto-remove tab when all panes are gone
 	useEffect(() => {
 		if (!cleanedLayout) {
-			removeWindow(window.id);
+			removeTab(window.id);
 		}
-	}, [cleanedLayout, removeWindow, window.id]);
+	}, [cleanedLayout, removeTab, window.id]);
 
 	const handleLayoutChange = useCallback(
 		(newLayout: MosaicNode<string> | null) => {
@@ -66,9 +66,9 @@ export function WindowView({ window, panes }: WindowViewProps) {
 			}
 
 			// Update the layout
-			updateWindowLayout(window.id, newLayout);
+			updateTabLayout(window.id, newLayout);
 		},
-		[window.id, window.layout, updateWindowLayout, removePane],
+		[window.id, window.layout, updateTabLayout, removePane],
 	);
 
 	const renderPane = useCallback(
