@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { EmptyTabView } from "./EmptyTabView";
-import { WindowView } from "./WindowView";
+import { TabView } from "./TabView";
 
 export function TabsContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -29,7 +29,7 @@ export function TabsContent() {
 
 	return (
 		<div className="flex-1 h-full">
-			<WindowView tab={tabToRender} panes={panes} />
+			<TabView tab={tabToRender} panes={panes} />
 		</div>
 	);
 }

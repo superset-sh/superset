@@ -13,7 +13,7 @@ import { Terminal } from "../Terminal";
 
 type SplitOrientation = "vertical" | "horizontal";
 
-interface WindowPaneProps {
+interface TabPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	pane: Pane;
@@ -40,7 +40,7 @@ interface WindowPaneProps {
 	setFocusedPane: (tabId: string, paneId: string) => void;
 }
 
-export function WindowPane({
+export function TabPane({
 	paneId,
 	path,
 	pane,
@@ -52,7 +52,7 @@ export function WindowPane({
 	splitPaneVertical,
 	removePane,
 	setFocusedPane,
-}: WindowPaneProps) {
+}: TabPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [splitOrientation, setSplitOrientation] =
 		useState<SplitOrientation>("vertical");

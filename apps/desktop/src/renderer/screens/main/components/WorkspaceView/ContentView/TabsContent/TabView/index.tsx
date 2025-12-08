@@ -15,14 +15,14 @@ import {
 	extractPaneIdsFromLayout,
 	getPaneIdsForTab,
 } from "renderer/stores/tabs/utils";
-import { WindowPane } from "./WindowPane";
+import { TabPane } from "./TabPane";
 
-interface WindowViewProps {
+interface TabViewProps {
 	tab: Tab;
 	panes: Record<string, Pane>;
 }
 
-export function WindowView({ tab, panes }: WindowViewProps) {
+export function TabView({ tab, panes }: TabViewProps) {
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -85,7 +85,7 @@ export function WindowView({ tab, panes }: WindowViewProps) {
 			}
 
 			return (
-				<WindowPane
+				<TabPane
 					paneId={paneId}
 					path={path}
 					pane={pane}
