@@ -216,10 +216,27 @@ export const useTabsStore = create<TabsStore>()(
 						(t) => t.workspaceId !== workspaceId,
 					);
 
-					const [removed] = workspaceTabs.splice(startIndex, 1);
-					workspaceTabs.splice(endIndex, 0, removed);
+					// Validate startIndex is within bounds
+					if (
+						startIndex < 0 ||
+						startIndex >= workspaceTabs.length ||
+						!Number.isInteger(startIndex)
+					) {
+						return;
+					}
 
-					set({ tabs: [...otherTabs, ...workspaceTabs] });
+					// Clamp endIndex to valid range
+					const clampedEndIndex = Math.max(
+						0,
+						Math.min(endIndex, workspaceTabs.length),
+					);
+
+					// Create a copy of workspaceTabs to avoid mutating the original
+					const reorderedTabs = [...workspaceTabs];
+					const [removed] = reorderedTabs.splice(startIndex, 1);
+					reorderedTabs.splice(clampedEndIndex, 0, removed);
+
+					set({ tabs: [...otherTabs, ...reorderedTabs] });
 				},
 
 				reorderTabById: (tabId, targetIndex) => {
