@@ -18,21 +18,19 @@ interface DragItem {
 }
 
 interface WindowItemProps {
-	window: Tab;
+	tab: Tab;
 	index: number;
 	isActive: boolean;
 }
 
-export function WindowItem({ window, index, isActive }: WindowItemProps) {
+export function WindowItem({ tab, index, isActive }: WindowItemProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const needsAttention = useTabsStore((s) =>
-		Object.values(s.panes).some(
-			(p) => p.tabId === window.id && p.needsAttention,
-		),
+		Object.values(s.panes).some((p) => p.tabId === tab.id && p.needsAttention),
 	);
 
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -46,7 +44,7 @@ export function WindowItem({ window, index, isActive }: WindowItemProps) {
 		{ isDragging: boolean }
 	>({
 		type: DRAG_TYPE,
-		item: { type: DRAG_TYPE, tabId: window.id, index },
+		item: { type: DRAG_TYPE, tabId: tab.id, index },
 		collect: (monitor) => ({
 			isDragging: monitor.isDragging(),
 		}),
@@ -64,22 +62,22 @@ export function WindowItem({ window, index, isActive }: WindowItemProps) {
 		}),
 	});
 
-	const displayName = getTabDisplayName(window);
+	const displayName = getTabDisplayName(tab);
 
 	const handleRemoveTab = (e?: React.MouseEvent) => {
 		e?.stopPropagation();
-		removeTab(window.id);
+		removeTab(tab.id);
 	};
 
 	const handleTabClick = () => {
 		if (isRenaming) return;
 		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, window.id);
+			setActiveTab(activeWorkspaceId, tab.id);
 		}
 	};
 
 	const startRename = () => {
-		setRenameValue(window.name || displayName);
+		setRenameValue(tab.name || displayName);
 		setIsRenaming(true);
 		setTimeout(() => {
 			inputRef.current?.focus();
@@ -90,8 +88,8 @@ export function WindowItem({ window, index, isActive }: WindowItemProps) {
 	const submitRename = () => {
 		const trimmedValue = renameValue.trim();
 		// Only update if the name actually changed
-		if (trimmedValue && trimmedValue !== window.name) {
-			renameTab(window.id, trimmedValue);
+		if (trimmedValue && trimmedValue !== tab.name) {
+			renameTab(tab.id, trimmedValue);
 		}
 		setIsRenaming(false);
 	};

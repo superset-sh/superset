@@ -29,7 +29,7 @@ export function TabsContent() {
 
 	return (
 		<div className="flex-1 h-full">
-			<WindowView window={tabToRender} panes={panes} />
+			<WindowView tab={tabToRender} panes={panes} />
 		</div>
 	);
 }

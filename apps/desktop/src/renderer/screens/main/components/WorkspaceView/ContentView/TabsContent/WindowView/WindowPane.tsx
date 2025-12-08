@@ -18,7 +18,7 @@ interface WindowPaneProps {
 	path: MosaicBranch[];
 	pane: Pane;
 	isActive: boolean;
-	windowId: string;
+	tabId: string;
 	workspaceId: string;
 	splitPaneAuto: (
 		tabId: string,
@@ -45,7 +45,7 @@ export function WindowPane({
 	path,
 	pane,
 	isActive,
-	windowId,
+	tabId,
 	workspaceId,
 	splitPaneAuto,
 	splitPaneHorizontal,
@@ -87,7 +87,7 @@ export function WindowPane({
 	}, []);
 
 	const handleFocus = () => {
-		setFocusedPane(windowId, paneId);
+		setFocusedPane(tabId, paneId);
 	};
 
 	const handleClosePane = (e: React.MouseEvent) => {
@@ -101,7 +101,7 @@ export function WindowPane({
 		if (!container) return;
 
 		const { width, height } = container.getBoundingClientRect();
-		splitPaneAuto(windowId, paneId, { width, height }, path);
+		splitPaneAuto(tabId, paneId, { width, height }, path);
 	};
 
 	const splitIcon =
@@ -138,8 +138,8 @@ export function WindowPane({
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu
-				onSplitHorizontal={() => splitPaneHorizontal(windowId, paneId, path)}
-				onSplitVertical={() => splitPaneVertical(windowId, paneId, path)}
+				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
+				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
 				onClosePane={() => removePane(paneId)}
 			>
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Terminal handles its own keyboard events and focus */}

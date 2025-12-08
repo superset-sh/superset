@@ -114,7 +114,7 @@ export function TabsView() {
 							)}
 							<div data-tab-item>
 								<WindowItem
-									window={tab}
+									tab={tab}
 									index={index}
 									isActive={activeTabIds[activeWorkspaceId || ""] === tab.id}
 								/>
