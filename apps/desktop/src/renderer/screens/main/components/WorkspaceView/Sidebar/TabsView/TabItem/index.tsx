@@ -77,7 +77,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	};
 
 	const startRename = () => {
-		setRenameValue(tab.name || displayName);
+		setRenameValue(tab.userTitle ?? tab.name ?? displayName);
 		setIsRenaming(true);
 		setTimeout(() => {
 			inputRef.current?.focus();
@@ -87,8 +87,8 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 
 	const submitRename = () => {
 		const trimmedValue = renameValue.trim();
-		// Only update if the name actually changed
-		if (trimmedValue && trimmedValue !== tab.name) {
+		const currentUserTitle = tab.userTitle?.trim() ?? "";
+		if (trimmedValue !== currentUserTitle) {
 			renameTab(tab.id, trimmedValue);
 		}
 		setIsRenaming(false);

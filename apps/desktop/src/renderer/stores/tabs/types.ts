@@ -25,6 +25,7 @@ export interface Pane {
 export interface Tab {
 	id: string;
 	name: string;
+	userTitle?: string;
 	workspaceId: string;
 	layout: MosaicNode<string>; // Always defined, leaves are paneIds
 	createdAt: number;
