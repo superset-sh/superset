@@ -196,5 +196,25 @@ export const createTerminalRouter = () => {
 					};
 				});
 			}),
+
+		/**
+		 * Subscribe to command events for a terminal.
+		 * Emits when user presses Enter after typing a command.
+		 */
+		commandStream: publicProcedure
+			.input(z.string())
+			.subscription(({ input: tabId }) => {
+				return observable<string>((emit) => {
+					const onCommand = (command: string) => {
+						emit.next(command);
+					};
+
+					terminalManager.on(`command:${tabId}`, onCommand);
+
+					return () => {
+						terminalManager.off(`command:${tabId}`, onCommand);
+					};
+				});
+			}),
 	});
 };

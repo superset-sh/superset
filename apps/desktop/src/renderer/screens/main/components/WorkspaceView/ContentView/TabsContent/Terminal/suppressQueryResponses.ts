@@ -1,36 +1,17 @@
 import type { Terminal } from "@xterm/xterm";
 
-export interface ShellIntegrationOptions {
-	/** Called when shell is about to execute a command (OSC 133;B) */
-	onCommandStart?: (command: string) => void;
-	/** Called when command finishes with exit code (OSC 133;D) */
-	onCommandFinish?: (exitCode: number) => void;
-}
-
 /**
- * Registers parser hooks to suppress terminal query responses from being displayed
- * and optionally capture OSC 133 shell integration events.
+ * Registers parser hooks to suppress terminal query responses from being displayed.
  *
  * When programs query terminal capabilities (DA1, DA2, CPR, etc.), the terminal
  * responds with escape sequences. These responses should be handled internally,
  * not displayed as visible text. xterm.js's parser hooks let us intercept and
  * suppress these sequences at the display layer.
  *
- * OSC 133 is a shell integration protocol (used by iTerm2, VS Code, etc.) that
- * lets the shell communicate semantic information about commands:
- * - OSC 133;A - Prompt start
- * - OSC 133;B - Command start (prompt end)
- * - OSC 133;C - Command executed
- * - OSC 133;D;exitCode - Command finished
- *
  * @param terminal - The xterm.js Terminal instance
- * @param options - Optional callbacks for shell integration events
  * @returns Cleanup function to dispose all registered handlers
  */
-export function suppressQueryResponses(
-	terminal: Terminal,
-	options: ShellIntegrationOptions = {},
-): () => void {
+export function suppressQueryResponses(terminal: Terminal): () => void {
 	const disposables: { dispose: () => void }[] = [];
 	const parser = terminal.parser;
 
@@ -65,25 +46,6 @@ export function suppressQueryResponses(
 			}),
 		);
 	}
-
-	// OSC 133 - Shell integration (iTerm2/VS Code protocol)
-	// Captures semantic shell events without suppressing display
-	disposables.push(
-		parser.registerOscHandler(133, (data: string) => {
-			const [param, ...rest] = data.split(";");
-
-			if (param === "B" && options.onCommandStart) {
-				// Command start - rest may contain the command text
-				options.onCommandStart(rest.join(";"));
-			} else if (param === "D" && options.onCommandFinish) {
-				// Command finished - rest[0] is exit code
-				const exitCode = Number.parseInt(rest[0] || "0", 10);
-				options.onCommandFinish(exitCode);
-			}
-
-			return false; // Don't suppress - let terminal display normally
-		}),
-	);
 
 	return () => {
 		for (const disposable of disposables) {

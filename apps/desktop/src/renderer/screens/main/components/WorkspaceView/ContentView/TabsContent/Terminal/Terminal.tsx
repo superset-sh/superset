@@ -35,7 +35,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
-	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -120,6 +119,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		enabled: true,
 	});
 
+	// Subscribe to command events from PTY for tab title updates
+	trpc.terminal.commandStream.useSubscription(paneId, {
+		onData: (command) => {
+			const title = sanitizeForTitle(command);
+			if (title && parentTabIdRef.current) {
+				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+			}
+		},
+		enabled: true,
+	});
+
 	// Handler to set focused pane when terminal gains focus
 	// Use ref to avoid triggering full terminal recreation when focus handler changes
 	const handleTerminalFocusRef = useRef(() => {});
@@ -163,17 +173,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
-			cwd: workspaceCwd,
-			initialTheme: initialThemeRef.current,
-			onCommandStart: (command) => {
-				// OSC 133 shell integration - shell reports command before execution
-				const title = sanitizeForTitle(command);
-				if (title && parentTabIdRef.current) {
-					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
-				}
-			},
-		});
+		} = createTerminalInstance(
+			container,
+			workspaceCwd,
+			initialThemeRef.current,
+		);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -252,30 +256,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			writeRef.current({ tabId: paneId, data });
 		};
 
-		const handleKeyPress = (event: {
-			key: string;
-			domEvent: KeyboardEvent;
-		}) => {
-			const { domEvent } = event;
-			if (domEvent.key === "Enter") {
-				const title = sanitizeForTitle(commandBufferRef.current);
-				if (title && parentTabIdRef.current) {
-					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
-				}
-				commandBufferRef.current = "";
-			} else if (domEvent.key === "Backspace") {
-				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
-				commandBufferRef.current = "";
-			} else if (
-				domEvent.key.length === 1 &&
-				!domEvent.ctrlKey &&
-				!domEvent.metaKey
-			) {
-				commandBufferRef.current += domEvent.key;
-			}
-		};
-
 		createOrAttachRef.current(
 			{
 				tabId: paneId,
@@ -301,7 +281,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
-		const keyDisposable = xterm.onKey(handleKeyPress);
 
 		// Intercept keyboard events to handle app hotkeys and provide iTerm-like line continuation UX
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
@@ -329,16 +308,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		);
 		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
-		const cleanupPaste = setupPasteHandler(xterm, {
-			onPaste: (text) => {
-				commandBufferRef.current += text;
-			},
-		});
+		const cleanupPaste = setupPasteHandler(xterm);
 
 		return () => {
 			isUnmounted = true;
 			inputDisposable.dispose();
-			keyDisposable.dispose();
 			cleanupKeyboard();
 			cleanupFocus?.();
 			cleanupResize();

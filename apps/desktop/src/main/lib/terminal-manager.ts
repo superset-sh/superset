@@ -20,6 +20,8 @@ interface TerminalSession {
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
 	escapeFilter: TerminalEscapeFilter;
+	/** Buffer for tracking user input to detect commands */
+	inputBuffer: string;
 }
 
 export interface TerminalDataEvent {
@@ -33,7 +35,15 @@ export interface TerminalExitEvent {
 	signal?: number;
 }
 
-export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
+export interface TerminalCommandEvent {
+	type: "command";
+	command: string;
+}
+
+export type TerminalEvent =
+	| TerminalDataEvent
+	| TerminalExitEvent
+	| TerminalCommandEvent;
 
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
@@ -155,6 +165,7 @@ export class TerminalManager extends EventEmitter {
 			wasRecovered,
 			historyWriter,
 			escapeFilter: new TerminalEscapeFilter(),
+			inputBuffer: "",
 		};
 
 		ptyProcess.onData((data) => {
@@ -203,8 +214,38 @@ export class TerminalManager extends EventEmitter {
 			throw new Error(`Terminal session ${tabId} not found or not alive`);
 		}
 
+		// Track input for command detection
+		this.processInput(session, data);
+
 		session.pty.write(data);
 		session.lastActive = Date.now();
+	}
+
+	/**
+	 * Process user input to detect commands.
+	 * Tracks typed characters and emits command event on Enter.
+	 */
+	private processInput(session: TerminalSession, data: string): void {
+		for (const char of data) {
+			if (char === "\r" || char === "\n") {
+				// Enter pressed - emit command if buffer has content
+				const command = session.inputBuffer.trim();
+				if (command) {
+					this.emit(`command:${session.tabId}`, command);
+				}
+				session.inputBuffer = "";
+			} else if (char === "\x7f" || char === "\b") {
+				// Backspace
+				session.inputBuffer = session.inputBuffer.slice(0, -1);
+			} else if (char === "\x03" || char === "\x15") {
+				// Ctrl+C or Ctrl+U - clear buffer
+				session.inputBuffer = "";
+			} else if (char >= " " || char === "\t") {
+				// Printable character or tab
+				session.inputBuffer += char;
+			}
+			// Ignore other control characters
+		}
 	}
 
 	resize(params: {
