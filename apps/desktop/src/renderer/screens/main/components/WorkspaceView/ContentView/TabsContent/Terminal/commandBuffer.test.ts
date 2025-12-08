@@ -2,16 +2,23 @@ import { describe, expect, it } from "bun:test";
 import { sanitizeForTitle } from "./commandBuffer";
 
 describe("sanitizeForTitle", () => {
-	it("should keep lowercase alphanumeric and common chars", () => {
+	it("should keep normal text unchanged", () => {
 		expect(sanitizeForTitle("ls -la ./src")).toBe("ls -la ./src");
 	});
 
-	it("should strip uppercase (escape codes use A-Z)", () => {
-		expect(sanitizeForTitle("open[Code")).toBe("openode");
+	it("should keep uppercase letters", () => {
+		expect(sanitizeForTitle("openCode")).toBe("openCode");
 	});
 
-	it("should strip special characters", () => {
-		expect(sanitizeForTitle("[?1016;2$y command")).toBe("10162y command");
+	it("should keep special characters", () => {
+		expect(sanitizeForTitle("npm install @scope/pkg")).toBe(
+			"npm install @scope/pkg",
+		);
+	});
+
+	it("should strip ANSI escape sequences", () => {
+		expect(sanitizeForTitle("\x1b[32mgreen\x1b[0m")).toBe("green");
+		expect(sanitizeForTitle("\x1b[1;34mbold blue\x1b[0m")).toBe("bold blue");
 	});
 
 	it("should truncate to max length", () => {
@@ -21,7 +28,7 @@ describe("sanitizeForTitle", () => {
 	});
 
 	it("should return null for empty result", () => {
-		expect(sanitizeForTitle("[]$;?")).toBeNull();
+		expect(sanitizeForTitle("")).toBeNull();
 	});
 
 	it("should return null for whitespace-only result", () => {
