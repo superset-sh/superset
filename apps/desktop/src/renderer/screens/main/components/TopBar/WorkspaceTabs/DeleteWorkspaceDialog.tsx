@@ -27,15 +27,35 @@ export function DeleteWorkspaceDialog({
 }: DeleteWorkspaceDialogProps) {
 	const deleteWorkspace = useDeleteWorkspace();
 
-	// Query to check if workspace can be deleted
-	// Refetch every 2 seconds while dialog is open to keep terminal count fresh
-	const { data: canDeleteData, isLoading } = trpc.workspaces.canDelete.useQuery(
-		{ id: workspaceId },
+	// Initial query for git status (expensive) - only runs once when dialog opens
+	const { data: gitStatusData, isLoading: isLoadingGitStatus } =
+		trpc.workspaces.canDelete.useQuery(
+			{ id: workspaceId },
+			{
+				enabled: open,
+				staleTime: Number.POSITIVE_INFINITY, // Don't refetch automatically
+			},
+		);
+
+	// Polling query for terminal count only (cheap) - skips git checks
+	const { data: terminalCountData } = trpc.workspaces.canDelete.useQuery(
+		{ id: workspaceId, skipGitChecks: true },
 		{
 			enabled: open,
 			refetchInterval: open ? 2000 : false,
 		},
 	);
+
+	// Merge the data: use git status from initial query, terminal count from polling
+	const canDeleteData = gitStatusData
+		? {
+				...gitStatusData,
+				activeTerminalCount:
+					terminalCountData?.activeTerminalCount ??
+					gitStatusData.activeTerminalCount,
+			}
+		: terminalCountData;
+	const isLoading = isLoadingGitStatus;
 
 	const handleDelete = () => {
 		onOpenChange(false);
@@ -71,6 +91,7 @@ export function DeleteWorkspaceDialog({
 	const warning = canDeleteData?.warning;
 	const activeTerminalCount = canDeleteData?.activeTerminalCount ?? 0;
 	const hasChanges = canDeleteData?.hasChanges ?? false;
+	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -95,6 +116,11 @@ export function DeleteWorkspaceDialog({
 								{hasChanges && (
 									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
 										This workspace has uncommitted changes that will be lost.
+									</span>
+								)}
+								{hasUnpushedCommits && (
+									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
+										This workspace has unpushed commits that will be lost.
 									</span>
 								)}
 								{activeTerminalCount > 0 && (

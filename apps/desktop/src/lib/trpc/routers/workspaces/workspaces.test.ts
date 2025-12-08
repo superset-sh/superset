@@ -71,11 +71,22 @@ import { createWorkspacesRouter } from "./workspaces";
 // Helper to mock simple-git with specific worktree list output
 function mockSimpleGitWithWorktreeList(
 	worktreeListOutput: string,
-	options?: { isClean?: boolean },
+	options?: { isClean?: boolean; unpushedCommitCount?: number },
 ) {
 	const isClean = options?.isClean ?? true;
+	const unpushedCommitCount = options?.unpushedCommitCount ?? 0;
 	const mockGit = {
-		raw: mock(() => Promise.resolve(worktreeListOutput)),
+		raw: mock((args: string[]) => {
+			// Handle worktree list
+			if (args[0] === "worktree" && args[1] === "list") {
+				return Promise.resolve(worktreeListOutput);
+			}
+			// Handle rev-list for unpushed commits check
+			if (args[0] === "rev-list" && args[1] === "--count") {
+				return Promise.resolve(String(unpushedCommitCount));
+			}
+			return Promise.resolve("");
+		}),
 		status: mock(() => Promise.resolve({ isClean: () => isClean })),
 	};
 	mock.module("simple-git", () => ({
@@ -256,5 +267,70 @@ describe("workspaces router - canDelete", () => {
 		expect(result.warning).toContain("not found in git");
 		// hasChanges should be false when worktree doesn't exist
 		expect(result.hasChanges).toBe(false);
+	});
+
+	it("returns hasUnpushedCommits: false when all commits are pushed", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
+			{ isClean: true, unpushedCommitCount: 0 },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.hasUnpushedCommits).toBe(false);
+	});
+
+	it("returns hasUnpushedCommits: true when there are unpushed commits", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
+			{ isClean: true, unpushedCommitCount: 3 },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.hasUnpushedCommits).toBe(true);
+	});
+
+	it("returns hasUnpushedCommits: false when worktree not found in git", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/other-worktree\nHEAD def456\nbranch refs/heads/other-branch",
+			{ isClean: true, unpushedCommitCount: 5 },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.warning).toContain("not found in git");
+		// hasUnpushedCommits should be false when worktree doesn't exist
+		expect(result.hasUnpushedCommits).toBe(false);
+	});
+
+	it("skips git checks when skipGitChecks is true", async () => {
+		const mockGit = mockSimpleGitWithWorktreeList(
+			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
+			{ isClean: false, unpushedCommitCount: 5 },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({
+			id: "workspace-1",
+			skipGitChecks: true,
+		});
+
+		expect(result.canDelete).toBe(true);
+		// When skipping git checks, these should be false (defaults)
+		expect(result.hasChanges).toBe(false);
+		expect(result.hasUnpushedCommits).toBe(false);
+		// git.status should not have been called
+		expect(mockGit.status).not.toHaveBeenCalled();
 	});
 });

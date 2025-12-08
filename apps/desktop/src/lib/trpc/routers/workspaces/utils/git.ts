@@ -377,3 +377,41 @@ export async function hasUncommittedChanges(
 	const status = await git.status();
 	return !status.isClean();
 }
+
+/**
+ * Checks if a worktree has commits that haven't been pushed to the remote
+ * @param worktreePath - Path to the worktree
+ * @returns true if there are unpushed commits, false if all commits are pushed or no upstream exists
+ */
+export async function hasUnpushedCommits(
+	worktreePath: string,
+): Promise<boolean> {
+	const git = simpleGit(worktreePath);
+	try {
+		// Count commits that are on HEAD but not on the upstream tracking branch
+		// @{upstream} refers to the configured upstream branch (e.g., origin/branch-name)
+		const aheadCount = await git.raw([
+			"rev-list",
+			"--count",
+			"@{upstream}..HEAD",
+		]);
+		return Number.parseInt(aheadCount.trim(), 10) > 0;
+	} catch {
+		// No upstream configured or other error - check if any commits exist at all
+		// that aren't on origin (for branches without tracking)
+		try {
+			// If there's no upstream, check if branch has commits not on any remote
+			const localCommits = await git.raw([
+				"rev-list",
+				"--count",
+				"HEAD",
+				"--not",
+				"--remotes",
+			]);
+			return Number.parseInt(localCommits.trim(), 10) > 0;
+		} catch {
+			// If all else fails, assume no unpushed commits
+			return false;
+		}
+	}
+}

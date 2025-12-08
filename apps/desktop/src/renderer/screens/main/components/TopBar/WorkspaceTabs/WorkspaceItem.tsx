@@ -70,7 +70,8 @@ export function WorkspaceItem({
 				canDeleteData?.canDelete &&
 				canDeleteData.activeTerminalCount === 0 &&
 				!canDeleteData.warning &&
-				!canDeleteData.hasChanges;
+				!canDeleteData.hasChanges &&
+				!canDeleteData.hasUnpushedCommits;
 
 			if (isEmpty) {
 				// Delete directly without confirmation
