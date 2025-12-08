@@ -7,7 +7,7 @@ import {
 	registerPaneRef,
 	unregisterPaneRef,
 } from "renderer/stores/tabs/pane-refs";
-import type { Pane } from "renderer/stores/tabs/types";
+import type { Pane, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
 import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
@@ -39,6 +39,9 @@ interface TabPaneProps {
 	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
+	availableTabs: Tab[];
+	onMoveToTab: (targetTabId: string) => void;
+	onMoveToNewTab: () => void;
 }
 
 export function TabPane({
@@ -53,6 +56,9 @@ export function TabPane({
 	splitPaneVertical,
 	removePane,
 	setFocusedPane,
+	availableTabs,
+	onMoveToTab,
+	onMoveToNewTab,
 }: TabPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [splitOrientation, setSplitOrientation] =
@@ -158,6 +164,10 @@ export function TabPane({
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
 				onClosePane={() => removePane(paneId)}
+				currentTabId={tabId}
+				availableTabs={availableTabs}
+				onMoveToTab={onMoveToTab}
+				onMoveToNewTab={onMoveToNewTab}
 			>
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Terminal handles its own keyboard events and focus */}
 				<div

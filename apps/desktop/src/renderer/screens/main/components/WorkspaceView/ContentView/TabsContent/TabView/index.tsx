@@ -31,6 +31,14 @@ export function TabView({ tab, panes }: TabViewProps) {
 	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
+	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
+	const allTabs = useTabsStore((s) => s.tabs);
+
+	// Get tabs in the same workspace for move targets
+	const workspaceTabs = allTabs.filter(
+		(t) => t.workspaceId === tab.workspaceId,
+	);
 
 	const focusedPaneId = focusedPaneIds[tab.id];
 
@@ -97,6 +105,9 @@ export function TabView({ tab, panes }: TabViewProps) {
 					splitPaneVertical={splitPaneVertical}
 					removePane={removePane}
 					setFocusedPane={setFocusedPane}
+					availableTabs={workspaceTabs}
+					onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
+					onMoveToNewTab={() => movePaneToNewTab(paneId)}
 				/>
 			);
 		},
@@ -110,6 +121,9 @@ export function TabView({ tab, panes }: TabViewProps) {
 			splitPaneVertical,
 			removePane,
 			setFocusedPane,
+			workspaceTabs,
+			movePaneToTab,
+			movePaneToNewTab,
 		],
 	);
 

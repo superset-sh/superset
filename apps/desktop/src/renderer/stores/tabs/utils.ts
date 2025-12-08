@@ -223,3 +223,42 @@ export const findPanePath = (
 
 	return null;
 };
+
+/**
+ * Adds a pane to an existing layout by creating a split
+ */
+export const addPaneToLayout = (
+	existingLayout: MosaicNode<string>,
+	newPaneId: string,
+): MosaicNode<string> => ({
+	direction: "row",
+	first: existingLayout,
+	second: newPaneId,
+	splitPercentage: 50,
+});
+
+/**
+ * Updates the history stack when switching to a new active tab
+ * Adds the current active to history and removes the new active from history
+ */
+export const updateHistoryStack = (
+	historyStack: string[],
+	currentActiveId: string | null,
+	newActiveId: string,
+	tabIdToRemove?: string,
+): string[] => {
+	let newStack = historyStack.filter((id) => id !== newActiveId);
+
+	if (currentActiveId && currentActiveId !== newActiveId) {
+		newStack = [
+			currentActiveId,
+			...newStack.filter((id) => id !== currentActiveId),
+		];
+	}
+
+	if (tabIdToRemove) {
+		newStack = newStack.filter((id) => id !== tabIdToRemove);
+	}
+
+	return newStack;
+};

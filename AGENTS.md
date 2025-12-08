@@ -35,8 +35,8 @@ bun test                   # Run tests
 bun build                  # Build all packages
 
 # Code Quality
-bun run lint               # Format + lint + fix auto-fixable issues
-bun run lint:check         # Check only (no changes, for CI)
+bun run lint               # Check for lint issues (no changes)
+bun run lint:fix           # Fix auto-fixable lint issues
 bun run format             # Format code only
 bun run format:check       # Check formatting only (CI)
 bun run typecheck          # Type check all packages
@@ -58,7 +58,7 @@ bun run clean:workspaces   # Clean all workspace node_modules
 - `biome check --write` = format + lint + organize imports + fix safe issues
 - `biome check` = check only (no changes)
 - `biome format` = format only
-- Use `bun run lint` to fix all issues automatically
+- Use `bun run lint:fix` to fix all issues automatically
 
 ## Agent Rules
 

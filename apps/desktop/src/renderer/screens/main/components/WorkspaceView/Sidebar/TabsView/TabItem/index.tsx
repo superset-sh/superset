@@ -110,7 +110,11 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 
 	return (
 		<div className="w-full">
-			<TabContextMenu onClose={handleRemoveTab} onRename={startRename}>
+			<TabContextMenu
+				tab={tab}
+				onClose={handleRemoveTab}
+				onRename={startRename}
+			>
 				<Button
 					ref={attachRef}
 					variant="ghost"

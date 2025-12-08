@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { ExternalLink, LoaderCircle, TriangleAlert } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
 import { trpc } from "renderer/lib/trpc";
 import { ChecksList } from "./components/ChecksList";
@@ -10,10 +10,12 @@ import { ReviewStatus } from "./components/ReviewStatus";
 
 interface WorkspaceHoverCardContentProps {
 	workspaceId: string;
+	workspaceAlias?: string;
 }
 
 export function WorkspaceHoverCardContent({
 	workspaceId,
+	workspaceAlias,
 }: WorkspaceHoverCardContentProps) {
 	const { data: worktreeInfo } = trpc.workspaces.getWorktreeInfo.useQuery(
 		{ workspaceId },
@@ -29,21 +31,47 @@ export function WorkspaceHoverCardContent({
 	const pr = githubStatus?.pr;
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
 
+	const worktreeName = worktreeInfo?.worktreeName;
+	const hasCustomAlias =
+		workspaceAlias && worktreeName && workspaceAlias !== worktreeName;
+
 	return (
 		<div className="space-y-3">
-			{/* Header: Worktree name + age */}
-			{worktreeInfo?.worktreeName && (
-				<div className="flex items-center justify-between gap-3">
-					<code className="text-sm font-medium font-mono truncate">
-						{worktreeInfo.worktreeName}
-					</code>
-					{worktreeInfo?.createdAt && (
-						<span className="text-xs text-muted-foreground whitespace-nowrap">
-							{formatDistanceToNow(worktreeInfo.createdAt, { addSuffix: true })}
+			{/* Header: Alias + Worktree name + age */}
+			<div className="space-y-1.5">
+				{hasCustomAlias && (
+					<div className="text-sm font-medium">{workspaceAlias}</div>
+				)}
+				{worktreeName && (
+					<div className="space-y-0.5">
+						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+							Branch
 						</span>
-					)}
-				</div>
-			)}
+						{githubStatus?.repoUrl && githubStatus.branchExistsOnRemote ? (
+							<a
+								href={`${githubStatus.repoUrl}/tree/${worktreeName}`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+							>
+								{worktreeName}
+								<ExternalLink className="size-3 shrink-0" />
+							</a>
+						) : (
+							<code
+								className={`font-mono break-all block ${hasCustomAlias ? "text-xs" : "text-sm"}`}
+							>
+								{worktreeName}
+							</code>
+						)}
+					</div>
+				)}
+				{worktreeInfo?.createdAt && (
+					<span className="text-xs text-muted-foreground block">
+						{formatDistanceToNow(worktreeInfo.createdAt, { addSuffix: true })}
+					</span>
+				)}
+			</div>
 
 			{/* Needs Rebase Warning */}
 			{needsRebase && (

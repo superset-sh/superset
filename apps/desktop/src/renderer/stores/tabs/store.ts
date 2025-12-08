@@ -3,6 +3,7 @@ import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { electronStorage } from "../../lib/electron-storage";
+import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
 	createPane,
@@ -560,6 +561,29 @@ export const useTabsStore = create<TabsStore>()(
 					} else {
 						get().splitPaneHorizontal(tabId, sourcePaneId, path);
 					}
+				},
+
+				movePaneToTab: (paneId, targetTabId) => {
+					const result = movePaneToTab(get(), paneId, targetTabId);
+					if (result) set(result);
+				},
+
+				movePaneToNewTab: (paneId) => {
+					const state = get();
+					const pane = state.panes[paneId];
+					if (!pane) return "";
+
+					const sourceTab = state.tabs.find((t) => t.id === pane.tabId);
+					if (!sourceTab) return "";
+
+					// Already in its own tab
+					if (isLastPaneInTab(state.panes, sourceTab.id)) return sourceTab.id;
+
+					const moveResult = movePaneToNewTab(state, paneId);
+					if (!moveResult) return "";
+
+					set(moveResult.result);
+					return moveResult.newTabId;
 				},
 
 				// Query helpers
