@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "main/lib/db/schemas";
+import { branchExistsOnRemote } from "../git";
 import {
 	type GHPRResponse,
 	GHPRResponseSchema,
@@ -16,7 +17,7 @@ const CACHE_TTL_MS = 10_000;
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.
  * Returns null if `gh` is not installed, not authenticated, or on error.
- * Results are cached for 30 seconds.
+ * Results are cached for 10 seconds.
  */
 export async function fetchGitHubPRStatus(
 	worktreePath: string,
@@ -34,12 +35,24 @@ export async function fetchGitHubPRStatus(
 			return null;
 		}
 
-		// Try to get PR info for current branch
-		const prInfo = await getPRForCurrentBranch(worktreePath);
+		// Get current branch name
+		const { stdout: branchOutput } = await execFileAsync(
+			"git",
+			["rev-parse", "--abbrev-ref", "HEAD"],
+			{ cwd: worktreePath },
+		);
+		const branchName = branchOutput.trim();
+
+		// Check if branch exists on remote and get PR info in parallel
+		const [existsOnRemote, prInfo] = await Promise.all([
+			branchExistsOnRemote(worktreePath, branchName),
+			getPRForBranch(worktreePath, branchName),
+		]);
 
 		const result: GitHubStatus = {
 			pr: prInfo,
 			repoUrl,
+			branchExistsOnRemote: existsOnRemote,
 			lastRefreshed: Date.now(),
 		};
 
@@ -75,18 +88,11 @@ async function getRepoUrl(worktreePath: string): Promise<string | null> {
 	}
 }
 
-async function getPRForCurrentBranch(
+async function getPRForBranch(
 	worktreePath: string,
+	branch: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
-		// Get the current branch name explicitly (worktrees don't work well with gh's auto-detection)
-		const { stdout: branchName } = await execFileAsync(
-			"git",
-			["rev-parse", "--abbrev-ref", "HEAD"],
-			{ cwd: worktreePath },
-		);
-		const branch = branchName.trim();
-
 		// Use execFile with args array to prevent command injection
 		const { stdout } = await execFileAsync(
 			"gh",

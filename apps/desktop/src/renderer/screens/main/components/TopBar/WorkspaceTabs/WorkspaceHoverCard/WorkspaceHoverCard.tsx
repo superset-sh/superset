@@ -47,7 +47,7 @@ export function WorkspaceHoverCardContent({
 						className={`flex items-center gap-1.5 ${hasCustomAlias ? "text-xs text-muted-foreground" : "text-sm"}`}
 					>
 						<span className="text-muted-foreground">Branch:</span>
-						{githubStatus?.repoUrl && worktreeInfo?.existsOnRemote ? (
+						{githubStatus?.repoUrl && githubStatus.branchExistsOnRemote ? (
 							<a
 								href={`${githubStatus.repoUrl}/tree/${worktreeName}`}
 								target="_blank"

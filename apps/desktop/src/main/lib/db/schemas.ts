@@ -36,6 +36,7 @@ export interface GitHubStatus {
 		checks: CheckItem[];
 	} | null;
 	repoUrl: string;
+	branchExistsOnRemote: boolean;
 	lastRefreshed: number;
 }
 

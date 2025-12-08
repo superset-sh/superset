@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type React from "react";
+import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import type { Tab } from "renderer/stores/tabs/types";
 
@@ -23,16 +24,19 @@ export function TabContextMenu({
 	onRename,
 	children,
 }: TabContextMenuProps) {
+	const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+
+	// Only fetch worktree info when tooltip is open to avoid N queries on render
 	const { data: worktreeInfo } = trpc.workspaces.getWorktreeInfo.useQuery(
 		{ workspaceId: tab.workspaceId },
-		{ enabled: !!tab.workspaceId },
+		{ enabled: !!tab.workspaceId && isTooltipOpen },
 	);
 
 	const worktreeName = worktreeInfo?.worktreeName;
 	const hasCustomAlias = tab.name && !tab.name.match(/^Terminal \d+$/);
 
 	return (
-		<Tooltip delayDuration={400}>
+		<Tooltip delayDuration={400} onOpenChange={setIsTooltipOpen}>
 			<ContextMenu>
 				<TooltipTrigger asChild>
 					<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>

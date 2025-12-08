@@ -7,7 +7,6 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	branchExistsOnRemote,
 	checkNeedsRebase,
 	createWorktree,
 	fetchDefaultBranch,
@@ -646,7 +645,7 @@ export const createWorkspacesRouter = () => {
 
 		getWorktreeInfo: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
-			.query(async ({ input }) => {
+			.query(({ input }) => {
 				const workspace = db.data.workspaces.find(
 					(w) => w.id === input.workspaceId,
 				);
@@ -664,18 +663,11 @@ export const createWorkspacesRouter = () => {
 				// Extract worktree name from path (last segment)
 				const worktreeName = worktree.path.split("/").pop() ?? worktree.branch;
 
-				// Check if branch exists on remote
-				const existsOnRemote = await branchExistsOnRemote(
-					worktree.path,
-					worktree.branch,
-				);
-
 				return {
 					worktreeName,
 					createdAt: worktree.createdAt,
 					gitStatus: worktree.gitStatus ?? null,
 					githubStatus: worktree.githubStatus ?? null,
-					existsOnRemote,
 				};
 			}),
 	});
