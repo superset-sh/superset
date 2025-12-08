@@ -117,7 +117,7 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-2 right-3 z-10 flex items-center rounded-md bg-popover/95 shadow-lg ring-1 ring-border/40 backdrop-blur">
+		<div className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md bg-popover/95 py-1 pl-2.5 pr-1 shadow-lg ring-1 ring-border/40 backdrop-blur">
 			<input
 				ref={inputRef}
 				type="text"
@@ -125,20 +125,20 @@ export function TerminalSearch({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				placeholder="Find"
-				className="h-7 w-44 bg-transparent px-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+				className="h-7 w-40 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (
-				<span className="text-xs text-muted-foreground whitespace-nowrap pr-2">
+				<span className="text-xs text-muted-foreground whitespace-nowrap">
 					No results
 				</span>
 			)}
-			<div className="flex items-center gap-0.5 pr-1">
+			<div className="flex items-center">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
 							onClick={toggleCaseSensitive}
-							className={`rounded p-1.5 transition-colors ${
+							className={`rounded p-1 transition-colors ${
 								caseSensitive
 									? "bg-primary/20 text-foreground"
 									: "text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
@@ -152,7 +152,7 @@ export function TerminalSearch({
 				<button
 					type="button"
 					onClick={() => handleSearch("previous")}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Previous (Shift+Enter)"
 				>
 					<HiChevronUp className="size-4" />
@@ -160,7 +160,7 @@ export function TerminalSearch({
 				<button
 					type="button"
 					onClick={() => handleSearch("next")}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Next (Enter)"
 				>
 					<HiChevronDown className="size-4" />
@@ -168,7 +168,7 @@ export function TerminalSearch({
 				<button
 					type="button"
 					onClick={handleClose}
-					className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Close (Esc)"
 				>
 					<HiMiniXMark className="size-4" />

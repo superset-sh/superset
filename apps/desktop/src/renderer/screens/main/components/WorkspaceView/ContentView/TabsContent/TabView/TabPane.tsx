@@ -116,12 +116,12 @@ export function TabPane({
 			path={path}
 			title={pane.name}
 			toolbarControls={
-				<div className="flex items-center gap-1">
+				<div className="flex items-center">
 					<button
 						type="button"
 						onClick={handleSplitPane}
 						title="Split pane"
-						className="rounded-full p-0.5 hover:bg-white/10"
+						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					>
 						{splitIcon}
 					</button>
@@ -129,7 +129,7 @@ export function TabPane({
 						type="button"
 						onClick={handleClosePane}
 						title="Close pane"
-						className="rounded-full p-0.5 hover:bg-white/10"
+						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					>
 						<HiMiniXMark className="size-4" />
 					</button>
