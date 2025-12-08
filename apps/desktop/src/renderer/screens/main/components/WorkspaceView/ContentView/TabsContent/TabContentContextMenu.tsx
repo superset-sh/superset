@@ -5,7 +5,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Columns2, Rows2, X } from "lucide-react";
+import { Bookmark, Columns2, Rows2, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 interface TabContentContextMenuProps {
@@ -13,6 +13,7 @@ interface TabContentContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onClosePane: () => void;
+	onSaveAsPreset?: () => void;
 }
 
 export function TabContentContextMenu({
@@ -20,6 +21,7 @@ export function TabContentContextMenu({
 	onSplitHorizontal,
 	onSplitVertical,
 	onClosePane,
+	onSaveAsPreset,
 }: TabContentContextMenuProps) {
 	return (
 		<ContextMenu>
@@ -33,6 +35,15 @@ export function TabContentContextMenu({
 					<Columns2 className="size-4" />
 					Split Vertically
 				</ContextMenuItem>
+				{onSaveAsPreset && (
+					<>
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={onSaveAsPreset}>
+							<Bookmark className="size-4" />
+							Save as Preset
+						</ContextMenuItem>
+					</>
+				)}
 				<ContextMenuSeparator />
 				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
 					<X className="size-4" />

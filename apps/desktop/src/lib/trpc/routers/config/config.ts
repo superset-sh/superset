@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { db } from "main/lib/db";
+import type { SetupConfig } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -98,6 +99,78 @@ export const createConfigRouter = () => {
 				} catch {
 					return { content: null, exists: false };
 				}
+			}),
+
+		// Get terminal presets for a project
+		getTerminalPresets: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) return [];
+
+				const configPath = getConfigPath(project.mainRepoPath);
+				if (!existsSync(configPath)) return [];
+
+				try {
+					const content = readFileSync(configPath, "utf-8");
+					const config = JSON.parse(content) as SetupConfig;
+					return config.terminalPresets || [];
+				} catch {
+					return [];
+				}
+			}),
+
+		// Save a new terminal preset
+		saveTerminalPreset: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					preset: z.object({
+						name: z.string(),
+						cwd: z.string().optional(),
+						commands: z.union([z.string(), z.array(z.string())]),
+					}),
+				}),
+			)
+			.mutation(({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) throw new Error("Project not found");
+
+				const configPath = ensureConfigExists(project.mainRepoPath);
+				const content = readFileSync(configPath, "utf-8");
+				const config = JSON.parse(content) as SetupConfig;
+
+				config.terminalPresets = config.terminalPresets || [];
+				config.terminalPresets.push(input.preset);
+
+				writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+				return { success: true };
+			}),
+
+		// Delete a terminal preset by name
+		deleteTerminalPreset: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					presetName: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) throw new Error("Project not found");
+
+				const configPath = getConfigPath(project.mainRepoPath);
+				if (!existsSync(configPath)) return { success: false };
+
+				const content = readFileSync(configPath, "utf-8");
+				const config = JSON.parse(content) as SetupConfig;
+
+				config.terminalPresets = (config.terminalPresets || []).filter(
+					(p) => p.name !== input.presetName,
+				);
+
+				writeFileSync(configPath, JSON.stringify(config, null, 2), "utf-8");
+				return { success: true };
 			}),
 	});
 };

@@ -3,6 +3,8 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { trpc } from "renderer/lib/trpc";
+import { useOpenPresetModal } from "renderer/stores/preset-modal";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
@@ -56,6 +58,10 @@ export function WindowPane({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [splitOrientation, setSplitOrientation] =
 		useState<SplitOrientation>("vertical");
+
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: terminalSession } = trpc.terminal.getSession.useQuery(paneId);
+	const openPresetModal = useOpenPresetModal();
 
 	useEffect(() => {
 		const container = containerRef.current;
@@ -111,6 +117,15 @@ export function WindowPane({
 			<TbLayoutRows className="size-4" />
 		);
 
+	const handleSaveAsPreset = () => {
+		const projectId = activeWorkspace?.projectId;
+		if (!projectId) return;
+
+		// Use terminal session cwd if available
+		const cwd = terminalSession?.cwd;
+		openPresetModal(projectId, cwd);
+	};
+
 	return (
 		<MosaicWindow<string>
 			path={path}
@@ -141,6 +156,9 @@ export function WindowPane({
 				onSplitHorizontal={() => splitPaneHorizontal(windowId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(windowId, paneId, path)}
 				onClosePane={() => removePane(paneId)}
+				onSaveAsPreset={
+					activeWorkspace?.projectId ? handleSaveAsPreset : undefined
+				}
 			>
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Terminal handles its own keyboard events and focus */}
 				<div

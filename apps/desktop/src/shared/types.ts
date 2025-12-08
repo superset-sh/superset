@@ -126,10 +126,18 @@ export interface UpdateWorkspaceInput {
 	name?: string;
 }
 
+// Terminal preset configuration
+export interface TerminalPreset {
+	name: string;
+	cwd?: string; // Relative to project root or absolute path
+	commands: string | string[]; // Single command or array of commands
+}
+
 // Setup script configuration
 export interface SetupConfig {
 	setup?: string[]; // Shell commands to run when workspace is created
 	teardown?: string[]; // Shell commands to run when workspace is deleted
+	terminalPresets?: TerminalPreset[]; // Terminal presets for quick launch
 }
 
 // Port detection types

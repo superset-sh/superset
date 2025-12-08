@@ -6,6 +6,8 @@ import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
 import { useWindowsStore } from "renderer/stores/tabs/store";
+import { PresetModal } from "./PresetModal";
+import { TerminalPresets } from "./TerminalPresets";
 import { WindowItem } from "./WindowItem";
 
 const DRAG_TYPE = "WINDOW";
@@ -129,6 +131,16 @@ export function TabsView() {
 						<div className="h-0.5 bg-primary rounded-full z-20 pointer-events-none mt-1" />
 					)}
 				</div>
+
+				{/* Terminal Presets Section */}
+				{activeWorkspaceId && activeWorkspace?.projectId && (
+					<TerminalPresets
+						projectId={activeWorkspace.projectId}
+						workspaceId={activeWorkspaceId}
+						isResizing={isResizing}
+					/>
+				)}
+
 				<motion.div
 					layout={!isResizing}
 					transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
@@ -144,6 +156,9 @@ export function TabsView() {
 					</Button>
 				</motion.div>
 			</LayoutGroup>
+
+			{/* Preset Modal */}
+			<PresetModal />
 		</nav>
 	);
 }
