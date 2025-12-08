@@ -115,8 +115,9 @@ export class TerminalManager extends EventEmitter {
 			}
 		}
 
+		// Filter escape sequences from recovered scrollback
+		// This handles legacy unfiltered data and ensures clean display
 		if (recoveredScrollback) {
-			// Strip protocol responses from recovered history so replays stay clean
 			const recoveryFilter = new TerminalEscapeFilter();
 			recoveredScrollback =
 				recoveryFilter.filter(recoveredScrollback) + recoveryFilter.flush();

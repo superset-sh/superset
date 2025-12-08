@@ -2,6 +2,7 @@ import { createWriteStream, promises as fs, type WriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { IS_TEST, SUPERSET_HOME_DIR } from "./app-environment";
+import { TerminalEscapeFilter } from "./terminal-escape-filter";
 
 export interface SessionMetadata {
 	cwd: string;
@@ -56,8 +57,11 @@ export class HistoryWriter {
 		await fs.mkdir(dir, { recursive: true });
 
 		// Write initial scrollback (recovered from previous session) or truncate
+		// Filter escape sequences to ensure clean storage
 		if (initialScrollback) {
-			await fs.writeFile(this.filePath, Buffer.from(initialScrollback));
+			const filter = new TerminalEscapeFilter();
+			const filtered = filter.filter(initialScrollback) + filter.flush();
+			await fs.writeFile(this.filePath, Buffer.from(filtered));
 		} else {
 			await fs.writeFile(this.filePath, Buffer.alloc(0));
 		}
