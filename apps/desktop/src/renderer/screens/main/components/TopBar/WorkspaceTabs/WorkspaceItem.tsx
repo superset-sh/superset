@@ -52,10 +52,16 @@ export function WorkspaceItem({
 	const panes = useWindowsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
 
-	// Query to check if workspace is empty (no active terminals)
-	const { data: canDeleteData } = trpc.workspaces.canDelete.useQuery({ id });
+	// Query to check if workspace is empty - only enabled when needed
+	const canDeleteQuery = trpc.workspaces.canDelete.useQuery(
+		{ id },
+		{ enabled: false },
+	);
 
-	const handleDeleteClick = () => {
+	const handleDeleteClick = async () => {
+		// Always fetch fresh data before deciding
+		const { data: canDeleteData } = await canDeleteQuery.refetch();
+
 		const isEmpty =
 			canDeleteData?.canDelete &&
 			canDeleteData.activeTerminalCount === 0 &&

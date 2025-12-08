@@ -72,6 +72,8 @@ import { createWorkspacesRouter } from "./workspaces";
 function mockSimpleGitWithWorktreeList(worktreeListOutput: string) {
 	const mockGit = {
 		raw: mock(() => Promise.resolve(worktreeListOutput)),
+		// Mock clean status (no uncommitted changes)
+		status: mock(() => Promise.resolve({ isClean: () => true })),
 	};
 	mock.module("simple-git", () => ({
 		default: mock(() => mockGit),
@@ -82,6 +84,7 @@ function mockSimpleGitWithWorktreeList(worktreeListOutput: string) {
 function mockSimpleGitWithError(error: Error) {
 	const mockGit = {
 		raw: mock(() => Promise.reject(error)),
+		status: mock(() => Promise.resolve({ isClean: () => true })),
 	};
 	mock.module("simple-git", () => ({
 		default: mock(() => mockGit),
