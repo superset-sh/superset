@@ -73,8 +73,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
 
-	const debouncedSetTabAutoTitleRef = useRef(debounce(setTabAutoTitle, 100));
-	debouncedSetTabAutoTitleRef.current = debounce(setTabAutoTitle, 100);
+	const setTabAutoTitleRef = useRef(setTabAutoTitle);
+	setTabAutoTitleRef.current = setTabAutoTitle;
+
+	const debouncedSetTabAutoTitle = useRef(
+		debounce((tabId: string, title: string) => {
+			setTabAutoTitleRef.current(tabId, title);
+		}, 100),
+	).current;
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
@@ -233,7 +239,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			commandBufferRef.current = result.buffer;
 
 			if (result.submittedCommand && parentTabIdRef.current) {
-				debouncedSetTabAutoTitleRef.current(
+				debouncedSetTabAutoTitle(
 					parentTabIdRef.current,
 					result.submittedCommand,
 				);
@@ -311,7 +317,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [paneId, workspaceId, workspaceCwd, paneName, terminalTheme]);
+	}, [
+		paneId,
+		workspaceId,
+		workspaceCwd,
+		paneName,
+		terminalTheme,
+		debouncedSetTabAutoTitle,
+	]);
 
 	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
