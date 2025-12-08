@@ -117,7 +117,7 @@ export function TerminalSearch({
 	if (!isOpen) return null;
 
 	return (
-		<div className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md bg-popover/95 py-1 pl-2.5 pr-1 shadow-lg ring-1 ring-border/40 backdrop-blur">
+		<div className="absolute top-1.5 right-1.5 z-10 flex items-center max-w-[calc(100%-0.75rem)] rounded bg-popover/95 pl-2 pr-0.5 shadow-lg ring-1 ring-border/40 backdrop-blur">
 			<input
 				ref={inputRef}
 				type="text"
@@ -125,14 +125,14 @@ export function TerminalSearch({
 				onChange={handleInputChange}
 				onKeyDown={handleKeyDown}
 				placeholder="Find"
-				className="h-7 w-40 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+				className="h-6 min-w-0 w-28 flex-shrink bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
 			/>
 			{matchCount === 0 && query && (
-				<span className="text-xs text-muted-foreground whitespace-nowrap">
+				<span className="text-xs text-muted-foreground whitespace-nowrap px-1">
 					No results
 				</span>
 			)}
-			<div className="flex items-center">
+			<div className="flex items-center flex-shrink-0">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
@@ -144,7 +144,7 @@ export function TerminalSearch({
 									: "text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
 							}`}
 						>
-							<PiTextAa className="size-4" />
+							<PiTextAa className="size-3.5" />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom">Match case</TooltipContent>
@@ -155,7 +155,7 @@ export function TerminalSearch({
 					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Previous (Shift+Enter)"
 				>
-					<HiChevronUp className="size-4" />
+					<HiChevronUp className="size-3.5" />
 				</button>
 				<button
 					type="button"
@@ -163,7 +163,7 @@ export function TerminalSearch({
 					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Next (Enter)"
 				>
-					<HiChevronDown className="size-4" />
+					<HiChevronDown className="size-3.5" />
 				</button>
 				<button
 					type="button"
@@ -171,7 +171,7 @@ export function TerminalSearch({
 					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
 					title="Close (Esc)"
 				>
-					<HiMiniXMark className="size-4" />
+					<HiMiniXMark className="size-3.5" />
 				</button>
 			</div>
 		</div>

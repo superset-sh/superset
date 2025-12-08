@@ -116,7 +116,7 @@ export function TabPane({
 			path={path}
 			title={pane.name}
 			toolbarControls={
-				<div className="flex items-center">
+				<div className="flex items-center gap-0.5">
 					<button
 						type="button"
 						onClick={handleSplitPane}
