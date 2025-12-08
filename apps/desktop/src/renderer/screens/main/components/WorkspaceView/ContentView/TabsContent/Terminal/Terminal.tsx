@@ -313,7 +313,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		);
 		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
-		const cleanupPaste = setupPasteHandler(xterm);
+		const cleanupPaste = setupPasteHandler(xterm, {
+			onPaste: (text) => {
+				commandBufferRef.current += text;
+			},
+		});
 
 		return () => {
 			isUnmounted = true;
