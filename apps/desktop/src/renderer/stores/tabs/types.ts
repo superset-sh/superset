@@ -83,6 +83,10 @@ export interface TabsStore extends TabsState {
 		path?: MosaicBranch[],
 	) => void;
 
+	// Move operations
+	movePaneToTab: (paneId: string, targetTabId: string) => void;
+	movePaneToNewTab: (paneId: string) => string;
+
 	// Query helpers
 	getTabsByWorkspace: (workspaceId: string) => Tab[];
 	getActiveTab: (workspaceId: string) => Tab | null;
