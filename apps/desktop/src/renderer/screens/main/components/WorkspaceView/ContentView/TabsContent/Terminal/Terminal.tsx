@@ -46,10 +46,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Ref for initial theme to avoid recreating terminal on theme change
 	const initialThemeRef = useRef(terminalTheme);
 
-	// Check if this terminal is the focused pane in its tab
 	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
-
-	// Ref to track focus state for use in terminal creation effect
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
 
@@ -113,14 +110,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	// Use paneId (tabId) for stream subscription
 	trpc.terminal.stream.useSubscription(paneId, {
 		onData: handleStreamData,
 		// Always listen to prevent missing events during initialization
 		enabled: true,
 	});
 
-	// Handler to set focused pane when terminal gains focus
 	// Use ref to avoid triggering full terminal recreation when focus handler changes
 	const handleTerminalFocusRef = useRef(() => {});
 	handleTerminalFocusRef.current = () => {
@@ -129,21 +124,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	// Auto-close search when terminal loses focus
 	useEffect(() => {
 		if (!isFocused) {
 			setIsSearchOpen(false);
 		}
 	}, [isFocused]);
 
-	// Autofocus terminal when it becomes the focused pane (e.g., after split)
 	useEffect(() => {
 		if (isFocused && xtermRef.current) {
 			xtermRef.current.focus();
 		}
 	}, [isFocused]);
 
-	// Toggle search with Cmd+F (only for the focused terminal)
 	useHotkeys(
 		HOTKEYS.FIND_IN_TERMINAL.keys,
 		() => {
@@ -172,12 +164,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
 
-		// Autofocus on initial render if this terminal is the focused pane
 		if (isFocusedRef.current) {
 			xterm.focus();
 		}
 
-		// Load search addon for Cmd+F functionality
 		import("@xterm/addon-search").then(({ SearchAddon }) => {
 			if (isUnmounted) return;
 			const searchAddon = new SearchAddon();
@@ -310,7 +300,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		});
 
-		// Setup focus listener to track focused pane (use ref to get latest handler)
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
@@ -338,7 +327,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupResize();
 			cleanupPaste();
 			cleanupQuerySuppression();
-			// Keep PTY running for reattachment
+			debouncedSetTabAutoTitleRef.current?.cancel?.();
+			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ tabId: paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
@@ -347,7 +337,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 
-	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
