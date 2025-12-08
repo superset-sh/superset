@@ -415,3 +415,23 @@ export async function hasUnpushedCommits(
 		}
 	}
 }
+
+/**
+ * Checks if a branch exists on the remote (origin)
+ * @param worktreePath - Path to the worktree
+ * @param branchName - The branch name to check
+ * @returns true if origin/{branchName} exists
+ */
+export async function branchExistsOnRemote(
+	worktreePath: string,
+	branchName: string,
+): Promise<boolean> {
+	const git = simpleGit(worktreePath);
+	try {
+		// Check if the remote ref exists
+		await git.raw(["rev-parse", "--verify", `origin/${branchName}`]);
+		return true;
+	} catch {
+		return false;
+	}
+}

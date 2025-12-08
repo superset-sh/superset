@@ -152,6 +152,7 @@ export function WorkspaceItem({
 			<WorkspaceItemContextMenu
 				workspaceId={id}
 				worktreePath={worktreePath}
+				workspaceAlias={title}
 				onRename={rename.startRename}
 			>
 				<div

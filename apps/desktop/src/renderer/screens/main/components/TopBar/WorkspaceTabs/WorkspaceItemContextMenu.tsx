@@ -18,6 +18,7 @@ interface WorkspaceItemContextMenuProps {
 	children: ReactNode;
 	workspaceId: string;
 	worktreePath: string;
+	workspaceAlias?: string;
 	onRename: () => void;
 }
 
@@ -25,6 +26,7 @@ export function WorkspaceItemContextMenu({
 	children,
 	workspaceId,
 	worktreePath,
+	workspaceAlias,
 	onRename,
 }: WorkspaceItemContextMenuProps) {
 	const openInFinder = trpc.external.openInFinder.useMutation();
@@ -50,7 +52,10 @@ export function WorkspaceItemContextMenu({
 				</ContextMenuContent>
 			</ContextMenu>
 			<HoverCardContent side="bottom" align="start" className="w-72">
-				<WorkspaceHoverCardContent workspaceId={workspaceId} />
+				<WorkspaceHoverCardContent
+					workspaceId={workspaceId}
+					workspaceAlias={workspaceAlias}
+				/>
 			</HoverCardContent>
 		</HoverCard>
 	);
