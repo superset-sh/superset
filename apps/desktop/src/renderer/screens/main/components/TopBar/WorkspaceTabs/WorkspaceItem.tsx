@@ -59,27 +59,35 @@ export function WorkspaceItem({
 	);
 
 	const handleDeleteClick = async () => {
-		// Always fetch fresh data before deciding
-		const { data: canDeleteData } = await canDeleteQuery.refetch();
+		// Prevent double-clicks and race conditions
+		if (deleteWorkspace.isPending || canDeleteQuery.isFetching) return;
 
-		const isEmpty =
-			canDeleteData?.canDelete &&
-			canDeleteData.activeTerminalCount === 0 &&
-			!canDeleteData.warning &&
-			!canDeleteData.hasChanges;
+		try {
+			// Always fetch fresh data before deciding
+			const { data: canDeleteData } = await canDeleteQuery.refetch();
 
-		if (isEmpty) {
-			// Delete directly without confirmation
-			toast.promise(deleteWorkspace.mutateAsync({ id }), {
-				loading: `Deleting "${title}"...`,
-				success: `Workspace "${title}" deleted`,
-				error: (error) =>
-					error instanceof Error
-						? `Failed to delete workspace: ${error.message}`
-						: "Failed to delete workspace",
-			});
-		} else {
-			// Show confirmation dialog
+			const isEmpty =
+				canDeleteData?.canDelete &&
+				canDeleteData.activeTerminalCount === 0 &&
+				!canDeleteData.warning &&
+				!canDeleteData.hasChanges;
+
+			if (isEmpty) {
+				// Delete directly without confirmation
+				toast.promise(deleteWorkspace.mutateAsync({ id }), {
+					loading: `Deleting "${title}"...`,
+					success: `Workspace "${title}" deleted`,
+					error: (error) =>
+						error instanceof Error
+							? `Failed to delete workspace: ${error.message}`
+							: "Failed to delete workspace",
+				});
+			} else {
+				// Show confirmation dialog
+				setShowDeleteDialog(true);
+			}
+		} catch {
+			// On error checking status, show dialog for user to decide
 			setShowDeleteDialog(true);
 		}
 	};

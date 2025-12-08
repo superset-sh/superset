@@ -69,11 +69,14 @@ mock.module("./utils/git", () => ({
 import { createWorkspacesRouter } from "./workspaces";
 
 // Helper to mock simple-git with specific worktree list output
-function mockSimpleGitWithWorktreeList(worktreeListOutput: string) {
+function mockSimpleGitWithWorktreeList(
+	worktreeListOutput: string,
+	options?: { isClean?: boolean },
+) {
+	const isClean = options?.isClean ?? true;
 	const mockGit = {
 		raw: mock(() => Promise.resolve(worktreeListOutput)),
-		// Mock clean status (no uncommitted changes)
-		status: mock(() => Promise.resolve({ isClean: () => true })),
+		status: mock(() => Promise.resolve({ isClean: () => isClean })),
 	};
 	mock.module("simple-git", () => ({
 		default: mock(() => mockGit),
@@ -209,5 +212,49 @@ describe("workspaces router - canDelete", () => {
 			"list",
 			"--porcelain",
 		]);
+	});
+
+	it("returns hasChanges: false when worktree is clean", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
+			{ isClean: true },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.hasChanges).toBe(false);
+	});
+
+	it("returns hasChanges: true when worktree has uncommitted changes", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
+			{ isClean: false },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.hasChanges).toBe(true);
+	});
+
+	it("returns hasChanges: false when worktree not found in git", async () => {
+		mockSimpleGitWithWorktreeList(
+			"worktree /path/to/other-worktree\nHEAD def456\nbranch refs/heads/other-branch",
+			{ isClean: false },
+		);
+
+		const router = createWorkspacesRouter();
+		const caller = router.createCaller({});
+		const result = await caller.canDelete({ id: "workspace-1" });
+
+		expect(result.canDelete).toBe(true);
+		expect(result.warning).toContain("not found in git");
+		// hasChanges should be false when worktree doesn't exist
+		expect(result.hasChanges).toBe(false);
 	});
 });
