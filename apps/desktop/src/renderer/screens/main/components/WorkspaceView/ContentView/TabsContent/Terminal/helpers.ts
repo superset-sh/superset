@@ -49,19 +49,26 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#1a1a1a";
 }
 
+export interface CreateTerminalOptions {
+	cwd?: string;
+	initialTheme?: ITheme | null;
+	/** Called when shell is about to execute a command (OSC 133;B) */
+	onCommandStart?: (command: string) => void;
+}
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
-	cwd?: string,
-	initialTheme?: ITheme | null,
+	options: CreateTerminalOptions = {},
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	cleanup: () => void;
 } {
+	const { cwd, initialTheme, onCommandStart } = options;
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const options = { ...TERMINAL_OPTIONS, theme };
-	const xterm = new XTerm(options);
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
 	const webLinksAddon = new WebLinksAddon((event, uri) => {
@@ -90,7 +97,10 @@ export function createTerminalInstance(
 
 	// Suppress terminal query responses (DA1, DA2, CPR, OSC color responses, etc.)
 	// These are protocol-level responses that should be handled internally, not displayed
-	const cleanupQuerySuppression = suppressQueryResponses(xterm);
+	// Also captures OSC 133 shell integration events for command tracking
+	const cleanupQuerySuppression = suppressQueryResponses(xterm, {
+		onCommandStart,
+	});
 
 	// Register file path link provider (Cmd+Click to open in Cursor/VSCode)
 	const filePathLinkProvider = new FilePathLinkProvider(

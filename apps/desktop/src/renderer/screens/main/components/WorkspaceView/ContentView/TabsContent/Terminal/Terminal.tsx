@@ -163,11 +163,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(
-			container,
-			workspaceCwd,
-			initialThemeRef.current,
-		);
+		} = createTerminalInstance(container, {
+			cwd: workspaceCwd,
+			initialTheme: initialThemeRef.current,
+			onCommandStart: (command) => {
+				// OSC 133 shell integration - shell reports command before execution
+				const title = sanitizeForTitle(command);
+				if (title && parentTabIdRef.current) {
+					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+				}
+			},
+		});
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
