@@ -8,6 +8,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
+import { processCommandInput } from "./commandBuffer";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -226,20 +227,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				return;
 			}
 
-			for (const char of data) {
-				if (char === "\r" || char === "\n") {
-					const command = commandBufferRef.current.trim();
-					if (command && parentTabIdRef.current) {
-						setTabAutoTitleRef.current(parentTabIdRef.current, command);
-					}
-					commandBufferRef.current = "";
-				} else if (char === "\x7f" || char === "\b") {
-					commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-				} else if (char === "\x03" || char === "\x15") {
-					commandBufferRef.current = "";
-				} else if (char >= " " || char === "\t") {
-					commandBufferRef.current += char;
-				}
+			const result = processCommandInput(commandBufferRef.current, data);
+			commandBufferRef.current = result.buffer;
+
+			if (result.submittedCommand && parentTabIdRef.current) {
+				setTabAutoTitleRef.current(
+					parentTabIdRef.current,
+					result.submittedCommand,
+				);
 			}
 
 			writeRef.current({ tabId: paneId, data });
