@@ -146,7 +146,9 @@ export class TerminalEscapeFilter {
 	 * at chunk boundaries. If the complete sequence doesn't match our filter, it passes through.
 	 */
 	private looksLikeQueryResponse(str: string): boolean {
-		if (str.length < 2) return false; // Just ESC alone - don't buffer, could be anything
+		// Buffer lone ESC - we need to see the next char to decide
+		if (str.length === 1 && str[0] === ESC) return true;
+		if (str.length < 2) return false;
 
 		const secondChar = str[1];
 
@@ -192,6 +194,7 @@ export class TerminalEscapeFilter {
 	 * Check if a potential query response sequence is incomplete.
 	 */
 	private isIncomplete(str: string): boolean {
+		// Lone ESC is incomplete - need to see what follows
 		if (str.length < 2) return true;
 
 		const secondChar = str[1];
@@ -224,10 +227,20 @@ export class TerminalEscapeFilter {
 	/**
 	 * Flush any remaining buffered data.
 	 * Call this when the terminal session ends.
+	 *
+	 * If the buffer contains what looks like an incomplete query response,
+	 * discard it entirely to prevent garbage output on restore.
 	 */
 	flush(): string {
 		const remaining = this.buffer;
 		this.buffer = "";
+
+		// If the buffer looks like an incomplete query response, discard it
+		// This prevents orphaned sequences like "2R1R12;2$y" from appearing
+		if (remaining && this.looksLikeQueryResponse(remaining)) {
+			return "";
+		}
+
 		return remaining.replace(COMBINED_PATTERN, "");
 	}
 

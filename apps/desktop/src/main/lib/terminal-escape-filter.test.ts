@@ -417,12 +417,16 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			expect(result2).toBe(`${ESC}[32mgreen`);
 		});
 
-		it("should NOT buffer ESC alone at end", () => {
+		it("should buffer ESC alone at end", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk1 = `text${ESC}`;
 			const result1 = filter.filter(chunk1);
-			// ESC alone should pass through (conservative - don't buffer)
-			expect(result1).toBe(`text${ESC}`);
+			// ESC alone must be buffered to check if next chunk forms a query response
+			// This prevents orphaned sequences like "2R" when ESC is at chunk boundary
+			expect(result1).toBe("text");
+			// If next chunk completes a query response, it gets filtered
+			const result2 = filter.filter("[2R");
+			expect(result2).toBe("");
 		});
 
 		it("should NOT buffer ESC [ alone at end", () => {
@@ -475,20 +479,65 @@ describe("TerminalEscapeFilter (stateful)", () => {
 	});
 
 	describe("flush behavior", () => {
-		it("should flush buffered incomplete sequence", () => {
+		it("should discard incomplete query response on flush", () => {
 			const filter = new TerminalEscapeFilter();
 			const chunk = `hello${ESC}[?1;0`; // Incomplete DA1
 			const result = filter.filter(chunk);
 			expect(result).toBe("hello");
-			// Flush returns the buffered data (filtered)
+			// Flush discards incomplete query responses to prevent garbage on restore
 			const flushed = filter.flush();
-			expect(flushed).toBe(`${ESC}[?1;0`); // Not filtered because incomplete
+			expect(flushed).toBe("");
 		});
 
 		it("should return empty on flush when no buffer", () => {
 			const filter = new TerminalEscapeFilter();
 			filter.filter("complete data");
 			expect(filter.flush()).toBe("");
+		});
+
+		it("should discard lone ESC on flush", () => {
+			const filter = new TerminalEscapeFilter();
+			const chunk = `prompt ❯ ${ESC}`;
+			const result = filter.filter(chunk);
+			expect(result).toBe("prompt ❯ ");
+			// Lone ESC is discarded on flush
+			expect(filter.flush()).toBe("");
+		});
+	});
+
+	describe("TUI app scenarios", () => {
+		it("should filter rapid query responses split across chunks", () => {
+			// Simulates TUI apps like lazygit sending many query responses
+			const filter = new TerminalEscapeFilter();
+			const chunks = [
+				`prompt ❯ ${ESC}`,
+				`[2R${ESC}`,
+				`[1R${ESC}`,
+				`[12;2$y more text`,
+			];
+
+			let output = "";
+			for (const chunk of chunks) {
+				output += filter.filter(chunk);
+			}
+			output += filter.flush();
+
+			// All query responses should be filtered, only text remains
+			expect(output).toBe("prompt ❯  more text");
+		});
+
+		it("should not leak orphaned sequence parts", () => {
+			// This was the bug: ESC at chunk end caused "[2R" to leak through
+			const filter = new TerminalEscapeFilter();
+			const chunk1 = `text${ESC}`;
+			const chunk2 = `[2R${ESC}[1R`;
+
+			const out1 = filter.filter(chunk1);
+			const out2 = filter.filter(chunk2);
+			const flushed = filter.flush();
+
+			// Should not contain any orphaned "2R", "1R", etc.
+			expect(out1 + out2 + flushed).toBe("text");
 		});
 	});
 
