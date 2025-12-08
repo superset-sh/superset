@@ -9,6 +9,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
+import { sanitizeForTitle } from "./commandBuffer";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -34,12 +35,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
+	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
+
+	// Ref for initial theme to avoid recreating terminal on theme change
+	const initialThemeRef = useRef(terminalTheme);
 
 	// Check if this terminal is the focused pane in its tab
 	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
@@ -71,14 +76,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
 
+	const paneNameRef = useRef(paneName);
+	paneNameRef.current = paneName;
+
 	const setTabAutoTitleRef = useRef(setTabAutoTitle);
 	setTabAutoTitleRef.current = setTabAutoTitle;
 
-	const debouncedSetTabAutoTitle = useRef(
+	const debouncedSetTabAutoTitleRef = useRef(
 		debounce((tabId: string, title: string) => {
 			setTabAutoTitleRef.current(tabId, title);
 		}, 100),
-	).current;
+	);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
@@ -155,7 +163,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, workspaceCwd, terminalTheme);
+		} = createTerminalInstance(
+			container,
+			workspaceCwd,
+			initialThemeRef.current,
+		);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -209,7 +221,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				{
 					tabId: paneId,
 					workspaceId,
-					tabTitle: paneName,
+					tabTitle: paneNameRef.current,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -240,13 +252,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}) => {
 			const { domEvent } = event;
 			if (domEvent.key === "Enter") {
-				// Read current line from terminal buffer to capture autocompleted text
-				const buffer = xterm.buffer.active;
-				const line = buffer.getLine(buffer.cursorY);
-				const command = line?.translateToString(true).trim();
-				if (command && parentTabIdRef.current) {
-					debouncedSetTabAutoTitle(parentTabIdRef.current, command);
+				const title = sanitizeForTitle(commandBufferRef.current);
+				if (title && parentTabIdRef.current) {
+					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
 				}
+				commandBufferRef.current = "";
+			} else if (domEvent.key === "Backspace") {
+				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
+				commandBufferRef.current = "";
+			} else if (
+				domEvent.key.length === 1 &&
+				!domEvent.ctrlKey &&
+				!domEvent.metaKey
+			) {
+				commandBufferRef.current += domEvent.key;
 			}
 		};
 
@@ -254,7 +274,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				tabId: paneId,
 				workspaceId,
-				tabTitle: paneName,
+				tabTitle: paneNameRef.current,
 				cols: xterm.cols,
 				rows: xterm.rows,
 			},
@@ -303,7 +323,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		);
 		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
-		const cleanupPaste = setupPasteHandler(xterm);
+		const cleanupPaste = setupPasteHandler(xterm, {
+			onPaste: (text) => {
+				commandBufferRef.current += text;
+			},
+		});
 
 		return () => {
 			isUnmounted = true;
@@ -321,14 +345,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [
-		paneId,
-		workspaceId,
-		workspaceCwd,
-		paneName,
-		terminalTheme,
-		debouncedSetTabAutoTitle,
-	]);
+	}, [paneId, workspaceId, workspaceCwd]);
 
 	// Sync theme changes to xterm instance for live theme switching
 	useEffect(() => {
