@@ -53,6 +53,7 @@ export class TerminalManager extends EventEmitter {
 		isNew: boolean;
 		scrollback: string;
 		wasRecovered: boolean;
+		venv: string | null;
 	}> {
 		const {
 			tabId,
@@ -65,6 +66,22 @@ export class TerminalManager extends EventEmitter {
 			rows,
 		} = params;
 
+		// Detect virtual environment from environment variables
+		const detectVenv = (): string | null => {
+			// Check conda environment
+			if (process.env.CONDA_DEFAULT_ENV) {
+				return process.env.CONDA_DEFAULT_ENV;
+			}
+			// Check Python virtualenv/venv
+			if (process.env.VIRTUAL_ENV) {
+				const parts = process.env.VIRTUAL_ENV.split("/").filter(Boolean);
+				return parts[parts.length - 1] || null;
+			}
+			return null;
+		};
+
+		const venv = detectVenv();
+
 		const existing = this.sessions.get(tabId);
 		if (existing?.isAlive) {
 			existing.lastActive = Date.now();
@@ -75,6 +92,7 @@ export class TerminalManager extends EventEmitter {
 				isNew: false,
 				scrollback: existing.scrollback,
 				wasRecovered: existing.wasRecovered,
+				venv,
 			};
 		}
 
@@ -192,6 +210,7 @@ export class TerminalManager extends EventEmitter {
 			isNew: true,
 			scrollback: session.scrollback,
 			wasRecovered,
+			venv,
 		};
 	}
 

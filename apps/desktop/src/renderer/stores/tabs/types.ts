@@ -16,6 +16,8 @@ export interface Pane {
 	name: string;
 	isNew?: boolean;
 	needsAttention?: boolean;
+	venv?: string | null;
+	cwd?: string | null;
 }
 
 /**
@@ -64,6 +66,9 @@ export interface TabsStore extends TabsState {
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
+	updatePaneName: (paneId: string, name: string) => void;
+	updatePaneVenv: (paneId: string, venv: string | null) => void;
+	updatePaneCwd: (paneId: string, cwd: string | null) => void;
 
 	// Split operations
 	splitPaneVertical: (

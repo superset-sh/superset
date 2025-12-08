@@ -2,7 +2,7 @@ import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -16,6 +16,7 @@ import {
 	setupPasteHandler,
 	setupResizeHandlers,
 } from "./helpers";
+import { parseTerminalMetadata } from "./parseTerminalMetadata";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
@@ -34,7 +35,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
+	const [terminalVenv, setTerminalVenv] = useState<string | null>(null);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const updatePaneName = useTabsStore((s) => s.updatePaneName);
+	const updatePaneVenv = useTabsStore((s) => s.updatePaneVenv);
+	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
 
@@ -48,6 +54,28 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Required for resolving relative file paths in terminal commands
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
+
+	// Initialize cwd from workspace path (fallback before shell emits OSC 7)
+	useEffect(() => {
+		if (workspaceCwd && !terminalCwd) {
+			setTerminalCwd(workspaceCwd);
+		}
+	}, [workspaceCwd, terminalCwd]);
+
+	// Update pane name and cwd with current directory for mosaic window
+	useEffect(() => {
+		if (terminalCwd) {
+			const parts = terminalCwd.split("/").filter(Boolean);
+			const basename = parts[parts.length - 1] || "Terminal";
+			updatePaneName(paneId, basename);
+			updatePaneCwd(paneId, terminalCwd);
+		}
+	}, [terminalCwd, paneId, updatePaneName, updatePaneCwd]);
+
+	// Update pane venv for mosaic window toolbar display
+	useEffect(() => {
+		updatePaneVenv(paneId, terminalVenv);
+	}, [terminalVenv, paneId, updatePaneVenv]);
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -65,6 +93,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 
+	// Parse terminal data for metadata (cwd, venv)
+	const updateMetadataFromData = useCallback((data: string) => {
+		const metadata = parseTerminalMetadata(data);
+		if (metadata.cwd !== null) {
+			setTerminalCwd(metadata.cwd);
+		}
+		if (metadata.venv !== null) {
+			setTerminalVenv(metadata.venv);
+		}
+	}, []);
+
+	// Ref to use metadata parser inside effect
+	const updateMetadataRef = useRef(updateMetadataFromData);
+	updateMetadataRef.current = updateMetadataFromData;
+
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
 			// Prevent data loss during terminal initialization
@@ -80,6 +123,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
+			updateMetadataFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
 			setSubscriptionEnabled(false);
@@ -169,6 +213,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			for (const event of events) {
 				if (event.type === "data") {
 					xterm.write(event.data);
+					updateMetadataRef.current(event.data);
 				} else {
 					isExitedRef.current = true;
 					setSubscriptionEnabled(false);
@@ -178,12 +223,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		};
 
-		const applyInitialScrollback = (result: {
+		const applyInitialState = (result: {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
+			venv: string | null;
 		}) => {
 			xterm.write(result.scrollback);
+			updateMetadataRef.current(result.scrollback);
+			// Set venv from environment detection
+			if (result.venv) {
+				setTerminalVenv(result.venv);
+			}
 		};
 
 		const restartTerminal = () => {
@@ -200,7 +251,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				},
 				{
 					onSuccess: (result) => {
-						applyInitialScrollback(result);
+						applyInitialState(result);
 						setSubscriptionEnabled(true);
 						flushPendingEvents();
 					},
@@ -232,7 +283,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					// Avoid duplication when pending events already contain scrollback data
 					const hasPendingEvents = pendingEventsRef.current.length > 0;
 					if (result.isNew || !hasPendingEvents) {
-						applyInitialScrollback(result);
+						applyInitialState(result);
+					} else if (result.venv) {
+						// Still apply venv even if not applying scrollback
+						setTerminalVenv(result.venv);
 					}
 					setSubscriptionEnabled(true);
 					flushPendingEvents();

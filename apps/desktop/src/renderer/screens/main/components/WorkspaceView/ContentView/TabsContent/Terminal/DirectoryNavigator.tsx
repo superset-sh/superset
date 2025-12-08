@@ -1,0 +1,212 @@
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { useCallback, useState } from "react";
+import { HiChevronRight, HiFolder, HiFolderOpen } from "react-icons/hi2";
+import { trpc } from "renderer/lib/trpc";
+
+interface DirectoryNavigatorProps {
+	paneId: string;
+	currentPath: string | null;
+}
+
+export function DirectoryNavigator({
+	paneId,
+	currentPath,
+}: DirectoryNavigatorProps) {
+	const [isOpen, setIsOpen] = useState(false);
+	const [browsePath, setBrowsePath] = useState<string | null>(null);
+
+	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
+	const writeMutation = trpc.terminal.write.useMutation();
+
+	const displayPath = browsePath || currentPath;
+
+	const { data: directoryData, isLoading } =
+		trpc.terminal.listDirectory.useQuery(
+			{ dirPath: displayPath || "/" },
+			{ enabled: isOpen && !!displayPath },
+		);
+
+	const handleOpen = useCallback((open: boolean) => {
+		setIsOpen(open);
+		if (!open) {
+			setBrowsePath(null);
+		}
+	}, []);
+
+	const handleNavigateToDir = useCallback(
+		(path: string) => {
+			// Send cd command to the terminal
+			writeMutation.mutate({
+				tabId: paneId,
+				data: `cd ${shellEscape(path)}\n`,
+			});
+			setIsOpen(false);
+			setBrowsePath(null);
+		},
+		[paneId, writeMutation],
+	);
+
+	const handleBrowseDir = useCallback((path: string) => {
+		setBrowsePath(path);
+	}, []);
+
+	const handleNavigateUp = useCallback(() => {
+		if (directoryData?.parentPath) {
+			setBrowsePath(directoryData.parentPath);
+		}
+	}, [directoryData?.parentPath]);
+
+	const formatDisplayPath = (path: string) => {
+		if (homeDir && path.startsWith(homeDir)) {
+			return `~${path.slice(homeDir.length)}`;
+		}
+		return path;
+	};
+
+	const getPathSegments = (path: string) => {
+		const isInHome = homeDir && path.startsWith(homeDir);
+
+		if (isInHome && homeDir) {
+			const relativePath = path.slice(homeDir.length);
+			const segments = relativePath.split("/").filter(Boolean);
+			return [
+				{ name: "~", path: homeDir },
+				...segments.map((seg, idx) => ({
+					name: seg,
+					path: `${homeDir}/${segments.slice(0, idx + 1).join("/")}`,
+				})),
+			];
+		}
+
+		const segments = path.split("/").filter(Boolean);
+		return [
+			{ name: "/", path: "/" },
+			...segments.map((seg, idx) => ({
+				name: seg,
+				path: `/${segments.slice(0, idx + 1).join("/")}`,
+			})),
+		];
+	};
+
+	if (!currentPath) {
+		return (
+			<div className="flex min-w-0 items-center gap-1.5">
+				<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
+				<span className="truncate text-sm text-muted-foreground">Terminal</span>
+			</div>
+		);
+	}
+
+	const pathSegments = displayPath ? getPathSegments(displayPath) : [];
+	const directories =
+		directoryData?.items?.filter((item) => item.isDirectory) || [];
+
+	return (
+		<Popover open={isOpen} onOpenChange={handleOpen}>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					className="flex min-w-0 items-center gap-1.5 rounded px-1 -ml-1 hover:bg-accent/50 transition-colors"
+				>
+					<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
+					<span className="truncate text-sm">
+						{formatDisplayPath(currentPath)}
+					</span>
+				</button>
+			</PopoverTrigger>
+			<PopoverContent
+				align="start"
+				className="w-72 p-0"
+				onOpenAutoFocus={(e: Event) => e.preventDefault()}
+			>
+				{/* Breadcrumb navigation */}
+				<div className="flex items-center gap-0.5 border-b border-border px-2 py-1.5 overflow-x-auto hide-scrollbar">
+					{pathSegments.map((segment, idx) => (
+						<div key={segment.path} className="flex items-center shrink-0">
+							{idx > 0 && (
+								<HiChevronRight className="size-3 text-muted-foreground/50 mx-0.5" />
+							)}
+							<button
+								type="button"
+								onClick={() => handleBrowseDir(segment.path)}
+								className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 rounded hover:bg-accent/50"
+							>
+								{segment.name}
+							</button>
+						</div>
+					))}
+				</div>
+
+				{/* Directory list */}
+				<div className="max-h-64 overflow-y-auto">
+					{/* Parent directory */}
+					{directoryData?.parentPath && (
+						<button
+							type="button"
+							onClick={handleNavigateUp}
+							className="flex w-full items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 transition-colors"
+						>
+							<HiFolderOpen className="size-4 text-muted-foreground" />
+							<span className="text-muted-foreground">..</span>
+						</button>
+					)}
+
+					{isLoading ? (
+						<div className="px-2 py-3 text-sm text-muted-foreground text-center">
+							Loading...
+						</div>
+					) : directories.length === 0 ? (
+						<div className="px-2 py-3 text-sm text-muted-foreground text-center">
+							No subdirectories
+						</div>
+					) : (
+						directories.map((item) => (
+							<div key={item.path} className="flex items-center group">
+								<button
+									type="button"
+									onClick={() => handleBrowseDir(item.path)}
+									className="flex flex-1 min-w-0 items-center gap-2 px-2 py-1.5 text-sm hover:bg-accent/50 transition-colors"
+								>
+									<HiFolder className="size-4 shrink-0 text-muted-foreground" />
+									<span className="truncate">{item.name}</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => handleNavigateToDir(item.path)}
+									className="px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+									title="Navigate here"
+								>
+									cd
+								</button>
+							</div>
+						))
+					)}
+				</div>
+
+				{/* Navigate to current browse path */}
+				{browsePath && browsePath !== currentPath && (
+					<div className="border-t border-border p-2">
+						<button
+							type="button"
+							onClick={() => handleNavigateToDir(browsePath)}
+							className="w-full rounded bg-primary/10 px-2 py-1.5 text-sm text-primary hover:bg-primary/20 transition-colors"
+						>
+							Navigate here
+						</button>
+					</div>
+				)}
+			</PopoverContent>
+		</Popover>
+	);
+}
+
+/**
+ * Escape a path for safe use in shell commands
+ */
+function shellEscape(path: string): string {
+	// If path contains special chars, wrap in single quotes and escape any single quotes
+	if (/[^a-zA-Z0-9._\-/~]/.test(path)) {
+		return `'${path.replace(/'/g, "'\\''")}'`;
+	}
+	return path;
+}

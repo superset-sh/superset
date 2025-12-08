@@ -10,6 +10,7 @@ import {
 import type { Pane } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
 
 type SplitOrientation = "vertical" | "horizontal";
 
@@ -114,27 +115,37 @@ export function TabPane({
 	return (
 		<MosaicWindow<string>
 			path={path}
-			title={pane.name}
-			toolbarControls={
-				<div className="flex items-center gap-1">
-					<button
-						type="button"
-						onClick={handleSplitPane}
-						title="Split pane"
-						className="rounded-full p-0.5 hover:bg-white/10"
-					>
-						{splitIcon}
-					</button>
-					<button
-						type="button"
-						onClick={handleClosePane}
-						title="Close pane"
-						className="rounded-full p-0.5 hover:bg-white/10"
-					>
-						<HiMiniXMark className="size-4" />
-					</button>
+			title=""
+			renderToolbar={() => (
+				<div className="flex h-full w-full items-center justify-between px-2">
+					<div className="flex min-w-0 items-center gap-2">
+						<DirectoryNavigator paneId={paneId} currentPath={pane.cwd || null} />
+						{pane.venv && (
+							<span className="inline-flex h-4 shrink-0 items-center rounded bg-muted px-1.5 font-mono text-[10px] text-muted-foreground">
+								{pane.venv}
+							</span>
+						)}
+					</div>
+					<div className="flex items-center gap-1">
+						<button
+							type="button"
+							onClick={handleSplitPane}
+							title="Split pane"
+							className="rounded-full p-0.5 hover:bg-white/10"
+						>
+							{splitIcon}
+						</button>
+						<button
+							type="button"
+							onClick={handleClosePane}
+							title="Close pane"
+							className="rounded-full p-0.5 hover:bg-white/10"
+						>
+							<HiMiniXMark className="size-4" />
+						</button>
+					</div>
 				</div>
-			}
+			)}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu

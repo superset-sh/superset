@@ -424,6 +424,39 @@ export const useTabsStore = create<TabsStore>()(
 					}));
 				},
 
+				updatePaneName: (paneId, name) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? { ...state.panes[paneId], name }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
+				updatePaneVenv: (paneId, venv) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? { ...state.panes[paneId], venv }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
+				updatePaneCwd: (paneId, cwd) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? { ...state.panes[paneId], cwd }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
 				// Split operations
 				splitPaneVertical: (tabId, sourcePaneId, path) => {
 					const state = get();
