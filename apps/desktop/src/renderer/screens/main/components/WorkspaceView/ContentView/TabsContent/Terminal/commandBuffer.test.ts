@@ -103,16 +103,16 @@ describe("processCommandInput", () => {
 });
 
 describe("sanitizeForTitle", () => {
-	it("should keep alphanumeric and common chars", () => {
+	it("should keep lowercase alphanumeric and common chars", () => {
 		expect(sanitizeForTitle("ls -la ./src")).toBe("ls -la ./src");
+	});
+
+	it("should strip uppercase (escape codes use A-Z)", () => {
+		expect(sanitizeForTitle("open[Code")).toBe("openode");
 	});
 
 	it("should strip special characters", () => {
 		expect(sanitizeForTitle("[?1016;2$y command")).toBe("10162y command");
-	});
-
-	it("should strip escape sequences", () => {
-		expect(sanitizeForTitle("\x1b[32mtext\x1b[0m")).toBe("32mtext0m");
 	});
 
 	it("should truncate to max length", () => {
