@@ -140,7 +140,7 @@ export function TabsView() {
 						disabled={!activeWorkspaceId}
 					>
 						<HiMiniPlus className="size-4" />
-						<span className="truncate flex-1">New Tab</span>
+						<span className="truncate flex-1">New Terminal</span>
 					</Button>
 				</motion.div>
 			</LayoutGroup>

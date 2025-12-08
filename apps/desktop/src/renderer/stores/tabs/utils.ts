@@ -13,7 +13,7 @@ export const generateId = (prefix: string): string => {
  * Now just returns the stored name since names are static at creation
  */
 export const getTabDisplayName = (tab: Tab): string => {
-	return tab.name || "Tab";
+	return tab.name || "Terminal";
 };
 
 /**
@@ -52,12 +52,12 @@ export const createPane = (
 
 /**
  * Generates a static tab name based on existing tabs
- * (e.g., "Tab 1", "Tab 2", finding the next available number)
+ * (e.g., "Terminal 1", "Terminal 2", finding the next available number)
  */
 export const generateTabName = (existingTabs: Tab[]): string => {
 	const existingNumbers = existingTabs
 		.map((t) => {
-			const match = t.name.match(/^Tab (\d+)$/);
+			const match = t.name.match(/^Terminal (\d+)$/);
 			return match ? Number.parseInt(match[1], 10) : 0;
 		})
 		.filter((n) => n > 0);
@@ -68,7 +68,7 @@ export const generateTabName = (existingTabs: Tab[]): string => {
 		nextNumber++;
 	}
 
-	return `Tab ${nextNumber}`;
+	return `Terminal ${nextNumber}`;
 };
 
 /**
