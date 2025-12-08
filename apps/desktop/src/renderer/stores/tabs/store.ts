@@ -216,7 +216,7 @@ export const useTabsStore = create<TabsStore>()(
 						(t) => t.workspaceId !== workspaceId,
 					);
 
-					// Validate startIndex is within bounds
+					// Prevent corrupting state by splicing undefined elements
 					if (
 						startIndex < 0 ||
 						startIndex >= workspaceTabs.length ||
@@ -225,13 +225,13 @@ export const useTabsStore = create<TabsStore>()(
 						return;
 					}
 
-					// Clamp endIndex to valid range
+					// Prevent out-of-bounds writes that would insert undefined elements
 					const clampedEndIndex = Math.max(
 						0,
 						Math.min(endIndex, workspaceTabs.length),
 					);
 
-					// Create a copy of workspaceTabs to avoid mutating the original
+					// Avoid mutating original state array to prevent side effects elsewhere
 					const reorderedTabs = [...workspaceTabs];
 					const [removed] = reorderedTabs.splice(startIndex, 1);
 					reorderedTabs.splice(clampedEndIndex, 0, removed);
