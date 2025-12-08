@@ -26,15 +26,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
 	const paneName = pane?.name || "Terminal";
+	const parentTabId = pane?.tabId;
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
+	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
+	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
 
@@ -64,6 +67,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
+
+	const setTabAutoTitleRef = useRef(setTabAutoTitle);
+	setTabAutoTitleRef.current = setTabAutoTitle;
+	const parentTabIdRef = useRef(parentTabId);
+	parentTabIdRef.current = parentTabId;
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		if (!xtermRef.current) {
@@ -213,10 +221,28 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		const handleTerminalInput = (data: string) => {
 			if (isExitedRef.current) {
+				commandBufferRef.current = "";
 				restartTerminal();
-			} else {
-				writeRef.current({ tabId: paneId, data });
+				return;
 			}
+
+			for (const char of data) {
+				if (char === "\r" || char === "\n") {
+					const command = commandBufferRef.current.trim();
+					if (command && parentTabIdRef.current) {
+						setTabAutoTitleRef.current(parentTabIdRef.current, command);
+					}
+					commandBufferRef.current = "";
+				} else if (char === "\x7f" || char === "\b") {
+					commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+				} else if (char === "\x03" || char === "\x15") {
+					commandBufferRef.current = "";
+				} else if (char >= " " || char === "\t") {
+					commandBufferRef.current += char;
+				}
+			}
+
+			writeRef.current({ tabId: paneId, data });
 		};
 
 		createOrAttachRef.current(

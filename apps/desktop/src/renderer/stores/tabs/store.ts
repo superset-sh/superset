@@ -166,6 +166,14 @@ export const useTabsStore = create<TabsStore>()(
 					}));
 				},
 
+				setTabAutoTitle: (tabId, title) => {
+					set((state) => ({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, name: title } : t,
+						),
+					}));
+				},
+
 				setActiveTab: (workspaceId, tabId) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);

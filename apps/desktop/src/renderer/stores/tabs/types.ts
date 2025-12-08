@@ -50,6 +50,7 @@ export interface TabsStore extends TabsState {
 	addTab: (workspaceId: string) => { tabId: string; paneId: string };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
+	setTabAutoTitle: (tabId: string, title: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
 	reorderTabs: (
 		workspaceId: string,
