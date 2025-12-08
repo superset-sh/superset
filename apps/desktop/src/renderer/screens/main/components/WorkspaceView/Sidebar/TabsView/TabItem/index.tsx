@@ -7,7 +7,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { getTabDisplayName } from "renderer/stores/tabs/utils";
-import { WindowContextMenu } from "./WindowContextMenu";
+import { TabContextMenu } from "./TabContextMenu";
 
 const DRAG_TYPE = "TAB";
 
@@ -17,13 +17,13 @@ interface DragItem {
 	index: number;
 }
 
-interface WindowItemProps {
+interface TabItemProps {
 	tab: Tab;
 	index: number;
 	isActive: boolean;
 }
 
-export function WindowItem({ tab, index, isActive }: WindowItemProps) {
+export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -110,7 +110,7 @@ export function WindowItem({ tab, index, isActive }: WindowItemProps) {
 
 	return (
 		<div className="w-full">
-			<WindowContextMenu onClose={handleRemoveTab} onRename={startRename}>
+			<TabContextMenu onClose={handleRemoveTab} onRename={startRename}>
 				<Button
 					ref={attachRef}
 					variant="ghost"
@@ -166,7 +166,7 @@ export function WindowItem({ tab, index, isActive }: WindowItemProps) {
 						<HiMiniXMark className="size-4" />
 					</button>
 				</Button>
-			</WindowContextMenu>
+			</TabContextMenu>
 		</div>
 	);
 }

@@ -6,7 +6,7 @@ import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { WindowItem } from "./WindowItem";
+import { TabItem } from "./TabItem";
 
 const DRAG_TYPE = "TAB";
 
@@ -113,7 +113,7 @@ export function TabsView() {
 								<div className="absolute -top-1 left-0 right-0 h-0.5 bg-primary rounded-full z-20 pointer-events-none" />
 							)}
 							<div data-tab-item>
-								<WindowItem
+								<TabItem
 									tab={tab}
 									index={index}
 									isActive={activeTabIds[activeWorkspaceId || ""] === tab.id}

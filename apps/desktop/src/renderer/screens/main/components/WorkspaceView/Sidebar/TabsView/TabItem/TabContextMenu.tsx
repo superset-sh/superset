@@ -7,25 +7,25 @@ import {
 } from "@superset/ui/context-menu";
 import type React from "react";
 
-interface WindowContextMenuProps {
+interface TabContextMenuProps {
 	onClose: () => void;
 	onRename: () => void;
 	children: React.ReactNode;
 }
 
-export function WindowContextMenu({
+export function TabContextMenu({
 	onClose,
 	onRename,
 	children,
-}: WindowContextMenuProps) {
+}: TabContextMenuProps) {
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-48">
-				<ContextMenuItem onSelect={onRename}>Rename Window</ContextMenuItem>
+				<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onClose} className="text-destructive">
-					Close Window
+					Close Tab
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
