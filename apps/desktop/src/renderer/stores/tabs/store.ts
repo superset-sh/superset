@@ -586,23 +586,33 @@ export const useTabsStore = create<TabsStore>()(
 						});
 					}
 
-					// Update active tab if source tab was removed
+					// Always make target tab active after move
 					const workspaceId = sourceTab.workspaceId;
-					let newActiveTabIds = state.activeTabIds;
-					let newTabHistoryStacks = state.tabHistoryStacks;
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
 
-					if (isLastPane && state.activeTabIds[workspaceId] === sourceTab.id) {
-						newActiveTabIds = {
-							...state.activeTabIds,
-							[workspaceId]: targetTabId,
-						};
-						newTabHistoryStacks = {
-							...state.tabHistoryStacks,
-							[workspaceId]: (state.tabHistoryStacks[workspaceId] || []).filter(
-								(id) => id !== sourceTab.id,
-							),
-						};
+					// Build new history stack (add current active to history, remove target and source if last pane)
+					let newHistoryStack = historyStack.filter((id) => id !== targetTabId);
+					if (currentActiveId && currentActiveId !== targetTabId) {
+						newHistoryStack = [
+							currentActiveId,
+							...newHistoryStack.filter((id) => id !== currentActiveId),
+						];
 					}
+					if (isLastPane) {
+						newHistoryStack = newHistoryStack.filter(
+							(id) => id !== sourceTab.id,
+						);
+					}
+
+					const newActiveTabIds = {
+						...state.activeTabIds,
+						[workspaceId]: targetTabId,
+					};
+					const newTabHistoryStacks = {
+						...state.tabHistoryStacks,
+						[workspaceId]: newHistoryStack,
+					};
 
 					// Update focused pane tracking
 					const newFocusedPaneIds = { ...state.focusedPaneIds };
