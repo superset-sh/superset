@@ -9,7 +9,6 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
-import { processCommandInput } from "./commandBuffer";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
@@ -234,18 +233,31 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				restartTerminal();
 				return;
 			}
-
-			const result = processCommandInput(commandBufferRef.current, data);
-			commandBufferRef.current = result.buffer;
-
-			if (result.submittedCommand && parentTabIdRef.current) {
-				debouncedSetTabAutoTitle(
-					parentTabIdRef.current,
-					result.submittedCommand,
-				);
-			}
-
 			writeRef.current({ tabId: paneId, data });
+		};
+
+		const handleKeyPress = (event: {
+			key: string;
+			domEvent: KeyboardEvent;
+		}) => {
+			const { domEvent } = event;
+			if (domEvent.key === "Enter") {
+				const command = commandBufferRef.current.trim();
+				if (command && parentTabIdRef.current) {
+					debouncedSetTabAutoTitle(parentTabIdRef.current, command);
+				}
+				commandBufferRef.current = "";
+			} else if (domEvent.key === "Backspace") {
+				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
+				commandBufferRef.current = "";
+			} else if (
+				domEvent.key.length === 1 &&
+				!domEvent.ctrlKey &&
+				!domEvent.metaKey
+			) {
+				commandBufferRef.current += domEvent.key;
+			}
 		};
 
 		createOrAttachRef.current(
@@ -273,6 +285,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		);
 
 		const inputDisposable = xterm.onData(handleTerminalInput);
+		const keyDisposable = xterm.onKey(handleKeyPress);
 
 		// Intercept keyboard events to handle app hotkeys and provide iTerm-like line continuation UX
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
@@ -305,6 +318,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		return () => {
 			isUnmounted = true;
 			inputDisposable.dispose();
+			keyDisposable.dispose();
 			cleanupKeyboard();
 			cleanupFocus?.();
 			cleanupResize();
