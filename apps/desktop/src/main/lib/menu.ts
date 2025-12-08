@@ -8,12 +8,6 @@ export function createApplicationMenu() {
 		{
 			label: "File",
 			submenu: [
-				{
-					label: "New Window",
-					accelerator: "CmdOrCtrl+Shift+N",
-					click: async () => {},
-				},
-				{ type: "separator" },
 				{ role: "quit" },
 			],
 		},
