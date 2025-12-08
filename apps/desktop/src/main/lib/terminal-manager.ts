@@ -14,7 +14,10 @@ interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
+	/** Raw accumulated PTY output - may contain query responses */
 	scrollback: string;
+	/** Last clean serialized snapshot from renderer - used for reattach/recovery */
+	serializedScrollback: string;
 	isAlive: boolean;
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
@@ -70,15 +73,19 @@ export class TerminalManager extends EventEmitter {
 			if (cols !== undefined && rows !== undefined) {
 				this.resize({ tabId, cols, rows });
 			}
+			// Return the last serialized snapshot (clean, no query responses)
+			// Fall back to raw scrollback only if no serialized snapshot exists yet
 			return {
 				isNew: false,
-				scrollback: existing.scrollback,
+				scrollback: existing.serializedScrollback || existing.scrollback,
 				wasRecovered: existing.wasRecovered,
 			};
 		}
 
 		// Use in-memory scrollback from dead session if available
-		const existingScrollback = existing?.scrollback || null;
+		// Prefer serialized (clean) over raw scrollback
+		const existingScrollback =
+			existing?.serializedScrollback || existing?.scrollback || null;
 
 		const shell = this.getDefaultShell();
 		const workingDir = cwd || os.homedir();
@@ -152,6 +159,7 @@ export class TerminalManager extends EventEmitter {
 			rows: terminalRows,
 			lastActive: Date.now(),
 			scrollback: recoveredScrollback,
+			serializedScrollback: recoveredScrollback, // Initially same as recovered
 			isAlive: true,
 			wasRecovered,
 			historyWriter,
@@ -289,8 +297,8 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Replace in-memory scrollback with clean serialized data
-		session.scrollback = serialized;
+		// Update the clean serialized snapshot (used for reattach)
+		session.serializedScrollback = serialized;
 
 		// Save to disk via history writer
 		if (session.historyWriter) {
