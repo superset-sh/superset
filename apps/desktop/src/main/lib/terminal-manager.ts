@@ -73,11 +73,20 @@ export class TerminalManager extends EventEmitter {
 			if (cols !== undefined && rows !== undefined) {
 				this.resize({ tabId, cols, rows });
 			}
-			// Return the last serialized snapshot (clean, no query responses)
-			// Fall back to raw scrollback only if no serialized snapshot exists yet
+			// For live sessions, use the last serialized snapshot as the base.
+			// If raw scrollback has grown since then, filter and append the new data.
+			let scrollback = existing.serializedScrollback || "";
+			const rawLen = existing.scrollback.length;
+			const serializedLen = existing.serializedScrollback.length;
+			if (rawLen > serializedLen) {
+				// There's new data since last serialization - filter it
+				const newData = existing.scrollback.slice(serializedLen);
+				const filter = new TerminalEscapeFilter();
+				scrollback += filter.filter(newData) + filter.flush();
+			}
 			return {
 				isNew: false,
-				scrollback: existing.serializedScrollback || existing.scrollback,
+				scrollback,
 				wasRecovered: existing.wasRecovered,
 			};
 		}
