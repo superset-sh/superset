@@ -126,7 +126,7 @@ export function WorkspaceView() {
 			/>
 			<ResizablePanel defaultSize={100 - sidebarSize}>
 				<div className="flex-1 h-full p-2">
-					<div className="h-full p-1.5 bg-background rounded-lg flex flex-col overflow-hidden">
+					<div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
 						<ContentView />
 					</div>
 				</div>
