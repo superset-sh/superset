@@ -1,14 +1,14 @@
 import { join } from "node:path";
 import type { BrowserWindow } from "electron";
-import { Notification, app, screen } from "electron";
+import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
-import { playNotificationSound } from "../lib/notification-sound";
 import { createAppRouter } from "lib/trpc/routers";
 import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { setMainWindow } from "../lib/auto-updater";
 import { createApplicationMenu } from "../lib/menu";
+import { playNotificationSound } from "../lib/notification-sound";
 import {
 	type AgentCompleteEvent,
 	notificationsApp,
