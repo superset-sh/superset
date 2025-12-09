@@ -3,12 +3,12 @@
 <img width="600" alt="supersetlogo" src="https://github.com/user-attachments/assets/43c1bde8-93f5-4f53-9db4-187f632051a2" />
 
 
-<h3 align="center">Superset</h3>
+<h3 align="center">superpoop</h3>
   <p align="center">
     Run 10+ parallel coding agents on your machine
   </p>
 
-[![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
+[![superpoop Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
 
 </div>
 
@@ -45,12 +45,12 @@ bun run build
 open apps/desktop/release       
 ```
 
-> [!NOTE]  
-> While Electron is cross-platform, Superset Desktop has only been built and tested on **macOS**. Other platforms are currently untested and may not work as expected.
+> [!NOTE]
+> While Electron is cross-platform, superpoop Desktop has only been built and tested on **macOS**. Other platforms are currently untested and may not work as expected.
 
 ### Usage
 
-For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`)
+For each parallel tasks, superpoop uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`)
 
 <div align="center">
   <img width="600" alt="Creating a worktree" src="apps/website/public/hero/open-worktrees.gif" />
@@ -66,7 +66,7 @@ Each workspace gets their own organized terminal system. You can create default 
 </div>
 <br>
 
-Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
+superpoop monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
 
 
 <div align="center">
