@@ -1,20 +1,39 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { useId } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 
 interface CommandsEditorProps {
 	commands: string[];
 	onChange: (commands: string[]) => void;
+	onBlur?: () => void;
 	placeholder?: string;
 }
 
 export function CommandsEditor({
 	commands,
 	onChange,
+	onBlur,
 	placeholder = "Command...",
 }: CommandsEditorProps) {
 	const baseId = useId();
+	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+	const [focusIndex, setFocusIndex] = useState<number | null>(null);
+
+	useEffect(() => {
+		if (focusIndex !== null && inputRefs.current[focusIndex]) {
+			inputRefs.current[focusIndex]?.focus();
+			setFocusIndex(null);
+		}
+	}, [focusIndex]);
+
+	const setInputRef = useCallback(
+		(index: number) => (el: HTMLInputElement | null) => {
+			inputRefs.current[index] = el;
+		},
+		[],
+	);
+
 	const handleCommandChange = (index: number, value: string) => {
 		const updated = [...commands];
 		updated[index] = value;
@@ -30,12 +49,7 @@ export function CommandsEditor({
 			const updated = [...commands];
 			updated.splice(index + 1, 0, "");
 			onChange(updated);
-			setTimeout(() => {
-				const inputs = document.querySelectorAll<HTMLInputElement>(
-					`[data-command-input="${index + 1}"]`,
-				);
-				inputs[0]?.focus();
-			}, 0);
+			setFocusIndex(index + 1);
 		} else if (
 			e.key === "Backspace" &&
 			commands[index] === "" &&
@@ -60,11 +74,12 @@ export function CommandsEditor({
 				// biome-ignore lint/suspicious/noArrayIndexKey: commands are ordered strings without stable IDs
 				<div key={`${baseId}-${index}`} className="flex items-center gap-2">
 					<Input
+						ref={setInputRef(index)}
 						variant="ghost"
 						value={command}
 						onChange={(e) => handleCommandChange(index, e.target.value)}
 						onKeyDown={(e) => handleCommandKeyDown(e, index)}
-						data-command-input={index}
+						onBlur={onBlur}
 						className="h-7 px-2 text-sm font-mono flex-1"
 						placeholder={placeholder}
 					/>

@@ -14,7 +14,9 @@ interface PresetCellProps {
 	preset: TerminalPreset;
 	rowIndex: number;
 	onChange: (rowIndex: number, column: PresetColumnKey, value: string) => void;
+	onBlur: (rowIndex: number, column: PresetColumnKey) => void;
 	onCommandsChange: (rowIndex: number, commands: string[]) => void;
+	onCommandsBlur: (rowIndex: number) => void;
 }
 
 function PresetCell({
@@ -22,7 +24,9 @@ function PresetCell({
 	preset,
 	rowIndex,
 	onChange,
+	onBlur,
 	onCommandsChange,
+	onCommandsBlur,
 }: PresetCellProps) {
 	const value = preset[column.key];
 
@@ -31,6 +35,7 @@ function PresetCell({
 			<CommandsEditor
 				commands={value as string[]}
 				onChange={(commands) => onCommandsChange(rowIndex, commands)}
+				onBlur={() => onCommandsBlur(rowIndex)}
 				placeholder={column.placeholder}
 			/>
 		);
@@ -41,6 +46,7 @@ function PresetCell({
 			variant="ghost"
 			value={value as string}
 			onChange={(e) => onChange(rowIndex, column.key, e.target.value)}
+			onBlur={() => onBlur(rowIndex, column.key)}
 			className={`h-8 px-2 text-sm w-full ${column.mono ? "font-mono" : ""}`}
 			placeholder={column.placeholder}
 		/>
@@ -52,7 +58,9 @@ interface PresetRowProps {
 	rowIndex: number;
 	isEven: boolean;
 	onChange: (rowIndex: number, column: PresetColumnKey, value: string) => void;
+	onBlur: (rowIndex: number, column: PresetColumnKey) => void;
 	onCommandsChange: (rowIndex: number, commands: string[]) => void;
+	onCommandsBlur: (rowIndex: number) => void;
 	onDelete: (rowIndex: number) => void;
 }
 
@@ -61,7 +69,9 @@ export function PresetRow({
 	rowIndex,
 	isEven,
 	onChange,
+	onBlur,
 	onCommandsChange,
+	onCommandsBlur,
 	onDelete,
 }: PresetRowProps) {
 	return (
@@ -77,7 +87,9 @@ export function PresetRow({
 						preset={preset}
 						rowIndex={rowIndex}
 						onChange={onChange}
+						onBlur={onBlur}
 						onCommandsChange={onCommandsChange}
+						onCommandsBlur={onCommandsBlur}
 					/>
 				</div>
 			))}

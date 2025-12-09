@@ -1,34 +1,69 @@
 import { Button } from "@superset/ui/button";
+import { useEffect, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
-import { PRESET_COLUMNS, type PresetColumnKey } from "./types";
+import {
+	PRESET_COLUMNS,
+	type PresetColumnKey,
+	type TerminalPreset,
+} from "./types";
 
 export function PresetsSettings() {
-	const { presets, isLoading, createPreset, updatePreset, deletePreset } =
-		usePresets();
+	const {
+		presets: serverPresets,
+		isLoading,
+		createPreset,
+		updatePreset,
+		deletePreset,
+	} = usePresets();
+	const [localPresets, setLocalPresets] =
+		useState<TerminalPreset[]>(serverPresets);
+
+	useEffect(() => {
+		setLocalPresets(serverPresets);
+	}, [serverPresets]);
 
 	const handleCellChange = (
 		rowIndex: number,
 		column: PresetColumnKey,
 		value: string,
 	) => {
-		const preset = presets[rowIndex];
-		if (!preset) return;
+		setLocalPresets((prev) =>
+			prev.map((p, i) => (i === rowIndex ? { ...p, [column]: value } : p)),
+		);
+	};
+
+	const handleCellBlur = (rowIndex: number, column: PresetColumnKey) => {
+		const preset = localPresets[rowIndex];
+		const serverPreset = serverPresets[rowIndex];
+		if (!preset || !serverPreset) return;
+		if (preset[column] === serverPreset[column]) return;
 
 		updatePreset.mutate({
 			id: preset.id,
-			patch: { [column]: value },
+			patch: { [column]: preset[column] },
 		});
 	};
 
 	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
-		const preset = presets[rowIndex];
-		if (!preset) return;
+		setLocalPresets((prev) =>
+			prev.map((p, i) => (i === rowIndex ? { ...p, commands } : p)),
+		);
+	};
+
+	const handleCommandsBlur = (rowIndex: number) => {
+		const preset = localPresets[rowIndex];
+		const serverPreset = serverPresets[rowIndex];
+		if (!preset || !serverPreset) return;
+		if (
+			JSON.stringify(preset.commands) === JSON.stringify(serverPreset.commands)
+		)
+			return;
 
 		updatePreset.mutate({
 			id: preset.id,
-			patch: { commands },
+			patch: { commands: preset.commands },
 		});
 	};
 
@@ -41,7 +76,7 @@ export function PresetsSettings() {
 	};
 
 	const handleDeleteRow = (rowIndex: number) => {
-		const preset = presets[rowIndex];
+		const preset = localPresets[rowIndex];
 		if (!preset) return;
 
 		deletePreset.mutate({ id: preset.id });
@@ -95,15 +130,17 @@ export function PresetsSettings() {
 				</div>
 
 				<div className="max-h-[calc(100vh-320px)] overflow-y-auto">
-					{presets.length > 0 ? (
-						presets.map((preset, index) => (
+					{localPresets.length > 0 ? (
+						localPresets.map((preset, index) => (
 							<PresetRow
 								key={preset.id}
 								preset={preset}
 								rowIndex={index}
 								isEven={index % 2 === 0}
 								onChange={handleCellChange}
+								onBlur={handleCellBlur}
 								onCommandsChange={handleCommandsChange}
+								onCommandsBlur={handleCommandsBlur}
 								onDelete={handleDeleteRow}
 							/>
 						))
