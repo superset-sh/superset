@@ -1,34 +1,40 @@
 import { existsSync } from "node:fs";
+import os from "node:os";
 import { join } from "node:path";
 
 /**
  * Resolves a cwd path against a base worktree path.
  *
- * - Absolute paths (starting with `/`) are returned as-is if they exist, otherwise falls back to worktreePath
+ * - Absolute paths (starting with `/`) are returned as-is if they exist
  * - Relative paths (e.g., `apps/desktop`, `./apps/desktop`) are resolved against the worktree
  * - If the resolved path doesn't exist, falls back to worktreePath
  * - If no cwdOverride is provided, returns the worktreePath
- * - If worktreePath is undefined and cwdOverride is relative, returns the cwdOverride as-is
+ * - Always validates that returned paths exist, falling back to os.homedir() as a last resort
  */
 export function resolveCwd(
 	cwdOverride: string | undefined,
 	worktreePath: string | undefined,
 ): string | undefined {
+	// Validate worktreePath exists if provided
+	const validWorktreePath =
+		worktreePath && existsSync(worktreePath) ? worktreePath : undefined;
+
 	if (!cwdOverride) {
-		return worktreePath;
+		return validWorktreePath;
 	}
 
-	// Absolute path - use if exists, otherwise fall back to worktreePath
+	// Absolute path - use if exists, otherwise fall back
 	if (cwdOverride.startsWith("/")) {
 		if (existsSync(cwdOverride)) {
 			return cwdOverride;
 		}
-		return worktreePath ?? cwdOverride;
+		// Fall back to worktreePath if it exists, otherwise homedir
+		return validWorktreePath ?? os.homedir();
 	}
 
-	// No worktree path to resolve against - return as-is
-	if (!worktreePath) {
-		return cwdOverride;
+	// No valid worktree path to resolve against - can't resolve relative path
+	if (!validWorktreePath) {
+		return os.homedir();
 	}
 
 	// Relative path - resolve against worktree
@@ -37,11 +43,11 @@ export function resolveCwd(
 		? cwdOverride.slice(2)
 		: cwdOverride;
 
-	const resolvedPath = join(worktreePath, relativePath);
+	const resolvedPath = join(validWorktreePath, relativePath);
 
 	// Fall back to worktreePath if resolved path doesn't exist
 	if (!existsSync(resolvedPath)) {
-		return worktreePath;
+		return validWorktreePath;
 	}
 
 	return resolvedPath;
