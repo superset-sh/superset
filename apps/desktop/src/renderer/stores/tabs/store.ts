@@ -4,12 +4,15 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { electronStorage } from "../../lib/electron-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
-import type { TabsState, TabsStore } from "./types";
+import type { Tab, TabsState, TabsStore } from "./types";
 import {
 	type CreatePaneOptions,
+	createCloudTabWithPanes,
 	createPane,
 	createTabWithPane,
+	createWebviewPane,
 	extractPaneIdsFromLayout,
+	generateId,
 	getFirstPaneId,
 	getPaneIdsForTab,
 	isLastPaneInTab,
@@ -451,6 +454,91 @@ export const useTabsStore = create<TabsStore>()(
 								: state.panes[paneId],
 						},
 					}));
+				},
+
+				// Cloud/Webview operations
+				addWebviewTab: (workspaceId, url, name) => {
+					const state = get();
+					const tabId = generateId("tab");
+					const pane = createWebviewPane(tabId, url, name);
+
+					// Use the pane name as the tab name for cloud tabs
+					const tab: Tab = {
+						id: tabId,
+						name: pane.name,
+						workspaceId,
+						layout: pane.id, // Single pane = leaf node
+						createdAt: Date.now(),
+					};
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return tab.id;
+				},
+
+				addCloudTab: (workspaceId, agentUrl, sshUrl) => {
+					const state = get();
+					const { tab, agentPane, sshPane } = createCloudTabWithPanes(
+						workspaceId,
+						agentUrl,
+						sshUrl,
+					);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: {
+							...state.panes,
+							[agentPane.id]: agentPane,
+							[sshPane.id]: sshPane,
+						},
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: agentPane.id, // Focus agent pane by default
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return tab.id;
 				},
 
 				// Split operations

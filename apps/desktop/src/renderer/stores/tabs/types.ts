@@ -3,22 +3,41 @@ import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal";
+export type PaneType = "terminal" | "webview";
 
 /**
- * A Pane represents a single terminal or content area within a Tab.
- * Panes always belong to a Tab and are referenced by ID in the Tab's layout.
+ * Base pane properties shared by all pane types
  */
-export interface Pane {
+interface BasePaneProps {
 	id: string;
 	tabId: string;
-	type: PaneType;
 	name: string;
 	isNew?: boolean;
 	needsAttention?: boolean;
 	initialCommands?: string[];
 	initialCwd?: string;
 }
+
+/**
+ * Terminal pane - displays a terminal emulator
+ */
+export interface TerminalPane extends BasePaneProps {
+	type: "terminal";
+}
+
+/**
+ * Webview pane - displays a web page (used for cloud workspaces)
+ */
+export interface WebviewPane extends BasePaneProps {
+	type: "webview";
+	url: string;
+}
+
+/**
+ * A Pane represents a single terminal or content area within a Tab.
+ * Panes always belong to a Tab and are referenced by ID in the Tab's layout.
+ */
+export type Pane = TerminalPane | WebviewPane;
 
 /**
  * A Tab is a container that holds one or more Panes in a Mosaic layout.
@@ -80,6 +99,14 @@ export interface TabsStore extends TabsState {
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
 	clearPaneInitialData: (paneId: string) => void;
+
+	// Cloud/Webview operations
+	addWebviewTab: (workspaceId: string, url: string, name?: string) => string;
+	addCloudTab: (
+		workspaceId: string,
+		agentUrl: string,
+		sshUrl: string,
+	) => string;
 
 	// Split operations
 	splitPaneVertical: (

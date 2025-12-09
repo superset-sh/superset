@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createCloudRouter } from "./cloud";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
@@ -27,6 +28,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
+		cloud: createCloudRouter(),
 		config: createConfigRouter(),
 	});
 };

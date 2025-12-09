@@ -10,6 +10,16 @@ export interface Project {
 	defaultBranch?: string; // Detected default branch (e.g., 'main', 'master')
 }
 
+export interface CloudSandbox {
+	id: string;
+	name: string;
+	status: "creating" | "running" | "stopped" | "error";
+	websshHost?: string;
+	claudeHost?: string;
+	createdAt: string;
+	error?: string;
+}
+
 export interface GitStatus {
 	branch: string;
 	needsRebase: boolean;
@@ -46,6 +56,7 @@ export interface Worktree {
 	path: string;
 	branch: string;
 	createdAt: number;
+	cloudSandbox?: CloudSandbox;
 	gitStatus?: GitStatus;
 	githubStatus?: GitHubStatus;
 }

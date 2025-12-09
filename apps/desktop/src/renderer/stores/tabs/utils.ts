@@ -1,5 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
-import type { Pane, PaneType, Tab } from "./types";
+import type { Pane, Tab, TerminalPane, WebviewPane } from "./types";
 
 /**
  * Generates a unique ID with the given prefix
@@ -41,24 +41,62 @@ export interface CreatePaneOptions {
 }
 
 /**
- * Creates a new pane with the given properties
+ * Creates a new terminal pane
  */
 export const createPane = (
 	tabId: string,
-	type: PaneType = "terminal",
 	options?: CreatePaneOptions,
-): Pane => {
+): TerminalPane => {
 	const id = generateId("pane");
 
 	return {
 		id,
 		tabId,
-		type,
+		type: "terminal",
 		name: "Terminal",
 		isNew: true,
 		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,
 	};
+};
+
+/**
+ * Creates a new webview pane for cloud workspaces
+ */
+export const createWebviewPane = (
+	tabId: string,
+	url: string,
+	name?: string,
+): WebviewPane => {
+	const id = generateId("pane");
+
+	// Derive name from URL if not provided
+	const derivedName = name || getWebviewNameFromUrl(url);
+
+	return {
+		id,
+		tabId,
+		type: "webview",
+		name: derivedName,
+		url,
+		isNew: true,
+	};
+};
+
+/**
+ * Extract a friendly name from a cloud URL
+ * URLs look like: https://7030-sandboxid.e2b.app or https://8888-sandboxid.e2b.app
+ */
+const getWebviewNameFromUrl = (url: string): string => {
+	const portMatch = url.match(/(\d+)-[a-z0-9-]+\.e2b\.app/);
+	if (portMatch) {
+		const port = portMatch[1];
+		// 7030 = claude agent, 8888 = webssh terminal
+		if (port === "7030") return "Cloud Agent";
+		if (port === "8888") return "Cloud SSH";
+		return `Cloud (${port})`;
+	}
+	return "Cloud View";
 };
 
 /**
@@ -92,7 +130,7 @@ export const createTabWithPane = (
 	options?: CreatePaneOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createPane(tabId, "terminal", options);
+	const pane = createPane(tabId, options);
 
 	// Filter to same workspace for tab naming
 	const workspaceTabs = existingTabs.filter(
@@ -273,4 +311,35 @@ export const updateHistoryStack = (
 	}
 
 	return newStack;
+};
+
+/**
+ * Creates a cloud tab with split view (Agent on left, SSH on right)
+ */
+export const createCloudTabWithPanes = (
+	workspaceId: string,
+	agentUrl: string,
+	sshUrl: string,
+): { tab: Tab; agentPane: WebviewPane; sshPane: WebviewPane } => {
+	const tabId = generateId("tab");
+	const agentPane = createWebviewPane(tabId, agentUrl, "Cloud Agent");
+	const sshPane = createWebviewPane(tabId, sshUrl, "Cloud SSH");
+
+	// Split layout: agent on left (60%), ssh on right (40%)
+	const layout: MosaicNode<string> = {
+		direction: "row",
+		first: agentPane.id,
+		second: sshPane.id,
+		splitPercentage: 60,
+	};
+
+	const tab: Tab = {
+		id: tabId,
+		name: "Cloud",
+		workspaceId,
+		layout,
+		createdAt: Date.now(),
+	};
+
+	return { tab, agentPane, sshPane };
 };

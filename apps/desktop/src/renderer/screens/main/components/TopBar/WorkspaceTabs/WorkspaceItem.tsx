@@ -5,7 +5,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark } from "react-icons/hi2";
+import {
+	HiExclamationTriangle,
+	HiMiniCloud,
+	HiMiniXMark,
+} from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useDeleteWorkspace,
@@ -23,6 +27,7 @@ const WORKSPACE_TYPE = "WORKSPACE";
 interface WorkspaceItemProps {
 	id: string;
 	projectId: string;
+	worktreeId: string;
 	worktreePath: string;
 	title: string;
 	isActive: boolean;
@@ -35,6 +40,7 @@ interface WorkspaceItemProps {
 export function WorkspaceItem({
 	id,
 	projectId,
+	worktreeId,
 	worktreePath,
 	title,
 	isActive,
@@ -51,6 +57,15 @@ export function WorkspaceItem({
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const rename = useWorkspaceRename(id, title);
+
+	// Fetch cloud status for this worktree (polls every 30s if it has a sandbox)
+	const { data: cloudStatus } = trpc.cloud.getWorktreeCloudStatus.useQuery(
+		{ worktreeId },
+		{ refetchInterval: 30000 },
+	);
+
+	const isCloudWorkspace = cloudStatus?.hasCloud === true;
+	const isSandboxStopped = isCloudWorkspace && cloudStatus.status === "stopped";
 
 	// Query to check if workspace is empty - only enabled when needed
 	const canDeleteQuery = trpc.workspaces.canDelete.useQuery(
@@ -151,6 +166,7 @@ export function WorkspaceItem({
 		<>
 			<WorkspaceItemContextMenu
 				workspaceId={id}
+				worktreeId={worktreeId}
 				worktreePath={worktreePath}
 				workspaceAlias={title}
 				onRename={rename.startRename}
@@ -199,6 +215,22 @@ export function WorkspaceItem({
 							/>
 						) : (
 							<>
+								{/* Cloud workspace icon */}
+								{isCloudWorkspace && (
+									<span className="shrink-0 mr-1">
+										{isSandboxStopped ? (
+											<HiExclamationTriangle
+												className="size-3 text-yellow-500"
+												title="Cloud sandbox stopped"
+											/>
+										) : (
+											<HiMiniCloud
+												className="size-3 text-blue-400"
+												title="Cloud workspace"
+											/>
+										)}
+									</span>
+								)}
 								<span
 									className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left"
 									style={{
