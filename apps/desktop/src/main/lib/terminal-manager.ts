@@ -37,6 +37,10 @@ export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
 
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
+	private pendingSessions = new Map<
+		string,
+		Promise<{ isNew: boolean; scrollback: string; wasRecovered: boolean }>
+	>();
 	private readonly DEFAULT_COLS = 80;
 	private readonly DEFAULT_ROWS = 24;
 
@@ -67,6 +71,12 @@ export class TerminalManager extends EventEmitter {
 			initialCommands,
 		} = params;
 
+		// Deduplicate concurrent calls for the same tabId (prevents race in React Strict Mode)
+		const pending = this.pendingSessions.get(tabId);
+		if (pending) {
+			return pending;
+		}
+
 		const existing = this.sessions.get(tabId);
 		if (existing?.isAlive) {
 			existing.lastActive = Date.now();
@@ -80,8 +90,56 @@ export class TerminalManager extends EventEmitter {
 			};
 		}
 
-		// Use in-memory scrollback from dead session if available
-		const existingScrollback = existing?.scrollback || null;
+		// Track this creation to prevent duplicate sessions from concurrent calls
+		const creationPromise = this.doCreateSession({
+			tabId,
+			workspaceId,
+			tabTitle,
+			workspaceName,
+			rootPath,
+			cwd,
+			cols,
+			rows,
+			initialCommands,
+			existingScrollback: existing?.scrollback || null,
+		});
+		this.pendingSessions.set(tabId, creationPromise);
+
+		try {
+			return await creationPromise;
+		} finally {
+			this.pendingSessions.delete(tabId);
+		}
+	}
+
+	private async doCreateSession(params: {
+		tabId: string;
+		workspaceId: string;
+		tabTitle: string;
+		workspaceName: string;
+		rootPath?: string;
+		cwd?: string;
+		cols?: number;
+		rows?: number;
+		initialCommands?: string[];
+		existingScrollback: string | null;
+	}): Promise<{
+		isNew: boolean;
+		scrollback: string;
+		wasRecovered: boolean;
+	}> {
+		const {
+			tabId,
+			workspaceId,
+			tabTitle,
+			workspaceName,
+			rootPath,
+			cwd,
+			cols,
+			rows,
+			initialCommands,
+			existingScrollback,
+		} = params;
 
 		const shell = this.getDefaultShell();
 		const workingDir = cwd || os.homedir();
