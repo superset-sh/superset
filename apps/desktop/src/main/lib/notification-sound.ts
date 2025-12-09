@@ -1,4 +1,4 @@
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
@@ -30,13 +30,18 @@ export function playNotificationSound(): void {
 	}
 
 	if (process.platform === "darwin") {
-		exec(`afplay "${soundPath}"`);
+		execFile("afplay", [soundPath]);
 	} else if (process.platform === "win32") {
-		exec(
-			`powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`,
-		);
+		execFile("powershell", [
+			"-c",
+			`(New-Object Media.SoundPlayer '${soundPath}').PlaySync()`,
+		]);
 	} else {
 		// Linux - try common audio players
-		exec(`paplay "${soundPath}" || aplay "${soundPath}"`);
+		execFile("paplay", [soundPath], (error) => {
+			if (error) {
+				execFile("aplay", [soundPath]);
+			}
+		});
 	}
 }
