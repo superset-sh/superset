@@ -8,18 +8,36 @@ const UPDATE_FEED_URL =
 
 let mainWindow: BrowserWindow | null = null;
 let isUpdateDialogOpen = false;
+let isCheckingForUpdates = false;
+let dismissedVersion: string | null = null;
 
 export function setMainWindow(window: BrowserWindow): void {
 	mainWindow = window;
 }
 
 export function checkForUpdates(): void {
-	if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	// TESTING: Temporarily allow updates in dev mode
+	// if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	// 	return;
+	// }
+	if (!PLATFORM.IS_MAC) {
 		return;
 	}
-	autoUpdater.checkForUpdates().catch((error) => {
-		console.error("[auto-updater] Failed to check for updates:", error);
-	});
+
+	if (isCheckingForUpdates) {
+		console.info("[auto-updater] Update check already in progress, skipping");
+		return;
+	}
+
+	isCheckingForUpdates = true;
+	autoUpdater
+		.checkForUpdates()
+		.catch((error) => {
+			console.error("[auto-updater] Failed to check for updates:", error);
+		})
+		.finally(() => {
+			isCheckingForUpdates = false;
+		});
 }
 
 export function checkForUpdatesInteractive(): void {
@@ -62,7 +80,11 @@ export function checkForUpdatesInteractive(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	// TESTING: Temporarily allow updates in dev mode
+	// if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	// 	return;
+	// }
+	if (!PLATFORM.IS_MAC) {
 		return;
 	}
 
@@ -95,6 +117,13 @@ export function setupAutoUpdater(): void {
 			return;
 		}
 
+		if (dismissedVersion === info.version) {
+			console.info(
+				`[auto-updater] User already dismissed version ${info.version}, skipping`,
+			);
+			return;
+		}
+
 		console.info(
 			`[auto-updater] Update downloaded (${info.version}). Prompting user to restart.`,
 		);
@@ -121,6 +150,8 @@ export function setupAutoUpdater(): void {
 				isUpdateDialogOpen = false;
 				if (response.response === 0) {
 					autoUpdater.quitAndInstall(false, true);
+				} else {
+					dismissedVersion = info.version;
 				}
 			})
 			.catch((error) => {

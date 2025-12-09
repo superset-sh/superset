@@ -46,6 +46,14 @@ registerStorageHandlers();
 	await makeAppSetup(() => MainWindow());
 	setupAutoUpdater();
 
+	// TESTING: Import and run updater test after 10 seconds
+	import("./lib/__test-updater").then((module) => {
+		setTimeout(() => {
+			console.log("[main] Running updater test simulation...");
+			module.simulateMultipleUpdateEvents();
+		}, 10000);
+	});
+
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
 		await terminalManager.cleanup();
