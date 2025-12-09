@@ -10,16 +10,11 @@ import { resolveCwd } from "./utils";
  * Terminal router using TerminalManager with node-pty
  * Sessions are keyed by tabId and linked to workspaces for cwd resolution
  *
- * IMPORTANT: When creating terminals, ensure these env vars are passed:
- * - PATH: Prepend ~/.superset/bin (use getSupersetBinDir() from agent-setup)
- * - SUPERSET_TAB_ID: The tab's ID
- * - SUPERSET_TAB_TITLE: The tab's display title
- * - SUPERSET_WORKSPACE_NAME: The workspace name
- * - SUPERSET_PORT: The hooks server port (use getHooksServerPort())
- *
- * PATH prepending ensures our wrapper scripts (~/.superset/bin/claude, codex)
- * are used instead of system binaries. These wrappers inject hook settings
- * that notify the app when agents complete their tasks.
+ * Environment variables set for terminal sessions:
+ * - PATH: Prepends ~/.superset/bin so wrapper scripts intercept agent commands
+ * - SUPERSET_PANE_ID: The pane ID (used by notification hooks)
+ * - SUPERSET_WORKSPACE_ID: The workspace ID (used by notification hooks)
+ * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
 	return router({
@@ -28,7 +23,6 @@ export const createTerminalRouter = () => {
 				z.object({
 					tabId: z.string(),
 					workspaceId: z.string(),
-					tabTitle: z.string(),
 					cols: z.number().optional(),
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
@@ -39,39 +33,22 @@ export const createTerminalRouter = () => {
 				const {
 					tabId,
 					workspaceId,
-					tabTitle,
 					cols,
 					rows,
 					cwd: cwdOverride,
 					initialCommands,
 				} = input;
 
-				// Get workspace to determine cwd and workspace name
-				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				const worktree = workspace
-					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
-					: undefined;
-				const workspaceName =
-					workspace?.name || worktree?.branch || "Workspace";
-
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against worktree
+				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
 				const worktreePath = workspace
 					? getWorktreePath(workspace.worktreeId)
 					: undefined;
 				const cwd = resolveCwd(cwdOverride, worktreePath);
 
-				// Get project to get root path for setup scripts
-				const project = workspace
-					? db.data.projects.find((p) => p.id === workspace.projectId)
-					: undefined;
-				const rootPath = project?.mainRepoPath;
-
 				const result = await terminalManager.createOrAttach({
 					tabId,
 					workspaceId,
-					tabTitle,
-					workspaceName,
-					rootPath,
 					cwd,
 					cols,
 					rows,

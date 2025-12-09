@@ -14,8 +14,7 @@ export function useAgentHookListener() {
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "agent-complete") {
-				// paneId is passed as tabId for backwards compatibility
-				const { tabId: paneId, workspaceId } = event.data;
+				const { paneId, workspaceId } = event.data;
 				const state = useTabsStore.getState();
 
 				// Find the tab containing this pane
@@ -32,8 +31,7 @@ export function useAgentHookListener() {
 					state.setNeedsAttention(paneId, true);
 				}
 			} else if (event.type === "focus-tab") {
-				// paneId is passed as tabId for backwards compatibility
-				const { tabId: paneId, workspaceId } = event.data;
+				const { paneId, workspaceId } = event.data;
 
 				// Switch to workspace view if not already there
 				const appState = useAppStore.getState();

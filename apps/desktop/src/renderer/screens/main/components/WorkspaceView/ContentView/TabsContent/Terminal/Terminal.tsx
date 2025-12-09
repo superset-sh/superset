@@ -26,7 +26,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
 	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
-	const paneName = pane?.name || "Terminal";
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
@@ -80,9 +79,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
-
-	const paneNameRef = useRef(paneName);
-	paneNameRef.current = paneName;
 
 	const setTabAutoTitleRef = useRef(setTabAutoTitle);
 	setTabAutoTitleRef.current = setTabAutoTitle;
@@ -210,7 +206,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				{
 					tabId: paneId,
 					workspaceId,
-					tabTitle: paneNameRef.current,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -266,7 +261,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				tabId: paneId,
 				workspaceId,
-				tabTitle: paneNameRef.current,
 				cols: xterm.cols,
 				rows: xterm.rows,
 				initialCommands,

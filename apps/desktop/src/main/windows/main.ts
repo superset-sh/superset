@@ -7,6 +7,7 @@ import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { setMainWindow } from "../lib/auto-updater";
+import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import {
@@ -14,6 +15,7 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
+import { store } from "../lib/storage-manager";
 import { terminalManager } from "../lib/terminal-manager";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
@@ -80,13 +82,35 @@ export async function MainWindow() {
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
 
+			// Derive workspace name from workspaceId
+			const workspace = db.data.workspaces.find(
+				(w) => w.id === event.workspaceId,
+			);
+			const worktree = workspace
+				? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+				: undefined;
+			const workspaceName =
+				workspace?.name || worktree?.branch || "Workspace";
+
+			// Derive title from pane name, falling back to tab name
+			const { paneId } = event;
+			const tabsStorage = store.get("tabs-storage") as
+				| { state?: { panes?: Record<string, { tabId: string; name?: string }>; tabs?: Array<{ id: string; userTitle?: string; name: string }> } }
+				| undefined;
+			const pane = tabsStorage?.state?.panes?.[paneId];
+			const tab = pane
+				? tabsStorage?.state?.tabs?.find((t) => t.id === pane.tabId)
+				: undefined;
+			const title =
+				pane?.name || tab?.userTitle?.trim() || tab?.name || "Terminal";
+
 			const notification = new Notification({
 				title: isPermissionRequest
-					? `Input Needed — ${event.workspaceName}`
-					: `Agent Complete — ${event.workspaceName}`,
+					? `Input Needed — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
 				body: isPermissionRequest
-					? `"${event.tabTitle}" needs your attention`
-					: `"${event.tabTitle}" has finished its task`,
+					? `"${title}" needs your attention`
+					: `"${title}" has finished its task`,
 				silent: true,
 			});
 
@@ -95,9 +119,9 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
-				// Request focus on the specific tab
+				// Request focus on the specific pane
 				notificationsEmitter.emit("focus-tab", {
-					tabId: event.tabId,
+					paneId: event.paneId,
 					workspaceId: event.workspaceId,
 				});
 			});

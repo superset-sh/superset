@@ -14,6 +14,7 @@ export function useCreateWorkspace(
 ) {
 	const utils = trpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
+	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
@@ -29,13 +30,13 @@ export function useCreateWorkspace(
 				Array.isArray(data.initialCommands) &&
 				data.initialCommands.length > 0
 			) {
-				const { paneId } = addTab(data.workspace.id);
+				const { tabId, paneId } = addTab(data.workspace.id);
+				setTabAutoTitle(tabId, "Workspace Setup");
 				// Pre-create terminal session with initial commands
 				// Terminal component will attach to this session when it mounts
 				createOrAttach.mutate({
 					tabId: paneId,
 					workspaceId: data.workspace.id,
-					tabTitle: "Terminal",
 					initialCommands: data.initialCommands,
 				});
 			} else {

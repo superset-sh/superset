@@ -47,9 +47,6 @@ export class TerminalManager extends EventEmitter {
 	async createOrAttach(params: {
 		tabId: string;
 		workspaceId: string;
-		tabTitle: string;
-		workspaceName: string;
-		rootPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -62,9 +59,6 @@ export class TerminalManager extends EventEmitter {
 		const {
 			tabId,
 			workspaceId,
-			tabTitle,
-			workspaceName,
-			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -94,9 +88,6 @@ export class TerminalManager extends EventEmitter {
 		const creationPromise = this.doCreateSession({
 			tabId,
 			workspaceId,
-			tabTitle,
-			workspaceName,
-			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -115,9 +106,6 @@ export class TerminalManager extends EventEmitter {
 	private async doCreateSession(params: {
 		tabId: string;
 		workspaceId: string;
-		tabTitle: string;
-		workspaceName: string;
-		rootPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -131,9 +119,6 @@ export class TerminalManager extends EventEmitter {
 		const {
 			tabId,
 			workspaceId,
-			tabTitle,
-			workspaceName,
-			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -151,12 +136,8 @@ export class TerminalManager extends EventEmitter {
 		const env = {
 			...baseEnv,
 			...shellEnv,
-			SUPERSET_TAB_ID: tabId,
-			SUPERSET_TAB_TITLE: tabTitle,
-			SUPERSET_WORKSPACE_NAME: workspaceName,
+			SUPERSET_PANE_ID: tabId, // tabId param is actually paneId
 			SUPERSET_WORKSPACE_ID: workspaceId,
-			SUPERSET_WORKSPACE_PATH: workingDir,
-			SUPERSET_ROOT_PATH: rootPath || "",
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
 
