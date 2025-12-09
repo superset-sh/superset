@@ -125,7 +125,7 @@ export function WorkspaceView() {
 				onDragging={setIsResizing}
 			/>
 			<ResizablePanel defaultSize={100 - sidebarSize}>
-				<div className="flex-1 h-full p-2">
+				<div className="flex-1 h-full p-1">
 					<div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
 						<ContentView />
 					</div>
