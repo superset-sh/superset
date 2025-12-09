@@ -1,10 +1,12 @@
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import { LayoutGroup, motion } from "framer-motion";
+import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { HiMiniEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
+import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { TabItem } from "./TabItem";
@@ -24,12 +26,15 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const addTab = useTabsStore((s) => s.addTab);
+	const renameTab = useTabsStore((s) => s.renameTab);
 	const reorderTabById = useTabsStore((s) => s.reorderTabById);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [commandOpen, setCommandOpen] = useState(false);
 	const openSettings = useOpenSettings();
 	const containerRef = useRef<HTMLElement>(null);
+
+	const { presets } = usePresets();
 
 	const tabs = useMemo(
 		() =>
@@ -48,6 +53,23 @@ export function TabsView() {
 
 	const handleOpenPresetsSettings = () => {
 		openSettings("presets");
+		setCommandOpen(false);
+	};
+
+	const handleSelectPreset = (preset: TerminalPreset) => {
+		if (!activeWorkspaceId) return;
+
+		// Pass preset options to addTab - Terminal component will read them from pane state
+		const { tabId } = addTab(activeWorkspaceId, {
+			initialCommands: preset.commands,
+			initialCwd: preset.cwd || undefined,
+		});
+
+		// Rename the tab to the preset name
+		if (preset.name) {
+			renameTab(tabId, preset.name);
+		}
+
 		setCommandOpen(false);
 	};
 
@@ -131,6 +153,8 @@ export function TabsView() {
 						onOpenChange={setCommandOpen}
 						onAddTab={handleAddTab}
 						onOpenPresetsSettings={handleOpenPresetsSettings}
+						presets={presets}
+						onSelectPreset={handleSelectPreset}
 					/>
 				</motion.div>
 				<div className="text-sm text-sidebar-foreground space-y-1 relative">

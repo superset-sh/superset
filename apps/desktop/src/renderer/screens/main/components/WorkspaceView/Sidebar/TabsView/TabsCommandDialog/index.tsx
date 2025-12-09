@@ -6,13 +6,20 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import { HiMiniPlus, HiOutlineCog6Tooth } from "react-icons/hi2";
+import type { TerminalPreset } from "main/lib/db/schemas";
+import {
+	HiMiniCommandLine,
+	HiMiniPlus,
+	HiOutlineCog6Tooth,
+} from "react-icons/hi2";
 
 interface TabsCommandDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onAddTab: () => void;
 	onOpenPresetsSettings: () => void;
+	presets: TerminalPreset[];
+	onSelectPreset: (preset: TerminalPreset) => void;
 }
 
 export function TabsCommandDialog({
@@ -20,6 +27,8 @@ export function TabsCommandDialog({
 	onOpenChange,
 	onAddTab,
 	onOpenPresetsSettings,
+	presets,
+	onSelectPreset,
 }: TabsCommandDialogProps) {
 	return (
 		<CommandDialog open={open} onOpenChange={onOpenChange}>
@@ -32,7 +41,27 @@ export function TabsCommandDialog({
 						New Terminal
 					</CommandItem>
 				</CommandGroup>
-				<CommandGroup heading="Presets">
+				{presets.length > 0 && (
+					<CommandGroup heading="Presets">
+						{presets.map((preset) => (
+							<CommandItem
+								key={preset.id}
+								onSelect={() => onSelectPreset(preset)}
+							>
+								<HiMiniCommandLine className="size-4" />
+								<span className="flex-1 truncate">
+									{preset.name || "Unnamed Preset"}
+								</span>
+								{preset.cwd && (
+									<span className="text-xs text-muted-foreground font-mono">
+										{preset.cwd}
+									</span>
+								)}
+							</CommandItem>
+						))}
+					</CommandGroup>
+				)}
+				<CommandGroup heading="Settings">
 					<CommandItem onSelect={onOpenPresetsSettings}>
 						<HiOutlineCog6Tooth className="size-4" />
 						Configure Presets

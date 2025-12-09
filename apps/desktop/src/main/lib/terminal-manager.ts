@@ -49,6 +49,7 @@ export class TerminalManager extends EventEmitter {
 		cwd?: string;
 		cols?: number;
 		rows?: number;
+		initialCommands?: string[];
 	}): Promise<{
 		isNew: boolean;
 		scrollback: string;
@@ -63,6 +64,7 @@ export class TerminalManager extends EventEmitter {
 			cwd,
 			cols,
 			rows,
+			initialCommands,
 		} = params;
 
 		const existing = this.sessions.get(tabId);
@@ -157,6 +159,11 @@ export class TerminalManager extends EventEmitter {
 			escapeFilter: new TerminalEscapeFilter(),
 		};
 
+		// Send initial commands after first shell output (shell is ready)
+		const shouldRunCommands =
+			!wasRecovered && initialCommands && initialCommands.length > 0;
+		let commandsSent = false;
+
 		ptyProcess.onData((data) => {
 			// Filter terminal query responses for storage only
 			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
@@ -165,6 +172,18 @@ export class TerminalManager extends EventEmitter {
 			session.historyWriter?.write(filteredData);
 			// Emit ORIGINAL data to xterm - it needs to process query responses
 			this.emit(`data:${tabId}`, data);
+
+			// Send initial commands after shell outputs first data (prompt ready)
+			if (shouldRunCommands && !commandsSent) {
+				commandsSent = true;
+				// Small delay ensures shell is fully ready to accept input
+				setTimeout(() => {
+					if (session.isAlive) {
+						const cmdString = `${initialCommands.join(" && ")}\n`;
+						session.pty.write(cmdString);
+					}
+				}, 100);
+			}
 		});
 
 		ptyProcess.onExit(async ({ exitCode, signal }) => {

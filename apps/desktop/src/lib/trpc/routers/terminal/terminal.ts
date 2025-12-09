@@ -4,6 +4,7 @@ import { terminalManager } from "main/lib/terminal-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorktreePath } from "../workspaces/utils/worktree";
+import { resolveCwd } from "./utils";
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -52,9 +53,12 @@ export const createTerminalRouter = () => {
 					: undefined;
 				const workspaceName =
 					workspace?.name || worktree?.branch || "Workspace";
-				const cwd =
-					cwdOverride ||
-					(workspace ? getWorktreePath(workspace.worktreeId) : undefined);
+
+				// Resolve cwd: absolute paths stay as-is, relative paths resolve against worktree
+				const worktreePath = workspace
+					? getWorktreePath(workspace.worktreeId)
+					: undefined;
+				const cwd = resolveCwd(cwdOverride, worktreePath);
 
 				// Get project to get root path for setup scripts
 				const project = workspace
@@ -71,13 +75,8 @@ export const createTerminalRouter = () => {
 					cwd,
 					cols,
 					rows,
+					initialCommands,
 				});
-
-				// Run initial commands on new terminals
-				if (result.isNew && initialCommands && initialCommands.length > 0) {
-					const commandString = `${initialCommands.join(" && ")}\n`;
-					terminalManager.write({ tabId, data: commandString });
-				}
 
 				return {
 					tabId,

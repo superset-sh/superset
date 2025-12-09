@@ -33,11 +33,20 @@ export const extractPaneIdsFromLayout = (
 };
 
 /**
+ * Options for creating a pane with preset configuration
+ */
+export interface CreatePaneOptions {
+	initialCommands?: string[];
+	initialCwd?: string;
+}
+
+/**
  * Creates a new pane with the given properties
  */
 export const createPane = (
 	tabId: string,
 	type: PaneType = "terminal",
+	options?: CreatePaneOptions,
 ): Pane => {
 	const id = generateId("pane");
 
@@ -47,6 +56,8 @@ export const createPane = (
 		type,
 		name: "Terminal",
 		isNew: true,
+		initialCommands: options?.initialCommands,
+		initialCwd: options?.initialCwd,
 	};
 };
 
@@ -78,9 +89,10 @@ export const generateTabName = (existingTabs: Tab[]): string => {
 export const createTabWithPane = (
 	workspaceId: string,
 	existingTabs: Tab[] = [],
+	options?: CreatePaneOptions,
 ): { tab: Tab; pane: Pane } => {
 	const tabId = generateId("tab");
-	const pane = createPane(tabId);
+	const pane = createPane(tabId, "terminal", options);
 
 	// Filter to same workspace for tab naming
 	const workspaceTabs = existingTabs.filter(

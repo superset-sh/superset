@@ -1,0 +1,78 @@
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdirSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { resolveCwd } from "./resolve-cwd";
+
+describe("resolveCwd", () => {
+	// Use a real temp directory for testing
+	const testDir = join("/tmp", "resolve-cwd-test");
+	const worktreePath = join(testDir, "worktree");
+	const existingSubdir = join(worktreePath, "apps/desktop");
+
+	beforeAll(() => {
+		// Create test directories
+		mkdirSync(existingSubdir, { recursive: true });
+	});
+
+	afterAll(() => {
+		// Clean up test directories
+		rmSync(testDir, { recursive: true, force: true });
+	});
+
+	describe("when cwdOverride is undefined", () => {
+		test("returns worktreePath", () => {
+			expect(resolveCwd(undefined, worktreePath)).toBe(worktreePath);
+		});
+
+		test("returns undefined when worktreePath is also undefined", () => {
+			expect(resolveCwd(undefined, undefined)).toBeUndefined();
+		});
+	});
+
+	describe("when cwdOverride is absolute", () => {
+		test("returns absolute path if it exists", () => {
+			// /tmp always exists on unix systems
+			expect(resolveCwd("/tmp", worktreePath)).toBe("/tmp");
+		});
+
+		test("falls back to worktreePath when absolute path does not exist", () => {
+			const nonExistentPath = "/this/path/does/not/exist";
+			expect(resolveCwd(nonExistentPath, worktreePath)).toBe(worktreePath);
+		});
+
+		test("returns absolute path as-is when it does not exist and worktreePath is undefined", () => {
+			const nonExistentPath = "/this/path/does/not/exist";
+			expect(resolveCwd(nonExistentPath, undefined)).toBe(nonExistentPath);
+		});
+	});
+
+	describe("when cwdOverride is relative", () => {
+		test("resolves relative path against worktreePath when path exists", () => {
+			expect(resolveCwd("apps/desktop", worktreePath)).toBe(existingSubdir);
+		});
+
+		test("resolves ./ prefixed path against worktreePath when path exists", () => {
+			expect(resolveCwd("./apps/desktop", worktreePath)).toBe(existingSubdir);
+		});
+
+		test("falls back to worktreePath when relative path does not exist", () => {
+			expect(resolveCwd("non-existent-dir", worktreePath)).toBe(worktreePath);
+		});
+
+		test("falls back to worktreePath when ./ prefixed path does not exist", () => {
+			expect(resolveCwd("./non-existent-dir", worktreePath)).toBe(worktreePath);
+		});
+
+		test("handles . as current directory", () => {
+			expect(resolveCwd(".", worktreePath)).toBe(worktreePath);
+		});
+
+		test("returns relative path as-is when worktreePath is undefined", () => {
+			expect(resolveCwd("apps/desktop", undefined)).toBe("apps/desktop");
+		});
+
+		test("returns ./ prefixed path as-is when worktreePath is undefined", () => {
+			expect(resolveCwd("./apps/desktop", undefined)).toBe("./apps/desktop");
+		});
+	});
+});

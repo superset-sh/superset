@@ -26,6 +26,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
 	const paneName = pane?.name || "Terminal";
+	const paneInitialCommands = pane?.initialCommands;
+	const paneInitialCwd = pane?.initialCwd;
+	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 	const terminalRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
@@ -44,6 +47,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Ref to track focus state for use in terminal creation effect
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
+
+	// Refs to capture initial data for terminal creation (avoid effect re-runs)
+	const paneInitialCommandsRef = useRef(paneInitialCommands);
+	const paneInitialCwdRef = useRef(paneInitialCwd);
+	const clearPaneInitialDataRef = useRef(clearPaneInitialData);
+	paneInitialCommandsRef.current = paneInitialCommands;
+	paneInitialCwdRef.current = paneInitialCwd;
+	clearPaneInitialDataRef.current = clearPaneInitialData;
 
 	// Required for resolving relative file paths in terminal commands
 	const { data: workspaceCwd } =
@@ -219,6 +230,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		};
 
+		// Capture initial data before first createOrAttach call
+		const initialCommands = paneInitialCommandsRef.current;
+		const initialCwd = paneInitialCwdRef.current;
+
+		// Clear initial data immediately to prevent re-running on reattach
+		if (initialCommands || initialCwd) {
+			clearPaneInitialDataRef.current(paneId);
+		}
+
 		createOrAttachRef.current(
 			{
 				tabId: paneId,
@@ -226,6 +246,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				tabTitle: paneName,
 				cols: xterm.cols,
 				rows: xterm.rows,
+				initialCommands,
+				cwd: initialCwd,
 			},
 			{
 				onSuccess: (result) => {

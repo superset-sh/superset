@@ -1,21 +1,12 @@
 import { Button } from "@superset/ui/button";
 import { HiOutlinePlus } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
-import {
-	useCreateTerminalPreset,
-	useDeleteTerminalPreset,
-	useUpdateTerminalPreset,
-} from "renderer/react-query/presets";
+import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
 import { PRESET_COLUMNS, type PresetColumnKey } from "./types";
 
 export function PresetsSettings() {
-	const { data: presets = [], isLoading } =
-		trpc.settings.getTerminalPresets.useQuery();
-
-	const createPreset = useCreateTerminalPreset();
-	const updatePreset = useUpdateTerminalPreset();
-	const deletePreset = useDeleteTerminalPreset();
+	const { presets, isLoading, createPreset, updatePreset, deletePreset } =
+		usePresets();
 
 	const handleCellChange = (
 		rowIndex: number,

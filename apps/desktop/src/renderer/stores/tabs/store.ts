@@ -6,6 +6,7 @@ import { electronStorage } from "../../lib/electron-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
+	type CreatePaneOptions,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
@@ -79,9 +80,13 @@ export const useTabsStore = create<TabsStore>()(
 				tabHistoryStacks: {},
 
 				// Tab operations
-				addTab: (workspaceId) => {
+				addTab: (workspaceId, options?: CreatePaneOptions) => {
 					const state = get();
-					const { tab, pane } = createTabWithPane(workspaceId, state.tabs);
+					const { tab, pane } = createTabWithPane(
+						workspaceId,
+						state.tabs,
+						options,
+					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -420,6 +425,21 @@ export const useTabsStore = create<TabsStore>()(
 							...state.panes,
 							[paneId]: state.panes[paneId]
 								? { ...state.panes[paneId], needsAttention }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
+				clearPaneInitialData: (paneId) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? {
+										...state.panes[paneId],
+										initialCommands: undefined,
+										initialCwd: undefined,
+									}
 								: state.panes[paneId],
 						},
 					}));
