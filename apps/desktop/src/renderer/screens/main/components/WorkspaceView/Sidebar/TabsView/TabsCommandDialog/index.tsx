@@ -1,15 +1,12 @@
 import {
 	CommandDialog,
-	CommandInput,
-	CommandList,
 	CommandEmpty,
 	CommandGroup,
+	CommandInput,
 	CommandItem,
+	CommandList,
 } from "@superset/ui/command";
-import {
-	HiOutlineCog6Tooth,
-	HiMiniPlus,
-} from "react-icons/hi2";
+import { HiMiniPlus, HiOutlineCog6Tooth } from "react-icons/hi2";
 
 interface TabsCommandDialogProps {
 	open: boolean;
@@ -37,10 +34,6 @@ export function TabsCommandDialog({
 				</CommandGroup>
 				<CommandGroup heading="Presets">
 					<CommandItem onSelect={onOpenPresetsSettings}>
-						<HiMiniPlus className="size-4" />
-						Create Preset
-					</CommandItem>
-					<CommandItem onSelect={onOpenPresetsSettings}>
 						<HiOutlineCog6Tooth className="size-4" />
 						Configure Presets
 					</CommandItem>
@@ -49,4 +42,3 @@ export function TabsCommandDialog({
 		</CommandDialog>
 	);
 }
-

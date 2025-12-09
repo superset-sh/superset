@@ -1,7 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import {
-	HiOutlineCommandLine,
 	HiOutlineCog6Tooth,
+	HiOutlineCommandLine,
 	HiOutlinePaintBrush,
 } from "react-icons/hi2";
 import type { SettingsSection } from "renderer/stores";

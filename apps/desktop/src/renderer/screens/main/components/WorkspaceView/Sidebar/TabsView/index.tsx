@@ -7,9 +7,8 @@ import { HiMiniEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { TabsCommandDialog } from "./TabsCommandDialog";
 import { TabItem } from "./TabItem";
-import { Separator } from "@superset/ui/separator";
+import { TabsCommandDialog } from "./TabsCommandDialog";
 
 const DRAG_TYPE = "TAB";
 
