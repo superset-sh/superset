@@ -1,45 +1,71 @@
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
-import { PresetRow } from "./PresetRow";
+import { trpc } from "renderer/lib/trpc";
 import {
-	createEmptyPreset,
-	MOCK_PRESETS,
-	PRESET_COLUMNS,
-	type PresetColumnKey,
-	type TerminalPreset,
-} from "./types";
+	useCreateTerminalPreset,
+	useDeleteTerminalPreset,
+	useUpdateTerminalPreset,
+} from "renderer/react-query/presets";
+import { PresetRow } from "./PresetRow";
+import { PRESET_COLUMNS, type PresetColumnKey } from "./types";
 
 export function PresetsSettings() {
-	const [presets, setPresets] = useState<TerminalPreset[]>(MOCK_PRESETS);
+	const { data: presets = [], isLoading } =
+		trpc.settings.getTerminalPresets.useQuery();
+
+	const createPreset = useCreateTerminalPreset();
+	const updatePreset = useUpdateTerminalPreset();
+	const deletePreset = useDeleteTerminalPreset();
 
 	const handleCellChange = (
 		rowIndex: number,
 		column: PresetColumnKey,
 		value: string,
 	) => {
-		setPresets((prev) => {
-			const updated = [...prev];
-			updated[rowIndex] = { ...updated[rowIndex], [column]: value };
-			return updated;
+		const preset = presets[rowIndex];
+		if (!preset) return;
+
+		updatePreset.mutate({
+			id: preset.id,
+			patch: { [column]: value },
 		});
 	};
 
 	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
-		setPresets((prev) => {
-			const updated = [...prev];
-			updated[rowIndex] = { ...updated[rowIndex], commands };
-			return updated;
+		const preset = presets[rowIndex];
+		if (!preset) return;
+
+		updatePreset.mutate({
+			id: preset.id,
+			patch: { commands },
 		});
 	};
 
 	const handleAddRow = () => {
-		setPresets((prev) => [...prev, createEmptyPreset()]);
+		createPreset.mutate({
+			name: "",
+			cwd: "",
+			commands: [""],
+		});
 	};
 
 	const handleDeleteRow = (rowIndex: number) => {
-		setPresets((prev) => prev.filter((_, index) => index !== rowIndex));
+		const preset = presets[rowIndex];
+		if (!preset) return;
+
+		deletePreset.mutate({ id: preset.id });
 	};
+
+	if (isLoading) {
+		return (
+			<div className="p-6 w-full max-w-6xl">
+				<div className="animate-pulse space-y-4">
+					<div className="h-8 bg-muted rounded w-1/3" />
+					<div className="h-32 bg-muted rounded" />
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="p-6 w-full max-w-6xl">
