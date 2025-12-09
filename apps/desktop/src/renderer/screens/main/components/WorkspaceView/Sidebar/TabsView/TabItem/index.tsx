@@ -2,12 +2,13 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { getTabDisplayName } from "renderer/stores/tabs/utils";
 import { TabContextMenu } from "./TabContextMenu";
+import { FaTerminal } from "react-icons/fa";
 
 const DRAG_TYPE = "TAB";
 
@@ -134,6 +135,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 					${isDragOver ? "bg-tertiary-active/50" : ""}
 				`}
 				>
+					<HiMiniCommandLine className="size-4" />
 					<div className="flex items-center gap-1 flex-1 min-w-0">
 						{isRenaming ? (
 							<Input
