@@ -98,6 +98,12 @@ export function WorkspaceItemContextMenu({
 						description:
 							"Please commit or stash your changes before handing off to cloud.",
 					});
+				} else if ("code" in result && result.code === "UNPUSHED_COMMITS") {
+					toast.error("Unpushed commits", {
+						id: toastId,
+						description:
+							"Please push your commits before handing off to cloud.",
+					});
 				} else if ("code" in result && result.code === "PUSH_FAILED") {
 					toast.error("Failed to push branch", {
 						id: toastId,

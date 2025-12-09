@@ -60,13 +60,40 @@ function isGitClean(repoPath: string): boolean {
  */
 function branchExistsOnRemote(repoPath: string, branch: string): boolean {
 	try {
-		execSync(`git ls-remote --heads origin ${branch}`, {
+		const result = execSync(`git ls-remote --heads origin ${branch}`, {
+			cwd: repoPath,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
+		return result.length > 0;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check if local branch has unpushed commits compared to remote
+ * Returns true if synced (no unpushed commits), false if there are unpushed commits
+ */
+function isBranchSynced(repoPath: string, branch: string): boolean {
+	try {
+		// Fetch latest from remote first
+		execSync("git fetch origin", {
 			cwd: repoPath,
 			encoding: "utf-8",
 			stdio: ["pipe", "pipe", "pipe"],
 		});
-		return true;
+
+		// Check if there are commits ahead of remote
+		const ahead = execSync(`git rev-list --count origin/${branch}..${branch}`, {
+			cwd: repoPath,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
+
+		return ahead === "0";
 	} catch {
+		// If remote branch doesn't exist, consider it not synced
 		return false;
 	}
 }
@@ -208,8 +235,21 @@ export const createCloudRouter = () => {
 					};
 				}
 
-				// Push branch if not on remote
-				if (!branchExistsOnRemote(worktree.path, branch)) {
+				// Check if branch exists on remote
+				const existsOnRemote = branchExistsOnRemote(worktree.path, branch);
+
+				if (existsOnRemote) {
+					// Branch exists on remote - check if local is synced
+					if (!isBranchSynced(worktree.path, branch)) {
+						return {
+							success: false as const,
+							error:
+								"Local branch has unpushed commits. Please push your changes before handing off to cloud.",
+							code: "UNPUSHED_COMMITS" as const,
+						};
+					}
+				} else {
+					// Branch doesn't exist on remote - push it
 					const pushResult = pushBranch(worktree.path, branch);
 					if (!pushResult.success) {
 						return {
