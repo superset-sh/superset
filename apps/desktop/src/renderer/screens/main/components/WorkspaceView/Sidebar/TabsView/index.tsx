@@ -129,7 +129,7 @@ export function TabsView() {
 					layout={!isResizing}
 					transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
 				>
-					<ButtonGroup className="w-full mt-1">
+					<ButtonGroup className="w-full mb-1">
 						<Button
 							variant="ghost"
 							onClick={handleAddTab}
