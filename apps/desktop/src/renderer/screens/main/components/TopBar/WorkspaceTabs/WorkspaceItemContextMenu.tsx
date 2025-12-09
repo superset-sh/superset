@@ -12,7 +12,7 @@ import {
 } from "@superset/ui/hover-card";
 import { toast } from "@superset/ui/sonner";
 import { type ReactNode, useState } from "react";
-import { HiMiniCloud } from "react-icons/hi2";
+import { HiMiniCloud, HiMiniTrash } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { useAddCloudTab } from "renderer/stores/tabs";
@@ -38,6 +38,14 @@ export function WorkspaceItemContextMenu({
 	const openInFinder = trpc.external.openInFinder.useMutation();
 	const addCloudTab = useAddCloudTab();
 	const [isHandingOff, setIsHandingOff] = useState(false);
+	const [isDeleting, setIsDeleting] = useState(false);
+
+	// Query cloud status for this worktree
+	const { data: cloudStatus } = trpc.cloud.getWorktreeCloudStatus.useQuery(
+		{ worktreeId },
+		{ refetchInterval: 30000 },
+	);
+	const utils = trpc.useUtils();
 
 	const handleOpenInFinder = () => {
 		if (worktreePath) {
@@ -155,6 +163,47 @@ export function WorkspaceItemContextMenu({
 		}
 	};
 
+	const handleDeleteCloudSandbox = async () => {
+		if (isDeleting || !cloudStatus?.hasCloud || !cloudStatus.sandboxId) return;
+		setIsDeleting(true);
+
+		const toastId = toast.loading("Deleting cloud sandbox...");
+
+		try {
+			const result = await trpcClient.cloud.deleteSandbox.mutate({
+				sandboxId: cloudStatus.sandboxId,
+			});
+
+			if (!result.success) {
+				toast.error("Failed to delete sandbox", {
+					id: toastId,
+					description: result.error,
+				});
+				return;
+			}
+
+			// Clear sandbox from worktree
+			await trpcClient.cloud.setWorktreeSandbox.mutate({
+				worktreeId,
+				cloudSandbox: null,
+			});
+
+			// Invalidate cloud status query
+			await utils.cloud.getWorktreeCloudStatus.invalidate({ worktreeId });
+
+			toast.success("Cloud sandbox deleted", { id: toastId });
+		} catch (error) {
+			console.error("Error deleting cloud sandbox:", error);
+			toast.error("Failed to delete sandbox", {
+				id: toastId,
+				description:
+					error instanceof Error ? error.message : "An unknown error occurred",
+			});
+		} finally {
+			setIsDeleting(false);
+		}
+	};
+
 	return (
 		<HoverCard openDelay={400} closeDelay={100}>
 			<ContextMenu>
@@ -164,13 +213,24 @@ export function WorkspaceItemContextMenu({
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
 					<ContextMenuSeparator />
-					<ContextMenuItem
-						onSelect={handleHandoffToCloud}
-						disabled={isHandingOff}
-					>
-						<HiMiniCloud className="size-4 mr-2 text-blue-400" />
-						Handoff to Cloud
-					</ContextMenuItem>
+					{cloudStatus?.hasCloud ? (
+						<ContextMenuItem
+							onSelect={handleDeleteCloudSandbox}
+							disabled={isDeleting}
+							className="text-red-500 focus:text-red-500"
+						>
+							<HiMiniTrash className="size-4 mr-2" />
+							Delete Cloud Sandbox
+						</ContextMenuItem>
+					) : (
+						<ContextMenuItem
+							onSelect={handleHandoffToCloud}
+							disabled={isHandingOff}
+						>
+							<HiMiniCloud className="size-4 mr-2 text-blue-400" />
+							Handoff to Cloud
+						</ContextMenuItem>
+					)}
 					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						Open in Finder
