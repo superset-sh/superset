@@ -122,6 +122,7 @@
         "react-syntax-highlighter": "^16.1.0",
         "shell-quote": "^1.8.3",
         "simple-git": "^3.30.0",
+        "strip-ansi": "^7.1.2",
         "superjson": "^2.2.5",
         "tailwind-merge": "^3.4.0",
         "trpc-electron": "^0.1.2",

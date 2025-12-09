@@ -27,6 +27,7 @@ export interface Pane {
 export interface Tab {
 	id: string;
 	name: string;
+	userTitle?: string;
 	workspaceId: string;
 	layout: MosaicNode<string>; // Always defined, leaves are paneIds
 	createdAt: number;
@@ -62,6 +63,7 @@ export interface TabsStore extends TabsState {
 	) => { tabId: string; paneId: string };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
+	setTabAutoTitle: (tabId: string, title: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
 	reorderTabs: (
 		workspaceId: string,

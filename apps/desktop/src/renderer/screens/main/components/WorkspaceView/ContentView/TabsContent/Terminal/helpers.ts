@@ -134,6 +134,11 @@ export interface KeyboardHandlerOptions {
 	onClear?: () => void;
 }
 
+export interface PasteHandlerOptions {
+	/** Callback when text is pasted, receives the pasted text */
+	onPaste?: (text: string) => void;
+}
+
 /**
  * Setup paste handler for xterm to ensure bracketed paste mode works correctly.
  *
@@ -148,7 +153,10 @@ export interface KeyboardHandlerOptions {
  *
  * Returns a cleanup function to remove the handler.
  */
-export function setupPasteHandler(xterm: XTerm): () => void {
+export function setupPasteHandler(
+	xterm: XTerm,
+	options: PasteHandlerOptions = {},
+): () => void {
 	const textarea = xterm.textarea;
 	if (!textarea) return () => {};
 
@@ -160,6 +168,9 @@ export function setupPasteHandler(xterm: XTerm): () => void {
 		// Stop xterm's internal paste handler from also processing this
 		event.preventDefault();
 		event.stopImmediatePropagation();
+
+		// Notify caller of pasted text (for command buffer tracking)
+		options.onPaste?.(text);
 
 		// xterm.paste() handles:
 		// 1. Line ending normalization (CRLF/LF -> CR)
