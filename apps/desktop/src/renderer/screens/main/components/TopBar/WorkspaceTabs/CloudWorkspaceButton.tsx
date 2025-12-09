@@ -69,12 +69,11 @@ export function CloudWorkspaceButton({ className }: CloudWorkspaceButtonProps) {
 			const workspaceId = workspaceResult.workspace.id;
 			const worktreeId = workspaceResult.workspace.worktreeId;
 
-			// 2. Create cloud sandbox (pass worktreeId to get the branch)
+			// 2. Create cloud sandbox (uses default branch)
 			const sandboxName = generateSandboxName();
 			const result = await trpcClient.cloud.createSandbox.mutate({
 				name: sandboxName,
 				projectId,
-				worktreeId,
 				taskDescription: `Cloud development workspace`,
 			});
 

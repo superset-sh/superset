@@ -39,6 +39,60 @@ function getGithubRepoUrl(repoPath: string): string | null {
 	}
 }
 
+/**
+ * Check if git working directory is clean (no uncommitted changes)
+ */
+function isGitClean(repoPath: string): boolean {
+	try {
+		const status = execSync("git status --porcelain", {
+			cwd: repoPath,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		}).trim();
+		return status === "";
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Check if branch exists on remote
+ */
+function branchExistsOnRemote(repoPath: string, branch: string): boolean {
+	try {
+		execSync(`git ls-remote --heads origin ${branch}`, {
+			cwd: repoPath,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Push current branch to remote
+ */
+function pushBranch(
+	repoPath: string,
+	branch: string,
+): { success: boolean; error?: string } {
+	try {
+		execSync(`git push -u origin ${branch}`, {
+			cwd: repoPath,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		});
+		return { success: true };
+	} catch (error) {
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : String(error),
+		};
+	}
+}
+
 const cloudSandboxSchema = z.object({
 	id: z.string(),
 	name: z.string(),
@@ -51,12 +105,15 @@ const cloudSandboxSchema = z.object({
 
 export const createCloudRouter = () => {
 	return router({
+		/**
+		 * Create a new cloud sandbox on the default branch
+		 * Creates a fresh workspace - doesn't use any existing worktree's branch
+		 */
 		createSandbox: publicProcedure
 			.input(
 				z.object({
 					name: z.string(),
 					projectId: z.string(),
-					worktreeId: z.string().optional(),
 					taskDescription: z.string().optional(),
 				}),
 			)
@@ -80,21 +137,94 @@ export const createCloudRouter = () => {
 					};
 				}
 
-				// Get branch from worktree if provided
-				let githubBranch: string | undefined;
-				if (input.worktreeId) {
-					const worktree = db.data.worktrees.find(
-						(wt) => wt.id === input.worktreeId,
-					);
-					if (worktree?.branch) {
-						githubBranch = worktree.branch;
-					}
-				}
-
+				// Always use default branch (don't pass githubBranch)
 				return cloudApiClient.createSandbox({
 					name: input.name,
 					githubRepo,
-					githubBranch,
+					taskDescription: input.taskDescription,
+				});
+			}),
+
+		/**
+		 * Handoff an existing worktree to cloud
+		 * Requires clean git status and pushes branch if needed
+		 */
+		handoffToCloud: publicProcedure
+			.input(
+				z.object({
+					name: z.string(),
+					worktreeId: z.string(),
+					taskDescription: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				// Look up worktree
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					return {
+						success: false as const,
+						error: `Worktree ${input.worktreeId} not found`,
+					};
+				}
+
+				// Look up project to get mainRepoPath
+				const project = db.data.projects.find(
+					(p) => p.id === worktree.projectId,
+				);
+				if (!project) {
+					return {
+						success: false as const,
+						error: `Project for worktree not found`,
+					};
+				}
+
+				// Extract GitHub URL from local repo path
+				const githubRepo = getGithubRepoUrl(project.mainRepoPath);
+				if (!githubRepo) {
+					return {
+						success: false as const,
+						error:
+							"Could not determine GitHub repository URL. Make sure the repo has a GitHub origin.",
+					};
+				}
+
+				// Check git status is clean
+				if (!isGitClean(worktree.path)) {
+					return {
+						success: false as const,
+						error:
+							"Working directory has uncommitted changes. Please commit or stash your changes before handing off to cloud.",
+						code: "DIRTY_WORKTREE" as const,
+					};
+				}
+
+				const branch = worktree.branch;
+				if (!branch) {
+					return {
+						success: false as const,
+						error: "Could not determine branch for worktree",
+					};
+				}
+
+				// Push branch if not on remote
+				if (!branchExistsOnRemote(worktree.path, branch)) {
+					const pushResult = pushBranch(worktree.path, branch);
+					if (!pushResult.success) {
+						return {
+							success: false as const,
+							error: `Failed to push branch to remote: ${pushResult.error}`,
+							code: "PUSH_FAILED" as const,
+						};
+					}
+				}
+
+				// Create sandbox with the branch
+				return cloudApiClient.createSandbox({
+					name: input.name,
+					githubRepo,
+					githubBranch: branch,
 					taskDescription: input.taskDescription,
 				});
 			}),
