@@ -11,10 +11,10 @@ function getNotificationSoundPath(): string {
 	const isDev = !app.isPackaged;
 
 	if (isDev) {
-		return join(app.getAppPath(), "src/resources/sounds/notification.mp3");
+		return join(app.getAppPath(), "src/resources/sounds/arcade.mp3");
 	}
 
-	return join(process.resourcesPath, "resources/sounds/notification.mp3");
+	return join(process.resourcesPath, "resources/sounds/arcade.mp3");
 }
 
 /**
