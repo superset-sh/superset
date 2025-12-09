@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { resolveCwd } from "./resolve-cwd";
 
 describe("resolveCwd", () => {
-	// Use a real temp directory for testing
-	const testDir = join("/tmp", "resolve-cwd-test");
+	// Use os.tmpdir() for cross-platform temp directory
+	const testDir = join(os.tmpdir(), "resolve-cwd-test");
 	const worktreePath = join(testDir, "worktree");
 	const existingSubdir = join(worktreePath, "apps/desktop");
 	const homedir = os.homedir();
@@ -37,8 +37,9 @@ describe("resolveCwd", () => {
 
 	describe("when cwdOverride is absolute", () => {
 		test("returns absolute path if it exists", () => {
-			// /tmp always exists on unix systems
-			expect(resolveCwd("/tmp", worktreePath)).toBe("/tmp");
+			// Use os.tmpdir() which exists on all platforms
+			const tmpDir = os.tmpdir();
+			expect(resolveCwd(tmpDir, worktreePath)).toBe(tmpDir);
 		});
 
 		test("falls back to worktreePath when absolute path does not exist", () => {

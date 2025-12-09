@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
 import os from "node:os";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 
 /**
  * Resolves a cwd path against a base worktree path.
  *
- * - Absolute paths (starting with `/`) are returned as-is if they exist
+ * - Absolute paths (Unix `/...` or Windows `C:\...`, UNC `\\...`) are returned as-is if they exist
  * - Relative paths (e.g., `apps/desktop`, `./apps/desktop`) are resolved against the worktree
  * - If the resolved path doesn't exist, falls back to worktreePath
  * - If no cwdOverride is provided, returns the worktreePath
@@ -23,8 +23,8 @@ export function resolveCwd(
 		return validWorktreePath;
 	}
 
-	// Absolute path - use if exists, otherwise fall back
-	if (cwdOverride.startsWith("/")) {
+	// Absolute path (Unix `/...`, Windows `C:\...`, UNC `\\...`) - use if exists, otherwise fall back
+	if (isAbsolute(cwdOverride)) {
 		if (existsSync(cwdOverride)) {
 			return cwdOverride;
 		}
