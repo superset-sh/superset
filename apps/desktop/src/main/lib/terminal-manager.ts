@@ -8,7 +8,7 @@ import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
 	pty: pty.IPty;
-	tabId: string;
+	paneId: string;
 	workspaceId: string;
 	cwd: string;
 	cols: number;
@@ -45,6 +45,7 @@ export class TerminalManager extends EventEmitter {
 	private readonly DEFAULT_ROWS = 24;
 
 	async createOrAttach(params: {
+		paneId: string;
 		tabId: string;
 		workspaceId: string;
 		cwd?: string;
@@ -57,6 +58,7 @@ export class TerminalManager extends EventEmitter {
 		wasRecovered: boolean;
 	}> {
 		const {
+			paneId,
 			tabId,
 			workspaceId,
 			cwd,
@@ -65,17 +67,17 @@ export class TerminalManager extends EventEmitter {
 			initialCommands,
 		} = params;
 
-		// Deduplicate concurrent calls for the same tabId (prevents race in React Strict Mode)
-		const pending = this.pendingSessions.get(tabId);
+		// Deduplicate concurrent calls for the same paneId (prevents race in React Strict Mode)
+		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
 			return pending;
 		}
 
-		const existing = this.sessions.get(tabId);
+		const existing = this.sessions.get(paneId);
 		if (existing?.isAlive) {
 			existing.lastActive = Date.now();
 			if (cols !== undefined && rows !== undefined) {
-				this.resize({ tabId, cols, rows });
+				this.resize({ paneId, cols, rows });
 			}
 			return {
 				isNew: false,
@@ -86,6 +88,7 @@ export class TerminalManager extends EventEmitter {
 
 		// Track this creation to prevent duplicate sessions from concurrent calls
 		const creationPromise = this.doCreateSession({
+			paneId,
 			tabId,
 			workspaceId,
 			cwd,
@@ -94,16 +97,17 @@ export class TerminalManager extends EventEmitter {
 			initialCommands,
 			existingScrollback: existing?.scrollback || null,
 		});
-		this.pendingSessions.set(tabId, creationPromise);
+		this.pendingSessions.set(paneId, creationPromise);
 
 		try {
 			return await creationPromise;
 		} finally {
-			this.pendingSessions.delete(tabId);
+			this.pendingSessions.delete(paneId);
 		}
 	}
 
 	private async doCreateSession(params: {
+		paneId: string;
 		tabId: string;
 		workspaceId: string;
 		cwd?: string;
@@ -117,6 +121,7 @@ export class TerminalManager extends EventEmitter {
 		wasRecovered: boolean;
 	}> {
 		const {
+			paneId,
 			tabId,
 			workspaceId,
 			cwd,
@@ -136,7 +141,8 @@ export class TerminalManager extends EventEmitter {
 		const env = {
 			...baseEnv,
 			...shellEnv,
-			SUPERSET_PANE_ID: tabId, // tabId param is actually paneId
+			SUPERSET_PANE_ID: paneId,
+			SUPERSET_TAB_ID: tabId,
 			SUPERSET_WORKSPACE_ID: workspaceId,
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
@@ -148,7 +154,7 @@ export class TerminalManager extends EventEmitter {
 			recoveredScrollback = existingScrollback;
 			wasRecovered = true;
 		} else {
-			const historyReader = new HistoryReader(workspaceId, tabId);
+			const historyReader = new HistoryReader(workspaceId, paneId);
 			const history = await historyReader.read();
 			if (history.scrollback) {
 				recoveredScrollback = history.scrollback;
@@ -176,7 +182,7 @@ export class TerminalManager extends EventEmitter {
 		// Initialize history writer with recovered scrollback
 		const historyWriter = new HistoryWriter(
 			workspaceId,
-			tabId,
+			paneId,
 			workingDir,
 			terminalCols,
 			terminalRows,
@@ -185,7 +191,7 @@ export class TerminalManager extends EventEmitter {
 
 		const session: TerminalSession = {
 			pty: ptyProcess,
-			tabId,
+			paneId,
 			workspaceId,
 			cwd: workingDir,
 			cols: terminalCols,
@@ -210,7 +216,7 @@ export class TerminalManager extends EventEmitter {
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
 			// Emit ORIGINAL data to xterm - it needs to process query responses
-			this.emit(`data:${tabId}`, data);
+			this.emit(`data:${paneId}`, data);
 
 			// Send initial commands after shell outputs first data (prompt ready)
 			if (shouldRunCommands && !commandsSent) {
@@ -236,15 +242,15 @@ export class TerminalManager extends EventEmitter {
 			}
 
 			await this.closeHistory(session, exitCode);
-			this.emit(`exit:${tabId}`, exitCode, signal);
+			this.emit(`exit:${paneId}`, exitCode, signal);
 
 			const timeout = setTimeout(() => {
-				this.sessions.delete(tabId);
+				this.sessions.delete(paneId);
 			}, 5000);
 			timeout.unref();
 		});
 
-		this.sessions.set(tabId, session);
+		this.sessions.set(paneId, session);
 
 		return {
 			isNew: true,
@@ -253,12 +259,12 @@ export class TerminalManager extends EventEmitter {
 		};
 	}
 
-	write(params: { tabId: string; data: string }): void {
-		const { tabId, data } = params;
-		const session = this.sessions.get(tabId);
+	write(params: { paneId: string; data: string }): void {
+		const { paneId, data } = params;
+		const session = this.sessions.get(paneId);
 
 		if (!session || !session.isAlive) {
-			throw new Error(`Terminal session ${tabId} not found or not alive`);
+			throw new Error(`Terminal session ${paneId} not found or not alive`);
 		}
 
 		session.pty.write(data);
@@ -266,17 +272,17 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	resize(params: {
-		tabId: string;
+		paneId: string;
 		cols: number;
 		rows: number;
 		seq?: number;
 	}): void {
-		const { tabId, cols, rows } = params;
-		const session = this.sessions.get(tabId);
+		const { paneId, cols, rows } = params;
+		const session = this.sessions.get(paneId);
 
 		if (!session || !session.isAlive) {
 			console.warn(
-				`Cannot resize terminal ${tabId}: session not found or not alive`,
+				`Cannot resize terminal ${paneId}: session not found or not alive`,
 			);
 			return;
 		}
@@ -287,13 +293,13 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	signal(params: { tabId: string; signal?: string }): void {
-		const { tabId, signal = "SIGTERM" } = params;
-		const session = this.sessions.get(tabId);
+	signal(params: { paneId: string; signal?: string }): void {
+		const { paneId, signal = "SIGTERM" } = params;
+		const session = this.sessions.get(paneId);
 
 		if (!session || !session.isAlive) {
 			console.warn(
-				`Cannot signal terminal ${tabId}: session not found or not alive`,
+				`Cannot signal terminal ${paneId}: session not found or not alive`,
 			);
 			return;
 		}
@@ -303,14 +309,14 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	async kill(params: {
-		tabId: string;
+		paneId: string;
 		deleteHistory?: boolean;
 	}): Promise<void> {
-		const { tabId, deleteHistory = false } = params;
-		const session = this.sessions.get(tabId);
+		const { paneId, deleteHistory = false } = params;
+		const session = this.sessions.get(paneId);
 
 		if (!session) {
-			console.warn(`Cannot kill terminal ${tabId}: session not found`);
+			console.warn(`Cannot kill terminal ${paneId}: session not found`);
 			return;
 		}
 
@@ -322,28 +328,28 @@ export class TerminalManager extends EventEmitter {
 			session.pty.kill();
 		} else {
 			await this.closeHistory(session);
-			this.sessions.delete(tabId);
+			this.sessions.delete(paneId);
 		}
 	}
 
-	detach(params: { tabId: string }): void {
-		const { tabId } = params;
-		const session = this.sessions.get(tabId);
+	detach(params: { paneId: string }): void {
+		const { paneId } = params;
+		const session = this.sessions.get(paneId);
 
 		if (!session) {
-			console.warn(`Cannot detach terminal ${tabId}: session not found`);
+			console.warn(`Cannot detach terminal ${paneId}: session not found`);
 			return;
 		}
 
 		session.lastActive = Date.now();
 	}
 
-	getSession(tabId: string): {
+	getSession(paneId: string): {
 		isAlive: boolean;
 		cwd: string;
 		lastActive: number;
 	} | null {
-		const session = this.sessions.get(tabId);
+		const session = this.sessions.get(paneId);
 		if (!session) {
 			return null;
 		}
@@ -528,7 +534,7 @@ export class TerminalManager extends EventEmitter {
 			}
 			const historyReader = new HistoryReader(
 				session.workspaceId,
-				session.tabId,
+				session.paneId,
 			);
 			await historyReader.cleanup();
 			return;

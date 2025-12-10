@@ -204,7 +204,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.clear();
 			createOrAttachRef.current(
 				{
-					tabId: paneId,
+					paneId,
+					tabId: parentTabIdRef.current || paneId,
 					workspaceId,
 					cols: xterm.cols,
 					rows: xterm.rows,
@@ -227,7 +228,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				restartTerminal();
 				return;
 			}
-			writeRef.current({ tabId: paneId, data });
+			writeRef.current({ paneId, data });
 		};
 
 		const handleKeyPress = (event: {
@@ -259,7 +260,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		createOrAttachRef.current(
 			{
-				tabId: paneId,
+				paneId,
+				tabId: parentTabIdRef.current || paneId,
 				workspaceId,
 				cols: xterm.cols,
 				rows: xterm.rows,
@@ -291,7 +293,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
-					writeRef.current({ tabId: paneId, data: "\\\n" });
+					writeRef.current({ paneId, data: "\\\n" });
 				}
 			},
 			onClear: () => {
@@ -307,7 +309,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			(cols, rows) => {
-				resizeRef.current({ tabId: paneId, cols, rows });
+				resizeRef.current({ paneId, cols, rows });
 			},
 		);
 		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
@@ -328,7 +330,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupQuerySuppression();
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ tabId: paneId });
+			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
@@ -360,7 +362,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const text = shellEscapePaths(paths);
 
 		if (!isExitedRef.current) {
-			writeRef.current({ tabId: paneId, data: text });
+			writeRef.current({ paneId, data: text });
 		}
 	};
 

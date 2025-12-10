@@ -63,6 +63,7 @@ fi
 
 curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/complete" \\
   --data-urlencode "paneId=$SUPERSET_PANE_ID" \\
+  --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
   --data-urlencode "eventType=$EVENT_TYPE" \\
   > /dev/null 2>&1

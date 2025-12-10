@@ -7,7 +7,7 @@ import { publicProcedure, router } from "..";
 
 type NotificationEvent =
 	| { type: "agent-complete"; data: AgentCompleteEvent }
-	| { type: "focus-tab"; data: { paneId: string; workspaceId: string } };
+	| { type: "focus-tab"; data: { paneId: string; tabId: string; workspaceId: string } };
 
 export const createNotificationsRouter = () => {
 	return router({
@@ -20,7 +20,7 @@ export const createNotificationsRouter = () => {
 					emit.next({ type: "agent-complete", data: event });
 				};
 
-				const onFocusTab = (data: { paneId: string; workspaceId: string }) => {
+				const onFocusTab = (data: { paneId: string; tabId: string; workspaceId: string }) => {
 					emit.next({ type: "focus-tab", data });
 				};
 

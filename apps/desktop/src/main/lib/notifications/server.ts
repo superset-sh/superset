@@ -3,6 +3,7 @@ import express from "express";
 
 export interface AgentCompleteEvent {
 	paneId: string;
+	tabId: string;
 	workspaceId: string;
 	eventType: "Stop" | "PermissionRequest";
 }
@@ -23,7 +24,7 @@ app.use((req, res, next) => {
 
 // Agent completion hook
 app.get("/hook/complete", (req, res) => {
-	const { paneId, workspaceId, eventType } = req.query;
+	const { paneId, tabId, workspaceId, eventType } = req.query;
 
 	if (!paneId || typeof paneId !== "string") {
 		return res.status(400).json({ error: "Missing paneId parameter" });
@@ -31,6 +32,7 @@ app.get("/hook/complete", (req, res) => {
 
 	const event: AgentCompleteEvent = {
 		paneId,
+		tabId: (tabId as string) || "",
 		workspaceId: (workspaceId as string) || "",
 		eventType: eventType === "PermissionRequest" ? "PermissionRequest" : "Stop",
 	};

@@ -122,6 +122,7 @@ export async function MainWindow() {
 				// Request focus on the specific pane
 				notificationsEmitter.emit("focus-tab", {
 					paneId: event.paneId,
+					tabId: event.tabId,
 					workspaceId: event.workspaceId,
 				});
 			});

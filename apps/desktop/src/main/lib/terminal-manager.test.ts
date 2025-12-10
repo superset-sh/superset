@@ -79,6 +79,7 @@ describe("TerminalManager", () => {
 	describe("createOrAttach", () => {
 		it("should create a new terminal session", async () => {
 			const result = await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
@@ -102,6 +103,7 @@ describe("TerminalManager", () => {
 
 		it("should reuse existing terminal session", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
@@ -111,6 +113,7 @@ describe("TerminalManager", () => {
 				.length;
 
 			const result = await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -124,6 +127,7 @@ describe("TerminalManager", () => {
 
 		it("should update size when reattaching with new dimensions", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cols: 80,
@@ -131,6 +135,7 @@ describe("TerminalManager", () => {
 			});
 
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cols: 100,
@@ -142,15 +147,16 @@ describe("TerminalManager", () => {
 
 		it("should filter recovered scrollback from history", async () => {
 			const workspaceId = "workspace-1";
-			const tabId = "tab-recover";
-			const historyDir = getHistoryDir(workspaceId, tabId);
+			const paneId = "pane-recover";
+			const historyDir = getHistoryDir(workspaceId, paneId);
 			await fs.mkdir(historyDir, { recursive: true });
 			const ESC = "\x1b";
 			const rawScrollback = `before${ESC}[1;1Rafter${ESC}[?1;0c`;
 			await fs.writeFile(join(historyDir, "scrollback.bin"), rawScrollback);
 
 			const result = await manager.createOrAttach({
-				tabId,
+				paneId,
+				tabId: "tab-recover",
 				workspaceId,
 			});
 
@@ -162,12 +168,13 @@ describe("TerminalManager", () => {
 	describe("write", () => {
 		it("should write data to terminal", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			manager.write({
-				tabId: "tab-1",
+				paneId: "pane-1",
 				data: "ls -la\n",
 			});
 
@@ -177,7 +184,7 @@ describe("TerminalManager", () => {
 		it("should throw error for non-existent session", () => {
 			expect(() => {
 				manager.write({
-					tabId: "non-existent",
+					paneId: "non-existent",
 					data: "test",
 				});
 			}).toThrow("Terminal session non-existent not found or not alive");
@@ -187,12 +194,13 @@ describe("TerminalManager", () => {
 	describe("resize", () => {
 		it("should resize terminal", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			manager.resize({
-				tabId: "tab-1",
+				paneId: "pane-1",
 				cols: 120,
 				rows: 40,
 			});
@@ -209,7 +217,7 @@ describe("TerminalManager", () => {
 			// Should not throw
 			expect(() => {
 				manager.resize({
-					tabId: "non-existent",
+					paneId: "non-existent",
 					cols: 80,
 					rows: 24,
 				});
@@ -227,12 +235,13 @@ describe("TerminalManager", () => {
 	describe("signal", () => {
 		it("should send signal to terminal", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			manager.signal({
-				tabId: "tab-1",
+				paneId: "pane-1",
 				signal: "SIGINT",
 			});
 
@@ -241,12 +250,13 @@ describe("TerminalManager", () => {
 
 		it("should use SIGTERM by default", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			manager.signal({
-				tabId: "tab-1",
+				paneId: "pane-1",
 			});
 
 			expect(mockPty.kill).toHaveBeenCalledWith("SIGTERM");
@@ -256,6 +266,7 @@ describe("TerminalManager", () => {
 	describe("kill", () => {
 		it("should kill and preserve history by default", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
@@ -268,10 +279,10 @@ describe("TerminalManager", () => {
 			}
 
 			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:tab-1", () => resolve());
+				manager.once("exit:pane-1", () => resolve());
 			});
 
-			await manager.kill({ tabId: "tab-1" });
+			await manager.kill({ paneId: "pane-1" });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
@@ -286,7 +297,7 @@ describe("TerminalManager", () => {
 			// Verify history directory still exists (preserved)
 			const historyDir = join(
 				testTmpDir,
-				".superset/terminal-history/workspace-1/tab-1",
+				".superset/terminal-history/workspace-1/pane-1",
 			);
 			const stats = await fs.stat(historyDir);
 			expect(stats.isDirectory()).toBe(true);
@@ -294,6 +305,7 @@ describe("TerminalManager", () => {
 
 		it("should delete history when deleteHistory flag is true", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-delete-history",
 				tabId: "tab-delete-history",
 				workspaceId: "workspace-1",
 			});
@@ -306,10 +318,10 @@ describe("TerminalManager", () => {
 			}
 
 			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:tab-delete-history", () => resolve());
+				manager.once("exit:pane-delete-history", () => resolve());
 			});
 
-			await manager.kill({ tabId: "tab-delete-history", deleteHistory: true });
+			await manager.kill({ paneId: "pane-delete-history", deleteHistory: true });
 
 			expect(mockPty.kill).toHaveBeenCalled();
 
@@ -324,7 +336,7 @@ describe("TerminalManager", () => {
 			// Verify history directory was deleted
 			const historyDir = join(
 				testTmpDir,
-				".superset/terminal-history/workspace-1/tab-delete-history",
+				".superset/terminal-history/workspace-1/pane-delete-history",
 			);
 			const exists = await fs
 				.stat(historyDir)
@@ -336,6 +348,7 @@ describe("TerminalManager", () => {
 		it("should preserve history for recovery after kill without deleteHistory", async () => {
 			// Create and write some data
 			await manager.createOrAttach({
+				paneId: "pane-preserve",
 				tabId: "tab-preserve",
 				workspaceId: "workspace-1",
 			});
@@ -347,10 +360,10 @@ describe("TerminalManager", () => {
 			}
 
 			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:tab-preserve", () => resolve());
+				manager.once("exit:pane-preserve", () => resolve());
 			});
 
-			await manager.kill({ tabId: "tab-preserve" });
+			await manager.kill({ paneId: "pane-preserve" });
 
 			const onExitCallback =
 				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
@@ -362,6 +375,7 @@ describe("TerminalManager", () => {
 
 			// Recreate session - should recover history from filesystem
 			const result = await manager.createOrAttach({
+				paneId: "pane-preserve",
 				tabId: "tab-preserve",
 				workspaceId: "workspace-1",
 			});
@@ -374,13 +388,14 @@ describe("TerminalManager", () => {
 	describe("detach", () => {
 		it("should keep session alive after detach", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
-			manager.detach({ tabId: "tab-1" });
+			manager.detach({ paneId: "pane-1" });
 
-			const session = manager.getSession("tab-1");
+			const session = manager.getSession("pane-1");
 			expect(session).not.toBeNull();
 			expect(session?.isAlive).toBe(true);
 		});
@@ -389,12 +404,13 @@ describe("TerminalManager", () => {
 	describe("getSession", () => {
 		it("should return session metadata", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 				cwd: "/test/path",
 			});
 
-			const session = manager.getSession("tab-1");
+			const session = manager.getSession("pane-1");
 
 			expect(session).toMatchObject({
 				isAlive: true,
@@ -412,11 +428,13 @@ describe("TerminalManager", () => {
 	describe("cleanup", () => {
 		it("should kill all sessions and wait for exit handlers", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			await manager.createOrAttach({
+				paneId: "pane-2",
 				tabId: "tab-2",
 				workspaceId: "workspace-1",
 			});
@@ -440,6 +458,7 @@ describe("TerminalManager", () => {
 
 		it("should preserve history during cleanup", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-cleanup",
 				tabId: "tab-cleanup",
 				workspaceId: "workspace-1",
 			});
@@ -463,7 +482,7 @@ describe("TerminalManager", () => {
 			// Verify history was preserved (directory still exists)
 			const historyDir = join(
 				testTmpDir,
-				".superset/terminal-history/workspace-1/tab-cleanup",
+				".superset/terminal-history/workspace-1/pane-cleanup",
 			);
 			const stats = await fs.stat(historyDir);
 			expect(stats.isDirectory()).toBe(true);
@@ -475,11 +494,12 @@ describe("TerminalManager", () => {
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
-			manager.on("data:tab-1", dataHandler);
+			manager.on("data:pane-1", dataHandler);
 
 			const onDataCallback = mockPty.onData.mock.results[0]?.value;
 			if (onDataCallback) {
@@ -493,11 +513,12 @@ describe("TerminalManager", () => {
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
+				paneId: "pane-raw",
 				tabId: "tab-raw",
 				workspaceId: "workspace-1",
 			});
 
-			manager.on("data:tab-raw", dataHandler);
+			manager.on("data:pane-raw", dataHandler);
 
 			const onDataCallback = mockPty.onData.mock.results[0]?.value;
 			const dataWithEscapes =
@@ -514,16 +535,17 @@ describe("TerminalManager", () => {
 			const exitHandler = mock(() => {});
 
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
 
 			// Listen for exit event
 			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:tab-1", () => resolve());
+				manager.once("exit:pane-1", () => resolve());
 			});
 
-			manager.on("exit:tab-1", exitHandler);
+			manager.on("exit:pane-1", exitHandler);
 
 			const onExitCallback = mockPty.onExit.mock.results[0]?.value;
 			if (onExitCallback) {
@@ -539,6 +561,7 @@ describe("TerminalManager", () => {
 	describe("killByWorkspaceId", () => {
 		it("should kill session for a workspace and return count", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-kill-single",
 				tabId: "tab-kill-single",
 				workspaceId: "workspace-kill-single",
 			});
@@ -551,6 +574,7 @@ describe("TerminalManager", () => {
 
 		it("should not kill sessions from other workspaces", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-other",
 				tabId: "tab-other",
 				workspaceId: "workspace-other",
 			});
@@ -558,8 +582,8 @@ describe("TerminalManager", () => {
 			await manager.killByWorkspaceId("workspace-different");
 
 			// Session should still exist
-			expect(manager.getSession("tab-other")).not.toBeNull();
-			expect(manager.getSession("tab-other")?.isAlive).toBe(true);
+			expect(manager.getSession("pane-other")).not.toBeNull();
+			expect(manager.getSession("pane-other")?.isAlive).toBe(true);
 		});
 
 		it("should return zero counts for non-existent workspace", async () => {
@@ -571,6 +595,7 @@ describe("TerminalManager", () => {
 
 		it("should delete history for killed sessions", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-kill-history",
 				tabId: "tab-kill-history",
 				workspaceId: "workspace-kill",
 			});
@@ -590,7 +615,7 @@ describe("TerminalManager", () => {
 			// Verify history directory was deleted
 			const historyDir = join(
 				testTmpDir,
-				".superset/terminal-history/workspace-kill/tab-kill-history",
+				".superset/terminal-history/workspace-kill/pane-kill-history",
 			);
 			const exists = await fs
 				.stat(historyDir)
@@ -601,6 +626,7 @@ describe("TerminalManager", () => {
 
 		it("should clean up already-dead sessions", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-dead",
 				tabId: "tab-dead",
 				workspaceId: "workspace-dead",
 			});
@@ -625,16 +651,19 @@ describe("TerminalManager", () => {
 	describe("getSessionCountByWorkspaceId", () => {
 		it("should return count of active sessions for workspace", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-count",
 			});
 
 			await manager.createOrAttach({
+				paneId: "pane-2",
 				tabId: "tab-2",
 				workspaceId: "workspace-count",
 			});
 
 			await manager.createOrAttach({
+				paneId: "pane-3",
 				tabId: "tab-3",
 				workspaceId: "other-workspace",
 			});
@@ -649,11 +678,13 @@ describe("TerminalManager", () => {
 
 		it("should not count dead sessions", async () => {
 			await manager.createOrAttach({
+				paneId: "pane-alive",
 				tabId: "tab-alive",
 				workspaceId: "workspace-mixed",
 			});
 
 			await manager.createOrAttach({
+				paneId: "pane-dead",
 				tabId: "tab-dead",
 				workspaceId: "workspace-mixed",
 			});
@@ -676,6 +707,7 @@ describe("TerminalManager", () => {
 		it("should persist history across multiple sessions", async () => {
 			// Session 1: Create and write data
 			const result1 = await manager.createOrAttach({
+				paneId: "pane-multi",
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
 			});
@@ -690,7 +722,7 @@ describe("TerminalManager", () => {
 			}
 
 			const exitPromise1 = new Promise<void>((resolve) => {
-				manager.once("exit:tab-multi", () => resolve());
+				manager.once("exit:pane-multi", () => resolve());
 			});
 
 			const onExitCallback1 =
@@ -704,6 +736,7 @@ describe("TerminalManager", () => {
 
 			// Session 2: Should recover Session 1 data
 			const result2 = await manager.createOrAttach({
+				paneId: "pane-multi",
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
 			});
@@ -719,7 +752,7 @@ describe("TerminalManager", () => {
 			}
 
 			const exitPromise2 = new Promise<void>((resolve) => {
-				manager.once("exit:tab-multi", () => resolve());
+				manager.once("exit:pane-multi", () => resolve());
 			});
 
 			const onExitCallback2 =
@@ -733,6 +766,7 @@ describe("TerminalManager", () => {
 
 			// Session 3: Should recover both Session 1 and Session 2 data
 			const result3 = await manager.createOrAttach({
+				paneId: "pane-multi",
 				tabId: "tab-multi",
 				workspaceId: "workspace-1",
 			});

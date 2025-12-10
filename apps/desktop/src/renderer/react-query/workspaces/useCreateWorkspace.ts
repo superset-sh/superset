@@ -35,7 +35,8 @@ export function useCreateWorkspace(
 				// Pre-create terminal session with initial commands
 				// Terminal component will attach to this session when it mounts
 				createOrAttach.mutate({
-					tabId: paneId,
+					paneId,
+					tabId,
 					workspaceId: data.workspace.id,
 					initialCommands: data.initialCommands,
 				});

@@ -8,11 +8,12 @@ import { resolveCwd } from "./utils";
 
 /**
  * Terminal router using TerminalManager with node-pty
- * Sessions are keyed by tabId and linked to workspaces for cwd resolution
+ * Sessions are keyed by paneId and linked to workspaces for cwd resolution
  *
  * Environment variables set for terminal sessions:
  * - PATH: Prepends ~/.superset/bin so wrapper scripts intercept agent commands
- * - SUPERSET_PANE_ID: The pane ID (used by notification hooks)
+ * - SUPERSET_PANE_ID: The pane ID (used by notification hooks, session key)
+ * - SUPERSET_TAB_ID: The tab ID (parent of pane, used by notification hooks)
  * - SUPERSET_WORKSPACE_ID: The workspace ID (used by notification hooks)
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
@@ -21,6 +22,7 @@ export const createTerminalRouter = () => {
 		createOrAttach: publicProcedure
 			.input(
 				z.object({
+					paneId: z.string(),
 					tabId: z.string(),
 					workspaceId: z.string(),
 					cols: z.number().optional(),
@@ -31,6 +33,7 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const {
+					paneId,
 					tabId,
 					workspaceId,
 					cols,
@@ -47,6 +50,7 @@ export const createTerminalRouter = () => {
 				const cwd = resolveCwd(cwdOverride, worktreePath);
 
 				const result = await terminalManager.createOrAttach({
+					paneId,
 					tabId,
 					workspaceId,
 					cwd,
@@ -56,7 +60,7 @@ export const createTerminalRouter = () => {
 				});
 
 				return {
-					tabId,
+					paneId,
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
@@ -66,7 +70,7 @@ export const createTerminalRouter = () => {
 		write: publicProcedure
 			.input(
 				z.object({
-					tabId: z.string(),
+					paneId: z.string(),
 					data: z.string(),
 				}),
 			)
@@ -77,7 +81,7 @@ export const createTerminalRouter = () => {
 		resize: publicProcedure
 			.input(
 				z.object({
-					tabId: z.string(),
+					paneId: z.string(),
 					cols: z.number(),
 					rows: z.number(),
 					seq: z.number().optional(),
@@ -90,7 +94,7 @@ export const createTerminalRouter = () => {
 		signal: publicProcedure
 			.input(
 				z.object({
-					tabId: z.string(),
+					paneId: z.string(),
 					signal: z.string().optional(),
 				}),
 			)
@@ -101,7 +105,7 @@ export const createTerminalRouter = () => {
 		kill: publicProcedure
 			.input(
 				z.object({
-					tabId: z.string(),
+					paneId: z.string(),
 					deleteHistory: z.boolean().optional(),
 				}),
 			)
@@ -115,7 +119,7 @@ export const createTerminalRouter = () => {
 		detach: publicProcedure
 			.input(
 				z.object({
-					tabId: z.string(),
+					paneId: z.string(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -124,8 +128,8 @@ export const createTerminalRouter = () => {
 
 		getSession: publicProcedure
 			.input(z.string())
-			.query(async ({ input: tabId }) => {
-				return terminalManager.getSession(tabId);
+			.query(async ({ input: paneId }) => {
+				return terminalManager.getSession(paneId);
 			}),
 
 		/**
@@ -148,7 +152,7 @@ export const createTerminalRouter = () => {
 
 		stream: publicProcedure
 			.input(z.string())
-			.subscription(({ input: tabId }) => {
+			.subscription(({ input: paneId }) => {
 				return observable<
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
@@ -162,13 +166,13 @@ export const createTerminalRouter = () => {
 						emit.complete();
 					};
 
-					terminalManager.on(`data:${tabId}`, onData);
-					terminalManager.on(`exit:${tabId}`, onExit);
+					terminalManager.on(`data:${paneId}`, onData);
+					terminalManager.on(`exit:${paneId}`, onExit);
 
 					// Cleanup on unsubscribe
 					return () => {
-						terminalManager.off(`data:${tabId}`, onData);
-						terminalManager.off(`exit:${tabId}`, onExit);
+						terminalManager.off(`data:${paneId}`, onData);
+						terminalManager.off(`exit:${paneId}`, onExit);
 					};
 				});
 			}),
