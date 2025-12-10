@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { ModeHeader } from "./ModeHeader";
 import type { SidebarMode } from "./types";
 
 interface ModeContentProps {
@@ -17,7 +16,6 @@ export function ModeContent({ mode, children }: ModeContentProps) {
 				scrollSnapStop: "always",
 			}}
 		>
-			<ModeHeader mode={mode} />
 			<div className="px-1 flex-1 min-h-0">{children}</div>
 		</div>
 	);

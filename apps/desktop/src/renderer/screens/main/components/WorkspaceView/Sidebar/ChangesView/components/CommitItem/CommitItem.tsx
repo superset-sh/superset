@@ -1,3 +1,8 @@
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
@@ -34,12 +39,12 @@ export function CommitItem({
 	selectedCommitHash,
 	onFileSelect,
 }: CommitItemProps) {
+	const hasFiles = commit.files.length > 0;
+
 	return (
-		<div>
+		<Collapsible open={isExpanded} onOpenChange={onToggle}>
 			{/* Commit header */}
-			<button
-				type="button"
-				onClick={onToggle}
+			<CollapsibleTrigger
 				className={cn(
 					"w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm",
 					"hover:bg-accent/50 cursor-pointer transition-colors",
@@ -63,11 +68,11 @@ export function CommitItem({
 				<span className="text-xs text-muted-foreground flex-shrink-0">
 					{formatRelativeDate(commit.date)}
 				</span>
-			</button>
+			</CollapsibleTrigger>
 
 			{/* Files in commit (when expanded) */}
-			{isExpanded && commit.files.length > 0 && (
-				<div className="ml-4 pl-2 border-l border-border">
+			{hasFiles && (
+				<CollapsibleContent className="ml-4 pl-2 border-l border-border">
 					{commit.files.map((file) => (
 						<FileItem
 							key={file.path}
@@ -80,8 +85,8 @@ export function CommitItem({
 							showStats={false}
 						/>
 					))}
-				</div>
+				</CollapsibleContent>
 			)}
-		</div>
+		</Collapsible>
 	);
 }

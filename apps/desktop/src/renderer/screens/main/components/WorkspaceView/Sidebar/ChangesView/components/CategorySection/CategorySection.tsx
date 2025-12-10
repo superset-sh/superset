@@ -1,3 +1,8 @@
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
@@ -24,12 +29,14 @@ export function CategorySection({
 	}
 
 	return (
-		<div className="border-b border-border last:border-b-0">
+		<Collapsible
+			open={isExpanded}
+			onOpenChange={onToggle}
+			className="border-b border-border last:border-b-0"
+		>
 			{/* Section header */}
 			<div className="flex items-center">
-				<button
-					type="button"
-					onClick={onToggle}
+				<CollapsibleTrigger
 					className={cn(
 						"flex-1 flex items-center gap-2 px-3 py-2 text-left",
 						"hover:bg-accent/30 cursor-pointer transition-colors",
@@ -42,12 +49,12 @@ export function CategorySection({
 					)}
 					<span className="text-sm font-medium">{title}</span>
 					<span className="text-xs text-muted-foreground">({count})</span>
-				</button>
+				</CollapsibleTrigger>
 				{actions && <div className="pr-2">{actions}</div>}
 			</div>
 
 			{/* Section content */}
-			{isExpanded && <div className="px-1 pb-2">{children}</div>}
-		</div>
+			<CollapsibleContent className="px-1 pb-2">{children}</CollapsibleContent>
+		</Collapsible>
 	);
 }
