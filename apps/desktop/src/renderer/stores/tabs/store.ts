@@ -2,7 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { electronStorage } from "../../lib/electron-storage";
+import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
@@ -15,7 +15,7 @@ import {
 	isLastPaneInTab,
 	removePaneFromLayout,
 } from "./utils";
-import { killTerminalForTab } from "./utils/terminal-cleanup";
+import { killTerminalForPane } from "./utils/terminal-cleanup";
 
 /**
  * Finds the next best tab to activate when closing a tab.
@@ -125,7 +125,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Kill all terminals for panes in this tab
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
 					for (const paneId of paneIds) {
-						killTerminalForTab(paneId);
+						killTerminalForPane(paneId);
 					}
 
 					// Remove all panes belonging to this tab
@@ -291,7 +291,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = { ...state.panes };
 					for (const paneId of removedPaneIds) {
-						killTerminalForTab(paneId);
+						killTerminalForPane(paneId);
 						delete newPanes[paneId];
 					}
 
@@ -362,7 +362,7 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// Kill the terminal
-					killTerminalForTab(paneId);
+					killTerminalForPane(paneId);
 
 					// Remove pane from layout
 					const newLayout = removePaneFromLayout(tab.layout, paneId);
@@ -607,7 +607,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				storage: electronStorage,
+				storage: trpcTabsStorage,
 			},
 		),
 		{ name: "TabsStore" },

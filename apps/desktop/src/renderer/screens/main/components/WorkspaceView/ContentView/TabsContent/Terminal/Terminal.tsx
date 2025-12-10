@@ -26,7 +26,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
 	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
-	const paneName = pane?.name || "Terminal";
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
@@ -83,9 +82,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
-
-	const paneNameRef = useRef(paneName);
-	paneNameRef.current = paneName;
 
 	const setTabAutoTitleRef = useRef(setTabAutoTitle);
 	setTabAutoTitleRef.current = setTabAutoTitle;
@@ -211,9 +207,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.clear();
 			createOrAttachRef.current(
 				{
-					tabId: paneId,
+					paneId,
+					tabId: parentTabIdRef.current || paneId,
 					workspaceId,
-					tabTitle: paneNameRef.current,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -235,7 +231,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				restartTerminal();
 				return;
 			}
-			writeRef.current({ tabId: paneId, data });
+			writeRef.current({ paneId, data });
 		};
 
 		const handleKeyPress = (event: {
@@ -267,9 +263,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		createOrAttachRef.current(
 			{
-				tabId: paneId,
+				paneId,
+				tabId: parentTabIdRef.current || paneId,
 				workspaceId,
-				tabTitle: paneNameRef.current,
 				cols: xterm.cols,
 				rows: xterm.rows,
 				initialCommands,
@@ -300,12 +296,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
-					writeRef.current({ tabId: paneId, data: "\\\n" });
+					writeRef.current({ paneId, data: "\\\n" });
 				}
 			},
 			onClear: () => {
 				xterm.clear();
-				clearScrollbackRef.current({ tabId: paneId });
+				clearScrollbackRef.current({ paneId });
 			},
 		});
 
@@ -317,7 +313,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			(cols, rows) => {
-				resizeRef.current({ tabId: paneId, cols, rows });
+				resizeRef.current({ paneId, cols, rows });
 			},
 		);
 		const cleanupPaste = setupPasteHandler(xterm, {
@@ -336,7 +332,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupPaste();
 			cleanupQuerySuppression();
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			detachRef.current({ tabId: paneId });
+			// Detach instead of kill to keep PTY running for reattachment
+			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
@@ -368,7 +365,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const text = shellEscapePaths(paths);
 
 		if (!isExitedRef.current) {
-			writeRef.current({ tabId: paneId, data: text });
+			writeRef.current({ paneId, data: text });
 		}
 	};
 
