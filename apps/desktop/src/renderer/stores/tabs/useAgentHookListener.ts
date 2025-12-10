@@ -15,6 +15,8 @@ export function useAgentHookListener() {
 		onData: (event) => {
 			if (event.type === "agent-complete") {
 				const { paneId, workspaceId } = event.data;
+				if (!paneId || !workspaceId) return;
+
 				const state = useTabsStore.getState();
 
 				// Find the tab containing this pane
@@ -32,6 +34,7 @@ export function useAgentHookListener() {
 				}
 			} else if (event.type === "focus-tab") {
 				const { paneId, workspaceId } = event.data;
+				if (!paneId || !workspaceId) return;
 
 				// Switch to workspace view if not already there
 				const appState = useAppStore.getState();

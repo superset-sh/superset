@@ -18,9 +18,13 @@ export const PORTS = {
 
 // Note: For environment-aware paths, use main/lib/app-environment.ts instead.
 // Paths require Node.js/Electron APIs that aren't available in renderer.
+export const SUPERSET_DIR_NAMES = {
+	DEV: ".superset-dev",
+	PROD: ".superset",
+} as const;
 export const SUPERSET_DIR_NAME = ENVIRONMENT.IS_DEV
-	? ".superset-dev"
-	: ".superset";
+	? SUPERSET_DIR_NAMES.DEV
+	: SUPERSET_DIR_NAMES.PROD;
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";

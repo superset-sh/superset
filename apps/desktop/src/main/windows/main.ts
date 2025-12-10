@@ -79,8 +79,6 @@ export async function MainWindow() {
 
 	// Handle agent completion notifications
 	notificationsEmitter.on("agent-complete", (event: AgentCompleteEvent) => {
-		console.log("[main] Received agent-complete event:", event);
-
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
 
@@ -93,13 +91,6 @@ export async function MainWindow() {
 				: undefined;
 			const workspaceName = workspace?.name || worktree?.branch || "Workspace";
 
-			console.log("[main] Workspace lookup:", {
-				workspaceId: event.workspaceId,
-				workspace: workspace?.name,
-				worktree: worktree?.branch,
-				workspaceName,
-			});
-
 			// Derive title from tab name, falling back to pane name
 			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
 			const { paneId } = event;
@@ -111,21 +102,12 @@ export async function MainWindow() {
 						};
 				  }
 				| undefined;
-			const pane = tabsStorage?.state?.panes?.[paneId];
+			const pane = paneId ? tabsStorage?.state?.panes?.[paneId] : undefined;
 			const tab = pane
 				? tabsStorage?.state?.tabs?.find((t) => t.id === pane.tabId)
 				: undefined;
 			const title =
 				tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
-
-			console.log("[main] Title lookup:", {
-				paneId,
-				pane,
-				tab: tab
-					? { id: tab.id, userTitle: tab.userTitle, name: tab.name }
-					: undefined,
-				title,
-			});
 
 			const notification = new Notification({
 				title: isPermissionRequest
