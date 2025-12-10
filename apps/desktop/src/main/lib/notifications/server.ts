@@ -26,7 +26,15 @@ app.use((req, res, next) => {
 app.get("/hook/complete", (req, res) => {
 	const { paneId, tabId, workspaceId, eventType } = req.query;
 
+	console.log("[notifications] Received hook/complete:", {
+		paneId,
+		tabId,
+		workspaceId,
+		eventType,
+	});
+
 	if (!paneId || typeof paneId !== "string") {
+		console.log("[notifications] Missing paneId parameter");
 		return res.status(400).json({ error: "Missing paneId parameter" });
 	}
 
@@ -37,6 +45,7 @@ app.get("/hook/complete", (req, res) => {
 		eventType: eventType === "PermissionRequest" ? "PermissionRequest" : "Stop",
 	};
 
+	console.log("[notifications] Emitting agent-complete event:", event);
 	notificationsEmitter.emit("agent-complete", event);
 
 	res.json({ success: true, paneId });
