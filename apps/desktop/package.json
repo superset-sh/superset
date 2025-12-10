@@ -52,6 +52,7 @@
 		"@xterm/addon-webgl": "^0.18.0",
 		"@xterm/xterm": "^5.5.0",
 		"clsx": "^2.1.1",
+		"culori": "^4.0.2",
 		"date-fns": "^4.1.0",
 		"dnd-core": "^16.0.1",
 		"dotenv": "^17.2.3",
@@ -93,6 +94,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.8",
 		"@tailwindcss/vite": "^4.0.9",
+		"@types/culori": "^4.0.1",
 		"@types/http-proxy": "^1.17.17",
 		"@types/lodash": "^4.17.20",
 		"@types/node": "^24.9.1",
