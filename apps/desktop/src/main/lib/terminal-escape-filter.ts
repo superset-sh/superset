@@ -15,7 +15,7 @@ const BEL = "\x07";
  * - ESC [ 3 J - Clear scrollback buffer (ED3)
  * - ESC c - Full terminal reset (RIS)
  */
-const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J|${ESC}c`, "g");
+const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J|${ESC}c`);
 
 /**
  * Pattern definitions for terminal query responses.
