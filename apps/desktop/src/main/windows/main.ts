@@ -88,14 +88,11 @@ export async function MainWindow() {
 				const workspaces = db.data?.workspaces;
 				const worktrees = db.data?.worktrees;
 				if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
-					const workspace = workspaces.find(
-						(w) => w.id === event.workspaceId,
-					);
+					const workspace = workspaces.find((w) => w.id === event.workspaceId);
 					const worktree = workspace
 						? worktrees.find((wt) => wt.id === workspace.worktreeId)
 						: undefined;
-					workspaceName =
-						workspace?.name || worktree?.branch || "Workspace";
+					workspaceName = workspace?.name || worktree?.branch || "Workspace";
 				}
 			} catch (error) {
 				console.error(
@@ -114,8 +111,7 @@ export async function MainWindow() {
 				const tab = tabId
 					? tabsState?.tabs?.find((t) => t.id === tabId)
 					: undefined;
-				title =
-					tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+				title = tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
 			} catch (error) {
 				console.error(
 					"[notifications] Failed to access appState for tab title:",
