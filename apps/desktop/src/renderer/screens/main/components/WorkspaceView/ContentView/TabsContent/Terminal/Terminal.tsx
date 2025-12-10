@@ -304,9 +304,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				}
 			},
 			onClear: () => {
-				// Clear xterm display
 				xterm.clear();
-				// Clear stored scrollback buffer in main process for reattach persistence
 				clearScrollbackRef.current({ tabId: paneId });
 			},
 		});
@@ -322,7 +320,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				resizeRef.current({ tabId: paneId, cols, rows });
 			},
 		);
-		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
@@ -339,7 +336,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupPaste();
 			cleanupQuerySuppression();
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ tabId: paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();

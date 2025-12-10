@@ -226,27 +226,20 @@ export class TerminalManager extends EventEmitter {
 		let commandsSent = false;
 
 		ptyProcess.onData((data) => {
-			// Check for clear scrollback sequences (ESC[3J or ESC c) from shell commands like `clear`
-			// This allows native clear commands to also clear our stored scrollback
 			if (containsClearScrollbackSequence(data)) {
 				session.scrollback = "";
 				session.escapeFilter = new TerminalEscapeFilter();
-				// Reinitialize history file asynchronously (truncate to empty)
 				this.reinitializeHistory(session).catch(() => {});
 			}
 
-			// Filter terminal query responses for storage only
-			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
+			// Filter query responses for storage; xterm receives raw data for proper protocol handling
 			const filteredData = session.escapeFilter.filter(data);
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
-			// Emit ORIGINAL data to xterm - it needs to process query responses
 			this.emit(`data:${tabId}`, data);
 
-			// Send initial commands after shell outputs first data (prompt ready)
 			if (shouldRunCommands && !commandsSent) {
 				commandsSent = true;
-				// Small delay ensures shell is fully ready to accept input
 				setTimeout(() => {
 					if (session.isAlive) {
 						const cmdString = `${initialCommands.join(" && ")}\n`;
@@ -380,15 +373,9 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Clear in-memory scrollback
 		session.scrollback = "";
-
-		// Reset the escape filter state
 		session.escapeFilter = new TerminalEscapeFilter();
-
-		// Reinitialize history file (truncate to empty)
 		await this.reinitializeHistory(session);
-
 		session.lastActive = Date.now();
 	}
 
