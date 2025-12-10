@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
+import { LuMessageSquare } from "react-icons/lu";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { useChatPanelStore } from "renderer/stores";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
@@ -110,6 +112,9 @@ export function TabPane({
 		splitPaneAuto(tabId, paneId, { width, height }, path);
 	};
 
+	const { isOpen: isChatOpen, togglePanel: toggleChatPanel } =
+		useChatPanelStore();
+
 	const splitIcon =
 		splitOrientation === "vertical" ? (
 			<TbLayoutColumns className="size-4" />
@@ -131,6 +136,17 @@ export function TabPane({
 					>
 						{splitIcon}
 					</button>
+					<button
+						type="button"
+						onClick={toggleChatPanel}
+						title={isChatOpen ? "Hide chat" : "Show chat"}
+						className={`rounded p-1 transition-colors hover:bg-muted-foreground/20 hover:text-foreground ${
+							isChatOpen ? "text-foreground" : "text-muted-foreground"
+						}`}
+					>
+						<LuMessageSquare className="size-4" />
+					</button>
+					
 					<button
 						type="button"
 						onClick={handleClosePane}
