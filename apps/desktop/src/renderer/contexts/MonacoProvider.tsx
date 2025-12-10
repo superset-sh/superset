@@ -41,20 +41,27 @@ let monacoInitialized = false;
  * Initialize Monaco and preload it.
  * Call this early to avoid loading delay when DiffViewer mounts.
  */
-async function initializeMonaco(): Promise<typeof monaco> {
+async function initializeMonaco(): Promise<typeof monaco | undefined> {
 	if (monacoInitialized) {
 		return monaco;
 	}
 
-	// Preload Monaco by calling loader.init()
-	await loader.init();
-	monacoInitialized = true;
-
-	return monaco;
+	try {
+		// Preload Monaco by calling loader.init()
+		await loader.init();
+		monacoInitialized = true;
+		return monaco;
+	} catch (error) {
+		console.error("Failed to initialize Monaco editor:", error);
+		throw error;
+	}
 }
 
 // Start initialization immediately when this module loads
-const monacoPromise = initializeMonaco();
+const monacoPromise = initializeMonaco().catch((error) => {
+	console.error("Monaco initialization failed:", error);
+	return undefined;
+});
 
 interface MonacoProviderProps {
 	children: React.ReactNode;
@@ -74,8 +81,12 @@ export function MonacoProvider({ children }: MonacoProviderProps) {
 		if (!monacoTheme) return;
 
 		// Ensure Monaco is initialized before registering theme
-		monacoPromise.then(() => {
-			monaco.editor.defineTheme(SUPERSET_THEME, monacoTheme);
+		monacoPromise.then((monacoInstance) => {
+			if (!monacoInstance) {
+				console.warn("Monaco not available, skipping theme registration");
+				return;
+			}
+			monacoInstance.editor.defineTheme(SUPERSET_THEME, monacoTheme);
 			themeRegisteredRef.current = true;
 		});
 	}, [monacoTheme]);
