@@ -5,6 +5,7 @@
  * Use these types in both main and renderer processes for type safety.
  */
 
+import type { AuthChannels } from "./auth";
 import type { DeepLinkChannels } from "./deep-link";
 import type { ExternalChannels } from "./external";
 import type { ProxyChannels } from "./proxy";
@@ -26,7 +27,8 @@ export type {
  * Combine all channel definitions into a single interface
  */
 export interface IpcChannels
-	extends TabChannels,
+	extends AuthChannels,
+		TabChannels,
 		TerminalChannels,
 		ProxyChannels,
 		ExternalChannels,

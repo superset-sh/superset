@@ -2,6 +2,7 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { authManager, registerAuthHandlers } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
@@ -23,12 +24,19 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// TODO: Handle deep link when app is already running
-app.on("open-url", (event, _url) => {
+// Handle deep links including auth callbacks
+app.on("open-url", (event, url) => {
 	event.preventDefault();
+	console.log("[main] Received deep link:", url);
+
+	// Handle auth callback
+	if (url.startsWith("superset://auth/callback")) {
+		authManager.handleCallback(url);
+	}
 });
 
 registerStorageHandlers();
+registerAuthHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {
