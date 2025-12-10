@@ -57,15 +57,8 @@ export class TerminalManager extends EventEmitter {
 		scrollback: string;
 		wasRecovered: boolean;
 	}> {
-		const {
-			paneId,
-			tabId,
-			workspaceId,
-			cwd,
-			cols,
-			rows,
-			initialCommands,
-		} = params;
+		const { paneId, tabId, workspaceId, cwd, cols, rows, initialCommands } =
+			params;
 
 		// Deduplicate concurrent calls for the same paneId (prevents race in React Strict Mode)
 		const pending = this.pendingSessions.get(paneId);

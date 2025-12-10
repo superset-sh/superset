@@ -321,7 +321,10 @@ describe("TerminalManager", () => {
 				manager.once("exit:pane-delete-history", () => resolve());
 			});
 
-			await manager.kill({ paneId: "pane-delete-history", deleteHistory: true });
+			await manager.kill({
+				paneId: "pane-delete-history",
+				deleteHistory: true,
+			});
 
 			expect(mockPty.kill).toHaveBeenCalled();
 

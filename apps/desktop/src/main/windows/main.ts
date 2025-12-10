@@ -89,13 +89,17 @@ export async function MainWindow() {
 			const worktree = workspace
 				? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
 				: undefined;
-			const workspaceName =
-				workspace?.name || worktree?.branch || "Workspace";
+			const workspaceName = workspace?.name || worktree?.branch || "Workspace";
 
 			// Derive title from pane name, falling back to tab name
 			const { paneId } = event;
 			const tabsStorage = store.get("tabs-storage") as
-				| { state?: { panes?: Record<string, { tabId: string; name?: string }>; tabs?: Array<{ id: string; userTitle?: string; name: string }> } }
+				| {
+						state?: {
+							panes?: Record<string, { tabId: string; name?: string }>;
+							tabs?: Array<{ id: string; userTitle?: string; name: string }>;
+						};
+				  }
 				| undefined;
 			const pane = tabsStorage?.state?.panes?.[paneId];
 			const tab = pane
