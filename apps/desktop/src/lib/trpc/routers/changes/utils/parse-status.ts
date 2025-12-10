@@ -91,6 +91,7 @@ export function parseGitStatus(
 /**
  * Parses git log output into CommitInfo array
  * Format: hash|shortHash|message|author|date
+ * Note: Uses limit of 5 parts to preserve '|' characters in commit messages
  */
 export function parseGitLog(logOutput: string): CommitInfo[] {
 	if (!logOutput.trim()) return [];
@@ -101,15 +102,34 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 	for (const line of lines) {
 		if (!line.trim()) continue;
 
-		const [hash, shortHash, message, author, dateStr] = line.split("|");
+		// Split into exactly 5 parts to preserve '|' in messages
+		const parts = line.split("|");
+		if (parts.length < 5) continue;
+
+		const hash = parts[0]?.trim();
+		const shortHash = parts[1]?.trim();
+		// Message may contain '|', so join all middle parts
+		const message = parts.slice(2, -2).join("|").trim();
+		const author = parts[parts.length - 2]?.trim();
+		const dateStr = parts[parts.length - 1]?.trim();
+
 		if (!hash || !shortHash) continue;
 
+		// Safely parse date with fallback
+		let date: Date;
+		if (dateStr) {
+			const parsed = new Date(dateStr);
+			date = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+		} else {
+			date = new Date();
+		}
+
 		commits.push({
-			hash: hash.trim(),
-			shortHash: shortHash.trim(),
-			message: message?.trim() || "",
-			author: author?.trim() || "",
-			date: dateStr ? new Date(dateStr.trim()) : new Date(),
+			hash,
+			shortHash,
+			message: message || "",
+			author: author || "",
+			date,
 			files: [], // Files are loaded lazily per commit
 		});
 	}
@@ -120,6 +140,7 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 /**
  * Parses git diff --numstat output to get addition/deletion counts
  * Format: additions\tdeletions\tfilepath
+ * For renames/copies: additions\tdeletions\toldpath => newpath
  */
 export function parseDiffNumstat(
 	numstatOutput: string,
@@ -130,14 +151,25 @@ export function parseDiffNumstat(
 		if (!line.trim()) continue;
 
 		const [addStr, delStr, ...pathParts] = line.split("\t");
-		const path = pathParts.join("\t"); // Handle paths with tabs
-		if (!path) continue;
+		const rawPath = pathParts.join("\t"); // Handle paths with tabs
+		if (!rawPath) continue;
 
 		// Binary files show "-" for additions/deletions
 		const additions = addStr === "-" ? 0 : Number.parseInt(addStr, 10) || 0;
 		const deletions = delStr === "-" ? 0 : Number.parseInt(delStr, 10) || 0;
+		const statEntry = { additions, deletions };
 
-		stats.set(path, { additions, deletions });
+		// Handle rename/copy format: "oldpath => newpath"
+		const renameMatch = rawPath.match(/^(.+) => (.+)$/);
+		if (renameMatch) {
+			const oldPath = renameMatch[1];
+			const newPath = renameMatch[2];
+			// Key by new path (what file.path uses) and old path for fallback
+			stats.set(newPath, statEntry);
+			stats.set(oldPath, statEntry);
+		} else {
+			stats.set(rawPath, statEntry);
+		}
 	}
 
 	return stats;

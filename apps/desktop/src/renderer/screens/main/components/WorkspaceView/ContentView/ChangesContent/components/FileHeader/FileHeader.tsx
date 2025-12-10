@@ -1,11 +1,11 @@
 import { cn } from "@superset/ui/utils";
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangedFile, FileStatus } from "shared/changes-types";
 
 interface FileHeaderProps {
 	file: ChangedFile;
 }
 
-function getStatusColor(status: string): string {
+function getStatusColor(status: FileStatus): string {
 	switch (status) {
 		case "added":
 			return "text-green-500";
@@ -14,6 +14,7 @@ function getStatusColor(status: string): string {
 		case "deleted":
 			return "text-red-500";
 		case "renamed":
+		case "copied":
 			return "text-blue-500";
 		case "untracked":
 			return "text-muted-foreground";

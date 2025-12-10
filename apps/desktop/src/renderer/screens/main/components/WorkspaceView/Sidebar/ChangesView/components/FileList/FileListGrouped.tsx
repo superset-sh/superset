@@ -67,7 +67,6 @@ interface FolderGroupItemProps {
 function FolderGroupItem({
 	group,
 	selectedFile,
-	selectedCommitHash,
 	onFileSelect,
 	showStats,
 }: FolderGroupItemProps) {
@@ -96,7 +95,7 @@ function FolderGroupItem({
 					<FileItem
 						key={file.path}
 						file={file}
-						isSelected={selectedFile?.path === file.path && !selectedCommitHash}
+						isSelected={selectedFile?.path === file.path}
 						onClick={() => onFileSelect(file)}
 						showStats={showStats}
 					/>
