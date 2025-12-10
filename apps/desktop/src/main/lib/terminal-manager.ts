@@ -51,6 +51,9 @@ export class TerminalManager extends EventEmitter {
 		paneId: string;
 		tabId: string;
 		workspaceId: string;
+		workspaceName?: string;
+		workspacePath?: string;
+		rootPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -60,8 +63,18 @@ export class TerminalManager extends EventEmitter {
 		scrollback: string;
 		wasRecovered: boolean;
 	}> {
-		const { paneId, tabId, workspaceId, cwd, cols, rows, initialCommands } =
-			params;
+		const {
+			paneId,
+			tabId,
+			workspaceId,
+			workspaceName,
+			workspacePath,
+			rootPath,
+			cwd,
+			cols,
+			rows,
+			initialCommands,
+		} = params;
 
 		// Deduplicate concurrent calls for the same paneId (prevents race in React Strict Mode)
 		const pending = this.pendingSessions.get(paneId);
@@ -87,6 +100,9 @@ export class TerminalManager extends EventEmitter {
 			paneId,
 			tabId,
 			workspaceId,
+			workspaceName,
+			workspacePath,
+			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -106,6 +122,9 @@ export class TerminalManager extends EventEmitter {
 		paneId: string;
 		tabId: string;
 		workspaceId: string;
+		workspaceName?: string;
+		workspacePath?: string;
+		rootPath?: string;
 		cwd?: string;
 		cols?: number;
 		rows?: number;
@@ -120,6 +139,9 @@ export class TerminalManager extends EventEmitter {
 			paneId,
 			tabId,
 			workspaceId,
+			workspaceName,
+			workspacePath,
+			rootPath,
 			cwd,
 			cols,
 			rows,
@@ -140,6 +162,9 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_PANE_ID: paneId,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_WORKSPACE_ID: workspaceId,
+			SUPERSET_WORKSPACE_NAME: workspaceName || "",
+			SUPERSET_WORKSPACE_PATH: workspacePath || "",
+			SUPERSET_ROOT_PATH: rootPath || "",
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
 

@@ -15,6 +15,9 @@ import { resolveCwd } from "./utils";
  * - SUPERSET_PANE_ID: The pane ID (used by notification hooks, session key)
  * - SUPERSET_TAB_ID: The tab ID (parent of pane, used by notification hooks)
  * - SUPERSET_WORKSPACE_ID: The workspace ID (used by notification hooks)
+ * - SUPERSET_WORKSPACE_NAME: The workspace name (used by setup/teardown scripts)
+ * - SUPERSET_WORKSPACE_PATH: The worktree path (used by setup/teardown scripts)
+ * - SUPERSET_ROOT_PATH: The main repo path (used by setup/teardown scripts)
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
@@ -49,10 +52,18 @@ export const createTerminalRouter = () => {
 					: undefined;
 				const cwd = resolveCwd(cwdOverride, worktreePath);
 
+				// Get project info for environment variables
+				const project = workspace
+					? db.data.projects.find((p) => p.id === workspace.projectId)
+					: undefined;
+
 				const result = await terminalManager.createOrAttach({
 					paneId,
 					tabId,
 					workspaceId,
+					workspaceName: workspace?.name,
+					workspacePath: worktreePath,
+					rootPath: project?.mainRepoPath,
 					cwd,
 					cols,
 					rows,
