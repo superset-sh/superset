@@ -44,17 +44,14 @@ export function CommitItem({
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
-	// Create a wrapper to pass the commit hash to onFileSelect
 	const handleFileSelect = (file: ChangedFile) => {
 		onFileSelect(file, commit.hash);
 	};
 
-	// For commit files, we need to check if this commit is selected
 	const isCommitSelected = selectedCommitHash === commit.hash;
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={onToggle}>
-			{/* Commit header */}
 			<CollapsibleTrigger
 				className={cn(
 					"w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm",
@@ -67,21 +64,17 @@ export function CommitItem({
 					<HiChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
 				)}
 
-				{/* Commit hash */}
 				<span className="text-xs font-mono text-muted-foreground flex-shrink-0">
 					{commit.shortHash}
 				</span>
 
-				{/* Commit message */}
 				<span className="text-sm flex-1 truncate">{commit.message}</span>
 
-				{/* Relative date */}
 				<span className="text-xs text-muted-foreground flex-shrink-0">
 					{formatRelativeDate(commit.date)}
 				</span>
 			</CollapsibleTrigger>
 
-			{/* Files in commit (when expanded) */}
 			{hasFiles && (
 				<CollapsibleContent className="ml-4 pl-2 border-l border-border">
 					<FileList
