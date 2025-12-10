@@ -8,7 +8,6 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { getTabDisplayName } from "renderer/stores/tabs/utils";
 import { TabContextMenu } from "./TabContextMenu";
-import { FaTerminal } from "react-icons/fa";
 
 const DRAG_TYPE = "TAB";
 

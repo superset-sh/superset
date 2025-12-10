@@ -1,18 +1,20 @@
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
-import { Separator } from "@superset/ui/separator";
 import { LayoutGroup, motion } from "framer-motion";
 import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
-import { HiMiniCommandLine, HiMiniEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
+import {
+	HiMiniCommandLine,
+	HiMiniEllipsisHorizontal,
+	HiMiniPlus,
+} from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { TabItem } from "./TabItem";
 import { TabsCommandDialog } from "./TabsCommandDialog";
-import { Plus } from "lucide-react";
 
 const DRAG_TYPE = "TAB";
 
@@ -162,9 +164,7 @@ export function TabsView() {
 									title={preset.cwd || undefined}
 								>
 									<HiMiniCommandLine className="size-4" />
-									<span className="truncate">
-										{preset.name || "Unnamed"}
-									</span>
+									<span className="truncate">{preset.name || "Unnamed"}</span>
 								</Button>
 							))}
 						</div>
