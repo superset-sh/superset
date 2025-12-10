@@ -126,6 +126,20 @@ export const createTerminalRouter = () => {
 				terminalManager.detach(input);
 			}),
 
+		/**
+		 * Clear scrollback buffer for terminal (used by Cmd+K / clear command)
+		 * This clears both in-memory scrollback and persistent history file
+		 */
+		clearScrollback: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await terminalManager.clearScrollback(input);
+			}),
+
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: paneId }) => {

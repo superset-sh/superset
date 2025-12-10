@@ -77,22 +77,17 @@ export function createTerminalInstance(
 
 	const clipboardAddon = new ClipboardAddon();
 
-	// Unicode 11 provides better emoji and unicode rendering than default
 	const unicode11Addon = new Unicode11Addon();
 
 	xterm.open(container);
 
-	// Addons must be loaded after terminal is opened, otherwise they won't attach properly
 	xterm.loadAddon(fitAddon);
 	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 
-	// Suppress terminal query responses (DA1, DA2, CPR, OSC color responses, etc.)
-	// These are protocol-level responses that should be handled internally, not displayed
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
-	// Register file path link provider (Cmd+Click to open in Cursor/VSCode)
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
@@ -114,10 +109,7 @@ export function createTerminalInstance(
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
 
-	// Activate Unicode 11
 	xterm.unicode.activeVersion = "11";
-
-	// Fit after addons are loaded
 	fitAddon.fit();
 
 	return {
@@ -161,24 +153,16 @@ export function setupPasteHandler(
 	if (!textarea) return () => {};
 
 	const handlePaste = (event: ClipboardEvent) => {
-		// Get text from clipboard event data
 		const text = event.clipboardData?.getData("text/plain");
 		if (!text) return;
 
-		// Stop xterm's internal paste handler from also processing this
 		event.preventDefault();
 		event.stopImmediatePropagation();
 
-		// Notify caller of pasted text (for command buffer tracking)
 		options.onPaste?.(text);
-
-		// xterm.paste() handles:
-		// 1. Line ending normalization (CRLF/LF -> CR)
-		// 2. Bracketed paste mode wrapping (\x1b[200~ ... \x1b[201~)
 		xterm.paste(text);
 	};
 
-	// Use capture phase to intercept before xterm's handler
 	textarea.addEventListener("paste", handlePaste, { capture: true });
 
 	return () => {
@@ -207,14 +191,12 @@ export function setupKeyboardHandler(
 			!event.altKey;
 
 		if (isShiftEnter) {
-			// Block both keydown and keyup to prevent Enter from leaking through
 			if (event.type === "keydown" && options.onShiftEnter) {
 				options.onShiftEnter();
 			}
 			return false;
 		}
 
-		// Handle Cmd+K to clear terminal (handle directly since it needs xterm access)
 		const isClearShortcut =
 			event.key.toLowerCase() === "k" &&
 			event.metaKey &&
@@ -233,8 +215,6 @@ export function setupKeyboardHandler(
 		if (!event.metaKey && !event.ctrlKey) return true;
 
 		if (isAppHotkey(event)) {
-			// Re-dispatch to document for react-hotkeys-hook to catch
-			// Must explicitly copy modifier properties since they're prototype getters, not own properties
 			document.dispatchEvent(
 				new KeyboardEvent(event.type, {
 					key: event.key,
@@ -258,7 +238,6 @@ export function setupKeyboardHandler(
 
 	xterm.attachCustomKeyEventHandler(handler);
 
-	// Return cleanup function that removes the handler by setting a no-op
 	return () => {
 		xterm.attachCustomKeyEventHandler(() => true);
 	};

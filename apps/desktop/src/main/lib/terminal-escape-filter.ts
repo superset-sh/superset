@@ -11,6 +11,13 @@ const ESC = "\x1b";
 const BEL = "\x07";
 
 /**
+ * Pattern to detect clear scrollback sequences:
+ * - ESC [ 3 J - Clear scrollback buffer (ED3)
+ * - ESC c - Full terminal reset (RIS)
+ */
+const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J|${ESC}c`);
+
+/**
  * Pattern definitions for terminal query responses.
  * Each pattern matches a specific type of response that should be filtered.
  */
@@ -253,3 +260,15 @@ export function filterTerminalQueryResponses(data: string): string {
 
 // Export patterns for testing
 export const patterns = FILTER_PATTERNS;
+
+/**
+ * Checks if data contains sequences that clear the scrollback buffer.
+ * Used to detect when the shell sends clear commands (e.g., from `clear` command or Ctrl+L).
+ *
+ * Detected sequences:
+ * - ESC [ 3 J - Clear scrollback buffer (ED3)
+ * - ESC c - Full terminal reset (RIS)
+ */
+export function containsClearScrollbackSequence(data: string): boolean {
+	return CLEAR_SCROLLBACK_PATTERN.test(data);
+}

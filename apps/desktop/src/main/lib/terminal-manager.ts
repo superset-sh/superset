@@ -3,7 +3,10 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
 import { getShellArgs, getShellEnv } from "./agent-setup";
-import { TerminalEscapeFilter } from "./terminal-escape-filter";
+import {
+	containsClearScrollbackSequence,
+	TerminalEscapeFilter,
+} from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -203,18 +206,21 @@ export class TerminalManager extends EventEmitter {
 		let commandsSent = false;
 
 		ptyProcess.onData((data) => {
-			// Filter terminal query responses for storage only
-			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
+			if (containsClearScrollbackSequence(data)) {
+				session.scrollback = "";
+				session.escapeFilter = new TerminalEscapeFilter();
+				this.reinitializeHistory(session).catch(() => {});
+			}
+
+			// Filter query responses for storage; xterm receives raw data for proper protocol handling
 			const filteredData = session.escapeFilter.filter(data);
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
 			// Emit ORIGINAL data to xterm - it needs to process query responses
 			this.emit(`data:${paneId}`, data);
 
-			// Send initial commands after shell outputs first data (prompt ready)
 			if (shouldRunCommands && !commandsSent) {
 				commandsSent = true;
-				// Small delay ensures shell is fully ready to accept input
 				setTimeout(() => {
 					if (session.isAlive) {
 						const cmdString = `${initialCommands.join(" && ")}\n`;
@@ -335,6 +341,37 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
+	}
+
+	async clearScrollback(params: { paneId: string }): Promise<void> {
+		const { paneId } = params;
+		const session = this.sessions.get(paneId);
+
+		if (!session) {
+			console.warn(
+				`Cannot clear scrollback for terminal ${paneId}: session not found`,
+			);
+			return;
+		}
+
+		session.scrollback = "";
+		session.escapeFilter = new TerminalEscapeFilter();
+		await this.reinitializeHistory(session);
+		session.lastActive = Date.now();
+	}
+
+	private async reinitializeHistory(session: TerminalSession): Promise<void> {
+		if (session.historyWriter) {
+			await session.historyWriter.close();
+			session.historyWriter = new HistoryWriter(
+				session.workspaceId,
+				session.paneId,
+				session.cwd,
+				session.cols,
+				session.rows,
+			);
+			await session.historyWriter.init();
+		}
 	}
 
 	getSession(paneId: string): {

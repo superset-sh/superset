@@ -706,6 +706,107 @@ describe("TerminalManager", () => {
 		});
 	});
 
+	describe("clearScrollback", () => {
+		it("should clear in-memory scrollback", async () => {
+			await manager.createOrAttach({
+				paneId: "pane-clear",
+				tabId: "tab-clear",
+				workspaceId: "workspace-1",
+			});
+
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("some output\n");
+			}
+
+			await manager.clearScrollback({ paneId: "pane-clear" });
+
+			const result = await manager.createOrAttach({
+				paneId: "pane-clear",
+				tabId: "tab-clear",
+				workspaceId: "workspace-1",
+			});
+
+			expect(result.scrollback).toBe("");
+		});
+
+		it("should reinitialize history file", async () => {
+			await manager.createOrAttach({
+				paneId: "pane-clear-history",
+				tabId: "tab-clear-history",
+				workspaceId: "workspace-clear",
+			});
+
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("output before clear\n");
+			}
+
+			await manager.clearScrollback({ paneId: "pane-clear-history" });
+
+			const onExitCallback =
+				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
+			if (onExitCallback) {
+				await onExitCallback({ exitCode: 0, signal: undefined });
+			}
+
+			await manager.cleanup();
+
+			const result = await manager.createOrAttach({
+				paneId: "pane-clear-history",
+				tabId: "tab-clear-history",
+				workspaceId: "workspace-clear",
+			});
+
+			expect(result.scrollback).toBe("");
+			expect(result.wasRecovered).toBe(false);
+		});
+
+		it("should handle non-existent session gracefully", async () => {
+			const warnSpy = mock(() => {});
+			const originalWarn = console.warn;
+			console.warn = warnSpy;
+
+			await expect(
+				manager.clearScrollback({ paneId: "non-existent" }),
+			).resolves.toBeUndefined();
+
+			expect(warnSpy).toHaveBeenCalledWith(
+				"Cannot clear scrollback for terminal non-existent: session not found",
+			);
+
+			console.warn = originalWarn;
+		});
+
+		it("should clear scrollback when shell sends clear sequence", async () => {
+			await manager.createOrAttach({
+				paneId: "pane-shell-clear",
+				tabId: "tab-shell-clear",
+				workspaceId: "workspace-1",
+			});
+
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				onDataCallback("some output\n");
+				// ED3 sequence clears scrollback, then output after the sequence is stored
+				onDataCallback("\x1b[3Jnew content after clear");
+			}
+
+			const result = await manager.createOrAttach({
+				paneId: "pane-shell-clear",
+				tabId: "tab-shell-clear",
+				workspaceId: "workspace-1",
+			});
+
+			// Only content after the clear sequence should remain
+			expect(result.scrollback).not.toContain("some output");
+			expect(result.scrollback).toContain("new content after clear");
+		});
+	});
+
 	describe("multi-session history persistence", () => {
 		it("should persist history across multiple sessions", async () => {
 			// Session 1: Create and write data
