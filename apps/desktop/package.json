@@ -55,7 +55,6 @@
 		"dnd-core": "^16.0.1",
 		"dotenv": "^17.2.3",
 		"electron-router-dom": "^2.1.0",
-		"electron-store": "^11.0.2",
 		"electron-updater": "6",
 		"execa": "^9.6.0",
 		"express": "^5.1.0",

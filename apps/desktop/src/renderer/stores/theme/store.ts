@@ -7,7 +7,7 @@ import {
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { electronStorage } from "../../lib/electron-storage";
+import { trpcThemeStorage } from "../../lib/trpc-storage";
 import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
 
 interface ThemeState {
@@ -159,7 +159,7 @@ export const useThemeStore = create<ThemeState>()(
 			}),
 			{
 				name: "theme-storage",
-				storage: electronStorage,
+				storage: trpcThemeStorage,
 				partialize: (state) => ({
 					activeThemeId: state.activeThemeId,
 					customThemes: state.customThemes,

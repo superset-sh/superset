@@ -12,19 +12,19 @@ export interface SessionMetadata {
 	exitCode?: number;
 }
 
-export function getHistoryDir(workspaceId: string, tabId: string): string {
+export function getHistoryDir(workspaceId: string, paneId: string): string {
 	const baseDir = IS_TEST
 		? join(tmpdir(), "superset-test", ".superset")
 		: SUPERSET_HOME_DIR;
-	return join(baseDir, "terminal-history", workspaceId, tabId);
+	return join(baseDir, "terminal-history", workspaceId, paneId);
 }
 
-function getHistoryFilePath(workspaceId: string, tabId: string): string {
-	return join(getHistoryDir(workspaceId, tabId), "scrollback.bin");
+function getHistoryFilePath(workspaceId: string, paneId: string): string {
+	return join(getHistoryDir(workspaceId, paneId), "scrollback.bin");
 }
 
-function getMetadataPath(workspaceId: string, tabId: string): string {
-	return join(getHistoryDir(workspaceId, tabId), "meta.json");
+function getMetadataPath(workspaceId: string, paneId: string): string {
+	return join(getHistoryDir(workspaceId, paneId), "meta.json");
 }
 
 export class HistoryWriter {
@@ -36,13 +36,13 @@ export class HistoryWriter {
 
 	constructor(
 		private workspaceId: string,
-		private tabId: string,
+		private paneId: string,
 		cwd: string,
 		cols: number,
 		rows: number,
 	) {
-		this.filePath = getHistoryFilePath(workspaceId, tabId);
-		this.metaPath = getMetadataPath(workspaceId, tabId);
+		this.filePath = getHistoryFilePath(workspaceId, paneId);
+		this.metaPath = getMetadataPath(workspaceId, paneId);
 		this.metadata = {
 			cwd,
 			cols,
@@ -52,7 +52,7 @@ export class HistoryWriter {
 	}
 
 	async init(initialScrollback?: string): Promise<void> {
-		const dir = getHistoryDir(this.workspaceId, this.tabId);
+		const dir = getHistoryDir(this.workspaceId, this.paneId);
 		await fs.mkdir(dir, { recursive: true });
 
 		// Write initial scrollback (recovered from previous session) or truncate
@@ -107,19 +107,19 @@ export class HistoryWriter {
 export class HistoryReader {
 	constructor(
 		private workspaceId: string,
-		private tabId: string,
+		private paneId: string,
 	) {}
 
 	async read(): Promise<{ scrollback: string; metadata?: SessionMetadata }> {
 		try {
-			const filePath = getHistoryFilePath(this.workspaceId, this.tabId);
+			const filePath = getHistoryFilePath(this.workspaceId, this.paneId);
 			// Read as UTF-8 to match how node-pty produces terminal output
 			// The file is stored as raw bytes from UTF-8 encoded strings
 			const scrollback = await fs.readFile(filePath, "utf8");
 
 			let metadata: SessionMetadata | undefined;
 			try {
-				const metaPath = getMetadataPath(this.workspaceId, this.tabId);
+				const metaPath = getMetadataPath(this.workspaceId, this.paneId);
 				const metaContent = await fs.readFile(metaPath, "utf-8");
 				metadata = JSON.parse(metaContent);
 			} catch {
@@ -134,7 +134,7 @@ export class HistoryReader {
 
 	async cleanup(): Promise<void> {
 		try {
-			const dir = getHistoryDir(this.workspaceId, this.tabId);
+			const dir = getHistoryDir(this.workspaceId, this.paneId);
 			await fs.rm(dir, { recursive: true, force: true });
 		} catch (error) {
 			console.error("Failed to cleanup history:", error);
