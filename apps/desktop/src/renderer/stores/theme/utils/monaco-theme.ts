@@ -1,3 +1,4 @@
+import { formatHex8, formatHex, parse } from "culori";
 import type { editor } from "monaco-editor";
 import type { TerminalColors, Theme } from "shared/themes/types";
 
@@ -9,6 +10,34 @@ export interface MonacoTheme {
 	inherit: boolean;
 	rules: editor.ITokenThemeRule[];
 	colors: editor.IColors;
+}
+
+/**
+ * Convert any color to hex format for Monaco
+ * Monaco only accepts hex colors (#RRGGBB or #RRGGBBAA)
+ */
+function toMonacoHex(color: string): string {
+	const parsed = parse(color);
+	if (!parsed) {
+		return color;
+	}
+	// Use formatHex8 if alpha is present and not 1, otherwise formatHex
+	if (parsed.alpha !== undefined && parsed.alpha < 1) {
+		return formatHex8(parsed);
+	}
+	return formatHex(parsed);
+}
+
+/**
+ * Apply alpha transparency to a color and return as hex for Monaco
+ */
+function applyAlpha(color: string, alpha: number): string {
+	const parsed = parse(color);
+	if (!parsed) {
+		return color;
+	}
+	parsed.alpha = alpha;
+	return formatHex8(parsed);
 }
 
 /**
@@ -118,9 +147,10 @@ function createTokenRules(colors: TerminalColors): editor.ITokenThemeRule[] {
 function createEditorColors(theme: Theme): editor.IColors {
 	const { terminal, ui } = theme;
 
-	// Get selection background, handling rgba format
-	const selectionBg =
-		terminal.selectionBackground || `${terminal.foreground}33`;
+	// Get selection background with fallback, convert to hex for Monaco
+	const selectionBg = terminal.selectionBackground
+		? toMonacoHex(terminal.selectionBackground)
+		: applyAlpha(terminal.foreground, 0.2);
 
 	return {
 		// Editor background matches terminal
@@ -131,14 +161,14 @@ function createEditorColors(theme: Theme): editor.IColors {
 		"editor.lineHighlightBackground": ui.accent,
 		"editor.lineHighlightBorder": "#00000000",
 
-		// Selection
+		// Selection - use applyAlpha for proper color format handling
 		"editor.selectionBackground": selectionBg,
-		"editor.selectionHighlightBackground": `${terminal.blue}33`,
-		"editor.inactiveSelectionBackground": `${selectionBg}88`,
+		"editor.selectionHighlightBackground": applyAlpha(terminal.blue, 0.2),
+		"editor.inactiveSelectionBackground": applyAlpha(terminal.foreground, 0.1),
 
 		// Find matches
-		"editor.findMatchBackground": `${terminal.yellow}44`,
-		"editor.findMatchHighlightBackground": `${terminal.yellow}22`,
+		"editor.findMatchBackground": applyAlpha(terminal.yellow, 0.27),
+		"editor.findMatchHighlightBackground": applyAlpha(terminal.yellow, 0.13),
 
 		// Gutter (line numbers)
 		"editorLineNumber.foreground": terminal.brightBlack,
@@ -149,19 +179,19 @@ function createEditorColors(theme: Theme): editor.IColors {
 		"editorCursor.foreground": terminal.cursor,
 
 		// Diff colors - use semantic colors
-		"diffEditor.insertedTextBackground": `${terminal.green}22`,
-		"diffEditor.removedTextBackground": `${terminal.red}22`,
-		"diffEditor.insertedLineBackground": `${terminal.green}15`,
-		"diffEditor.removedLineBackground": `${terminal.red}15`,
-		"diffEditorGutter.insertedLineBackground": `${terminal.green}33`,
-		"diffEditorGutter.removedLineBackground": `${terminal.red}33`,
+		"diffEditor.insertedTextBackground": applyAlpha(terminal.green, 0.13),
+		"diffEditor.removedTextBackground": applyAlpha(terminal.red, 0.13),
+		"diffEditor.insertedLineBackground": applyAlpha(terminal.green, 0.08),
+		"diffEditor.removedLineBackground": applyAlpha(terminal.red, 0.08),
+		"diffEditorGutter.insertedLineBackground": applyAlpha(terminal.green, 0.2),
+		"diffEditorGutter.removedLineBackground": applyAlpha(terminal.red, 0.2),
 		"diffEditor.diagonalFill": ui.border,
 
 		// Scrollbar
 		"scrollbar.shadow": "#00000000",
-		"scrollbarSlider.background": `${terminal.foreground}22`,
-		"scrollbarSlider.hoverBackground": `${terminal.foreground}33`,
-		"scrollbarSlider.activeBackground": `${terminal.foreground}44`,
+		"scrollbarSlider.background": applyAlpha(terminal.foreground, 0.13),
+		"scrollbarSlider.hoverBackground": applyAlpha(terminal.foreground, 0.2),
+		"scrollbarSlider.activeBackground": applyAlpha(terminal.foreground, 0.27),
 
 		// Widget (autocomplete, etc.)
 		"editorWidget.background": ui.popover,
@@ -169,15 +199,15 @@ function createEditorColors(theme: Theme): editor.IColors {
 		"editorWidget.border": ui.border,
 
 		// Bracket matching
-		"editorBracketMatch.background": `${terminal.cyan}33`,
+		"editorBracketMatch.background": applyAlpha(terminal.cyan, 0.2),
 		"editorBracketMatch.border": terminal.cyan,
 
 		// Indent guides
-		"editorIndentGuide.background": `${terminal.foreground}15`,
-		"editorIndentGuide.activeBackground": `${terminal.foreground}33`,
+		"editorIndentGuide.background": applyAlpha(terminal.foreground, 0.08),
+		"editorIndentGuide.activeBackground": applyAlpha(terminal.foreground, 0.2),
 
 		// Whitespace
-		"editorWhitespace.foreground": `${terminal.foreground}22`,
+		"editorWhitespace.foreground": applyAlpha(terminal.foreground, 0.13),
 
 		// Overview ruler (minimap side)
 		"editorOverviewRuler.border": "#00000000",
