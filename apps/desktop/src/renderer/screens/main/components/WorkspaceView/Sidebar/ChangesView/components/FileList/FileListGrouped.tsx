@@ -72,23 +72,8 @@ function FolderGroupItem({
 	showStats,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
-
-	// Root level files (no folder)
-	if (group.folderPath === "") {
-		return (
-			<>
-				{group.files.map((file) => (
-					<FileItem
-						key={file.path}
-						file={file}
-						isSelected={selectedFile?.path === file.path && !selectedCommitHash}
-						onClick={() => onFileSelect(file)}
-						showStats={showStats}
-					/>
-				))}
-			</>
-		);
-	}
+	const isRoot = group.folderPath === "";
+	const displayName = isRoot ? "/" : group.folderPath;
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
@@ -103,7 +88,7 @@ function FolderGroupItem({
 				) : (
 					<HiChevronRight className="w-3 h-3 flex-shrink-0" />
 				)}
-				<span className="flex-1 truncate">{group.folderPath}</span>
+				<span className="flex-1 truncate">{displayName}</span>
 				<span className="text-xs opacity-60">{group.files.length}</span>
 			</CollapsibleTrigger>
 			<CollapsibleContent>
