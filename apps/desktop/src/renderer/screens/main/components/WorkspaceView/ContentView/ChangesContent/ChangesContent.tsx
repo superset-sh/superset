@@ -14,14 +14,13 @@ export function ChangesContent() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
-	const {
-		selectedFile,
-		selectedCategory,
-		selectedCommitHash,
-		viewMode,
-		setViewMode,
-		baseBranch,
-	} = useChangesStore();
+	const { viewMode, setViewMode, baseBranch, getSelectedFile } =
+		useChangesStore();
+
+	const selectedFileState = getSelectedFile(worktreePath || "");
+	const selectedFile = selectedFileState?.file ?? null;
+	const selectedCategory = selectedFileState?.category ?? "against-main";
+	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },

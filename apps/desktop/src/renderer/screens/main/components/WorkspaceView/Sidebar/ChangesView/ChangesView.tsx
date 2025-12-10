@@ -7,7 +7,6 @@ import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
-import type { ChangesViewMode } from "./types";
 
 export function ChangesView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -36,16 +35,17 @@ export function ChangesView() {
 	);
 
 	const {
-		selectedFile,
-		selectedCommitHash,
 		expandedSections,
+		fileListViewMode,
 		selectFile,
-		selectCommit,
+		getSelectedFile,
 		toggleSection,
-		selectCategory,
+		setFileListViewMode,
 	} = useChangesStore();
 
-	const [viewMode, setViewMode] = useState<ChangesViewMode>("grouped");
+	const selectedFileState = getSelectedFile(worktreePath || "");
+	const selectedFile = selectedFileState?.file ?? null;
+	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
@@ -69,15 +69,13 @@ export function ChangesView() {
 	});
 
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
-		selectFile(file);
-		selectCategory(category);
-		selectCommit(null);
+		if (!worktreePath) return;
+		selectFile(worktreePath, file, category, null);
 	};
 
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
-		selectFile(file);
-		selectCategory("committed");
-		selectCommit(commitHash);
+		if (!worktreePath) return;
+		selectFile(worktreePath, file, "committed", commitHash);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -138,8 +136,8 @@ export function ChangesView() {
 				behind={status.behind}
 				isRefreshing={isFetching}
 				onRefresh={() => refetch()}
-				viewMode={viewMode}
-				onViewModeChange={setViewMode}
+				viewMode={fileListViewMode}
+				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
 			/>
 
@@ -158,7 +156,7 @@ export function ChangesView() {
 					>
 						<FileList
 							files={status.againstMain}
-							viewMode={viewMode}
+							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "against-main")}
@@ -181,7 +179,7 @@ export function ChangesView() {
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
 								onFileSelect={handleCommitFileSelect}
-								viewMode={viewMode}
+								viewMode={fileListViewMode}
 							/>
 						))}
 					</CategorySection>
@@ -195,7 +193,7 @@ export function ChangesView() {
 					>
 						<FileList
 							files={status.staged}
-							viewMode={viewMode}
+							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "staged")}
@@ -211,7 +209,7 @@ export function ChangesView() {
 					>
 						<FileList
 							files={unstagedFiles}
-							viewMode={viewMode}
+							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "unstaged")}

@@ -6,30 +6,41 @@ import type {
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
+type FileListViewMode = "grouped" | "tree";
+
+interface SelectedFileState {
+	file: ChangedFile;
+	category: ChangeCategory;
+	commitHash: string | null;
+}
+
 interface ChangesState {
-	selectedCategory: ChangeCategory;
-	selectedFile: ChangedFile | null;
-	selectedCommitHash: string | null;
+	selectedFiles: Record<string, SelectedFileState | null>; // worktreePath → selection
 	viewMode: DiffViewMode;
+	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
 	baseBranch: string | null;
 
 	// Actions
-	selectCategory: (category: ChangeCategory) => void;
-	selectFile: (file: ChangedFile | null) => void;
-	selectCommit: (hash: string | null) => void;
+	selectFile: (
+		worktreePath: string,
+		file: ChangedFile | null,
+		category?: ChangeCategory,
+		commitHash?: string | null,
+	) => void;
+	getSelectedFile: (worktreePath: string) => SelectedFileState | null;
 	setViewMode: (mode: DiffViewMode) => void;
+	setFileListViewMode: (mode: FileListViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
 	setBaseBranch: (branch: string | null) => void;
-	reset: () => void;
+	reset: (worktreePath: string) => void;
 }
 
 const initialState = {
-	selectedCategory: "against-main" as ChangeCategory,
-	selectedFile: null,
-	selectedCommitHash: null,
+	selectedFiles: {} as Record<string, SelectedFileState | null>,
 	viewMode: "side-by-side" as DiffViewMode,
+	fileListViewMode: "grouped" as FileListViewMode,
 	expandedSections: {
 		"against-main": true,
 		committed: true,
@@ -45,20 +56,32 @@ export const useChangesStore = create<ChangesState>()(
 			(set, get) => ({
 				...initialState,
 
-				selectCategory: (category) => {
-					set({ selectedCategory: category });
+				selectFile: (worktreePath, file, category, commitHash) => {
+					const { selectedFiles } = get();
+					set({
+						selectedFiles: {
+							...selectedFiles,
+							[worktreePath]: file
+								? {
+										file,
+										category: category ?? "against-main",
+										commitHash: commitHash ?? null,
+									}
+								: null,
+						},
+					});
 				},
 
-				selectFile: (file) => {
-					set({ selectedFile: file });
-				},
-
-				selectCommit: (hash) => {
-					set({ selectedCommitHash: hash });
+				getSelectedFile: (worktreePath) => {
+					return get().selectedFiles[worktreePath] ?? null;
 				},
 
 				setViewMode: (mode) => {
 					set({ viewMode: mode });
+				},
+
+				setFileListViewMode: (mode) => {
+					set({ fileListViewMode: mode });
 				},
 
 				toggleSection: (section) => {
@@ -85,17 +108,22 @@ export const useChangesStore = create<ChangesState>()(
 					set({ baseBranch: branch });
 				},
 
-				reset: () => {
+				reset: (worktreePath) => {
+					const { selectedFiles } = get();
 					set({
-						selectedFile: null,
-						selectedCommitHash: null,
+						selectedFiles: {
+							...selectedFiles,
+							[worktreePath]: null,
+						},
 					});
 				},
 			}),
 			{
 				name: "changes-store",
 				partialize: (state) => ({
+					selectedFiles: state.selectedFiles,
 					viewMode: state.viewMode,
+					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
 					baseBranch: state.baseBranch,
 				}),
