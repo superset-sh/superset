@@ -1,7 +1,7 @@
-import type { LucideIcon } from "lucide-react";
+import type { IconType } from "react-icons";
 
 interface ActionCardProps {
-	icon: LucideIcon;
+	icon: IconType;
 	label: string;
 	onClick?: () => void;
 	disabled?: boolean;

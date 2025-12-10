@@ -80,7 +80,7 @@ export function CommandsEditor({
 						onChange={(e) => handleCommandChange(index, e.target.value)}
 						onKeyDown={(e) => handleCommandKeyDown(e, index)}
 						onBlur={onBlur}
-						className="h-7 px-2 text-sm font-mono flex-1"
+						className="h-7 px-2 text-sm font-mono flex-1 min-w-0"
 						placeholder={placeholder}
 					/>
 					{commands.length > 1 && (

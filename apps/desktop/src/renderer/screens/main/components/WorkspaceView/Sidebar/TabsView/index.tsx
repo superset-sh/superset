@@ -4,7 +4,11 @@ import { LayoutGroup, motion } from "framer-motion";
 import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
-import { HiMiniEllipsisHorizontal, HiMiniPlus } from "react-icons/hi2";
+import {
+	HiMiniCommandLine,
+	HiMiniEllipsisHorizontal,
+	HiMiniPlus,
+} from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
@@ -148,6 +152,23 @@ export function TabsView() {
 							<HiMiniEllipsisHorizontal className="size-4" />
 						</Button>
 					</ButtonGroup>
+					{presets.length > 0 && (
+						<div className="ml-4 pl-1 space-y-0.5 mb-2 border-l-2">
+							{presets.map((preset) => (
+								<Button
+									key={preset.id}
+									variant="ghost"
+									onClick={() => handleSelectPreset(preset)}
+									disabled={!activeWorkspaceId}
+									className="w-full justify-start px-3 py-1.5 h-auto text-sm"
+									title={preset.cwd || undefined}
+								>
+									<HiMiniCommandLine className="size-4" />
+									<span className="truncate">{preset.name || "Unnamed"}</span>
+								</Button>
+							))}
+						</div>
+					)}
 					<TabsCommandDialog
 						open={commandOpen}
 						onOpenChange={setCommandOpen}

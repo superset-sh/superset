@@ -2,10 +2,9 @@ import { EventEmitter } from "node:events";
 import express from "express";
 
 export interface AgentCompleteEvent {
-	tabId: string;
-	tabTitle: string;
-	workspaceName: string;
-	workspaceId: string;
+	paneId?: string;
+	tabId?: string;
+	workspaceId?: string;
 	eventType: "Stop" | "PermissionRequest";
 }
 
@@ -25,23 +24,18 @@ app.use((req, res, next) => {
 
 // Agent completion hook
 app.get("/hook/complete", (req, res) => {
-	const { tabId, tabTitle, workspaceName, workspaceId, eventType } = req.query;
-
-	if (!tabId || typeof tabId !== "string") {
-		return res.status(400).json({ error: "Missing tabId parameter" });
-	}
+	const { paneId, tabId, workspaceId, eventType } = req.query;
 
 	const event: AgentCompleteEvent = {
-		tabId,
-		tabTitle: (tabTitle as string) || "Terminal",
-		workspaceName: (workspaceName as string) || "Workspace",
-		workspaceId: (workspaceId as string) || "",
+		paneId: paneId as string | undefined,
+		tabId: tabId as string | undefined,
+		workspaceId: workspaceId as string | undefined,
 		eventType: eventType === "PermissionRequest" ? "PermissionRequest" : "Stop",
 	};
 
 	notificationsEmitter.emit("agent-complete", event);
 
-	res.json({ success: true, tabId });
+	res.json({ success: true, paneId, tabId });
 });
 
 // Health check
