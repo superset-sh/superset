@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
-import { useEffect, useState } from "react";
-import { HiOutlinePlus } from "react-icons/hi2";
+import { useEffect, useMemo, useState } from "react";
+import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import { LuSparkles } from "react-icons/lu";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
@@ -58,6 +58,14 @@ export function PresetsSettings() {
 		setLocalPresets(serverPresets);
 	}, [serverPresets]);
 
+	const existingPresetNames = useMemo(
+		() => new Set(serverPresets.map((p) => p.name)),
+		[serverPresets],
+	);
+
+	const isTemplateAdded = (template: PresetTemplate) =>
+		existingPresetNames.has(template.preset.name);
+
 	const handleCellChange = (
 		rowIndex: number,
 		column: PresetColumnKey,
@@ -110,6 +118,7 @@ export function PresetsSettings() {
 	};
 
 	const handleAddTemplate = (template: PresetTemplate) => {
+		if (isTemplateAdded(template)) return;
 		createPreset.mutate(template.preset);
 	};
 
@@ -156,19 +165,27 @@ export function PresetsSettings() {
 					<span className="text-xs text-muted-foreground mr-1 self-center">
 						Quick add:
 					</span>
-					{PRESET_TEMPLATES.map((template) => (
-						<Button
-							key={template.name}
-							variant="outline"
-							size="sm"
-							className="gap-1.5 text-xs h-7"
-							onClick={() => handleAddTemplate(template)}
-							title={template.description}
-						>
-							<LuSparkles className="h-3 w-3" />
-							{template.name}
-						</Button>
-					))}
+					{PRESET_TEMPLATES.map((template) => {
+						const alreadyAdded = isTemplateAdded(template);
+						return (
+							<Button
+								key={template.name}
+								variant="outline"
+								size="sm"
+								className="gap-1.5 text-xs h-7"
+								onClick={() => handleAddTemplate(template)}
+								title={alreadyAdded ? "Already added" : template.description}
+								disabled={alreadyAdded || createPreset.isPending}
+							>
+								{alreadyAdded ? (
+									<HiOutlineCheck className="h-3 w-3" />
+								) : (
+									<LuSparkles className="h-3 w-3" />
+								)}
+								{template.name}
+							</Button>
+						);
+					})}
 				</div>
 			</div>
 
