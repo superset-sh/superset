@@ -16,14 +16,8 @@ import {
 	parseNameStatus,
 } from "./utils/parse-status";
 
-/**
- * tRPC router for git changes/diff operations
- */
 export const createChangesRouter = () => {
 	return router({
-		/**
-		 * Get all branches for a repository (local and remote)
-		 */
 		getBranches: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.query(
@@ -36,7 +30,6 @@ export const createChangesRouter = () => {
 				}> => {
 					const git = simpleGit(input.worktreePath);
 
-					// Get all branches
 					const branchSummary = await git.branch(["-a"]);
 
 					const local: string[] = [];
@@ -44,9 +37,7 @@ export const createChangesRouter = () => {
 
 					for (const name of Object.keys(branchSummary.branches)) {
 						if (name.startsWith("remotes/origin/")) {
-							// Skip HEAD reference
 							if (name === "remotes/origin/HEAD") continue;
-							// Extract branch name without origin prefix
 							const remoteName = name.replace("remotes/origin/", "");
 							remote.push(remoteName);
 						} else {
@@ -54,10 +45,8 @@ export const createChangesRouter = () => {
 						}
 					}
 
-					// Determine default branch (check for main, master, or origin/HEAD)
 					let defaultBranch = "main";
 					try {
-						// Try to get the default branch from origin/HEAD
 						const headRef = await git.raw([
 							"symbolic-ref",
 							"refs/remotes/origin/HEAD",
@@ -67,7 +56,6 @@ export const createChangesRouter = () => {
 							defaultBranch = match[1].trim();
 						}
 					} catch {
-						// Fallback: check if main or master exists
 						if (remote.includes("master") && !remote.includes("main")) {
 							defaultBranch = "master";
 						}
@@ -81,14 +69,6 @@ export const createChangesRouter = () => {
 				},
 			),
 
-		/**
-		 * Get full git status for a worktree including:
-		 * - Against main: files changed vs default branch
-		 * - Commits: individual commits on the branch
-		 * - Staged: changes in index
-		 * - Unstaged: working tree changes
-		 * - Untracked: new files not tracked
-		 */
 		getStatus: publicProcedure
 			.input(
 				z.object({
@@ -100,18 +80,15 @@ export const createChangesRouter = () => {
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 
-				// Get basic status
 				const status = await git.status();
 				const parsed = parseGitStatus(status);
 
-				// Get commits on branch (compared to default branch)
 				let commits: GitChangesStatus["commits"] = [];
 				let againstMain: ChangedFile[] = [];
 				let ahead = 0;
 				let behind = 0;
 
 				try {
-					// Get ahead/behind counts
 					const tracking = await git.raw([
 						"rev-list",
 						"--left-right",
@@ -122,7 +99,6 @@ export const createChangesRouter = () => {
 					behind = Number.parseInt(behindStr || "0", 10);
 					ahead = Number.parseInt(aheadStr || "0", 10);
 
-					// Get commits on this branch (not on default)
 					const logOutput = await git.raw([
 						"log",
 						`origin/${defaultBranch}..HEAD`,
@@ -130,7 +106,6 @@ export const createChangesRouter = () => {
 					]);
 					commits = parseGitLog(logOutput);
 
-					// Get all files changed against default branch
 					if (ahead > 0) {
 						const nameStatus = await git.raw([
 							"diff",
@@ -139,7 +114,6 @@ export const createChangesRouter = () => {
 						]);
 						againstMain = parseNameStatus(nameStatus);
 
-						// Get numstat for addition/deletion counts
 						const numstat = await git.raw([
 							"diff",
 							"--numstat",
@@ -155,10 +129,9 @@ export const createChangesRouter = () => {
 						}
 					}
 				} catch {
-					// Remote tracking may not exist, continue without against-main data
+					// Remote tracking may not exist
 				}
 
-				// Get numstat for staged files
 				if (parsed.staged.length > 0) {
 					try {
 						const stagedNumstat = await git.raw([
@@ -175,11 +148,10 @@ export const createChangesRouter = () => {
 							}
 						}
 					} catch {
-						// Ignore errors
+						// numstat may fail for some file types
 					}
 				}
 
-				// Get numstat for unstaged files
 				if (parsed.unstaged.length > 0) {
 					try {
 						const unstagedNumstat = await git.raw(["diff", "--numstat"]);
@@ -192,7 +164,7 @@ export const createChangesRouter = () => {
 							}
 						}
 					} catch {
-						// Ignore errors
+						// numstat may fail for some file types
 					}
 				}
 
@@ -209,9 +181,6 @@ export const createChangesRouter = () => {
 				};
 			}),
 
-		/**
-		 * Get files changed in a specific commit
-		 */
 		getCommitFiles: publicProcedure
 			.input(
 				z.object({
@@ -222,7 +191,6 @@ export const createChangesRouter = () => {
 			.query(async ({ input }): Promise<ChangedFile[]> => {
 				const git = simpleGit(input.worktreePath);
 
-				// Get files changed in this commit
 				const nameStatus = await git.raw([
 					"diff-tree",
 					"--no-commit-id",
@@ -232,7 +200,6 @@ export const createChangesRouter = () => {
 				]);
 				const files = parseNameStatus(nameStatus);
 
-				// Get numstat
 				const numstat = await git.raw([
 					"diff-tree",
 					"--no-commit-id",
@@ -252,9 +219,6 @@ export const createChangesRouter = () => {
 				return files;
 			}),
 
-		/**
-		 * Get file contents for Monaco diff editor
-		 */
 		getFileContents: publicProcedure
 			.input(
 				z.object({
@@ -318,46 +282,35 @@ export const createChangesRouter = () => {
 					}
 
 					case "staged": {
-						// Original: file at HEAD
-						// Modified: file in index (staged)
 						try {
 							original = await git.show([`HEAD:${input.filePath}`]);
 						} catch {
-							// New file being added
 							original = "";
 						}
 						try {
-							// :0: refers to the index
 							modified = await git.show([`:0:${input.filePath}`]);
 						} catch {
-							// File being deleted
 							modified = "";
 						}
 						break;
 					}
 
 					case "unstaged": {
-						// Original: file in index (or HEAD if not staged)
-						// Modified: file in working tree
 						try {
-							// Try index first
 							original = await git.show([`:0:${input.filePath}`]);
 						} catch {
-							// Fall back to HEAD
 							try {
 								original = await git.show([`HEAD:${input.filePath}`]);
 							} catch {
 								original = "";
 							}
 						}
-						// Read from working tree
 						try {
 							modified = await readFile(
 								join(input.worktreePath, input.filePath),
 								"utf-8",
 							);
 						} catch {
-							// File deleted in working tree
 							modified = "";
 						}
 						break;
@@ -371,9 +324,6 @@ export const createChangesRouter = () => {
 				};
 			}),
 
-		/**
-		 * Stage a file
-		 */
 		stageFile: publicProcedure
 			.input(
 				z.object({
@@ -387,9 +337,6 @@ export const createChangesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Unstage a file
-		 */
 		unstageFile: publicProcedure
 			.input(
 				z.object({
@@ -403,9 +350,6 @@ export const createChangesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Discard changes to a file (restore from HEAD/index)
-		 */
 		discardChanges: publicProcedure
 			.input(
 				z.object({
@@ -420,14 +364,11 @@ export const createChangesRouter = () => {
 					return { success: true };
 				} catch (error) {
 					const message =
-						error instanceof Error ? error.message : "Unknown error";
+						error instanceof Error ? error.message : String(error);
 					throw new Error(`Failed to discard changes: ${message}`);
 				}
 			}),
 
-		/**
-		 * Stage all changes
-		 */
 		stageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
@@ -436,9 +377,6 @@ export const createChangesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Unstage all changes
-		 */
 		unstageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
@@ -447,9 +385,6 @@ export const createChangesRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Delete an untracked file or directory
-		 */
 		deleteUntracked: publicProcedure
 			.input(
 				z.object({
@@ -460,13 +395,11 @@ export const createChangesRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const fullPath = join(input.worktreePath, input.filePath);
 				try {
-					// Use recursive to handle both files and directories
-					// force: true handles race conditions where file disappears between status poll and delete
 					await rm(fullPath, { recursive: true, force: true });
 					return { success: true };
 				} catch (error) {
 					const message =
-						error instanceof Error ? error.message : "Unknown error";
+						error instanceof Error ? error.message : String(error);
 					throw new Error(`Failed to delete untracked path: ${message}`);
 				}
 			}),

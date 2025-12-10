@@ -10,13 +10,11 @@ import type { StatusResult } from "simple-git";
  * Maps git status codes to our FileStatus type
  */
 function mapGitStatus(gitIndex: string, gitWorking: string): FileStatus {
-	// Check index status first (for staged changes)
 	if (gitIndex === "A" || gitWorking === "A") return "added";
 	if (gitIndex === "D" || gitWorking === "D") return "deleted";
 	if (gitIndex === "R") return "renamed";
 	if (gitIndex === "C") return "copied";
 	if (gitIndex === "?" || gitWorking === "?") return "untracked";
-	// Default to modified for M, U (unmerged), etc.
 	return "modified";
 }
 
@@ -46,19 +44,16 @@ export function parseGitStatus(
 	const unstaged: ChangedFile[] = [];
 	const untracked: ChangedFile[] = [];
 
-	// Process all files from status
 	for (const file of status.files) {
 		const path = file.path;
 		const index = file.index;
 		const working = file.working_dir;
 
-		// Untracked files
 		if (index === "?" && working === "?") {
 			untracked.push(toChangedFile(path, index, working));
 			continue;
 		}
 
-		// Staged changes (index has a status other than space or ?)
 		if (index && index !== " " && index !== "?") {
 			staged.push({
 				path,
@@ -69,7 +64,6 @@ export function parseGitStatus(
 			});
 		}
 
-		// Unstaged changes (working dir has a status other than space or ?)
 		if (working && working !== " " && working !== "?") {
 			unstaged.push({
 				path,
@@ -108,14 +102,12 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 
 		const hash = parts[0]?.trim();
 		const shortHash = parts[1]?.trim();
-		// Message may contain '|', so join all middle parts
 		const message = parts.slice(2, -2).join("|").trim();
 		const author = parts[parts.length - 2]?.trim();
 		const dateStr = parts[parts.length - 1]?.trim();
 
 		if (!hash || !shortHash) continue;
 
-		// Safely parse date with fallback
 		let date: Date;
 		if (dateStr) {
 			const parsed = new Date(dateStr);
@@ -151,7 +143,7 @@ export function parseDiffNumstat(
 		if (!line.trim()) continue;
 
 		const [addStr, delStr, ...pathParts] = line.split("\t");
-		const rawPath = pathParts.join("\t"); // Handle paths with tabs
+		const rawPath = pathParts.join("\t");
 		if (!rawPath) continue;
 
 		// Binary files show "-" for additions/deletions
@@ -159,12 +151,10 @@ export function parseDiffNumstat(
 		const deletions = delStr === "-" ? 0 : Number.parseInt(delStr, 10) || 0;
 		const statEntry = { additions, deletions };
 
-		// Handle rename/copy format: "oldpath => newpath"
 		const renameMatch = rawPath.match(/^(.+) => (.+)$/);
 		if (renameMatch) {
 			const oldPath = renameMatch[1];
 			const newPath = renameMatch[2];
-			// Key by new path (what file.path uses) and old path for fallback
 			stats.set(newPath, statEntry);
 			stats.set(oldPath, statEntry);
 		} else {
@@ -189,7 +179,6 @@ export function parseNameStatus(nameStatusOutput: string): ChangedFile[] {
 		const statusCode = parts[0];
 		if (!statusCode) continue;
 
-		// For renames (R###) and copies (C###), format is: R100\toldpath\tnewpath
 		const isRenameOrCopy =
 			statusCode.startsWith("R") || statusCode.startsWith("C");
 		const path = isRenameOrCopy ? parts[2] : parts[1];
