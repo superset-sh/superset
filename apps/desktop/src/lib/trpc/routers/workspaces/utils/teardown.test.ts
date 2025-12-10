@@ -1,5 +1,11 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import { runTeardown } from "./teardown";
 
@@ -47,46 +53,61 @@ describe("runTeardown", () => {
 		expect(result.success).toBe(true);
 	});
 
-	test("reads config from mainRepoPath, not worktreePath", () => {
-		// Put config ONLY in main repo (not in worktree)
-		// This is the key test - it verifies the bug fix
+	test("reads config from mainRepoPath and executes teardown", () => {
+		// This marker file will be created by the teardown command
+		// proving the config was read from mainRepoPath
+		const markerFile = join(WORKTREE, "main-repo-config-executed.txt");
+
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: ["echo teardown-from-main-repo"] }),
+			JSON.stringify({ teardown: [`echo "executed" > "${markerFile}"`] }),
 		);
 
-		// Worktree has NO config - if the code incorrectly reads from worktree, it would return early
-		// But since it reads from mainRepoPath, it should find the config and execute
-
 		const result = runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
-		// The command should execute (echo always succeeds)
+
 		expect(result.success).toBe(true);
+		expect(existsSync(markerFile)).toBe(true);
+		expect(readFileSync(markerFile, "utf-8").trim()).toBe("executed");
 	});
 
-	test("does NOT read config from worktreePath", () => {
-		// Put config ONLY in worktree (not in main repo)
+	test("ignores config in worktreePath", () => {
+		// Put a config ONLY in worktree that would create a marker file
+		const worktreeMarker = join(WORKTREE, "worktree-config-executed.txt");
 		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
 		writeFileSync(
 			join(WORKTREE, ".superset", "config.json"),
-			JSON.stringify({ teardown: ["exit 1"] }), // Would fail if executed
+			JSON.stringify({ teardown: [`echo "wrong" > "${worktreeMarker}"`] }),
 		);
 
-		// Main repo has NO config
-		// If the code incorrectly reads from worktree, it would find this config and fail
-		// But since it reads from mainRepoPath (which has no config), it should return early with success
-
+		// Main repo has no config, so nothing should execute
 		const result = runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+
 		expect(result.success).toBe(true);
+		// The worktree config should NOT have been read/executed
+		expect(existsSync(worktreeMarker)).toBe(false);
 	});
 
-	test("executes teardown commands successfully", () => {
+	test("uses mainRepoPath config even when worktreePath has different config", () => {
+		// Both locations have config - only mainRepoPath should be used
+		const mainMarker = join(WORKTREE, "from-main.txt");
+		const worktreeMarker = join(WORKTREE, "from-worktree.txt");
+
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
-			JSON.stringify({ teardown: ["echo hello"] }),
+			JSON.stringify({ teardown: [`echo "main" > "${mainMarker}"`] }),
+		);
+
+		mkdirSync(join(WORKTREE, ".superset"), { recursive: true });
+		writeFileSync(
+			join(WORKTREE, ".superset", "config.json"),
+			JSON.stringify({ teardown: [`echo "worktree" > "${worktreeMarker}"`] }),
 		);
 
 		const result = runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+
 		expect(result.success).toBe(true);
+		expect(existsSync(mainMarker)).toBe(true);
+		expect(existsSync(worktreeMarker)).toBe(false);
 	});
 
 	test("returns error when teardown command fails", () => {
@@ -101,15 +122,11 @@ describe("runTeardown", () => {
 	});
 
 	test("chains multiple teardown commands with &&", () => {
-		// Create a file in first command, check it exists in second
 		const testFile = join(WORKTREE, "teardown-test.txt");
 		writeFileSync(
 			join(MAIN_REPO, ".superset", "config.json"),
 			JSON.stringify({
-				teardown: [
-					`echo "created" > "${testFile}"`,
-					`test -f "${testFile}"`,
-				],
+				teardown: [`echo "created" > "${testFile}"`, `test -f "${testFile}"`],
 			}),
 		);
 
@@ -132,7 +149,6 @@ describe("runTeardown", () => {
 		const result = runTeardown(MAIN_REPO, WORKTREE, "my-workspace");
 		expect(result.success).toBe(true);
 
-		const { readFileSync } = require("node:fs");
 		const content = readFileSync(envFile, "utf-8").trim();
 		expect(content).toBe(`my-workspace|${MAIN_REPO}`);
 	});
