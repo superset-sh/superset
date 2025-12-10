@@ -94,10 +94,10 @@ export async function MainWindow() {
 			// Derive title from tab name, falling back to pane name
 			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
 			const { paneId, tabId } = event;
-			const { tabsState } = appState.data;
-			const pane = paneId ? tabsState.panes[paneId] : undefined;
+			const tabsState = appState.data.tabsState;
+			const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
 			const tab = tabId
-				? tabsState.tabs.find((t) => t.id === tabId)
+				? tabsState?.tabs?.find((t) => t.id === tabId)
 				: undefined;
 			const title =
 				tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
