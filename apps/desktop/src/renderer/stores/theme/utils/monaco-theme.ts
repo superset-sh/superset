@@ -1,10 +1,7 @@
-import { formatHex8, formatHex, parse } from "culori";
 import type { editor } from "monaco-editor";
 import type { TerminalColors, Theme } from "shared/themes/types";
+import { stripHash, toHexAuto, withAlpha } from "shared/themes/utils";
 
-/**
- * Monaco editor theme definition
- */
 export interface MonacoTheme {
 	base: "vs" | "vs-dark" | "hc-black";
 	inherit: boolean;
@@ -12,212 +9,129 @@ export interface MonacoTheme {
 	colors: editor.IColors;
 }
 
-/**
- * Convert any color to hex format for Monaco
- * Monaco only accepts hex colors (#RRGGBB or #RRGGBBAA)
- */
-function toMonacoHex(color: string): string {
-	const parsed = parse(color);
-	if (!parsed) {
-		return color;
-	}
-	// Use formatHex8 if alpha is present and not 1, otherwise formatHex
-	if (parsed.alpha !== undefined && parsed.alpha < 1) {
-		return formatHex8(parsed);
-	}
-	return formatHex(parsed);
+function tokenColor(color: string): string {
+	return stripHash(toHexAuto(color));
 }
 
-/**
- * Apply alpha transparency to a color and return as hex for Monaco
- */
-function applyAlpha(color: string, alpha: number): string {
-	const parsed = parse(color);
-	if (!parsed) {
-		return color;
-	}
-	parsed.alpha = alpha;
-	return formatHex8(parsed);
-}
-
-/**
- * Convert theme terminal colors to Monaco editor token rules
- * Maps ANSI colors to syntax highlighting rules
- */
 function createTokenRules(colors: TerminalColors): editor.ITokenThemeRule[] {
+	const c = tokenColor;
 	return [
-		// Comments
-		{ token: "comment", foreground: colors.brightBlack.replace("#", "") },
-		{ token: "comment.line", foreground: colors.brightBlack.replace("#", "") },
-		{ token: "comment.block", foreground: colors.brightBlack.replace("#", "") },
+		{ token: "comment", foreground: c(colors.brightBlack) },
+		{ token: "comment.line", foreground: c(colors.brightBlack) },
+		{ token: "comment.block", foreground: c(colors.brightBlack) },
 
-		// Strings
-		{ token: "string", foreground: colors.green.replace("#", "") },
-		{ token: "string.quoted", foreground: colors.green.replace("#", "") },
-		{ token: "string.template", foreground: colors.green.replace("#", "") },
+		{ token: "string", foreground: c(colors.green) },
+		{ token: "string.quoted", foreground: c(colors.green) },
+		{ token: "string.template", foreground: c(colors.green) },
 
-		// Keywords
-		{ token: "keyword", foreground: colors.magenta.replace("#", "") },
-		{ token: "keyword.control", foreground: colors.magenta.replace("#", "") },
-		{ token: "keyword.operator", foreground: colors.red.replace("#", "") },
-		{ token: "storage", foreground: colors.magenta.replace("#", "") },
-		{ token: "storage.type", foreground: colors.cyan.replace("#", "") },
+		{ token: "keyword", foreground: c(colors.magenta) },
+		{ token: "keyword.control", foreground: c(colors.magenta) },
+		{ token: "keyword.operator", foreground: c(colors.red) },
+		{ token: "storage", foreground: c(colors.magenta) },
+		{ token: "storage.type", foreground: c(colors.cyan) },
 
-		// Numbers
-		{ token: "number", foreground: colors.yellow.replace("#", "") },
-		{ token: "constant.numeric", foreground: colors.yellow.replace("#", "") },
+		{ token: "number", foreground: c(colors.yellow) },
+		{ token: "constant.numeric", foreground: c(colors.yellow) },
+		{ token: "constant", foreground: c(colors.yellow) },
+		{ token: "constant.language", foreground: c(colors.yellow) },
+		{ token: "constant.character", foreground: c(colors.yellow) },
 
-		// Constants
-		{ token: "constant", foreground: colors.yellow.replace("#", "") },
-		{ token: "constant.language", foreground: colors.yellow.replace("#", "") },
-		{ token: "constant.character", foreground: colors.yellow.replace("#", "") },
+		{ token: "variable", foreground: c(colors.foreground) },
+		{ token: "variable.parameter", foreground: c(colors.foreground) },
+		{ token: "variable.other", foreground: c(colors.foreground) },
 
-		// Variables
-		{ token: "variable", foreground: colors.foreground.replace("#", "") },
-		{
-			token: "variable.parameter",
-			foreground: colors.foreground.replace("#", ""),
-		},
-		{ token: "variable.other", foreground: colors.foreground.replace("#", "") },
+		{ token: "entity.name.function", foreground: c(colors.blue) },
+		{ token: "support.function", foreground: c(colors.blue) },
+		{ token: "meta.function-call", foreground: c(colors.blue) },
 
-		// Functions
-		{ token: "entity.name.function", foreground: colors.blue.replace("#", "") },
-		{ token: "support.function", foreground: colors.blue.replace("#", "") },
-		{ token: "meta.function-call", foreground: colors.blue.replace("#", "") },
+		{ token: "entity.name.type", foreground: c(colors.cyan) },
+		{ token: "entity.name.class", foreground: c(colors.cyan) },
+		{ token: "support.type", foreground: c(colors.cyan) },
+		{ token: "support.class", foreground: c(colors.cyan) },
 
-		// Types/Classes
-		{ token: "entity.name.type", foreground: colors.cyan.replace("#", "") },
-		{ token: "entity.name.class", foreground: colors.cyan.replace("#", "") },
-		{ token: "support.type", foreground: colors.cyan.replace("#", "") },
-		{ token: "support.class", foreground: colors.cyan.replace("#", "") },
+		{ token: "entity.name.tag", foreground: c(colors.red) },
+		{ token: "tag", foreground: c(colors.red) },
+		{ token: "meta.tag", foreground: c(colors.red) },
 
-		// Tags (JSX/HTML)
-		{ token: "entity.name.tag", foreground: colors.red.replace("#", "") },
-		{ token: "tag", foreground: colors.red.replace("#", "") },
-		{ token: "meta.tag", foreground: colors.red.replace("#", "") },
+		{ token: "entity.other.attribute-name", foreground: c(colors.yellow) },
+		{ token: "attribute.name", foreground: c(colors.yellow) },
 
-		// Attributes
-		{
-			token: "entity.other.attribute-name",
-			foreground: colors.yellow.replace("#", ""),
-		},
-		{ token: "attribute.name", foreground: colors.yellow.replace("#", "") },
+		{ token: "keyword.operator", foreground: c(colors.red) },
+		{ token: "punctuation", foreground: c(colors.foreground) },
 
-		// Operators
-		{ token: "keyword.operator", foreground: colors.red.replace("#", "") },
-		{ token: "punctuation", foreground: colors.foreground.replace("#", "") },
+		{ token: "type", foreground: c(colors.cyan) },
+		{ token: "type.identifier", foreground: c(colors.cyan) },
+		{ token: "identifier", foreground: c(colors.foreground) },
+		{ token: "delimiter", foreground: c(colors.foreground) },
 
-		// TypeScript/JavaScript specific
-		{ token: "type", foreground: colors.cyan.replace("#", "") },
-		{ token: "type.identifier", foreground: colors.cyan.replace("#", "") },
-		{ token: "identifier", foreground: colors.foreground.replace("#", "") },
-		{ token: "delimiter", foreground: colors.foreground.replace("#", "") },
+		{ token: "string.key.json", foreground: c(colors.red) },
+		{ token: "string.value.json", foreground: c(colors.green) },
 
-		// JSON
-		{ token: "string.key.json", foreground: colors.red.replace("#", "") },
-		{ token: "string.value.json", foreground: colors.green.replace("#", "") },
+		{ token: "regexp", foreground: c(colors.cyan) },
 
-		// Regex
-		{ token: "regexp", foreground: colors.cyan.replace("#", "") },
-
-		// Markdown
-		{
-			token: "markup.heading",
-			foreground: colors.red.replace("#", ""),
-			fontStyle: "bold",
-		},
-		{
-			token: "markup.bold",
-			foreground: colors.yellow.replace("#", ""),
-			fontStyle: "bold",
-		},
+		{ token: "markup.heading", foreground: c(colors.red), fontStyle: "bold" },
+		{ token: "markup.bold", foreground: c(colors.yellow), fontStyle: "bold" },
 		{
 			token: "markup.italic",
-			foreground: colors.magenta.replace("#", ""),
+			foreground: c(colors.magenta),
 			fontStyle: "italic",
 		},
-		{ token: "markup.inline.raw", foreground: colors.green.replace("#", "") },
+		{ token: "markup.inline.raw", foreground: c(colors.green) },
 	];
 }
 
-/**
- * Convert theme to Monaco editor colors
- * Uses terminal colors for editor background to match xterm
- */
 function createEditorColors(theme: Theme): editor.IColors {
 	const { terminal, ui } = theme;
+	const hex = toHexAuto;
+	const alpha = withAlpha;
 
-	// Get selection background with fallback, convert to hex for Monaco
 	const selectionBg = terminal.selectionBackground
-		? toMonacoHex(terminal.selectionBackground)
-		: applyAlpha(terminal.foreground, 0.2);
+		? hex(terminal.selectionBackground)
+		: alpha(terminal.foreground, 0.2);
 
 	return {
-		// Editor background matches terminal
-		"editor.background": terminal.background,
-		"editor.foreground": terminal.foreground,
-
-		// Line highlights
-		"editor.lineHighlightBackground": ui.accent,
+		"editor.background": hex(terminal.background),
+		"editor.foreground": hex(terminal.foreground),
+		"editor.lineHighlightBackground": hex(ui.accent),
 		"editor.lineHighlightBorder": "#00000000",
-
-		// Selection - use applyAlpha for proper color format handling
 		"editor.selectionBackground": selectionBg,
-		"editor.selectionHighlightBackground": applyAlpha(terminal.blue, 0.2),
-		"editor.inactiveSelectionBackground": applyAlpha(terminal.foreground, 0.1),
+		"editor.selectionHighlightBackground": alpha(terminal.blue, 0.2),
+		"editor.inactiveSelectionBackground": alpha(terminal.foreground, 0.1),
+		"editor.findMatchBackground": alpha(terminal.yellow, 0.27),
+		"editor.findMatchHighlightBackground": alpha(terminal.yellow, 0.13),
 
-		// Find matches
-		"editor.findMatchBackground": applyAlpha(terminal.yellow, 0.27),
-		"editor.findMatchHighlightBackground": applyAlpha(terminal.yellow, 0.13),
+		"editorLineNumber.foreground": hex(terminal.brightBlack),
+		"editorLineNumber.activeForeground": hex(terminal.foreground),
+		"editorGutter.background": hex(terminal.background),
+		"editorCursor.foreground": hex(terminal.cursor),
 
-		// Gutter (line numbers)
-		"editorLineNumber.foreground": terminal.brightBlack,
-		"editorLineNumber.activeForeground": terminal.foreground,
-		"editorGutter.background": terminal.background,
+		"diffEditor.insertedTextBackground": alpha(terminal.green, 0.13),
+		"diffEditor.removedTextBackground": alpha(terminal.red, 0.13),
+		"diffEditor.insertedLineBackground": alpha(terminal.green, 0.08),
+		"diffEditor.removedLineBackground": alpha(terminal.red, 0.08),
+		"diffEditorGutter.insertedLineBackground": alpha(terminal.green, 0.2),
+		"diffEditorGutter.removedLineBackground": alpha(terminal.red, 0.2),
+		"diffEditor.diagonalFill": hex(ui.border),
 
-		// Cursor
-		"editorCursor.foreground": terminal.cursor,
-
-		// Diff colors - use semantic colors
-		"diffEditor.insertedTextBackground": applyAlpha(terminal.green, 0.13),
-		"diffEditor.removedTextBackground": applyAlpha(terminal.red, 0.13),
-		"diffEditor.insertedLineBackground": applyAlpha(terminal.green, 0.08),
-		"diffEditor.removedLineBackground": applyAlpha(terminal.red, 0.08),
-		"diffEditorGutter.insertedLineBackground": applyAlpha(terminal.green, 0.2),
-		"diffEditorGutter.removedLineBackground": applyAlpha(terminal.red, 0.2),
-		"diffEditor.diagonalFill": ui.border,
-
-		// Scrollbar
 		"scrollbar.shadow": "#00000000",
-		"scrollbarSlider.background": applyAlpha(terminal.foreground, 0.13),
-		"scrollbarSlider.hoverBackground": applyAlpha(terminal.foreground, 0.2),
-		"scrollbarSlider.activeBackground": applyAlpha(terminal.foreground, 0.27),
+		"scrollbarSlider.background": alpha(terminal.foreground, 0.13),
+		"scrollbarSlider.hoverBackground": alpha(terminal.foreground, 0.2),
+		"scrollbarSlider.activeBackground": alpha(terminal.foreground, 0.27),
 
-		// Widget (autocomplete, etc.)
-		"editorWidget.background": ui.popover,
-		"editorWidget.foreground": ui.popoverForeground,
-		"editorWidget.border": ui.border,
+		"editorWidget.background": hex(ui.popover),
+		"editorWidget.foreground": hex(ui.popoverForeground),
+		"editorWidget.border": hex(ui.border),
 
-		// Bracket matching
-		"editorBracketMatch.background": applyAlpha(terminal.cyan, 0.2),
-		"editorBracketMatch.border": terminal.cyan,
+		"editorBracketMatch.background": alpha(terminal.cyan, 0.2),
+		"editorBracketMatch.border": hex(terminal.cyan),
 
-		// Indent guides
-		"editorIndentGuide.background": applyAlpha(terminal.foreground, 0.08),
-		"editorIndentGuide.activeBackground": applyAlpha(terminal.foreground, 0.2),
-
-		// Whitespace
-		"editorWhitespace.foreground": applyAlpha(terminal.foreground, 0.13),
-
-		// Overview ruler (minimap side)
+		"editorIndentGuide.background": alpha(terminal.foreground, 0.08),
+		"editorIndentGuide.activeBackground": alpha(terminal.foreground, 0.2),
+		"editorWhitespace.foreground": alpha(terminal.foreground, 0.13),
 		"editorOverviewRuler.border": "#00000000",
 	};
 }
 
-/**
- * Convert app theme to Monaco editor theme format
- * Similar to toXtermTheme but for Monaco
- */
 export function toMonacoTheme(theme: Theme): MonacoTheme {
 	return {
 		base: theme.type === "dark" ? "vs-dark" : "vs",
