@@ -1,5 +1,4 @@
 export { GitFileTree } from "./GitFileTree";
-export { mockGitFiles } from "./mockData";
 export type {
 	FileTreeNode,
 	FolderGroup,

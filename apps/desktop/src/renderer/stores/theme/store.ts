@@ -86,7 +86,6 @@ function applyTheme(theme: Theme): {
 	// Update dark/light class
 	updateThemeClass(theme.type);
 
-	// Sync theme to localStorage for instant flash-free loading
 	syncThemeToLocalStorage(theme);
 
 	// Convert to editor-specific formats
@@ -170,7 +169,6 @@ export const useThemeStore = create<ThemeState>()(
 							monacoTheme,
 						});
 					} else {
-						// Fallback to default theme if saved theme not found
 						state.setTheme(DEFAULT_THEME_ID);
 					}
 				},
@@ -183,12 +181,8 @@ export const useThemeStore = create<ThemeState>()(
 					customThemes: state.customThemes,
 				}),
 				onRehydrateStorage: () => (state) => {
-					// Initialize theme after hydration
 					if (state) {
-						// Use setTimeout to ensure DOM is ready
-						setTimeout(() => {
-							state.initializeTheme();
-						}, 0);
+						state.initializeTheme();
 					}
 				},
 			},

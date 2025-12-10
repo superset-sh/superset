@@ -1,8 +1,7 @@
 import { formatHex, formatHex8, parse } from "culori";
 
 /**
- * Convert any CSS color to hex format (#RRGGBB).
- * Returns original string if parsing fails.
+ * Convert any CSS color to hex format (#RRGGBB)
  */
 export function toHex(color: string): string {
 	const parsed = parse(color);
@@ -13,8 +12,7 @@ export function toHex(color: string): string {
 }
 
 /**
- * Convert any CSS color to hex8 format (#RRGGBBAA).
- * Preserves alpha channel. Returns original string if parsing fails.
+ * Convert any CSS color to hex8 format (#RRGGBBAA)
  */
 export function toHex8(color: string): string {
 	const parsed = parse(color);
@@ -25,7 +23,7 @@ export function toHex8(color: string): string {
 }
 
 /**
- * Convert color to hex, using hex8 only if alpha < 1.
+ * Convert color to hex, using hex8 only if alpha < 1
  */
 export function toHexAuto(color: string): string {
 	const parsed = parse(color);
@@ -39,7 +37,7 @@ export function toHexAuto(color: string): string {
 }
 
 /**
- * Apply alpha to a color and return as hex8.
+ * Apply alpha to a color and return as hex8
  */
 export function withAlpha(color: string, alpha: number): string {
 	const parsed = parse(color);
@@ -51,7 +49,7 @@ export function withAlpha(color: string, alpha: number): string {
 }
 
 /**
- * Strip # prefix from hex color (for Monaco token rules).
+ * Strip # prefix from hex color
  */
 export function stripHash(hex: string): string {
 	return hex.replace("#", "");

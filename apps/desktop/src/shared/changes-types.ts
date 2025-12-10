@@ -20,54 +20,34 @@ export type ChangeCategory =
 
 /** A changed file entry */
 export interface ChangedFile {
-	/** Relative path from repo root */
-	path: string;
-	/** Original path for renames/copies */
-	oldPath?: string;
-	/** Git status of the file */
+	path: string; // Relative path from repo root
+	oldPath?: string; // Original path for renames/copies
 	status: FileStatus;
-	/** Lines added */
 	additions: number;
-	/** Lines deleted */
 	deletions: number;
 }
 
 /** A commit summary for the committed changes section */
 export interface CommitInfo {
-	/** Full commit hash */
 	hash: string;
-	/** Short hash (7 chars) */
-	shortHash: string;
-	/** Commit message (first line) */
-	message: string;
-	/** Author name */
+	shortHash: string; // Short hash (7 chars)
+	message: string; // Commit message (first line)
 	author: string;
-	/** Commit date */
 	date: Date;
-	/** Files changed in this commit */
 	files: ChangedFile[];
 }
 
 /** Full git changes status for a worktree */
 export interface GitChangesStatus {
-	/** Current branch name */
 	branch: string;
-	/** Default branch (main/master) */
-	defaultBranch: string;
-	/** All files changed vs default branch */
-	againstMain: ChangedFile[];
-	/** Individual commits on branch (not on default) */
-	commits: CommitInfo[];
-	/** Staged files (in index) */
+	defaultBranch: string; // Default branch (main/master)
+	againstMain: ChangedFile[]; // All files changed vs default branch
+	commits: CommitInfo[]; // Individual commits on branch (not on default)
 	staged: ChangedFile[];
-	/** Unstaged modified files */
 	unstaged: ChangedFile[];
-	/** Untracked files */
 	untracked: ChangedFile[];
-	/** Commits ahead of default branch */
-	ahead: number;
-	/** Commits behind default branch */
-	behind: number;
+	ahead: number; // Commits ahead of default branch
+	behind: number; // Commits behind default branch
 }
 
 /** Diff view mode toggle */
@@ -78,16 +58,12 @@ export interface FileDiffInput {
 	worktreePath: string;
 	filePath: string;
 	category: ChangeCategory;
-	/** For committed category: which commit to show */
-	commitHash?: string;
+	commitHash?: string; // For committed category: which commit to show
 }
 
 /** File contents for Monaco diff editor */
 export interface FileContents {
-	/** Original content (before changes) */
-	original: string;
-	/** Modified content (after changes) */
-	modified: string;
-	/** Detected language for syntax highlighting */
-	language: string;
+	original: string; // Original content (before changes)
+	modified: string; // Modified content (after changes)
+	language: string; // Detected language for syntax highlighting
 }

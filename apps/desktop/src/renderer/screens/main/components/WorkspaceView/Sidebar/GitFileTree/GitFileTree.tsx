@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { HiFolder, HiOutlineFolder } from "react-icons/hi2";
 import { FileTreeView } from "./FileTreeView";
 import { GroupedView } from "./GroupedView";
-import { mockGitFiles } from "./mockData";
 import type { GitFile, ViewMode } from "./types";
 import { buildFileTree, groupFilesByFolder } from "./utils";
 
@@ -14,7 +13,7 @@ interface GitFileTreeProps {
 }
 
 export function GitFileTree({
-	files = mockGitFiles,
+	files = [],
 	onFileSelect,
 	defaultMode = "tree",
 }: GitFileTreeProps) {

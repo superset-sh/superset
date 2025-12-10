@@ -33,7 +33,6 @@ export function buildFileTree(files: GitFile[]): FileTreeNode[] {
 			}
 
 			if (isLast) {
-				// Set file properties
 				current[part].status = file.status;
 				current[part].staged = file.staged;
 				current[part].oldPath = file.oldPath;
@@ -43,7 +42,6 @@ export function buildFileTree(files: GitFile[]): FileTreeNode[] {
 		}
 	}
 
-	// Convert nested objects to arrays and sort
 	function convertToArray(
 		nodes: Record<string, TreeNodeInternal>,
 	): FileTreeNode[] {

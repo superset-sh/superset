@@ -7,22 +7,11 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
 interface ChangesState {
-	/** Currently selected category (against-main, committed, staged, unstaged) */
 	selectedCategory: ChangeCategory;
-
-	/** Selected file within the category */
 	selectedFile: ChangedFile | null;
-
-	/** For committed category: which commit is selected */
 	selectedCommitHash: string | null;
-
-	/** Diff view mode (side-by-side or inline) */
 	viewMode: DiffViewMode;
-
-	/** Which sections are expanded in the sidebar */
 	expandedSections: Record<ChangeCategory, boolean>;
-
-	/** Base branch for comparison (null means use auto-detected default) */
 	baseBranch: string | null;
 
 	// Actions
@@ -47,7 +36,7 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
-	baseBranch: null as string | null,
+	baseBranch: null,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -105,7 +94,6 @@ export const useChangesStore = create<ChangesState>()(
 			}),
 			{
 				name: "changes-store",
-				// Only persist view preferences, not selection state
 				partialize: (state) => ({
 					viewMode: state.viewMode,
 					expandedSections: state.expandedSections,

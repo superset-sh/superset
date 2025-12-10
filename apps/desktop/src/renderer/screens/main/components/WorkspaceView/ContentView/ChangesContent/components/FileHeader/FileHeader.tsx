@@ -56,7 +56,8 @@ export function FileHeader({ file }: FileHeaderProps) {
 				</div>
 				{file.oldPath && (
 					<div className="text-xs text-muted-foreground truncate">
-						Renamed from {file.oldPath}
+						{file.status === "copied" ? "Copied from" : "Renamed from"}{" "}
+						{file.oldPath}
 					</div>
 				)}
 			</div>
