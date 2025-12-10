@@ -3,12 +3,13 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Columns2, MoveRight, Plus, Rows2, X } from "lucide-react";
+import { Columns2, Eraser, MoveRight, Plus, Rows2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Tab } from "renderer/stores/tabs/types";
 
@@ -17,6 +18,7 @@ interface TabContentContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onClosePane: () => void;
+	onClearTerminal: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
@@ -28,6 +30,7 @@ export function TabContentContextMenu({
 	onSplitHorizontal,
 	onSplitVertical,
 	onClosePane,
+	onClearTerminal,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -47,6 +50,11 @@ export function TabContentContextMenu({
 				<ContextMenuItem onSelect={onSplitVertical}>
 					<Columns2 className="size-4" />
 					Split Vertically
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onClearTerminal}>
+					<Eraser className="size-4" />
+					Clear Terminal
+					<ContextMenuShortcut>⌘K</ContextMenuShortcut>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuSub>
@@ -73,7 +81,7 @@ export function TabContentContextMenu({
 				<ContextMenuSeparator />
 				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
 					<X className="size-4" />
-					Close Pane
+					Close Terminal
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
