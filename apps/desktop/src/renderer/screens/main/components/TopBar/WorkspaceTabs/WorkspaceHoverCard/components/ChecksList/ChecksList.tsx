@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import type { CheckItem } from "main/lib/db/schemas";
 import { useState } from "react";
 import { CheckItemRow } from "./components/CheckItemRow";
@@ -25,9 +25,9 @@ export function ChecksList({ checks }: ChecksListProps) {
 				className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
 			>
 				{expanded ? (
-					<ChevronDown className="size-3" />
+					<LuChevronDown className="size-3" />
 				) : (
-					<ChevronRight className="size-3" />
+					<LuChevronRight className="size-3" />
 				)}
 				<span>{expanded ? "Hide checks" : "Show checks"}</span>
 			</button>
