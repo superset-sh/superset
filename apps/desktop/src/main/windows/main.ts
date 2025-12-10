@@ -6,6 +6,7 @@ import { createAppRouter } from "lib/trpc/routers";
 import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
+import { appState } from "../lib/app-state";
 import { setMainWindow } from "../lib/auto-updater";
 import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
@@ -93,7 +94,7 @@ export async function MainWindow() {
 			// Derive title from tab name, falling back to pane name
 			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
 			const { paneId, tabId } = event;
-			const { tabsState } = db.data;
+			const { tabsState } = appState.data;
 			const pane = paneId ? tabsState.panes[paneId] : undefined;
 			const tab = tabId
 				? tabsState.tabs.find((t) => t.id === tabId)

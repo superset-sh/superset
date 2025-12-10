@@ -2,6 +2,7 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
 import { registerStorageHandlers } from "./lib/storage-ipcs";
@@ -35,6 +36,7 @@ registerStorageHandlers();
 	await app.whenReady();
 
 	await initDb();
+	await initAppState();
 
 	try {
 		setupAgentHooks();
