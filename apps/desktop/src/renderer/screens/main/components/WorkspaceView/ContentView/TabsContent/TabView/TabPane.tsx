@@ -115,7 +115,7 @@ export function TabPane({
 
 	const { isOpen: isChatOpen, togglePanel: toggleChatPanel } =
 		useChatPanelStore();
-		
+
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
 	const handleClearTerminal = () => {
 		getClearCallback(paneId)?.();
@@ -152,7 +152,7 @@ export function TabPane({
 					>
 						<LuMessageSquare className="size-4" />
 					</button>
-					
+
 					<button
 						type="button"
 						onClick={handleClosePane}

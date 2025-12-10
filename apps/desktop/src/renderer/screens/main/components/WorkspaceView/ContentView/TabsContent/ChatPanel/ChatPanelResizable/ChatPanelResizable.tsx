@@ -1,7 +1,4 @@
-import {
-	ResizableHandle,
-	ResizablePanel,
-} from "@superset/ui/resizable";
+import { ResizableHandle, ResizablePanel } from "@superset/ui/resizable";
 import { useChatPanelStore } from "renderer/stores";
 import { ChatPanel } from "../ChatPanel";
 
@@ -20,6 +17,7 @@ export function ChatPanelResizable() {
 				minSize={20}
 				maxSize={50}
 				onResize={setSize}
+				id="chat-panel"
 			>
 				<ChatPanel onClose={() => setOpen(false)} />
 			</ResizablePanel>

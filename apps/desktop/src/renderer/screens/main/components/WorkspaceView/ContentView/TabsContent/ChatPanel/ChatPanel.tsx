@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
-import { RiStopFill } from "react-icons/ri";
 import { ChatInput } from "./ChatInput";
 
 interface Message {
@@ -17,9 +16,22 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
 	const [messages, setMessages] = useState<Message[]>([]);
 	const [input, setInput] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
+	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-	const lastUserMessage = [...messages].reverse().find((m) => m.role === "user");
-	const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant");
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+			}
+		};
+	}, []);
+
+	const lastUserMessage = [...messages]
+		.reverse()
+		.find((m) => m.role === "user");
+	const lastAssistantMessage = [...messages]
+		.reverse()
+		.find((m) => m.role === "assistant");
 	const hasMessages = messages.length > 0;
 
 	const handleSubmit = () => {
@@ -35,8 +47,8 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
 		setInput("");
 		setIsLoading(true);
 
-		// Mock assistant response
-		setTimeout(() => {
+		// Mock assistant response - TODO: replace with actual AI integration
+		timeoutRef.current = setTimeout(() => {
 			const assistantMessage: Message = {
 				id: crypto.randomUUID(),
 				role: "assistant",
@@ -79,21 +91,14 @@ export function ChatPanel({ onClose }: ChatPanelProps) {
 					{lastUserMessage && (
 						<div className="m-2 p-3 bg-accent rounded-md border border-accent-foreground/20 flex items-start justify-between gap-2">
 							<span className="text-sm">{lastUserMessage.content}</span>
-							{isLoading && (
-								<button
-									type="button"
-									className="group relative size-5 rounded-full bg-accent-foreground/80 flex items-center justify-center hover:bg-muted transition-colors shrink-0"
-								>
-									<RiStopFill className="size-3 transition-opacity" color="#000" />
-								</button>
-							)}
 						</div>
 					)}
-
 					{/* Assistant response */}
 					<div className="flex-1 overflow-y-auto px-4 py-2">
 						{isLoading ? (
-							<p className="text-sm text-muted-foreground">Planning next moves</p>
+							<p className="text-sm text-muted-foreground">
+								Planning next moves
+							</p>
 						) : lastAssistantMessage ? (
 							<p className="text-sm">{lastAssistantMessage.content}</p>
 						) : null}

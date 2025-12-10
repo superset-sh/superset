@@ -82,7 +82,7 @@ export function ChatInput({
 							type="button"
 							onClick={onSubmit}
 							disabled={!value.trim()}
-							className="p-1.5 rounded-full bg-muted text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:text-foreground transition-colors"
+							className="p-1.5 rounded-full bg-muted-foreground/20 text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed hover:text-foreground transition-colors"
 						>
 							<VscArrowUp className="size-4" />
 						</button>
