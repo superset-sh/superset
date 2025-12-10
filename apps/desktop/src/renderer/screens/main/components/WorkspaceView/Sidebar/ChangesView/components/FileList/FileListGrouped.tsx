@@ -73,7 +73,7 @@ function FolderGroupItem({
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
-	const displayName = isRoot ? "/" : group.folderPath;
+	const displayName = isRoot ? "Root" : group.folderPath;
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
