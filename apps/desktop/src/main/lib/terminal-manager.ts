@@ -404,7 +404,7 @@ export class TerminalManager extends EventEmitter {
 
 		const results: Promise<boolean>[] = [];
 
-		for (const [tabId, session] of sessionsToKill) {
+		for (const [paneId, session] of sessionsToKill) {
 			if (session.isAlive) {
 				session.deleteHistoryOnExit = true;
 
@@ -416,14 +416,14 @@ export class TerminalManager extends EventEmitter {
 					const cleanup = (success: boolean) => {
 						if (resolved) return;
 						resolved = true;
-						this.off(`exit:${tabId}`, exitHandler);
+						this.off(`exit:${paneId}`, exitHandler);
 						if (sigtermTimeout) clearTimeout(sigtermTimeout);
 						if (sigkillTimeout) clearTimeout(sigkillTimeout);
 						resolve(success);
 					};
 
 					const exitHandler = () => cleanup(true);
-					this.once(`exit:${tabId}`, exitHandler);
+					this.once(`exit:${paneId}`, exitHandler);
 
 					// First timeout: SIGTERM didn't work, try SIGKILL
 					sigtermTimeout = setTimeout(() => {
@@ -433,7 +433,7 @@ export class TerminalManager extends EventEmitter {
 							session.pty.kill("SIGKILL");
 						} catch (error) {
 							console.error(
-								`Failed to send SIGKILL to terminal ${tabId}:`,
+								`Failed to send SIGKILL to terminal ${paneId}:`,
 								error,
 							);
 						}
@@ -444,11 +444,11 @@ export class TerminalManager extends EventEmitter {
 
 							if (session.isAlive) {
 								console.error(
-									`Terminal ${tabId} did not exit after SIGKILL, forcing cleanup. Process may still be running.`,
+									`Terminal ${paneId} did not exit after SIGKILL, forcing cleanup. Process may still be running.`,
 								);
 								// Clean up session state before resolving
 								session.isAlive = false;
-								this.sessions.delete(tabId);
+								this.sessions.delete(paneId);
 								this.closeHistory(session).catch(() => {});
 							}
 							cleanup(false);
@@ -462,12 +462,12 @@ export class TerminalManager extends EventEmitter {
 						session.pty.kill();
 					} catch (error) {
 						console.error(
-							`Failed to send SIGTERM to terminal ${tabId}:`,
+							`Failed to send SIGTERM to terminal ${paneId}:`,
 							error,
 						);
 						// Mark as failed immediately since we can't even signal it
 						session.isAlive = false;
-						this.sessions.delete(tabId);
+						this.sessions.delete(paneId);
 						this.closeHistory(session).catch(() => {});
 						cleanup(false);
 					}
@@ -478,7 +478,7 @@ export class TerminalManager extends EventEmitter {
 				// Clean up history for already-dead sessions
 				session.deleteHistoryOnExit = true;
 				await this.closeHistory(session);
-				this.sessions.delete(tabId);
+				this.sessions.delete(paneId);
 				results.push(Promise.resolve(true));
 			}
 		}
@@ -520,20 +520,20 @@ export class TerminalManager extends EventEmitter {
 	async cleanup(): Promise<void> {
 		const exitPromises: Promise<void>[] = [];
 
-		for (const [tabId, session] of this.sessions.entries()) {
+		for (const [paneId, session] of this.sessions.entries()) {
 			if (session.isAlive) {
 				const exitPromise = new Promise<void>((resolve) => {
 					const exitHandler = () => {
-						this.off(`exit:${tabId}`, exitHandler);
+						this.off(`exit:${paneId}`, exitHandler);
 						if (timeoutId) {
 							clearTimeout(timeoutId);
 						}
 						resolve();
 					};
-					this.once(`exit:${tabId}`, exitHandler);
+					this.once(`exit:${paneId}`, exitHandler);
 
 					const timeoutId = setTimeout(() => {
-						this.off(`exit:${tabId}`, exitHandler);
+						this.off(`exit:${paneId}`, exitHandler);
 						resolve();
 					}, 2000);
 					timeoutId.unref();
