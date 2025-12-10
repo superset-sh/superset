@@ -1,4 +1,5 @@
 import type React from "react";
+import { MonacoProvider } from "./MonacoProvider";
 import { TRPCProvider } from "./TRPCProvider";
 
 interface AppProvidersProps {
@@ -6,5 +7,9 @@ interface AppProvidersProps {
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-	return <TRPCProvider>{children}</TRPCProvider>;
+	return (
+		<TRPCProvider>
+			<MonacoProvider>{children}</MonacoProvider>
+		</TRPCProvider>
+	);
 }

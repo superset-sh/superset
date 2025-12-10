@@ -16,7 +16,17 @@ export function ChangesContent() {
 		selectedCommitHash,
 		viewMode,
 		setViewMode,
+		baseBranch,
 	} = useChangesStore();
+
+	// Get branches to determine effective base branch
+	const { data: branchData } = trpc.changes.getBranches.useQuery(
+		{ worktreePath: worktreePath || "" },
+		{ enabled: !!worktreePath },
+	);
+
+	// Use stored baseBranch or fall back to auto-detected default
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
 	// Fetch file contents for diff viewer
 	const {
@@ -29,7 +39,7 @@ export function ChangesContent() {
 			filePath: selectedFile?.path || "",
 			category: selectedCategory,
 			commitHash: selectedCommitHash || undefined,
-			defaultBranch: "main", // TODO: Get from project settings
+			defaultBranch: effectiveBaseBranch,
 		},
 		{
 			enabled: !!worktreePath && !!selectedFile,
@@ -50,9 +60,18 @@ export function ChangesContent() {
 			utils.changes.getFileContents.invalidate();
 		},
 	});
+	const deleteUntracked = trpc.changes.deleteUntracked.useMutation({
+		onSuccess: () => {
+			utils.changes.getStatus.invalidate();
+			utils.changes.getFileContents.invalidate();
+		},
+	});
 
 	const isActioning =
-		stageFile.isPending || unstageFile.isPending || discardChanges.isPending;
+		stageFile.isPending ||
+		unstageFile.isPending ||
+		discardChanges.isPending ||
+		deleteUntracked.isPending;
 
 	const handleStage = () => {
 		if (!worktreePath || !selectedFile) return;
@@ -67,7 +86,11 @@ export function ChangesContent() {
 	const handleDiscard = () => {
 		if (!worktreePath || !selectedFile) return;
 		// TODO: Add confirmation dialog
-		discardChanges.mutate({ worktreePath, filePath: selectedFile.path });
+		if (selectedFile.status === "untracked") {
+			deleteUntracked.mutate({ worktreePath, filePath: selectedFile.path });
+		} else {
+			discardChanges.mutate({ worktreePath, filePath: selectedFile.path });
+		}
 	};
 
 	// No workspace selected

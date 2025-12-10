@@ -22,6 +22,9 @@ interface ChangesState {
 	/** Which sections are expanded in the sidebar */
 	expandedSections: Record<ChangeCategory, boolean>;
 
+	/** Base branch for comparison (null means use auto-detected default) */
+	baseBranch: string | null;
+
 	// Actions
 	selectCategory: (category: ChangeCategory) => void;
 	selectFile: (file: ChangedFile | null) => void;
@@ -29,6 +32,7 @@ interface ChangesState {
 	setViewMode: (mode: DiffViewMode) => void;
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
+	setBaseBranch: (branch: string | null) => void;
 	reset: () => void;
 }
 
@@ -43,6 +47,7 @@ const initialState = {
 		staged: true,
 		unstaged: true,
 	},
+	baseBranch: null as string | null,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -87,6 +92,10 @@ export const useChangesStore = create<ChangesState>()(
 					});
 				},
 
+				setBaseBranch: (branch) => {
+					set({ baseBranch: branch });
+				},
+
 				reset: () => {
 					set({
 						selectedFile: null,
@@ -100,6 +109,7 @@ export const useChangesStore = create<ChangesState>()(
 				partialize: (state) => ({
 					viewMode: state.viewMode,
 					expandedSections: state.expandedSections,
+					baseBranch: state.baseBranch,
 				}),
 			},
 		),

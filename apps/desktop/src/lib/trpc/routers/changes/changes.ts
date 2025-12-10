@@ -22,6 +22,66 @@ import {
 export const createChangesRouter = () => {
 	return router({
 		/**
+		 * Get all branches for a repository (local and remote)
+		 */
+		getBranches: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.query(
+				async ({
+					input,
+				}): Promise<{
+					local: string[];
+					remote: string[];
+					defaultBranch: string;
+				}> => {
+					const git = simpleGit(input.worktreePath);
+
+					// Get all branches
+					const branchSummary = await git.branch(["-a"]);
+
+					const local: string[] = [];
+					const remote: string[] = [];
+
+					for (const name of Object.keys(branchSummary.branches)) {
+						if (name.startsWith("remotes/origin/")) {
+							// Skip HEAD reference
+							if (name === "remotes/origin/HEAD") continue;
+							// Extract branch name without origin prefix
+							const remoteName = name.replace("remotes/origin/", "");
+							remote.push(remoteName);
+						} else {
+							local.push(name);
+						}
+					}
+
+					// Determine default branch (check for main, master, or origin/HEAD)
+					let defaultBranch = "main";
+					try {
+						// Try to get the default branch from origin/HEAD
+						const headRef = await git.raw([
+							"symbolic-ref",
+							"refs/remotes/origin/HEAD",
+						]);
+						const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
+						if (match) {
+							defaultBranch = match[1].trim();
+						}
+					} catch {
+						// Fallback: check if main or master exists
+						if (remote.includes("master") && !remote.includes("main")) {
+							defaultBranch = "master";
+						}
+					}
+
+					return {
+						local: local.sort(),
+						remote: remote.sort(),
+						defaultBranch,
+					};
+				},
+			),
+
+		/**
 		 * Get full git status for a worktree including:
 		 * - Against main: files changed vs default branch
 		 * - Commits: individual commits on the branch
@@ -355,8 +415,14 @@ export const createChangesRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
-				await git.checkout(["--", input.filePath]);
-				return { success: true };
+				try {
+					await git.checkout(["--", input.filePath]);
+					return { success: true };
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Unknown error";
+					throw new Error(`Failed to discard changes: ${message}`);
+				}
 			}),
 
 		/**
@@ -382,7 +448,7 @@ export const createChangesRouter = () => {
 			}),
 
 		/**
-		 * Delete an untracked file
+		 * Delete an untracked file or directory
 		 */
 		deleteUntracked: publicProcedure
 			.input(
@@ -392,9 +458,17 @@ export const createChangesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { unlink } = await import("node:fs/promises");
-				await unlink(join(input.worktreePath, input.filePath));
-				return { success: true };
+				const { rm } = await import("node:fs/promises");
+				const fullPath = join(input.worktreePath, input.filePath);
+				try {
+					// Use recursive to handle both files and directories
+					await rm(fullPath, { recursive: true, force: false });
+					return { success: true };
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Unknown error";
+					throw new Error(`Failed to delete untracked path: ${message}`);
+				}
 			}),
 	});
 };

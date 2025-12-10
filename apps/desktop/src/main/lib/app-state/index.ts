@@ -41,6 +41,11 @@ export const appState = new Proxy({} as AppStateDB, {
 		if (!_appState) {
 			throw new Error("App state not initialized. Call initAppState() first.");
 		}
-		return _appState[prop as keyof AppStateDB];
+		const value = _appState[prop as keyof AppStateDB];
+		// Bind methods to the real instance to preserve correct `this` context
+		if (typeof value === "function") {
+			return value.bind(_appState);
+		}
+		return value;
 	},
 });

@@ -13,8 +13,15 @@ export function ChangesView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
-	// Get default branch from project (fallback to "main")
-	const defaultBranch = "main"; // TODO: Get from project settings
+	// Get base branch from store and branches data
+	const { baseBranch } = useChangesStore();
+	const { data: branchData } = trpc.changes.getBranches.useQuery(
+		{ worktreePath: worktreePath || "" },
+		{ enabled: !!worktreePath },
+	);
+
+	// Use stored baseBranch or fall back to auto-detected default
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
 	// Fetch git status with polling
 	const {
@@ -23,7 +30,7 @@ export function ChangesView() {
 		isFetching,
 		refetch,
 	} = trpc.changes.getStatus.useQuery(
-		{ worktreePath: worktreePath || "", defaultBranch },
+		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{
 			enabled: !!worktreePath,
 			refetchInterval: 2500, // Poll every 2.5 seconds
@@ -138,13 +145,13 @@ export function ChangesView() {
 		<div className="flex flex-col h-full">
 			<ChangesHeader
 				branch={status.branch}
-				defaultBranch={status.defaultBranch}
 				ahead={status.ahead}
 				behind={status.behind}
 				isRefreshing={isFetching}
 				onRefresh={() => refetch()}
 				viewMode={viewMode}
 				onViewModeChange={setViewMode}
+				worktreePath={worktreePath}
 			/>
 
 			{!hasChanges ? (

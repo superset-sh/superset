@@ -84,9 +84,9 @@ function FolderGroupItem({
 				)}
 			>
 				{isExpanded ? (
-					<HiChevronDown className="w-3 h-3 flex-shrink-0" />
+					<HiChevronDown className="w-3 h-3 shrink-0" />
 				) : (
-					<HiChevronRight className="w-3 h-3 flex-shrink-0" />
+					<HiChevronRight className="w-3 h-3 shrink-0" />
 				)}
 				<span className="flex-1 truncate">{displayName}</span>
 				<span className="text-xs opacity-60">{group.files.length}</span>
