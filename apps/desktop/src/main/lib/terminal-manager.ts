@@ -223,13 +223,13 @@ export class TerminalManager extends EventEmitter {
 		let commandsSent = false;
 
 		ptyProcess.onData((data) => {
-			// Filter terminal query responses for storage only
-			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
+			// Filter terminal query responses (CPR, DA, OSC color responses, etc.)
+			// These responses appear as garbage like "0;1R" when xterm doesn't fully consume them
 			const filteredData = session.escapeFilter.filter(data);
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
-			// Emit ORIGINAL data to xterm - it needs to process query responses
-			this.emit(`data:${tabId}`, data);
+			// Emit filtered data to prevent garbage output in the terminal
+			this.emit(`data:${tabId}`, filteredData);
 
 			// Send initial commands after shell outputs first data (prompt ready)
 			if (shouldRunCommands && !commandsSent) {
