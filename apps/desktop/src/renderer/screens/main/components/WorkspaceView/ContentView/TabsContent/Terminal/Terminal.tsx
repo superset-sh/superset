@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
 import { sanitizeForTitle } from "./commandBuffer";
@@ -79,6 +80,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
+
+	const registerClearCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().registerClearCallback,
+	);
+	const unregisterClearCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().unregisterClearCallback,
+	);
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
@@ -293,17 +301,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 
+		const handleClear = () => {
+			xterm.clear();
+			clearScrollbackRef.current({ paneId });
+		};
+
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
 					writeRef.current({ paneId, data: "\\\n" });
 				}
 			},
-			onClear: () => {
-				xterm.clear();
-				clearScrollbackRef.current({ paneId });
-			},
+			onClear: handleClear,
 		});
+
+		// Register clear callback for context menu access
+		registerClearCallbackRef.current(paneId, handleClear);
 
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
@@ -331,6 +344,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupResize();
 			cleanupPaste();
 			cleanupQuerySuppression();
+			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId });
