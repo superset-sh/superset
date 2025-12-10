@@ -47,7 +47,7 @@ function PresetCell({
 			value={value as string}
 			onChange={(e) => onChange(rowIndex, column.key, e.target.value)}
 			onBlur={() => onBlur(rowIndex, column.key)}
-			className={`h-8 px-2 text-sm w-full ${column.mono ? "font-mono" : ""}`}
+			className={`h-8 px-2 text-sm w-full min-w-0 truncate ${column.mono ? "font-mono" : ""}`}
 			placeholder={column.placeholder}
 		/>
 	);

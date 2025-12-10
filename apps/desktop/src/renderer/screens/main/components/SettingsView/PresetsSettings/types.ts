@@ -12,18 +12,17 @@ export interface PresetColumnConfig {
 }
 
 export const PRESET_COLUMNS: PresetColumnConfig[] = [
-	{ key: "name", label: "Name", placeholder: "Preset name (i.e. Dev Server)" },
+	{ key: "name", label: "Name", placeholder: "e.g. Dev Server" },
 	{
 		key: "cwd",
 		label: "CWD",
-		placeholder: "Working directory (i.e. ./src). Defaults to workspace root",
+		placeholder: "e.g. ./src (optional)",
 		mono: true,
 	},
 	{
 		key: "commands",
 		label: "Commands",
-		placeholder:
-			"Commands to run at startup (i.e. npm run dev). Enter to add more commands.",
+		placeholder: "e.g. npm run dev",
 		mono: true,
 	},
 ];
