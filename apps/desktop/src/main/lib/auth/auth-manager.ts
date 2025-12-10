@@ -1,6 +1,6 @@
 import { BrowserWindow, session } from "electron";
 import type { AuthSession } from "shared/ipc-channels/auth";
-import { store } from "../storage-manager";
+import { db } from "../db";
 
 const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || "";
 
@@ -20,11 +20,6 @@ function getClerkAccountPortalUrl(): string {
 	return frontendApi.replace(".clerk.accounts.dev", ".accounts.dev");
 }
 
-interface StoredAuthData {
-	session: AuthSession | null;
-}
-
-const AUTH_STORE_KEY = "clerk_auth";
 const AUTH_SESSION_PARTITION = "persist:clerk-auth";
 
 class AuthManager {
@@ -36,7 +31,7 @@ class AuthManager {
 	}
 
 	getSession(): AuthSession | null {
-		const data = store.get(AUTH_STORE_KEY) as StoredAuthData | undefined;
+		const data = db.data?.auth;
 		console.log("[auth] getSession called, stored data:", data);
 
 		if (!data?.session) {
@@ -61,8 +56,9 @@ class AuthManager {
 		return data.session;
 	}
 
-	private storeSession(authSession: AuthSession | null): void {
-		store.set(AUTH_STORE_KEY, { session: authSession });
+	private async storeSession(authSession: AuthSession | null): Promise<void> {
+		db.data.auth = { session: authSession };
+		await db.write();
 
 		if (this.mainWindow && !this.mainWindow.isDestroyed()) {
 			this.mainWindow.webContents.send("auth:session-changed", authSession);
@@ -117,7 +113,7 @@ class AuthManager {
 				if (sessionData) {
 					console.log("[auth] Session detected:", sessionData.email);
 					clearInterval(pollInterval);
-					this.storeSession(sessionData);
+					await this.storeSession(sessionData);
 					this.authWindow?.close();
 				}
 			}, 1000);
@@ -135,7 +131,7 @@ class AuthManager {
 					if (sessionData) {
 						console.log("[auth] Session found after redirect:", sessionData.email);
 						clearInterval(pollInterval);
-						this.storeSession(sessionData);
+						await this.storeSession(sessionData);
 						this.authWindow?.close();
 					}
 				}
@@ -476,7 +472,7 @@ class AuthManager {
 
 	async signOut(): Promise<{ success: boolean; error?: string }> {
 		try {
-			this.storeSession(null);
+			await this.storeSession(null);
 
 			// Clear auth cookies
 			const authSession = session.fromPartition(AUTH_SESSION_PARTITION);

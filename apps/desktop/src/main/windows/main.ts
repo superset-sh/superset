@@ -6,8 +6,10 @@ import { createAppRouter } from "lib/trpc/routers";
 import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
+import { appState } from "../lib/app-state";
 import { authManager } from "../lib/auth";
 import { setMainWindow } from "../lib/auto-updater";
+import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import {
@@ -82,13 +84,50 @@ export async function MainWindow() {
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
 
+			// Derive workspace name from workspaceId with safe fallbacks
+			let workspaceName = "Workspace";
+			try {
+				const workspaces = db.data?.workspaces;
+				const worktrees = db.data?.worktrees;
+				if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
+					const workspace = workspaces.find((w) => w.id === event.workspaceId);
+					const worktree = workspace
+						? worktrees.find((wt) => wt.id === workspace.worktreeId)
+						: undefined;
+					workspaceName = workspace?.name || worktree?.branch || "Workspace";
+				}
+			} catch (error) {
+				console.error(
+					"[notifications] Failed to access db for workspace name:",
+					error,
+				);
+			}
+
+			// Derive title from tab name, falling back to pane name
+			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
+			let title = "Terminal";
+			try {
+				const { paneId, tabId } = event;
+				const tabsState = appState.data?.tabsState;
+				const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
+				const tab = tabId
+					? tabsState?.tabs?.find((t) => t.id === tabId)
+					: undefined;
+				title = tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+			} catch (error) {
+				console.error(
+					"[notifications] Failed to access appState for tab title:",
+					error,
+				);
+			}
+
 			const notification = new Notification({
 				title: isPermissionRequest
-					? `Input Needed — ${event.workspaceName}`
-					: `Agent Complete — ${event.workspaceName}`,
+					? `Input Needed — ${workspaceName}`
+					: `Agent Complete — ${workspaceName}`,
 				body: isPermissionRequest
-					? `"${event.tabTitle}" needs your attention`
-					: `"${event.tabTitle}" has finished its task`,
+					? `"${title}" needs your attention`
+					: `"${title}" has finished its task`,
 				silent: true,
 			});
 
@@ -97,8 +136,9 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
-				// Request focus on the specific tab
+				// Request focus on the specific pane
 				notificationsEmitter.emit("focus-tab", {
+					paneId: event.paneId,
 					tabId: event.tabId,
 					workspaceId: event.workspaceId,
 				});

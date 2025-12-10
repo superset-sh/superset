@@ -64,19 +64,21 @@ export function ProjectsSettings({
 				{groups.map((group) => (
 					<div key={group.project.id}>
 						{/* Project header */}
-						<div className="flex items-center">
+						<div
+							className={cn(
+								"flex items-center h-8 rounded-md transition-colors",
+								activeWorkspace?.projectId === group.project.id &&
+									activeSection === "project"
+									? "bg-accent text-accent-foreground"
+									: "hover:bg-accent/50",
+							)}
+						>
 							<button
 								type="button"
 								onClick={() =>
 									handleProjectClick(group.workspaces[0]?.id ?? "")
 								}
-								className={cn(
-									"flex-1 flex items-center gap-2 pl-3 pr-1 py-1.5 text-sm text-left rounded-l-md transition-colors",
-									activeWorkspace?.projectId === group.project.id &&
-										activeSection === "project"
-										? "bg-accent text-accent-foreground"
-										: "hover:bg-accent/50",
-								)}
+								className="flex-1 flex items-center gap-2 pl-3 pr-1 h-full text-sm text-left"
 							>
 								<div
 									className="w-2 h-2 rounded-full shrink-0"
@@ -90,11 +92,11 @@ export function ProjectsSettings({
 								type="button"
 								onClick={() => toggleProject(group.project.id)}
 								className={cn(
-									"px-2 py-1.5 rounded-r-md transition-colors",
+									"px-2 h-full flex items-center",
 									activeWorkspace?.projectId === group.project.id &&
 										activeSection === "project"
-										? "bg-accent text-accent-foreground"
-										: "hover:bg-accent/50 text-muted-foreground",
+										? "text-accent-foreground"
+										: "text-muted-foreground",
 								)}
 							>
 								{expandedProjects.has(group.project.id) ? (

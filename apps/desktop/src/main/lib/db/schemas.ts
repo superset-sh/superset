@@ -109,11 +109,24 @@ export interface Settings {
 	terminalPresets?: TerminalPreset[];
 }
 
+export interface AuthData {
+	session: {
+		userId: string;
+		sessionId: string;
+		email: string | null;
+		firstName: string | null;
+		lastName: string | null;
+		imageUrl: string | null;
+		expiresAt: number;
+	} | null;
+}
+
 export interface Database {
 	projects: Project[];
 	worktrees: Worktree[];
 	workspaces: Workspace[];
 	settings: Settings;
+	auth: AuthData;
 }
 
 export const defaultDatabase: Database = {
@@ -121,4 +134,5 @@ export const defaultDatabase: Database = {
 	worktrees: [],
 	workspaces: [],
 	settings: {},
+	auth: { session: null },
 };

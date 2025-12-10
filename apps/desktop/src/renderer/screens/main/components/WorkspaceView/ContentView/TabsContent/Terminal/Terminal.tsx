@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
 import { sanitizeForTitle } from "./commandBuffer";
@@ -26,7 +27,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
 	const panes = useTabsStore((s) => s.panes);
 	const pane = panes[paneId];
-	const paneName = pane?.name || "Terminal";
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
@@ -68,21 +68,28 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const writeMutation = trpc.terminal.write.useMutation();
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
+	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
 	const detachRef = useRef(detachMutation.mutate);
+	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
+	clearScrollbackRef.current = clearScrollbackMutation.mutate;
+
+	const registerClearCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().registerClearCallback,
+	);
+	const unregisterClearCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().unregisterClearCallback,
+	);
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
-
-	const paneNameRef = useRef(paneName);
-	paneNameRef.current = paneName;
 
 	const setTabAutoTitleRef = useRef(setTabAutoTitle);
 	setTabAutoTitleRef.current = setTabAutoTitle;
@@ -208,9 +215,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.clear();
 			createOrAttachRef.current(
 				{
-					tabId: paneId,
+					paneId,
+					tabId: parentTabIdRef.current || paneId,
 					workspaceId,
-					tabTitle: paneNameRef.current,
 					cols: xterm.cols,
 					rows: xterm.rows,
 				},
@@ -232,7 +239,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				restartTerminal();
 				return;
 			}
-			writeRef.current({ tabId: paneId, data });
+			writeRef.current({ paneId, data });
 		};
 
 		const handleKeyPress = (event: {
@@ -264,9 +271,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		createOrAttachRef.current(
 			{
-				tabId: paneId,
+				paneId,
+				tabId: parentTabIdRef.current || paneId,
 				workspaceId,
-				tabTitle: paneNameRef.current,
 				cols: xterm.cols,
 				rows: xterm.rows,
 				initialCommands,
@@ -294,16 +301,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 
+		const handleClear = () => {
+			xterm.clear();
+			clearScrollbackRef.current({ paneId });
+		};
+
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => {
 				if (!isExitedRef.current) {
-					writeRef.current({ tabId: paneId, data: "\\\n" });
+					writeRef.current({ paneId, data: "\\\n" });
 				}
 			},
-			onClear: () => {
-				xterm.clear();
-			},
+			onClear: handleClear,
 		});
+
+		// Register clear callback for context menu access
+		registerClearCallbackRef.current(paneId, handleClear);
 
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
@@ -313,10 +326,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			(cols, rows) => {
-				resizeRef.current({ tabId: paneId, cols, rows });
+				resizeRef.current({ paneId, cols, rows });
 			},
 		);
-		// Setup paste handler to ensure bracketed paste mode works for TUI apps like opencode
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
@@ -332,9 +344,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupResize();
 			cleanupPaste();
 			cleanupQuerySuppression();
+			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ tabId: paneId });
+			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
@@ -366,7 +379,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const text = shellEscapePaths(paths);
 
 		if (!isExitedRef.current) {
-			writeRef.current({ tabId: paneId, data: text });
+			writeRef.current({ paneId, data: text });
 		}
 	};
 

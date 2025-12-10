@@ -2,10 +2,10 @@ import path from "node:path";
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { initAppState } from "./lib/app-state";
 import { authManager, registerAuthHandlers } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
-import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
 import { MainWindow } from "./windows/main";
 
@@ -35,7 +35,6 @@ app.on("open-url", (event, url) => {
 	}
 });
 
-registerStorageHandlers();
 registerAuthHandlers();
 
 // Allow multiple instances - removed single instance lock
@@ -43,6 +42,7 @@ registerAuthHandlers();
 	await app.whenReady();
 
 	await initDb();
+	await initAppState();
 
 	try {
 		setupAgentHooks();

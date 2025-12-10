@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
-import { useEffect, useState } from "react";
-import { HiOutlinePlus } from "react-icons/hi2";
+import { useEffect, useMemo, useState } from "react";
+import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
+import { LuSparkles } from "react-icons/lu";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
 import {
@@ -8,6 +9,39 @@ import {
 	type PresetColumnKey,
 	type TerminalPreset,
 } from "./types";
+
+interface PresetTemplate {
+	name: string;
+	description: string;
+	preset: {
+		name: string;
+		cwd: string;
+		commands: string[];
+	};
+}
+
+const PRESET_TEMPLATES: PresetTemplate[] = [
+	{
+		name: "Codex (Danger Mode)",
+		description: "OpenAI Codex with full sandbox access and high reasoning",
+		preset: {
+			name: "Codex Danger",
+			cwd: "",
+			commands: [
+				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+			],
+		},
+	},
+	{
+		name: "Claude (Danger Mode)",
+		description: "Claude Code with permissions auto-approved",
+		preset: {
+			name: "Claude Danger",
+			cwd: "",
+			commands: ["claude --dangerously-skip-permissions"],
+		},
+	},
+];
 
 export function PresetsSettings() {
 	const {
@@ -23,6 +57,14 @@ export function PresetsSettings() {
 	useEffect(() => {
 		setLocalPresets(serverPresets);
 	}, [serverPresets]);
+
+	const existingPresetNames = useMemo(
+		() => new Set(serverPresets.map((p) => p.name)),
+		[serverPresets],
+	);
+
+	const isTemplateAdded = (template: PresetTemplate) =>
+		existingPresetNames.has(template.preset.name);
 
 	const handleCellChange = (
 		rowIndex: number,
@@ -75,6 +117,11 @@ export function PresetsSettings() {
 		});
 	};
 
+	const handleAddTemplate = (template: PresetTemplate) => {
+		if (isTemplateAdded(template)) return;
+		createPreset.mutate(template.preset);
+	};
+
 	const handleDeleteRow = (rowIndex: number) => {
 		const preset = localPresets[rowIndex];
 		if (!preset) return;
@@ -108,10 +155,38 @@ export function PresetsSettings() {
 						Add Preset
 					</Button>
 				</div>
-				<p className="text-sm text-muted-foreground">
-					Create and manage terminal presets for quick terminal creation. Press
-					Enter to add a new command.
+				<p className="text-sm text-muted-foreground mb-4">
+					Presets let you quickly launch terminals with pre-configured commands.
+					Create a preset below, then use it from the "New Terminal" dropdown in
+					any workspace.
 				</p>
+
+				<div className="flex flex-wrap gap-2">
+					<span className="text-xs text-muted-foreground mr-1 self-center">
+						Quick add:
+					</span>
+					{PRESET_TEMPLATES.map((template) => {
+						const alreadyAdded = isTemplateAdded(template);
+						return (
+							<Button
+								key={template.name}
+								variant="outline"
+								size="sm"
+								className="gap-1.5 text-xs h-7"
+								onClick={() => handleAddTemplate(template)}
+								title={alreadyAdded ? "Already added" : template.description}
+								disabled={alreadyAdded || createPreset.isPending}
+							>
+								{alreadyAdded ? (
+									<HiOutlineCheck className="h-3 w-3" />
+								) : (
+									<LuSparkles className="h-3 w-3" />
+								)}
+								{template.name}
+							</Button>
+						);
+					})}
+				</div>
 			</div>
 
 			<div className="rounded-lg border border-border overflow-hidden">

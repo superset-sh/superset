@@ -8,6 +8,7 @@ import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
 import { createSettingsRouter } from "./settings";
 import { createTerminalRouter } from "./terminal";
+import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -30,6 +31,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),
+		uiState: createUiStateRouter(),
 	});
 };
 

@@ -3,13 +3,21 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuShortcut,
 	ContextMenuSub,
 	ContextMenuSubContent,
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Columns2, MoveRight, Plus, Rows2, X } from "lucide-react";
 import type { ReactNode } from "react";
+import {
+	LuColumns2,
+	LuEraser,
+	LuMoveRight,
+	LuPlus,
+	LuRows2,
+	LuX,
+} from "react-icons/lu";
 import type { Tab } from "renderer/stores/tabs/types";
 
 interface TabContentContextMenuProps {
@@ -17,6 +25,7 @@ interface TabContentContextMenuProps {
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
 	onClosePane: () => void;
+	onClearTerminal: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
@@ -28,6 +37,7 @@ export function TabContentContextMenu({
 	onSplitHorizontal,
 	onSplitVertical,
 	onClosePane,
+	onClearTerminal,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -41,17 +51,22 @@ export function TabContentContextMenu({
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={onSplitHorizontal}>
-					<Rows2 className="size-4" />
+					<LuRows2 className="size-4" />
 					Split Horizontally
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={onSplitVertical}>
-					<Columns2 className="size-4" />
+					<LuColumns2 className="size-4" />
 					Split Vertically
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onClearTerminal}>
+					<LuEraser className="size-4" />
+					Clear Terminal
+					<ContextMenuShortcut>⌘K</ContextMenuShortcut>
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuSub>
 					<ContextMenuSubTrigger className="gap-2">
-						<MoveRight className="size-4" />
+						<LuMoveRight className="size-4" />
 						Move to Tab
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent>
@@ -65,15 +80,15 @@ export function TabContentContextMenu({
 						))}
 						{targetTabs.length > 0 && <ContextMenuSeparator />}
 						<ContextMenuItem onSelect={onMoveToNewTab}>
-							<Plus className="size-4" />
+							<LuPlus className="size-4" />
 							New Tab
 						</ContextMenuItem>
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 				<ContextMenuSeparator />
 				<ContextMenuItem variant="destructive" onSelect={onClosePane}>
-					<X className="size-4" />
-					Close Pane
+					<LuX className="size-4" />
+					Close Terminal
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>

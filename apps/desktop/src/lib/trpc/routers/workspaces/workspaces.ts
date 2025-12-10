@@ -139,8 +139,8 @@ export const createWorkspacesRouter = () => {
 					}
 				});
 
-				// Load setup configuration from the worktree itself
-				const setupConfig = loadSetupConfig(worktreePath);
+				// Load setup configuration from the main repo (where .superset/config.json lives)
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				return {
 					workspace,

@@ -10,11 +10,6 @@ declare global {
 	interface Window {
 		App: typeof API;
 		ipcRenderer: typeof ipcRendererAPI;
-		electronStore: {
-			get: (key: string) => unknown;
-			set: (key: string, value: unknown) => void;
-			delete: (key: string) => void;
-		};
 		webUtils: {
 			getPathForFile: (file: File) => string;
 		};
@@ -81,17 +76,8 @@ const ipcRendererAPI = {
 // Expose electron-trpc IPC channel FIRST (must be before contextBridge calls)
 exposeElectronTRPC();
 
-// Expose electron-store API via IPC
-const electronStoreAPI = {
-	get: (key: string) => ipcRenderer.invoke("storage:get", { key }),
-	set: (key: string, value: unknown) =>
-		ipcRenderer.invoke("storage:set", { key, value }),
-	delete: (key: string) => ipcRenderer.invoke("storage:delete", { key }),
-};
-
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
-contextBridge.exposeInMainWorld("electronStore", electronStoreAPI);
 contextBridge.exposeInMainWorld("webUtils", {
 	getPathForFile: (file: File) => webUtils.getPathForFile(file),
 });

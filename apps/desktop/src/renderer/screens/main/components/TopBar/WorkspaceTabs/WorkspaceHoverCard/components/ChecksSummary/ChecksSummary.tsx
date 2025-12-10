@@ -1,5 +1,5 @@
-import { Check, LoaderCircle, X } from "lucide-react";
 import type { CheckItem } from "main/lib/db/schemas";
+import { LuCheck, LuLoaderCircle, LuX } from "react-icons/lu";
 
 interface ChecksSummaryProps {
 	checks: CheckItem[];
@@ -16,15 +16,15 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 
 	const config = {
 		success: {
-			icon: Check,
+			icon: LuCheck,
 			className: "text-emerald-500",
 		},
 		failure: {
-			icon: X,
+			icon: LuX,
 			className: "text-destructive-foreground",
 		},
 		pending: {
-			icon: LoaderCircle,
+			icon: LuLoaderCircle,
 			className: "text-amber-500",
 		},
 	};
