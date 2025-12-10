@@ -82,25 +82,46 @@ export async function MainWindow() {
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
 
-			// Derive workspace name from workspaceId
-			const workspace = db.data.workspaces.find(
-				(w) => w.id === event.workspaceId,
-			);
-			const worktree = workspace
-				? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
-				: undefined;
-			const workspaceName = workspace?.name || worktree?.branch || "Workspace";
+			// Derive workspace name from workspaceId with safe fallbacks
+			let workspaceName = "Workspace";
+			try {
+				const workspaces = db.data?.workspaces;
+				const worktrees = db.data?.worktrees;
+				if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
+					const workspace = workspaces.find(
+						(w) => w.id === event.workspaceId,
+					);
+					const worktree = workspace
+						? worktrees.find((wt) => wt.id === workspace.worktreeId)
+						: undefined;
+					workspaceName =
+						workspace?.name || worktree?.branch || "Workspace";
+				}
+			} catch (error) {
+				console.error(
+					"[notifications] Failed to access db for workspace name:",
+					error,
+				);
+			}
 
 			// Derive title from tab name, falling back to pane name
 			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-			const { paneId, tabId } = event;
-			const tabsState = appState.data.tabsState;
-			const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
-			const tab = tabId
-				? tabsState?.tabs?.find((t) => t.id === tabId)
-				: undefined;
-			const title =
-				tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+			let title = "Terminal";
+			try {
+				const { paneId, tabId } = event;
+				const tabsState = appState.data?.tabsState;
+				const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
+				const tab = tabId
+					? tabsState?.tabs?.find((t) => t.id === tabId)
+					: undefined;
+				title =
+					tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+			} catch (error) {
+				console.error(
+					"[notifications] Failed to access appState for tab title:",
+					error,
+				);
+			}
 
 			const notification = new Notification({
 				title: isPermissionRequest
