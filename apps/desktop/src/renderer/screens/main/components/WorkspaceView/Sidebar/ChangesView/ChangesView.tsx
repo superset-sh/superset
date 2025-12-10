@@ -13,17 +13,14 @@ export function ChangesView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
-	// Get base branch from store and branches data
 	const { baseBranch } = useChangesStore();
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath },
 	);
 
-	// Use stored baseBranch or fall back to auto-detected default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
-	// Fetch git status with polling
 	const {
 		data: status,
 		isLoading,
@@ -33,12 +30,11 @@ export function ChangesView() {
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{
 			enabled: !!worktreePath,
-			refetchInterval: 2500, // Poll every 2.5 seconds
+			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
 		},
 	);
 
-	// Store state
 	const {
 		selectedFile,
 		selectedCommitHash,
@@ -49,15 +45,12 @@ export function ChangesView() {
 		selectCategory,
 	} = useChangesStore();
 
-	// View mode state
 	const [viewMode, setViewMode] = useState<ChangesViewMode>("grouped");
 
-	// Track which commits are expanded locally
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
 
-	// Fetch files for expanded commits
 	const commitFilesQueries = trpc.useQueries((t) =>
 		Array.from(expandedCommits).map((hash) =>
 			t.changes.getCommitFiles({
@@ -67,7 +60,6 @@ export function ChangesView() {
 		),
 	);
 
-	// Build a map of commit hash -> files
 	const commitFilesMap = new Map<string, ChangedFile[]>();
 	Array.from(expandedCommits).forEach((hash, index) => {
 		const query = commitFilesQueries[index];
@@ -100,7 +92,6 @@ export function ChangesView() {
 		});
 	};
 
-	// Show loading state
 	if (!worktreePath) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
@@ -132,13 +123,11 @@ export function ChangesView() {
 		status.unstaged.length > 0 ||
 		status.untracked.length > 0;
 
-	// Enrich commits with their files from the map
 	const commitsWithFiles = status.commits.map((commit) => ({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || [],
 	}));
 
-	// Combine unstaged and untracked for the Unstaged section
 	const unstagedFiles = [...status.unstaged, ...status.untracked];
 
 	return (
