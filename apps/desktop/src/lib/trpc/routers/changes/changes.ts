@@ -1,0 +1,400 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import type {
+	ChangedFile,
+	FileContents,
+	GitChangesStatus,
+} from "shared/changes-types";
+import simpleGit from "simple-git";
+import { z } from "zod";
+import { publicProcedure, router } from "../..";
+import {
+	detectLanguage,
+	parseDiffNumstat,
+	parseGitLog,
+	parseGitStatus,
+	parseNameStatus,
+} from "./utils/parse-status";
+
+/**
+ * tRPC router for git changes/diff operations
+ */
+export const createChangesRouter = () => {
+	return router({
+		/**
+		 * Get full git status for a worktree including:
+		 * - Against main: files changed vs default branch
+		 * - Commits: individual commits on the branch
+		 * - Staged: changes in index
+		 * - Unstaged: working tree changes
+		 * - Untracked: new files not tracked
+		 */
+		getStatus: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					defaultBranch: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }): Promise<GitChangesStatus> => {
+				const git = simpleGit(input.worktreePath);
+				const defaultBranch = input.defaultBranch || "main";
+
+				// Get basic status
+				const status = await git.status();
+				const parsed = parseGitStatus(status);
+
+				// Get commits on branch (compared to default branch)
+				let commits: GitChangesStatus["commits"] = [];
+				let againstMain: ChangedFile[] = [];
+				let ahead = 0;
+				let behind = 0;
+
+				try {
+					// Get ahead/behind counts
+					const tracking = await git.raw([
+						"rev-list",
+						"--left-right",
+						"--count",
+						`origin/${defaultBranch}...HEAD`,
+					]);
+					const [behindStr, aheadStr] = tracking.trim().split(/\s+/);
+					behind = Number.parseInt(behindStr || "0", 10);
+					ahead = Number.parseInt(aheadStr || "0", 10);
+
+					// Get commits on this branch (not on default)
+					const logOutput = await git.raw([
+						"log",
+						`origin/${defaultBranch}..HEAD`,
+						"--format=%H|%h|%s|%an|%aI",
+					]);
+					commits = parseGitLog(logOutput);
+
+					// Get all files changed against default branch
+					if (ahead > 0) {
+						const nameStatus = await git.raw([
+							"diff",
+							"--name-status",
+							`origin/${defaultBranch}...HEAD`,
+						]);
+						againstMain = parseNameStatus(nameStatus);
+
+						// Get numstat for addition/deletion counts
+						const numstat = await git.raw([
+							"diff",
+							"--numstat",
+							`origin/${defaultBranch}...HEAD`,
+						]);
+						const stats = parseDiffNumstat(numstat);
+						for (const file of againstMain) {
+							const fileStat = stats.get(file.path);
+							if (fileStat) {
+								file.additions = fileStat.additions;
+								file.deletions = fileStat.deletions;
+							}
+						}
+					}
+				} catch {
+					// Remote tracking may not exist, continue without against-main data
+				}
+
+				// Get numstat for staged files
+				if (parsed.staged.length > 0) {
+					try {
+						const stagedNumstat = await git.raw([
+							"diff",
+							"--cached",
+							"--numstat",
+						]);
+						const stagedStats = parseDiffNumstat(stagedNumstat);
+						for (const file of parsed.staged) {
+							const fileStat = stagedStats.get(file.path);
+							if (fileStat) {
+								file.additions = fileStat.additions;
+								file.deletions = fileStat.deletions;
+							}
+						}
+					} catch {
+						// Ignore errors
+					}
+				}
+
+				// Get numstat for unstaged files
+				if (parsed.unstaged.length > 0) {
+					try {
+						const unstagedNumstat = await git.raw(["diff", "--numstat"]);
+						const unstagedStats = parseDiffNumstat(unstagedNumstat);
+						for (const file of parsed.unstaged) {
+							const fileStat = unstagedStats.get(file.path);
+							if (fileStat) {
+								file.additions = fileStat.additions;
+								file.deletions = fileStat.deletions;
+							}
+						}
+					} catch {
+						// Ignore errors
+					}
+				}
+
+				return {
+					branch: parsed.branch,
+					defaultBranch,
+					againstMain,
+					commits,
+					staged: parsed.staged,
+					unstaged: parsed.unstaged,
+					untracked: parsed.untracked,
+					ahead,
+					behind,
+				};
+			}),
+
+		/**
+		 * Get files changed in a specific commit
+		 */
+		getCommitFiles: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					commitHash: z.string(),
+				}),
+			)
+			.query(async ({ input }): Promise<ChangedFile[]> => {
+				const git = simpleGit(input.worktreePath);
+
+				// Get files changed in this commit
+				const nameStatus = await git.raw([
+					"diff-tree",
+					"--no-commit-id",
+					"--name-status",
+					"-r",
+					input.commitHash,
+				]);
+				const files = parseNameStatus(nameStatus);
+
+				// Get numstat
+				const numstat = await git.raw([
+					"diff-tree",
+					"--no-commit-id",
+					"--numstat",
+					"-r",
+					input.commitHash,
+				]);
+				const stats = parseDiffNumstat(numstat);
+				for (const file of files) {
+					const fileStat = stats.get(file.path);
+					if (fileStat) {
+						file.additions = fileStat.additions;
+						file.deletions = fileStat.deletions;
+					}
+				}
+
+				return files;
+			}),
+
+		/**
+		 * Get file contents for Monaco diff editor
+		 */
+		getFileContents: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+					category: z.enum(["against-main", "committed", "staged", "unstaged"]),
+					commitHash: z.string().optional(),
+					defaultBranch: z.string().optional(),
+				}),
+			)
+			.query(async ({ input }): Promise<FileContents> => {
+				const git = simpleGit(input.worktreePath);
+				const defaultBranch = input.defaultBranch || "main";
+				let original = "";
+				let modified = "";
+
+				switch (input.category) {
+					case "against-main": {
+						// Original: file at default branch
+						// Modified: file at HEAD
+						try {
+							original = await git.show([
+								`origin/${defaultBranch}:${input.filePath}`,
+							]);
+						} catch {
+							// File doesn't exist on default branch (new file)
+							original = "";
+						}
+						try {
+							modified = await git.show([`HEAD:${input.filePath}`]);
+						} catch {
+							// File doesn't exist at HEAD (deleted)
+							modified = "";
+						}
+						break;
+					}
+
+					case "committed": {
+						// Original: file at parent commit
+						// Modified: file at specified commit
+						if (!input.commitHash) {
+							throw new Error("commitHash required for committed category");
+						}
+						try {
+							original = await git.show([
+								`${input.commitHash}^:${input.filePath}`,
+							]);
+						} catch {
+							// No parent (first commit) or file didn't exist
+							original = "";
+						}
+						try {
+							modified = await git.show([
+								`${input.commitHash}:${input.filePath}`,
+							]);
+						} catch {
+							// File was deleted in this commit
+							modified = "";
+						}
+						break;
+					}
+
+					case "staged": {
+						// Original: file at HEAD
+						// Modified: file in index (staged)
+						try {
+							original = await git.show([`HEAD:${input.filePath}`]);
+						} catch {
+							// New file being added
+							original = "";
+						}
+						try {
+							// :0: refers to the index
+							modified = await git.show([`:0:${input.filePath}`]);
+						} catch {
+							// File being deleted
+							modified = "";
+						}
+						break;
+					}
+
+					case "unstaged": {
+						// Original: file in index (or HEAD if not staged)
+						// Modified: file in working tree
+						try {
+							// Try index first
+							original = await git.show([`:0:${input.filePath}`]);
+						} catch {
+							// Fall back to HEAD
+							try {
+								original = await git.show([`HEAD:${input.filePath}`]);
+							} catch {
+								original = "";
+							}
+						}
+						// Read from working tree
+						try {
+							modified = await readFile(
+								join(input.worktreePath, input.filePath),
+								"utf-8",
+							);
+						} catch {
+							// File deleted in working tree
+							modified = "";
+						}
+						break;
+					}
+				}
+
+				return {
+					original,
+					modified,
+					language: detectLanguage(input.filePath),
+				};
+			}),
+
+		/**
+		 * Stage a file
+		 */
+		stageFile: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				await git.add(input.filePath);
+				return { success: true };
+			}),
+
+		/**
+		 * Unstage a file
+		 */
+		unstageFile: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				await git.reset(["HEAD", "--", input.filePath]);
+				return { success: true };
+			}),
+
+		/**
+		 * Discard changes to a file (restore from HEAD/index)
+		 */
+		discardChanges: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				await git.checkout(["--", input.filePath]);
+				return { success: true };
+			}),
+
+		/**
+		 * Stage all changes
+		 */
+		stageAll: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				await git.add("-A");
+				return { success: true };
+			}),
+
+		/**
+		 * Unstage all changes
+		 */
+		unstageAll: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				await git.reset(["HEAD"]);
+				return { success: true };
+			}),
+
+		/**
+		 * Delete an untracked file
+		 */
+		deleteUntracked: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const { unlink } = await import("node:fs/promises");
+				await unlink(join(input.worktreePath, input.filePath));
+				return { success: true };
+			}),
+	});
+};

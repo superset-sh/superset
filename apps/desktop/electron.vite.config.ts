@@ -88,6 +88,15 @@ export default defineConfig({
 			}),
 		],
 
+		// Monaco editor worker configuration
+		worker: {
+			format: "es",
+		},
+
+		optimizeDeps: {
+			include: ["monaco-editor"],
+		},
+
 		publicDir: resolve(resources, "public"),
 
 		build: {

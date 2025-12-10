@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
@@ -24,6 +25,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
+		changes: createChangesRouter(),
 		notifications: createNotificationsRouter(),
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
