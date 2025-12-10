@@ -42,5 +42,8 @@
 	"workspaces": [
 		"packages/*",
 		"apps/*"
-	]
+	],
+	"dependencies": {
+		"@clerk/clerk-react": "^5.58.1"
+	}
 }
