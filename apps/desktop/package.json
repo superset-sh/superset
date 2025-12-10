@@ -66,7 +66,6 @@
 		"line-column-path": "^3.0.0",
 		"lodash": "^4.17.21",
 		"lowdb": "^7.0.1",
-		"lucide-react": "^0.555.0",
 		"monaco-editor": "^0.55.1",
 		"nanoid": "^5.1.6",
 		"node-pty": "1.1.0-beta30",

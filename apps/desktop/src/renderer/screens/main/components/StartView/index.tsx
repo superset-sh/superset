@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { ChevronUp, FolderGit, FolderOpen, X } from "lucide-react";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
+import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -152,7 +152,7 @@ export function StartView() {
 									className="flex-shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
 									aria-label="Dismiss error"
 								>
-									<X className="h-3.5 w-3.5 text-muted-foreground" />
+									<LuX className="h-3.5 w-3.5 text-muted-foreground" />
 								</button>
 							</div>
 						</div>
@@ -163,14 +163,14 @@ export function StartView() {
 						{/* Action Cards */}
 						<div className="w-full max-w-[650px] min-w-[280px] inline-flex justify-center items-center gap-4 px-2">
 							<ActionCard
-								icon={FolderOpen}
+								icon={LuFolderOpen}
 								label="Open project"
 								onClick={handleOpenProject}
 								isLoading={isLoading}
 							/>
 
 							<ActionCard
-								icon={FolderGit}
+								icon={LuFolderGit}
 								label="Clone repo"
 								onClick={() => {
 									setError(null);
@@ -200,7 +200,7 @@ export function StartView() {
 												{showAllProjects ? (
 													<>
 														Show less
-														<ChevronUp className="h-3 w-3" />
+														<LuChevronUp className="h-3 w-3" />
 													</>
 												) : (
 													<>View all ({recentProjects.length})</>

@@ -2,7 +2,7 @@ import { app, type BrowserWindow, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { ENVIRONMENT, PLATFORM } from "shared/constants";
 
-const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 1; // 1 hour
+const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
 	"https://github.com/superset-sh/superset/releases/latest/download";
 
