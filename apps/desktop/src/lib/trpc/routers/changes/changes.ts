@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ChangedFile,
@@ -458,11 +458,11 @@ export const createChangesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const { rm } = await import("node:fs/promises");
 				const fullPath = join(input.worktreePath, input.filePath);
 				try {
 					// Use recursive to handle both files and directories
-					await rm(fullPath, { recursive: true, force: false });
+					// force: true handles race conditions where file disappears between status poll and delete
+					await rm(fullPath, { recursive: true, force: true });
 					return { success: true };
 				} catch (error) {
 					const message =
