@@ -15,7 +15,6 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
-import { store } from "../lib/storage-manager";
 import { terminalManager } from "../lib/terminal-manager";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
@@ -93,18 +92,11 @@ export async function MainWindow() {
 
 			// Derive title from tab name, falling back to pane name
 			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-			const { paneId } = event;
-			const tabsStorage = store.get("tabs-storage") as
-				| {
-						state?: {
-							panes?: Record<string, { tabId: string; name?: string }>;
-							tabs?: Array<{ id: string; userTitle?: string; name: string }>;
-						};
-				  }
-				| undefined;
-			const pane = paneId ? tabsStorage?.state?.panes?.[paneId] : undefined;
-			const tab = pane
-				? tabsStorage?.state?.tabs?.find((t) => t.id === pane.tabId)
+			const { paneId, tabId } = event;
+			const { tabsState } = db.data;
+			const pane = paneId ? tabsState.panes[paneId] : undefined;
+			const tab = tabId
+				? tabsState.tabs.find((t) => t.id === tabId)
 				: undefined;
 			const title =
 				tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";

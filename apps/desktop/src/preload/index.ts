@@ -15,6 +15,10 @@ declare global {
 			set: (key: string, value: unknown) => void;
 			delete: (key: string) => void;
 		};
+		tabsState: {
+			get: () => Promise<unknown>;
+			set: (state: unknown) => Promise<void>;
+		};
 		webUtils: {
 			getPathForFile: (file: File) => string;
 		};
@@ -89,9 +93,16 @@ const electronStoreAPI = {
 	delete: (key: string) => ipcRenderer.invoke("storage:delete", { key }),
 };
 
+// Expose tabs state API via IPC (uses lowdb)
+const tabsStateAPI = {
+	get: () => ipcRenderer.invoke("tabs-state:get"),
+	set: (state: unknown) => ipcRenderer.invoke("tabs-state:set", { state }),
+};
+
 contextBridge.exposeInMainWorld("App", API);
 contextBridge.exposeInMainWorld("ipcRenderer", ipcRendererAPI);
 contextBridge.exposeInMainWorld("electronStore", electronStoreAPI);
+contextBridge.exposeInMainWorld("tabsState", tabsStateAPI);
 contextBridge.exposeInMainWorld("webUtils", {
 	getPathForFile: (file: File) => webUtils.getPathForFile(file),
 });

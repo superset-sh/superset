@@ -1,4 +1,6 @@
 import { ipcMain } from "electron";
+import { db } from "./db";
+import type { TabsState } from "./db/schemas";
 import { store } from "./storage-manager";
 
 /**
@@ -20,4 +22,17 @@ export function registerStorageHandlers() {
 	ipcMain.handle("storage:delete", async (_event, input: { key: string }) => {
 		store.delete(input.key);
 	});
+
+	// Lowdb-backed tabs state storage
+	ipcMain.handle("tabs-state:get", async () => {
+		return db.data.tabsState;
+	});
+
+	ipcMain.handle(
+		"tabs-state:set",
+		async (_event, input: { state: TabsState }) => {
+			db.data.tabsState = input.state;
+			await db.write();
+		},
+	);
 }

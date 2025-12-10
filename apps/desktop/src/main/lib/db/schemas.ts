@@ -70,6 +70,33 @@ export interface Tab {
 	updatedAt: number;
 }
 
+/**
+ * UI state for tabs (persisted from renderer zustand store)
+ */
+export interface Pane {
+	id: string;
+	tabId: string;
+	type: string;
+	name: string;
+	isNew?: boolean;
+	needsAttention?: boolean;
+}
+
+export interface UITab {
+	id: string;
+	name: string;
+	userTitle?: string;
+	workspaceId: string;
+	createdAt: number;
+}
+
+export interface TabsState {
+	tabs: UITab[];
+	panes: Record<string, Pane>;
+	activeTabIds: Record<string, string | null>;
+	focusedPaneIds: Record<string, string>;
+}
+
 export const EXTERNAL_APPS = [
 	"finder",
 	"vscode",
@@ -114,6 +141,7 @@ export interface Database {
 	worktrees: Worktree[];
 	workspaces: Workspace[];
 	settings: Settings;
+	tabsState: TabsState;
 }
 
 export const defaultDatabase: Database = {
@@ -121,4 +149,10 @@ export const defaultDatabase: Database = {
 	worktrees: [],
 	workspaces: [],
 	settings: {},
+	tabsState: {
+		tabs: [],
+		panes: {},
+		activeTabIds: {},
+		focusedPaneIds: {},
+	},
 };
