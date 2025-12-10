@@ -19,7 +19,30 @@ const paneSchema = z.object({
 });
 
 /**
- * Zod schema for BaseTab
+ * Zod schema for MosaicNode<string> (recursive tree structure for pane layouts)
+ */
+type MosaicNode =
+	| string
+	| {
+			direction: "row" | "column";
+			first: MosaicNode;
+			second: MosaicNode;
+			splitPercentage?: number;
+	  };
+const mosaicNodeSchema: z.ZodType<MosaicNode> = z.lazy(() =>
+	z.union([
+		z.string(), // Leaf node (paneId)
+		z.object({
+			direction: z.enum(["row", "column"]),
+			first: mosaicNodeSchema,
+			second: mosaicNodeSchema,
+			splitPercentage: z.number().optional(),
+		}),
+	]),
+);
+
+/**
+ * Zod schema for Tab (extends BaseTab with layout)
  */
 const tabSchema = z.object({
 	id: z.string(),
@@ -27,6 +50,7 @@ const tabSchema = z.object({
 	userTitle: z.string().optional(),
 	workspaceId: z.string(),
 	createdAt: z.number(),
+	layout: mosaicNodeSchema,
 });
 
 /**
@@ -146,9 +170,8 @@ export const createUiStateRouter = () => {
 			set: publicProcedure
 				.input(tabsStateSchema)
 				.mutation(async ({ input }) => {
-					await appState.update((data) => {
-						data.tabsState = input;
-					});
+					appState.data.tabsState = input;
+					await appState.write();
 					return { success: true };
 				}),
 		}),
@@ -162,9 +185,8 @@ export const createUiStateRouter = () => {
 			set: publicProcedure
 				.input(themeStateSchema)
 				.mutation(async ({ input }) => {
-					await appState.update((data) => {
-						data.themeState = input;
-					});
+					appState.data.themeState = input;
+					await appState.write();
 					return { success: true };
 				}),
 		}),
