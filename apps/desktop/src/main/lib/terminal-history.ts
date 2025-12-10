@@ -56,8 +56,9 @@ export class HistoryWriter {
 		await fs.mkdir(dir, { recursive: true });
 
 		// Write initial scrollback (recovered from previous session) or truncate
+		// node-pty produces UTF-8 strings, so we store as UTF-8
 		if (initialScrollback) {
-			await fs.writeFile(this.filePath, Buffer.from(initialScrollback));
+			await fs.writeFile(this.filePath, Buffer.from(initialScrollback, "utf8"));
 		} else {
 			await fs.writeFile(this.filePath, Buffer.alloc(0));
 		}
@@ -73,7 +74,8 @@ export class HistoryWriter {
 	write(data: string): void {
 		if (this.stream && !this.streamErrored) {
 			try {
-				this.stream.write(Buffer.from(data));
+				// node-pty produces UTF-8 strings
+				this.stream.write(Buffer.from(data, "utf8"));
 			} catch {
 				this.streamErrored = true;
 			}
@@ -111,7 +113,9 @@ export class HistoryReader {
 	async read(): Promise<{ scrollback: string; metadata?: SessionMetadata }> {
 		try {
 			const filePath = getHistoryFilePath(this.workspaceId, this.tabId);
-			const scrollback = await fs.readFile(filePath, "utf-8");
+			// Read as UTF-8 to match how node-pty produces terminal output
+			// The file is stored as raw bytes from UTF-8 encoded strings
+			const scrollback = await fs.readFile(filePath, "utf8");
 
 			let metadata: SessionMetadata | undefined;
 			try {

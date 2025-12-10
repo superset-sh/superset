@@ -3,7 +3,10 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
 import { getShellArgs, getShellEnv } from "./agent-setup";
-import { TerminalEscapeFilter } from "./terminal-escape-filter";
+import {
+	containsClearScrollbackSequence,
+	TerminalEscapeFilter,
+} from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
 
 interface TerminalSession {
@@ -223,6 +226,15 @@ export class TerminalManager extends EventEmitter {
 		let commandsSent = false;
 
 		ptyProcess.onData((data) => {
+			// Check for clear scrollback sequences (ESC[3J or ESC c) from shell commands like `clear`
+			// This allows native clear commands to also clear our stored scrollback
+			if (containsClearScrollbackSequence(data)) {
+				session.scrollback = "";
+				session.escapeFilter = new TerminalEscapeFilter();
+				// Reinitialize history file asynchronously (truncate to empty)
+				this.reinitializeHistory(session).catch(() => {});
+			}
+
 			// Filter terminal query responses for storage only
 			// xterm needs raw data for proper terminal behavior (DA/DSR/OSC responses)
 			const filteredData = session.escapeFilter.filter(data);
@@ -355,6 +367,43 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
+	}
+
+	async clearScrollback(params: { tabId: string }): Promise<void> {
+		const { tabId } = params;
+		const session = this.sessions.get(tabId);
+
+		if (!session) {
+			console.warn(
+				`Cannot clear scrollback for terminal ${tabId}: session not found`,
+			);
+			return;
+		}
+
+		// Clear in-memory scrollback
+		session.scrollback = "";
+
+		// Reset the escape filter state
+		session.escapeFilter = new TerminalEscapeFilter();
+
+		// Reinitialize history file (truncate to empty)
+		await this.reinitializeHistory(session);
+
+		session.lastActive = Date.now();
+	}
+
+	private async reinitializeHistory(session: TerminalSession): Promise<void> {
+		if (session.historyWriter) {
+			await session.historyWriter.close();
+			session.historyWriter = new HistoryWriter(
+				session.workspaceId,
+				session.tabId,
+				session.cwd,
+				session.cols,
+				session.rows,
+			);
+			await session.historyWriter.init();
+		}
 	}
 
 	getSession(tabId: string): {

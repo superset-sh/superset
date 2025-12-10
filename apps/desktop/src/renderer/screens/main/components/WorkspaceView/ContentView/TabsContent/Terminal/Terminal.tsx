@@ -68,15 +68,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const writeMutation = trpc.terminal.write.useMutation();
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
+	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
 	const detachRef = useRef(detachMutation.mutate);
+	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
+	clearScrollbackRef.current = clearScrollbackMutation.mutate;
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
@@ -301,7 +304,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				}
 			},
 			onClear: () => {
+				// Clear xterm display
 				xterm.clear();
+				// Clear stored scrollback buffer in main process for reattach persistence
+				clearScrollbackRef.current({ tabId: paneId });
 			},
 		});
 
