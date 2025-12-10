@@ -1,6 +1,6 @@
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import type { CheckItem } from "main/lib/db/schemas";
 import { useState } from "react";
+import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import { CheckItemRow } from "./components/CheckItemRow";
 
 interface ChecksListProps {

@@ -1,7 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { LuExternalLink, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
 import { FaGithub } from "react-icons/fa";
+import {
+	LuExternalLink,
+	LuLoaderCircle,
+	LuTriangleAlert,
+} from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";

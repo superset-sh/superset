@@ -9,6 +9,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import type { ReactNode } from "react";
 import {
 	LuColumns2,
 	LuEraser,
@@ -17,7 +18,6 @@ import {
 	LuRows2,
 	LuX,
 } from "react-icons/lu";
-import type { ReactNode } from "react";
 import type { Tab } from "renderer/stores/tabs/types";
 
 interface TabContentContextMenuProps {

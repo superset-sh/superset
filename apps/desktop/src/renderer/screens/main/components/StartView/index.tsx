@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
+import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";

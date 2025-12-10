@@ -1,5 +1,5 @@
-import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
 import type { CheckItem } from "main/lib/db/schemas";
+import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
 
 interface CheckItemRowProps {
 	check: CheckItem;
