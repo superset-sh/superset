@@ -2,12 +2,14 @@
  * UI state schemas (persisted from renderer zustand stores)
  */
 import type { BaseTabsState } from "shared/tabs-types";
+import type { Theme } from "shared/themes";
 
 // Re-export for convenience
 export type { BaseTabsState as TabsState, Pane } from "shared/tabs-types";
 
 export interface ThemeState {
-	theme: "light" | "dark" | "system";
+	activeThemeId: string;
+	customThemes: Theme[];
 }
 
 export interface AppState {
@@ -24,6 +26,7 @@ export const defaultAppState: AppState = {
 		tabHistoryStacks: {},
 	},
 	themeState: {
-		theme: "system",
+		activeThemeId: "dark",
+		customThemes: [],
 	},
 };

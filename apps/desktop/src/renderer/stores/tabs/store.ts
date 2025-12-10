@@ -2,7 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { lowdbTabsStorage } from "../../lib/lowdb-storage";
+import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
@@ -607,7 +607,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				storage: lowdbTabsStorage,
+				storage: trpcTabsStorage,
 			},
 		),
 		{ name: "TabsStore" },
