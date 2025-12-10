@@ -15,23 +15,32 @@ export function AccountSettings() {
 	}
 
 	if (isAuthenticated && session) {
+		const hasName = session.firstName || session.lastName;
+		const displayName = hasName
+			? `${session.firstName || ""} ${session.lastName || ""}`.trim()
+			: "Signed In";
+
 		return (
 			<div className="w-full max-w-2xl p-6">
 				<h1 className="text-2xl font-semibold mb-6">Account</h1>
 
 				<div className="rounded-lg border border-border bg-card p-6">
 					<div className="flex items-center gap-4 mb-6">
-						{session.imageUrl && (
+						{session.imageUrl ? (
 							<img
 								src={session.imageUrl}
 								alt="Profile"
 								className="w-16 h-16 rounded-full"
 							/>
+						) : (
+							<div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+								<span className="text-2xl text-muted-foreground">
+									{(session.firstName?.[0] || session.email?.[0] || "U").toUpperCase()}
+								</span>
+							</div>
 						)}
 						<div>
-							<h2 className="text-lg font-medium">
-								{session.firstName} {session.lastName}
-							</h2>
+							<h2 className="text-lg font-medium">{displayName}</h2>
 							{session.email && (
 								<p className="text-sm text-muted-foreground">{session.email}</p>
 							)}

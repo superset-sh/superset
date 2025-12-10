@@ -12,10 +12,10 @@
       - script-src 'self': Only allow scripts from same origin (no inline)
       - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
       - connect-src 'self' ws: wss:: Allow WebSocket connections for HMR in dev
-      - img-src 'self' data:: Allow images from same origin + data URIs
+      - img-src 'self' data: https://img.clerk.com: Allow images from same origin + data URIs + Clerk avatars
       - font-src 'self': Allow fonts from same origin
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:; font-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data: https://img.clerk.com; font-src 'self';" />
   </head>
 
   <body>
