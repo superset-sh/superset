@@ -1,38 +1,17 @@
 /**
  * UI state schemas (persisted from renderer zustand stores)
  */
+import type { BaseTabsState } from "shared/tabs-types";
 
-export interface Pane {
-	id: string;
-	tabId: string;
-	type: string;
-	name: string;
-	isNew?: boolean;
-	needsAttention?: boolean;
-}
-
-export interface UITab {
-	id: string;
-	name: string;
-	userTitle?: string;
-	workspaceId: string;
-	createdAt: number;
-}
-
-export interface TabsState {
-	tabs: UITab[];
-	panes: Record<string, Pane>;
-	activeTabIds: Record<string, string | null>;
-	focusedPaneIds: Record<string, string>;
-	tabHistoryStacks: Record<string, string[]>;
-}
+// Re-export for convenience
+export type { BaseTabsState as TabsState, Pane } from "shared/tabs-types";
 
 export interface ThemeState {
 	theme: "light" | "dark" | "system";
 }
 
 export interface AppState {
-	tabsState: TabsState;
+	tabsState: BaseTabsState;
 	themeState: ThemeState;
 }
 
