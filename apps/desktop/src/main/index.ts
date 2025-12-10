@@ -3,6 +3,7 @@ import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
+import { authManager, registerAuthHandlers } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
 import { terminalManager } from "./lib/terminal-manager";
@@ -23,10 +24,13 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// TODO: Handle deep link when app is already running
-app.on("open-url", (event, _url) => {
+// Handle deep links (placeholder for future features)
+app.on("open-url", (event, url) => {
 	event.preventDefault();
+	console.log("[main] Received deep link:", url);
 });
+
+registerAuthHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {
@@ -34,6 +38,8 @@ app.on("open-url", (event, _url) => {
 
 	await initDb();
 	await initAppState();
+	// Validate auth session against Clerk cookies
+	await authManager.validateSessionOnStartup();
 
 	try {
 		setupAgentHooks();
@@ -47,6 +53,7 @@ app.on("open-url", (event, _url) => {
 
 	// Clean up all terminals when app is quitting
 	app.on("before-quit", async () => {
+		authManager.stopRefreshInterval();
 		await terminalManager.cleanup();
 	});
 })();

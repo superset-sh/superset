@@ -7,6 +7,7 @@ import { PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
+import { authManager } from "../lib/auth";
 import { setMainWindow } from "../lib/auto-updater";
 import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
@@ -53,6 +54,7 @@ export async function MainWindow() {
 	});
 
 	setMainWindow(window);
+	authManager.setMainWindow(window);
 	createApplicationMenu();
 
 	currentWindow = window;
@@ -157,6 +159,8 @@ export async function MainWindow() {
 		terminalManager.detachAllListeners();
 		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
+		// Clear auth manager window reference
+		authManager.setMainWindow(null);
 		// Clear current window reference
 		currentWindow = null;
 	});

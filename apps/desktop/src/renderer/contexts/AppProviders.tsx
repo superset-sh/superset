@@ -1,5 +1,5 @@
 import type React from "react";
-import { MonacoProvider } from "./MonacoProvider";
+import { AuthProvider } from "./AuthProvider";
 import { TRPCProvider } from "./TRPCProvider";
 
 interface AppProvidersProps {
@@ -9,7 +9,7 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
 	return (
 		<TRPCProvider>
-			<MonacoProvider>{children}</MonacoProvider>
+			<AuthProvider>{children}</AuthProvider>
 		</TRPCProvider>
 	);
 }
