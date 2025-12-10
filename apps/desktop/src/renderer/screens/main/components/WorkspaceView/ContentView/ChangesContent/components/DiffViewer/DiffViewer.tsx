@@ -1,6 +1,8 @@
 import { DiffEditor, loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+import { useEffect, useRef } from "react";
+import { useMonacoTheme } from "renderer/stores/theme";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
 // Configure Monaco environment for Electron
@@ -14,12 +16,31 @@ self.MonacoEnvironment = {
 // Configure Monaco to use the locally installed monaco-editor package
 loader.config({ monaco });
 
+// Custom theme name for the app
+const SUPERSET_THEME = "superset-theme";
+
 interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
 }
 
 export function DiffViewer({ contents, viewMode }: DiffViewerProps) {
+	const monacoTheme = useMonacoTheme();
+	const themeRegisteredRef = useRef(false);
+
+	// Register custom theme with Monaco when theme changes
+	useEffect(() => {
+		if (monacoTheme) {
+			monaco.editor.defineTheme(SUPERSET_THEME, monacoTheme);
+			themeRegisteredRef.current = true;
+		}
+	}, [monacoTheme]);
+
+	// Determine which theme to use
+	// Fall back to vs-dark if custom theme not yet registered
+	const themeName =
+		themeRegisteredRef.current && monacoTheme ? SUPERSET_THEME : "vs-dark";
+
 	return (
 		<div className="h-full w-full">
 			<DiffEditor
@@ -27,7 +48,7 @@ export function DiffViewer({ contents, viewMode }: DiffViewerProps) {
 				original={contents.original}
 				modified={contents.modified}
 				language={contents.language}
-				theme="vs-dark"
+				theme={themeName}
 				loading={
 					<div className="flex items-center justify-center h-full text-muted-foreground">
 						Loading editor...

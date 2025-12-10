@@ -48,12 +48,6 @@ function getFileName(path: string): string {
 	return path.split("/").pop() || path;
 }
 
-function getParentPath(path: string): string {
-	const parts = path.split("/");
-	if (parts.length <= 1) return "";
-	return parts.slice(0, -1).join("/");
-}
-
 export function FileItem({
 	file,
 	isSelected,
@@ -61,7 +55,6 @@ export function FileItem({
 	showStats = true,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
-	const parentPath = getParentPath(file.path);
 	const statusColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
 	const hasStats = showStats && (file.additions > 0 || file.deletions > 0);
@@ -81,15 +74,8 @@ export function FileItem({
 				{statusIndicator}
 			</span>
 
-			{/* File name and path */}
-			<div className="flex-1 min-w-0 flex items-baseline gap-1.5">
-				<span className="text-sm truncate">{fileName}</span>
-				{parentPath && (
-					<span className="text-xs text-muted-foreground truncate">
-						{parentPath}
-					</span>
-				)}
-			</div>
+			{/* File name */}
+			<span className="flex-1 min-w-0 text-sm truncate">{fileName}</span>
 
 			{/* Stats */}
 			{hasStats && (

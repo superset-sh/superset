@@ -1,0 +1,147 @@
+import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
+import { cn } from "@superset/ui/utils";
+import { useState } from "react";
+import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
+import type { ChangedFile } from "shared/changes-types";
+import { FileItem } from "../FileItem";
+
+interface FileListGroupedProps {
+	files: ChangedFile[];
+	selectedFile: ChangedFile | null;
+	selectedCommitHash: string | null;
+	onFileSelect: (file: ChangedFile) => void;
+	showStats?: boolean;
+}
+
+interface FolderGroup {
+	folderPath: string;
+	folderName: string;
+	files: ChangedFile[];
+}
+
+function groupFilesByFolder(files: ChangedFile[]): FolderGroup[] {
+	const folderMap = new Map<string, ChangedFile[]>();
+
+	for (const file of files) {
+		const pathParts = file.path.split("/");
+		const folderPath =
+			pathParts.length > 1 ? pathParts.slice(0, -1).join("/") : "";
+
+		if (!folderMap.has(folderPath)) {
+			folderMap.set(folderPath, []);
+		}
+		folderMap.get(folderPath)?.push(file);
+	}
+
+	return Array.from(folderMap.entries())
+		.map(([folderPath, files]) => {
+			const pathParts = folderPath.split("/");
+			const folderName =
+				folderPath === "" ? "" : pathParts[pathParts.length - 1];
+
+			return {
+				folderPath,
+				folderName,
+				files: files.sort((a, b) => {
+					const aName = a.path.split("/").pop() || "";
+					const bName = b.path.split("/").pop() || "";
+					return aName.localeCompare(bName);
+				}),
+			};
+		})
+		.sort((a, b) => a.folderPath.localeCompare(b.folderPath));
+}
+
+interface FolderGroupItemProps {
+	group: FolderGroup;
+	selectedFile: ChangedFile | null;
+	selectedCommitHash: string | null;
+	onFileSelect: (file: ChangedFile) => void;
+	showStats?: boolean;
+}
+
+function FolderGroupItem({
+	group,
+	selectedFile,
+	selectedCommitHash,
+	onFileSelect,
+	showStats,
+}: FolderGroupItemProps) {
+	const [isExpanded, setIsExpanded] = useState(true);
+
+	// Root level files (no folder)
+	if (group.folderPath === "") {
+		return (
+			<>
+				{group.files.map((file) => (
+					<FileItem
+						key={file.path}
+						file={file}
+						isSelected={selectedFile?.path === file.path && !selectedCommitHash}
+						onClick={() => onFileSelect(file)}
+						showStats={showStats}
+					/>
+				))}
+			</>
+		);
+	}
+
+	return (
+		<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+			<CollapsibleTrigger
+				className={cn(
+					"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm",
+					"text-xs text-muted-foreground text-left",
+				)}
+			>
+				{isExpanded ? (
+					<HiChevronDown className="w-3 h-3 flex-shrink-0" />
+				) : (
+					<HiChevronRight className="w-3 h-3 flex-shrink-0" />
+				)}
+				<span className="flex-1 truncate">{group.folderPath}</span>
+				<span className="text-xs opacity-60">{group.files.length}</span>
+			</CollapsibleTrigger>
+			<CollapsibleContent>
+				{group.files.map((file) => (
+					<FileItem
+						key={file.path}
+						file={file}
+						isSelected={selectedFile?.path === file.path && !selectedCommitHash}
+						onClick={() => onFileSelect(file)}
+						showStats={showStats}
+					/>
+				))}
+			</CollapsibleContent>
+		</Collapsible>
+	);
+}
+
+export function FileListGrouped({
+	files,
+	selectedFile,
+	selectedCommitHash,
+	onFileSelect,
+	showStats = true,
+}: FileListGroupedProps) {
+	const groups = groupFilesByFolder(files);
+
+	return (
+		<div className="flex flex-col">
+			{groups.map((group) => (
+				<FolderGroupItem
+					key={group.folderPath || "__root__"}
+					group={group}
+					selectedFile={selectedFile}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={onFileSelect}
+					showStats={showStats}
+				/>
+			))}
+		</div>
+	);
+}

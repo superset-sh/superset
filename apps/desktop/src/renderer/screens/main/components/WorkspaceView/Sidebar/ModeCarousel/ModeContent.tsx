@@ -7,7 +7,7 @@ interface ModeContentProps {
 	children: ReactNode;
 }
 
-export function ModeContent({ mode, children }: ModeContentProps) {
+export function ModeContent({ children }: ModeContentProps) {
 	return (
 		<div
 			className="overflow-y-auto flex flex-col h-full"

@@ -6,7 +6,8 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitItem } from "./components/CommitItem";
-import { FileItem } from "./components/FileItem";
+import { FileList } from "./components/FileList";
+import type { ChangesViewMode } from "./types";
 
 export function ChangesView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -40,6 +41,9 @@ export function ChangesView() {
 		toggleSection,
 		selectCategory,
 	} = useChangesStore();
+
+	// View mode state
+	const [viewMode, setViewMode] = useState<ChangesViewMode>("grouped");
 
 	// Track which commits are expanded locally
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
@@ -127,6 +131,9 @@ export function ChangesView() {
 		files: commitFilesMap.get(commit.hash) || [],
 	}));
 
+	// Combine unstaged and untracked for the Unstaged section
+	const unstagedFiles = [...status.unstaged, ...status.untracked];
+
 	return (
 		<div className="flex flex-col h-full">
 			<ChangesHeader
@@ -136,6 +143,8 @@ export function ChangesView() {
 				behind={status.behind}
 				isRefreshing={isFetching}
 				onRefresh={() => refetch()}
+				viewMode={viewMode}
+				onViewModeChange={setViewMode}
 			/>
 
 			{!hasChanges ? (
@@ -151,16 +160,13 @@ export function ChangesView() {
 						isExpanded={expandedSections["against-main"]}
 						onToggle={() => toggleSection("against-main")}
 					>
-						{status.againstMain.map((file) => (
-							<FileItem
-								key={file.path}
-								file={file}
-								isSelected={
-									selectedFile?.path === file.path && !selectedCommitHash
-								}
-								onClick={() => handleFileSelect(file, "against-main")}
-							/>
-						))}
+						<FileList
+							files={status.againstMain}
+							viewMode={viewMode}
+							selectedFile={selectedFile}
+							selectedCommitHash={selectedCommitHash}
+							onFileSelect={(file) => handleFileSelect(file, "against-main")}
+						/>
 					</CategorySection>
 
 					{/* Commits */}
@@ -179,6 +185,7 @@ export function ChangesView() {
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
 								onFileSelect={handleCommitFileSelect}
+								viewMode={viewMode}
 							/>
 						))}
 					</CategorySection>
@@ -190,46 +197,29 @@ export function ChangesView() {
 						isExpanded={expandedSections.staged}
 						onToggle={() => toggleSection("staged")}
 					>
-						{status.staged.map((file) => (
-							<FileItem
-								key={file.path}
-								file={file}
-								isSelected={
-									selectedFile?.path === file.path && !selectedCommitHash
-								}
-								onClick={() => handleFileSelect(file, "staged")}
-							/>
-						))}
+						<FileList
+							files={status.staged}
+							viewMode={viewMode}
+							selectedFile={selectedFile}
+							selectedCommitHash={selectedCommitHash}
+							onFileSelect={(file) => handleFileSelect(file, "staged")}
+						/>
 					</CategorySection>
 
 					{/* Unstaged */}
 					<CategorySection
 						title="Unstaged"
-						count={status.unstaged.length + status.untracked.length}
+						count={unstagedFiles.length}
 						isExpanded={expandedSections.unstaged}
 						onToggle={() => toggleSection("unstaged")}
 					>
-						{status.unstaged.map((file) => (
-							<FileItem
-								key={file.path}
-								file={file}
-								isSelected={
-									selectedFile?.path === file.path && !selectedCommitHash
-								}
-								onClick={() => handleFileSelect(file, "unstaged")}
-							/>
-						))}
-						{status.untracked.map((file) => (
-							<FileItem
-								key={file.path}
-								file={file}
-								isSelected={
-									selectedFile?.path === file.path && !selectedCommitHash
-								}
-								onClick={() => handleFileSelect(file, "unstaged")}
-								showStats={false}
-							/>
-						))}
+						<FileList
+							files={unstagedFiles}
+							viewMode={viewMode}
+							selectedFile={selectedFile}
+							selectedCommitHash={selectedCommitHash}
+							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
+						/>
 					</CategorySection>
 				</ScrollArea>
 			)}

@@ -6,7 +6,8 @@ import {
 import { cn } from "@superset/ui/utils";
 import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
-import { FileItem } from "../FileItem";
+import type { ChangesViewMode } from "../../types";
+import { FileList } from "../FileList";
 
 interface CommitItemProps {
 	commit: CommitInfo;
@@ -15,6 +16,7 @@ interface CommitItemProps {
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
+	viewMode: ChangesViewMode;
 }
 
 function formatRelativeDate(date: Date): string {
@@ -38,8 +40,17 @@ export function CommitItem({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
+	viewMode,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
+
+	// Create a wrapper to pass the commit hash to onFileSelect
+	const handleFileSelect = (file: ChangedFile) => {
+		onFileSelect(file, commit.hash);
+	};
+
+	// For commit files, we need to check if this commit is selected
+	const isCommitSelected = selectedCommitHash === commit.hash;
 
 	return (
 		<Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -73,18 +84,14 @@ export function CommitItem({
 			{/* Files in commit (when expanded) */}
 			{hasFiles && (
 				<CollapsibleContent className="ml-4 pl-2 border-l border-border">
-					{commit.files.map((file) => (
-						<FileItem
-							key={file.path}
-							file={file}
-							isSelected={
-								selectedCommitHash === commit.hash &&
-								selectedFile?.path === file.path
-							}
-							onClick={() => onFileSelect(file, commit.hash)}
-							showStats={false}
-						/>
-					))}
+					<FileList
+						files={commit.files}
+						viewMode={viewMode}
+						selectedFile={isCommitSelected ? selectedFile : null}
+						selectedCommitHash={selectedCommitHash}
+						onFileSelect={handleFileSelect}
+						showStats={false}
+					/>
 				</CollapsibleContent>
 			)}
 		</Collapsible>
