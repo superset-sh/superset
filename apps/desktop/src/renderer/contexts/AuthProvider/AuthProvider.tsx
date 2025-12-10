@@ -1,6 +1,5 @@
-import { ClerkProvider } from "@clerk/clerk-react";
 import type React from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { AuthSession } from "shared/ipc-channels/auth";
 import { trpc } from "../../lib/trpc";
 
@@ -9,6 +8,7 @@ const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 interface AuthContextValue {
 	session: AuthSession | null;
 	isLoading: boolean;
+	isSigningIn: boolean;
 	isAuthenticated: boolean;
 	signIn: () => Promise<void>;
 	signUp: () => Promise<void>;
@@ -19,7 +19,6 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 /**
  * Hook to access auth state and actions.
- * Returns null values if auth is not configured (missing VITE_CLERK_PUBLISHABLE_KEY).
  */
 export function useAuth(): AuthContextValue {
 	const context = useContext(AuthContext);
@@ -34,13 +33,14 @@ interface AuthProviderProps {
 }
 
 /**
- * Optional auth provider that wraps the app with Clerk authentication.
- * If VITE_CLERK_PUBLISHABLE_KEY is not set, auth features are disabled
- * but the app continues to work normally.
+ * Auth provider that manages authentication state via the main process.
+ * Authentication happens in a BrowserWindow popup, not in the renderer.
  */
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [session, setSession] = useState<AuthSession | null>(null);
 	const [isLoading, setIsLoading] = useState(!!PUBLISHABLE_KEY);
+	const [isSigningIn, setIsSigningIn] = useState(false);
+	const signingInRef = useRef(false);
 
 	const { data: initialSession, isLoading: isQueryLoading } =
 		trpc.auth.getSession.useQuery(undefined, {
@@ -68,7 +68,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		if (!PUBLISHABLE_KEY) return;
 
 		const handleSessionChange = (newSession: AuthSession | null) => {
+			console.log("[auth-renderer] Session changed:", newSession);
 			setSession(newSession);
+			// Always clear signing in state when we receive a session update
+			if (signingInRef.current) {
+				signingInRef.current = false;
+				setIsSigningIn(false);
+			}
 		};
 
 		window.ipcRenderer.on("auth:session-changed", handleSessionChange);
@@ -78,6 +84,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		};
 	}, []);
 
+	// Also clear isSigningIn when session becomes truthy
+	useEffect(() => {
+		if (session && isSigningIn) {
+			setIsSigningIn(false);
+			signingInRef.current = false;
+		}
+	}, [session, isSigningIn]);
+
 	const signIn = async () => {
 		if (!PUBLISHABLE_KEY) {
 			console.warn(
@@ -85,6 +99,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			);
 			return;
 		}
+		signingInRef.current = true;
+		setIsSigningIn(true);
 		await signInMutation.mutateAsync();
 	};
 
@@ -95,6 +111,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			);
 			return;
 		}
+		signingInRef.current = true;
+		setIsSigningIn(true);
 		await signUpMutation.mutateAsync();
 	};
 
@@ -107,22 +125,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const value: AuthContextValue = {
 		session,
 		isLoading,
+		isSigningIn,
 		isAuthenticated: !!session,
 		signIn,
 		signUp,
 		signOut,
 	};
 
-	// If no publishable key, provide context without ClerkProvider
-	if (!PUBLISHABLE_KEY) {
-		return (
-			<AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-		);
-	}
-
-	return (
-		<ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-			<AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-		</ClerkProvider>
-	);
+	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

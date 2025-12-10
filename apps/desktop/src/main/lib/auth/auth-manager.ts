@@ -37,12 +37,27 @@ class AuthManager {
 
 	getSession(): AuthSession | null {
 		const data = store.get(AUTH_STORE_KEY) as StoredAuthData | undefined;
-		if (!data?.session) return null;
+		console.log("[auth] getSession called, stored data:", data);
 
-		if (data.session.expiresAt < Date.now()) {
+		if (!data?.session) {
+			console.log("[auth] No session stored");
 			return null;
 		}
 
+		const now = Date.now();
+		console.log(
+			"[auth] Checking expiry:",
+			data.session.expiresAt,
+			"vs now:",
+			now,
+		);
+
+		if (data.session.expiresAt < now) {
+			console.log("[auth] Session expired");
+			return null;
+		}
+
+		console.log("[auth] Returning session for:", data.session.email);
 		return data.session;
 	}
 
@@ -98,7 +113,7 @@ class AuthManager {
 					return;
 				}
 
-				const sessionData = await this.checkForSession(authSession);
+				const sessionData = await this.checkForSession(authSession, this.authWindow);
 				if (sessionData) {
 					console.log("[auth] Session detected:", sessionData.email);
 					clearInterval(pollInterval);
@@ -106,6 +121,25 @@ class AuthManager {
 					this.authWindow?.close();
 				}
 			}, 1000);
+
+			// Listen for navigation to detect auth completion
+			this.authWindow.webContents.on("did-navigate", async (_event, url) => {
+				console.log("[auth] Navigated to:", url);
+
+				// If we hit the default-redirect, auth likely completed
+				if (url.includes("default-redirect") || url.includes("/sso-callback")) {
+					console.log("[auth] Detected post-auth redirect, checking session...");
+					// Give Clerk a moment to set cookies
+					await new Promise((resolve) => setTimeout(resolve, 500));
+					const sessionData = await this.checkForSession(authSession, this.authWindow);
+					if (sessionData) {
+						console.log("[auth] Session found after redirect:", sessionData.email);
+						clearInterval(pollInterval);
+						this.storeSession(sessionData);
+						this.authWindow?.close();
+					}
+				}
+			});
 
 			await this.authWindow.loadURL(authUrl);
 
@@ -124,48 +158,314 @@ class AuthManager {
 
 	private async checkForSession(
 		authSession: Electron.Session,
+		authWindow?: BrowserWindow | null,
 	): Promise<AuthSession | null> {
 		try {
 			const cookies = await authSession.cookies.get({});
-			const sessionCookie = cookies.find((c) => c.name === "__session");
 
 			// Log all cookies for debugging
-			const cookieNames = cookies.map((c) => c.name);
-			if (cookieNames.length > 0) {
-				console.log("[auth] Cookies found:", cookieNames.join(", "));
+			if (cookies.length > 0) {
+				console.log("[auth] Cookies found:", cookies.map((c) => c.name).join(", "));
+			}
+
+			// Find the session cookie - Clerk uses different cookie names:
+			// - __session: standard session cookie (JWT format, ~800+ bytes)
+			// - __clerk_db_jwt: development token (short, not useful for us)
+			// IMPORTANT: Prioritize __session as it contains the actual JWT
+			let sessionCookie = cookies.find((c) => c.name === "__session");
+			if (!sessionCookie) {
+				sessionCookie = cookies.find((c) => c.name.startsWith("__session"));
+			}
+
+			// Only fall back to __clerk_db_jwt if no __session found AND it looks like a JWT (has 3 parts)
+			if (!sessionCookie) {
+				const clerkDbJwt = cookies.find((c) => c.name === "__clerk_db_jwt" || c.name.startsWith("__clerk_db_jwt"));
+				if (clerkDbJwt?.value && clerkDbJwt.value.split(".").length === 3) {
+					sessionCookie = clerkDbJwt;
+				}
 			}
 
 			if (!sessionCookie?.value) {
 				return null;
 			}
 
-			console.log("[auth] Found __session cookie");
+			console.log("[auth] Using cookie:", sessionCookie.name, "value length:", sessionCookie.value.length);
 
-			// Decode the JWT
+			// Decode the JWT to get basic info
 			const parts = sessionCookie.value.split(".");
 			if (parts.length !== 3) {
+				console.log("[auth] Not a JWT format, trying to fetch user data directly");
+				// Not a JWT - try to get user data from the window directly
+				const userData = await this.fetchUserDataFromWindow(authWindow);
+				if (userData) {
+					return {
+						userId: "unknown",
+						sessionId: sessionCookie.value.substring(0, 20),
+						email: userData.email,
+						firstName: userData.firstName,
+						lastName: userData.lastName,
+						imageUrl: userData.imageUrl,
+						expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days default
+					};
+				}
 				return null;
 			}
 
-			const payload = JSON.parse(
-				Buffer.from(parts[1], "base64url").toString(),
-			);
+			let payload: Record<string, unknown>;
+			try {
+				payload = JSON.parse(
+					Buffer.from(parts[1], "base64url").toString(),
+				);
+			} catch {
+				console.log("[auth] Failed to decode JWT payload");
+				return null;
+			}
+			console.log("[auth] JWT payload keys:", Object.keys(payload).join(", "));
 
 			// Check if this is a valid session (has user ID)
-			if (!payload.sub) {
+			const sub = payload.sub as string | undefined;
+			if (!sub) {
+				console.log("[auth] No user ID in JWT");
 				return null;
+			}
+
+			const sid = (payload.sid as string) || "";
+			const exp = (payload.exp as number) || 0;
+
+			// The JWT itself may contain user info - check common claim names
+			const email =
+				(payload.email as string) ||
+				(payload.primary_email as string) ||
+				(payload["https://clerk.dev/email"] as string) ||
+				null;
+			const firstName =
+				(payload.first_name as string) ||
+				(payload.given_name as string) ||
+				(payload["https://clerk.dev/first_name"] as string) ||
+				null;
+			const lastName =
+				(payload.last_name as string) ||
+				(payload.family_name as string) ||
+				(payload["https://clerk.dev/last_name"] as string) ||
+				null;
+			const imageUrl =
+				(payload.image_url as string) ||
+				(payload.picture as string) ||
+				(payload["https://clerk.dev/image_url"] as string) ||
+				null;
+
+			// If we got user info from JWT, use it directly
+			if (email || firstName) {
+				console.log("[auth] Got user info from JWT");
+				return {
+					userId: sub,
+					sessionId: sid,
+					email,
+					firstName,
+					lastName,
+					imageUrl,
+					expiresAt: exp * 1000,
+				};
+			}
+
+			// Try to fetch user data from the auth window's Clerk instance
+			let userData = await this.fetchUserDataFromWindow(authWindow);
+
+			// Fallback to API fetch
+			if (!userData) {
+				userData = await this.fetchUserData(authSession, sessionCookie.value);
 			}
 
 			return {
-				userId: payload.sub || "",
-				sessionId: payload.sid || "",
-				email: payload.email || null,
-				firstName: payload.first_name || null,
-				lastName: payload.last_name || null,
-				imageUrl: payload.image_url || null,
-				expiresAt: (payload.exp || 0) * 1000,
+				userId: sub,
+				sessionId: sid,
+				email: userData?.email || null,
+				firstName: userData?.firstName || null,
+				lastName: userData?.lastName || null,
+				imageUrl: userData?.imageUrl || null,
+				expiresAt: exp * 1000,
 			};
-		} catch {
+		} catch (error) {
+			console.error("[auth] Error checking session:", error);
+			return null;
+		}
+	}
+
+	private async fetchUserDataFromWindow(
+		authWindow?: BrowserWindow | null,
+	): Promise<{
+		email: string | null;
+		firstName: string | null;
+		lastName: string | null;
+		imageUrl: string | null;
+	} | null> {
+		if (!authWindow || authWindow.isDestroyed()) {
+			return null;
+		}
+
+		try {
+			// Execute JavaScript in the auth window to get user data from Clerk
+			const userData = await authWindow.webContents.executeJavaScript(`
+				(function() {
+					// Try to get Clerk from the window
+					const clerk = window.Clerk;
+					if (!clerk || !clerk.user) {
+						return null;
+					}
+					const user = clerk.user;
+					return {
+						email: user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || null,
+						firstName: user.firstName || null,
+						lastName: user.lastName || null,
+						imageUrl: user.imageUrl || null,
+					};
+				})();
+			`);
+
+			if (userData) {
+				console.log("[auth] Got user data from window:", userData.firstName);
+				return userData;
+			}
+		} catch (error) {
+			console.log("[auth] Could not get user data from window:", error);
+		}
+
+		return null;
+	}
+
+	private async fetchUserData(
+		authSession: Electron.Session,
+		sessionToken?: string,
+	): Promise<{
+		email: string | null;
+		firstName: string | null;
+		lastName: string | null;
+		imageUrl: string | null;
+	} | null> {
+		try {
+			const frontendApi = getClerkFrontendApi();
+
+			// Try the /v1/me endpoint with the session token as Bearer auth
+			if (sessionToken) {
+				const meResponse = await authSession.fetch(
+					`https://${frontendApi}/v1/me`,
+					{
+						headers: {
+							Accept: "application/json",
+							Authorization: `Bearer ${sessionToken}`,
+						},
+					},
+				);
+
+				console.log("[auth] /v1/me response status:", meResponse.status);
+
+				if (meResponse.ok) {
+					const meData = await meResponse.json();
+					console.log("[auth] /v1/me data keys:", Object.keys(meData));
+					const user = meData?.response || meData;
+					if (user?.email_addresses || user?.first_name) {
+						console.log("[auth] Found user from /v1/me:", user.first_name);
+						return {
+							email: user.email_addresses?.[0]?.email_address || user.primary_email_address?.email_address || null,
+							firstName: user.first_name || null,
+							lastName: user.last_name || null,
+							imageUrl: user.image_url || user.profile_image_url || null,
+						};
+					}
+				}
+			}
+
+			// Fallback: Try /v1/client with cookies
+			const response = await authSession.fetch(
+				`https://${frontendApi}/v1/client`,
+				{
+					headers: {
+						Accept: "application/json",
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				},
+			);
+
+			console.log("[auth] Client API response status:", response.status);
+
+			if (!response.ok) {
+				return this.fetchUserDataFromEnv(authSession);
+			}
+
+			const data = await response.json();
+			console.log("[auth] Client data keys:", Object.keys(data));
+
+			// Extract user from active session
+			const activeSession = data?.response?.sessions?.find(
+				(s: { status: string }) => s.status === "active",
+			);
+			const user = activeSession?.user;
+
+			if (!user) {
+				console.log("[auth] No active user in response, trying env endpoint");
+				return this.fetchUserDataFromEnv(authSession);
+			}
+
+			console.log("[auth] Found user:", user.first_name, user.last_name);
+
+			return {
+				email: user.email_addresses?.[0]?.email_address || user.primary_email_address?.email_address || null,
+				firstName: user.first_name || null,
+				lastName: user.last_name || null,
+				imageUrl: user.image_url || user.profile_image_url || null,
+			};
+		} catch (error) {
+			console.error("[auth] Error fetching user data:", error);
+			return this.fetchUserDataFromEnv(authSession);
+		}
+	}
+
+	private async fetchUserDataFromEnv(
+		authSession: Electron.Session,
+	): Promise<{
+		email: string | null;
+		firstName: string | null;
+		lastName: string | null;
+		imageUrl: string | null;
+	} | null> {
+		try {
+			const accountPortal = getClerkAccountPortalUrl();
+
+			// Try fetching the environment which includes user data
+			const response = await authSession.fetch(
+				`https://${accountPortal}/v1/environment?_clerk_js_version=5`,
+				{
+					headers: {
+						Accept: "application/json",
+					},
+					credentials: "include",
+				},
+			);
+
+			console.log("[auth] Environment API response status:", response.status);
+
+			if (!response.ok) {
+				return null;
+			}
+
+			const data = await response.json();
+
+			// The environment response might have user info
+			const user = data?.user || data?.response?.user;
+			if (user) {
+				console.log("[auth] Found user in environment");
+				return {
+					email: user.email_addresses?.[0]?.email_address || null,
+					firstName: user.first_name || null,
+					lastName: user.last_name || null,
+					imageUrl: user.image_url || null,
+				};
+			}
+
+			return null;
+		} catch (error) {
+			console.error("[auth] Environment fetch error:", error);
 			return null;
 		}
 	}
