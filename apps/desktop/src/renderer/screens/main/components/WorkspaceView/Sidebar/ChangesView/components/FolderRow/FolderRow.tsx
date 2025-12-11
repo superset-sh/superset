@@ -58,10 +58,7 @@ export function FolderRow({
 			>
 				{!isGrouped && <LevelIndicators level={level} />}
 				<div
-					className={cn(
-						"flex items-center gap-1.5 flex-1 min-w-0",
-						isGrouped ? "py-1" : "py-1",
-					)}
+					className="flex items-center gap-1.5 flex-1 min-w-0 py-1"
 				>
 					{!isGrouped &&
 						(isExpanded ? (
