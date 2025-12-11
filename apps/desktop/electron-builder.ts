@@ -35,7 +35,7 @@ const config: Configuration = {
 	asarUnpack: [
 		"**/node_modules/node-pty/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
-		"resources/sounds/**/*",
+		"**/resources/sounds/**/*",
 	],
 
 	files: [
