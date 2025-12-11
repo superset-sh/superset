@@ -1,48 +1,29 @@
 import { cn } from "@superset/ui/utils";
 import type { ChangedFile } from "shared/changes-types";
+import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
 	onClick: () => void;
 	showStats?: boolean;
+	/** Number of level indentations (for tree view) */
+	level?: number;
 }
 
-function getStatusBadgeColor(status: string): string {
-	switch (status) {
-		case "added":
-		case "untracked":
-			return "text-green-600 dark:text-green-400";
-		case "modified":
-			return "text-yellow-600 dark:text-yellow-400";
-		case "deleted":
-			return "text-red-600 dark:text-red-400";
-		case "renamed":
-			return "text-blue-600 dark:text-blue-400";
-		case "copied":
-			return "text-purple-600 dark:text-purple-400";
-		default:
-			return "text-muted-foreground";
-	}
-}
+function LevelIndicators({ level }: { level: number }) {
+	if (level === 0) return null;
 
-function getStatusIndicator(status: string): string {
-	switch (status) {
-		case "added":
-			return "A";
-		case "modified":
-			return "M";
-		case "deleted":
-			return "D";
-		case "renamed":
-			return "R";
-		case "copied":
-			return "C";
-		case "untracked":
-			return "U";
-		default:
-			return "";
-	}
+	return (
+		<div className="flex self-stretch shrink-0">
+			{Array.from({ length: level }).map((_, i) => (
+				<div
+					key={`level-${level}-${i}`}
+					className="w-3 self-stretch border-r border-border"
+				/>
+			))}
+		</div>
+	);
 }
 
 function getFileName(path: string): string {
@@ -54,52 +35,61 @@ export function FileItem({
 	isSelected,
 	onClick,
 	showStats = true,
+	level = 0,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
-	const statusBadgeColor = getStatusBadgeColor(file.status);
+	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
-	const showStatsDisplay = showStats && (file.additions > 0 || file.deletions > 0);
+	const showStatsDisplay =
+		showStats && (file.additions > 0 || file.deletions > 0);
+	const hasIndent = level > 0;
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"w-full flex items-center gap-1.5 px-2 py-1.5 text-left rounded-sm",
+				"w-full flex items-stretch gap-1.5 px-2 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
 				isSelected && "bg-accent",
 			)}
 		>
-			{/* File name - truncates aggressively to make room for stats/badge */}
-			<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
-				{fileName}
-			</span>
-
-			{/* Stats - only show non-zero values */}
-			{showStatsDisplay && (
-				<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
-					{file.additions > 0 && (
-						<span className="text-green-600 dark:text-green-400">
-							+{file.additions}
-						</span>
-					)}
-					{file.deletions > 0 && (
-						<span className="text-red-600 dark:text-red-400">
-							-{file.deletions}
-						</span>
-					)}
-				</div>
-			)}
-
-			{/* Status badge - minimal GitHub style */}
-			<span
+			{hasIndent && <LevelIndicators level={level} />}
+			<div
 				className={cn(
-					"text-xs font-mono shrink-0 whitespace-nowrap",
-					statusBadgeColor,
+					"flex items-center gap-1.5 flex-1 min-w-0",
+					hasIndent ? "py-1" : "py-1.5",
 				)}
 			>
-				{statusIndicator}
-			</span>
+
+<span
+					className={cn(
+						"shrink-0 flex items-center",
+						statusBadgeColor,
+					)}
+				>
+					{statusIndicator}
+				</span>
+				<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
+					{fileName}
+				</span>
+
+				{showStatsDisplay && (
+					<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+						{file.additions > 0 && (
+							<span className="text-green-600 dark:text-green-400">
+								+{file.additions}
+							</span>
+						)}
+						{file.deletions > 0 && (
+							<span className="text-red-600 dark:text-red-400">
+								-{file.deletions}
+							</span>
+						)}
+					</div>
+				)}
+
+			</div>
 		</button>
 	);
 }

@@ -41,8 +41,7 @@ export function ChangesHeader({
 		{ enabled: !!worktreePath },
 	);
 
-	const effectiveBaseBranch =
-		baseBranch ?? branchData?.defaultBranch ?? "main";
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const availableBranches = branchData?.remote ?? [];
 
 	const sortedBranches = [...availableBranches].sort((a, b) => {
@@ -94,7 +93,10 @@ export function ChangesHeader({
 						</TooltipContent>
 					</Tooltip>
 				)}
-				<ViewModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
+				<ViewModeToggle
+					viewMode={viewMode}
+					onViewModeChange={onViewModeChange}
+				/>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
@@ -114,7 +116,6 @@ export function ChangesHeader({
 					</TooltipContent>
 				</Tooltip>
 			</div>
-
 		</div>
 	);
 }

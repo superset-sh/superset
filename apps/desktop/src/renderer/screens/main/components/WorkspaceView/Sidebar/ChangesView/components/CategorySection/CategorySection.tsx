@@ -48,13 +48,17 @@ export function CategorySection({
 						<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
 					)}
 					<span className="text-sm font-medium">{title}</span>
-					<span className="text-xs text-muted-foreground shrink-0">({count})</span>
+					<span className="text-xs text-muted-foreground shrink-0">
+						({count})
+					</span>
 				</CollapsibleTrigger>
 				{actions && <div className="pr-2 shrink-0">{actions}</div>}
 			</div>
 
 			{/* Section content */}
-			<CollapsibleContent className="px-1 pb-2 min-w-0 overflow-hidden">{children}</CollapsibleContent>
+			<CollapsibleContent className="px-1 pb-2 min-w-0 overflow-hidden">
+				{children}
+			</CollapsibleContent>
 		</Collapsible>
 	);
 }
