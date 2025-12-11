@@ -1,47 +1,27 @@
 import { cn } from "@superset/ui/utils";
 import type { ChangedFile } from "shared/changes-types";
+import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
 	onClick: () => void;
 	showStats?: boolean;
+	/** Number of level indentations (for tree view) */
+	level?: number;
 }
 
-function getStatusColor(status: string): string {
-	switch (status) {
-		case "added":
-			return "text-green-500";
-		case "modified":
-			return "text-yellow-500";
-		case "deleted":
-			return "text-red-500";
-		case "renamed":
-			return "text-blue-500";
-		case "untracked":
-			return "text-muted-foreground";
-		default:
-			return "text-muted-foreground";
-	}
-}
+function LevelIndicators({ level }: { level: number }) {
+	if (level === 0) return null;
 
-function getStatusIndicator(status: string): string {
-	switch (status) {
-		case "added":
-			return "A";
-		case "modified":
-			return "M";
-		case "deleted":
-			return "D";
-		case "renamed":
-			return "R";
-		case "copied":
-			return "C";
-		case "untracked":
-			return "?";
-		default:
-			return "";
-	}
+	return (
+		<div className="flex self-stretch shrink-0">
+			{Array.from({ length: level }).map((_, i) => (
+				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
+				<div key={i} className="w-3 self-stretch border-r border-border" />
+			))}
+		</div>
+	);
 }
 
 function getFileName(path: string): string {
@@ -53,41 +33,54 @@ export function FileItem({
 	isSelected,
 	onClick,
 	showStats = true,
+	level = 0,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
-	const statusColor = getStatusColor(file.status);
+	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
-	const hasStats = showStats && (file.additions > 0 || file.deletions > 0);
+	const showStatsDisplay =
+		showStats && (file.additions > 0 || file.deletions > 0);
+	const hasIndent = level > 0;
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm",
-				"hover:bg-accent/50 cursor-pointer transition-colors",
+				"w-full flex items-stretch gap-1.5 px-2 text-left rounded-sm",
+				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
 				isSelected && "bg-accent",
 			)}
 		>
-			{/* Status indicator */}
-			<span className={cn("text-xs font-mono w-4 flex-shrink-0", statusColor)}>
-				{statusIndicator}
-			</span>
+			{hasIndent && <LevelIndicators level={level} />}
+			<div
+				className={cn(
+					"flex items-center gap-1.5 flex-1 min-w-0",
+					hasIndent ? "py-1" : "py-1.5",
+				)}
+			>
+				<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
+					{statusIndicator}
+				</span>
+				<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
+					{fileName}
+				</span>
 
-			{/* File name */}
-			<span className="flex-1 min-w-0 text-sm truncate">{fileName}</span>
-
-			{/* Stats */}
-			{hasStats && (
-				<div className="flex items-center gap-1 text-xs flex-shrink-0">
-					{file.additions > 0 && (
-						<span className="text-green-500">+{file.additions}</span>
-					)}
-					{file.deletions > 0 && (
-						<span className="text-red-500">-{file.deletions}</span>
-					)}
-				</div>
-			)}
+				{showStatsDisplay && (
+					<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+						{file.additions > 0 && (
+							<span className="text-green-600 dark:text-green-400">
+								+{file.additions}
+							</span>
+						)}
+						{file.deletions > 0 && (
+							<span className="text-red-600 dark:text-red-400">
+								-{file.deletions}
+							</span>
+						)}
+					</div>
+				)}
+			</div>
 		</button>
 	);
 }

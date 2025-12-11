@@ -30,7 +30,7 @@
 		"db:studio": "cd packages/db && bun db:studio",
 		"db:reset": "cd apps/backend && bun run reset",
 		"lint": "./scripts/lint.sh",
-		"lint:fix": "biome check --write .",
+		"lint:fix": "biome check --write --unsafe .",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",

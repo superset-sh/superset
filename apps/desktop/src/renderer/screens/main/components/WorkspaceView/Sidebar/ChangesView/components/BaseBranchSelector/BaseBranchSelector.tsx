@@ -39,12 +39,12 @@ export function BaseBranchSelector({ worktreePath }: BaseBranchSelectorProps) {
 	};
 
 	return (
-		<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-			<span>vs</span>
+		<div className="flex items-center gap-1.5 text-xs">
+			<span className="text-muted-foreground">from</span>
 			<Select value={effectiveBranch} onValueChange={handleChange}>
 				<SelectTrigger
 					size="sm"
-					className="h-6 px-2 py-0 text-xs border-none bg-transparent hover:bg-accent min-w-0 w-auto gap-1"
+					className="h-6 px-2 py-0 text-xs font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-1 rounded-md"
 				>
 					<SelectValue />
 				</SelectTrigger>

@@ -34,7 +34,6 @@ export function DiffToolbar({
 
 	return (
 		<div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-			{/* View mode toggle */}
 			<ToggleGroup
 				type="single"
 				value={viewMode}
@@ -54,7 +53,6 @@ export function DiffToolbar({
 				</ToggleGroupItem>
 			</ToggleGroup>
 
-			{/* Actions */}
 			<div className="flex items-center gap-2">
 				{canStage && onStage && (
 					<Button

@@ -1,12 +1,7 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile } from "shared/changes-types";
+import { FileItem } from "../FileItem";
+import { FolderRow } from "../FolderRow";
 
 interface FileListTreeProps {
 	files: ChangedFile[];
@@ -23,42 +18,6 @@ interface FileTreeNode {
 	path: string;
 	file?: ChangedFile;
 	children?: FileTreeNode[];
-}
-
-function getStatusColor(status: string): string {
-	switch (status) {
-		case "added":
-			return "text-green-500";
-		case "modified":
-			return "text-yellow-500";
-		case "deleted":
-			return "text-red-500";
-		case "renamed":
-			return "text-blue-500";
-		case "untracked":
-			return "text-muted-foreground";
-		default:
-			return "text-muted-foreground";
-	}
-}
-
-function getStatusIndicator(status: string): string {
-	switch (status) {
-		case "added":
-			return "A";
-		case "modified":
-			return "M";
-		case "deleted":
-			return "D";
-		case "renamed":
-			return "R";
-		case "copied":
-			return "C";
-		case "untracked":
-			return "?";
-		default:
-			return "";
-	}
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -135,76 +94,45 @@ function TreeNodeComponent({
 	const isFile = node.type === "file";
 	const isSelected = selectedPath === node.path && !selectedCommitHash;
 
-	const statusColor = node.file?.status ? getStatusColor(node.file.status) : "";
-	const statusIndicator = node.file?.status
-		? getStatusIndicator(node.file.status)
-		: "";
-
 	if (hasChildren) {
 		return (
-			<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-				<CollapsibleTrigger
-					className={cn(
-						"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm text-left",
-					)}
-					style={{ paddingLeft: `${level * 12 + 8}px` }}
-				>
-					{isExpanded ? (
-						<HiChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-					) : (
-						<HiChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-					)}
-					<span className="text-sm text-foreground flex-1 truncate">
-						{node.name}
-					</span>
-				</CollapsibleTrigger>
-				<CollapsibleContent>
-					{node.children?.map((child) => (
-						<TreeNodeComponent
-							key={child.id}
-							node={child}
-							level={level + 1}
-							selectedPath={selectedPath}
-							selectedCommitHash={selectedCommitHash}
-							onFileSelect={onFileSelect}
-							showStats={showStats}
-						/>
-					))}
-				</CollapsibleContent>
-			</Collapsible>
+			<FolderRow
+				name={node.name}
+				isExpanded={isExpanded}
+				onToggle={setIsExpanded}
+				level={level}
+				variant="tree"
+			>
+				{node.children?.map((child) => (
+					<TreeNodeComponent
+						key={child.id}
+						node={child}
+						level={level + 1}
+						selectedPath={selectedPath}
+						selectedCommitHash={selectedCommitHash}
+						onFileSelect={onFileSelect}
+						showStats={showStats}
+					/>
+				))}
+			</FolderRow>
 		);
 	}
 
-	return (
-		<button
-			type="button"
-			className={cn(
-				"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/70 cursor-pointer rounded-sm text-left",
-				isSelected && "bg-accent",
-			)}
-			style={{ paddingLeft: `${level * 12 + 8}px` }}
-			onClick={() => isFile && node.file && onFileSelect(node.file)}
-		>
-			<span className={cn("text-xs font-mono w-3 flex-shrink-0", statusColor)}>
-				{statusIndicator}
-			</span>
-			<span className="text-sm text-foreground flex-1 truncate">
-				{node.name}
-			</span>
-			{showStats &&
-				node.file &&
-				(node.file.additions > 0 || node.file.deletions > 0) && (
-					<div className="flex items-center gap-1 text-xs flex-shrink-0">
-						{node.file.additions > 0 && (
-							<span className="text-green-500">+{node.file.additions}</span>
-						)}
-						{node.file.deletions > 0 && (
-							<span className="text-red-500">-{node.file.deletions}</span>
-						)}
-					</div>
-				)}
-		</button>
-	);
+	if (isFile && node.file) {
+		return (
+			<FileItem
+				file={node.file}
+				isSelected={isSelected}
+				onClick={() => {
+					if (node.file) onFileSelect(node.file);
+				}}
+				showStats={showStats}
+				level={level}
+			/>
+		);
+	}
+
+	return null;
 }
 
 export function FileListTree({
@@ -217,7 +145,7 @@ export function FileListTree({
 	const tree = buildFileTree(files);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col min-w-0 overflow-hidden">
 			{tree.map((node) => (
 				<TreeNodeComponent
 					key={node.id}

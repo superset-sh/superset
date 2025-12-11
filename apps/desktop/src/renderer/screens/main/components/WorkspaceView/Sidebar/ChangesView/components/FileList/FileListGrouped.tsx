@@ -1,13 +1,7 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
+import { FolderRow } from "../FolderRow";
 
 interface FileListGroupedProps {
 	files: ChangedFile[];
@@ -59,7 +53,6 @@ function groupFilesByFolder(files: ChangedFile[]): FolderGroup[] {
 interface FolderGroupItemProps {
 	group: FolderGroup;
 	selectedFile: ChangedFile | null;
-	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
 }
@@ -72,56 +65,44 @@ function FolderGroupItem({
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
-	const displayName = isRoot ? "Root" : group.folderPath;
+	const displayName = isRoot ? "Root Path" : group.folderPath;
 
 	return (
-		<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-			<CollapsibleTrigger
-				className={cn(
-					"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm",
-					"text-xs text-muted-foreground text-left",
-				)}
-			>
-				{isExpanded ? (
-					<HiChevronDown className="w-3 h-3 shrink-0" />
-				) : (
-					<HiChevronRight className="w-3 h-3 shrink-0" />
-				)}
-				<span className="flex-1 truncate">{displayName}</span>
-				<span className="text-xs opacity-60">{group.files.length}</span>
-			</CollapsibleTrigger>
-			<CollapsibleContent>
-				{group.files.map((file) => (
-					<FileItem
-						key={file.path}
-						file={file}
-						isSelected={selectedFile?.path === file.path}
-						onClick={() => onFileSelect(file)}
-						showStats={showStats}
-					/>
-				))}
-			</CollapsibleContent>
-		</Collapsible>
+		<FolderRow
+			name={displayName}
+			isExpanded={isExpanded}
+			onToggle={setIsExpanded}
+			fileCount={group.files.length}
+			variant="grouped"
+		>
+			{group.files.map((file) => (
+				<FileItem
+					key={file.path}
+					file={file}
+					isSelected={selectedFile?.path === file.path}
+					onClick={() => onFileSelect(file)}
+					showStats={showStats}
+				/>
+			))}
+		</FolderRow>
 	);
 }
 
 export function FileListGrouped({
 	files,
 	selectedFile,
-	selectedCommitHash,
 	onFileSelect,
 	showStats = true,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col overflow-hidden">
 			{groups.map((group) => (
 				<FolderGroupItem
 					key={group.folderPath || "__root__"}
 					group={group}
 					selectedFile={selectedFile}
-					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onFileSelect}
 					showStats={showStats}
 				/>

@@ -72,7 +72,7 @@ const JETBRAINS_OPTIONS: AppOption[] = [
 
 const ALL_APP_OPTIONS = [...APP_OPTIONS, ...JETBRAINS_OPTIONS];
 
-const getAppOption = (id: ExternalApp) =>
+export const getAppOption = (id: ExternalApp) =>
 	ALL_APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
 
 export interface OpenInButtonProps {

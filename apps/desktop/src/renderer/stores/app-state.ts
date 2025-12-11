@@ -8,7 +8,8 @@ export type SettingsSection =
 	| "appearance"
 	| "keyboard"
 	| "presets"
-	| "account";
+	| "account"
+	| "ringtones";
 
 interface AppState {
 	currentView: AppView;
