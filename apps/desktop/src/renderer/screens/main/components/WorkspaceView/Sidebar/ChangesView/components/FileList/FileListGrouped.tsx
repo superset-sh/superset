@@ -74,20 +74,17 @@ function FolderGroupItem({
 	const displayName = isRoot ? "Root" : group.folderPath;
 
 	return (
-		<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="min-w-0">
+		<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="overflow-hidden">
 			<CollapsibleTrigger
 				className={cn(
-					"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm",
-					"text-xs text-muted-foreground text-left",
+					"flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm",
+					"text-xs text-muted-foreground text-left w-full",
 				)}
 			>
-				{/* Truncate from start using direction: rtl trick */}
-				<span className="flex-1 min-w-0 truncate text-ellipsis" dir="rtl">
-					<bdi>{displayName}</bdi>
-				</span>
+				<span dir="rtl" className="w-0 grow truncate text-left">{displayName}</span>
 				<span className="text-xs opacity-60 shrink-0">{group.files.length}</span>
 			</CollapsibleTrigger>
-			<CollapsibleContent className="min-w-0">
+			<CollapsibleContent>
 				{group.files.map((file) => (
 					<FileItem
 						key={file.path}
@@ -112,7 +109,7 @@ export function FileListGrouped({
 	const groups = groupFilesByFolder(files);
 
 	return (
-		<div className="flex flex-col min-w-0 overflow-hidden">
+		<div className="flex flex-col overflow-hidden">
 			{groups.map((group) => (
 				<FolderGroupItem
 					key={group.folderPath || "__root__"}
