@@ -3,14 +3,17 @@ import type { ITerminalOptions } from "@xterm/xterm";
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 
-// Font family with Nerd Font support for Powerlevel10k and similar Zsh themes.
+// Font family with Nerd Font support for Oh My Posh, Powerlevel10k, Starship, and similar themes.
 // Falls back to standard monospace fonts if Nerd Fonts aren't installed.
 const TERMINAL_FONT_FAMILY = [
-	"MesloLGS NF", // Recommended font for Powerlevel10k
+	"MesloLGM Nerd Font", // Recommended by Oh My Posh (Medium line gap)
+	"MesloLGM NF",
+	"MesloLGS NF", // Recommended by Powerlevel10k (Small line gap)
 	"MesloLGS Nerd Font",
 	"Hack Nerd Font",
 	"FiraCode Nerd Font",
 	"JetBrainsMono Nerd Font",
+	"CaskaydiaCove Nerd Font", // Popular with Windows Terminal / Starship
 	"Menlo",
 	"Monaco",
 	'"Courier New"',
