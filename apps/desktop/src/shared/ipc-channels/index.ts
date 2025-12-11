@@ -8,6 +8,8 @@
 import type { DeepLinkChannels } from "./deep-link";
 import type { ExternalChannels } from "./external";
 import type { ProxyChannels } from "./proxy";
+import type { RingtoneChannels } from "./ringtone";
+import type { StorageChannels } from "./storage";
 import type { TabChannels } from "./tab";
 import type { TerminalChannels } from "./terminal";
 import type { UiChannels } from "./ui";
@@ -31,7 +33,9 @@ export interface IpcChannels
 		ExternalChannels,
 		DeepLinkChannels,
 		WindowChannels,
-		UiChannels {}
+		UiChannels,
+		StorageChannels,
+		RingtoneChannels {}
 
 /**
  * Type-safe IPC channel names

@@ -5,6 +5,8 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
+import { registerRingtoneHandlers } from "./lib/ringtone-ipcs";
+import { registerStorageHandlers } from "./lib/storage-ipcs";
 import { terminalManager } from "./lib/terminal-manager";
 import { MainWindow } from "./windows/main";
 
@@ -27,6 +29,9 @@ if (process.defaultApp) {
 app.on("open-url", (event, _url) => {
 	event.preventDefault();
 });
+
+registerStorageHandlers();
+registerRingtoneHandlers();
 
 // Allow multiple instances - removed single instance lock
 (async () => {

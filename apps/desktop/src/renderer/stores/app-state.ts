@@ -7,7 +7,8 @@ export type SettingsSection =
 	| "workspace"
 	| "appearance"
 	| "keyboard"
-	| "presets";
+	| "presets"
+	| "ringtones";
 
 interface AppState {
 	currentView: AppView;
