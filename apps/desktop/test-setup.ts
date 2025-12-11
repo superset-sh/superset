@@ -48,21 +48,6 @@ const mockClassList = new Set<string>();
 // Electron Preload Mocks (exposed via contextBridge in real app)
 // =============================================================================
 
-const mockStorage = new Map<string, string>();
-
-global.window = {
-	electronStore: {
-		get: async (key: string) => mockStorage.get(key) || null,
-		set: async (key: string, value: string) => {
-			mockStorage.set(key, value);
-		},
-		delete: async (key: string) => {
-			mockStorage.delete(key);
-		},
-	},
-	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires partial window mock
-} as any;
-
 // trpc-electron expects this global for renderer-side communication
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).electronTRPC = {

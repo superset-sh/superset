@@ -83,8 +83,27 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		getSelectedRingtoneId: publicProcedure.query(() => {
-			return db.data.settings.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
+		getSelectedRingtoneId: publicProcedure.query(async () => {
+			const storedId = db.data.settings.selectedRingtoneId;
+
+			// If no stored ID, return default
+			if (!storedId) {
+				return DEFAULT_RINGTONE_ID;
+			}
+
+			// If stored ID is valid, return it
+			if (VALID_RINGTONE_IDS.includes(storedId)) {
+				return storedId;
+			}
+
+			// Stored ID is invalid/stale - self-heal by persisting the default
+			console.warn(
+				`[settings] Invalid ringtone ID "${storedId}" found, resetting to default`,
+			);
+			await db.update((data) => {
+				data.settings.selectedRingtoneId = DEFAULT_RINGTONE_ID;
+			});
+			return DEFAULT_RINGTONE_ID;
 		}),
 
 		setSelectedRingtoneId: publicProcedure
