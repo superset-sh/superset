@@ -1,25 +1,11 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { app } from "electron";
 import {
 	DEFAULT_RINGTONE_ID,
 	getRingtoneFilename,
 } from "../../shared/ringtones";
 import { db } from "./db";
-
-/**
- * Gets the path to a ringtone sound file.
- * In development, reads from src/resources. In production, reads from the bundled resources.
- */
-function getRingtonePath(filename: string): string {
-	const isDev = !app.isPackaged;
-
-	if (isDev) {
-		return join(app.getAppPath(), "src/resources/sounds", filename);
-	}
-	return join(process.resourcesPath, "resources/sounds", filename);
-}
+import { getSoundPath } from "./sound-paths";
 
 /**
  * Gets the selected ringtone filename from the database.
@@ -83,6 +69,6 @@ export function playNotificationSound(): void {
 		return;
 	}
 
-	const soundPath = getRingtonePath(filename);
+	const soundPath = getSoundPath(filename);
 	playSoundFile(soundPath);
 }

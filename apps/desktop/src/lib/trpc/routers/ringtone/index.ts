@@ -1,9 +1,11 @@
 import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
-import { join } from "node:path";
-import { app } from "electron";
 import { z } from "zod";
+import {
+	getSoundPath,
+	getSoundsDirectory,
+} from "../../../../main/lib/sound-paths";
 import { publicProcedure, router } from "../..";
 
 /**
@@ -16,31 +18,6 @@ let currentSession: {
 	process: ChildProcess | null;
 } | null = null;
 let nextSessionId = 0;
-
-/**
- * Gets the path to a ringtone sound file.
- * In development, reads from src/resources. In production, reads from the bundled resources.
- */
-function getRingtonePath(filename: string): string {
-	const isDev = !app.isPackaged;
-
-	if (isDev) {
-		return join(app.getAppPath(), "src/resources/sounds", filename);
-	}
-	return join(process.resourcesPath, "resources/sounds", filename);
-}
-
-/**
- * Gets the directory containing ringtone files
- */
-function getRingtonesDirectory(): string {
-	const isDev = !app.isPackaged;
-
-	if (isDev) {
-		return join(app.getAppPath(), "src/resources/sounds");
-	}
-	return join(process.resourcesPath, "resources/sounds");
-}
 
 /**
  * Stops the currently playing sound and invalidates the session
@@ -127,7 +104,7 @@ export const createRingtoneRouter = () => {
 					return { success: true as const };
 				}
 
-				const soundPath = getRingtonePath(input.filename);
+				const soundPath = getSoundPath(input.filename);
 				playSoundFile(soundPath);
 				return { success: true as const };
 			}),
@@ -144,7 +121,7 @@ export const createRingtoneRouter = () => {
 		 * Get the list of available ringtone files from the sounds directory
 		 */
 		list: publicProcedure.query(() => {
-			const ringtonesDir = getRingtonesDirectory();
+			const ringtonesDir = getSoundsDirectory();
 			const files: string[] = [];
 
 			// Add ringtones from the sounds directory if it exists
@@ -172,6 +149,6 @@ export function playNotificationRingtone(filename: string): void {
 		return; // No sound for "none" option
 	}
 
-	const soundPath = getRingtonePath(filename);
+	const soundPath = getSoundPath(filename);
 	playSoundFile(soundPath);
 }

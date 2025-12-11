@@ -1,3 +1,4 @@
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, normalize, resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
@@ -5,6 +6,7 @@ import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
+import type { Plugin } from "vite";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
 
@@ -22,9 +24,35 @@ const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
 
+/**
+ * Plugin to copy resources (like sounds) to the dist folder for preview mode.
+ * In preview mode, __dirname resolves relative to dist/main, so resources
+ * need to be at dist/resources/sounds for the main process to access them.
+ *
+ * Cleans the destination first to avoid stale files from previous builds.
+ */
+function copyResourcesPlugin(): Plugin {
+	return {
+		name: "copy-resources",
+		writeBundle() {
+			const srcDir = resolve(resources, "sounds");
+			const destDir = resolve(devPath, "resources/sounds");
+
+			if (existsSync(srcDir)) {
+				// Clean destination to avoid stale files
+				if (existsSync(destDir)) {
+					rmSync(destDir, { recursive: true });
+				}
+				mkdirSync(destDir, { recursive: true });
+				cpSync(srcDir, destDir, { recursive: true });
+			}
+		},
+	};
+}
+
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths],
+		plugins: [tsconfigPaths, copyResourcesPlugin()],
 
 		build: {
 			rollupOptions: {
