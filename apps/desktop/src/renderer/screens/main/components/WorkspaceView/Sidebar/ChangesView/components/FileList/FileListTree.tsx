@@ -124,6 +124,21 @@ interface TreeNodeComponentProps {
 	showStats?: boolean;
 }
 
+function LevelIndicators({ level }: { level: number }) {
+	if (level === 0) return null;
+
+	return (
+		<div className="flex self-stretch shrink-0">
+			{Array.from({ length: level }).map((_, i) => (
+				<div
+					key={i}
+					className="w-3 self-stretch border-r border-border"
+				/>
+			))}
+		</div>
+	);
+}
+
 function TreeNodeComponent({
 	node,
 	level = 0,
@@ -147,18 +162,20 @@ function TreeNodeComponent({
 			<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="min-w-0">
 				<CollapsibleTrigger
 					className={cn(
-						"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
+						"w-full flex items-stretch gap-1.5 px-2 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
 					)}
-					style={{ paddingLeft: `${level * 12 + 8}px` }}
 				>
-					{isExpanded ? (
-						<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
-					) : (
-						<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-					)}
-					<span className="text-sm text-foreground flex-1 min-w-0 truncate">
-						{node.name}
-					</span>
+					<LevelIndicators level={level} />
+					<div className="flex items-center gap-1.5 py-1 flex-1 min-w-0">
+						{isExpanded ? (
+							<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
+						) : (
+							<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
+						)}
+						<span className="text-sm text-foreground flex-1 min-w-0 truncate">
+							{node.name}
+						</span>
+					</div>
 				</CollapsibleTrigger>
 				<CollapsibleContent className="min-w-0">
 					{node.children?.map((child) => (
@@ -181,26 +198,28 @@ function TreeNodeComponent({
 		<button
 			type="button"
 			className={cn(
-				"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/70 cursor-pointer rounded-sm text-left overflow-hidden",
+				"w-full flex items-stretch gap-1.5 px-2 hover:bg-accent/70 cursor-pointer rounded-sm text-left overflow-hidden",
 				isSelected && "bg-accent",
 			)}
-			style={{ paddingLeft: `${level * 12 + 8}px` }}
 			onClick={() => isFile && node.file && onFileSelect(node.file)}
 		>
-			<span className="text-sm text-foreground flex-1 min-w-0 truncate">
-				{node.name}
-			</span>
-			{showStats &&
-				node.file &&
-				(node.file.additions > 0 || node.file.deletions > 0) && (
-					<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
-						<span className="text-green-600 dark:text-green-400">+{node.file.additions}</span>
-						<span className="text-red-600 dark:text-red-400">-{node.file.deletions}</span>
-					</div>
-				)}
-			<span className={cn("text-xs font-mono shrink-0 whitespace-nowrap", statusColor)}>
-				{statusIndicator}
-			</span>
+			<LevelIndicators level={level} />
+			<div className="flex items-center gap-1.5 py-1 flex-1 min-w-0">
+				<span className="text-sm text-foreground flex-1 min-w-0 truncate">
+					{node.name}
+				</span>
+				{showStats &&
+					node.file &&
+					(node.file.additions > 0 || node.file.deletions > 0) && (
+						<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+							<span className="text-green-600 dark:text-green-400">+{node.file.additions}</span>
+							<span className="text-red-600 dark:text-red-400">-{node.file.deletions}</span>
+						</div>
+					)}
+				<span className={cn("text-xs font-mono shrink-0 whitespace-nowrap", statusColor)}>
+					{statusIndicator}
+				</span>
+			</div>
 		</button>
 	);
 }
