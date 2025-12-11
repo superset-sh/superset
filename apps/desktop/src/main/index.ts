@@ -5,8 +5,11 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
+import { createModuleLogger } from "./lib/logger";
 import { terminalManager } from "./lib/terminal-manager";
 import { MainWindow } from "./windows/main";
+
+const log = createModuleLogger("main");
 
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
@@ -29,7 +32,7 @@ if (process.defaultApp) {
 // Handle deep link when app is already running
 app.on("open-url", (event, url) => {
 	event.preventDefault();
-	console.log("[main] Received deep link:", url);
+	log.info("Received deep link", { url });
 	pendingDeepLink = url;
 });
 
@@ -50,7 +53,7 @@ export function getAndClearPendingDeepLink(): string | null {
 	try {
 		setupAgentHooks();
 	} catch (error) {
-		console.error("[main] Failed to set up agent hooks:", error);
+		log.error("Failed to set up agent hooks", error);
 		// App can continue without agent hooks, but log the failure
 	}
 
