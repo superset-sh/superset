@@ -108,7 +108,7 @@ export function ChangesContent() {
 	return (
 		<>
 			<div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
-				<FileHeader file={selectedFile} />
+				<FileHeader file={selectedFile} worktreePath={worktreePath} />
 				<DiffToolbar
 					viewMode={viewMode}
 					onViewModeChange={setViewMode}

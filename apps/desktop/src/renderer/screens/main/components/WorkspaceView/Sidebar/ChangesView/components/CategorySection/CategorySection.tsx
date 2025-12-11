@@ -32,29 +32,33 @@ export function CategorySection({
 		<Collapsible
 			open={isExpanded}
 			onOpenChange={onToggle}
-			className="border-b border-border last:border-b-0"
+			className="border-b-2 border-border last:border-b-0 min-w-0 overflow-hidden"
 		>
 			{/* Section header */}
-			<div className="flex items-center">
+			<div className="flex items-center min-w-0">
 				<CollapsibleTrigger
 					className={cn(
-						"flex-1 flex items-center gap-2 px-3 py-2 text-left",
+						"flex-1 flex items-center gap-2 px-3 py-2 text-left min-w-0",
 						"hover:bg-accent/30 cursor-pointer transition-colors",
 					)}
 				>
 					{isExpanded ? (
-						<HiChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+						<HiChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
 					) : (
-						<HiChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+						<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
 					)}
 					<span className="text-sm font-medium">{title}</span>
-					<span className="text-xs text-muted-foreground">({count})</span>
+					<span className="text-xs text-muted-foreground shrink-0">
+						({count})
+					</span>
 				</CollapsibleTrigger>
-				{actions && <div className="pr-2">{actions}</div>}
+				{actions && <div className="pr-2 shrink-0">{actions}</div>}
 			</div>
 
 			{/* Section content */}
-			<CollapsibleContent className="px-1 pb-2">{children}</CollapsibleContent>
+			<CollapsibleContent className="px-1 pb-2 min-w-0 overflow-hidden">
+				{children}
+			</CollapsibleContent>
 		</Collapsible>
 	);
 }
