@@ -131,7 +131,6 @@ export function ChangesView() {
 	return (
 		<div className="flex flex-col h-full">
 			<ChangesHeader
-				branch={status.branch}
 				ahead={status.ahead}
 				behind={status.behind}
 				isRefreshing={isFetching}

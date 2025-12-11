@@ -132,7 +132,7 @@ export function TerminalSearch({
 					No results
 				</span>
 			)}
-			<div className="flex items-center flex-shrink-0">
+			<div className="flex items-center shrink-0">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
