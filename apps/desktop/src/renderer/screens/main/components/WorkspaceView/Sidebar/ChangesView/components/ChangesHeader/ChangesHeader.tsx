@@ -7,14 +7,13 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiArrowPath, HiArrowRight } from "react-icons/hi2";
+import { HiArrowPath } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 
 interface ChangesHeaderProps {
-	branch: string;
 	ahead: number;
 	behind: number;
 	isRefreshing: boolean;
@@ -25,7 +24,6 @@ interface ChangesHeaderProps {
 }
 
 export function ChangesHeader({
-	branch,
 	ahead: _ahead,
 	behind: _behind,
 	isRefreshing,

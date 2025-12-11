@@ -123,7 +123,9 @@ function TreeNodeComponent({
 			<FileItem
 				file={node.file}
 				isSelected={isSelected}
-				onClick={() => onFileSelect(node.file!)}
+				onClick={() => {
+					if (node.file) onFileSelect(node.file);
+				}}
 				showStats={showStats}
 				level={level}
 			/>

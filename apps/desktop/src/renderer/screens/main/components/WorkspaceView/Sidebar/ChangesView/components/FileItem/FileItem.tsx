@@ -17,10 +17,8 @@ function LevelIndicators({ level }: { level: number }) {
 	return (
 		<div className="flex self-stretch shrink-0">
 			{Array.from({ length: level }).map((_, i) => (
-				<div
-					key={`level-${level}-${i}`}
-					className="w-3 self-stretch border-r border-border"
-				/>
+				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
+				<div key={i} className="w-3 self-stretch border-r border-border" />
 			))}
 		</div>
 	);
@@ -61,13 +59,7 @@ export function FileItem({
 					hasIndent ? "py-1" : "py-1.5",
 				)}
 			>
-
-<span
-					className={cn(
-						"shrink-0 flex items-center",
-						statusBadgeColor,
-					)}
-				>
+				<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
 					{statusIndicator}
 				</span>
 				<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
@@ -88,7 +80,6 @@ export function FileItem({
 						)}
 					</div>
 				)}
-
 			</div>
 		</button>
 	);

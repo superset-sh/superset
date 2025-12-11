@@ -1,13 +1,12 @@
-import type { FileStatus } from "shared/changes-types";
 import type { ReactNode } from "react";
 import {
-	HiMiniPencil,
-	HiMiniPlus,
-	HiMiniXMark,
-	HiArrowsRightLeft,
-	HiDocumentDuplicate,
-} from "react-icons/hi2";
-import { LuCopy, LuFileOutput, LuPencilLine, LuPlus, LuX } from "react-icons/lu";
+	LuCopy,
+	LuFileOutput,
+	LuPencilLine,
+	LuPlus,
+	LuX,
+} from "react-icons/lu";
+import type { FileStatus } from "shared/changes-types";
 
 export function getStatusColor(status: FileStatus): string {
 	switch (status) {
