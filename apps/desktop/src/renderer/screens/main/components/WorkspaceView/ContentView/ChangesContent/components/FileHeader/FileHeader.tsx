@@ -1,8 +1,12 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { getAppOption } from "renderer/components/OpenInButton/OpenInButton";
+import { trpc } from "renderer/lib/trpc";
 import type { ChangedFile, FileStatus } from "shared/changes-types";
 
 interface FileHeaderProps {
 	file: ChangedFile;
+	worktreePath: string;
 }
 
 function getStatusColor(status: FileStatus): string {
@@ -42,18 +46,40 @@ function getStatusLabel(status: string): string {
 	}
 }
 
-export function FileHeader({ file }: FileHeaderProps) {
+export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 	const statusColor = getStatusColor(file.status);
 	const statusLabel = getStatusLabel(file.status);
 	const hasStats = file.additions > 0 || file.deletions > 0;
+
+	const { data: lastUsedApp = "cursor" } =
+		trpc.settings.getLastUsedApp.useQuery();
+	const openInApp = trpc.external.openInApp.useMutation();
+
+	const fullPath = `${worktreePath}/${file.path}`;
+	const currentApp = getAppOption(lastUsedApp);
+
+	const handleOpenFile = () => {
+		openInApp.mutate({ path: fullPath, app: lastUsedApp });
+	};
 
 	return (
 		<div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
 			{/* File path */}
 			<div className="flex-1 min-w-0">
-				<div className="text-sm font-medium truncate font-mono">
-					{file.path}
-				</div>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleOpenFile}
+							className="text-sm font-medium truncate font-mono text-left hover:underline hover:text-primary cursor-pointer"
+						>
+							{file.path}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						Open in {currentApp.label}
+					</TooltipContent>
+				</Tooltip>
 				{file.oldPath && (
 					<div className="text-xs text-muted-foreground truncate">
 						{file.status === "copied" ? "Copied from" : "Renamed from"}{" "}
