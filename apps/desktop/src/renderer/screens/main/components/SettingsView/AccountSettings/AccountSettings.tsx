@@ -35,7 +35,11 @@ export function AccountSettings() {
 						) : (
 							<div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
 								<span className="text-2xl text-muted-foreground">
-									{(session.firstName?.[0] || session.email?.[0] || "U").toUpperCase()}
+									{(
+										session.firstName?.[0] ||
+										session.email?.[0] ||
+										"U"
+									).toUpperCase()}
 								</span>
 							</div>
 						)}

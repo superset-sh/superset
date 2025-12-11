@@ -71,6 +71,9 @@ export default defineConfig({
 	},
 
 	renderer: {
+		// Load .env file for renderer (Vite exposes VITE_* vars via import.meta.env)
+		envDir: resolve(__dirname, "../.."),
+
 		define: {
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),

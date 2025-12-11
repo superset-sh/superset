@@ -3,24 +3,24 @@ import { publicProcedure, router } from "../..";
 
 export const createAuthRouter = () => {
 	return router({
-		getSession: publicProcedure.query(() => {
-			return authManager.getSession();
+		getSession: publicProcedure.query(async () => {
+			return await authManager.getSession();
 		}),
 
 		startSignIn: publicProcedure.mutation(async () => {
-			return authManager.startSignIn();
+			return await authManager.startSignIn();
 		}),
 
 		startSignUp: publicProcedure.mutation(async () => {
-			return authManager.startSignUp();
+			return await authManager.startSignUp();
 		}),
 
 		signOut: publicProcedure.mutation(async () => {
-			return authManager.signOut();
+			return await authManager.signOut();
 		}),
 
 		refreshSession: publicProcedure.mutation(async () => {
-			return authManager.refreshSession();
+			return await authManager.refreshSession();
 		}),
 	});
 };
