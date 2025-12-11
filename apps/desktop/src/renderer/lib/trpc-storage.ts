@@ -60,3 +60,23 @@ export const trpcThemeStorage = createJSONStorage(() =>
 		set: (input) => trpcClient.uiState.theme.set.mutate(input as any),
 	}),
 );
+
+/**
+ * Zustand storage adapter for ringtone state using tRPC.
+ * Only the selectedRingtoneId is persisted.
+ */
+export const trpcRingtoneStorage = createJSONStorage(() =>
+	createTrpcStorageAdapter({
+		get: async () => {
+			const ringtoneId =
+				await trpcClient.settings.getSelectedRingtoneId.query();
+			return { selectedRingtoneId: ringtoneId };
+		},
+		set: async (input) => {
+			const state = input as { selectedRingtoneId: string };
+			await trpcClient.settings.setSelectedRingtoneId.mutate({
+				ringtoneId: state.selectedRingtoneId,
+			});
+		},
+	}),
+);

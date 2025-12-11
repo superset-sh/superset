@@ -6,7 +6,7 @@ import {
 	DEFAULT_RINGTONE_ID,
 	getRingtoneFilename,
 } from "../../shared/ringtones";
-import { store } from "./storage-manager";
+import { db } from "./db";
 
 /**
  * Gets the path to a ringtone sound file.
@@ -21,34 +21,16 @@ function getRingtonePath(filename: string): string {
 	return join(process.resourcesPath, "resources/sounds", filename);
 }
 
-/** Expected shape of zustand persisted state */
-interface PersistedRingtoneState {
-	state?: {
-		selectedRingtoneId?: string;
-	};
-}
-
 /**
- * Gets the selected ringtone filename from the store.
- * Handles the JSON string format used by zustand's persist middleware.
+ * Gets the selected ringtone filename from the database.
  * Falls back to default ringtone if the stored ID is invalid/stale.
  */
 function getSelectedRingtoneFilename(): string {
 	const defaultFilename = getRingtoneFilename(DEFAULT_RINGTONE_ID);
 
 	try {
-		const rawValue = store.get("ringtone-storage");
-
-		// zustand persist stores as JSON string, parse it
-		let parsed: PersistedRingtoneState | undefined;
-		if (typeof rawValue === "string") {
-			parsed = JSON.parse(rawValue) as PersistedRingtoneState;
-		} else if (rawValue && typeof rawValue === "object") {
-			// In case electron-store auto-parsed it
-			parsed = rawValue as PersistedRingtoneState;
-		}
-
-		const selectedId = parsed?.state?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
+		const selectedId =
+			db.data.settings.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
 
 		// "none" means silent - return empty string intentionally
 		if (selectedId === "none") {

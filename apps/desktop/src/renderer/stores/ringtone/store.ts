@@ -5,7 +5,7 @@ import {
 	RINGTONES,
 	type RingtoneData,
 } from "../../../shared/ringtones";
-import { electronStorage } from "../../lib/electron-storage";
+import { trpcRingtoneStorage } from "../../lib/trpc-storage";
 
 // Re-export shared types and data for convenience
 export type Ringtone = RingtoneData;
@@ -19,8 +19,24 @@ interface RingtoneState {
 	/** Set the active ringtone by ID */
 	setRingtone: (ringtoneId: string) => void;
 
-	/** Get the currently selected ringtone */
-	getSelectedRingtone: () => Ringtone | undefined;
+	/** Get the currently selected ringtone (always returns valid ringtone, falls back to default) */
+	getSelectedRingtone: () => Ringtone;
+}
+
+/** Check if a ringtone ID is valid */
+function isValidRingtoneId(id: string): boolean {
+	return AVAILABLE_RINGTONES.some((r) => r.id === id);
+}
+
+/** Get default ringtone (guaranteed to exist) */
+function getDefaultRingtone(): Ringtone {
+	const ringtone = AVAILABLE_RINGTONES.find(
+		(r) => r.id === DEFAULT_RINGTONE_ID,
+	);
+	if (!ringtone) {
+		throw new Error(`Default ringtone "${DEFAULT_RINGTONE_ID}" not found`);
+	}
+	return ringtone;
 }
 
 export const useRingtoneStore = create<RingtoneState>()(
@@ -40,17 +56,32 @@ export const useRingtoneStore = create<RingtoneState>()(
 
 				getSelectedRingtone: () => {
 					const state = get();
-					return AVAILABLE_RINGTONES.find(
+					const ringtone = AVAILABLE_RINGTONES.find(
 						(r) => r.id === state.selectedRingtoneId,
 					);
+					// Fall back to default if persisted ID is stale/invalid
+					if (!ringtone) {
+						set({ selectedRingtoneId: DEFAULT_RINGTONE_ID });
+						return getDefaultRingtone();
+					}
+					return ringtone;
 				},
 			}),
 			{
 				name: "ringtone-storage",
-				storage: electronStorage,
+				storage: trpcRingtoneStorage,
 				partialize: (state) => ({
 					selectedRingtoneId: state.selectedRingtoneId,
 				}),
+				onRehydrateStorage: () => (state) => {
+					// Validate persisted ringtone ID on rehydration
+					if (state && !isValidRingtoneId(state.selectedRingtoneId)) {
+						console.warn(
+							`[RingtoneStore] Invalid ringtone ID "${state.selectedRingtoneId}", resetting to default`,
+						);
+						state.selectedRingtoneId = DEFAULT_RINGTONE_ID;
+					}
+				},
 			},
 		),
 		{ name: "RingtoneStore" },
@@ -63,6 +94,10 @@ export const useSelectedRingtoneId = () =>
 export const useSetRingtone = () =>
 	useRingtoneStore((state) => state.setRingtone);
 export const useSelectedRingtone = () =>
-	useRingtoneStore((state) =>
-		AVAILABLE_RINGTONES.find((r) => r.id === state.selectedRingtoneId),
-	);
+	useRingtoneStore((state) => {
+		const ringtone = AVAILABLE_RINGTONES.find(
+			(r) => r.id === state.selectedRingtoneId,
+		);
+		// Fall back to default if ID is invalid
+		return ringtone ?? getDefaultRingtone();
+	});

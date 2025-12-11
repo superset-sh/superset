@@ -1,7 +1,11 @@
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
+import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+/** Valid ringtone IDs for validation */
+const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
 export const createSettingsRouter = () => {
 	return router({
@@ -74,6 +78,25 @@ export const createSettingsRouter = () => {
 					data.settings.terminalPresets = presets.filter(
 						(p) => p.id !== input.id,
 					);
+				});
+
+				return { success: true };
+			}),
+
+		getSelectedRingtoneId: publicProcedure.query(() => {
+			return db.data.settings.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
+		}),
+
+		setSelectedRingtoneId: publicProcedure
+			.input(z.object({ ringtoneId: z.string() }))
+			.mutation(async ({ input }) => {
+				// Validate ringtone ID exists
+				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
+					throw new Error(`Invalid ringtone ID: ${input.ringtoneId}`);
+				}
+
+				await db.update((data) => {
+					data.settings.selectedRingtoneId = input.ringtoneId;
 				});
 
 				return { success: true };
