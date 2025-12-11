@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiBellSlash, HiCheck, HiPlay, HiStop } from "react-icons/hi2";
+import { trpcClient } from "renderer/lib/trpc-client";
 import {
 	AVAILABLE_RINGTONES,
 	type Ringtone,
@@ -161,7 +162,7 @@ export function RingtonesSettings() {
 				clearTimeout(previewTimerRef.current);
 			}
 			// Stop any in-progress preview when navigating away
-			window.ipcRenderer.invoke("ringtone:stop").catch(() => {
+			trpcClient.ringtone.stop.mutate().catch(() => {
 				// Ignore errors during cleanup
 			});
 		};
@@ -182,7 +183,7 @@ export function RingtonesSettings() {
 			// If this ringtone is already playing, stop it
 			if (playingId === ringtone.id) {
 				try {
-					await window.ipcRenderer.invoke("ringtone:stop");
+					await trpcClient.ringtone.stop.mutate();
 				} catch (error) {
 					console.error("Failed to stop ringtone:", error);
 				}
@@ -192,7 +193,7 @@ export function RingtonesSettings() {
 
 			// Stop any currently playing sound first
 			try {
-				await window.ipcRenderer.invoke("ringtone:stop");
+				await trpcClient.ringtone.stop.mutate();
 			} catch (error) {
 				console.error("Failed to stop ringtone:", error);
 			}
@@ -201,7 +202,7 @@ export function RingtonesSettings() {
 			setPlayingId(ringtone.id);
 
 			try {
-				await window.ipcRenderer.invoke("ringtone:preview", {
+				await trpcClient.ringtone.preview.mutate({
 					filename: ringtone.filename,
 				});
 			} catch (error) {

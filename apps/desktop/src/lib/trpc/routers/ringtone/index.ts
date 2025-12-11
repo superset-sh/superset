@@ -2,7 +2,9 @@ import type { ChildProcess } from "node:child_process";
 import { execFile } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { app, ipcMain } from "electron";
+import { app } from "electron";
+import { z } from "zod";
+import { publicProcedure, router } from "../..";
 
 /**
  * Track current playing session to handle race conditions.
@@ -110,46 +112,38 @@ function playSoundFile(soundPath: string): void {
 }
 
 /**
- * Register ringtone IPC handlers
+ * Ringtone router for audio preview and playback operations
  */
-export function registerRingtoneHandlers() {
-	ipcMain.handle(
-		"ringtone:preview",
-		async (_event, input: { filename: string }) => {
-			try {
+export const createRingtoneRouter = () => {
+	return router({
+		/**
+		 * Preview a ringtone sound by filename
+		 */
+		preview: publicProcedure
+			.input(z.object({ filename: z.string() }))
+			.mutation(({ input }) => {
 				// Handle "none" case - no sound
 				if (!input.filename || input.filename === "") {
-					return { success: true };
+					return { success: true as const };
 				}
 
 				const soundPath = getRingtonePath(input.filename);
 				playSoundFile(soundPath);
-				return { success: true };
-			} catch (error) {
-				console.error("[ringtone:preview] Error:", error);
-				return {
-					success: false,
-					error: error instanceof Error ? error.message : "Unknown error",
-				};
-			}
-		},
-	);
+				return { success: true as const };
+			}),
 
-	ipcMain.handle("ringtone:stop", async () => {
-		try {
+		/**
+		 * Stop the currently playing ringtone preview
+		 */
+		stop: publicProcedure.mutation(() => {
 			stopCurrentSound();
-			return { success: true };
-		} catch (error) {
-			console.error("[ringtone:stop] Error:", error);
-			return {
-				success: false,
-				error: error instanceof Error ? error.message : "Unknown error",
-			};
-		}
-	});
+			return { success: true as const };
+		}),
 
-	ipcMain.handle("ringtone:list", async () => {
-		try {
+		/**
+		 * Get the list of available ringtone files from the sounds directory
+		 */
+		list: publicProcedure.query(() => {
 			const ringtonesDir = getRingtonesDirectory();
 			const files: string[] = [];
 
@@ -164,20 +158,14 @@ export function registerRingtoneHandlers() {
 				files.push(...dirFiles);
 			}
 
-			return { success: true, data: files };
-		} catch (error) {
-			console.error("[ringtone:list] Error:", error);
-			return {
-				success: false,
-				error: error instanceof Error ? error.message : "Unknown error",
-			};
-		}
+			return files;
+		}),
 	});
-}
+};
 
 /**
- * Plays the notification sound based on the selected ringtone
- * This is used by the notification system
+ * Plays the notification sound based on the selected ringtone.
+ * This is used by the notification system.
  */
 export function playNotificationRingtone(filename: string): void {
 	if (!filename || filename === "") {
