@@ -24,15 +24,12 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// Handle deep links including auth callbacks
+// Handle deep links
 app.on("open-url", (event, url) => {
 	event.preventDefault();
 	console.log("[main] Received deep link:", url);
-
-	// Handle auth callback
-	if (url.startsWith("superset://auth/callback")) {
-		authManager.handleCallback(url);
-	}
+	// Deep link handling can be added here for future features
+	// Auth uses BrowserWindow popup approach, not deep links
 });
 
 registerAuthHandlers();
@@ -43,6 +40,9 @@ registerAuthHandlers();
 
 	await initDb();
 	await initAppState();
+
+	// Validate auth session against Clerk cookies
+	await authManager.validateSessionOnStartup();
 
 	try {
 		setupAgentHooks();

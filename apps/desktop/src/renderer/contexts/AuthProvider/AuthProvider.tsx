@@ -77,10 +77,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 			}
 		};
 
+		const handleWindowClosed = () => {
+			// Auth window was closed - clear signing in state regardless of outcome
+			console.log("[auth-renderer] Auth window closed");
+			if (signingInRef.current) {
+				signingInRef.current = false;
+				setIsSigningIn(false);
+			}
+		};
+
 		window.ipcRenderer.on("auth:session-changed", handleSessionChange);
+		window.ipcRenderer.on("auth:window-closed", handleWindowClosed);
 
 		return () => {
 			window.ipcRenderer.off("auth:session-changed", handleSessionChange);
+			window.ipcRenderer.off("auth:window-closed", handleWindowClosed);
 		};
 	}, []);
 
@@ -101,7 +112,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 		signingInRef.current = true;
 		setIsSigningIn(true);
-		await signInMutation.mutateAsync();
+		try {
+			const result = await signInMutation.mutateAsync();
+			if (!result.success) {
+				console.error("[auth] Sign in failed:", result.error);
+				signingInRef.current = false;
+				setIsSigningIn(false);
+			}
+		} catch (error) {
+			console.error("[auth] Sign in error:", error);
+			signingInRef.current = false;
+			setIsSigningIn(false);
+		}
 	};
 
 	const signUp = async () => {
@@ -113,7 +135,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
 		}
 		signingInRef.current = true;
 		setIsSigningIn(true);
-		await signUpMutation.mutateAsync();
+		try {
+			const result = await signUpMutation.mutateAsync();
+			if (!result.success) {
+				console.error("[auth] Sign up failed:", result.error);
+				signingInRef.current = false;
+				setIsSigningIn(false);
+			}
+		} catch (error) {
+			console.error("[auth] Sign up error:", error);
+			signingInRef.current = false;
+			setIsSigningIn(false);
+		}
 	};
 
 	const signOut = async () => {

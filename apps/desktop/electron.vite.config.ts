@@ -26,6 +26,12 @@ export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths],
 
+		define: {
+			"process.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
+				process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
+			),
+		},
+
 		build: {
 			rollupOptions: {
 				input: {
