@@ -168,6 +168,19 @@ export const createChangesRouter = () => {
 					}
 				}
 
+				// Calculate line counts for untracked files (all lines are additions)
+				for (const file of parsed.untracked) {
+					try {
+						const fullPath = join(input.worktreePath, file.path);
+						const content = await readFile(fullPath, "utf-8");
+						const lineCount = content.split("\n").length;
+						file.additions = lineCount;
+						file.deletions = 0;
+					} catch {
+						// File might be binary or unreadable
+					}
+				}
+
 				return {
 					branch: parsed.branch,
 					defaultBranch,

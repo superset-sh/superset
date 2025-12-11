@@ -11,6 +11,7 @@ interface FileItemProps {
 function getStatusBadgeColor(status: string): string {
 	switch (status) {
 		case "added":
+		case "untracked":
 			return "text-green-600 dark:text-green-400";
 		case "modified":
 			return "text-yellow-600 dark:text-yellow-400";
@@ -20,8 +21,6 @@ function getStatusBadgeColor(status: string): string {
 			return "text-blue-600 dark:text-blue-400";
 		case "copied":
 			return "text-purple-600 dark:text-purple-400";
-		case "untracked":
-			return "text-muted-foreground";
 		default:
 			return "text-muted-foreground";
 	}
@@ -40,7 +39,7 @@ function getStatusIndicator(status: string): string {
 		case "copied":
 			return "C";
 		case "untracked":
-			return "?";
+			return "U";
 		default:
 			return "";
 	}
@@ -76,15 +75,19 @@ export function FileItem({
 				{fileName}
 			</span>
 
-			{/* Stats - GitHub style: always show "+X -Y" format */}
+			{/* Stats - only show non-zero values */}
 			{showStatsDisplay && (
 				<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
-					<span className="text-green-600 dark:text-green-400">
-						+{file.additions}
-					</span>
-					<span className="text-red-600 dark:text-red-400">
-						-{file.deletions}
-					</span>
+					{file.additions > 0 && (
+						<span className="text-green-600 dark:text-green-400">
+							+{file.additions}
+						</span>
+					)}
+					{file.deletions > 0 && (
+						<span className="text-red-600 dark:text-red-400">
+							-{file.deletions}
+						</span>
+					)}
 				</div>
 			)}
 
