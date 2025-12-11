@@ -57,9 +57,7 @@ export function FolderRow({
 				)}
 			>
 				{!isGrouped && <LevelIndicators level={level} />}
-				<div
-					className="flex items-center gap-1.5 flex-1 min-w-0 py-1"
-				>
+				<div className="flex items-center gap-1.5 flex-1 min-w-0 py-1">
 					{!isGrouped &&
 						(isExpanded ? (
 							<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
