@@ -4,6 +4,11 @@ import { db } from "../db";
 
 const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || "";
 
+// Refresh interval: check every 5 minutes if session needs refresh
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+// Refresh threshold: refresh if expiring within 2 minutes
+const REFRESH_THRESHOLD_MS = 2 * 60 * 1000;
+
 // Extract Clerk frontend API domain from publishable key
 function getClerkFrontendApi(): string {
 	if (!CLERK_PUBLISHABLE_KEY) {
@@ -25,45 +30,65 @@ const AUTH_SESSION_PARTITION = "persist:clerk-auth";
 class AuthManager {
 	private mainWindow: BrowserWindow | null = null;
 	private authWindow: BrowserWindow | null = null;
+	private refreshInterval: NodeJS.Timeout | null = null;
 
 	setMainWindow(window: BrowserWindow | null): void {
 		this.mainWindow = window;
 	}
 
-	getSession(): AuthSession | null {
+	/**
+	 * Get the current session. If stored session is expired but cookies are still valid,
+	 * attempts to refresh from cookies before returning null.
+	 * Preserves profile data from the old session if the refresh lacks it.
+	 */
+	async getSession(): Promise<AuthSession | null> {
 		const data = db.data?.auth;
-		console.log("[auth] getSession called, stored data:", data);
 
 		if (!data?.session) {
-			console.log("[auth] No session stored");
 			return null;
 		}
 
+		const storedSession = data.session;
 		const now = Date.now();
-		console.log(
-			"[auth] Checking expiry:",
-			data.session.expiresAt,
-			"vs now:",
-			now,
-		);
 
-		if (data.session.expiresAt < now) {
-			console.log("[auth] Session expired - clearing stale data");
-			// Clear expired session synchronously in memory, persist async
-			db.data.auth = { session: null };
-			// Notify renderer immediately
-			if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-				this.mainWindow.webContents.send("auth:session-changed", null);
-			}
-			// Persist to disk asynchronously (fire and forget, errors logged)
-			db.write().catch((error) => {
-				console.error("[auth] Failed to persist expired session clear:", error);
-			});
-			return null;
+		// If session hasn't expired, return it directly
+		if (storedSession.expiresAt > now) {
+			return storedSession;
 		}
 
-		console.log("[auth] Returning session for:", data.session.email);
-		return data.session;
+		// Session expired - try to refresh from cookies
+		console.log(
+			"[auth] Stored session expired, attempting refresh from cookies",
+		);
+		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
+		const refreshedSession = await this.checkForSession(authSession);
+
+		if (refreshedSession) {
+			// Merge profile data from old session if refresh lacks it
+			const finalSession = this.hasProfileData(refreshedSession)
+				? refreshedSession
+				: this.mergeProfileData(refreshedSession, storedSession);
+
+			console.log(
+				"[auth] Session refreshed successfully, hasProfile:",
+				this.hasProfileData(finalSession),
+			);
+			await this.storeSession(finalSession);
+			return finalSession;
+		}
+
+		// Refresh failed - clear the stale session
+		console.log("[auth] Session refresh failed - clearing stale session");
+		await this.storeSession(null);
+		return null;
+	}
+
+	/**
+	 * Synchronous version for cases where async isn't possible.
+	 * Returns stored session without refresh attempt.
+	 */
+	getSessionSync(): AuthSession | null {
+		return db.data?.auth?.session ?? null;
 	}
 
 	private async storeSession(authSession: AuthSession | null): Promise<void> {
@@ -73,6 +98,42 @@ class AuthManager {
 		if (this.mainWindow && !this.mainWindow.isDestroyed()) {
 			this.mainWindow.webContents.send("auth:session-changed", authSession);
 		}
+
+		// Start/stop refresh interval based on session state
+		if (authSession) {
+			this.startRefreshInterval();
+		} else {
+			this.stopRefreshInterval();
+		}
+	}
+
+	/**
+	 * Check if a session has profile data (email, name, or avatar).
+	 */
+	private hasProfileData(session: AuthSession): boolean {
+		return !!(
+			session.email ||
+			session.firstName ||
+			session.lastName ||
+			session.imageUrl
+		);
+	}
+
+	/**
+	 * Merge profile data from an old session into a new session.
+	 * Used when refreshing to preserve profile data if the new token lacks it.
+	 */
+	private mergeProfileData(
+		newSession: AuthSession,
+		oldSession: AuthSession,
+	): AuthSession {
+		return {
+			...newSession,
+			email: newSession.email || oldSession.email,
+			firstName: newSession.firstName || oldSession.firstName,
+			lastName: newSession.lastName || oldSession.lastName,
+			imageUrl: newSession.imageUrl || oldSession.imageUrl,
+		};
 	}
 
 	async startSignIn(): Promise<{ success: boolean; error?: string }> {
@@ -80,7 +141,10 @@ class AuthManager {
 	}
 
 	async startSignUp(): Promise<{ success: boolean; error?: string }> {
-		return this.openAuthWindow("sign-up");
+		// Use sign-in for OAuth flows - Clerk will automatically create an account
+		// if one doesn't exist, and sign in if one does. This prevents the loop
+		// where a user with an existing account clicks "Sign Up" and gets stuck.
+		return this.openAuthWindow("sign-in");
 	}
 
 	private async openAuthWindow(
@@ -109,7 +173,8 @@ class AuthManager {
 					contextIsolation: true,
 					session: authSession,
 				},
-				title: mode === "sign-in" ? "Sign In to Superset" : "Sign Up for Superset",
+				title:
+					mode === "sign-in" ? "Sign In to Superset" : "Sign Up for Superset",
 			});
 
 			// Poll for session cookie after auth completes
@@ -119,7 +184,10 @@ class AuthManager {
 					return;
 				}
 
-				const sessionData = await this.checkForSession(authSession, this.authWindow);
+				const sessionData = await this.checkForSession(
+					authSession,
+					this.authWindow,
+				);
 				if (sessionData) {
 					console.log("[auth] Session detected:", sessionData.email);
 					clearInterval(pollInterval);
@@ -134,12 +202,20 @@ class AuthManager {
 
 				// If we hit the default-redirect, auth likely completed
 				if (url.includes("default-redirect") || url.includes("/sso-callback")) {
-					console.log("[auth] Detected post-auth redirect, checking session...");
+					console.log(
+						"[auth] Detected post-auth redirect, checking session...",
+					);
 					// Give Clerk a moment to set cookies
 					await new Promise((resolve) => setTimeout(resolve, 500));
-					const sessionData = await this.checkForSession(authSession, this.authWindow);
+					const sessionData = await this.checkForSession(
+						authSession,
+						this.authWindow,
+					);
 					if (sessionData) {
-						console.log("[auth] Session found after redirect:", sessionData.email);
+						console.log(
+							"[auth] Session found after redirect:",
+							sessionData.email,
+						);
 						clearInterval(pollInterval);
 						await this.storeSession(sessionData);
 						this.authWindow?.close();
@@ -175,36 +251,32 @@ class AuthManager {
 
 			// Log all cookies for debugging
 			if (cookies.length > 0) {
-				console.log("[auth] Cookies found:", cookies.map((c) => c.name).join(", "));
+				console.log(
+					"[auth] Cookies found:",
+					cookies.map((c) => c.name).join(", "),
+				);
 			}
 
-			// Find the session cookie - Clerk uses different cookie names:
-			// - __session: standard session cookie (JWT format, ~800+ bytes)
-			// - __clerk_db_jwt: development token (short, not useful for us)
-			// IMPORTANT: Prioritize __session as it contains the actual JWT
-			let sessionCookie = cookies.find((c) => c.name === "__session");
-			if (!sessionCookie) {
-				sessionCookie = cookies.find((c) => c.name.startsWith("__session"));
-			}
-
-			// Only fall back to __clerk_db_jwt if no __session found AND it looks like a JWT (has 3 parts)
-			if (!sessionCookie) {
-				const clerkDbJwt = cookies.find((c) => c.name === "__clerk_db_jwt" || c.name.startsWith("__clerk_db_jwt"));
-				if (clerkDbJwt?.value && clerkDbJwt.value.split(".").length === 3) {
-					sessionCookie = clerkDbJwt;
-				}
-			}
+			// Find the session cookie using shared helper
+			const sessionCookie = this.findSessionCookie(cookies);
 
 			if (!sessionCookie?.value) {
 				return null;
 			}
 
-			console.log("[auth] Using cookie:", sessionCookie.name, "value length:", sessionCookie.value.length);
+			console.log(
+				"[auth] Using cookie:",
+				sessionCookie.name,
+				"value length:",
+				sessionCookie.value.length,
+			);
 
 			// Decode the JWT to get basic info
 			const parts = sessionCookie.value.split(".");
 			if (parts.length !== 3) {
-				console.log("[auth] Not a JWT format, trying to fetch user data directly");
+				console.log(
+					"[auth] Not a JWT format, trying to fetch user data directly",
+				);
 				// Not a JWT - try to get user data from the window directly
 				const userData = await this.fetchUserDataFromWindow(authWindow);
 				if (userData) {
@@ -223,9 +295,7 @@ class AuthManager {
 
 			let payload: Record<string, unknown>;
 			try {
-				payload = JSON.parse(
-					Buffer.from(parts[1], "base64url").toString(),
-				);
+				payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
 			} catch {
 				console.log("[auth] Failed to decode JWT payload");
 				return null;
@@ -376,11 +446,30 @@ class AuthManager {
 					if (user?.email_addresses || user?.first_name) {
 						console.log("[auth] Found user from /v1/me:", user.first_name);
 						return {
-							email: user.email_addresses?.[0]?.email_address || user.primary_email_address?.email_address || null,
+							email:
+								user.email_addresses?.[0]?.email_address ||
+								user.primary_email_address?.email_address ||
+								null,
 							firstName: user.first_name || null,
 							lastName: user.last_name || null,
 							imageUrl: user.image_url || user.profile_image_url || null,
 						};
+					}
+					console.log(
+						"[auth] /v1/me returned ok but no user data in response:",
+						JSON.stringify(meData).substring(0, 200),
+					);
+				} else {
+					// Log the failure reason
+					try {
+						const errorBody = await meResponse.text();
+						console.log(
+							"[auth] /v1/me failed:",
+							meResponse.status,
+							errorBody.substring(0, 200),
+						);
+					} catch {
+						console.log("[auth] /v1/me failed:", meResponse.status);
 					}
 				}
 			}
@@ -397,9 +486,19 @@ class AuthManager {
 				},
 			);
 
-			console.log("[auth] Client API response status:", response.status);
+			console.log("[auth] /v1/client response status:", response.status);
 
 			if (!response.ok) {
+				try {
+					const errorBody = await response.text();
+					console.log(
+						"[auth] /v1/client failed:",
+						response.status,
+						errorBody.substring(0, 200),
+					);
+				} catch {
+					console.log("[auth] /v1/client failed:", response.status);
+				}
 				return this.fetchUserDataFromEnv(authSession);
 			}
 
@@ -420,7 +519,10 @@ class AuthManager {
 			console.log("[auth] Found user:", user.first_name, user.last_name);
 
 			return {
-				email: user.email_addresses?.[0]?.email_address || user.primary_email_address?.email_address || null,
+				email:
+					user.email_addresses?.[0]?.email_address ||
+					user.primary_email_address?.email_address ||
+					null,
 				firstName: user.first_name || null,
 				lastName: user.last_name || null,
 				imageUrl: user.image_url || user.profile_image_url || null,
@@ -431,9 +533,7 @@ class AuthManager {
 		}
 	}
 
-	private async fetchUserDataFromEnv(
-		authSession: Electron.Session,
-	): Promise<{
+	private async fetchUserDataFromEnv(authSession: Electron.Session): Promise<{
 		email: string | null;
 		firstName: string | null;
 		lastName: string | null;
@@ -480,8 +580,15 @@ class AuthManager {
 		}
 	}
 
+	/**
+	 * Sign out: clears both the DB session and all Clerk cookies.
+	 * User must re-authenticate next time.
+	 */
 	async signOut(): Promise<{ success: boolean; error?: string }> {
 		try {
+			// Stop refresh interval
+			this.stopRefreshInterval();
+
 			await this.storeSession(null);
 
 			// Clear auth cookies
@@ -501,10 +608,75 @@ class AuthManager {
 	}
 
 	/**
+	 * Start the background refresh interval that keeps the session fresh.
+	 * Should be called after successful authentication.
+	 */
+	startRefreshInterval(): void {
+		if (this.refreshInterval) {
+			return; // Already running
+		}
+
+		console.log("[auth] Starting session refresh interval");
+		this.refreshInterval = setInterval(() => {
+			this.refreshIfNearExpiry();
+		}, REFRESH_INTERVAL_MS);
+	}
+
+	/**
+	 * Stop the background refresh interval.
+	 */
+	stopRefreshInterval(): void {
+		if (this.refreshInterval) {
+			console.log("[auth] Stopping session refresh interval");
+			clearInterval(this.refreshInterval);
+			this.refreshInterval = null;
+		}
+	}
+
+	/**
+	 * Refresh the session if it's near expiry.
+	 * Called periodically by the refresh interval.
+	 * Preserves profile data from the old session if the refresh lacks it.
+	 */
+	private async refreshIfNearExpiry(): Promise<void> {
+		const storedSession = db.data?.auth?.session;
+		if (!storedSession) {
+			return;
+		}
+
+		const timeUntilExpiry = storedSession.expiresAt - Date.now();
+		if (timeUntilExpiry > REFRESH_THRESHOLD_MS) {
+			return; // Not near expiry yet
+		}
+
+		console.log("[auth] Session near expiry, refreshing...");
+		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
+		const refreshedSession = await this.checkForSession(authSession);
+
+		if (refreshedSession) {
+			// Merge profile data from old session if refresh lacks it
+			const finalSession = this.hasProfileData(refreshedSession)
+				? refreshedSession
+				: this.mergeProfileData(refreshedSession, storedSession);
+
+			console.log(
+				"[auth] Session refreshed via interval, hasProfile:",
+				this.hasProfileData(finalSession),
+			);
+			await this.storeSession(finalSession);
+		} else {
+			console.log("[auth] Session refresh failed - cookies may have expired");
+			// Don't clear yet - let getSession handle it when actually needed
+		}
+	}
+
+	/**
 	 * Find a valid Clerk session cookie from the cookie list.
 	 * Supports both __session (production) and __clerk_db_jwt (development).
 	 */
-	private findSessionCookie(cookies: Electron.Cookie[]): Electron.Cookie | undefined {
+	private findSessionCookie(
+		cookies: Electron.Cookie[],
+	): Electron.Cookie | undefined {
 		// Prefer __session cookie (production)
 		let sessionCookie = cookies.find((c) => c.name === "__session");
 		if (!sessionCookie) {
@@ -512,7 +684,8 @@ class AuthManager {
 		}
 		// Fall back to __clerk_db_jwt if it's a valid JWT (development)
 		if (!sessionCookie) {
-			const clerkDbJwt = cookies.find((c) => c.name === "__clerk_db_jwt") ||
+			const clerkDbJwt =
+				cookies.find((c) => c.name === "__clerk_db_jwt") ||
 				cookies.find((c) => c.name.startsWith("__clerk_db_jwt"));
 			if (clerkDbJwt?.value && clerkDbJwt.value.split(".").length === 3) {
 				sessionCookie = clerkDbJwt;
@@ -522,53 +695,91 @@ class AuthManager {
 	}
 
 	/**
-	 * Validate the stored session against Clerk cookies on startup.
-	 * If there's a stored session but no valid Clerk cookie, clear it.
-	 * If there's a valid Clerk cookie but no stored session, try to restore it.
-	 * Also clears expired stored sessions.
+	 * Validate and refresh the stored session against Clerk cookies on startup.
+	 *
+	 * - If stored session exists but cookies are gone: clear session
+	 * - If cookies exist but no stored session: restore from cookies
+	 * - If stored session is expired but cookies are valid: refresh session
+	 * - Starts the refresh interval if a valid session exists
 	 */
 	async validateSessionOnStartup(): Promise<void> {
 		if (!CLERK_PUBLISHABLE_KEY) {
 			return;
 		}
 
-		// Check if stored session is expired (getSession handles clearing)
-		const storedSession = this.getSession();
-
 		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
 
 		try {
 			const cookies = await authSession.cookies.get({});
 			const sessionCookie = this.findSessionCookie(cookies);
+			const storedData = db.data?.auth?.session;
 
-			if (storedSession && !sessionCookie?.value) {
-				// We have a stored session but no Clerk cookie - session was revoked
-				console.log("[auth] Stored session found but no Clerk cookie - clearing session");
+			console.log(
+				"[auth] Startup validation - stored session:",
+				!!storedData,
+				"cookie:",
+				!!sessionCookie?.value,
+			);
+
+			if (storedData && !sessionCookie?.value) {
+				// We have a stored session but no Clerk cookie - session was revoked externally
+				console.log(
+					"[auth] Stored session found but no Clerk cookie - clearing session",
+				);
 				await this.storeSession(null);
-			} else if (!storedSession && sessionCookie?.value) {
+				return;
+			}
+
+			if (!storedData && sessionCookie?.value) {
 				// We have a Clerk cookie but no stored session - try to restore
-				console.log("[auth] Clerk cookie found but no stored session - attempting restore");
+				console.log(
+					"[auth] Clerk cookie found but no stored session - attempting restore",
+				);
 				const sessionData = await this.checkForSession(authSession);
 				if (sessionData) {
 					await this.storeSession(sessionData);
-					console.log("[auth] Session restored from cookies");
+					console.log(
+						"[auth] Session restored from cookies, hasProfile:",
+						this.hasProfileData(sessionData),
+					);
+					this.startRefreshInterval();
 				}
-			} else if (storedSession && sessionCookie?.value) {
-				// Both exist - verify the session is still valid by checking JWT expiry
-				const parts = sessionCookie.value.split(".");
-				if (parts.length === 3) {
-					try {
-						const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-						const exp = (payload.exp as number) || 0;
-						if (exp * 1000 < Date.now()) {
-							console.log("[auth] Clerk JWT expired - clearing session");
-							await this.storeSession(null);
-						}
-					} catch {
-						// Invalid JWT - clear session
-						console.log("[auth] Invalid Clerk JWT - clearing session");
+				return;
+			}
+
+			if (storedData && sessionCookie?.value) {
+				// Both exist - check if we need to refresh
+				const now = Date.now();
+				if (storedData.expiresAt < now) {
+					// Stored session expired - try to refresh from cookies
+					console.log(
+						"[auth] Stored session expired on startup, attempting refresh",
+					);
+					const refreshedSession = await this.checkForSession(authSession);
+					if (refreshedSession) {
+						// Merge profile data from old session if refresh lacks it
+						const finalSession = this.hasProfileData(refreshedSession)
+							? refreshedSession
+							: this.mergeProfileData(refreshedSession, storedData);
+
+						await this.storeSession(finalSession);
+						console.log(
+							"[auth] Session refreshed on startup, hasProfile:",
+							this.hasProfileData(finalSession),
+						);
+						this.startRefreshInterval();
+					} else {
+						// Cookie exists but can't get a valid token - clear the expired session
+						// so the UI doesn't show signed in with a dead token
+						console.log(
+							"[auth] Could not refresh session from cookies - clearing expired session",
+						);
 						await this.storeSession(null);
 					}
+				} else {
+					// Session still valid
+					console.log("[auth] Session valid on startup");
+					this.startRefreshInterval();
 				}
 			}
 		} catch (error) {

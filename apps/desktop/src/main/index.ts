@@ -54,8 +54,9 @@ registerAuthHandlers();
 	await makeAppSetup(() => MainWindow());
 	setupAutoUpdater();
 
-	// Clean up all terminals when app is quitting
+	// Clean up when app is quitting
 	app.on("before-quit", async () => {
+		authManager.stopRefreshInterval();
 		await terminalManager.cleanup();
 	});
 })();

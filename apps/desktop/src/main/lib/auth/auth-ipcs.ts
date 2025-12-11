@@ -5,23 +5,23 @@ import { authManager } from "./auth-manager";
  * Register IPC handlers for authentication
  */
 export function registerAuthHandlers(): void {
-	ipcMain.handle("auth:get-session", () => {
-		return authManager.getSession();
+	ipcMain.handle("auth:get-session", async () => {
+		return await authManager.getSession();
 	});
 
 	ipcMain.handle("auth:start-sign-in", async () => {
-		return authManager.startSignIn();
+		return await authManager.startSignIn();
 	});
 
 	ipcMain.handle("auth:start-sign-up", async () => {
-		return authManager.startSignUp();
+		return await authManager.startSignUp();
 	});
 
 	ipcMain.handle("auth:sign-out", async () => {
-		return authManager.signOut();
+		return await authManager.signOut();
 	});
 
 	ipcMain.handle("auth:refresh-session", async () => {
-		return authManager.refreshSession();
+		return await authManager.refreshSession();
 	});
 }
