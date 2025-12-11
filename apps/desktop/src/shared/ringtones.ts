@@ -21,11 +21,29 @@ export interface RingtoneData {
 export const RINGTONES: RingtoneData[] = [
 	{
 		id: "default",
-		name: "Classic",
+		name: "Bango",
 		description: "Simple & clean",
 		filename: "notification.mp3",
 		emoji: "🔔",
 		color: "from-slate-500 to-slate-600",
+		duration: 1,
+	},
+	{
+		id: "arcade",
+		name: "Arcade",
+		description: "Retro game sounds",
+		filename: "arcade.mp3",
+		emoji: "🕹️",
+		color: "from-pink-500 to-red-500",
+		duration: 3,
+	},
+	{
+		id: "ping",
+		name: "Ping",
+		description: "Quick alert tone",
+		filename: "ping.mp3",
+		emoji: "📍",
+		color: "from-teal-400 to-cyan-500",
 		duration: 1,
 	},
 	{
@@ -48,7 +66,7 @@ export const RINGTONES: RingtoneData[] = [
 	},
 	{
 		id: "woman",
-		name: "Agent Complete",
+		name: "Agent is Done",
 		description: "Your agent is done!",
 		filename: "agentisdonewoman.mp3",
 		emoji: "👩‍💻",
@@ -57,7 +75,7 @@ export const RINGTONES: RingtoneData[] = [
 	},
 	{
 		id: "african",
-		name: "African Beats",
+		name: "Code Complete",
 		description: "World music energy",
 		filename: "codecompleteafrican.mp3",
 		emoji: "🌍",
@@ -66,7 +84,7 @@ export const RINGTONES: RingtoneData[] = [
 	},
 	{
 		id: "afrobeat",
-		name: "Afrobeat",
+		name: "Afrobeat Code Complete",
 		description: "Groovy celebration",
 		filename: "codecompleteafrobeat.mp3",
 		emoji: "🥁",
@@ -75,7 +93,7 @@ export const RINGTONES: RingtoneData[] = [
 	},
 	{
 		id: "edm",
-		name: "EDM Drop",
+		name: "Long EDM",
 		description: "Bass goes brrrr",
 		filename: "codecompleteedm.mp3",
 		emoji: "🎧",
