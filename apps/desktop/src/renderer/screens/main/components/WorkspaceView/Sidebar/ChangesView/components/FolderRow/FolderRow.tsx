@@ -54,8 +54,8 @@ export function FolderRow({
 		>
 			<CollapsibleTrigger
 				className={cn(
-					"w-full flex items-stretch gap-1.5 px-2 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
-					isGrouped && "text-xs text-muted-foreground",
+					"text-xs w-full flex items-stretch gap-1.5 px-2 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
+					isGrouped && "text-muted-foreground",
 				)}
 			>
 				{!isGrouped && <LevelIndicators level={level} />}
@@ -76,7 +76,7 @@ export function FolderRow({
 							"truncate",
 							isGrouped
 								? "w-0 grow text-left"
-								: "flex-1 min-w-0 text-sm text-foreground",
+								: "flex-1 min-w-0 text-xs text-foreground",
 						)}
 						dir={isGrouped ? "rtl" : undefined}
 					>
