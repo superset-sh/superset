@@ -29,7 +29,7 @@ function toChangedFile(
 	return {
 		path,
 		status: mapGitStatus(gitIndex, gitWorking),
-		additions: 0, // Will be populated separately if needed
+		additions: 0,
 		deletions: 0,
 	};
 }
@@ -122,7 +122,7 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 			message: message || "",
 			author: author || "",
 			date,
-			files: [], // Files are loaded lazily per commit
+			files: [],
 		});
 	}
 

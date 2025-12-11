@@ -128,9 +128,7 @@ export const createChangesRouter = () => {
 							}
 						}
 					}
-				} catch {
-					// Remote tracking may not exist
-				}
+				} catch {}
 
 				if (parsed.staged.length > 0) {
 					try {
@@ -147,9 +145,7 @@ export const createChangesRouter = () => {
 								file.deletions = fileStat.deletions;
 							}
 						}
-					} catch {
-						// numstat may fail for some file types
-					}
+					} catch {}
 				}
 
 				if (parsed.unstaged.length > 0) {
@@ -163,12 +159,9 @@ export const createChangesRouter = () => {
 								file.deletions = fileStat.deletions;
 							}
 						}
-					} catch {
-						// numstat may fail for some file types
-					}
+					} catch {}
 				}
 
-				// Calculate line counts for untracked files (all lines are additions)
 				for (const file of parsed.untracked) {
 					try {
 						const fullPath = join(input.worktreePath, file.path);
@@ -176,9 +169,7 @@ export const createChangesRouter = () => {
 						const lineCount = content.split("\n").length;
 						file.additions = lineCount;
 						file.deletions = 0;
-					} catch {
-						// File might be binary or unreadable
-					}
+					} catch {}
 				}
 
 				return {
@@ -250,28 +241,22 @@ export const createChangesRouter = () => {
 
 				switch (input.category) {
 					case "against-main": {
-						// Original: file at default branch
-						// Modified: file at HEAD
 						try {
 							original = await git.show([
 								`origin/${defaultBranch}:${input.filePath}`,
 							]);
 						} catch {
-							// File doesn't exist on default branch (new file)
 							original = "";
 						}
 						try {
 							modified = await git.show([`HEAD:${input.filePath}`]);
 						} catch {
-							// File doesn't exist at HEAD (deleted)
 							modified = "";
 						}
 						break;
 					}
 
 					case "committed": {
-						// Original: file at parent commit
-						// Modified: file at specified commit
 						if (!input.commitHash) {
 							throw new Error("commitHash required for committed category");
 						}
@@ -280,7 +265,6 @@ export const createChangesRouter = () => {
 								`${input.commitHash}^:${input.filePath}`,
 							]);
 						} catch {
-							// No parent (first commit) or file didn't exist
 							original = "";
 						}
 						try {
@@ -288,7 +272,6 @@ export const createChangesRouter = () => {
 								`${input.commitHash}:${input.filePath}`,
 							]);
 						} catch {
-							// File was deleted in this commit
 							modified = "";
 						}
 						break;

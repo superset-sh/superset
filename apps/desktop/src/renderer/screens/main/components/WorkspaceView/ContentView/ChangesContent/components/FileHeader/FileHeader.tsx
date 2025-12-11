@@ -64,7 +64,6 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 
 	return (
 		<div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
-			{/* File path */}
 			<div className="flex-1 min-w-0">
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -88,7 +87,6 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 				)}
 			</div>
 
-			{/* Status badge */}
 			<span
 				className={cn(
 					"text-xs font-medium px-2 py-0.5 rounded-full border",
@@ -99,7 +97,6 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 				{statusLabel}
 			</span>
 
-			{/* Stats */}
 			{hasStats && (
 				<div className="flex items-center gap-2 text-sm font-mono">
 					{file.additions > 0 && (

@@ -8,7 +8,6 @@ interface DiffViewerProps {
 }
 
 export function DiffViewer({ contents, viewMode }: DiffViewerProps) {
-	// Monaco is preloaded and theme is registered by MonacoProvider
 	return (
 		<div className="h-full w-full">
 			<DiffEditor
