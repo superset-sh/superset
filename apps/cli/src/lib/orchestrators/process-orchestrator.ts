@@ -58,7 +58,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 			throw new Error(`Process with id ${id} not found`);
 		}
 
-		const backfilled = this.backfillDefaults(process);
+		const backfilled = await this.backfillDefaults(process);
 
 		// Sync agent status with tmux session reality
 		let needsSync = false;
@@ -79,7 +79,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		const processList: Process[] = [];
 
 		for (const [id, process] of Object.entries(processes)) {
-			const backfilled = this.backfillDefaults(process);
+			const backfilled = await this.backfillDefaults(process);
 
 			// Sync agent status with tmux session reality
 			let needsSync = false;
@@ -154,7 +154,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		return false;
 	}
 
-	private backfillDefaults(process: Process): Process {
+	private async backfillDefaults(process: Process): Promise<Process> {
 		const now = new Date();
 		// Determine status based on endedAt
 		const defaultStatus = process.endedAt
@@ -171,7 +171,7 @@ export class ProcessOrchestrator implements IProcessOrchestrator {
 		// Backfill or update launchCommand and sessionName for agents
 		if (process.type === ProcessType.AGENT && "agentType" in process) {
 			const agent = backfilled as Agent;
-			const currentDefault = getDefaultLaunchCommand(agent.agentType);
+			const currentDefault = await getDefaultLaunchCommand(agent.agentType);
 
 			// Update if missing or outdated
 			const isOutdated =

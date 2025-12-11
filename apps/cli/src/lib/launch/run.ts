@@ -219,7 +219,7 @@ export async function launchAgent(
 		attach: true,
 	},
 ): Promise<LaunchResult> {
-	const command = getLaunchCommand(agent);
+	const command = await getLaunchCommand(agent);
 
 	if (!command) {
 		return {

@@ -2,6 +2,7 @@ import type { BrowserWindow } from "electron";
 import { router } from "..";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
+import { createDeepLinkRouter } from "./deep-link";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
@@ -34,6 +35,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
+		deepLink: createDeepLinkRouter(),
 	});
 };
 

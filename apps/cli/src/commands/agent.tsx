@@ -451,7 +451,7 @@ export function AgentStart({ workspaceId }: AgentStartProps) {
 
 				for (const agentType of agents) {
 					// Get default launch command for this agent type
-					const launchCommand = getDefaultLaunchCommand(agentType);
+					const launchCommand = await getDefaultLaunchCommand(agentType);
 
 					// Create the process in IDLE state
 					const process = await processOrchestrator.create(

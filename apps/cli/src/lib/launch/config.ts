@@ -1,4 +1,5 @@
 import type { Agent, AgentType } from "../../types/process";
+import { getLaunchCommandFromConfig } from "../config/user-config";
 
 /**
  * Default launch commands for each agent type
@@ -16,7 +17,7 @@ const DEFAULT_LAUNCH_COMMANDS: Record<AgentType, string> = {
  * 3. User config file (~/.superset-cli.json)
  * 4. Default for agent type
  */
-export function getLaunchCommand(agent: Agent): string | null {
+export async function getLaunchCommand(agent: Agent): Promise<string | null> {
 	// 1. Use agent's stored launch command if available
 	if (agent.launchCommand) {
 		return agent.launchCommand;
@@ -31,11 +32,11 @@ export function getLaunchCommand(agent: Agent): string | null {
 		return envOverride;
 	}
 
-	// 3. Check user config file (TODO: implement config file reading)
-	// const userConfig = loadUserConfig();
-	// if (userConfig?.launchers?.[agentType]) {
-	//   return userConfig.launchers[agentType];
-	// }
+	// 3. Check user config file
+	const configCommand = await getLaunchCommandFromConfig(agentType);
+	if (configCommand) {
+		return configCommand;
+	}
 
 	// 4. Use default
 	return DEFAULT_LAUNCH_COMMANDS[agentType] || null;
@@ -45,12 +46,20 @@ export function getLaunchCommand(agent: Agent): string | null {
  * Get the default launch command for an agent type
  * Used when creating new agents
  */
-export function getDefaultLaunchCommand(agentType: AgentType): string {
+export async function getDefaultLaunchCommand(
+	agentType: AgentType,
+): Promise<string> {
 	// Check environment variable override
 	const envKey = `SUPERSET_AGENT_LAUNCH_${agentType.toUpperCase()}`;
 	const envOverride = process.env[envKey];
 	if (envOverride) {
 		return envOverride;
+	}
+
+	// Check user config file
+	const configCommand = await getLaunchCommandFromConfig(agentType);
+	if (configCommand) {
+		return configCommand;
 	}
 
 	// Return default

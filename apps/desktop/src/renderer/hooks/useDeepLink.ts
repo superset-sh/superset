@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { trpc } from "../lib/trpc";
 
 /**
  * Hook to handle deep link URLs
@@ -32,7 +33,7 @@ export function useDeepLink(
 			if (!mounted) return;
 
 			try {
-				const url = await window.ipcRenderer.invoke("deep-link-get-url");
+				const url = await trpc.deepLink.getUrl.query();
 				if (url && mounted) {
 					console.log("[useDeepLink] Deep link received:", url);
 					handler(url);

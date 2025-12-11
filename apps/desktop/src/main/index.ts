@@ -11,6 +11,9 @@ import { MainWindow } from "./windows/main";
 // Protocol scheme for deep linking
 const PROTOCOL_SCHEME = "superset";
 
+// Store the most recent deep link URL
+let pendingDeepLink: string | null = null;
+
 // Register protocol handler for deep linking
 // In development, we need to provide the execPath and args
 if (process.defaultApp) {
@@ -23,10 +26,19 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// TODO: Handle deep link when app is already running
-app.on("open-url", (event, _url) => {
+// Handle deep link when app is already running
+app.on("open-url", (event, url) => {
 	event.preventDefault();
+	console.log("[main] Received deep link:", url);
+	pendingDeepLink = url;
 });
+
+// Export function to get and clear pending deep link
+export function getAndClearPendingDeepLink(): string | null {
+	const url = pendingDeepLink;
+	pendingDeepLink = null;
+	return url;
+}
 
 // Allow multiple instances - removed single instance lock
 (async () => {
