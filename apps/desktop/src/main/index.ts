@@ -24,10 +24,13 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// Handle deep links (placeholder for future features)
+<<<<<<< HEAD
+// Handle deep links
 app.on("open-url", (event, url) => {
 	event.preventDefault();
 	console.log("[main] Received deep link:", url);
+	// Deep link handling can be added here for future features
+	// Auth uses BrowserWindow popup approach, not deep links
 });
 
 registerAuthHandlers();

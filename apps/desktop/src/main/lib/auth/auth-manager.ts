@@ -53,7 +53,17 @@ class AuthManager {
 		);
 
 		if (data.session.expiresAt < now) {
-			console.log("[auth] Session expired");
+			console.log("[auth] Session expired - clearing stale data");
+			// Clear expired session synchronously in memory, persist async
+			db.data.auth = { session: null };
+			// Notify renderer immediately
+			if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+				this.mainWindow.webContents.send("auth:session-changed", null);
+			}
+			// Persist to disk asynchronously (fire and forget, errors logged)
+			db.write().catch((error) => {
+				console.error("[auth] Failed to persist expired session clear:", error);
+			});
 			return null;
 		}
 
@@ -146,6 +156,10 @@ class AuthManager {
 			this.authWindow.on("closed", () => {
 				clearInterval(pollInterval);
 				this.authWindow = null;
+				// Notify renderer that auth window was closed (cancelled or completed)
+				if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+					this.mainWindow.webContents.send("auth:window-closed");
+				}
 			});
 
 			return { success: true };
@@ -470,10 +484,6 @@ class AuthManager {
 		}
 	}
 
-	async handleCallback(_url: string): Promise<void> {
-		// Not used with BrowserWindow approach
-	}
-
 	async signOut(): Promise<{ success: boolean; error?: string }> {
 		try {
 			this.storeSession(null);
@@ -492,6 +502,82 @@ class AuthManager {
 
 	async refreshSession(): Promise<AuthSession | null> {
 		return this.getSession();
+	}
+
+	/**
+	 * Find a valid Clerk session cookie from the cookie list.
+	 * Supports both __session (production) and __clerk_db_jwt (development).
+	 */
+	private findSessionCookie(cookies: Electron.Cookie[]): Electron.Cookie | undefined {
+		// Prefer __session cookie (production)
+		let sessionCookie = cookies.find((c) => c.name === "__session");
+		if (!sessionCookie) {
+			sessionCookie = cookies.find((c) => c.name.startsWith("__session"));
+		}
+		// Fall back to __clerk_db_jwt if it's a valid JWT (development)
+		if (!sessionCookie) {
+			const clerkDbJwt = cookies.find((c) => c.name === "__clerk_db_jwt") ||
+				cookies.find((c) => c.name.startsWith("__clerk_db_jwt"));
+			if (clerkDbJwt?.value && clerkDbJwt.value.split(".").length === 3) {
+				sessionCookie = clerkDbJwt;
+			}
+		}
+		return sessionCookie;
+	}
+
+	/**
+	 * Validate the stored session against Clerk cookies on startup.
+	 * If there's a stored session but no valid Clerk cookie, clear it.
+	 * If there's a valid Clerk cookie but no stored session, try to restore it.
+	 * Also clears expired stored sessions.
+	 */
+	async validateSessionOnStartup(): Promise<void> {
+		if (!CLERK_PUBLISHABLE_KEY) {
+			return;
+		}
+
+		// Check if stored session is expired (getSession handles clearing)
+		const storedSession = this.getSession();
+
+		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
+
+		try {
+			const cookies = await authSession.cookies.get({});
+			const sessionCookie = this.findSessionCookie(cookies);
+
+			if (storedSession && !sessionCookie?.value) {
+				// We have a stored session but no Clerk cookie - session was revoked
+				console.log("[auth] Stored session found but no Clerk cookie - clearing session");
+				await this.storeSession(null);
+			} else if (!storedSession && sessionCookie?.value) {
+				// We have a Clerk cookie but no stored session - try to restore
+				console.log("[auth] Clerk cookie found but no stored session - attempting restore");
+				const sessionData = await this.checkForSession(authSession);
+				if (sessionData) {
+					await this.storeSession(sessionData);
+					console.log("[auth] Session restored from cookies");
+				}
+			} else if (storedSession && sessionCookie?.value) {
+				// Both exist - verify the session is still valid by checking JWT expiry
+				const parts = sessionCookie.value.split(".");
+				if (parts.length === 3) {
+					try {
+						const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+						const exp = (payload.exp as number) || 0;
+						if (exp * 1000 < Date.now()) {
+							console.log("[auth] Clerk JWT expired - clearing session");
+							await this.storeSession(null);
+						}
+					} catch {
+						// Invalid JWT - clear session
+						console.log("[auth] Invalid Clerk JWT - clearing session");
+						await this.storeSession(null);
+					}
+				}
+			}
+		} catch (error) {
+			console.error("[auth] Error validating session on startup:", error);
+		}
 	}
 }
 
