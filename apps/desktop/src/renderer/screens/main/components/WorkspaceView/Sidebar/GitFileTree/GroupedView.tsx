@@ -35,9 +35,9 @@ function FolderGroupItem({ group, onFileSelect }: FolderGroupItemProps) {
 				)}
 			>
 				{isExpanded ? (
-					<HiChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+					<HiChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
 				) : (
-					<HiChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+					<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
 				)}
 				<span className="flex-1 truncate">{group.folderName}</span>
 				<span className="text-xs text-muted-foreground">

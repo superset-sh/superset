@@ -8,16 +8,18 @@ interface FileItemProps {
 	showStats?: boolean;
 }
 
-function getStatusColor(status: string): string {
+function getStatusBadgeColor(status: string): string {
 	switch (status) {
 		case "added":
-			return "text-green-500";
+			return "text-green-600 dark:text-green-400";
 		case "modified":
-			return "text-yellow-500";
+			return "text-yellow-600 dark:text-yellow-400";
 		case "deleted":
-			return "text-red-500";
+			return "text-red-600 dark:text-red-400";
 		case "renamed":
-			return "text-blue-500";
+			return "text-blue-600 dark:text-blue-400";
+		case "copied":
+			return "text-purple-600 dark:text-purple-400";
 		case "untracked":
 			return "text-muted-foreground";
 		default:
@@ -55,39 +57,46 @@ export function FileItem({
 	showStats = true,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
-	const statusColor = getStatusColor(file.status);
+	const statusBadgeColor = getStatusBadgeColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
-	const hasStats = showStats && (file.additions > 0 || file.deletions > 0);
+	const showStatsDisplay = showStats && (file.additions > 0 || file.deletions > 0);
 
 	return (
 		<button
 			type="button"
 			onClick={onClick}
 			className={cn(
-				"w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm",
-				"hover:bg-accent/50 cursor-pointer transition-colors",
+				"w-full flex items-center gap-1.5 px-2 py-1.5 text-left rounded-sm",
+				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
 				isSelected && "bg-accent",
 			)}
 		>
-			{/* Status indicator */}
-			<span className={cn("text-xs font-mono w-4 flex-shrink-0", statusColor)}>
-				{statusIndicator}
+			{/* File name - truncates aggressively to make room for stats/badge */}
+			<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
+				{fileName}
 			</span>
 
-			{/* File name */}
-			<span className="flex-1 min-w-0 text-sm truncate">{fileName}</span>
-
-			{/* Stats */}
-			{hasStats && (
-				<div className="flex items-center gap-1 text-xs flex-shrink-0">
-					{file.additions > 0 && (
-						<span className="text-green-500">+{file.additions}</span>
-					)}
-					{file.deletions > 0 && (
-						<span className="text-red-500">-{file.deletions}</span>
-					)}
+			{/* Stats - GitHub style: always show "+X -Y" format */}
+			{showStatsDisplay && (
+				<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+					<span className="text-green-600 dark:text-green-400">
+						+{file.additions}
+					</span>
+					<span className="text-red-600 dark:text-red-400">
+						-{file.deletions}
+					</span>
 				</div>
 			)}
+
+			{/* Status badge - minimal GitHub style */}
+			<span
+				className={cn(
+					"text-xs font-mono shrink-0 whitespace-nowrap",
+					statusBadgeColor,
+				)}
+			>
+				{statusIndicator}
+			</span>
 		</button>
 	);
 }

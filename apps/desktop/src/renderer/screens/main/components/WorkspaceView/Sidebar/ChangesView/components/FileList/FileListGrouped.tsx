@@ -5,7 +5,6 @@ import {
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 
@@ -75,22 +74,20 @@ function FolderGroupItem({
 	const displayName = isRoot ? "Root" : group.folderPath;
 
 	return (
-		<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+		<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="min-w-0">
 			<CollapsibleTrigger
 				className={cn(
 					"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm",
 					"text-xs text-muted-foreground text-left",
 				)}
 			>
-				{isExpanded ? (
-					<HiChevronDown className="w-3 h-3 shrink-0" />
-				) : (
-					<HiChevronRight className="w-3 h-3 shrink-0" />
-				)}
-				<span className="flex-1 truncate">{displayName}</span>
-				<span className="text-xs opacity-60">{group.files.length}</span>
+				{/* Truncate from start using direction: rtl trick */}
+				<span className="flex-1 min-w-0 truncate text-ellipsis" dir="rtl">
+					<bdi>{displayName}</bdi>
+				</span>
+				<span className="text-xs opacity-60 shrink-0">{group.files.length}</span>
 			</CollapsibleTrigger>
-			<CollapsibleContent>
+			<CollapsibleContent className="min-w-0">
 				{group.files.map((file) => (
 					<FileItem
 						key={file.path}
@@ -115,7 +112,7 @@ export function FileListGrouped({
 	const groups = groupFilesByFolder(files);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col min-w-0 overflow-hidden">
 			{groups.map((group) => (
 				<FolderGroupItem
 					key={group.folderPath || "__root__"}

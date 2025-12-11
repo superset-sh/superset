@@ -28,13 +28,15 @@ interface FileTreeNode {
 function getStatusColor(status: string): string {
 	switch (status) {
 		case "added":
-			return "text-green-500";
+			return "text-green-600 dark:text-green-400";
 		case "modified":
-			return "text-yellow-500";
+			return "text-yellow-600 dark:text-yellow-400";
 		case "deleted":
-			return "text-red-500";
+			return "text-red-600 dark:text-red-400";
 		case "renamed":
-			return "text-blue-500";
+			return "text-blue-600 dark:text-blue-400";
+		case "copied":
+			return "text-purple-600 dark:text-purple-400";
 		case "untracked":
 			return "text-muted-foreground";
 		default:
@@ -142,23 +144,23 @@ function TreeNodeComponent({
 
 	if (hasChildren) {
 		return (
-			<Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
+			<Collapsible open={isExpanded} onOpenChange={setIsExpanded} className="min-w-0">
 				<CollapsibleTrigger
 					className={cn(
-						"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm text-left",
+						"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
 					)}
 					style={{ paddingLeft: `${level * 12 + 8}px` }}
 				>
 					{isExpanded ? (
-						<HiChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+						<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
 					) : (
-						<HiChevronRight className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+						<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
 					)}
-					<span className="text-sm text-foreground flex-1 truncate">
+					<span className="text-sm text-foreground flex-1 min-w-0 truncate">
 						{node.name}
 					</span>
 				</CollapsibleTrigger>
-				<CollapsibleContent>
+				<CollapsibleContent className="min-w-0">
 					{node.children?.map((child) => (
 						<TreeNodeComponent
 							key={child.id}
@@ -179,30 +181,26 @@ function TreeNodeComponent({
 		<button
 			type="button"
 			className={cn(
-				"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/70 cursor-pointer rounded-sm text-left",
+				"w-full flex items-center gap-1.5 px-2 py-1 hover:bg-accent/70 cursor-pointer rounded-sm text-left overflow-hidden",
 				isSelected && "bg-accent",
 			)}
 			style={{ paddingLeft: `${level * 12 + 8}px` }}
 			onClick={() => isFile && node.file && onFileSelect(node.file)}
 		>
-			<span className={cn("text-xs font-mono w-3 flex-shrink-0", statusColor)}>
-				{statusIndicator}
-			</span>
-			<span className="text-sm text-foreground flex-1 truncate">
+			<span className="text-sm text-foreground flex-1 min-w-0 truncate">
 				{node.name}
 			</span>
 			{showStats &&
 				node.file &&
 				(node.file.additions > 0 || node.file.deletions > 0) && (
-					<div className="flex items-center gap-1 text-xs flex-shrink-0">
-						{node.file.additions > 0 && (
-							<span className="text-green-500">+{node.file.additions}</span>
-						)}
-						{node.file.deletions > 0 && (
-							<span className="text-red-500">-{node.file.deletions}</span>
-						)}
+					<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+						<span className="text-green-600 dark:text-green-400">+{node.file.additions}</span>
+						<span className="text-red-600 dark:text-red-400">-{node.file.deletions}</span>
 					</div>
 				)}
+			<span className={cn("text-xs font-mono shrink-0 whitespace-nowrap", statusColor)}>
+				{statusIndicator}
+			</span>
 		</button>
 	);
 }
@@ -217,7 +215,7 @@ export function FileListTree({
 	const tree = buildFileTree(files);
 
 	return (
-		<div className="flex flex-col">
+		<div className="flex flex-col min-w-0 overflow-hidden">
 			{tree.map((node) => (
 				<TreeNodeComponent
 					key={node.id}
