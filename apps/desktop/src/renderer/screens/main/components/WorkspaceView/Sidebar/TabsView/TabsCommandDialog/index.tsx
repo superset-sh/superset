@@ -12,11 +12,13 @@ import {
 	HiMiniPlus,
 	HiOutlineCog6Tooth,
 } from "react-icons/hi2";
+import { LuServer } from "react-icons/lu";
 
 interface TabsCommandDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onAddTab: () => void;
+	onOpenSSH: () => void;
 	onOpenPresetsSettings: () => void;
 	presets: TerminalPreset[];
 	onSelectPreset: (preset: TerminalPreset) => void;
@@ -26,6 +28,7 @@ export function TabsCommandDialog({
 	open,
 	onOpenChange,
 	onAddTab,
+	onOpenSSH,
 	onOpenPresetsSettings,
 	presets,
 	onSelectPreset,
@@ -39,6 +42,10 @@ export function TabsCommandDialog({
 					<CommandItem onSelect={onAddTab}>
 						<HiMiniPlus className="size-4" />
 						New Terminal
+					</CommandItem>
+					<CommandItem onSelect={onOpenSSH}>
+						<LuServer className="size-4" />
+						SSH Terminal
 					</CommandItem>
 				</CommandGroup>
 				{presets.length > 0 && (

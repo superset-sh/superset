@@ -8,8 +8,10 @@ import type { TabsState, TabsStore } from "./types";
 import {
 	type CreatePaneOptions,
 	createPane,
+	createSSHPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
+	generateId,
 	getFirstPaneId,
 	getPaneIdsForTab,
 	isLastPaneInTab,
@@ -87,6 +89,57 @@ export const useTabsStore = create<TabsStore>()(
 						state.tabs,
 						options,
 					);
+
+					const currentActiveId = state.activeTabIds[workspaceId];
+					const historyStack = state.tabHistoryStacks[workspaceId] || [];
+					const newHistoryStack = currentActiveId
+						? [
+								currentActiveId,
+								...historyStack.filter((id) => id !== currentActiveId),
+							]
+						: historyStack;
+
+					set({
+						tabs: [...state.tabs, tab],
+						panes: { ...state.panes, [pane.id]: pane },
+						activeTabIds: {
+							...state.activeTabIds,
+							[workspaceId]: tab.id,
+						},
+						focusedPaneIds: {
+							...state.focusedPaneIds,
+							[tab.id]: pane.id,
+						},
+						tabHistoryStacks: {
+							...state.tabHistoryStacks,
+							[workspaceId]: newHistoryStack,
+						},
+					});
+
+					return { tabId: tab.id, paneId: pane.id };
+				},
+
+				addSSHTab: (workspaceId, options) => {
+					const state = get();
+					const tabId = generateId("tab");
+					const pane = createSSHPane(tabId, {
+						connectionId: options.connectionId,
+						remoteCwd: options.remoteCwd,
+						connectionName: options.connectionName,
+					});
+
+					// Filter to same workspace for tab naming
+					const _workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId,
+					);
+
+					const tab = {
+						id: tabId,
+						name: options.connectionName || "SSH",
+						workspaceId,
+						layout: pane.id as string,
+						createdAt: Date.now(),
+					};
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];

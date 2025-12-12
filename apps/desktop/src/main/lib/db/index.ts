@@ -12,6 +12,17 @@ export async function initDb(): Promise<void> {
 
 	const dbPath = DB_PATH;
 	_db = await JSONFilePreset<Database>(dbPath, defaultDatabase);
+
+	// Migrate older database files by ensuring all expected fields exist
+	let needsWrite = false;
+	if (!Array.isArray(_db.data.sshConnections)) {
+		_db.data.sshConnections = [];
+		needsWrite = true;
+	}
+	if (needsWrite) {
+		await _db.write();
+	}
+
 	console.log(`Database initialized at: ${dbPath}`);
 }
 

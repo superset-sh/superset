@@ -6,7 +6,7 @@
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview";
+export type PaneType = "terminal" | "ssh-terminal" | "webview";
 
 /**
  * Base Pane interface - shared between main and renderer
@@ -21,6 +21,9 @@ export interface Pane {
 	initialCommands?: string[];
 	initialCwd?: string;
 	url?: string; // For webview panes
+	// SSH terminal fields
+	connectionId?: string; // SSH connection ID for ssh-terminal panes
+	remoteCwd?: string; // Remote working directory for ssh-terminal panes
 }
 
 /**

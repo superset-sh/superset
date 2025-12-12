@@ -29,6 +29,15 @@ export interface AddTabOptions {
 }
 
 /**
+ * Options for creating an SSH tab
+ */
+export interface AddSSHTabOptions {
+	connectionId: string;
+	connectionName: string;
+	remoteCwd?: string;
+}
+
+/**
  * Actions available on the tabs store
  */
 export interface TabsStore extends TabsState {
@@ -36,6 +45,10 @@ export interface TabsStore extends TabsState {
 	addTab: (
 		workspaceId: string,
 		options?: AddTabOptions,
+	) => { tabId: string; paneId: string };
+	addSSHTab: (
+		workspaceId: string,
+		options: AddSSHTabOptions,
 	) => { tabId: string; paneId: string };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;

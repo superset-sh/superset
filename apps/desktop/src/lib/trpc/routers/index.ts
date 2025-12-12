@@ -8,6 +8,7 @@ import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createSSHRouter } from "./ssh";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
@@ -26,6 +27,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
+		ssh: createSSHRouter(),
 		changes: createChangesRouter(),
 		notifications: createNotificationsRouter(),
 		menu: createMenuRouter(),

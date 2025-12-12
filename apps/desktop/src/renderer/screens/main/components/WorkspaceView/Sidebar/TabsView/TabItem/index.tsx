@@ -3,10 +3,14 @@ import { Input } from "@superset/ui/input";
 import { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
+import { LuServer } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
-import { getTabDisplayName } from "renderer/stores/tabs/utils";
+import {
+	extractPaneIdsFromLayout,
+	getTabDisplayName,
+} from "renderer/stores/tabs/utils";
 import { TabContextMenu } from "./TabContextMenu";
 
 const DRAG_TYPE = "TAB";
@@ -29,9 +33,16 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
+	const panes = useTabsStore((s) => s.panes);
 	const needsAttention = useTabsStore((s) =>
 		Object.values(s.panes).some((p) => p.tabId === tab.id && p.needsAttention),
 	);
+
+	// Check if any pane in this tab is an SSH terminal
+	const isSSHTab = (() => {
+		const paneIds = extractPaneIdsFromLayout(tab.layout);
+		return paneIds.some((paneId) => panes[paneId]?.type === "ssh-terminal");
+	})();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");
@@ -134,7 +145,11 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 					${isDragOver ? "bg-tertiary-active/50" : ""}
 				`}
 				>
-					<HiMiniCommandLine className="size-4" />
+					{isSSHTab ? (
+						<LuServer className="size-4 text-emerald-500" />
+					) : (
+						<HiMiniCommandLine className="size-4" />
+					)}
 					<div className="flex items-center gap-1 flex-1 min-w-0">
 						{isRenaming ? (
 							<Input

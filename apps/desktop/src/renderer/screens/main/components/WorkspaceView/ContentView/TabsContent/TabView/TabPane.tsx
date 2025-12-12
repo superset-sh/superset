@@ -11,6 +11,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { Pane, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { SSHTerminal } from "../Terminal/SSHTerminal";
 
 type SplitOrientation = "vertical" | "horizontal";
 
@@ -123,10 +124,29 @@ export function TabPane({
 			<TbLayoutRows className="size-4" />
 		);
 
+	const isSSH = pane.type === "ssh-terminal";
+
+	// Build title - SSH panes get a prefix indicator
+	const paneTitle = isSSH ? `⬢ ${pane.name}` : pane.name;
+
+	const renderContent = () => {
+		if (isSSH && pane.connectionId) {
+			return (
+				<SSHTerminal
+					paneId={paneId}
+					connectionId={pane.connectionId}
+					connectionName={pane.name}
+					remoteCwd={pane.remoteCwd}
+				/>
+			);
+		}
+		return <Terminal tabId={paneId} workspaceId={workspaceId} />;
+	};
+
 	return (
 		<MosaicWindow<string>
 			path={path}
-			title={pane.name}
+			title={paneTitle}
 			toolbarControls={
 				<div className="flex items-center gap-0.5">
 					<button
@@ -165,7 +185,7 @@ export function TabPane({
 					className="w-full h-full overflow-hidden"
 					onClick={handleFocus}
 				>
-					<Terminal tabId={paneId} workspaceId={workspaceId} />
+					{renderContent()}
 				</div>
 			</TabContentContextMenu>
 		</MosaicWindow>

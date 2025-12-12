@@ -41,6 +41,15 @@ export interface CreatePaneOptions {
 }
 
 /**
+ * Options for creating an SSH pane
+ */
+export interface CreateSSHPaneOptions {
+	connectionId: string;
+	remoteCwd?: string;
+	connectionName?: string;
+}
+
+/**
  * Creates a new pane with the given properties
  */
 export const createPane = (
@@ -58,6 +67,26 @@ export const createPane = (
 		isNew: true,
 		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,
+	};
+};
+
+/**
+ * Creates a new SSH terminal pane
+ */
+export const createSSHPane = (
+	tabId: string,
+	options: CreateSSHPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+
+	return {
+		id,
+		tabId,
+		type: "ssh-terminal",
+		name: options.connectionName || "SSH",
+		isNew: true,
+		connectionId: options.connectionId,
+		remoteCwd: options.remoteCwd,
 	};
 };
 

@@ -9,6 +9,10 @@ import {
 	HiMiniEllipsisHorizontal,
 	HiMiniPlus,
 } from "react-icons/hi2";
+import {
+	SSHConnectDialog,
+	type SSHConnectionInfo,
+} from "renderer/components/SSHConnectDialog";
 import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
@@ -30,11 +34,13 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const addTab = useTabsStore((s) => s.addTab);
+	const addSSHTab = useTabsStore((s) => s.addSSHTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const reorderTabById = useTabsStore((s) => s.reorderTabById);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const [dropIndex, setDropIndex] = useState<number | null>(null);
 	const [commandOpen, setCommandOpen] = useState(false);
+	const [sshDialogOpen, setSSHDialogOpen] = useState(false);
 	const openSettings = useOpenSettings();
 	const containerRef = useRef<HTMLElement>(null);
 
@@ -75,6 +81,22 @@ export function TabsView() {
 		}
 
 		setCommandOpen(false);
+	};
+
+	const handleOpenSSH = () => {
+		setCommandOpen(false);
+		setSSHDialogOpen(true);
+	};
+
+	const handleSSHConnect = (info: SSHConnectionInfo) => {
+		if (!activeWorkspaceId) return;
+
+		addSSHTab(activeWorkspaceId, {
+			connectionId: info.connectionId,
+			connectionName: info.connectionName,
+		});
+
+		setSSHDialogOpen(false);
 	};
 
 	const [{ isOver }, drop] = useDrop<DragItem, void, { isOver: boolean }>({
@@ -173,9 +195,15 @@ export function TabsView() {
 						open={commandOpen}
 						onOpenChange={setCommandOpen}
 						onAddTab={handleAddTab}
+						onOpenSSH={handleOpenSSH}
 						onOpenPresetsSettings={handleOpenPresetsSettings}
 						presets={presets}
 						onSelectPreset={handleSelectPreset}
+					/>
+					<SSHConnectDialog
+						isOpen={sshDialogOpen}
+						onClose={() => setSSHDialogOpen(false)}
+						onConnect={handleSSHConnect}
 					/>
 				</motion.div>
 				<div className="text-sm text-sidebar-foreground space-y-1 relative">
