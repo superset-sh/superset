@@ -22,6 +22,15 @@ interface PresetTemplate {
 
 const PRESET_TEMPLATES: PresetTemplate[] = [
 	{
+		name: "Claude (Danger Mode)",
+		description: "Claude Code with permissions auto-approved",
+		preset: {
+			name: "Claude Danger",
+			cwd: "",
+			commands: ["claude --dangerously-skip-permissions"],
+		},
+	},
+	{
 		name: "Codex (Danger Mode)",
 		description: "OpenAI Codex with full sandbox access and high reasoning",
 		preset: {
@@ -33,12 +42,21 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		},
 	},
 	{
-		name: "Claude (Danger Mode)",
-		description: "Claude Code with permissions auto-approved",
+		name: "Gemini CLI (YOLO)",
+		description: "Google Gemini CLI with auto-approve all actions",
 		preset: {
-			name: "Claude Danger",
+			name: "Gemini YOLO",
 			cwd: "",
-			commands: ["claude --dangerously-skip-permissions"],
+			commands: ["gemini --yolo"],
+		},
+	},
+	{
+		name: "Cursor Agent",
+		description: "Cursor AI agent for terminal-based coding assistance",
+		preset: {
+			name: "Cursor Agent",
+			cwd: "",
+			commands: ["cursor-agent"],
 		},
 	},
 ];
