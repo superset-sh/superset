@@ -53,6 +53,8 @@ export class DataBatcher {
 	/**
 	 * Flush any buffered data immediately.
 	 * Called automatically by timer or when buffer is full.
+	 * Note: Does NOT call decoder.end() - the decoder retains state for
+	 * incomplete multi-byte UTF-8 sequences that may span multiple flushes.
 	 */
 	flush(): void {
 		if (this.timeout !== null) {
@@ -60,25 +62,23 @@ export class DataBatcher {
 			this.timeout = null;
 		}
 
-		// Flush any remaining bytes from the decoder
-		const remaining = this.decoder.end();
-		if (remaining) {
-			this.buffer += remaining;
-		}
-
 		if (this.buffer.length > 0) {
 			this.onFlush(this.buffer);
 			this.buffer = "";
 		}
-
-		// Reset decoder for next batch
-		this.decoder = new StringDecoder("utf8");
 	}
 
 	/**
 	 * Dispose of the batcher, flushing any remaining data.
+	 * Only here do we call decoder.end() to handle any trailing incomplete sequences.
 	 */
 	dispose(): void {
 		this.flush();
+
+		// On stream termination: flush any incomplete multi-byte sequences
+		const remaining = this.decoder.end();
+		if (remaining) {
+			this.onFlush(remaining);
+		}
 	}
 }
