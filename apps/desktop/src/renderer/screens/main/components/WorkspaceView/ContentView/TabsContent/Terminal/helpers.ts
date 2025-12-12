@@ -1,7 +1,10 @@
+import { CanvasAddon } from "@xterm/addon-canvas";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
+import { ImageAddon } from "@xterm/addon-image";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
@@ -49,6 +52,51 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#1a1a1a";
 }
 
+/**
+ * Load GPU-accelerated renderer with automatic fallback.
+ * Tries WebGL first for best performance, falls back to Canvas if WebGL fails.
+ * Based on Hyper terminal's approach.
+ */
+function loadRenderer(xterm: XTerm): { dispose: () => void } {
+	let renderer: WebglAddon | CanvasAddon | null = null;
+
+	try {
+		const webglAddon = new WebglAddon();
+
+		// Handle WebGL context loss - fall back to Canvas
+		webglAddon.onContextLoss(() => {
+			console.warn("[Terminal] WebGL context lost, falling back to Canvas");
+			webglAddon.dispose();
+			try {
+				renderer = new CanvasAddon();
+				xterm.loadAddon(renderer);
+			} catch (canvasError) {
+				console.error("[Terminal] Canvas fallback failed:", canvasError);
+			}
+		});
+
+		xterm.loadAddon(webglAddon);
+		renderer = webglAddon;
+		console.debug("[Terminal] Using WebGL renderer");
+	} catch (webglError) {
+		console.warn("[Terminal] WebGL not available, using Canvas:", webglError);
+		try {
+			renderer = new CanvasAddon();
+			xterm.loadAddon(renderer);
+			console.debug("[Terminal] Using Canvas renderer");
+		} catch (canvasError) {
+			console.error(
+				"[Terminal] Canvas renderer failed, using default:",
+				canvasError,
+			);
+		}
+	}
+
+	return {
+		dispose: () => renderer?.dispose(),
+	};
+}
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
 	cwd?: string,
@@ -76,15 +124,37 @@ export function createTerminalInstance(
 	});
 
 	const clipboardAddon = new ClipboardAddon();
-
 	const unicode11Addon = new Unicode11Addon();
+	const imageAddon = new ImageAddon();
 
 	xterm.open(container);
 
+	// Load addons in order - fit first, then renderer, then others
 	xterm.loadAddon(fitAddon);
+
+	// Load GPU-accelerated renderer with fallback
+	const renderer = loadRenderer(xterm);
+
 	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
+	xterm.loadAddon(imageAddon);
+
+	// Load ligatures addon asynchronously (can be slow to initialize)
+	import("@xterm/addon-ligatures")
+		.then(({ LigaturesAddon }) => {
+			try {
+				const ligaturesAddon = new LigaturesAddon();
+				xterm.loadAddon(ligaturesAddon);
+				console.debug("[Terminal] Ligatures addon loaded");
+			} catch (error) {
+				// Ligatures may fail if font doesn't support them - that's OK
+				console.debug("[Terminal] Ligatures not available:", error);
+			}
+		})
+		.catch(() => {
+			// Module may not be available - that's OK
+		});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
@@ -115,7 +185,10 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
-		cleanup: cleanupQuerySuppression,
+		cleanup: () => {
+			cleanupQuerySuppression();
+			renderer.dispose();
+		},
 	};
 }
 

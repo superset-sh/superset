@@ -3,6 +3,7 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
 import { getShellArgs, getShellEnv } from "./agent-setup";
+import { DataBatcher } from "./data-batcher";
 import {
 	containsClearScrollbackSequence,
 	TerminalEscapeFilter,
@@ -23,6 +24,7 @@ interface TerminalSession {
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
 	escapeFilter: TerminalEscapeFilter;
+	dataBatcher: DataBatcher;
 }
 
 export interface TerminalDataEvent {
@@ -159,6 +161,14 @@ export class TerminalManager extends EventEmitter {
 		const env = {
 			...baseEnv,
 			...shellEnv,
+			// Terminal identification (like Hyper)
+			TERM_PROGRAM: "Superset",
+			TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
+			// Enable truecolor support
+			COLORTERM: "truecolor",
+			// Ensure UTF-8 locale if not set
+			LANG: baseEnv.LANG || "en_US.UTF-8",
+			// Superset-specific env vars
 			SUPERSET_PANE_ID: paneId,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_WORKSPACE_ID: workspaceId,
@@ -210,6 +220,12 @@ export class TerminalManager extends EventEmitter {
 		);
 		await historyWriter.init(recoveredScrollback || undefined);
 
+		// Create data batcher to reduce IPC overhead
+		// Batches data and emits at ~60fps for smooth rendering
+		const dataBatcher = new DataBatcher((batchedData) => {
+			this.emit(`data:${paneId}`, batchedData);
+		});
+
 		const session: TerminalSession = {
 			pty: ptyProcess,
 			paneId,
@@ -223,6 +239,7 @@ export class TerminalManager extends EventEmitter {
 			wasRecovered,
 			historyWriter,
 			escapeFilter: new TerminalEscapeFilter(),
+			dataBatcher,
 		};
 
 		// Send initial commands after first shell output (shell is ready)
@@ -241,8 +258,9 @@ export class TerminalManager extends EventEmitter {
 			const filteredData = session.escapeFilter.filter(data);
 			session.scrollback += filteredData;
 			session.historyWriter?.write(filteredData);
-			// Emit ORIGINAL data to xterm - it needs to process query responses
-			this.emit(`data:${paneId}`, data);
+
+			// Batch data for IPC efficiency - emits at ~60fps
+			session.dataBatcher.write(data);
 
 			if (shouldRunCommands && !commandsSent) {
 				commandsSent = true;
@@ -258,7 +276,9 @@ export class TerminalManager extends EventEmitter {
 		ptyProcess.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 
-			// Flush any buffered data from the escape filter
+			// Flush any buffered data from batcher and escape filter
+			session.dataBatcher.dispose();
+
 			const remaining = session.escapeFilter.flush();
 			if (remaining) {
 				session.scrollback += remaining;
