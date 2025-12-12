@@ -30,9 +30,13 @@ const config: Configuration = {
 		buildResources: join(pkg.resources, "build"),
 	},
 
-	// ASAR configuration for native modules
+	// ASAR configuration for native modules and external resources
 	asar: true,
-	asarUnpack: ["**/node_modules/node-pty/**/*"],
+	asarUnpack: [
+		"**/node_modules/node-pty/**/*",
+		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
+		"**/resources/sounds/**/*",
+	],
 
 	files: [
 		"dist/**/*",

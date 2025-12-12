@@ -25,29 +25,51 @@ function SupersetLogo() {
 
 export function Footer() {
 	return (
-		<footer className="border-t border-zinc-800">
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12">
-				<motion.div
-					initial={{ opacity: 0 }}
-					whileInView={{ opacity: 1 }}
-					viewport={{ once: true }}
-					transition={{ duration: 0.5 }}
-					className="flex flex-col sm:flex-row justify-between items-center gap-4"
-				>
-					<Link
-						href="/"
-						className="text-zinc-400 hover:text-zinc-200 transition-colors"
-					>
-						<SupersetLogo />
-					</Link>
-					<div className="flex items-center gap-6">
-						<SocialLinks />
-						<p className="text-zinc-400 text-sm">
-							© {new Date().getFullYear()} Superset. All rights reserved.
-						</p>
+		<footer className="border-t border-neutral-800 bg-neutral-900">
+			<motion.div
+				initial={{ opacity: 0 }}
+				whileInView={{ opacity: 1 }}
+				viewport={{ once: true }}
+				transition={{ duration: 0.5 }}
+				className="max-w-7xl mx-auto px-6 sm:px-8 py-10 sm:py-14"
+			>
+				{/* Main footer content */}
+				<div className="flex flex-col sm:flex-row justify-between items-start gap-8">
+					{/* Left side - Logo and legal links */}
+					<div className="space-y-5">
+						<Link
+							href="/"
+							className="text-neutral-400 hover:text-neutral-100 transition-colors inline-block"
+						>
+							<SupersetLogo />
+						</Link>
+						<nav className="flex items-center gap-6 text-sm">
+							<Link
+								href="/privacy-policy"
+								className="text-neutral-500 hover:text-neutral-300 transition-colors"
+							>
+								Privacy
+							</Link>
+							<Link
+								href="/terms-of-service"
+								className="text-neutral-500 hover:text-neutral-300 transition-colors"
+							>
+								Terms
+							</Link>
+						</nav>
 					</div>
-				</motion.div>
-			</div>
+
+					{/* Right side - Social links */}
+					<SocialLinks />
+				</div>
+
+				{/* Bottom - Copyright */}
+				<div className="mt-10 pt-6 border-t border-neutral-800/60">
+					<p className="text-neutral-600 text-sm">
+						© {new Date().getFullYear()} Superset. All rights reserved.
+					</p>
+				</div>
+			</motion.div>
 		</footer>
 	);
 }

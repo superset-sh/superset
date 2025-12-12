@@ -142,14 +142,14 @@ export function StartView() {
 					{error && (
 						<div className="w-full max-w-[650px] mb-4 rounded-lg border border-border bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
 							<div className="flex items-start gap-3 p-3">
-								<div className="flex-shrink-0 mt-0.5">
+								<div className="shrink-0 mt-0.5">
 									<HiExclamationTriangle className="h-4 w-4 text-amber-500" />
 								</div>
 								<p className="flex-1 text-sm text-foreground/90">{error}</p>
 								<button
 									type="button"
 									onClick={() => setError(null)}
-									className="flex-shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
+									className="shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
 									aria-label="Dismiss error"
 								>
 									<LuX className="h-3.5 w-3.5 text-muted-foreground" />

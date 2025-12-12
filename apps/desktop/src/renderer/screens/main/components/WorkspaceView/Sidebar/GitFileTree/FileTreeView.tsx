@@ -38,9 +38,9 @@ function TreeNode({ node, level = 0, onFileSelect }: TreeNodeProps) {
 					style={{ paddingLeft: `${level * 16 + 8}px` }}
 				>
 					{isExpanded ? (
-						<HiChevronDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+						<HiChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
 					) : (
-						<HiChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+						<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
 					)}
 					<span className="text-sm text-foreground flex-1 truncate">
 						{node.name}

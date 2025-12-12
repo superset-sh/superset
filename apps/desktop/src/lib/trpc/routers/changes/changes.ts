@@ -128,9 +128,7 @@ export const createChangesRouter = () => {
 							}
 						}
 					}
-				} catch {
-					// Remote tracking may not exist
-				}
+				} catch {}
 
 				if (parsed.staged.length > 0) {
 					try {
@@ -147,9 +145,7 @@ export const createChangesRouter = () => {
 								file.deletions = fileStat.deletions;
 							}
 						}
-					} catch {
-						// numstat may fail for some file types
-					}
+					} catch {}
 				}
 
 				if (parsed.unstaged.length > 0) {
@@ -163,9 +159,17 @@ export const createChangesRouter = () => {
 								file.deletions = fileStat.deletions;
 							}
 						}
-					} catch {
-						// numstat may fail for some file types
-					}
+					} catch {}
+				}
+
+				for (const file of parsed.untracked) {
+					try {
+						const fullPath = join(input.worktreePath, file.path);
+						const content = await readFile(fullPath, "utf-8");
+						const lineCount = content.split("\n").length;
+						file.additions = lineCount;
+						file.deletions = 0;
+					} catch {}
 				}
 
 				return {
@@ -224,6 +228,7 @@ export const createChangesRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					oldPath: z.string().optional(),
 					category: z.enum(["against-main", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
@@ -232,42 +237,36 @@ export const createChangesRouter = () => {
 			.query(async ({ input }): Promise<FileContents> => {
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
+				const originalPath = input.oldPath || input.filePath;
 				let original = "";
 				let modified = "";
 
 				switch (input.category) {
 					case "against-main": {
-						// Original: file at default branch
-						// Modified: file at HEAD
 						try {
 							original = await git.show([
-								`origin/${defaultBranch}:${input.filePath}`,
+								`origin/${defaultBranch}:${originalPath}`,
 							]);
 						} catch {
-							// File doesn't exist on default branch (new file)
 							original = "";
 						}
 						try {
 							modified = await git.show([`HEAD:${input.filePath}`]);
 						} catch {
-							// File doesn't exist at HEAD (deleted)
 							modified = "";
 						}
 						break;
 					}
 
 					case "committed": {
-						// Original: file at parent commit
-						// Modified: file at specified commit
 						if (!input.commitHash) {
 							throw new Error("commitHash required for committed category");
 						}
 						try {
 							original = await git.show([
-								`${input.commitHash}^:${input.filePath}`,
+								`${input.commitHash}^:${originalPath}`,
 							]);
 						} catch {
-							// No parent (first commit) or file didn't exist
 							original = "";
 						}
 						try {
@@ -275,7 +274,6 @@ export const createChangesRouter = () => {
 								`${input.commitHash}:${input.filePath}`,
 							]);
 						} catch {
-							// File was deleted in this commit
 							modified = "";
 						}
 						break;
@@ -283,7 +281,7 @@ export const createChangesRouter = () => {
 
 					case "staged": {
 						try {
-							original = await git.show([`HEAD:${input.filePath}`]);
+							original = await git.show([`HEAD:${originalPath}`]);
 						} catch {
 							original = "";
 						}
@@ -297,10 +295,10 @@ export const createChangesRouter = () => {
 
 					case "unstaged": {
 						try {
-							original = await git.show([`:0:${input.filePath}`]);
+							original = await git.show([`:0:${originalPath}`]);
 						} catch {
 							try {
-								original = await git.show([`HEAD:${input.filePath}`]);
+								original = await git.show([`HEAD:${originalPath}`]);
 							} catch {
 								original = "";
 							}

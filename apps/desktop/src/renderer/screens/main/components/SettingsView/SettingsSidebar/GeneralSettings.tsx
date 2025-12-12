@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import {
+	HiOutlineBell,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlinePaintBrush,
@@ -20,6 +21,11 @@ const GENERAL_SECTIONS: {
 		id: "appearance",
 		label: "Appearance",
 		icon: <HiOutlinePaintBrush className="h-4 w-4" />,
+	},
+	{
+		id: "ringtones",
+		label: "Ringtones",
+		icon: <HiOutlineBell className="h-4 w-4" />,
 	},
 	{
 		id: "keyboard",

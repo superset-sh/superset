@@ -107,6 +107,7 @@ export interface Settings {
 	lastActiveWorkspaceId?: string;
 	lastUsedApp?: ExternalApp;
 	terminalPresets?: TerminalPreset[];
+	selectedRingtoneId?: string;
 }
 
 export interface Database {

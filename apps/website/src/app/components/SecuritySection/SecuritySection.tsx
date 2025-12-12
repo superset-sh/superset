@@ -46,10 +46,10 @@ export function SecuritySection() {
 					transition={{ duration: 0.5 }}
 				>
 					<div className="space-y-1">
-						<h2 className="text-[32px] lg:text-[40px] font-normal tracking-[-0.01em] text-neutral-500">
+						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-stone-100">
 							Private by default
 						</h2>
-						<h2 className="text-[32px] lg:text-[40px] font-normal tracking-[-0.01em] text-white/90">
+						<h2 className="text-lg sm:text-xl font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
 							Your code never leaves your machine.
 						</h2>
 					</div>
