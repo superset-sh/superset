@@ -68,6 +68,8 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_ADMIN_URL: ${{ secrets.NEXT_PUBLIC_ADMIN_URL }}
           MOCK_USER_ID: ${{ secrets.MOCK_USER_ID }}
@@ -80,7 +82,7 @@ jobs:
     name: Deploy Web to Vercel
     runs-on: ubuntu-latest
     environment: production
-    needs: deploy-api
+    needs: deploy-database
 
     steps:
       - name: Checkout repository
