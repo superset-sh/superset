@@ -4,6 +4,7 @@ import { z } from "zod";
 export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().url(),
+		DATABASE_URL_UNPOOLED: z.string().url(),
 	},
 
 	/**
@@ -34,4 +35,5 @@ export const env = createEnv({
 	 * explicitly specify this option as true.
 	 */
 	emptyStringAsUndefined: true,
+	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

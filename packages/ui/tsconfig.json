@@ -1,6 +1,8 @@
 {
-	"extends": "@superset/typescript/react-library.json",
+	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"jsx": "react-jsx",
 		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
