@@ -272,3 +272,33 @@ export const patterns = FILTER_PATTERNS;
 export function containsClearScrollbackSequence(data: string): boolean {
 	return CLEAR_SCROLLBACK_PATTERN.test(data);
 }
+
+// Clear sequence constants
+const ED3_SEQUENCE = `${ESC}[3J`; // 4 chars
+const RIS_SEQUENCE = `${ESC}c`; // 2 chars
+
+/**
+ * Extracts content after the last clear scrollback sequence.
+ * When a clear sequence is detected, only the content AFTER the last
+ * clear sequence should be persisted to scrollback/history.
+ *
+ * @param data - Raw PTY output data containing a clear sequence
+ * @returns Content after the last clear sequence (may be empty string)
+ */
+export function extractContentAfterClear(data: string): string {
+	const ed3Index = data.lastIndexOf(ED3_SEQUENCE);
+	const risIndex = data.lastIndexOf(RIS_SEQUENCE);
+
+	// Calculate end positions (where content after the sequence starts)
+	const ed3End = ed3Index !== -1 ? ed3Index + ED3_SEQUENCE.length : -1;
+	const risEnd = risIndex !== -1 ? risIndex + RIS_SEQUENCE.length : -1;
+
+	const cutPoint = Math.max(ed3End, risEnd);
+
+	if (cutPoint <= 0) {
+		// No clear sequence found, return original data
+		return data;
+	}
+
+	return data.slice(cutPoint);
+}

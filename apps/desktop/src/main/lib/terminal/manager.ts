@@ -145,6 +145,20 @@ export class TerminalManager extends EventEmitter {
 
 	resize(params: { paneId: string; cols: number; rows: number }): void {
 		const { paneId, cols, rows } = params;
+
+		// Validate geometry: cols and rows must be positive integers
+		if (
+			!Number.isInteger(cols) ||
+			!Number.isInteger(rows) ||
+			cols <= 0 ||
+			rows <= 0
+		) {
+			console.warn(
+				`[TerminalManager] Invalid resize geometry for ${paneId}: cols=${cols}, rows=${rows}. Must be positive integers.`,
+			);
+			return;
+		}
+
 		const session = this.sessions.get(paneId);
 
 		if (!session || !session.isAlive) {
@@ -154,10 +168,17 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		session.pty.resize(cols, rows);
-		session.cols = cols;
-		session.rows = rows;
-		session.lastActive = Date.now();
+		try {
+			session.pty.resize(cols, rows);
+			session.cols = cols;
+			session.rows = rows;
+			session.lastActive = Date.now();
+		} catch (error) {
+			console.error(
+				`[TerminalManager] Failed to resize terminal ${paneId} (cols=${cols}, rows=${rows}):`,
+				error,
+			);
+		}
 	}
 
 	signal(params: { paneId: string; signal?: string }): void {
@@ -354,14 +375,17 @@ export class TerminalManager extends EventEmitter {
 		for (const [paneId, session] of this.sessions.entries()) {
 			if (session.isAlive) {
 				const exitPromise = new Promise<void>((resolve) => {
+					let timeoutId: ReturnType<typeof setTimeout> | undefined;
 					const exitHandler = () => {
 						this.off(`exit:${paneId}`, exitHandler);
-						clearTimeout(timeoutId);
+						if (timeoutId !== undefined) {
+							clearTimeout(timeoutId);
+						}
 						resolve();
 					};
 					this.once(`exit:${paneId}`, exitHandler);
 
-					const timeoutId = setTimeout(() => {
+					timeoutId = setTimeout(() => {
 						this.off(`exit:${paneId}`, exitHandler);
 						resolve();
 					}, 2000);

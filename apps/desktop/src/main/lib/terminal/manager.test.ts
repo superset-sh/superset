@@ -810,6 +810,34 @@ describe("TerminalManager", () => {
 			// Only content after the clear sequence should remain
 			expect(result.scrollback).not.toContain("some output");
 			expect(result.scrollback).toContain("new content after clear");
+			// ED3 sequence itself should NOT be in scrollback
+			expect(result.scrollback).not.toContain("\x1b[3J");
+		});
+
+		it("should not persist content before clear sequence", async () => {
+			await manager.createOrAttach({
+				paneId: "pane-clear-before",
+				tabId: "tab-clear-before",
+				workspaceId: "workspace-1",
+			});
+
+			const onDataCallback =
+				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
+			if (onDataCallback) {
+				// Content before and after clear in same chunk
+				onDataCallback("old content\x1b[3Jnew content");
+			}
+
+			const result = await manager.createOrAttach({
+				paneId: "pane-clear-before",
+				tabId: "tab-clear-before",
+				workspaceId: "workspace-1",
+			});
+
+			// Old content should be gone, only new content remains
+			expect(result.scrollback).not.toContain("old content");
+			expect(result.scrollback).toContain("new content");
+			expect(result.scrollback).not.toContain("\x1b[3J");
 		});
 	});
 
