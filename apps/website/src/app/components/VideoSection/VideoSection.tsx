@@ -18,7 +18,7 @@ export function VideoSection() {
 						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-stone-100">
 							A Superset of your favorite tools
 						</h2>
-						<p className="text-md sm:text-lg font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
+						<p className="text-base sm:text-lg font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
 						Get all the best AI coding tools in one place. We want to support and stay compatible with whatever CLI agents you
 						already use.
 						</p>
