@@ -13,10 +13,7 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 
-/**
- * Recover scrollback from existing session or disk history.
- */
-export async function recoverScrollback(
+async function recoverScrollback(
 	existingScrollback: string | null,
 	workspaceId: string,
 	paneId: string,
@@ -39,10 +36,7 @@ export async function recoverScrollback(
 	return { scrollback: "", wasRecovered: false };
 }
 
-/**
- * Spawn a new PTY process with the given configuration.
- */
-export function spawnPty(params: {
+function spawnPty(params: {
 	shell: string;
 	cols: number;
 	rows: number;
@@ -61,9 +55,6 @@ export function spawnPty(params: {
 	});
 }
 
-/**
- * Create a new terminal session with all required components.
- */
 export async function createSession(
 	params: InternalCreateSessionParams,
 	onData: (paneId: string, data: string) => void,
@@ -87,7 +78,6 @@ export async function createSession(
 	const terminalCols = cols || DEFAULT_COLS;
 	const terminalRows = rows || DEFAULT_ROWS;
 
-	// Build environment
 	const env = buildTerminalEnv({
 		shell,
 		paneId,
@@ -98,11 +88,9 @@ export async function createSession(
 		rootPath,
 	});
 
-	// Recover scrollback
 	const { scrollback: recoveredScrollback, wasRecovered } =
 		await recoverScrollback(existingScrollback, workspaceId, paneId);
 
-	// Spawn PTY
 	const ptyProcess = spawnPty({
 		shell,
 		cols: terminalCols,
@@ -111,7 +99,6 @@ export async function createSession(
 		env,
 	});
 
-	// Initialize history writer
 	const historyWriter = new HistoryWriter(
 		workspaceId,
 		paneId,
@@ -121,7 +108,6 @@ export async function createSession(
 	);
 	await historyWriter.init(recoveredScrollback || undefined);
 
-	// Create data batcher for IPC efficiency (~60fps)
 	const dataBatcher = new DataBatcher((batchedData) => {
 		onData(paneId, batchedData);
 	});
@@ -146,9 +132,6 @@ export async function createSession(
 	};
 }
 
-/**
- * Set up PTY data handler for a session.
- */
 export function setupDataHandler(
 	session: TerminalSession,
 	initialCommands: string[] | undefined,
@@ -160,22 +143,18 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Handle clear scrollback sequence
 		if (containsClearScrollbackSequence(data)) {
 			session.scrollback = "";
 			session.escapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
 		}
 
-		// Filter and store data
 		const filteredData = session.escapeFilter.filter(data);
 		session.scrollback += filteredData;
 		session.historyWriter?.write(filteredData);
 
-		// Batch data for IPC
 		session.dataBatcher.write(data);
 
-		// Send initial commands after first output
 		if (shouldRunCommands && !commandsSent) {
 			commandsSent = true;
 			setTimeout(() => {
@@ -188,9 +167,6 @@ export function setupDataHandler(
 	});
 }
 
-/**
- * Close history for a session, optionally deleting it.
- */
 export async function closeSessionHistory(
 	session: TerminalSession,
 	exitCode?: number,
@@ -214,9 +190,6 @@ export async function closeSessionHistory(
 	}
 }
 
-/**
- * Reinitialize history writer for a session (used after clear).
- */
 export async function reinitializeHistory(
 	session: TerminalSession,
 ): Promise<void> {
@@ -233,9 +206,6 @@ export async function reinitializeHistory(
 	}
 }
 
-/**
- * Flush all buffered data from a session (used on exit).
- */
 export function flushSession(session: TerminalSession): void {
 	session.dataBatcher.dispose();
 

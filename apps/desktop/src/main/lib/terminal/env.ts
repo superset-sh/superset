@@ -4,16 +4,9 @@ import defaultShell from "default-shell";
 import { PORTS } from "shared/constants";
 import { getShellEnv } from "../agent-setup";
 
-/** Fallback shell when primary shell fails quickly */
 export const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
-
-/** If shell exits within this time, consider it a crash and try fallback */
 export const SHELL_CRASH_THRESHOLD_MS = 1000;
 
-/**
- * Get the default shell using the default-shell package.
- * Falls back to manual detection if package fails.
- */
 export function getDefaultShell(): string {
 	if (defaultShell) {
 		return defaultShell;
@@ -32,22 +25,15 @@ export function getDefaultShell(): string {
 	return "/bin/sh";
 }
 
-/**
- * Get the locale for the terminal environment.
- * Uses system locale if available, falls back to en_US.UTF-8.
- */
-export function getLocale(baseEnv: Record<string, string>): string {
-	// Check existing LANG first
+function getLocale(baseEnv: Record<string, string>): string {
 	if (baseEnv.LANG?.includes("UTF-8")) {
 		return baseEnv.LANG;
 	}
 
-	// Check LC_ALL
 	if (baseEnv.LC_ALL?.includes("UTF-8")) {
 		return baseEnv.LC_ALL;
 	}
 
-	// Try to detect system locale
 	try {
 		const result = execSync("locale 2>/dev/null | grep LANG= | cut -d= -f2", {
 			encoding: "utf-8",
@@ -57,17 +43,13 @@ export function getLocale(baseEnv: Record<string, string>): string {
 			return result;
 		}
 	} catch {
-		// Ignore errors - will use fallback
+		// Ignore - will use fallback
 	}
 
-	// Default to en_US.UTF-8 for maximum compatibility
 	return "en_US.UTF-8";
 }
 
-/**
- * Sanitize environment variables, filtering out non-string values.
- */
-export function sanitizeEnv(
+function sanitizeEnv(
 	env: NodeJS.ProcessEnv,
 ): Record<string, string> | undefined {
 	const sanitized: Record<string, string> = {};
@@ -81,9 +63,6 @@ export function sanitizeEnv(
 	return Object.keys(sanitized).length > 0 ? sanitized : undefined;
 }
 
-/**
- * Build the complete environment for a terminal session.
- */
 export function buildTerminalEnv(params: {
 	shell: string;
 	paneId: string;
@@ -110,14 +89,10 @@ export function buildTerminalEnv(params: {
 	const env: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		// Terminal identification (like Hyper)
 		TERM_PROGRAM: "Superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
-		// Enable truecolor support
 		COLORTERM: "truecolor",
-		// Locale for proper UTF-8 handling
 		LANG: locale,
-		// Superset-specific env vars
 		SUPERSET_PANE_ID: paneId,
 		SUPERSET_TAB_ID: tabId,
 		SUPERSET_WORKSPACE_ID: workspaceId,
@@ -127,7 +102,6 @@ export function buildTerminalEnv(params: {
 		SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 	};
 
-	// Security: Remove Electron's default Google API key to prevent leakage
 	delete env.GOOGLE_API_KEY;
 
 	return env;

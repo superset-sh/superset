@@ -3,9 +3,6 @@ import type { DataBatcher } from "../data-batcher";
 import type { TerminalEscapeFilter } from "../terminal-escape-filter";
 import type { HistoryWriter } from "../terminal-history";
 
-/**
- * Internal session state for a terminal instance.
- */
 export interface TerminalSession {
 	pty: pty.IPty;
 	paneId: string;
@@ -26,17 +23,11 @@ export interface TerminalSession {
 	usedFallback: boolean;
 }
 
-/**
- * Terminal data event emitted when PTY produces output.
- */
 export interface TerminalDataEvent {
 	type: "data";
 	data: string;
 }
 
-/**
- * Terminal exit event emitted when PTY process terminates.
- */
 export interface TerminalExitEvent {
 	type: "exit";
 	exitCode: number;
@@ -45,18 +36,12 @@ export interface TerminalExitEvent {
 
 export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
 
-/**
- * Result returned when creating or attaching to a terminal session.
- */
 export interface SessionResult {
 	isNew: boolean;
 	scrollback: string;
 	wasRecovered: boolean;
 }
 
-/**
- * Parameters for creating a new terminal session.
- */
 export interface CreateSessionParams {
 	paneId: string;
 	tabId: string;
@@ -70,9 +55,6 @@ export interface CreateSessionParams {
 	initialCommands?: string[];
 }
 
-/**
- * Internal parameters for doCreateSession including existing scrollback.
- */
 export interface InternalCreateSessionParams extends CreateSessionParams {
 	existingScrollback: string | null;
 	useFallbackShell?: boolean;

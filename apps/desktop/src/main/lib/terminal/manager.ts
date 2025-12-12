@@ -14,18 +14,10 @@ import type {
 	TerminalSession,
 } from "./types";
 
-/**
- * Manages terminal sessions, providing PTY lifecycle management,
- * session recovery, and event emission for data/exit events.
- */
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
 
-	/**
-	 * Create a new terminal session or attach to an existing one.
-	 * Deduplicates concurrent calls for the same paneId.
-	 */
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
 		const { paneId, cols, rows } = params;
 
@@ -63,9 +55,6 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Internal session creation with fallback support.
-	 */
 	private async doCreateSession(
 		params: InternalCreateSessionParams,
 	): Promise<SessionResult> {
@@ -93,9 +82,6 @@ export class TerminalManager extends EventEmitter {
 		};
 	}
 
-	/**
-	 * Set up the PTY exit handler with shell fallback logic.
-	 */
 	private setupExitHandler(
 		session: TerminalSession,
 		params: InternalCreateSessionParams,
@@ -145,9 +131,6 @@ export class TerminalManager extends EventEmitter {
 		});
 	}
 
-	/**
-	 * Write data to a terminal session.
-	 */
 	write(params: { paneId: string; data: string }): void {
 		const { paneId, data } = params;
 		const session = this.sessions.get(paneId);
@@ -160,9 +143,6 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	/**
-	 * Resize a terminal session.
-	 */
 	resize(params: { paneId: string; cols: number; rows: number }): void {
 		const { paneId, cols, rows } = params;
 		const session = this.sessions.get(paneId);
@@ -180,9 +160,6 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	/**
-	 * Send a signal to a terminal session.
-	 */
 	signal(params: { paneId: string; signal?: string }): void {
 		const { paneId, signal = "SIGTERM" } = params;
 		const session = this.sessions.get(paneId);
@@ -198,9 +175,6 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	/**
-	 * Kill a terminal session.
-	 */
 	async kill(params: {
 		paneId: string;
 		deleteHistory?: boolean;
@@ -225,9 +199,6 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Detach from a terminal session (keeps PTY running).
-	 */
 	detach(params: { paneId: string }): void {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
@@ -240,9 +211,6 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	/**
-	 * Clear scrollback buffer for a terminal session.
-	 */
 	async clearScrollback(params: { paneId: string }): Promise<void> {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
@@ -259,9 +227,6 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	/**
-	 * Get session info for a pane.
-	 */
 	getSession(
 		paneId: string,
 	): { isAlive: boolean; cwd: string; lastActive: number } | null {
@@ -277,9 +242,6 @@ export class TerminalManager extends EventEmitter {
 		};
 	}
 
-	/**
-	 * Kill all terminal sessions for a workspace.
-	 */
 	async killByWorkspaceId(
 		workspaceId: string,
 	): Promise<{ killed: number; failed: number }> {
@@ -301,9 +263,6 @@ export class TerminalManager extends EventEmitter {
 		return { killed, failed: results.length - killed };
 	}
 
-	/**
-	 * Kill a single session with SIGTERM → SIGKILL escalation.
-	 */
 	private async killSessionWithTimeout(
 		paneId: string,
 		session: TerminalSession,
@@ -374,19 +333,12 @@ export class TerminalManager extends EventEmitter {
 		});
 	}
 
-	/**
-	 * Get count of active sessions for a workspace.
-	 */
 	getSessionCountByWorkspaceId(workspaceId: string): number {
 		return Array.from(this.sessions.values()).filter(
 			(session) => session.workspaceId === workspaceId && session.isAlive,
 		).length;
 	}
 
-	/**
-	 * Remove terminal stream listeners without killing terminals.
-	 * Used when window closes on macOS.
-	 */
 	detachAllListeners(): void {
 		for (const event of this.eventNames()) {
 			const name = String(event);
@@ -396,9 +348,6 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Clean up all terminal sessions on app quit.
-	 */
 	async cleanup(): Promise<void> {
 		const exitPromises: Promise<void>[] = [];
 
