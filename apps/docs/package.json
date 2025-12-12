@@ -5,7 +5,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "next dev --port 3004",
-		"build": "next build",
+		"build": "next build --webpack",
 		"start": "next start",
 		"typecheck": "tsc --noEmit"
 	},
@@ -16,9 +16,9 @@
 		"framer-motion": "^12.23.24",
 		"geist": "^1.5.1",
 		"next": "^16.0.10",
-		"nextra": "^4.6.0",
-		"nextra-theme-blog": "^4.6.0",
-		"nextra-theme-docs": "^4.6.0",
+		"nextra": "^4.6.1",
+		"nextra-theme-blog": "^4.6.1",
+		"nextra-theme-docs": "^4.6.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
 		"three": "^0.181.2"
