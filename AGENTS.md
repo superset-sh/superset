@@ -6,10 +6,12 @@ Guidelines for agents and developers working in this repository.
 
 Bun + Turbo monorepo with:
 - **Apps**:
-  - `apps/website` - Main website application
+  - `apps/web` - Main web application (app.superset.sh)
+  - `apps/marketing` - Marketing site (superset.sh)
+  - `apps/admin` - Admin dashboard
+  - `apps/api` - API backend
   - `apps/desktop` - Electron desktop application (see [Desktop App Guide](#desktop-app-electron) below)
   - `apps/docs` - Documentation site
-  - `apps/blog` - Blog site
 - **Packages**:
   - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4).
     - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
@@ -151,7 +153,8 @@ The `src/components/ui/`, `src/components/ai-elements`, and `src/components/reac
 - Always spin up a new neon branch to create migrations. Update our root .env files to point at the neon branch locally.
 - Use drizzle to manage the migration. You can see the schema at packages/db/src/schema. Never run a migration yourself.
 - Create migrations by changing drizzle schema then running `pnpm drizzle-kit generate --name="<sample_name_snake_case>"`
-- Neon org id is org-round-base-25422821, Neon project id is tiny-cherry-82420694. list_projects tool requires org_id passed in.
+- `NEON_ORG_ID` and `NEON_PROJECT_ID` env vars are set in .env
+- list_projects tool requires org_id passed in
 
 ## Desktop App (Electron)
 
