@@ -161,14 +161,10 @@ export class TerminalManager extends EventEmitter {
 		const env = {
 			...baseEnv,
 			...shellEnv,
-			// Terminal identification (like Hyper)
 			TERM_PROGRAM: "Superset",
 			TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
-			// Enable truecolor support
 			COLORTERM: "truecolor",
-			// Ensure UTF-8 locale if not set
 			LANG: baseEnv.LANG || "en_US.UTF-8",
-			// Superset-specific env vars
 			SUPERSET_PANE_ID: paneId,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_WORKSPACE_ID: workspaceId,

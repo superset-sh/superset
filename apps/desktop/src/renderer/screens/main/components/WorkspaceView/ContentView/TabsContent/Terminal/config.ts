@@ -26,17 +26,12 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontFamily: TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
 	allowProposedApi: true,
-	// Scrollback buffer - 10k lines like Hyper
 	scrollback: 10000,
-	// macOS: treat Option as Meta key for proper shell shortcuts (Alt+B, Alt+F, etc.)
 	macOptionIsMeta: true,
-	// Better cursor styles
 	cursorStyle: "bar",
 	cursorInactiveStyle: "outline",
-	// Performance: minimize reflows
 	fastScrollModifier: "alt",
 	fastScrollSensitivity: 5,
-	// Accessibility
 	screenReaderMode: false,
 };
 

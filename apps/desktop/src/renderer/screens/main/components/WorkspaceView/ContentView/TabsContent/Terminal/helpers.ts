@@ -54,8 +54,7 @@ export function getDefaultTerminalBg(): string {
 
 /**
  * Load GPU-accelerated renderer with automatic fallback.
- * Tries WebGL first for best performance, falls back to Canvas if WebGL fails.
- * Based on Hyper terminal's approach.
+ * Tries WebGL first, falls back to Canvas if WebGL fails.
  */
 function loadRenderer(xterm: XTerm): { dispose: () => void } {
 	let renderer: WebglAddon | CanvasAddon | null = null;
@@ -63,32 +62,24 @@ function loadRenderer(xterm: XTerm): { dispose: () => void } {
 	try {
 		const webglAddon = new WebglAddon();
 
-		// Handle WebGL context loss - fall back to Canvas
 		webglAddon.onContextLoss(() => {
-			console.warn("[Terminal] WebGL context lost, falling back to Canvas");
 			webglAddon.dispose();
 			try {
 				renderer = new CanvasAddon();
 				xterm.loadAddon(renderer);
-			} catch (canvasError) {
-				console.error("[Terminal] Canvas fallback failed:", canvasError);
+			} catch {
+				// Canvas fallback failed, use default renderer
 			}
 		});
 
 		xterm.loadAddon(webglAddon);
 		renderer = webglAddon;
-		console.debug("[Terminal] Using WebGL renderer");
-	} catch (webglError) {
-		console.warn("[Terminal] WebGL not available, using Canvas:", webglError);
+	} catch {
 		try {
 			renderer = new CanvasAddon();
 			xterm.loadAddon(renderer);
-			console.debug("[Terminal] Using Canvas renderer");
-		} catch (canvasError) {
-			console.error(
-				"[Terminal] Canvas renderer failed, using default:",
-				canvasError,
-			);
+		} catch {
+			// Both renderers failed, use default
 		}
 	}
 
@@ -129,10 +120,7 @@ export function createTerminalInstance(
 
 	xterm.open(container);
 
-	// Load addons in order - fit first, then renderer, then others
 	xterm.loadAddon(fitAddon);
-
-	// Load GPU-accelerated renderer with fallback
 	const renderer = loadRenderer(xterm);
 
 	xterm.loadAddon(webLinksAddon);
@@ -140,21 +128,15 @@ export function createTerminalInstance(
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
-	// Load ligatures addon asynchronously (can be slow to initialize)
 	import("@xterm/addon-ligatures")
 		.then(({ LigaturesAddon }) => {
 			try {
-				const ligaturesAddon = new LigaturesAddon();
-				xterm.loadAddon(ligaturesAddon);
-				console.debug("[Terminal] Ligatures addon loaded");
-			} catch (error) {
-				// Ligatures may fail if font doesn't support them - that's OK
-				console.debug("[Terminal] Ligatures not available:", error);
+				xterm.loadAddon(new LigaturesAddon());
+			} catch {
+				// Ligatures not supported by current font
 			}
 		})
-		.catch(() => {
-			// Module may not be available - that's OK
-		});
+		.catch(() => {});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
