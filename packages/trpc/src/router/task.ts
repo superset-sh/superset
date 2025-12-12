@@ -30,14 +30,12 @@ export const taskRouter = {
 		});
 	}),
 
-	byRepository: publicProcedure
-		.input(z.string().uuid())
-		.query(({ input }) => {
-			return db.query.tasks.findMany({
-				where: eq(tasks.repositoryId, input),
-				orderBy: desc(tasks.createdAt),
-			});
-		}),
+	byRepository: publicProcedure.input(z.string().uuid()).query(({ input }) => {
+		return db.query.tasks.findMany({
+			where: eq(tasks.repositoryId, input),
+			orderBy: desc(tasks.createdAt),
+		});
+	}),
 
 	byOrganization: publicProcedure
 		.input(z.string().uuid())
