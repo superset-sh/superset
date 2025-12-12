@@ -1,6 +1,6 @@
 import { observable } from "@trpc/server/observable";
 import { db } from "main/lib/db";
-import { terminalManager } from "main/lib/terminal-manager";
+import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorktreePath } from "../workspaces/utils/worktree";

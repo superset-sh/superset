@@ -5,7 +5,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
-import { terminalManager } from "./lib/terminal-manager";
+import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
 // Protocol scheme for deep linking
