@@ -1,9 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, User } from "lucide-react";
+import { Loader2, MoreHorizontal, Trash2, User } from "lucide-react";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Button } from "@superset/ui/button";
 import {
 	Card,
 	CardContent,
@@ -12,6 +24,13 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -19,15 +38,42 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
 
 export function UsersTable() {
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 	const { data, isLoading, error } = useQuery(
-		trpc.admin.listUsers.queryOptions(),
+		trpc.admin.listActiveUsers.queryOptions(),
 	);
+
+	const [userToDelete, setUserToDelete] = useState<{
+		id: string;
+		email: string;
+		name: string;
+	} | null>(null);
+
+	const deleteMutation = useMutation(
+		trpc.admin.permanentlyDeleteUser.mutationOptions({
+			onSuccess: () => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.admin.listActiveUsers.queryKey(),
+				});
+				toast.success(`${userToDelete?.name} has been permanently deleted`);
+				setUserToDelete(null);
+			},
+			onError: (error) => {
+				toast.error(`Failed to delete user: ${error.message}`);
+			},
+		}),
+	);
+
+	const handleDelete = () => {
+		if (!userToDelete) return;
+		deleteMutation.mutate({ userId: userToDelete.id });
+	};
 
 	if (isLoading) {
 		return (
@@ -72,7 +118,7 @@ export function UsersTable() {
 			<Card>
 				<CardContent className="flex flex-col items-center justify-center py-12 text-center">
 					<User className="text-muted-foreground mb-4 h-12 w-12" />
-					<p className="text-lg font-medium">No users yet</p>
+					<p className="text-lg font-medium">No active users</p>
 					<p className="text-muted-foreground text-sm">
 						Users will appear here as they sign up
 					</p>
@@ -82,54 +128,118 @@ export function UsersTable() {
 	}
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>All Users</CardTitle>
-				<CardDescription>
-					{data.length} user{data.length !== 1 ? "s" : ""} registered
-				</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>User</TableHead>
-							<TableHead>Email</TableHead>
-							<TableHead>Joined</TableHead>
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{data.map((user) => (
-							<TableRow key={user.id}>
-								<TableCell>
-									<div className="flex items-center gap-3">
-										<Avatar className="h-8 w-8">
-											<AvatarImage src={user.avatarUrl ?? undefined} />
-											<AvatarFallback>
-												{user.name
-													.split(" ")
-													.map((n) => n[0])
-													.join("")
-													.toUpperCase()
-													.slice(0, 2)}
-											</AvatarFallback>
-										</Avatar>
-										<span className="font-medium">{user.name}</span>
-									</div>
-								</TableCell>
-								<TableCell>{user.email}</TableCell>
-								<TableCell>
-									<div className="text-sm">
-										{formatDistanceToNow(new Date(user.createdAt), {
-											addSuffix: true,
-										})}
-									</div>
-								</TableCell>
+		<>
+			<Card>
+				<CardHeader>
+					<CardTitle>Active Users</CardTitle>
+					<CardDescription>
+						{data.length} active user{data.length !== 1 ? "s" : ""}
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>User</TableHead>
+								<TableHead>Email</TableHead>
+								<TableHead>Joined</TableHead>
+								<TableHead className="w-[50px]" />
 							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</CardContent>
-		</Card>
+						</TableHeader>
+						<TableBody>
+							{data.map((user) => (
+								<TableRow key={user.id}>
+									<TableCell>
+										<div className="flex items-center gap-3">
+											<Avatar className="h-8 w-8">
+												<AvatarImage src={user.avatarUrl ?? undefined} />
+												<AvatarFallback>
+													{user.name
+														.split(" ")
+														.map((n) => n[0])
+														.join("")
+														.toUpperCase()
+														.slice(0, 2)}
+												</AvatarFallback>
+											</Avatar>
+											<span className="font-medium">{user.name}</span>
+										</div>
+									</TableCell>
+									<TableCell>{user.email}</TableCell>
+									<TableCell>
+										<div className="text-sm">
+											{formatDistanceToNow(new Date(user.createdAt), {
+												addSuffix: true,
+											})}
+										</div>
+									</TableCell>
+									<TableCell>
+										<DropdownMenu>
+											<DropdownMenuTrigger asChild>
+												<Button variant="ghost" className="h-8 w-8 p-0">
+													<span className="sr-only">Open menu</span>
+													<MoreHorizontal className="h-4 w-4" />
+												</Button>
+											</DropdownMenuTrigger>
+											<DropdownMenuContent align="end">
+												<DropdownMenuItem
+													className="text-destructive focus:text-destructive"
+													onClick={() =>
+														setUserToDelete({
+															id: user.id,
+															email: user.email,
+															name: user.name,
+														})
+													}
+												>
+													<Trash2 className="mr-2 h-4 w-4" />
+													Delete Permanently
+												</DropdownMenuItem>
+											</DropdownMenuContent>
+										</DropdownMenu>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</CardContent>
+			</Card>
+
+			<AlertDialog
+				open={!!userToDelete}
+				onOpenChange={(open) => !open && setUserToDelete(null)}
+			>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Permanently delete user?</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="space-y-2">
+								<p>
+									This will permanently delete{" "}
+									<strong>{userToDelete?.name}</strong> ({userToDelete?.email})
+									and all their data.
+								</p>
+								<p className="text-destructive font-medium">
+									This action cannot be undone.
+								</p>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={handleDelete}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+							disabled={deleteMutation.isPending}
+						>
+							{deleteMutation.isPending ? (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							) : null}
+							Delete Permanently
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
 	);
 }
