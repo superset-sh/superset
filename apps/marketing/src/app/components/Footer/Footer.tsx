@@ -25,7 +25,7 @@ function SupersetLogo() {
 
 export function Footer() {
 	return (
-		<footer className="border-t border-neutral-800 bg-neutral-900">
+		<footer className="border-t border-border bg-background">
 			<motion.div
 				initial={{ opacity: 0 }}
 				whileInView={{ opacity: 1 }}
@@ -39,20 +39,20 @@ export function Footer() {
 					<div className="space-y-5">
 						<Link
 							href="/"
-							className="text-neutral-400 hover:text-neutral-100 transition-colors inline-block"
+							className="text-muted-foreground hover:text-foreground transition-colors inline-block"
 						>
 							<SupersetLogo />
 						</Link>
 						<nav className="flex items-center gap-6 text-sm">
 							<Link
 								href="/privacy-policy"
-								className="text-neutral-500 hover:text-neutral-300 transition-colors"
+								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
 								Privacy
 							</Link>
 							<Link
 								href="/terms-of-service"
-								className="text-neutral-500 hover:text-neutral-300 transition-colors"
+								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
 								Terms
 							</Link>
@@ -64,8 +64,8 @@ export function Footer() {
 				</div>
 
 				{/* Bottom - Copyright */}
-				<div className="mt-10 pt-6 border-t border-neutral-800/60">
-					<p className="text-neutral-600 text-sm">
+				<div className="mt-10 pt-6 border-t border-border/60">
+					<p className="text-muted-foreground text-sm">
 						© {new Date().getFullYear()} Superset. All rights reserved.
 					</p>
 				</div>

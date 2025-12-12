@@ -11,11 +11,14 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clerk/backend": "^2.27.0",
+		"@clerk/nextjs": "^6.36.2",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"@trpc/server": "^11.7.1",
+		"@vercel/blob": "^2.0.0",
 		"drizzle-orm": "0.45.1",
 		"next": "^16.0.10",
 		"react": "^19.2.3",

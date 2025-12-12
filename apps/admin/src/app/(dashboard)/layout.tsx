@@ -12,10 +12,8 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "@superset/ui/sidebar";
-import { redirect } from "next/navigation";
 
-import { env } from "@/env";
-import { currentUser } from "@/lib/auth/server";
+import { api } from "@/trpc/server";
 
 import { AppSidebar } from "./components/AppSidebar";
 
@@ -24,11 +22,11 @@ export default async function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const user = await currentUser();
+	const trpc = await api();
+	const user = await trpc.user.me.query();
 
-	// Redirect unauthorized users to web app
 	if (!user) {
-		redirect(env.NEXT_PUBLIC_WEB_URL);
+		throw new Error("User not found");
 	}
 
 	return (

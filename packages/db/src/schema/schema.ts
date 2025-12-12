@@ -16,16 +16,22 @@ export const users = pgTable(
 	"users",
 	{
 		id: uuid().primaryKey().defaultRandom(),
+		clerkId: text("clerk_id").notNull().unique(),
 		name: text().notNull(),
 		email: text().notNull().unique(),
 		avatarUrl: text("avatar_url"),
+		deletedAt: timestamp("deleted_at"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
 			.defaultNow()
 			.$onUpdate(() => new Date()),
 	},
-	(table) => [index("users_email_idx").on(table.email)],
+	(table) => [
+		index("users_email_idx").on(table.email),
+		index("users_clerk_id_idx").on(table.clerkId),
+		index("users_deleted_at_idx").on(table.deletedAt),
+	],
 );
 
 export type InsertUser = typeof users.$inferInsert;

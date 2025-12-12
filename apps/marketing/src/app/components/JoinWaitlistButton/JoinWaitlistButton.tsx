@@ -16,7 +16,7 @@ export function JoinWaitlistButton({
 		<button
 			type="button"
 			onClick={onClick}
-			className={`bg-stone-50 text-neutral-800 ${sizeClasses} rounded-[5px] font-medium hover:bg-stone-100 transition-colors duration-150 ${className}`}
+			className={`bg-foreground text-background ${sizeClasses} rounded-[5px] font-medium hover:bg-foreground/90 transition-colors duration-150 ${className}`}
 		>
 			Join waitlist
 		</button>

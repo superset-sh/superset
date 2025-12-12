@@ -1,12 +1,26 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
-import { GeistMono } from "geist/font/mono";
-import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
+
+import { env } from "@/env";
 
 import "./globals.css";
 
 import { Providers } from "./providers";
+
+const ibmPlexMono = IBM_Plex_Mono({
+	weight: ["300", "400", "500"],
+	subsets: ["latin"],
+	variable: "--font-ibm-plex-mono",
+});
+
+const inter = Inter({
+	weight: ["300", "400", "500"],
+	subsets: ["latin"],
+	variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
 	title: "Superset Admin",
@@ -26,19 +40,21 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body
-				className={cn(
-					"bg-background text-foreground min-h-screen font-sans antialiased",
-					GeistSans.variable,
-					GeistMono.variable,
-				)}
-			>
-				<Providers>
-					{children}
-					<Toaster />
-				</Providers>
-			</body>
-		</html>
+		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
+			<html lang="en" suppressHydrationWarning>
+				<body
+					className={cn(
+						"bg-background text-foreground min-h-screen font-sans antialiased",
+						inter.variable,
+						ibmPlexMono.variable,
+					)}
+				>
+					<Providers>
+						{children}
+						<Toaster />
+					</Providers>
+				</body>
+			</html>
+		</ClerkProvider>
 	);
 }

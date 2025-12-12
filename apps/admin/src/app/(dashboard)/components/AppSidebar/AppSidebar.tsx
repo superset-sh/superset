@@ -1,5 +1,6 @@
 "use client";
 
+import type { RouterOutputs } from "@superset/trpc";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -18,19 +19,8 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@superset/ui/sidebar";
-import {
-	BarChart3,
-	Bot,
-	ChevronRight,
-	Database,
-	Home,
-	Settings,
-	Shield,
-	Users,
-	Webhook,
-} from "lucide-react";
+import { LuChevronRight, LuHouse, LuUsers } from "react-icons/lu";
 
-import type { User } from "@/lib/auth/types";
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";
 import { SearchForm } from "./components/SearchForm";
@@ -42,7 +32,7 @@ const navigation = [
 			{
 				title: "Dashboard",
 				url: "/",
-				icon: Home,
+				icon: LuHouse,
 			},
 		],
 	},
@@ -52,75 +42,18 @@ const navigation = [
 			{
 				title: "All Users",
 				url: "/users",
-				icon: Users,
+				icon: LuUsers,
 			},
 			{
 				title: "Deleted Users",
 				url: "/users/deleted",
-			},
-			{
-				title: "Permissions",
-				url: "/users/permissions",
-				icon: Shield,
-			},
-		],
-	},
-	{
-		title: "Analytics",
-		items: [
-			{
-				title: "Overview",
-				url: "/analytics",
-				icon: BarChart3,
-			},
-			{
-				title: "User Activity",
-				url: "/analytics/activity",
-			},
-			{
-				title: "Performance",
-				url: "/analytics/performance",
-			},
-		],
-	},
-	{
-		title: "AI Lab",
-		items: [
-			{
-				title: "Plan Testing",
-				url: "/ai-lab",
-				icon: Bot,
-			},
-			{
-				title: "Model Config",
-				url: "/ai-lab/models",
-			},
-		],
-	},
-	{
-		title: "System",
-		items: [
-			{
-				title: "Database",
-				url: "/system/database",
-				icon: Database,
-			},
-			{
-				title: "Webhooks",
-				url: "/system/webhooks",
-				icon: Webhook,
-			},
-			{
-				title: "Settings",
-				url: "/settings",
-				icon: Settings,
 			},
 		],
 	},
 ];
 
 export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-	user: User;
+	user: NonNullable<RouterOutputs["user"]["me"]>;
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
@@ -145,7 +78,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 							>
 								<CollapsibleTrigger>
 									{section.title}
-									<ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+									<LuChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
 								</CollapsibleTrigger>
 							</SidebarGroupLabel>
 							<CollapsibleContent>

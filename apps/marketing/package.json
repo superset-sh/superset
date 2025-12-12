@@ -11,8 +11,10 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clerk/nextjs": "^6.36.2",
 		"@react-three/drei": "^10.7.6",
 		"@react-three/fiber": "^9.4.0",
+		"@superset/shared": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"framer-motion": "^12.23.24",

@@ -14,6 +14,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@clerk/backend": "^2.27.0",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",

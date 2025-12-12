@@ -1,7 +1,7 @@
 "use client";
 
+import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
-import { DOWNLOAD_URL_MAC_ARM64, GITHUB_REPO_URL } from "@/constants";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
 interface DownloadButtonProps {
@@ -23,7 +23,7 @@ export function DownloadButton({
 	};
 
 	const handleBuildFromSource = () => {
-		window.open(GITHUB_REPO_URL, "_blank");
+		window.open(COMPANY.GITHUB_URL, "_blank");
 	};
 
 	const appleIcon = (
@@ -89,7 +89,7 @@ export function DownloadButton({
 	const trigger = (
 		<button
 			type="button"
-			className={`bg-neutral-50 text-neutral-950 ${sizeClasses} font-normal hover:bg-neutral-300 transition-colors flex items-center gap-2 ${className}`}
+			className={`bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`}
 		>
 			Download for macOS
 			<HiMiniArrowDownTray className="size-4" />

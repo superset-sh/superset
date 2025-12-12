@@ -1,5 +1,7 @@
 "use client";
 
+import { useClerk } from "@clerk/nextjs";
+import type { RouterOutputs } from "@superset/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	DropdownMenu,
@@ -17,22 +19,22 @@ import {
 	useSidebar,
 } from "@superset/ui/sidebar";
 import {
-	BadgeCheck,
-	Bell,
-	ChevronsUpDown,
-	LogOut,
-	Settings,
-} from "lucide-react";
-import { useSignOut } from "@/lib/auth/client";
-import type { User } from "@/lib/auth/types";
+	LuBadgeCheck,
+	LuBell,
+	LuChevronsUpDown,
+	LuLogOut,
+	LuSettings,
+} from "react-icons/lu";
+
+import { env } from "@/env";
 
 export interface NavUserProps {
-	user: User;
+	user: NonNullable<RouterOutputs["user"]["me"]>;
 }
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
-	const { signOut } = useSignOut();
+	const { signOut } = useClerk();
 
 	const userInitials = user.name
 		.split(" ")
@@ -49,7 +51,10 @@ export function NavUser({ user }: NavUserProps) {
 							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 						>
 							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage src={user.imageUrl} alt={user.name} />
+								<AvatarImage
+									src={user.avatarUrl ?? undefined}
+									alt={user.name}
+								/>
 								<AvatarFallback className="rounded-lg">
 									{userInitials}
 								</AvatarFallback>
@@ -58,7 +63,7 @@ export function NavUser({ user }: NavUserProps) {
 								<span className="truncate font-medium">{user.name}</span>
 								<span className="truncate text-xs">{user.email}</span>
 							</div>
-							<ChevronsUpDown className="ml-auto size-4" />
+							<LuChevronsUpDown className="ml-auto size-4" />
 						</SidebarMenuButton>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
@@ -70,7 +75,10 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuLabel className="p-0 font-normal">
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage src={user.imageUrl} alt={user.name} />
+									<AvatarImage
+										src={user.avatarUrl ?? undefined}
+										alt={user.name}
+									/>
 									<AvatarFallback className="rounded-lg">
 										{userInitials}
 									</AvatarFallback>
@@ -84,21 +92,23 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
 							<DropdownMenuItem>
-								<BadgeCheck />
+								<LuBadgeCheck />
 								Account
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Settings />
+								<LuSettings />
 								Settings
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Bell />
+								<LuBell />
 								Notifications
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={signOut}>
-							<LogOut />
+						<DropdownMenuItem
+							onClick={() => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL })}
+						>
+							<LuLogOut />
 							Log out
 						</DropdownMenuItem>
 					</DropdownMenuContent>

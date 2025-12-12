@@ -40,15 +40,15 @@ export function PlatformDropdown({
 			<DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align={align}
-				className={`w-80 bg-white border border-zinc-200 rounded-[5px] shadow-lg p-2 ${className}`}
+				className={`w-80 bg-background border border-border rounded-[5px] shadow-lg p-2 ${className}`}
 			>
 				{sections.map((section, sectionIndex) => (
 					<div key={section.title || sectionIndex}>
 						{sectionIndex > 0 && (
-							<div className="mt-2 pt-2 border-t border-zinc-200" />
+							<div className="mt-2 pt-2 border-t border-border" />
 						)}
 						{section.title && (
-							<p className="text-xs text-zinc-500 px-2 mb-2 text-start">
+							<p className="text-xs text-muted-foreground px-2 mb-2 text-start">
 								{section.title}
 							</p>
 						)}
@@ -62,14 +62,14 @@ export function PlatformDropdown({
 									{item.variant === "primary" ? (
 										<button
 											type="button"
-											className="w-full bg-zinc-900 text-white rounded-[5px] px-4 py-3 flex items-center justify-between hover:bg-zinc-800 transition-colors gap-4"
+											className="w-full bg-foreground text-background rounded-[5px] px-4 py-3 flex items-center justify-between hover:bg-foreground/90 transition-colors gap-4"
 										>
 											<div className="flex items-center gap-3">
 												{item.icon}
 												<span className="font-medium">{item.label}</span>
 											</div>
 											{item.description && (
-												<span className="text-xs text-zinc-400">
+												<span className="text-xs text-muted-foreground">
 													{item.description}
 												</span>
 											)}
@@ -77,7 +77,7 @@ export function PlatformDropdown({
 									) : (
 										<button
 											type="button"
-											className="w-full bg-zinc-50 text-black rounded-[5px] px-3 py-2 flex items-center gap-2 hover:bg-zinc-100 transition-colors text-sm"
+											className="w-full bg-muted text-foreground rounded-[5px] px-3 py-2 flex items-center gap-2 hover:bg-muted/80 transition-colors text-sm"
 										>
 											{item.icon}
 											<span>{item.label}</span>

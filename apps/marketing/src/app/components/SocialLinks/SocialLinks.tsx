@@ -11,7 +11,7 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				href="https://github.com/superset-sh/superset"
 				target="_blank"
 				rel="noopener noreferrer"
-				className="text-stone-400 hover:text-white transition-colors p-2"
+				className="text-muted-foreground hover:text-foreground transition-colors p-2"
 				aria-label="View on GitHub"
 			>
 				<svg
@@ -29,7 +29,7 @@ export function SocialLinks({ className = "" }: SocialLinksProps) {
 				href="https://x.com/superset_sh"
 				target="_blank"
 				rel="noopener noreferrer"
-				className="text-stone-400 hover:text-white transition-colors p-2"
+				className="text-muted-foreground hover:text-foreground transition-colors p-2"
 				aria-label="Follow us on X/Twitter"
 			>
 				<svg

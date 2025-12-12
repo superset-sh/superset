@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { organizationMembers, organizations } from "@superset/db/schema";
+import { organizationMembers, organizations, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -57,15 +57,19 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.clerkId, ctx.session.userId),
+			});
+
 			const [organization] = await db
 				.insert(organizations)
 				.values(input)
 				.returning();
 
-			if (ctx.session.userId && organization) {
+			if (user && organization) {
 				await db.insert(organizationMembers).values({
 					organizationId: organization.id,
-					userId: ctx.session.userId,
+					userId: user.id,
 				});
 			}
 

@@ -1,13 +1,11 @@
+import { clerkMiddleware } from "@clerk/nextjs/server";
+import { db, eq } from "@superset/db";
+import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
-import { createCaller, createTRPCContext } from "@superset/trpc";
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { env } from "./env";
 
-/**
- * Public routes that bypass auth
- */
 const PUBLIC_ROUTES = ["/ingest", "/monitoring"];
 
 function isPublicRoute(pathname: string): boolean {
@@ -16,38 +14,29 @@ function isPublicRoute(pathname: string): boolean {
 	);
 }
 
-/**
- * Auth proxy - validates user authentication and domain access.
- *
- * When real auth (Clerk) is added, replace with Clerk's proxy/middleware.
- */
-export async function proxy(request: NextRequest) {
-	const { pathname } = request.nextUrl;
+export default clerkMiddleware(async (auth, req) => {
+	const { pathname } = req.nextUrl;
 
-	// Allow public routes
 	if (isPublicRoute(pathname)) {
 		return NextResponse.next();
 	}
 
-	try {
-		// Create tRPC caller with current session context
-		const ctx = await createTRPCContext({ headers: request.headers });
-		const caller = createCaller(ctx);
+	const { userId: clerkId } = await auth();
 
-		// Get current user (throws if not authenticated)
-		const user = await caller.user.me();
-
-		// Validate domain access
-		if (!user?.email.endsWith(COMPANY.emailDomain)) {
-			return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
-		}
-
-		return NextResponse.next();
-	} catch {
-		// Not authenticated - redirect to web app
+	if (!clerkId) {
 		return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
 	}
-}
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkId),
+	});
+
+	if (!user?.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
+		return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
+	}
+
+	return NextResponse.next();
+});
 
 export const config = {
 	matcher: [

@@ -1,3 +1,4 @@
+import type { SessionAuthObject } from "@clerk/backend";
 import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
@@ -6,28 +7,31 @@ import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { env } from "./env";
+// SignedInAuthObject isn't exported from @clerk/backend main entry,
+// so we extract it from the SessionAuthObject union
+type SignedInAuthObject = Extract<SessionAuthObject, { userId: string }>;
 
 /**
- * Context passed to every tRPC procedure
+ * tRPC Context
+ *
+ * We use SessionAuthObject from @clerk/backend (not @clerk/nextjs) because:
+ * - The API is hosted on Next.js with clerkMiddleware handling auth
+ * - Expo/Desktop clients send Bearer tokens to this API
+ * - clerkMiddleware handles both cookie auth (web) and Bearer tokens (mobile/desktop)
+ * - @clerk/backend types work across all clients, while @clerk/nextjs would
+ *   cause dependency issues in Expo/Desktop which don't have Next.js
+ *
+ * SessionAuthObject = SignedInAuthObject | SignedOutAuthObject
+ * Public procedures may be called by unauthenticated users (SignedOutAuthObject)
  */
 export type TRPCContext = {
-	session: { userId: string } | null;
-	headers: Headers;
+	session: SessionAuthObject;
 };
 
-/**
- * Create the tRPC context for each request
- */
-export const createTRPCContext = async (opts: {
-	headers: Headers;
-}): Promise<TRPCContext> => {
-	const mockUserId = env.MOCK_USER_ID;
-
-	return {
-		session: mockUserId ? { userId: mockUserId } : null,
-		headers: opts.headers,
-	};
+export const createTRPCContext = (opts: {
+	session: SessionAuthObject;
+}): TRPCContext => {
+	return { session: opts.session };
 };
 
 const t = initTRPC.context<TRPCContext>().create({
@@ -50,33 +54,26 @@ export const createCallerFactory = t.createCallerFactory;
 
 export const publicProcedure = t.procedure;
 
-/**
- * Protected procedure - requires authenticated session
- * Just validates session exists, no DB fetch
- */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.session?.userId) {
+	if (!ctx.session.userId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
-			message:
-				"Not authenticated. Set MOCK_USER_ID in .env to mock authentication.",
+			message: "Not authenticated. Please sign in.",
 		});
 	}
 
 	return next({
 		ctx: {
-			session: ctx.session,
+			// Cast needed because TypeScript doesn't propagate type narrowing through next()
+			// After the userId check above, we know session is SignedInAuthObject
+			session: ctx.session as SignedInAuthObject,
 		},
 	});
 });
 
-/**
- * Admin procedure - requires authenticated user with @superset.sh email
- * Fetches user from DB and validates domain for API security
- */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	const user = await db.query.users.findFirst({
-		where: eq(users.id, ctx.session.userId),
+		where: eq(users.clerkId, ctx.session.userId),
 	});
 
 	if (!user) {
@@ -86,10 +83,10 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 		});
 	}
 
-	if (!user.email.endsWith(COMPANY.emailDomain)) {
+	if (!user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: `Admin access requires ${COMPANY.emailDomain} email.`,
+			message: `Admin access requires ${COMPANY.EMAIL_DOMAIN} email.`,
 		});
 	}
 

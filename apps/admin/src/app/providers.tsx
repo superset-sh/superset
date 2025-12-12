@@ -1,5 +1,6 @@
 "use client";
 
+import { THEME_STORAGE_KEY } from "@superset/shared/constants";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "next-themes";
 
@@ -10,9 +11,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
 		<TRPCReactProvider>
 			<ThemeProvider
 				attribute="class"
-				defaultTheme="system"
-				enableSystem
-				storageKey="superset-admin-theme"
+				defaultTheme="dark"
+				forcedTheme="dark"
+				storageKey={THEME_STORAGE_KEY}
+				disableTransitionOnChange
 			>
 				{children}
 				<ReactQueryDevtools initialIsOpen={false} />
