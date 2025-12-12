@@ -113,7 +113,14 @@ export function ChangesView() {
 		);
 	}
 
-	if (!status) {
+	if (
+		!status ||
+		!status.againstMain ||
+		!status.commits ||
+		!status.staged ||
+		!status.unstaged ||
+		!status.untracked
+	) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
 				Unable to load changes
