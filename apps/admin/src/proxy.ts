@@ -31,7 +31,7 @@ export default clerkMiddleware(async (auth, req) => {
 		where: eq(users.clerkId, clerkId),
 	});
 
-	if (!user?.email.endsWith(COMPANY.emailDomain)) {
+	if (!user?.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
 		return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
 	}
 

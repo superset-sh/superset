@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { THEME_STORAGE_KEY } from "@superset/shared";
+import { THEME_STORAGE_KEY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";

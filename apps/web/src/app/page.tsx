@@ -1,7 +1,8 @@
 "use client";
 
 import { SignOutButton, useUser } from "@clerk/nextjs";
-import { getInitials } from "@superset/shared";
+import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -87,17 +88,19 @@ export default function HomePage() {
 					</p>
 
 					<div className="flex flex-wrap items-center justify-center gap-4">
-						<Button size="lg" className="gap-2">
-							Download for macOS
-							<Download className="h-4 w-4" />
+						<Button size="lg" className="gap-2" asChild>
+							<a href={DOWNLOAD_URL_MAC_ARM64}>
+								Download for macOS
+								<Download className="h-4 w-4" aria-hidden="true" />
+							</a>
 						</Button>
 						<Button variant="outline" size="lg" className="gap-2" asChild>
 							<a
-								href="https://github.com/superset-sh/superset"
+								href={COMPANY.GITHUB_URL}
 								target="_blank"
 								rel="noopener noreferrer"
 							>
-								<FaGithub className="size-4" />
+								<FaGithub className="size-4" aria-hidden="true" />
 								View on GitHub
 							</a>
 						</Button>

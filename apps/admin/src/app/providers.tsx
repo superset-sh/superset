@@ -1,6 +1,6 @@
 "use client";
 
-import { THEME_STORAGE_KEY } from "@superset/shared";
+import { THEME_STORAGE_KEY } from "@superset/shared/constants";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "next-themes";
 

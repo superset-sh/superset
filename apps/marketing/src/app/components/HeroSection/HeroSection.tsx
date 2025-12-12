@@ -1,10 +1,10 @@
 "use client";
 
+import { COMPANY } from "@superset/shared/constants";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { GITHUB_REPO_URL } from "@/constants";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 
@@ -92,7 +92,7 @@ export function HeroSection() {
 								<button
 									type="button"
 									className="px-6 py-3 text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
-									onClick={() => window.open(GITHUB_REPO_URL, "_blank")}
+									onClick={() => window.open(COMPANY.GITHUB_URL, "_blank")}
 									aria-label="View on GitHub"
 								>
 									View on GitHub

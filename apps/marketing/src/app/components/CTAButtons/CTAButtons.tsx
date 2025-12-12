@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Download } from "lucide-react";
 
 import { env } from "@/env";
@@ -16,11 +17,11 @@ export async function CTAButtons() {
 					Dashboard
 				</a>
 				<a
-					href={env.NEXT_PUBLIC_WEB_URL}
+					href={DOWNLOAD_URL_MAC_ARM64}
 					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center gap-2"
 				>
 					Download for macOS
-					<Download className="size-4" />
+					<Download className="size-4" aria-hidden="true" />
 				</a>
 			</div>
 		);
@@ -35,11 +36,11 @@ export async function CTAButtons() {
 				Sign In
 			</a>
 			<a
-				href={`${env.NEXT_PUBLIC_WEB_URL}/sign-up`}
+				href={DOWNLOAD_URL_MAC_ARM64}
 				className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center gap-2"
 			>
 				Download for macOS
-				<Download className="size-4" />
+				<Download className="size-4" aria-hidden="true" />
 			</a>
 		</div>
 	);

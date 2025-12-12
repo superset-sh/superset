@@ -83,10 +83,10 @@ export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 		});
 	}
 
-	if (!user.email.endsWith(COMPANY.emailDomain)) {
+	if (!user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
-			message: `Admin access requires ${COMPANY.emailDomain} email.`,
+			message: `Admin access requires ${COMPANY.EMAIL_DOMAIN} email.`,
 		});
 	}
 

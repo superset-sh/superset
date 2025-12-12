@@ -1,7 +1,7 @@
 "use client";
 
+import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
-import { DOWNLOAD_URL_MAC_ARM64, GITHUB_REPO_URL } from "@/constants";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
 interface DownloadButtonProps {
@@ -23,7 +23,7 @@ export function DownloadButton({
 	};
 
 	const handleBuildFromSource = () => {
-		window.open(GITHUB_REPO_URL, "_blank");
+		window.open(COMPANY.GITHUB_URL, "_blank");
 	};
 
 	const appleIcon = (
