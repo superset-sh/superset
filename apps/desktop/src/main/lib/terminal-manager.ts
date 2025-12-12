@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
+import defaultShell from "default-shell";
 import * as pty from "node-pty";
 import { PORTS } from "shared/constants";
 import { getShellArgs, getShellEnv } from "./agent-setup";
@@ -9,6 +10,12 @@ import {
 	TerminalEscapeFilter,
 } from "./terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "./terminal-history";
+
+// Fallback shell when primary shell fails quickly
+const FALLBACK_SHELL = os.platform() === "win32" ? "cmd.exe" : "/bin/sh";
+
+// If shell exits within this time, consider it a crash and try fallback
+const SHELL_CRASH_THRESHOLD_MS = 1000;
 
 interface TerminalSession {
 	pty: pty.IPty;
@@ -25,6 +32,9 @@ interface TerminalSession {
 	historyWriter?: HistoryWriter;
 	escapeFilter: TerminalEscapeFilter;
 	dataBatcher: DataBatcher;
+	shell: string;
+	startTime: number;
+	usedFallback: boolean;
 }
 
 export interface TerminalDataEvent {
@@ -132,6 +142,7 @@ export class TerminalManager extends EventEmitter {
 		rows?: number;
 		initialCommands?: string[];
 		existingScrollback: string | null;
+		useFallbackShell?: boolean;
 	}): Promise<{
 		isNew: boolean;
 		scrollback: string;
@@ -149,22 +160,32 @@ export class TerminalManager extends EventEmitter {
 			rows,
 			initialCommands,
 			existingScrollback,
+			useFallbackShell = false,
 		} = params;
 
-		const shell = this.getDefaultShell();
+		const shell = useFallbackShell ? FALLBACK_SHELL : this.getDefaultShell();
 		const workingDir = cwd || os.homedir();
 		const terminalCols = cols || this.DEFAULT_COLS;
 		const terminalRows = rows || this.DEFAULT_ROWS;
 
+		// Build environment with security and compatibility improvements
 		const baseEnv = this.sanitizeEnv(process.env) || {};
 		const shellEnv = getShellEnv(shell);
+
+		// Detect locale - use system locale or fall back to UTF-8
+		const locale = this.getLocale(baseEnv);
+
 		const env = {
 			...baseEnv,
 			...shellEnv,
+			// Terminal identification (like Hyper)
 			TERM_PROGRAM: "Superset",
 			TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
+			// Enable truecolor support
 			COLORTERM: "truecolor",
-			LANG: baseEnv.LANG || "en_US.UTF-8",
+			// Locale for proper UTF-8 handling
+			LANG: locale,
+			// Superset-specific env vars
 			SUPERSET_PANE_ID: paneId,
 			SUPERSET_TAB_ID: tabId,
 			SUPERSET_WORKSPACE_ID: workspaceId,
@@ -173,6 +194,10 @@ export class TerminalManager extends EventEmitter {
 			SUPERSET_ROOT_PATH: rootPath || "",
 			SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 		};
+
+		// Security: Remove Electron's default Google API key to prevent leakage
+		// (Electron sets this by default and we don't want it in the shell)
+		delete (env as Record<string, string | undefined>).GOOGLE_API_KEY;
 
 		// Recover scrollback from in-memory dead session or disk
 		let recoveredScrollback = "";
@@ -236,6 +261,9 @@ export class TerminalManager extends EventEmitter {
 			historyWriter,
 			escapeFilter: new TerminalEscapeFilter(),
 			dataBatcher,
+			shell,
+			startTime: Date.now(),
+			usedFallback: useFallbackShell,
 		};
 
 		// Send initial commands after first shell output (shell is ready)
@@ -279,6 +307,45 @@ export class TerminalManager extends EventEmitter {
 			if (remaining) {
 				session.scrollback += remaining;
 				session.historyWriter?.write(remaining);
+			}
+
+			// Check if shell crashed quickly - if so, try fallback shell
+			const sessionDuration = Date.now() - session.startTime;
+			const crashedQuickly =
+				sessionDuration < SHELL_CRASH_THRESHOLD_MS && exitCode !== 0;
+
+			if (crashedQuickly && !session.usedFallback) {
+				console.warn(
+					`[TerminalManager] Shell "${session.shell}" exited with code ${exitCode} after ${sessionDuration}ms, retrying with fallback shell "${FALLBACK_SHELL}"`,
+				);
+
+				// Clean up failed session
+				await this.closeHistory(session, exitCode);
+				this.sessions.delete(paneId);
+
+				// Retry with fallback shell
+				try {
+					await this.doCreateSession({
+						paneId,
+						tabId,
+						workspaceId,
+						workspaceName,
+						workspacePath,
+						rootPath,
+						cwd,
+						cols,
+						rows,
+						initialCommands,
+						existingScrollback: session.scrollback || null,
+						useFallbackShell: true,
+					});
+					return; // Don't emit exit event - we recovered
+				} catch (fallbackError) {
+					console.error(
+						"[TerminalManager] Fallback shell also failed:",
+						fallbackError,
+					);
+				}
 			}
 
 			await this.closeHistory(session, exitCode);
@@ -617,7 +684,17 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
+	/**
+	 * Get the default shell using the default-shell package.
+	 * Falls back to manual detection if package fails.
+	 */
 	private getDefaultShell(): string {
+		// Use default-shell package for robust detection
+		if (defaultShell) {
+			return defaultShell;
+		}
+
+		// Fallback to manual detection
 		const platform = os.platform();
 
 		if (platform === "win32") {
@@ -628,20 +705,41 @@ export class TerminalManager extends EventEmitter {
 			return process.env.SHELL;
 		}
 
-		const commonShells = ["/bin/bash", "/bin/zsh", "/bin/sh"];
-		const fs = require("node:fs");
+		return "/bin/sh";
+	}
 
-		for (const shell of commonShells) {
-			try {
-				if (fs.existsSync(shell)) {
-					return shell;
-				}
-			} catch {
-				// Shell not available, try next
-			}
+	/**
+	 * Get the locale for the terminal environment.
+	 * Uses system locale if available, falls back to en_US.UTF-8.
+	 */
+	private getLocale(baseEnv: Record<string, string>): string {
+		// Check existing LANG first
+		if (baseEnv.LANG?.includes("UTF-8")) {
+			return baseEnv.LANG;
 		}
 
-		return "/bin/sh";
+		// Check LC_ALL
+		if (baseEnv.LC_ALL?.includes("UTF-8")) {
+			return baseEnv.LC_ALL;
+		}
+
+		// Try to detect system locale
+		try {
+			// On macOS/Linux, try to get locale from system
+			const { execSync } = require("node:child_process");
+			const result = execSync("locale 2>/dev/null | grep LANG= | cut -d= -f2", {
+				encoding: "utf-8",
+				timeout: 1000,
+			}).trim();
+			if (result?.includes("UTF-8")) {
+				return result;
+			}
+		} catch {
+			// Ignore errors - will use fallback
+		}
+
+		// Default to en_US.UTF-8 for maximum compatibility
+		return "en_US.UTF-8";
 	}
 
 	private sanitizeEnv(
