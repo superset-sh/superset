@@ -1,4 +1,6 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
+import { db, eq } from "@superset/db";
+import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { NextResponse } from "next/server";
 
@@ -19,14 +21,17 @@ export default clerkMiddleware(async (auth, req) => {
 		return NextResponse.next();
 	}
 
-	const { userId, sessionClaims } = await auth();
+	const { userId: clerkId } = await auth();
 
-	if (!userId) {
+	if (!clerkId) {
 		return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
 	}
 
-	const email = sessionClaims?.email as string | undefined;
-	if (!email?.endsWith(COMPANY.emailDomain)) {
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkId),
+	});
+
+	if (!user?.email.endsWith(COMPANY.emailDomain)) {
 		return NextResponse.redirect(new URL(env.NEXT_PUBLIC_WEB_URL));
 	}
 

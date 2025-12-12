@@ -1,15 +1,14 @@
-import type { WebhookEvent } from "@clerk/backend";
+import { verifyWebhook } from "@clerk/backend/webhooks";
 import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { put } from "@vercel/blob";
 import { eq } from "drizzle-orm";
-import { Webhook } from "svix";
 
 import { env } from "../../../../env";
 
 async function uploadAvatar(
 	imageUrl: string | undefined,
-	clerkId: string,
+	userId: string,
 ): Promise<string | null> {
 	if (!imageUrl) return null;
 
@@ -18,7 +17,7 @@ async function uploadAvatar(
 		if (!response.ok) return null;
 
 		const blob = await response.blob();
-		const { url } = await put(`avatars/${clerkId}.jpg`, blob, {
+		const { url } = await put(`users/${userId}/avatar.png`, blob, {
 			access: "public",
 			token: env.BLOB_READ_WRITE_TOKEN,
 		});
@@ -29,72 +28,62 @@ async function uploadAvatar(
 }
 
 export async function POST(req: Request) {
-	const payload = await req.text();
-
-	const svixId = req.headers.get("svix-id");
-	const svixTimestamp = req.headers.get("svix-timestamp");
-	const svixSignature = req.headers.get("svix-signature");
-
-	if (!svixId || !svixTimestamp || !svixSignature) {
-		return new Response("Missing webhook headers", { status: 400 });
-	}
-
-	const wh = new Webhook(env.CLERK_WEBHOOK_SECRET);
-	let event: WebhookEvent;
-
 	try {
-		event = wh.verify(payload, {
-			"svix-id": svixId,
-			"svix-timestamp": svixTimestamp,
-			"svix-signature": svixSignature,
-		}) as WebhookEvent;
-	} catch {
-		return new Response("Invalid signature", { status: 400 });
-	}
+		const evt = await verifyWebhook(req, {
+			signingSecret: env.CLERK_WEBHOOK_SECRET,
+		});
 
-	switch (event.type) {
-		case "user.created":
-		case "user.updated": {
-			const user = event.data;
-			const primaryEmail = user.email_addresses.find(
-				(email) => email.id === user.primary_email_address_id,
+		if (evt.type === "user.created" || evt.type === "user.updated") {
+			const clerkUser = evt.data;
+			const primaryEmail = clerkUser.email_addresses.find(
+				(email) => email.id === clerkUser.primary_email_address_id,
 			)?.email_address;
 
-			if (!primaryEmail) break;
+			if (!primaryEmail) {
+				return new Response("No primary email", { status: 200 });
+			}
 
 			const name =
-				[user.first_name, user.last_name].filter(Boolean).join(" ") ||
+				[clerkUser.first_name, clerkUser.last_name].filter(Boolean).join(" ") ||
 				primaryEmail.split("@")[0] ||
 				"User";
 
-			const avatarUrl = await uploadAvatar(user.image_url, user.id);
-
-			await db
+			// Insert/update user first to get the internal UUID
+			const [user] = await db
 				.insert(users)
 				.values({
-					clerkId: user.id,
+					clerkId: clerkUser.id,
 					email: primaryEmail,
 					name,
-					avatarUrl,
 				})
 				.onConflictDoUpdate({
 					target: users.clerkId,
 					set: {
 						email: primaryEmail,
 						name,
-						...(avatarUrl && { avatarUrl }),
 					},
-				});
-			break;
-		}
-		case "user.deleted": {
-			const userId = event.data.id;
-			if (userId) {
-				await db.delete(users).where(eq(users.clerkId, userId));
-			}
-			break;
-		}
-	}
+				})
+				.returning({ id: users.id });
 
-	return new Response("OK", { status: 200 });
+			// Upload avatar using internal UUID, then update user
+			if (user) {
+				const avatarUrl = await uploadAvatar(clerkUser.image_url, user.id);
+				if (avatarUrl) {
+					await db
+						.update(users)
+						.set({ avatarUrl })
+						.where(eq(users.id, user.id));
+				}
+			}
+		}
+
+		if (evt.type === "user.deleted" && evt.data.id) {
+			await db.delete(users).where(eq(users.clerkId, evt.data.id));
+		}
+
+		return new Response("Success", { status: 200 });
+	} catch (err) {
+		console.error("Webhook verification failed:", err);
+		return new Response("Webhook verification failed", { status: 400 });
+	}
 }

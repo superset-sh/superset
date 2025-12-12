@@ -20,6 +20,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().optional(),
 	},
 
 	experimental__runtimeEnv: {
@@ -28,6 +29,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
 			process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+		NEXT_PUBLIC_COOKIE_DOMAIN: process.env.NEXT_PUBLIC_COOKIE_DOMAIN,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

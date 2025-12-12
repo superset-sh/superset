@@ -5,6 +5,8 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 
+import { env } from "@/env";
+
 import "./globals.css";
 
 import { Providers } from "./providers";
@@ -27,7 +29,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<ClerkProvider>
+		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
 			<html lang="en" suppressHydrationWarning>
 				<body
 					className={cn(

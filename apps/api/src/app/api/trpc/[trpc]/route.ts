@@ -14,6 +14,4 @@ const handler = (req: Request) =>
 		},
 	});
 
-export const OPTIONS = () => new Response(null, { status: 204 });
-
 export { handler as GET, handler as POST };

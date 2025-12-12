@@ -20,6 +20,7 @@ export const users = pgTable(
 		name: text().notNull(),
 		email: text().notNull().unique(),
 		avatarUrl: text("avatar_url"),
+		deletedAt: timestamp("deleted_at"),
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
@@ -29,6 +30,7 @@ export const users = pgTable(
 	(table) => [
 		index("users_email_idx").on(table.email),
 		index("users_clerk_id_idx").on(table.clerkId),
+		index("users_deleted_at_idx").on(table.deletedAt),
 	],
 );
 
