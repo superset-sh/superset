@@ -68,11 +68,15 @@ else
   POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --pooled)
 fi
 
-# Copy root .env and override with branch-specific values
+# Copy root .env and append branch-specific values
 cp "$SUPERSET_ROOT_PATH/.env" .env
-sed -i '' "s|^DATABASE_URL=.*|DATABASE_URL=$POOLED_URL|" .env
-sed -i '' "s|^DATABASE_URL_UNPOOLED=.*|DATABASE_URL_UNPOOLED=$DIRECT_URL|" .env
-echo "NEON_BRANCH_ID=$BRANCH_ID" >> .env
+cat >> .env << EOF
+
+# Workspace Database (Neon Branch)
+NEON_BRANCH_ID=$BRANCH_ID
+DATABASE_URL=$POOLED_URL
+DATABASE_URL_UNPOOLED=$DIRECT_URL
+EOF
 
 success "Neon branch created: $WORKSPACE_NAME"
 echo "✨ Done!"
