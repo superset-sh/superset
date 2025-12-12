@@ -15,13 +15,12 @@ export function VideoSection() {
 					transition={{ duration: 0.5 }}
 				>
 					<div className="space-y-1 mb-6">
-						<h2 className="text-xl sm:text-2xl font-mono font-normal tracking-[-0.01em] text-stone-100">
+						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-stone-100">
 							A Superset of your favorite tools
 						</h2>
-						<p className="font-normal tracking-[-0.03em] text-neutral-400 max-w-[700px]">
-						Superset aims to be a superset of all the best AI coding tools. We
-						want to support and stay compatible with whatever CLI agents you
-						already use - improving your workflow instead of replacing it.
+						<p className="text-md sm:text-lg font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
+						Get all the best AI coding tools in one place. We want to support and stay compatible with whatever CLI agents you
+						already use.
 						</p>
 					</div>
 
