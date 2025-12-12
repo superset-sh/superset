@@ -7,6 +7,7 @@ import {
 	registerPaneRef,
 	unregisterPaneRef,
 } from "renderer/stores/tabs/pane-refs";
+import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import type { Pane, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
@@ -111,6 +112,11 @@ export function TabPane({
 		splitPaneAuto(tabId, paneId, { width, height }, path);
 	};
 
+	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
+	const handleClearTerminal = () => {
+		getClearCallback(paneId)?.();
+	};
+
 	const splitIcon =
 		splitOrientation === "vertical" ? (
 			<TbLayoutColumns className="size-4" />
@@ -164,6 +170,7 @@ export function TabPane({
 				onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
 				onClosePane={() => removePane(paneId)}
+				onClearTerminal={handleClearTerminal}
 				currentTabId={tabId}
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}

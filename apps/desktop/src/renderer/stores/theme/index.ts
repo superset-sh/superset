@@ -1,4 +1,5 @@
 export {
+	useMonacoTheme,
 	useSetTheme,
 	useTerminalTheme,
 	useTheme,

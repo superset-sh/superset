@@ -17,7 +17,7 @@ export const db = drizzle({
 });
 
 export const dbWs = drizzleWs({
-	client: new Pool({ connectionString: process.env.DATABASE_URL }),
+	client: new Pool({ connectionString: env.DATABASE_URL }),
 	schema,
 	casing: "snake_case",
 });

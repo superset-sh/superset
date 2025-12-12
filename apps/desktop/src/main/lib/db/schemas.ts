@@ -96,9 +96,18 @@ export const EXTERNAL_APPS = [
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 
+export interface TerminalPreset {
+	id: string;
+	name: string;
+	cwd: string;
+	commands: string[];
+}
+
 export interface Settings {
 	lastActiveWorkspaceId?: string;
 	lastUsedApp?: ExternalApp;
+	terminalPresets?: TerminalPreset[];
+	selectedRingtoneId?: string;
 }
 
 export interface Database {

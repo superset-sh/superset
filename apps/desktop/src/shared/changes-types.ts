@@ -1,0 +1,69 @@
+/**
+ * Types for the git changes/diff viewer feature
+ */
+
+/** File status from git, matching short format codes */
+export type FileStatus =
+	| "added"
+	| "modified"
+	| "deleted"
+	| "renamed"
+	| "copied"
+	| "untracked";
+
+/** Change categories for organizing the sidebar */
+export type ChangeCategory =
+	| "against-main"
+	| "committed"
+	| "staged"
+	| "unstaged";
+
+/** A changed file entry */
+export interface ChangedFile {
+	path: string; // Relative path from repo root
+	oldPath?: string; // Original path for renames/copies
+	status: FileStatus;
+	additions: number;
+	deletions: number;
+}
+
+/** A commit summary for the committed changes section */
+export interface CommitInfo {
+	hash: string;
+	shortHash: string; // Short hash (7 chars)
+	message: string; // Commit message (first line)
+	author: string;
+	date: Date;
+	files: ChangedFile[];
+}
+
+/** Full git changes status for a worktree */
+export interface GitChangesStatus {
+	branch: string;
+	defaultBranch: string; // Default branch (main/master)
+	againstMain: ChangedFile[]; // All files changed vs default branch
+	commits: CommitInfo[]; // Individual commits on branch (not on default)
+	staged: ChangedFile[];
+	unstaged: ChangedFile[];
+	untracked: ChangedFile[];
+	ahead: number; // Commits ahead of default branch
+	behind: number; // Commits behind default branch
+}
+
+/** Diff view mode toggle */
+export type DiffViewMode = "side-by-side" | "inline";
+
+/** Input for getting file diff */
+export interface FileDiffInput {
+	worktreePath: string;
+	filePath: string;
+	category: ChangeCategory;
+	commitHash?: string; // For committed category: which commit to show
+}
+
+/** File contents for Monaco diff editor */
+export interface FileContents {
+	original: string; // Original content (before changes)
+	modified: string; // Modified content (after changes)
+	language: string; // Detected language for syntax highlighting
+}

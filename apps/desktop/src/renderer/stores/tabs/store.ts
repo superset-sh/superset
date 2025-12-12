@@ -2,10 +2,11 @@ import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { electronStorage } from "../../lib/electron-storage";
+import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { TabsState, TabsStore } from "./types";
 import {
+	type CreatePaneOptions,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
@@ -14,7 +15,7 @@ import {
 	isLastPaneInTab,
 	removePaneFromLayout,
 } from "./utils";
-import { killTerminalForTab } from "./utils/terminal-cleanup";
+import { killTerminalForPane } from "./utils/terminal-cleanup";
 
 /**
  * Finds the next best tab to activate when closing a tab.
@@ -79,9 +80,13 @@ export const useTabsStore = create<TabsStore>()(
 				tabHistoryStacks: {},
 
 				// Tab operations
-				addTab: (workspaceId) => {
+				addTab: (workspaceId, options?: CreatePaneOptions) => {
 					const state = get();
-					const { tab, pane } = createTabWithPane(workspaceId, state.tabs);
+					const { tab, pane } = createTabWithPane(
+						workspaceId,
+						state.tabs,
+						options,
+					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -120,7 +125,7 @@ export const useTabsStore = create<TabsStore>()(
 					// Kill all terminals for panes in this tab
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
 					for (const paneId of paneIds) {
-						killTerminalForTab(paneId);
+						killTerminalForPane(paneId);
 					}
 
 					// Remove all panes belonging to this tab
@@ -162,7 +167,15 @@ export const useTabsStore = create<TabsStore>()(
 				renameTab: (tabId, newName) => {
 					set((state) => ({
 						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, name: newName } : t,
+							t.id === tabId ? { ...t, userTitle: newName } : t,
+						),
+					}));
+				},
+
+				setTabAutoTitle: (tabId, title) => {
+					set((state) => ({
+						tabs: state.tabs.map((t) =>
+							t.id === tabId ? { ...t, name: title } : t,
 						),
 					}));
 				},
@@ -278,7 +291,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = { ...state.panes };
 					for (const paneId of removedPaneIds) {
-						killTerminalForTab(paneId);
+						killTerminalForPane(paneId);
 						delete newPanes[paneId];
 					}
 
@@ -349,7 +362,7 @@ export const useTabsStore = create<TabsStore>()(
 					}
 
 					// Kill the terminal
-					killTerminalForTab(paneId);
+					killTerminalForPane(paneId);
 
 					// Remove pane from layout
 					const newLayout = removePaneFromLayout(tab.layout, paneId);
@@ -453,6 +466,21 @@ export const useTabsStore = create<TabsStore>()(
 							...state.panes,
 							[paneId]: state.panes[paneId]
 								? { ...state.panes[paneId], cwd }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
+				clearPaneInitialData: (paneId) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? {
+										...state.panes[paneId],
+										initialCommands: undefined,
+										initialCwd: undefined,
+									}
 								: state.panes[paneId],
 						},
 					}));
@@ -612,7 +640,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				storage: electronStorage,
+				storage: trpcTabsStorage,
 			},
 		),
 		{ name: "TabsStore" },

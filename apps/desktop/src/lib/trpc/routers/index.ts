@@ -1,12 +1,15 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
 import { createProjectsRouter } from "./projects";
+import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
 import { createTerminalRouter } from "./terminal";
+import { createUiStateRouter } from "./ui-state";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -23,11 +26,14 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
+		changes: createChangesRouter(),
 		notifications: createNotificationsRouter(),
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),
+		uiState: createUiStateRouter(),
+		ringtone: createRingtoneRouter(),
 	});
 };
 

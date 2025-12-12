@@ -1,5 +1,5 @@
 .mosaic-container {
-	background: var(--background);
+	background: var(--color-tertiary);
 }
 
 .mosaic-theme-dark .mosaic-window {

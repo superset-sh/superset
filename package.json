@@ -30,10 +30,11 @@
 		"db:studio": "cd packages/db && bun db:studio",
 		"db:reset": "cd apps/backend && bun run reset",
 		"lint": "./scripts/lint.sh",
-		"lint:fix": "biome check --write .",
+		"lint:fix": "biome check --write --unsafe .",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"typecheck": "turbo typecheck",
+		"ui-add": "turbo run ui-add",
 		"postinstall": "sherif",
 		"clean": "git clean -xdf node_modules",
 		"clean:workspaces": "turbo clean"
@@ -41,6 +42,7 @@
 	"type": "module",
 	"workspaces": [
 		"packages/*",
-		"apps/*"
+		"apps/*",
+		"tooling/*"
 	]
 }

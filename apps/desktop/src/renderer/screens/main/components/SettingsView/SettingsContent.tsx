@@ -1,7 +1,9 @@
 import type { SettingsSection } from "renderer/stores";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { KeyboardShortcutsSettings } from "./KeyboardShortcutsSettings";
+import { PresetsSettings } from "./PresetsSettings";
 import { ProjectSettings } from "./ProjectSettings";
+import { RingtonesSettings } from "./RingtonesSettings";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 
 interface SettingsContentProps {
@@ -14,7 +16,9 @@ export function SettingsContent({ activeSection }: SettingsContentProps) {
 			{activeSection === "project" && <ProjectSettings />}
 			{activeSection === "workspace" && <WorkspaceSettings />}
 			{activeSection === "appearance" && <AppearanceSettings />}
+			{activeSection === "ringtones" && <RingtonesSettings />}
 			{activeSection === "keyboard" && <KeyboardShortcutsSettings />}
+			{activeSection === "presets" && <PresetsSettings />}
 		</div>
 	);
 }

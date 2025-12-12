@@ -1,46 +1,31 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
+import type { BaseTab, BaseTabsState, Pane, PaneType } from "shared/tabs-types";
 
-/**
- * Pane types that can be displayed within a tab
- */
-export type PaneType = "terminal";
-
-/**
- * A Pane represents a single terminal or content area within a Tab.
- * Panes always belong to a Tab and are referenced by ID in the Tab's layout.
- */
-export interface Pane {
-	id: string;
-	tabId: string;
-	type: PaneType;
-	name: string;
-	isNew?: boolean;
-	needsAttention?: boolean;
-	venvs?: string[];
-	cwd?: string | null;
-}
+// Re-export shared types
+export type { Pane, PaneType };
 
 /**
  * A Tab is a container that holds one or more Panes in a Mosaic layout.
- * Tabs are displayed in the sidebar and always have at least one Pane.
+ * Extends BaseTab with renderer-specific layout field.
  */
-export interface Tab {
-	id: string;
-	name: string;
-	workspaceId: string;
+export interface Tab extends BaseTab {
 	layout: MosaicNode<string>; // Always defined, leaves are paneIds
-	createdAt: number;
 }
 
 /**
- * State for the tabs/panes store
+ * State for the tabs/panes store.
+ * Extends BaseTabsState with renderer-specific Tab type.
  */
-export interface TabsState {
+export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
-	panes: Record<string, Pane>;
-	activeTabIds: Record<string, string | null>; // workspaceId → tabId
-	focusedPaneIds: Record<string, string>; // tabId → paneId (last focused pane in each tab)
-	tabHistoryStacks: Record<string, string[]>; // workspaceId → tabId[] (MRU history)
+}
+
+/**
+ * Options for creating a tab with preset configuration
+ */
+export interface AddTabOptions {
+	initialCommands?: string[];
+	initialCwd?: string;
 }
 
 /**
@@ -48,9 +33,13 @@ export interface TabsState {
  */
 export interface TabsStore extends TabsState {
 	// Tab operations
-	addTab: (workspaceId: string) => { tabId: string; paneId: string };
+	addTab: (
+		workspaceId: string,
+		options?: AddTabOptions,
+	) => { tabId: string; paneId: string };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
+	setTabAutoTitle: (tabId: string, title: string) => void;
 	setActiveTab: (workspaceId: string, tabId: string) => void;
 	reorderTabs: (
 		workspaceId: string,
@@ -69,6 +58,7 @@ export interface TabsStore extends TabsState {
 	updatePaneName: (paneId: string, name: string) => void;
 	updatePaneVenvs: (paneId: string, venvs: string[]) => void;
 	updatePaneCwd: (paneId: string, cwd: string | null) => void;
+	clearPaneInitialData: (paneId: string) => void;
 
 	// Split operations
 	splitPaneVertical: (

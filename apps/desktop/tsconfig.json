@@ -1,22 +1,7 @@
 {
+	"extends": "@superset/typescript/electron.json",
 	"compilerOptions": {
-		"strict": true,
-		"target": "esnext",
-		"lib": ["esnext", "dom", "dom.iterable"],
-		"jsx": "react-jsx",
-		"importHelpers": true,
-		"moduleResolution": "bundler",
-		"module": "ESNext",
-		"resolveJsonModule": true,
-		"esModuleInterop": true,
-		"sourceMap": true,
-		"isolatedModules": true,
-		"allowJs": true,
-		"allowSyntheticDefaultImports": true,
-		"skipLibCheck": true,
 		"types": ["bun-types"],
-		"forceConsistentCasingInFileNames": true,
-		"noEmit": true,
 		"baseUrl": ".",
 		"paths": {
 			"*": ["src/*"],
@@ -29,5 +14,5 @@
 		"electron-builder.ts",
 		"index.d.ts"
 	],
-	"exclude": ["node_modules"]
+	"exclude": ["node_modules", "dist", "dist-electron", "release"]
 }

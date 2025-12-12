@@ -1,12 +1,23 @@
 {
 	"$schema": "https://turbo.build/schema.json",
-	"globalEnv": ["DATABASE_URL"],
+	"ui": "tui",
+	"globalEnv": [
+		"DATABASE_URL",
+		"DATABASE_URL_UNPOOLED",
+		"MOCK_USER_ID",
+		"NEXT_PUBLIC_API_URL",
+		"NEXT_PUBLIC_WEB_URL",
+		"NEXT_PUBLIC_MARKETING_URL",
+		"NEXT_PUBLIC_DOCS_URL",
+		"NEXT_PUBLIC_ADMIN_URL"
+	],
 	"globalPassThroughEnv": [
 		"NODE_ENV",
 		"CI",
 		"VERCEL",
 		"VERCEL_ENV",
-		"VERCEL_URL"
+		"VERCEL_URL",
+		"npm_lifecycle_event"
 	],
 	"tasks": {
 		"build": {
@@ -17,10 +28,12 @@
 				"!.next/cache/**",
 				"dist/**",
 				"dist-electron/**",
-				"release/**"
+				"release/**",
+				".cache/tsbuildinfo.json"
 			]
 		},
 		"dev": {
+			"dependsOn": ["^dev"],
 			"cache": false,
 			"persistent": true
 		},
@@ -30,10 +43,25 @@
 		},
 		"typecheck": {
 			"dependsOn": ["^build"],
+			"outputs": [".cache/tsbuildinfo.json"]
+		},
+		"lint": {
 			"outputs": []
 		},
 		"clean": {
 			"cache": false
+		},
+		"push": {
+			"cache": false,
+			"interactive": true
+		},
+		"studio": {
+			"cache": false,
+			"persistent": true
+		},
+		"ui-add": {
+			"cache": false,
+			"interactive": true
 		},
 		"db:gen": {
 			"cache": false,

@@ -10,47 +10,72 @@ success() { echo -e "${GREEN}✓${NC} $1"; }
 
 echo "🚀 Setting up Superset workspace..."
 
+# Load root .env for this script (provides NEON_PROJECT_ID, etc.)
+if [ -n "$SUPERSET_ROOT_PATH" ] && [ -f "$SUPERSET_ROOT_PATH/.env" ]; then
+  set -a
+  source "$SUPERSET_ROOT_PATH/.env"
+  set +a
+fi
+
 # Check dependencies
 command -v bun &> /dev/null || error "Bun not installed. Install from https://bun.sh"
 command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
 command -v jq &> /dev/null || error "jq not installed. Run: brew install jq"
+
+# Check required environment variables
+NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
+[ -z "$NEON_PROJECT_ID" ] && error "NEON_PROJECT_ID environment variable is required"
 
 # Install dependencies
 echo "📥 Installing dependencies..."
 bun install
 success "Dependencies installed"
 
-# Link direnv config from root repo if it exists
-if [ -n "$SUPERSET_ROOT_PATH" ] && [ -f "$SUPERSET_ROOT_PATH/.envrc" ]; then
-  echo "🔧 Linking .envrc..."
-  ln -sf "$SUPERSET_ROOT_PATH/.envrc" .envrc
+# Create .envrc for direnv
+if [ ! -f .envrc ]; then
+  echo "🔧 Creating .envrc..."
+  cat > .envrc << 'ENVRC'
+#!/usr/bin/env bash
+dotenv .env
+ENVRC
   if command -v direnv &> /dev/null; then
     direnv allow
   fi
   success "direnv configured"
 fi
 
-# Create Neon branch for this workspace
-echo "🗄️  Creating Neon branch..."
+# Create or get Neon branch for this workspace
 WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
-NEON_OUTPUT=$(neonctl branches create \
-  --project-id tiny-cherry-82420694 \
-  --name "$WORKSPACE_NAME" \
-  --output json)
 
-# Parse connection strings from create output
-BRANCH_ID=$(echo "$NEON_OUTPUT" | jq -r '.branch.id')
-DATABASE_URL=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_uri')
-POOLER_HOST=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.pooler_host')
-PASSWORD=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.password')
-ROLE=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.role')
-DATABASE=$(echo "$NEON_OUTPUT" | jq -r '.connection_uris[0].connection_parameters.database')
-DATABASE_POOLED_URL="postgresql://${ROLE}:${PASSWORD}@${POOLER_HOST}/${DATABASE}?sslmode=require"
+# Check if branch already exists
+EXISTING_BRANCH=$(neonctl branches list --project-id "$NEON_PROJECT_ID" --output json | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id")
 
-cat > .env << EOF
+if [ -n "$EXISTING_BRANCH" ]; then
+  echo "🗄️  Using existing Neon branch..."
+  BRANCH_ID="$EXISTING_BRANCH"
+  # Get connection strings for existing branch
+  DIRECT_URL=$(neonctl connection-string "$EXISTING_BRANCH" --project-id "$NEON_PROJECT_ID")
+  POOLED_URL=$(neonctl connection-string "$EXISTING_BRANCH" --project-id "$NEON_PROJECT_ID" --pooled)
+else
+  echo "🗄️  Creating Neon branch..."
+  NEON_OUTPUT=$(neonctl branches create \
+    --project-id "$NEON_PROJECT_ID" \
+    --name "$WORKSPACE_NAME" \
+    --output json)
+  BRANCH_ID=$(echo "$NEON_OUTPUT" | jq -r '.branch.id')
+  # Get connection strings for new branch
+  DIRECT_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID")
+  POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --pooled)
+fi
+
+# Copy root .env and append branch-specific values
+cp "$SUPERSET_ROOT_PATH/.env" .env
+cat >> .env << EOF
+
+# Workspace Database (Neon Branch)
 NEON_BRANCH_ID=$BRANCH_ID
-DATABASE_URL=$DATABASE_URL
-DATABASE_POOLED_URL=$DATABASE_POOLED_URL
+DATABASE_URL=$POOLED_URL
+DATABASE_URL_UNPOOLED=$DIRECT_URL
 EOF
 
 success "Neon branch created: $WORKSPACE_NAME"

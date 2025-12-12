@@ -1,0 +1,33 @@
+{
+	"name": "@superset/api",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "next build",
+		"clean": "git clean -xdf .cache .next .turbo node_modules",
+		"dev": "next dev --port 3001",
+		"start": "next start --port 3001",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"@t3-oss/env-nextjs": "^0.13.8",
+		"@trpc/server": "^11.7.1",
+		"drizzle-orm": "0.45.1",
+		"next": "^16.0.10",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"zod": "^4.1.13"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"babel-plugin-react-compiler": "^1.0.0",
+		"typescript": "^5.9.3"
+	}
+}

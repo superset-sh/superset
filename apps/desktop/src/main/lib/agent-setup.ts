@@ -2,7 +2,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { PORTS, SUPERSET_DIR_NAME } from "shared/constants";
+import { PORTS, SUPERSET_DIR_NAME, SUPERSET_DIR_NAMES } from "shared/constants";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
 const BIN_DIR = path.join(SUPERSET_HOME_DIR, "bin");
@@ -11,18 +11,25 @@ const ZSH_DIR = path.join(SUPERSET_HOME_DIR, "zsh");
 const BASH_DIR = path.join(SUPERSET_HOME_DIR, "bash");
 
 /**
- * Finds the real path of a binary, skipping our wrapper scripts
+ * Finds the real path of a binary, skipping our wrapper scripts.
+ * Filters out both dev and prod superset bin directories
+ * to avoid wrapper scripts calling each other.
  */
 function findRealBinary(name: string): string | null {
 	try {
-		// Get all paths, filter out our bin dir
+		// Get all paths, filter out both dev and prod superset bin dirs
 		const result = execSync(`which -a ${name} 2>/dev/null || true`, {
 			encoding: "utf-8",
 		});
+		const homedir = os.homedir();
+		const supersetBinDirs = [
+			path.join(homedir, SUPERSET_DIR_NAMES.PROD, "bin"),
+			path.join(homedir, SUPERSET_DIR_NAMES.DEV, "bin"),
+		];
 		const paths = result
 			.trim()
 			.split("\n")
-			.filter((p) => p && !p.startsWith(BIN_DIR));
+			.filter((p) => p && !supersetBinDirs.some((dir) => p.startsWith(dir)));
 		return paths[0] || null;
 	} catch {
 		return null;
@@ -62,9 +69,8 @@ fi
 [ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
 
 curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/complete" \\
+  --data-urlencode "paneId=$SUPERSET_PANE_ID" \\
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
-  --data-urlencode "tabTitle=$SUPERSET_TAB_TITLE" \\
-  --data-urlencode "workspaceName=$SUPERSET_WORKSPACE_NAME" \\
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
   --data-urlencode "eventType=$EVENT_TYPE" \\
   > /dev/null 2>&1
@@ -134,16 +140,13 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 `;
 	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
 
-	// Create .zshrc to source user's .zshrc then prepend our bin
+	// Create .zshrc - reset ZDOTDIR before sourcing so Oh My Zsh works correctly
 	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
-export ZDOTDIR="$_superset_home"
-# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
-export PROMPT=$'%B%F{#34d399}❯%f%b '
-export PS1=$'%B%F{#34d399}❯%f%b '
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");

@@ -1,0 +1,8 @@
+{
+	"name": "@superset/typescript",
+	"private": true,
+	"version": "0.1.0",
+	"files": [
+		"*.json"
+	]
+}

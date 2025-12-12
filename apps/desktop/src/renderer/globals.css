@@ -1,11 +1,8 @@
 @import "tailwindcss";
-@import "@superset/ui/globals.css";
-
-@plugin "tailwindcss-animate";
+@import "tw-animate-css";
 
 @source "./**/*.{ts,tsx}";
-
-@custom-variant dark (&:is(.dark *));
+@source "../../../../packages/ui/src/**/*.{ts,tsx}";
 
 /**
  * Theme CSS Variables
@@ -135,8 +132,7 @@
 
 @layer base {
 	* {
-		@apply border-border outline-ring/50;
-		@apply antialiased;
+		@apply border-border antialiased;
 	}
 
 	body {

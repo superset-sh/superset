@@ -1,5 +1,5 @@
-import { Check, LoaderCircle, Minus, X } from "lucide-react";
 import type { CheckItem } from "main/lib/db/schemas";
+import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
 
 interface CheckItemRowProps {
 	check: CheckItem;
@@ -7,11 +7,11 @@ interface CheckItemRowProps {
 
 export function CheckItemRow({ check }: CheckItemRowProps) {
 	const statusConfig = {
-		success: { icon: Check, className: "text-emerald-500" },
-		failure: { icon: X, className: "text-destructive-foreground" },
-		pending: { icon: LoaderCircle, className: "text-amber-500" },
-		skipped: { icon: Minus, className: "text-muted-foreground" },
-		cancelled: { icon: Minus, className: "text-muted-foreground" },
+		success: { icon: LuCheck, className: "text-emerald-500" },
+		failure: { icon: LuX, className: "text-destructive-foreground" },
+		pending: { icon: LuLoaderCircle, className: "text-amber-500" },
+		skipped: { icon: LuMinus, className: "text-muted-foreground" },
+		cancelled: { icon: LuMinus, className: "text-muted-foreground" },
 	};
 
 	const { icon: Icon, className } = statusConfig[check.status];
