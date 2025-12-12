@@ -69,16 +69,25 @@ export function DirectoryNavigator({
 	};
 
 	const getPathSegments = (path: string) => {
-		const isInHome = homeDir && path.startsWith(homeDir);
+		// Normalize homeDir by removing any trailing slash
+		const normalizedHomeDir = homeDir?.replace(/\/$/, "");
+		// Path is in home only if it equals homeDir or starts with homeDir + "/"
+		const isInHome =
+			normalizedHomeDir &&
+			(path === normalizedHomeDir || path.startsWith(normalizedHomeDir + "/"));
 
-		if (isInHome && homeDir) {
-			const relativePath = path.slice(homeDir.length);
+		if (isInHome && normalizedHomeDir) {
+			// If path equals homeDir, relativePath is empty; otherwise slice after the "/"
+			const relativePath =
+				path === normalizedHomeDir
+					? ""
+					: path.slice(normalizedHomeDir.length + 1);
 			const segments = relativePath.split("/").filter(Boolean);
 			return [
-				{ name: "~", path: homeDir },
+				{ name: "~", path: normalizedHomeDir },
 				...segments.map((seg, idx) => ({
 					name: seg,
-					path: `${homeDir}/${segments.slice(0, idx + 1).join("/")}`,
+					path: `${normalizedHomeDir}/${segments.slice(0, idx + 1).join("/")}`,
 				})),
 			];
 		}
