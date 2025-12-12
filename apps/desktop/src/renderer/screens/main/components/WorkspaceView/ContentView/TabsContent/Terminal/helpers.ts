@@ -318,22 +318,18 @@ export function setupResizeHandlers(
 	fitAddon: FitAddon,
 	onResize: (cols: number, rows: number) => void,
 ): () => void {
-	const debouncedResize = debounce((cols: number, rows: number) => {
-		onResize(cols, rows);
+	const debouncedHandleResize = debounce(() => {
+		fitAddon.fit();
+		onResize(xterm.cols, xterm.rows);
 	}, RESIZE_DEBOUNCE_MS);
 
-	const handleResize = () => {
-		fitAddon.fit();
-		debouncedResize(xterm.cols, xterm.rows);
-	};
-
-	const resizeObserver = new ResizeObserver(handleResize);
+	const resizeObserver = new ResizeObserver(debouncedHandleResize);
 	resizeObserver.observe(container);
-	window.addEventListener("resize", handleResize);
+	window.addEventListener("resize", debouncedHandleResize);
 
 	return () => {
-		window.removeEventListener("resize", handleResize);
+		window.removeEventListener("resize", debouncedHandleResize);
 		resizeObserver.disconnect();
-		debouncedResize.cancel();
+		debouncedHandleResize.cancel();
 	};
 }
