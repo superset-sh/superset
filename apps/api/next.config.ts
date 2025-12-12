@@ -9,9 +9,7 @@ const allowedOrigins = [
 ].filter(Boolean) as string[];
 
 const config: NextConfig = {
-	experimental: {
-		reactCompiler: true,
-	},
+	reactCompiler: true,
 	typescript: { ignoreBuildErrors: true },
 	async headers() {
 		// Generate CORS headers for each allowed origin

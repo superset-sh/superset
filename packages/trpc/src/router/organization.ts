@@ -62,10 +62,10 @@ export const organizationRouter = {
 				.values(input)
 				.returning();
 
-			if (ctx.session?.user.id && organization) {
+			if (ctx.session.userId && organization) {
 				await db.insert(organizationMembers).values({
 					organizationId: organization.id,
-					userId: ctx.session.user.id,
+					userId: ctx.session.userId,
 				});
 			}
 

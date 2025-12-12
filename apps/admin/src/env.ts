@@ -14,6 +14,8 @@ export const env = createEnv({
 		// Database (needed by @superset/trpc dependency)
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
+		// Mock auth - optional, if not set user is unauthenticated
+		MOCK_USER_ID: z.string().uuid().optional(),
 	},
 
 	client: {

@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const env = createEnv({
 	server: {
-		MOCK_USER_ID: z.string().uuid(),
+		MOCK_USER_ID: z.string().uuid().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

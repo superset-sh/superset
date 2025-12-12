@@ -15,6 +15,7 @@
 	},
 	"dependencies": {
 		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@trpc/server": "^11.7.1",
 		"drizzle-orm": "0.45.1",

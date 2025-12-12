@@ -1,13 +1,18 @@
+import { db } from "@superset/db/client";
+import { users } from "@superset/db/schema";
+import { COMPANY } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
+
 import { env } from "./env";
 
 /**
  * Context passed to every tRPC procedure
  */
 export type TRPCContext = {
-	session: { user: { id: string } } | null;
+	session: { userId: string } | null;
 	headers: Headers;
 };
 
@@ -20,7 +25,7 @@ export const createTRPCContext = async (opts: {
 	const mockUserId = env.MOCK_USER_ID;
 
 	return {
-		session: mockUserId ? { user: { id: mockUserId } } : null,
+		session: mockUserId ? { userId: mockUserId } : null,
 		headers: opts.headers,
 	};
 };
@@ -45,8 +50,12 @@ export const createCallerFactory = t.createCallerFactory;
 
 export const publicProcedure = t.procedure;
 
+/**
+ * Protected procedure - requires authenticated session
+ * Just validates session exists, no DB fetch
+ */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.session?.user) {
+	if (!ctx.session?.userId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message:
@@ -57,6 +66,36 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 	return next({
 		ctx: {
 			session: ctx.session,
+		},
+	});
+});
+
+/**
+ * Admin procedure - requires authenticated user with @superset.sh email
+ * Fetches user from DB and validates domain for API security
+ */
+export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, ctx.session.userId),
+	});
+
+	if (!user) {
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message: "User not found in database.",
+		});
+	}
+
+	if (!user.email.endsWith(COMPANY.emailDomain)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `Admin access requires ${COMPANY.emailDomain} email.`,
+		});
+	}
+
+	return next({
+		ctx: {
+			user,
 		},
 	});
 });

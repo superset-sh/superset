@@ -8,7 +8,7 @@ import { protectedProcedure, publicProcedure } from "../trpc";
 export const userRouter = {
 	me: protectedProcedure.query(async ({ ctx }) => {
 		return db.query.users.findFirst({
-			where: eq(users.id, ctx.session.user.id),
+			where: eq(users.id, ctx.session.userId),
 		});
 	}),
 

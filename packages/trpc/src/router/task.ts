@@ -76,7 +76,7 @@ export const taskRouter = {
 				.insert(tasks)
 				.values({
 					...input,
-					creatorId: ctx.session.user.id,
+					creatorId: ctx.session.userId,
 				})
 				.returning();
 			return task;

@@ -15,12 +15,12 @@
 		"@superset/ui": "workspace:*",
 		"framer-motion": "^12.23.24",
 		"geist": "^1.5.1",
-		"next": "^15.5.7",
+		"next": "^16.0.10",
 		"nextra": "^4.6.0",
 		"nextra-theme-blog": "^4.6.0",
 		"nextra-theme-docs": "^4.6.0",
-		"react": "^19.1.1",
-		"react-dom": "^19.1.1",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
 		"three": "^0.181.2"
 	},
 	"devDependencies": {
@@ -28,8 +28,8 @@
 		"@tailwindcss/postcss": "^4.0.9",
 		"@types/mdx": "^2.0.13",
 		"@types/node": "^24.9.1",
-		"@types/react": "^19.1.11",
-		"@types/react-dom": "^19.1.7",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
 		"@types/three": "^0.181.0",
 		"tailwindcss": "^4.0.9",
 		"typescript": "^5.9.3"
