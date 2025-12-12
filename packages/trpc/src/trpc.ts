@@ -1,4 +1,4 @@
-import type { SignedInAuthObject, SignedOutAuthObject } from "@clerk/backend";
+import type { SessionAuthObject } from "@clerk/backend";
 import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
@@ -7,30 +7,31 @@ import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-type ClerkAuth = SignedInAuthObject | SignedOutAuthObject;
+// SignedInAuthObject isn't exported from @clerk/backend main entry,
+// so we extract it from the SessionAuthObject union
+type SignedInAuthObject = Extract<SessionAuthObject, { userId: string }>;
 
+/**
+ * tRPC Context
+ *
+ * We use SessionAuthObject from @clerk/backend (not @clerk/nextjs) because:
+ * - The API is hosted on Next.js with clerkMiddleware handling auth
+ * - Expo/Desktop clients send Bearer tokens to this API
+ * - clerkMiddleware handles both cookie auth (web) and Bearer tokens (mobile/desktop)
+ * - @clerk/backend types work across all clients, while @clerk/nextjs would
+ *   cause dependency issues in Expo/Desktop which don't have Next.js
+ *
+ * SessionAuthObject = SignedInAuthObject | SignedOutAuthObject
+ * Public procedures may be called by unauthenticated users (SignedOutAuthObject)
+ */
 export type TRPCContext = {
-	auth: ClerkAuth;
-	userId: string | null;
+	session: SessionAuthObject;
 };
 
-export const createTRPCContext = async (opts: {
-	auth: ClerkAuth;
-}): Promise<TRPCContext> => {
-	const clerkUserId = opts.auth.userId;
-
-	if (!clerkUserId) {
-		return { auth: opts.auth, userId: null };
-	}
-
-	const user = await db.query.users.findFirst({
-		where: eq(users.clerkId, clerkUserId),
-	});
-
-	return {
-		auth: opts.auth,
-		userId: user?.id ?? null,
-	};
+export const createTRPCContext = (opts: {
+	session: SessionAuthObject;
+}): TRPCContext => {
+	return { session: opts.session };
 };
 
 const t = initTRPC.context<TRPCContext>().create({
@@ -54,7 +55,7 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.userId) {
+	if (!ctx.session.userId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Not authenticated. Please sign in.",
@@ -63,14 +64,16 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
 	return next({
 		ctx: {
-			userId: ctx.userId,
+			// Cast needed because TypeScript doesn't propagate type narrowing through next()
+			// After the userId check above, we know session is SignedInAuthObject
+			session: ctx.session as SignedInAuthObject,
 		},
 	});
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	const user = await db.query.users.findFirst({
-		where: eq(users.id, ctx.userId),
+		where: eq(users.clerkId, ctx.session.userId),
 	});
 
 	if (!user) {

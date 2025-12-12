@@ -23,8 +23,12 @@ import {
 	LogOut,
 	Settings,
 } from "lucide-react";
-import { useSignOut } from "@/lib/auth/client";
-import type { User } from "@/lib/auth/types";
+import type { RouterOutputs } from "@superset/trpc";
+import { useClerk } from "@clerk/nextjs";
+
+import { env } from "@/env";
+
+type User = NonNullable<RouterOutputs["user"]["me"]>;
 
 export interface NavUserProps {
 	user: User;
@@ -32,7 +36,9 @@ export interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
-	const { signOut } = useSignOut();
+	const { signOut } = useClerk();
+
+	const handleSignOut = () => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL });
 
 	const userInitials = user.name
 		.split(" ")
@@ -49,7 +55,7 @@ export function NavUser({ user }: NavUserProps) {
 							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 						>
 							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage src={user.imageUrl} alt={user.name} />
+								<AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
 								<AvatarFallback className="rounded-lg">
 									{userInitials}
 								</AvatarFallback>
@@ -70,7 +76,7 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuLabel className="p-0 font-normal">
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage src={user.imageUrl} alt={user.name} />
+									<AvatarImage src={user.avatarUrl ?? undefined} alt={user.name} />
 									<AvatarFallback className="rounded-lg">
 										{userInitials}
 									</AvatarFallback>
@@ -97,7 +103,7 @@ export function NavUser({ user }: NavUserProps) {
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={signOut}>
+						<DropdownMenuItem onClick={handleSignOut}>
 							<LogOut />
 							Log out
 						</DropdownMenuItem>

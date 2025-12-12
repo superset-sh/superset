@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
+import { createTRPCContext } from "@superset/trpc";
 
 export const createContext = async () => {
-	return { auth: await auth() };
+	const session = await auth();
+	return createTRPCContext({ session });
 };
-
-export type Context = Awaited<ReturnType<typeof createContext>>;

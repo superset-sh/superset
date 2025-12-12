@@ -1,6 +1,6 @@
 import { db } from "@superset/db/client";
 import { taskStatusEnumValues } from "@superset/db/enums";
-import { tasks } from "@superset/db/schema";
+import { tasks, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -72,12 +72,14 @@ export const taskRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.clerkId, ctx.session.userId),
+			});
+			if (!user) throw new Error("User not found");
+
 			const [task] = await db
 				.insert(tasks)
-				.values({
-					...input,
-					creatorId: ctx.session.userId,
-				})
+				.values({ ...input, creatorId: user.id })
 				.returning();
 			return task;
 		}),

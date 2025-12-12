@@ -30,10 +30,13 @@ import {
 	Webhook,
 } from "lucide-react";
 
-import type { User } from "@/lib/auth/types";
+import type { RouterOutputs } from "@superset/trpc";
+
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";
 import { SearchForm } from "./components/SearchForm";
+
+type User = NonNullable<RouterOutputs["user"]["me"]>;
 
 const navigation = [
 	{

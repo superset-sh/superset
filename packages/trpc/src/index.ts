@@ -1,5 +1,5 @@
 // Root router and types
-export type { AppRouter } from "./root";
+export type { AppRouter, RouterInputs, RouterOutputs } from "./root";
 export { appRouter, createCaller } from "./root";
 
 // tRPC utilities

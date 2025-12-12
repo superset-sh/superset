@@ -1,3 +1,5 @@
+import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
+
 import { organizationRouter } from "./router/organization";
 import { repositoryRouter } from "./router/repository";
 import { taskRouter } from "./router/task";
@@ -12,5 +14,7 @@ export const appRouter = createTRPCRouter({
 });
 
 export type AppRouter = typeof appRouter;
+export type RouterInputs = inferRouterInputs<AppRouter>;
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 export const createCaller = createCallerFactory(appRouter);
