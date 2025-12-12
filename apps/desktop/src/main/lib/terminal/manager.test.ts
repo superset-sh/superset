@@ -509,6 +509,9 @@ describe("TerminalManager", () => {
 				onDataCallback("test output\n");
 			}
 
+			// Wait for DataBatcher to flush (16ms batching interval)
+			await new Promise((resolve) => setTimeout(resolve, 30));
+
 			expect(dataHandler).toHaveBeenCalledWith("test output\n");
 		});
 
@@ -529,6 +532,9 @@ describe("TerminalManager", () => {
 			if (onDataCallback) {
 				onDataCallback(dataWithEscapes);
 			}
+
+			// Wait for DataBatcher to flush (16ms batching interval)
+			await new Promise((resolve) => setTimeout(resolve, 30));
 
 			// Raw data passed through unchanged
 			expect(dataHandler).toHaveBeenCalledWith(dataWithEscapes);

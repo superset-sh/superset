@@ -25,7 +25,7 @@ export function getDefaultShell(): string {
 	return "/bin/sh";
 }
 
-function getLocale(baseEnv: Record<string, string>): string {
+export function getLocale(baseEnv: Record<string, string>): string {
 	if (baseEnv.LANG?.includes("UTF-8")) {
 		return baseEnv.LANG;
 	}
@@ -49,7 +49,7 @@ function getLocale(baseEnv: Record<string, string>): string {
 	return "en_US.UTF-8";
 }
 
-function sanitizeEnv(
+export function sanitizeEnv(
 	env: NodeJS.ProcessEnv,
 ): Record<string, string> | undefined {
 	const sanitized: Record<string, string> = {};

@@ -13,7 +13,7 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 
-async function recoverScrollback(
+export async function recoverScrollback(
 	existingScrollback: string | null,
 	workspaceId: string,
 	paneId: string,
