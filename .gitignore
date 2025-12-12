@@ -36,6 +36,7 @@ yarn.lock
 # Env variables
 .env
 .env.*
+.envrc
 
 mise.toml
 
