@@ -12,8 +12,8 @@ export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 
 	return (
-		<>
-			<section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden">
+		<div>
+			<div className="flex mt-14 min-h-[calc(100vh-64px)] items-center overflow-hidden">
 				{/* Grid background */}
 				<motion.div
 					className="absolute inset-0 pointer-events-none z-0"
@@ -62,7 +62,7 @@ export function HeroSection() {
 					</svg>
 				</motion.div>
 
-				<div className="relative z-10 w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
+				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
 						{/* Left column - Text content */}
 						<motion.div
@@ -72,20 +72,20 @@ export function HeroSection() {
 							transition={{ duration: 0.5 }}
 						>
 							{/* Heading */}
-							<div className="space-y-6">
+							<div className="space-y-2 sm:space-y-6">
 								<h1
-									className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-stone-100"
+									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-stone-100"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									The terminal app for parallel cli agents.
 								</h1>
-								<p className="text-lg font-light text-neutral-400 max-w-[400px]">
+								<p className="text-md sm:text-lg font-light text-neutral-400 max-w-[400px]">
 									Run dozens of Claude Code, Codex, or any other cli agents you
 									love.
 								</p>
 							</div>
 
-							<div className="flex flex-wrap items-center gap-4">
+							<div className="flex flex-wrap items-center sm:gap-4 gap-2">
 								<DownloadButton
 									onJoinWaitlist={() => setIsWaitlistOpen(true)}
 								/>
@@ -112,12 +112,12 @@ export function HeroSection() {
 						</motion.div>
 					</div>
 				</div>
-			</section>
+			</div>
 			<WaitlistModal
 				isOpen={isWaitlistOpen}
 				onClose={() => setIsWaitlistOpen(false)}
 			/>
-		</>
+		</div>
 	);
 }
 
