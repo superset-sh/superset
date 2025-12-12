@@ -19,11 +19,10 @@ export function VideoSection() {
 							A Superset of your favorite tools
 						</h2>
 						<p className="text-base sm:text-lg font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
-						Get all the best AI coding tools in one place. We want to support and stay compatible with whatever CLI agents you
-						already use.
+							Get all the best AI coding tools in one place. We want to support
+							and stay compatible with whatever CLI agents you already use.
 						</p>
 					</div>
-
 				</motion.div>
 
 				{/* Video Demo Area */}

@@ -81,20 +81,20 @@ export default function PrivacyPolicyPage() {
 								</h3>
 								<ul className="list-disc pl-6 space-y-2">
 									<li>
-										<strong className="text-neutral-100">Usage Data:</strong>{" "}
-										We collect information about how you interact with our
+										<strong className="text-neutral-100">Usage Data:</strong> We
+										collect information about how you interact with our
 										services, including pages visited, features used, and time
 										spent.
 									</li>
 									<li>
 										<strong className="text-neutral-100">Device Data:</strong>{" "}
-										We may collect device identifiers, operating system
-										version, browser type, and similar technical information.
+										We may collect device identifiers, operating system version,
+										browser type, and similar technical information.
 									</li>
 									<li>
-										<strong className="text-neutral-100">Log Data:</strong>{" "}
-										Our servers automatically record information such as IP
-										address, access times, and referring URLs.
+										<strong className="text-neutral-100">Log Data:</strong> Our
+										servers automatically record information such as IP address,
+										access times, and referring URLs.
 									</li>
 								</ul>
 							</div>
@@ -106,8 +106,8 @@ export default function PrivacyPolicyPage() {
 								<p>
 									Our desktop application runs locally on your machine. We do
 									not have access to your source code, terminal commands, or
-									file contents unless you explicitly choose to share
-									diagnostic information with us.
+									file contents unless you explicitly choose to share diagnostic
+									information with us.
 								</p>
 							</div>
 						</section>
@@ -159,7 +159,9 @@ export default function PrivacyPolicyPage() {
 									(e.g., hosting, analytics, payment processing).
 								</li>
 								<li>
-									<strong className="text-neutral-100">Legal Compliance:</strong>{" "}
+									<strong className="text-neutral-100">
+										Legal Compliance:
+									</strong>{" "}
 									When required by law, regulation, or legal process.
 								</li>
 								<li>
@@ -185,10 +187,10 @@ export default function PrivacyPolicyPage() {
 							</h2>
 							<p>
 								We retain your personal information for as long as necessary to
-								fulfill the purposes for which it was collected, comply with
-								our legal obligations, resolve disputes, and enforce our
-								agreements. When data is no longer needed, we securely delete
-								or anonymize it.
+								fulfill the purposes for which it was collected, comply with our
+								legal obligations, resolve disputes, and enforce our agreements.
+								When data is no longer needed, we securely delete or anonymize
+								it.
 							</p>
 						</section>
 
@@ -219,9 +221,7 @@ export default function PrivacyPolicyPage() {
 								<li>The right to access and receive a copy of your data</li>
 								<li>The right to correct inaccurate information</li>
 								<li>The right to request deletion of your data</li>
-								<li>
-									The right to restrict or object to certain processing
-								</li>
+								<li>The right to restrict or object to certain processing</li>
 								<li>The right to data portability</li>
 							</ul>
 							<p>

@@ -32,9 +32,9 @@ export default function TermsOfServicePage() {
 							<p>
 								These Terms of Service (&quot;Terms&quot;) constitute a legally
 								binding agreement between you and Superset (&quot;we&quot;,
-								&quot;us&quot;, or &quot;our&quot;) governing your access to
-								and use of our website, desktop application, and related
-								services (collectively, the &quot;Services&quot;).
+								&quot;us&quot;, or &quot;our&quot;) governing your access to and
+								use of our website, desktop application, and related services
+								(collectively, the &quot;Services&quot;).
 							</p>
 							<p>
 								By accessing or using our Services, you agree to be bound by
@@ -50,9 +50,9 @@ export default function TermsOfServicePage() {
 							</h2>
 							<p>
 								You must be at least 16 years of age to use our Services. By
-								using our Services, you represent and warrant that you meet
-								this requirement and have the legal capacity to enter into
-								these Terms.
+								using our Services, you represent and warrant that you meet this
+								requirement and have the legal capacity to enter into these
+								Terms.
 							</p>
 						</section>
 
@@ -76,9 +76,7 @@ export default function TermsOfServicePage() {
 									Notify us immediately of any unauthorized access or security
 									breach
 								</li>
-								<li>
-									Not share your account credentials with any third party
-								</li>
+								<li>Not share your account credentials with any third party</li>
 							</ul>
 							<p>
 								We reserve the right to suspend or terminate accounts that
@@ -126,9 +124,7 @@ export default function TermsOfServicePage() {
 									Use automated means to access the Services without our prior
 									written consent
 								</li>
-								<li>
-									Transmit any viruses, malware, or other malicious code
-								</li>
+								<li>Transmit any viruses, malware, or other malicious code</li>
 								<li>
 									Use the Services to infringe the intellectual property rights
 									of others
@@ -207,9 +203,7 @@ export default function TermsOfServicePage() {
 									Refunds are provided in accordance with our refund policy or
 									as required by law
 								</li>
-								<li>
-									We may change pricing with reasonable notice to you
-								</li>
+								<li>We may change pricing with reasonable notice to you</li>
 							</ul>
 						</section>
 
@@ -239,8 +233,8 @@ export default function TermsOfServicePage() {
 							<p className="uppercase text-sm">
 								TO THE MAXIMUM EXTENT PERMITTED BY LAW, SUPERSET SHALL NOT BE
 								LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR
-								PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR
-								USE, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICES.
+								PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE,
+								ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICES.
 							</p>
 							<p>
 								Our total liability for any claims arising under these Terms
@@ -257,9 +251,9 @@ export default function TermsOfServicePage() {
 							<p>
 								You agree to indemnify, defend, and hold harmless Superset and
 								its officers, directors, employees, and agents from any claims,
-								damages, losses, liabilities, and expenses (including
-								reasonable attorneys&apos; fees) arising out of or related to
-								your violation of these Terms or your use of the Services.
+								damages, losses, liabilities, and expenses (including reasonable
+								attorneys&apos; fees) arising out of or related to your
+								violation of these Terms or your use of the Services.
 							</p>
 						</section>
 
@@ -314,9 +308,9 @@ export default function TermsOfServicePage() {
 							<p>
 								We reserve the right to modify these Terms at any time. We will
 								notify you of material changes by posting the updated Terms on
-								our website and updating the &quot;Last updated&quot; date.
-								Your continued use of the Services after such changes
-								constitutes acceptance of the revised Terms.
+								our website and updating the &quot;Last updated&quot; date. Your
+								continued use of the Services after such changes constitutes
+								acceptance of the revised Terms.
 							</p>
 						</section>
 
@@ -340,8 +334,8 @@ export default function TermsOfServicePage() {
 							</h2>
 							<p>
 								These Terms, together with our Privacy Policy, constitute the
-								entire agreement between you and Superset regarding the
-								Services and supersede all prior agreements and understandings.
+								entire agreement between you and Superset regarding the Services
+								and supersede all prior agreements and understandings.
 							</p>
 						</section>
 
