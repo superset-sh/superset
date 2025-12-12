@@ -1,5 +1,5 @@
 import { ScrollArea } from "@superset/ui/scroll-area";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -50,6 +50,13 @@ export function ChangesView() {
 	const [expandedCommits, setExpandedCommits] = useState<Set<string>>(
 		new Set(),
 	);
+
+	// Reset expanded commits when workspace changes to avoid querying
+	// old commit hashes against the new worktree
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally resets on worktreePath change
+	useEffect(() => {
+		setExpandedCommits(new Set());
+	}, [worktreePath]);
 
 	const commitFilesQueries = trpc.useQueries((t) =>
 		Array.from(expandedCommits).map((hash) =>

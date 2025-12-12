@@ -37,6 +37,7 @@ export function ChangesContent() {
 		{
 			worktreePath: worktreePath || "",
 			filePath: selectedFile?.path || "",
+			oldPath: selectedFile?.oldPath,
 			category: selectedCategory,
 			commitHash: selectedCommitHash || undefined,
 			defaultBranch: effectiveBaseBranch,
