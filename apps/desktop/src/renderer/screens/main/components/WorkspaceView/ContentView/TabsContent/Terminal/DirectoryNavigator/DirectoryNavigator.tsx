@@ -74,7 +74,7 @@ export function DirectoryNavigator({
 		// Path is in home only if it equals homeDir or starts with homeDir + "/"
 		const isInHome =
 			normalizedHomeDir &&
-			(path === normalizedHomeDir || path.startsWith(normalizedHomeDir + "/"));
+			(path === normalizedHomeDir || path.startsWith(`${normalizedHomeDir}/`));
 
 		if (isInHome && normalizedHomeDir) {
 			// If path equals homeDir, relativePath is empty; otherwise slice after the "/"
