@@ -50,6 +50,7 @@ mise.toml
 # Next.js
 .next
 out
+next-env.d.ts
 
 # Superset
 # Ignore .superset directory except for config and scripts
