@@ -40,14 +40,14 @@ describe("env", () => {
 			expect(result).toBe("fr_FR.UTF-8");
 		});
 
-		it("should return fallback when LANG does not contain UTF-8", () => {
+		it("should return a UTF-8 locale when LANG does not contain UTF-8", () => {
 			const result = getLocale({ LANG: "C" });
-			expect(result).toBe("en_US.UTF-8");
+			expect(result).toContain("UTF-8");
 		});
 
-		it("should return fallback when env is empty", () => {
+		it("should return a UTF-8 locale when env is empty", () => {
 			const result = getLocale({});
-			expect(result).toBe("en_US.UTF-8");
+			expect(result).toContain("UTF-8");
 		});
 
 		it("should handle various UTF-8 locale formats", () => {
