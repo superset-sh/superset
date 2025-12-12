@@ -16,7 +16,7 @@ function getCorsHeaders(origin: string | null) {
 	};
 }
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware(async (_auth, req) => {
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin);
 

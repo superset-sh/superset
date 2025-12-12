@@ -5,8 +5,3 @@
 	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
 }
-
-html,
-body {
-	background-color: rgb(23, 23, 23);
-}

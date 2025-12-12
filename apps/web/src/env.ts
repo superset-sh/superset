@@ -23,7 +23,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
 		NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().default("/sign-in"),
 		NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().default("/sign-up"),
-		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().optional(),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 	},
 
 	experimental__runtimeEnv: {

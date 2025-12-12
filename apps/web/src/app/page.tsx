@@ -1,48 +1,81 @@
 "use client";
 
 import { SignOutButton, useUser } from "@clerk/nextjs";
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
-import { Download } from "lucide-react";
-import { FaGithub } from "react-icons/fa";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { Download, LogOut } from "lucide-react";
 import Image from "next/image";
+import { FaGithub } from "react-icons/fa";
 
 import { env } from "@/env";
 
 export default function HomePage() {
 	const { user } = useUser();
 
+	const initials = user
+		? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
+			user.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
+		: "";
+
 	return (
 		<div className="relative flex min-h-screen flex-col">
 			<header className="container mx-auto flex items-center justify-between px-6 py-6">
-				<Image
-					src="/title.svg"
-					alt="Superset"
-					width={140}
-					height={24}
-					priority
-				/>
-				<div className="flex items-center gap-4">
-					{user && (
-						<span className="text-muted-foreground hidden text-sm sm:block">
-							{user.primaryEmailAddress?.emailAddress}
-						</span>
-					)}
-					<SignOutButton>
-						<Button variant="outline" size="sm">
-							Sign Out
-						</Button>
-					</SignOutButton>
-				</div>
+				<a href="/">
+					<Image
+						src="/title.svg"
+						alt="Superset"
+						width={140}
+						height={24}
+						priority
+					/>
+				</a>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-1.5 shadow-xs outline-none transition-all hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
+						>
+							{user?.firstName && (
+								<span className="text-sm">Hello, {user.firstName}!</span>
+							)}
+							<Avatar className="size-7">
+								<AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ""} />
+								<AvatarFallback className="text-xs">{initials}</AvatarFallback>
+							</Avatar>
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end" className="w-56">
+						<DropdownMenuLabel className="font-normal">
+							<div className="flex flex-col space-y-1">
+								{user?.fullName && (
+									<p className="text-sm font-medium">{user.fullName}</p>
+								)}
+								<p className="text-muted-foreground text-xs">
+									{user?.primaryEmailAddress?.emailAddress}
+								</p>
+							</div>
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
+						<SignOutButton>
+							<DropdownMenuItem className="cursor-pointer">
+								<LogOut className="mr-2 size-4" />
+								Sign out
+							</DropdownMenuItem>
+						</SignOutButton>
+					</DropdownMenuContent>
+				</DropdownMenu>
 			</header>
 
 			<main className="container mx-auto flex flex-1 flex-col items-center justify-center px-6 py-12">
 				<div className="mx-auto max-w-2xl space-y-8 text-center">
-					{user?.firstName && (
-						<p className="text-muted-foreground text-lg">
-							Welcome back, {user.firstName}
-						</p>
-					)}
-
 					<h1 className="font-mono text-3xl font-normal leading-tight tracking-tight md:text-4xl">
 						Download the app to get started
 					</h1>

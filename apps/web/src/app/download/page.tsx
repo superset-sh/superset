@@ -47,11 +47,9 @@ export default function DownloadPage() {
 							<CardDescription>For macOS 12.0 or later</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<Button asChild className="w-full">
-								<a href="#" download>
-									<Download className="mr-2 h-4 w-4" />
-									Download
-								</a>
+							<Button className="w-full" disabled>
+								<Download className="mr-2 h-4 w-4" />
+								Coming Soon
 							</Button>
 						</CardContent>
 					</Card>
@@ -65,11 +63,9 @@ export default function DownloadPage() {
 							<CardDescription>For Windows 10 or later</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<Button asChild className="w-full">
-								<a href="#" download>
-									<Download className="mr-2 h-4 w-4" />
-									Download
-								</a>
+							<Button className="w-full" disabled>
+								<Download className="mr-2 h-4 w-4" />
+								Coming Soon
 							</Button>
 						</CardContent>
 					</Card>

@@ -13,14 +13,14 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
-		CLERK_SECRET_KEY: z.string().min(1),
+		CLERK_SECRET_KEY: z.string(),
 	},
 
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
-		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
-		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().optional(),
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 	},
 
 	experimental__runtimeEnv: {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { RouterOutputs } from "@superset/trpc";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -29,8 +30,6 @@ import {
 	Users,
 	Webhook,
 } from "lucide-react";
-
-import type { RouterOutputs } from "@superset/trpc";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";

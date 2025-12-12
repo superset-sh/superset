@@ -1,9 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import { formatDistanceToNow } from "date-fns";
-import { Loader2, MoreHorizontal, Trash2, User } from "lucide-react";
-
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -39,6 +35,9 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { Loader2, MoreHorizontal, Trash2, User } from "lucide-react";
+import { useState } from "react";
 
 import { useTRPC } from "@/trpc/react";
 
@@ -91,6 +90,7 @@ export function UsersTable() {
 				<CardContent className="flex flex-col items-center justify-center py-12 text-center">
 					<div className="text-destructive mb-4">
 						<svg
+							aria-hidden="true"
 							className="h-12 w-12"
 							fill="none"
 							viewBox="0 0 24 24"

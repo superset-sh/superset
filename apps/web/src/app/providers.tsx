@@ -8,12 +8,7 @@ import { TRPCReactProvider } from "../trpc/react";
 export function Providers({ children }: { children: React.ReactNode }) {
 	return (
 		<TRPCReactProvider>
-			<ThemeProvider
-				attribute="class"
-				defaultTheme="system"
-				enableSystem
-				storageKey="superset-theme"
-			>
+			<ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark">
 				{children}
 				<ReactQueryDevtools initialIsOpen={false} />
 			</ThemeProvider>
