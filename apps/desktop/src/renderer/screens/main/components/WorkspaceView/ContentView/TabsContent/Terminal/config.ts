@@ -3,17 +3,16 @@ import type { ITerminalOptions } from "@xterm/xterm";
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 
-// Font family with Nerd Font support for Oh My Posh, Powerlevel10k, Starship, and similar themes.
-// Falls back to standard monospace fonts if Nerd Fonts aren't installed.
+// Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
 const TERMINAL_FONT_FAMILY = [
-	"MesloLGM Nerd Font", // Recommended by Oh My Posh (Medium line gap)
+	"MesloLGM Nerd Font",
 	"MesloLGM NF",
-	"MesloLGS NF", // Recommended by Powerlevel10k (Small line gap)
+	"MesloLGS NF",
 	"MesloLGS Nerd Font",
 	"Hack Nerd Font",
 	"FiraCode Nerd Font",
 	"JetBrainsMono Nerd Font",
-	"CaskaydiaCove Nerd Font", // Popular with Windows Terminal / Starship
+	"CaskaydiaCove Nerd Font",
 	"Menlo",
 	"Monaco",
 	'"Courier New"',
@@ -28,7 +27,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	allowProposedApi: true,
 	scrollback: 10000,
 	macOptionIsMeta: true,
-	cursorStyle: "bar",
+	cursorStyle: "block",
 	cursorInactiveStyle: "outline",
 	fastScrollModifier: "alt",
 	fastScrollSensitivity: 5,
