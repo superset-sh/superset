@@ -1,33 +1,33 @@
 {
-  "name": "@superset/api",
-  "version": "0.1.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "build": "next build",
-    "clean": "git clean -xdf .cache .next .turbo node_modules",
-    "dev": "next dev --port 3001",
-    "start": "next start --port 3001",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@superset/db": "workspace:*",
-    "@superset/shared": "workspace:*",
-    "@superset/trpc": "workspace:*",
-    "@t3-oss/env-nextjs": "^0.13.8",
-    "@trpc/server": "^11.7.1",
-    "drizzle-orm": "0.45.1",
-    "next": "^15.5.7",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "zod": "^4.1.13"
-  },
-  "devDependencies": {
-    "@superset/typescript": "workspace:*",
-    "@types/node": "^24.9.1",
-    "@types/react": "^19.1.11",
-    "@types/react-dom": "^19.1.7",
-    "babel-plugin-react-compiler": "^1.0.0",
-    "typescript": "^5.9.3"
-  }
+	"name": "@superset/api",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "next build",
+		"clean": "git clean -xdf .cache .next .turbo node_modules",
+		"dev": "next dev --port 3001",
+		"start": "next start --port 3001",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@superset/db": "workspace:*",
+		"@superset/shared": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"@t3-oss/env-nextjs": "^0.13.8",
+		"@trpc/server": "^11.7.1",
+		"drizzle-orm": "0.45.1",
+		"next": "^15.5.7",
+		"react": "^19.1.1",
+		"react-dom": "^19.1.1",
+		"zod": "^4.1.13"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"@types/react": "^19.1.11",
+		"@types/react-dom": "^19.1.7",
+		"babel-plugin-react-compiler": "^1.0.0",
+		"typescript": "^5.9.3"
+	}
 }

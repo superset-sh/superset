@@ -9,18 +9,18 @@ import SuperJSON from "superjson";
 import { env } from "../env";
 
 export const api = cache(async () => {
-  const heads = new Headers(await headers());
-  heads.set("x-trpc-source", "rsc");
+	const heads = new Headers(await headers());
+	heads.set("x-trpc-source", "rsc");
 
-  return createTRPCClient<AppRouter>({
-    links: [
-      httpBatchLink({
-        transformer: SuperJSON,
-        url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-        headers() {
-          return Object.fromEntries(heads.entries());
-        },
-      }),
-    ],
-  });
+	return createTRPCClient<AppRouter>({
+		links: [
+			httpBatchLink({
+				transformer: SuperJSON,
+				url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+				headers() {
+					return Object.fromEntries(heads.entries());
+				},
+			}),
+		],
+	});
 });

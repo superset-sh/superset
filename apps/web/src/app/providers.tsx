@@ -6,17 +6,17 @@ import { ThemeProvider } from "next-themes";
 import { TRPCReactProvider } from "../trpc/react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <TRPCReactProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        storageKey="superset-theme"
-      >
-        {children}
-        <ReactQueryDevtools initialIsOpen={false} />
-      </ThemeProvider>
-    </TRPCReactProvider>
-  );
+	return (
+		<TRPCReactProvider>
+			<ThemeProvider
+				attribute="class"
+				defaultTheme="system"
+				enableSystem
+				storageKey="superset-theme"
+			>
+				{children}
+				<ReactQueryDevtools initialIsOpen={false} />
+			</ThemeProvider>
+		</TRPCReactProvider>
+	);
 }
