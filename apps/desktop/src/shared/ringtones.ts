@@ -20,11 +20,11 @@ export interface RingtoneData {
  */
 export const RINGTONES: RingtoneData[] = [
 	{
-		id: "default",
-		name: "Bango",
-		description: "Simple & clean",
-		filename: "notification.mp3",
-		emoji: "🔔",
+		id: "shamisen",
+		name: "Shamisen",
+		description: "Japanese string instrument",
+		filename: "shamisen.mp3",
+		emoji: "🪕",
 		color: "from-slate-500 to-slate-600",
 		duration: 1,
 	},
@@ -128,7 +128,7 @@ export const RINGTONES: RingtoneData[] = [
 	},
 ];
 
-export const DEFAULT_RINGTONE_ID = "default";
+export const DEFAULT_RINGTONE_ID = "arcade";
 
 /**
  * Get a ringtone by ID
