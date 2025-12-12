@@ -5,12 +5,12 @@ import { trpc } from "renderer/lib/trpc";
 
 interface DirectoryNavigatorProps {
 	paneId: string;
-	currentPath: string | null;
+	currentCwd?: string | null;
 }
 
 export function DirectoryNavigator({
 	paneId,
-	currentPath,
+	currentCwd,
 }: DirectoryNavigatorProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [browsePath, setBrowsePath] = useState<string | null>(null);
@@ -18,26 +18,31 @@ export function DirectoryNavigator({
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const writeMutation = trpc.terminal.write.useMutation();
 
-	const displayPath = browsePath || currentPath;
+	// Only enable navigation when we have a confirmed cwd from OSC-7
+	const hasConfirmedCwd = !!currentCwd;
+	const displayPath = browsePath || currentCwd;
 
 	const { data: directoryData, isLoading } =
 		trpc.terminal.listDirectory.useQuery(
 			{ dirPath: displayPath || "/" },
-			{ enabled: isOpen && !!displayPath },
+			{ enabled: isOpen && hasConfirmedCwd && !!displayPath },
 		);
 
-	const handleOpen = useCallback((open: boolean) => {
-		setIsOpen(open);
-		if (!open) {
-			setBrowsePath(null);
-		}
-	}, []);
+	const handleOpen = useCallback(
+		(open: boolean) => {
+			if (!hasConfirmedCwd) return;
+			setIsOpen(open);
+			if (!open) {
+				setBrowsePath(null);
+			}
+		},
+		[hasConfirmedCwd],
+	);
 
 	const handleNavigateToDir = useCallback(
 		(path: string) => {
-			// Send cd command to the terminal
 			writeMutation.mutate({
-				tabId: paneId,
+				paneId,
 				data: `cd ${shellEscape(path)}\n`,
 			});
 			setIsOpen(false);
@@ -86,11 +91,17 @@ export function DirectoryNavigator({
 		];
 	};
 
-	if (!currentPath) {
+	// Show "Terminal" until we have a confirmed cwd from OSC-7
+	const buttonLabel = currentCwd ? getBasename(currentCwd) : "Terminal";
+
+	// When no cwd is known, show a non-interactive display
+	if (!hasConfirmedCwd) {
 		return (
-			<div className="flex min-w-0 items-center gap-1.5">
+			<div className="flex min-w-0 items-center gap-1.5 px-1 -ml-1">
 				<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
-				<span className="truncate text-sm text-muted-foreground">Terminal</span>
+				<span className="truncate text-sm text-muted-foreground">
+					{buttonLabel}
+				</span>
 			</div>
 		);
 	}
@@ -107,7 +118,7 @@ export function DirectoryNavigator({
 					className="flex min-w-0 items-center gap-1.5 rounded px-1 -ml-1 hover:bg-accent/50 transition-colors"
 				>
 					<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
-					<span className="truncate text-sm">{getBasename(currentPath)}</span>
+					<span className="truncate text-sm">{buttonLabel}</span>
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
@@ -180,7 +191,7 @@ export function DirectoryNavigator({
 				</div>
 
 				{/* Navigate to current browse path */}
-				{browsePath && browsePath !== currentPath && (
+				{browsePath && browsePath !== currentCwd && (
 					<div className="border-t border-border p-2">
 						<button
 							type="button"
@@ -200,7 +211,6 @@ export function DirectoryNavigator({
  * Escape a path for safe use in shell commands
  */
 function shellEscape(path: string): string {
-	// If path contains special chars, wrap in single quotes and escape any single quotes
 	if (/[^a-zA-Z0-9._\-/~]/.test(path)) {
 		return `'${path.replace(/'/g, "'\\''")}'`;
 	}

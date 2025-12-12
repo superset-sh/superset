@@ -19,7 +19,7 @@ import {
 	setupPasteHandler,
 	setupResizeHandlers,
 } from "./helpers";
-import { parseTerminalMetadata } from "./parseTerminalMetadata";
+import { parseCwd } from "./parseCwd";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
@@ -42,12 +42,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
-	const [terminalVenvs, setTerminalVenvs] = useState<string[]>([]);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const updatePaneName = useTabsStore((s) => s.updatePaneName);
-	const updatePaneVenvs = useTabsStore((s) => s.updatePaneVenvs);
-	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
 
@@ -70,27 +67,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
-	// Initialize cwd from workspace path (fallback before shell emits OSC 7)
+	// Sync terminal cwd to store for DirectoryNavigator
 	useEffect(() => {
-		if (workspaceCwd && !terminalCwd) {
-			setTerminalCwd(workspaceCwd);
-		}
-	}, [workspaceCwd, terminalCwd]);
+		updatePaneCwd(paneId, terminalCwd);
+	}, [terminalCwd, paneId, updatePaneCwd]);
 
-	// Update pane name and cwd with current directory for mosaic window
-	useEffect(() => {
-		if (terminalCwd) {
-			const parts = terminalCwd.split("/").filter(Boolean);
-			const basename = parts[parts.length - 1] || "Terminal";
-			updatePaneName(paneId, basename);
-			updatePaneCwd(paneId, terminalCwd);
+	// Parse terminal data for cwd (OSC 7 sequences)
+	const updateCwdFromData = useCallback((data: string) => {
+		const cwd = parseCwd(data);
+		if (cwd !== null) {
+			setTerminalCwd(cwd);
 		}
-	}, [terminalCwd, paneId, updatePaneName, updatePaneCwd]);
+	}, []);
 
-	// Update pane venvs for mosaic window toolbar display
-	useEffect(() => {
-		updatePaneVenvs(paneId, terminalVenvs);
-	}, [terminalVenvs, paneId, updatePaneVenvs]);
+	// Ref to use cwd parser inside effect
+	const updateCwdRef = useRef(updateCwdFromData);
+	updateCwdRef.current = updateCwdFromData;
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -128,25 +120,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}, 100),
 	);
 
-	// Parse terminal data for metadata (cwd, venvs)
-	const updateMetadataFromData = useCallback((data: string) => {
-		const metadata = parseTerminalMetadata(data);
-		if (metadata.cwd !== null) {
-			setTerminalCwd(metadata.cwd);
-		}
-		if (metadata.venvs.length > 0) {
-			setTerminalVenvs((prev) => {
-				// Merge new venvs with existing ones, keeping unique values
-				const merged = new Set([...prev, ...metadata.venvs]);
-				return Array.from(merged);
-			});
-		}
-	}, []);
-
-	// Ref to use metadata parser inside effect
-	const updateMetadataRef = useRef(updateMetadataFromData);
-	updateMetadataRef.current = updateMetadataFromData;
-
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		// Queue events until terminal is ready to prevent data loss
 		if (!xtermRef.current || !subscriptionEnabled) {
@@ -156,7 +129,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
-			updateMetadataFromData(event.data);
+			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
 			setSubscriptionEnabled(false);
@@ -240,7 +213,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			for (const event of events) {
 				if (event.type === "data") {
 					xterm.write(event.data);
-					updateMetadataRef.current(event.data);
+					updateCwdRef.current(event.data);
 				} else {
 					isExitedRef.current = true;
 					setSubscriptionEnabled(false);
@@ -254,18 +227,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
-			venv: string | null;
 		}) => {
 			xterm.write(result.scrollback);
-			updateMetadataRef.current(result.scrollback);
-			// Set venv from environment detection (adds to existing venvs)
-			const venv = result.venv;
-			if (venv) {
-				setTerminalVenvs((prev) => {
-					if (prev.includes(venv)) return prev;
-					return [...prev, venv];
-				});
-			}
+			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {
@@ -347,15 +311,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					const hasPendingEvents = pendingEventsRef.current.length > 0;
 					if (result.isNew || !hasPendingEvents) {
 						applyInitialState(result);
-					} else {
-						// Still apply venv even if not applying scrollback
-						const venv = result.venv;
-						if (venv) {
-							setTerminalVenvs((prev) => {
-								if (prev.includes(venv)) return prev;
-								return [...prev, venv];
-							});
-						}
 					}
 					setSubscriptionEnabled(true);
 					flushPendingEvents();

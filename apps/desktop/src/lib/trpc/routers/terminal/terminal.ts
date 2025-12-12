@@ -77,7 +77,6 @@ export const createTerminalRouter = () => {
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
-					venv: result.venv,
 				};
 			}),
 

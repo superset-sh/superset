@@ -131,18 +131,7 @@ export function TabPane({
 			renderToolbar={() => (
 				<div className="flex h-full w-full items-center justify-between px-2">
 					<div className="flex min-w-0 items-center gap-2">
-						<DirectoryNavigator
-							paneId={paneId}
-							currentPath={pane.cwd || null}
-						/>
-						{pane.venvs?.map((venv) => (
-							<span
-								key={venv}
-								className="inline-flex h-4 shrink-0 items-center rounded border border-border bg-background px-1.5 font-mono text-[10px] text-emerald-400 shadow-[inset_0_1px_2px_rgba(0,0,0,0.2)]"
-							>
-								{venv}
-							</span>
-						))}
+						<DirectoryNavigator paneId={paneId} currentCwd={pane.cwd} />
 					</div>
 					<div className="flex items-center gap-0.5">
 						<button

@@ -21,8 +21,7 @@ export interface Pane {
 	initialCommands?: string[];
 	initialCwd?: string;
 	url?: string; // For webview panes
-	venvs?: string[]; // Active Python virtual environments
-	cwd?: string | null; // Current working directory
+	cwd?: string | null; // Current working directory (from OSC 7)
 }
 
 /**

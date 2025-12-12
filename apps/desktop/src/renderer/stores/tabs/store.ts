@@ -438,28 +438,6 @@ export const useTabsStore = create<TabsStore>()(
 					}));
 				},
 
-				updatePaneName: (paneId, name) => {
-					set((state) => ({
-						panes: {
-							...state.panes,
-							[paneId]: state.panes[paneId]
-								? { ...state.panes[paneId], name }
-								: state.panes[paneId],
-						},
-					}));
-				},
-
-				updatePaneVenvs: (paneId, venvs) => {
-					set((state) => ({
-						panes: {
-							...state.panes,
-							[paneId]: state.panes[paneId]
-								? { ...state.panes[paneId], venvs }
-								: state.panes[paneId],
-						},
-					}));
-				},
-
 				updatePaneCwd: (paneId, cwd) => {
 					set((state) => ({
 						panes: {
