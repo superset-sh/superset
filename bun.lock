@@ -133,6 +133,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.3.8",
+        "@superset/typescript": "workspace:*",
         "@tailwindcss/vite": "^4.0.9",
         "@types/culori": "^4.0.1",
         "@types/http-proxy": "^1.17.17",

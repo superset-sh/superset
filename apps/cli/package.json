@@ -11,6 +11,7 @@
 	},
 	"scripts": {
 		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"dev": "tsc --watch",
 		"start": "bun src/server.ts",
 		"typecheck": "tsc --noEmit",

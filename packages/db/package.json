@@ -40,7 +40,7 @@
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
-		"@superset/typescript": "*",
+		"@superset/typescript": "workspace:*",
 		"@types/node": "^24.9.1",
 		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"

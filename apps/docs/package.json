@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"private": true,
 	"scripts": {
+		"clean": "git clean -xdf .cache .next .turbo node_modules",
 		"dev": "next dev --port 3001",
 		"build": "next build",
 		"start": "next start",

@@ -10,6 +10,7 @@
 		}
 	},
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
@@ -21,7 +22,7 @@
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
-		"@superset/typescript": "*",
+		"@superset/typescript": "workspace:*",
 		"typescript": "^5.9.3"
 	}
 }

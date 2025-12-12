@@ -1,4 +1,5 @@
-import { taskStatusEnumValues, tasks } from "@superset/db/schema";
+import { taskStatusEnumValues } from "@superset/db/enums";
+import { tasks } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";

@@ -14,6 +14,7 @@
 		"email": "hi@superset.sh"
 	},
 	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist dist-electron release node_modules",
 		"start": "electron-vite preview",
 		"predev": "bun run clean:dev",
 		"dev": "cross-env NODE_ENV=development electron-vite dev --watch",
@@ -96,6 +97,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.8",
+		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",
 		"@types/culori": "^4.0.1",
 		"@types/http-proxy": "^1.17.17",

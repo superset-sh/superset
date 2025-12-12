@@ -29,7 +29,7 @@
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
-		"@superset/typescript": "*",
+		"@superset/typescript": "workspace:*",
 		"typescript": "^5.9.3"
 	}
 }

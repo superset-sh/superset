@@ -8,6 +8,7 @@
 		"importHelpers": true,
 		"sourceMap": true,
 		"allowSyntheticDefaultImports": true,
-		"forceConsistentCasingInFileNames": true
+		"forceConsistentCasingInFileNames": true,
+		"noUncheckedIndexedAccess": false
 	}
 }

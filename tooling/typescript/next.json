@@ -5,13 +5,5 @@
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"jsx": "preserve",
 		"plugins": [{ "name": "next" }]
-	},
-	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"**/*.js",
-		"**/*.jsx",
-		".next/types/**/*.ts"
-	],
-	"exclude": ["node_modules"]
+	}
 }
