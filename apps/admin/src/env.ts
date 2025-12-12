@@ -11,22 +11,23 @@ export const env = createEnv({
 	},
 
 	server: {
-		// Database (needed by @superset/trpc dependency)
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
-		// Mock auth - optional, if not set user is unauthenticated
-		MOCK_USER_ID: z.string().uuid().optional(),
+		CLERK_SECRET_KEY: z.string().min(1),
 	},
 
 	client: {
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
 	},
 
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
+		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
+			process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

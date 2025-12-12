@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:base"],
+  "packageRules": [
+    {
+      "matchPackagePatterns": ["^@acme/"],
+      "enabled": false
+    }
+  ],
+  "updateInternalDeps": true,
+  "rangeStrategy": "bump",
+  "automerge": true,
+  "npm": {
+    "fileMatch": ["(^|/)package\\.json$", "(^|/)package\\.json\\.hbs$"]
+  }
+}

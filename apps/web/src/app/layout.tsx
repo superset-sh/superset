@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { GeistMono } from "geist/font/mono";
@@ -26,19 +27,21 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body
-				className={cn(
-					"bg-background text-foreground min-h-screen font-sans antialiased",
-					GeistSans.variable,
-					GeistMono.variable,
-				)}
-			>
-				<Providers>
-					{children}
-					<Toaster />
-				</Providers>
-			</body>
-		</html>
+		<ClerkProvider>
+			<html lang="en" suppressHydrationWarning>
+				<body
+					className={cn(
+						"bg-background text-foreground min-h-screen font-sans antialiased",
+						GeistSans.variable,
+						GeistMono.variable,
+					)}
+				>
+					<Providers>
+						{children}
+						<Toaster />
+					</Providers>
+				</body>
+			</html>
+		</ClerkProvider>
 	);
 }

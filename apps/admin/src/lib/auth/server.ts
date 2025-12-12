@@ -1,33 +1,27 @@
 import "server-only";
 
-import { createCaller, createTRPCContext } from "@superset/trpc";
+import { auth, currentUser as clerkCurrentUser } from "@clerk/nextjs/server";
+import { db } from "@superset/db/client";
+import { users } from "@superset/db/schema";
+import { eq } from "drizzle-orm";
 
 import type { User } from "./types";
 
-/**
- * Get the current user on the server.
- * Uses tRPC caller to fetch user from DB.
- *
- * Note: The proxy already validates auth and domain access,
- * so this primarily exists to get user data for display.
- *
- * Returns null if not authenticated.
- */
 export async function currentUser(): Promise<User | null> {
-	try {
-		const ctx = await createTRPCContext({ headers: new Headers() });
-		const caller = createCaller(ctx);
-		const user = await caller.user.me();
+	const { userId: clerkUserId } = await auth();
 
-		if (!user) return null;
+	if (!clerkUserId) return null;
 
-		return {
-			id: user.id,
-			email: user.email,
-			name: user.name,
-			imageUrl: user.avatarUrl ?? undefined,
-		};
-	} catch {
-		return null;
-	}
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkUserId),
+	});
+
+	if (!user) return null;
+
+	return {
+		id: user.id,
+		email: user.email,
+		name: user.name,
+		imageUrl: user.avatarUrl ?? undefined,
+	};
 }

@@ -1,0 +1,16 @@
+name: "Setup and install"
+description: "Common setup steps for Actions"
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: ".nvmrc"
+
+    - shell: bash
+      run: pnpm add -g turbo
+
+    - shell: bash
+      run: pnpm install

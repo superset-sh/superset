@@ -1,0 +1,7 @@
+contact_links:
+  - name: Ask a question
+    url: https://github.com/t3-oss/create-t3-turbo/discussions
+    about: Ask questions and discuss with other community members
+  - name: Feature request
+    url: https://github.com/t3-oss/create-t3-turbo/discussions/new?category=ideas
+    about: Feature requests should be opened as discussions

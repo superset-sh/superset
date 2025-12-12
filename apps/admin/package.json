@@ -11,6 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clerk/nextjs": "^6.36.2",
 		"@superset/db": "workspace:*",
 		"@superset/queries": "workspace:*",
 		"@superset/shared": "workspace:*",

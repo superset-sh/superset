@@ -16,6 +16,7 @@ export const users = pgTable(
 	"users",
 	{
 		id: uuid().primaryKey().defaultRandom(),
+		clerkId: text("clerk_id").notNull().unique(),
 		name: text().notNull(),
 		email: text().notNull().unique(),
 		avatarUrl: text("avatar_url"),
@@ -25,7 +26,10 @@ export const users = pgTable(
 			.defaultNow()
 			.$onUpdate(() => new Date()),
 	},
-	(table) => [index("users_email_idx").on(table.email)],
+	(table) => [
+		index("users_email_idx").on(table.email),
+		index("users_clerk_id_idx").on(table.clerkId),
+	],
 );
 
 export type InsertUser = typeof users.$inferInsert;

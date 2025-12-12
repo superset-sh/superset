@@ -1,3 +1,4 @@
+import type { SignedInAuthObject, SignedOutAuthObject } from "@clerk/backend";
 import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
@@ -6,27 +7,29 @@ import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { env } from "./env";
+type ClerkAuth = SignedInAuthObject | SignedOutAuthObject;
 
-/**
- * Context passed to every tRPC procedure
- */
 export type TRPCContext = {
-	session: { userId: string } | null;
-	headers: Headers;
+	auth: ClerkAuth;
+	userId: string | null;
 };
 
-/**
- * Create the tRPC context for each request
- */
 export const createTRPCContext = async (opts: {
-	headers: Headers;
+	auth: ClerkAuth;
 }): Promise<TRPCContext> => {
-	const mockUserId = env.MOCK_USER_ID;
+	const clerkUserId = opts.auth.userId;
+
+	if (!clerkUserId) {
+		return { auth: opts.auth, userId: null };
+	}
+
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkUserId),
+	});
 
 	return {
-		session: mockUserId ? { userId: mockUserId } : null,
-		headers: opts.headers,
+		auth: opts.auth,
+		userId: user?.id ?? null,
 	};
 };
 
@@ -50,33 +53,24 @@ export const createCallerFactory = t.createCallerFactory;
 
 export const publicProcedure = t.procedure;
 
-/**
- * Protected procedure - requires authenticated session
- * Just validates session exists, no DB fetch
- */
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.session?.userId) {
+	if (!ctx.userId) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
-			message:
-				"Not authenticated. Set MOCK_USER_ID in .env to mock authentication.",
+			message: "Not authenticated. Please sign in.",
 		});
 	}
 
 	return next({
 		ctx: {
-			session: ctx.session,
+			userId: ctx.userId,
 		},
 	});
 });
 
-/**
- * Admin procedure - requires authenticated user with @superset.sh email
- * Fetches user from DB and validates domain for API security
- */
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	const user = await db.query.users.findFirst({
-		where: eq(users.id, ctx.session.userId),
+		where: eq(users.id, ctx.userId),
 	});
 
 	if (!user) {
