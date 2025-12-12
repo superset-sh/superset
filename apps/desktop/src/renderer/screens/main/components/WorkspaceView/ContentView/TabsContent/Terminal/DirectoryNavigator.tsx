@@ -6,11 +6,13 @@ import { trpc } from "renderer/lib/trpc";
 interface DirectoryNavigatorProps {
 	paneId: string;
 	currentCwd?: string | null;
+	cwdConfirmed?: boolean;
 }
 
 export function DirectoryNavigator({
 	paneId,
 	currentCwd,
+	cwdConfirmed,
 }: DirectoryNavigatorProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [browsePath, setBrowsePath] = useState<string | null>(null);
@@ -18,25 +20,25 @@ export function DirectoryNavigator({
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const writeMutation = trpc.terminal.write.useMutation();
 
-	// Only enable navigation when we have a confirmed cwd from OSC-7
-	const hasConfirmedCwd = !!currentCwd;
+	// Navigation enabled when we have any cwd (seeded or confirmed)
+	const hasCwd = !!currentCwd;
 	const displayPath = browsePath || currentCwd;
 
 	const { data: directoryData, isLoading } =
 		trpc.terminal.listDirectory.useQuery(
 			{ dirPath: displayPath || "/" },
-			{ enabled: isOpen && hasConfirmedCwd && !!displayPath },
+			{ enabled: isOpen && hasCwd && !!displayPath },
 		);
 
 	const handleOpen = useCallback(
 		(open: boolean) => {
-			if (!hasConfirmedCwd) return;
+			if (!hasCwd) return;
 			setIsOpen(open);
 			if (!open) {
 				setBrowsePath(null);
 			}
 		},
-		[hasConfirmedCwd],
+		[hasCwd],
 	);
 
 	const handleNavigateToDir = useCallback(
@@ -91,17 +93,16 @@ export function DirectoryNavigator({
 		];
 	};
 
-	// Show "Terminal" until we have a confirmed cwd from OSC-7
-	const buttonLabel = currentCwd ? getBasename(currentCwd) : "Terminal";
+	// Show directory name only if confirmed by OSC-7, otherwise show "Terminal"
+	const buttonLabel =
+		cwdConfirmed && currentCwd ? getBasename(currentCwd) : "Terminal";
 
-	// When no cwd is known, show a non-interactive display
-	if (!hasConfirmedCwd) {
+	// When no cwd at all, show non-interactive display
+	if (!hasCwd) {
 		return (
 			<div className="flex min-w-0 items-center gap-1.5 px-1 -ml-1">
 				<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
-				<span className="truncate text-sm text-muted-foreground">
-					{buttonLabel}
-				</span>
+				<span className="truncate text-sm text-muted-foreground">Terminal</span>
 			</div>
 		);
 	}
@@ -118,7 +119,11 @@ export function DirectoryNavigator({
 					className="flex min-w-0 items-center gap-1.5 rounded px-1 -ml-1 hover:bg-accent/50 transition-colors"
 				>
 					<HiFolder className="size-3.5 shrink-0 text-muted-foreground/70" />
-					<span className="truncate text-sm">{buttonLabel}</span>
+					<span
+						className={`truncate text-sm ${!cwdConfirmed ? "text-muted-foreground" : ""}`}
+					>
+						{buttonLabel}
+					</span>
 				</button>
 			</PopoverTrigger>
 			<PopoverContent

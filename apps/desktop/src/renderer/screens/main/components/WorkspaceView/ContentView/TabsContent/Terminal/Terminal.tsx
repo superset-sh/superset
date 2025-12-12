@@ -42,6 +42,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
+	const [cwdConfirmed, setCwdConfirmed] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
@@ -67,16 +68,28 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
+	// Seed cwd from initialCwd or workspace path (shell spawns there)
+	// OSC-7 will override if/when the shell reports directory changes
+	useEffect(() => {
+		if (terminalCwd) return; // Already have a cwd, don't override
+		const seedCwd = paneInitialCwd || workspaceCwd;
+		if (seedCwd) {
+			setTerminalCwd(seedCwd);
+			setCwdConfirmed(false); // Seeded, not confirmed by OSC-7
+		}
+	}, [paneInitialCwd, workspaceCwd, terminalCwd]);
+
 	// Sync terminal cwd to store for DirectoryNavigator
 	useEffect(() => {
-		updatePaneCwd(paneId, terminalCwd);
-	}, [terminalCwd, paneId, updatePaneCwd]);
+		updatePaneCwd(paneId, terminalCwd, cwdConfirmed);
+	}, [terminalCwd, cwdConfirmed, paneId, updatePaneCwd]);
 
 	// Parse terminal data for cwd (OSC 7 sequences)
 	const updateCwdFromData = useCallback((data: string) => {
 		const cwd = parseCwd(data);
 		if (cwd !== null) {
 			setTerminalCwd(cwd);
+			setCwdConfirmed(true); // Confirmed by OSC-7
 		}
 	}, []);
 
