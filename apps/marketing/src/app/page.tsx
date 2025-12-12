@@ -8,7 +8,7 @@ import { VideoSection } from "./components/VideoSection";
 
 export default function Home() {
 	return (
-		<main className="flex flex-col bg-neutral-900">
+		<main className="flex flex-col bg-background">
 			<HeroSection />
 			<TrustedBySection />
 			<VideoSection />

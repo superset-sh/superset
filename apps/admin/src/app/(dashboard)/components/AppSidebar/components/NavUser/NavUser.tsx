@@ -19,26 +19,22 @@ import {
 	useSidebar,
 } from "@superset/ui/sidebar";
 import {
-	BadgeCheck,
-	Bell,
-	ChevronsUpDown,
-	LogOut,
-	Settings,
-} from "lucide-react";
+	LuBadgeCheck,
+	LuBell,
+	LuChevronsUpDown,
+	LuLogOut,
+	LuSettings,
+} from "react-icons/lu";
 
 import { env } from "@/env";
 
-type User = NonNullable<RouterOutputs["user"]["me"]>;
-
 export interface NavUserProps {
-	user: User;
+	user: NonNullable<RouterOutputs["user"]["me"]>;
 }
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
 	const { signOut } = useClerk();
-
-	const handleSignOut = () => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL });
 
 	const userInitials = user.name
 		.split(" ")
@@ -67,7 +63,7 @@ export function NavUser({ user }: NavUserProps) {
 								<span className="truncate font-medium">{user.name}</span>
 								<span className="truncate text-xs">{user.email}</span>
 							</div>
-							<ChevronsUpDown className="ml-auto size-4" />
+							<LuChevronsUpDown className="ml-auto size-4" />
 						</SidebarMenuButton>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent
@@ -96,21 +92,23 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
 							<DropdownMenuItem>
-								<BadgeCheck />
+								<LuBadgeCheck />
 								Account
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Settings />
+								<LuSettings />
 								Settings
 							</DropdownMenuItem>
 							<DropdownMenuItem>
-								<Bell />
+								<LuBell />
 								Notifications
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={handleSignOut}>
-							<LogOut />
+						<DropdownMenuItem
+							onClick={() => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL })}
+						>
+							<LuLogOut />
 							Log out
 						</DropdownMenuItem>
 					</DropdownMenuContent>

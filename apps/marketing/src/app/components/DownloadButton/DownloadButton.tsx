@@ -89,7 +89,7 @@ export function DownloadButton({
 	const trigger = (
 		<button
 			type="button"
-			className={`bg-neutral-50 text-neutral-950 ${sizeClasses} font-normal hover:bg-neutral-300 transition-colors flex items-center gap-2 ${className}`}
+			className={`bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`}
 		>
 			Download for macOS
 			<HiMiniArrowDownTray className="size-4" />

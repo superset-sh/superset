@@ -74,12 +74,12 @@ export function HeroSection() {
 							{/* Heading */}
 							<div className="space-y-2 sm:space-y-6">
 								<h1
-									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-stone-100"
+									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									The terminal app for parallel cli agents.
 								</h1>
-								<p className="text-md sm:text-lg font-light text-neutral-400 max-w-[400px]">
+								<p className="text-md sm:text-lg font-light text-muted-foreground max-w-[400px]">
 									Run dozens of Claude Code, Codex, or any other cli agents you
 									love.
 								</p>
@@ -91,7 +91,7 @@ export function HeroSection() {
 								/>
 								<button
 									type="button"
-									className="px-6 py-3 text-base font-normal bg-neutral-900 border border-neutral-800 text-neutral-100 hover:bg-neutral-950 transition-colors flex items-center gap-2"
+									className="px-6 py-3 text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
 									onClick={() => window.open(GITHUB_REPO_URL, "_blank")}
 									aria-label="View on GitHub"
 								>
@@ -227,8 +227,8 @@ function SelectorPill({ label, active = false, onClick }: SelectorPillProps) {
 				inline-flex items-center justify-center py-2 text-sm whitespace-nowrap cursor-pointer
 				${
 					active
-						? "bg-white/90 border border-white text-black/80"
-						: "bg-white/3 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/30"
+						? "bg-foreground/90 border border-foreground text-background/80"
+						: "bg-foreground/5 border border-foreground/20 text-foreground/80 hover:bg-foreground/10 hover:border-foreground/30"
 				}
 			`}
 			animate={{

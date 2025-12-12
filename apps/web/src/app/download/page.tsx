@@ -13,7 +13,7 @@ import { Download, Laptop, MonitorIcon, Zap } from "lucide-react";
 
 export default function DownloadPage() {
 	return (
-		<div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-white to-blue-50 dark:from-neutral-950 dark:via-neutral-900 dark:to-neutral-900">
+		<div className="relative min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
 			<div className="absolute top-4 right-4 z-10">
 				<SignOutButton>
 					<Button variant="outline" size="sm">
@@ -27,14 +27,14 @@ export default function DownloadPage() {
 					<Laptop className="h-8 w-8 text-blue-600 dark:text-blue-400" />
 				</div>
 
-				<h1 className="mb-6 text-4xl font-bold text-neutral-900 sm:text-5xl dark:text-neutral-100">
+				<h1 className="mb-6 text-4xl font-bold text-foreground sm:text-5xl">
 					One More Step to{" "}
 					<span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-blue-500">
 						Get Started
 					</span>
 				</h1>
 
-				<p className="mx-auto mb-12 max-w-lg text-xl text-neutral-600 dark:text-neutral-400">
+				<p className="mx-auto mb-12 max-w-lg text-xl text-muted-foreground">
 					Download the Superset desktop app to run coding agents locally on your
 					machine.
 				</p>
@@ -91,13 +91,11 @@ export default function DownloadPage() {
 					].map((feature) => (
 						<div
 							key={feature.title}
-							className="rounded-lg bg-white/80 p-4 shadow-sm dark:bg-neutral-900/80"
+							className="rounded-lg bg-card/80 p-4 shadow-sm"
 						>
 							<feature.icon className="mx-auto mb-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-							<h3 className="font-semibold text-neutral-900 dark:text-white">
-								{feature.title}
-							</h3>
-							<p className="text-sm text-neutral-600 dark:text-neutral-400">
+							<h3 className="font-semibold text-foreground">{feature.title}</h3>
+							<p className="text-sm text-muted-foreground">
 								{feature.description}
 							</p>
 						</div>

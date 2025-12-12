@@ -42,21 +42,12 @@ export const adminRouter = {
 
 	permanentlyDeleteUser: adminProcedure
 		.input(z.object({ userId: z.string().uuid() }))
-		.mutation(async ({ input }) => {
-			const [user] = await db
-				.delete(users)
-				.where(eq(users.id, input.userId))
-				.returning();
-
-			if (!user) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message: "User not found",
-				});
-			}
-
-			// TODO: Delete from Clerk, delete avatar from blob storage, etc.
-
-			return { success: true };
+		.mutation(async () => {
+			// TODO: Implement Clerk user deletion, avatar cleanup, etc.
+			throw new TRPCError({
+				code: "NOT_IMPLEMENTED",
+				message:
+					"Permanent deletion not yet implemented - requires Clerk cleanup",
+			});
 		}),
 } satisfies TRPCRouterRecord;

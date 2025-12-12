@@ -35,12 +35,12 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
 			{/* Modal Container with overflow hidden */}
 			<div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
-				<div className="pointer-events-auto w-full max-w-md mx-4 bg-black rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
+				<div className="pointer-events-auto w-full max-w-md mx-4 bg-background rounded-2xl shadow-2xl border border-border overflow-hidden">
 					{/* Close button */}
 					<button
 						type="button"
 						onClick={onClose}
-						className="absolute top-4 right-4 z-10 text-zinc-400 hover:text-white transition-colors"
+						className="absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors"
 						aria-label="Close modal"
 					>
 						<svg

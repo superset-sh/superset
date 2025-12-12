@@ -36,8 +36,8 @@ import {
 } from "@superset/ui/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, MoreHorizontal, Trash2, User } from "lucide-react";
 import { useState } from "react";
+import { LuEllipsis, LuLoaderCircle, LuTrash2, LuUser } from "react-icons/lu";
 
 import { useTRPC } from "@/trpc/react";
 
@@ -78,7 +78,7 @@ export function UsersTable() {
 		return (
 			<Card>
 				<CardContent className="flex items-center justify-center py-12">
-					<Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
+					<LuLoaderCircle className="text-muted-foreground h-8 w-8 animate-spin" />
 				</CardContent>
 			</Card>
 		);
@@ -117,7 +117,7 @@ export function UsersTable() {
 		return (
 			<Card>
 				<CardContent className="flex flex-col items-center justify-center py-12 text-center">
-					<User className="text-muted-foreground mb-4 h-12 w-12" />
+					<LuUser className="text-muted-foreground mb-4 h-12 w-12" />
 					<p className="text-lg font-medium">No active users</p>
 					<p className="text-muted-foreground text-sm">
 						Users will appear here as they sign up
@@ -178,7 +178,7 @@ export function UsersTable() {
 											<DropdownMenuTrigger asChild>
 												<Button variant="ghost" className="h-8 w-8 p-0">
 													<span className="sr-only">Open menu</span>
-													<MoreHorizontal className="h-4 w-4" />
+													<LuEllipsis className="h-4 w-4" />
 												</Button>
 											</DropdownMenuTrigger>
 											<DropdownMenuContent align="end">
@@ -192,7 +192,7 @@ export function UsersTable() {
 														})
 													}
 												>
-													<Trash2 className="mr-2 h-4 w-4" />
+													<LuTrash2 className="mr-2 h-4 w-4" />
 													Delete Permanently
 												</DropdownMenuItem>
 											</DropdownMenuContent>
@@ -233,7 +233,7 @@ export function UsersTable() {
 							disabled={deleteMutation.isPending}
 						>
 							{deleteMutation.isPending ? (
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								<LuLoaderCircle className="mr-2 h-4 w-4 animate-spin" />
 							) : null}
 							Delete Permanently
 						</AlertDialogAction>

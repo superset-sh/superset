@@ -11,16 +11,26 @@ import { env } from "@/env";
 export default function SignUpPage() {
 	const { signUp, isLoaded } = useSignUp();
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const signUpWithGoogle = async () => {
 		if (!isLoaded) return;
 
 		setIsLoading(true);
-		await signUp.authenticateWithRedirect({
-			strategy: "oauth_google",
-			redirectUrl: "/sso-callback",
-			redirectUrlComplete: "/",
-		});
+		setError(null);
+
+		try {
+			await signUp.authenticateWithRedirect({
+				strategy: "oauth_google",
+				redirectUrl: "/sso-callback",
+				redirectUrlComplete: "/",
+			});
+		} catch (err) {
+			console.error("Sign up failed:", err);
+			setError("Failed to sign up. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -34,6 +44,9 @@ export default function SignUpPage() {
 				</p>
 			</div>
 			<div className="grid gap-6">
+				{error && (
+					<p className="text-destructive text-center text-sm">{error}</p>
+				)}
 				<Button
 					variant="outline"
 					disabled={!isLoaded || isLoading}

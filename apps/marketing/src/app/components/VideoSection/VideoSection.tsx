@@ -15,10 +15,10 @@ export function VideoSection() {
 					transition={{ duration: 0.5 }}
 				>
 					<div className="space-y-1 mb-6">
-						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-stone-100">
+						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-foreground">
 							A Superset of your favorite tools
 						</h2>
-						<p className="text-base sm:text-lg font-light tracking-[-0.03em] text-neutral-400 max-w-[700px]">
+						<p className="text-base sm:text-lg font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
 							Get all the best AI coding tools in one place. We want to support
 							and stay compatible with whatever CLI agents you already use.
 						</p>
@@ -32,7 +32,7 @@ export function VideoSection() {
 					viewport={{ once: true }}
 					transition={{ duration: 0.5, delay: 0.2 }}
 				>
-					<div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-neutral-800">
+					<div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-muted">
 						<iframe
 							className="absolute inset-0 w-full h-full"
 							src="https://www.youtube.com/embed/dkD-U7JXkbI?control=0"

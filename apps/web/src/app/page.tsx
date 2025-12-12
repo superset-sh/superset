@@ -1,6 +1,7 @@
 "use client";
 
 import { SignOutButton, useUser } from "@clerk/nextjs";
+import { getInitials } from "@superset/shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -20,10 +21,10 @@ import { env } from "@/env";
 export default function HomePage() {
 	const { user } = useUser();
 
-	const initials = user
-		? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-			user.primaryEmailAddress?.emailAddress?.[0]?.toUpperCase()
-		: "";
+	const initials = getInitials(
+		user?.fullName,
+		user?.primaryEmailAddress?.emailAddress,
+	);
 
 	return (
 		<div className="relative flex min-h-screen flex-col">

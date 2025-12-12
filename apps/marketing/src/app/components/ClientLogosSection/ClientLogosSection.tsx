@@ -12,7 +12,7 @@ export function ClientLogosSection() {
 					viewport={{ once: true, margin: "-100px" }}
 					transition={{ duration: 0.5, ease: "easeOut" }}
 				>
-					<h2 className="text-xl sm:text-2xl font-normal text-center mb-4 sm:mb-8 text-white px-4">
+					<h2 className="text-xl sm:text-2xl font-normal text-center mb-4 sm:mb-8 text-foreground px-4">
 						Trusted by engineers from
 					</h2>
 				</motion.div>
@@ -27,7 +27,7 @@ export function ClientLogosSection() {
 					<Marquee
 						speed={30}
 						gradient={true}
-						gradientColor="var(--color-neutral-900)"
+						gradientColor="hsl(var(--background))"
 						gradientWidth={100}
 						pauseOnHover={false}
 					>
@@ -35,7 +35,7 @@ export function ClientLogosSection() {
 							{CLIENT_LOGOS.map((client) => (
 								<div
 									key={client.name}
-									className="text-white text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap"
+									className="text-foreground text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold opacity-60 hover:opacity-100 transition-opacity cursor-pointer whitespace-nowrap"
 								>
 									{client.logo}
 								</div>

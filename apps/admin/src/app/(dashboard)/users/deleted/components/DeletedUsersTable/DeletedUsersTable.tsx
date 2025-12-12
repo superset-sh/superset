@@ -30,8 +30,8 @@ import {
 } from "@superset/ui/table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, RotateCcw, Trash2, UserX } from "lucide-react";
 import { useState } from "react";
+import { LuLoaderCircle, LuRotateCcw, LuTrash2, LuUserX } from "react-icons/lu";
 
 import { useTRPC } from "@/trpc/react";
 
@@ -89,7 +89,7 @@ export function DeletedUsersTable() {
 		return (
 			<Card>
 				<CardContent className="flex items-center justify-center py-12">
-					<Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
+					<LuLoaderCircle className="text-muted-foreground h-8 w-8 animate-spin" />
 				</CardContent>
 			</Card>
 		);
@@ -128,7 +128,7 @@ export function DeletedUsersTable() {
 		return (
 			<Card>
 				<CardContent className="flex flex-col items-center justify-center py-12 text-center">
-					<UserX className="text-muted-foreground mb-4 h-12 w-12" />
+					<LuUserX className="text-muted-foreground mb-4 h-12 w-12" />
 					<p className="text-lg font-medium">No deleted users</p>
 					<p className="text-muted-foreground text-sm">
 						Users that are soft-deleted will appear here
@@ -220,9 +220,9 @@ export function DeletedUsersTable() {
 													disabled={restoreMutation.isPending}
 												>
 													{restoreMutation.isPending ? (
-														<Loader2 className="h-4 w-4 animate-spin" />
+														<LuLoaderCircle className="h-4 w-4 animate-spin" />
 													) : (
-														<RotateCcw className="h-4 w-4" />
+														<LuRotateCcw className="h-4 w-4" />
 													)}
 													<span className="ml-2">Restore</span>
 												</Button>
@@ -238,7 +238,7 @@ export function DeletedUsersTable() {
 													}
 													disabled={permanentDeleteMutation.isPending}
 												>
-													<Trash2 className="h-4 w-4" />
+													<LuTrash2 className="h-4 w-4" />
 													<span className="ml-2">Delete</span>
 												</Button>
 											</div>
@@ -284,7 +284,7 @@ export function DeletedUsersTable() {
 							disabled={permanentDeleteMutation.isPending}
 						>
 							{permanentDeleteMutation.isPending ? (
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								<LuLoaderCircle className="mr-2 h-4 w-4 animate-spin" />
 							) : null}
 							Delete Permanently
 						</AlertDialogAction>

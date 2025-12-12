@@ -11,16 +11,26 @@ import { env } from "@/env";
 export default function SignInPage() {
 	const { signIn, isLoaded } = useSignIn();
 	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
 	const signInWithGoogle = async () => {
 		if (!isLoaded) return;
 
 		setIsLoading(true);
-		await signIn.authenticateWithRedirect({
-			strategy: "oauth_google",
-			redirectUrl: "/sso-callback",
-			redirectUrlComplete: "/",
-		});
+		setError(null);
+
+		try {
+			await signIn.authenticateWithRedirect({
+				strategy: "oauth_google",
+				redirectUrl: "/sso-callback",
+				redirectUrlComplete: "/",
+			});
+		} catch (err) {
+			console.error("Sign in failed:", err);
+			setError("Failed to sign in. Please try again.");
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -32,6 +42,9 @@ export default function SignInPage() {
 				</p>
 			</div>
 			<div className="grid gap-6">
+				{error && (
+					<p className="text-destructive text-center text-sm">{error}</p>
+				)}
 				<Button
 					variant="outline"
 					disabled={!isLoaded || isLoading}

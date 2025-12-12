@@ -1,2 +1,5 @@
 // @superset/shared - Shared constants, types, and utilities
-// Add exports here as needed
+
+export const THEME_STORAGE_KEY = "superset-theme";
+
+export { getInitials } from "./names";

@@ -8,21 +8,21 @@ export const metadata: Metadata = {
 
 export default function TermsOfServicePage() {
 	return (
-		<main className="bg-neutral-900 pt-24 pb-16 min-h-screen">
+		<main className="bg-background pt-24 pb-16 min-h-screen">
 			<article className="max-w-3xl mx-auto px-6 sm:px-8">
-				<header className="border-b border-neutral-800 pb-8 mb-10">
-					<h1 className="text-3xl sm:text-4xl font-medium text-neutral-100">
+				<header className="border-b border-border pb-8 mb-10">
+					<h1 className="text-3xl sm:text-4xl font-medium text-foreground">
 						Terms of Service
 					</h1>
-					<p className="mt-4 text-sm text-neutral-500">
+					<p className="mt-4 text-sm text-muted-foreground">
 						Last updated: December 11, 2025
 					</p>
 				</header>
 
-				<div className="space-y-10 text-neutral-300 leading-relaxed">
+				<div className="space-y-10 text-muted-foreground leading-relaxed">
 					{/* Agreement */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							1. Agreement to Terms
 						</h2>
 						<p>
@@ -41,7 +41,7 @@ export default function TermsOfServicePage() {
 
 					{/* Eligibility */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							2. Eligibility
 						</h2>
 						<p>
@@ -53,7 +53,7 @@ export default function TermsOfServicePage() {
 
 					{/* Account */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							3. Your Account
 						</h2>
 						<p>
@@ -81,7 +81,7 @@ export default function TermsOfServicePage() {
 
 					{/* Permitted Use */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							4. Permitted Use
 						</h2>
 						<p>
@@ -94,7 +94,7 @@ export default function TermsOfServicePage() {
 
 					{/* Prohibited Conduct */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							5. Prohibited Conduct
 						</h2>
 						<p>You agree not to:</p>
@@ -132,7 +132,7 @@ export default function TermsOfServicePage() {
 
 					{/* Intellectual Property */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							6. Intellectual Property
 						</h2>
 						<p>
@@ -150,7 +150,7 @@ export default function TermsOfServicePage() {
 
 					{/* Open Source */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							7. Open Source Components
 						</h2>
 						<p>
@@ -163,7 +163,7 @@ export default function TermsOfServicePage() {
 
 					{/* Third-Party Services */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							8. Third-Party Services
 						</h2>
 						<p>
@@ -177,7 +177,7 @@ export default function TermsOfServicePage() {
 
 					{/* Payment */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							9. Payment and Subscriptions
 						</h2>
 						<p>
@@ -203,7 +203,7 @@ export default function TermsOfServicePage() {
 
 					{/* Disclaimer */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							10. Disclaimer of Warranties
 						</h2>
 						<p className="uppercase text-sm">
@@ -221,7 +221,7 @@ export default function TermsOfServicePage() {
 
 					{/* Limitation of Liability */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							11. Limitation of Liability
 						</h2>
 						<p className="uppercase text-sm">
@@ -239,7 +239,7 @@ export default function TermsOfServicePage() {
 
 					{/* Indemnification */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							12. Indemnification
 						</h2>
 						<p>
@@ -253,7 +253,7 @@ export default function TermsOfServicePage() {
 
 					{/* Termination */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							13. Termination
 						</h2>
 						<p>
@@ -270,7 +270,7 @@ export default function TermsOfServicePage() {
 
 					{/* Governing Law */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							14. Governing Law
 						</h2>
 						<p>
@@ -282,7 +282,7 @@ export default function TermsOfServicePage() {
 
 					{/* Dispute Resolution */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							15. Dispute Resolution
 						</h2>
 						<p>
@@ -296,7 +296,7 @@ export default function TermsOfServicePage() {
 
 					{/* Changes */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							16. Changes to These Terms
 						</h2>
 						<p>
@@ -310,7 +310,7 @@ export default function TermsOfServicePage() {
 
 					{/* Severability */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							17. Severability
 						</h2>
 						<p>
@@ -323,7 +323,7 @@ export default function TermsOfServicePage() {
 
 					{/* Entire Agreement */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							18. Entire Agreement
 						</h2>
 						<p>
@@ -335,17 +335,17 @@ export default function TermsOfServicePage() {
 
 					{/* Contact */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							19. Contact Us
 						</h2>
 						<p>
 							If you have any questions about these Terms, please contact us at:
 						</p>
-						<p className="text-neutral-100">
+						<p className="text-foreground">
 							Email:{" "}
 							<a
 								href="mailto:legal@supersetlabs.com"
-								className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+								className="text-primary hover:text-primary/80 underline underline-offset-2"
 							>
 								legal@supersetlabs.com
 							</a>

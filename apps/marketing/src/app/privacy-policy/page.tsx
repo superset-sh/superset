@@ -8,21 +8,21 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
 	return (
-		<main className="bg-neutral-900 pt-24 pb-16 min-h-screen">
+		<main className="bg-background pt-24 pb-16 min-h-screen">
 			<article className="max-w-3xl mx-auto px-6 sm:px-8">
-				<header className="border-b border-neutral-800 pb-8 mb-10">
-					<h1 className="text-3xl sm:text-4xl font-medium text-neutral-100">
+				<header className="border-b border-border pb-8 mb-10">
+					<h1 className="text-3xl sm:text-4xl font-medium text-foreground">
 						Privacy Policy
 					</h1>
-					<p className="mt-4 text-sm text-neutral-500">
+					<p className="mt-4 text-sm text-muted-foreground">
 						Last updated: December 11, 2025
 					</p>
 				</header>
 
-				<div className="space-y-10 text-neutral-300 leading-relaxed">
+				<div className="space-y-10 text-muted-foreground leading-relaxed">
 					{/* Introduction */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							1. Introduction
 						</h2>
 						<p>
@@ -40,28 +40,28 @@ export default function PrivacyPolicyPage() {
 
 					{/* Information We Collect */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							2. Information We Collect
 						</h2>
 
 						<div className="space-y-3">
-							<h3 className="text-lg font-medium text-neutral-200">
+							<h3 className="text-lg font-medium text-foreground/90">
 								2.1 Information You Provide
 							</h3>
 							<ul className="list-disc pl-6 space-y-2">
 								<li>
-									<strong className="text-neutral-100">Account Data:</strong>{" "}
+									<strong className="text-foreground">Account Data:</strong>{" "}
 									When you sign up for our waitlist or create an account, we may
 									collect your name, email address, and other contact
 									information.
 								</li>
 								<li>
-									<strong className="text-neutral-100">Communications:</strong>{" "}
+									<strong className="text-foreground">Communications:</strong>{" "}
 									When you contact us for support or feedback, we collect the
 									information you provide in those communications.
 								</li>
 								<li>
-									<strong className="text-neutral-100">Payment Data:</strong> If
+									<strong className="text-foreground">Payment Data:</strong> If
 									you make a purchase, payment information is processed by our
 									third-party payment processors. We do not store your full
 									payment card details.
@@ -70,22 +70,22 @@ export default function PrivacyPolicyPage() {
 						</div>
 
 						<div className="space-y-3">
-							<h3 className="text-lg font-medium text-neutral-200">
+							<h3 className="text-lg font-medium text-foreground/90">
 								2.2 Automatically Collected Information
 							</h3>
 							<ul className="list-disc pl-6 space-y-2">
 								<li>
-									<strong className="text-neutral-100">Usage Data:</strong> We
+									<strong className="text-foreground">Usage Data:</strong> We
 									collect information about how you interact with our services,
 									including pages visited, features used, and time spent.
 								</li>
 								<li>
-									<strong className="text-neutral-100">Device Data:</strong> We
+									<strong className="text-foreground">Device Data:</strong> We
 									may collect device identifiers, operating system version,
 									browser type, and similar technical information.
 								</li>
 								<li>
-									<strong className="text-neutral-100">Log Data:</strong> Our
+									<strong className="text-foreground">Log Data:</strong> Our
 									servers automatically record information such as IP address,
 									access times, and referring URLs.
 								</li>
@@ -93,7 +93,7 @@ export default function PrivacyPolicyPage() {
 						</div>
 
 						<div className="space-y-3">
-							<h3 className="text-lg font-medium text-neutral-200">
+							<h3 className="text-lg font-medium text-foreground/90">
 								2.3 Desktop Application
 							</h3>
 							<p>
@@ -107,7 +107,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* How We Use Information */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							3. How We Use Your Information
 						</h2>
 						<p>We use the information we collect to:</p>
@@ -136,7 +136,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Sharing */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							4. Sharing of Information
 						</h2>
 						<p>
@@ -145,25 +145,23 @@ export default function PrivacyPolicyPage() {
 						</p>
 						<ul className="list-disc pl-6 space-y-2">
 							<li>
-								<strong className="text-neutral-100">Service Providers:</strong>{" "}
+								<strong className="text-foreground">Service Providers:</strong>{" "}
 								With third-party vendors who perform services on our behalf
 								(e.g., hosting, analytics, payment processing).
 							</li>
 							<li>
-								<strong className="text-neutral-100">Legal Compliance:</strong>{" "}
+								<strong className="text-foreground">Legal Compliance:</strong>{" "}
 								When required by law, regulation, or legal process.
 							</li>
 							<li>
-								<strong className="text-neutral-100">
+								<strong className="text-foreground">
 									Protection of Rights:
 								</strong>{" "}
 								To protect our rights, privacy, safety, or property, or that of
 								our users or the public.
 							</li>
 							<li>
-								<strong className="text-neutral-100">
-									Business Transfers:
-								</strong>{" "}
+								<strong className="text-foreground">Business Transfers:</strong>{" "}
 								In connection with a merger, acquisition, or sale of assets.
 							</li>
 						</ul>
@@ -171,7 +169,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Data Retention */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							5. Data Retention
 						</h2>
 						<p>
@@ -184,7 +182,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Security */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							6. Data Security
 						</h2>
 						<p>
@@ -198,7 +196,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Your Rights */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							7. Your Rights
 						</h2>
 						<p>
@@ -220,7 +218,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Cookies */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							8. Cookies and Tracking Technologies
 						</h2>
 						<p>
@@ -233,7 +231,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Third-Party Links */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							9. Third-Party Links
 						</h2>
 						<p>
@@ -246,7 +244,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Children */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							10. Children&apos;s Privacy
 						</h2>
 						<p>
@@ -259,7 +257,7 @@ export default function PrivacyPolicyPage() {
 
 					{/* Changes */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							11. Changes to This Policy
 						</h2>
 						<p>
@@ -273,18 +271,18 @@ export default function PrivacyPolicyPage() {
 
 					{/* Contact */}
 					<section className="space-y-4">
-						<h2 className="text-xl font-medium text-neutral-100">
+						<h2 className="text-xl font-medium text-foreground">
 							12. Contact Us
 						</h2>
 						<p>
 							If you have any questions about this Privacy Policy or our data
 							practices, please contact us at:
 						</p>
-						<p className="text-neutral-100">
+						<p className="text-foreground">
 							Email:{" "}
 							<a
 								href="mailto:privacy@supersetlabs.com"
-								className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+								className="text-primary hover:text-primary/80 underline underline-offset-2"
 							>
 								privacy@supersetlabs.com
 							</a>

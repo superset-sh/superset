@@ -5,19 +5,13 @@ import Image from "next/image";
 import { SocialLinks } from "../SocialLinks";
 
 interface HeaderProps {
-	authButtons: React.ReactNode;
+	ctaButtons: React.ReactNode;
 }
 
-export function Header({ authButtons }: HeaderProps) {
+export function Header({ ctaButtons }: HeaderProps) {
 	return (
 		<header className="fixed top-0 left-0 right-0 z-50">
-			<div
-				className="absolute inset-0 h-24 pointer-events-none"
-				style={{
-					background:
-						"linear-gradient(to bottom, rgb(23, 23, 23) 0%, rgb(23, 23, 23) 65%, rgba(23, 23, 23, 0.9) 80%, rgba(23, 23, 23, 0.5) 90%, rgba(23, 23, 23, 0) 100%)",
-				}}
-			/>
+			<div className="absolute inset-0 h-24 pointer-events-none bg-gradient-to-b from-background via-background/90 to-transparent" />
 			<nav className="relative max-w-[1600px] mx-auto px-8 lg:px-[30px]">
 				<div className="flex items-center justify-between h-16">
 					{/* Logo */}
@@ -33,7 +27,7 @@ export function Header({ authButtons }: HeaderProps) {
 							alt="Superset"
 							width={200}
 							height={61}
-							className="h-10 sm:h-12 w-auto group-hover:scale-[1.02] transition-transform duration-200"
+							className="h-10 sm:h-12 w-auto group-hover:scale-[1.02] transition-transform duration-200 dark:invert-0 invert"
 						/>
 					</motion.a>
 
@@ -45,7 +39,7 @@ export function Header({ authButtons }: HeaderProps) {
 						transition={{ duration: 0.3, delay: 0.1 }}
 					>
 						<SocialLinks />
-						{authButtons}
+						{ctaButtons}
 					</motion.div>
 				</div>
 			</nav>
