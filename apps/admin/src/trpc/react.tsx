@@ -45,9 +45,7 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 					transformer: SuperJSON,
 					url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
 					headers() {
-						const headers = new Headers();
-						headers.set("x-trpc-source", "nextjs-react");
-						return headers;
+						return { "x-trpc-source": "nextjs-react" };
 					},
 				}),
 			],
