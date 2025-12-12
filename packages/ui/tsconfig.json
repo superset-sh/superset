@@ -1,5 +1,5 @@
 {
-	"extends": "@superset/typescript/internal-package.json",
+	"extends": "@superset/typescript/base.json",
 	"compilerOptions": {
 		"lib": ["ES2022", "DOM", "DOM.Iterable"],
 		"jsx": "react-jsx",
@@ -8,6 +8,6 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src"],
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]
 }

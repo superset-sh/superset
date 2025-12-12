@@ -12,7 +12,7 @@
 	"dependencies": {
 		"@react-three/drei": "^10.7.6",
 		"@react-three/fiber": "^9.4.0",
-		"@superset/api": "workspace:*",
+		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"@tanstack/react-query": "^5.90.10",
@@ -33,7 +33,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
-		"@tailwindcss/postcss": "^4",
+		"@tailwindcss/postcss": "^4.0.9",
 		"@types/mdx": "^2.0.13",
 		"@types/node": "^24.9.1",
 		"@types/react": "^19.1.11",

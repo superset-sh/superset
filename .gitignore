@@ -44,6 +44,7 @@ mise.toml
 
 # Turbo
 .turbo
+.cache
 .envrc
 
 # Superset

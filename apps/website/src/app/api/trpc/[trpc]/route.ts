@@ -1,4 +1,4 @@
-import { appRouter, createTRPCContext } from "@superset/api";
+import { appRouter, createTRPCContext } from "@superset/trpc";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import type { NextRequest } from "next/server";
 
