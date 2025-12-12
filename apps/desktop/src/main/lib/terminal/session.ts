@@ -144,14 +144,12 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Data to persist to scrollback/history (may differ from raw data)
 		let dataToStore = data;
 
 		if (containsClearScrollbackSequence(data)) {
 			session.scrollback = "";
 			session.escapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
-			// Only persist content AFTER the last clear sequence
 			dataToStore = extractContentAfterClear(data);
 		}
 
