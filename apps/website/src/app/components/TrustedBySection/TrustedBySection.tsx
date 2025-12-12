@@ -25,7 +25,7 @@ export function TrustedBySection() {
 					viewport={{ once: true, margin: "-100px" }}
 					transition={{ duration: 0.5, ease: "easeOut" }}
 				>
-					<h2 className="text-xl sm:text-2xl font-normal text-center mb-4 sm:mb-8 text-white px-4">
+					<h2 className="text-lg sm:text-xl font-mono font-normal text-center mb-4 sm:mb-8 text-stone-100 px-4">
 						Trusted by engineers from
 					</h2>
 				</motion.div>

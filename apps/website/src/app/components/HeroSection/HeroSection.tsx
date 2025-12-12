@@ -16,10 +16,11 @@ export function HeroSection() {
 			<section className="relative min-h-[calc(100vh-64px)] flex items-center overflow-hidden">
 				{/* Grid background */}
 				<motion.div
-					className="absolute inset-0 pointer-events-none"
+					className="absolute inset-0 pointer-events-none z-0"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: 1 }}
 					transition={{ duration: 0.8, ease: "easeOut" }}
+					aria-hidden="true"
 				>
 					<svg
 						className="absolute inset-0 w-full h-full"
@@ -60,7 +61,8 @@ export function HeroSection() {
 						/>
 					</svg>
 				</motion.div>
-				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
+
+				<div className="relative z-10 w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
 					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
 						{/* Left column - Text content */}
 						<motion.div
@@ -72,12 +74,12 @@ export function HeroSection() {
 							{/* Heading */}
 							<div className="space-y-6">
 								<h1
-									className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-white"
+									className="text-[28px] sm:text-[32px] lg:text-[38px] font-normal tracking-normal leading-[1.3em] text-stone-100"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									The terminal app for parallel cli agents.
 								</h1>
-								<p className="text-lg text-muted-foreground max-w-[400px]">
+								<p className="text-lg font-light text-neutral-400 max-w-[400px]">
 									Run dozens of Claude Code, Codex, or any other cli agents you
 									love.
 								</p>
@@ -89,7 +91,7 @@ export function HeroSection() {
 								/>
 								<button
 									type="button"
-									className="px-6 py-3 text-base rounded-[5px] font-medium bg-white/3 text-white hover:bg-white/10 transition-colors flex items-center gap-2"
+									className="px-6 py-3 text-base font-normal bg-neutral-900 border border-neutral-800 text-neutral-100 hover:bg-neutral-950 transition-colors flex items-center gap-2"
 									onClick={() => window.open(GITHUB_REPO_URL, "_blank")}
 									aria-label="View on GitHub"
 								>
@@ -162,7 +164,7 @@ function ProductDemo() {
 			{SELECTOR_OPTIONS.map((option) => (
 				<motion.div
 					key={option}
-					className={`absolute inset-0 bg-gradient-to-br ${BACKGROUND_GRADIENTS[option]}`}
+					className={`absolute inset-0 bg-linear-to-br ${BACKGROUND_GRADIENTS[option]}`}
 					initial={false}
 					animate={{ opacity: activeOption === option ? 1 : 0 }}
 					transition={{ duration: 0.5, ease: "easeInOut" }}
@@ -222,11 +224,11 @@ function SelectorPill({ label, active = false, onClick }: SelectorPillProps) {
 			type="button"
 			onClick={onClick}
 			className={`
-				inline-flex items-center justify-center py-2 rounded-[5px] text-sm whitespace-nowrap cursor-pointer
+				inline-flex items-center justify-center py-2 text-sm whitespace-nowrap cursor-pointer
 				${
 					active
 						? "bg-white/90 border border-white text-black/80"
-						: "bg-white/[0.03] border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/30"
+						: "bg-white/3 border border-white/20 text-white/80 hover:bg-white/10 hover:border-white/30"
 				}
 			`}
 			animate={{
