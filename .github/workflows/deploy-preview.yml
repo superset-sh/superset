@@ -8,17 +8,25 @@ concurrency:
   group: preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
-jobs:
-  create-neon-branch:
-    name: Create Neon Branch
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
+env:
+  PR_NUMBER: ${{ github.event.pull_request.number }}
+  API_ALIAS: api-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+  WEB_ALIAS: web-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+  MARKETING_ALIAS: marketing-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+  ADMIN_ALIAS: admin-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+  DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
 
-      - uses: oven-sh/setup-bun@v2
+jobs:
+  deploy-database:
+    name: Deploy Database (Neon)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.3
 
@@ -26,20 +34,20 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
         run: bun install --frozen
 
       - name: Create Neon branch
         id: create-branch
-        uses: neondatabase/create-branch-action@v6.1.1
+        uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: ${{ github.head_ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
-      - name: Validate and run migrations
+      - name: Validate and push database schema
         working-directory: packages/db
         env:
           DATABASE_URL: ${{ steps.create-branch.outputs.db_url_pooled }}
@@ -48,19 +56,404 @@ jobs:
           bun drizzle-kit check
           bun drizzle-kit migrate
 
-      - name: Post PR comment
+      - name: Save database success status
+        run: |
+          cat > database-status.env << EOF
+          DATABASE_STATUS="✅"
+          DATABASE_LINK="<a href=\"https://console.neon.tech/app/projects/${{ vars.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables\">View Branch</a>"
+          DATABASE_URL="${{ steps.create-branch.outputs.db_url_pooled }}"
+          DATABASE_URL_UNPOOLED="${{ steps.create-branch.outputs.db_url }}"
+          BRANCH_ID="${{ steps.create-branch.outputs.branch_id }}"
+          EOF
+
+      - name: Upload database status
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-status
+          path: database-status.env
+
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    environment: preview
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Download database info
+        uses: actions/download-artifact@v4
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy API
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_API_PROJECT_ID }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
+          NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
+          MOCK_USER_ID: ${{ secrets.MOCK_USER_ID }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
+          echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Save API success status
+        run: |
+          cat > api-status.env << EOF
+          API_STATUS="✅"
+          API_LINK="<a href=\"https://${{ env.API_ALIAS }}\">Open Preview</a>"
+          API_URL="https://${{ env.API_ALIAS }}"
+          EOF
+
+      - name: Upload API status
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-status
+          path: api-status.env
+
+  deploy-web:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    environment: preview
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Download database info
+        uses: actions/download-artifact@v4
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Web
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_WEB_PROJECT_ID }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
+          NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
+          NEXT_PUBLIC_DOCS_URL: https://${{ env.DOCS_ALIAS }}
+          MOCK_USER_ID: ${{ secrets.MOCK_USER_ID }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          vercel alias $VERCEL_URL ${{ env.WEB_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
+          echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Save web success status
+        run: |
+          cat > web-status.env << EOF
+          WEB_STATUS="✅"
+          WEB_LINK="<a href=\"https://${{ env.WEB_ALIAS }}\">Open Preview</a>"
+          EOF
+
+      - name: Upload web status
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-status
+          path: web-status.env
+
+  deploy-marketing:
+    name: Deploy Marketing
+    runs-on: ubuntu-latest
+    environment: preview
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Marketing
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_MARKETING_PROJECT_ID }}
+          NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          vercel alias $VERCEL_URL ${{ env.MARKETING_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
+          echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Save marketing success status
+        run: |
+          cat > marketing-status.env << EOF
+          MARKETING_STATUS="✅"
+          MARKETING_LINK="<a href=\"https://${{ env.MARKETING_ALIAS }}\">Open Preview</a>"
+          EOF
+
+      - name: Upload marketing status
+        uses: actions/upload-artifact@v4
+        with:
+          name: marketing-status
+          path: marketing-status.env
+
+  deploy-admin:
+    name: Deploy Admin
+    runs-on: ubuntu-latest
+    environment: preview
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Download database info
+        uses: actions/download-artifact@v4
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL=$DATABASE_URL" >> $GITHUB_ENV
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Admin
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_ADMIN_PROJECT_ID }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
+          NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
+          NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
+          MOCK_USER_ID: ${{ secrets.MOCK_USER_ID }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          vercel alias $VERCEL_URL ${{ env.ADMIN_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
+          echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Save admin success status
+        run: |
+          cat > admin-status.env << EOF
+          ADMIN_STATUS="✅"
+          ADMIN_LINK="<a href=\"https://${{ env.ADMIN_ALIAS }}\">Open Preview</a>"
+          EOF
+
+      - name: Upload admin status
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-status
+          path: admin-status.env
+
+  deploy-docs:
+    name: Deploy Docs
+    runs-on: ubuntu-latest
+    environment: preview
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.3
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Build and Deploy Docs
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DOCS_PROJECT_ID }}
+          NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
+          NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
+          NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
+        run: |
+          vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+          vercel build --token=$VERCEL_TOKEN
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          vercel alias $VERCEL_URL ${{ env.DOCS_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
+          echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
+
+      - name: Save docs success status
+        run: |
+          cat > docs-status.env << EOF
+          DOCS_STATUS="✅"
+          DOCS_LINK="<a href=\"https://${{ env.DOCS_ALIAS }}\">Open Preview</a>"
+          EOF
+
+      - name: Upload docs status
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-status
+          path: docs-status.env
+
+  post-final-comment:
+    name: Post Deployment Comment
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-status"
+          merge-multiple: true
+
+      - name: Generate deployment comment
+        run: |
+          DATABASE_STATUS="❌"
+          DATABASE_LINK="Failed to create"
+          API_STATUS="❌"
+          API_LINK="Failed to deploy"
+          WEB_STATUS="❌"
+          WEB_LINK="Failed to deploy"
+          MARKETING_STATUS="❌"
+          MARKETING_LINK="Failed to deploy"
+          ADMIN_STATUS="❌"
+          ADMIN_LINK="Failed to deploy"
+          DOCS_STATUS="❌"
+          DOCS_LINK="Failed to deploy"
+
+          if [[ "${{ needs.deploy-database.result }}" == "success" ]]; then
+            source database-status.env
+          fi
+
+          if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then
+            source api-status.env
+          fi
+
+          if [[ "${{ needs.deploy-web.result }}" == "success" ]]; then
+            source web-status.env
+          fi
+
+          if [[ "${{ needs.deploy-marketing.result }}" == "success" ]]; then
+            source marketing-status.env
+          fi
+
+          if [[ "${{ needs.deploy-admin.result }}" == "success" ]]; then
+            source admin-status.env
+          fi
+
+          if [[ "${{ needs.deploy-docs.result }}" == "success" ]]; then
+            source docs-status.env
+          fi
+
+          export DATABASE_STATUS DATABASE_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
+          envsubst < .github/templates/preview-comment.md > final-comment.md
+
+      - name: Post final deployment comment
         uses: thollander/actions-comment-pull-request@v3
         with:
+          file-path: final-comment.md
           comment-tag: "🚀-preview-deployment"
-          message: |
-            ## 🚀 Preview Deployment
-
-            ### 🔗 Preview Links
-
-            | Service | Status | Link |
-            |---------|:------:|------|
-            | <img src="https://neon.tech/favicon.ico" width="16" height="16"> **Database (Neon)** | ✅ | [View Branch](https://console.neon.tech/app/projects/${{ vars.NEON_PROJECT_ID }}/branches/${{ steps.create-branch.outputs.branch_id }}/tables) |
-
-            ---
-
-            *Preview updates automatically with new commits*
