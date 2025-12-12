@@ -15,6 +15,10 @@ command -v bun &> /dev/null || error "Bun not installed. Install from https://bu
 command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
 command -v jq &> /dev/null || error "jq not installed. Run: brew install jq"
 
+# Check required environment variables
+NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
+[ -z "$NEON_PROJECT_ID" ] && error "NEON_PROJECT_ID environment variable is required"
+
 # Install dependencies
 echo "📥 Installing dependencies..."
 bun install
@@ -34,7 +38,7 @@ fi
 echo "🗄️  Creating Neon branch..."
 WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 NEON_OUTPUT=$(neonctl branches create \
-  --project-id tiny-cherry-82420694 \
+  --project-id "$NEON_PROJECT_ID" \
   --name "$WORKSPACE_NAME" \
   --output json)
 

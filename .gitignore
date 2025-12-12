@@ -45,7 +45,10 @@ mise.toml
 # Turbo
 .turbo
 .cache
-.envrc
+
+# Next.js
+.next
+out
 
 # Superset
 # Ignore .superset directory except for config and scripts

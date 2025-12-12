@@ -13,6 +13,10 @@ echo "🧹 Tearing down Superset workspace..."
 # Check dependencies
 command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
 
+# Check required environment variables
+NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
+[ -z "$NEON_PROJECT_ID" ] && error "NEON_PROJECT_ID environment variable is required"
+
 # Delete Neon branch for this workspace
 WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 if [ -f ".env" ]; then
@@ -25,7 +29,7 @@ if [ -z "$BRANCH_ID" ]; then
 fi
 
 echo "🗄️  Deleting Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
-if neonctl branches delete "$BRANCH_ID" --project-id tiny-cherry-82420694 --force 2>/dev/null; then
+if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>/dev/null; then
   success "Neon branch deleted: $WORKSPACE_NAME"
 else
   echo "⚠️  Neon branch '$WORKSPACE_NAME' ($BRANCH_ID) not found or already deleted"
