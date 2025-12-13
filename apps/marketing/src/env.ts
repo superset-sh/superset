@@ -1,16 +1,6 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
-import { config } from "dotenv";
 import { z } from "zod";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-if (process.env.NODE_ENV === "development") {
-	// Load .env from monorepo root
-	config({ path: resolve(__dirname, "../../.env"), override: true });
-}
 
 export const env = createEnv({
 	extends: [vercel()],
@@ -26,7 +16,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
-		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().default("localhost"),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 	},
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
