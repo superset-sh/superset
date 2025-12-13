@@ -1,0 +1,31 @@
+{
+	"name": "@superset/auth0",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		"./server": {
+			"types": "./src/server.ts",
+			"default": "./src/server.ts"
+		},
+		"./client": {
+			"types": "./src/client.ts",
+			"default": "./src/client.ts"
+		},
+		"./types": {
+			"types": "./src/types.ts",
+			"default": "./src/types.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@auth0/nextjs-auth0": "^4.13.1"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"typescript": "^5.9.3"
+	}
+}

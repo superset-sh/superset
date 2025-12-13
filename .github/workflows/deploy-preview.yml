@@ -121,8 +121,10 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
           NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
+          AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
+          AUTH0_ISSUER_BASE_URL: ${{ secrets.AUTH0_ISSUER_BASE_URL }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -193,9 +195,10 @@ jobs:
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
           NEXT_PUBLIC_DOCS_URL: https://${{ env.DOCS_ALIAS }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
+          AUTH0_ISSUER_BASE_URL: ${{ secrets.AUTH0_ISSUER_BASE_URL }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -251,9 +254,10 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_MARKETING_PROJECT_ID }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
+          AUTH0_ISSUER_BASE_URL: ${{ secrets.AUTH0_ISSUER_BASE_URL }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -322,9 +326,10 @@ jobs:
           DATABASE_URL_UNPOOLED: ${{ env.DATABASE_URL_UNPOOLED }}
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
-          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
+          AUTH0_SECRET: ${{ secrets.AUTH0_SECRET }}
+          AUTH0_ISSUER_BASE_URL: ${{ secrets.AUTH0_ISSUER_BASE_URL }}
+          AUTH0_CLIENT_ID: ${{ secrets.AUTH0_CLIENT_ID }}
+          AUTH0_CLIENT_SECRET: ${{ secrets.AUTH0_CLIENT_SECRET }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN

@@ -1,4 +1,5 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { auth0 } from "@superset/auth0/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { env } from "./env";
@@ -16,7 +17,7 @@ function getCorsHeaders(origin: string | null) {
 	};
 }
 
-export default clerkMiddleware(async (_auth, req) => {
+export default async function middleware(req: NextRequest) {
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin);
 
@@ -25,13 +26,32 @@ export default clerkMiddleware(async (_auth, req) => {
 		return new NextResponse(null, { status: 204, headers: corsHeaders });
 	}
 
+	// Run Auth0 middleware for auth routes
+	const authResponse = await auth0.middleware(req);
+
+	// If Auth0 handled the request (auth routes), return its response with CORS
+	if (
+		authResponse.status !== 200 ||
+		req.nextUrl.pathname.startsWith("/api/auth")
+	) {
+		// Clone headers and add CORS
+		const headers = new Headers(authResponse.headers);
+		for (const [key, value] of Object.entries(corsHeaders)) {
+			headers.set(key, value);
+		}
+		return new NextResponse(authResponse.body, {
+			status: authResponse.status,
+			headers,
+		});
+	}
+
 	// Add CORS headers to all responses
 	const response = NextResponse.next();
 	for (const [key, value] of Object.entries(corsHeaders)) {
 		response.headers.set(key, value);
 	}
 	return response;
-});
+}
 
 export const config = {
 	matcher: [

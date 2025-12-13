@@ -8,7 +8,7 @@ import { protectedProcedure } from "../trpc";
 export const userRouter = {
 	me: protectedProcedure.query(async ({ ctx }) => {
 		return db.query.users.findFirst({
-			where: eq(users.clerkId, ctx.session.userId),
+			where: eq(users.auth0Id, ctx.session.user.sub),
 		});
 	}),
 } satisfies TRPCRouterRecord;

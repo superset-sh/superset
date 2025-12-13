@@ -43,11 +43,11 @@ export const adminRouter = {
 	permanentlyDeleteUser: adminProcedure
 		.input(z.object({ userId: z.string().uuid() }))
 		.mutation(async () => {
-			// TODO: Implement Clerk user deletion, avatar cleanup, etc.
+			// TODO: Implement Auth0 user deletion, avatar cleanup, etc.
 			throw new TRPCError({
 				code: "NOT_IMPLEMENTED",
 				message:
-					"Permanent deletion not yet implemented - requires Clerk cleanup",
+					"Permanent deletion not yet implemented - requires Auth0 cleanup",
 			});
 		}),
 } satisfies TRPCRouterRecord;

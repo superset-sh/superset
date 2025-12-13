@@ -1,38 +1,12 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
 import { Button } from "@superset/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
 
 import { env } from "@/env";
 
 export default function SignInPage() {
-	const { signIn, isLoaded } = useSignIn();
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-
-	const signInWithGoogle = async () => {
-		if (!isLoaded) return;
-
-		setIsLoading(true);
-		setError(null);
-
-		try {
-			await signIn.authenticateWithRedirect({
-				strategy: "oauth_google",
-				redirectUrl: "/sso-callback",
-				redirectUrlComplete: "/",
-			});
-		} catch (err) {
-			console.error("Sign in failed:", err);
-			setError("Failed to sign in. Please try again.");
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
 			<div className="flex flex-col space-y-2 text-center">
@@ -42,24 +16,18 @@ export default function SignInPage() {
 				</p>
 			</div>
 			<div className="grid gap-6">
-				{error && (
-					<p className="text-destructive text-center text-sm">{error}</p>
-				)}
-				<Button
-					variant="outline"
-					disabled={!isLoaded || isLoading}
-					onClick={signInWithGoogle}
-					className="w-full"
-				>
-					<Image
-						src="/assets/social/google.svg"
-						alt="Google"
-						width={16}
-						height={16}
-						className="mr-2"
-					/>
-					{isLoading ? "Loading..." : "Sign in with Google"}
-				</Button>
+				<a href="/api/auth/login?connection=google-oauth2">
+					<Button variant="outline" className="w-full">
+						<Image
+							src="/assets/social/google.svg"
+							alt="Google"
+							width={16}
+							height={16}
+							className="mr-2"
+						/>
+						Sign in with Google
+					</Button>
+				</a>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					By clicking continue, you agree to our{" "}
 					<a

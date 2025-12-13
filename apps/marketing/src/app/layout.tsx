@@ -1,11 +1,9 @@
-import { ClerkProvider } from "@clerk/nextjs";
+import { Auth0Provider } from "@superset/auth0/client";
 import { THEME_STORAGE_KEY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
-
-import { env } from "@/env";
 
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
@@ -36,7 +34,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
+		<Auth0Provider>
 			<html
 				lang="en"
 				className={`overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}
@@ -62,6 +60,6 @@ export default function RootLayout({
 					</ThemeProvider>
 				</body>
 			</html>
-		</ClerkProvider>
+		</Auth0Provider>
 	);
 }

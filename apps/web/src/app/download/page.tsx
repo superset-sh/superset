@@ -1,6 +1,5 @@
 "use client";
 
-import { SignOutButton } from "@clerk/nextjs";
 import { Button } from "@superset/ui/button";
 import {
 	Card,
@@ -15,11 +14,11 @@ export default function DownloadPage() {
 	return (
 		<div className="relative min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
 			<div className="absolute top-4 right-4 z-10">
-				<SignOutButton>
+				<a href="/api/auth/logout">
 					<Button variant="outline" size="sm">
 						Sign Out
 					</Button>
-				</SignOutButton>
+				</a>
 			</div>
 
 			<div className="container mx-auto flex min-h-screen flex-col items-center justify-center px-4 py-16 text-center">

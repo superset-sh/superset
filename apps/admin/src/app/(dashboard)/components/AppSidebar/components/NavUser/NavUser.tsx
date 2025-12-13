@@ -1,6 +1,5 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs";
 import type { RouterOutputs } from "@superset/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
@@ -26,15 +25,12 @@ import {
 	LuSettings,
 } from "react-icons/lu";
 
-import { env } from "@/env";
-
 export interface NavUserProps {
 	user: NonNullable<RouterOutputs["user"]["me"]>;
 }
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
-	const { signOut } = useClerk();
 
 	const userInitials = user.name
 		.split(" ")
@@ -105,11 +101,11 @@ export function NavUser({ user }: NavUserProps) {
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={() => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL })}
-						>
-							<LuLogOut />
-							Log out
+						<DropdownMenuItem asChild>
+							<a href="/api/auth/logout">
+								<LuLogOut />
+								Log out
+							</a>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

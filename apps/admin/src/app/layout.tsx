@@ -1,10 +1,8 @@
-import { ClerkProvider } from "@clerk/nextjs";
+import { Auth0Provider } from "@superset/auth0/client";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
-
-import { env } from "@/env";
 
 import "./globals.css";
 
@@ -40,7 +38,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
+		<Auth0Provider>
 			<html lang="en" suppressHydrationWarning>
 				<body
 					className={cn(
@@ -55,6 +53,6 @@ export default function RootLayout({
 					</Providers>
 				</body>
 			</html>
-		</ClerkProvider>
+		</Auth0Provider>
 	);
 }

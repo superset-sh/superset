@@ -1,4 +1,5 @@
-import type { SessionAuthObject } from "@clerk/backend";
+import type { AppSession, SignedInSession } from "@superset/auth0/types";
+import { isSignedIn } from "@superset/auth0/types";
 import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
@@ -7,29 +8,21 @@ import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-// SignedInAuthObject isn't exported from @clerk/backend main entry,
-// so we extract it from the SessionAuthObject union
-type SignedInAuthObject = Extract<SessionAuthObject, { userId: string }>;
-
 /**
  * tRPC Context
  *
- * We use SessionAuthObject from @clerk/backend (not @clerk/nextjs) because:
- * - The API is hosted on Next.js with clerkMiddleware handling auth
- * - Expo/Desktop clients send Bearer tokens to this API
- * - clerkMiddleware handles both cookie auth (web) and Bearer tokens (mobile/desktop)
- * - @clerk/backend types work across all clients, while @clerk/nextjs would
- *   cause dependency issues in Expo/Desktop which don't have Next.js
+ * We use AppSession from @superset/auth0 which wraps Auth0's Session type.
+ * - AppSession = Session | null (null when not authenticated)
+ * - SignedInSession = Session with non-null user
  *
- * SessionAuthObject = SignedInAuthObject | SignedOutAuthObject
- * Public procedures may be called by unauthenticated users (SignedOutAuthObject)
+ * Public procedures may be called by unauthenticated users (null session)
  */
 export type TRPCContext = {
-	session: SessionAuthObject;
+	session: AppSession;
 };
 
 export const createTRPCContext = (opts: {
-	session: SessionAuthObject;
+	session: AppSession;
 }): TRPCContext => {
 	return { session: opts.session };
 };
@@ -55,7 +48,7 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.session.userId) {
+	if (!isSignedIn(ctx.session)) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Not authenticated. Please sign in.",
@@ -64,16 +57,18 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 
 	return next({
 		ctx: {
-			// Cast needed because TypeScript doesn't propagate type narrowing through next()
-			// After the userId check above, we know session is SignedInAuthObject
-			session: ctx.session as SignedInAuthObject,
+			// After the isSignedIn check above, we know session is SignedInSession
+			session: ctx.session as SignedInSession,
 		},
 	});
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+	// Auth0 user ID is in session.user.sub
+	const auth0Id = ctx.session.user.sub;
+
 	const user = await db.query.users.findFirst({
-		where: eq(users.clerkId, ctx.session.userId),
+		where: eq(users.auth0Id, auth0Id),
 	});
 
 	if (!user) {

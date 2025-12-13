@@ -1,31 +1,45 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { auth0 } from "@superset/auth0/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-const isPublicRoute = createRouteMatcher([
-	"/sign-in(.*)",
-	"/sign-up(.*)",
-	"/sso-callback(.*)",
-]);
+const publicPaths = ["/api/auth", "/sign-in", "/sign-up"];
 
-export default clerkMiddleware(async (auth, req) => {
-	const { userId } = await auth();
+function isPublicPath(pathname: string): boolean {
+	return publicPaths.some(
+		(path) => pathname === path || pathname.startsWith(`${path}/`),
+	);
+}
+
+export default async function middleware(req: NextRequest) {
+	const { pathname } = req.nextUrl;
+
+	// Run Auth0 middleware first (handles /api/auth/* routes)
+	const authResponse = await auth0.middleware(req);
+
+	// If Auth0 handled the request, return its response
+	if (pathname.startsWith("/api/auth")) {
+		return authResponse;
+	}
+
+	// Get session to check authentication
+	const session = await auth0.getSession();
+	const isAuthenticated = !!session?.user;
 
 	// Redirect authenticated users away from auth pages
 	if (
-		userId &&
-		(req.nextUrl.pathname.startsWith("/sign-in") ||
-			req.nextUrl.pathname.startsWith("/sign-up"))
+		isAuthenticated &&
+		(pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up"))
 	) {
 		return NextResponse.redirect(new URL("/", req.url));
 	}
 
 	// Redirect unauthenticated users to sign-in
-	if (!userId && !isPublicRoute(req)) {
+	if (!isAuthenticated && !isPublicPath(pathname)) {
 		return NextResponse.redirect(new URL("/sign-in", req.url));
 	}
 
 	return NextResponse.next();
-});
+}
 
 export const config = {
 	matcher: [

@@ -1,13 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth0 } from "@superset/auth0/server";
 import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Download } from "lucide-react";
 
 import { env } from "@/env";
 
 export async function CTAButtons() {
-	const { userId } = await auth();
+	const session = await auth0.getSession();
 
-	if (userId) {
+	if (session?.user) {
 		return (
 			<div className="flex items-center gap-3">
 				<a

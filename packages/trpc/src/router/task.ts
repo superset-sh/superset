@@ -73,7 +73,7 @@ export const taskRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const user = await db.query.users.findFirst({
-				where: eq(users.clerkId, ctx.session.userId),
+				where: eq(users.auth0Id, ctx.session.user.sub),
 			});
 			if (!user) throw new Error("User not found");
 

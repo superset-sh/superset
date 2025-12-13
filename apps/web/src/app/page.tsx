@@ -1,6 +1,6 @@
 "use client";
 
-import { SignOutButton, useUser } from "@clerk/nextjs";
+import { useUser } from "@superset/auth0/client";
 import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
@@ -22,10 +22,10 @@ import { env } from "@/env";
 export default function HomePage() {
 	const { user } = useUser();
 
-	const initials = getInitials(
-		user?.fullName,
-		user?.primaryEmailAddress?.emailAddress,
-	);
+	const initials = getInitials(user?.name, user?.email);
+
+	// Extract first name from full name
+	const firstName = user?.name?.split(" ")[0];
 
 	return (
 		<div className="relative flex min-h-screen flex-col">
@@ -45,11 +45,11 @@ export default function HomePage() {
 							type="button"
 							className="flex cursor-pointer items-center gap-2 rounded-md border bg-background px-3 py-1.5 shadow-xs outline-none transition-all hover:bg-accent hover:text-accent-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50"
 						>
-							{user?.firstName && (
-								<span className="text-sm">Hello, {user.firstName}!</span>
+							{firstName && (
+								<span className="text-sm">Hello, {firstName}!</span>
 							)}
 							<Avatar className="size-7">
-								<AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ""} />
+								<AvatarImage src={user?.picture} alt={user?.name ?? ""} />
 								<AvatarFallback className="text-xs">{initials}</AvatarFallback>
 							</Avatar>
 						</button>
@@ -57,21 +57,19 @@ export default function HomePage() {
 					<DropdownMenuContent align="end" className="w-56">
 						<DropdownMenuLabel className="font-normal">
 							<div className="flex flex-col space-y-1">
-								{user?.fullName && (
-									<p className="text-sm font-medium">{user.fullName}</p>
+								{user?.name && (
+									<p className="text-sm font-medium">{user.name}</p>
 								)}
-								<p className="text-muted-foreground text-xs">
-									{user?.primaryEmailAddress?.emailAddress}
-								</p>
+								<p className="text-muted-foreground text-xs">{user?.email}</p>
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						<SignOutButton>
+						<a href="/api/auth/logout">
 							<DropdownMenuItem className="cursor-pointer">
 								<LogOut className="mr-2 size-4" />
 								Sign out
 							</DropdownMenuItem>
-						</SignOutButton>
+						</a>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</header>

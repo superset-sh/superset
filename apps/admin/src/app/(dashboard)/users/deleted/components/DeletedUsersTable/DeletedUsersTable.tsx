@@ -268,7 +268,7 @@ export function DeletedUsersTable() {
 								<ul className="list-disc space-y-1 pl-6">
 									<li>All user data</li>
 									<li>All associated records</li>
-									<li>Their Clerk account</li>
+									<li>Their Auth0 account</li>
 								</ul>
 								<p className="text-destructive font-medium">
 									This action cannot be undone.

@@ -5,8 +5,8 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string(),
 		DATABASE_URL_UNPOOLED: z.string(),
-		CLERK_SECRET_KEY: z.string(),
-		CLERK_WEBHOOK_SECRET: z.string(),
+		// Auth0 env vars are read directly by @auth0/nextjs-auth0:
+		// AUTH0_SECRET, AUTH0_BASE_URL, AUTH0_ISSUER_BASE_URL, AUTH0_CLIENT_ID, AUTH0_CLIENT_SECRET
 		BLOB_READ_WRITE_TOKEN: z.string(),
 	},
 	client: {
