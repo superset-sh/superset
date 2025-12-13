@@ -179,6 +179,8 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for Cmd+K to clear the terminal */
 	onClear?: () => void;
+	/** Callback to write data to the terminal PTY (for selection delete) */
+	onWrite?: (data: string) => void;
 }
 
 export interface PasteHandlerOptions {
@@ -226,10 +228,89 @@ export function setupPasteHandler(
 }
 
 /**
+ * Handle selection delete: when text is selected and user types a printable character,
+ * delete the selection first (like a text area), then insert the character.
+ *
+ * Returns true if the event was handled, false otherwise.
+ */
+function handleSelectionDelete(
+	xterm: XTerm,
+	event: KeyboardEvent,
+	onWrite?: (data: string) => void,
+): boolean {
+	if (!onWrite) return false;
+
+	// Only handle keydown events
+	if (event.type !== "keydown") return false;
+
+	// Only handle single printable characters (no modifiers except shift for capitals)
+	if (event.key.length !== 1) return false;
+	if (event.ctrlKey || event.metaKey || event.altKey) return false;
+
+	// Check if there's a selection
+	const selection = xterm.getSelection();
+	if (!selection || selection.length === 0) return false;
+
+	const selectionPosition = xterm.getSelectionPosition();
+	if (!selectionPosition) return false;
+
+	const buffer = xterm.buffer.active;
+	const cursorY = buffer.cursorY;
+	const cursorX = buffer.cursorX;
+
+	// Only handle selections on the current cursor line (prompt line)
+	// Both start and end of selection must be on the same line as cursor
+	const viewportCursorY = cursorY;
+	if (
+		selectionPosition.start.y !== viewportCursorY ||
+		selectionPosition.end.y !== viewportCursorY
+	) {
+		return false;
+	}
+
+	const selStartX = selectionPosition.start.x;
+	const selEndX = selectionPosition.end.x;
+	const selectionLength = selEndX - selStartX;
+
+	if (selectionLength <= 0) return false;
+
+	// Prevent default handling - we'll handle this ourselves
+	event.preventDefault();
+
+	// Build the sequence of operations:
+	// 1. Move cursor to selection start
+	// 2. Delete the selection (using delete key)
+	// 3. Type the new character
+
+	let sequence = "";
+
+	// Move cursor to selection start
+	const moveToStart = selStartX - cursorX;
+	if (moveToStart !== 0) {
+		const arrowKey = moveToStart > 0 ? "\x1b[C" : "\x1b[D";
+		sequence += arrowKey.repeat(Math.abs(moveToStart));
+	}
+
+	// Delete the selection using Delete key escape sequence (\x1b[3~)
+	// This deletes characters forward from cursor position
+	sequence += "\x1b[3~".repeat(selectionLength);
+
+	// Type the new character
+	sequence += event.key;
+
+	// Clear the selection and send the sequence
+	xterm.clearSelection();
+	onWrite(sequence);
+
+	return true;
+}
+
+/**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
  * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
  * - Cmd+K: Clears the terminal
+ * - Selection delete: When typing with selected text, delete selection first (like textarea)
  *
  * Returns a cleanup function to remove the handler.
  */
@@ -238,6 +319,11 @@ export function setupKeyboardHandler(
 	options: KeyboardHandlerOptions = {},
 ): () => void {
 	const handler = (event: KeyboardEvent): boolean => {
+		// Handle selection delete first (typing replaces selected text)
+		if (handleSelectionDelete(xterm, event, options.onWrite)) {
+			return false;
+		}
+
 		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&
@@ -331,5 +417,110 @@ export function setupResizeHandlers(
 		window.removeEventListener("resize", debouncedHandleResize);
 		resizeObserver.disconnect();
 		debouncedHandleResize.cancel();
+	};
+}
+
+export interface ClickToMoveOptions {
+	/** Callback to write data to the terminal PTY */
+	onWrite: (data: string) => void;
+}
+
+/**
+ * Convert mouse event coordinates to terminal cell coordinates.
+ * Returns null if coordinates cannot be determined.
+ */
+function getTerminalCoordsFromEvent(
+	xterm: XTerm,
+	event: MouseEvent,
+): { col: number; row: number } | null {
+	const element = xterm.element;
+	if (!element) return null;
+
+	const rect = element.getBoundingClientRect();
+	const x = event.clientX - rect.left;
+	const y = event.clientY - rect.top;
+
+	// Get cell dimensions from xterm's internal dimensions
+	const dimensions = (
+		xterm as unknown as {
+			_core?: {
+				_renderService?: {
+					dimensions?: { css: { cell: { width: number; height: number } } };
+				};
+			};
+		}
+	)._core?._renderService?.dimensions;
+	if (!dimensions?.css?.cell) return null;
+
+	const cellWidth = dimensions.css.cell.width;
+	const cellHeight = dimensions.css.cell.height;
+
+	if (cellWidth <= 0 || cellHeight <= 0) return null;
+
+	const col = Math.floor(x / cellWidth);
+	const row = Math.floor(y / cellHeight);
+
+	return { col, row };
+}
+
+/**
+ * Setup click-to-move cursor functionality.
+ * Allows clicking on the current prompt line to move the cursor to that position.
+ *
+ * This works by calculating the difference between click position and cursor position,
+ * then sending the appropriate number of arrow key sequences to move the cursor.
+ *
+ * Limitations:
+ * - Only works on the current line (same row as cursor)
+ * - Only works at the shell prompt (not in full-screen apps like vim)
+ * - Requires the shell to interpret arrow key sequences
+ *
+ * Returns a cleanup function to remove the handler.
+ */
+export function setupClickToMoveCursor(
+	xterm: XTerm,
+	options: ClickToMoveOptions,
+): () => void {
+	const handleClick = (event: MouseEvent) => {
+		// Only handle left click
+		if (event.button !== 0) return;
+
+		// Don't interfere with modifier clicks (links, etc.)
+		if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
+			return;
+
+		// Don't move cursor if there's a selection (user is selecting text)
+		if (xterm.hasSelection()) return;
+
+		const coords = getTerminalCoordsFromEvent(xterm, event);
+		if (!coords) return;
+
+		const buffer = xterm.buffer.active;
+		const cursorX = buffer.cursorX;
+		const cursorY = buffer.cursorY;
+
+		// Convert viewport row to buffer row for comparison
+		const clickBufferRow = coords.row + buffer.viewportY;
+
+		// Only move cursor on the same line as the current cursor
+		// This ensures we only move within the editable prompt area
+		if (clickBufferRow !== cursorY + buffer.viewportY) return;
+
+		// Calculate horizontal movement needed
+		const delta = coords.col - cursorX;
+		if (delta === 0) return;
+
+		// Generate arrow key escape sequences
+		// Right arrow: \x1b[C, Left arrow: \x1b[D
+		const arrowKey = delta > 0 ? "\x1b[C" : "\x1b[D";
+		const moves = arrowKey.repeat(Math.abs(delta));
+
+		options.onWrite(moves);
+	};
+
+	xterm.element?.addEventListener("click", handleClick);
+
+	return () => {
+		xterm.element?.removeEventListener("click", handleClick);
 	};
 }
