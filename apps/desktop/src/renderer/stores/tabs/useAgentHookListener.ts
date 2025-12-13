@@ -18,7 +18,7 @@ export function useAgentHookListener() {
 			const target = resolveNotificationTarget(event.data, state);
 			if (!target) return;
 
-			const { paneId, tabId, workspaceId } = target;
+			const { paneId, workspaceId } = target;
 
 			if (event.type === "agent-complete") {
 				if (!paneId) return;
@@ -46,7 +46,10 @@ export function useAgentHookListener() {
 						onSuccess: () => {
 							// Re-resolve from fresh state after workspace switch
 							const freshState = useTabsStore.getState();
-							const freshTarget = resolveNotificationTarget(event.data, freshState);
+							const freshTarget = resolveNotificationTarget(
+								event.data,
+								freshState,
+							);
 							if (!freshTarget?.tabId) return;
 
 							const freshTab = freshState.tabs.find(
@@ -59,7 +62,10 @@ export function useAgentHookListener() {
 
 							// Focus the pane if it exists
 							if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
-								freshState.setFocusedPane(freshTarget.tabId, freshTarget.paneId);
+								freshState.setFocusedPane(
+									freshTarget.tabId,
+									freshTarget.paneId,
+								);
 							}
 						},
 					},
