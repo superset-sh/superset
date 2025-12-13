@@ -3,11 +3,10 @@ import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
-	formatKeysForDisplay,
 	getHotkeysByCategory,
+	HOTKEYS,
 	type HotkeyCategory,
-	type HotkeyDefinition,
-	useIsMac
+	type HotkeyWithDisplay,
 } from "shared/hotkeys";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
@@ -22,11 +21,9 @@ function HotkeyRow({
 	hotkey,
 	isEven,
 }: {
-	hotkey: HotkeyDefinition;
+	hotkey: HotkeyWithDisplay;
 	isEven: boolean;
 }) {
-	const keys = formatKeysForDisplay(hotkey.keys);
-
 	return (
 		<div
 			className={`flex items-center justify-between py-3 px-4 ${
@@ -35,7 +32,7 @@ function HotkeyRow({
 		>
 			<span className="text-sm text-foreground">{hotkey.label}</span>
 			<KbdGroup>
-				{keys.map((key) => (
+				{hotkey.display.map((key) => (
 					<Kbd key={key}>{key}</Kbd>
 				))}
 			</KbdGroup>
@@ -47,8 +44,8 @@ function HotkeyRow({
  * Consolidate individual workspace jump shortcuts (1-9) into a single entry
  */
 function consolidateWorkspaceJumps(
-	hotkeys: HotkeyDefinition[],
-): HotkeyDefinition[] {
+	hotkeys: HotkeyWithDisplay[],
+): HotkeyWithDisplay[] {
 	const workspaceJumpPattern = /^Switch to Workspace \d$/;
 	const hasWorkspaceJumps = hotkeys.some((h) =>
 		workspaceJumpPattern.test(h.label),
@@ -57,10 +54,13 @@ function consolidateWorkspaceJumps(
 	if (!hasWorkspaceJumps) return hotkeys;
 
 	const filtered = hotkeys.filter((h) => !workspaceJumpPattern.test(h.label));
+	// Reuse the meta key symbol from an existing hotkey's display
+	const [metaKey] = HOTKEYS.JUMP_TO_WORKSPACE_1.display;
 	filtered.unshift({
 		keys: "meta+1-9",
 		label: "Switch to Workspace 1-9",
 		category: "Workspace",
+		display: [metaKey, "1-9"],
 	});
 
 	return filtered;
@@ -69,8 +69,8 @@ function consolidateWorkspaceJumps(
 export function KeyboardShortcutsSettings() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const hotkeysByCategory = getHotkeysByCategory();
-	const isMac = useIsMac();
-	const modifierKey = isMac ? "⌘" : "Ctrl";
+	// Reuse the meta key symbol from SHOW_HOTKEYS display
+	const [modifierKey] = HOTKEYS.SHOW_HOTKEYS.display;
 
 	// Flatten and consolidate all hotkeys
 	const allHotkeys = CATEGORY_ORDER.flatMap((category) =>
