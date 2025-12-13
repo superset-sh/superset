@@ -134,7 +134,6 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
-				// Request focus on the specific pane
 				notificationsEmitter.emit("focus-tab", {
 					paneId: event.paneId,
 					tabId: event.tabId,
