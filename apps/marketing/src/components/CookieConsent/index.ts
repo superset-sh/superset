@@ -1,0 +1,1 @@
+export { CookieConsent } from "./CookieConsent";

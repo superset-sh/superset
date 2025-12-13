@@ -4,6 +4,7 @@ import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 
+import { PostHogUserIdentifier } from "@/components/PostHogUserIdentifier";
 import { env } from "@/env";
 
 import "./globals.css";
@@ -57,6 +58,7 @@ export default function RootLayout({
 					)}
 				>
 					<Providers>
+						<PostHogUserIdentifier />
 						{children}
 						<Toaster />
 					</Providers>
