@@ -39,12 +39,10 @@ export function useAgentHookListener() {
 					appState.setView("workspace");
 				}
 
-				// Switch to the workspace first, then focus tab/pane
 				setActiveWorkspace.mutate(
 					{ id: workspaceId },
 					{
 						onSuccess: () => {
-							// Re-resolve from fresh state after workspace switch
 							const freshState = useTabsStore.getState();
 							const freshTarget = resolveNotificationTarget(
 								event.data,
@@ -57,10 +55,8 @@ export function useAgentHookListener() {
 							);
 							if (!freshTab || freshTab.workspaceId !== workspaceId) return;
 
-							// Set active tab
 							freshState.setActiveTab(workspaceId, freshTarget.tabId);
 
-							// Focus the pane if it exists
 							if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
 								freshState.setFocusedPane(
 									freshTarget.tabId,

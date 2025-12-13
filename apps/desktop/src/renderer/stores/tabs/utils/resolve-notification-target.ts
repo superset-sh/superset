@@ -20,13 +20,11 @@ export function resolveNotificationTarget(
 ): ResolvedTarget | null {
 	const { paneId, tabId, workspaceId } = ids;
 
-	// Try to find pane from state
 	const pane = paneId ? state.panes[paneId] : undefined;
 
 	// Resolve tabId: prefer pane's tabId, fallback to event tabId
 	const resolvedTabId = pane?.tabId ?? tabId;
 
-	// Try to find tab from state
 	const tab = resolvedTabId
 		? state.tabs.find((t) => t.id === resolvedTabId)
 		: undefined;
