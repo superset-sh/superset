@@ -9,16 +9,24 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useRef, useState } from "react";
 import {
+	HiCheck,
 	HiChevronDown,
 	HiChevronUp,
+	HiMagnifyingGlass,
 	HiMiniFolderOpen,
 	HiMiniPlus,
 } from "react-icons/hi2";
+import { LuGitBranch } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useCreateWorkspace,
+	useSetActiveWorkspace,
+} from "renderer/react-query/workspaces";
 
 const INITIAL_PROJECTS_LIMIT = 5;
+const INITIAL_BRANCHES_LIMIT = 6;
 
 /**
  * Formats a path for display, replacing the home directory with ~ and
@@ -55,14 +63,62 @@ export interface WorkspaceDropdownProps {
 export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const [showAllProjects, setShowAllProjects] = useState(false);
+	const [showAllBranches, setShowAllBranches] = useState(false);
+	const [branchSearch, setBranchSearch] = useState("");
 	const primaryButtonRef = useRef<HTMLButtonElement>(null);
 	const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
+	const searchInputRef = useRef<HTMLInputElement>(null);
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
+	const { data: allWorkspaces } = trpc.workspaces.getAllGrouped.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
+	const setActiveWorkspace = useSetActiveWorkspace();
 	const openNew = useOpenNew();
+
+	// Get branches for current project when dropdown is open
+	const currentProjectId = activeWorkspace?.projectId;
+	const { data: branches } = trpc.workspaces.getBranches.useQuery(
+		{ projectId: currentProjectId ?? "" },
+		{ enabled: isOpen && !!currentProjectId },
+	);
+
+	// Get current project's workspaces to check which branches are already open
+	const currentProjectWorkspaces =
+		allWorkspaces?.find((g) => g.project.id === currentProjectId)?.workspaces ??
+		[];
+	const branchWorkspaceMap = new Map(
+		currentProjectWorkspaces
+			.filter((w) => w.type === "branch")
+			.map((w) => [w.branch, w.id]),
+	);
+
+	// Combine and dedupe branches, with main/master at top
+	const allBranches = branches
+		? Array.from(new Set([...branches.local, ...branches.remote])).sort(
+				(a, b) => {
+					// Main/master always first
+					if (a === "main" || a === "master") return -1;
+					if (b === "main" || b === "master") return 1;
+					// Then alphabetically
+					return a.localeCompare(b);
+				},
+			)
+		: [];
+
+	// Filter branches by search
+	const filteredBranches = branchSearch
+		? allBranches.filter((b) =>
+				b.toLowerCase().includes(branchSearch.toLowerCase()),
+			)
+		: allBranches;
+
+	const visibleBranches = showAllBranches
+		? filteredBranches
+		: filteredBranches.slice(0, INITIAL_BRANCHES_LIMIT);
+	const hasMoreBranches = filteredBranches.length > INITIAL_BRANCHES_LIMIT;
 
 	const currentProject = recentProjects.find(
 		(p) => p.id === activeWorkspace?.projectId,
@@ -78,8 +134,39 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const closeDropdown = () => {
 		setIsOpen(false);
 		setShowAllProjects(false);
+		setShowAllBranches(false);
+		setBranchSearch("");
 		primaryButtonRef.current?.blur();
 		dropdownTriggerRef.current?.blur();
+	};
+
+	const handleBranchClick = async (branch: string) => {
+		if (!currentProjectId) return;
+
+		const existingWorkspaceId = branchWorkspaceMap.get(branch);
+
+		if (existingWorkspaceId) {
+			// Switch to existing workspace
+			setActiveWorkspace.mutate({ id: existingWorkspaceId });
+			closeDropdown();
+		} else {
+			// Create new branch workspace
+			toast.promise(
+				createBranchWorkspace.mutateAsync({
+					projectId: currentProjectId,
+					branch,
+				}),
+				{
+					loading: `Switching to ${branch}...`,
+					success: () => {
+						closeDropdown();
+						return `Switched to ${branch}`;
+					},
+					error: (err) =>
+						err instanceof Error ? err.message : "Failed to switch branch",
+				},
+			);
+		}
 	};
 
 	const handleCreateWorkspace = async (projectId: string) => {
@@ -185,11 +272,15 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 						More options
 					</TooltipContent>
 				</Tooltip>
-				<DropdownMenuContent className="w-72 p-0" align="start">
+				<DropdownMenuContent
+					className="w-72 p-0 max-h-[70vh] overflow-y-auto"
+					align="start"
+				>
+					{/* New workspace header */}
 					<div className="px-3 py-2.5 border-b border-border/50">
 						<p className="text-sm font-medium text-foreground">New Workspace</p>
 						<p className="text-xs text-muted-foreground mt-0.5">
-							Select a project to create a workspace
+							Create a new worktree branch
 						</p>
 					</div>
 					{currentProject && (
@@ -260,6 +351,103 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 							)}
 						</div>
 					)}
+					{/* Branches section - switch to existing branch */}
+					{currentProject && allBranches.length > 0 && (
+						<div className="py-1.5 border-t border-border/50">
+							<p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider px-3 py-1 flex items-center gap-1.5">
+								<LuGitBranch className="size-3" />
+								Branches in {currentProject.name}
+							</p>
+
+							{/* Search input - only show if many branches */}
+							{allBranches.length > INITIAL_BRANCHES_LIMIT && (
+								<div className="px-2 pb-1.5">
+									<div className="relative">
+										<HiMagnifyingGlass className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+										<input
+											ref={searchInputRef}
+											type="text"
+											value={branchSearch}
+											onChange={(e) => setBranchSearch(e.target.value)}
+											placeholder="Search branches..."
+											className="w-full rounded-md border border-border bg-muted/50 pl-7 pr-2 py-1.5 text-xs outline-none focus:border-primary focus:bg-background placeholder:text-muted-foreground/60"
+											onKeyDown={(e) => e.stopPropagation()}
+										/>
+									</div>
+								</div>
+							)}
+
+							<div className="px-1.5 max-h-[180px] overflow-y-auto">
+								{visibleBranches.length === 0 ? (
+									<p className="text-xs text-muted-foreground px-2 py-2">
+										No branches found
+									</p>
+								) : (
+									visibleBranches.map((branch) => {
+										const isActive = activeWorkspace?.branch === branch;
+										const hasWorkspace = branchWorkspaceMap.has(branch);
+										const isMainBranch =
+											branch === "main" || branch === "master";
+
+										return (
+											<button
+												type="button"
+												key={branch}
+												onClick={() => handleBranchClick(branch)}
+												disabled={createBranchWorkspace.isPending}
+												className={`
+													w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors
+													flex items-center gap-2
+													${isActive ? "bg-accent/50" : "hover:bg-accent"}
+												`}
+											>
+												<LuGitBranch
+													className={`size-3.5 shrink-0 ${isActive ? "text-foreground" : "text-muted-foreground"}`}
+												/>
+												<span
+													className={`truncate flex-1 ${isActive ? "font-medium" : ""}`}
+												>
+													{branch}
+												</span>
+												{isMainBranch && !isActive && (
+													<span className="text-[10px] text-muted-foreground/60 shrink-0">
+														default
+													</span>
+												)}
+												{isActive && (
+													<HiCheck className="size-3.5 text-foreground shrink-0" />
+												)}
+												{!isActive && hasWorkspace && (
+													<span className="size-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
+												)}
+											</button>
+										);
+									})
+								)}
+							</div>
+							{hasMoreBranches && !branchSearch && (
+								<button
+									type="button"
+									onClick={() => setShowAllBranches(!showAllBranches)}
+									className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+								>
+									{showAllBranches ? (
+										<>
+											<HiChevronUp className="size-3" />
+											Show less
+										</>
+									) : (
+										<>
+											<HiChevronDown className="size-3" />
+											Show {filteredBranches.length - INITIAL_BRANCHES_LIMIT}{" "}
+											more
+										</>
+									)}
+								</button>
+							)}
+						</div>
+					)}
+
 					<div className="border-t border-border/50 p-1.5">
 						<button
 							type="button"

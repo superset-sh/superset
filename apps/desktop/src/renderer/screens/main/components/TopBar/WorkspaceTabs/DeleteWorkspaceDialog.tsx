@@ -15,6 +15,7 @@ import { useDeleteWorkspace } from "renderer/react-query/workspaces";
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
 	workspaceName: string;
+	workspaceType?: "worktree" | "branch";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -22,6 +23,7 @@ interface DeleteWorkspaceDialogProps {
 export function DeleteWorkspaceDialog({
 	workspaceId,
 	workspaceName,
+	workspaceType = "worktree",
 	open,
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
@@ -60,29 +62,33 @@ export function DeleteWorkspaceDialog({
 	const handleDelete = () => {
 		onOpenChange(false);
 
+		const isBranch = workspaceType === "branch";
+		const action = isBranch ? "Closing" : "Deleting";
+		const actionPast = isBranch ? "closed" : "deleted";
+
 		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: `Deleting "${workspaceName}"...`,
+			loading: `${action} "${workspaceName}"...`,
 			success: (result) => {
 				if (result.teardownError || result.terminalWarning) {
 					setTimeout(() => {
 						if (result.teardownError) {
-							toast.warning("Workspace deleted with teardown warning", {
+							toast.warning(`Workspace ${actionPast} with teardown warning`, {
 								description: result.teardownError,
 							});
 						}
 						if (result.terminalWarning) {
-							toast.warning("Workspace deleted with terminal warning", {
+							toast.warning(`Workspace ${actionPast} with terminal warning`, {
 								description: result.terminalWarning,
 							});
 						}
 					}, 100);
 				}
-				return `Workspace "${workspaceName}" deleted`;
+				return `Workspace "${workspaceName}" ${actionPast}`;
 			},
 			error: (error) =>
 				error instanceof Error
-					? `Failed to delete workspace: ${error.message}`
-					: "Failed to delete workspace",
+					? `Failed to ${isBranch ? "close" : "delete"} workspace: ${error.message}`
+					: `Failed to ${isBranch ? "close" : "delete"} workspace`,
 		});
 	};
 
@@ -97,7 +103,9 @@ export function DeleteWorkspaceDialog({
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>Delete Workspace</AlertDialogTitle>
+					<AlertDialogTitle>
+						{workspaceType === "branch" ? "Close Workspace" : "Delete Workspace"}
+					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{isLoading ? (
 							<span>Checking workspace status...</span>
@@ -130,8 +138,9 @@ export function DeleteWorkspaceDialog({
 									</span>
 								)}
 								<span className="block mt-2">
-									This will remove the workspace and its associated git
-									worktree. This action cannot be undone.
+									{workspaceType === "branch"
+										? "This will close this branch workspace. Your branch and commits will remain in the repository."
+										: "This will remove the workspace and its associated git worktree. This action cannot be undone."}
 								</span>
 							</>
 						)}
@@ -145,9 +154,13 @@ export function DeleteWorkspaceDialog({
 							handleDelete();
 						}}
 						disabled={!canDelete || isLoading}
-						className="bg-destructive text-white hover:bg-destructive/90"
+						className={
+							workspaceType === "branch"
+								? ""
+								: "bg-destructive text-white hover:bg-destructive/90"
+						}
 					>
-						Delete
+						{workspaceType === "branch" ? "Close" : "Delete"}
 					</AlertDialogAction>
 				</AlertDialogFooter>
 			</AlertDialogContent>

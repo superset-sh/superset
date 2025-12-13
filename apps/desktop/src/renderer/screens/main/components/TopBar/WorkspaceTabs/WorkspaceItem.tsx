@@ -64,10 +64,32 @@ export function WorkspaceItem({
 		// Prevent double-clicks and race conditions
 		if (deleteWorkspace.isPending || canDeleteQuery.isFetching) return;
 
+		const isBranch = workspaceType === "branch";
+
 		try {
 			// Always fetch fresh data before deciding
 			const { data: canDeleteData } = await canDeleteQuery.refetch();
 
+			// For branch workspaces, only show dialog if there are active terminals
+			// (no destructive action - branch stays in repo)
+			if (isBranch) {
+				if (canDeleteData?.activeTerminalCount && canDeleteData.activeTerminalCount > 0) {
+					setShowDeleteDialog(true);
+				} else {
+					// Close directly without confirmation
+					toast.promise(deleteWorkspace.mutateAsync({ id }), {
+						loading: `Closing "${title}"...`,
+						success: `Workspace "${title}" closed`,
+						error: (error) =>
+							error instanceof Error
+								? `Failed to close workspace: ${error.message}`
+								: "Failed to close workspace",
+					});
+				}
+				return;
+			}
+
+			// For worktree workspaces, check all conditions
 			const isEmpty =
 				canDeleteData?.canDelete &&
 				canDeleteData.activeTerminalCount === 0 &&
@@ -254,6 +276,7 @@ export function WorkspaceItem({
 			<DeleteWorkspaceDialog
 				workspaceId={id}
 				workspaceName={title}
+				workspaceType={workspaceType}
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 			/>

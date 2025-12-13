@@ -1,5 +1,5 @@
 import { useDrag, useDrop } from "react-dnd";
-import { HiChevronDown, HiChevronRight, HiFolder } from "react-icons/hi2";
+import { HiChevronLeft, HiChevronRight, HiFolder } from "react-icons/hi2";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { WorkspaceGroupContextMenu } from "./WorkspaceGroupContextMenu";
 
@@ -128,7 +128,7 @@ export function WorkspaceGroupHeader({
 						{isCollapsed ? (
 							<HiChevronRight className="size-3" />
 						) : (
-							<HiChevronDown className="size-3" />
+							<HiChevronLeft className="size-3" />
 						)}
 					</span>
 				</button>
