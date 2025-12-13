@@ -3,11 +3,10 @@ import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniBars3, HiMiniBars3BottomLeft } from "react-icons/hi2";
 import { useSidebarStore } from "renderer/stores";
-import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
+import { HOTKEYS } from "shared/hotkeys";
 
 export function SidebarControl() {
 	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
-	const keys = formatKeysForDisplay(HOTKEYS.TOGGLE_SIDEBAR.keys);
 
 	return (
 		<Tooltip>
@@ -30,7 +29,7 @@ export function SidebarControl() {
 				<span className="flex items-center gap-2">
 					Toggle sidebar
 					<KbdGroup>
-						{keys.map((key) => (
+						{HOTKEYS.TOGGLE_SIDEBAR.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
 						))}
 					</KbdGroup>
