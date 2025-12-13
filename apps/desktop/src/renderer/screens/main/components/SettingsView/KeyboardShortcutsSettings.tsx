@@ -1,21 +1,14 @@
 import { Input } from "@superset/ui/input";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
 import {
 	formatKeysForDisplay,
 	getHotkeysByCategory,
 	type HotkeyCategory,
 	type HotkeyDefinition,
+	useIsMac
 } from "shared/hotkeys";
-
-function useIsMac(): boolean {
-	return useMemo(() => {
-		const platform = navigator.platform?.toUpperCase() ?? "";
-		const userAgent = navigator.userAgent?.toUpperCase() ?? "";
-		return platform.includes("MAC") || userAgent.includes("MAC");
-	}, []);
-}
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Workspace",

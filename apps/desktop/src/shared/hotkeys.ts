@@ -3,6 +3,30 @@
  * Used both for registering shortcuts and displaying in the hotkey modal.
  */
 
+import { useMemo } from "react";
+
+export function useIsMac(): boolean {
+	return useMemo(() => {
+		const platform = navigator.platform?.toUpperCase() ?? "";
+		const userAgent = navigator.userAgent?.toUpperCase() ?? "";
+		return platform.includes("MAC") || userAgent.includes("MAC");
+	}, []);
+}
+
+export function useIsWindows(): boolean {
+	return useMemo(() => {
+		const platform = navigator.platform?.toUpperCase() ?? "";
+		const userAgent = navigator.userAgent?.toUpperCase() ?? "";
+
+		return (
+			platform.includes("WIN") ||
+			userAgent.includes("WINDOWS") ||
+			userAgent.includes("WIN32") ||
+			userAgent.includes("WIN64")
+		);
+	}, []);
+}
+
 export type HotkeyCategory =
 	| "Workspace"
 	| "Layout"
@@ -192,14 +216,41 @@ export function getHotkeysByCategory(): Record<
 }
 
 /**
- * Format a key string for display (e.g., "meta+shift+d" -> ["⌘", "⇧", "D"])
+ * Format a key string for display
+ * (e.g., "meta+shift+d" -> ["⌘", "⇧", "D"] on Mac, or "meta+shift+d" -> ["Win", "⇧", "D"] on Windows)
  */
 export function formatKeysForDisplay(keys: string): string[] {
+	const isMac = useIsMac();
+	const isWindows = useIsWindows();
+
+	const metaKeyMaps = useMemo(() => {
+		if (isMac) {
+			return {
+				meta: "⌘",
+				ctrl: "⌃",
+				alt: "⌥",
+				shift: "⇧",
+			};
+		}
+		if (isWindows) {
+			return {
+				meta: "Win",
+				ctrl: "Ctrl",
+				alt: "Alt",
+				shift: "Shift",
+			};
+		}
+		// Linux / Other
+		return {
+			meta: "Super",
+			ctrl: "Ctrl",
+			alt: "Alt",
+			shift: "Shift",
+		};
+	}, [isMac, isWindows]);
+
 	const keyMap: Record<string, string> = {
-		meta: "⌘",
-		ctrl: "⌃",
-		alt: "⌥",
-		shift: "⇧",
+		...metaKeyMaps,
 		enter: "↵",
 		backspace: "⌫",
 		delete: "⌦",
