@@ -19,6 +19,9 @@ export const COMPANY = {
 // Theme
 export const THEME_STORAGE_KEY = "superset-theme";
 
+// Analytics
+export const ANALYTICS_CONSENT_KEY = "superset-analytics-consent";
+
 // Download URLs
 export const DOWNLOAD_URL_MAC_ARM64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-arm64.dmg`;
 
