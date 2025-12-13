@@ -8,6 +8,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	checkNeedsRebase,
+	checkoutBranch,
 	createWorktree,
 	fetchDefaultBranch,
 	generateBranchName,
@@ -15,13 +16,14 @@ import {
 	hasOriginRemote,
 	hasUncommittedChanges,
 	hasUnpushedCommits,
+	listBranches,
 	removeWorktree,
 	worktreeExists,
 } from "./utils/git";
 import { fetchGitHubPRStatus } from "./utils/github";
 import { loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
-import { getWorktreePath } from "./utils/worktree";
+import { getWorkspacePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -109,6 +111,8 @@ export const createWorkspacesRouter = () => {
 					id: nanoid(),
 					projectId: input.projectId,
 					worktreeId: worktree.id,
+					type: "worktree" as const,
+					branch,
 					name: input.name ?? branch,
 					tabOrder: maxTabOrder + 1,
 					createdAt: Date.now(),
@@ -150,6 +154,97 @@ export const createWorkspacesRouter = () => {
 				};
 			}),
 
+		createBranchWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					branch: z.string(),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				// Check if a branch workspace with this branch already exists
+				const existingWorkspace = db.data.workspaces.find(
+					(w) =>
+						w.projectId === input.projectId &&
+						w.type === "branch" &&
+						w.branch === input.branch,
+				);
+				if (existingWorkspace) {
+					throw new Error(
+						`A workspace for branch "${input.branch}" already exists`,
+					);
+				}
+
+				// Checkout the branch in the main repo
+				await checkoutBranch(project.mainRepoPath, input.branch);
+
+				const projectWorkspaces = db.data.workspaces.filter(
+					(w) => w.projectId === input.projectId,
+				);
+				const maxTabOrder =
+					projectWorkspaces.length > 0
+						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
+						: -1;
+
+				const workspace = {
+					id: nanoid(),
+					projectId: input.projectId,
+					worktreeId: undefined,
+					type: "branch" as const,
+					branch: input.branch,
+					name: input.name ?? input.branch,
+					tabOrder: maxTabOrder + 1,
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+					lastOpenedAt: Date.now(),
+				};
+
+				await db.update((data) => {
+					data.workspaces.push(workspace);
+					data.settings.lastActiveWorkspaceId = workspace.id;
+
+					const p = data.projects.find((p) => p.id === input.projectId);
+					if (p) {
+						p.lastOpenedAt = Date.now();
+
+						if (p.tabOrder === null) {
+							const activeProjects = data.projects.filter(
+								(proj) => proj.tabOrder !== null,
+							);
+							const maxProjectTabOrder =
+								activeProjects.length > 0
+									? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+										Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+									: -1;
+							p.tabOrder = maxProjectTabOrder + 1;
+						}
+					}
+				});
+
+				return {
+					workspace,
+					worktreePath: project.mainRepoPath,
+					projectId: project.id,
+				};
+			}),
+
+		getBranches: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(async ({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				return listBranches(project.mainRepoPath);
+			}),
+
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
@@ -181,8 +276,10 @@ export const createWorkspacesRouter = () => {
 					workspaces: Array<{
 						id: string;
 						projectId: string;
-						worktreeId: string;
+						worktreeId?: string;
 						worktreePath: string;
+						type: "worktree" | "branch";
+						branch: string;
 						name: string;
 						tabOrder: number;
 						createdAt: number;
@@ -213,7 +310,7 @@ export const createWorkspacesRouter = () => {
 				if (groupsMap.has(workspace.projectId)) {
 					groupsMap.get(workspace.projectId)?.workspaces.push({
 						...workspace,
-						worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+						worktreePath: getWorkspacePath(workspace) ?? "",
 					});
 				}
 			}
@@ -242,13 +339,13 @@ export const createWorkspacesRouter = () => {
 			const project = db.data.projects.find(
 				(p) => p.id === workspace.projectId,
 			);
-			const worktree = db.data.worktrees.find(
-				(wt) => wt.id === workspace.worktreeId,
-			);
+			const worktree = workspace.worktreeId
+				? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+				: null;
 
 			return {
 				...workspace,
-				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+				worktreePath: getWorkspacePath(workspace) ?? "",
 				project: project
 					? {
 							id: project.id,
@@ -328,9 +425,22 @@ export const createWorkspacesRouter = () => {
 					};
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				// Branch type workspaces can always be deleted (no worktree to clean up)
+				if (workspace.type === "branch") {
+					return {
+						canDelete: true,
+						reason: null,
+						workspace,
+						warning: null,
+						activeTerminalCount,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
+				const worktree = workspace.worktreeId
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: null;
 				const project = db.data.projects.find(
 					(p) => p.id === workspace.projectId,
 				);
@@ -407,53 +517,59 @@ export const createWorkspacesRouter = () => {
 					input.id,
 				);
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
 				const project = db.data.projects.find(
 					(p) => p.id === workspace.projectId,
 				);
 
 				let teardownError: string | undefined;
+				let worktree: ReturnType<typeof db.data.worktrees.find>;
 
-				if (worktree && project) {
-					// Run teardown scripts before removing worktree
-					const exists = await worktreeExists(
-						project.mainRepoPath,
-						worktree.path,
+				// For worktree type workspaces, handle worktree cleanup
+				if (workspace.type === "worktree" && workspace.worktreeId) {
+					worktree = db.data.worktrees.find(
+						(wt) => wt.id === workspace.worktreeId,
 					);
 
-					if (exists) {
-						const teardownResult = runTeardown(
+					if (worktree && project) {
+						// Run teardown scripts before removing worktree
+						const exists = await worktreeExists(
 							project.mainRepoPath,
 							worktree.path,
-							workspace.name,
 						);
-						if (!teardownResult.success) {
-							teardownError = teardownResult.error;
-						}
-					}
 
-					try {
 						if (exists) {
-							await removeWorktree(project.mainRepoPath, worktree.path);
-						} else {
-							console.warn(
-								`Worktree ${worktree.path} not found in git, skipping removal`,
+							const teardownResult = runTeardown(
+								project.mainRepoPath,
+								worktree.path,
+								workspace.name,
 							);
+							if (!teardownResult.success) {
+								teardownError = teardownResult.error;
+							}
 						}
-					} catch (error) {
-						const errorMessage =
-							error instanceof Error ? error.message : String(error);
-						console.error("Failed to remove worktree:", errorMessage);
-						return {
-							success: false,
-							error: `Failed to remove worktree: ${errorMessage}`,
-						};
+
+						try {
+							if (exists) {
+								await removeWorktree(project.mainRepoPath, worktree.path);
+							} else {
+								console.warn(
+									`Worktree ${worktree.path} not found in git, skipping removal`,
+								);
+							}
+						} catch (error) {
+							const errorMessage =
+								error instanceof Error ? error.message : String(error);
+							console.error("Failed to remove worktree:", errorMessage);
+							return {
+								success: false,
+								error: `Failed to remove worktree: ${errorMessage}`,
+							};
+						}
 					}
 				}
+				// Branch type workspaces: just delete DB record, no worktree cleanup needed
 
-				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
+				// Proceed with DB cleanup
 				await db.update((data) => {
 					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
 
@@ -494,15 +610,28 @@ export const createWorkspacesRouter = () => {
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const workspace = data.workspaces.find((w) => w.id === input.id);
-					if (!workspace) {
-						throw new Error(`Workspace ${input.id} not found`);
-					}
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+				if (!workspace) {
+					throw new Error(`Workspace ${input.id} not found`);
+				}
 
-					data.settings.lastActiveWorkspaceId = input.id;
-					workspace.lastOpenedAt = Date.now();
-					workspace.updatedAt = Date.now();
+				// For branch workspaces, checkout the branch in the main repo
+				if (workspace.type === "branch" && workspace.branch) {
+					const project = db.data.projects.find(
+						(p) => p.id === workspace.projectId,
+					);
+					if (project) {
+						await checkoutBranch(project.mainRepoPath, workspace.branch);
+					}
+				}
+
+				await db.update((data) => {
+					const ws = data.workspaces.find((w) => w.id === input.id);
+					if (ws) {
+						data.settings.lastActiveWorkspaceId = input.id;
+						ws.lastOpenedAt = Date.now();
+						ws.updatedAt = Date.now();
+					}
 				});
 
 				return { success: true };
@@ -557,9 +686,20 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Workspace ${input.workspaceId} not found`);
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				// Branch type workspaces don't need rebase checks
+				if (workspace.type === "branch") {
+					return {
+						gitStatus: {
+							branch: workspace.branch,
+							needsRebase: false,
+							lastRefreshed: Date.now(),
+						},
+					};
+				}
+
+				const worktree = workspace.worktreeId
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: null;
 				if (!worktree) {
 					throw new Error(
 						`Worktree for workspace ${input.workspaceId} not found`,
@@ -620,9 +760,19 @@ export const createWorkspacesRouter = () => {
 					return null;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				// Branch type workspaces: fetch status using main repo path
+				if (workspace.type === "branch") {
+					const project = db.data.projects.find(
+						(p) => p.id === workspace.projectId,
+					);
+					if (!project) return null;
+
+					return fetchGitHubPRStatus(project.mainRepoPath);
+				}
+
+				const worktree = workspace.worktreeId
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: null;
 				if (!worktree) {
 					return null;
 				}
@@ -653,9 +803,20 @@ export const createWorkspacesRouter = () => {
 					return null;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				// Branch type workspaces return branch info directly
+				if (workspace.type === "branch") {
+					return {
+						worktreeName: workspace.branch,
+						workspaceType: "branch" as const,
+						createdAt: workspace.createdAt,
+						gitStatus: null,
+						githubStatus: null,
+					};
+				}
+
+				const worktree = workspace.worktreeId
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: null;
 				if (!worktree) {
 					return null;
 				}
@@ -665,6 +826,7 @@ export const createWorkspacesRouter = () => {
 
 				return {
 					worktreeName,
+					workspaceType: "worktree" as const,
 					createdAt: worktree.createdAt,
 					gitStatus: worktree.gitStatus ?? null,
 					githubStatus: worktree.githubStatus ?? null,

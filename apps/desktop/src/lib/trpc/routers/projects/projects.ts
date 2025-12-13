@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { db } from "main/lib/db";
-import type { Project } from "main/lib/db/schemas";
+import type { Project, Workspace } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
@@ -29,17 +29,39 @@ export type OpenNewResult =
 	| OpenNewError;
 
 /**
+ * Creates a main branch workspace for a project
+ */
+function createMainWorkspace(
+	projectId: string,
+	defaultBranch: string,
+): Workspace {
+	return {
+		id: nanoid(),
+		projectId,
+		worktreeId: undefined,
+		type: "branch",
+		branch: defaultBranch,
+		name: defaultBranch,
+		tabOrder: 0,
+		createdAt: Date.now(),
+		updatedAt: Date.now(),
+		lastOpenedAt: Date.now(),
+	};
+}
+
+/**
  * Creates or updates a project record in the database.
  * If a project with the same mainRepoPath exists, updates lastOpenedAt.
- * Otherwise, creates a new project.
+ * Otherwise, creates a new project with a main branch workspace.
  */
 async function upsertProject(
 	mainRepoPath: string,
 	defaultBranch: string,
-): Promise<Project> {
+): Promise<{ project: Project; isNew: boolean }> {
 	const name = basename(mainRepoPath);
 
 	let project = db.data.projects.find((p) => p.mainRepoPath === mainRepoPath);
+	const isNew = !project;
 
 	if (project) {
 		await db.update((data) => {
@@ -61,13 +83,32 @@ async function upsertProject(
 			defaultBranch,
 		};
 
+		const mainWorkspace = createMainWorkspace(project.id, defaultBranch);
+
 		await db.update((data) => {
 			// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
 			data.projects.push(project!);
+			data.workspaces.push(mainWorkspace);
+			data.settings.lastActiveWorkspaceId = mainWorkspace.id;
+
+			// Activate the project
+			const activeProjects = data.projects.filter(
+				(proj) => proj.tabOrder !== null,
+			);
+			const maxProjectTabOrder =
+				activeProjects.length > 0
+					? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+						Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+					: -1;
+			// biome-ignore lint/style/noNonNullAssertion: project is assigned above
+			const p = data.projects.find((p) => p.id === project!.id);
+			if (p) {
+				p.tabOrder = maxProjectTabOrder + 1;
+			}
 		});
 	}
 
-	return project;
+	return { project, isNew };
 }
 
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
@@ -180,7 +221,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}
 
 			const defaultBranch = await getDefaultBranch(mainRepoPath);
-			const project = await upsertProject(mainRepoPath, defaultBranch);
+			const { project } = await upsertProject(mainRepoPath, defaultBranch);
 
 			return {
 				canceled: false,
@@ -230,7 +271,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const branchSummary = await git.branch();
 				const defaultBranch = branchSummary.current || "main";
 
-				const project = await upsertProject(input.path, defaultBranch);
+				const { project } = await upsertProject(input.path, defaultBranch);
 
 				return { project };
 			}),
@@ -334,23 +375,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					const git = simpleGit();
 					await git.clone(input.url, clonePath);
 
-					// Create new project
-					const name = basename(clonePath);
+					// Create new project with main workspace
 					const defaultBranch = await getDefaultBranch(clonePath);
-					const project: Project = {
-						id: nanoid(),
-						mainRepoPath: clonePath,
-						name,
-						color: assignRandomColor(),
-						tabOrder: null,
-						lastOpenedAt: Date.now(),
-						createdAt: Date.now(),
-						defaultBranch,
-					};
-
-					await db.update((data) => {
-						data.projects.push(project);
-					});
+					const { project } = await upsertProject(clonePath, defaultBranch);
 
 					return {
 						canceled: false as const,

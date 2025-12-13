@@ -6,8 +6,10 @@ import {
 } from "@superset/ui/context-menu";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { HiOutlineCodeBracketSquare } from "react-icons/hi2";
 import { useUpdateProject } from "renderer/react-query/projects";
 import { PROJECT_COLORS } from "shared/constants/project-colors";
+import { AddBranchDialog } from "./AddBranchDialog";
 
 interface WorkspaceGroupContextMenuProps {
 	projectId: string;
@@ -23,6 +25,7 @@ export function WorkspaceGroupContextMenu({
 	children,
 }: WorkspaceGroupContextMenuProps) {
 	const [name, setName] = useState(projectName);
+	const [showAddBranchDialog, setShowAddBranchDialog] = useState(false);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const skipBlurSubmit = useRef(false);
 	const updateProject = useUpdateProject();
@@ -96,64 +99,88 @@ export function WorkspaceGroupContextMenu({
 	};
 
 	return (
-		<ContextMenu onOpenChange={handleOpenChange}>
-			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-			<ContextMenuContent className="w-64 space-y-2">
-				<div
-					className="space-y-1.5 px-2 pt-1.5"
-					onPointerMove={(event) => event.stopPropagation()}
-					onPointerDown={(event) => event.stopPropagation()}
-				>
-					<p className="text-xs text-muted-foreground">Workspace group name</p>
-					<input
-						ref={inputRef}
-						value={name}
-						onChange={(event) => setName(event.target.value)}
-						onBlur={handleBlur}
-						onKeyDown={handleNameKeyDown}
-						className="w-full rounded-md border border-border bg-muted/50 px-2 py-1 text-sm text-foreground outline-none focus:border-primary focus:bg-background"
-						placeholder="Workspace group"
-					/>
-				</div>
+		<>
+			<ContextMenu onOpenChange={handleOpenChange}>
+				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+				<ContextMenuContent className="w-64 space-y-2">
+					<div
+						className="space-y-1.5 px-2 pt-1.5"
+						onPointerMove={(event) => event.stopPropagation()}
+						onPointerDown={(event) => event.stopPropagation()}
+					>
+						<p className="text-xs text-muted-foreground">
+							Workspace group name
+						</p>
+						<input
+							ref={inputRef}
+							value={name}
+							onChange={(event) => setName(event.target.value)}
+							onBlur={handleBlur}
+							onKeyDown={handleNameKeyDown}
+							className="w-full rounded-md border border-border bg-muted/50 px-2 py-1 text-sm text-foreground outline-none focus:border-primary focus:bg-background"
+							placeholder="Workspace group"
+						/>
+					</div>
 
-				<ContextMenuSeparator />
+					<ContextMenuSeparator />
 
-				<div className="flex gap-2 overflow-x-auto px-2 py-1.5">
-					{PROJECT_COLORS.map((color) => (
-						<button
-							key={color.value}
-							type="button"
-							onClick={() => {
-								handleColorChange(color.value);
-								inputRef.current?.focus();
-							}}
-							className={`shrink-0 rounded-full p-0.5 transition-all ${
-								color.value === projectColor
-									? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-									: "hover:ring-2 hover:ring-muted-foreground/50 hover:ring-offset-2 hover:ring-offset-background"
-							}`}
-						>
-							<span
-								className="block size-5 rounded-full border border-border shadow-sm"
-								style={{ backgroundColor: color.value }}
-							/>
-						</button>
-					))}
-				</div>
+					<div className="flex gap-2 overflow-x-auto px-2 py-1.5">
+						{PROJECT_COLORS.map((color) => (
+							<button
+								key={color.value}
+								type="button"
+								onClick={() => {
+									handleColorChange(color.value);
+									inputRef.current?.focus();
+								}}
+								className={`shrink-0 rounded-full p-0.5 transition-all ${
+									color.value === projectColor
+										? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+										: "hover:ring-2 hover:ring-muted-foreground/50 hover:ring-offset-2 hover:ring-offset-background"
+								}`}
+							>
+								<span
+									className="block size-5 rounded-full border border-border shadow-sm"
+									style={{ backgroundColor: color.value }}
+								/>
+							</button>
+						))}
+					</div>
 
-				<ContextMenuSeparator />
+					<ContextMenuSeparator />
 
-				<button
-					type="button"
-					onClick={() => {
-						// TODO: Implement worktree configuration
-						inputRef.current?.focus();
-					}}
-					className="w-full px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
-				>
-					Configure worktree setup
-				</button>
-			</ContextMenuContent>
-		</ContextMenu>
+					<button
+						type="button"
+						onClick={() => {
+							setShowAddBranchDialog(true);
+						}}
+						className="w-full px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent flex items-center gap-2"
+					>
+						<HiOutlineCodeBracketSquare className="size-4" />
+						Add existing branch...
+					</button>
+
+					<ContextMenuSeparator />
+
+					<button
+						type="button"
+						onClick={() => {
+							// TODO: Implement worktree configuration
+							inputRef.current?.focus();
+						}}
+						className="w-full px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
+					>
+						Configure worktree setup
+					</button>
+				</ContextMenuContent>
+			</ContextMenu>
+
+			<AddBranchDialog
+				projectId={projectId}
+				projectName={projectName}
+				open={showAddBranchDialog}
+				onOpenChange={setShowAddBranchDialog}
+			/>
+		</>
 	);
 }

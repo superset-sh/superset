@@ -50,10 +50,14 @@ export interface Worktree {
 	githubStatus?: GitHubStatus;
 }
 
+export type WorkspaceType = "worktree" | "branch";
+
 export interface Workspace {
 	id: string;
 	projectId: string;
-	worktreeId: string;
+	worktreeId?: string; // Only set for type="worktree"
+	type: WorkspaceType;
+	branch: string; // Branch name for both types
 	name: string;
 	tabOrder: number;
 	createdAt: number;

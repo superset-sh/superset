@@ -444,3 +444,46 @@ export async function branchExistsOnRemote(
 		return false;
 	}
 }
+
+/**
+ * Lists all local and remote branches in a repository
+ * @param repoPath - Path to the repository
+ * @returns Object with local and remote branch arrays
+ */
+export async function listBranches(
+	repoPath: string,
+): Promise<{ local: string[]; remote: string[] }> {
+	const git = simpleGit(repoPath);
+
+	// Fetch and prune to ensure we have up-to-date remote refs
+	try {
+		await git.fetch(["--prune"]);
+	} catch {
+		// Ignore fetch errors (e.g., offline)
+	}
+
+	// Get local branches
+	const localResult = await git.branchLocal();
+	const local = localResult.all;
+
+	// Get remote branches (strip "origin/" prefix)
+	const remoteResult = await git.branch(["-r"]);
+	const remote = remoteResult.all
+		.filter((b) => b.startsWith("origin/") && !b.includes("->"))
+		.map((b) => b.replace("origin/", ""));
+
+	return { local, remote };
+}
+
+/**
+ * Checks out a branch in a repository
+ * @param repoPath - Path to the repository
+ * @param branch - The branch name to checkout
+ */
+export async function checkoutBranch(
+	repoPath: string,
+	branch: string,
+): Promise<void> {
+	const git = simpleGit(repoPath);
+	await git.checkout(branch);
+}

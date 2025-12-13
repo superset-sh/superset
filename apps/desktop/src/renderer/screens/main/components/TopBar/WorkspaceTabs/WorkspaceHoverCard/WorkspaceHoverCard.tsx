@@ -34,6 +34,7 @@ export function WorkspaceHoverCardContent({
 
 	const pr = githubStatus?.pr;
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
+	const isBranchType = worktreeInfo?.workspaceType === "branch";
 
 	const worktreeName = worktreeInfo?.worktreeName;
 	const hasCustomAlias =
@@ -77,8 +78,15 @@ export function WorkspaceHoverCardContent({
 				)}
 			</div>
 
-			{/* Needs Rebase Warning */}
-			{needsRebase && (
+			{/* Direct branch indicator */}
+			{isBranchType && (
+				<div className="flex items-center gap-2 text-muted-foreground text-xs bg-muted/50 px-2 py-1.5 rounded-md">
+					<span>Direct branch workspace</span>
+				</div>
+			)}
+
+			{/* Needs Rebase Warning - only for worktree type */}
+			{needsRebase && !isBranchType && (
 				<div className="flex items-center gap-2 text-amber-500 text-xs bg-amber-500/10 px-2 py-1.5 rounded-md">
 					<LuTriangleAlert className="size-3.5 shrink-0" />
 					<span>Behind main, needs rebase</span>

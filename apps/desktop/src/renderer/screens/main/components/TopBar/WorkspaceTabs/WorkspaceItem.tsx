@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniXMark, HiOutlineCodeBracketSquare } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useDeleteWorkspace,
@@ -24,6 +24,7 @@ interface WorkspaceItemProps {
 	id: string;
 	projectId: string;
 	worktreePath: string;
+	workspaceType?: "worktree" | "branch";
 	title: string;
 	isActive: boolean;
 	index: number;
@@ -36,6 +37,7 @@ export function WorkspaceItem({
 	id,
 	projectId,
 	worktreePath,
+	workspaceType = "worktree",
 	title,
 	isActive,
 	index,
@@ -199,6 +201,9 @@ export function WorkspaceItem({
 							/>
 						) : (
 							<>
+								{workspaceType === "branch" && (
+									<HiOutlineCodeBracketSquare className="size-3.5 shrink-0 text-muted-foreground" />
+								)}
 								<span
 									className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left"
 									style={{
