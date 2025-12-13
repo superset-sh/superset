@@ -32,30 +32,38 @@ export function DiscardConfirmDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
+			<AlertDialogContent className="overflow-hidden">
 				<AlertDialogHeader>
 					<AlertDialogTitle>
 						{isUntracked ? "Delete File" : "Discard Changes"}
 					</AlertDialogTitle>
-					<AlertDialogDescription>
-						{isUntracked ? (
-							<>
-								Are you sure you want to permanently delete "{filePath}"?
-								<span className="block mt-2 text-destructive">
-									This will permanently delete this file from disk. This action
-									cannot be undone.
-								</span>
-							</>
-						) : (
-							<>
-								Are you sure you want to discard all changes to "{filePath}"?
-								<span className="block mt-2 text-destructive">
-									This will revert the file to its last committed state. All
-									uncommitted changes will be lost. This action cannot be
-									undone.
-								</span>
-							</>
-						)}
+					<AlertDialogDescription asChild>
+						<div className="text-muted-foreground text-sm">
+							{isUntracked ? (
+								<>
+									<p>Are you sure you want to permanently delete</p>
+									<p className="my-1 break-all font-mono text-xs">
+										"{filePath}"?
+									</p>
+									<p className="mt-2 text-destructive">
+										This will permanently delete this file from disk. This
+										action cannot be undone.
+									</p>
+								</>
+							) : (
+								<>
+									<p>Are you sure you want to discard all changes to</p>
+									<p className="my-1 break-all font-mono text-xs">
+										"{filePath}"?
+									</p>
+									<p className="mt-2 text-destructive">
+										This will revert the file to its last committed state. All
+										uncommitted changes will be lost. This action cannot be
+										undone.
+									</p>
+								</>
+							)}
+						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>

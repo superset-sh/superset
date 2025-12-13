@@ -16,11 +16,10 @@ import {
 } from "react-icons/hi2";
 import { useOpenSettings } from "renderer/stores";
 import { HELP_MENU } from "shared/constants";
-import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
+import { HOTKEYS } from "shared/hotkeys";
 
 export function HelpMenu() {
 	const openSettings = useOpenSettings();
-	const hotkeyKeys = formatKeysForDisplay(HOTKEYS.SHOW_HOTKEYS.keys);
 
 	const handleContactUs = () => {
 		window.open(HELP_MENU.CONTACT_URL, "_blank");
@@ -74,7 +73,7 @@ export function HelpMenu() {
 					<HiOutlineCommandLine className="h-4 w-4" />
 					<span className="flex-1">Keyboard Shortcuts</span>
 					<KbdGroup>
-						{hotkeyKeys.map((key) => (
+						{HOTKEYS.SHOW_HOTKEYS.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
 						))}
 					</KbdGroup>

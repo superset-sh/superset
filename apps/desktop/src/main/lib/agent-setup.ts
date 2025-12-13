@@ -177,6 +177,8 @@ fi
 
 # Prepend superset bin to PATH
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
+export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
 	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
 	console.log("[agent-setup] Created bash wrapper");

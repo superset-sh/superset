@@ -11,6 +11,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { Pane, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
 
 type SplitOrientation = "vertical" | "horizontal";
 
@@ -126,27 +127,36 @@ export function TabPane({
 	return (
 		<MosaicWindow<string>
 			path={path}
-			title={pane.name}
-			toolbarControls={
-				<div className="flex items-center gap-0.5">
-					<button
-						type="button"
-						onClick={handleSplitPane}
-						title="Split pane"
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					>
-						{splitIcon}
-					</button>
-					<button
-						type="button"
-						onClick={handleClosePane}
-						title="Close pane"
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					>
-						<HiMiniXMark className="size-4" />
-					</button>
+			title=""
+			renderToolbar={() => (
+				<div className="flex h-full w-full items-center justify-between px-2">
+					<div className="flex min-w-0 items-center gap-2">
+						<DirectoryNavigator
+							paneId={paneId}
+							currentCwd={pane.cwd}
+							cwdConfirmed={pane.cwdConfirmed}
+						/>
+					</div>
+					<div className="flex items-center gap-0.5">
+						<button
+							type="button"
+							onClick={handleSplitPane}
+							title="Split pane"
+							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						>
+							{splitIcon}
+						</button>
+						<button
+							type="button"
+							onClick={handleClosePane}
+							title="Close pane"
+							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						>
+							<HiMiniXMark className="size-4" />
+						</button>
+					</div>
 				</div>
-			}
+			)}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu

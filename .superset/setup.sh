@@ -31,19 +31,6 @@ echo "📥 Installing dependencies..."
 bun install
 success "Dependencies installed"
 
-# Create .envrc for direnv
-if [ ! -f .envrc ]; then
-  echo "🔧 Creating .envrc..."
-  cat > .envrc << 'ENVRC'
-#!/usr/bin/env bash
-dotenv .env
-ENVRC
-  if command -v direnv &> /dev/null; then
-    direnv allow
-  fi
-  success "direnv configured"
-fi
-
 # Create or get Neon branch for this workspace
 WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
 

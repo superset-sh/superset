@@ -3,7 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import debounce from "lodash/debounce";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -19,6 +19,7 @@ import {
 	setupPasteHandler,
 	setupResizeHandlers,
 } from "./helpers";
+import { parseCwd } from "./parseCwd";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
@@ -40,8 +41,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
+	const [cwdConfirmed, setCwdConfirmed] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
 
@@ -63,6 +67,35 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
+
+	// Seed cwd from initialCwd or workspace path (shell spawns there)
+	// OSC-7 will override if/when the shell reports directory changes
+	useEffect(() => {
+		if (terminalCwd) return; // Already have a cwd, don't override
+		const seedCwd = paneInitialCwd || workspaceCwd;
+		if (seedCwd) {
+			setTerminalCwd(seedCwd);
+			setCwdConfirmed(false); // Seeded, not confirmed by OSC-7
+		}
+	}, [paneInitialCwd, workspaceCwd, terminalCwd]);
+
+	// Sync terminal cwd to store for DirectoryNavigator
+	useEffect(() => {
+		updatePaneCwd(paneId, terminalCwd, cwdConfirmed);
+	}, [terminalCwd, cwdConfirmed, paneId, updatePaneCwd]);
+
+	// Parse terminal data for cwd (OSC 7 sequences)
+	const updateCwdFromData = useCallback((data: string) => {
+		const cwd = parseCwd(data);
+		if (cwd !== null) {
+			setTerminalCwd(cwd);
+			setCwdConfirmed(true); // Confirmed by OSC-7
+		}
+	}, []);
+
+	// Ref to use cwd parser inside effect
+	const updateCwdRef = useRef(updateCwdFromData);
+	updateCwdRef.current = updateCwdFromData;
 
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
@@ -109,6 +142,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		if (event.type === "data") {
 			xtermRef.current.write(event.data);
+			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
 			setSubscriptionEnabled(false);
@@ -192,6 +226,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			for (const event of events) {
 				if (event.type === "data") {
 					xterm.write(event.data);
+					updateCwdRef.current(event.data);
 				} else {
 					isExitedRef.current = true;
 					setSubscriptionEnabled(false);
@@ -201,12 +236,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		};
 
-		const applyInitialScrollback = (result: {
+		const applyInitialState = (result: {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
 		}) => {
 			xterm.write(result.scrollback);
+			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {
@@ -223,7 +259,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				},
 				{
 					onSuccess: (result) => {
-						applyInitialScrollback(result);
+						applyInitialState(result);
 						setSubscriptionEnabled(true);
 						flushPendingEvents();
 					},
@@ -287,7 +323,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					}
 					const hasPendingEvents = pendingEventsRef.current.length > 0;
 					if (result.isNew || !hasPendingEvents) {
-						applyInitialScrollback(result);
+						applyInitialState(result);
 					}
 					setSubscriptionEnabled(true);
 					flushPendingEvents();

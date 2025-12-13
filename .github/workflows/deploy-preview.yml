@@ -123,10 +123,19 @@ jobs:
           NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
           CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+            --env CLERK_SECRET_KEY=$CLERK_SECRET_KEY \
+            --env CLERK_WEBHOOK_SECRET=$CLERK_WEBHOOK_SECRET \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED \
+            --env BLOB_READ_WRITE_TOKEN=$BLOB_READ_WRITE_TOKEN \
+            --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
+            --env NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -199,7 +208,10 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+            --env CLERK_SECRET_KEY=$CLERK_SECRET_KEY \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED)
           vercel alias $VERCEL_URL ${{ env.WEB_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -257,7 +269,8 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+            --env CLERK_SECRET_KEY=$CLERK_SECRET_KEY)
           vercel alias $VERCEL_URL ${{ env.MARKETING_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -328,7 +341,10 @@ jobs:
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
-          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+          VERCEL_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN \
+            --env CLERK_SECRET_KEY=$CLERK_SECRET_KEY \
+            --env DATABASE_URL=$DATABASE_URL \
+            --env DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED)
           vercel alias $VERCEL_URL ${{ env.ADMIN_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 

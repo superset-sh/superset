@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { observable } from "@trpc/server/observable";
 import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal";
@@ -173,6 +175,55 @@ export const createTerminalRouter = () => {
 					(wt) => wt.id === workspace.worktreeId,
 				);
 				return worktree?.path;
+			}),
+
+		/**
+		 * List directory contents for navigation
+		 * Returns directories and files in the specified path
+		 */
+		listDirectory: publicProcedure
+			.input(
+				z.object({
+					dirPath: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const { dirPath } = input;
+
+				try {
+					const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+					const items = entries
+						.filter((entry) => !entry.name.startsWith("."))
+						.map((entry) => ({
+							name: entry.name,
+							path: path.join(dirPath, entry.name),
+							isDirectory: entry.isDirectory(),
+						}))
+						.sort((a, b) => {
+							// Directories first, then alphabetical
+							if (a.isDirectory && !b.isDirectory) return -1;
+							if (!a.isDirectory && b.isDirectory) return 1;
+							return a.name.localeCompare(b.name);
+						});
+
+					// Get parent directory
+					const parentPath = path.dirname(dirPath);
+					const hasParent = parentPath !== dirPath;
+
+					return {
+						currentPath: dirPath,
+						parentPath: hasParent ? parentPath : null,
+						items,
+					};
+				} catch {
+					return {
+						currentPath: dirPath,
+						parentPath: null,
+						items: [],
+						error: "Unable to read directory",
+					};
+				}
 			}),
 
 		stream: publicProcedure

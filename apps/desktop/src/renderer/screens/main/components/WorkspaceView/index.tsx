@@ -110,7 +110,7 @@ export function WorkspaceView() {
 			<ResizablePanel
 				ref={sidebarPanelRef}
 				defaultSize={sidebarSize}
-				minSize={10}
+				minSize={15}
 				maxSize={40}
 				collapsible
 				collapsedSize={0}

@@ -1,6 +1,6 @@
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
+import { HOTKEYS } from "shared/hotkeys";
 
 const shortcuts = [HOTKEYS.NEW_TERMINAL, HOTKEYS.OPEN_IN_APP];
 
@@ -17,7 +17,7 @@ export function EmptyTabView() {
 				{shortcuts.map((shortcut) => (
 					<div key={shortcut.label} className="flex items-center gap-2">
 						<KbdGroup>
-							{formatKeysForDisplay(shortcut.keys).map((key) => (
+							{shortcut.display.map((key) => (
 								<Kbd key={key}>{key}</Kbd>
 							))}
 						</KbdGroup>
