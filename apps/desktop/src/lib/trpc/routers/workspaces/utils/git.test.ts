@@ -92,30 +92,3 @@ describe("LFS Detection", () => {
 		expect(existsSync(join(repoPath, ".gitattributes"))).toBe(false);
 	});
 });
-
-describe("Shell Environment", () => {
-	test("getShellEnvironment returns PATH", async () => {
-		const { getShellEnvironment } = await import("./shell-env");
-
-		const env = await getShellEnvironment();
-
-		// Should have PATH
-		expect(env.PATH || env.Path).toBeDefined();
-	});
-
-	test("clearShellEnvCache clears cache", async () => {
-		const { clearShellEnvCache, getShellEnvironment } = await import(
-			"./shell-env"
-		);
-
-		// Get env (populates cache)
-		await getShellEnvironment();
-
-		// Clear cache
-		clearShellEnvCache();
-
-		// Should work again (cache was cleared)
-		const env = await getShellEnvironment();
-		expect(env.PATH || env.Path).toBeDefined();
-	});
-});

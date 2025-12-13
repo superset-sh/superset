@@ -5,6 +5,7 @@ import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
+import { getGitBinaryPath } from "main/lib/git-binary";
 import { nanoid } from "nanoid";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
@@ -12,6 +13,13 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
+
+/**
+ * Creates a simpleGit instance configured to use the bundled git binary.
+ */
+function createGit(baseDir?: string) {
+	return simpleGit(baseDir ? { baseDir, binary: getGitBinaryPath() } : { binary: getGitBinaryPath() });
+}
 
 // Return types for openNew procedure
 type OpenNewCanceled = { canceled: true };
@@ -191,7 +199,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
-				const git = simpleGit(input.path);
+				const git = createGit(input.path);
 
 				// Initialize git repository with 'main' as default branch
 				// Try with --initial-branch=main (Git 2.28+), fall back to plain init
@@ -331,7 +339,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					}
 
 					// Clone the repository
-					const git = simpleGit();
+					const git = createGit();
 					await git.clone(input.url, clonePath);
 
 					// Create new project
