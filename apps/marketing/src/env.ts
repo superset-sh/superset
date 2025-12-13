@@ -1,12 +1,15 @@
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { config } from "dotenv";
 import { z } from "zod";
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
 if (process.env.NODE_ENV === "development") {
 	// Load .env from monorepo root
-	config({ path: resolve(process.cwd(), "../../.env"), override: true });
+	config({ path: resolve(__dirname, "../../.env"), override: true });
 }
 
 export const env = createEnv({
