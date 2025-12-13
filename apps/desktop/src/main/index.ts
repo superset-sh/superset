@@ -1,4 +1,14 @@
+// Load environment variables from .env file BEFORE any other imports
+// This ensures Auth0 credentials are available at runtime (not compile-time)
+// Use override: true to ensure .env values take precedence over inherited env vars
 import path from "node:path";
+import { config } from "dotenv";
+
+config({
+	path: path.resolve(__dirname, "../../../../.env"),
+	override: true,
+});
+
 import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
@@ -24,13 +34,18 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-<<<<<<< HEAD
-// Handle deep links
+// Handle deep links (including OAuth callbacks)
 app.on("open-url", (event, url) => {
 	event.preventDefault();
 	console.log("[main] Received deep link:", url);
-	// Deep link handling can be added here for future features
-	// Auth uses BrowserWindow popup approach, not deep links
+
+	// Handle Auth0 OAuth callback
+	if (url.startsWith("superset://auth/callback")) {
+		authManager.handleCallback(url);
+		return;
+	}
+
+	// Other deep link handling can be added here
 });
 
 registerAuthHandlers();
@@ -41,7 +56,7 @@ registerAuthHandlers();
 
 	await initDb();
 	await initAppState();
-	// Validate auth session against Clerk cookies
+	// Validate auth session on startup
 	await authManager.validateSessionOnStartup();
 
 	try {

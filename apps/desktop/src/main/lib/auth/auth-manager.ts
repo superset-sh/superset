@@ -1,109 +1,215 @@
-import { BrowserWindow, session } from "electron";
+import { BrowserWindow, shell } from "electron";
 import type { AuthSession } from "shared/ipc-channels/auth";
 import { db } from "../db";
+import type { PKCEPair } from "./pkce";
+import { generatePKCE } from "./pkce";
+import { clearTokens, getAccessToken, storeTokens } from "./token-store";
 
-const CLERK_PUBLISHABLE_KEY = process.env.VITE_CLERK_PUBLISHABLE_KEY || "";
+const AUTH0_DOMAIN = process.env.VITE_AUTH0_DOMAIN || "";
+const AUTH0_CLIENT_ID = process.env.VITE_AUTH0_CLIENT_ID || "";
+const AUTH0_AUDIENCE = process.env.VITE_AUTH0_AUDIENCE || "";
 
-// Refresh interval: check every 5 minutes if session needs refresh
+const DEBUG_AUTH = process.env.DEBUG_AUTH === "1";
+
+const CALLBACK_URL = "superset://auth/callback";
+
+function debugLog(...args: unknown[]): void {
+	if (DEBUG_AUTH) {
+		console.log("[auth]", ...args);
+	}
+}
+
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
-// Refresh threshold: refresh if expiring within 2 minutes
 const REFRESH_THRESHOLD_MS = 2 * 60 * 1000;
 
-// Extract Clerk frontend API domain from publishable key
-function getClerkFrontendApi(): string {
-	if (!CLERK_PUBLISHABLE_KEY) {
-		throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY");
-	}
-	const keyPart = CLERK_PUBLISHABLE_KEY.replace(/^pk_(test|live)_/, "");
-	const decoded = Buffer.from(keyPart, "base64").toString("utf-8");
-	return decoded.replace("$", "");
+interface TokenResponse {
+	access_token: string;
+	refresh_token?: string;
+	id_token?: string;
+	token_type: string;
+	expires_in: number;
 }
-
-// Get Account Portal URL for sign-in/sign-up pages
-function getClerkAccountPortalUrl(): string {
-	const frontendApi = getClerkFrontendApi();
-	return frontendApi.replace(".clerk.accounts.dev", ".accounts.dev");
-}
-
-interface StoredAuthData {
-	session: AuthSession | null;
-}
-
-const AUTH_SESSION_PARTITION = "persist:clerk-auth";
 
 class AuthManager {
 	private mainWindow: BrowserWindow | null = null;
 	private authWindow: BrowserWindow | null = null;
 	private refreshInterval: NodeJS.Timeout | null = null;
+	private pendingPKCE: PKCEPair | null = null;
+	private authResolve: ((value: { success: boolean; error?: string }) => void) | null = null;
 
 	setMainWindow(window: BrowserWindow | null): void {
 		this.mainWindow = window;
 	}
 
 	/**
-	 * Get the current session. If stored session is expired but cookies are still valid,
-	 * attempts to refresh from cookies before returning null.
-	 * Preserves profile data from the old session if the refresh lacks it.
+	 * Handle the OAuth callback from the custom protocol.
+	 * Called when superset://auth/callback is triggered.
 	 */
-	async getSession(): Promise<AuthSession | null> {
-		const data = db.data?.auth;
+	async handleCallback(url: string): Promise<void> {
+		debugLog("Handling callback URL:", url);
 
-		if (!data?.session) {
+		try {
+			const urlObj = new URL(url);
+			const code = urlObj.searchParams.get("code");
+			const state = urlObj.searchParams.get("state");
+			const error = urlObj.searchParams.get("error");
+			const errorDescription = urlObj.searchParams.get("error_description");
+
+			if (error) {
+				debugLog("Auth error:", error, errorDescription);
+				this.completeAuth(false, errorDescription || error);
+				return;
+			}
+
+			if (!code) {
+				debugLog("No authorization code in callback");
+				this.completeAuth(false, "No authorization code received");
+				return;
+			}
+
+			if (!this.pendingPKCE || state !== this.pendingPKCE.state) {
+				debugLog("State mismatch or no pending PKCE");
+				this.completeAuth(false, "Invalid state parameter");
+				return;
+			}
+
+			// Exchange code for tokens
+			const tokens = await this.exchangeCodeForTokens(code, this.pendingPKCE.verifier);
+			if (!tokens) {
+				this.completeAuth(false, "Failed to exchange code for tokens");
+				return;
+			}
+
+			// Store tokens securely
+			await storeTokens({
+				accessToken: tokens.access_token,
+				refreshToken: tokens.refresh_token,
+				idToken: tokens.id_token,
+			});
+
+			// Fetch user info
+			const userInfo = await this.fetchUserInfo(tokens.access_token);
+
+			// Create session
+			const session: AuthSession = {
+				userId: (userInfo?.sub as string) || "unknown",
+				sessionId: `auth0-${Date.now()}`,
+				email: (userInfo?.email as string) || null,
+				firstName:
+					(userInfo?.given_name as string) ||
+					(userInfo?.name as string)?.split(" ")[0] ||
+					null,
+				lastName:
+					(userInfo?.family_name as string) ||
+					(userInfo?.name as string)?.split(" ").slice(1).join(" ") ||
+					null,
+				imageUrl: (userInfo?.picture as string) || null,
+				expiresAt: Date.now() + tokens.expires_in * 1000,
+				accessToken: tokens.access_token,
+			};
+
+			await this.storeSession(session);
+			this.completeAuth(true);
+		} catch (err) {
+			debugLog("Callback handling error:", err);
+			this.completeAuth(false, err instanceof Error ? err.message : "Unknown error");
+		}
+	}
+
+	private completeAuth(success: boolean, error?: string): void {
+		this.pendingPKCE = null;
+
+		if (this.authWindow && !this.authWindow.isDestroyed()) {
+			this.authWindow.close();
+		}
+		this.authWindow = null;
+
+		if (this.authResolve) {
+			this.authResolve({ success, error });
+			this.authResolve = null;
+		}
+
+		if (!success && this.mainWindow && !this.mainWindow.isDestroyed()) {
+			this.mainWindow.webContents.send("auth:window-closed");
+		}
+	}
+
+	private async exchangeCodeForTokens(
+		code: string,
+		codeVerifier: string,
+	): Promise<TokenResponse | null> {
+		try {
+			const response = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					grant_type: "authorization_code",
+					client_id: AUTH0_CLIENT_ID,
+					code_verifier: codeVerifier,
+					code,
+					redirect_uri: CALLBACK_URL,
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.text();
+				debugLog("Token exchange failed:", response.status, errorData);
+				return null;
+			}
+
+			const tokens = (await response.json()) as TokenResponse;
+			debugLog("Token exchange successful");
+			return tokens;
+		} catch (error) {
+			debugLog("Token exchange error:", error);
+			return null;
+		}
+	}
+
+	async getSession(): Promise<AuthSession | null> {
+		const storedSession = db.data?.auth?.session;
+
+		if (!storedSession) {
 			return null;
 		}
 
-		const storedSession = data.session;
 		const now = Date.now();
 
-		// If session hasn't expired, return it directly
 		if (storedSession.expiresAt > now) {
-			return storedSession;
+			const accessToken = await getAccessToken();
+			return accessToken ? { ...storedSession, accessToken } : storedSession;
 		}
 
-		// Session expired - try to refresh from cookies
-		console.log(
-			"[auth] Stored session expired, attempting refresh from cookies",
-		);
-		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
-		const refreshedSession = await this.checkForSession(authSession);
-
-		if (refreshedSession) {
-			// Merge profile data from old session if refresh lacks it
-			const finalSession = this.hasProfileData(refreshedSession)
-				? refreshedSession
-				: this.mergeProfileData(refreshedSession, storedSession);
-
-			console.log(
-				"[auth] Session refreshed successfully, hasProfile:",
-				this.hasProfileData(finalSession),
-			);
-			await this.storeSession(finalSession);
-			return finalSession;
-		}
-
-		// Refresh failed - clear the stale session
-		console.log("[auth] Session refresh failed - clearing stale session");
-		await this.storeSession(null);
-		return null;
+		debugLog("Stored session expired, attempting refresh");
+		return this.refreshSession();
 	}
 
-	/**
-	 * Synchronous version for cases where async isn't possible.
-	 * Returns stored session without refresh attempt.
-	 */
 	getSessionSync(): AuthSession | null {
 		return db.data?.auth?.session ?? null;
 	}
 
 	private async storeSession(authSession: AuthSession | null): Promise<void> {
-		db.data.auth = { session: authSession };
+		const sessionWithoutToken = authSession
+			? {
+					userId: authSession.userId,
+					sessionId: authSession.sessionId,
+					email: authSession.email,
+					firstName: authSession.firstName,
+					lastName: authSession.lastName,
+					imageUrl: authSession.imageUrl,
+					expiresAt: authSession.expiresAt,
+				}
+			: null;
+
+		db.data.auth = { session: sessionWithoutToken };
 		await db.write();
 
 		if (this.mainWindow && !this.mainWindow.isDestroyed()) {
 			this.mainWindow.webContents.send("auth:session-changed", authSession);
 		}
 
-		// Start/stop refresh interval based on session state
 		if (authSession) {
 			this.startRefreshInterval();
 		} else {
@@ -111,493 +217,139 @@ class AuthManager {
 		}
 	}
 
-	/**
-	 * Check if a session has profile data (email, name, or avatar).
-	 */
-	private hasProfileData(session: AuthSession): boolean {
-		return !!(
-			session.email ||
-			session.firstName ||
-			session.lastName ||
-			session.imageUrl
-		);
-	}
-
-	/**
-	 * Merge profile data from an old session into a new session.
-	 * Used when refreshing to preserve profile data if the new token lacks it.
-	 */
-	private mergeProfileData(
-		newSession: AuthSession,
-		oldSession: AuthSession,
-	): AuthSession {
-		return {
-			...newSession,
-			email: newSession.email || oldSession.email,
-			firstName: newSession.firstName || oldSession.firstName,
-			lastName: newSession.lastName || oldSession.lastName,
-			imageUrl: newSession.imageUrl || oldSession.imageUrl,
-		};
-	}
-
 	async startSignIn(): Promise<{ success: boolean; error?: string }> {
-		return this.openAuthWindow("sign-in");
-	}
+		console.log("[auth] startSignIn called");
+		console.log("[auth] AUTH0_DOMAIN:", AUTH0_DOMAIN);
+		console.log("[auth] AUTH0_CLIENT_ID:", AUTH0_CLIENT_ID);
 
-	async startSignUp(): Promise<{ success: boolean; error?: string }> {
-		// Use sign-in for OAuth flows - Clerk will automatically create an account
-		// if one doesn't exist, and sign in if one does. This prevents the loop
-		// where a user with an existing account clicks "Sign Up" and gets stuck.
-		return this.openAuthWindow("sign-in");
-	}
+		if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID) {
+			return {
+				success: false,
+				error: "Auth0 not configured. Set VITE_AUTH0_DOMAIN and VITE_AUTH0_CLIENT_ID.",
+			};
+		}
 
-	private async openAuthWindow(
-		mode: "sign-in" | "sign-up",
-	): Promise<{ success: boolean; error?: string }> {
-		try {
-			if (this.authWindow && !this.authWindow.isDestroyed()) {
-				this.authWindow.focus();
-				return { success: true };
-			}
+		// Close existing auth window if any
+		if (this.authWindow && !this.authWindow.isDestroyed()) {
+			this.authWindow.focus();
+			return { success: true };
+		}
 
-			const accountPortal = getClerkAccountPortalUrl();
-			const authUrl = `https://${accountPortal}/${mode}`;
-			const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
+		// Generate PKCE pair
+		this.pendingPKCE = generatePKCE();
+
+		// Build authorization URL
+		const authUrl = new URL(`https://${AUTH0_DOMAIN}/authorize`);
+		authUrl.searchParams.set("client_id", AUTH0_CLIENT_ID);
+		authUrl.searchParams.set("response_type", "code");
+		authUrl.searchParams.set("redirect_uri", CALLBACK_URL);
+		authUrl.searchParams.set("scope", "openid profile email offline_access");
+		authUrl.searchParams.set("code_challenge", this.pendingPKCE.challenge);
+		authUrl.searchParams.set("code_challenge_method", "S256");
+		authUrl.searchParams.set("state", this.pendingPKCE.state);
+		authUrl.searchParams.set("prompt", "login");
+		if (AUTH0_AUDIENCE) {
+			authUrl.searchParams.set("audience", AUTH0_AUDIENCE);
+		}
+
+		debugLog("Opening auth URL:", authUrl.toString());
+		console.log("[auth] AUTH URL:", authUrl.toString());
+
+		return new Promise((resolve) => {
+			this.authResolve = resolve;
 
 			this.authWindow = new BrowserWindow({
-				width: 450,
-				height: 650,
+				width: 500,
+				height: 700,
 				show: true,
 				center: true,
-				resizable: false,
-				minimizable: false,
-				maximizable: false,
 				webPreferences: {
 					nodeIntegration: false,
 					contextIsolation: true,
-					session: authSession,
+					// Use unique partition for each auth attempt to avoid cached sessions
+					partition: `auth-${Date.now()}`,
 				},
-				title:
-					mode === "sign-in" ? "Sign In to Superset" : "Sign Up for Superset",
+				title: "Sign In to Superset",
 			});
 
-			// Poll for session cookie after auth completes
-			const pollInterval = setInterval(async () => {
-				if (this.authWindow?.isDestroyed()) {
-					clearInterval(pollInterval);
-					return;
-				}
-
-				const sessionData = await this.checkForSession(
-					authSession,
-					this.authWindow,
-				);
-				if (sessionData) {
-					console.log("[auth] Session detected:", sessionData.email);
-					clearInterval(pollInterval);
-					await this.storeSession(sessionData);
-					this.authWindow?.close();
-				}
-			}, 1000);
-
-			// Listen for navigation to detect auth completion
-			this.authWindow.webContents.on("did-navigate", async (_event, url) => {
-				console.log("[auth] Navigated to:", url);
-
-				// If we hit the default-redirect, auth likely completed
-				if (url.includes("default-redirect") || url.includes("/sso-callback")) {
-					console.log(
-						"[auth] Detected post-auth redirect, checking session...",
-					);
-					// Give Clerk a moment to set cookies
-					await new Promise((resolve) => setTimeout(resolve, 500));
-					const sessionData = await this.checkForSession(
-						authSession,
-						this.authWindow,
-					);
-					if (sessionData) {
-						console.log(
-							"[auth] Session found after redirect:",
-							sessionData.email,
-						);
-						clearInterval(pollInterval);
-						await this.storeSession(sessionData);
-						this.authWindow?.close();
-					}
+			// Intercept navigation to our callback URL
+			this.authWindow.webContents.on("will-redirect", (event, url) => {
+				debugLog("Will redirect to:", url);
+				if (url.startsWith(CALLBACK_URL)) {
+					event.preventDefault();
+					this.handleCallback(url);
 				}
 			});
 
-			await this.authWindow.loadURL(authUrl);
+			this.authWindow.webContents.on("will-navigate", (event, url) => {
+				debugLog("Will navigate to:", url);
+				if (url.startsWith(CALLBACK_URL)) {
+					event.preventDefault();
+					this.handleCallback(url);
+				}
+			});
+
+			this.authWindow.loadURL(authUrl.toString());
 
 			this.authWindow.on("closed", () => {
-				clearInterval(pollInterval);
 				this.authWindow = null;
-				// Notify renderer that auth window was closed (cancelled or completed)
-				if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-					this.mainWindow.webContents.send("auth:window-closed");
+				// If auth wasn't completed, resolve with cancelled
+				if (this.authResolve) {
+					this.pendingPKCE = null;
+					this.authResolve({ success: false, error: "Authentication cancelled" });
+					this.authResolve = null;
+
+					if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+						this.mainWindow.webContents.send("auth:window-closed");
+					}
 				}
 			});
-
-			return { success: true };
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Failed to open auth window";
-			return { success: false, error: message };
-		}
+		});
 	}
 
-	private async checkForSession(
-		authSession: Electron.Session,
-		authWindow?: BrowserWindow | null,
-	): Promise<AuthSession | null> {
-		try {
-			const cookies = await authSession.cookies.get({});
-
-			// Log all cookies for debugging
-			if (cookies.length > 0) {
-				console.log(
-					"[auth] Cookies found:",
-					cookies.map((c) => c.name).join(", "),
-				);
-			}
-
-			// Find the session cookie using shared helper
-			const sessionCookie = this.findSessionCookie(cookies);
-
-			if (!sessionCookie?.value) {
-				return null;
-			}
-
-			console.log(
-				"[auth] Using cookie:",
-				sessionCookie.name,
-				"value length:",
-				sessionCookie.value.length,
-			);
-
-			// Decode the JWT to get basic info
-			const parts = sessionCookie.value.split(".");
-			if (parts.length !== 3) {
-				console.log(
-					"[auth] Not a JWT format, trying to fetch user data directly",
-				);
-				// Not a JWT - try to get user data from the window directly
-				const userData = await this.fetchUserDataFromWindow(authWindow);
-				if (userData) {
-					return {
-						userId: "unknown",
-						sessionId: sessionCookie.value.substring(0, 20),
-						email: userData.email,
-						firstName: userData.firstName,
-						lastName: userData.lastName,
-						imageUrl: userData.imageUrl,
-						expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days default
-					};
-				}
-				return null;
-			}
-
-			let payload: Record<string, unknown>;
-			try {
-				payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-			} catch {
-				console.log("[auth] Failed to decode JWT payload");
-				return null;
-			}
-			console.log("[auth] JWT payload keys:", Object.keys(payload).join(", "));
-
-			// Check if this is a valid session (has user ID)
-			const sub = payload.sub as string | undefined;
-			if (!sub) {
-				console.log("[auth] No user ID in JWT");
-				return null;
-			}
-
-			const sid = (payload.sid as string) || "";
-			const exp = (payload.exp as number) || 0;
-
-			// The JWT itself may contain user info - check common claim names
-			const email =
-				(payload.email as string) ||
-				(payload.primary_email as string) ||
-				(payload["https://clerk.dev/email"] as string) ||
-				null;
-			const firstName =
-				(payload.first_name as string) ||
-				(payload.given_name as string) ||
-				(payload["https://clerk.dev/first_name"] as string) ||
-				null;
-			const lastName =
-				(payload.last_name as string) ||
-				(payload.family_name as string) ||
-				(payload["https://clerk.dev/last_name"] as string) ||
-				null;
-			const imageUrl =
-				(payload.image_url as string) ||
-				(payload.picture as string) ||
-				(payload["https://clerk.dev/image_url"] as string) ||
-				null;
-
-			// If we got user info from JWT, use it directly
-			if (email || firstName) {
-				console.log("[auth] Got user info from JWT");
-				return {
-					userId: sub,
-					sessionId: sid,
-					email,
-					firstName,
-					lastName,
-					imageUrl,
-					expiresAt: exp * 1000,
-				};
-			}
-
-			// Try to fetch user data from the auth window's Clerk instance
-			let userData = await this.fetchUserDataFromWindow(authWindow);
-
-			// Fallback to API fetch
-			if (!userData) {
-				userData = await this.fetchUserData(authSession, sessionCookie.value);
-			}
-
-			return {
-				userId: sub,
-				sessionId: sid,
-				email: userData?.email || null,
-				firstName: userData?.firstName || null,
-				lastName: userData?.lastName || null,
-				imageUrl: userData?.imageUrl || null,
-				expiresAt: exp * 1000,
-			};
-		} catch (error) {
-			console.error("[auth] Error checking session:", error);
-			return null;
-		}
+	async startSignUp(): Promise<{ success: boolean; error?: string }> {
+		// Auth0 Universal Login handles both sign in and sign up
+		return this.startSignIn();
 	}
 
-	private async fetchUserDataFromWindow(
-		authWindow?: BrowserWindow | null,
-	): Promise<{
-		email: string | null;
-		firstName: string | null;
-		lastName: string | null;
-		imageUrl: string | null;
-	} | null> {
-		if (!authWindow || authWindow.isDestroyed()) {
-			return null;
-		}
-
+	private async fetchUserInfo(
+		accessToken: string,
+	): Promise<Record<string, unknown> | null> {
 		try {
-			// Execute JavaScript in the auth window to get user data from Clerk
-			const userData = await authWindow.webContents.executeJavaScript(`
-				(function() {
-					// Try to get Clerk from the window
-					const clerk = window.Clerk;
-					if (!clerk || !clerk.user) {
-						return null;
-					}
-					const user = clerk.user;
-					return {
-						email: user.primaryEmailAddress?.emailAddress || user.emailAddresses?.[0]?.emailAddress || null,
-						firstName: user.firstName || null,
-						lastName: user.lastName || null,
-						imageUrl: user.imageUrl || null,
-					};
-				})();
-			`);
-
-			if (userData) {
-				console.log("[auth] Got user data from window:", userData.firstName);
-				return userData;
-			}
-		} catch (error) {
-			console.log("[auth] Could not get user data from window:", error);
-		}
-
-		return null;
-	}
-
-	private async fetchUserData(
-		authSession: Electron.Session,
-		sessionToken?: string,
-	): Promise<{
-		email: string | null;
-		firstName: string | null;
-		lastName: string | null;
-		imageUrl: string | null;
-	} | null> {
-		try {
-			const frontendApi = getClerkFrontendApi();
-
-			// Try the /v1/me endpoint with the session token as Bearer auth
-			if (sessionToken) {
-				const meResponse = await authSession.fetch(
-					`https://${frontendApi}/v1/me`,
-					{
-						headers: {
-							Accept: "application/json",
-							Authorization: `Bearer ${sessionToken}`,
-						},
-					},
-				);
-
-				console.log("[auth] /v1/me response status:", meResponse.status);
-
-				if (meResponse.ok) {
-					const meData = await meResponse.json();
-					console.log("[auth] /v1/me data keys:", Object.keys(meData));
-					const user = meData?.response || meData;
-					if (user?.email_addresses || user?.first_name) {
-						console.log("[auth] Found user from /v1/me:", user.first_name);
-						return {
-							email:
-								user.email_addresses?.[0]?.email_address ||
-								user.primary_email_address?.email_address ||
-								null,
-							firstName: user.first_name || null,
-							lastName: user.last_name || null,
-							imageUrl: user.image_url || user.profile_image_url || null,
-						};
-					}
-					console.log(
-						"[auth] /v1/me returned ok but no user data in response:",
-						JSON.stringify(meData).substring(0, 200),
-					);
-				} else {
-					// Log the failure reason
-					try {
-						const errorBody = await meResponse.text();
-						console.log(
-							"[auth] /v1/me failed:",
-							meResponse.status,
-							errorBody.substring(0, 200),
-						);
-					} catch {
-						console.log("[auth] /v1/me failed:", meResponse.status);
-					}
-				}
-			}
-
-			// Fallback: Try /v1/client with cookies
-			const response = await authSession.fetch(
-				`https://${frontendApi}/v1/client`,
-				{
-					headers: {
-						Accept: "application/json",
-						"Content-Type": "application/json",
-					},
-					credentials: "include",
+			const response = await fetch(`https://${AUTH0_DOMAIN}/userinfo`, {
+				headers: {
+					Authorization: `Bearer ${accessToken}`,
 				},
-			);
-
-			console.log("[auth] /v1/client response status:", response.status);
+			});
 
 			if (!response.ok) {
-				try {
-					const errorBody = await response.text();
-					console.log(
-						"[auth] /v1/client failed:",
-						response.status,
-						errorBody.substring(0, 200),
-					);
-				} catch {
-					console.log("[auth] /v1/client failed:", response.status);
-				}
-				return this.fetchUserDataFromEnv(authSession);
-			}
-
-			const data = await response.json();
-			console.log("[auth] Client data keys:", Object.keys(data));
-
-			// Extract user from active session
-			const activeSession = data?.response?.sessions?.find(
-				(s: { status: string }) => s.status === "active",
-			);
-			const user = activeSession?.user;
-
-			if (!user) {
-				console.log("[auth] No active user in response, trying env endpoint");
-				return this.fetchUserDataFromEnv(authSession);
-			}
-
-			console.log("[auth] Found user:", user.first_name, user.last_name);
-
-			return {
-				email:
-					user.email_addresses?.[0]?.email_address ||
-					user.primary_email_address?.email_address ||
-					null,
-				firstName: user.first_name || null,
-				lastName: user.last_name || null,
-				imageUrl: user.image_url || user.profile_image_url || null,
-			};
-		} catch (error) {
-			console.error("[auth] Error fetching user data:", error);
-			return this.fetchUserDataFromEnv(authSession);
-		}
-	}
-
-	private async fetchUserDataFromEnv(authSession: Electron.Session): Promise<{
-		email: string | null;
-		firstName: string | null;
-		lastName: string | null;
-		imageUrl: string | null;
-	} | null> {
-		try {
-			const accountPortal = getClerkAccountPortalUrl();
-
-			// Try fetching the environment which includes user data
-			const response = await authSession.fetch(
-				`https://${accountPortal}/v1/environment?_clerk_js_version=5`,
-				{
-					headers: {
-						Accept: "application/json",
-					},
-					credentials: "include",
-				},
-			);
-
-			console.log("[auth] Environment API response status:", response.status);
-
-			if (!response.ok) {
+				debugLog("Failed to fetch userinfo:", response.status);
 				return null;
 			}
 
-			const data = await response.json();
-
-			// The environment response might have user info
-			const user = data?.user || data?.response?.user;
-			if (user) {
-				console.log("[auth] Found user in environment");
-				return {
-					email: user.email_addresses?.[0]?.email_address || null,
-					firstName: user.first_name || null,
-					lastName: user.last_name || null,
-					imageUrl: user.image_url || null,
-				};
-			}
-
-			return null;
+			const userInfo = await response.json();
+			debugLog("UserInfo:", Object.keys(userInfo));
+			return userInfo;
 		} catch (error) {
-			console.error("[auth] Environment fetch error:", error);
+			debugLog("Error fetching userinfo:", error);
 			return null;
 		}
 	}
 
-	/**
-	 * Sign out: clears both the DB session and all Clerk cookies.
-	 * User must re-authenticate next time.
-	 */
 	async signOut(): Promise<{ success: boolean; error?: string }> {
 		try {
-			// Stop refresh interval
 			this.stopRefreshInterval();
 
+			// Clear tokens
+			await clearTokens();
+
+			// Clear session
 			await this.storeSession(null);
 
-			// Clear auth cookies
-			const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
-			await authSession.clearStorageData();
+			// Optionally open Auth0 logout URL to clear Auth0 session
+			const logoutUrl = new URL(`https://${AUTH0_DOMAIN}/v2/logout`);
+			logoutUrl.searchParams.set("client_id", AUTH0_CLIENT_ID);
+			// Don't set returnTo - just logout from Auth0
 
 			return { success: true };
 		} catch (error) {
@@ -608,40 +360,92 @@ class AuthManager {
 	}
 
 	async refreshSession(): Promise<AuthSession | null> {
-		return this.getSession();
+		try {
+			const { getRefreshToken } = await import("./token-store");
+			const refreshToken = await getRefreshToken();
+
+			if (!refreshToken) {
+				debugLog("No refresh token available");
+				await this.storeSession(null);
+				return null;
+			}
+
+			// Exchange refresh token for new access token
+			const response = await fetch(`https://${AUTH0_DOMAIN}/oauth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					grant_type: "refresh_token",
+					client_id: AUTH0_CLIENT_ID,
+					refresh_token: refreshToken,
+				}),
+			});
+
+			if (!response.ok) {
+				debugLog("Token refresh failed:", response.status);
+				await this.storeSession(null);
+				return null;
+			}
+
+			const tokens = (await response.json()) as TokenResponse;
+
+			await storeTokens({
+				accessToken: tokens.access_token,
+				refreshToken: tokens.refresh_token || refreshToken,
+				idToken: tokens.id_token,
+			});
+
+			const userInfo = await this.fetchUserInfo(tokens.access_token);
+			const storedSession = db.data?.auth?.session;
+
+			const session: AuthSession = {
+				userId: (userInfo?.sub as string) || storedSession?.userId || "unknown",
+				sessionId: storedSession?.sessionId || `auth0-${Date.now()}`,
+				email: (userInfo?.email as string) || storedSession?.email || null,
+				firstName:
+					(userInfo?.given_name as string) ||
+					(userInfo?.name as string)?.split(" ")[0] ||
+					storedSession?.firstName ||
+					null,
+				lastName:
+					(userInfo?.family_name as string) ||
+					(userInfo?.name as string)?.split(" ").slice(1).join(" ") ||
+					storedSession?.lastName ||
+					null,
+				imageUrl: (userInfo?.picture as string) || storedSession?.imageUrl || null,
+				expiresAt: Date.now() + tokens.expires_in * 1000,
+				accessToken: tokens.access_token,
+			};
+
+			await this.storeSession(session);
+			return session;
+		} catch (error) {
+			debugLog("Session refresh error:", error);
+			return null;
+		}
 	}
 
-	/**
-	 * Start the background refresh interval that keeps the session fresh.
-	 * Should be called after successful authentication.
-	 */
 	startRefreshInterval(): void {
 		if (this.refreshInterval) {
-			return; // Already running
+			return;
 		}
 
-		console.log("[auth] Starting session refresh interval");
+		debugLog("Starting session refresh interval");
 		this.refreshInterval = setInterval(() => {
 			this.refreshIfNearExpiry();
 		}, REFRESH_INTERVAL_MS);
 	}
 
-	/**
-	 * Stop the background refresh interval.
-	 */
 	stopRefreshInterval(): void {
 		if (this.refreshInterval) {
-			console.log("[auth] Stopping session refresh interval");
+			debugLog("Stopping session refresh interval");
 			clearInterval(this.refreshInterval);
 			this.refreshInterval = null;
 		}
 	}
 
-	/**
-	 * Refresh the session if it's near expiry.
-	 * Called periodically by the refresh interval.
-	 * Preserves profile data from the old session if the refresh lacks it.
-	 */
 	private async refreshIfNearExpiry(): Promise<void> {
 		const storedSession = db.data?.auth?.session;
 		if (!storedSession) {
@@ -650,139 +454,49 @@ class AuthManager {
 
 		const timeUntilExpiry = storedSession.expiresAt - Date.now();
 		if (timeUntilExpiry > REFRESH_THRESHOLD_MS) {
-			return; // Not near expiry yet
-		}
-
-		console.log("[auth] Session near expiry, refreshing...");
-		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
-		const refreshedSession = await this.checkForSession(authSession);
-
-		if (refreshedSession) {
-			// Merge profile data from old session if refresh lacks it
-			const finalSession = this.hasProfileData(refreshedSession)
-				? refreshedSession
-				: this.mergeProfileData(refreshedSession, storedSession);
-
-			console.log(
-				"[auth] Session refreshed via interval, hasProfile:",
-				this.hasProfileData(finalSession),
-			);
-			await this.storeSession(finalSession);
-		} else {
-			console.log("[auth] Session refresh failed - cookies may have expired");
-			// Don't clear yet - let getSession handle it when actually needed
-		}
-	}
-
-	/**
-	 * Find a valid Clerk session cookie from the cookie list.
-	 * Supports both __session (production) and __clerk_db_jwt (development).
-	 */
-	private findSessionCookie(
-		cookies: Electron.Cookie[],
-	): Electron.Cookie | undefined {
-		// Prefer __session cookie (production)
-		let sessionCookie = cookies.find((c) => c.name === "__session");
-		if (!sessionCookie) {
-			sessionCookie = cookies.find((c) => c.name.startsWith("__session"));
-		}
-		// Fall back to __clerk_db_jwt if it's a valid JWT (development)
-		if (!sessionCookie) {
-			const clerkDbJwt =
-				cookies.find((c) => c.name === "__clerk_db_jwt") ||
-				cookies.find((c) => c.name.startsWith("__clerk_db_jwt"));
-			if (clerkDbJwt?.value && clerkDbJwt.value.split(".").length === 3) {
-				sessionCookie = clerkDbJwt;
-			}
-		}
-		return sessionCookie;
-	}
-
-	/**
-	 * Validate and refresh the stored session against Clerk cookies on startup.
-	 *
-	 * - If stored session exists but cookies are gone: clear session
-	 * - If cookies exist but no stored session: restore from cookies
-	 * - If stored session is expired but cookies are valid: refresh session
-	 * - Starts the refresh interval if a valid session exists
-	 */
-	async validateSessionOnStartup(): Promise<void> {
-		if (!CLERK_PUBLISHABLE_KEY) {
 			return;
 		}
 
-		const authSession = session.fromPartition(AUTH_SESSION_PARTITION);
+		debugLog("Session near expiry, refreshing...");
+		await this.refreshSession();
+	}
+
+	async validateSessionOnStartup(): Promise<void> {
+		if (!AUTH0_DOMAIN || !AUTH0_CLIENT_ID) {
+			return;
+		}
 
 		try {
-			const cookies = await authSession.cookies.get({});
-			const sessionCookie = this.findSessionCookie(cookies);
-			const storedData = db.data?.auth?.session;
+			const { getRefreshToken } = await import("./token-store");
+			const refreshToken = await getRefreshToken();
+			const storedSession = db.data?.auth?.session;
 
-			console.log(
-				"[auth] Startup validation - stored session:",
-				!!storedData,
-				"cookie:",
-				!!sessionCookie?.value,
+			debugLog(
+				"Startup validation - stored session:",
+				!!storedSession,
+				"has refresh token:",
+				!!refreshToken,
 			);
 
-			if (storedData && !sessionCookie?.value) {
-				// We have a stored session but no Clerk cookie - session was revoked externally
-				console.log(
-					"[auth] Stored session found but no Clerk cookie - clearing session",
-				);
+			if (storedSession && !refreshToken) {
+				debugLog("Stored session found but no refresh token - clearing session");
 				await this.storeSession(null);
 				return;
 			}
 
-			if (!storedData && sessionCookie?.value) {
-				// We have a Clerk cookie but no stored session - try to restore
-				console.log(
-					"[auth] Clerk cookie found but no stored session - attempting restore",
-				);
-				const sessionData = await this.checkForSession(authSession);
-				if (sessionData) {
-					await this.storeSession(sessionData);
-					console.log(
-						"[auth] Session restored from cookies, hasProfile:",
-						this.hasProfileData(sessionData),
-					);
-					this.startRefreshInterval();
-				}
+			if (!storedSession && refreshToken) {
+				debugLog("Refresh token found but no stored session - restoring");
+				await this.refreshSession();
 				return;
 			}
 
-			if (storedData && sessionCookie?.value) {
-				// Both exist - check if we need to refresh
+			if (storedSession && refreshToken) {
 				const now = Date.now();
-				if (storedData.expiresAt < now) {
-					// Stored session expired - try to refresh from cookies
-					console.log(
-						"[auth] Stored session expired on startup, attempting refresh",
-					);
-					const refreshedSession = await this.checkForSession(authSession);
-					if (refreshedSession) {
-						// Merge profile data from old session if refresh lacks it
-						const finalSession = this.hasProfileData(refreshedSession)
-							? refreshedSession
-							: this.mergeProfileData(refreshedSession, storedData);
-
-						await this.storeSession(finalSession);
-						console.log(
-							"[auth] Session refreshed on startup, hasProfile:",
-							this.hasProfileData(finalSession),
-						);
-						this.startRefreshInterval();
-					} else {
-						// Cookie exists but can't get a valid token - clear the expired session
-						// so the UI doesn't show signed in with a dead token
-						console.log(
-							"[auth] Could not refresh session from cookies - clearing expired session",
-						);
-						await this.storeSession(null);
-					}
+				if (storedSession.expiresAt < now) {
+					debugLog("Stored session expired on startup, refreshing");
+					await this.refreshSession();
 				} else {
-					// Session still valid
-					console.log("[auth] Session valid on startup");
+					debugLog("Session valid on startup");
 					this.startRefreshInterval();
 				}
 			}

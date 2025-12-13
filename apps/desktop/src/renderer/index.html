@@ -12,10 +12,13 @@
       - script-src 'self': Only allow scripts from same origin (no inline)
       - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
       - connect-src 'self' ws: wss:: Allow WebSocket connections for HMR in dev
-      - img-src 'self' data: https://img.clerk.com: Allow images from same origin + data URIs + Clerk avatars
+      - img-src: Allow images from same origin, data URIs, and Clerk avatar sources
+        - https://img.clerk.com: Primary Clerk avatar CDN
+        - https://images.clerk.dev: Alternative Clerk avatar CDN
+        - https://*.clerk.com, https://*.clerk.dev, https://*.accounts.dev: Broader Clerk domains for custom setups
       - font-src 'self': Allow fonts from same origin
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data: https://img.clerk.com; font-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data: https://img.clerk.com https://images.clerk.dev https://*.clerk.com https://*.clerk.dev https://*.accounts.dev; font-src 'self';" />
   </head>
 
   <body>

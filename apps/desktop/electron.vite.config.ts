@@ -54,11 +54,8 @@ export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths, copyResourcesPlugin()],
 
-		define: {
-			"process.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
-				process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
-			),
-		},
+		// Note: Auth0 credentials are loaded at runtime via dotenv in main/index.ts
+		// This allows environment-specific keys without rebuilding the app
 
 		build: {
 			rollupOptions: {
@@ -72,6 +69,7 @@ export default defineConfig({
 				external: [
 					"electron",
 					"node-pty", // Native module - must stay external
+					"keytar", // Native module for secure credential storage
 				],
 			},
 		},

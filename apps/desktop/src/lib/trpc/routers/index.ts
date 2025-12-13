@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
 import { createAuthRouter } from "./auth";
+import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
@@ -23,6 +24,8 @@ import { createWorkspacesRouter } from "./workspaces";
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		auth: createAuthRouter(),
+		changes: createChangesRouter(),
+		uiState: createUiStateRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
@@ -32,7 +35,6 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),
-		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
 	});
 };

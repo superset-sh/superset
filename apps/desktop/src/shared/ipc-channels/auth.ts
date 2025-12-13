@@ -1,5 +1,5 @@
 /**
- * Authentication IPC channels for Clerk integration
+ * Authentication IPC channels for Auth0 integration
  * Uses PKCE flow with system browser for secure auth
  */
 
@@ -11,6 +11,7 @@ export interface AuthSession {
 	lastName: string | null;
 	imageUrl: string | null;
 	expiresAt: number;
+	accessToken?: string;
 }
 
 export interface AuthChannels {

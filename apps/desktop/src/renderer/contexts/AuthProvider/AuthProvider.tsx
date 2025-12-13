@@ -3,7 +3,8 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import type { AuthSession } from "shared/ipc-channels/auth";
 import { trpc } from "../../lib/trpc";
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const AUTH0_CONFIGURED =
+	!!import.meta.env.VITE_AUTH0_DOMAIN && !!import.meta.env.VITE_AUTH0_CLIENT_ID;
 
 interface AuthContextValue {
 	session: AuthSession | null;
@@ -38,13 +39,13 @@ interface AuthProviderProps {
  */
 export function AuthProvider({ children }: AuthProviderProps) {
 	const [session, setSession] = useState<AuthSession | null>(null);
-	const [isLoading, setIsLoading] = useState(!!PUBLISHABLE_KEY);
+	const [isLoading, setIsLoading] = useState(AUTH0_CONFIGURED);
 	const [isSigningIn, setIsSigningIn] = useState(false);
 	const signingInRef = useRef(false);
 
 	const { data: initialSession, isLoading: isQueryLoading } =
 		trpc.auth.getSession.useQuery(undefined, {
-			enabled: !!PUBLISHABLE_KEY,
+			enabled: AUTH0_CONFIGURED,
 		});
 
 	const signInMutation = trpc.auth.startSignIn.useMutation();
@@ -52,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	const signOutMutation = trpc.auth.signOut.useMutation();
 
 	useEffect(() => {
-		if (!PUBLISHABLE_KEY) {
+		if (!AUTH0_CONFIGURED) {
 			setIsLoading(false);
 			return;
 		}
@@ -65,7 +66,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 	// Listen for session changes from main process
 	useEffect(() => {
-		if (!PUBLISHABLE_KEY) return;
+		if (!AUTH0_CONFIGURED) return;
 
 		const handleSessionChange = (newSession: AuthSession | null) => {
 			console.log("[auth-renderer] Session changed:", newSession);
@@ -104,10 +105,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	}, [session, isSigningIn]);
 
 	const signIn = async () => {
-		if (!PUBLISHABLE_KEY) {
-			console.warn(
-				"[auth] Sign in unavailable - missing VITE_CLERK_PUBLISHABLE_KEY",
-			);
+		if (!AUTH0_CONFIGURED) {
+			console.warn("[auth] Sign in unavailable - Auth0 not configured");
 			return;
 		}
 		signingInRef.current = true;
@@ -127,10 +126,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	};
 
 	const signUp = async () => {
-		if (!PUBLISHABLE_KEY) {
-			console.warn(
-				"[auth] Sign up unavailable - missing VITE_CLERK_PUBLISHABLE_KEY",
-			);
+		if (!AUTH0_CONFIGURED) {
+			console.warn("[auth] Sign up unavailable - Auth0 not configured");
 			return;
 		}
 		signingInRef.current = true;
@@ -150,7 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 	};
 
 	const signOut = async () => {
-		if (!PUBLISHABLE_KEY) return;
+		if (!AUTH0_CONFIGURED) return;
 		await signOutMutation.mutateAsync();
 		setSession(null);
 	};
