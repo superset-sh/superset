@@ -7,6 +7,8 @@ import { ThemeProvider } from "next-themes";
 
 import { env } from "@/env";
 
+import { CookieConsent } from "@/components/CookieConsent";
+
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -59,6 +61,7 @@ export default function RootLayout({
 						<Header ctaButtons={<CTAButtons />} />
 						{children}
 						<Footer />
+						<CookieConsent />
 					</ThemeProvider>
 				</body>
 			</html>
