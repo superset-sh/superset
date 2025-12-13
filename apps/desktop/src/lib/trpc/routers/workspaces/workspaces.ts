@@ -168,16 +168,21 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Check if a branch workspace with this branch already exists
-				const existingWorkspace = db.data.workspaces.find(
-					(w) =>
-						w.projectId === input.projectId &&
-						w.type === "branch" &&
-						w.branch === input.branch,
+				// Only allow one branch workspace per project at a time.
+				// Multiple branch workspaces would share the same repo path,
+				// causing branch switches in one to affect all others.
+				const existingBranchWorkspace = db.data.workspaces.find(
+					(w) => w.projectId === input.projectId && w.type === "branch",
 				);
-				if (existingWorkspace) {
+				if (existingBranchWorkspace) {
+					if (existingBranchWorkspace.branch === input.branch) {
+						throw new Error(
+							`A workspace for branch "${input.branch}" already exists`,
+						);
+					}
 					throw new Error(
-						`A workspace for branch "${input.branch}" already exists`,
+						`Close the "${existingBranchWorkspace.branch}" branch workspace before opening "${input.branch}". ` +
+							`Only one branch workspace per project is allowed (they share the same directory).`,
 					);
 				}
 
@@ -243,6 +248,48 @@ export const createWorkspacesRouter = () => {
 				}
 
 				return listBranches(project.mainRepoPath);
+			}),
+
+		// Switch an existing branch workspace to a different branch
+		switchBranchWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.projectId);
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const workspace = db.data.workspaces.find(
+					(w) => w.projectId === input.projectId && w.type === "branch",
+				);
+				if (!workspace) {
+					throw new Error("No branch workspace found for this project");
+				}
+
+				// Checkout the new branch
+				await checkoutBranch(project.mainRepoPath, input.branch);
+
+				// Update the workspace
+				await db.update((data) => {
+					const ws = data.workspaces.find((w) => w.id === workspace.id);
+					if (ws) {
+						ws.branch = input.branch;
+						ws.name = input.branch;
+						ws.updatedAt = Date.now();
+						ws.lastOpenedAt = Date.now();
+					}
+					data.settings.lastActiveWorkspaceId = workspace.id;
+				});
+
+				return {
+					workspace: db.data.workspaces.find((w) => w.id === workspace.id)!,
+					worktreePath: project.mainRepoPath,
+				};
 			}),
 
 		get: publicProcedure

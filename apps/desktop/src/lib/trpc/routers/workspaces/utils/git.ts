@@ -476,7 +476,8 @@ export async function listBranches(
 }
 
 /**
- * Checks out a branch in a repository
+ * Checks out a branch in a repository.
+ * If the branch only exists on remote, creates a local tracking branch.
  * @param repoPath - Path to the repository
  * @param branch - The branch name to checkout
  */
@@ -485,5 +486,23 @@ export async function checkoutBranch(
 	branch: string,
 ): Promise<void> {
 	const git = simpleGit(repoPath);
+
+	// Check if branch exists locally
+	const localBranches = await git.branchLocal();
+	if (localBranches.all.includes(branch)) {
+		await git.checkout(branch);
+		return;
+	}
+
+	// Branch doesn't exist locally - check if it exists on remote and create tracking branch
+	const remoteBranches = await git.branch(["-r"]);
+	const remoteBranchName = `origin/${branch}`;
+	if (remoteBranches.all.includes(remoteBranchName)) {
+		// Create local branch tracking the remote
+		await git.checkout(["-b", branch, "--track", remoteBranchName]);
+		return;
+	}
+
+	// Branch doesn't exist anywhere - let git checkout fail with its normal error
 	await git.checkout(branch);
 }

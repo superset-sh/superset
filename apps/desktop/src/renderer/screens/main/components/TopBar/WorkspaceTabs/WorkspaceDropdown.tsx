@@ -69,6 +69,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 
+	const utils = trpc.useUtils();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
@@ -89,11 +90,22 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const currentProjectWorkspaces =
 		allWorkspaces?.find((g) => g.project.id === currentProjectId)?.workspaces ??
 		[];
-	const branchWorkspaceMap = new Map(
+	// Find existing branch workspace (only one allowed per project)
+	const existingBranchWorkspace = currentProjectWorkspaces.find(
+		(w) => w.type === "branch",
+	);
+	// Map worktree workspaces by branch for quick lookup
+	const worktreeWorkspaceMap = new Map(
 		currentProjectWorkspaces
-			.filter((w) => w.type === "branch")
+			.filter((w) => w.type === "worktree")
 			.map((w) => [w.branch, w.id]),
 	);
+
+	const switchBranchWorkspace = trpc.workspaces.switchBranchWorkspace.useMutation({
+		onSuccess: () => {
+			utils.workspaces.invalidate();
+		},
+	});
 
 	// Combine and dedupe branches, with main/master at top
 	const allBranches = branches
@@ -143,22 +155,33 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const handleBranchClick = async (branch: string) => {
 		if (!currentProjectId) return;
 
-		const existingWorkspaceId = branchWorkspaceMap.get(branch);
-
-		if (existingWorkspaceId) {
-			// Switch to existing workspace
-			setActiveWorkspace.mutate({ id: existingWorkspaceId });
+		// Check if there's a worktree workspace for this branch
+		const worktreeWorkspaceId = worktreeWorkspaceMap.get(branch);
+		if (worktreeWorkspaceId) {
+			setActiveWorkspace.mutate({ id: worktreeWorkspaceId });
 			closeDropdown();
-		} else {
-			// Create new branch workspace
+			return;
+		}
+
+		// Check if the existing branch workspace is already on this branch
+		if (existingBranchWorkspace?.branch === branch) {
+			setActiveWorkspace.mutate({ id: existingBranchWorkspace.id });
+			closeDropdown();
+			return;
+		}
+
+		// If there's an existing branch workspace on a different branch, switch it
+		if (existingBranchWorkspace) {
 			toast.promise(
-				createBranchWorkspace.mutateAsync({
+				switchBranchWorkspace.mutateAsync({
 					projectId: currentProjectId,
 					branch,
 				}),
 				{
 					loading: `Switching to ${branch}...`,
 					success: () => {
+						// Explicitly activate the workspace for immediate view switch
+						setActiveWorkspace.mutate({ id: existingBranchWorkspace.id });
 						closeDropdown();
 						return `Switched to ${branch}`;
 					},
@@ -166,7 +189,25 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 						err instanceof Error ? err.message : "Failed to switch branch",
 				},
 			);
+			return;
 		}
+
+		// No branch workspace exists, create one
+		toast.promise(
+			createBranchWorkspace.mutateAsync({
+				projectId: currentProjectId,
+				branch,
+			}),
+			{
+				loading: `Switching to ${branch}...`,
+				success: () => {
+					closeDropdown();
+					return `Switched to ${branch}`;
+				},
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to switch branch",
+			},
+		);
 	};
 
 	const handleCreateWorkspace = async (projectId: string) => {
@@ -385,7 +426,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 								) : (
 									visibleBranches.map((branch) => {
 										const isActive = activeWorkspace?.branch === branch;
-										const hasWorkspace = branchWorkspaceMap.has(branch);
+										const hasWorktreeWorkspace = worktreeWorkspaceMap.has(branch);
 										const isMainBranch =
 											branch === "main" || branch === "master";
 
@@ -394,7 +435,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 												type="button"
 												key={branch}
 												onClick={() => handleBranchClick(branch)}
-												disabled={createBranchWorkspace.isPending}
+												disabled={createBranchWorkspace.isPending || switchBranchWorkspace.isPending}
 												className={`
 													w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors
 													flex items-center gap-2
@@ -417,7 +458,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 												{isActive && (
 													<HiCheck className="size-3.5 text-foreground shrink-0" />
 												)}
-												{!isActive && hasWorkspace && (
+												{!isActive && hasWorktreeWorkspace && (
 													<span className="size-1.5 rounded-full bg-muted-foreground/40 shrink-0" />
 												)}
 											</button>
