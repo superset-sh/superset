@@ -34,6 +34,8 @@ const config: Configuration = {
 	asar: true,
 	asarUnpack: [
 		"**/node_modules/node-pty/**/*",
+		// Dugite's bundled git binaries must be unpacked to be executable
+		"**/node_modules/dugite/git/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 	],
@@ -52,6 +54,12 @@ const config: Configuration = {
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
+		// Dugite's bundled git binaries (avoids system git dependency)
+		{
+			from: "node_modules/dugite",
+			to: "node_modules/dugite",
 			filter: ["**/*"],
 		},
 		"!**/.DS_Store",
