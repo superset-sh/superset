@@ -16,7 +16,9 @@ export function DownloadButton({
 	onJoinWaitlist,
 }: DownloadButtonProps) {
 	const sizeClasses =
-		size === "sm" ? "px-4 py-2 text-sm" : "px-6 py-3 text-base";
+		size === "sm"
+			? "px-2 sm:px-4 py-2 text-sm"
+			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
 	const handleAppleSiliconDownload = () => {
 		window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");
@@ -91,7 +93,8 @@ export function DownloadButton({
 			type="button"
 			className={`bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`}
 		>
-			Download for macOS
+			<span className="hidden sm:inline">Download for macOS</span>
+			<span className="sm:hidden">Download</span>
 			<HiMiniArrowDownTray className="size-4" />
 		</button>
 	);

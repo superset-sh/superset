@@ -40,7 +40,9 @@ export function PlatformDropdown({
 			<DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
 			<DropdownMenuContent
 				align={align}
-				className={`w-80 bg-background border border-border rounded-[5px] shadow-lg p-2 ${className}`}
+				sideOffset={8}
+				alignOffset={-8}
+				className={`w-[calc(100vw-2rem)] sm:w-80 bg-background border border-border rounded-[5px] shadow-lg p-2 ${className}`}
 			>
 				{sections.map((section, sectionIndex) => (
 					<div key={section.title || sectionIndex}>
