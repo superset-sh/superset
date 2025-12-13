@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { db } from "main/lib/db";
-import { terminalManager } from "main/lib/terminal-manager";
+import { terminalManager } from "main/lib/terminal";
 import { nanoid } from "nanoid";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";

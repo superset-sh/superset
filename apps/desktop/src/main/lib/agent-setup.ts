@@ -140,13 +140,13 @@ _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
 `;
 	fs.writeFileSync(zprofilePath, zprofileScript, { mode: 0o644 });
 
-	// Create .zshrc to source user's .zshrc then prepend our bin
+	// Create .zshrc - reset ZDOTDIR before sourcing so Oh My Zsh works correctly
 	const zshrcPath = path.join(ZSH_DIR, ".zshrc");
 	const zshrcScript = `# Superset zsh rc wrapper
 _superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"
+export ZDOTDIR="$_superset_home"
 [[ -f "$_superset_home/.zshrc" ]] && source "$_superset_home/.zshrc"
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
-export ZDOTDIR="$_superset_home"
 `;
 	fs.writeFileSync(zshrcPath, zshrcScript, { mode: 0o644 });
 	console.log("[agent-setup] Created zsh wrapper");
@@ -177,6 +177,8 @@ fi
 
 # Prepend superset bin to PATH
 export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
+# Minimal prompt (path/env shown in toolbar) - emerald to match app theme
+export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 `;
 	fs.writeFileSync(rcfilePath, script, { mode: 0o644 });
 	console.log("[agent-setup] Created bash wrapper");

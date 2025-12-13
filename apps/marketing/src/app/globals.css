@@ -1,0 +1,7 @@
+@import "tailwindcss";
+@import "@superset/ui/globals.css";
+
+@theme {
+	--font-family-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+	--font-family-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}

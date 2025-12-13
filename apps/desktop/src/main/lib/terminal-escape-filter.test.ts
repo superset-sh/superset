@@ -1,5 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
+	containsClearScrollbackSequence,
+	extractContentAfterClear,
 	filterTerminalQueryResponses,
 	TerminalEscapeFilter,
 } from "./terminal-escape-filter";
@@ -516,6 +518,144 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			const result2 = filter.filter(chunk2);
 			// Colors should pass through
 			expect(result1 + result2).toBe(`${ESC}[31mred${ESC}[0mnormal`);
+		});
+	});
+});
+
+describe("containsClearScrollbackSequence", () => {
+	it("should detect ED3 sequence", () => {
+		expect(containsClearScrollbackSequence(`${ESC}[3J`)).toBe(true);
+	});
+
+	it("should detect RIS sequence", () => {
+		expect(containsClearScrollbackSequence(`${ESC}c`)).toBe(true);
+	});
+
+	it("should detect ED3 in mixed content", () => {
+		expect(containsClearScrollbackSequence(`before${ESC}[3Jafter`)).toBe(true);
+	});
+
+	it("should detect RIS in mixed content", () => {
+		expect(containsClearScrollbackSequence(`before${ESC}cafter`)).toBe(true);
+	});
+
+	it("should return false for no clear sequence", () => {
+		expect(containsClearScrollbackSequence("normal text")).toBe(false);
+	});
+
+	it("should return false for other escape sequences", () => {
+		expect(containsClearScrollbackSequence(`${ESC}[2J`)).toBe(false); // Clear screen (not scrollback)
+		expect(containsClearScrollbackSequence(`${ESC}[H`)).toBe(false); // Cursor home
+	});
+});
+
+describe("extractContentAfterClear", () => {
+	describe("ED3 sequence handling", () => {
+		it("should return empty string for ED3 only", () => {
+			expect(extractContentAfterClear(`${ESC}[3J`)).toBe("");
+		});
+
+		it("should return content after ED3", () => {
+			expect(extractContentAfterClear(`${ESC}[3Jnew content`)).toBe(
+				"new content",
+			);
+		});
+
+		it("should drop content before ED3", () => {
+			expect(extractContentAfterClear(`old stuff${ESC}[3Jnew content`)).toBe(
+				"new content",
+			);
+		});
+
+		it("should handle ED3 at end of data", () => {
+			expect(extractContentAfterClear(`some content${ESC}[3J`)).toBe("");
+		});
+
+		it("should handle multiple ED3 sequences - use last one", () => {
+			expect(extractContentAfterClear(`a${ESC}[3Jb${ESC}[3Jc`)).toBe("c");
+		});
+	});
+
+	describe("RIS sequence handling", () => {
+		it("should return empty string for RIS only", () => {
+			expect(extractContentAfterClear(`${ESC}c`)).toBe("");
+		});
+
+		it("should return content after RIS", () => {
+			expect(extractContentAfterClear(`${ESC}cnew content`)).toBe(
+				"new content",
+			);
+		});
+
+		it("should drop content before RIS", () => {
+			expect(extractContentAfterClear(`old stuff${ESC}cnew content`)).toBe(
+				"new content",
+			);
+		});
+
+		it("should handle RIS at end of data", () => {
+			expect(extractContentAfterClear(`some content${ESC}c`)).toBe("");
+		});
+
+		it("should handle multiple RIS sequences - use last one", () => {
+			expect(extractContentAfterClear(`a${ESC}cb${ESC}cc`)).toBe("c");
+		});
+	});
+
+	describe("mixed ED3 and RIS sequences", () => {
+		it("should use last sequence when RIS comes after ED3", () => {
+			expect(extractContentAfterClear(`a${ESC}[3Jb${ESC}cc`)).toBe("c");
+		});
+
+		it("should use last sequence when ED3 comes after RIS", () => {
+			expect(extractContentAfterClear(`a${ESC}cb${ESC}[3Jc`)).toBe("c");
+		});
+
+		it("should handle complex mixed sequences", () => {
+			expect(
+				extractContentAfterClear(
+					`first${ESC}[3Jsecond${ESC}cthird${ESC}[3Jfinal`,
+				),
+			).toBe("final");
+		});
+	});
+
+	describe("no clear sequence", () => {
+		it("should return original data when no clear sequence", () => {
+			expect(extractContentAfterClear("normal text")).toBe("normal text");
+		});
+
+		it("should return original data with other escape sequences", () => {
+			const data = `${ESC}[32mgreen${ESC}[0m`;
+			expect(extractContentAfterClear(data)).toBe(data);
+		});
+
+		it("should return empty string for empty input", () => {
+			expect(extractContentAfterClear("")).toBe("");
+		});
+	});
+
+	describe("edge cases", () => {
+		it("should handle unicode content after clear", () => {
+			expect(extractContentAfterClear(`old${ESC}[3J日本語🎉`)).toBe("日本語🎉");
+		});
+
+		it("should handle newlines after clear", () => {
+			expect(extractContentAfterClear(`old${ESC}[3J\nnew\nlines`)).toBe(
+				"\nnew\nlines",
+			);
+		});
+
+		it("should handle ANSI colors after clear", () => {
+			const result = extractContentAfterClear(
+				`old${ESC}[3J${ESC}[32mgreen${ESC}[0m`,
+			);
+			expect(result).toBe(`${ESC}[32mgreen${ESC}[0m`);
+		});
+
+		it("should not confuse similar sequences", () => {
+			// ESC[3 (without J) is not a clear sequence
+			expect(extractContentAfterClear(`${ESC}[3mtext`)).toBe(`${ESC}[3mtext`);
 		});
 	});
 });

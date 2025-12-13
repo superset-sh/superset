@@ -1,0 +1,1 @@
+export { DeletedUsersTable } from "./DeletedUsersTable";

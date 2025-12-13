@@ -35,13 +35,8 @@ yarn.lock
 
 # Env variables
 .env
-.env.production
-.env.development
-.env.test
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+.envrc
 
 mise.toml
 
@@ -50,7 +45,12 @@ mise.toml
 
 # Turbo
 .turbo
-.envrc
+.cache
+
+# Next.js
+.next
+out
+next-env.d.ts
 
 # Superset
 # Ignore .superset directory except for config and scripts

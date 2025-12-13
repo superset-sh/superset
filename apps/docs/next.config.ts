@@ -7,7 +7,6 @@ const withNextra = nextra({
 
 const nextConfig: NextConfig = {
 	reactStrictMode: true,
-	transpilePackages: ["@superset/ui"],
 };
 
 export default withNextra(nextConfig);

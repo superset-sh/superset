@@ -228,6 +228,7 @@ export const createChangesRouter = () => {
 				z.object({
 					worktreePath: z.string(),
 					filePath: z.string(),
+					oldPath: z.string().optional(),
 					category: z.enum(["against-main", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
@@ -236,6 +237,7 @@ export const createChangesRouter = () => {
 			.query(async ({ input }): Promise<FileContents> => {
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
+				const originalPath = input.oldPath || input.filePath;
 				let original = "";
 				let modified = "";
 
@@ -243,7 +245,7 @@ export const createChangesRouter = () => {
 					case "against-main": {
 						try {
 							original = await git.show([
-								`origin/${defaultBranch}:${input.filePath}`,
+								`origin/${defaultBranch}:${originalPath}`,
 							]);
 						} catch {
 							original = "";
@@ -262,7 +264,7 @@ export const createChangesRouter = () => {
 						}
 						try {
 							original = await git.show([
-								`${input.commitHash}^:${input.filePath}`,
+								`${input.commitHash}^:${originalPath}`,
 							]);
 						} catch {
 							original = "";
@@ -279,7 +281,7 @@ export const createChangesRouter = () => {
 
 					case "staged": {
 						try {
-							original = await git.show([`HEAD:${input.filePath}`]);
+							original = await git.show([`HEAD:${originalPath}`]);
 						} catch {
 							original = "";
 						}
@@ -293,10 +295,10 @@ export const createChangesRouter = () => {
 
 					case "unstaged": {
 						try {
-							original = await git.show([`:0:${input.filePath}`]);
+							original = await git.show([`:0:${originalPath}`]);
 						} catch {
 							try {
-								original = await git.show([`HEAD:${input.filePath}`]);
+								original = await git.show([`HEAD:${originalPath}`]);
 							} catch {
 								original = "";
 							}

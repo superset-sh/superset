@@ -1,10 +1,11 @@
 {
-	"extends": "@superset/typescript/base.json",
+	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
+		"baseUrl": ".",
 		"paths": {
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "test"],
+	"include": ["src", "drizzle.config.ts"],
 	"exclude": ["node_modules"]
 }

@@ -1,13 +1,27 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1762574385218,
-			"tag": "0000_initial_migration",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1762574385218,
+      "tag": "0000_initial_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765561192058,
+      "tag": "0001_add_clerk_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765569368202,
+      "tag": "0002_add_deleted_at_users",
+      "breakpoints": true
+    }
+  ]
 }

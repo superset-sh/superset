@@ -37,6 +37,7 @@ export function ChangesContent() {
 		{
 			worktreePath: worktreePath || "",
 			filePath: selectedFile?.path || "",
+			oldPath: selectedFile?.oldPath,
 			category: selectedCategory,
 			commitHash: selectedCommitHash || undefined,
 			defaultBranch: effectiveBaseBranch,
@@ -107,19 +108,21 @@ export function ChangesContent() {
 
 	return (
 		<>
-			<div className="flex-1 h-full flex flex-col overflow-hidden bg-background">
-				<FileHeader file={selectedFile} worktreePath={worktreePath} />
-				<DiffToolbar
-					viewMode={viewMode}
-					onViewModeChange={setViewMode}
-					category={selectedCategory}
-					onStage={isUnstaged ? stage : undefined}
-					onUnstage={isStaged ? unstage : undefined}
-					onDiscard={isUnstaged ? handleDiscard : undefined}
-					isActioning={isPending}
-				/>
-				<div className="flex-1 overflow-hidden">
-					<DiffViewer contents={contents} viewMode={viewMode} />
+			<div className="flex-1 h-full flex flex-col bg-tertiary rounded-lg">
+				<div className="flex flex-col h-full bg-background m-2 rounded-lg overflow-hidden">
+					<FileHeader file={selectedFile} worktreePath={worktreePath} />
+					<DiffToolbar
+						viewMode={viewMode}
+						onViewModeChange={setViewMode}
+						category={selectedCategory}
+						onStage={isUnstaged ? stage : undefined}
+						onUnstage={isStaged ? unstage : undefined}
+						onDiscard={isUnstaged ? handleDiscard : undefined}
+						isActioning={isPending}
+					/>
+					<div className="flex-1">
+						<DiffViewer contents={contents} viewMode={viewMode} />
+					</div>
 				</div>
 			</div>
 
