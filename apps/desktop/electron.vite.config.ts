@@ -57,6 +57,12 @@ export default defineConfig({
 		// Note: Auth0 credentials are loaded at runtime via dotenv in main/index.ts
 		// This allows environment-specific keys without rebuilding the app
 
+		define: {
+			"process.env.VITE_CLERK_PUBLISHABLE_KEY": JSON.stringify(
+				process.env.VITE_CLERK_PUBLISHABLE_KEY || "",
+			),
+		},
+
 		build: {
 			rollupOptions: {
 				input: {
