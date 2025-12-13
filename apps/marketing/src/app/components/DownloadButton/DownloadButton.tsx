@@ -16,9 +16,7 @@ export function DownloadButton({
 	onJoinWaitlist,
 }: DownloadButtonProps) {
 	const sizeClasses =
-		size === "sm"
-			? "px-2 sm:px-4 py-2 text-sm"
-			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
+		size === "sm" ? "px-2 sm:px-4 py-2 text-sm" : "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
 	const handleAppleSiliconDownload = () => {
 		window.open(DOWNLOAD_URL_MAC_ARM64, "_blank");

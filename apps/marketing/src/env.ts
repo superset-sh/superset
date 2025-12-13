@@ -1,7 +1,7 @@
+import { resolve } from "node:path";
 import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
 import { config } from "dotenv";
-import { resolve } from "node:path";
 import { z } from "zod";
 
 if (process.env.NODE_ENV === "development") {
