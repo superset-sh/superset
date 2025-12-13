@@ -3,39 +3,37 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { getGitBinaryPath } from "main/lib/git-binary";
 import simpleGit from "simple-git";
 import {
 	adjectives,
 	animals,
 	uniqueNamesGenerator,
 } from "unique-names-generator";
-import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
+import { checkGitLfsAvailable } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
 /**
- * Builds the merged environment for git operations.
- * Takes process.env as base, then overrides only PATH from shell environment.
- * This preserves runtime vars (git credentials, proxy, ELECTRON_*, etc.)
- * while picking up PATH modifications from shell profiles (e.g., homebrew git-lfs).
+ * Creates a simpleGit instance configured to use the bundled git binary.
+ * This avoids dependency on system git (no Xcode license issues on macOS, etc.)
  */
-async function getGitEnv(): Promise<Record<string, string>> {
-	const shellEnv = await getShellEnvironment();
-	const result: Record<string, string> = {};
+function createGit(baseDir: string) {
+	return simpleGit({ baseDir, binary: getGitBinaryPath() });
+}
 
-	// Start with process.env as base
+/**
+ * Builds the environment for git operations.
+ * Uses process.env as base (git credentials, proxy, etc.)
+ * No longer needs shell PATH since we use bundled git.
+ */
+function getGitEnv(): Record<string, string> {
+	const result: Record<string, string> = {};
 	for (const [key, value] of Object.entries(process.env)) {
 		if (typeof value === "string") {
 			result[key] = value;
 		}
 	}
-
-	// Only override PATH from shell env (use platform-appropriate key)
-	const pathKey = process.platform === "win32" ? "Path" : "PATH";
-	if (shellEnv[pathKey]) {
-		result[pathKey] = shellEnv[pathKey];
-	}
-
 	return result;
 }
 
@@ -85,7 +83,7 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 	// Final fallback: sample a few tracked files with git check-attr
 	// This catches nested .gitattributes that declare filter=lfs
 	try {
-		const git = simpleGit(repoPath);
+		const git = createGit(repoPath);
 		// Get a small sample of tracked files (limit to 20 for performance)
 		const lsFiles = await git.raw(["ls-files"]);
 		const sampleFiles = lsFiles.split("\n").filter(Boolean).slice(0, 20);
@@ -142,8 +140,7 @@ export async function createWorktree(
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		// Get merged environment (process.env + shell env for PATH)
-		const env = await getGitEnv();
+		const env = getGitEnv();
 
 		// Proactive LFS check: detect early if repo uses LFS but git-lfs is missing
 		if (usesLfs) {
@@ -158,7 +155,7 @@ export async function createWorktree(
 
 		// Use execFile with arg array for proper POSIX compatibility (no shell escaping needed)
 		await execFileAsync(
-			"git",
+			getGitBinaryPath(),
 			[
 				"-C",
 				mainRepoPath,
@@ -227,12 +224,11 @@ export async function removeWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	try {
-		// Get merged environment (process.env + shell env for PATH)
-		const env = await getGitEnv();
+		const env = getGitEnv();
 
 		// Use execFile with arg array for proper POSIX compatibility
 		await execFileAsync(
-			"git",
+			getGitBinaryPath(),
 			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
 			{ env, timeout: 60_000 },
 		);
@@ -247,7 +243,7 @@ export async function removeWorktree(
 
 export async function getGitRoot(path: string): Promise<string> {
 	try {
-		const git = simpleGit(path);
+		const git = createGit(path);
 		const root = await git.revparse(["--show-toplevel"]);
 		return root.trim();
 	} catch (_error) {
@@ -266,7 +262,7 @@ export async function worktreeExists(
 	worktreePath: string,
 ): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = createGit(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 
 		// Parse porcelain format to verify worktree exists
@@ -285,7 +281,7 @@ export async function worktreeExists(
  */
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	try {
-		const git = simpleGit(mainRepoPath);
+		const git = createGit(mainRepoPath);
 		const remotes = await git.getRemotes();
 		return remotes.some((r) => r.name === "origin");
 	} catch {
@@ -300,7 +296,7 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
  * 3. Fallback to 'main'
  */
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = createGit(mainRepoPath);
 
 	// Method 1: Check origin/HEAD symbolic ref
 	try {
@@ -340,7 +336,7 @@ export async function fetchDefaultBranch(
 	mainRepoPath: string,
 	defaultBranch: string,
 ): Promise<string> {
-	const git = simpleGit(mainRepoPath);
+	const git = createGit(mainRepoPath);
 	await git.fetch("origin", defaultBranch);
 	const commit = await git.revparse(`origin/${defaultBranch}`);
 	return commit.trim();
@@ -356,7 +352,7 @@ export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = createGit(worktreePath);
 	const behindCount = await git.raw([
 		"rev-list",
 		"--count",
@@ -373,7 +369,7 @@ export async function checkNeedsRebase(
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = createGit(worktreePath);
 	const status = await git.status();
 	return !status.isClean();
 }
@@ -386,7 +382,7 @@ export async function hasUncommittedChanges(
 export async function hasUnpushedCommits(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = createGit(worktreePath);
 	try {
 		// Count commits that are on HEAD but not on the upstream tracking branch
 		// @{upstream} refers to the configured upstream branch (e.g., origin/branch-name)
@@ -427,7 +423,7 @@ export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+	const git = createGit(worktreePath);
 	try {
 		// Use ls-remote to check actual remote state (not just local refs)
 		const result = await git.raw([

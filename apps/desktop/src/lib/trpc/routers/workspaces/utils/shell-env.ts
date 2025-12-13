@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
+import { getGitBinaryPath } from "main/lib/git-binary";
 
 const execFileAsync = promisify(execFile);
 
@@ -78,13 +79,14 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 }
 
 /**
- * Checks if git-lfs is available in the given environment.
+ * Checks if git-lfs is available using the bundled git binary.
+ * Dugite bundles git-lfs, so this should always succeed with the bundled git.
  */
 export async function checkGitLfsAvailable(
 	env: Record<string, string>,
 ): Promise<boolean> {
 	try {
-		await execFileAsync("git", ["lfs", "version"], {
+		await execFileAsync(getGitBinaryPath(), ["lfs", "version"], {
 			timeout: 5_000,
 			env,
 		});
