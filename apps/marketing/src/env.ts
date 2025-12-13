@@ -1,6 +1,13 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { vercel } from "@t3-oss/env-nextjs/presets-zod";
+import { config } from "dotenv";
+import { resolve } from "node:path";
 import { z } from "zod";
+
+if (process.env.NODE_ENV === "development") {
+	// Load .env from monorepo root
+	config({ path: resolve(process.cwd(), "../../.env"), override: true });
+}
 
 export const env = createEnv({
 	extends: [vercel()],
@@ -16,7 +23,7 @@ export const env = createEnv({
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
-		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().default("localhost"),
 	},
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
