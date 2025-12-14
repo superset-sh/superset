@@ -4,9 +4,6 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "@/env";
 
-const DESKTOP_PROTOCOL =
-	process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
-
 /**
  * Desktop auth endpoint with PKCE support
  *
@@ -75,11 +72,11 @@ export async function GET(
 		codeChallenge,
 	});
 
-	// Redirect to desktop app via deep link with auth code (not the final token)
-	const desktopUrl = new URL(`${DESKTOP_PROTOCOL}://auth/callback`);
-	desktopUrl.searchParams.set("code", authCode);
+	// Redirect to web callback page (which will open the desktop app)
+	const callbackUrl = new URL("/auth/desktop/callback", request.url);
+	callbackUrl.searchParams.set("code", authCode);
 
-	return NextResponse.redirect(desktopUrl.toString());
+	return NextResponse.redirect(callbackUrl.toString());
 }
 
 interface AuthCodePayload {
