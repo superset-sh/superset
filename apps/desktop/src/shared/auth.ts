@@ -15,10 +15,24 @@ export interface AuthState {
 }
 
 export interface AuthSession {
-	token: string;
+	accessToken: string;
+	accessTokenExpiresAt: number;
+	refreshToken: string;
+	refreshTokenExpiresAt: number;
 	user: AuthUser;
-	expiresAt: number;
 }
+
+/**
+ * Token durations (configurable)
+ */
+export const TOKEN_CONFIG = {
+	/** Access token lifetime in seconds (1 hour) */
+	ACCESS_TOKEN_EXPIRY: 60 * 60,
+	/** Refresh token lifetime in seconds (30 days) */
+	REFRESH_TOKEN_EXPIRY: 30 * 24 * 60 * 60,
+	/** Refresh access token when this many seconds remain */
+	REFRESH_THRESHOLD: 5 * 60,
+} as const;
 
 export type AuthProvider = "github" | "google";
 

@@ -1,16 +1,23 @@
-import { type JWTPayload, jwtVerify } from "jose";
 import type { AuthSession, AuthUser } from "shared/auth";
+import { pkceStore } from "./pkce";
 
-const DESKTOP_AUTH_SECRET = process.env.DESKTOP_AUTH_SECRET;
+// API URL for token exchange - defaults to production, can be overridden
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.superset.sh";
 
 /**
- * Token payload received from web app
+ * Token exchange response from the API
  */
-interface DesktopAuthPayload extends JWTPayload {
-	userId: string;
-	name: string;
-	email: string;
-	avatarUrl: string | null;
+interface TokenExchangeResponse {
+	access_token: string;
+	access_token_expires_at: number;
+	refresh_token: string;
+	refresh_token_expires_at: number;
+	user: {
+		id: string;
+		email: string;
+		name: string;
+		avatarUrl: string | null;
+	};
 }
 
 /**
@@ -24,7 +31,7 @@ export interface AuthDeepLinkResult {
 
 /**
  * Handle authentication deep links from the web app
- * Validates and decodes the JWT token received via superset://auth/callback
+ * Implements PKCE flow: exchanges auth code for access + refresh tokens
  */
 export async function handleAuthDeepLink(
 	url: string,
@@ -40,34 +47,48 @@ export async function handleAuthDeepLink(
 		// Check for error response
 		const error = parsedUrl.searchParams.get("error");
 		if (error) {
+			pkceStore.clear();
 			return { success: false, error };
 		}
 
-		// Get the token
-		const token = parsedUrl.searchParams.get("token");
-		if (!token) {
-			return { success: false, error: "No token in callback" };
+		// Get the auth code (PKCE flow)
+		const code = parsedUrl.searchParams.get("code");
+		if (!code) {
+			pkceStore.clear();
+			return { success: false, error: "No auth code in callback" };
 		}
 
-		// Verify and decode the token
-		const { payload, expiresAt } = await verifyToken(token);
+		// Get the stored code verifier
+		const codeVerifier = pkceStore.consumeVerifier();
+		if (!codeVerifier) {
+			return {
+				success: false,
+				error: "No PKCE verifier found (expired or missing)",
+			};
+		}
+
+		// Exchange the code for tokens
+		const tokenResponse = await exchangeCodeForTokens(code, codeVerifier);
 
 		const user: AuthUser = {
-			id: payload.userId,
-			name: payload.name,
-			email: payload.email,
-			avatarUrl: payload.avatarUrl,
+			id: tokenResponse.user.id,
+			name: tokenResponse.user.name,
+			email: tokenResponse.user.email,
+			avatarUrl: tokenResponse.user.avatarUrl,
 		};
 
 		return {
 			success: true,
 			session: {
-				token,
+				accessToken: tokenResponse.access_token,
+				accessTokenExpiresAt: tokenResponse.access_token_expires_at,
+				refreshToken: tokenResponse.refresh_token,
+				refreshTokenExpiresAt: tokenResponse.refresh_token_expires_at,
 				user,
-				expiresAt,
 			},
 		};
 	} catch (err) {
+		pkceStore.clear();
 		const message =
 			err instanceof Error ? err.message : "Failed to process auth callback";
 		console.error("[auth] Deep link handling failed:", message);
@@ -75,34 +96,32 @@ export async function handleAuthDeepLink(
 	}
 }
 
-async function verifyToken(
-	token: string,
-): Promise<{ payload: DesktopAuthPayload; expiresAt: number }> {
-	if (!DESKTOP_AUTH_SECRET) {
-		throw new Error("DESKTOP_AUTH_SECRET is not configured");
+/**
+ * Exchange auth code + code_verifier for access and refresh tokens
+ */
+async function exchangeCodeForTokens(
+	code: string,
+	codeVerifier: string,
+): Promise<TokenExchangeResponse> {
+	const response = await fetch(`${API_URL}/api/auth/desktop/token`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify({
+			code,
+			code_verifier: codeVerifier,
+		}),
+	});
+
+	if (!response.ok) {
+		const errorBody = await response.json().catch(() => ({}));
+		throw new Error(
+			errorBody.error || `Token exchange failed: ${response.status}`,
+		);
 	}
 
-	const secret = new TextEncoder().encode(DESKTOP_AUTH_SECRET);
-	const { payload } = await jwtVerify(token, secret);
-
-	// Validate required fields
-	if (
-		typeof payload.userId !== "string" ||
-		typeof payload.name !== "string" ||
-		typeof payload.email !== "string"
-	) {
-		throw new Error("Invalid token payload");
-	}
-
-	// Get expiration time
-	const expiresAt = payload.exp
-		? payload.exp * 1000
-		: Date.now() + 7 * 24 * 60 * 60 * 1000;
-
-	return {
-		payload: payload as DesktopAuthPayload,
-		expiresAt,
-	};
+	return response.json();
 }
 
 /**

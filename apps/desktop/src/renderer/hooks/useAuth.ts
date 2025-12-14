@@ -8,17 +8,18 @@ import { trpc } from "../lib/trpc";
 export function useAuth() {
 	const [isSigningIn, setIsSigningIn] = useState(false);
 
+	const utils = trpc.useUtils();
+
 	// Get initial state and subscribe to changes
 	const { data: authState } = trpc.auth.getState.useQuery();
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {
 		onData: () => {
-			// State is automatically updated via the query invalidation
+			// Invalidate the query to refetch the latest state
+			utils.auth.getState.invalidate();
 		},
 	});
-
-	const utils = trpc.useUtils();
 
 	const signInMutation = trpc.auth.signIn.useMutation({
 		onMutate: () => {

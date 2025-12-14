@@ -11,6 +11,7 @@ interface DesktopJwtPayload {
 	email: string;
 	name: string;
 	avatarUrl: string | null;
+	type?: "access" | "refresh" | "auth_code";
 }
 
 /**
@@ -30,11 +31,19 @@ async function verifyDesktopToken(
 			return null;
 		}
 
+		// Only accept access tokens (reject auth_code and refresh tokens)
+		// Auth codes should be exchanged first, refresh tokens are only for /refresh endpoint
+		if (payload.type === "auth_code" || payload.type === "refresh") {
+			console.warn(`[auth] Rejected ${payload.type} token - wrong token type`);
+			return null;
+		}
+
 		return {
 			userId: payload.userId,
 			email: payload.email as string,
 			name: (payload.name as string) ?? "",
 			avatarUrl: (payload.avatarUrl as string | null) ?? null,
+			type: payload.type as "access" | undefined,
 		};
 	} catch {
 		return null;
