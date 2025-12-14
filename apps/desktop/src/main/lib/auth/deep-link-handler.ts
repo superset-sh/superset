@@ -44,19 +44,26 @@ export async function handleAuthDeepLink(
 			return { success: false, error };
 		}
 
-		// Get the auth code (PKCE flow)
+		// Get the auth code and state (PKCE flow with CSRF protection)
 		const code = parsedUrl.searchParams.get("code");
+		const state = parsedUrl.searchParams.get("state");
+
 		if (!code) {
 			pkceStore.clear();
 			return { success: false, error: "No auth code in callback" };
 		}
 
-		// Get the stored code verifier
-		const codeVerifier = pkceStore.consumeVerifier();
+		if (!state) {
+			pkceStore.clear();
+			return { success: false, error: "No state in callback" };
+		}
+
+		// Get the stored code verifier (also verifies state matches)
+		const codeVerifier = pkceStore.consumeVerifier(state);
 		if (!codeVerifier) {
 			return {
 				success: false,
-				error: "No PKCE verifier found (expired or missing)",
+				error: "Invalid or expired auth session",
 			};
 		}
 

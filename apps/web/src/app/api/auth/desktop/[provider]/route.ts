@@ -26,16 +26,24 @@ export async function GET(
 		return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
 	}
 
-	// Get PKCE parameters
+	// Get PKCE + state parameters
 	const codeChallenge = request.nextUrl.searchParams.get("code_challenge");
 	const codeChallengeMethod = request.nextUrl.searchParams.get(
 		"code_challenge_method",
 	);
+	const state = request.nextUrl.searchParams.get("state");
 
-	// Validate PKCE parameters
+	// Validate required parameters
 	if (!codeChallenge) {
 		return NextResponse.json(
 			{ error: "Missing code_challenge parameter" },
+			{ status: 400 },
+		);
+	}
+
+	if (!state) {
+		return NextResponse.json(
+			{ error: "Missing state parameter" },
 			{ status: 400 },
 		);
 	}
@@ -84,6 +92,7 @@ export async function GET(
 	// Redirect to web callback page (which will open the desktop app)
 	const callbackUrl = new URL("/auth/desktop/callback", request.url);
 	callbackUrl.searchParams.set("code", authCode);
+	callbackUrl.searchParams.set("state", state);
 
 	return NextResponse.redirect(callbackUrl.toString());
 }

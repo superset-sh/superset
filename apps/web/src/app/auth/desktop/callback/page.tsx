@@ -11,13 +11,15 @@ const DESKTOP_PROTOCOL =
 function CallbackContent() {
 	const searchParams = useSearchParams();
 	const code = searchParams.get("code");
+	const state = searchParams.get("state");
 	const error = searchParams.get("error");
 
 	const [hasAttempted, setHasAttempted] = useState(false);
 
-	const desktopUrl = code
-		? `${DESKTOP_PROTOCOL}://auth/callback?code=${encodeURIComponent(code)}`
-		: null;
+	const desktopUrl =
+		code && state
+			? `${DESKTOP_PROTOCOL}://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+			: null;
 
 	const openDesktopApp = useCallback(() => {
 		if (!desktopUrl) return;
@@ -51,7 +53,7 @@ function CallbackContent() {
 		);
 	}
 
-	if (!code) {
+	if (!code || !state) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<div className="flex flex-col items-center gap-6">
@@ -64,7 +66,7 @@ function CallbackContent() {
 					/>
 					<p className="text-xl text-muted-foreground">Invalid request</p>
 					<p className="text-muted-foreground/70">
-						Missing authentication code. Please try again.
+						Missing authentication parameters. Please try again.
 					</p>
 				</div>
 			</div>

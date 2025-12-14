@@ -98,15 +98,16 @@ class AuthService extends EventEmitter {
 		_getWindow: () => BrowserWindow | null,
 	): Promise<SignInResult> {
 		try {
-			// Generate PKCE challenge
-			const { codeChallenge } = pkceStore.createChallenge();
+			// Generate PKCE challenge + state for CSRF protection
+			const { codeChallenge, state } = pkceStore.createChallenge();
 
-			// Build auth URL with PKCE parameters
+			// Build auth URL with PKCE + state parameters
 			const authUrl = new URL(
 				`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/${provider}`,
 			);
 			authUrl.searchParams.set("code_challenge", codeChallenge);
 			authUrl.searchParams.set("code_challenge_method", "S256");
+			authUrl.searchParams.set("state", state);
 
 			// Open OAuth flow in system browser
 			await shell.openExternal(authUrl.toString());

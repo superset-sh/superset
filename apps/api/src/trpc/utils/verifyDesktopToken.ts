@@ -14,13 +14,15 @@ export async function verifyDesktopToken(
 		const secret = new TextEncoder().encode(env.DESKTOP_AUTH_SECRET);
 		const { payload } = await jwtVerify(token, secret);
 
-		if (typeof payload.userId !== "string") {
+		// Require access tokens only (allowlist, not blocklist)
+		if (payload.type !== "access") {
+			console.warn(
+				`[auth] Rejected token - expected type 'access', got '${payload.type}'`,
+			);
 			return null;
 		}
 
-		// Only accept access tokens (reject auth_code and refresh tokens)
-		if (payload.type === "auth_code" || payload.type === "refresh") {
-			console.warn(`[auth] Rejected ${payload.type} token - wrong token type`);
+		if (typeof payload.userId !== "string") {
 			return null;
 		}
 

@@ -24,48 +24,71 @@ export function generateCodeChallenge(codeVerifier: string): string {
 }
 
 /**
- * PKCE state storage
- * Stores code verifier temporarily during OAuth flow
+ * Generate a random state value for CSRF protection
+ */
+export function generateState(): string {
+	return randomBytes(16).toString("base64url");
+}
+
+interface PkceData {
+	codeVerifier: string;
+	state: string;
+	createdAt: number;
+}
+
+/**
+ * PKCE + state storage
+ * Stores code verifier and state temporarily during OAuth flow
  */
 class PkceStore {
-	private codeVerifier: string | null = null;
-	private createdAt: number | null = null;
+	private data: PkceData | null = null;
 
-	// Code verifier expires after 10 minutes
+	// Expires after 10 minutes
 	private readonly EXPIRY_MS = 10 * 60 * 1000;
 
 	/**
-	 * Generate and store a new PKCE pair
-	 * Returns the code challenge to send to the authorization server
+	 * Generate and store a new PKCE pair + state
+	 * Returns the code challenge and state to send to the authorization server
 	 */
-	createChallenge(): { codeChallenge: string; codeVerifier: string } {
-		this.codeVerifier = generateCodeVerifier();
-		this.createdAt = Date.now();
+	createChallenge(): { codeChallenge: string; state: string } {
+		const codeVerifier = generateCodeVerifier();
+		const state = generateState();
 
-		const codeChallenge = generateCodeChallenge(this.codeVerifier);
+		this.data = {
+			codeVerifier,
+			state,
+			createdAt: Date.now(),
+		};
 
 		return {
-			codeChallenge,
-			codeVerifier: this.codeVerifier,
+			codeChallenge: generateCodeChallenge(codeVerifier),
+			state,
 		};
 	}
 
 	/**
-	 * Retrieve and consume the stored code verifier
-	 * Returns null if expired or not found
+	 * Retrieve and consume the stored verifier if state matches
+	 * Returns null if expired, not found, or state mismatch
 	 */
-	consumeVerifier(): string | null {
-		if (!this.codeVerifier || !this.createdAt) {
+	consumeVerifier(state: string): string | null {
+		if (!this.data) {
 			return null;
 		}
 
 		// Check expiry
-		if (Date.now() - this.createdAt > this.EXPIRY_MS) {
+		if (Date.now() - this.data.createdAt > this.EXPIRY_MS) {
 			this.clear();
 			return null;
 		}
 
-		const verifier = this.codeVerifier;
+		// Verify state matches (CSRF protection)
+		if (this.data.state !== state) {
+			console.warn("[auth] State mismatch - possible CSRF attack");
+			this.clear();
+			return null;
+		}
+
+		const verifier = this.data.codeVerifier;
 		this.clear();
 		return verifier;
 	}
@@ -74,8 +97,7 @@ class PkceStore {
 	 * Clear stored PKCE state
 	 */
 	clear(): void {
-		this.codeVerifier = null;
-		this.createdAt = null;
+		this.data = null;
 	}
 }
 

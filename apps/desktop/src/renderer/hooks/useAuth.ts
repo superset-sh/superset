@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { toast } from "@superset/ui/sonner";
+import { useEffect, useState } from "react";
 import type { AuthProvider } from "shared/auth";
 import { trpc } from "../lib/trpc";
 
@@ -7,58 +8,35 @@ import { trpc } from "../lib/trpc";
  */
 export function useAuth() {
 	const [isSigningIn, setIsSigningIn] = useState(false);
-
 	const utils = trpc.useUtils();
 
-	// Get initial state and subscribe to changes
 	const { data: authState } = trpc.auth.getState.useQuery();
+	const isSignedIn = authState?.isSignedIn ?? false;
 
-	// Subscribe to auth state changes
+	// Subscribe to auth state changes and invalidate query
 	trpc.auth.onStateChange.useSubscription(undefined, {
-		onData: () => {
-			// Invalidate the query to refetch the latest state
-			utils.auth.getState.invalidate();
-		},
+		onData: () => utils.auth.getState.invalidate(),
 	});
 
 	const signInMutation = trpc.auth.signIn.useMutation({
-		onMutate: () => {
-			setIsSigningIn(true);
-		},
-		onSettled: () => {
-			// Keep signing in state until we get the callback
-			// It will be reset when auth state changes
-		},
+		onMutate: () => setIsSigningIn(true),
+		onError: () => setIsSigningIn(false),
 	});
 
 	const signOutMutation = trpc.auth.signOut.useMutation({
-		onSuccess: () => {
-			utils.auth.getState.invalidate();
-		},
+		onSuccess: () => toast.success("Signed out"),
 	});
 
-	const signIn = useCallback(
-		(provider: AuthProvider) => {
-			signInMutation.mutate({ provider });
-		},
-		[signInMutation],
-	);
-
-	const signOut = useCallback(() => {
-		signOutMutation.mutate();
-	}, [signOutMutation]);
-
-	// Reset signing in state when auth state changes to signed in
-	const isSignedIn = authState?.isSignedIn ?? false;
-	if (isSignedIn && isSigningIn) {
-		setIsSigningIn(false);
-	}
+	// Reset isSigningIn when user becomes signed in
+	useEffect(() => {
+		if (isSignedIn) setIsSigningIn(false);
+	}, [isSignedIn]);
 
 	return {
 		isSignedIn,
 		isLoading: !authState,
 		isSigningIn,
-		signIn,
-		signOut,
+		signIn: (provider: AuthProvider) => signInMutation.mutate({ provider }),
+		signOut: () => signOutMutation.mutate(),
 	};
 }
