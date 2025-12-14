@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { TOKEN_CONFIG } from "@superset/shared/constants";
 import { type BrowserWindow, shell } from "electron";
 import type {
 	AuthProvider,
@@ -6,7 +7,6 @@ import type {
 	AuthState,
 	SignInResult,
 } from "shared/auth";
-import { TOKEN_CONFIG } from "shared/auth";
 import { pkceStore } from "./pkce";
 import { tokenStorage } from "./token-storage";
 

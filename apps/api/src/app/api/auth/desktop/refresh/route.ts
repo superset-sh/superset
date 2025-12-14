@@ -1,17 +1,8 @@
+import { TOKEN_CONFIG } from "@superset/shared/constants";
 import { type JWTPayload, jwtVerify, SignJWT } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 
 import { env } from "@/env";
-
-/**
- * Token durations (must match desktop/shared/auth.ts)
- */
-const TOKEN_CONFIG = {
-	/** Access token lifetime in seconds (1 hour) */
-	ACCESS_TOKEN_EXPIRY: 60 * 60,
-	/** Refresh token lifetime in seconds (30 days) */
-	REFRESH_TOKEN_EXPIRY: 30 * 24 * 60 * 60,
-} as const;
 
 /**
  * Refresh token payload structure
