@@ -1,32 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createTRPCContext } from "@superset/trpc";
-import { jwtVerify } from "jose";
 
-import { env } from "@/env";
-
-/**
- * Verify a desktop JWT token and extract userId
- */
-async function verifyDesktopToken(token: string): Promise<string | null> {
-	try {
-		const secret = new TextEncoder().encode(env.DESKTOP_AUTH_SECRET);
-		const { payload } = await jwtVerify(token, secret);
-
-		if (typeof payload.userId !== "string") {
-			return null;
-		}
-
-		// Only accept access tokens (reject auth_code and refresh tokens)
-		if (payload.type === "auth_code" || payload.type === "refresh") {
-			console.warn(`[auth] Rejected ${payload.type} token - wrong token type`);
-			return null;
-		}
-
-		return payload.userId;
-	} catch {
-		return null;
-	}
-}
+import { verifyDesktopToken } from "./utils/verifyDesktopToken";
 
 /**
  * Create tRPC context with support for both Clerk and desktop JWT auth

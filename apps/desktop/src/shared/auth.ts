@@ -2,27 +2,18 @@
  * Authentication types shared between main and renderer processes
  */
 
-export interface AuthUser {
-	id: string;
-	name: string;
-	email: string;
-	avatarUrl: string | null;
-}
-
-export interface AuthState {
-	isSignedIn: boolean;
-	user: AuthUser | null;
-}
-
+/**
+ * Auth session - just tokens, user data fetched separately via tRPC
+ */
 export interface AuthSession {
 	accessToken: string;
 	accessTokenExpiresAt: number;
 	refreshToken: string;
 	refreshTokenExpiresAt: number;
-	user: AuthUser;
 }
 
-export type AuthProvider = "github" | "google";
+export const AUTH_PROVIDERS = ["github", "google"] as const;
+export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
 
 export interface SignInResult {
 	success: boolean;

@@ -58,7 +58,6 @@ export function useAuth() {
 		isSignedIn,
 		isLoading: !authState,
 		isSigningIn,
-		user: authState?.user ?? null,
 		signIn,
 		signOut,
 	};

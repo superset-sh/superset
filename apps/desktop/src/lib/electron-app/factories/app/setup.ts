@@ -4,8 +4,9 @@ import {
 	installExtension,
 	REACT_DEVELOPER_TOOLS,
 } from "electron-extension-installer";
-import { ENVIRONMENT, PLATFORM } from "shared/constants";
+import { PLATFORM } from "shared/constants";
 import { makeAppId } from "shared/utils";
+import { env } from "../../../../env";
 import { ignoreConsoleWarnings } from "../../utils/ignore-console-warnings";
 
 ignoreConsoleWarnings(["Manifest version 2 is deprecated"]);
@@ -14,7 +15,7 @@ export async function makeAppSetup(
 	createWindow: () => Promise<BrowserWindow>,
 	restoreWindows?: () => Promise<void>,
 ) {
-	if (ENVIRONMENT.IS_DEV) {
+	if (env.NODE_ENV === "development") {
 		try {
 			await installExtension([REACT_DEVELOPER_TOOLS], {
 				loadExtensionOptions: {
@@ -71,6 +72,8 @@ export async function makeAppSetup(
 PLATFORM.IS_LINUX && app.disableHardwareAcceleration();
 
 PLATFORM.IS_WINDOWS &&
-	app.setAppUserModelId(ENVIRONMENT.IS_DEV ? process.execPath : makeAppId());
+	app.setAppUserModelId(
+		env.NODE_ENV === "development" ? process.execPath : makeAppId(),
+	);
 
 app.commandLine.appendSwitch("force-color-profile", "srgb");

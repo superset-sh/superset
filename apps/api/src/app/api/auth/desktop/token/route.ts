@@ -6,41 +6,26 @@ import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 
 /**
- * Auth code payload structure (from the authorization step)
+ * Auth code payload structure (minimal claims, no PII)
  */
 interface AuthCodePayload extends JWTPayload {
 	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string | null;
 	codeChallenge: string;
 	type: "auth_code";
 }
 
 /**
- * User info included in tokens
- */
-interface UserInfo {
-	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string | null;
-}
-
-/**
  * Create an access token (short-lived, for API calls)
+ * Only contains userId - user info is fetched via tRPC
  */
 async function createAccessToken(
-	user: UserInfo,
+	userId: string,
 	secret: Uint8Array,
 ): Promise<{ token: string; expiresAt: number }> {
 	const expiresAt = Date.now() + TOKEN_CONFIG.ACCESS_TOKEN_EXPIRY * 1000;
 
 	const token = await new SignJWT({
-		userId: user.userId,
-		email: user.email,
-		name: user.name,
-		avatarUrl: user.avatarUrl,
+		userId,
 		type: "access",
 	})
 		.setProtectedHeader({ alg: "HS256" })
@@ -53,18 +38,16 @@ async function createAccessToken(
 
 /**
  * Create a refresh token (long-lived, for getting new access tokens)
+ * Only contains userId - user info is fetched via tRPC
  */
 async function createRefreshToken(
-	user: UserInfo,
+	userId: string,
 	secret: Uint8Array,
 ): Promise<{ token: string; expiresAt: number }> {
 	const expiresAt = Date.now() + TOKEN_CONFIG.REFRESH_TOKEN_EXPIRY * 1000;
 
 	const token = await new SignJWT({
-		userId: user.userId,
-		email: user.email,
-		name: user.name,
-		avatarUrl: user.avatarUrl,
+		userId,
 		type: "refresh",
 	})
 		.setProtectedHeader({ alg: "HS256" })
@@ -81,7 +64,8 @@ async function createRefreshToken(
  * POST /api/auth/desktop/token
  * Body: { code: string, code_verifier: string }
  *
- * Verifies PKCE challenge and exchanges auth code for access + refresh tokens
+ * Verifies PKCE challenge and exchanges auth code for access + refresh tokens.
+ * Does NOT return user info - desktop should call user.me via tRPC.
  */
 export async function POST(request: NextRequest) {
 	try {
@@ -140,16 +124,9 @@ export async function POST(request: NextRequest) {
 		}
 
 		// PKCE verified! Create access and refresh tokens
-		const userInfo: UserInfo = {
-			userId: payload.userId,
-			email: payload.email,
-			name: payload.name,
-			avatarUrl: payload.avatarUrl,
-		};
-
 		const [accessToken, refreshToken] = await Promise.all([
-			createAccessToken(userInfo, secret),
-			createRefreshToken(userInfo, secret),
+			createAccessToken(payload.userId, secret),
+			createRefreshToken(payload.userId, secret),
 		]);
 
 		return NextResponse.json({
@@ -157,12 +134,6 @@ export async function POST(request: NextRequest) {
 			access_token_expires_at: accessToken.expiresAt,
 			refresh_token: refreshToken.token,
 			refresh_token_expires_at: refreshToken.expiresAt,
-			user: {
-				id: payload.userId,
-				email: payload.email,
-				name: payload.name,
-				avatarUrl: payload.avatarUrl,
-			},
 		});
 	} catch (error) {
 		console.error("[token] Token exchange failed:", error);

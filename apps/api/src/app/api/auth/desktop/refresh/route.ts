@@ -5,13 +5,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 
 /**
- * Refresh token payload structure
+ * Refresh token payload structure (minimal claims)
  */
 interface RefreshTokenPayload extends JWTPayload {
 	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string | null;
 	type: "refresh";
 }
 
@@ -21,7 +18,7 @@ interface RefreshTokenPayload extends JWTPayload {
  * POST /api/auth/desktop/refresh
  * Body: { refresh_token: string }
  *
- * Exchanges a valid refresh token for a new access token
+ * Exchanges a valid refresh token for new access + refresh tokens
  */
 export async function POST(request: NextRequest) {
 	try {
@@ -65,9 +62,6 @@ export async function POST(request: NextRequest) {
 
 		const accessToken = await new SignJWT({
 			userId: payload.userId,
-			email: payload.email,
-			name: payload.name,
-			avatarUrl: payload.avatarUrl,
 			type: "access",
 		})
 			.setProtectedHeader({ alg: "HS256" })
@@ -81,9 +75,6 @@ export async function POST(request: NextRequest) {
 
 		const newRefreshToken = await new SignJWT({
 			userId: payload.userId,
-			email: payload.email,
-			name: payload.name,
-			avatarUrl: payload.avatarUrl,
 			type: "refresh",
 		})
 			.setProtectedHeader({ alg: "HS256" })

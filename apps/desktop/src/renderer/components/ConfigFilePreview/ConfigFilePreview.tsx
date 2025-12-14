@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -7,7 +8,6 @@ import {
 	CONFIG_FILE_NAME,
 	CONFIG_TEMPLATE,
 	PROJECT_SUPERSET_DIR_NAME,
-	WEBSITE_URL,
 } from "shared/constants";
 
 export interface ConfigFilePreviewProps {
@@ -29,7 +29,7 @@ export function ConfigFilePreview({
 	);
 
 	const handleLearnMore = () => {
-		window.open(`${WEBSITE_URL}/scripts`, "_blank");
+		window.open(`https://${COMPANY.DOMAIN}/scripts`, "_blank");
 	};
 
 	const displayContent =

@@ -4,6 +4,7 @@ import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
+import { useAuth } from "renderer/hooks/useAuth";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -14,6 +15,7 @@ import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener"
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
+import { SignInScreen } from "../sign-in";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { SettingsView } from "./components/SettingsView";
@@ -28,16 +30,19 @@ function LoadingSpinner() {
 }
 
 export function MainScreen() {
+	const { isSignedIn, isLoading: isAuthLoading } = useAuth();
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
 	const {
 		data: activeWorkspace,
-		isLoading,
+		isLoading: isWorkspaceLoading,
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery();
+	} = trpc.workspaces.getActive.useQuery(undefined, {
+		enabled: isSignedIn,
+	});
 	const [isRetrying, setIsRetrying] = useState(false);
 	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
@@ -140,8 +145,34 @@ export function MainScreen() {
 		isWorkspaceView,
 	]);
 
+	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	// Show sign-in screen if not authenticated
+	if (isAuthLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
+
+	if (!isSignedIn) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<SignInScreen />
+				</AppFrame>
+			</>
+		);
+	}
 
 	const renderContent = () => {
 		if (currentView === "settings") {

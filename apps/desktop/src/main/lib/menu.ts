@@ -1,5 +1,5 @@
+import { COMPANY } from "@superset/shared/constants";
 import { app, Menu, shell } from "electron";
-import { HELP_MENU } from "shared/constants";
 import { checkForUpdatesInteractive } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
 
@@ -50,19 +50,19 @@ export function createApplicationMenu() {
 				{
 					label: "Contact Us",
 					click: () => {
-						shell.openExternal(HELP_MENU.CONTACT_URL);
+						shell.openExternal(COMPANY.CONTACT_URL);
 					},
 				},
 				{
 					label: "Report Issue",
 					click: () => {
-						shell.openExternal(HELP_MENU.REPORT_ISSUE_URL);
+						shell.openExternal(COMPANY.REPORT_ISSUE_URL);
 					},
 				},
 				{
 					label: "Join Discord",
 					click: () => {
-						shell.openExternal(HELP_MENU.DISCORD_URL);
+						shell.openExternal(COMPANY.DISCORD_URL);
 					},
 				},
 				{ type: "separator" },

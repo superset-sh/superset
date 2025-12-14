@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { currentUser } from "@clerk/nextjs/server";
 import { SignJWT } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
@@ -39,6 +40,19 @@ export async function GET(
 		);
 	}
 
+	// Validate code_challenge format: base64url charset, 43-128 chars (RFC 7636)
+	const base64urlRegex = /^[A-Za-z0-9_-]+$/;
+	if (
+		codeChallenge.length < 43 ||
+		codeChallenge.length > 128 ||
+		!base64urlRegex.test(codeChallenge)
+	) {
+		return NextResponse.json(
+			{ error: "Invalid code_challenge format" },
+			{ status: 400 },
+		);
+	}
+
 	if (codeChallengeMethod && codeChallengeMethod !== "S256") {
 		return NextResponse.json(
 			{ error: "Only S256 code_challenge_method is supported" },
@@ -60,15 +74,10 @@ export async function GET(
 		return NextResponse.redirect(signInUrl);
 	}
 
-	// User is authenticated - create auth code (short-lived JWT with user info + code_challenge)
+	// User is authenticated - create auth code with minimal claims (no PII in URLs)
+	// User profile is looked up server-side during token exchange
 	const authCode = await createAuthCode({
 		userId: user.id,
-		email: user.emailAddresses[0]?.emailAddress ?? "",
-		name:
-			user.firstName && user.lastName
-				? `${user.firstName} ${user.lastName}`
-				: (user.username ?? "User"),
-		avatarUrl: user.imageUrl,
 		codeChallenge,
 	});
 
@@ -81,28 +90,24 @@ export async function GET(
 
 interface AuthCodePayload {
 	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string | null;
 	codeChallenge: string;
 }
 
 /**
- * Create a short-lived auth code containing user info and PKCE challenge
- * This code must be exchanged with the code_verifier to get the actual token
+ * Create a short-lived auth code with minimal claims (no PII)
+ * User profile is looked up server-side during token exchange
+ * Includes jti (JWT ID) for replay protection
  */
 async function createAuthCode(payload: AuthCodePayload): Promise<string> {
 	const secret = new TextEncoder().encode(env.DESKTOP_AUTH_SECRET);
 
 	const jwt = await new SignJWT({
 		userId: payload.userId,
-		email: payload.email,
-		name: payload.name,
-		avatarUrl: payload.avatarUrl,
 		codeChallenge: payload.codeChallenge,
-		type: "auth_code", // Mark this as an auth code, not a session token
+		type: "auth_code",
 	})
 		.setProtectedHeader({ alg: "HS256" })
+		.setJti(randomUUID()) // Unique ID for replay protection
 		.setIssuedAt()
 		.setExpirationTime("5m") // Auth code expires in 5 minutes
 		.sign(secret);

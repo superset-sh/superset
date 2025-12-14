@@ -1,21 +1,10 @@
 import { EventEmitter } from "node:events";
 import { TOKEN_CONFIG } from "@superset/shared/constants";
 import { type BrowserWindow, shell } from "electron";
-import type {
-	AuthProvider,
-	AuthSession,
-	AuthState,
-	SignInResult,
-} from "shared/auth";
+import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
+import { env } from "../../../env";
 import { pkceStore } from "./pkce";
 import { tokenStorage } from "./token-storage";
-
-// Web app URL for OAuth - defaults to production, can be overridden
-const WEB_APP_URL =
-	process.env.NEXT_PUBLIC_WEB_URL ?? "https://app.superset.sh";
-
-// API URL for token refresh - defaults to production, can be overridden
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.superset.sh";
 
 /**
  * Response from the refresh endpoint (includes rotated refresh token)
@@ -55,7 +44,7 @@ class AuthService extends EventEmitter {
 
 		// Restore session
 		this.session = session;
-		console.log("[auth] Session restored for user:", this.session.user.email);
+		console.log("[auth] Session restored");
 
 		// Check if access token needs refresh
 		if (this.shouldRefreshAccessToken()) {
@@ -70,10 +59,9 @@ class AuthService extends EventEmitter {
 	/**
 	 * Get current authentication state
 	 */
-	getState(): AuthState {
+	getState() {
 		return {
 			isSignedIn: !!this.session,
-			user: this.session?.user ?? null,
 		};
 	}
 
@@ -114,7 +102,9 @@ class AuthService extends EventEmitter {
 			const { codeChallenge } = pkceStore.createChallenge();
 
 			// Build auth URL with PKCE parameters
-			const authUrl = new URL(`${WEB_APP_URL}/api/auth/desktop/${provider}`);
+			const authUrl = new URL(
+				`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/${provider}`,
+			);
 			authUrl.searchParams.set("code_challenge", codeChallenge);
 			authUrl.searchParams.set("code_challenge_method", "S256");
 
@@ -143,7 +133,7 @@ class AuthService extends EventEmitter {
 			this.scheduleRefresh();
 			this.emitStateChange();
 
-			console.log("[auth] Signed in as:", this.session.user.email);
+			console.log("[auth] Signed in");
 			return { success: true };
 		} catch (err) {
 			const message =
@@ -183,15 +173,18 @@ class AuthService extends EventEmitter {
 		try {
 			console.log("[auth] Refreshing access token...");
 
-			const response = await fetch(`${API_URL}/api/auth/desktop/refresh`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/refresh`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						refresh_token: this.session.refreshToken,
+					}),
 				},
-				body: JSON.stringify({
-					refresh_token: this.session.refreshToken,
-				}),
-			});
+			);
 
 			if (!response.ok) {
 				const errorBody = await response.json().catch(() => ({}));

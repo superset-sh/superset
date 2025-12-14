@@ -4,6 +4,11 @@ export const COMPANY = {
 	DOMAIN: "superset.sh",
 	EMAIL_DOMAIN: "@superset.sh",
 	GITHUB_URL: "https://github.com/superset-sh/superset",
+	TERMS_URL: "https://superset.sh/terms-of-service",
+	PRIVACY_URL: "https://superset.sh/privacy-policy",
+	CONTACT_URL: "https://x.com/superset_sh",
+	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
+	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 } as const;
 
 // Theme

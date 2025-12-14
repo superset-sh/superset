@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
+import { env } from "../../env";
 
 /**
  * Gets the path to a ringtone sound file.
@@ -29,7 +30,7 @@ export function getSoundsDirectory(): string {
 		return join(process.resourcesPath, "app.asar.unpacked/resources/sounds");
 	}
 
-	const isDev = process.env.NODE_ENV === "development";
+	const isDev = env.NODE_ENV === "development";
 
 	if (isDev) {
 		// Development: source files in project

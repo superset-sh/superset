@@ -1,6 +1,7 @@
 import { app, type BrowserWindow, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
-import { ENVIRONMENT, PLATFORM } from "shared/constants";
+import { PLATFORM } from "shared/constants";
+import { env } from "../../env";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
@@ -14,7 +15,7 @@ export function setMainWindow(window: BrowserWindow): void {
 }
 
 export function checkForUpdates(): void {
-	if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
 	autoUpdater.checkForUpdates().catch((error) => {
@@ -23,7 +24,7 @@ export function checkForUpdates(): void {
 }
 
 export function checkForUpdatesInteractive(): void {
-	if (ENVIRONMENT.IS_DEV) {
+	if (env.NODE_ENV === "development") {
 		dialog.showMessageBox({
 			type: "info",
 			title: "Updates",
@@ -62,7 +63,7 @@ export function checkForUpdatesInteractive(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (ENVIRONMENT.IS_DEV || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
 

@@ -1,23 +1,16 @@
-import type { AuthSession, AuthUser } from "shared/auth";
+import type { AuthSession } from "shared/auth";
+import { PROTOCOL_SCHEMES } from "shared/constants";
+import { env } from "../../../env";
 import { pkceStore } from "./pkce";
 
-// API URL for token exchange - defaults to production, can be overridden
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.superset.sh";
-
 /**
- * Token exchange response from the API
+ * Token exchange response from the API (no user info - fetch via tRPC)
  */
 interface TokenExchangeResponse {
 	access_token: string;
 	access_token_expires_at: number;
 	refresh_token: string;
 	refresh_token_expires_at: number;
-	user: {
-		id: string;
-		email: string;
-		name: string;
-		avatarUrl: string | null;
-	};
 }
 
 /**
@@ -70,13 +63,6 @@ export async function handleAuthDeepLink(
 		// Exchange the code for tokens
 		const tokenResponse = await exchangeCodeForTokens(code, codeVerifier);
 
-		const user: AuthUser = {
-			id: tokenResponse.user.id,
-			name: tokenResponse.user.name,
-			email: tokenResponse.user.email,
-			avatarUrl: tokenResponse.user.avatarUrl,
-		};
-
 		return {
 			success: true,
 			session: {
@@ -84,7 +70,6 @@ export async function handleAuthDeepLink(
 				accessTokenExpiresAt: tokenResponse.access_token_expires_at,
 				refreshToken: tokenResponse.refresh_token,
 				refreshTokenExpiresAt: tokenResponse.refresh_token_expires_at,
-				user,
 			},
 		};
 	} catch (err) {
@@ -103,16 +88,19 @@ async function exchangeCodeForTokens(
 	code: string,
 	codeVerifier: string,
 ): Promise<TokenExchangeResponse> {
-	const response = await fetch(`${API_URL}/api/auth/desktop/token`, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/json",
+	const response = await fetch(
+		`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/token`,
+		{
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				code,
+				code_verifier: codeVerifier,
+			}),
 		},
-		body: JSON.stringify({
-			code,
-			code_verifier: codeVerifier,
-		}),
-	});
+	);
 
 	if (!response.ok) {
 		const errorBody = await response.json().catch(() => ({}));
@@ -130,8 +118,11 @@ async function exchangeCodeForTokens(
 export function isAuthDeepLink(url: string): boolean {
 	try {
 		const parsedUrl = new URL(url);
-		// Accept both superset: and superset-dev: protocols
-		const validProtocols = ["superset:", "superset-dev:"];
+		// Accept both production and dev protocols
+		const validProtocols = [
+			`${PROTOCOL_SCHEMES.PROD}:`,
+			`${PROTOCOL_SCHEMES.DEV}:`,
+		];
 		return (
 			validProtocols.includes(parsedUrl.protocol) && parsedUrl.host === "auth"
 		);

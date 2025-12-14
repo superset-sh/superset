@@ -13,6 +13,7 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { PROTOCOL_SCHEMES } from "../src/shared/constants";
 
 // Only needed on macOS
 if (process.platform !== "darwin") {
@@ -20,7 +21,7 @@ if (process.platform !== "darwin") {
 	process.exit(0);
 }
 
-const PROTOCOL_SCHEME = "superset-dev";
+const PROTOCOL_SCHEME = PROTOCOL_SCHEMES.DEV;
 const BUNDLE_ID = "com.superset.desktop.dev";
 const ELECTRON_APP_PATH = resolve(
 	import.meta.dirname,
