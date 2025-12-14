@@ -179,8 +179,6 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for Cmd+K to clear the terminal */
 	onClear?: () => void;
-	/** Callback to write data to the terminal PTY (for selection delete) */
-	onWrite?: (data: string) => void;
 }
 
 export interface PasteHandlerOptions {
@@ -228,89 +226,10 @@ export function setupPasteHandler(
 }
 
 /**
- * Handle selection delete: when text is selected and user types a printable character,
- * delete the selection first (like a text area), then insert the character.
- *
- * Returns true if the event was handled, false otherwise.
- */
-function handleSelectionDelete(
-	xterm: XTerm,
-	event: KeyboardEvent,
-	onWrite?: (data: string) => void,
-): boolean {
-	if (!onWrite) return false;
-
-	// Only handle keydown events
-	if (event.type !== "keydown") return false;
-
-	// Only handle single printable characters (no modifiers except shift for capitals)
-	if (event.key.length !== 1) return false;
-	if (event.ctrlKey || event.metaKey || event.altKey) return false;
-
-	// Check if there's a selection
-	const selection = xterm.getSelection();
-	if (!selection || selection.length === 0) return false;
-
-	const selectionPosition = xterm.getSelectionPosition();
-	if (!selectionPosition) return false;
-
-	const buffer = xterm.buffer.active;
-	const cursorY = buffer.cursorY;
-	const cursorX = buffer.cursorX;
-
-	// Only handle selections on the current cursor line (prompt line)
-	// Both start and end of selection must be on the same line as cursor
-	const viewportCursorY = cursorY;
-	if (
-		selectionPosition.start.y !== viewportCursorY ||
-		selectionPosition.end.y !== viewportCursorY
-	) {
-		return false;
-	}
-
-	const selStartX = selectionPosition.start.x;
-	const selEndX = selectionPosition.end.x;
-	const selectionLength = selEndX - selStartX;
-
-	if (selectionLength <= 0) return false;
-
-	// Prevent default handling - we'll handle this ourselves
-	event.preventDefault();
-
-	// Build the sequence of operations:
-	// 1. Move cursor to selection start
-	// 2. Delete the selection (using delete key)
-	// 3. Type the new character
-
-	let sequence = "";
-
-	// Move cursor to selection start
-	const moveToStart = selStartX - cursorX;
-	if (moveToStart !== 0) {
-		const arrowKey = moveToStart > 0 ? "\x1b[C" : "\x1b[D";
-		sequence += arrowKey.repeat(Math.abs(moveToStart));
-	}
-
-	// Delete the selection using Delete key escape sequence (\x1b[3~)
-	// This deletes characters forward from cursor position
-	sequence += "\x1b[3~".repeat(selectionLength);
-
-	// Type the new character
-	sequence += event.key;
-
-	// Clear the selection and send the sequence
-	xterm.clearSelection();
-	onWrite(sequence);
-
-	return true;
-}
-
-/**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
  * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
  * - Cmd+K: Clears the terminal
- * - Selection delete: When typing with selected text, delete selection first (like textarea)
  *
  * Returns a cleanup function to remove the handler.
  */
@@ -319,11 +238,6 @@ export function setupKeyboardHandler(
 	options: KeyboardHandlerOptions = {},
 ): () => void {
 	const handler = (event: KeyboardEvent): boolean => {
-		// Handle selection delete first (typing replaces selected text)
-		if (handleSelectionDelete(xterm, event, options.onWrite)) {
-			return false;
-		}
-
 		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&

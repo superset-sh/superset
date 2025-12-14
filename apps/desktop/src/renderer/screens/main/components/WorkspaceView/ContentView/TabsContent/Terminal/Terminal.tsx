@@ -352,7 +352,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => handleWrite("\\\n"),
 			onClear: handleClear,
-			onWrite: handleWrite, // Enables selection delete (typing replaces selected text)
 		});
 
 		// Setup click-to-move cursor (click on prompt line to move cursor)
