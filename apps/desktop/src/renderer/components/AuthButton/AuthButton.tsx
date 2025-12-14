@@ -8,8 +8,9 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { FcGoogle } from "react-icons/fc";
-import { LuGithub, LuLogOut, LuUser } from "react-icons/lu";
+import { LuGithub, LuLogOut, LuUser, LuZap } from "react-icons/lu";
 import { useAuth } from "renderer/hooks/useAuth";
+import { trpc } from "renderer/lib/trpc";
 
 /**
  * Authentication button component
@@ -18,6 +19,22 @@ import { useAuth } from "renderer/hooks/useAuth";
 export function AuthButton() {
 	const { isSignedIn, isLoading, user, signIn, signOut, isSigningIn } =
 		useAuth();
+
+	const testApiMutation = trpc.auth.testApiCall.useMutation({
+		onSuccess: (result) => {
+			if (result.success) {
+				console.log("[auth] API test successful:", result.data);
+				alert("API call successful! Check console for details.");
+			} else {
+				console.error("[auth] API test failed:", result.error);
+				alert(`API call failed: ${result.error}`);
+			}
+		},
+		onError: (error) => {
+			console.error("[auth] API test error:", error);
+			alert(`API call error: ${error.message}`);
+		},
+	});
 
 	if (isLoading) {
 		return (
@@ -90,6 +107,14 @@ export function AuthButton() {
 					<p className="text-xs text-muted-foreground">{displayEmail}</p>
 				</div>
 				<DropdownMenuSeparator />
+				<DropdownMenuItem
+					onClick={() => testApiMutation.mutate()}
+					className="flex items-center gap-2"
+					disabled={testApiMutation.isPending}
+				>
+					<LuZap className="size-4" />
+					<span>{testApiMutation.isPending ? "Testing..." : "Test API"}</span>
+				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={() => signOut()}
 					className="flex items-center gap-2 text-destructive focus:text-destructive"

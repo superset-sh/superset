@@ -30,7 +30,7 @@ export const TOKEN_CONFIG = {
 	ACCESS_TOKEN_EXPIRY: 60 * 60,
 	/** Refresh token lifetime in seconds (30 days) */
 	REFRESH_TOKEN_EXPIRY: 30 * 24 * 60 * 60,
-	/** Refresh access token when this many seconds remain */
+	/** Refresh access token when this many seconds remain (5 minutes) */
 	REFRESH_THRESHOLD: 5 * 60,
 } as const;
 
