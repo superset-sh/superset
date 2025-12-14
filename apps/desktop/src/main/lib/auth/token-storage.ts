@@ -1,14 +1,15 @@
 import fs from "node:fs/promises";
 import { join } from "node:path";
-import { safeStorage } from "electron";
 import type { AuthSession } from "shared/auth";
 import { SUPERSET_HOME_DIR } from "../app-environment";
+import { decrypt, encrypt } from "./crypto-storage";
 
 const SESSION_FILE_NAME = "auth-session.enc";
 
 /**
- * Securely stores authentication session using Electron's safeStorage API
- * Session data is encrypted at rest using the OS keychain
+ * Securely stores authentication session using machine-derived encryption.
+ * Session data is encrypted at rest using AES-256-GCM with a key derived
+ * from the machine's hardware identifier.
  */
 class TokenStorage {
 	private readonly filePath: string;
@@ -18,25 +19,14 @@ class TokenStorage {
 	}
 
 	async save(session: AuthSession): Promise<void> {
-		if (!safeStorage.isEncryptionAvailable()) {
-			console.warn(
-				"[auth] Secure storage not available, session will not be persisted",
-			);
-			return;
-		}
-
-		const encrypted = safeStorage.encryptString(JSON.stringify(session));
+		const encrypted = encrypt(JSON.stringify(session));
 		await fs.writeFile(this.filePath, encrypted);
 	}
 
 	async load(): Promise<AuthSession | null> {
-		if (!safeStorage.isEncryptionAvailable()) {
-			return null;
-		}
-
 		try {
 			const encrypted = await fs.readFile(this.filePath);
-			const decrypted = safeStorage.decryptString(encrypted);
+			const decrypted = decrypt(encrypted);
 			return JSON.parse(decrypted) as AuthSession;
 		} catch {
 			// File doesn't exist or can't be decrypted
