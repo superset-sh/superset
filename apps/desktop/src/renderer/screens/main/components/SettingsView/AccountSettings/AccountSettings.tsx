@@ -1,12 +1,16 @@
+import { toast } from "@superset/ui/sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
-import { useAuth } from "renderer/hooks/useAuth";
 import { trpc } from "renderer/lib/trpc";
 
 export function AccountSettings() {
-	const { signOut } = useAuth();
 	const { data: user, isLoading } = trpc.user.me.useQuery();
+	const signOutMutation = trpc.auth.signOut.useMutation({
+		onSuccess: () => toast.success("Signed out"),
+	});
+
+	const signOut = () => signOutMutation.mutate();
 
 	const initials = user?.name
 		?.split(" ")

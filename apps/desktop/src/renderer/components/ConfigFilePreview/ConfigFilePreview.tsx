@@ -29,7 +29,7 @@ export function ConfigFilePreview({
 	);
 
 	const handleLearnMore = () => {
-		window.open(`https://${COMPANY.DOMAIN}/scripts`, "_blank");
+		window.open(COMPANY.SCRIPTS_URL, "_blank");
 	};
 
 	const displayContent =

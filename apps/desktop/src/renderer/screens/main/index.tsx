@@ -4,7 +4,6 @@ import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
-import { useAuth } from "renderer/hooks/useAuth";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -30,7 +29,16 @@ function LoadingSpinner() {
 }
 
 export function MainScreen() {
-	const { isSignedIn, isLoading: isAuthLoading } = useAuth();
+	const utils = trpc.useUtils();
+	const { data: authState } = trpc.auth.getState.useQuery();
+	const isSignedIn = authState?.isSignedIn ?? false;
+	const isAuthLoading = !authState;
+
+	// Subscribe to auth state changes
+	trpc.auth.onStateChange.useSubscription(undefined, {
+		onData: () => utils.auth.getState.invalidate(),
+	});
+
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();

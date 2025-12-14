@@ -39,7 +39,7 @@ export function SetupConfigModal() {
 	const projectName = project?.name ?? "your-project";
 
 	const handleLearnMore = () => {
-		window.open(`https://${COMPANY.DOMAIN}/scripts`, "_blank");
+		window.open(COMPANY.SCRIPTS_URL, "_blank");
 	};
 
 	return (

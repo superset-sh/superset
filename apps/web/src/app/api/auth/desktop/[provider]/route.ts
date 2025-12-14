@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { currentUser } from "@clerk/nextjs/server";
+import { AUTH_PROVIDERS, type AuthProvider } from "@superset/shared/constants";
 import { SignJWT } from "jose";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -22,7 +23,7 @@ export async function GET(
 	const { provider } = await params;
 
 	// Validate provider
-	if (!["google", "github"].includes(provider)) {
+	if (!AUTH_PROVIDERS.includes(provider as AuthProvider)) {
 		return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
 	}
 

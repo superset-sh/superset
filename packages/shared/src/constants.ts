@@ -1,3 +1,7 @@
+// Auth
+export const AUTH_PROVIDERS = ["github", "google"] as const;
+export type AuthProvider = (typeof AUTH_PROVIDERS)[number];
+
 // Company
 export const COMPANY = {
 	NAME: "Superset",
@@ -9,6 +13,7 @@ export const COMPANY = {
 	CONTACT_URL: "https://x.com/superset_sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
+	SCRIPTS_URL: "https://superset.sh/scripts",
 } as const;
 
 // Theme

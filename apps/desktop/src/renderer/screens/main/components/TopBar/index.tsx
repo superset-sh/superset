@@ -1,4 +1,3 @@
-import { AuthButton } from "renderer/components/AuthButton";
 import { trpc } from "renderer/lib/trpc";
 import { WorkspaceHeader } from "../WorkspaceView/WorkspaceHeader";
 import { HelpMenu } from "./HelpMenu";
@@ -26,7 +25,6 @@ export function TopBar() {
 			</div>
 			<div className="flex items-center h-full pr-4">
 				<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
-				<AuthButton />
 				<SettingsButton />
 				<HelpMenu />
 				{!isMac && <WindowControls />}
