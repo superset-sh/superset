@@ -12,4 +12,7 @@ export const env = createEnv({
 
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
+
+	// Electron runs in a trusted environment - treat renderer as server context
+	isServer: true,
 });
