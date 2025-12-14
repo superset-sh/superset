@@ -3,13 +3,15 @@ import { app } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
+import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { initDb } from "./lib/db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
-// Protocol scheme for deep linking
-const PROTOCOL_SCHEME = "superset";
+// Protocol scheme for deep linking - use different scheme in development
+const PROTOCOL_SCHEME =
+	process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
 
 // Register protocol handler for deep linking
 // In development, we need to provide the execPath and args
@@ -23,9 +25,19 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// TODO: Handle deep link when app is already running
-app.on("open-url", (event, _url) => {
+// Handle deep links when app is already running
+app.on("open-url", async (event, url) => {
 	event.preventDefault();
+
+	// Handle auth deep links
+	if (isAuthDeepLink(url)) {
+		const result = await handleAuthDeepLink(url);
+		if (result.success && result.session) {
+			await authService.handleDeepLinkAuth(result.session);
+		} else {
+			console.error("[main] Auth deep link failed:", result.error);
+		}
+	}
 });
 
 // Allow multiple instances - removed single instance lock
@@ -34,6 +46,7 @@ app.on("open-url", (event, _url) => {
 
 	await initDb();
 	await initAppState();
+	await authService.initialize();
 
 	try {
 		setupAgentHooks();
