@@ -354,7 +354,9 @@ function getTerminalCoordsFromEvent(
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 
-	// Get cell dimensions from xterm's internal dimensions
+	// Note: xterm.js does not expose a public API for mouse-to-coords conversion,
+	// so we must access internal _core._renderService.dimensions. This is fragile
+	// and may break in future xterm.js versions.
 	const dimensions = (
 		xterm as unknown as {
 			_core?: {
@@ -371,8 +373,9 @@ function getTerminalCoordsFromEvent(
 
 	if (cellWidth <= 0 || cellHeight <= 0) return null;
 
-	const col = Math.floor(x / cellWidth);
-	const row = Math.floor(y / cellHeight);
+	// Clamp to valid terminal grid range to prevent excessive delta calculations
+	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cellWidth)));
+	const row = Math.max(0, Math.min(xterm.rows - 1, Math.floor(y / cellHeight)));
 
 	return { col, row };
 }
@@ -396,6 +399,9 @@ export function setupClickToMoveCursor(
 	options: ClickToMoveOptions,
 ): () => void {
 	const handleClick = (event: MouseEvent) => {
+		// Don't interfere with full-screen apps (vim, less, etc. use alternate buffer)
+		if (xterm.buffer.active !== xterm.buffer.normal) return;
+
 		// Only handle left click
 		if (event.button !== 0) return;
 
