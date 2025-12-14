@@ -1,33 +1,24 @@
 import { observable } from "@trpc/server/observable";
 import {
 	type AgentCompleteEvent,
+	type NotificationIds,
 	notificationsEmitter,
 } from "main/lib/notifications/server";
 import { publicProcedure, router } from "..";
 
 type NotificationEvent =
 	| { type: "agent-complete"; data: AgentCompleteEvent }
-	| {
-			type: "focus-tab";
-			data: { paneId: string; tabId: string; workspaceId: string };
-	  };
+	| { type: "focus-tab"; data: NotificationIds };
 
 export const createNotificationsRouter = () => {
 	return router({
-		/**
-		 * Subscribe to notification events (completions and focus requests).
-		 */
 		subscribe: publicProcedure.subscription(() => {
 			return observable<NotificationEvent>((emit) => {
-				const onComplete = (event: AgentCompleteEvent) => {
-					emit.next({ type: "agent-complete", data: event });
+				const onComplete = (data: AgentCompleteEvent) => {
+					emit.next({ type: "agent-complete", data });
 				};
 
-				const onFocusTab = (data: {
-					paneId: string;
-					tabId: string;
-					workspaceId: string;
-				}) => {
+				const onFocusTab = (data: NotificationIds) => {
 					emit.next({ type: "focus-tab", data });
 				};
 

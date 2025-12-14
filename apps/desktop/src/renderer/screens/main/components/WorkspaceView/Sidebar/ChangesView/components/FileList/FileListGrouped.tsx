@@ -9,6 +9,9 @@ interface FileListGroupedProps {
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
+	onStage?: (file: ChangedFile) => void;
+	onUnstage?: (file: ChangedFile) => void;
+	isActioning?: boolean;
 }
 
 interface FolderGroup {
@@ -55,6 +58,9 @@ interface FolderGroupItemProps {
 	selectedFile: ChangedFile | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
+	onStage?: (file: ChangedFile) => void;
+	onUnstage?: (file: ChangedFile) => void;
+	isActioning?: boolean;
 }
 
 function FolderGroupItem({
@@ -62,6 +68,9 @@ function FolderGroupItem({
 	selectedFile,
 	onFileSelect,
 	showStats,
+	onStage,
+	onUnstage,
+	isActioning,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
@@ -82,6 +91,9 @@ function FolderGroupItem({
 					isSelected={selectedFile?.path === file.path}
 					onClick={() => onFileSelect(file)}
 					showStats={showStats}
+					onStage={onStage ? () => onStage(file) : undefined}
+					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
+					isActioning={isActioning}
 				/>
 			))}
 		</FolderRow>
@@ -93,6 +105,9 @@ export function FileListGrouped({
 	selectedFile,
 	onFileSelect,
 	showStats = true,
+	onStage,
+	onUnstage,
+	isActioning,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -105,6 +120,9 @@ export function FileListGrouped({
 					selectedFile={selectedFile}
 					onFileSelect={onFileSelect}
 					showStats={showStats}
+					onStage={onStage}
+					onUnstage={onUnstage}
+					isActioning={isActioning}
 				/>
 			))}
 		</div>

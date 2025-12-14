@@ -1,10 +1,13 @@
 import { EventEmitter } from "node:events";
 import express from "express";
 
-export interface AgentCompleteEvent {
+export interface NotificationIds {
 	paneId?: string;
 	tabId?: string;
 	workspaceId?: string;
+}
+
+export interface AgentCompleteEvent extends NotificationIds {
 	eventType: "Stop" | "PermissionRequest";
 }
 

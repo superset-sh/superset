@@ -1,5 +1,8 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
+import { HiMiniCheck } from "react-icons/hi2";
+import { LuCopy } from "react-icons/lu";
 import { getAppOption } from "renderer/components/OpenInButton/OpenInButton";
 import { trpc } from "renderer/lib/trpc";
 import type { ChangedFile, FileStatus } from "shared/changes-types";
@@ -47,6 +50,7 @@ function getStatusLabel(status: string): string {
 }
 
 export function FileHeader({ file, worktreePath }: FileHeaderProps) {
+	const [copied, setCopied] = useState(false);
 	const statusColor = getStatusColor(file.status);
 	const statusLabel = getStatusLabel(file.status);
 	const hasStats = file.additions > 0 || file.deletions > 0;
@@ -62,9 +66,15 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 		openInApp.mutate({ path: fullPath, app: lastUsedApp });
 	};
 
+	const handleCopyPath = () => {
+		navigator.clipboard.writeText(file.path);
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
+
 	return (
 		<div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30">
-			<div className="flex-1 min-w-0">
+			<div className="flex-1 min-w-0 flex items-center gap-2">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<button
@@ -77,6 +87,24 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
 						Open in {currentApp.label}
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleCopyPath}
+							className="flex-shrink-0 p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+						>
+							{copied ? (
+								<HiMiniCheck className="w-4 h-4 text-green-500" />
+							) : (
+								<LuCopy className="w-4 h-4" />
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						{copied ? "Copied!" : "Copy path"}
 					</TooltipContent>
 				</Tooltip>
 				{file.oldPath && (

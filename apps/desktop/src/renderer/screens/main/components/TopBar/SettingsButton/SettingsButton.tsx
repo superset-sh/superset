@@ -2,11 +2,10 @@ import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { useOpenSettings } from "renderer/stores";
-import { formatKeysForDisplay, HOTKEYS } from "shared/hotkeys";
+import { HOTKEYS } from "shared/hotkeys";
 
 export function SettingsButton() {
 	const openSettings = useOpenSettings();
-	const keys = formatKeysForDisplay(HOTKEYS.SHOW_HOTKEYS.keys);
 
 	return (
 		<Tooltip>
@@ -24,7 +23,7 @@ export function SettingsButton() {
 				<span className="flex items-center gap-2">
 					Settings
 					<KbdGroup>
-						{keys.map((key) => (
+						{HOTKEYS.SHOW_HOTKEYS.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
 						))}
 					</KbdGroup>

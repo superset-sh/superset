@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
+import { TypewriterText } from "./components/TypewriterText";
 
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
@@ -77,7 +78,11 @@ export function HeroSection() {
 									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
-									The terminal app for parallel cli agents.
+									<TypewriterText
+										text="The terminal app for parallel cli agents."
+										speed={40}
+										delay={600}
+									/>
 								</h1>
 								<p className="text-md sm:text-lg font-light text-muted-foreground max-w-[400px]">
 									Run dozens of Claude Code, Codex, or any other cli agents you

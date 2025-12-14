@@ -10,6 +10,12 @@ interface FileListProps {
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
+	/** Callback for staging a file */
+	onStage?: (file: ChangedFile) => void;
+	/** Callback for unstaging a file */
+	onUnstage?: (file: ChangedFile) => void;
+	/** Whether an action is currently pending */
+	isActioning?: boolean;
 }
 
 export function FileList({
@@ -19,6 +25,9 @@ export function FileList({
 	selectedCommitHash,
 	onFileSelect,
 	showStats = true,
+	onStage,
+	onUnstage,
+	isActioning,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -32,6 +41,9 @@ export function FileList({
 				selectedCommitHash={selectedCommitHash}
 				onFileSelect={onFileSelect}
 				showStats={showStats}
+				onStage={onStage}
+				onUnstage={onUnstage}
+				isActioning={isActioning}
 			/>
 		);
 	}
@@ -44,6 +56,9 @@ export function FileList({
 			selectedCommitHash={selectedCommitHash}
 			onFileSelect={onFileSelect}
 			showStats={showStats}
+			onStage={onStage}
+			onUnstage={onUnstage}
+			isActioning={isActioning}
 		/>
 	);
 }
