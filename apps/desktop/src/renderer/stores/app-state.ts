@@ -3,6 +3,7 @@ import { devtools } from "zustand/middleware";
 
 export type AppView = "workspace" | "settings";
 export type SettingsSection =
+	| "account"
 	| "project"
 	| "workspace"
 	| "appearance"
