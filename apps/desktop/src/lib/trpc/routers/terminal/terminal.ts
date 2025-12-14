@@ -127,6 +127,15 @@ export const createTerminalRouter = () => {
 			}),
 
 		/**
+		 * Kill all terminals for a workspace
+		 */
+		killByWorkspaceId: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(async ({ input }) => {
+				return terminalManager.killByWorkspaceId(input.workspaceId);
+			}),
+
+		/**
 		 * Detach from terminal (keep session alive)
 		 */
 		detach: publicProcedure

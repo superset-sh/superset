@@ -61,11 +61,13 @@ function cleanupDuplicateBranchWorkspaces(db: DB): boolean {
 
 	// Find projects with duplicates
 	const idsToRemove: string[] = [];
+	const keptWorkspaceIds: string[] = [];
 	for (const [projectId, workspaces] of branchWorkspacesByProject) {
 		if (workspaces.length > 1) {
 			// Sort by lastOpenedAt descending, keep the first (most recent)
 			workspaces.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
-			const [_keep, ...remove] = workspaces;
+			const [keep, ...remove] = workspaces;
+			keptWorkspaceIds.push(keep.id);
 			for (const ws of remove) {
 				idsToRemove.push(ws.id);
 			}
@@ -76,6 +78,25 @@ function cleanupDuplicateBranchWorkspaces(db: DB): boolean {
 	}
 
 	if (idsToRemove.length > 0) {
+		// If lastActiveWorkspaceId points to a removed workspace, update it
+		const lastActiveId = db.data.settings.lastActiveWorkspaceId;
+		if (lastActiveId && idsToRemove.includes(lastActiveId)) {
+			// Find which project this was for and use the kept workspace
+			const removedWorkspace = db.data.workspaces.find((w) => w.id === lastActiveId);
+			if (removedWorkspace) {
+				const keptForProject = db.data.workspaces.find(
+					(w) =>
+						w.projectId === removedWorkspace.projectId &&
+						w.type === "branch" &&
+						keptWorkspaceIds.includes(w.id),
+				);
+				db.data.settings.lastActiveWorkspaceId = keptForProject?.id ?? undefined;
+				console.log(
+					`[migration] Updated lastActiveWorkspaceId from removed workspace to ${keptForProject?.id ?? "undefined"}`,
+				);
+			}
+		}
+
 		db.data.workspaces = db.data.workspaces.filter(
 			(w) => !idsToRemove.includes(w.id),
 		);

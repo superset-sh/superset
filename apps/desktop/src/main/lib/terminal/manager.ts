@@ -284,6 +284,21 @@ export class TerminalManager extends EventEmitter {
 		return { killed, failed: results.length - killed };
 	}
 
+	/**
+	 * Send a newline to all terminals in a workspace to refresh their prompts.
+	 * Useful after branch switches so the prompt shows the new branch.
+	 */
+	refreshPromptsForWorkspace(workspaceId: string): number {
+		let refreshed = 0;
+		for (const [, session] of this.sessions) {
+			if (session.workspaceId === workspaceId && session.isAlive) {
+				session.pty.write("\n");
+				refreshed++;
+			}
+		}
+		return refreshed;
+	}
+
 	private async killSessionWithTimeout(
 		paneId: string,
 		session: TerminalSession,

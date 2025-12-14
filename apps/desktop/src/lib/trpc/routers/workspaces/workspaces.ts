@@ -271,8 +271,11 @@ export const createWorkspacesRouter = () => {
 					throw new Error("No branch workspace found for this project");
 				}
 
-				// Checkout the new branch
+				// Checkout the new branch (terminals continue running on the new branch)
 				await checkoutBranch(project.mainRepoPath, input.branch);
+
+				// Send newline to terminals so their prompts refresh with new branch
+				terminalManager.refreshPromptsForWorkspace(workspace.id);
 
 				// Update the workspace
 				await db.update((data) => {
