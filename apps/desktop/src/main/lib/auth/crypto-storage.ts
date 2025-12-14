@@ -1,10 +1,11 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import {
 	createCipheriv,
 	createDecipheriv,
 	randomBytes,
 	scryptSync,
 } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { homedir, hostname, platform } from "node:os";
 
 const ALGORITHM = "aes-256-gcm";
@@ -24,15 +25,15 @@ function getMachineId(): string {
 
 		if (os === "darwin") {
 			// macOS: Use IOPlatformUUID (hardware UUID)
-			const output = execSync(
-				"ioreg -rd1 -c IOPlatformExpertDevice | grep IOPlatformUUID",
+			const output = execFileSync(
+				"ioreg",
+				["-rd1", "-c", "IOPlatformExpertDevice"],
 				{ encoding: "utf8" },
 			);
 			const match = output.match(/"IOPlatformUUID"\s*=\s*"([^"]+)"/);
 			if (match?.[1]) return match[1];
 		} else if (os === "linux") {
 			// Linux: Use machine-id
-			const { readFileSync } = require("node:fs");
 			try {
 				return readFileSync("/etc/machine-id", "utf8").trim();
 			} catch {
@@ -40,8 +41,14 @@ function getMachineId(): string {
 			}
 		} else if (os === "win32") {
 			// Windows: Use MachineGuid from registry
-			const output = execSync(
-				'reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid',
+			const output = execFileSync(
+				"reg",
+				[
+					"query",
+					"HKLM\\SOFTWARE\\Microsoft\\Cryptography",
+					"/v",
+					"MachineGuid",
+				],
 				{ encoding: "utf8" },
 			);
 			const match = output.match(/MachineGuid\s+REG_SZ\s+(\S+)/);
@@ -84,10 +91,16 @@ export function encrypt(plaintext: string): Buffer {
 	return Buffer.concat([salt, iv, authTag, encrypted]);
 }
 
+const MIN_ENCRYPTED_LENGTH = SALT_LENGTH + IV_LENGTH + AUTH_TAG_LENGTH + 1;
+
 /**
  * Decrypts data encrypted with the encrypt function.
  */
 export function decrypt(data: Buffer): string {
+	if (data.length < MIN_ENCRYPTED_LENGTH) {
+		throw new Error("Encrypted data too short");
+	}
+
 	// Extract components
 	const salt = data.subarray(0, SALT_LENGTH);
 	const iv = data.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
