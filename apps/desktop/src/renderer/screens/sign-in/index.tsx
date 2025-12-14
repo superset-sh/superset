@@ -21,7 +21,8 @@ export function SignInScreen() {
 		onError: () => setIsSigningIn(false),
 	});
 
-	const signIn = (provider: AuthProvider) => signInMutation.mutate({ provider });
+	const signIn = (provider: AuthProvider) =>
+		signInMutation.mutate({ provider });
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">

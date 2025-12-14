@@ -1,7 +1,7 @@
-import { toast } from "@superset/ui/sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
+import { toast } from "@superset/ui/sonner";
 import { trpc } from "renderer/lib/trpc";
 
 export function AccountSettings() {
