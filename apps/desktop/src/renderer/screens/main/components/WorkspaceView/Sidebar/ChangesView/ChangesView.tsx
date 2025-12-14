@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
@@ -39,18 +40,34 @@ export function ChangesView() {
 
 	const stageAllMutation = trpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
+		onError: (error) => {
+			console.error("Failed to stage all files:", error);
+			toast.error(`Failed to stage all: ${error.message}`);
+		},
 	});
 
 	const unstageAllMutation = trpc.changes.unstageAll.useMutation({
 		onSuccess: () => refetch(),
+		onError: (error) => {
+			console.error("Failed to unstage all files:", error);
+			toast.error(`Failed to unstage all: ${error.message}`);
+		},
 	});
 
 	const stageFileMutation = trpc.changes.stageFile.useMutation({
 		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to stage file ${variables.filePath}:`, error);
+			toast.error(`Failed to stage ${variables.filePath}: ${error.message}`);
+		},
 	});
 
 	const unstageFileMutation = trpc.changes.unstageFile.useMutation({
 		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to unstage file ${variables.filePath}:`, error);
+			toast.error(`Failed to unstage ${variables.filePath}: ${error.message}`);
+		},
 	});
 
 	const {
