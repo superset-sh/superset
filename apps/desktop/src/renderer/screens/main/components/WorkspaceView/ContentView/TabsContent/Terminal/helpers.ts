@@ -401,41 +401,26 @@ export function setupClickToMoveCursor(
 	const handleClick = (event: MouseEvent) => {
 		// Don't interfere with full-screen apps (vim, less, etc. use alternate buffer)
 		if (xterm.buffer.active !== xterm.buffer.normal) return;
-
-		// Only handle left click
 		if (event.button !== 0) return;
-
-		// Don't interfere with modifier clicks (links, etc.)
 		if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
 			return;
-
-		// Don't move cursor if there's a selection (user is selecting text)
 		if (xterm.hasSelection()) return;
 
 		const coords = getTerminalCoordsFromEvent(xterm, event);
 		if (!coords) return;
 
 		const buffer = xterm.buffer.active;
-		const cursorX = buffer.cursorX;
-		const cursorY = buffer.cursorY;
-
-		// Convert viewport row to buffer row for comparison
 		const clickBufferRow = coords.row + buffer.viewportY;
 
-		// Only move cursor on the same line as the current cursor
-		// This ensures we only move within the editable prompt area
-		if (clickBufferRow !== cursorY + buffer.viewportY) return;
+		// Only move cursor on the same line (editable prompt area)
+		if (clickBufferRow !== buffer.cursorY + buffer.viewportY) return;
 
-		// Calculate horizontal movement needed
-		const delta = coords.col - cursorX;
+		const delta = coords.col - buffer.cursorX;
 		if (delta === 0) return;
 
-		// Generate arrow key escape sequences
 		// Right arrow: \x1b[C, Left arrow: \x1b[D
 		const arrowKey = delta > 0 ? "\x1b[C" : "\x1b[D";
-		const moves = arrowKey.repeat(Math.abs(delta));
-
-		options.onWrite(moves);
+		options.onWrite(arrowKey.repeat(Math.abs(delta)));
 	};
 
 	xterm.element?.addEventListener("click", handleClick);
