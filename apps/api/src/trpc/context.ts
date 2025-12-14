@@ -1,50 +1,28 @@
 import { auth } from "@clerk/nextjs/server";
 import { createTRPCContext } from "@superset/trpc";
 import { jwtVerify } from "jose";
+
 import { env } from "@/env";
 
 /**
- * Desktop JWT payload structure
+ * Verify a desktop JWT token and extract userId
  */
-interface DesktopJwtPayload {
-	userId: string;
-	email: string;
-	name: string;
-	avatarUrl: string | null;
-	type?: "access" | "refresh" | "auth_code";
-}
-
-/**
- * Verify a desktop JWT token
- */
-async function verifyDesktopToken(
-	token: string,
-): Promise<DesktopJwtPayload | null> {
+async function verifyDesktopToken(token: string): Promise<string | null> {
 	try {
 		const secret = new TextEncoder().encode(env.DESKTOP_AUTH_SECRET);
 		const { payload } = await jwtVerify(token, secret);
 
-		if (
-			typeof payload.userId !== "string" ||
-			typeof payload.email !== "string"
-		) {
+		if (typeof payload.userId !== "string") {
 			return null;
 		}
 
 		// Only accept access tokens (reject auth_code and refresh tokens)
-		// Auth codes should be exchanged first, refresh tokens are only for /refresh endpoint
 		if (payload.type === "auth_code" || payload.type === "refresh") {
 			console.warn(`[auth] Rejected ${payload.type} token - wrong token type`);
 			return null;
 		}
 
-		return {
-			userId: payload.userId,
-			email: payload.email as string,
-			name: (payload.name as string) ?? "",
-			avatarUrl: (payload.avatarUrl as string | null) ?? null,
-			type: payload.type as "access" | undefined,
-		};
+		return payload.userId;
 	} catch {
 		return null;
 	}
@@ -64,42 +42,23 @@ export const createContext = async ({
 	resHeaders: Headers;
 }) => {
 	// First, try Clerk auth (handles cookies and Clerk Bearer tokens)
-	const clerkSession = await auth();
+	const clerkAuth = await auth();
 
-	if (clerkSession.userId) {
-		return createTRPCContext({ session: clerkSession });
+	if (clerkAuth.userId) {
+		return createTRPCContext({ userId: clerkAuth.userId });
 	}
 
 	// No Clerk session, check for desktop JWT
 	const authHeader = req.headers.get("authorization");
 	if (authHeader?.startsWith("Bearer ")) {
 		const token = authHeader.slice(7);
-		const desktopPayload = await verifyDesktopToken(token);
+		const userId = await verifyDesktopToken(token);
 
-		if (desktopPayload) {
-			// Create a Clerk-compatible session object for desktop auth
-			// This allows desktop clients to use the same protectedProcedure
-			// We cast to unknown first since we're creating a minimal compatible object
-			return createTRPCContext({
-				session: {
-					userId: desktopPayload.userId,
-					sessionId: "desktop-session",
-					sessionClaims: {},
-					sessionStatus: "active",
-					actor: undefined,
-					orgId: undefined,
-					orgRole: undefined,
-					orgSlug: undefined,
-					orgPermissions: undefined,
-					organization: undefined,
-					getToken: async () => token,
-					has: () => false,
-					debug: () => ({}),
-				} as unknown as Parameters<typeof createTRPCContext>[0]["session"],
-			});
+		if (userId) {
+			return createTRPCContext({ userId });
 		}
 	}
 
-	// No valid auth - return unauthenticated context
-	return createTRPCContext({ session: clerkSession });
+	// No valid auth
+	return createTRPCContext({ userId: null });
 };
