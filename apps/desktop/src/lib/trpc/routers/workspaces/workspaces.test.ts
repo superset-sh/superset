@@ -117,21 +117,10 @@ function mockSimpleGitWithWorktreeList(
 	gitMockState.hasUncommittedChanges = !(options?.isClean ?? true);
 	gitMockState.hasUnpushedCommits = (options?.unpushedCommitCount ?? 0) > 0;
 	gitMockState.error = null;
-	// Return a mock object for compatibility with tests that check mock calls
-	return {
-		raw: mock(() => Promise.resolve(worktreeListOutput)),
-		status: mock(() =>
-			Promise.resolve({ isClean: () => options?.isClean ?? true }),
-		),
-	};
 }
 
 function mockSimpleGitWithError(error: Error) {
 	gitMockState.error = error;
-	return {
-		raw: mock(() => Promise.reject(error)),
-		status: mock(() => Promise.resolve({ isClean: () => true })),
-	};
 }
 
 // Reset mock data before each test
@@ -243,10 +232,6 @@ describe("workspaces router - canDelete", () => {
 		expect(result.warning).toContain("not found in git");
 	});
 
-	// Note: The test for --porcelain flag was removed because we now mock
-	// worktreeExists directly rather than simple-git internals. The flag
-	// usage is tested in git.ts unit tests if needed.
-
 	it("returns hasChanges: false when worktree is clean", async () => {
 		mockSimpleGitWithWorktreeList(
 			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
@@ -336,7 +321,8 @@ describe("workspaces router - canDelete", () => {
 	});
 
 	it("skips git checks when skipGitChecks is true", async () => {
-		const mockGit = mockSimpleGitWithWorktreeList(
+		// Set up mock state that would return true for changes/unpushed
+		mockSimpleGitWithWorktreeList(
 			"worktree /path/to/worktree\nHEAD abc123\nbranch refs/heads/test-branch",
 			{ isClean: false, unpushedCommitCount: 5 },
 		);
@@ -349,10 +335,8 @@ describe("workspaces router - canDelete", () => {
 		});
 
 		expect(result.canDelete).toBe(true);
-		// When skipping git checks, these should be false (defaults)
+		// When skipping git checks, these should be false (defaults) regardless of mock state
 		expect(result.hasChanges).toBe(false);
 		expect(result.hasUnpushedCommits).toBe(false);
-		// git.status should not have been called
-		expect(mockGit.status).not.toHaveBeenCalled();
 	});
 });
