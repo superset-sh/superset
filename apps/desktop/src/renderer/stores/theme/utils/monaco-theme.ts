@@ -13,70 +13,86 @@ function tokenColor(color: string): string {
 	return stripHash(toHexAuto(color));
 }
 
-function createTokenRules(colors: TerminalColors): editor.ITokenThemeRule[] {
+function createTokenRules(
+	colors: TerminalColors,
+	isDark: boolean,
+): editor.ITokenThemeRule[] {
 	const c = tokenColor;
+	// Note: Avoid pure red/green to prevent confusion with diff view highlighting
+	// Use brighter variants in dark mode, darker variants in light mode for contrast
+
+	// Select colors based on theme type for optimal contrast
+	const string = isDark ? colors.brightYellow : colors.blue;
+	const keyword = isDark ? colors.brightMagenta : colors.magenta;
+	const number = isDark ? colors.yellow : colors.magenta;
+	const func = isDark ? colors.brightBlue : colors.blue;
+	const type = isDark ? colors.brightCyan : colors.cyan;
+	const tag = isDark ? colors.brightMagenta : colors.magenta;
+	const attribute = isDark ? colors.brightCyan : colors.cyan;
+	const comment = colors.brightBlack;
+
 	return [
-		{ token: "comment", foreground: c(colors.brightBlack) },
-		{ token: "comment.line", foreground: c(colors.brightBlack) },
-		{ token: "comment.block", foreground: c(colors.brightBlack) },
+		{ token: "comment", foreground: c(comment) },
+		{ token: "comment.line", foreground: c(comment) },
+		{ token: "comment.block", foreground: c(comment) },
 
-		{ token: "string", foreground: c(colors.green) },
-		{ token: "string.quoted", foreground: c(colors.green) },
-		{ token: "string.template", foreground: c(colors.green) },
+		{ token: "string", foreground: c(string) },
+		{ token: "string.quoted", foreground: c(string) },
+		{ token: "string.template", foreground: c(string) },
 
-		{ token: "keyword", foreground: c(colors.magenta) },
-		{ token: "keyword.control", foreground: c(colors.magenta) },
-		{ token: "keyword.operator", foreground: c(colors.red) },
-		{ token: "storage", foreground: c(colors.magenta) },
-		{ token: "storage.type", foreground: c(colors.cyan) },
+		{ token: "keyword", foreground: c(keyword) },
+		{ token: "keyword.control", foreground: c(keyword) },
+		{ token: "keyword.operator", foreground: c(keyword) },
+		{ token: "storage", foreground: c(keyword) },
+		{ token: "storage.type", foreground: c(type) },
 
-		{ token: "number", foreground: c(colors.yellow) },
-		{ token: "constant.numeric", foreground: c(colors.yellow) },
-		{ token: "constant", foreground: c(colors.yellow) },
-		{ token: "constant.language", foreground: c(colors.yellow) },
-		{ token: "constant.character", foreground: c(colors.yellow) },
+		{ token: "number", foreground: c(number) },
+		{ token: "constant.numeric", foreground: c(number) },
+		{ token: "constant", foreground: c(number) },
+		{ token: "constant.language", foreground: c(number) },
+		{ token: "constant.character", foreground: c(number) },
 
 		{ token: "variable", foreground: c(colors.foreground) },
 		{ token: "variable.parameter", foreground: c(colors.foreground) },
 		{ token: "variable.other", foreground: c(colors.foreground) },
 
-		{ token: "entity.name.function", foreground: c(colors.blue) },
-		{ token: "support.function", foreground: c(colors.blue) },
-		{ token: "meta.function-call", foreground: c(colors.blue) },
+		{ token: "entity.name.function", foreground: c(func) },
+		{ token: "support.function", foreground: c(func) },
+		{ token: "meta.function-call", foreground: c(func) },
 
-		{ token: "entity.name.type", foreground: c(colors.cyan) },
-		{ token: "entity.name.class", foreground: c(colors.cyan) },
-		{ token: "support.type", foreground: c(colors.cyan) },
-		{ token: "support.class", foreground: c(colors.cyan) },
+		{ token: "entity.name.type", foreground: c(type) },
+		{ token: "entity.name.class", foreground: c(type) },
+		{ token: "support.type", foreground: c(type) },
+		{ token: "support.class", foreground: c(type) },
 
-		{ token: "entity.name.tag", foreground: c(colors.red) },
-		{ token: "tag", foreground: c(colors.red) },
-		{ token: "meta.tag", foreground: c(colors.red) },
+		{ token: "entity.name.tag", foreground: c(tag) },
+		{ token: "tag", foreground: c(tag) },
+		{ token: "meta.tag", foreground: c(tag) },
 
-		{ token: "entity.other.attribute-name", foreground: c(colors.yellow) },
-		{ token: "attribute.name", foreground: c(colors.yellow) },
+		{ token: "entity.other.attribute-name", foreground: c(attribute) },
+		{ token: "attribute.name", foreground: c(attribute) },
 
-		{ token: "keyword.operator", foreground: c(colors.red) },
+		{ token: "keyword.operator", foreground: c(keyword) },
 		{ token: "punctuation", foreground: c(colors.foreground) },
 
-		{ token: "type", foreground: c(colors.cyan) },
-		{ token: "type.identifier", foreground: c(colors.cyan) },
+		{ token: "type", foreground: c(type) },
+		{ token: "type.identifier", foreground: c(type) },
 		{ token: "identifier", foreground: c(colors.foreground) },
 		{ token: "delimiter", foreground: c(colors.foreground) },
 
-		{ token: "string.key.json", foreground: c(colors.red) },
-		{ token: "string.value.json", foreground: c(colors.green) },
+		{ token: "string.key.json", foreground: c(func) },
+		{ token: "string.value.json", foreground: c(string) },
 
-		{ token: "regexp", foreground: c(colors.cyan) },
+		{ token: "regexp", foreground: c(type) },
 
-		{ token: "markup.heading", foreground: c(colors.red), fontStyle: "bold" },
-		{ token: "markup.bold", foreground: c(colors.yellow), fontStyle: "bold" },
+		{ token: "markup.heading", foreground: c(func), fontStyle: "bold" },
+		{ token: "markup.bold", foreground: c(number), fontStyle: "bold" },
 		{
 			token: "markup.italic",
-			foreground: c(colors.magenta),
+			foreground: c(keyword),
 			fontStyle: "italic",
 		},
-		{ token: "markup.inline.raw", foreground: c(colors.green) },
+		{ token: "markup.inline.raw", foreground: c(type) },
 	];
 }
 
@@ -133,10 +149,11 @@ function createEditorColors(theme: Theme): editor.IColors {
 }
 
 export function toMonacoTheme(theme: Theme): MonacoTheme {
+	const isDark = theme.type === "dark";
 	return {
-		base: theme.type === "dark" ? "vs-dark" : "vs",
+		base: isDark ? "vs-dark" : "vs",
 		inherit: true,
-		rules: createTokenRules(theme.terminal),
+		rules: createTokenRules(theme.terminal, isDark),
 		colors: createEditorColors(theme),
 	};
 }
