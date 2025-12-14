@@ -9,6 +9,9 @@ interface FileListTreeProps {
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
+	onStage?: (file: ChangedFile) => void;
+	onUnstage?: (file: ChangedFile) => void;
+	isActioning?: boolean;
 }
 
 interface FileTreeNode {
@@ -79,6 +82,9 @@ interface TreeNodeComponentProps {
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
 	showStats?: boolean;
+	onStage?: (file: ChangedFile) => void;
+	onUnstage?: (file: ChangedFile) => void;
+	isActioning?: boolean;
 }
 
 function TreeNodeComponent({
@@ -88,6 +94,9 @@ function TreeNodeComponent({
 	selectedCommitHash,
 	onFileSelect,
 	showStats,
+	onStage,
+	onUnstage,
+	isActioning,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -112,6 +121,9 @@ function TreeNodeComponent({
 						selectedCommitHash={selectedCommitHash}
 						onFileSelect={onFileSelect}
 						showStats={showStats}
+						onStage={onStage}
+						onUnstage={onUnstage}
+						isActioning={isActioning}
 					/>
 				))}
 			</FolderRow>
@@ -119,15 +131,17 @@ function TreeNodeComponent({
 	}
 
 	if (isFile && node.file) {
+		const file = node.file;
 		return (
 			<FileItem
-				file={node.file}
+				file={file}
 				isSelected={isSelected}
-				onClick={() => {
-					if (node.file) onFileSelect(node.file);
-				}}
+				onClick={() => onFileSelect(file)}
 				showStats={showStats}
 				level={level}
+				onStage={onStage ? () => onStage(file) : undefined}
+				onUnstage={onUnstage ? () => onUnstage(file) : undefined}
+				isActioning={isActioning}
 			/>
 		);
 	}
@@ -141,6 +155,9 @@ export function FileListTree({
 	selectedCommitHash,
 	onFileSelect,
 	showStats = true,
+	onStage,
+	onUnstage,
+	isActioning,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -154,6 +171,9 @@ export function FileListTree({
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onFileSelect}
 					showStats={showStats}
+					onStage={onStage}
+					onUnstage={onUnstage}
+					isActioning={isActioning}
 				/>
 			))}
 		</div>
