@@ -109,6 +109,12 @@ export default defineConfig({
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),
 			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_KEY,
+			),
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_HOST,
+			),
 		},
 
 		server: {

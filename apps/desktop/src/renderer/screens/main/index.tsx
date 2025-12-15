@@ -1,5 +1,7 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { useCallback, useState } from "react";
+import { useFeatureFlagEnabled, usePostHog } from "posthog-js/react";
+import { useCallback, useEffect, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
@@ -30,9 +32,23 @@ function LoadingSpinner() {
 
 export function MainScreen() {
 	const utils = trpc.useUtils();
+	const posthog = usePostHog();
 	const { data: authState } = trpc.auth.getState.useQuery();
 	const isSignedIn = authState?.isSignedIn ?? false;
 	const isAuthLoading = !authState;
+
+	// Feature flag to control auth requirement
+	const requireAuth = useFeatureFlagEnabled(FEATURE_FLAGS.REQUIRE_DESKTOP_AUTH);
+	const [flagsLoaded, setFlagsLoaded] = useState(false);
+
+	// Track when feature flags are loaded
+	useEffect(() => {
+		if (posthog) {
+			posthog.onFeatureFlags(() => {
+				setFlagsLoaded(true);
+			});
+		}
+	}, [posthog]);
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {
@@ -157,8 +173,23 @@ export function MainScreen() {
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
 
-	// Show sign-in screen if not authenticated
-	if (isAuthLoading) {
+	// Wait for feature flags to load before deciding on auth
+	const shouldRequireAuth = flagsLoaded && requireAuth === true;
+
+	// Show empty screen while feature flags are loading
+	if (!flagsLoaded) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="h-full w-full bg-background" />
+				</AppFrame>
+			</>
+		);
+	}
+
+	// Show loading while auth state is being determined (only if auth is required)
+	if (shouldRequireAuth && isAuthLoading) {
 		return (
 			<>
 				<Background />
@@ -171,7 +202,8 @@ export function MainScreen() {
 		);
 	}
 
-	if (!isSignedIn) {
+	// Show sign-in screen if auth is required and user is not signed in
+	if (shouldRequireAuth && !isSignedIn) {
 		return (
 			<>
 				<Background />

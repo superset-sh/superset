@@ -31,3 +31,9 @@ export const TOKEN_CONFIG = {
 	/** Refresh access token when this many seconds remain (5 minutes) */
 	REFRESH_THRESHOLD: 5 * 60,
 } as const;
+
+// PostHog Feature Flags
+export const FEATURE_FLAGS = {
+	/** When enabled, users must sign in to use the desktop app */
+	REQUIRE_DESKTOP_AUTH: "require-desktop-auth",
+} as const;

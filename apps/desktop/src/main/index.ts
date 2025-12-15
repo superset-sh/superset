@@ -10,6 +10,11 @@ import { initDb } from "./lib/db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
+// Set different app name for dev to avoid singleton lock conflicts with production
+if (process.env.NODE_ENV === "development") {
+	app.setName("Superset Dev");
+}
+
 // Register protocol handler for deep linking
 // In development, we need to provide the execPath and args
 if (process.defaultApp) {

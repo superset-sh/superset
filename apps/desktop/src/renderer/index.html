@@ -9,13 +9,13 @@
       https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP
 
       - default-src 'self': Only allow resources from same origin
-      - script-src 'self': Only allow scripts from same origin (no inline)
+      - script-src 'self' https://*.posthog.com: Allow scripts from same origin + PostHog
       - style-src 'self' 'unsafe-inline': Allow styles from same origin + inline (needed for CSS-in-JS)
-      - connect-src 'self' ws: wss:: Allow WebSocket connections for HMR in dev
+      - connect-src 'self' ws: wss: https://*.posthog.com: Allow WebSocket connections for HMR + PostHog analytics
       - img-src 'self' data:: Allow images from same origin + data URIs
       - font-src 'self': Allow fonts from same origin
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:; img-src 'self' data:; font-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: https://*.posthog.com; img-src 'self' data:; font-src 'self';" />
   </head>
 
   <body>

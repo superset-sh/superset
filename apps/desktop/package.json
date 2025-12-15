@@ -78,6 +78,7 @@
 		"nanoid": "^5.1.6",
 		"node-pty": "1.1.0-beta30",
 		"os-locale": "^6.0.2",
+		"posthog-js": "^1.306.1",
 		"react": "^19.2.3",
 		"react-arborist": "^3.4.3",
 		"react-dnd": "^16.0.1",
