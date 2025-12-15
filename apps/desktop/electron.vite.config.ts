@@ -54,6 +54,12 @@ export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths, copyResourcesPlugin()],
 
+		define: {
+			"process.env.NODE_ENV": JSON.stringify(
+				process.env.NODE_ENV || "production",
+			),
+		},
+
 		build: {
 			rollupOptions: {
 				input: {
@@ -81,6 +87,12 @@ export default defineConfig({
 				exclude: ["trpc-electron"],
 			}),
 		],
+
+		define: {
+			"process.env.NODE_ENV": JSON.stringify(
+				process.env.NODE_ENV || "production",
+			),
+		},
 
 		build: {
 			outDir: resolve(devPath, "preload"),
