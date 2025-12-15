@@ -14,6 +14,7 @@ import { sanitizeForTitle } from "./commandBuffer";
 import {
 	createTerminalInstance,
 	getDefaultTerminalBg,
+	setupClickToMoveCursor,
 	setupFocusListener,
 	setupKeyboardHandler,
 	setupPasteHandler,
@@ -342,13 +343,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			clearScrollbackRef.current({ paneId });
 		};
 
+		const handleWrite = (data: string) => {
+			if (!isExitedRef.current) {
+				writeRef.current({ paneId, data });
+			}
+		};
+
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => {
-				if (!isExitedRef.current) {
-					writeRef.current({ paneId, data: "\\\n" });
-				}
-			},
+			onShiftEnter: () => handleWrite("\\\n"),
 			onClear: handleClear,
+		});
+
+		// Setup click-to-move cursor (click on prompt line to move cursor)
+		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
+			onWrite: handleWrite,
 		});
 
 		// Register clear callback for context menu access
@@ -376,6 +384,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			cleanupKeyboard();
+			cleanupClickToMove();
 			cleanupFocus?.();
 			cleanupResize();
 			cleanupPaste();

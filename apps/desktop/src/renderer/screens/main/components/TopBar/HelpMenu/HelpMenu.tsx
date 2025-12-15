@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,22 +16,21 @@ import {
 	HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
 import { useOpenSettings } from "renderer/stores";
-import { HELP_MENU } from "shared/constants";
 import { HOTKEYS } from "shared/hotkeys";
 
 export function HelpMenu() {
 	const openSettings = useOpenSettings();
 
 	const handleContactUs = () => {
-		window.open(HELP_MENU.CONTACT_URL, "_blank");
+		window.open(COMPANY.CONTACT_URL, "_blank");
 	};
 
 	const handleReportIssue = () => {
-		window.open(HELP_MENU.REPORT_ISSUE_URL, "_blank");
+		window.open(COMPANY.REPORT_ISSUE_URL, "_blank");
 	};
 
 	const handleJoinDiscord = () => {
-		window.open(HELP_MENU.DISCORD_URL, "_blank");
+		window.open(COMPANY.DISCORD_URL, "_blank");
 	};
 
 	const handleViewHotkeys = () => {

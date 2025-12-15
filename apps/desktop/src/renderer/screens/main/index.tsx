@@ -1,4 +1,7 @@
+// TEMPORARILY DISABLED - PostHog bricked the desktop app
+// import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+// import { useFeatureFlagEnabled, usePostHog } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -28,16 +31,45 @@ function LoadingSpinner() {
 }
 
 export function MainScreen() {
+	const utils = trpc.useUtils();
+	// TEMPORARILY DISABLED - PostHog bricked the desktop app
+	// const posthog = usePostHog();
+	const { data: authState } = trpc.auth.getState.useQuery();
+	const _isSignedIn = authState?.isSignedIn ?? false;
+	const _isAuthLoading = !authState;
+
+	// TEMPORARILY DISABLED - Auth blocking logic disabled
+	// // Feature flag to control auth requirement
+	// const requireAuth = useFeatureFlagEnabled(FEATURE_FLAGS.REQUIRE_DESKTOP_AUTH);
+	// const [flagsLoaded, setFlagsLoaded] = useState(false);
+
+	// // Track when feature flags are loaded
+	// useEffect(() => {
+	// 	if (posthog) {
+	// 		posthog.onFeatureFlags(() => {
+	// 			setFlagsLoaded(true);
+	// 		});
+	// 	}
+	// }, [posthog]);
+
+	// Subscribe to auth state changes
+	trpc.auth.onStateChange.useSubscription(undefined, {
+		onData: () => utils.auth.getState.invalidate(),
+	});
+
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
 	const {
 		data: activeWorkspace,
-		isLoading,
+		isLoading: isWorkspaceLoading,
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery();
+	} = trpc.workspaces.getActive.useQuery(undefined, {
+		// TEMPORARILY DISABLED - Auth blocking logic disabled
+		// enabled: isSignedIn,
+	});
 	const [isRetrying, setIsRetrying] = useState(false);
 	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
@@ -140,8 +172,51 @@ export function MainScreen() {
 		isWorkspaceView,
 	]);
 
+	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	// TEMPORARILY DISABLED - Auth blocking logic disabled
+	// // Wait for feature flags to load before deciding on auth
+	// const shouldRequireAuth = flagsLoaded && requireAuth === true;
+
+	// // Show empty screen while feature flags are loading
+	// if (!flagsLoaded) {
+	// 	return (
+	// 		<>
+	// 			<Background />
+	// 			<AppFrame>
+	// 				<div className="h-full w-full bg-background" />
+	// 			</AppFrame>
+	// 		</>
+	// 	);
+	// }
+
+	// // Show loading while auth state is being determined (only if auth is required)
+	// if (shouldRequireAuth && isAuthLoading) {
+	// 	return (
+	// 		<>
+	// 			<Background />
+	// 			<AppFrame>
+	// 				<div className="flex h-full w-full items-center justify-center bg-background">
+	// 					<LoadingSpinner />
+	// 				</div>
+	// 			</AppFrame>
+	// 		</>
+	// 	);
+	// }
+
+	// // Show sign-in screen if auth is required and user is not signed in
+	// if (shouldRequireAuth && !isSignedIn) {
+	// 	return (
+	// 		<>
+	// 			<Background />
+	// 			<AppFrame>
+	// 				<SignInScreen />
+	// 			</AppFrame>
+	// 		</>
+	// 	);
+	// }
 
 	const renderContent = () => {
 		if (currentView === "settings") {

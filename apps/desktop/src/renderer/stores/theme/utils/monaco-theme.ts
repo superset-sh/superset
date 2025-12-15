@@ -1,83 +1,12 @@
 import type { editor } from "monaco-editor";
-import type { TerminalColors, Theme } from "shared/themes/types";
-import { stripHash, toHexAuto, withAlpha } from "shared/themes/utils";
+import type { Theme } from "shared/themes/types";
+import { toHexAuto, withAlpha } from "shared/themes/utils";
 
 export interface MonacoTheme {
 	base: "vs" | "vs-dark" | "hc-black";
 	inherit: boolean;
 	rules: editor.ITokenThemeRule[];
 	colors: editor.IColors;
-}
-
-function tokenColor(color: string): string {
-	return stripHash(toHexAuto(color));
-}
-
-function createTokenRules(colors: TerminalColors): editor.ITokenThemeRule[] {
-	const c = tokenColor;
-	return [
-		{ token: "comment", foreground: c(colors.brightBlack) },
-		{ token: "comment.line", foreground: c(colors.brightBlack) },
-		{ token: "comment.block", foreground: c(colors.brightBlack) },
-
-		{ token: "string", foreground: c(colors.green) },
-		{ token: "string.quoted", foreground: c(colors.green) },
-		{ token: "string.template", foreground: c(colors.green) },
-
-		{ token: "keyword", foreground: c(colors.magenta) },
-		{ token: "keyword.control", foreground: c(colors.magenta) },
-		{ token: "keyword.operator", foreground: c(colors.red) },
-		{ token: "storage", foreground: c(colors.magenta) },
-		{ token: "storage.type", foreground: c(colors.cyan) },
-
-		{ token: "number", foreground: c(colors.yellow) },
-		{ token: "constant.numeric", foreground: c(colors.yellow) },
-		{ token: "constant", foreground: c(colors.yellow) },
-		{ token: "constant.language", foreground: c(colors.yellow) },
-		{ token: "constant.character", foreground: c(colors.yellow) },
-
-		{ token: "variable", foreground: c(colors.foreground) },
-		{ token: "variable.parameter", foreground: c(colors.foreground) },
-		{ token: "variable.other", foreground: c(colors.foreground) },
-
-		{ token: "entity.name.function", foreground: c(colors.blue) },
-		{ token: "support.function", foreground: c(colors.blue) },
-		{ token: "meta.function-call", foreground: c(colors.blue) },
-
-		{ token: "entity.name.type", foreground: c(colors.cyan) },
-		{ token: "entity.name.class", foreground: c(colors.cyan) },
-		{ token: "support.type", foreground: c(colors.cyan) },
-		{ token: "support.class", foreground: c(colors.cyan) },
-
-		{ token: "entity.name.tag", foreground: c(colors.red) },
-		{ token: "tag", foreground: c(colors.red) },
-		{ token: "meta.tag", foreground: c(colors.red) },
-
-		{ token: "entity.other.attribute-name", foreground: c(colors.yellow) },
-		{ token: "attribute.name", foreground: c(colors.yellow) },
-
-		{ token: "keyword.operator", foreground: c(colors.red) },
-		{ token: "punctuation", foreground: c(colors.foreground) },
-
-		{ token: "type", foreground: c(colors.cyan) },
-		{ token: "type.identifier", foreground: c(colors.cyan) },
-		{ token: "identifier", foreground: c(colors.foreground) },
-		{ token: "delimiter", foreground: c(colors.foreground) },
-
-		{ token: "string.key.json", foreground: c(colors.red) },
-		{ token: "string.value.json", foreground: c(colors.green) },
-
-		{ token: "regexp", foreground: c(colors.cyan) },
-
-		{ token: "markup.heading", foreground: c(colors.red), fontStyle: "bold" },
-		{ token: "markup.bold", foreground: c(colors.yellow), fontStyle: "bold" },
-		{
-			token: "markup.italic",
-			foreground: c(colors.magenta),
-			fontStyle: "italic",
-		},
-		{ token: "markup.inline.raw", foreground: c(colors.green) },
-	];
 }
 
 function createEditorColors(theme: Theme): editor.IColors {
@@ -133,10 +62,11 @@ function createEditorColors(theme: Theme): editor.IColors {
 }
 
 export function toMonacoTheme(theme: Theme): MonacoTheme {
+	const isDark = theme.type === "dark";
 	return {
-		base: theme.type === "dark" ? "vs-dark" : "vs",
+		base: isDark ? "vs-dark" : "vs",
 		inherit: true,
-		rules: createTokenRules(theme.terminal),
+		rules: [], // Use VS Code default syntax highlighting
 		colors: createEditorColors(theme),
 	};
 }

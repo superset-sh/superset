@@ -58,7 +58,7 @@ export const organizationRouter = {
 		)
 		.mutation(async ({ ctx, input }) => {
 			const user = await db.query.users.findFirst({
-				where: eq(users.clerkId, ctx.session.userId),
+				where: eq(users.clerkId, ctx.userId),
 			});
 
 			const [organization] = await db

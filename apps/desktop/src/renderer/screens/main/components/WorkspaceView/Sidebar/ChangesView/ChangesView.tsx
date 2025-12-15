@@ -1,5 +1,9 @@
+import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useState } from "react";
+import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -33,6 +37,38 @@ export function ChangesView() {
 			refetchOnWindowFocus: true,
 		},
 	);
+
+	const stageAllMutation = trpc.changes.stageAll.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error) => {
+			console.error("Failed to stage all files:", error);
+			toast.error(`Failed to stage all: ${error.message}`);
+		},
+	});
+
+	const unstageAllMutation = trpc.changes.unstageAll.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error) => {
+			console.error("Failed to unstage all files:", error);
+			toast.error(`Failed to unstage all: ${error.message}`);
+		},
+	});
+
+	const stageFileMutation = trpc.changes.stageFile.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to stage file ${variables.filePath}:`, error);
+			toast.error(`Failed to stage ${variables.filePath}: ${error.message}`);
+		},
+	});
+
+	const unstageFileMutation = trpc.changes.unstageFile.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to unstage file ${variables.filePath}:`, error);
+			toast.error(`Failed to unstage ${variables.filePath}: ${error.message}`);
+		},
+	});
 
 	const {
 		expandedSections,
@@ -203,6 +239,26 @@ export function ChangesView() {
 						count={status.staged.length}
 						isExpanded={expandedSections.staged}
 						onToggle={() => toggleSection("staged")}
+						actions={
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-6 w-6"
+										onClick={() =>
+											unstageAllMutation.mutate({
+												worktreePath: worktreePath || "",
+											})
+										}
+										disabled={unstageAllMutation.isPending}
+									>
+										<HiMiniMinus className="w-4 h-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">Unstage all</TooltipContent>
+							</Tooltip>
+						}
 					>
 						<FileList
 							files={status.staged}
@@ -210,6 +266,13 @@ export function ChangesView() {
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "staged")}
+							onUnstage={(file) =>
+								unstageFileMutation.mutate({
+									worktreePath: worktreePath || "",
+									filePath: file.path,
+								})
+							}
+							isActioning={unstageFileMutation.isPending}
 						/>
 					</CategorySection>
 
@@ -219,6 +282,26 @@ export function ChangesView() {
 						count={unstagedFiles.length}
 						isExpanded={expandedSections.unstaged}
 						onToggle={() => toggleSection("unstaged")}
+						actions={
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="h-6 w-6"
+										onClick={() =>
+											stageAllMutation.mutate({
+												worktreePath: worktreePath || "",
+											})
+										}
+										disabled={stageAllMutation.isPending}
+									>
+										<HiMiniPlus className="w-4 h-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom">Stage all</TooltipContent>
+							</Tooltip>
+						}
 					>
 						<FileList
 							files={unstagedFiles}
@@ -226,6 +309,13 @@ export function ChangesView() {
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
+							onStage={(file) =>
+								stageFileMutation.mutate({
+									worktreePath: worktreePath || "",
+									filePath: file.path,
+								})
+							}
+							isActioning={stageFileMutation.isPending}
 						/>
 					</CategorySection>
 				</ScrollArea>

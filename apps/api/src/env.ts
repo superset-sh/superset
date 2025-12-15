@@ -8,6 +8,7 @@ export const env = createEnv({
 		CLERK_SECRET_KEY: z.string(),
 		CLERK_WEBHOOK_SECRET: z.string(),
 		BLOB_READ_WRITE_TOKEN: z.string(),
+		DESKTOP_AUTH_SECRET: z.string().min(32),
 	},
 	client: {
 		NEXT_PUBLIC_WEB_URL: z.string().url(),

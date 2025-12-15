@@ -1,9 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { ENVIRONMENT, SUPERSET_DIR_NAME } from "shared/constants";
-
-export const IS_DEV = ENVIRONMENT.IS_DEV;
-export const IS_TEST = process.env.NODE_ENV === "test";
+import { SUPERSET_DIR_NAME } from "shared/constants";
 
 export const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 

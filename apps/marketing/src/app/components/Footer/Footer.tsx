@@ -45,13 +45,13 @@ export function Footer() {
 						</Link>
 						<nav className="flex items-center gap-6 text-sm">
 							<Link
-								href="/privacy-policy"
+								href="/privacy"
 								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
 								Privacy
 							</Link>
 							<Link
-								href="/terms-of-service"
+								href="/terms"
 								className="text-muted-foreground hover:text-foreground transition-colors"
 							>
 								Terms

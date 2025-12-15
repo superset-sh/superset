@@ -1,0 +1,102 @@
+import { COMPANY } from "@superset/shared/constants";
+import { Button } from "@superset/ui/button";
+import { useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
+import { trpc } from "renderer/lib/trpc";
+import type { AuthProvider } from "shared/auth";
+import { SupersetLogo } from "./components/SupersetLogo";
+
+function LoadingSpinner() {
+	return (
+		<div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+	);
+}
+
+export function SignInScreen() {
+	const [isSigningIn, setIsSigningIn] = useState(false);
+
+	const signInMutation = trpc.auth.signIn.useMutation({
+		onMutate: () => setIsSigningIn(true),
+		onError: () => setIsSigningIn(false),
+	});
+
+	const signIn = (provider: AuthProvider) =>
+		signInMutation.mutate({ provider });
+
+	return (
+		<div className="flex flex-col h-full w-full bg-background">
+			<div className="h-12 w-full drag shrink-0" />
+
+			<div className="flex flex-1 items-center justify-center">
+				<div className="flex flex-col items-center w-full max-w-md px-8">
+					<div className="mb-8">
+						<SupersetLogo className="h-12 w-auto" />
+					</div>
+
+					<div className="text-center mb-8">
+						<h1 className="text-xl font-semibold text-foreground mb-2">
+							Welcome to Superset
+						</h1>
+						<p className="text-sm text-muted-foreground">
+							Sign in to get started
+						</p>
+					</div>
+
+					<div className="flex flex-col gap-3 w-full max-w-xs">
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => signIn("github")}
+							disabled={isSigningIn}
+							className="w-full gap-3"
+						>
+							{isSigningIn ? (
+								<LoadingSpinner />
+							) : (
+								<FaGithub className="size-5" />
+							)}
+							Continue with GitHub
+						</Button>
+
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => signIn("google")}
+							disabled={isSigningIn}
+							className="w-full gap-3"
+						>
+							{isSigningIn ? (
+								<LoadingSpinner />
+							) : (
+								<FcGoogle className="size-5" />
+							)}
+							Continue with Google
+						</Button>
+					</div>
+
+					<p className="mt-8 text-xs text-muted-foreground/70 text-center max-w-xs">
+						By signing in, you agree to our{" "}
+						<a
+							href={COMPANY.TERMS_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="underline hover:text-muted-foreground transition-colors"
+						>
+							Terms of Service
+						</a>{" "}
+						and{" "}
+						<a
+							href={COMPANY.PRIVACY_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="underline hover:text-muted-foreground transition-colors"
+						>
+							Privacy Policy
+						</a>
+					</p>
+				</div>
+			</div>
+		</div>
+	);
+}

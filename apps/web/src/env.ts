@@ -14,6 +14,7 @@ export const env = createEnv({
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
 		CLERK_SECRET_KEY: z.string(),
+		DESKTOP_AUTH_SECRET: z.string().min(32),
 	},
 
 	client: {

@@ -1,5 +1,6 @@
 import type React from "react";
 import { MonacoProvider } from "./MonacoProvider";
+import { PostHogProvider } from "./PostHogProvider";
 import { TRPCProvider } from "./TRPCProvider";
 
 interface AppProvidersProps {
@@ -8,8 +9,10 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
 	return (
-		<TRPCProvider>
-			<MonacoProvider>{children}</MonacoProvider>
-		</TRPCProvider>
+		<PostHogProvider>
+			<TRPCProvider>
+				<MonacoProvider>{children}</MonacoProvider>
+			</TRPCProvider>
+		</PostHogProvider>
 	);
 }

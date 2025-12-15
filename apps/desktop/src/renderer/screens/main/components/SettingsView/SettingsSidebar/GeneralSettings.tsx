@@ -4,6 +4,7 @@ import {
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlinePaintBrush,
+	HiOutlineUser,
 } from "react-icons/hi2";
 import type { SettingsSection } from "renderer/stores";
 
@@ -17,6 +18,11 @@ const GENERAL_SECTIONS: {
 	label: string;
 	icon: React.ReactNode;
 }[] = [
+	{
+		id: "account",
+		label: "Account",
+		icon: <HiOutlineUser className="h-4 w-4" />,
+	},
 	{
 		id: "appearance",
 		label: "Appearance",

@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import { createElectronRouter } from "electron-router-dom";
 import { PORTS } from "shared/constants";
+import { env } from "../env";
 
 const electronRouter = createElectronRouter({
 	port: PORTS.VITE_DEV_SERVER,
@@ -28,7 +29,7 @@ export function registerRoute(props: {
 	htmlFile: string;
 	query?: Record<string, string>;
 }): void {
-	const isDev = process.env.NODE_ENV === "development";
+	const isDev = env.NODE_ENV === "development";
 
 	if (isDev) {
 		// Development: use the library's default behavior (loads from dev server)

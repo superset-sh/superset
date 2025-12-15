@@ -1,4 +1,5 @@
 import type { SettingsSection } from "renderer/stores";
+import { AccountSettings } from "./AccountSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
 import { KeyboardShortcutsSettings } from "./KeyboardShortcutsSettings";
 import { PresetsSettings } from "./PresetsSettings";
@@ -13,6 +14,7 @@ interface SettingsContentProps {
 export function SettingsContent({ activeSection }: SettingsContentProps) {
 	return (
 		<div className="h-full overflow-y-auto flex justify-center">
+			{activeSection === "account" && <AccountSettings />}
 			{activeSection === "project" && <ProjectSettings />}
 			{activeSection === "workspace" && <WorkspaceSettings />}
 			{activeSection === "appearance" && <AppearanceSettings />}
