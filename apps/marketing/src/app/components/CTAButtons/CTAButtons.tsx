@@ -33,7 +33,7 @@ export async function CTAButtons() {
 		<div className="flex items-center gap-2 sm:gap-3">
 			<a
 				href={`${env.NEXT_PUBLIC_WEB_URL}/sign-in`}
-				className="hidden px-2 sm:px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors"
+				className="px-2 sm:px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors"
 			>
 				Sign In
 			</a>

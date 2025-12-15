@@ -5,6 +5,8 @@ import { IBM_Plex_Mono, Inter } from "next/font/google";
 import Script from "next/script";
 import { ThemeProvider } from "next-themes";
 
+import { env } from "@/env";
+
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -34,7 +36,7 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<ClerkProvider>
+		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
 			<html
 				lang="en"
 				className={`overscroll-none ${ibmPlexMono.variable} ${inter.variable}`}

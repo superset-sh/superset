@@ -4,6 +4,8 @@ import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
 
+import { env } from "@/env";
+
 import "./globals.css";
 
 import { Providers } from "./providers";
@@ -39,6 +41,8 @@ export default function RootLayout({
 }) {
 	return (
 		<ClerkProvider
+			domain={env.NEXT_PUBLIC_COOKIE_DOMAIN}
+			isSatellite={false}
 			signInUrl="/sign-in"
 			signUpUrl="/sign-up"
 			signInFallbackRedirectUrl="/"
