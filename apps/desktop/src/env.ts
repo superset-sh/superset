@@ -10,7 +10,11 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 	},
 
-	runtimeEnv: process.env,
+	runtimeEnv: {
+		...process.env,
+		// Vite's define replaces this at build time, ensuring correct env in packaged apps
+		NODE_ENV: process.env.NODE_ENV,
+	},
 	emptyStringAsUndefined: true,
 
 	// Electron runs in a trusted environment - treat renderer as server context
