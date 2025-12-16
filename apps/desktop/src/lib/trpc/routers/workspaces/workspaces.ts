@@ -290,8 +290,15 @@ export const createWorkspacesRouter = () => {
 					data.settings.lastActiveWorkspaceId = workspace.id;
 				});
 
+				const updatedWorkspace = db.data.workspaces.find(
+					(w) => w.id === workspace.id,
+				);
+				if (!updatedWorkspace) {
+					throw new Error(`Workspace ${workspace.id} not found after update`);
+				}
+
 				return {
-					workspace: db.data.workspaces.find((w) => w.id === workspace.id)!,
+					workspace: updatedWorkspace,
 					worktreePath: project.mainRepoPath,
 				};
 			}),

@@ -104,7 +104,9 @@ export function DeleteWorkspaceDialog({
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{workspaceType === "branch" ? "Close Workspace" : "Delete Workspace"}
+						{workspaceType === "branch"
+							? "Close Workspace"
+							: "Delete Workspace"}
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{isLoading ? (

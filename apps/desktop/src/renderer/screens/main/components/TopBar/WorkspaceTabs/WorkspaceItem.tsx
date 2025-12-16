@@ -73,7 +73,10 @@ export function WorkspaceItem({
 			// For branch workspaces, only show dialog if there are active terminals
 			// (no destructive action - branch stays in repo)
 			if (isBranch) {
-				if (canDeleteData?.activeTerminalCount && canDeleteData.activeTerminalCount > 0) {
+				if (
+					canDeleteData?.activeTerminalCount &&
+					canDeleteData.activeTerminalCount > 0
+				) {
 					setShowDeleteDialog(true);
 				} else {
 					// Close directly without confirmation

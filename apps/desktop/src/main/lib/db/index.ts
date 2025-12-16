@@ -16,7 +16,10 @@ function migrateWorkspaceFields(db: DB): boolean {
 
 	for (const workspace of db.data.workspaces) {
 		// Cast to check for missing fields (old schema)
-		const ws = workspace as Partial<Workspace> & { id: string; worktreeId?: string };
+		const ws = workspace as Partial<Workspace> & {
+			id: string;
+			worktreeId?: string;
+		};
 
 		// If type is missing, this is a pre-existing worktree workspace
 		if (!ws.type) {
@@ -82,7 +85,9 @@ function cleanupDuplicateBranchWorkspaces(db: DB): boolean {
 		const lastActiveId = db.data.settings.lastActiveWorkspaceId;
 		if (lastActiveId && idsToRemove.includes(lastActiveId)) {
 			// Find which project this was for and use the kept workspace
-			const removedWorkspace = db.data.workspaces.find((w) => w.id === lastActiveId);
+			const removedWorkspace = db.data.workspaces.find(
+				(w) => w.id === lastActiveId,
+			);
 			if (removedWorkspace) {
 				const keptForProject = db.data.workspaces.find(
 					(w) =>
@@ -90,7 +95,8 @@ function cleanupDuplicateBranchWorkspaces(db: DB): boolean {
 						w.type === "branch" &&
 						keptWorkspaceIds.includes(w.id),
 				);
-				db.data.settings.lastActiveWorkspaceId = keptForProject?.id ?? undefined;
+				db.data.settings.lastActiveWorkspaceId =
+					keptForProject?.id ?? undefined;
 				console.log(
 					`[migration] Updated lastActiveWorkspaceId from removed workspace to ${keptForProject?.id ?? "undefined"}`,
 				);
@@ -116,7 +122,10 @@ export async function initDb(): Promise<void> {
 	// Run migrations
 	const migrations = [
 		{ name: "workspace fields", fn: migrateWorkspaceFields },
-		{ name: "duplicate branch workspaces", fn: cleanupDuplicateBranchWorkspaces },
+		{
+			name: "duplicate branch workspaces",
+			fn: cleanupDuplicateBranchWorkspaces,
+		},
 	];
 
 	let needsWrite = false;

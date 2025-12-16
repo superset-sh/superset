@@ -101,11 +101,12 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 			.map((w) => [w.branch, w.id]),
 	);
 
-	const switchBranchWorkspace = trpc.workspaces.switchBranchWorkspace.useMutation({
-		onSuccess: () => {
-			utils.workspaces.invalidate();
-		},
-	});
+	const switchBranchWorkspace =
+		trpc.workspaces.switchBranchWorkspace.useMutation({
+			onSuccess: () => {
+				utils.workspaces.invalidate();
+			},
+		});
 
 	// Combine and dedupe branches, with main/master at top
 	const allBranches = branches
@@ -426,7 +427,8 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 								) : (
 									visibleBranches.map((branch) => {
 										const isActive = activeWorkspace?.branch === branch;
-										const hasWorktreeWorkspace = worktreeWorkspaceMap.has(branch);
+										const hasWorktreeWorkspace =
+											worktreeWorkspaceMap.has(branch);
 										const isMainBranch =
 											branch === "main" || branch === "master";
 
@@ -435,7 +437,10 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 												type="button"
 												key={branch}
 												onClick={() => handleBranchClick(branch)}
-												disabled={createBranchWorkspace.isPending || switchBranchWorkspace.isPending}
+												disabled={
+													createBranchWorkspace.isPending ||
+													switchBranchWorkspace.isPending
+												}
 												className={`
 													w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors
 													flex items-center gap-2
