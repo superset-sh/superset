@@ -75,7 +75,7 @@ export function FileItem({
 				<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
 					{statusIndicator}
 				</span>
-				<span className="flex-1 min-w-0 text-xs truncate overflow-hidden text-ellipsis">
+				<span className="flex-1 min-w-0 text-xs text-start truncate overflow-hidden text-ellipsis">
 					{fileName}
 				</span>
 
