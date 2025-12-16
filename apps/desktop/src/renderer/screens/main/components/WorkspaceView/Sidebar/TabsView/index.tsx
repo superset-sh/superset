@@ -64,7 +64,11 @@ export function TabsView() {
 
 		// If there's an active tab, add a pane to it instead of creating a new tab
 		if (activeTabId) {
-			addPane(activeTabId);
+			const paneId = addPane(activeTabId);
+			// Fall back to creating a new tab if the active tab no longer exists
+			if (!paneId) {
+				addTab(activeWorkspaceId);
+			}
 		} else {
 			addTab(activeWorkspaceId);
 		}
@@ -82,11 +86,19 @@ export function TabsView() {
 		const presetOptions = {
 			initialCommands: preset.commands,
 			initialCwd: preset.cwd || undefined,
+			name: preset.name || undefined,
 		};
 
 		// If there's an active tab, add a pane to it instead of creating a new tab
 		if (activeTabId) {
-			addPane(activeTabId, presetOptions);
+			const paneId = addPane(activeTabId, presetOptions);
+			// Fall back to creating a new tab if the active tab no longer exists
+			if (!paneId) {
+				const { tabId } = addTab(activeWorkspaceId, presetOptions);
+				if (preset.name) {
+					renameTab(tabId, preset.name);
+				}
+			}
 		} else {
 			const { tabId } = addTab(activeWorkspaceId, presetOptions);
 			// Rename the tab to the preset name only when creating a new tab

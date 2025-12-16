@@ -26,6 +26,7 @@ export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 export interface AddTabOptions {
 	initialCommands?: string[];
 	initialCwd?: string;
+	name?: string;
 }
 
 /**
