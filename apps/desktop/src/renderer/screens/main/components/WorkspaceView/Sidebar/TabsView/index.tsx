@@ -1,5 +1,10 @@
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@superset/ui/tooltip";
 import { LayoutGroup, motion } from "framer-motion";
 import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
@@ -154,19 +159,33 @@ export function TabsView() {
 					</ButtonGroup>
 					{presets.length > 0 && (
 						<div className="ml-4 pl-1 space-y-0.5 mb-2 border-l-2">
-							{presets.map((preset) => (
-								<Button
-									key={preset.id}
-									variant="ghost"
-									onClick={() => handleSelectPreset(preset)}
-									disabled={!activeWorkspaceId}
-									className="w-full justify-start px-3 py-1.5 h-auto text-sm"
-									title={preset.cwd || undefined}
-								>
-									<HiMiniCommandLine className="size-4" />
-									<span className="truncate">{preset.name || "Unnamed"}</span>
-								</Button>
-							))}
+							{presets.map((preset) => {
+								const tooltipText = preset.description || preset.cwd;
+								const button = (
+									<Button
+										variant="ghost"
+										onClick={() => handleSelectPreset(preset)}
+										disabled={!activeWorkspaceId}
+										className="w-full justify-start px-3 py-1.5 h-auto text-sm"
+									>
+										<HiMiniCommandLine className="size-4" />
+										<span className="truncate">{preset.name || "default"}</span>
+									</Button>
+								);
+
+								if (tooltipText) {
+									return (
+										<Tooltip key={preset.id} delayDuration={300}>
+											<TooltipTrigger asChild>{button}</TooltipTrigger>
+											<TooltipContent side="right">
+												{tooltipText}
+											</TooltipContent>
+										</Tooltip>
+									);
+								}
+
+								return <div key={preset.id}>{button}</div>;
+							})}
 						</div>
 					)}
 					<TabsCommandDialog

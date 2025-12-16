@@ -99,6 +99,7 @@ export type ExternalApp = (typeof EXTERNAL_APPS)[number];
 export interface TerminalPreset {
 	id: string;
 	name: string;
+	description?: string;
 	cwd: string;
 	commands: string[];
 }

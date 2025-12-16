@@ -50,12 +50,18 @@ export function TabsCommandDialog({
 							>
 								<HiMiniCommandLine className="size-4" />
 								<span className="flex-1 truncate">
-									{preset.name || "Unnamed Preset"}
+									{preset.name || "default"}
 								</span>
-								{preset.cwd && (
-									<span className="text-xs text-muted-foreground font-mono">
-										{preset.cwd}
+								{preset.description ? (
+									<span className="text-xs text-muted-foreground truncate max-w-[200px]">
+										{preset.description}
 									</span>
+								) : (
+									preset.cwd && (
+										<span className="text-xs text-muted-foreground font-mono">
+											{preset.cwd}
+										</span>
+									)
 								)}
 							</CommandItem>
 						))}

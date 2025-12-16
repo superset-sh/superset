@@ -1,3 +1,4 @@
+import type { TerminalPreset } from "main/lib/db/schemas";
 import { db } from "main/lib/db";
 import { nanoid } from "nanoid";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -7,20 +8,57 @@ import { publicProcedure, router } from "../..";
 /** Valid ringtone IDs for validation */
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
+/** Default presets to load when no presets exist */
+const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
+	{
+		name: "codex",
+		description: "Danger mode: All file/command permissions auto-approved",
+		cwd: "",
+		commands: [
+			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+		],
+	},
+	{
+		name: "claude",
+		description: "Danger mode: All file/command permissions auto-approved",
+		cwd: "",
+		commands: ["claude --dangerously-skip-permissions"],
+	},
+];
+
 export const createSettingsRouter = () => {
 	return router({
 		getLastUsedApp: publicProcedure.query(() => {
 			return db.data.settings.lastUsedApp ?? "cursor";
 		}),
 
-		getTerminalPresets: publicProcedure.query(() => {
-			return db.data.settings.terminalPresets ?? [];
+		getTerminalPresets: publicProcedure.query(async () => {
+			const existingPresets = db.data.settings.terminalPresets;
+
+			// If no presets exist, initialize with defaults
+			if (!existingPresets || existingPresets.length === 0) {
+				const defaultPresetsWithIds: TerminalPreset[] = DEFAULT_PRESETS.map(
+					(preset) => ({
+						id: nanoid(),
+						...preset,
+					}),
+				);
+
+				await db.update((data) => {
+					data.settings.terminalPresets = defaultPresetsWithIds;
+				});
+
+				return defaultPresetsWithIds;
+			}
+
+			return existingPresets;
 		}),
 
 		createTerminalPreset: publicProcedure
 			.input(
 				z.object({
 					name: z.string(),
+					description: z.string().optional(),
 					cwd: z.string(),
 					commands: z.array(z.string()),
 				}),
@@ -47,6 +85,7 @@ export const createSettingsRouter = () => {
 					id: z.string(),
 					patch: z.object({
 						name: z.string().optional(),
+						description: z.string().optional(),
 						cwd: z.string().optional(),
 						commands: z.array(z.string()).optional(),
 					}),
@@ -62,6 +101,8 @@ export const createSettingsRouter = () => {
 					}
 
 					if (input.patch.name !== undefined) preset.name = input.patch.name;
+					if (input.patch.description !== undefined)
+						preset.description = input.patch.description;
 					if (input.patch.cwd !== undefined) preset.cwd = input.patch.cwd;
 					if (input.patch.commands !== undefined)
 						preset.commands = input.patch.commands;
