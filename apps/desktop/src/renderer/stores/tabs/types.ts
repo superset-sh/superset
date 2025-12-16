@@ -1,5 +1,6 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { BaseTab, BaseTabsState, Pane, PaneType } from "shared/tabs-types";
+import type { CreatePaneOptions } from "./utils";
 
 // Re-export shared types
 export type { Pane, PaneType };
@@ -51,7 +52,7 @@ export interface TabsStore extends TabsState {
 	updateTabLayout: (tabId: string, layout: MosaicNode<string>) => void;
 
 	// Pane operations
-	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addPane: (tabId: string, options?: CreatePaneOptions) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
