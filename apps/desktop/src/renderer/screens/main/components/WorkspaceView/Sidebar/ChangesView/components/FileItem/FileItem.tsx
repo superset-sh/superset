@@ -58,7 +58,7 @@ export function FileItem({
 	return (
 		<div
 			className={cn(
-				"group w-full flex items-stretch gap-1.5 px-2 text-left rounded-sm",
+				"group w-full flex items-stretch gap-1.5 px-1 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
 				isSelected && "bg-accent",
 			)}
@@ -75,24 +75,25 @@ export function FileItem({
 				<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
 					{statusIndicator}
 				</span>
-				<span className="flex-1 min-w-0 max-w-[160px] text-xs text-start truncate overflow-hidden text-ellipsis">
-					{fileName}
+				<span className="flex-1 min-w-0 flex items-center gap-1">
+					<span className="max-w-[130px] xl:max-w-[150px] text-xs text-start truncate overflow-hidden text-ellipsis">
+						{fileName}
+					</span>
+					{showStatsDisplay && (
+						<span className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+							{file.additions > 0 && (
+								<span className="text-green-600 dark:text-green-400">
+									+{file.additions}
+								</span>
+							)}
+							{file.deletions > 0 && (
+								<span className="text-red-600 dark:text-red-400">
+									-{file.deletions}
+								</span>
+							)}
+						</span>
+					)}
 				</span>
-
-				{showStatsDisplay && (
-					<div className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
-						{file.additions > 0 && (
-							<span className="text-green-600 dark:text-green-400">
-								+{file.additions}
-							</span>
-						)}
-						{file.deletions > 0 && (
-							<span className="text-red-600 dark:text-red-400">
-								-{file.deletions}
-							</span>
-						)}
-					</div>
-				)}
 			</button>
 
 			{hasAction && (
