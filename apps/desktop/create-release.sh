@@ -12,9 +12,10 @@
 # 1. Verify prerequisites (clean git, GitHub CLI authenticated)
 # 2. Delete existing release/tag if republishing same version
 # 3. Update package.json version
-# 4. Create and push a git tag to trigger the release workflow
-# 5. Monitor the GitHub Actions workflow in real-time
-# 6. Leave release as draft (default) or auto-publish with --publish flag
+# 4. Push changes and create a PR if not on main branch
+# 5. Create and push a git tag to trigger the release workflow
+# 6. Monitor the GitHub Actions workflow in real-time
+# 7. Leave release as draft (default) or auto-publish with --publish flag
 #
 # Features:
 # - Supports republishing: Running with same version will clean up and rebuild
@@ -180,11 +181,37 @@ else
     success "Committed version change"
 fi
 
-# 4. Push changes
+# 4. Push changes and create PR if needed
 info "Pushing changes to remote..."
 CURRENT_BRANCH=$(git branch --show-current)
 git push origin "${CURRENT_BRANCH}"
 success "Changes pushed to ${CURRENT_BRANCH}"
+
+# Create PR if not on main branch
+MAIN_BRANCH="main"
+if [ "${CURRENT_BRANCH}" != "${MAIN_BRANCH}" ]; then
+    # Check if PR already exists for this branch
+    EXISTING_PR=$(gh pr list --head "${CURRENT_BRANCH}" --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+    if [ -n "$EXISTING_PR" ]; then
+        info "PR #${EXISTING_PR} already exists for branch ${CURRENT_BRANCH}"
+    else
+        info "Creating pull request..."
+        PR_URL=$(gh pr create \
+            --title "chore(desktop): bump version to ${VERSION}" \
+            --body "Bumps desktop app version to ${VERSION}.
+
+This PR was automatically created by the release script." \
+            --base "${MAIN_BRANCH}" \
+            --head "${CURRENT_BRANCH}" 2>&1)
+
+        if [ $? -eq 0 ]; then
+            success "Pull request created: ${PR_URL}"
+        else
+            warn "Could not create PR: ${PR_URL}"
+        fi
+    fi
+fi
 
 # 5. Create and push tag
 info "Creating tag ${TAG_NAME}..."

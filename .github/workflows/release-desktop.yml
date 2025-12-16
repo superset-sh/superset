@@ -57,6 +57,8 @@ jobs:
         run: bun run compile:app
 
       # Build the Electron app for macOS
+      # Uses --publish never to prevent electron-builder from creating its own release
+      # The release job handles GitHub release creation
       - name: Build Electron app
         working-directory: apps/desktop
         env:
@@ -66,8 +68,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run package
+        run: bun run package -- --publish never
 
       # Upload artifacts separately to avoid nested zips
       - name: Upload DMG artifact
