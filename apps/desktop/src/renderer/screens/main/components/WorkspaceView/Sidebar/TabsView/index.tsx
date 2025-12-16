@@ -1,10 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@superset/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LayoutGroup, motion } from "framer-motion";
 import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";

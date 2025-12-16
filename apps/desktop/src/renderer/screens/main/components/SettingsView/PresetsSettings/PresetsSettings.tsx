@@ -197,7 +197,9 @@ export function PresetsSettings() {
 								size="sm"
 								className="gap-1.5 text-xs h-7"
 								onClick={() => handleAddTemplate(template)}
-								title={alreadyAdded ? "Already added" : template.preset.description}
+								title={
+									alreadyAdded ? "Already added" : template.preset.description
+								}
 								disabled={alreadyAdded || createPreset.isPending}
 							>
 								{alreadyAdded ? (

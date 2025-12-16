@@ -1,5 +1,5 @@
-import type { TerminalPreset } from "main/lib/db/schemas";
 import { db } from "main/lib/db";
+import type { TerminalPreset } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
