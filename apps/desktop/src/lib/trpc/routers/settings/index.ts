@@ -35,8 +35,17 @@ export const createSettingsRouter = () => {
 		getTerminalPresets: publicProcedure.query(async () => {
 			const { terminalPresets, terminalPresetsInitialized } = db.data.settings;
 
-			// Only seed defaults once on first initialization
+			// Handle first-time initialization
 			if (!terminalPresetsInitialized) {
+				// If user already has presets (from before the flag existed), preserve them
+				if (terminalPresets && terminalPresets.length > 0) {
+					await db.update((data) => {
+						data.settings.terminalPresetsInitialized = true;
+					});
+					return terminalPresets;
+				}
+
+				// No existing presets - seed with defaults
 				const defaultPresetsWithIds: TerminalPreset[] = DEFAULT_PRESETS.map(
 					(preset) => ({
 						id: nanoid(),
