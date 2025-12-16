@@ -8,16 +8,17 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	checkNeedsRebase,
-	checkoutBranch,
 	createWorktree,
 	fetchDefaultBranch,
 	generateBranchName,
+	getCurrentBranch,
 	getDefaultBranch,
 	hasOriginRemote,
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	listBranches,
 	removeWorktree,
+	safeCheckoutBranch,
 	worktreeExists,
 } from "./utils/git";
 import { fetchGitHubPRStatus } from "./utils/github";
@@ -186,8 +187,8 @@ export const createWorkspacesRouter = () => {
 					);
 				}
 
-				// Checkout the branch in the main repo
-				await checkoutBranch(project.mainRepoPath, input.branch);
+				// Checkout the branch in the main repo (with safety checks)
+				await safeCheckoutBranch(project.mainRepoPath, input.branch);
 
 				const projectWorkspaces = db.data.workspaces.filter(
 					(w) => w.projectId === input.projectId,
@@ -271,18 +272,18 @@ export const createWorkspacesRouter = () => {
 					throw new Error("No branch workspace found for this project");
 				}
 
-				// Checkout the new branch (terminals continue running on the new branch)
-				await checkoutBranch(project.mainRepoPath, input.branch);
+				// Checkout the new branch with safety checks (terminals continue running on the new branch)
+				await safeCheckoutBranch(project.mainRepoPath, input.branch);
 
 				// Send newline to terminals so their prompts refresh with new branch
 				terminalManager.refreshPromptsForWorkspace(workspace.id);
 
-				// Update the workspace
+				// Update the workspace - preserve custom name (alias), only update branch
 				await db.update((data) => {
 					const ws = data.workspaces.find((w) => w.id === workspace.id);
 					if (ws) {
 						ws.branch = input.branch;
-						ws.name = input.branch;
+						// Note: intentionally NOT resetting ws.name to preserve user's custom alias
 						ws.updatedAt = Date.now();
 						ws.lastOpenedAt = Date.now();
 					}
@@ -665,13 +666,15 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
 
-				// For branch workspaces, checkout the branch in the main repo
+				// For branch workspaces, checkout the branch in the main repo with safety checks
 				if (workspace.type === "branch" && workspace.branch) {
 					const project = db.data.projects.find(
 						(p) => p.id === workspace.projectId,
 					);
 					if (project) {
-						await checkoutBranch(project.mainRepoPath, workspace.branch);
+						await safeCheckoutBranch(project.mainRepoPath, workspace.branch);
+						// Refresh terminal prompts to show the new branch
+						terminalManager.refreshPromptsForWorkspace(workspace.id);
 					}
 				}
 
@@ -736,26 +739,6 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Workspace ${input.workspaceId} not found`);
 				}
 
-				// Branch type workspaces don't need rebase checks
-				if (workspace.type === "branch") {
-					return {
-						gitStatus: {
-							branch: workspace.branch,
-							needsRebase: false,
-							lastRefreshed: Date.now(),
-						},
-					};
-				}
-
-				const worktree = workspace.worktreeId
-					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
-					: null;
-				if (!worktree) {
-					throw new Error(
-						`Worktree for workspace ${input.workspaceId} not found`,
-					);
-				}
-
 				const project = db.data.projects.find(
 					(p) => p.id === workspace.projectId,
 				);
@@ -772,6 +755,42 @@ export const createWorkspacesRouter = () => {
 						const p = data.projects.find((p) => p.id === project.id);
 						if (p) p.defaultBranch = defaultBranch;
 					});
+				}
+
+				// Branch type workspaces: use mainRepoPath for git status
+				if (workspace.type === "branch") {
+					// Fetch default branch to get latest
+					try {
+						await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+					} catch {
+						// Ignore fetch errors (e.g., offline)
+					}
+
+					// Get current branch from HEAD
+					const currentBranch = await getCurrentBranch(project.mainRepoPath);
+
+					// Check if branch is behind origin/{defaultBranch}
+					const needsRebase = await checkNeedsRebase(
+						project.mainRepoPath,
+						defaultBranch,
+					);
+
+					return {
+						gitStatus: {
+							branch: currentBranch ?? workspace.branch,
+							needsRebase,
+							lastRefreshed: Date.now(),
+						},
+					};
+				}
+
+				const worktree = workspace.worktreeId
+					? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
+					: null;
+				if (!worktree) {
+					throw new Error(
+						`Worktree for workspace ${input.workspaceId} not found`,
+					);
 				}
 
 				// Fetch default branch to get latest
@@ -816,6 +835,16 @@ export const createWorkspacesRouter = () => {
 						(p) => p.id === workspace.projectId,
 					);
 					if (!project) return null;
+
+					// Verify HEAD is on the expected branch before fetching PR status
+					const currentBranch = await getCurrentBranch(project.mainRepoPath);
+					if (currentBranch !== workspace.branch) {
+						console.warn(
+							`[getGitHubStatus] Branch mismatch: workspace expects "${workspace.branch}" but HEAD is on "${currentBranch ?? "detached HEAD"}"`,
+						);
+						// Still fetch status but log warning - the PR status returned
+						// will be for whatever branch HEAD is actually on
+					}
 
 					return fetchGitHubPRStatus(project.mainRepoPath);
 				}

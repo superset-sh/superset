@@ -481,6 +481,89 @@ export async function listBranches(
  * @param repoPath - Path to the repository
  * @param branch - The branch name to checkout
  */
+/**
+ * Result of pre-checkout safety checks
+ */
+export interface CheckoutSafetyResult {
+	safe: boolean;
+	error?: string;
+	hasUncommittedChanges?: boolean;
+	hasUntrackedFiles?: boolean;
+}
+
+/**
+ * Performs safety checks before a branch checkout:
+ * 1. Checks for uncommitted changes (staged/unstaged)
+ * 2. Checks for untracked files that might be overwritten
+ * 3. Runs git fetch --prune to clean up stale remote refs
+ * @param repoPath - Path to the repository
+ * @returns Safety check result indicating if checkout is safe
+ */
+export async function checkBranchCheckoutSafety(
+	repoPath: string,
+): Promise<CheckoutSafetyResult> {
+	const git = simpleGit(repoPath);
+
+	try {
+		// Check for uncommitted changes
+		const status = await git.status();
+
+		const hasUncommittedChanges =
+			status.staged.length > 0 ||
+			status.modified.length > 0 ||
+			status.deleted.length > 0;
+
+		const hasUntrackedFiles = status.not_added.length > 0;
+
+		if (hasUncommittedChanges) {
+			return {
+				safe: false,
+				error:
+					"Cannot switch branches: you have uncommitted changes. Please commit or stash your changes first.",
+				hasUncommittedChanges: true,
+				hasUntrackedFiles,
+			};
+		}
+
+		// Fetch and prune stale remote refs (best-effort)
+		try {
+			await git.fetch(["--prune"]);
+		} catch {
+			// Ignore fetch errors (e.g., offline) - not critical for safety
+		}
+
+		return {
+			safe: true,
+			hasUncommittedChanges: false,
+			hasUntrackedFiles,
+		};
+	} catch (error) {
+		return {
+			safe: false,
+			error: `Failed to check repository status: ${error instanceof Error ? error.message : String(error)}`,
+		};
+	}
+}
+
+/**
+ * Gets the current branch name (HEAD)
+ * @param repoPath - Path to the repository
+ * @returns The current branch name, or null if in detached HEAD state
+ */
+export async function getCurrentBranch(
+	repoPath: string,
+): Promise<string | null> {
+	const git = simpleGit(repoPath);
+	try {
+		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+		const trimmed = branch.trim();
+		// "HEAD" means detached HEAD state
+		return trimmed === "HEAD" ? null : trimmed;
+	} catch {
+		return null;
+	}
+}
+
 export async function checkoutBranch(
 	repoPath: string,
 	branch: string,
@@ -505,4 +588,33 @@ export async function checkoutBranch(
 
 	// Branch doesn't exist anywhere - let git checkout fail with its normal error
 	await git.checkout(branch);
+}
+
+/**
+ * Safe branch checkout that performs safety checks first.
+ * This is the preferred method for branch workspaces.
+ * @param repoPath - Path to the repository
+ * @param branch - Branch to checkout
+ * @throws Error if safety checks fail or checkout fails
+ */
+export async function safeCheckoutBranch(
+	repoPath: string,
+	branch: string,
+): Promise<void> {
+	// Run safety checks first
+	const safety = await checkBranchCheckoutSafety(repoPath);
+	if (!safety.safe) {
+		throw new Error(safety.error);
+	}
+
+	// Proceed with checkout
+	await checkoutBranch(repoPath, branch);
+
+	// Verify we landed on the correct branch
+	const currentBranch = await getCurrentBranch(repoPath);
+	if (currentBranch !== branch) {
+		throw new Error(
+			`Branch checkout verification failed: expected "${branch}" but HEAD is on "${currentBranch ?? "detached HEAD"}"`,
+		);
+	}
 }
