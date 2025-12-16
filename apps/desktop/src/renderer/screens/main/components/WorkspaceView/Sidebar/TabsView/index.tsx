@@ -14,6 +14,10 @@ import {
 	HiMiniEllipsisHorizontal,
 	HiMiniPlus,
 } from "react-icons/hi2";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
@@ -44,6 +48,7 @@ export function TabsView() {
 	const containerRef = useRef<HTMLElement>(null);
 
 	const { presets } = usePresets();
+	const isDark = useIsDarkTheme();
 
 	const tabs = useMemo(
 		() =>
@@ -161,6 +166,7 @@ export function TabsView() {
 						<div className="ml-4 pl-1 space-y-0.5 mb-2 border-l-2">
 							{presets.map((preset) => {
 								const tooltipText = preset.description || preset.cwd;
+								const presetIcon = getPresetIcon(preset.name, isDark);
 								const button = (
 									<Button
 										variant="ghost"
@@ -168,7 +174,15 @@ export function TabsView() {
 										disabled={!activeWorkspaceId}
 										className="w-full justify-start px-3 py-1.5 h-auto text-sm"
 									>
-										<HiMiniCommandLine className="size-4" />
+										{presetIcon ? (
+											<img
+												src={presetIcon}
+												alt=""
+												className="size-4 object-contain"
+											/>
+										) : (
+											<HiMiniCommandLine className="size-4" />
+										)}
 										<span className="truncate">{preset.name || "default"}</span>
 									</Button>
 								);

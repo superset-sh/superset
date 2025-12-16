@@ -1,7 +1,10 @@
 import { Button } from "@superset/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
-import { LuSparkles } from "react-icons/lu";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
 import {
@@ -25,7 +28,7 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "codex",
 		preset: {
 			name: "codex",
-			description: "Danger mode: All file/command permissions auto-approved",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: [
 				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
@@ -36,7 +39,7 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "claude",
 		preset: {
 			name: "claude",
-			description: "Danger mode: All file/command permissions auto-approved",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: ["claude --dangerously-skip-permissions"],
 		},
@@ -45,7 +48,7 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "gemini",
 		preset: {
 			name: "gemini",
-			description: "Danger mode: All file/command permissions auto-approved",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: ["gemini --yolo"],
 		},
@@ -71,6 +74,7 @@ export function PresetsSettings() {
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
+	const isDark = useIsDarkTheme();
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
@@ -185,6 +189,7 @@ export function PresetsSettings() {
 					</span>
 					{PRESET_TEMPLATES.map((template) => {
 						const alreadyAdded = isTemplateAdded(template);
+						const presetIcon = getPresetIcon(template.name, isDark);
 						return (
 							<Button
 								key={template.name}
@@ -197,9 +202,13 @@ export function PresetsSettings() {
 							>
 								{alreadyAdded ? (
 									<HiOutlineCheck className="h-3 w-3" />
-								) : (
-									<LuSparkles className="h-3 w-3" />
-								)}
+								) : presetIcon ? (
+									<img
+										src={presetIcon}
+										alt=""
+										className="h-3 w-3 object-contain"
+									/>
+								) : null}
 								{template.name}
 							</Button>
 						);

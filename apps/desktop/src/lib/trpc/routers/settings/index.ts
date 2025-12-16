@@ -12,7 +12,7 @@ const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
 	{
 		name: "codex",
-		description: "Danger mode: All file/command permissions auto-approved",
+		description: "Danger mode: All permissions auto-approved",
 		cwd: "",
 		commands: [
 			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
@@ -20,7 +20,7 @@ const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
 	},
 	{
 		name: "claude",
-		description: "Danger mode: All file/command permissions auto-approved",
+		description: "Danger mode: All permissions auto-approved",
 		cwd: "",
 		commands: ["claude --dangerously-skip-permissions"],
 	},
@@ -33,10 +33,10 @@ export const createSettingsRouter = () => {
 		}),
 
 		getTerminalPresets: publicProcedure.query(async () => {
-			const existingPresets = db.data.settings.terminalPresets;
+			const { terminalPresets, terminalPresetsInitialized } = db.data.settings;
 
-			// If no presets exist, initialize with defaults
-			if (!existingPresets || existingPresets.length === 0) {
+			// Only seed defaults once on first initialization
+			if (!terminalPresetsInitialized) {
 				const defaultPresetsWithIds: TerminalPreset[] = DEFAULT_PRESETS.map(
 					(preset) => ({
 						id: nanoid(),
@@ -46,12 +46,13 @@ export const createSettingsRouter = () => {
 
 				await db.update((data) => {
 					data.settings.terminalPresets = defaultPresetsWithIds;
+					data.settings.terminalPresetsInitialized = true;
 				});
 
 				return defaultPresetsWithIds;
 			}
 
-			return existingPresets;
+			return terminalPresets ?? [];
 		}),
 
 		createTerminalPreset: publicProcedure
