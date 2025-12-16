@@ -12,6 +12,10 @@ import {
 	HiMiniPlus,
 	HiOutlineCog6Tooth,
 } from "react-icons/hi2";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 
 interface TabsCommandDialogProps {
 	open: boolean;
@@ -30,6 +34,8 @@ export function TabsCommandDialog({
 	presets,
 	onSelectPreset,
 }: TabsCommandDialogProps) {
+	const isDark = useIsDarkTheme();
+
 	return (
 		<CommandDialog open={open} onOpenChange={onOpenChange}>
 			<CommandInput placeholder="Type a command or search..." />
@@ -43,22 +49,39 @@ export function TabsCommandDialog({
 				</CommandGroup>
 				{presets.length > 0 && (
 					<CommandGroup heading="Presets">
-						{presets.map((preset) => (
-							<CommandItem
-								key={preset.id}
-								onSelect={() => onSelectPreset(preset)}
-							>
-								<HiMiniCommandLine className="size-4" />
-								<span className="flex-1 truncate">
-									{preset.name || "Unnamed Preset"}
-								</span>
-								{preset.cwd && (
-									<span className="text-xs text-muted-foreground font-mono">
-										{preset.cwd}
+						{presets.map((preset) => {
+							const presetIcon = getPresetIcon(preset.name, isDark);
+							return (
+								<CommandItem
+									key={preset.id}
+									onSelect={() => onSelectPreset(preset)}
+								>
+									{presetIcon ? (
+										<img
+											src={presetIcon}
+											alt=""
+											className="size-4 object-contain"
+										/>
+									) : (
+										<HiMiniCommandLine className="size-4" />
+									)}
+									<span className="flex-1 truncate">
+										{preset.name || "default"}
 									</span>
-								)}
-							</CommandItem>
-						))}
+									{preset.description ? (
+										<span className="text-xs text-muted-foreground truncate max-w-[200px]">
+											{preset.description}
+										</span>
+									) : (
+										preset.cwd && (
+											<span className="text-xs text-muted-foreground font-mono">
+												{preset.cwd}
+											</span>
+										)
+									)}
+								</CommandItem>
+							);
+						})}
 					</CommandGroup>
 				)}
 				<CommandGroup heading="Settings">

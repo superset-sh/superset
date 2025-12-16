@@ -14,6 +14,11 @@ export interface PresetColumnConfig {
 export const PRESET_COLUMNS: PresetColumnConfig[] = [
 	{ key: "name", label: "Name", placeholder: "e.g. Dev Server" },
 	{
+		key: "description",
+		label: "Description",
+		placeholder: "e.g. Starts the dev server (optional)",
+	},
+	{
 		key: "cwd",
 		label: "CWD",
 		placeholder: "e.g. ./src (optional)",

@@ -29,6 +29,15 @@ Prerequisites:
 git clone https://github.com/superset-sh/superset.git
 ```
 
+3. Set up environment variables
+```bash
+cp .env.example .env
+```
+Then edit `.env` and fill in the required values:
+- **Neon Database**: `DATABASE_URL`, `DATABASE_URL_UNPOOLED` (required for database features)
+- **Clerk Auth**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (required for authentication)
+- **Optional**: Neon org credentials, PostHog analytics, Blob storage
+
 Install dependencies:
 ```bash
 bun install

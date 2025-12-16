@@ -1,7 +1,10 @@
 import { Button } from "@superset/ui/button";
 import { useEffect, useMemo, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
-import { LuSparkles } from "react-icons/lu";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
 import {
@@ -12,9 +15,9 @@ import {
 
 interface PresetTemplate {
 	name: string;
-	description: string;
 	preset: {
 		name: string;
+		description: string;
 		cwd: string;
 		commands: string[];
 	};
@@ -22,19 +25,10 @@ interface PresetTemplate {
 
 const PRESET_TEMPLATES: PresetTemplate[] = [
 	{
-		name: "Claude (Danger Mode)",
-		description: "Claude Code with permissions auto-approved",
+		name: "codex",
 		preset: {
-			name: "Claude Danger",
-			cwd: "",
-			commands: ["claude --dangerously-skip-permissions"],
-		},
-	},
-	{
-		name: "Codex (Danger Mode)",
-		description: "OpenAI Codex with full sandbox access and high reasoning",
-		preset: {
-			name: "Codex Danger",
+			name: "codex",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: [
 				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
@@ -42,19 +36,28 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		},
 	},
 	{
-		name: "Gemini CLI (YOLO)",
-		description: "Google Gemini CLI with auto-approve all actions",
+		name: "claude",
 		preset: {
-			name: "Gemini YOLO",
+			name: "claude",
+			description: "Danger mode: All permissions auto-approved",
+			cwd: "",
+			commands: ["claude --dangerously-skip-permissions"],
+		},
+	},
+	{
+		name: "gemini",
+		preset: {
+			name: "gemini",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: ["gemini --yolo"],
 		},
 	},
 	{
-		name: "Cursor Agent",
-		description: "Cursor AI agent for terminal-based coding assistance",
+		name: "cursor-agent",
 		preset: {
-			name: "Cursor Agent",
+			name: "cursor-agent",
+			description: "Cursor AI agent for terminal-based coding assistance",
 			cwd: "",
 			commands: ["cursor-agent"],
 		},
@@ -71,6 +74,7 @@ export function PresetsSettings() {
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
+	const isDark = useIsDarkTheme();
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
@@ -185,6 +189,7 @@ export function PresetsSettings() {
 					</span>
 					{PRESET_TEMPLATES.map((template) => {
 						const alreadyAdded = isTemplateAdded(template);
+						const presetIcon = getPresetIcon(template.name, isDark);
 						return (
 							<Button
 								key={template.name}
@@ -192,14 +197,20 @@ export function PresetsSettings() {
 								size="sm"
 								className="gap-1.5 text-xs h-7"
 								onClick={() => handleAddTemplate(template)}
-								title={alreadyAdded ? "Already added" : template.description}
+								title={
+									alreadyAdded ? "Already added" : template.preset.description
+								}
 								disabled={alreadyAdded || createPreset.isPending}
 							>
 								{alreadyAdded ? (
 									<HiOutlineCheck className="h-3 w-3" />
-								) : (
-									<LuSparkles className="h-3 w-3" />
-								)}
+								) : presetIcon ? (
+									<img
+										src={presetIcon}
+										alt=""
+										className="h-3 w-3 object-contain"
+									/>
+								) : null}
 								{template.name}
 							</Button>
 						);

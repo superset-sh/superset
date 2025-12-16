@@ -16,6 +16,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "turbo dev --filter=@superset/desktop",
+		"dev:app": "turbo dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop",
 		"dev:all": "turbo dev",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:blog": "turbo dev --filter=@superset/blog",
