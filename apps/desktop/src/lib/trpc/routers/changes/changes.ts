@@ -1,4 +1,4 @@
-import { readFile, rm } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
 	ChangedFile,
@@ -399,6 +399,26 @@ export const createChangesRouter = () => {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					throw new Error(`Failed to delete untracked path: ${message}`);
+				}
+			}),
+
+		saveFile: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					filePath: z.string(),
+					content: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const fullPath = join(input.worktreePath, input.filePath);
+				try {
+					await writeFile(fullPath, input.content, "utf-8");
+					return { success: true };
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : String(error);
+					throw new Error(`Failed to save file: ${message}`);
 				}
 			}),
 	});

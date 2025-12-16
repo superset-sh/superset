@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import { DiffToolbar } from "./components/DiffToolbar";
@@ -13,8 +13,9 @@ export function ChangesContent() {
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
+	const utils = trpc.useUtils();
 
-	const { viewMode, setViewMode, baseBranch, getSelectedFile } =
+	const { viewMode, setViewMode, baseBranch, getSelectedFile, selectFile } =
 		useChangesStore();
 
 	const selectedFileState = getSelectedFile(worktreePath || "");
@@ -52,8 +53,32 @@ export function ChangesContent() {
 		filePath: selectedFile?.path,
 	});
 
+	const saveFileMutation = trpc.changes.saveFile.useMutation({
+		onSuccess: () => {
+			// Switch to unstaged view if saving from staged (edits become unstaged changes)
+			if (selectedCategory === "staged" && worktreePath && selectedFile) {
+				selectFile(worktreePath, selectedFile, "unstaged", null);
+			}
+			utils.changes.getFileContents.invalidate();
+			utils.changes.getStatus.invalidate();
+		},
+	});
+
+	const handleSave = useCallback(
+		(content: string) => {
+			if (!worktreePath || !selectedFile) return;
+			saveFileMutation.mutate({
+				worktreePath,
+				filePath: selectedFile.path,
+				content,
+			});
+		},
+		[worktreePath, selectedFile, saveFileMutation],
+	);
+
 	const isUnstaged = selectedCategory === "unstaged";
 	const isStaged = selectedCategory === "staged";
+	const isEditable = isUnstaged || isStaged;
 
 	const handleDiscard = () => {
 		if (!worktreePath || !selectedFile) return;
@@ -119,9 +144,16 @@ export function ChangesContent() {
 						onUnstage={isStaged ? unstage : undefined}
 						onDiscard={isUnstaged ? handleDiscard : undefined}
 						isActioning={isPending}
+						isEditable={isEditable}
+						isSaving={saveFileMutation.isPending}
 					/>
 					<div className="flex-1">
-						<DiffViewer contents={contents} viewMode={viewMode} />
+						<DiffViewer
+							contents={contents}
+							viewMode={viewMode}
+							editable={isEditable}
+							onSave={handleSave}
+						/>
 					</div>
 				</div>
 			</div>

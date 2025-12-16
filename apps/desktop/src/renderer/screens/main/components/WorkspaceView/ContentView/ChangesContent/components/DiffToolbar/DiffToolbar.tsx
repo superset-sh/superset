@@ -1,9 +1,11 @@
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import {
 	HiMiniArrowsRightLeft,
 	HiMiniListBullet,
 	HiMiniMinus,
+	HiMiniPencil,
 	HiMiniPlus,
 	HiMiniTrash,
 } from "react-icons/hi2";
@@ -17,6 +19,8 @@ interface DiffToolbarProps {
 	onUnstage?: () => void;
 	onDiscard?: () => void;
 	isActioning?: boolean;
+	isEditable?: boolean;
+	isSaving?: boolean;
 }
 
 export function DiffToolbar({
@@ -27,6 +31,8 @@ export function DiffToolbar({
 	onUnstage,
 	onDiscard,
 	isActioning = false,
+	isEditable = false,
+	isSaving = false,
 }: DiffToolbarProps) {
 	const canStage = category === "unstaged";
 	const canUnstage = category === "staged";
@@ -34,24 +40,34 @@ export function DiffToolbar({
 
 	return (
 		<div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-			<ToggleGroup
-				type="single"
-				value={viewMode}
-				onValueChange={(value) => {
-					if (value) onViewModeChange(value as DiffViewMode);
-				}}
-				variant="outline"
-				size="sm"
-			>
-				<ToggleGroupItem value="side-by-side" aria-label="Side by side view">
-					<HiMiniArrowsRightLeft className="w-4 h-4 mr-1.5" />
-					Side by Side
-				</ToggleGroupItem>
-				<ToggleGroupItem value="inline" aria-label="Inline view">
-					<HiMiniListBullet className="w-4 h-4 mr-1.5" />
-					Inline
-				</ToggleGroupItem>
-			</ToggleGroup>
+			<div className="flex items-center gap-3">
+				<ToggleGroup
+					type="single"
+					value={viewMode}
+					onValueChange={(value) => {
+						if (value) onViewModeChange(value as DiffViewMode);
+					}}
+					variant="outline"
+					size="sm"
+				>
+					<ToggleGroupItem value="side-by-side" aria-label="Side by side view">
+						<HiMiniArrowsRightLeft className="w-4 h-4 mr-1.5" />
+						Side by Side
+					</ToggleGroupItem>
+					<ToggleGroupItem value="inline" aria-label="Inline view">
+						<HiMiniListBullet className="w-4 h-4 mr-1.5" />
+						Inline
+					</ToggleGroupItem>
+				</ToggleGroup>
+
+				{isEditable && (
+					<Badge variant="secondary" className="gap-1 text-xs">
+						<HiMiniPencil className="w-3 h-3" />
+						{isSaving ? "Saving..." : "Editable"}
+						<span className="text-muted-foreground ml-1">⌘S to save</span>
+					</Badge>
+				)}
+			</div>
 
 			<div className="flex items-center gap-2">
 				{canStage && onStage && (
