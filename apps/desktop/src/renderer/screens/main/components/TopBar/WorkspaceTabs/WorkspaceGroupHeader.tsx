@@ -77,6 +77,7 @@ export function WorkspaceGroupHeader({
 					px-3 py-1 rounded-full
 					text-xs font-medium cursor-pointer select-none
 					transition-all shrink-0 no-drag
+					hover:brightness-110
 					${isDragging ? "opacity-30" : "opacity-100"}
 					${isOver ? "ring-2 ring-white/20" : ""}
 				`}
