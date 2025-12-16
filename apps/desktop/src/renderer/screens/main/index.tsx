@@ -6,6 +6,7 @@ import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
+import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
@@ -297,6 +298,7 @@ export function MainScreen() {
 				)}
 			</AppFrame>
 			<SetupConfigModal />
+			<NewWorkspaceModal />
 		</DndProvider>
 	);
 }
