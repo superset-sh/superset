@@ -16,7 +16,7 @@
 import { cpSync, existsSync, lstatSync, realpathSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
-const NATIVE_MODULES = ["node-pty"] as const;
+const NATIVE_MODULES = ["node-pty", "dugite"] as const;
 
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
@@ -42,12 +42,25 @@ function prepareNativeModules() {
 			// Remove the symlink
 			rmSync(modulePath);
 
-			// Copy the actual files
-			cpSync(realPath, modulePath, { recursive: true });
+			// Copy the actual files, dereferencing all internal symlinks.
+			// This is critical for dugite which has symlinks like git-apply -> git
+			// inside git/libexec/git-core/. Without dereference, those symlinks
+			// would still point to the Bun cache location.
+			cpSync(realPath, modulePath, { recursive: true, dereference: true });
 
 			console.log(`    Copied to: ${modulePath}`);
 		} else {
-			console.log(`  ${moduleName}: already real directory (not a symlink)`);
+			// Even if the module directory itself isn't a symlink, it may contain
+			// internal symlinks that need to be dereferenced. Re-copy with dereference.
+			console.log(
+				`  ${moduleName}: real directory, checking for internal symlinks`,
+			);
+			const tempPath = `${modulePath}.tmp`;
+			cpSync(modulePath, tempPath, { recursive: true, dereference: true });
+			rmSync(modulePath, { recursive: true });
+			cpSync(tempPath, modulePath, { recursive: true });
+			rmSync(tempPath, { recursive: true });
+			console.log(`    Re-copied with dereferenced symlinks`);
 		}
 	}
 

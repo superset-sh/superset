@@ -72,6 +72,7 @@ export default defineConfig({
 				external: [
 					"electron",
 					"node-pty", // Native module - must stay external
+					"dugite", // Must stay external so __dirname resolves correctly for git binary
 				],
 			},
 		},

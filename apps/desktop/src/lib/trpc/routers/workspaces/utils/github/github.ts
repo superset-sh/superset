@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "main/lib/db/schemas";
+import { getGitBinaryPath } from "main/lib/git-binary";
 import { branchExistsOnRemote } from "../git";
 import {
 	type GHPRResponse,
@@ -37,7 +38,7 @@ export async function fetchGitHubPRStatus(
 
 		// Get current branch name
 		const { stdout: branchOutput } = await execFileAsync(
-			"git",
+			getGitBinaryPath(),
 			["rev-parse", "--abbrev-ref", "HEAD"],
 			{ cwd: worktreePath },
 		);
