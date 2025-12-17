@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -30,8 +30,14 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
+	const panes = useTabsStore((s) => s.panes);
 	const needsAttention = useTabsStore((s) =>
 		Object.values(s.panes).some((p) => p.tabId === tab.id && p.needsAttention),
+	);
+
+	const paneCount = useMemo(
+		() => Object.values(panes).filter((p) => p.tabId === tab.id).length,
+		[panes, tab.id],
 	);
 
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -112,7 +118,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	return (
 		<div className="w-full">
 			<TabContextMenu
-				tab={tab}
+				paneCount={paneCount}
 				onClose={handleRemoveTab}
 				onRename={startRename}
 			>
