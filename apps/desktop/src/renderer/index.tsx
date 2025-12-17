@@ -1,7 +1,7 @@
-import { Toaster } from "@superset/ui/sonner";
 import React from "react";
 import ReactDom from "react-dom/client";
 
+import { ThemedToaster } from "./components/ThemedToaster";
 import { AppProviders } from "./contexts";
 import { AppRoutes } from "./routes";
 
@@ -11,7 +11,7 @@ ReactDom.createRoot(document.querySelector("app") as HTMLElement).render(
 	<React.StrictMode>
 		<AppProviders>
 			<AppRoutes />
-			<Toaster />
+			<ThemedToaster />
 		</AppProviders>
 	</React.StrictMode>,
 );
