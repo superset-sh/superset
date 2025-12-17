@@ -295,24 +295,46 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 
 /**
  * Detects the default branch of a repository by checking:
- * 1. Remote HEAD reference (origin/HEAD -> origin/main or origin/master)
- * 2. Common branch names (main, master, develop, trunk)
- * 3. Fallback to 'main'
+ * 1. Local origin/HEAD symbolic ref (if already fetched)
+ * 2. Remote HEAD reference via ls-remote (queries remote directly)
+ * 3. Common branch names from locally fetched branches (main, master, develop, trunk)
+ * 4. Fallback to 'main'
  */
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	const git = simpleGit(mainRepoPath);
 
-	// Method 1: Check origin/HEAD symbolic ref
+	// Method 1: Check local origin/HEAD symbolic ref (fast if available)
 	try {
 		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		// Returns something like 'refs/remotes/origin/main'
 		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
 		if (match) return match[1];
 	} catch {
-		// origin/HEAD not set, continue to fallback
+		// origin/HEAD not set locally, continue to query remote
 	}
 
-	// Method 2: Check which common branches exist on remote
+	// Method 2: Query remote directly using ls-remote --symref (works even if not fetched locally)
+	try {
+		const hasRemote = await hasOriginRemote(mainRepoPath);
+		if (hasRemote) {
+			// Use --symref to get the symbolic reference HEAD points to
+			const result = await git.raw([
+				"ls-remote",
+				"--symref",
+				"origin",
+				"HEAD",
+			]);
+			// Output format: "ref: refs/heads/develop\tHEAD\n<sha>\tHEAD"
+			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			if (symrefMatch) {
+				return symrefMatch[1];
+			}
+		}
+	} catch {
+		// Failed to query remote (might be offline or no network access)
+	}
+
+	// Method 3: Check which common branches exist on remote (from locally fetched refs)
 	try {
 		const branches = await git.branch(["-r"]);
 		const remoteBranches = branches.all.map((b) => b.replace("origin/", ""));
