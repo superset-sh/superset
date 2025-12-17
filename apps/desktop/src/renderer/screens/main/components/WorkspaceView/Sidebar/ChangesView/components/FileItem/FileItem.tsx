@@ -76,13 +76,21 @@ export function FileItem({
 					{statusIndicator}
 				</span>
 				<span className="flex-1 min-w-0 flex items-center gap-1">
-					<span className="max-w-[130px] xl:max-w-[150px] text-xs text-start truncate overflow-hidden text-ellipsis">
-						{fileName}
-					</span>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<span
+								className="text-xs text-start truncate overflow-hidden text-ellipsis"
+								title={file.path}
+							>
+								{fileName}
+							</span>
+						</TooltipTrigger>
+						<TooltipContent side="right">{file.path}</TooltipContent>
+					</Tooltip>
 					{showStatsDisplay && (
 						<span className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
 							{file.additions > 0 && (
-								<span className="text-green-600 dark:text-green-400">
+								<span className="text-green-600 dark:text-green-500">
 									+{file.additions}
 								</span>
 							)}

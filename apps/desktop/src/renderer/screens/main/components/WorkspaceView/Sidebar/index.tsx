@@ -10,7 +10,7 @@ export function Sidebar() {
 	const modes: SidebarMode[] = [SidebarMode.Tabs, SidebarMode.Changes];
 
 	return (
-		<aside className="h-full flex flex-col overflow-hidden max-w-[320px]">
+		<aside className="h-full flex flex-col overflow-hidden">
 			<ModeCarousel
 				modes={modes}
 				currentMode={currentMode}
