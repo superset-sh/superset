@@ -1,6 +1,7 @@
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
-import type { TerminalEscapeFilter } from "../terminal-escape-filter";
+import type { FastEscapeFilter } from "../fast-escape-filter";
+import type { ScrollbackBuffer } from "../scrollback-buffer";
 import type { HistoryWriter } from "../terminal-history";
 
 export interface TerminalSession {
@@ -11,12 +12,12 @@ export interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	scrollback: string;
+	scrollback: ScrollbackBuffer;
 	isAlive: boolean;
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
-	escapeFilter: TerminalEscapeFilter;
+	escapeFilter: FastEscapeFilter;
 	dataBatcher: DataBatcher;
 	shell: string;
 	startTime: number;
@@ -56,6 +57,6 @@ export interface CreateSessionParams {
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {
-	existingScrollback: string | null;
+	existingScrollback: ScrollbackBuffer | null;
 	useFallbackShell?: boolean;
 }

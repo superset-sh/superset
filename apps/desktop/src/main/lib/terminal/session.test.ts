@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
+import { FastEscapeFilter } from "../fast-escape-filter";
+import { ScrollbackBuffer } from "../scrollback-buffer";
 import { getHistoryDir } from "../terminal-history";
 import { flushSession, recoverScrollback } from "./session";
 import type { TerminalSession } from "./types";
@@ -8,13 +10,14 @@ import type { TerminalSession } from "./types";
 describe("session", () => {
 	describe("recoverScrollback", () => {
 		it("should return existing scrollback if provided", async () => {
+			const existingBuffer = ScrollbackBuffer.fromString("existing content");
 			const result = await recoverScrollback(
-				"existing content",
+				existingBuffer,
 				"workspace-1",
 				"pane-1",
 			);
 
-			expect(result.scrollback).toBe("existing content");
+			expect(result.scrollback.toString()).toBe("existing content");
 			expect(result.wasRecovered).toBe(true);
 		});
 
@@ -25,7 +28,7 @@ describe("session", () => {
 				"non-existent-pane",
 			);
 
-			expect(result.scrollback).toBe("");
+			expect(result.scrollback.toString()).toBe("");
 			expect(result.wasRecovered).toBe(false);
 		});
 
@@ -46,7 +49,7 @@ describe("session", () => {
 
 				expect(result.wasRecovered).toBe(true);
 				// Escape sequences should be filtered out
-				expect(result.scrollback).toBe("helloworld");
+				expect(result.scrollback.toString()).toBe("helloworld");
 			} finally {
 				// Cleanup
 				await fs.rm(historyDir, { recursive: true, force: true });
@@ -63,14 +66,15 @@ describe("session", () => {
 			await fs.writeFile(join(historyDir, "scrollback.bin"), "disk content");
 
 			try {
+				const existingBuffer = ScrollbackBuffer.fromString("memory content");
 				const result = await recoverScrollback(
-					"memory content",
+					existingBuffer,
 					workspaceId,
 					paneId,
 				);
 
 				// Should use the provided existing scrollback, not disk
-				expect(result.scrollback).toBe("memory content");
+				expect(result.scrollback.toString()).toBe("memory content");
 				expect(result.wasRecovered).toBe(true);
 			} finally {
 				await fs.rm(historyDir, { recursive: true, force: true });
@@ -93,11 +97,12 @@ describe("session", () => {
 			};
 
 			let historyWritten = "";
+			const scrollbackBuffer = ScrollbackBuffer.fromString("initial");
 
 			const mockSession = {
 				dataBatcher: mockDataBatcher,
 				escapeFilter: mockEscapeFilter,
-				scrollback: "initial",
+				scrollback: scrollbackBuffer,
 				historyWriter: {
 					write: (data: string) => {
 						historyWritten = data;
@@ -108,7 +113,7 @@ describe("session", () => {
 			flushSession(mockSession);
 
 			expect(flushedData).toBe("batcher disposed");
-			expect(mockSession.scrollback).toBe("initialremaining data");
+			expect(mockSession.scrollback.toString()).toBe("initialremaining data");
 			expect(historyWritten).toBe("remaining data");
 		});
 
@@ -121,17 +126,19 @@ describe("session", () => {
 				flush: () => "",
 			};
 
+			const scrollbackBuffer = ScrollbackBuffer.fromString("original");
+
 			const mockSession = {
 				dataBatcher: mockDataBatcher,
 				escapeFilter: mockEscapeFilter,
-				scrollback: "original",
+				scrollback: scrollbackBuffer,
 				historyWriter: null,
 			} as unknown as TerminalSession;
 
 			flushSession(mockSession);
 
 			// Scrollback should not be modified when flush returns empty
-			expect(mockSession.scrollback).toBe("original");
+			expect(mockSession.scrollback.toString()).toBe("original");
 		});
 	});
 });

@@ -2,24 +2,28 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
+import { FastEscapeFilter } from "../fast-escape-filter";
+import { ScrollbackBuffer } from "../scrollback-buffer";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
-	TerminalEscapeFilter,
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
+// ESC character for fast-path checks
+const ESC = "\x1b";
+
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 
 export async function recoverScrollback(
-	existingScrollback: string | null,
+	existingScrollback: ScrollbackBuffer | null,
 	workspaceId: string,
 	paneId: string,
-): Promise<{ scrollback: string; wasRecovered: boolean }> {
-	if (existingScrollback) {
+): Promise<{ scrollback: ScrollbackBuffer; wasRecovered: boolean }> {
+	if (existingScrollback && existingScrollback.length > 0) {
 		return { scrollback: existingScrollback, wasRecovered: true };
 	}
 
@@ -28,13 +32,16 @@ export async function recoverScrollback(
 
 	if (history.scrollback) {
 		// Strip protocol responses from recovered history
-		const recoveryFilter = new TerminalEscapeFilter();
+		const recoveryFilter = new FastEscapeFilter();
 		const filtered =
 			recoveryFilter.filter(history.scrollback) + recoveryFilter.flush();
-		return { scrollback: filtered, wasRecovered: true };
+		return {
+			scrollback: ScrollbackBuffer.fromString(filtered),
+			wasRecovered: true,
+		};
 	}
 
-	return { scrollback: "", wasRecovered: false };
+	return { scrollback: new ScrollbackBuffer(), wasRecovered: false };
 }
 
 function spawnPty(params: {
@@ -107,7 +114,10 @@ export async function createSession(
 		terminalCols,
 		terminalRows,
 	);
-	await historyWriter.init(recoveredScrollback || undefined);
+	// Pass string representation to history writer for persistence
+	const scrollbackStr =
+		recoveredScrollback.length > 0 ? recoveredScrollback.toString() : undefined;
+	await historyWriter.init(scrollbackStr);
 
 	const dataBatcher = new DataBatcher((batchedData) => {
 		onData(paneId, batchedData);
@@ -125,7 +135,7 @@ export async function createSession(
 		isAlive: true,
 		wasRecovered,
 		historyWriter,
-		escapeFilter: new TerminalEscapeFilter(),
+		escapeFilter: new FastEscapeFilter(),
 		dataBatcher,
 		shell,
 		startTime: Date.now(),
@@ -143,29 +153,39 @@ export function setupDataHandler(
 		!wasRecovered && initialCommands && initialCommands.length > 0;
 	let commandsSent = false;
 
-	// Separate stateful filter for display path - handles chunked CPR/DA/OSC responses
-	let displayEscapeFilter = new TerminalEscapeFilter();
-
 	session.pty.onData((data) => {
-		// Check for clear scrollback sequences (ESC[3J, ESC c)
-		const hasClear = containsClearScrollbackSequence(data);
-		if (hasClear) {
-			session.scrollback = "";
-			session.escapeFilter = new TerminalEscapeFilter();
-			displayEscapeFilter = new TerminalEscapeFilter();
-			onHistoryReinit().catch(() => {});
+		// Fast path: check if data contains any escape sequences
+		// Most plain text output has no ESC, so we can skip all filtering
+		const hasEsc = data.includes(ESC);
+
+		if (!hasEsc) {
+			// No escape sequences - skip all filtering, direct passthrough
+			session.dataBatcher.write(data);
+			session.scrollback.append(data);
+			session.historyWriter?.write(data);
+		} else {
+			// Slow path: data contains escape sequences, need to filter
+			// Check for clear scrollback sequences (ESC[3J, ESC c)
+			const hasClear = containsClearScrollbackSequence(data);
+			if (hasClear) {
+				session.scrollback.clear();
+				session.escapeFilter = new FastEscapeFilter();
+				onHistoryReinit().catch(() => {});
+			}
+
+			// Filter once: remove CPR/DA/OSC query responses but PRESERVE clear sequences
+			const filtered = session.escapeFilter.filter(data);
+
+			// Send filtered data to renderer (clear sequences preserved for visual clearing)
+			session.dataBatcher.write(filtered);
+
+			// For history: apply extractContentAfterClear to the already-filtered result
+			const dataForHistory = hasClear
+				? extractContentAfterClear(filtered)
+				: filtered;
+			session.scrollback.append(dataForHistory);
+			session.historyWriter?.write(dataForHistory);
 		}
-
-		// For history/scrollback: filter CPR/DA AND strip content before clear
-		const dataForHistory = hasClear ? extractContentAfterClear(data) : data;
-		const filteredForHistory = session.escapeFilter.filter(dataForHistory);
-		session.scrollback += filteredForHistory;
-		session.historyWriter?.write(filteredForHistory);
-
-		// For renderer: filter CPR/DA but PRESERVE clear sequences so terminal visually clears
-		// Uses separate stateful filter to handle chunked escape sequences
-		const filteredForDisplay = displayEscapeFilter.filter(data);
-		session.dataBatcher.write(filteredForDisplay);
 
 		if (shouldRunCommands && !commandsSent) {
 			commandsSent = true;
@@ -223,7 +243,7 @@ export function flushSession(session: TerminalSession): void {
 
 	const remaining = session.escapeFilter.flush();
 	if (remaining) {
-		session.scrollback += remaining;
+		session.scrollback.append(remaining);
 		session.historyWriter?.write(remaining);
 	}
 }

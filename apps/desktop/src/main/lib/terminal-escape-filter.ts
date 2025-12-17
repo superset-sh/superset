@@ -124,6 +124,12 @@ export class TerminalEscapeFilter {
 		const combined = this.buffer + data;
 		this.buffer = "";
 
+		// Fast path: if no ESC character in combined data, skip regex filtering entirely
+		// This significantly reduces CPU work for plain text bursts
+		if (!combined.includes(ESC)) {
+			return combined;
+		}
+
 		// Check if the data ends with a potential incomplete query response
 		const lastEscIndex = combined.lastIndexOf(ESC);
 
