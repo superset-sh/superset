@@ -4,6 +4,8 @@ import codexIcon from "./codex.svg";
 import codexWhiteIcon from "./codex-white.svg";
 import cursorIcon from "./cursor.svg";
 import geminiIcon from "./gemini.svg";
+import opencodeIcon from "./opencode.svg";
+import opencodeWhiteIcon from "./opencode-white.svg";
 
 interface PresetIconSet {
 	light: string;
@@ -15,6 +17,7 @@ const PRESET_ICONS: Record<string, PresetIconSet> = {
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	gemini: { light: geminiIcon, dark: geminiIcon },
 	"cursor-agent": { light: cursorIcon, dark: cursorIcon },
+	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
 };
 
 export function getPresetIcon(

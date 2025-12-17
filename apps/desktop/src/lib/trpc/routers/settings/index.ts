@@ -1,30 +1,10 @@
 import { db } from "main/lib/db";
-import type { TerminalPreset } from "main/lib/db/schemas";
 import { nanoid } from "nanoid";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-/** Valid ringtone IDs for validation */
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
-
-/** Default presets to load when no presets exist */
-const DEFAULT_PRESETS: Omit<TerminalPreset, "id">[] = [
-	{
-		name: "codex",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: [
-			'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
-		],
-	},
-	{
-		name: "claude",
-		description: "Danger mode: All permissions auto-approved",
-		cwd: "",
-		commands: ["claude --dangerously-skip-permissions"],
-	},
-];
 
 export const createSettingsRouter = () => {
 	return router({

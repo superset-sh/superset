@@ -62,6 +62,15 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 			commands: ["cursor-agent"],
 		},
 	},
+	{
+		name: "opencode",
+		preset: {
+			name: "opencode",
+			description: "OpenCode: Open source AI coding agent",
+			cwd: "",
+			commands: ["opencode"],
+		},
+	},
 ];
 
 export function PresetsSettings() {

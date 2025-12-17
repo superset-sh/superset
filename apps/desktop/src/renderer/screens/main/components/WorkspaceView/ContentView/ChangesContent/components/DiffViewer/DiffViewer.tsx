@@ -1,5 +1,5 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useRef } from "react";
 import { monaco, SUPERSET_THEME } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
@@ -39,12 +39,6 @@ export function DiffViewer({
 		},
 		[editable, handleSave],
 	);
-
-	useEffect(() => {
-		return () => {
-			modifiedEditorRef.current = null;
-		};
-	}, []);
 
 	return (
 		<div className="h-full w-full">
