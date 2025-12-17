@@ -31,39 +31,9 @@ export const createSettingsRouter = () => {
 		getLastUsedApp: publicProcedure.query(() => {
 			return db.data.settings.lastUsedApp ?? "cursor";
 		}),
-
-		getTerminalPresets: publicProcedure.query(async () => {
-			const { terminalPresets, terminalPresetsInitialized } = db.data.settings;
-
-			// Handle first-time initialization
-			if (!terminalPresetsInitialized) {
-				// If user already has presets (from before the flag existed), preserve them
-				if (terminalPresets && terminalPresets.length > 0) {
-					await db.update((data) => {
-						data.settings.terminalPresetsInitialized = true;
-					});
-					return terminalPresets;
-				}
-
-				// No existing presets - seed with defaults
-				const defaultPresetsWithIds: TerminalPreset[] = DEFAULT_PRESETS.map(
-					(preset) => ({
-						id: nanoid(),
-						...preset,
-					}),
-				);
-
-				await db.update((data) => {
-					data.settings.terminalPresets = defaultPresetsWithIds;
-					data.settings.terminalPresetsInitialized = true;
-				});
-
-				return defaultPresetsWithIds;
-			}
-
-			return terminalPresets ?? [];
+		getTerminalPresets: publicProcedure.query(() => {
+			return db.data.settings.terminalPresets ?? [];
 		}),
-
 		createTerminalPreset: publicProcedure
 			.input(
 				z.object({
