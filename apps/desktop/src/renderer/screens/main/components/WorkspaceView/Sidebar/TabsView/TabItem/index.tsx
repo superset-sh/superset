@@ -159,7 +159,9 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 												<span className="relative inline-flex size-2 rounded-full bg-red-500" />
 											</span>
 										</TooltipTrigger>
-										<TooltipContent side="right">Agent completed</TooltipContent>
+										<TooltipContent side="right">
+											Agent completed
+										</TooltipContent>
 									</Tooltip>
 								)}
 							</>
