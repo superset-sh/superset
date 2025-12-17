@@ -89,23 +89,25 @@ export function NewWorkspaceModal() {
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
 
-	const currentProject = recentProjects.find(
-		(p) => p.id === activeWorkspace?.projectId,
-	);
-	const otherProjects = recentProjects.filter(
-		(p) => p.id !== activeWorkspace?.projectId,
-	);
+	// Sort projects with current project first
+	const currentProjectId = activeWorkspace?.projectId;
+	const sortedProjects = [...recentProjects].sort((a, b) => {
+		if (a.id === currentProjectId) return -1;
+		if (b.id === currentProjectId) return 1;
+		return 0;
+	});
+
 	const visibleProjects = showAllProjects
-		? otherProjects
-		: otherProjects.slice(0, INITIAL_PROJECTS_LIMIT);
-	const hasMoreProjects = otherProjects.length > INITIAL_PROJECTS_LIMIT;
+		? sortedProjects
+		: sortedProjects.slice(0, INITIAL_PROJECTS_LIMIT);
+	const hasMoreProjects = sortedProjects.length > INITIAL_PROJECTS_LIMIT;
 
 	// Auto-select current project when modal opens
 	useEffect(() => {
-		if (isOpen && currentProject && !selectedProjectId) {
-			setSelectedProjectId(currentProject.id);
+		if (isOpen && currentProjectId && !selectedProjectId) {
+			setSelectedProjectId(currentProjectId);
 		}
-	}, [isOpen, currentProject, selectedProjectId]);
+	}, [isOpen, currentProjectId, selectedProjectId]);
 
 	// Auto-generate branch name from title (unless manually edited)
 	useEffect(() => {
@@ -210,7 +212,7 @@ export function NewWorkspaceModal() {
 
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="sm:max-w-md min-h-[500px] flex flex-col">
 				<DialogHeader>
 					<DialogTitle>New Workspace</DialogTitle>
 					<DialogDescription>
@@ -218,52 +220,37 @@ export function NewWorkspaceModal() {
 					</DialogDescription>
 				</DialogHeader>
 
-				<div className="space-y-4">
+				<div className="space-y-4 flex-1">
 					{/* Project Selection */}
 					<div className="space-y-2">
 						<Label className="text-xs text-muted-foreground uppercase tracking-wider">
 							Project
 						</Label>
-						<div className="space-y-1 max-h-48 overflow-y-auto">
-							{currentProject &&
+						<div className="space-y-1 max-h-64 overflow-y-auto">
+							{visibleProjects.map((project) =>
 								renderProjectButton(
-									currentProject,
-									selectedProjectId === currentProject.id,
-								)}
-							{otherProjects.length > 0 && (
-								<>
-									{currentProject && (
-										<div className="text-[10px] text-muted-foreground uppercase tracking-wider pt-2 pb-1">
-											Other projects
-										</div>
+									project,
+									selectedProjectId === project.id,
+								),
+							)}
+							{hasMoreProjects && (
+								<button
+									type="button"
+									onClick={() => setShowAllProjects(!showAllProjects)}
+									className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+								>
+									{showAllProjects ? (
+										<>
+											<HiChevronUp className="size-3" />
+											Show less
+										</>
+									) : (
+										<>
+											<HiChevronDown className="size-3" />
+											Show {sortedProjects.length - INITIAL_PROJECTS_LIMIT} more
+										</>
 									)}
-									{visibleProjects.map((project) =>
-										renderProjectButton(
-											project,
-											selectedProjectId === project.id,
-										),
-									)}
-									{hasMoreProjects && (
-										<button
-											type="button"
-											onClick={() => setShowAllProjects(!showAllProjects)}
-											className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-										>
-											{showAllProjects ? (
-												<>
-													<HiChevronUp className="size-3" />
-													Show less
-												</>
-											) : (
-												<>
-													<HiChevronDown className="size-3" />
-													Show {otherProjects.length - INITIAL_PROJECTS_LIMIT}{" "}
-													more
-												</>
-											)}
-										</button>
-									)}
-								</>
+								</button>
 							)}
 							<button
 								type="button"
