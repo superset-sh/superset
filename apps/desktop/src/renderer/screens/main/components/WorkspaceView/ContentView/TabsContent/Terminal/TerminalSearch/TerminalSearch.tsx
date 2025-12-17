@@ -149,30 +149,42 @@ export function TerminalSearch({
 					</TooltipTrigger>
 					<TooltipContent side="bottom">Match case</TooltipContent>
 				</Tooltip>
-				<button
-					type="button"
-					onClick={() => handleSearch("previous")}
-					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					title="Previous (Shift+Enter)"
-				>
-					<HiChevronUp className="size-3.5" />
-				</button>
-				<button
-					type="button"
-					onClick={() => handleSearch("next")}
-					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					title="Next (Enter)"
-				>
-					<HiChevronDown className="size-3.5" />
-				</button>
-				<button
-					type="button"
-					onClick={handleClose}
-					className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					title="Close (Esc)"
-				>
-					<HiMiniXMark className="size-3.5" />
-				</button>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={() => handleSearch("previous")}
+							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						>
+							<HiChevronUp className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">Previous (Shift+Enter)</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={() => handleSearch("next")}
+							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						>
+							<HiChevronDown className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">Next (Enter)</TooltipContent>
+				</Tooltip>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleClose}
+							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						>
+							<HiMiniXMark className="size-3.5" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">Close (Esc)</TooltipContent>
+				</Tooltip>
 			</div>
 		</div>
 	);

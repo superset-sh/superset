@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import {
@@ -200,28 +201,31 @@ export function PresetsSettings() {
 						const alreadyAdded = isTemplateAdded(template);
 						const presetIcon = getPresetIcon(template.name, isDark);
 						return (
-							<Button
-								key={template.name}
-								variant="outline"
-								size="sm"
-								className="gap-1.5 text-xs h-7"
-								onClick={() => handleAddTemplate(template)}
-								title={
-									alreadyAdded ? "Already added" : template.preset.description
-								}
-								disabled={alreadyAdded || createPreset.isPending}
-							>
-								{alreadyAdded ? (
-									<HiOutlineCheck className="h-3 w-3" />
-								) : presetIcon ? (
-									<img
-										src={presetIcon}
-										alt=""
-										className="h-3 w-3 object-contain"
-									/>
-								) : null}
-								{template.name}
-							</Button>
+							<Tooltip key={template.name}>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className="gap-1.5 text-xs h-7"
+										onClick={() => handleAddTemplate(template)}
+										disabled={alreadyAdded || createPreset.isPending}
+									>
+										{alreadyAdded ? (
+											<HiOutlineCheck className="h-3 w-3" />
+										) : presetIcon ? (
+											<img
+												src={presetIcon}
+												alt=""
+												className="h-3 w-3 object-contain"
+											/>
+										) : null}
+										{template.name}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" showArrow={false}>
+									{alreadyAdded ? "Already added" : template.preset.description}
+								</TooltipContent>
+							</Tooltip>
 						);
 					})}
 				</div>

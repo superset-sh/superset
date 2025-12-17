@@ -1,4 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
 import { HiChevronRight, HiFolder, HiFolderOpen } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -191,14 +192,18 @@ export function DirectoryNavigator({
 									<HiFolder className="size-4 shrink-0 text-muted-foreground" />
 									<span className="truncate">{item.name}</span>
 								</button>
-								<button
-									type="button"
-									onClick={() => handleNavigateToDir(item.path)}
-									className="px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-									title="Navigate here"
-								>
-									cd
-								</button>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<button
+											type="button"
+											onClick={() => handleNavigateToDir(item.path)}
+											className="px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+										>
+											cd
+										</button>
+									</TooltipTrigger>
+									<TooltipContent side="right">Navigate here</TooltipContent>
+								</Tooltip>
 							</div>
 						))
 					)}

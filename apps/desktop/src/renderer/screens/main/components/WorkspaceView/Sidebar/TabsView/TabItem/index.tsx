@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
@@ -151,13 +152,15 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 							<>
 								<span className="truncate flex-1">{displayName}</span>
 								{needsAttention && (
-									<span
-										className="relative flex size-2 shrink-0 ml-1"
-										title="Agent completed"
-									>
-										<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-										<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-									</span>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<span className="relative flex size-2 shrink-0 ml-1">
+												<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+												<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+											</span>
+										</TooltipTrigger>
+										<TooltipContent side="right">Agent completed</TooltipContent>
+									</Tooltip>
 								)}
 							</>
 						)}

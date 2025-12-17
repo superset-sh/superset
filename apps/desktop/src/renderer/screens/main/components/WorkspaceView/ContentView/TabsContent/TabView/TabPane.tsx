@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
@@ -138,22 +139,34 @@ export function TabPane({
 						/>
 					</div>
 					<div className="flex items-center gap-0.5">
-						<button
-							type="button"
-							onClick={handleSplitPane}
-							title="Split pane"
-							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-						>
-							{splitIcon}
-						</button>
-						<button
-							type="button"
-							onClick={handleClosePane}
-							title="Close pane"
-							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-						>
-							<HiMiniXMark className="size-4" />
-						</button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleSplitPane}
+									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+								>
+									{splitIcon}
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Split pane
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleClosePane}
+									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+								>
+									<HiMiniXMark className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Close pane
+							</TooltipContent>
+						</Tooltip>
 					</div>
 				</div>
 			)}

@@ -78,10 +78,7 @@ export function FileItem({
 				<span className="flex-1 min-w-0 flex items-center gap-1">
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<span
-								className="text-xs text-start truncate overflow-hidden text-ellipsis"
-								title={file.path}
-							>
+							<span className="text-xs text-start truncate overflow-hidden text-ellipsis">
 								{fileName}
 							</span>
 						</TooltipTrigger>
