@@ -7,7 +7,10 @@ import { NOTIFICATION_EVENTS } from "shared/constants";
 import { publicProcedure, router } from "..";
 
 type NotificationEvent =
-	| { type: typeof NOTIFICATION_EVENTS.AGENT_COMPLETE; data?: AgentCompleteEvent }
+	| {
+			type: typeof NOTIFICATION_EVENTS.AGENT_COMPLETE;
+			data?: AgentCompleteEvent;
+	  }
 	| { type: typeof NOTIFICATION_EVENTS.FOCUS_TAB; data?: NotificationIds };
 
 export const createNotificationsRouter = () => {
@@ -36,7 +39,10 @@ export const createNotificationsRouter = () => {
 					}
 				}
 			} finally {
-				notificationsEmitter.off(NOTIFICATION_EVENTS.AGENT_COMPLETE, onComplete);
+				notificationsEmitter.off(
+					NOTIFICATION_EVENTS.AGENT_COMPLETE,
+					onComplete,
+				);
 				notificationsEmitter.off(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
 			}
 		}),

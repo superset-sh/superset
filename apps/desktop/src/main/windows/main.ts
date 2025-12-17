@@ -78,72 +78,78 @@ export async function MainWindow() {
 	);
 
 	// Handle agent completion notifications
-	notificationsEmitter.on(NOTIFICATION_EVENTS.AGENT_COMPLETE, (event: AgentCompleteEvent) => {
-		if (Notification.isSupported()) {
-			const isPermissionRequest = event.eventType === "PermissionRequest";
+	notificationsEmitter.on(
+		NOTIFICATION_EVENTS.AGENT_COMPLETE,
+		(event: AgentCompleteEvent) => {
+			if (Notification.isSupported()) {
+				const isPermissionRequest = event.eventType === "PermissionRequest";
 
-			// Derive workspace name from workspaceId with safe fallbacks
-			let workspaceName = "Workspace";
-			try {
-				const workspaces = db.data?.workspaces;
-				const worktrees = db.data?.worktrees;
-				if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
-					const workspace = workspaces.find((w) => w.id === event.workspaceId);
-					const worktree = workspace
-						? worktrees.find((wt) => wt.id === workspace.worktreeId)
-						: undefined;
-					workspaceName = workspace?.name || worktree?.branch || "Workspace";
+				// Derive workspace name from workspaceId with safe fallbacks
+				let workspaceName = "Workspace";
+				try {
+					const workspaces = db.data?.workspaces;
+					const worktrees = db.data?.worktrees;
+					if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
+						const workspace = workspaces.find(
+							(w) => w.id === event.workspaceId,
+						);
+						const worktree = workspace
+							? worktrees.find((wt) => wt.id === workspace.worktreeId)
+							: undefined;
+						workspaceName = workspace?.name || worktree?.branch || "Workspace";
+					}
+				} catch (error) {
+					console.error(
+						"[notifications] Failed to access db for workspace name:",
+						error,
+					);
 				}
-			} catch (error) {
-				console.error(
-					"[notifications] Failed to access db for workspace name:",
-					error,
-				);
-			}
 
-			// Derive title from tab name, falling back to pane name
-			// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
-			let title = "Terminal";
-			try {
-				const { paneId, tabId } = event;
-				const tabsState = appState.data?.tabsState;
-				const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
-				const tab = tabId
-					? tabsState?.tabs?.find((t) => t.id === tabId)
-					: undefined;
-				title = tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
-			} catch (error) {
-				console.error(
-					"[notifications] Failed to access appState for tab title:",
-					error,
-				);
-			}
+				// Derive title from tab name, falling back to pane name
+				// Priority: tab.userTitle (user-set name) > tab.name (auto-generated) > pane.name > "Terminal"
+				let title = "Terminal";
+				try {
+					const { paneId, tabId } = event;
+					const tabsState = appState.data?.tabsState;
+					const pane = paneId ? tabsState?.panes?.[paneId] : undefined;
+					const tab = tabId
+						? tabsState?.tabs?.find((t) => t.id === tabId)
+						: undefined;
+					title =
+						tab?.userTitle?.trim() || tab?.name || pane?.name || "Terminal";
+				} catch (error) {
+					console.error(
+						"[notifications] Failed to access appState for tab title:",
+						error,
+					);
+				}
 
-			const notification = new Notification({
-				title: isPermissionRequest
-					? `Input Needed — ${workspaceName}`
-					: `Agent Complete — ${workspaceName}`,
-				body: isPermissionRequest
-					? `"${title}" needs your attention`
-					: `"${title}" has finished its task`,
-				silent: true,
-			});
-
-			playNotificationSound();
-
-			notification.on("click", () => {
-				window.show();
-				window.focus();
-				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
-					paneId: event.paneId,
-					tabId: event.tabId,
-					workspaceId: event.workspaceId,
+				const notification = new Notification({
+					title: isPermissionRequest
+						? `Input Needed — ${workspaceName}`
+						: `Agent Complete — ${workspaceName}`,
+					body: isPermissionRequest
+						? `"${title}" needs your attention`
+						: `"${title}" has finished its task`,
+					silent: true,
 				});
-			});
 
-			notification.show();
-		}
-	});
+				playNotificationSound();
+
+				notification.on("click", () => {
+					window.show();
+					window.focus();
+					notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
+						paneId: event.paneId,
+						tabId: event.tabId,
+						workspaceId: event.workspaceId,
+					});
+				});
+
+				notification.show();
+			}
+		},
+	);
 
 	window.webContents.on("did-finish-load", async () => {
 		window.show();
