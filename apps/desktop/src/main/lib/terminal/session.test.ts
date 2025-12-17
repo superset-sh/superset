@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
-import { FastEscapeFilter } from "../fast-escape-filter";
 import { ScrollbackBuffer } from "../scrollback-buffer";
 import { getHistoryDir } from "../terminal-history";
 import { flushSession, recoverScrollback } from "./session";

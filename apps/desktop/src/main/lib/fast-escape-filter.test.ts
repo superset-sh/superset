@@ -51,12 +51,12 @@ describe("FastEscapeFilter", () => {
 	describe("Mode Reports", () => {
 		it("should filter ESC[?...;...$y (DECRPM)", () => {
 			const filter = new FastEscapeFilter();
-			expect(filter.filter(`hello${ESC}[?1;2\$yworld`)).toBe("helloworld");
+			expect(filter.filter(`hello${ESC}[?1;2$yworld`)).toBe("helloworld");
 		});
 
 		it("should filter ESC[...;...$y (standard mode)", () => {
 			const filter = new FastEscapeFilter();
-			expect(filter.filter(`hello${ESC}[12;2\$yworld`)).toBe("helloworld");
+			expect(filter.filter(`hello${ESC}[12;2$yworld`)).toBe("helloworld");
 		});
 	});
 

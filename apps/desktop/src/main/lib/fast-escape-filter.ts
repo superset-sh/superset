@@ -39,7 +39,7 @@ const CHAR_y = 0x79; // y (Mode Report)
 const CHAR_O = 0x4f; // O (Unknown)
 
 // State machine states
-const enum State {
+enum State {
 	Normal,
 	Escape, // Saw ESC
 	CSI, // Saw ESC [
