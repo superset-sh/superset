@@ -3,7 +3,7 @@ import type { BrowserWindow } from "electron";
 import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
-import { PORTS } from "shared/constants";
+import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
@@ -78,7 +78,7 @@ export async function MainWindow() {
 	);
 
 	// Handle agent completion notifications
-	notificationsEmitter.on("agent-complete", (event: AgentCompleteEvent) => {
+	notificationsEmitter.on(NOTIFICATION_EVENTS.AGENT_COMPLETE, (event: AgentCompleteEvent) => {
 		if (Notification.isSupported()) {
 			const isPermissionRequest = event.eventType === "PermissionRequest";
 
@@ -134,7 +134,12 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
-				notificationsEmitter.emit("focus-tab", {
+				console.log("[focus-tab] Emitting focus-tab event:", {
+					paneId: event.paneId,
+					tabId: event.tabId,
+					workspaceId: event.workspaceId,
+				});
+				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
 					paneId: event.paneId,
 					tabId: event.tabId,
 					workspaceId: event.workspaceId,

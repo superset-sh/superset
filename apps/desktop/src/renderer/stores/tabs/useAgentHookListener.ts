@@ -1,5 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
+import { NOTIFICATION_EVENTS } from "shared/constants";
 import { useAppStore } from "../app-state";
 import { useTabsStore } from "./store";
 import { resolveNotificationTarget } from "./utils/resolve-notification-target";
@@ -14,7 +15,6 @@ export function useAgentHookListener() {
 
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
-			console.log("event", event);
 			if (!event.data) return;
 
 			const state = useTabsStore.getState();
@@ -23,7 +23,7 @@ export function useAgentHookListener() {
 
 			const { paneId, workspaceId } = target;
 
-			if (event.type === "agent-complete") {
+			if (event.type === NOTIFICATION_EVENTS.AGENT_COMPLETE) {
 				if (!paneId) return;
 
 				// Only show red dot if not already viewing this pane
@@ -35,7 +35,7 @@ export function useAgentHookListener() {
 				if (!isAlreadyActive) {
 					state.setNeedsAttention(paneId, true);
 				}
-			} else if (event.type === "focus-tab") {
+			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
 				// Switch to workspace view if not already there
 				const appState = useAppStore.getState();
 				if (appState.currentView !== "workspace") {

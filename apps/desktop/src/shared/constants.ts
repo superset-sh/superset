@@ -42,3 +42,9 @@ export const CONFIG_TEMPLATE = `{
   "setup": [],
   "teardown": []
 }`;
+
+// Notification event types
+export const NOTIFICATION_EVENTS = {
+	AGENT_COMPLETE: "agent-complete",
+	FOCUS_TAB: "focus-tab",
+} as const;

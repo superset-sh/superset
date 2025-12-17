@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import express from "express";
+import { NOTIFICATION_EVENTS } from "shared/constants";
 
 export interface NotificationIds {
 	paneId?: string;
@@ -36,7 +37,7 @@ app.get("/hook/complete", (req, res) => {
 		eventType: eventType === "PermissionRequest" ? "PermissionRequest" : "Stop",
 	};
 
-	notificationsEmitter.emit("agent-complete", event);
+	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_COMPLETE, event);
 
 	res.json({ success: true, paneId, tabId });
 });
