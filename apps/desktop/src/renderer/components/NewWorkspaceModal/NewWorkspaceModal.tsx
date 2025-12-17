@@ -67,8 +67,6 @@ function formatPath(
 	return displayPath.replace(suffixPattern, "");
 }
 
-
-
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
@@ -222,11 +220,8 @@ export function NewWorkspaceModal() {
 					<div className="space-y-1">
 						<Label className="text-xs text-muted-foreground">Project</Label>
 						<div className="space-y-0.5 max-h-48 overflow-y-auto -mx-1 px-1">
-						{visibleProjects.map((project) =>
-								renderProjectButton(
-									project,
-									selectedProjectId === project.id,
-								),
+							{visibleProjects.map((project) =>
+								renderProjectButton(project, selectedProjectId === project.id),
 							)}
 							{hasMoreProjects && (
 								<button
