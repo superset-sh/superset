@@ -426,13 +426,7 @@ describe("TUI application scenarios (Claude Code, Codex)", () => {
 		it("should handle rapid state changes from TUI event loop", () => {
 			const filter = new TerminalEscapeFilter();
 			// Simulate TUI sending multiple queries in tight loop
-			const chunks = [
-				`text1${ESC}[1;`,
-				`1R`,
-				`text2${ESC}[2;`,
-				`80R`,
-				`text3`,
-			];
+			const chunks = [`text1${ESC}[1;`, `1R`, `text2${ESC}[2;`, `80R`, `text3`];
 			let result = "";
 			for (const chunk of chunks) {
 				result += filter.filter(chunk);
@@ -485,12 +479,7 @@ describe("TUI application scenarios (Claude Code, Codex)", () => {
 		it("should handle CPR split after digit", () => {
 			const filter = new TerminalEscapeFilter();
 			// This is the realistic case - CPR split after the digit
-			const chunks = [
-				`text${ESC}[1`,
-				`;1R${ESC}[3`,
-				`;3R${ESC}[3`,
-				`R`,
-			];
+			const chunks = [`text${ESC}[1`, `;1R${ESC}[3`, `;3R${ESC}[3`, `R`];
 			let result = "";
 			for (const chunk of chunks) {
 				result += filter.filter(chunk);

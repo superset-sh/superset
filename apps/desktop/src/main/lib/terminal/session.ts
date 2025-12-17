@@ -5,7 +5,6 @@ import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
-	filterTerminalQueryResponses,
 	TerminalEscapeFilter,
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
@@ -144,12 +143,16 @@ export function setupDataHandler(
 		!wasRecovered && initialCommands && initialCommands.length > 0;
 	let commandsSent = false;
 
+	// Separate stateful filter for display path - handles chunked CPR/DA/OSC responses
+	let displayEscapeFilter = new TerminalEscapeFilter();
+
 	session.pty.onData((data) => {
 		// Check for clear scrollback sequences (ESC[3J, ESC c)
 		const hasClear = containsClearScrollbackSequence(data);
 		if (hasClear) {
 			session.scrollback = "";
 			session.escapeFilter = new TerminalEscapeFilter();
+			displayEscapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
 		}
 
@@ -160,9 +163,8 @@ export function setupDataHandler(
 		session.historyWriter?.write(filteredForHistory);
 
 		// For renderer: filter CPR/DA but PRESERVE clear sequences so terminal visually clears
-		// We need a separate filter instance for display since the escapeFilter state
-		// is shared and we're filtering different data
-		const filteredForDisplay = filterTerminalQueryResponses(data);
+		// Uses separate stateful filter to handle chunked escape sequences
+		const filteredForDisplay = displayEscapeFilter.filter(data);
 		session.dataBatcher.write(filteredForDisplay);
 
 		if (shouldRunCommands && !commandsSent) {

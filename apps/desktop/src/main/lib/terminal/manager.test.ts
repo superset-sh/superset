@@ -515,7 +515,7 @@ describe("TerminalManager", () => {
 			expect(dataHandler).toHaveBeenCalledWith("test output\n");
 		});
 
-		it("should pass through raw data including escape sequences", async () => {
+		it("should filter CPR/DA/OSC query responses from data stream", async () => {
 			const dataHandler = mock(() => {});
 
 			await manager.createOrAttach({
@@ -527,6 +527,7 @@ describe("TerminalManager", () => {
 			manager.on("data:pane-raw", dataHandler);
 
 			const onDataCallback = mockPty.onData.mock.results[0]?.value;
+			// Data with CPR (ESC[2;1R), DA1 (ESC[?1;0c), and OSC color response
 			const dataWithEscapes =
 				"hello\x1b[2;1R\x1b[?1;0cworld\x1b]10;rgb:ffff/ffff/ffff\x07\n";
 			if (onDataCallback) {
@@ -536,8 +537,8 @@ describe("TerminalManager", () => {
 			// Wait for DataBatcher to flush (16ms batching interval)
 			await new Promise((resolve) => setTimeout(resolve, 30));
 
-			// Raw data passed through unchanged
-			expect(dataHandler).toHaveBeenCalledWith(dataWithEscapes);
+			// Query responses should be filtered out, only text content remains
+			expect(dataHandler).toHaveBeenCalledWith("helloworld\n");
 		});
 
 		it("should emit exit events", async () => {
