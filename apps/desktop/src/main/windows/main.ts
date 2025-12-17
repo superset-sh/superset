@@ -134,11 +134,6 @@ export async function MainWindow() {
 			notification.on("click", () => {
 				window.show();
 				window.focus();
-				console.log("[focus-tab] Emitting focus-tab event:", {
-					paneId: event.paneId,
-					tabId: event.tabId,
-					workspaceId: event.workspaceId,
-				});
 				notificationsEmitter.emit(NOTIFICATION_EVENTS.FOCUS_TAB, {
 					paneId: event.paneId,
 					tabId: event.tabId,
