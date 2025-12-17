@@ -38,7 +38,6 @@ export const extractPaneIdsFromLayout = (
 export interface CreatePaneOptions {
 	initialCommands?: string[];
 	initialCwd?: string;
-	name?: string;
 }
 
 /**
@@ -55,7 +54,7 @@ export const createPane = (
 		id,
 		tabId,
 		type,
-		name: options?.name || "Terminal",
+		name: "Terminal",
 		isNew: true,
 		initialCommands: options?.initialCommands,
 		initialCwd: options?.initialCwd,

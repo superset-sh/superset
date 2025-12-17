@@ -35,7 +35,6 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const addTab = useTabsStore((s) => s.addTab);
-	const addPane = useTabsStore((s) => s.addPane);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const reorderTabById = useTabsStore((s) => s.reorderTabById);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -55,24 +54,11 @@ export function TabsView() {
 		[activeWorkspaceId, allTabs],
 	);
 
-	const activeTabId = activeWorkspaceId
-		? activeTabIds[activeWorkspaceId]
-		: null;
-
 	const handleAddTab = () => {
-		if (!activeWorkspaceId) return;
-
-		// If there's an active tab, add a pane to it instead of creating a new tab
-		if (activeTabId) {
-			const paneId = addPane(activeTabId);
-			// Fall back to creating a new tab if the active tab no longer exists
-			if (!paneId) {
-				addTab(activeWorkspaceId);
-			}
-		} else {
+		if (activeWorkspaceId) {
 			addTab(activeWorkspaceId);
+			setCommandOpen(false);
 		}
-		setCommandOpen(false);
 	};
 
 	const handleOpenPresetsSettings = () => {
@@ -83,28 +69,15 @@ export function TabsView() {
 	const handleSelectPreset = (preset: TerminalPreset) => {
 		if (!activeWorkspaceId) return;
 
-		const presetOptions = {
+		// Pass preset options to addTab - Terminal component will read them from pane state
+		const { tabId } = addTab(activeWorkspaceId, {
 			initialCommands: preset.commands,
 			initialCwd: preset.cwd || undefined,
-			name: preset.name || undefined,
-		};
+		});
 
-		// If there's an active tab, add a pane to it instead of creating a new tab
-		if (activeTabId) {
-			const paneId = addPane(activeTabId, presetOptions);
-			// Fall back to creating a new tab if the active tab no longer exists
-			if (!paneId) {
-				const { tabId } = addTab(activeWorkspaceId, presetOptions);
-				if (preset.name) {
-					renameTab(tabId, preset.name);
-				}
-			}
-		} else {
-			const { tabId } = addTab(activeWorkspaceId, presetOptions);
-			// Rename the tab to the preset name only when creating a new tab
-			if (preset.name) {
-				renameTab(tabId, preset.name);
-			}
+		// Rename the tab to the preset name
+		if (preset.name) {
+			renameTab(tabId, preset.name);
 		}
 
 		setCommandOpen(false);
