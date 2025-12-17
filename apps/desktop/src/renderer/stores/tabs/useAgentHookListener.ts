@@ -14,6 +14,9 @@ export function useAgentHookListener() {
 
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
+			console.log("event", event);
+			if (!event.data) return;
+
 			const state = useTabsStore.getState();
 			const target = resolveNotificationTarget(event.data, state);
 			if (!target) return;
