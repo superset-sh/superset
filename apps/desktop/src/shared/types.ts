@@ -104,7 +104,7 @@ export interface CreateWorktreeInput {
 
 export interface CreateTabInput {
 	workspaceId: string;
-	worktreeId: string;
+	worktreeId?: string; // Optional for branch workspaces (they use mainRepoPath instead)
 	parentTabId?: string; // Optional parent tab (for tabs inside a group)
 	name: string;
 	type?: TabType; // Optional - defaults to "terminal"
@@ -116,7 +116,7 @@ export interface CreateTabInput {
 
 export interface UpdatePreviewTabInput {
 	workspaceId: string;
-	worktreeId: string;
+	worktreeId?: string; // Optional for branch workspaces
 	tabId: string;
 	url: string;
 }

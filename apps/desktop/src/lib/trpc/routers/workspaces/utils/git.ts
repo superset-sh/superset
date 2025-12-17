@@ -448,18 +448,22 @@ export async function branchExistsOnRemote(
 /**
  * Lists all local and remote branches in a repository
  * @param repoPath - Path to the repository
+ * @param options.fetch - Whether to fetch and prune remote refs first (default: false)
  * @returns Object with local and remote branch arrays
  */
 export async function listBranches(
 	repoPath: string,
+	options?: { fetch?: boolean },
 ): Promise<{ local: string[]; remote: string[] }> {
 	const git = simpleGit(repoPath);
 
-	// Fetch and prune to ensure we have up-to-date remote refs
-	try {
-		await git.fetch(["--prune"]);
-	} catch {
-		// Ignore fetch errors (e.g., offline)
+	// Optionally fetch and prune to get up-to-date remote refs
+	if (options?.fetch) {
+		try {
+			await git.fetch(["--prune"]);
+		} catch {
+			// Ignore fetch errors (e.g., offline)
+		}
 	}
 
 	// Get local branches
@@ -601,7 +605,13 @@ export async function safeCheckoutBranch(
 	repoPath: string,
 	branch: string,
 ): Promise<void> {
-	// Run safety checks first
+	// Check if we're already on the target branch - no checkout needed
+	const currentBranch = await getCurrentBranch(repoPath);
+	if (currentBranch === branch) {
+		return;
+	}
+
+	// Run safety checks before switching branches
 	const safety = await checkBranchCheckoutSafety(repoPath);
 	if (!safety.safe) {
 		throw new Error(safety.error);
@@ -611,10 +621,10 @@ export async function safeCheckoutBranch(
 	await checkoutBranch(repoPath, branch);
 
 	// Verify we landed on the correct branch
-	const currentBranch = await getCurrentBranch(repoPath);
-	if (currentBranch !== branch) {
+	const verifyBranch = await getCurrentBranch(repoPath);
+	if (verifyBranch !== branch) {
 		throw new Error(
-			`Branch checkout verification failed: expected "${branch}" but HEAD is on "${currentBranch ?? "detached HEAD"}"`,
+			`Branch checkout verification failed: expected "${branch}" but HEAD is on "${verifyBranch ?? "detached HEAD"}"`,
 		);
 	}
 }

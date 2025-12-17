@@ -241,14 +241,19 @@ export const createWorkspacesRouter = () => {
 			}),
 
 		getBranches: publicProcedure
-			.input(z.object({ projectId: z.string() }))
+			.input(
+				z.object({
+					projectId: z.string(),
+					fetch: z.boolean().optional(), // Whether to fetch remote refs (default: false, avoids UI stalls)
+				}),
+			)
 			.query(async ({ input }) => {
 				const project = db.data.projects.find((p) => p.id === input.projectId);
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				return listBranches(project.mainRepoPath);
+				return listBranches(project.mainRepoPath, { fetch: input.fetch });
 			}),
 
 		// Switch an existing branch workspace to a different branch

@@ -19,7 +19,7 @@ export interface TabChannels {
 	"tab-delete": {
 		request: {
 			workspaceId: string;
-			worktreeId: string;
+			worktreeId?: string;
 			tabId: string;
 		};
 		response: IpcResponse;
@@ -33,7 +33,7 @@ export interface TabChannels {
 	"tab-update-name": {
 		request: {
 			workspaceId: string;
-			worktreeId: string;
+			worktreeId?: string;
 			tabId: string;
 			name: string;
 		};
@@ -43,7 +43,7 @@ export interface TabChannels {
 	"tab-reorder": {
 		request: {
 			workspaceId: string;
-			worktreeId: string;
+			worktreeId?: string;
 			parentTabId?: string;
 			tabIds: string[];
 		};
@@ -53,7 +53,7 @@ export interface TabChannels {
 	"tab-move": {
 		request: {
 			workspaceId: string;
-			worktreeId: string;
+			worktreeId?: string;
 			tabId: string;
 			sourceParentTabId?: string;
 			targetParentTabId?: string;
@@ -65,7 +65,7 @@ export interface TabChannels {
 	"tab-update-mosaic-tree": {
 		request: {
 			workspaceId: string;
-			worktreeId: string;
+			worktreeId?: string;
 			tabId: string;
 			mosaicTree: MosaicNode<string> | null | undefined;
 		};
