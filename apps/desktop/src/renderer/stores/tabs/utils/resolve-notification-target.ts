@@ -15,9 +15,11 @@ interface ResolvedTarget extends NotificationIds {
  * Priority: event data > pane's tab > tab's workspace
  */
 export function resolveNotificationTarget(
-	ids: NotificationIds,
+	ids: NotificationIds | undefined,
 	state: TabsState,
 ): ResolvedTarget | null {
+	if (!ids) return null;
+
 	const { paneId, tabId, workspaceId } = ids;
 
 	const pane = paneId ? state.panes[paneId] : undefined;

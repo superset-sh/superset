@@ -1,4 +1,3 @@
-import { observable } from "@trpc/server/observable";
 import {
 	type AgentCompleteEvent,
 	type NotificationIds,
@@ -8,29 +7,38 @@ import { NOTIFICATION_EVENTS } from "shared/constants";
 import { publicProcedure, router } from "..";
 
 type NotificationEvent =
-	| { type: typeof NOTIFICATION_EVENTS.AGENT_COMPLETE; data: AgentCompleteEvent }
-	| { type: typeof NOTIFICATION_EVENTS.FOCUS_TAB; data: NotificationIds };
+	| { type: typeof NOTIFICATION_EVENTS.AGENT_COMPLETE; data?: AgentCompleteEvent }
+	| { type: typeof NOTIFICATION_EVENTS.FOCUS_TAB; data?: NotificationIds };
 
 export const createNotificationsRouter = () => {
 	return router({
-		subscribe: publicProcedure.subscription(() => {
-			return observable<NotificationEvent>((emit) => {
-				const onComplete = (data: AgentCompleteEvent) => {
-					emit.next({ type: NOTIFICATION_EVENTS.AGENT_COMPLETE, data });
-				};
+		subscribe: publicProcedure.subscription(async function* () {
+			const queue: NotificationEvent[] = [];
 
-				const onFocusTab = (data: NotificationIds) => {
-					emit.next({ type: NOTIFICATION_EVENTS.FOCUS_TAB, data });
-				};
+			const onComplete = (data: AgentCompleteEvent) => {
+				queue.push({ type: NOTIFICATION_EVENTS.AGENT_COMPLETE, data });
+			};
 
-				notificationsEmitter.on(NOTIFICATION_EVENTS.AGENT_COMPLETE, onComplete);
-				notificationsEmitter.on(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
+			const onFocusTab = (data: NotificationIds) => {
+				queue.push({ type: NOTIFICATION_EVENTS.FOCUS_TAB, data });
+			};
 
-				return () => {
-					notificationsEmitter.off(NOTIFICATION_EVENTS.AGENT_COMPLETE, onComplete);
-					notificationsEmitter.off(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
-				};
-			});
+			notificationsEmitter.on(NOTIFICATION_EVENTS.AGENT_COMPLETE, onComplete);
+			notificationsEmitter.on(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
+
+			try {
+				while (true) {
+					const event = queue.shift();
+					if (event) {
+						yield event;
+					} else {
+						await new Promise((resolve) => setTimeout(resolve, 100));
+					}
+				}
+			} finally {
+				notificationsEmitter.off(NOTIFICATION_EVENTS.AGENT_COMPLETE, onComplete);
+				notificationsEmitter.off(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
+			}
 		}),
 	});
 };
