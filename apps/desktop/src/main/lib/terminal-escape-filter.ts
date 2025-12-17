@@ -149,20 +149,24 @@ export class TerminalEscapeFilter {
 
 	/**
 	 * Check if a string looks like the START of a query response we want to filter.
-	 * Conservative but must handle chunked sequences: buffers potential query responses
-	 * at chunk boundaries. If the complete sequence doesn't match our filter, it passes through.
+	 *
+	 * IMPORTANT: We must be conservative here to avoid adding latency to normal terminal output.
+	 * Only buffer sequences that strongly indicate a query response pattern.
+	 * ESC alone and ESC[ alone are too common (color codes, cursor moves) to buffer.
 	 */
 	private looksLikeQueryResponse(str: string): boolean {
-		if (str.length < 2) return false; // Just ESC alone - don't buffer, could be anything
+		// Don't buffer ESC alone - too common in normal output, causes typing lag
+		if (str.length < 2) return false;
 
 		const secondChar = str[1];
 
-		// CSI query responses we want to buffer:
+		// CSI query responses - only buffer when we see query-specific patterns:
 		// - ESC [ ? (DA1, DECRPM private mode)
 		// - ESC [ > (DA2 secondary)
 		// - ESC [ digit (CPR, standard mode reports, device attributes)
+		// Do NOT buffer ESC [ alone - too common (every color code starts with it)
 		if (secondChar === "[") {
-			if (str.length < 3) return false; // ESC [ alone - don't buffer
+			if (str.length < 3) return false;
 			const thirdChar = str[2];
 			// Buffer ? (private mode) or > (secondary DA)
 			if (thirdChar === "?" || thirdChar === ">") return true;
@@ -180,14 +184,14 @@ export class TerminalEscapeFilter {
 
 		// OSC color responses: ESC ] 1 (OSC 10-19)
 		if (secondChar === "]") {
-			if (str.length < 3) return false; // ESC ] alone - don't buffer
+			if (str.length < 3) return false;
 			// Only buffer if it starts with 1 (OSC 10-19 color responses)
 			return str[2] === "1";
 		}
 
 		// DCS responses: ESC P > (XTVERSION) or ESC P ! (DA3)
 		if (secondChar === "P") {
-			if (str.length < 3) return false; // ESC P alone - don't buffer
+			if (str.length < 3) return false;
 			const thirdChar = str[2];
 			return thirdChar === ">" || thirdChar === "!";
 		}

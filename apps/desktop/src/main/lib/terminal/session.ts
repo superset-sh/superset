@@ -5,6 +5,7 @@ import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
+	filterTerminalQueryResponses,
 	TerminalEscapeFilter,
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
@@ -144,20 +145,25 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		let dataToStore = data;
-
-		if (containsClearScrollbackSequence(data)) {
+		// Check for clear scrollback sequences (ESC[3J, ESC c)
+		const hasClear = containsClearScrollbackSequence(data);
+		if (hasClear) {
 			session.scrollback = "";
 			session.escapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
-			dataToStore = extractContentAfterClear(data);
 		}
 
-		const filteredData = session.escapeFilter.filter(dataToStore);
-		session.scrollback += filteredData;
-		session.historyWriter?.write(filteredData);
+		// For history/scrollback: filter CPR/DA AND strip content before clear
+		const dataForHistory = hasClear ? extractContentAfterClear(data) : data;
+		const filteredForHistory = session.escapeFilter.filter(dataForHistory);
+		session.scrollback += filteredForHistory;
+		session.historyWriter?.write(filteredForHistory);
 
-		session.dataBatcher.write(data);
+		// For renderer: filter CPR/DA but PRESERVE clear sequences so terminal visually clears
+		// We need a separate filter instance for display since the escapeFilter state
+		// is shared and we're filtering different data
+		const filteredForDisplay = filterTerminalQueryResponses(data);
+		session.dataBatcher.write(filteredForDisplay);
 
 		if (shouldRunCommands && !commandsSent) {
 			commandsSent = true;
