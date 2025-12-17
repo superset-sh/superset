@@ -55,7 +55,7 @@ export function TabContextMenu({
 				</ContextMenuContent>
 			</ContextMenu>
 			<TooltipContent side="right" showArrow={false} className="max-w-xs">
-				<div className="text-xs">{paneCount} terminals running</div>
+				<div className="text-xs">{paneCount} terminals</div>
 			</TooltipContent>
 		</Tooltip>
 	);
