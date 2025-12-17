@@ -1,5 +1,6 @@
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { db } from "main/lib/db";
 import type {
 	ChangedFile,
 	FileContents,
@@ -24,15 +25,16 @@ export const createChangesRouter = () => {
 				async ({
 					input,
 				}): Promise<{
-					local: string[];
+					local: Array<{ branch: string; lastCommitDate: number }>;
 					remote: string[];
 					defaultBranch: string;
+					checkedOutBranches: string[];
 				}> => {
 					const git = simpleGit(input.worktreePath);
 
 					const branchSummary = await git.branch(["-a"]);
 
-					const local: string[] = [];
+					const localBranches: string[] = [];
 					const remote: string[] = [];
 
 					for (const name of Object.keys(branchSummary.branches)) {
@@ -41,7 +43,39 @@ export const createChangesRouter = () => {
 							const remoteName = name.replace("remotes/origin/", "");
 							remote.push(remoteName);
 						} else {
-							local.push(name);
+							localBranches.push(name);
+						}
+					}
+
+					// Get last commit date for all local branches in one command
+					// Format: "refname:short timestamp" for each branch
+					const local: Array<{ branch: string; lastCommitDate: number }> = [];
+					try {
+						const branchInfo = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							"refs/heads/",
+						]);
+						for (const line of branchInfo.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							const branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+							if (localBranches.includes(branch)) {
+								local.push({
+									branch,
+									lastCommitDate: timestamp * 1000,
+								});
+							}
+						}
+					} catch {
+						// Fallback: return branches without dates
+						for (const branch of localBranches) {
+							local.push({ branch, lastCommitDate: 0 });
 						}
 					}
 
@@ -61,10 +95,33 @@ export const createChangesRouter = () => {
 						}
 					}
 
+					// Get branches that are checked out by worktrees using git worktree list
+					const checkedOutBranches: string[] = [];
+					try {
+						const worktreeList = await git.raw(["worktree", "list", "--porcelain"]);
+						const lines = worktreeList.split("\n");
+						let currentWorktreePath: string | null = null;
+
+						for (const line of lines) {
+							if (line.startsWith("worktree ")) {
+								currentWorktreePath = line.substring(9).trim();
+							} else if (line.startsWith("branch ")) {
+								const branch = line.substring(7).trim().replace("refs/heads/", "");
+								// Exclude the current worktree's branch
+								if (currentWorktreePath !== input.worktreePath) {
+									checkedOutBranches.push(branch);
+								}
+							}
+						}
+					} catch {
+						// Ignore errors - just return empty array
+					}
+
 					return {
-						local: local.sort(),
+						local,
 						remote: remote.sort(),
 						defaultBranch,
+						checkedOutBranches,
 					};
 				},
 			),
@@ -419,6 +476,39 @@ export const createChangesRouter = () => {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					throw new Error(`Failed to save file: ${message}`);
+				}
+			}),
+
+		switchBranch: publicProcedure
+			.input(
+				z.object({
+					worktreePath: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				const git = simpleGit(input.worktreePath);
+				try {
+					await git.checkout(input.branch);
+
+					// Update the worktree record in the database
+					await db.update((data) => {
+						const worktree = data.worktrees.find(
+							(wt) => wt.path === input.worktreePath,
+						);
+						if (worktree) {
+							worktree.branch = input.branch;
+							if (worktree.gitStatus) {
+								worktree.gitStatus.branch = input.branch;
+							}
+						}
+					});
+
+					return { success: true };
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : String(error);
+					throw new Error(`Failed to switch branch: ${message}`);
 				}
 			}),
 	});
