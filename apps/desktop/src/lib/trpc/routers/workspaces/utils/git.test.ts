@@ -182,10 +182,13 @@ describe("getDefaultBranch", () => {
 			cwd: repoPath,
 			stdio: "ignore",
 		});
-		execSync("git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/develop", {
-			cwd: repoPath,
-			stdio: "ignore",
-		});
+		execSync(
+			"git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/develop",
+			{
+				cwd: repoPath,
+				stdio: "ignore",
+			},
+		);
 
 		const result = await getDefaultBranch(repoPath);
 		expect(result).toBe("develop");

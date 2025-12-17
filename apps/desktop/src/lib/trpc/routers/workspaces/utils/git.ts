@@ -327,12 +327,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	try {
 		const hasRemote = await hasOriginRemote(mainRepoPath);
 		if (hasRemote) {
-			const result = await git.raw([
-				"ls-remote",
-				"--symref",
-				"origin",
-				"HEAD",
-			]);
+			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
 			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
 			if (symrefMatch) {
 				return symrefMatch[1];
