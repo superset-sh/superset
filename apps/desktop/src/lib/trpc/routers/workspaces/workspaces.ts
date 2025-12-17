@@ -30,6 +30,7 @@ export const createWorkspacesRouter = () => {
 				z.object({
 					projectId: z.string(),
 					name: z.string().optional(),
+					branchName: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -38,7 +39,7 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				const branch = generateBranchName();
+				const branch = input.branchName?.trim() || generateBranchName();
 
 				const worktreePath = join(
 					homedir(),
