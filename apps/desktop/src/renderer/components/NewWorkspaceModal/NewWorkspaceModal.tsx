@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import {
 	Dialog,
 	DialogContent,
+	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
@@ -42,10 +43,36 @@ function generateBranchFromTitle(title: string): string {
 		.slice(0, 50);
 }
 
+function formatPath(
+	path: string,
+	projectName: string,
+	homeDir: string | undefined,
+): string {
+	const normalizedPath = path.replace(/\\/g, "/");
+	const normalizedHome = homeDir ? homeDir.replace(/\\/g, "/") : null;
+
+	let displayPath = normalizedPath;
+	if (
+		normalizedHome &&
+		(normalizedPath === normalizedHome ||
+			normalizedPath.startsWith(`${normalizedHome}/`))
+	) {
+		displayPath = `~${normalizedPath.slice(normalizedHome.length)}`;
+	} else {
+		displayPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
+	}
+
+	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
+	return displayPath.replace(suffixPattern, "");
+}
+
+
+
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
-
+	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
@@ -156,11 +183,38 @@ export function NewWorkspaceModal() {
 		}
 	};
 
+	const renderProjectButton = (
+		project: { id: string; name: string; mainRepoPath: string },
+		isSelected: boolean,
+	) => (
+		<button
+			type="button"
+			key={project.id}
+			onClick={() => setSelectedProjectId(project.id)}
+			className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors group flex items-center justify-between ${
+				isSelected
+					? "border-primary bg-primary/5"
+					: "border-border hover:bg-accent"
+			}`}
+		>
+			<div className="min-w-0 flex-1">
+				<div className="font-medium truncate">{project.name}</div>
+				<div className="text-xs text-muted-foreground truncate group-hover:text-muted-foreground/80 mt-0.5">
+					{formatPath(project.mainRepoPath, project.name, homeDir)}
+				</div>
+			</div>
+			{isSelected && <HiCheck className="size-4 text-primary shrink-0 ml-2" />}
+		</button>
+	);
+
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
 					<DialogTitle>New Workspace</DialogTitle>
+					<DialogDescription>
+						Each workspace is an isolated git worktree.
+					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
@@ -168,23 +222,12 @@ export function NewWorkspaceModal() {
 					<div className="space-y-1">
 						<Label className="text-xs text-muted-foreground">Project</Label>
 						<div className="space-y-0.5 max-h-48 overflow-y-auto -mx-1 px-1">
-							{visibleProjects.map((project) => (
-								<button
-									type="button"
-									key={project.id}
-									onClick={() => setSelectedProjectId(project.id)}
-									className={`w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors flex items-center justify-between ${
-										selectedProjectId === project.id
-											? "bg-accent text-accent-foreground"
-											: "hover:bg-accent/50"
-									}`}
-								>
-									<span className="truncate">{project.name}</span>
-									{selectedProjectId === project.id && (
-										<HiCheck className="size-4 shrink-0 ml-2" />
-									)}
-								</button>
-							))}
+						{visibleProjects.map((project) =>
+								renderProjectButton(
+									project,
+									selectedProjectId === project.id,
+								),
+							)}
 							{hasMoreProjects && (
 								<button
 									type="button"
