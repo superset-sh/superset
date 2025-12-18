@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiOutlineFolder } from "react-icons/hi2";
 import { getAppOption } from "renderer/components/OpenInButton";
+import { shortenHomePath } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
 
 interface PathDisplayProps {
@@ -8,8 +9,8 @@ interface PathDisplayProps {
 }
 
 export function PathDisplay({ path }: PathDisplayProps) {
-	// Replace home directory with ~ for display
-	const displayPath = path.replace(/^\/Users\/[^/]+/, "~");
+	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
+	const displayPath = shortenHomePath(path, homeDir);
 
 	const utils = trpc.useUtils();
 	const { data: lastUsedApp = "cursor" } =
