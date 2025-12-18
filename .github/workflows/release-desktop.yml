@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build - macOS (${{ matrix.arch }})
     runs-on: macos-latest
+    environment: production
 
     strategy:
       fail-fast: false
@@ -54,6 +55,9 @@ jobs:
 
       - name: Compile app with electron-vite
         working-directory: apps/desktop
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: https://us.i.posthog.com
         run: bun run compile:app
 
       # Build the Electron app for macOS
