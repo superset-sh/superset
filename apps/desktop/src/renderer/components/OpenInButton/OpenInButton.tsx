@@ -135,11 +135,11 @@ export function OpenInButton({
 								alt=""
 								className="size-4 object-contain"
 							/>
-							<span className="font-medium">Open in {currentApp.label}</span>
+							<span className="font-medium">{label}</span>
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						{`Open workspace in ${currentApp.label}${showShortcuts ? " (⌘O)" : ""}`}
+						{`Open in ${currentApp.label}${showShortcuts ? " (⌘O)" : ""}`}
 					</TooltipContent>
 				</Tooltip>
 			)}

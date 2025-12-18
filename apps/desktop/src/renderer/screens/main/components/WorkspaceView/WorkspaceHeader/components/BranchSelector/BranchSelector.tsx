@@ -8,6 +8,7 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiChevronDown } from "react-icons/hi2";
@@ -105,69 +106,70 @@ export function BranchSelector({
 	}
 
 	return (
-		<div className="flex items-center gap-1.5 shrink-0">
-			<GoGitBranch className="w-3.5 h-3.5" />
-			<Popover open={open} onOpenChange={handleOpenChange}>
-				<PopoverTrigger asChild>
-					<Button
-						variant="ghost"
-						size="sm"
-						className="h-6 px-2 py-0 font-medium border-none bg-muted/50 hover:bg-muted gap-1 rounded-md"
-					>
-						{currentBranch}
-						<HiChevronDown className="w-3 h-3 opacity-50" />
-					</Button>
-				</PopoverTrigger>
-				<PopoverContent className="w-[320px] p-0" align="start" sideOffset={4}>
-					<Command shouldFilter={false}>
-						<CommandInput
-							placeholder="Search branches..."
-							value={search}
-							onValueChange={setSearch}
-						/>
-						<CommandList ref={listRef} className="p-1">
-							<CommandEmpty className="py-3">No branches found</CommandEmpty>
-							{visibleBranches.map(({ branch, lastCommitDate }) => {
-								const isCheckedOut = checkedOutBranches.has(branch);
-								const isCurrent = branch === currentBranch;
-								const timeLabel = isCurrent
-									? "(current)"
-									: lastCommitDate > 0
-										? formatRelativeTime(lastCommitDate)
-										: "";
-								return (
-									<CommandItem
-										key={branch}
-										value={branch}
-										onSelect={() => handleBranchChange(branch)}
-										disabled={isCheckedOut}
-										className="flex items-center justify-between gap-2"
-									>
-										<span className="truncate flex-1">{branch}</span>
-										<span className="shrink-0 tabular-nums">
-											{isCheckedOut && !isCurrent
-												? `(in use) ${timeLabel}`
-												: timeLabel}
-										</span>
-									</CommandItem>
-								);
-							})}
-						</CommandList>
-						{hasMore && (
-							<div className="border-t p-1">
-								<Button
-									variant="ghost"
-									size="sm"
-									className="w-full text-xs"
-									onClick={handleShowMore}
+		<Popover open={open} onOpenChange={handleOpenChange}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PopoverTrigger asChild>
+						<Button variant="outline" size="sm" className="gap-1">
+							<GoGitBranch className="size-4" />
+							<span>{currentBranch}</span>
+							<HiChevronDown className="size-3" />
+						</Button>
+					</PopoverTrigger>
+				</TooltipTrigger>
+				<TooltipContent side="bottom" showArrow={false}>
+					Switch to a different branch
+				</TooltipContent>
+			</Tooltip>
+			<PopoverContent className="w-[320px] p-0" align="start" sideOffset={4}>
+				<Command shouldFilter={false}>
+					<CommandInput
+						placeholder="Search branches..."
+						value={search}
+						onValueChange={setSearch}
+					/>
+					<CommandList ref={listRef} className="p-1">
+						<CommandEmpty className="py-3">No branches found</CommandEmpty>
+						{visibleBranches.map(({ branch, lastCommitDate }) => {
+							const isCheckedOut = checkedOutBranches.has(branch);
+							const isCurrent = branch === currentBranch;
+							const timeLabel = isCurrent
+								? "(current)"
+								: lastCommitDate > 0
+									? formatRelativeTime(lastCommitDate)
+									: "";
+							return (
+								<CommandItem
+									key={branch}
+									value={branch}
+									onSelect={() => handleBranchChange(branch)}
+									disabled={isCheckedOut}
+									className="flex items-center justify-between gap-2"
 								>
-									Show more ({filteredBranches.length - visibleCount} remaining)
-								</Button>
-							</div>
-						)}
-					</Command>
-				</PopoverContent>
-			</Popover>
-		</div>
+									<span className="truncate flex-1">{branch}</span>
+									<span className="shrink-0 tabular-nums">
+										{isCheckedOut && !isCurrent
+											? `(in use) ${timeLabel}`
+											: timeLabel}
+									</span>
+								</CommandItem>
+							);
+						})}
+					</CommandList>
+					{hasMore && (
+						<div className="border-t p-1">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="w-full text-xs"
+								onClick={handleShowMore}
+							>
+								Show more ({filteredBranches.length - visibleCount} remaining)
+							</Button>
+						</div>
+					)}
+				</Command>
+			</PopoverContent>
+		</Popover>
 	);
 }
