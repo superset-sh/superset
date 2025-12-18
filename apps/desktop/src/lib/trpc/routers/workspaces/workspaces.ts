@@ -671,6 +671,162 @@ export const createWorkspacesRouter = () => {
 					githubStatus: worktree.githubStatus ?? null,
 				};
 			}),
+
+		getWorktreesByProject: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const worktrees = db.data.worktrees.filter(
+					(wt) => wt.projectId === input.projectId,
+				);
+
+				return worktrees.map((wt) => {
+					const workspace = db.data.workspaces.find(
+						(w) => w.worktreeId === wt.id,
+					);
+					return {
+						...wt,
+						hasActiveWorkspace: workspace !== undefined,
+						workspace: workspace ?? null,
+					};
+				});
+			}),
+
+		openWorktree: publicProcedure
+			.input(
+				z.object({
+					worktreeId: z.string(),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.id === input.worktreeId,
+				);
+				if (!worktree) {
+					throw new Error(`Worktree ${input.worktreeId} not found`);
+				}
+
+				// Check if worktree already has an active workspace
+				const existingWorkspace = db.data.workspaces.find(
+					(w) => w.worktreeId === input.worktreeId,
+				);
+				if (existingWorkspace) {
+					throw new Error("Worktree already has an active workspace");
+				}
+
+				const project = db.data.projects.find(
+					(p) => p.id === worktree.projectId,
+				);
+				if (!project) {
+					throw new Error(`Project ${worktree.projectId} not found`);
+				}
+
+				// Verify worktree still exists on disk
+				const exists = await worktreeExists(
+					project.mainRepoPath,
+					worktree.path,
+				);
+				if (!exists) {
+					throw new Error("Worktree no longer exists on disk");
+				}
+
+				const projectWorkspaces = db.data.workspaces.filter(
+					(w) => w.projectId === worktree.projectId,
+				);
+				const maxTabOrder =
+					projectWorkspaces.length > 0
+						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
+						: -1;
+
+				const workspace = {
+					id: nanoid(),
+					projectId: worktree.projectId,
+					worktreeId: worktree.id,
+					name: input.name ?? worktree.branch,
+					tabOrder: maxTabOrder + 1,
+					createdAt: Date.now(),
+					updatedAt: Date.now(),
+					lastOpenedAt: Date.now(),
+				};
+
+				await db.update((data) => {
+					data.workspaces.push(workspace);
+					data.settings.lastActiveWorkspaceId = workspace.id;
+
+					const p = data.projects.find((p) => p.id === worktree.projectId);
+					if (p) {
+						p.lastOpenedAt = Date.now();
+
+						if (p.tabOrder === null) {
+							const activeProjects = data.projects.filter(
+								(proj) => proj.tabOrder !== null,
+							);
+							const maxProjectTabOrder =
+								activeProjects.length > 0
+									? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
+										Math.max(...activeProjects.map((proj) => proj.tabOrder!))
+									: -1;
+							p.tabOrder = maxProjectTabOrder + 1;
+						}
+					}
+				});
+
+				// Load setup configuration from the main repo
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				return {
+					workspace,
+					initialCommands: setupConfig?.setup || null,
+					worktreePath: worktree.path,
+					projectId: project.id,
+				};
+			}),
+
+		close: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+
+				if (!workspace) {
+					return { success: false, error: "Workspace not found" };
+				}
+
+				// Kill all terminal processes in this workspace
+				const terminalResult = await terminalManager.killByWorkspaceId(
+					input.id,
+				);
+
+				// Delete workspace record ONLY, keep worktree
+				await db.update((data) => {
+					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
+
+					// Check if project should be hidden (no more open workspaces)
+					const remainingWorkspaces = data.workspaces.filter(
+						(w) => w.projectId === workspace.projectId,
+					);
+					if (remainingWorkspaces.length === 0) {
+						const p = data.projects.find((p) => p.id === workspace.projectId);
+						if (p) {
+							p.tabOrder = null;
+						}
+					}
+
+					// Update active workspace if this was the active one
+					if (data.settings.lastActiveWorkspaceId === input.id) {
+						const sorted = data.workspaces
+							.slice()
+							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
+						data.settings.lastActiveWorkspaceId = sorted[0]?.id || undefined;
+					}
+				});
+
+				const terminalWarning =
+					terminalResult.failed > 0
+						? `${terminalResult.failed} terminal process(es) may still be running`
+						: undefined;
+
+				return { success: true, terminalWarning };
+			}),
 	});
 };
 

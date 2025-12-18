@@ -2,21 +2,21 @@ import { Button } from "@superset/ui/button";
 import {
 	Dialog,
 	DialogContent,
-	DialogDescription,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { Input } from "@superset/ui/input";
-import { Label } from "@superset/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useState } from "react";
-import {
-	HiCheck,
-	HiChevronDown,
-	HiChevronUp,
-	HiMiniFolderOpen,
-} from "react-icons/hi2";
+import { HiPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -24,12 +24,8 @@ import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
 } from "renderer/stores/new-workspace-modal";
+import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
-const INITIAL_PROJECTS_LIMIT = 5;
-
-/**
- * Generates a git-appropriate branch name from a title.
- */
 function generateBranchFromTitle(title: string): string {
 	if (!title.trim()) return "";
 
@@ -43,59 +39,25 @@ function generateBranchFromTitle(title: string): string {
 		.slice(0, 50);
 }
 
-function formatPath(
-	path: string,
-	projectName: string,
-	homeDir: string | undefined,
-): string {
-	const normalizedPath = path.replace(/\\/g, "/");
-	const normalizedHome = homeDir ? homeDir.replace(/\\/g, "/") : null;
-
-	let displayPath = normalizedPath;
-	if (
-		normalizedHome &&
-		(normalizedPath === normalizedHome ||
-			normalizedPath.startsWith(`${normalizedHome}/`))
-	) {
-		displayPath = `~${normalizedPath.slice(normalizedHome.length)}`;
-	} else {
-		displayPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
-	}
-
-	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
-	return displayPath.replace(suffixPattern, "");
-}
+type Mode = "existing" | "new";
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
-	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
 	const [title, setTitle] = useState("");
 	const [branchName, setBranchName] = useState("");
 	const [branchNameEdited, setBranchNameEdited] = useState(false);
-	const [showAllProjects, setShowAllProjects] = useState(false);
+	const [mode, setMode] = useState<Mode>("existing");
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
 	const openNew = useOpenNew();
 
-	// Sort projects with current project first
 	const currentProjectId = activeWorkspace?.projectId;
-	const sortedProjects = [...recentProjects].sort((a, b) => {
-		if (a.id === currentProjectId) return -1;
-		if (b.id === currentProjectId) return 1;
-		return 0;
-	});
-
-	const visibleProjects = showAllProjects
-		? sortedProjects
-		: sortedProjects.slice(0, INITIAL_PROJECTS_LIMIT);
-	const hasMoreProjects = sortedProjects.length > INITIAL_PROJECTS_LIMIT;
 
 	// Auto-select current project when modal opens
 	useEffect(() => {
@@ -116,7 +78,7 @@ export function NewWorkspaceModal() {
 		setTitle("");
 		setBranchName("");
 		setBranchNameEdited(false);
-		setShowAllProjects(false);
+		setMode("existing");
 	};
 
 	const handleClose = () => {
@@ -181,120 +143,145 @@ export function NewWorkspaceModal() {
 		}
 	};
 
-	const renderProjectButton = (
-		project: { id: string; name: string; mainRepoPath: string },
-		isSelected: boolean,
-	) => (
-		<button
-			type="button"
-			key={project.id}
-			onClick={() => setSelectedProjectId(project.id)}
-			className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors group flex items-center justify-between ${
-				isSelected
-					? "border-primary bg-primary/5"
-					: "border-border hover:bg-accent"
-			}`}
-		>
-			<div className="min-w-0 flex-1">
-				<div className="font-medium truncate">{project.name}</div>
-				<div className="text-xs text-muted-foreground truncate group-hover:text-muted-foreground/80 mt-0.5">
-					{formatPath(project.mainRepoPath, project.name, homeDir)}
-				</div>
-			</div>
-			{isSelected && <HiCheck className="size-4 text-primary shrink-0 ml-2" />}
-		</button>
-	);
-
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-			<DialogContent className="sm:max-w-sm">
-				<DialogHeader>
-					<DialogTitle>New Workspace</DialogTitle>
-					<DialogDescription>
-						Each workspace is an isolated git worktree.
-					</DialogDescription>
+			<DialogContent className="sm:max-w-[380px] gap-0 p-0 overflow-hidden">
+				<DialogHeader className="px-4 pt-4 pb-3">
+					<DialogTitle className="text-base">Open Workspace</DialogTitle>
 				</DialogHeader>
 
-				<div className="space-y-4">
-					{/* Project Selection */}
-					<div className="space-y-1">
-						<Label className="text-xs text-muted-foreground">Project</Label>
-						<div className="space-y-0.5 max-h-48 overflow-y-auto -mx-1 px-1">
-							{visibleProjects.map((project) =>
-								renderProjectButton(project, selectedProjectId === project.id),
-							)}
-							{hasMoreProjects && (
-								<button
-									type="button"
-									onClick={() => setShowAllProjects(!showAllProjects)}
-									className="w-full text-left px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-								>
-									{showAllProjects ? (
-										<>
-											<HiChevronUp className="size-3" />
-											Show less
-										</>
-									) : (
-										<>
-											<HiChevronDown className="size-3" />
-											{sortedProjects.length - INITIAL_PROJECTS_LIMIT} more
-										</>
-									)}
-								</button>
-							)}
-							<button
-								type="button"
-								onClick={handleOpenNewProject}
-								disabled={openNew.isPending}
-								className="w-full text-left px-2 py-1.5 text-sm rounded-md transition-colors flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50"
-							>
-								<HiMiniFolderOpen className="size-4" />
-								Browse...
-							</button>
-						</div>
-					</div>
-
-					{/* Optional Fields */}
-					<div className="space-y-3 pt-3 border-t border-border">
-						<div className="space-y-1">
-							<Label htmlFor="title" className="text-xs text-muted-foreground">
-								Title
-							</Label>
-							<Input
-								id="title"
-								placeholder="Optional"
-								value={title}
-								onChange={(e) => setTitle(e.target.value)}
-							/>
-						</div>
-
-						<div className="space-y-1">
-							<Label htmlFor="branch" className="text-xs text-muted-foreground">
-								Branch
-							</Label>
-							<Input
-								id="branch"
-								placeholder={
-									title ? generateBranchFromTitle(title) : "Auto-generated"
-								}
-								value={branchName}
-								onChange={(e) => handleBranchNameChange(e.target.value)}
-							/>
-						</div>
+				{/* Project Selector */}
+				<div className="px-4 pb-3">
+					<div className="flex items-center gap-2">
+						<Select
+							value={selectedProjectId ?? ""}
+							onValueChange={setSelectedProjectId}
+						>
+							<SelectTrigger className="flex-1 h-8 text-sm">
+								<SelectValue placeholder="Select project" />
+							</SelectTrigger>
+							<SelectContent>
+								{recentProjects.map((project) => (
+									<SelectItem key={project.id} value={project.id}>
+										{project.name}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="h-8 w-8 shrink-0"
+							onClick={handleOpenNewProject}
+							disabled={openNew.isPending}
+						>
+							<HiPlus className="h-4 w-4" />
+						</Button>
 					</div>
 				</div>
 
-				<DialogFooter>
-					<Button variant="outline" onClick={handleClose}>
-						Cancel
-					</Button>
-					<Button
-						onClick={handleCreateWorkspace}
-						disabled={!selectedProjectId || createWorkspace.isPending}
-					>
-						Create
-					</Button>
-				</DialogFooter>
+				{selectedProjectId && (
+					<>
+						{/* Mode Switcher */}
+						<div className="px-4 pb-2">
+							<div className="flex p-0.5 bg-muted rounded-md">
+								<button
+									type="button"
+									onClick={() => setMode("existing")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+										mode === "existing"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									Existing
+								</button>
+								<button
+									type="button"
+									onClick={() => setMode("new")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+										mode === "new"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									New Branch
+								</button>
+							</div>
+						</div>
+
+						{/* Content */}
+						<div className="px-4 pb-4">
+							{mode === "existing" ? (
+								<ExistingWorktreesList
+									projectId={selectedProjectId}
+									onOpenSuccess={handleClose}
+								/>
+							) : (
+								<div className="space-y-3">
+									<div className="space-y-1.5">
+										<label
+											htmlFor="title"
+											className="text-xs text-muted-foreground"
+										>
+											Title{" "}
+											<span className="text-muted-foreground/60">
+												(optional)
+											</span>
+										</label>
+										<Input
+											id="title"
+											className="h-8 text-sm"
+											placeholder="Feature name"
+											value={title}
+											onChange={(e) => setTitle(e.target.value)}
+										/>
+									</div>
+
+									<div className="space-y-1.5">
+										<label
+											htmlFor="branch"
+											className="text-xs text-muted-foreground"
+										>
+											Branch
+										</label>
+										<Input
+											id="branch"
+											className="h-8 text-sm font-mono"
+											placeholder={
+												title
+													? generateBranchFromTitle(title)
+													: "auto-generated"
+											}
+											value={branchName}
+											onChange={(e) => handleBranchNameChange(e.target.value)}
+										/>
+									</div>
+								</div>
+							)}
+						</div>
+					</>
+				)}
+
+				{!selectedProjectId && (
+					<div className="px-4 pb-4 pt-2">
+						<div className="text-center text-sm text-muted-foreground py-8">
+							Select a project to get started
+						</div>
+					</div>
+				)}
+
+				{mode === "new" && selectedProjectId && (
+					<DialogFooter className="px-4 pb-4 pt-0">
+						<Button
+							className="w-full h-8 text-sm"
+							onClick={handleCreateWorkspace}
+							disabled={createWorkspace.isPending}
+						>
+							Create Workspace
+						</Button>
+					</DialogFooter>
+				)}
 			</DialogContent>
 		</Dialog>
 	);

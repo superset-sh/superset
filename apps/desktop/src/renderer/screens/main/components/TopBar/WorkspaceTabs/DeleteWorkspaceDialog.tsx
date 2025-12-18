@@ -1,16 +1,19 @@
 import {
 	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@superset/ui/alert-dialog";
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { trpc } from "renderer/lib/trpc";
-import { useDeleteWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCloseWorkspace,
+	useDeleteWorkspace,
+} from "renderer/react-query/workspaces";
 
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
@@ -26,18 +29,17 @@ export function DeleteWorkspaceDialog({
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
 	const deleteWorkspace = useDeleteWorkspace();
+	const closeWorkspace = useCloseWorkspace();
 
-	// Initial query for git status (expensive) - only runs once when dialog opens
 	const { data: gitStatusData, isLoading: isLoadingGitStatus } =
 		trpc.workspaces.canDelete.useQuery(
 			{ id: workspaceId },
 			{
 				enabled: open,
-				staleTime: Number.POSITIVE_INFINITY, // Don't refetch automatically
+				staleTime: Number.POSITIVE_INFINITY,
 			},
 		);
 
-	// Polling query for terminal count only (cheap) - skips git checks
 	const { data: terminalCountData } = trpc.workspaces.canDelete.useQuery(
 		{ id: workspaceId, skipGitChecks: true },
 		{
@@ -46,7 +48,6 @@ export function DeleteWorkspaceDialog({
 		},
 	);
 
-	// Merge the data: use git status from initial query, terminal count from polling
 	const canDeleteData = gitStatusData
 		? {
 				...gitStatusData,
@@ -57,98 +58,130 @@ export function DeleteWorkspaceDialog({
 		: terminalCountData;
 	const isLoading = isLoadingGitStatus;
 
+	const handleClose = () => {
+		onOpenChange(false);
+
+		toast.promise(closeWorkspace.mutateAsync({ id: workspaceId }), {
+			loading: "Closing...",
+			success: (result) => {
+				if (result.terminalWarning) {
+					setTimeout(() => {
+						toast.warning("Terminal warning", {
+							description: result.terminalWarning,
+						});
+					}, 100);
+				}
+				return "Workspace closed";
+			},
+			error: (error) =>
+				error instanceof Error ? error.message : "Failed to close",
+		});
+	};
+
 	const handleDelete = () => {
 		onOpenChange(false);
 
 		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: `Deleting "${workspaceName}"...`,
+			loading: "Deleting...",
 			success: (result) => {
 				if (result.teardownError || result.terminalWarning) {
 					setTimeout(() => {
 						if (result.teardownError) {
-							toast.warning("Workspace deleted with teardown warning", {
+							toast.warning("Teardown warning", {
 								description: result.teardownError,
 							});
 						}
 						if (result.terminalWarning) {
-							toast.warning("Workspace deleted with terminal warning", {
+							toast.warning("Terminal warning", {
 								description: result.terminalWarning,
 							});
 						}
 					}, 100);
 				}
-				return `Workspace "${workspaceName}" deleted`;
+				return "Workspace deleted";
 			},
 			error: (error) =>
-				error instanceof Error
-					? `Failed to delete workspace: ${error.message}`
-					: "Failed to delete workspace",
+				error instanceof Error ? error.message : "Failed to delete",
 		});
 	};
 
 	const canDelete = canDeleteData?.canDelete ?? true;
 	const reason = canDeleteData?.reason;
-	const warning = canDeleteData?.warning;
-	const activeTerminalCount = canDeleteData?.activeTerminalCount ?? 0;
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
+	const hasWarnings = hasChanges || hasUnpushedCommits;
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Delete Workspace</AlertDialogTitle>
-					<AlertDialogDescription>
+			<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+				<AlertDialogHeader className="px-4 pt-4 pb-2">
+					<AlertDialogTitle className="text-sm font-medium">
+						Close workspace?
+					</AlertDialogTitle>
+					<AlertDialogDescription className="text-xs text-muted-foreground">
 						{isLoading ? (
-							<span>Checking workspace status...</span>
+							"Checking status..."
 						) : !canDelete ? (
-							<span className="text-destructive">
-								Cannot delete workspace: {reason}
-							</span>
+							<span className="text-destructive">{reason}</span>
 						) : (
-							<>
-								Are you sure you want to delete "{workspaceName}"?
-								{warning && (
-									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
-										Warning: {warning}
-									</span>
-								)}
-								{hasChanges && (
-									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
-										This workspace has uncommitted changes that will be lost.
-									</span>
-								)}
-								{hasUnpushedCommits && (
-									<span className="block mt-2 text-yellow-600 dark:text-yellow-400">
-										This workspace has unpushed commits that will be lost.
-									</span>
-								)}
-								{activeTerminalCount > 0 && (
-									<span className="block mt-2 text-muted-foreground">
-										{activeTerminalCount} active terminal
-										{activeTerminalCount === 1 ? "" : "s"} will be terminated.
-									</span>
-								)}
-								<span className="block mt-2">
-									This will remove the workspace and its associated git
-									worktree. This action cannot be undone.
-								</span>
-							</>
+							<span className="font-mono">{workspaceName}</span>
 						)}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={(e: React.MouseEvent) => {
-							e.preventDefault();
-							handleDelete();
-						}}
-						disabled={!canDelete || isLoading}
-						className="bg-destructive text-white hover:bg-destructive/90"
+
+				{!isLoading && canDelete && hasWarnings && (
+					<div className="px-4 pb-2">
+						<div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded px-2 py-1.5">
+							{hasChanges && hasUnpushedCommits
+								? "Has uncommitted changes and unpushed commits"
+								: hasChanges
+									? "Has uncommitted changes"
+									: "Has unpushed commits"}
+						</div>
+					</div>
+				)}
+
+				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-7 px-3 text-xs"
+						onClick={() => onOpenChange(false)}
 					>
-						Delete
-					</AlertDialogAction>
+						Cancel
+					</Button>
+					<Tooltip delayDuration={400}>
+						<TooltipTrigger asChild>
+							<Button
+								variant="secondary"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={handleClose}
+								disabled={isLoading}
+							>
+								Close
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="top" className="text-xs max-w-[200px]">
+							Hide from tabs. Worktree stays on disk and can be reopened later.
+						</TooltipContent>
+					</Tooltip>
+					<Tooltip delayDuration={400}>
+						<TooltipTrigger asChild>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={handleDelete}
+								disabled={!canDelete || isLoading}
+							>
+								Delete
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="top" className="text-xs max-w-[200px]">
+							Permanently remove workspace and git worktree from disk.
+						</TooltipContent>
+					</Tooltip>
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>
