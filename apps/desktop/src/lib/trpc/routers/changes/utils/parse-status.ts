@@ -82,6 +82,8 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 	for (const line of lines) {
 		if (!line.trim()) continue;
 
+		// Format: hash|shortHash|message|author|date
+		// Use slice(2, -2) to preserve '|' characters in commit messages
 		const parts = line.split("|");
 		if (parts.length < 5) continue;
 
@@ -122,6 +124,8 @@ export function parseDiffNumstat(
 	for (const line of numstatOutput.trim().split("\n")) {
 		if (!line.trim()) continue;
 
+		// Format: additions\tdeletions\tfilepath
+		// For renames: additions\tdeletions\toldpath => newpath
 		const [addStr, delStr, ...pathParts] = line.split("\t");
 		const rawPath = pathParts.join("\t");
 		if (!rawPath) continue;
@@ -150,6 +154,7 @@ export function parseNameStatus(nameStatusOutput: string): ChangedFile[] {
 	for (const line of nameStatusOutput.trim().split("\n")) {
 		if (!line.trim()) continue;
 
+		// Format: status\tfilepath (or status\toldpath\tnewpath for renames)
 		const parts = line.split("\t");
 		const statusCode = parts[0];
 		if (!statusCode) continue;
