@@ -13,24 +13,16 @@ import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
-/**
- * Builds the merged environment for git operations.
- * Takes process.env as base, then overrides only PATH from shell environment.
- * This preserves runtime vars (git credentials, proxy, ELECTRON_*, etc.)
- * while picking up PATH modifications from shell profiles (e.g., homebrew git-lfs).
- */
 async function getGitEnv(): Promise<Record<string, string>> {
 	const shellEnv = await getShellEnvironment();
 	const result: Record<string, string> = {};
 
-	// Start with process.env as base
 	for (const [key, value] of Object.entries(process.env)) {
 		if (typeof value === "string") {
 			result[key] = value;
 		}
 	}
 
-	// Only override PATH from shell env (use platform-appropriate key)
 	const pathKey = process.platform === "win32" ? "Path" : "PATH";
 	if (shellEnv[pathKey]) {
 		result[pathKey] = shellEnv[pathKey];
@@ -39,17 +31,7 @@ async function getGitEnv(): Promise<Record<string, string>> {
 	return result;
 }
 
-/**
- * Checks if a repository uses Git LFS using a hybrid approach:
- * 1. Fast path: check if .git/lfs directory exists (LFS already initialized)
- * 2. Check multiple attribute sources for filter=lfs:
- *    - Root .gitattributes
- *    - .git/info/attributes (local overrides)
- *    - .lfsconfig (LFS-specific config)
- * 3. Final fallback: check git config for LFS filter (catches nested .gitattributes)
- */
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
-	// Fast path: .git/lfs exists when LFS is initialized or objects fetched
 	try {
 		const lfsDir = join(repoPath, ".git", "lfs");
 		const stats = await stat(lfsDir);
@@ -62,7 +44,6 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 		}
 	}
 
-	// Check multiple attribute sources for filter=lfs
 	const attributeFiles = [
 		join(repoPath, ".gitattributes"),
 		join(repoPath, ".git", "info", "attributes"),
@@ -82,16 +63,12 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 		}
 	}
 
-	// Final fallback: sample a few tracked files with git check-attr
-	// This catches nested .gitattributes that declare filter=lfs
 	try {
 		const git = simpleGit(repoPath);
-		// Get a small sample of tracked files (limit to 20 for performance)
 		const lsFiles = await git.raw(["ls-files"]);
 		const sampleFiles = lsFiles.split("\n").filter(Boolean).slice(0, 20);
 
 		if (sampleFiles.length > 0) {
-			// Check filter attribute on sampled files
 			const checkAttr = await git.raw([
 				"check-attr",
 				"filter",
@@ -102,9 +79,7 @@ async function repoUsesLfs(repoPath: string): Promise<boolean> {
 				return true;
 			}
 		}
-	} catch {
-		// If git commands fail, assume no LFS to avoid blocking
-	}
+	} catch {}
 
 	return false;
 }
@@ -135,17 +110,14 @@ export async function createWorktree(
 	worktreePath: string,
 	startPoint = "origin/main",
 ): Promise<void> {
-	// Check LFS usage before try block so it's available in catch for error messaging
 	const usesLfs = await repoUsesLfs(mainRepoPath);
 
 	try {
 		const parentDir = join(worktreePath, "..");
 		await mkdir(parentDir, { recursive: true });
 
-		// Get merged environment (process.env + shell env for PATH)
 		const env = await getGitEnv();
 
-		// Proactive LFS check: detect early if repo uses LFS but git-lfs is missing
 		if (usesLfs) {
 			const lfsAvailable = await checkGitLfsAvailable(env);
 			if (!lfsAvailable) {
@@ -156,7 +128,6 @@ export async function createWorktree(
 			}
 		}
 
-		// Use execFile with arg array for proper POSIX compatibility (no shell escaping needed)
 		await execFileAsync(
 			"git",
 			[
@@ -179,7 +150,6 @@ export async function createWorktree(
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		const lowerError = errorMessage.toLowerCase();
 
-		// Check for git lock file errors (e.g., .git/config.lock, .git/index.lock)
 		const isLockError =
 			lowerError.includes("could not lock") ||
 			lowerError.includes("unable to lock") ||
@@ -197,11 +167,6 @@ export async function createWorktree(
 			);
 		}
 
-		// Broad check for LFS-related errors:
-		// - "git-lfs" / "filter-process" (original)
-		// - "smudge filter" (more specific than just "smudge" to avoid false positives)
-		// - "git: 'lfs' is not a git command"
-		// - Any mention of "lfs" when we detected LFS usage
 		const isLfsError =
 			lowerError.includes("git-lfs") ||
 			lowerError.includes("filter-process") ||
@@ -227,10 +192,8 @@ export async function removeWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	try {
-		// Get merged environment (process.env + shell env for PATH)
 		const env = await getGitEnv();
 
-		// Use execFile with arg array for proper POSIX compatibility
 		await execFileAsync(
 			"git",
 			["-C", mainRepoPath, "worktree", "remove", worktreePath, "--force"],
@@ -255,12 +218,6 @@ export async function getGitRoot(path: string): Promise<string> {
 	}
 }
 
-/**
- * Checks if a worktree exists in git's worktree list
- * @param mainRepoPath - Path to the main repository
- * @param worktreePath - Path to the worktree to check
- * @returns true if the worktree exists in git, false otherwise
- */
 export async function worktreeExists(
 	mainRepoPath: string,
 	worktreePath: string,
@@ -269,8 +226,6 @@ export async function worktreeExists(
 		const git = simpleGit(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 
-		// Parse porcelain format to verify worktree exists
-		// Format: "worktree /path/to/worktree" followed by HEAD, branch, etc.
 		const lines = worktrees.split("\n");
 		const worktreePrefix = `worktree ${worktreePath}`;
 		return lines.some((line) => line.trim() === worktreePrefix);
@@ -280,9 +235,6 @@ export async function worktreeExists(
 	}
 }
 
-/**
- * Checks if the repository has an 'origin' remote configured
- */
 export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	try {
 		const git = simpleGit(mainRepoPath);
@@ -293,13 +245,6 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 	}
 }
 
-/**
- * Detects the default branch of a repository by checking:
- * 1. Remote HEAD reference (origin/HEAD -> origin/main or origin/master)
- * 2. Common branch names from local refs (main, master, develop, trunk)
- * 3. Remote HEAD via ls-remote (fallback when local refs not fetched)
- * 4. Fallback to 'main'
- */
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	const git = simpleGit(mainRepoPath);
 
@@ -307,9 +252,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
 		if (match) return match[1];
-	} catch {
-		// origin/HEAD not set, continue to fallback
-	}
+	} catch {}
 
 	try {
 		const branches = await git.branch(["-r"]);
@@ -320,9 +263,7 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 				return candidate;
 			}
 		}
-	} catch {
-		// Failed to list branches
-	}
+	} catch {}
 
 	try {
 		const hasRemote = await hasOriginRemote(mainRepoPath);
@@ -333,19 +274,11 @@ export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 				return symrefMatch[1];
 			}
 		}
-	} catch {
-		// Failed to query remote
-	}
+	} catch {}
 
 	return "main";
 }
 
-/**
- * Fetches the default branch from origin and returns the latest commit SHA
- * @param mainRepoPath - Path to the main repository
- * @param defaultBranch - The default branch name (e.g., 'main', 'master')
- * @returns The commit SHA of origin/{defaultBranch} after fetch
- */
 export async function fetchDefaultBranch(
 	mainRepoPath: string,
 	defaultBranch: string,
@@ -356,12 +289,6 @@ export async function fetchDefaultBranch(
 	return commit.trim();
 }
 
-/**
- * Checks if a worktree's branch is behind the default branch
- * @param worktreePath - Path to the worktree
- * @param defaultBranch - The default branch name (e.g., 'main', 'master')
- * @returns true if the branch has commits on origin/{defaultBranch} that it doesn't have
- */
 export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
@@ -375,11 +302,6 @@ export async function checkNeedsRebase(
 	return Number.parseInt(behindCount.trim(), 10) > 0;
 }
 
-/**
- * Checks if a worktree has uncommitted changes (staged, unstaged, or untracked files)
- * @param worktreePath - Path to the worktree
- * @returns true if there are any uncommitted changes
- */
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {
@@ -388,18 +310,11 @@ export async function hasUncommittedChanges(
 	return !status.isClean();
 }
 
-/**
- * Checks if a worktree has commits that haven't been pushed to the remote
- * @param worktreePath - Path to the worktree
- * @returns true if there are unpushed commits, false if all commits are pushed or no upstream exists
- */
 export async function hasUnpushedCommits(
 	worktreePath: string,
 ): Promise<boolean> {
 	const git = simpleGit(worktreePath);
 	try {
-		// Count commits that are on HEAD but not on the upstream tracking branch
-		// @{upstream} refers to the configured upstream branch (e.g., origin/branch-name)
 		const aheadCount = await git.raw([
 			"rev-list",
 			"--count",
@@ -407,10 +322,7 @@ export async function hasUnpushedCommits(
 		]);
 		return Number.parseInt(aheadCount.trim(), 10) > 0;
 	} catch {
-		// No upstream configured or other error - check if any commits exist at all
-		// that aren't on origin (for branches without tracking)
 		try {
-			// If there's no upstream, check if branch has commits not on any remote
 			const localCommits = await git.raw([
 				"rev-list",
 				"--count",
@@ -420,19 +332,11 @@ export async function hasUnpushedCommits(
 			]);
 			return Number.parseInt(localCommits.trim(), 10) > 0;
 		} catch {
-			// If all else fails, assume no unpushed commits
 			return false;
 		}
 	}
 }
 
-/**
- * Checks if a branch exists on the remote (origin) by querying the remote directly.
- * Uses `git ls-remote` to check the actual remote state, not just locally fetched refs.
- * @param worktreePath - Path to the worktree
- * @param branchName - The branch name to check
- * @returns true if the branch exists on origin
- */
 export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,

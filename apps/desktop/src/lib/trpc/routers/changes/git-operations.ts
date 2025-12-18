@@ -8,12 +8,6 @@ import { publicProcedure, router } from "../..";
 
 const _execFileAsync = promisify(execFile);
 
-/**
- * Checks if an error message indicates the upstream branch is missing.
- * This happens when:
- * - The remote branch was deleted (e.g., after PR merge)
- * - No tracking branch is configured
- */
 export function isUpstreamMissingError(message: string): boolean {
 	return (
 		message.includes("no such ref was fetched") ||
@@ -22,9 +16,6 @@ export function isUpstreamMissingError(message: string): boolean {
 	);
 }
 
-/**
- * Checks if the current branch has an upstream tracking branch configured.
- */
 async function hasUpstreamBranch(
 	git: ReturnType<typeof simpleGit>,
 ): Promise<boolean> {
@@ -84,7 +75,6 @@ export const createGitOperationsRouter = () => {
 				} else {
 					await git.push();
 				}
-				// Fetch to update remote tracking info so ahead/behind counts refresh
 				await git.fetch();
 				return { success: true };
 			}),
@@ -102,7 +92,6 @@ export const createGitOperationsRouter = () => {
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
-					// If upstream doesn't exist, provide a clearer error
 					if (isUpstreamMissingError(message)) {
 						throw new Error(
 							"No upstream branch to pull from. The remote branch may have been deleted.",
@@ -121,15 +110,12 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
-				// Try to pull first, but handle case where upstream doesn't exist
 				try {
 					await git.pull();
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
-					// If upstream doesn't exist, skip pull and just push
 					if (isUpstreamMissingError(message)) {
-						// Just push instead
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await git.push(["--set-upstream", "origin", branch.trim()]);
 						await git.fetch();
@@ -138,7 +124,6 @@ export const createGitOperationsRouter = () => {
 					throw error;
 				}
 				await git.push();
-				// Fetch to update remote tracking info so ahead/behind counts refresh
 				await git.fetch();
 				return { success: true };
 			}),
@@ -176,11 +161,9 @@ export const createGitOperationsRouter = () => {
 					const repo = repoMatch[1].replace(/\.git$/, "");
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
-					// Open the URL in the browser
 					const { exec } = await import("node:child_process");
 					exec(`open "${url}"`);
 
-					// Fetch to update tracking info
 					await git.fetch();
 
 					return { success: true, url };

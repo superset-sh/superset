@@ -2,9 +2,6 @@ import type { ChangedFile } from "shared/changes-types";
 import type { SimpleGit } from "simple-git";
 import { parseDiffNumstat } from "./parse-status";
 
-/**
- * Fetches numstat for given diff arguments and applies stats to files
- */
 export async function applyNumstatToFiles(
 	git: SimpleGit,
 	files: ChangedFile[],

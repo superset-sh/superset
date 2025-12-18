@@ -160,15 +160,10 @@ interface TrackingStatus {
 	pullCount: number;
 }
 
-/**
- * Get the push/pull count relative to the tracking branch (not default branch).
- * This tells us if there are commits to push/pull to the remote tracking branch.
- */
 async function getTrackingBranchStatus(
 	git: ReturnType<typeof simpleGit>,
 ): Promise<TrackingStatus> {
 	try {
-		// Check if there's a tracking branch configured
 		const upstream = await git.raw([
 			"rev-parse",
 			"--abbrev-ref",
@@ -178,7 +173,6 @@ async function getTrackingBranchStatus(
 			return { pushCount: 0, pullCount: 0 };
 		}
 
-		// Get ahead/behind relative to tracking branch
 		const tracking = await git.raw([
 			"rev-list",
 			"--left-right",
@@ -191,7 +185,6 @@ async function getTrackingBranchStatus(
 			pullCount: Number.parseInt(pullStr || "0", 10),
 		};
 	} catch {
-		// No tracking branch configured
 		return { pushCount: 0, pullCount: 0 };
 	}
 }

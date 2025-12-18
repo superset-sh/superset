@@ -6,9 +6,6 @@ import type {
 } from "shared/changes-types";
 import type { StatusResult } from "simple-git";
 
-/**
- * Maps git status codes to our FileStatus type
- */
 function mapGitStatus(gitIndex: string, gitWorking: string): FileStatus {
 	if (gitIndex === "A" || gitWorking === "A") return "added";
 	if (gitIndex === "D" || gitWorking === "D") return "deleted";
@@ -18,9 +15,6 @@ function mapGitStatus(gitIndex: string, gitWorking: string): FileStatus {
 	return "modified";
 }
 
-/**
- * Converts a simple-git FileStatusResult to our ChangedFile type
- */
 function toChangedFile(
 	path: string,
 	gitIndex: string,
@@ -34,9 +28,6 @@ function toChangedFile(
 	};
 }
 
-/**
- * Parses simple-git StatusResult into our GitChangesStatus format
- */
 export function parseGitStatus(
 	status: StatusResult,
 ): Pick<GitChangesStatus, "branch" | "staged" | "unstaged" | "untracked"> {
@@ -82,11 +73,6 @@ export function parseGitStatus(
 	};
 }
 
-/**
- * Parses git log output into CommitInfo array
- * Format: hash|shortHash|message|author|date
- * Note: Uses limit of 5 parts to preserve '|' characters in commit messages
- */
 export function parseGitLog(logOutput: string): CommitInfo[] {
 	if (!logOutput.trim()) return [];
 
@@ -96,7 +82,6 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 	for (const line of lines) {
 		if (!line.trim()) continue;
 
-		// Split into exactly 5 parts to preserve '|' in messages
 		const parts = line.split("|");
 		if (parts.length < 5) continue;
 
@@ -129,11 +114,6 @@ export function parseGitLog(logOutput: string): CommitInfo[] {
 	return commits;
 }
 
-/**
- * Parses git diff --numstat output to get addition/deletion counts
- * Format: additions\tdeletions\tfilepath
- * For renames/copies: additions\tdeletions\toldpath => newpath
- */
 export function parseDiffNumstat(
 	numstatOutput: string,
 ): Map<string, { additions: number; deletions: number }> {
@@ -146,7 +126,6 @@ export function parseDiffNumstat(
 		const rawPath = pathParts.join("\t");
 		if (!rawPath) continue;
 
-		// Binary files show "-" for additions/deletions
 		const additions = addStr === "-" ? 0 : Number.parseInt(addStr, 10) || 0;
 		const deletions = delStr === "-" ? 0 : Number.parseInt(delStr, 10) || 0;
 		const statEntry = { additions, deletions };
@@ -165,10 +144,6 @@ export function parseDiffNumstat(
 	return stats;
 }
 
-/**
- * Parses git diff --name-status output for a commit
- * Format: status\tfilepath (or status\toldpath\tnewpath for renames)
- */
 export function parseNameStatus(nameStatusOutput: string): ChangedFile[] {
 	const files: ChangedFile[] = [];
 
@@ -216,9 +191,6 @@ export function parseNameStatus(nameStatusOutput: string): ChangedFile[] {
 	return files;
 }
 
-/**
- * Detects Monaco language from file extension
- */
 export function detectLanguage(filePath: string): string {
 	const ext = filePath.split(".").pop()?.toLowerCase();
 
