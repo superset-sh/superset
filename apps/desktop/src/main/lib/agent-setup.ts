@@ -90,11 +90,14 @@ function createClaudeWrapper(): void {
 		return;
 	}
 
+	// Use $HOME instead of ~ because tilde doesn't expand inside JSON strings.
+	// Using ~ causes Claude Code's file watcher to malfunction and watch TMPDIR.
 	const script = `#!/bin/bash
 # Superset wrapper for Claude Code
 # Injects notification hook settings
 
-SUPERSET_CLAUDE_SETTINGS='{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}],"PermissionRequest":[{"matcher":"*","hooks":[{"type":"command","command":"~/${SUPERSET_DIR_NAME}/hooks/notify.sh"}]}]}}'
+NOTIFY_SCRIPT="$HOME/${SUPERSET_DIR_NAME}/hooks/notify.sh"
+SUPERSET_CLAUDE_SETTINGS="{\\"hooks\\":{\\"Stop\\":[{\\"hooks\\":[{\\"type\\":\\"command\\",\\"command\\":\\"$NOTIFY_SCRIPT\\"}]}],\\"PermissionRequest\\":[{\\"matcher\\":\\"*\\",\\"hooks\\":[{\\"type\\":\\"command\\",\\"command\\":\\"$NOTIFY_SCRIPT\\"}]}]}}"
 
 exec "${realClaude}" --settings "$SUPERSET_CLAUDE_SETTINGS" "$@"
 `;
