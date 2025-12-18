@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LayoutGroup, motion } from "framer-motion";
 import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
@@ -18,6 +17,7 @@ import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { PresetContextMenu } from "./PresetContextMenu";
 import { TabItem } from "./TabItem";
 import { TabsCommandDialog } from "./TabsCommandDialog";
 
@@ -35,6 +35,7 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const addTab = useTabsStore((s) => s.addTab);
+	const addPane = useTabsStore((s) => s.addPane);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const reorderTabById = useTabsStore((s) => s.reorderTabById);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -61,6 +62,20 @@ export function TabsView() {
 		}
 	};
 
+	const handleAddPane = () => {
+		if (!activeWorkspaceId) return;
+
+		const activeTabId = activeTabIds[activeWorkspaceId];
+		if (!activeTabId) {
+			// Fall back to creating a new tab if no active tab
+			handleAddTab();
+			return;
+		}
+
+		addPane(activeTabId);
+		setCommandOpen(false);
+	};
+
 	const handleOpenPresetsSettings = () => {
 		openSettings("presets");
 		setCommandOpen(false);
@@ -79,6 +94,25 @@ export function TabsView() {
 		if (preset.name) {
 			renameTab(tabId, preset.name);
 		}
+
+		setCommandOpen(false);
+	};
+
+	const handleSelectPresetAsPane = (preset: TerminalPreset) => {
+		if (!activeWorkspaceId) return;
+
+		const activeTabId = activeTabIds[activeWorkspaceId];
+		if (!activeTabId) {
+			// Fall back to opening as new tab if no active tab
+			handleSelectPreset(preset);
+			return;
+		}
+
+		// Add pane to current tab with preset options
+		addPane(activeTabId, {
+			initialCommands: preset.commands,
+			initialCwd: preset.cwd || undefined,
+		});
 
 		setCommandOpen(false);
 	};
@@ -140,15 +174,23 @@ export function TabsView() {
 					transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
 				>
 					<ButtonGroup className="w-full mb-1">
-						<Button
-							variant="ghost"
-							onClick={handleAddTab}
-							className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
-							disabled={!activeWorkspaceId}
+						<PresetContextMenu
+							hasActiveTab={
+								!!(activeWorkspaceId && activeTabIds[activeWorkspaceId])
+							}
+							onOpenAsNewTab={handleAddTab}
+							onOpenAsPane={handleAddPane}
 						>
-							<HiMiniPlus className="size-4" />
-							<span className="truncate flex-1">New Terminal</span>
-						</Button>
+							<Button
+								variant="ghost"
+								onClick={handleAddTab}
+								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
+								disabled={!activeWorkspaceId}
+							>
+								<HiMiniPlus className="size-4" />
+								<span className="truncate flex-1">New Terminal</span>
+							</Button>
+						</PresetContextMenu>
 						<Button
 							variant="ghost"
 							onClick={handleOpenPresetsSettings}
@@ -162,38 +204,39 @@ export function TabsView() {
 							{presets.map((preset) => {
 								const tooltipText = preset.description || preset.cwd;
 								const presetIcon = getPresetIcon(preset.name, isDark);
-								const button = (
-									<Button
-										variant="ghost"
-										onClick={() => handleSelectPreset(preset)}
-										disabled={!activeWorkspaceId}
-										className="w-full justify-start px-3 py-1.5 h-auto text-sm"
-									>
-										{presetIcon ? (
-											<img
-												src={presetIcon}
-												alt=""
-												className="size-4 object-contain"
-											/>
-										) : (
-											<HiMiniCommandLine className="size-4" />
-										)}
-										<span className="truncate">{preset.name || "default"}</span>
-									</Button>
+								const hasActiveTab = !!(
+									activeWorkspaceId && activeTabIds[activeWorkspaceId]
 								);
 
-								if (tooltipText) {
-									return (
-										<Tooltip key={preset.id} delayDuration={300}>
-											<TooltipTrigger asChild>{button}</TooltipTrigger>
-											<TooltipContent side="right">
-												{tooltipText}
-											</TooltipContent>
-										</Tooltip>
-									);
-								}
-
-								return <div key={preset.id}>{button}</div>;
+								return (
+									<PresetContextMenu
+										key={preset.id}
+										hasActiveTab={hasActiveTab}
+										tooltipText={tooltipText}
+										onOpenAsNewTab={() => handleSelectPreset(preset)}
+										onOpenAsPane={() => handleSelectPresetAsPane(preset)}
+									>
+										<Button
+											variant="ghost"
+											onClick={() => handleSelectPreset(preset)}
+											disabled={!activeWorkspaceId}
+											className="w-full justify-start px-3 py-1.5 h-auto text-sm"
+										>
+											{presetIcon ? (
+												<img
+													src={presetIcon}
+													alt=""
+													className="size-4 object-contain"
+												/>
+											) : (
+												<HiMiniCommandLine className="size-4" />
+											)}
+											<span className="truncate">
+												{preset.name || "default"}
+											</span>
+										</Button>
+									</PresetContextMenu>
+								);
 							})}
 						</div>
 					)}

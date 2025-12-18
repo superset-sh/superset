@@ -318,12 +318,12 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Pane operations
-				addPane: (tabId) => {
+				addPane: (tabId, options?: CreatePaneOptions) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
-					const newPane = createPane(tabId);
+					const newPane = createPane(tabId, "terminal", options);
 
 					// Add pane to layout (append to the right)
 					const newLayout: MosaicNode<string> = {
