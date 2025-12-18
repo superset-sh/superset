@@ -1,6 +1,6 @@
+import { db } from "main/lib/db";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { db } from "main/lib/db";
 import type {
 	ChangedFile,
 	FileContents,
@@ -47,8 +47,6 @@ export const createChangesRouter = () => {
 						}
 					}
 
-					// Get last commit date for all local branches in one command
-					// Format: "refname:short timestamp" for each branch
 					const local: Array<{ branch: string; lastCommitDate: number }> = [];
 					try {
 						const branchInfo = await git.raw([
@@ -73,7 +71,6 @@ export const createChangesRouter = () => {
 							}
 						}
 					} catch {
-						// Fallback: return branches without dates
 						for (const branch of localBranches) {
 							local.push({ branch, lastCommitDate: 0 });
 						}
@@ -95,8 +92,6 @@ export const createChangesRouter = () => {
 						}
 					}
 
-					// Get branches that are checked out by worktrees using git worktree list
-					// Maps branch name to worktree path
 					const checkedOutBranches: Record<string, string> = {};
 					try {
 						const worktreeList = await git.raw([
@@ -115,7 +110,6 @@ export const createChangesRouter = () => {
 									.substring(7)
 									.trim()
 									.replace("refs/heads/", "");
-								// Exclude the current worktree's branch
 								if (
 									currentWorktreePath &&
 									currentWorktreePath !== input.worktreePath
@@ -124,9 +118,7 @@ export const createChangesRouter = () => {
 								}
 							}
 						}
-					} catch {
-						// Ignore errors - just return empty object
-					}
+					} catch {}
 
 					return {
 						local,
@@ -500,33 +492,25 @@ export const createChangesRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
 
-				// Step 1: Look up worktree in DB and get current branch
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.path === input.worktreePath,
 				);
 				if (!worktree) {
-					throw new Error(
-						`Worktree lookup failed: No worktree found at path "${input.worktreePath}"`,
-					);
+					throw new Error(`No worktree found at path "${input.worktreePath}"`);
 				}
 
-				// Record the original branch for potential rollback
 				let originalBranch = worktree.branch;
 				if (!originalBranch) {
-					// Fallback: query git for current branch if DB doesn't have it
 					try {
 						const branchSummary = await git.branch();
 						originalBranch = branchSummary.current;
 					} catch (error) {
 						const message =
 							error instanceof Error ? error.message : String(error);
-						throw new Error(
-							`Git checkout preparation failed: Could not determine current branch: ${message}`,
-						);
+						throw new Error(`Could not determine current branch: ${message}`);
 					}
 				}
 
-				// Step 2: Perform git checkout
 				try {
 					await git.checkout(input.branch);
 				} catch (error) {
@@ -535,7 +519,6 @@ export const createChangesRouter = () => {
 					throw new Error(`Git checkout failed: ${message}`);
 				}
 
-				// Step 3: Update DB record
 				try {
 					await db.update((data) => {
 						const wt = data.worktrees.find(
@@ -549,7 +532,6 @@ export const createChangesRouter = () => {
 						}
 					});
 				} catch (dbError) {
-					// DB update failed - attempt to roll back git state
 					try {
 						await git.checkout(originalBranch);
 					} catch (rollbackError) {

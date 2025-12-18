@@ -51,7 +51,6 @@ export function BranchSelector({
 		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
 	};
 
-	// Sort: current branch first, then other checked out branches, then the rest
 	const sortedBranches = useMemo(
 		() => [
 			...localBranches.filter((b) => b.branch === currentBranch),
@@ -65,7 +64,6 @@ export function BranchSelector({
 		[localBranches, checkedOutBranches, currentBranch],
 	);
 
-	// Filter branches based on search
 	const filteredBranches = useMemo(() => {
 		if (!search) return sortedBranches;
 		const searchLower = search.toLowerCase();
@@ -74,7 +72,6 @@ export function BranchSelector({
 		);
 	}, [sortedBranches, search]);
 
-	// Paginate
 	const visibleBranches = filteredBranches.slice(0, visibleCount);
 	const hasMore = filteredBranches.length > visibleCount;
 
