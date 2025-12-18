@@ -28,7 +28,7 @@ export const createChangesRouter = () => {
 					local: Array<{ branch: string; lastCommitDate: number }>;
 					remote: string[];
 					defaultBranch: string;
-					checkedOutBranches: string[];
+					checkedOutBranches: Record<string, string>;
 				}> => {
 					const git = simpleGit(input.worktreePath);
 
@@ -96,7 +96,8 @@ export const createChangesRouter = () => {
 					}
 
 					// Get branches that are checked out by worktrees using git worktree list
-					const checkedOutBranches: string[] = [];
+					// Maps branch name to worktree path
+					const checkedOutBranches: Record<string, string> = {};
 					try {
 						const worktreeList = await git.raw([
 							"worktree",
@@ -115,13 +116,13 @@ export const createChangesRouter = () => {
 									.trim()
 									.replace("refs/heads/", "");
 								// Exclude the current worktree's branch
-								if (currentWorktreePath !== input.worktreePath) {
-									checkedOutBranches.push(branch);
+								if (currentWorktreePath && currentWorktreePath !== input.worktreePath) {
+									checkedOutBranches[branch] = currentWorktreePath;
 								}
 							}
 						}
 					} catch {
-						// Ignore errors - just return empty array
+						// Ignore errors - just return empty object
 					}
 
 					return {

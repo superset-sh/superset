@@ -11,7 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiChevronDown } from "react-icons/hi2";
+import { HiChevronDown, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
 
@@ -40,17 +40,29 @@ export function BranchSelector({
 	const utils = trpc.useUtils();
 
 	const localBranches = branchData?.local ?? [];
-	const checkedOutBranches = new Set(branchData?.checkedOutBranches ?? []);
+	const checkedOutBranches = branchData?.checkedOutBranches ?? {};
+
+	const openInApp = trpc.external.openInApp.useMutation();
+	const { data: lastUsedApp = "cursor" } =
+		trpc.settings.getLastUsedApp.useQuery();
+
+	const handleOpenWorktree = (
+		e: React.MouseEvent,
+		worktreePath: string,
+	) => {
+		e.stopPropagation();
+		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
+	};
 
 	// Sort: current branch first, then other checked out branches, then the rest
 	const sortedBranches = useMemo(
 		() => [
 			...localBranches.filter((b) => b.branch === currentBranch),
 			...localBranches.filter(
-				(b) => checkedOutBranches.has(b.branch) && b.branch !== currentBranch,
+				(b) => b.branch in checkedOutBranches && b.branch !== currentBranch,
 			),
 			...localBranches.filter(
-				(b) => !checkedOutBranches.has(b.branch) && b.branch !== currentBranch,
+				(b) => !(b.branch in checkedOutBranches) && b.branch !== currentBranch,
 			),
 		],
 		[localBranches, checkedOutBranches, currentBranch],
@@ -131,7 +143,8 @@ export function BranchSelector({
 					<CommandList ref={listRef} className="p-1">
 						<CommandEmpty className="py-3">No branches found</CommandEmpty>
 						{visibleBranches.map(({ branch, lastCommitDate }) => {
-							const isCheckedOut = checkedOutBranches.has(branch);
+							const worktreePath = checkedOutBranches[branch];
+							const isCheckedOut = !!worktreePath;
 							const isCurrent = branch === currentBranch;
 							const timeLabel = isCurrent
 								? "(current)"
@@ -147,11 +160,29 @@ export function BranchSelector({
 									className="flex items-center justify-between gap-2"
 								>
 									<span className="truncate flex-1">{branch}</span>
-									<span className="shrink-0 tabular-nums">
-										{isCheckedOut && !isCurrent
-											? `(in use) ${timeLabel}`
-											: timeLabel}
-									</span>
+									<div className="flex items-center gap-2 shrink-0">
+										{isCheckedOut && !isCurrent && (
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(e) => handleOpenWorktree(e, worktreePath)}
+														className="p-0.5 hover:bg-accent rounded"
+													>
+														<HiOutlineArrowTopRightOnSquare className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top" showArrow={false}>
+													Open worktree
+												</TooltipContent>
+											</Tooltip>
+										)}
+										<span className="tabular-nums">
+											{isCheckedOut && !isCurrent
+												? `(in use) ${timeLabel}`
+												: timeLabel}
+										</span>
+									</div>
 								</CommandItem>
 							);
 						})}
