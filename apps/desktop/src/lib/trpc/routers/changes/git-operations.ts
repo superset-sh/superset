@@ -6,7 +6,7 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
-const execFileAsync = promisify(execFile);
+const _execFileAsync = promisify(execFile);
 
 /**
  * Checks if an error message indicates the upstream branch is missing.
@@ -20,6 +20,20 @@ export function isUpstreamMissingError(message: string): boolean {
 		message.includes("no tracking information") ||
 		message.includes("couldn't find remote ref")
 	);
+}
+
+/**
+ * Checks if the current branch has an upstream tracking branch configured.
+ */
+async function hasUpstreamBranch(
+	git: ReturnType<typeof simpleGit>,
+): Promise<boolean> {
+	try {
+		await git.raw(["rev-parse", "--abbrev-ref", "@{upstream}"]);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 export const createGitOperationsRouter = () => {
@@ -62,12 +76,16 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
-				if (input.setUpstream) {
+				const hasUpstream = await hasUpstreamBranch(git);
+
+				if (input.setUpstream && !hasUpstream) {
 					const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 					await git.push(["--set-upstream", "origin", branch.trim()]);
 				} else {
 					await git.push();
 				}
+				// Fetch to update remote tracking info so ahead/behind counts refresh
+				await git.fetch();
 				return { success: true };
 			}),
 
@@ -114,11 +132,14 @@ export const createGitOperationsRouter = () => {
 						// Just push instead
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await git.push(["--set-upstream", "origin", branch.trim()]);
+						await git.fetch();
 						return { success: true };
 					}
 					throw error;
 				}
 				await git.push();
+				// Fetch to update remote tracking info so ahead/behind counts refresh
+				await git.fetch();
 				return { success: true };
 			}),
 
@@ -126,39 +147,43 @@ export const createGitOperationsRouter = () => {
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					title: z.string(),
-					body: z.string().optional(),
-					draft: z.boolean().optional(),
 				}),
 			)
 			.mutation(
-				async ({
-					input,
-				}): Promise<{ success: boolean; url: string; number: number }> => {
-					const args = [
-						"pr",
-						"create",
-						"--title",
-						input.title,
-						"--json",
-						"url,number",
-					];
-					if (input.body) {
-						args.push("--body", input.body);
-					}
-					if (input.draft) {
-						args.push("--draft");
+				async ({ input }): Promise<{ success: boolean; url: string }> => {
+					const git = simpleGit(input.worktreePath);
+					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
+					const hasUpstream = await hasUpstreamBranch(git);
+
+					// Ensure branch is pushed first
+					if (!hasUpstream) {
+						await git.push(["--set-upstream", "origin", branch]);
+					} else {
+						// Push any unpushed commits
+						await git.push();
 					}
 
-					const { stdout } = await execFileAsync("gh", args, {
-						cwd: input.worktreePath,
-					});
-					const result = JSON.parse(stdout);
-					return {
-						success: true,
-						url: result.url,
-						number: result.number,
-					};
+					// Get the remote URL to construct the GitHub compare URL
+					const remoteUrl = (await git.remote(["get-url", "origin"])) || "";
+					const repoMatch = remoteUrl
+						.trim()
+						.match(/github\.com[:/](.+?)(?:\.git)?$/);
+
+					if (!repoMatch) {
+						throw new Error("Could not determine GitHub repository URL");
+					}
+
+					const repo = repoMatch[1].replace(/\.git$/, "");
+					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
+
+					// Open the URL in the browser
+					const { exec } = await import("node:child_process");
+					exec(`open "${url}"`);
+
+					// Fetch to update tracking info
+					await git.fetch();
+
+					return { success: true, url };
 				},
 			),
 	});

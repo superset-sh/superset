@@ -43,8 +43,7 @@ describe("git-operations error handling", () => {
 		});
 
 		test("push rejected - no permission", () => {
-			const message =
-				"remote: Permission to user/repo.git denied to otheruser";
+			const message = "remote: Permission to user/repo.git denied to otheruser";
 			expect(message.includes("Permission")).toBe(true);
 			expect(message.includes("denied")).toBe(true);
 		});

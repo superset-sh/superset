@@ -194,7 +194,6 @@ export function ChangesView() {
 	const unstagedFiles = [...status.unstaged, ...status.untracked];
 
 	const hasStagedChanges = status.staged.length > 0;
-	const branchExistsOnRemote = githubStatus?.branchExistsOnRemote ?? false;
 	const hasExistingPR = !!githubStatus?.pr;
 	const prUrl = githubStatus?.pr?.url;
 
@@ -213,9 +212,8 @@ export function ChangesView() {
 			<CommitInput
 				worktreePath={worktreePath}
 				hasStagedChanges={hasStagedChanges}
-				ahead={status.ahead}
-				behind={status.behind}
-				branchExistsOnRemote={branchExistsOnRemote}
+				pushCount={status.pushCount}
+				pullCount={status.pullCount}
 				hasExistingPR={hasExistingPR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}

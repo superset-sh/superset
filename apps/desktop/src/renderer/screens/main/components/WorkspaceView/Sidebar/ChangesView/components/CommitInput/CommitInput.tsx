@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { ButtonGroup } from "@superset/ui/button-group";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,76 +24,66 @@ import { trpc } from "renderer/lib/trpc";
 interface CommitInputProps {
 	worktreePath: string;
 	hasStagedChanges: boolean;
-	ahead: number;
-	behind: number;
-	branchExistsOnRemote: boolean;
+	pushCount: number;
+	pullCount: number;
 	hasExistingPR: boolean;
 	prUrl?: string;
 	onRefresh: () => void;
 }
 
+type GitAction = "commit" | "push" | "pull" | "sync";
+
 export function CommitInput({
 	worktreePath,
 	hasStagedChanges,
-	ahead,
-	behind,
-	branchExistsOnRemote,
+	pushCount,
+	pullCount,
 	hasExistingPR,
 	prUrl,
 	onRefresh,
 }: CommitInputProps) {
 	const [commitMessage, setCommitMessage] = useState("");
+	const [isOpen, setIsOpen] = useState(false);
 
 	const commitMutation = trpc.changes.commit.useMutation({
 		onSuccess: () => {
-			toast.success("Changes committed successfully");
+			toast.success("Committed");
 			setCommitMessage("");
 			onRefresh();
 		},
-		onError: (error) => {
-			toast.error(`Failed to commit: ${error.message}`);
-		},
+		onError: (error) => toast.error(`Commit failed: ${error.message}`),
 	});
 
 	const pushMutation = trpc.changes.push.useMutation({
 		onSuccess: () => {
-			toast.success("Pushed successfully");
+			toast.success("Pushed");
 			onRefresh();
 		},
-		onError: (error) => {
-			toast.error(`Failed to push: ${error.message}`);
-		},
+		onError: (error) => toast.error(`Push failed: ${error.message}`),
 	});
 
 	const pullMutation = trpc.changes.pull.useMutation({
 		onSuccess: () => {
-			toast.success("Pulled successfully");
+			toast.success("Pulled");
 			onRefresh();
 		},
-		onError: (error) => {
-			toast.error(`Failed to pull: ${error.message}`);
-		},
+		onError: (error) => toast.error(`Pull failed: ${error.message}`),
 	});
 
 	const syncMutation = trpc.changes.sync.useMutation({
 		onSuccess: () => {
-			toast.success("Synced successfully");
+			toast.success("Synced");
 			onRefresh();
 		},
-		onError: (error) => {
-			toast.error(`Failed to sync: ${error.message}`);
-		},
+		onError: (error) => toast.error(`Sync failed: ${error.message}`),
 	});
 
 	const createPRMutation = trpc.changes.createPR.useMutation({
-		onSuccess: (data) => {
-			toast.success("PR created successfully");
-			window.open(data.url, "_blank");
+		onSuccess: () => {
+			toast.success("Opening GitHub...");
 			onRefresh();
 		},
-		onError: (error) => {
-			toast.error(`Failed to create PR: ${error.message}`);
-		},
+		onError: (error) => toast.error(`Failed: ${error.message}`),
 	});
 
 	const isPending =
@@ -102,135 +93,109 @@ export function CommitInput({
 		syncMutation.isPending ||
 		createPRMutation.isPending;
 
+	const canCommit = hasStagedChanges && commitMessage.trim();
+
 	const handleCommit = () => {
-		if (!commitMessage.trim()) {
-			toast.error("Please enter a commit message");
-			return;
-		}
+		if (!canCommit) return;
 		commitMutation.mutate({ worktreePath, message: commitMessage.trim() });
 	};
 
+	const handlePush = () =>
+		pushMutation.mutate({ worktreePath, setUpstream: true });
+	const handlePull = () => pullMutation.mutate({ worktreePath });
+	const handleSync = () => syncMutation.mutate({ worktreePath });
+	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
+	const handleOpenPR = () => prUrl && window.open(prUrl, "_blank");
+
 	const handleCommitAndPush = () => {
-		if (!commitMessage.trim()) {
-			toast.error("Please enter a commit message");
-			return;
-		}
+		if (!canCommit) return;
 		commitMutation.mutate(
 			{ worktreePath, message: commitMessage.trim() },
-			{
-				onSuccess: () => {
-					pushMutation.mutate({
-						worktreePath,
-						setUpstream: !branchExistsOnRemote,
-					});
-				},
-			},
+			{ onSuccess: handlePush },
 		);
 	};
 
 	const handleCommitPushAndCreatePR = () => {
-		if (!commitMessage.trim()) {
-			toast.error("Please enter a commit message");
-			return;
-		}
+		if (!canCommit) return;
 		commitMutation.mutate(
 			{ worktreePath, message: commitMessage.trim() },
 			{
 				onSuccess: () => {
 					pushMutation.mutate(
-						{ worktreePath, setUpstream: !branchExistsOnRemote },
-						{
-							onSuccess: () => {
-								createPRMutation.mutate({
-									worktreePath,
-									title: commitMessage.trim().split("\n")[0],
-								});
-							},
-						},
+						{ worktreePath, setUpstream: true },
+						{ onSuccess: handleCreatePR },
 					);
 				},
 			},
 		);
 	};
 
-	const handlePush = () => {
-		pushMutation.mutate({ worktreePath, setUpstream: !branchExistsOnRemote });
-	};
-
-	const handlePull = () => {
-		pullMutation.mutate({ worktreePath });
-	};
-
-	const handleSync = () => {
-		syncMutation.mutate({ worktreePath });
-	};
-
-	const handleCreatePR = () => {
-		const title = commitMessage.trim().split("\n")[0] || "New pull request";
-		createPRMutation.mutate({ worktreePath, title });
-	};
-
-	const handleOpenPR = () => {
-		if (prUrl) {
-			window.open(prUrl, "_blank");
-		}
-	};
-
-	const getMainButtonAction = (): {
+	// Determine primary action based on state
+	const getPrimaryAction = (): {
+		action: GitAction;
 		label: string;
 		icon: React.ReactNode;
-		action: () => void;
+		handler: () => void;
 		disabled: boolean;
 		tooltip: string;
 	} => {
-		if (hasStagedChanges && commitMessage.trim()) {
+		if (canCommit) {
 			return {
+				action: "commit",
 				label: "Commit",
-				icon: <HiCheck className="w-4 h-4" />,
-				action: handleCommit,
+				icon: <HiCheck className="size-4" />,
+				handler: handleCommit,
 				disabled: isPending,
 				tooltip: "Commit staged changes",
 			};
 		}
-		if (ahead > 0 && behind > 0) {
+		if (pushCount > 0 && pullCount > 0) {
 			return {
+				action: "sync",
 				label: "Sync",
-				icon: <HiArrowsUpDown className="w-4 h-4" />,
-				action: handleSync,
+				icon: <HiArrowsUpDown className="size-4" />,
+				handler: handleSync,
 				disabled: isPending,
-				tooltip: `Sync: pull ${behind} commit${behind !== 1 ? "s" : ""}, push ${ahead} commit${ahead !== 1 ? "s" : ""}`,
+				tooltip: `Pull ${pullCount}, push ${pushCount}`,
 			};
 		}
-		if (ahead > 0) {
+		if (pushCount > 0) {
 			return {
+				action: "push",
 				label: "Push",
-				icon: <HiArrowUp className="w-4 h-4" />,
-				action: handlePush,
+				icon: <HiArrowUp className="size-4" />,
+				handler: handlePush,
 				disabled: isPending,
-				tooltip: `Push ${ahead} commit${ahead !== 1 ? "s" : ""}`,
+				tooltip: `Push ${pushCount} commit${pushCount !== 1 ? "s" : ""}`,
 			};
 		}
-		if (behind > 0) {
+		if (pullCount > 0) {
 			return {
+				action: "pull",
 				label: "Pull",
-				icon: <HiArrowDown className="w-4 h-4" />,
-				action: handlePull,
+				icon: <HiArrowDown className="size-4" />,
+				handler: handlePull,
 				disabled: isPending,
-				tooltip: `Pull ${behind} commit${behind !== 1 ? "s" : ""}`,
+				tooltip: `Pull ${pullCount} commit${pullCount !== 1 ? "s" : ""}`,
 			};
 		}
 		return {
+			action: "commit",
 			label: "Commit",
-			icon: <HiCheck className="w-4 h-4" />,
-			action: handleCommit,
-			disabled: isPending || !hasStagedChanges || !commitMessage.trim(),
-			tooltip: hasStagedChanges
-				? "Enter a commit message"
-				: "No staged changes to commit",
+			icon: <HiCheck className="size-4" />,
+			handler: handleCommit,
+			disabled: true,
+			tooltip: hasStagedChanges ? "Enter a message" : "No staged changes",
 		};
 	};
 
-	const mainButton = getMainButtonAction();
+	const primary = getPrimaryAction();
+
+	// Format count badge
+	const countBadge =
+		pushCount > 0 || pullCount > 0
+			? `${pullCount > 0 ? pullCount : ""}${pullCount > 0 && pushCount > 0 ? "/" : ""}${pushCount > 0 ? pushCount : ""}`
+			: null;
 
 	return (
 		<div className="flex flex-col gap-2 p-3 border-b border-border">
@@ -240,117 +205,108 @@ export function CommitInput({
 				onChange={(e) => setCommitMessage(e.target.value)}
 				className="min-h-[60px] resize-none text-sm bg-background"
 				onKeyDown={(e) => {
-					if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+					if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
 						e.preventDefault();
-						if (hasStagedChanges && commitMessage.trim()) {
-							handleCommit();
-						}
+						handleCommit();
 					}
 				}}
 			/>
-			<div className="flex gap-1.5">
+
+			<ButtonGroup className="w-full">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
 							variant="default"
 							size="sm"
 							className="flex-1 gap-1.5"
-							onClick={mainButton.action}
-							disabled={mainButton.disabled}
+							onClick={primary.handler}
+							disabled={primary.disabled}
 						>
-							{mainButton.icon}
-							{mainButton.label}
-							{(ahead > 0 || behind > 0) && (
-								<span className="text-xs opacity-70 ml-1">
-									{behind > 0 && `${behind}`}
-									{behind > 0 && ahead > 0 && "/"}
-									{ahead > 0 && `${ahead}`}
-								</span>
+							{primary.icon}
+							<span>{primary.label}</span>
+							{countBadge && (
+								<span className="text-xs opacity-70">{countBadge}</span>
 							)}
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">{mainButton.tooltip}</TooltipContent>
+					<TooltipContent side="bottom">{primary.tooltip}</TooltipContent>
 				</Tooltip>
 
-				<DropdownMenu>
+				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
-						<Button
-							variant="default"
-							size="sm"
-							className="px-2"
-							disabled={isPending}
-						>
-							<HiChevronDown className="w-4 h-4" />
+						<Button variant="default" size="sm" disabled={isPending}>
+							<HiChevronDown className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end" className="w-56">
-						<DropdownMenuItem
-							onClick={handleCommit}
-							disabled={!hasStagedChanges || !commitMessage.trim()}
-						>
-							<HiCheck className="w-4 h-4 mr-2" />
+					<DropdownMenuContent align="end" className="w-52">
+						{/* Commit actions */}
+						<DropdownMenuItem onClick={handleCommit} disabled={!canCommit}>
+							<HiCheck className="size-4" />
 							Commit
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onClick={handleCommitAndPush}
-							disabled={!hasStagedChanges || !commitMessage.trim()}
+							disabled={!canCommit}
 						>
-							<HiArrowUp className="w-4 h-4 mr-2" />
+							<HiArrowUp className="size-4" />
 							Commit & Push
 						</DropdownMenuItem>
 						{!hasExistingPR && (
 							<DropdownMenuItem
 								onClick={handleCommitPushAndCreatePR}
-								disabled={!hasStagedChanges || !commitMessage.trim()}
+								disabled={!canCommit}
 							>
-								<HiArrowTopRightOnSquare className="w-4 h-4 mr-2" />
+								<HiArrowTopRightOnSquare className="size-4" />
 								Commit, Push & Create PR
 							</DropdownMenuItem>
 						)}
+
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={handlePush} disabled={ahead === 0}>
-							<HiArrowUp className="w-4 h-4 mr-2" />
-							Push
-							{ahead > 0 && (
-								<span className="ml-auto text-xs text-muted-foreground">
-									{ahead}
+
+						{/* Sync actions */}
+						<DropdownMenuItem onClick={handlePush} disabled={pushCount === 0}>
+							<HiArrowUp className="size-4" />
+							<span className="flex-1">Push</span>
+							{pushCount > 0 && (
+								<span className="text-xs text-muted-foreground">
+									{pushCount}
 								</span>
 							)}
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={handlePull} disabled={behind === 0}>
-							<HiArrowDown className="w-4 h-4 mr-2" />
-							Pull
-							{behind > 0 && (
-								<span className="ml-auto text-xs text-muted-foreground">
-									{behind}
+						<DropdownMenuItem onClick={handlePull} disabled={pullCount === 0}>
+							<HiArrowDown className="size-4" />
+							<span className="flex-1">Pull</span>
+							{pullCount > 0 && (
+								<span className="text-xs text-muted-foreground">
+									{pullCount}
 								</span>
 							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onClick={handleSync}
-							disabled={ahead === 0 && behind === 0}
+							disabled={pushCount === 0 && pullCount === 0}
 						>
-							<HiArrowsUpDown className="w-4 h-4 mr-2" />
+							<HiArrowsUpDown className="size-4" />
 							Sync
 						</DropdownMenuItem>
+
 						<DropdownMenuSeparator />
+
+						{/* PR actions */}
 						{hasExistingPR ? (
 							<DropdownMenuItem onClick={handleOpenPR}>
-								<HiArrowTopRightOnSquare className="w-4 h-4 mr-2" />
+								<HiArrowTopRightOnSquare className="size-4" />
 								Open Pull Request
 							</DropdownMenuItem>
 						) : (
-							<DropdownMenuItem
-								onClick={handleCreatePR}
-								disabled={!branchExistsOnRemote && ahead === 0}
-							>
-								<HiArrowTopRightOnSquare className="w-4 h-4 mr-2" />
+							<DropdownMenuItem onClick={handleCreatePR}>
+								<HiArrowTopRightOnSquare className="size-4" />
 								Create Pull Request
 							</DropdownMenuItem>
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
-			</div>
+			</ButtonGroup>
 		</div>
 	);
 }

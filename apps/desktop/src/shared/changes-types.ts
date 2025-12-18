@@ -48,6 +48,9 @@ export interface GitChangesStatus {
 	untracked: ChangedFile[];
 	ahead: number; // Commits ahead of default branch
 	behind: number; // Commits behind default branch
+	// Tracking branch status (for push/pull)
+	pushCount: number; // Commits to push to tracking branch
+	pullCount: number; // Commits to pull from tracking branch
 }
 
 /** Diff view mode toggle */
