@@ -69,16 +69,19 @@ app.on("open-url", async (event, url) => {
 	await processDeepLink(url);
 });
 
-// Prevent crashes on uncaught exceptions and unhandled rejections (e.g., when app is killed)
+// Track when app is quitting to suppress expected termination errors
+let isQuitting = false;
+app.on("before-quit", () => {
+	isQuitting = true;
+});
+
 process.on("uncaughtException", (error) => {
-	// Silently ignore errors when the app is being killed
-	if (error.message?.includes("SIGTERM") || error.message?.includes("SIGKILL")) {
-		return;
-	}
+	if (isQuitting) return;
 	console.error("[main] Uncaught exception:", error);
 });
 
 process.on("unhandledRejection", (reason) => {
+	if (isQuitting) return;
 	console.error("[main] Unhandled rejection:", reason);
 });
 
@@ -91,52 +94,39 @@ if (!gotTheLock) {
 } else {
 	// Handle deep links when second instance is launched (Windows/Linux)
 	app.on("second-instance", async (_event, argv) => {
-		try {
-			focusMainWindow();
-			const url = findDeepLinkInArgv(argv);
-			if (url) {
-				await processDeepLink(url);
-			}
-		} catch (error) {
-			console.error("[main] Error handling second instance:", error);
+		focusMainWindow();
+		const url = findDeepLinkInArgv(argv);
+		if (url) {
+			await processDeepLink(url);
 		}
 	});
 
 	(async () => {
+		await app.whenReady();
+
+		await initDb();
+		await initAppState();
+		await authService.initialize();
+
 		try {
-			await app.whenReady();
-
-			await initDb();
-			await initAppState();
-			await authService.initialize();
-
-			try {
-				setupAgentHooks();
-			} catch (error) {
-				console.error("[main] Failed to set up agent hooks:", error);
-				// App can continue without agent hooks, but log the failure
-			}
-
-			await makeAppSetup(() => MainWindow());
-			setupAutoUpdater();
-
-			// Handle cold-start deep links (Windows/Linux - app launched via deep link)
-			const coldStartUrl = findDeepLinkInArgv(process.argv);
-			if (coldStartUrl) {
-				await processDeepLink(coldStartUrl);
-			}
-
-			// Clean up all terminals when app is quitting
-			app.on("before-quit", async () => {
-				try {
-					await terminalManager.cleanup();
-				} catch (error) {
-					// Silently ignore cleanup errors when quitting
-				}
-			});
+			setupAgentHooks();
 		} catch (error) {
-			console.error("[main] Fatal error during app initialization:", error);
-			app.quit();
+			console.error("[main] Failed to set up agent hooks:", error);
+			// App can continue without agent hooks, but log the failure
 		}
+
+		await makeAppSetup(() => MainWindow());
+		setupAutoUpdater();
+
+		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
+		const coldStartUrl = findDeepLinkInArgv(process.argv);
+		if (coldStartUrl) {
+			await processDeepLink(coldStartUrl);
+		}
+
+		// Clean up all terminals when app is quitting
+		app.on("before-quit", async () => {
+			await terminalManager.cleanup();
+		});
 	})();
 }
