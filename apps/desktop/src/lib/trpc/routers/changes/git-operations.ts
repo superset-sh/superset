@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { resolve } from "node:path";
 import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -30,7 +30,13 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const fullPath = join(input.worktreePath, input.filePath);
+				const resolvedWorktree = resolve(input.worktreePath);
+				const fullPath = resolve(resolvedWorktree, input.filePath);
+
+				if (!fullPath.startsWith(`${resolvedWorktree}/`)) {
+					throw new Error("Invalid file path: path traversal detected");
+				}
+
 				await writeFile(fullPath, input.content, "utf-8");
 				return { success: true };
 			}),
