@@ -1,37 +1,12 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { useCallback, useRef } from "react";
-import { monaco, SUPERSET_THEME } from "renderer/contexts/MonacoProvider";
+import { SUPERSET_THEME } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-
-const COPY_PATH_LINE_ACTION_ID = "copy-path-line";
-
-function addCopyPathLineAction(
-	editor: Monaco.editor.IStandaloneCodeEditor,
-	filePath: string,
-) {
-	editor.addAction({
-		id: COPY_PATH_LINE_ACTION_ID,
-		label: "Copy Path:Line",
-		keybindings: [
-			monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyC,
-		],
-		contextMenuGroupId: "9_cutcopypaste",
-		contextMenuOrder: 4,
-		run: (ed) => {
-			const selection = ed.getSelection();
-			if (selection) {
-				const startLine = selection.startLineNumber;
-				const endLine = selection.endLineNumber;
-				const pathWithLine =
-					startLine === endLine
-						? `${filePath}:${startLine}`
-						: `${filePath}:${startLine}-${endLine}`;
-				navigator.clipboard.writeText(pathWithLine);
-			}
-		},
-	});
-}
+import {
+	registerCopyPathLineAction,
+	registerSaveCommand,
+} from "./editor-actions";
 
 interface DiffViewerProps {
 	contents: FileContents;
@@ -48,14 +23,13 @@ export function DiffViewer({
 	editable = false,
 	onSave,
 }: DiffViewerProps) {
-	const modifiedEditorRef = useRef<ReturnType<
-		NonNullable<Parameters<DiffOnMount>[0]["getModifiedEditor"]>
-	> | null>(null);
+	const modifiedEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
+		null,
+	);
 
 	const handleSave = useCallback(() => {
 		if (!editable || !onSave || !modifiedEditorRef.current) return;
-		const content = modifiedEditorRef.current.getValue();
-		onSave(content);
+		onSave(modifiedEditorRef.current.getValue());
 	}, [editable, onSave]);
 
 	const handleMount: DiffOnMount = useCallback(
@@ -64,14 +38,11 @@ export function DiffViewer({
 			const modifiedEditor = editor.getModifiedEditor();
 			modifiedEditorRef.current = modifiedEditor;
 
-			addCopyPathLineAction(originalEditor, filePath);
-			addCopyPathLineAction(modifiedEditor, filePath);
+			registerCopyPathLineAction(originalEditor, filePath);
+			registerCopyPathLineAction(modifiedEditor, filePath);
 
-			if (editable && modifiedEditor) {
-				modifiedEditor.addCommand(
-					monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
-					handleSave,
-				);
+			if (editable) {
+				registerSaveCommand(modifiedEditor, handleSave);
 			}
 		},
 		[editable, handleSave, filePath],
