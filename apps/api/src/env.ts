@@ -6,7 +6,6 @@ export const env = createEnv({
 		DATABASE_URL: z.string(),
 		DATABASE_URL_UNPOOLED: z.string(),
 		CLERK_SECRET_KEY: z.string(),
-		CLERK_WEBHOOK_SECRET: z.string(),
 		BLOB_READ_WRITE_TOKEN: z.string(),
 		DESKTOP_AUTH_SECRET: z.string().min(32),
 	},

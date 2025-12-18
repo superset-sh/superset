@@ -1,7 +1,4 @@
-// TEMPORARILY DISABLED - PostHog bricked the desktop app
-// import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-// import { useFeatureFlagEnabled, usePostHog } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -9,6 +6,7 @@ import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { trpc } from "renderer/lib/trpc";
+import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -33,25 +31,9 @@ function LoadingSpinner() {
 
 export function MainScreen() {
 	const utils = trpc.useUtils();
-	// TEMPORARILY DISABLED - PostHog bricked the desktop app
-	// const posthog = usePostHog();
 	const { data: authState } = trpc.auth.getState.useQuery();
-	const _isSignedIn = authState?.isSignedIn ?? false;
-	const _isAuthLoading = !authState;
-
-	// TEMPORARILY DISABLED - Auth blocking logic disabled
-	// // Feature flag to control auth requirement
-	// const requireAuth = useFeatureFlagEnabled(FEATURE_FLAGS.REQUIRE_DESKTOP_AUTH);
-	// const [flagsLoaded, setFlagsLoaded] = useState(false);
-
-	// // Track when feature flags are loaded
-	// useEffect(() => {
-	// 	if (posthog) {
-	// 		posthog.onFeatureFlags(() => {
-	// 			setFlagsLoaded(true);
-	// 		});
-	// 	}
-	// }, [posthog]);
+	const isSignedIn = authState?.isSignedIn ?? false;
+	const isAuthLoading = !authState;
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {
@@ -68,8 +50,7 @@ export function MainScreen() {
 		failureCount,
 		refetch,
 	} = trpc.workspaces.getActive.useQuery(undefined, {
-		// TEMPORARILY DISABLED - Auth blocking logic disabled
-		// enabled: isSignedIn,
+		enabled: isSignedIn,
 	});
 	const [isRetrying, setIsRetrying] = useState(false);
 	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
@@ -177,47 +158,31 @@ export function MainScreen() {
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
 
-	// TEMPORARILY DISABLED - Auth blocking logic disabled
-	// // Wait for feature flags to load before deciding on auth
-	// const shouldRequireAuth = flagsLoaded && requireAuth === true;
+	// Show loading while auth state is being determined
+	if (isAuthLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
 
-	// // Show empty screen while feature flags are loading
-	// if (!flagsLoaded) {
-	// 	return (
-	// 		<>
-	// 			<Background />
-	// 			<AppFrame>
-	// 				<div className="h-full w-full bg-background" />
-	// 			</AppFrame>
-	// 		</>
-	// 	);
-	// }
-
-	// // Show loading while auth state is being determined (only if auth is required)
-	// if (shouldRequireAuth && isAuthLoading) {
-	// 	return (
-	// 		<>
-	// 			<Background />
-	// 			<AppFrame>
-	// 				<div className="flex h-full w-full items-center justify-center bg-background">
-	// 					<LoadingSpinner />
-	// 				</div>
-	// 			</AppFrame>
-	// 		</>
-	// 	);
-	// }
-
-	// // Show sign-in screen if auth is required and user is not signed in
-	// if (shouldRequireAuth && !isSignedIn) {
-	// 	return (
-	// 		<>
-	// 			<Background />
-	// 			<AppFrame>
-	// 				<SignInScreen />
-	// 			</AppFrame>
-	// 		</>
-	// 	);
-	// }
+	// Show sign-in screen if user is not signed in
+	if (!isSignedIn) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<SignInScreen />
+				</AppFrame>
+			</>
+		);
+	}
 
 	const renderContent = () => {
 		if (currentView === "settings") {

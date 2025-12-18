@@ -4,7 +4,7 @@ import { tasks, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { protectedProcedure, publicProcedure } from "../trpc";
+import { protectedProcedure, publicProcedure } from "../../trpc";
 
 export const taskRouter = {
 	all: publicProcedure.query(() => {

@@ -19,6 +19,7 @@
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@trpc/server": "^11.7.1",
+		"@vercel/blob": "^2.0.0",
 		"drizzle-orm": "0.45.1",
 		"superjson": "^2.2.5",
 		"zod": "^4.1.13"

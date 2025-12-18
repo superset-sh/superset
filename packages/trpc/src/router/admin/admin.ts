@@ -4,7 +4,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 
-import { adminProcedure } from "../trpc";
+import { adminProcedure } from "../../trpc";
 
 export const adminRouter = {
 	listActiveUsers: adminProcedure.query(() => {
