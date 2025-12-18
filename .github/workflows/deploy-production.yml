@@ -3,6 +3,8 @@ name: Deploy Production
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "apps/desktop/**"
   workflow_dispatch:
 
 jobs:
