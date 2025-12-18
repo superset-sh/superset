@@ -527,16 +527,16 @@ describe("containsClearScrollbackSequence", () => {
 		expect(containsClearScrollbackSequence(`${ESC}[3J`)).toBe(true);
 	});
 
-	it("should detect RIS sequence", () => {
-		expect(containsClearScrollbackSequence(`${ESC}c`)).toBe(true);
+	it("should NOT detect RIS sequence (used by TUI apps for repaints)", () => {
+		expect(containsClearScrollbackSequence(`${ESC}c`)).toBe(false);
 	});
 
 	it("should detect ED3 in mixed content", () => {
 		expect(containsClearScrollbackSequence(`before${ESC}[3Jafter`)).toBe(true);
 	});
 
-	it("should detect RIS in mixed content", () => {
-		expect(containsClearScrollbackSequence(`before${ESC}cafter`)).toBe(true);
+	it("should NOT detect RIS in mixed content", () => {
+		expect(containsClearScrollbackSequence(`before${ESC}cafter`)).toBe(false);
 	});
 
 	it("should return false for no clear sequence", () => {
@@ -546,6 +546,7 @@ describe("containsClearScrollbackSequence", () => {
 	it("should return false for other escape sequences", () => {
 		expect(containsClearScrollbackSequence(`${ESC}[2J`)).toBe(false); // Clear screen (not scrollback)
 		expect(containsClearScrollbackSequence(`${ESC}[H`)).toBe(false); // Cursor home
+		expect(containsClearScrollbackSequence(`${ESC}c`)).toBe(false); // RIS (used by TUI apps)
 	});
 });
 
@@ -576,42 +577,35 @@ describe("extractContentAfterClear", () => {
 		});
 	});
 
-	describe("RIS sequence handling", () => {
-		it("should return empty string for RIS only", () => {
-			expect(extractContentAfterClear(`${ESC}c`)).toBe("");
+	describe("RIS sequence handling (should NOT clear)", () => {
+		it("should NOT treat RIS as clear sequence - return original data", () => {
+			expect(extractContentAfterClear(`${ESC}c`)).toBe(`${ESC}c`);
 		});
 
-		it("should return content after RIS", () => {
+		it("should preserve RIS and surrounding content", () => {
 			expect(extractContentAfterClear(`${ESC}cnew content`)).toBe(
-				"new content",
+				`${ESC}cnew content`,
 			);
 		});
 
-		it("should drop content before RIS", () => {
+		it("should preserve content around RIS", () => {
 			expect(extractContentAfterClear(`old stuff${ESC}cnew content`)).toBe(
-				"new content",
+				`old stuff${ESC}cnew content`,
 			);
-		});
-
-		it("should handle RIS at end of data", () => {
-			expect(extractContentAfterClear(`some content${ESC}c`)).toBe("");
-		});
-
-		it("should handle multiple RIS sequences - use last one", () => {
-			expect(extractContentAfterClear(`a${ESC}cb${ESC}cc`)).toBe("c");
 		});
 	});
 
 	describe("mixed ED3 and RIS sequences", () => {
-		it("should use last sequence when RIS comes after ED3", () => {
-			expect(extractContentAfterClear(`a${ESC}[3Jb${ESC}cc`)).toBe("c");
+		it("should only use ED3 even when RIS comes after", () => {
+			// RIS is ignored, only ED3 matters
+			expect(extractContentAfterClear(`a${ESC}[3Jb${ESC}cc`)).toBe(`b${ESC}cc`);
 		});
 
-		it("should use last sequence when ED3 comes after RIS", () => {
+		it("should use ED3 and preserve RIS before it", () => {
 			expect(extractContentAfterClear(`a${ESC}cb${ESC}[3Jc`)).toBe("c");
 		});
 
-		it("should handle complex mixed sequences", () => {
+		it("should handle multiple ED3 sequences - use last one", () => {
 			expect(
 				extractContentAfterClear(
 					`first${ESC}[3Jsecond${ESC}cthird${ESC}[3Jfinal`,
