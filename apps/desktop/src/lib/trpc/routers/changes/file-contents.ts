@@ -14,12 +14,7 @@ export const createFileContentsRouter = () => {
 					worktreePath: z.string(),
 					filePath: z.string(),
 					oldPath: z.string().optional(),
-					category: z.enum([
-						"against-main",
-						"committed",
-						"staged",
-						"unstaged",
-					]),
+					category: z.enum(["against-main", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
 				}),

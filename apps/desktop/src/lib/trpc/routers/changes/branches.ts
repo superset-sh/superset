@@ -69,9 +69,7 @@ export const createBranchesRouter = () => {
 				await git.checkout(input.branch);
 
 				await db.update((data) => {
-					const wt = data.worktrees.find(
-						(w) => w.path === input.worktreePath,
-					);
+					const wt = data.worktrees.find((w) => w.path === input.worktreePath);
 					if (wt) {
 						wt.branch = input.branch;
 						if (wt.gitStatus) {
@@ -121,10 +119,7 @@ async function getDefaultBranch(
 	remoteBranches: string[],
 ): Promise<string> {
 	try {
-		const headRef = await git.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-		]);
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
 		if (match) {
 			return match[1].trim();
