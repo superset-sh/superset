@@ -1,6 +1,7 @@
 import type { BrowserWindow } from "electron";
 import { createElectronRouter } from "electron-router-dom";
 import { PORTS } from "shared/constants";
+import { env } from "shared/env.shared";
 
 const electronRouter = createElectronRouter({
 	port: PORTS.VITE_DEV_SERVER,
@@ -21,9 +22,6 @@ type WindowId = "main" | "about";
  *
  * - Development (NODE_ENV=development): loads from dev server
  * - Preview/Production: loads from built HTML file
- *
- * Note: Uses process.env.NODE_ENV directly (not env.ts) so this file can be
- * safely imported in renderer code for the Router export.
  */
 export function registerRoute(props: {
 	id: WindowId;
@@ -31,7 +29,7 @@ export function registerRoute(props: {
 	htmlFile: string;
 	query?: Record<string, string>;
 }): void {
-	const isDev = process.env.NODE_ENV === "development";
+	const isDev = env.NODE_ENV === "development";
 
 	if (isDev) {
 		// Development: use the library's default behavior (loads from dev server)
