@@ -151,9 +151,8 @@ export function TabsView() {
 						</Button>
 						<Button
 							variant="ghost"
-							onClick={() => setCommandOpen(true)}
+							onClick={handleOpenPresetsSettings}
 							className="px-3 py-2 rounded-md cursor-pointer"
-							disabled={!activeWorkspaceId}
 						>
 							<HiMiniEllipsisHorizontal className="size-4" />
 						</Button>
