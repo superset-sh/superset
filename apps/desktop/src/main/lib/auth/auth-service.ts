@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { TOKEN_CONFIG } from "@superset/shared/constants";
 import { type BrowserWindow, shell } from "electron";
 import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
-import { env } from "../../env";
+import { env } from "../../env.main";
 import { pkceStore } from "./pkce";
 import { tokenStorage } from "./token-storage";
 

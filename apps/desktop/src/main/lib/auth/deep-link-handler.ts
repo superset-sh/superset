@@ -1,6 +1,6 @@
 import type { AuthSession } from "shared/auth";
 import { PROTOCOL_SCHEMES } from "shared/constants";
-import { env } from "../../env";
+import { env } from "../../env.main";
 import { pkceStore } from "./pkce";
 
 /**

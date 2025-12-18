@@ -1,7 +1,7 @@
 import { app, type BrowserWindow, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { PLATFORM } from "shared/constants";
-import { env } from "../env";
+import { env } from "../env.main";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
