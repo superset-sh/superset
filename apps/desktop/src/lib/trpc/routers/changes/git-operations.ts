@@ -4,14 +4,9 @@ import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { isUpstreamMissingError } from "./git-utils";
 
-export function isUpstreamMissingError(message: string): boolean {
-	return (
-		message.includes("no such ref was fetched") ||
-		message.includes("no tracking information") ||
-		message.includes("couldn't find remote ref")
-	);
-}
+export { isUpstreamMissingError };
 
 async function hasUpstreamBranch(
 	git: ReturnType<typeof simpleGit>,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { isUpstreamMissingError } from "./git-operations";
+import { isUpstreamMissingError } from "./git-utils";
 
 describe("git-operations error handling", () => {
 	describe("isUpstreamMissingError", () => {
