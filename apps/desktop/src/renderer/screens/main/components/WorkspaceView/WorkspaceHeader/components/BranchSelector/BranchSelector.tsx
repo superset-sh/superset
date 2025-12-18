@@ -46,10 +46,7 @@ export function BranchSelector({
 	const { data: lastUsedApp = "cursor" } =
 		trpc.settings.getLastUsedApp.useQuery();
 
-	const handleOpenWorktree = (
-		e: React.MouseEvent,
-		worktreePath: string,
-	) => {
+	const handleOpenWorktree = (e: React.MouseEvent, worktreePath: string) => {
 		e.stopPropagation();
 		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
 	};

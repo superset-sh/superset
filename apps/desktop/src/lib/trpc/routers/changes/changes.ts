@@ -116,7 +116,10 @@ export const createChangesRouter = () => {
 									.trim()
 									.replace("refs/heads/", "");
 								// Exclude the current worktree's branch
-								if (currentWorktreePath && currentWorktreePath !== input.worktreePath) {
+								if (
+									currentWorktreePath &&
+									currentWorktreePath !== input.worktreePath
+								) {
 									checkedOutBranches[branch] = currentWorktreePath;
 								}
 							}
@@ -496,28 +499,75 @@ export const createChangesRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
+
+				// Step 1: Look up worktree in DB and get current branch
+				const worktree = db.data.worktrees.find(
+					(wt) => wt.path === input.worktreePath,
+				);
+				if (!worktree) {
+					throw new Error(
+						`Worktree lookup failed: No worktree found at path "${input.worktreePath}"`,
+					);
+				}
+
+				// Record the original branch for potential rollback
+				let originalBranch = worktree.branch;
+				if (!originalBranch) {
+					// Fallback: query git for current branch if DB doesn't have it
+					try {
+						const branchSummary = await git.branch();
+						originalBranch = branchSummary.current;
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						throw new Error(
+							`Git checkout preparation failed: Could not determine current branch: ${message}`,
+						);
+					}
+				}
+
+				// Step 2: Perform git checkout
 				try {
 					await git.checkout(input.branch);
-
-					// Update the worktree record in the database
-					await db.update((data) => {
-						const worktree = data.worktrees.find(
-							(wt) => wt.path === input.worktreePath,
-						);
-						if (worktree) {
-							worktree.branch = input.branch;
-							if (worktree.gitStatus) {
-								worktree.gitStatus.branch = input.branch;
-							}
-						}
-					});
-
-					return { success: true };
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
-					throw new Error(`Failed to switch branch: ${message}`);
+					throw new Error(`Git checkout failed: ${message}`);
 				}
+
+				// Step 3: Update DB record
+				try {
+					await db.update((data) => {
+						const wt = data.worktrees.find(
+							(w) => w.path === input.worktreePath,
+						);
+						if (wt) {
+							wt.branch = input.branch;
+							if (wt.gitStatus) {
+								wt.gitStatus.branch = input.branch;
+							}
+						}
+					});
+				} catch (dbError) {
+					// DB update failed - attempt to roll back git state
+					try {
+						await git.checkout(originalBranch);
+					} catch (rollbackError) {
+						const rollbackMessage =
+							rollbackError instanceof Error
+								? rollbackError.message
+								: String(rollbackError);
+						console.error(
+							`Git rollback failed after DB update error: ${rollbackMessage}`,
+						);
+					}
+
+					const dbMessage =
+						dbError instanceof Error ? dbError.message : String(dbError);
+					throw new Error(`Database update failed: ${dbMessage}`);
+				}
+
+				return { success: true };
 			}),
 	});
 };
