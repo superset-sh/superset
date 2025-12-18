@@ -1,4 +1,6 @@
-import { env } from "../env";
+// Note: Use process.env.NODE_ENV directly (not env.ts) so this file can be
+// safely imported in renderer code. Vite replaces process.env.NODE_ENV at
+// build time for renderer, and it works at runtime for main process.
 
 export const PLATFORM = {
 	IS_MAC: process.platform === "darwin",
@@ -9,9 +11,9 @@ export const PLATFORM = {
 // Ports - different for dev vs prod to allow running both simultaneously
 export const PORTS = {
 	// Vite dev server port
-	VITE_DEV_SERVER: env.NODE_ENV === "development" ? 5927 : 4927,
+	VITE_DEV_SERVER: process.env.NODE_ENV === "development" ? 5927 : 4927,
 	// Notification HTTP server port
-	NOTIFICATIONS: env.NODE_ENV === "development" ? 31416 : 31415,
+	NOTIFICATIONS: process.env.NODE_ENV === "development" ? 31416 : 31415,
 };
 
 // Note: For environment-aware paths, use main/lib/app-environment.ts instead.
@@ -21,7 +23,7 @@ export const SUPERSET_DIR_NAMES = {
 	PROD: ".superset",
 } as const;
 export const SUPERSET_DIR_NAME =
-	env.NODE_ENV === "development"
+	process.env.NODE_ENV === "development"
 		? SUPERSET_DIR_NAMES.DEV
 		: SUPERSET_DIR_NAMES.PROD;
 
@@ -31,7 +33,9 @@ export const PROTOCOL_SCHEMES = {
 	PROD: "superset",
 } as const;
 export const PROTOCOL_SCHEME =
-	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
+	process.env.NODE_ENV === "development"
+		? PROTOCOL_SCHEMES.DEV
+		: PROTOCOL_SCHEMES.PROD;
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";

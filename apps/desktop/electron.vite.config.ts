@@ -106,8 +106,17 @@ export default defineConfig({
 
 	renderer: {
 		define: {
+			// Core env vars - Vite replaces these at build time
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.platform": JSON.stringify(process.platform),
+			// API URLs - available in renderer if needed
+			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_WEB_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_WEB_URL || "https://app.superset.sh",
+			),
+			// Custom env vars
 			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
