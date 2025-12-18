@@ -8,6 +8,20 @@ import { publicProcedure, router } from "../..";
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * Checks if an error message indicates the upstream branch is missing.
+ * This happens when:
+ * - The remote branch was deleted (e.g., after PR merge)
+ * - No tracking branch is configured
+ */
+export function isUpstreamMissingError(message: string): boolean {
+	return (
+		message.includes("no such ref was fetched") ||
+		message.includes("no tracking information") ||
+		message.includes("couldn't find remote ref")
+	);
+}
+
 export const createGitOperationsRouter = () => {
 	return router({
 		saveFile: publicProcedure
@@ -71,10 +85,7 @@ export const createGitOperationsRouter = () => {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					// If upstream doesn't exist, provide a clearer error
-					if (
-						message.includes("no such ref was fetched") ||
-						message.includes("no tracking information")
-					) {
+					if (isUpstreamMissingError(message)) {
 						throw new Error(
 							"No upstream branch to pull from. The remote branch may have been deleted.",
 						);
@@ -99,10 +110,7 @@ export const createGitOperationsRouter = () => {
 					const message =
 						error instanceof Error ? error.message : String(error);
 					// If upstream doesn't exist, skip pull and just push
-					if (
-						message.includes("no such ref was fetched") ||
-						message.includes("no tracking information")
-					) {
+					if (isUpstreamMissingError(message)) {
 						// Just push instead
 						const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
 						await git.push(["--set-upstream", "origin", branch.trim()]);
