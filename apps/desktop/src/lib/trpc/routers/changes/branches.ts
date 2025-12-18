@@ -66,35 +66,19 @@ export const createBranchesRouter = () => {
 					throw new Error(`No worktree found at path "${input.worktreePath}"`);
 				}
 
-				const originalBranch = await getCurrentBranch(git, worktree.branch);
+				await git.checkout(input.branch);
 
-				try {
-					await git.checkout(input.branch);
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					throw new Error(`Git checkout failed: ${message}`);
-				}
-
-				try {
-					await db.update((data) => {
-						const wt = data.worktrees.find(
-							(w) => w.path === input.worktreePath,
-						);
-						if (wt) {
-							wt.branch = input.branch;
-							if (wt.gitStatus) {
-								wt.gitStatus.branch = input.branch;
-							}
+				await db.update((data) => {
+					const wt = data.worktrees.find(
+						(w) => w.path === input.worktreePath,
+					);
+					if (wt) {
+						wt.branch = input.branch;
+						if (wt.gitStatus) {
+							wt.gitStatus.branch = input.branch;
 						}
-					});
-				} catch (dbError) {
-					await rollbackCheckout(git, originalBranch);
-
-					const dbMessage =
-						dbError instanceof Error ? dbError.message : String(dbError);
-					throw new Error(`Database update failed: ${dbMessage}`);
-				}
+					}
+				});
 
 				return { success: true };
 			}),
@@ -174,41 +158,7 @@ async function getCheckedOutBranches(
 				}
 			}
 		}
-	} catch {
-		// Ignore errors - checked out branches info is optional
-	}
+	} catch {}
 
 	return checkedOutBranches;
-}
-
-async function getCurrentBranch(
-	git: ReturnType<typeof simpleGit>,
-	storedBranch: string | undefined,
-): Promise<string> {
-	if (storedBranch) return storedBranch;
-
-	try {
-		const branchSummary = await git.branch();
-		return branchSummary.current;
-	} catch (error) {
-		const message = error instanceof Error ? error.message : String(error);
-		throw new Error(`Could not determine current branch: ${message}`);
-	}
-}
-
-async function rollbackCheckout(
-	git: ReturnType<typeof simpleGit>,
-	originalBranch: string,
-): Promise<void> {
-	try {
-		await git.checkout(originalBranch);
-	} catch (rollbackError) {
-		const rollbackMessage =
-			rollbackError instanceof Error
-				? rollbackError.message
-				: String(rollbackError);
-		console.error(
-			`Git rollback failed after DB update error: ${rollbackMessage}`,
-		);
-	}
 }

@@ -135,9 +135,7 @@ async function getBranchComparison(
 				`origin/${defaultBranch}...HEAD`,
 			]);
 		}
-	} catch {
-		// Branch comparison may fail if no remote tracking - that's ok
-	}
+	} catch {}
 
 	return { commits, againstMain, ahead, behind };
 }
@@ -153,8 +151,6 @@ async function applyUntrackedLineCount(
 			const lineCount = content.split("\n").length;
 			file.additions = lineCount;
 			file.deletions = 0;
-		} catch {
-			// File may not be readable
-		}
+		} catch {}
 	}
 }

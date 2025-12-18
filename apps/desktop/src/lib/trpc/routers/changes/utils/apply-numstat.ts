@@ -23,7 +23,5 @@ export async function applyNumstatToFiles(
 				file.deletions = fileStat.deletions;
 			}
 		}
-	} catch {
-		// Silently fail - stats are optional
-	}
+	} catch {}
 }

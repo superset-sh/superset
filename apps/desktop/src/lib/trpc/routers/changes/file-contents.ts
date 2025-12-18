@@ -56,14 +56,8 @@ export const createFileContentsRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const fullPath = join(input.worktreePath, input.filePath);
-				try {
-					await writeFile(fullPath, input.content, "utf-8");
-					return { success: true };
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					throw new Error(`Failed to save file: ${message}`);
-				}
+				await writeFile(fullPath, input.content, "utf-8");
+				return { success: true };
 			}),
 	});
 };

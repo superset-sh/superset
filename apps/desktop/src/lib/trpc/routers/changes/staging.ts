@@ -41,14 +41,8 @@ export const createStagingRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
-				try {
-					await git.checkout(["--", input.filePath]);
-					return { success: true };
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					throw new Error(`Failed to discard changes: ${message}`);
-				}
+				await git.checkout(["--", input.filePath]);
+				return { success: true };
 			}),
 
 		stageAll: publicProcedure
@@ -76,14 +70,8 @@ export const createStagingRouter = () => {
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const fullPath = join(input.worktreePath, input.filePath);
-				try {
-					await rm(fullPath, { recursive: true, force: true });
-					return { success: true };
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					throw new Error(`Failed to delete untracked path: ${message}`);
-				}
+				await rm(fullPath, { recursive: true, force: true });
+				return { success: true };
 			}),
 	});
 };
