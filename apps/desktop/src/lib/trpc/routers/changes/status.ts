@@ -52,6 +52,7 @@ export const createStatusRouter = () => {
 					behind: branchComparison.behind,
 					pushCount: trackingStatus.pushCount,
 					pullCount: trackingStatus.pullCount,
+					hasUpstream: trackingStatus.hasUpstream,
 				};
 			}),
 
@@ -158,6 +159,7 @@ async function applyUntrackedLineCount(
 interface TrackingStatus {
 	pushCount: number;
 	pullCount: number;
+	hasUpstream: boolean;
 }
 
 async function getTrackingBranchStatus(
@@ -170,7 +172,7 @@ async function getTrackingBranchStatus(
 			"@{upstream}",
 		]);
 		if (!upstream.trim()) {
-			return { pushCount: 0, pullCount: 0 };
+			return { pushCount: 0, pullCount: 0, hasUpstream: false };
 		}
 
 		const tracking = await git.raw([
@@ -183,8 +185,9 @@ async function getTrackingBranchStatus(
 		return {
 			pushCount: Number.parseInt(pushStr || "0", 10),
 			pullCount: Number.parseInt(pullStr || "0", 10),
+			hasUpstream: true,
 		};
 	} catch {
-		return { pushCount: 0, pullCount: 0 };
+		return { pushCount: 0, pullCount: 0, hasUpstream: false };
 	}
 }

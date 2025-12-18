@@ -51,6 +51,7 @@ export interface GitChangesStatus {
 	// Tracking branch status (for push/pull)
 	pushCount: number; // Commits to push to tracking branch
 	pullCount: number; // Commits to pull from tracking branch
+	hasUpstream: boolean; // Whether branch has an upstream tracking branch
 }
 
 /** Diff view mode toggle */

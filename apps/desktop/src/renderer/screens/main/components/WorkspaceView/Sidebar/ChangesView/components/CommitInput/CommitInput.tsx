@@ -26,6 +26,7 @@ interface CommitInputProps {
 	hasStagedChanges: boolean;
 	pushCount: number;
 	pullCount: number;
+	hasUpstream: boolean;
 	hasExistingPR: boolean;
 	prUrl?: string;
 	onRefresh: () => void;
@@ -38,6 +39,7 @@ export function CommitInput({
 	hasStagedChanges,
 	pushCount,
 	pullCount,
+	hasUpstream,
 	hasExistingPR,
 	prUrl,
 	onRefresh,
@@ -179,6 +181,17 @@ export function CommitInput({
 				tooltip: `Pull ${pullCount} commit${pullCount !== 1 ? "s" : ""}`,
 			};
 		}
+		// No upstream - show Publish Branch option
+		if (!hasUpstream) {
+			return {
+				action: "push",
+				label: "Publish Branch",
+				icon: <HiArrowUp className="size-4" />,
+				handler: handlePush,
+				disabled: isPending,
+				tooltip: "Publish branch to remote",
+			};
+		}
 		return {
 			action: "commit",
 			label: "Commit",
@@ -264,9 +277,14 @@ export function CommitInput({
 						<DropdownMenuSeparator />
 
 						{/* Sync actions */}
-						<DropdownMenuItem onClick={handlePush} disabled={pushCount === 0}>
+						<DropdownMenuItem
+							onClick={handlePush}
+							disabled={pushCount === 0 && hasUpstream}
+						>
 							<HiArrowUp className="size-4" />
-							<span className="flex-1">Push</span>
+							<span className="flex-1">
+								{hasUpstream ? "Push" : "Publish Branch"}
+							</span>
 							{pushCount > 0 && (
 								<span className="text-xs text-muted-foreground">
 									{pushCount}

@@ -1,12 +1,9 @@
-import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
+import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-
-const _execFileAsync = promisify(execFile);
 
 export function isUpstreamMissingError(message: string): boolean {
 	return (
@@ -88,7 +85,7 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
 				try {
-					await git.pull();
+					await git.pull(["--rebase"]);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
@@ -111,7 +108,7 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
 				try {
-					await git.pull();
+					await git.pull(["--rebase"]);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
@@ -161,9 +158,7 @@ export const createGitOperationsRouter = () => {
 					const repo = repoMatch[1].replace(/\.git$/, "");
 					const url = `https://github.com/${repo}/compare/${branch}?expand=1`;
 
-					const { exec } = await import("node:child_process");
-					exec(`open "${url}"`);
-
+					await shell.openExternal(url);
 					await git.fetch();
 
 					return { success: true, url };

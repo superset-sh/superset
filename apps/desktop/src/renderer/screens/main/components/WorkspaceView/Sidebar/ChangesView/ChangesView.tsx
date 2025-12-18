@@ -214,6 +214,7 @@ export function ChangesView() {
 				hasStagedChanges={hasStagedChanges}
 				pushCount={status.pushCount}
 				pullCount={status.pullCount}
+				hasUpstream={status.hasUpstream}
 				hasExistingPR={hasExistingPR}
 				prUrl={prUrl}
 				onRefresh={handleRefresh}
