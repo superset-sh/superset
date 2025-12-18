@@ -216,6 +216,7 @@
       "dependencies": {
         "@react-three/drei": "^10.7.6",
         "@react-three/fiber": "^9.4.0",
+        "@superset/shared": "workspace:*",
         "@superset/ui": "workspace:*",
         "@t3-oss/env-nextjs": "^0.13.8",
         "dotenv": "^17.2.3",

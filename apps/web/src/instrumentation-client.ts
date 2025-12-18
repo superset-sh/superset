@@ -1,3 +1,4 @@
+import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
@@ -12,7 +13,7 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	debug: env.NODE_ENV === "development",
 	cross_subdomain_cookie: true,
 	persistence: "cookie",
-	persistence_name: env.NEXT_PUBLIC_COOKIE_DOMAIN,
+	persistence_name: POSTHOG_COOKIE_NAME,
 	loaded: (posthog) => {
 		posthog.register({
 			app_name: "web",

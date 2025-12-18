@@ -22,12 +22,9 @@ export const env = createEnv({
 		NEXT_PUBLIC_MARKETING_URL: z.string().url(),
 		NEXT_PUBLIC_DOCS_URL: z.string().url(),
 		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
-		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().default("localhost"),
+		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
-		NEXT_PUBLIC_POSTHOG_HOST: z
-			.string()
-			.url()
-			.default("https://us.i.posthog.com"),
+		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
 	},
 
 	experimental__runtimeEnv: {
