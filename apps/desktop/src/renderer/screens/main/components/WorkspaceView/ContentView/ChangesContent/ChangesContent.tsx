@@ -133,28 +133,26 @@ export function ChangesContent() {
 
 	return (
 		<>
-			<div className="flex-1 h-full flex flex-col bg-tertiary rounded-lg">
-				<div className="flex flex-col h-full bg-background m-2 rounded-lg overflow-hidden">
-					<FileHeader file={selectedFile} worktreePath={worktreePath} />
-					<DiffToolbar
+			<div className="flex flex-col h-full overflow-hidden">
+				<FileHeader file={selectedFile} worktreePath={worktreePath} />
+				<DiffToolbar
+					viewMode={viewMode}
+					onViewModeChange={setViewMode}
+					category={selectedCategory}
+					onStage={isUnstaged ? stage : undefined}
+					onUnstage={isStaged ? unstage : undefined}
+					onDiscard={isUnstaged ? handleDiscard : undefined}
+					isActioning={isPending}
+					isEditable={isEditable}
+					isSaving={saveFileMutation.isPending}
+				/>
+				<div className="flex-1">
+					<DiffViewer
+						contents={contents}
 						viewMode={viewMode}
-						onViewModeChange={setViewMode}
-						category={selectedCategory}
-						onStage={isUnstaged ? stage : undefined}
-						onUnstage={isStaged ? unstage : undefined}
-						onDiscard={isUnstaged ? handleDiscard : undefined}
-						isActioning={isPending}
-						isEditable={isEditable}
-						isSaving={saveFileMutation.isPending}
+						editable={isEditable}
+						onSave={handleSave}
 					/>
-					<div className="flex-1">
-						<DiffViewer
-							contents={contents}
-							viewMode={viewMode}
-							editable={isEditable}
-							onSave={handleSave}
-						/>
-					</div>
 				</div>
 			</div>
 

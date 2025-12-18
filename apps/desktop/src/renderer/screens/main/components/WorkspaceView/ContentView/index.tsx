@@ -6,7 +6,13 @@ export function ContentView() {
 	const { currentMode } = useSidebarStore();
 
 	if (currentMode === SidebarMode.Changes) {
-		return <ChangesContent />;
+		return (
+			<div className="h-full p-1 bg-tertiary">
+				<div className="h-full bg-background rounded-lg">
+					<ChangesContent />
+				</div>
+			</div>
+		);
 	}
 
 	return <TabsContent />;

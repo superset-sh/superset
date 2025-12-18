@@ -20,16 +20,8 @@ export function TabsContent() {
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
 	if (!tabToRender) {
-		return (
-			<div className="flex-1 h-full">
-				<EmptyTabView />
-			</div>
-		);
+		return <EmptyTabView />;
 	}
 
-	return (
-		<div className="flex-1 h-full">
-			<TabView tab={tabToRender} panes={panes} />
-		</div>
-	);
+	return <TabView tab={tabToRender} panes={panes} />;
 }
