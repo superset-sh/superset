@@ -11,7 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiChevronDown, HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
+import { HiChevronDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
 
@@ -41,15 +41,6 @@ export function BranchSelector({
 
 	const localBranches = branchData?.local ?? [];
 	const checkedOutBranches = branchData?.checkedOutBranches ?? {};
-
-	const openInApp = trpc.external.openInApp.useMutation();
-	const { data: lastUsedApp = "cursor" } =
-		trpc.settings.getLastUsedApp.useQuery();
-
-	const handleOpenWorktree = (e: React.MouseEvent, worktreePath: string) => {
-		e.stopPropagation();
-		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
-	};
 
 	const sortedBranches = useMemo(
 		() => [
@@ -82,6 +73,7 @@ export function BranchSelector({
 			await switchBranch.mutateAsync({ worktreePath, branch });
 			utils.workspaces.getActive.invalidate();
 			utils.changes.getBranches.invalidate();
+			toast.success(`Switched to branch "${branch}"`);
 		} catch (error) {
 			toast.error(
 				error instanceof Error ? error.message : "Failed to switch branch",
@@ -137,8 +129,7 @@ export function BranchSelector({
 					<CommandList ref={listRef} className="p-1">
 						<CommandEmpty className="py-3">No branches found</CommandEmpty>
 						{visibleBranches.map(({ branch, lastCommitDate }) => {
-							const worktreePath = checkedOutBranches[branch];
-							const isCheckedOut = !!worktreePath;
+							const isCheckedOut = branch in checkedOutBranches;
 							const isCurrent = branch === currentBranch;
 							const timeLabel = isCurrent
 								? "(current)"
@@ -154,29 +145,11 @@ export function BranchSelector({
 									className="flex items-center justify-between gap-2"
 								>
 									<span className="truncate flex-1">{branch}</span>
-									<div className="flex items-center gap-2 shrink-0">
-										{isCheckedOut && !isCurrent && (
-											<Tooltip>
-												<TooltipTrigger asChild>
-													<button
-														type="button"
-														onClick={(e) => handleOpenWorktree(e, worktreePath)}
-														className="p-0.5 hover:bg-accent rounded"
-													>
-														<HiOutlineArrowTopRightOnSquare className="size-3.5" />
-													</button>
-												</TooltipTrigger>
-												<TooltipContent side="top" showArrow={false}>
-													Open worktree
-												</TooltipContent>
-											</Tooltip>
-										)}
-										<span className="tabular-nums">
-											{isCheckedOut && !isCurrent
-												? `(in use) ${timeLabel}`
-												: timeLabel}
-										</span>
-									</div>
+									<span className="tabular-nums shrink-0">
+										{isCheckedOut && !isCurrent
+											? `(in use) ${timeLabel}`
+											: timeLabel}
+									</span>
 								</CommandItem>
 							);
 						})}
