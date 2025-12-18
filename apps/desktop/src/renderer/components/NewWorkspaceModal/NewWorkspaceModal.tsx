@@ -50,7 +50,7 @@ export function NewWorkspaceModal() {
 	const [title, setTitle] = useState("");
 	const [branchName, setBranchName] = useState("");
 	const [branchNameEdited, setBranchNameEdited] = useState(false);
-	const [mode, setMode] = useState<Mode>("existing");
+	const [mode, setMode] = useState<Mode>("new");
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -78,7 +78,7 @@ export function NewWorkspaceModal() {
 		setTitle("");
 		setBranchName("");
 		setBranchNameEdited(false);
-		setMode("existing");
+		setMode("new");
 	};
 
 	const handleClose = () => {
@@ -187,17 +187,6 @@ export function NewWorkspaceModal() {
 							<div className="flex p-0.5 bg-muted rounded-md">
 								<button
 									type="button"
-									onClick={() => setMode("existing")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
-										mode === "existing"
-											? "bg-background text-foreground shadow-sm"
-											: "text-muted-foreground hover:text-foreground"
-									}`}
-								>
-									Existing
-								</button>
-								<button
-									type="button"
 									onClick={() => setMode("new")}
 									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
 										mode === "new"
@@ -207,17 +196,23 @@ export function NewWorkspaceModal() {
 								>
 									New Workspace
 								</button>
+								<button
+									type="button"
+									onClick={() => setMode("existing")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+										mode === "existing"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									Existing
+								</button>
 							</div>
 						</div>
 
 						{/* Content */}
 						<div className="px-4 pb-4">
-							{mode === "existing" ? (
-								<ExistingWorktreesList
-									projectId={selectedProjectId}
-									onOpenSuccess={handleClose}
-								/>
-							) : (
+							{mode === "new" ? (
 								<div className="space-y-3">
 									<div className="space-y-1.5">
 										<label
@@ -258,6 +253,11 @@ export function NewWorkspaceModal() {
 										/>
 									</div>
 								</div>
+							) : (
+								<ExistingWorktreesList
+									projectId={selectedProjectId}
+									onOpenSuccess={handleClose}
+								/>
 							)}
 						</div>
 					</>
