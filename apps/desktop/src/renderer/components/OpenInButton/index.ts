@@ -1,2 +1,2 @@
 export type { OpenInButtonProps } from "./OpenInButton";
-export { OpenInButton } from "./OpenInButton";
+export { OpenInButton, getAppOption } from "./OpenInButton";

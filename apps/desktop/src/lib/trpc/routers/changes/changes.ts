@@ -98,7 +98,11 @@ export const createChangesRouter = () => {
 					// Get branches that are checked out by worktrees using git worktree list
 					const checkedOutBranches: string[] = [];
 					try {
-						const worktreeList = await git.raw(["worktree", "list", "--porcelain"]);
+						const worktreeList = await git.raw([
+							"worktree",
+							"list",
+							"--porcelain",
+						]);
 						const lines = worktreeList.split("\n");
 						let currentWorktreePath: string | null = null;
 
@@ -106,7 +110,10 @@ export const createChangesRouter = () => {
 							if (line.startsWith("worktree ")) {
 								currentWorktreePath = line.substring(9).trim();
 							} else if (line.startsWith("branch ")) {
-								const branch = line.substring(7).trim().replace("refs/heads/", "");
+								const branch = line
+									.substring(7)
+									.trim()
+									.replace("refs/heads/", "");
 								// Exclude the current worktree's branch
 								if (currentWorktreePath !== input.worktreePath) {
 									checkedOutBranches.push(branch);
