@@ -50,7 +50,7 @@ export interface TabsStore extends TabsState {
 	updateTabLayout: (tabId: string, layout: MosaicNode<string>) => void;
 
 	// Pane operations
-	addPane: (tabId: string) => string;
+	addPane: (tabId: string, options?: AddTabOptions) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;

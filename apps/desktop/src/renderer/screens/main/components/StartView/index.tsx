@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
+import { formatPathWithProject } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -9,46 +10,6 @@ import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
-
-/**
- * Normalizes path separators to forward slashes for consistent handling
- */
-function normalizeSeparators(path: string): string {
-	return path.replace(/\\/g, "/");
-}
-
-/**
- * Formats a path for display, replacing the home directory with ~ and optionally
- * removing the trailing project name directory.
- * Handles both Unix and Windows paths.
- */
-function formatPath(
-	path: string,
-	projectName: string,
-	homeDir: string | undefined,
-): { display: string; full: string } {
-	// Normalize both path and homeDir to use forward slashes
-	const normalizedPath = normalizeSeparators(path);
-	const normalizedHome = homeDir ? normalizeSeparators(homeDir) : null;
-
-	// Replace home directory with ~ if we know the home dir
-	let fullPath = normalizedPath;
-	if (normalizedHome && normalizedPath.startsWith(normalizedHome)) {
-		fullPath = `~${normalizedPath.slice(normalizedHome.length)}`;
-	} else {
-		// Fallback: try common Unix patterns if home dir not available
-		fullPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
-	}
-
-	// Escape special regex characters in project name
-	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
-
-	// Remove trailing project name directory if it matches
-	const displayPath = fullPath.replace(suffixPattern, "");
-
-	return { display: displayPath, full: fullPath };
-}
 
 export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -211,7 +172,7 @@ export function StartView() {
 
 									<div className="max-h-64 overflow-y-auto flex flex-col gap-1">
 										{displayedProjects.map((project) => {
-											const pathInfo = formatPath(
+											const pathInfo = formatPathWithProject(
 												project.mainRepoPath,
 												project.name,
 												homeDir,

@@ -12,6 +12,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
+import { WorkspaceHeader } from "./WorkspaceHeader";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -106,31 +107,35 @@ export function WorkspaceView() {
 	}, [isSidebarOpen]);
 
 	return (
-		<ResizablePanelGroup direction="horizontal" className="flex-1 bg-tertiary">
-			<ResizablePanel
-				ref={sidebarPanelRef}
-				defaultSize={sidebarSize}
-				minSize={15}
-				maxSize={40}
-				collapsible
-				collapsedSize={0}
-				onCollapse={() => setSidebarSize(0)}
-				onExpand={() => setSidebarSize(15)}
-				onResize={setSidebarSize}
+		<div className="flex-1 h-full flex flex-col">
+			<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
+			<ResizablePanelGroup
+				direction="horizontal"
+				className="flex-1 bg-tertiary"
 			>
-				{isSidebarOpen && <Sidebar />}
-			</ResizablePanel>
-			<ResizableHandle
-				className="bg-tertiary hover:bg-border transition-colors"
-				onDragging={setIsResizing}
-			/>
-			<ResizablePanel defaultSize={100 - sidebarSize}>
-				<div className="flex-1 h-full p-1">
+				<ResizablePanel
+					ref={sidebarPanelRef}
+					defaultSize={sidebarSize}
+					minSize={15}
+					maxSize={40}
+					collapsible
+					collapsedSize={0}
+					onCollapse={() => setSidebarSize(0)}
+					onExpand={() => setSidebarSize(15)}
+					onResize={setSidebarSize}
+				>
+					{isSidebarOpen && <Sidebar />}
+				</ResizablePanel>
+				<ResizableHandle
+					className="bg-tertiary hover:bg-border transition-colors"
+					onDragging={setIsResizing}
+				/>
+				<ResizablePanel defaultSize={100 - sidebarSize}>
 					<div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
 						<ContentView />
 					</div>
-				</div>
-			</ResizablePanel>
-		</ResizablePanelGroup>
+				</ResizablePanel>
+			</ResizablePanelGroup>
+		</div>
 	);
 }

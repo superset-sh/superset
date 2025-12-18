@@ -13,9 +13,13 @@ const BEL = "\x07";
 /**
  * Pattern to detect clear scrollback sequences:
  * - ESC [ 3 J - Clear scrollback buffer (ED3)
- * - ESC c - Full terminal reset (RIS)
+ *
+ * Note: We intentionally do NOT include ESC c (RIS - Reset to Initial State)
+ * because TUI applications (vim, htop, etc.) commonly use RIS for screen
+ * repaints/refreshes. Only ED3 is a deliberate "clear scrollback" action
+ * triggered by commands like `clear` or Cmd+K.
  */
-const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J|${ESC}c`);
+const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J`);
 
 /**
  * Pattern definitions for terminal query responses.
@@ -263,18 +267,18 @@ export const patterns = FILTER_PATTERNS;
 
 /**
  * Checks if data contains sequences that clear the scrollback buffer.
- * Used to detect when the shell sends clear commands (e.g., from `clear` command or Ctrl+L).
+ * Used to detect when the shell sends clear commands (e.g., from `clear` command or Cmd+K).
  *
  * Detected sequences:
  * - ESC [ 3 J - Clear scrollback buffer (ED3)
- * - ESC c - Full terminal reset (RIS)
+ *
+ * Note: ESC c (RIS) is intentionally not detected as TUI apps use it for repaints.
  */
 export function containsClearScrollbackSequence(data: string): boolean {
 	return CLEAR_SCROLLBACK_PATTERN.test(data);
 }
 
 const ED3_SEQUENCE = `${ESC}[3J`;
-const RIS_SEQUENCE = `${ESC}c`;
 
 /**
  * Extracts content after the last clear scrollback sequence.
@@ -283,16 +287,10 @@ const RIS_SEQUENCE = `${ESC}c`;
  */
 export function extractContentAfterClear(data: string): string {
 	const ed3Index = data.lastIndexOf(ED3_SEQUENCE);
-	const risIndex = data.lastIndexOf(RIS_SEQUENCE);
 
-	const ed3End = ed3Index !== -1 ? ed3Index + ED3_SEQUENCE.length : -1;
-	const risEnd = risIndex !== -1 ? risIndex + RIS_SEQUENCE.length : -1;
-
-	const cutPoint = Math.max(ed3End, risEnd);
-
-	if (cutPoint <= 0) {
+	if (ed3Index === -1) {
 		return data;
 	}
 
-	return data.slice(cutPoint);
+	return data.slice(ed3Index + ED3_SEQUENCE.length);
 }
