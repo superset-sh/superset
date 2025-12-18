@@ -9,6 +9,7 @@ import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
+import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
 
@@ -37,6 +38,20 @@ export function ChangesView() {
 			refetchOnWindowFocus: true,
 		},
 	);
+
+	const { data: githubStatus, refetch: refetchGithubStatus } =
+		trpc.workspaces.getGitHubStatus.useQuery(
+			{ workspaceId: activeWorkspace?.id ?? "" },
+			{
+				enabled: !!activeWorkspace?.id,
+				refetchInterval: 10000,
+			},
+		);
+
+	const handleRefresh = () => {
+		refetch();
+		refetchGithubStatus();
+	};
 
 	const stageAllMutation = trpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
@@ -178,16 +193,32 @@ export function ChangesView() {
 
 	const unstagedFiles = [...status.unstaged, ...status.untracked];
 
+	const hasStagedChanges = status.staged.length > 0;
+	const branchExistsOnRemote = githubStatus?.branchExistsOnRemote ?? false;
+	const hasExistingPR = !!githubStatus?.pr;
+	const prUrl = githubStatus?.pr?.url;
+
 	return (
 		<div className="flex flex-col h-full">
 			<ChangesHeader
 				ahead={status.ahead}
 				behind={status.behind}
 				isRefreshing={isFetching}
-				onRefresh={() => refetch()}
+				onRefresh={handleRefresh}
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
+			/>
+
+			<CommitInput
+				worktreePath={worktreePath}
+				hasStagedChanges={hasStagedChanges}
+				ahead={status.ahead}
+				behind={status.behind}
+				branchExistsOnRemote={branchExistsOnRemote}
+				hasExistingPR={hasExistingPR}
+				prUrl={prUrl}
+				onRefresh={handleRefresh}
 			/>
 
 			{!hasChanges ? (

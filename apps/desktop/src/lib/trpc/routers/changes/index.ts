@@ -1,6 +1,7 @@
 import { router } from "../..";
 import { createBranchesRouter } from "./branches";
 import { createFileContentsRouter } from "./file-contents";
+import { createGitOperationsRouter } from "./git-operations";
 import { createStagingRouter } from "./staging";
 import { createStatusRouter } from "./status";
 
@@ -9,6 +10,7 @@ export const createChangesRouter = () => {
 	const statusRouter = createStatusRouter();
 	const fileContentsRouter = createFileContentsRouter();
 	const stagingRouter = createStagingRouter();
+	const gitOperationsRouter = createGitOperationsRouter();
 
 	return router({
 		// Branch operations
@@ -22,5 +24,8 @@ export const createChangesRouter = () => {
 
 		// Staging operations
 		...stagingRouter._def.procedures,
+
+		// Git operations (commit, push, pull, sync, createPR)
+		...gitOperationsRouter._def.procedures,
 	});
 };
