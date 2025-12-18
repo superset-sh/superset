@@ -17,6 +17,7 @@ import {
 	HiChevronUp,
 	HiMiniFolderOpen,
 } from "react-icons/hi2";
+import { formatPathWithProject } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
@@ -41,30 +42,6 @@ function generateBranchFromTitle(title: string): string {
 		.replace(/-+/g, "-")
 		.replace(/^-|-$/g, "")
 		.slice(0, 50);
-}
-
-function formatPath(
-	path: string,
-	projectName: string,
-	homeDir: string | undefined,
-): string {
-	const normalizedPath = path.replace(/\\/g, "/");
-	const normalizedHome = homeDir ? homeDir.replace(/\\/g, "/") : null;
-
-	let displayPath = normalizedPath;
-	if (
-		normalizedHome &&
-		(normalizedPath === normalizedHome ||
-			normalizedPath.startsWith(`${normalizedHome}/`))
-	) {
-		displayPath = `~${normalizedPath.slice(normalizedHome.length)}`;
-	} else {
-		displayPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
-	}
-
-	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
-	return displayPath.replace(suffixPattern, "");
 }
 
 export function NewWorkspaceModal() {
@@ -198,7 +175,10 @@ export function NewWorkspaceModal() {
 			<div className="min-w-0 flex-1">
 				<div className="font-medium truncate">{project.name}</div>
 				<div className="text-xs text-muted-foreground truncate group-hover:text-muted-foreground/80 mt-0.5">
-					{formatPath(project.mainRepoPath, project.name, homeDir)}
+					{
+						formatPathWithProject(project.mainRepoPath, project.name, homeDir)
+							.display
+					}
 				</div>
 			</div>
 			{isSelected && <HiCheck className="size-4 text-primary shrink-0 ml-2" />}

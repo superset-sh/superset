@@ -1,4 +1,3 @@
-import os from "node:os";
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 import type {
 	IpcChannelName,
@@ -20,7 +19,6 @@ declare global {
 const API = {
 	sayHelloFromBridge: () => console.log("\nHello from bridgeAPI! 👋\n\n"),
 	username: process.env.USER,
-	homePath: os.homedir(),
 };
 
 // Store mapping of user listeners to wrapped listeners for proper cleanup
