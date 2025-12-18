@@ -31,9 +31,7 @@ export const PROTOCOL_SCHEMES = {
 	PROD: "superset",
 } as const;
 export const PROTOCOL_SCHEME =
-	env.NODE_ENV === "development"
-		? PROTOCOL_SCHEMES.DEV
-		: PROTOCOL_SCHEMES.PROD;
+	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
 // Project-level directory name (always .superset, not conditional)
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
