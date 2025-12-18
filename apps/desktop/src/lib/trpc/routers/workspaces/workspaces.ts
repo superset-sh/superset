@@ -788,7 +788,7 @@ export const createWorkspacesRouter = () => {
 				const workspace = db.data.workspaces.find((w) => w.id === input.id);
 
 				if (!workspace) {
-					return { success: false, error: "Workspace not found" };
+					throw new Error("Workspace not found");
 				}
 
 				// Kill all terminal processes in this workspace

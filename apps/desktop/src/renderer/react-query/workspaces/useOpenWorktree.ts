@@ -24,13 +24,17 @@ export function useOpenWorktree(
 		onSuccess: async (data, ...rest) => {
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
+			// Invalidate project queries since openWorktree updates project metadata
+			await utils.projects.getRecents.invalidate();
 
-			const hasInitialCommands =
-				Array.isArray(data.initialCommands) && data.initialCommands.length > 0;
+			const initialCommands =
+				Array.isArray(data.initialCommands) && data.initialCommands.length > 0
+					? data.initialCommands
+					: undefined;
 
 			// Always create a terminal tab when opening a worktree
 			const { tabId, paneId } = addTab(data.workspace.id);
-			if (hasInitialCommands) {
+			if (initialCommands) {
 				setTabAutoTitle(tabId, "Workspace Setup");
 			}
 			// Pre-create terminal session (with initial commands if present)
@@ -39,10 +43,10 @@ export function useOpenWorktree(
 				paneId,
 				tabId,
 				workspaceId: data.workspace.id,
-				initialCommands: hasInitialCommands ? data.initialCommands! : undefined,
+				initialCommands,
 			});
 
-			if (!hasInitialCommands) {
+			if (!initialCommands) {
 				// Show config toast if no setup commands
 				toast.info("No setup script configured", {
 					description: "Automate workspace setup with a config.json file",

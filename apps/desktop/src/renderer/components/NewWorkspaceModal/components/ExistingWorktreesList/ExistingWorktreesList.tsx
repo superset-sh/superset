@@ -17,8 +17,12 @@ export function ExistingWorktreesList({
 		trpc.workspaces.getWorktreesByProject.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
 
-	const closedWorktrees = worktrees.filter((wt) => !wt.hasActiveWorkspace);
-	const openWorktrees = worktrees.filter((wt) => wt.hasActiveWorkspace);
+	const closedWorktrees = worktrees
+		.filter((wt) => !wt.hasActiveWorkspace)
+		.sort((a, b) => b.createdAt - a.createdAt);
+	const openWorktrees = worktrees
+		.filter((wt) => wt.hasActiveWorkspace)
+		.sort((a, b) => b.createdAt - a.createdAt);
 
 	const handleOpenWorktree = async (worktreeId: string, branch: string) => {
 		toast.promise(openWorktree.mutateAsync({ worktreeId }), {
