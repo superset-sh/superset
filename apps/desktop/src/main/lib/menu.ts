@@ -6,10 +6,6 @@ import { menuEmitter } from "./menu-events";
 export function createApplicationMenu() {
 	const template: Electron.MenuItemConstructorOptions[] = [
 		{
-			label: "File",
-			submenu: [{ role: "quit" }],
-		},
-		{
 			label: "Edit",
 			submenu: [
 				{ role: "undo" },
