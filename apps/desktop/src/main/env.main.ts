@@ -4,7 +4,7 @@
  * This file uses t3-env with process.env which works at runtime in Node.js.
  * Only import this file in src/main/ code - never in renderer or shared code.
  *
- * For renderer process env vars, use src/renderer/env.ts instead.
+ * For renderer process env vars, use src/renderer/env.renderer.ts instead.
  */
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod/v4";

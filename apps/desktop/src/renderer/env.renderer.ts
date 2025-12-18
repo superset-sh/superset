@@ -7,7 +7,7 @@
  *
  * Only import this file in src/renderer/ code - never in main or shared code.
  *
- * For main process env vars, use src/main/env.ts instead.
+ * For main process env vars, use src/main/env.main.ts instead.
  */
 import { z } from "zod/v4";
 

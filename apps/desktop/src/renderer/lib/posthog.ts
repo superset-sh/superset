@@ -1,18 +1,14 @@
 import posthog from "posthog-js/dist/module.full.no-external";
-
-const POSTHOG_KEY = import.meta.env.NEXT_PUBLIC_POSTHOG_KEY as
-	| string
-	| undefined;
+import { env } from "../env.renderer";
 
 export function initPostHog() {
-	if (!POSTHOG_KEY) {
+	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
 		console.log("[posthog] No key configured, skipping");
 		return;
 	}
 
-	posthog.init(POSTHOG_KEY, {
-		api_host: "https://us.i.posthog.com",
-		ui_host: "https://us.posthog.com",
+	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+		api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
 		defaults: "2025-11-30",
 		capture_pageview: false,
 		capture_pageleave: false,
