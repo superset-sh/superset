@@ -1,7 +1,7 @@
 import type { AppRouter } from "@superset/trpc";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
-import { env } from "../../env";
+import { env } from "../env";
 import { authService } from "./auth";
 
 /**

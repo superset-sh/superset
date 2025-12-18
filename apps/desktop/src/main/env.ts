@@ -1,3 +1,11 @@
+/**
+ * Environment variables for the MAIN PROCESS (Node.js context).
+ *
+ * This file uses t3-env with process.env which works at runtime in Node.js.
+ * Only import this file in src/main/ code - never in renderer or shared code.
+ *
+ * For renderer process env vars, use src/renderer/env.ts instead.
+ */
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod/v4";
 
@@ -12,11 +20,10 @@ export const env = createEnv({
 
 	runtimeEnv: {
 		...process.env,
-		// Vite's define replaces this at build time, ensuring correct env in packaged apps
 		NODE_ENV: process.env.NODE_ENV,
 	},
 	emptyStringAsUndefined: true,
 
-	// Electron runs in a trusted environment - treat renderer as server context
+	// Main process runs in trusted Node.js environment
 	isServer: true,
 });

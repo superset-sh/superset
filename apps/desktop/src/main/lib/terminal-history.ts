@@ -1,7 +1,7 @@
 import { createWriteStream, promises as fs, type WriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { env } from "../../env";
+import { env } from "../env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 
 export interface SessionMetadata {

@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
-import { env } from "../../env";
+import { env } from "../env";
 
 /**
  * Gets the path to a ringtone sound file.
