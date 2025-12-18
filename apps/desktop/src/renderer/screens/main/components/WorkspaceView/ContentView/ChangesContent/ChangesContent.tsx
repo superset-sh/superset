@@ -150,6 +150,7 @@ export function ChangesContent() {
 					<DiffViewer
 						contents={contents}
 						viewMode={viewMode}
+						filePath={selectedFile.path}
 						editable={isEditable}
 						onSave={handleSave}
 					/>

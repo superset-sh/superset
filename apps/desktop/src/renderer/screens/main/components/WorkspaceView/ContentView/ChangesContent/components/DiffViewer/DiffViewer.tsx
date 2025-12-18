@@ -1,11 +1,42 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
 import { useCallback, useRef } from "react";
 import { monaco, SUPERSET_THEME } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 
+const COPY_PATH_LINE_ACTION_ID = "copy-path-line";
+
+function addCopyPathLineAction(
+	editor: Monaco.editor.IStandaloneCodeEditor,
+	filePath: string,
+) {
+	editor.addAction({
+		id: COPY_PATH_LINE_ACTION_ID,
+		label: "Copy Path:Line",
+		keybindings: [
+			monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyC,
+		],
+		contextMenuGroupId: "9_cutcopypaste",
+		contextMenuOrder: 4,
+		run: (ed) => {
+			const selection = ed.getSelection();
+			if (selection) {
+				const startLine = selection.startLineNumber;
+				const endLine = selection.endLineNumber;
+				const pathWithLine =
+					startLine === endLine
+						? `${filePath}:${startLine}`
+						: `${filePath}:${startLine}-${endLine}`;
+				navigator.clipboard.writeText(pathWithLine);
+			}
+		},
+	});
+}
+
 interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
+	filePath: string;
 	editable?: boolean;
 	onSave?: (content: string) => void;
 }
@@ -13,6 +44,7 @@ interface DiffViewerProps {
 export function DiffViewer({
 	contents,
 	viewMode,
+	filePath,
 	editable = false,
 	onSave,
 }: DiffViewerProps) {
@@ -28,16 +60,21 @@ export function DiffViewer({
 
 	const handleMount: DiffOnMount = useCallback(
 		(editor) => {
-			modifiedEditorRef.current = editor.getModifiedEditor();
+			const originalEditor = editor.getOriginalEditor();
+			const modifiedEditor = editor.getModifiedEditor();
+			modifiedEditorRef.current = modifiedEditor;
 
-			if (editable && modifiedEditorRef.current) {
-				modifiedEditorRef.current.addCommand(
+			addCopyPathLineAction(originalEditor, filePath);
+			addCopyPathLineAction(modifiedEditor, filePath);
+
+			if (editable && modifiedEditor) {
+				modifiedEditor.addCommand(
 					monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
 					handleSave,
 				);
 			}
 		},
-		[editable, handleSave],
+		[editable, handleSave, filePath],
 	);
 
 	return (
