@@ -27,6 +27,7 @@ Bun + Turbo monorepo with:
 - **Database**: Drizzle ORM + Neon PostgreSQL
 - **UI**: React + TailwindCSS v4 + shadcn/ui
 - **Code Quality**: Biome (formatting + linting at root)
+- **Next.js**: Version 16 - NEVER create `middleware.ts`. Next.js 16 renamed middleware to `proxy.ts`. Always use `proxy.ts` for request interception.
 
 ## Common Commands
 

@@ -10,16 +10,9 @@ export const env = createEnv({
 			.default("development"),
 	},
 
-	server: {
-		DATABASE_URL: z.string().url(),
-		DATABASE_URL_UNPOOLED: z.string().url(),
-		CLERK_SECRET_KEY: z.string(),
-	},
+	server: {},
 
 	client: {
-		NEXT_PUBLIC_API_URL: z.string().url(),
-		NEXT_PUBLIC_WEB_URL: z.string().url(),
-		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string(),
 		NEXT_PUBLIC_COOKIE_DOMAIN: z.string().default("localhost"),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
 		NEXT_PUBLIC_POSTHOG_HOST: z
@@ -30,10 +23,6 @@ export const env = createEnv({
 
 	experimental__runtimeEnv: {
 		NODE_ENV: process.env.NODE_ENV,
-		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
-		NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
-			process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
 		NEXT_PUBLIC_COOKIE_DOMAIN: process.env.NEXT_PUBLIC_COOKIE_DOMAIN,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,

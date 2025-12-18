@@ -1,0 +1,28 @@
+import posthog from "posthog-js";
+
+import { env } from "@/env";
+import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
+
+posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+	api_host: "/ingest",
+	ui_host: "https://us.posthog.com",
+	defaults: "2025-11-30",
+	capture_pageview: "history_change",
+	capture_pageleave: true,
+	capture_exceptions: true,
+	debug: env.NODE_ENV === "development",
+	cross_subdomain_cookie: true,
+	persistence: "cookie",
+	persistence_name: env.NEXT_PUBLIC_COOKIE_DOMAIN,
+	loaded: (posthog) => {
+		posthog.register({
+			app_name: "marketing",
+			domain: window.location.hostname,
+		});
+
+		const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
+		if (consent === "declined") {
+			posthog.opt_out_capturing();
+		}
+	},
+});

@@ -1,64 +1,24 @@
-// TEMPORARILY DISABLED - PostHog bricked the desktop app
-// TODO: Re-enable after fixing the issue
-
-// import posthog from "posthog-js";
-// import { PostHogProvider as PHProvider } from "posthog-js/react";
 import type React from "react";
+import { useEffect, useState } from "react";
 
-// import { useEffect, useState } from "react";
-
-// const POSTHOG_KEY = import.meta.env.NEXT_PUBLIC_POSTHOG_KEY as
-// 	| string
-// 	| undefined;
-// const POSTHOG_HOST =
-// 	(import.meta.env.NEXT_PUBLIC_POSTHOG_HOST as string | undefined) ||
-// 	"https://us.i.posthog.com";
+import { initPostHog } from "../lib/posthog";
 
 interface PostHogProviderProps {
 	children: React.ReactNode;
 }
 
 export function PostHogProvider({ children }: PostHogProviderProps) {
-	// TEMPORARILY DISABLED - PostHog bricked the desktop app
-	// const [isInitialized, setIsInitialized] = useState(false);
+	const [isInitialized, setIsInitialized] = useState(false);
 
-	// useEffect(() => {
-	// 	if (!POSTHOG_KEY) {
-	// 		console.log("[posthog] No PostHog key configured, skipping init");
-	// 		setIsInitialized(true);
-	// 		return;
-	// 	}
+	useEffect(() => {
+		initPostHog();
+		setIsInitialized(true);
+	}, []);
 
-	// 	posthog.init(POSTHOG_KEY, {
-	// 		api_host: POSTHOG_HOST,
-	// 		// Electron apps don't have traditional page views
-	// 		capture_pageview: false,
-	// 		// Disable session recording for now
-	// 		disable_session_recording: true,
-	// 		// Persist across sessions
-	// 		persistence: "localStorage",
-	// 		// Load feature flags on init
-	// 		bootstrap: {
-	// 			featureFlags: {},
-	// 		},
-	// 	});
+	// Don't render children until PostHog is initialized
+	if (!isInitialized) {
+		return null;
+	}
 
-	// 	setIsInitialized(true);
-	// 	console.log("[posthog] Initialized");
-	// }, []);
-
-	// // Don't render children until PostHog is initialized (or skipped)
-	// if (!isInitialized) {
-	// 	return null;
-	// }
-
-	// // If no PostHog key, just render children without the provider
-	// if (!POSTHOG_KEY) {
-	// 	return <>{children}</>;
-	// }
-
-	// return <PHProvider client={posthog}>{children}</PHProvider>;
-
-	// Just render children without PostHog
 	return <>{children}</>;
 }
