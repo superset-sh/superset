@@ -188,7 +188,7 @@ export function NewWorkspaceModal() {
 								<button
 									type="button"
 									onClick={() => setMode("existing")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
 										mode === "existing"
 											? "bg-background text-foreground shadow-sm"
 											: "text-muted-foreground hover:text-foreground"
@@ -199,13 +199,13 @@ export function NewWorkspaceModal() {
 								<button
 									type="button"
 									onClick={() => setMode("new")}
-									className={`flex-1 px-3 py-1 text-xs font-medium rounded transition-colors ${
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
 										mode === "new"
 											? "bg-background text-foreground shadow-sm"
 											: "text-muted-foreground hover:text-foreground"
 									}`}
 								>
-									New Branch
+									New Workspace
 								</button>
 							</div>
 						</div>

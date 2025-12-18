@@ -25,22 +25,24 @@ export function useOpenWorktree(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
-			// Create terminal tab with setup commands if present
-			if (
-				Array.isArray(data.initialCommands) &&
-				data.initialCommands.length > 0
-			) {
-				const { tabId, paneId } = addTab(data.workspace.id);
+			const hasInitialCommands =
+				Array.isArray(data.initialCommands) && data.initialCommands.length > 0;
+
+			// Always create a terminal tab when opening a worktree
+			const { tabId, paneId } = addTab(data.workspace.id);
+			if (hasInitialCommands) {
 				setTabAutoTitle(tabId, "Workspace Setup");
-				// Pre-create terminal session with initial commands
-				// Terminal component will attach to this session when it mounts
-				createOrAttach.mutate({
-					paneId,
-					tabId,
-					workspaceId: data.workspace.id,
-					initialCommands: data.initialCommands,
-				});
-			} else {
+			}
+			// Pre-create terminal session (with initial commands if present)
+			// Terminal component will attach to this session when it mounts
+			createOrAttach.mutate({
+				paneId,
+				tabId,
+				workspaceId: data.workspace.id,
+				initialCommands: hasInitialCommands ? data.initialCommands! : undefined,
+			});
+
+			if (!hasInitialCommands) {
 				// Show config toast if no setup commands
 				toast.info("No setup script configured", {
 					description: "Automate workspace setup with a config.json file",

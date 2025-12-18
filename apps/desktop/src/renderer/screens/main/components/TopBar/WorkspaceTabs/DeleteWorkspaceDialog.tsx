@@ -179,7 +179,7 @@ export function DeleteWorkspaceDialog({
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="top" className="text-xs max-w-[200px]">
-							Permanently remove workspace and git worktree from disk.
+							Permanently delete workspace and git worktree from disk.
 						</TooltipContent>
 					</Tooltip>
 				</AlertDialogFooter>
