@@ -218,7 +218,7 @@ export function TabsView() {
 									>
 										<Button
 											variant="ghost"
-											onClick={() => handleSelectPreset(preset)}
+											onClick={() => handleSelectPresetAsPane(preset)}
 											disabled={!activeWorkspaceId}
 											className="w-full justify-start px-3 py-1.5 h-auto text-sm"
 										>
@@ -246,7 +246,7 @@ export function TabsView() {
 						onAddTab={handleAddTab}
 						onOpenPresetsSettings={handleOpenPresetsSettings}
 						presets={presets}
-						onSelectPreset={handleSelectPreset}
+						onSelectPreset={handleSelectPresetAsPane}
 					/>
 				</motion.div>
 				<div className="text-sm text-sidebar-foreground space-y-1 relative">
