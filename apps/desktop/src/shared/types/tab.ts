@@ -3,7 +3,14 @@ import type { MosaicNode } from "./mosaic";
 export interface Tab {
 	id: string;
 	name: string;
-	type: "terminal" | "editor" | "browser" | "preview" | "group" | "port" | "diff";
+	type:
+		| "terminal"
+		| "editor"
+		| "browser"
+		| "preview"
+		| "group"
+		| "port"
+		| "diff";
 	command?: string | null;
 	cwd?: string;
 	url?: string;
