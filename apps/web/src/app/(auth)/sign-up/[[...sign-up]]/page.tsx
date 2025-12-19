@@ -2,21 +2,23 @@
 
 import { useSignUp } from "@clerk/nextjs";
 import { Button } from "@superset/ui/button";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { FaGithub } from "react-icons/fa";
+import { FcGoogle } from "react-icons/fc";
 
 import { env } from "@/env";
 
 export default function SignUpPage() {
 	const { signUp, isLoaded } = useSignUp();
-	const [isLoading, setIsLoading] = useState(false);
+	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
+	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const signUpWithGoogle = async () => {
 		if (!isLoaded) return;
 
-		setIsLoading(true);
+		setIsLoadingGoogle(true);
 		setError(null);
 
 		try {
@@ -29,9 +31,31 @@ export default function SignUpPage() {
 			console.error("Sign up failed:", err);
 			setError("Failed to sign up. Please try again.");
 		} finally {
-			setIsLoading(false);
+			setIsLoadingGoogle(false);
 		}
 	};
+
+	const signUpWithGithub = async () => {
+		if (!isLoaded) return;
+
+		setIsLoadingGithub(true);
+		setError(null);
+
+		try {
+			await signUp.authenticateWithRedirect({
+				strategy: "oauth_github",
+				redirectUrl: "/sso-callback",
+				redirectUrlComplete: "/",
+			});
+		} catch (err) {
+			console.error("Sign up failed:", err);
+			setError("Failed to sign up. Please try again.");
+		} finally {
+			setIsLoadingGithub(false);
+		}
+	};
+
+	const isLoading = isLoadingGoogle || isLoadingGithub;
 
 	return (
 		<div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
@@ -43,24 +67,27 @@ export default function SignUpPage() {
 					Sign up to get started with Superset
 				</p>
 			</div>
-			<div className="grid gap-6">
+			<div className="grid gap-4">
 				{error && (
 					<p className="text-destructive text-center text-sm">{error}</p>
 				)}
 				<Button
 					variant="outline"
 					disabled={!isLoaded || isLoading}
+					onClick={signUpWithGithub}
+					className="w-full"
+				>
+					<FaGithub className="mr-2 size-4" />
+					{isLoadingGithub ? "Loading..." : "Sign up with GitHub"}
+				</Button>
+				<Button
+					variant="outline"
+					disabled={!isLoaded || isLoading}
 					onClick={signUpWithGoogle}
 					className="w-full"
 				>
-					<Image
-						src="/assets/social/google.svg"
-						alt="Google"
-						width={16}
-						height={16}
-						className="mr-2"
-					/>
-					{isLoading ? "Loading..." : "Sign up with Google"}
+					<FcGoogle className="mr-2 size-4" />
+					{isLoadingGoogle ? "Loading..." : "Sign up with Google"}
 				</Button>
 				<p className="text-muted-foreground px-8 text-center text-sm">
 					By clicking continue, you agree to our{" "}
