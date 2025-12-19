@@ -61,12 +61,29 @@ function createEditorColors(theme: Theme): editor.IColors {
 	};
 }
 
+function createTokenRules(theme: Theme): editor.ITokenThemeRule[] {
+	const { terminal } = theme;
+	const hex = (color: string) => toHexAuto(color).slice(1);
+
+	return [
+		// Markdown
+		{ token: "keyword.md", foreground: hex(terminal.blue) },
+		{ token: "string.link.md", foreground: hex(terminal.cyan) },
+		{ token: "variable.md", foreground: hex(terminal.blue) },
+		{ token: "string.md", foreground: hex(terminal.green) },
+		{ token: "variable.source.md", foreground: hex(terminal.foreground) },
+		{ token: "markup.bold.md", fontStyle: "bold" },
+		{ token: "markup.italic.md", fontStyle: "italic" },
+		{ token: "markup.strikethrough.md", fontStyle: "strikethrough" },
+	];
+}
+
 export function toMonacoTheme(theme: Theme): MonacoTheme {
 	const isDark = theme.type === "dark";
 	return {
 		base: isDark ? "vs-dark" : "vs",
 		inherit: true,
-		rules: [], // Use VS Code default syntax highlighting
+		rules: createTokenRules(theme),
 		colors: createEditorColors(theme),
 	};
 }
