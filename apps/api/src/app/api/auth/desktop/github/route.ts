@@ -107,27 +107,29 @@ export async function POST(request: Request) {
 
 		const githubUser: GitHubUser = await userResponse.json();
 
-		// Get user's email - might need to fetch from emails endpoint if private
-		let email = githubUser.email;
+		// Always fetch verified email from /user/emails endpoint
+		// Never trust githubUser.email as it could be unverified
+		const emailsResponse = await fetch("https://api.github.com/user/emails", {
+			headers: {
+				Authorization: `Bearer ${tokenData.access_token}`,
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+		});
 
-		if (!email) {
-			// Fetch emails from the emails endpoint
-			const emailsResponse = await fetch("https://api.github.com/user/emails", {
-				headers: {
-					Authorization: `Bearer ${tokenData.access_token}`,
-					Accept: "application/vnd.github+json",
-					"X-GitHub-Api-Version": "2022-11-28",
-				},
-			});
-
-			if (emailsResponse.ok) {
-				const emails: GitHubEmail[] = await emailsResponse.json();
-				// Find primary verified email
-				const primaryEmail = emails.find((e) => e.primary && e.verified);
-				const verifiedEmail = emails.find((e) => e.verified);
-				email = primaryEmail?.email || verifiedEmail?.email || null;
-			}
+		if (!emailsResponse.ok) {
+			console.error("[auth/github] Failed to fetch user emails");
+			return Response.json(
+				{ error: "Failed to fetch user emails" },
+				{ status: 400 },
+			);
 		}
+
+		const emails: GitHubEmail[] = await emailsResponse.json();
+		// Only trust verified emails - prefer primary+verified, fallback to any verified
+		const primaryVerifiedEmail = emails.find((e) => e.primary && e.verified);
+		const anyVerifiedEmail = emails.find((e) => e.verified);
+		const email = primaryVerifiedEmail?.email || anyVerifiedEmail?.email || null;
 
 		if (!email) {
 			return Response.json(
