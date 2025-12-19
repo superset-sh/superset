@@ -25,7 +25,9 @@ export const env = createEnv({
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
 		NEXT_PUBLIC_SENTRY_DSN_ADMIN: z.string().optional(),
-		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.enum(["development", "preview", "production"]),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "preview", "production"])
+			.optional(),
 	},
 
 	experimental__runtimeEnv: {

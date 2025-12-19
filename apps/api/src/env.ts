@@ -18,7 +18,9 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
 		NEXT_PUBLIC_SENTRY_DSN_API: z.string().optional(),
-		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z.enum(["development", "preview", "production"]),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "preview", "production"])
+			.optional(),
 	},
 	experimental__runtimeEnv: {
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
