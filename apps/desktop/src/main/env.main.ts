@@ -22,7 +22,13 @@ export const env = createEnv({
 
 	runtimeEnv: {
 		...process.env,
+		// Explicitly list env vars so Vite can replace them at build time
+		// (spreading process.env only works at runtime, not for bundled apps)
 		NODE_ENV: process.env.NODE_ENV,
+		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
+		GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+		GH_CLIENT_ID: process.env.GH_CLIENT_ID,
 	},
 	emptyStringAsUndefined: true,
 
