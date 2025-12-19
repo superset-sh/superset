@@ -8,34 +8,43 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 const DESKTOP_PROTOCOL =
 	process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
 
-function CallbackContent() {
+function SuccessContent() {
 	const searchParams = useSearchParams();
-	const code = searchParams.get("code");
+	const accessToken = searchParams.get("accessToken");
+	const accessTokenExpiresAt = searchParams.get("accessTokenExpiresAt");
+	const refreshToken = searchParams.get("refreshToken");
+	const refreshTokenExpiresAt = searchParams.get("refreshTokenExpiresAt");
 	const state = searchParams.get("state");
 	const error = searchParams.get("error");
 
 	const [hasAttempted, setHasAttempted] = useState(false);
 
-	// Redirect to desktop app via deep link with OAuth callback path
-	const desktopUrl =
-		code && state
-			? `${DESKTOP_PROTOCOL}://oauth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
-			: null;
+	// Check if we have all required params
+	const hasAllTokens =
+		accessToken &&
+		accessTokenExpiresAt &&
+		refreshToken &&
+		refreshTokenExpiresAt &&
+		state;
+
+	// Build desktop deep link URL with all tokens
+	const desktopUrl = hasAllTokens
+		? `${DESKTOP_PROTOCOL}://auth/callback?accessToken=${encodeURIComponent(accessToken)}&accessTokenExpiresAt=${encodeURIComponent(accessTokenExpiresAt)}&refreshToken=${encodeURIComponent(refreshToken)}&refreshTokenExpiresAt=${encodeURIComponent(refreshTokenExpiresAt)}&state=${encodeURIComponent(state)}`
+		: null;
 
 	const openDesktopApp = useCallback(() => {
 		if (!desktopUrl) return;
 		window.location.href = desktopUrl;
 	}, [desktopUrl]);
 
+	// Auto-open desktop app on mount
 	useEffect(() => {
-		if (error || !code) return;
+		if (error || !desktopUrl || hasAttempted) return;
+		setHasAttempted(true);
+		openDesktopApp();
+	}, [error, desktopUrl, hasAttempted, openDesktopApp]);
 
-		if (!hasAttempted) {
-			setHasAttempted(true);
-			openDesktopApp();
-		}
-	}, [code, error, hasAttempted, openDesktopApp]);
-
+	// Error state
 	if (error) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -54,7 +63,8 @@ function CallbackContent() {
 		);
 	}
 
-	if (!code || !state) {
+	// Missing params
+	if (!hasAllTokens) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 				<div className="flex flex-col items-center gap-6">
@@ -74,6 +84,7 @@ function CallbackContent() {
 		);
 	}
 
+	// Success - show redirect message with fallback link
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 			<div className="flex flex-col items-center">
@@ -88,19 +99,21 @@ function CallbackContent() {
 					Redirecting to the desktop app...
 				</p>
 				<div className="flex flex-col items-center gap-2">
-					<Link
-						href={desktopUrl as string}
-						className="text-muted-foreground/70 underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-muted-foreground"
-					>
-						If you weren&apos;t redirected, click here.
-					</Link>
+					{desktopUrl && (
+						<Link
+							href={desktopUrl}
+							className="text-muted-foreground/70 underline decoration-muted-foreground/40 underline-offset-4 transition-colors hover:text-muted-foreground"
+						>
+							If you weren&apos;t redirected, click here.
+						</Link>
+					)}
 				</div>
 			</div>
 		</div>
 	);
 }
 
-export default function DesktopCallbackPage() {
+export default function DesktopSuccessPage() {
 	return (
 		<Suspense
 			fallback={
@@ -118,7 +131,7 @@ export default function DesktopCallbackPage() {
 				</div>
 			}
 		>
-			<CallbackContent />
+			<SuccessContent />
 		</Suspense>
 	);
 }

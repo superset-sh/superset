@@ -16,11 +16,10 @@ export const env = createEnv({
 			.default("development"),
 		NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 		NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
-		// Clerk OAuth for desktop authentication
-		CLERK_OAUTH_DOMAIN: z
-			.url()
-			.default("https://noted-bengal-62.clerk.accounts.dev"),
-		CLERK_OAUTH_CLIENT_ID: z.string().min(1),
+		// Google OAuth for direct desktop authentication
+		GOOGLE_CLIENT_ID: z.string().min(1),
+		// GitHub OAuth for direct desktop authentication
+		GITHUB_CLIENT_ID: z.string().min(1),
 	},
 
 	runtimeEnv: {

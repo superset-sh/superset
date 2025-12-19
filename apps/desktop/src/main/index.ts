@@ -33,8 +33,23 @@ if (process.defaultApp) {
 async function processDeepLink(url: string): Promise<void> {
 	if (isAuthDeepLink(url)) {
 		const result = await handleAuthDeepLink(url);
-		if (result.success && result.session) {
-			await authService.handleDeepLinkAuth(result.session);
+		if (
+			result.success &&
+			result.accessToken &&
+			result.accessTokenExpiresAt &&
+			result.refreshToken &&
+			result.refreshTokenExpiresAt &&
+			result.state
+		) {
+			await authService.handleAuthCallback({
+				accessToken: result.accessToken,
+				accessTokenExpiresAt: result.accessTokenExpiresAt,
+				refreshToken: result.refreshToken,
+				refreshTokenExpiresAt: result.refreshTokenExpiresAt,
+				state: result.state,
+			});
+			// Focus the main window after successful auth
+			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
 		}

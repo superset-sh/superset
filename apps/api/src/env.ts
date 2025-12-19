@@ -8,6 +8,12 @@ export const env = createEnv({
 		CLERK_SECRET_KEY: z.string(),
 		BLOB_READ_WRITE_TOKEN: z.string(),
 		DESKTOP_AUTH_SECRET: z.string().min(32),
+		// Google OAuth for desktop authentication
+		GOOGLE_CLIENT_ID: z.string().min(1),
+		GOOGLE_CLIENT_SECRET: z.string().min(1),
+		// GitHub OAuth for desktop authentication
+		GITHUB_CLIENT_ID: z.string().min(1),
+		GITHUB_CLIENT_SECRET: z.string().min(1),
 	},
 	client: {
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
