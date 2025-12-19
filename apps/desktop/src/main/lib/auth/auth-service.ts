@@ -267,26 +267,6 @@ class AuthService extends EventEmitter {
 	}
 
 	/**
-	 * Handle session received from deep link callback (legacy support)
-	 */
-	async handleDeepLinkAuth(session: AuthSession): Promise<SignInResult> {
-		try {
-			this.session = session;
-			await tokenStorage.save(session);
-			this.emitStateChange();
-
-			console.log("[auth] Signed in");
-			return { success: true };
-		} catch (err) {
-			const message =
-				err instanceof Error ? err.message : "Failed to complete sign in";
-			console.error("[auth] Auth handling failed:", message);
-			await this.clearSession();
-			return { success: false, error: message };
-		}
-	}
-
-	/**
 	 * Sign out - clear session
 	 */
 	async signOut(): Promise<void> {
@@ -306,6 +286,3 @@ class AuthService extends EventEmitter {
 }
 
 export const authService = new AuthService();
-
-// Export state verification for use in deep link handler
-export { verifyState };

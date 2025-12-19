@@ -1,16 +1,6 @@
 import { redirect } from "next/navigation";
+import { env } from "@/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
-
-/**
- * GitHub OAuth callback handler for desktop auth
- *
- * GET /api/auth/desktop/github?code=...&state=...
- *
- * Exchanges the GitHub auth code for a desktop session token via the API,
- * then redirects to the success page which handles the deep link.
- */
 export async function GET(request: Request) {
 	const url = new URL(request.url);
 	const code = url.searchParams.get("code");
@@ -18,21 +8,18 @@ export async function GET(request: Request) {
 	const error = url.searchParams.get("error");
 	const errorDescription = url.searchParams.get("error_description");
 
-	// Handle OAuth error from GitHub
 	if (error) {
-		const errorUrl = new URL("/auth/desktop/success", WEB_URL);
+		const errorUrl = new URL("/auth/desktop/success", env.NEXT_PUBLIC_WEB_URL);
 		errorUrl.searchParams.set("error", errorDescription || error);
 		redirect(errorUrl.toString());
 	}
 
-	// Validate required params
 	if (!code || !state) {
-		const errorUrl = new URL("/auth/desktop/success", WEB_URL);
+		const errorUrl = new URL("/auth/desktop/success", env.NEXT_PUBLIC_WEB_URL);
 		errorUrl.searchParams.set("error", "Missing authentication parameters");
 		redirect(errorUrl.toString());
 	}
 
-	// Exchange the GitHub code for a desktop session token
 	let tokenData: {
 		accessToken: string;
 		accessTokenExpiresAt: number;
@@ -42,16 +29,19 @@ export async function GET(request: Request) {
 	let exchangeError: string | null = null;
 
 	try {
-		const response = await fetch(`${API_URL}/api/auth/desktop/github`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
+		const response = await fetch(
+			`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/github`,
+			{
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					code,
+					redirectUri: `${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/github`,
+				}),
 			},
-			body: JSON.stringify({
-				code,
-				redirectUri: `${WEB_URL}/api/auth/desktop/github`,
-			}),
-		});
+		);
 
 		if (!response.ok) {
 			const errorData = await response.json().catch(() => ({}));
@@ -69,15 +59,13 @@ export async function GET(request: Request) {
 		exchangeError = "An unexpected error occurred";
 	}
 
-	// Handle errors (redirect outside try-catch so NEXT_REDIRECT works)
 	if (exchangeError || !tokenData) {
-		const errorUrl = new URL("/auth/desktop/success", WEB_URL);
+		const errorUrl = new URL("/auth/desktop/success", env.NEXT_PUBLIC_WEB_URL);
 		errorUrl.searchParams.set("error", exchangeError || "Failed to sign in");
 		redirect(errorUrl.toString());
 	}
 
-	// Redirect to success page with all tokens
-	const successUrl = new URL("/auth/desktop/success", WEB_URL);
+	const successUrl = new URL("/auth/desktop/success", env.NEXT_PUBLIC_WEB_URL);
 	successUrl.searchParams.set("accessToken", tokenData.accessToken);
 	successUrl.searchParams.set(
 		"accessTokenExpiresAt",

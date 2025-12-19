@@ -16,9 +16,7 @@ export const env = createEnv({
 			.default("development"),
 		NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 		NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
-		// Google OAuth for direct desktop authentication
 		GOOGLE_CLIENT_ID: z.string().min(1),
-		// GitHub OAuth for direct desktop authentication
 		GH_CLIENT_ID: z.string().min(1),
 	},
 

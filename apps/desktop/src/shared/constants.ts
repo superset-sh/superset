@@ -26,9 +26,6 @@ export const SUPERSET_DIR_NAME =
 		? SUPERSET_DIR_NAMES.DEV
 		: SUPERSET_DIR_NAMES.PROD;
 
-// Re-export from shared package
-export { PROTOCOL_SCHEMES };
-
 // Deep link protocol scheme (environment-aware)
 export const PROTOCOL_SCHEME =
 	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;

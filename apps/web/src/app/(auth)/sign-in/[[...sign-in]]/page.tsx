@@ -4,19 +4,14 @@ import { useSignIn } from "@clerk/nextjs";
 import { Button } from "@superset/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { env } from "@/env";
 
 export default function SignInPage() {
 	const { signIn, isLoaded } = useSignIn();
-	const searchParams = useSearchParams();
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-
-	// Get redirect URL from query params (used by desktop auth flow)
-	const redirectUrl = searchParams.get("redirect_url") || "/";
 
 	const signInWithGoogle = async () => {
 		if (!isLoaded) return;
@@ -28,7 +23,7 @@ export default function SignInPage() {
 			await signIn.authenticateWithRedirect({
 				strategy: "oauth_google",
 				redirectUrl: "/sso-callback",
-				redirectUrlComplete: redirectUrl,
+				redirectUrlComplete: "/",
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);

@@ -129,7 +129,8 @@ export async function POST(request: Request) {
 		// Only trust verified emails - prefer primary+verified, fallback to any verified
 		const primaryVerifiedEmail = emails.find((e) => e.primary && e.verified);
 		const anyVerifiedEmail = emails.find((e) => e.verified);
-		const email = primaryVerifiedEmail?.email || anyVerifiedEmail?.email || null;
+		const email =
+			primaryVerifiedEmail?.email || anyVerifiedEmail?.email || null;
 
 		if (!email) {
 			return Response.json(

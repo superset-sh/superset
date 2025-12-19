@@ -48,7 +48,6 @@ async function processDeepLink(url: string): Promise<void> {
 				refreshTokenExpiresAt: result.refreshTokenExpiresAt,
 				state: result.state,
 			});
-			// Focus the main window after successful auth
 			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);

@@ -1,4 +1,4 @@
-import { PROTOCOL_SCHEMES } from "shared/constants";
+import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 
 /**
  * Result of handling an auth deep link

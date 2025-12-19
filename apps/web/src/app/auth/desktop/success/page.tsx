@@ -3,12 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const DESKTOP_PROTOCOL =
 	process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
 
-function SuccessContent() {
+export default function Page() {
 	const searchParams = useSearchParams();
 	const accessToken = searchParams.get("accessToken");
 	const accessTokenExpiresAt = searchParams.get("accessTokenExpiresAt");
@@ -19,7 +19,6 @@ function SuccessContent() {
 
 	const [hasAttempted, setHasAttempted] = useState(false);
 
-	// Check if we have all required params
 	const hasAllTokens =
 		accessToken &&
 		accessTokenExpiresAt &&
@@ -27,7 +26,6 @@ function SuccessContent() {
 		refreshTokenExpiresAt &&
 		state;
 
-	// Build desktop deep link URL with all tokens
 	const desktopUrl = hasAllTokens
 		? `${DESKTOP_PROTOCOL}://auth/callback?accessToken=${encodeURIComponent(accessToken)}&accessTokenExpiresAt=${encodeURIComponent(accessTokenExpiresAt)}&refreshToken=${encodeURIComponent(refreshToken)}&refreshTokenExpiresAt=${encodeURIComponent(refreshTokenExpiresAt)}&state=${encodeURIComponent(state)}`
 		: null;
@@ -37,14 +35,12 @@ function SuccessContent() {
 		window.location.href = desktopUrl;
 	}, [desktopUrl]);
 
-	// Auto-open desktop app on mount
 	useEffect(() => {
 		if (error || !desktopUrl || hasAttempted) return;
 		setHasAttempted(true);
 		openDesktopApp();
 	}, [error, desktopUrl, hasAttempted, openDesktopApp]);
 
-	// Error state
 	if (error) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -63,7 +59,6 @@ function SuccessContent() {
 		);
 	}
 
-	// Missing params
 	if (!hasAllTokens) {
 		return (
 			<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
@@ -84,7 +79,6 @@ function SuccessContent() {
 		);
 	}
 
-	// Success - show redirect message with fallback link
 	return (
 		<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
 			<div className="flex flex-col items-center">
@@ -110,28 +104,5 @@ function SuccessContent() {
 				</div>
 			</div>
 		</div>
-	);
-}
-
-export default function DesktopSuccessPage() {
-	return (
-		<Suspense
-			fallback={
-				<div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-					<div className="flex flex-col items-center gap-6">
-						<Image
-							src="/title.svg"
-							alt="Superset"
-							width={140}
-							height={43}
-							priority
-						/>
-						<p className="text-xl text-muted-foreground">Loading...</p>
-					</div>
-				</div>
-			}
-		>
-			<SuccessContent />
-		</Suspense>
 	);
 }

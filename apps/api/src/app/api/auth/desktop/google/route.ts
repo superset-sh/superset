@@ -1,4 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 import { env } from "@/env";
 import { generateTokens } from "../tokens";
 
@@ -15,7 +16,7 @@ interface GoogleTokenResponse {
 }
 
 /**
- * Google ID token payload (decoded)
+ * Google ID token payload (verified)
  */
 interface GoogleIdTokenPayload {
 	iss: string;
@@ -31,6 +32,11 @@ interface GoogleIdTokenPayload {
 	iat: number;
 	exp: number;
 }
+
+// Google's JWKS endpoint - jose handles caching internally
+const GOOGLE_JWKS = createRemoteJWKSet(
+	new URL("https://www.googleapis.com/oauth2/v3/certs"),
+);
 
 /**
  * Exchange Google auth code for tokens and create desktop session
@@ -80,31 +86,24 @@ export async function POST(request: Request) {
 
 		const googleTokens: GoogleTokenResponse = await tokenResponse.json();
 
-		// Decode and verify the ID token
-		// For production, you should verify the signature with Google's public keys
-		// For now, we'll decode and validate the basic claims
-		const idTokenParts = googleTokens.id_token.split(".");
-		if (idTokenParts.length !== 3 || !idTokenParts[1]) {
-			return Response.json(
-				{ error: "Invalid ID token format" },
-				{ status: 400 },
+		// Verify the ID token signature and claims using Google's JWKS
+		let payload: GoogleIdTokenPayload;
+		try {
+			const { payload: verifiedPayload } = await jwtVerify(
+				googleTokens.id_token,
+				GOOGLE_JWKS,
+				{
+					issuer: ["https://accounts.google.com", "accounts.google.com"],
+					audience: env.GOOGLE_CLIENT_ID,
+				},
 			);
-		}
-
-		const payload: GoogleIdTokenPayload = JSON.parse(
-			Buffer.from(idTokenParts[1], "base64url").toString(),
-		);
-
-		// Validate basic claims
-		if (payload.aud !== env.GOOGLE_CLIENT_ID) {
+			payload = verifiedPayload as unknown as GoogleIdTokenPayload;
+		} catch (jwtError) {
+			console.error("[auth/google] JWT verification failed:", jwtError);
 			return Response.json(
-				{ error: "Invalid ID token audience" },
-				{ status: 400 },
+				{ error: "Invalid or expired ID token" },
+				{ status: 401 },
 			);
-		}
-
-		if (payload.exp * 1000 < Date.now()) {
-			return Response.json({ error: "ID token expired" }, { status: 400 });
 		}
 
 		if (!payload.email_verified) {
