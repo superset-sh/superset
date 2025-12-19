@@ -1,6 +1,6 @@
 import { env } from "main/env.main";
 import type { AuthSession } from "shared/auth";
-import { PROTOCOL_SCHEME, PROTOCOL_SCHEMES } from "shared/constants";
+import { PROTOCOL_SCHEMES } from "shared/constants";
 import { pkceStore } from "./pkce";
 
 /**
@@ -119,7 +119,8 @@ async function exchangeCodeWithClerk(
 			grant_type: "authorization_code",
 			client_id: env.CLERK_OAUTH_CLIENT_ID,
 			code,
-			redirect_uri: `${PROTOCOL_SCHEME}://oauth/callback`,
+			// Must match the redirect_uri used in the authorize request
+			redirect_uri: `${env.NEXT_PUBLIC_WEB_URL}/auth/desktop/callback`,
 			code_verifier: codeVerifier,
 		}),
 	});

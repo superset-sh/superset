@@ -110,15 +110,18 @@ class AuthService extends EventEmitter {
 			// Build Clerk OAuth URL directly
 			const authUrl = new URL(`${env.CLERK_OAUTH_DOMAIN}/oauth/authorize`);
 			authUrl.searchParams.set("client_id", env.CLERK_OAUTH_CLIENT_ID);
+			// Redirect through web app for nicer UI, then web redirects to deep link
 			authUrl.searchParams.set(
 				"redirect_uri",
-				`${PROTOCOL_SCHEME}://oauth/callback`,
+				`${env.NEXT_PUBLIC_WEB_URL}/auth/desktop/callback`,
 			);
 			authUrl.searchParams.set("response_type", "code");
-			authUrl.searchParams.set("scope", "openid profile email");
+			authUrl.searchParams.set("scope", "profile email");
 			authUrl.searchParams.set("code_challenge", codeChallenge);
 			authUrl.searchParams.set("code_challenge_method", "S256");
 			authUrl.searchParams.set("state", state);
+			// Force fresh login - ignore existing Clerk session
+			authUrl.searchParams.set("prompt", "login");
 
 			// Open OAuth flow in system browser - goes directly to Clerk
 			await shell.openExternal(authUrl.toString());
