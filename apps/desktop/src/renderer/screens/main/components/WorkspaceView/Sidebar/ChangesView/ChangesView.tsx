@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { ScrollArea } from "@superset/ui/scroll-area";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useState } from "react";
@@ -225,7 +224,7 @@ export function ChangesView() {
 					No changes detected
 				</div>
 			) : (
-				<ScrollArea className="flex-1">
+				<div className="flex-1 overflow-y-auto">
 					{/* Against Main */}
 					<CategorySection
 						title="Against Main"
@@ -348,7 +347,7 @@ export function ChangesView() {
 							isActioning={stageFileMutation.isPending}
 						/>
 					</CategorySection>
-				</ScrollArea>
+				</div>
 			)}
 		</div>
 	);

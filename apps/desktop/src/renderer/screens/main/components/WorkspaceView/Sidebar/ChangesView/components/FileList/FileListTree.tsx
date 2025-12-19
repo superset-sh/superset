@@ -162,7 +162,7 @@ export function FileListTree({
 	const tree = buildFileTree(files);
 
 	return (
-		<div className="flex flex-col min-w-0 overflow-hidden">
+		<div className="flex flex-col overflow-hidden">
 			{tree.map((node) => (
 				<TreeNodeComponent
 					key={node.id}

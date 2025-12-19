@@ -59,16 +59,16 @@ export function CommitItem({
 				)}
 			>
 				{isExpanded ? (
-					<HiChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+					<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
 				) : (
-					<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+					<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
 				)}
 
 				<span className="text-xs font-mono text-muted-foreground shrink-0">
 					{commit.shortHash}
 				</span>
 
-				<span className="text-sm flex-1 truncate">{commit.message}</span>
+				<span className="text-xs flex-1 truncate">{commit.message}</span>
 
 				<span className="text-xs text-muted-foreground shrink-0">
 					{formatRelativeDate(commit.date)}
