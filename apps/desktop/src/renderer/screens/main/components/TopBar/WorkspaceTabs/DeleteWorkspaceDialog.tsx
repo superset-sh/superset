@@ -118,14 +118,22 @@ export function DeleteWorkspaceDialog({
 					<AlertDialogTitle className="text-sm font-medium">
 						Close workspace?
 					</AlertDialogTitle>
-					<AlertDialogDescription className="text-xs text-muted-foreground">
-						{isLoading ? (
-							"Checking status..."
-						) : !canDelete ? (
-							<span className="text-destructive">{reason}</span>
-						) : (
-							<span className="font-mono">{workspaceName}</span>
-						)}
+					<AlertDialogDescription asChild>
+						<div className="text-xs text-muted-foreground space-y-1.5">
+							{isLoading ? (
+								"Checking status..."
+							) : !canDelete ? (
+								<span className="text-destructive">{reason}</span>
+							) : (
+								<>
+									<span className="font-mono block">{workspaceName}</span>
+									<span className="block">
+										Close to hide from tabs (keeps files). Delete to permanently
+										remove worktree from disk.
+									</span>
+								</>
+							)}
+						</div>
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
