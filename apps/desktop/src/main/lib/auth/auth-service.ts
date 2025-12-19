@@ -191,7 +191,7 @@ class AuthService extends EventEmitter {
 			if (provider === "github") {
 				// Build GitHub OAuth URL
 				authUrl = new URL("https://github.com/login/oauth/authorize");
-				authUrl.searchParams.set("client_id", env.GITHUB_CLIENT_ID);
+				authUrl.searchParams.set("client_id", env.GH_CLIENT_ID);
 				authUrl.searchParams.set(
 					"redirect_uri",
 					`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/github`,

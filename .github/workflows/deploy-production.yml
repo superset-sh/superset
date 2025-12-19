@@ -79,8 +79,8 @@ jobs:
           DESKTOP_AUTH_SECRET: ${{ secrets.DESKTOP_AUTH_SECRET }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GITHUB_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          GH_CLIENT_SECRET: ${{ secrets.GH_CLIENT_SECRET }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -96,8 +96,8 @@ jobs:
             --env DESKTOP_AUTH_SECRET=$DESKTOP_AUTH_SECRET \
             --env GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID \
             --env GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET \
-            --env GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID \
-            --env GITHUB_CLIENT_SECRET=$GITHUB_CLIENT_SECRET
+            --env GH_CLIENT_ID=$GH_CLIENT_ID \
+            --env GH_CLIENT_SECRET=$GH_CLIENT_SECRET
 
   deploy-web:
     name: Deploy Web to Vercel

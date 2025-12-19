@@ -64,8 +64,8 @@ export async function POST(request: Request) {
 					Accept: "application/json",
 				},
 				body: JSON.stringify({
-					client_id: env.GITHUB_CLIENT_ID,
-					client_secret: env.GITHUB_CLIENT_SECRET,
+					client_id: env.GH_CLIENT_ID,
+					client_secret: env.GH_CLIENT_SECRET,
 					code,
 					redirect_uri: redirectUri,
 				}),

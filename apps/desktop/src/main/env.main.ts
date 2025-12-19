@@ -19,7 +19,7 @@ export const env = createEnv({
 		// Google OAuth for direct desktop authentication
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		// GitHub OAuth for direct desktop authentication
-		GITHUB_CLIENT_ID: z.string().min(1),
+		GH_CLIENT_ID: z.string().min(1),
 	},
 
 	runtimeEnv: {
