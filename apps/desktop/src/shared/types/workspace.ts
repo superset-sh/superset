@@ -12,14 +12,3 @@ export interface Workspace {
 	updatedAt: string;
 	ports?: Array<number | { name: string; port: number }>;
 }
-
-export interface CreateWorkspaceInput {
-	name: string;
-	repoPath: string;
-	branch: string;
-}
-
-export interface UpdateWorkspaceInput {
-	id: string;
-	name?: string;
-}

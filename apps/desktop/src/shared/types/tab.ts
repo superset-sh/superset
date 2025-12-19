@@ -1,18 +1,9 @@
 import type { MosaicNode } from "./mosaic";
 
-export type TabType =
-	| "terminal"
-	| "editor"
-	| "browser"
-	| "preview"
-	| "group"
-	| "port"
-	| "diff";
-
 export interface Tab {
 	id: string;
 	name: string;
-	type: TabType;
+	type: "terminal" | "editor" | "browser" | "preview" | "group" | "port" | "diff";
 	command?: string | null;
 	cwd?: string;
 	url?: string;
@@ -26,7 +17,7 @@ export interface CreateTabInput {
 	worktreeId: string;
 	parentTabId?: string;
 	name: string;
-	type?: TabType;
+	type?: Tab["type"];
 	command?: string | null;
 	url?: string;
 	copyFromTabId?: string;

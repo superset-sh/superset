@@ -11,13 +11,3 @@ export interface Worktree {
 	description?: string;
 	prUrl?: string;
 }
-
-export interface CreateWorktreeInput {
-	workspaceId: string;
-	title: string;
-	branch?: string;
-	createBranch?: boolean;
-	cloneTabsFromWorktreeId?: string;
-	sourceBranch?: string;
-	description?: string;
-}
