@@ -274,7 +274,24 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				return listBranches(project.mainRepoPath, { fetch: input.fetch });
+				const branches = await listBranches(project.mainRepoPath, {
+					fetch: input.fetch,
+				});
+
+				// Get branches that are in use by worktrees
+				const projectWorkspaces = db.data.workspaces.filter(
+					(w) => w.projectId === input.projectId,
+				);
+				const worktreeBranches = new Set(
+					projectWorkspaces
+						.filter((w) => w.type === "worktree" && w.branch)
+						.map((w) => w.branch),
+				);
+
+				return {
+					...branches,
+					inUse: Array.from(worktreeBranches),
+				};
 			}),
 
 		// Switch an existing branch workspace to a different branch

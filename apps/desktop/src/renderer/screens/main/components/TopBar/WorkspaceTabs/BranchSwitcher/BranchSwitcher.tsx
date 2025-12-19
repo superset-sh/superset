@@ -10,7 +10,7 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown } from "react-icons/hi2";
-import { LuGitBranch, LuLoader } from "react-icons/lu";
+import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 
 interface BranchSwitcherProps {
@@ -42,6 +42,11 @@ export function BranchSwitcher({
 		},
 	});
 
+	// Branches in use by worktrees
+	const inUseBranches = useMemo(() => {
+		return new Set(branchesData?.inUse ?? []);
+	}, [branchesData]);
+
 	// Combine and dedupe branches, prioritize main/master
 	const branches = useMemo(() => {
 		if (!branchesData) return [];
@@ -58,10 +63,15 @@ export function BranchSwitcher({
 			if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
 			if (aIndex !== -1) return -1;
 			if (bIndex !== -1) return 1;
+			// Then prioritize branches in use
+			const aInUse = inUseBranches.has(a);
+			const bInUse = inUseBranches.has(b);
+			if (aInUse && !bInUse) return -1;
+			if (!aInUse && bInUse) return 1;
 			return a.localeCompare(b);
 		});
 		return sorted;
-	}, [branchesData]);
+	}, [branchesData, inUseBranches]);
 
 	// Filter by search
 	const filteredBranches = useMemo(() => {
@@ -132,17 +142,30 @@ export function BranchSwitcher({
 									branch,
 								);
 								const isCurrent = branch === currentBranch;
+								const isInUse = inUseBranches.has(branch);
 
 								return (
 									<DropdownMenuItem
 										key={branch}
 										onClick={() => handleSwitchBranch(branch)}
-										disabled={switchBranch.isPending}
-										className="flex items-center gap-2 px-2 py-1.5"
+										disabled={switchBranch.isPending || isInUse}
+										className={cn(
+											"flex items-center gap-2 px-2 py-1.5",
+											isInUse && "opacity-60",
+										)}
 									>
-										<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+										{isInUse ? (
+											<LuGitFork className="size-3.5 shrink-0 text-amber-500" />
+										) : (
+											<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+										)}
 										<span className="flex-1 truncate text-xs">{branch}</span>
-										{isDefault && (
+										{isInUse && (
+											<span className="text-[10px] text-amber-500">
+												worktree
+											</span>
+										)}
+										{isDefault && !isInUse && (
 											<span className="text-[10px] text-muted-foreground">
 												default
 											</span>
