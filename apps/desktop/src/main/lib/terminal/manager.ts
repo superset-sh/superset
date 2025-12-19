@@ -36,7 +36,7 @@ export class TerminalManager extends EventEmitter {
 			}
 			return {
 				isNew: false,
-				scrollback: existing.scrollback,
+				scrollback: existing.scrollback.toString(),
 				wasRecovered: existing.wasRecovered,
 			};
 		}
@@ -44,7 +44,7 @@ export class TerminalManager extends EventEmitter {
 		// Create new session
 		const creationPromise = this.doCreateSession({
 			...params,
-			existingScrollback: existing?.scrollback || null,
+			existingScrollback: existing?.scrollback ?? null,
 		});
 		this.pendingSessions.set(paneId, creationPromise);
 
@@ -77,7 +77,7 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			scrollback: session.scrollback,
+			scrollback: session.scrollback.toString(),
 			wasRecovered: session.wasRecovered,
 		};
 	}
@@ -108,7 +108,7 @@ export class TerminalManager extends EventEmitter {
 				try {
 					await this.doCreateSession({
 						...params,
-						existingScrollback: session.scrollback || null,
+						existingScrollback: session.scrollback,
 						useFallbackShell: true,
 					});
 					return; // Recovered - don't emit exit
@@ -243,7 +243,7 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		session.scrollback = "";
+		session.scrollback.clear();
 		await reinitializeHistory(session);
 		session.lastActive = Date.now();
 	}
