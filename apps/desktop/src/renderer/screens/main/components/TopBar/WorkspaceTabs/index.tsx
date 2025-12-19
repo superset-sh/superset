@@ -1,7 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useSetActiveWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCurrentView,
 	useIsSettingsTabOpen,
@@ -20,6 +23,7 @@ export function WorkspacesTabs() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const currentView = useCurrentView();
 	const isSettingsTabOpen = useIsSettingsTabOpen();
 	const isSettingsActive = currentView === "settings";
@@ -31,6 +35,45 @@ export function WorkspacesTabs() {
 	const [hoveredWorkspaceId, setHoveredWorkspaceId] = useState<string | null>(
 		null,
 	);
+	// Track which projects we've already tried to create main workspaces for
+	const [creatingForProjects, setCreatingForProjects] = useState<Set<string>>(
+		new Set(),
+	);
+
+	// Ensure every active project has a main (branch) workspace
+	useEffect(() => {
+		for (const group of groups) {
+			const hasMainWorkspace = group.workspaces.some(
+				(w) => w.type === "branch",
+			);
+			const alreadyCreating = creatingForProjects.has(group.project.id);
+
+			if (
+				!hasMainWorkspace &&
+				!alreadyCreating &&
+				!createBranchWorkspace.isPending
+			) {
+				// Mark as creating to prevent duplicate calls
+				setCreatingForProjects((prev) => new Set(prev).add(group.project.id));
+				// Create main workspace for this project
+				createBranchWorkspace.mutate(
+					{ projectId: group.project.id },
+					{
+						onSettled: () => {
+							// Remove from creating set when done (success or failure)
+							setCreatingForProjects((prev) => {
+								const next = new Set(prev);
+								next.delete(group.project.id);
+								return next;
+							});
+						},
+					},
+				);
+				// Only create one at a time to avoid race conditions
+				break;
+			}
+		}
+	}, [groups, creatingForProjects, createBranchWorkspace]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);

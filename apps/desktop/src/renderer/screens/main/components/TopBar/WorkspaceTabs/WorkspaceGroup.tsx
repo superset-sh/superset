@@ -7,6 +7,8 @@ interface Workspace {
 	id: string;
 	projectId: string;
 	worktreePath: string;
+	type: "worktree" | "branch";
+	branch: string;
 	name: string;
 	tabOrder: number;
 }
@@ -73,6 +75,8 @@ export function WorkspaceGroup({
 								id={workspace.id}
 								projectId={workspace.projectId}
 								worktreePath={workspace.worktreePath}
+								workspaceType={workspace.type}
+								branch={workspace.branch}
 								title={workspace.name}
 								isActive={workspace.id === activeWorkspaceId}
 								index={index}

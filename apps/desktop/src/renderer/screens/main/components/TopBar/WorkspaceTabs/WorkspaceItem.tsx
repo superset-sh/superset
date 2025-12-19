@@ -6,6 +6,7 @@ import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
+import { LuGitBranch } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useDeleteWorkspace,
@@ -14,6 +15,7 @@ import {
 } from "renderer/react-query/workspaces";
 import { useCloseSettings } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { BranchSwitcher } from "./BranchSwitcher";
 import { DeleteWorkspaceDialog } from "./DeleteWorkspaceDialog";
 import { useWorkspaceRename } from "./useWorkspaceRename";
 import { WorkspaceItemContextMenu } from "./WorkspaceItemContextMenu";
@@ -24,6 +26,8 @@ interface WorkspaceItemProps {
 	id: string;
 	projectId: string;
 	worktreePath: string;
+	workspaceType?: "worktree" | "branch";
+	branch?: string;
 	title: string;
 	isActive: boolean;
 	index: number;
@@ -36,6 +40,8 @@ export function WorkspaceItem({
 	id,
 	projectId,
 	worktreePath,
+	workspaceType = "worktree",
+	branch,
 	title,
 	isActive,
 	index,
@@ -43,6 +49,7 @@ export function WorkspaceItem({
 	onMouseEnter,
 	onMouseLeave,
 }: WorkspaceItemProps) {
+	const isBranchWorkspace = workspaceType === "branch";
 	const setActive = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
 	const deleteWorkspace = useDeleteWorkspace();
@@ -66,6 +73,29 @@ export function WorkspaceItem({
 			// Always fetch fresh data before deciding
 			const { data: canDeleteData } = await canDeleteQuery.refetch();
 
+			// For branch workspaces, only show dialog if there are active terminals
+			// (no destructive action - branch stays in repo)
+			if (isBranchWorkspace) {
+				if (
+					canDeleteData?.activeTerminalCount &&
+					canDeleteData.activeTerminalCount > 0
+				) {
+					setShowDeleteDialog(true);
+				} else {
+					// Close directly without confirmation
+					toast.promise(deleteWorkspace.mutateAsync({ id }), {
+						loading: `Closing "${title}"...`,
+						success: `Workspace "${title}" closed`,
+						error: (error) =>
+							error instanceof Error
+								? `Failed to close workspace: ${error.message}`
+								: "Failed to close workspace",
+					});
+				}
+				return;
+			}
+
+			// For worktree workspaces, check all conditions
 			const isEmpty =
 				canDeleteData?.canDelete &&
 				canDeleteData.activeTerminalCount === 0 &&
@@ -154,6 +184,8 @@ export function WorkspaceItem({
 				worktreePath={worktreePath}
 				workspaceAlias={title}
 				onRename={rename.startRename}
+				canRename={!isBranchWorkspace}
+				showHoverCard={!isBranchWorkspace}
 			>
 				<div
 					className="group relative flex items-end shrink-0 h-full no-drag"
@@ -171,18 +203,16 @@ export function WorkspaceItem({
 								setActive.mutate({ id });
 							}
 						}}
-						onDoubleClick={rename.startRename}
+						onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 						onMouseEnter={onMouseEnter}
 						onMouseLeave={onMouseLeave}
-						className={`
-							flex items-center gap-0.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]
-							${
-								isActive
-									? "text-foreground bg-tertiary-active"
-									: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30"
-							}
-							${isDragging ? "opacity-30" : "opacity-100"}
-						`}
+						className={cn(
+							"flex items-center gap-1.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]",
+							isActive
+								? "text-foreground bg-tertiary-active"
+								: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30",
+							isDragging ? "opacity-30" : "opacity-100",
+						)}
 						style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 					>
 						{rename.isRenaming ? (
@@ -197,8 +227,47 @@ export function WorkspaceItem({
 								onMouseDown={(e) => e.stopPropagation()}
 								className="flex-1 min-w-0 px-1 py-0.5"
 							/>
+						) : isBranchWorkspace ? (
+							<div className="flex items-center gap-2 flex-1 min-w-0">
+								<Tooltip delayDuration={600}>
+									<TooltipTrigger asChild>
+										<div className="flex items-center gap-2 flex-1 min-w-0">
+											<div className="flex items-center justify-center size-5 rounded bg-primary/10 shrink-0">
+												<LuGitBranch className="size-3 text-primary" />
+											</div>
+											<span
+												className="text-sm font-medium whitespace-nowrap overflow-hidden flex-1 text-left"
+												style={{
+													maskImage:
+														"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+													WebkitMaskImage:
+														"linear-gradient(to right, black calc(100% - 16px), transparent 100%)",
+												}}
+											>
+												{title}
+											</span>
+										</div>
+									</TooltipTrigger>
+									<TooltipContent side="bottom" className="max-w-[200px]">
+										<p className="text-xs">
+											<span className="font-medium">Main repository</span>
+											<br />
+											<span className="text-muted-foreground">
+												Switch branches without creating worktrees
+											</span>
+										</p>
+									</TooltipContent>
+								</Tooltip>
+								{branch && (
+									<BranchSwitcher
+										projectId={projectId}
+										currentBranch={branch}
+									/>
+								)}
+							</div>
 						) : (
 							<>
+								<LuGitBranch className="size-3 shrink-0 text-muted-foreground" />
 								<span
 									className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left"
 									style={{
@@ -234,13 +303,19 @@ export function WorkspaceItem({
 									"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
 									isActive ? "opacity-90" : "opacity-0",
 								)}
-								aria-label="Delete workspace"
+								aria-label={
+									workspaceType === "branch"
+										? "Close workspace"
+										: "Delete workspace"
+								}
 							>
 								<HiMiniXMark />
 							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							Delete workspace
+							{workspaceType === "branch"
+								? "Close workspace"
+								: "Delete workspace"}
 						</TooltipContent>
 					</Tooltip>
 				</div>
@@ -249,6 +324,7 @@ export function WorkspaceItem({
 			<DeleteWorkspaceDialog
 				workspaceId={id}
 				workspaceName={title}
+				workspaceType={workspaceType}
 				open={showDeleteDialog}
 				onOpenChange={setShowDeleteDialog}
 			/>

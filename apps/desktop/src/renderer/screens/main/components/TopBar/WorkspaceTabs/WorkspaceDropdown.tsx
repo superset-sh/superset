@@ -6,7 +6,10 @@ import { useRef } from "react";
 import { HiChevronDown, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useCreateWorkspace,
+} from "renderer/react-query/workspaces";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
 export interface WorkspaceDropdownProps {
@@ -20,6 +23,7 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const openNew = useOpenNew();
 	const openModal = useOpenNewWorkspaceModal();
 
@@ -63,13 +67,14 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 				});
 				return;
 			}
+			// Create a main workspace on the current branch for the new project
 			toast.promise(
-				createWorkspace.mutateAsync({ projectId: result.project.id }),
+				createBranchWorkspace.mutateAsync({ projectId: result.project.id }),
 				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
+					loading: "Opening project...",
+					success: "Project opened",
 					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
+						err instanceof Error ? err.message : "Failed to open project",
 				},
 			);
 		} catch (error) {
@@ -98,7 +103,11 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 						aria-label="New workspace"
 						className="ml-1 mt-1 size-7 text-muted-foreground hover:text-foreground group-hover/split:bg-accent/30 hover:!bg-accent"
 						onClick={handlePrimaryAction}
-						disabled={createWorkspace.isPending || openNew.isPending}
+						disabled={
+							createWorkspace.isPending ||
+							createBranchWorkspace.isPending ||
+							openNew.isPending
+						}
 					>
 						<HiMiniPlus className="size-5" />
 					</Button>

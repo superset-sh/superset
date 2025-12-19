@@ -5,7 +5,7 @@ import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getWorktreePath } from "../workspaces/utils/worktree";
+import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
 
 /**
@@ -47,12 +47,12 @@ export const createTerminalRouter = () => {
 					initialCommands,
 				} = input;
 
-				// Resolve cwd: absolute paths stay as-is, relative paths resolve against worktree
+				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				const worktreePath = workspace
-					? getWorktreePath(workspace.worktreeId)
+				const workspacePath = workspace
+					? (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
-				const cwd = resolveCwd(cwdOverride, worktreePath);
+				const cwd = resolveCwd(cwdOverride, workspacePath);
 
 				// Get project info for environment variables
 				const project = workspace
@@ -64,7 +64,7 @@ export const createTerminalRouter = () => {
 					tabId,
 					workspaceId,
 					workspaceName: workspace?.name,
-					workspacePath: worktreePath,
+					workspacePath,
 					rootPath: project?.mainRepoPath,
 					cwd,
 					cols,

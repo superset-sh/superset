@@ -18,6 +18,7 @@ import {
 interface DeleteWorkspaceDialogProps {
 	workspaceId: string;
 	workspaceName: string;
+	workspaceType?: "worktree" | "branch";
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -25,9 +26,11 @@ interface DeleteWorkspaceDialogProps {
 export function DeleteWorkspaceDialog({
 	workspaceId,
 	workspaceName,
+	workspaceType = "worktree",
 	open,
 	onOpenChange,
 }: DeleteWorkspaceDialogProps) {
+	const isBranch = workspaceType === "branch";
 	const deleteWorkspace = useDeleteWorkspace();
 	const closeWorkspace = useCloseWorkspace();
 
@@ -110,6 +113,48 @@ export function DeleteWorkspaceDialog({
 	const hasChanges = canDeleteData?.hasChanges ?? false;
 	const hasUnpushedCommits = canDeleteData?.hasUnpushedCommits ?? false;
 	const hasWarnings = hasChanges || hasUnpushedCommits;
+
+	// For branch workspaces, use simplified dialog (only close option)
+	if (isBranch) {
+		return (
+			<AlertDialog open={open} onOpenChange={onOpenChange}>
+				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Close workspace "{workspaceName}"?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									This will close the workspace and kill any active terminals.
+									Your branch and commits will remain in the repository.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => onOpenChange(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="secondary"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={handleClose}
+						>
+							Close
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		);
+	}
 
 	return (
 		<AlertDialog open={open} onOpenChange={onOpenChange}>

@@ -5,7 +5,7 @@ import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
 import { formatPathWithProject } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
@@ -15,7 +15,7 @@ export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
-	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [initGitDialog, setInitGitDialog] = useState<{
@@ -47,7 +47,8 @@ export function StartView() {
 					return;
 				}
 
-				createWorkspace.mutate({ projectId: result.project.id });
+				// Create a main workspace on the current branch
+				createBranchWorkspace.mutate({ projectId: result.project.id });
 			},
 			onError: (err) => {
 				setError(err.message || "Failed to open project");
@@ -57,11 +58,12 @@ export function StartView() {
 
 	const handleOpenRecentProject = (projectId: string) => {
 		setError(null);
-		createWorkspace.mutate(
+		// Create/activate main workspace on current branch
+		createBranchWorkspace.mutate(
 			{ projectId },
 			{
 				onError: (err) => {
-					setError(err.message || "Failed to create workspace");
+					setError(err.message || "Failed to open workspace");
 				},
 			},
 		);
@@ -72,7 +74,7 @@ export function StartView() {
 		? recentProjects.slice(0, visibleCount)
 		: recentProjects.slice(0, 5);
 	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
-	const isLoading = openNew.isPending || createWorkspace.isPending;
+	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">

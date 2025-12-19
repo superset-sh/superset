@@ -19,7 +19,10 @@ import { useEffect, useState } from "react";
 import { HiPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useCreateWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -55,6 +58,7 @@ export function NewWorkspaceModal() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const openNew = useOpenNew();
 
 	const currentProjectId = activeWorkspace?.projectId;
@@ -134,6 +138,8 @@ export function NewWorkspaceModal() {
 				});
 				return;
 			}
+			// Create a main workspace on the current branch for the new project
+			await createBranchWorkspace.mutateAsync({ projectId: result.project.id });
 			setSelectedProjectId(result.project.id);
 		} catch (error) {
 			toast.error("Failed to open project", {

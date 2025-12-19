@@ -358,3 +358,187 @@ export async function branchExistsOnRemote(
 		return false;
 	}
 }
+
+/**
+ * Lists all local and remote branches in a repository
+ * @param repoPath - Path to the repository
+ * @param options.fetch - Whether to fetch and prune remote refs first (default: false)
+ * @returns Object with local and remote branch arrays
+ */
+export async function listBranches(
+	repoPath: string,
+	options?: { fetch?: boolean },
+): Promise<{ local: string[]; remote: string[] }> {
+	const git = simpleGit(repoPath);
+
+	// Optionally fetch and prune to get up-to-date remote refs
+	if (options?.fetch) {
+		try {
+			await git.fetch(["--prune"]);
+		} catch {
+			// Ignore fetch errors (e.g., offline)
+		}
+	}
+
+	// Get local branches
+	const localResult = await git.branchLocal();
+	const local = localResult.all;
+
+	// Get remote branches (strip "origin/" prefix)
+	const remoteResult = await git.branch(["-r"]);
+	const remote = remoteResult.all
+		.filter((b) => b.startsWith("origin/") && !b.includes("->"))
+		.map((b) => b.replace("origin/", ""));
+
+	return { local, remote };
+}
+
+/**
+ * Gets the current branch name (HEAD)
+ * @param repoPath - Path to the repository
+ * @returns The current branch name, or null if in detached HEAD state
+ */
+export async function getCurrentBranch(
+	repoPath: string,
+): Promise<string | null> {
+	const git = simpleGit(repoPath);
+	try {
+		const branch = await git.revparse(["--abbrev-ref", "HEAD"]);
+		const trimmed = branch.trim();
+		// "HEAD" means detached HEAD state
+		return trimmed === "HEAD" ? null : trimmed;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Result of pre-checkout safety checks
+ */
+export interface CheckoutSafetyResult {
+	safe: boolean;
+	error?: string;
+	hasUncommittedChanges?: boolean;
+	hasUntrackedFiles?: boolean;
+}
+
+/**
+ * Performs safety checks before a branch checkout:
+ * 1. Checks for uncommitted changes (staged/unstaged)
+ * 2. Checks for untracked files that might be overwritten
+ * 3. Runs git fetch --prune to clean up stale remote refs
+ * @param repoPath - Path to the repository
+ * @returns Safety check result indicating if checkout is safe
+ */
+export async function checkBranchCheckoutSafety(
+	repoPath: string,
+): Promise<CheckoutSafetyResult> {
+	const git = simpleGit(repoPath);
+
+	try {
+		// Check for uncommitted changes
+		const status = await git.status();
+
+		const hasUncommittedChanges =
+			status.staged.length > 0 ||
+			status.modified.length > 0 ||
+			status.deleted.length > 0;
+
+		const hasUntrackedFiles = status.not_added.length > 0;
+
+		if (hasUncommittedChanges) {
+			return {
+				safe: false,
+				error:
+					"Cannot switch branches: you have uncommitted changes. Please commit or stash your changes first.",
+				hasUncommittedChanges: true,
+				hasUntrackedFiles,
+			};
+		}
+
+		// Fetch and prune stale remote refs (best-effort)
+		try {
+			await git.fetch(["--prune"]);
+		} catch {
+			// Ignore fetch errors (e.g., offline) - not critical for safety
+		}
+
+		return {
+			safe: true,
+			hasUncommittedChanges: false,
+			hasUntrackedFiles,
+		};
+	} catch (error) {
+		return {
+			safe: false,
+			error: `Failed to check repository status: ${error instanceof Error ? error.message : String(error)}`,
+		};
+	}
+}
+
+/**
+ * Checks out a branch in a repository.
+ * If the branch only exists on remote, creates a local tracking branch.
+ * @param repoPath - Path to the repository
+ * @param branch - The branch name to checkout
+ */
+export async function checkoutBranch(
+	repoPath: string,
+	branch: string,
+): Promise<void> {
+	const git = simpleGit(repoPath);
+
+	// Check if branch exists locally
+	const localBranches = await git.branchLocal();
+	if (localBranches.all.includes(branch)) {
+		await git.checkout(branch);
+		return;
+	}
+
+	// Branch doesn't exist locally - check if it exists on remote and create tracking branch
+	const remoteBranches = await git.branch(["-r"]);
+	const remoteBranchName = `origin/${branch}`;
+	if (remoteBranches.all.includes(remoteBranchName)) {
+		// Create local branch tracking the remote
+		await git.checkout(["-b", branch, "--track", remoteBranchName]);
+		return;
+	}
+
+	// Branch doesn't exist anywhere - let git checkout fail with its normal error
+	await git.checkout(branch);
+}
+
+/**
+ * Safe branch checkout that performs safety checks first.
+ * This is the preferred method for branch workspaces.
+ * @param repoPath - Path to the repository
+ * @param branch - Branch to checkout
+ * @throws Error if safety checks fail or checkout fails
+ */
+export async function safeCheckoutBranch(
+	repoPath: string,
+	branch: string,
+): Promise<void> {
+	// Check if we're already on the target branch - no checkout needed
+	const currentBranch = await getCurrentBranch(repoPath);
+	if (currentBranch === branch) {
+		return;
+	}
+
+	// Run safety checks before switching branches
+	const safety = await checkBranchCheckoutSafety(repoPath);
+	if (!safety.safe) {
+		throw new Error(safety.error);
+	}
+
+	// Proceed with checkout
+	await checkoutBranch(repoPath, branch);
+
+	// Verify we landed on the correct branch
+	const verifyBranch = await getCurrentBranch(repoPath);
+	if (verifyBranch !== branch) {
+		throw new Error(
+			`Branch checkout verification failed: expected "${branch}" but HEAD is on "${verifyBranch ?? "detached HEAD"}"`,
+		);
+	}
+}
