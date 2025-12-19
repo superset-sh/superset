@@ -322,10 +322,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
-					const hasPendingEvents = pendingEventsRef.current.length > 0;
-					if (result.isNew || !hasPendingEvents) {
-						applyInitialState(result);
-					}
+					// Always apply initial state (scrollback) first, then flush pending events
+					// This ensures we don't lose terminal history when reattaching
+					applyInitialState(result);
 					setSubscriptionEnabled(true);
 					flushPendingEvents();
 				},
