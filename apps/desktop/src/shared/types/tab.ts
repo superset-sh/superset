@@ -1,5 +1,3 @@
-import type { MosaicNode } from "./mosaic";
-
 export interface Tab {
 	id: string;
 	name: string;
@@ -15,7 +13,6 @@ export interface Tab {
 	cwd?: string;
 	url?: string;
 	tabs?: Tab[];
-	mosaicTree?: MosaicNode<string>;
 	createdAt: string;
 }
 
@@ -27,7 +24,6 @@ export interface CreateTabInput {
 	type?: Tab["type"];
 	command?: string | null;
 	url?: string;
-	copyFromTabId?: string;
 }
 
 export interface UpdatePreviewTabInput {

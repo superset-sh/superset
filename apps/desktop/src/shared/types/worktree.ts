@@ -6,8 +6,6 @@ export interface Worktree {
 	path: string;
 	tabs: Tab[];
 	createdAt: string;
-	detectedPorts?: Record<string, number>;
 	merged?: boolean;
 	description?: string;
-	prUrl?: string;
 }
