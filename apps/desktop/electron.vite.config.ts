@@ -58,6 +58,11 @@ export default defineConfig({
 			"process.env.NODE_ENV": JSON.stringify(
 				process.env.NODE_ENV || "production",
 			),
+			// OAuth client IDs - baked in at build time for main process
+			"process.env.GOOGLE_CLIENT_ID": JSON.stringify(
+				process.env.GOOGLE_CLIENT_ID,
+			),
+			"process.env.GH_CLIENT_ID": JSON.stringify(process.env.GH_CLIENT_ID),
 		},
 
 		build: {
