@@ -1,16 +1,18 @@
 import { env } from "main/env.main";
 import type { AuthSession } from "shared/auth";
-import { PROTOCOL_SCHEMES } from "shared/constants";
+import { PROTOCOL_SCHEME, PROTOCOL_SCHEMES } from "shared/constants";
 import { pkceStore } from "./pkce";
 
 /**
- * Token exchange response from the API (no user info - fetch via tRPC)
+ * Token exchange response from Clerk's OAuth token endpoint
  */
-interface TokenExchangeResponse {
+interface ClerkTokenResponse {
 	access_token: string;
-	access_token_expires_at: number;
-	refresh_token: string;
-	refresh_token_expires_at: number;
+	token_type: string;
+	expires_in: number;
+	refresh_token?: string;
+	scope: string;
+	id_token?: string;
 }
 
 /**
@@ -23,8 +25,8 @@ export interface AuthDeepLinkResult {
 }
 
 /**
- * Handle authentication deep links from the web app
- * Implements PKCE flow: exchanges auth code for access + refresh tokens
+ * Handle authentication deep links from Clerk OAuth
+ * Implements PKCE flow: exchanges auth code for access + refresh tokens at Clerk's token endpoint
  */
 export async function handleAuthDeepLink(
 	url: string,
@@ -32,16 +34,23 @@ export async function handleAuthDeepLink(
 	try {
 		const parsedUrl = new URL(url);
 
-		// Check if this is an auth callback
-		if (parsedUrl.host !== "auth" || parsedUrl.pathname !== "/callback") {
+		// Check if this is a Clerk OAuth callback (new flow)
+		const isClerkOAuth =
+			parsedUrl.host === "oauth" && parsedUrl.pathname === "/callback";
+		// Also support legacy auth callback for backwards compatibility
+		const isLegacyAuth =
+			parsedUrl.host === "auth" && parsedUrl.pathname === "/callback";
+
+		if (!isClerkOAuth && !isLegacyAuth) {
 			return { success: false, error: "Not an auth callback URL" };
 		}
 
 		// Check for error response
 		const error = parsedUrl.searchParams.get("error");
 		if (error) {
+			const errorDescription = parsedUrl.searchParams.get("error_description");
 			pkceStore.clear();
-			return { success: false, error };
+			return { success: false, error: errorDescription || error };
 		}
 
 		// Get the auth code and state (PKCE flow with CSRF protection)
@@ -67,16 +76,22 @@ export async function handleAuthDeepLink(
 			};
 		}
 
-		// Exchange the code for tokens
-		const tokenResponse = await exchangeCodeForTokens(code, codeVerifier);
+		// Exchange the code for tokens at Clerk's token endpoint
+		const tokenResponse = await exchangeCodeWithClerk(code, codeVerifier);
+
+		// Calculate expiry timestamps
+		const now = Date.now();
+		const accessTokenExpiresAt = now + tokenResponse.expires_in * 1000;
+		// Clerk refresh tokens typically last 7 days, but we'll use a conservative estimate
+		const refreshTokenExpiresAt = now + 7 * 24 * 60 * 60 * 1000;
 
 		return {
 			success: true,
 			session: {
 				accessToken: tokenResponse.access_token,
-				accessTokenExpiresAt: tokenResponse.access_token_expires_at,
-				refreshToken: tokenResponse.refresh_token,
-				refreshTokenExpiresAt: tokenResponse.refresh_token_expires_at,
+				accessTokenExpiresAt,
+				refreshToken: tokenResponse.refresh_token || "",
+				refreshTokenExpiresAt,
 			},
 		};
 	} catch (err) {
@@ -89,30 +104,32 @@ export async function handleAuthDeepLink(
 }
 
 /**
- * Exchange auth code + code_verifier for access and refresh tokens
+ * Exchange auth code + code_verifier for tokens at Clerk's OAuth token endpoint
  */
-async function exchangeCodeForTokens(
+async function exchangeCodeWithClerk(
 	code: string,
 	codeVerifier: string,
-): Promise<TokenExchangeResponse> {
-	const response = await fetch(
-		`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/token`,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				code,
-				code_verifier: codeVerifier,
-			}),
+): Promise<ClerkTokenResponse> {
+	const response = await fetch(`${env.CLERK_OAUTH_DOMAIN}/oauth/token`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/x-www-form-urlencoded",
 		},
-	);
+		body: new URLSearchParams({
+			grant_type: "authorization_code",
+			client_id: env.CLERK_OAUTH_CLIENT_ID,
+			code,
+			redirect_uri: `${PROTOCOL_SCHEME}://oauth/callback`,
+			code_verifier: codeVerifier,
+		}),
+	});
 
 	if (!response.ok) {
 		const errorBody = await response.json().catch(() => ({}));
 		throw new Error(
-			errorBody.error || `Token exchange failed: ${response.status}`,
+			errorBody.error_description ||
+				errorBody.error ||
+				`Token exchange failed: ${response.status}`,
 		);
 	}
 
@@ -121,6 +138,7 @@ async function exchangeCodeForTokens(
 
 /**
  * Check if a URL is an auth-related deep link
+ * Supports both new Clerk OAuth flow (oauth://callback) and legacy flow (auth://callback)
  */
 export function isAuthDeepLink(url: string): boolean {
 	try {
@@ -130,8 +148,11 @@ export function isAuthDeepLink(url: string): boolean {
 			`${PROTOCOL_SCHEMES.PROD}:`,
 			`${PROTOCOL_SCHEMES.DEV}:`,
 		];
+		// Accept both "oauth" (new Clerk flow) and "auth" (legacy flow)
+		const validHosts = ["oauth", "auth"];
 		return (
-			validProtocols.includes(parsedUrl.protocol) && parsedUrl.host === "auth"
+			validProtocols.includes(parsedUrl.protocol) &&
+			validHosts.includes(parsedUrl.host)
 		);
 	} catch {
 		return false;

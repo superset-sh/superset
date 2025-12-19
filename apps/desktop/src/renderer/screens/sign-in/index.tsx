@@ -1,25 +1,13 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { trpc } from "renderer/lib/trpc";
 import type { AuthProvider } from "shared/auth";
 import { SupersetLogo } from "./components/SupersetLogo";
 
-function LoadingSpinner() {
-	return (
-		<div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-	);
-}
-
 export function SignInScreen() {
-	const [isSigningIn, setIsSigningIn] = useState(false);
-
-	const signInMutation = trpc.auth.signIn.useMutation({
-		onMutate: () => setIsSigningIn(true),
-		onError: () => setIsSigningIn(false),
-	});
+	const signInMutation = trpc.auth.signIn.useMutation();
 
 	const signIn = (provider: AuthProvider) =>
 		signInMutation.mutate({ provider });
@@ -48,14 +36,9 @@ export function SignInScreen() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("github")}
-							disabled={isSigningIn}
 							className="w-full gap-3"
 						>
-							{isSigningIn ? (
-								<LoadingSpinner />
-							) : (
-								<FaGithub className="size-5" />
-							)}
+							<FaGithub className="size-5" />
 							Continue with GitHub
 						</Button>
 
@@ -63,14 +46,9 @@ export function SignInScreen() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("google")}
-							disabled={isSigningIn}
 							className="w-full gap-3"
 						>
-							{isSigningIn ? (
-								<LoadingSpinner />
-							) : (
-								<FcGoogle className="size-5" />
-							)}
+							<FcGoogle className="size-5" />
 							Continue with Google
 						</Button>
 					</div>

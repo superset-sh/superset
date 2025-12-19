@@ -1,3 +1,4 @@
+import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { env } from "./env.shared";
 
 export const PLATFORM = {
@@ -25,11 +26,10 @@ export const SUPERSET_DIR_NAME =
 		? SUPERSET_DIR_NAMES.DEV
 		: SUPERSET_DIR_NAMES.PROD;
 
-// Deep link protocol scheme
-export const PROTOCOL_SCHEMES = {
-	DEV: "superset-dev",
-	PROD: "superset",
-} as const;
+// Re-export from shared package
+export { PROTOCOL_SCHEMES };
+
+// Deep link protocol scheme (environment-aware)
 export const PROTOCOL_SCHEME =
 	env.NODE_ENV === "development" ? PROTOCOL_SCHEMES.DEV : PROTOCOL_SCHEMES.PROD;
 // Project-level directory name (always .superset, not conditional)

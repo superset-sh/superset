@@ -13,7 +13,13 @@
 import { execSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { PROTOCOL_SCHEMES } from "../src/shared/constants";
+
+// Import directly from shared package to avoid env.ts validation during predev script
+// (The desktop's shared/constants.ts imports env.ts which validates env vars at import time)
+const PROTOCOL_SCHEMES = {
+	DEV: "superset-dev",
+	PROD: "superset",
+} as const;
 
 // Only needed on macOS
 if (process.platform !== "darwin") {

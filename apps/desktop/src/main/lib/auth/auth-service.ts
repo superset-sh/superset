@@ -1,20 +1,26 @@
 import { EventEmitter } from "node:events";
-import { TOKEN_CONFIG } from "@superset/shared/constants";
 import { type BrowserWindow, shell } from "electron";
 import { env } from "main/env.main";
 import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
+import { PROTOCOL_SCHEME } from "shared/constants";
 import { pkceStore } from "./pkce";
 import { tokenStorage } from "./token-storage";
 
 /**
- * Response from the refresh endpoint (includes rotated refresh token)
+ * Response from Clerk's token refresh endpoint
  */
-interface RefreshResponse {
+interface ClerkRefreshResponse {
 	access_token: string;
-	access_token_expires_at: number;
-	refresh_token: string;
-	refresh_token_expires_at: number;
+	token_type: string;
+	expires_in: number;
+	refresh_token?: string;
+	scope: string;
 }
+
+/**
+ * Refresh threshold - refresh tokens 5 minutes before expiry
+ */
+const REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
 /**
  * Main authentication service
@@ -91,7 +97,7 @@ class AuthService extends EventEmitter {
 
 	/**
 	 * Sign in with OAuth provider
-	 * Opens system browser to web app OAuth endpoint with PKCE
+	 * Opens system browser directly to Clerk's OAuth authorize endpoint with PKCE
 	 */
 	async signIn(
 		provider: AuthProvider,
@@ -101,19 +107,24 @@ class AuthService extends EventEmitter {
 			// Generate PKCE challenge + state for CSRF protection
 			const { codeChallenge, state } = pkceStore.createChallenge();
 
-			// Build auth URL with PKCE + state parameters
-			const authUrl = new URL(
-				`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/${provider}`,
+			// Build Clerk OAuth URL directly
+			const authUrl = new URL(`${env.CLERK_OAUTH_DOMAIN}/oauth/authorize`);
+			authUrl.searchParams.set("client_id", env.CLERK_OAUTH_CLIENT_ID);
+			authUrl.searchParams.set(
+				"redirect_uri",
+				`${PROTOCOL_SCHEME}://oauth/callback`,
 			);
+			authUrl.searchParams.set("response_type", "code");
+			authUrl.searchParams.set("scope", "openid profile email");
 			authUrl.searchParams.set("code_challenge", codeChallenge);
 			authUrl.searchParams.set("code_challenge_method", "S256");
 			authUrl.searchParams.set("state", state);
 
-			// Open OAuth flow in system browser
+			// Open OAuth flow in system browser - goes directly to Clerk
 			await shell.openExternal(authUrl.toString());
 
 			// The rest happens async via deep link callback
-			console.log("[auth] Opened OAuth flow in browser for:", provider);
+			console.log("[auth] Opened Clerk OAuth flow in browser for:", provider);
 			return { success: true };
 		} catch (err) {
 			const message =
@@ -160,62 +171,72 @@ class AuthService extends EventEmitter {
 		if (!this.session) return false;
 
 		const timeUntilExpiry = this.session.accessTokenExpiresAt - Date.now();
-		return timeUntilExpiry < TOKEN_CONFIG.REFRESH_THRESHOLD * 1000;
+		return timeUntilExpiry < REFRESH_THRESHOLD_MS;
 	}
 
 	/**
-	 * Refresh the access token using the refresh token
+	 * Refresh the access token using Clerk's OAuth token endpoint
 	 */
 	private async refreshAccessToken(): Promise<void> {
-		if (!this.session || this.isRefreshing) return;
+		if (!this.session || this.isRefreshing || !this.session.refreshToken) {
+			return;
+		}
 
 		this.isRefreshing = true;
 
 		try {
-			console.log("[auth] Refreshing access token...");
+			console.log("[auth] Refreshing access token via Clerk...");
 
-			const response = await fetch(
-				`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/refresh`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({
-						refresh_token: this.session.refreshToken,
-					}),
+			const response = await fetch(`${env.CLERK_OAUTH_DOMAIN}/oauth/token`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/x-www-form-urlencoded",
 				},
-			);
+				body: new URLSearchParams({
+					grant_type: "refresh_token",
+					client_id: env.CLERK_OAUTH_CLIENT_ID,
+					refresh_token: this.session.refreshToken,
+				}),
+			});
 
 			if (!response.ok) {
 				const errorBody = await response.json().catch(() => ({}));
 
 				// If refresh token is invalid/expired, clear session
-				if (response.status === 401) {
+				if (response.status === 400 || response.status === 401) {
 					console.log("[auth] Refresh token invalid, clearing session");
 					await this.clearSession();
 					return;
 				}
 
 				throw new Error(
-					errorBody.error || `Refresh failed: ${response.status}`,
+					errorBody.error_description ||
+						errorBody.error ||
+						`Refresh failed: ${response.status}`,
 				);
 			}
 
-			const data: RefreshResponse = await response.json();
+			const data: ClerkRefreshResponse = await response.json();
 
-			// Update session with new access token and rotated refresh token
+			// Calculate new expiry timestamps
+			const now = Date.now();
+			const accessTokenExpiresAt = now + data.expires_in * 1000;
+			// Clerk refresh tokens typically last 7 days
+			const refreshTokenExpiresAt = now + 7 * 24 * 60 * 60 * 1000;
+
+			// Update session with new tokens
 			this.session = {
 				...this.session,
 				accessToken: data.access_token,
-				accessTokenExpiresAt: data.access_token_expires_at,
-				refreshToken: data.refresh_token,
-				refreshTokenExpiresAt: data.refresh_token_expires_at,
+				accessTokenExpiresAt,
+				// Use new refresh token if provided, otherwise keep existing
+				refreshToken: data.refresh_token || this.session.refreshToken,
+				refreshTokenExpiresAt,
 			};
 
 			// Persist updated session
 			await tokenStorage.save(this.session);
-			console.log("[auth] Access token refreshed");
+			console.log("[auth] Access token refreshed via Clerk");
 
 			// Reschedule next refresh
 			this.scheduleRefresh();
@@ -240,9 +261,7 @@ class AuthService extends EventEmitter {
 
 		// Calculate when to refresh (before expiry threshold)
 		const timeUntilRefresh =
-			this.session.accessTokenExpiresAt -
-			Date.now() -
-			TOKEN_CONFIG.REFRESH_THRESHOLD * 1000;
+			this.session.accessTokenExpiresAt - Date.now() - REFRESH_THRESHOLD_MS;
 
 		if (timeUntilRefresh > 0) {
 			console.log(
