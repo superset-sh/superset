@@ -74,7 +74,6 @@ export function MonacoProvider({ children }: MonacoProviderProps) {
 	const monacoTheme = useMonacoTheme();
 	const [isReady, setIsReady] = useState(false);
 
-	// Initial setup: wait for Monaco to initialize and theme to be available
 	useEffect(() => {
 		if (isReady) return;
 		if (!monacoTheme) return;
@@ -92,7 +91,6 @@ export function MonacoProvider({ children }: MonacoProviderProps) {
 		};
 	}, [isReady, monacoTheme]);
 
-	// Update theme when it changes (after initial setup)
 	useEffect(() => {
 		if (!isReady || !monacoTheme) return;
 
