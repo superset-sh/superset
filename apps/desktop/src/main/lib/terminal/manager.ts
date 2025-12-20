@@ -1,6 +1,4 @@
-import { execSync } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { existsSync, readlinkSync } from "node:fs";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import {
 	closeSessionHistory,
@@ -266,9 +264,9 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	/**
-	 * Get the current working directory of a terminal session's process.
-	 * Queries the actual cwd from the OS using the pty's PID.
-	 * Falls back to the initial cwd if the query fails.
+	 * Get the current working directory of a terminal session.
+	 * Uses cwd tracked from OSC 7 sequences emitted by the shell.
+	 * Falls back to the initial cwd if no OSC 7 has been received.
 	 */
 	getCwd(paneId: string): string | null {
 		const session = this.sessions.get(paneId);
@@ -279,71 +277,12 @@ export class TerminalManager extends EventEmitter {
 			return null;
 		}
 
-		const ptyPid = session.pty.pid;
-
-		try {
-			if (process.platform === "darwin") {
-				// macOS: pty.pid may be a login wrapper, not the actual shell.
-				// Find the deepest child process (the shell) and get its cwd.
-				// pgrep -P <pid> finds child processes.
-				let targetPid = ptyPid;
-
-				// Walk down the process tree to find the actual shell
-				for (let i = 0; i < 5; i++) {
-					try {
-						const childOutput = execSync(`pgrep -P ${targetPid}`, {
-							encoding: "utf-8",
-							timeout: 500,
-						});
-						const childPids = childOutput.trim().split("\n").filter(Boolean);
-						if (childPids.length === 0) break;
-						// Take the first child (usually the shell or the deepest running process)
-						targetPid = Number.parseInt(childPids[0], 10);
-					} catch {
-						// No children found, use current targetPid
-						break;
-					}
-				}
-
-				// Get cwd of the target process using lsof
-				const output = execSync(`lsof -d cwd -Fn -p ${targetPid}`, {
-					encoding: "utf-8",
-					timeout: 1000,
-				});
-				const lines = output.trim().split("\n");
-				for (const line of lines) {
-					if (line.startsWith("n") && line.length > 1) {
-						const cwd = line.slice(1);
-						if (existsSync(cwd)) {
-							console.log(
-								`[TerminalManager.getCwd] Got cwd from lsof for pid ${targetPid} (pty pid: ${ptyPid}): ${cwd}`,
-							);
-							return cwd;
-						}
-					}
-				}
-				console.warn(
-					`[TerminalManager.getCwd] lsof did not return valid cwd for pid ${targetPid}, output: ${output}`,
-				);
-			} else if (process.platform === "linux") {
-				// Linux: read /proc/<pid>/cwd symlink
-				const cwd = readlinkSync(`/proc/${ptyPid}/cwd`);
-				if (existsSync(cwd)) {
-					return cwd;
-				}
-			}
-		} catch (error) {
-			console.warn(
-				`[TerminalManager.getCwd] Failed to get cwd for pty pid ${ptyPid}:`,
-				error,
-			);
-		}
-
-		// Fall back to initial cwd
+		// Use tracked cwd from OSC 7 if available, otherwise fall back to initial cwd
+		const cwd = session.trackedCwd ?? session.cwd;
 		console.log(
-			`[TerminalManager.getCwd] Falling back to initial cwd: ${session.cwd}`,
+			`[TerminalManager.getCwd] paneId: ${paneId}, trackedCwd: ${session.trackedCwd}, initialCwd: ${session.cwd}, returning: ${cwd}`,
 		);
-		return session.cwd;
+		return cwd;
 	}
 
 	async killByWorkspaceId(

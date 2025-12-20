@@ -9,6 +9,7 @@ import {
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
+import { parseCwd } from "./parse-cwd";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -151,6 +152,12 @@ export function setupDataHandler(
 			session.escapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
 			dataToStore = extractContentAfterClear(data);
+		}
+
+		// Track cwd from OSC 7 sequences
+		const cwdFromData = parseCwd(data);
+		if (cwdFromData) {
+			session.trackedCwd = cwdFromData;
 		}
 
 		const filteredData = session.escapeFilter.filter(dataToStore);

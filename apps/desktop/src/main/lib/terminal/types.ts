@@ -8,6 +8,8 @@ export interface TerminalSession {
 	paneId: string;
 	workspaceId: string;
 	cwd: string;
+	/** Current working directory tracked from OSC 7 sequences */
+	trackedCwd?: string;
 	cols: number;
 	rows: number;
 	lastActive: number;
