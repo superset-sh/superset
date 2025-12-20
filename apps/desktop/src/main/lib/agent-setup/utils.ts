@@ -10,7 +10,6 @@ import { getDefaultShell } from "../terminal/env";
  */
 function findBinaryPathsUnix(name: string): string[] {
 	const shell = getDefaultShell();
-	// Use login shell (-l) to source user's profile and get full PATH
 	const result = execFileSync(shell, ["-l", "-c", `which -a ${name}`], {
 		encoding: "utf-8",
 		stdio: ["pipe", "pipe", "ignore"],
@@ -36,7 +35,7 @@ function findBinaryPathsWindows(name: string): string[] {
  */
 export function findRealBinary(name: string): string | null {
 	if (!isValidBinaryName(name)) {
-		return null;
+		console.warn(`Unsafe binary name: ${name}`);
 	}
 
 	try {
