@@ -273,6 +273,9 @@ export class TerminalManager extends EventEmitter {
 	getCwd(paneId: string): string | null {
 		const session = this.sessions.get(paneId);
 		if (!session || !session.isAlive) {
+			console.warn(
+				`[TerminalManager.getCwd] Session not found or not alive for paneId: ${paneId}`,
+			);
 			return null;
 		}
 
@@ -283,6 +286,7 @@ export class TerminalManager extends EventEmitter {
 				// macOS: use lsof to get the cwd
 				// lsof -d cwd -Fn -p <pid> outputs lines like:
 				// p<pid>
+				// fcwd
 				// n<path>
 				const output = execSync(`lsof -d cwd -Fn -p ${pid}`, {
 					encoding: "utf-8",
@@ -293,10 +297,16 @@ export class TerminalManager extends EventEmitter {
 					if (line.startsWith("n") && line.length > 1) {
 						const cwd = line.slice(1);
 						if (existsSync(cwd)) {
+							console.log(
+								`[TerminalManager.getCwd] Got cwd from lsof for pid ${pid}: ${cwd}`,
+							);
 							return cwd;
 						}
 					}
 				}
+				console.warn(
+					`[TerminalManager.getCwd] lsof did not return valid cwd for pid ${pid}, output: ${output}`,
+				);
 			} else if (process.platform === "linux") {
 				// Linux: read /proc/<pid>/cwd symlink
 				const cwd = readlinkSync(`/proc/${pid}/cwd`);
@@ -304,11 +314,17 @@ export class TerminalManager extends EventEmitter {
 					return cwd;
 				}
 			}
-		} catch {
-			// Query failed, fall back to initial cwd
+		} catch (error) {
+			console.warn(
+				`[TerminalManager.getCwd] Failed to get cwd for pid ${pid}:`,
+				error,
+			);
 		}
 
 		// Fall back to initial cwd
+		console.log(
+			`[TerminalManager.getCwd] Falling back to initial cwd: ${session.cwd}`,
+		);
 		return session.cwd;
 	}
 

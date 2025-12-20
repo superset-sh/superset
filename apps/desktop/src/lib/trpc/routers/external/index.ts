@@ -172,7 +172,15 @@ export const createExternalRouter = () => {
 					const cwd = input.paneId
 						? terminalManager.getCwd(input.paneId)
 						: null;
-					filePath = cwd ? path.resolve(cwd, filePath) : path.resolve(filePath);
+					if (!cwd) {
+						console.warn(
+							`[openFileInEditor] Cannot resolve relative path "${filePath}": no cwd available for paneId "${input.paneId}"`,
+						);
+						throw new Error(
+							`Cannot open relative path "${filePath}" - terminal session not found`,
+						);
+					}
+					filePath = path.resolve(cwd, filePath);
 				}
 
 				// Build the file location string (file:line:column format for URL schemes)
