@@ -376,15 +376,15 @@ export const createWorkspacesRouter = () => {
 						color: string;
 						tabOrder: number;
 					};
-					workspaces: Array<{
-						id: string;
-						projectId: string;
-						worktreeId?: string;
-						worktreePath: string;
-						type: "worktree" | "branch";
-						branch: string;
-						name: string;
-						tabOrder: number;
+						workspaces: Array<{
+							id: string;
+							projectId: string;
+							worktreeId?: string;
+							worktreePath: string;
+							type: "worktree" | "branch";
+							branch: string;
+							name: string;
+							tabOrder: number;
 						createdAt: number;
 						updatedAt: number;
 						lastOpenedAt: number;
@@ -409,14 +409,14 @@ export const createWorkspacesRouter = () => {
 				.slice()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 
-			for (const workspace of workspaces) {
-				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)?.workspaces.push({
-						...workspace,
-						worktreePath: getWorkspacePath(workspace) ?? "",
-					});
+				for (const workspace of workspaces) {
+					if (groupsMap.has(workspace.projectId)) {
+						groupsMap.get(workspace.projectId)?.workspaces.push({
+							...workspace,
+							worktreePath: getWorkspacePath(workspace) ?? "",
+						});
+					}
 				}
-			}
 
 			return Array.from(groupsMap.values()).sort(
 				(a, b) => a.project.tabOrder - b.project.tabOrder,
@@ -446,13 +446,13 @@ export const createWorkspacesRouter = () => {
 				? db.data.worktrees.find((wt) => wt.id === workspace.worktreeId)
 				: null;
 
-			return {
-				...workspace,
-				worktreePath: getWorkspacePath(workspace) ?? "",
-				project: project
-					? {
-							id: project.id,
-							name: project.name,
+				return {
+					...workspace,
+					worktreePath: getWorkspacePath(workspace) ?? "",
+					project: project
+						? {
+								id: project.id,
+								name: project.name,
 							mainRepoPath: project.mainRepoPath,
 						}
 					: null,
