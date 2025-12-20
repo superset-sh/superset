@@ -1,0 +1,1 @@
+export { WorkspaceFooter } from "./WorkspaceFooter";

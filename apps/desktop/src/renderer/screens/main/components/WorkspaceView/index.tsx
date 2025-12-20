@@ -12,7 +12,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { Sidebar } from "./Sidebar";
-import { WorkspaceHeader } from "./WorkspaceHeader";
+import { WorkspaceFooter } from "./WorkspaceFooter";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -134,7 +134,7 @@ export function WorkspaceView() {
 						<div className="flex-1 min-h-0 h-full">
 							<ContentView />
 						</div>
-						<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
+						<WorkspaceFooter worktreePath={activeWorkspace?.worktreePath} />
 					</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>
