@@ -10,10 +10,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import type { ExternalApp } from "main/lib/db/schemas";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuArrowUpRight, LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
-import type { ExternalApp } from "main/lib/db/schemas";
 import {
 	APP_OPTIONS,
 	getAppOption,
@@ -76,6 +76,8 @@ export function WorkspaceFooterRight({
 		copyPath.mutate(worktreePath);
 	};
 
+	const BUTTON_HEIGHT = 24;
+
 	return (
 		<>
 			{/* Path - clickable to open */}
@@ -84,7 +86,8 @@ export function WorkspaceFooterRight({
 					<button
 						type="button"
 						onClick={handleOpenInEditor}
-						className="group flex items-center gap-1.5 h-[22px] pl-2 pr-1 rounded-l border border-r-0 border-foreground/20 bg-foreground/5 hover:bg-foreground/10 text-[11px] leading-none font-mono font-medium truncate max-w-[480px] transition-colors"
+						style={{ height: `${BUTTON_HEIGHT}px` }}
+						className="group flex items-center gap-1.5 pl-2 pr-1 rounded-l border border-r-0 border-foreground/20 bg-foreground/5 hover:bg-foreground/10 text-[11px] leading-none font-mono font-medium truncate max-w-[480px] transition-colors"
 					>
 						<img
 							src={currentApp.icon}
@@ -115,7 +118,8 @@ export function WorkspaceFooterRight({
 				<DropdownMenuTrigger asChild>
 					<button
 						type="button"
-						className="flex items-center gap-1 h-[22px] px-2 rounded-r border border-foreground/20 bg-foreground/5 hover:bg-foreground/10 text-foreground/90 transition-colors"
+						style={{ height: `${BUTTON_HEIGHT}px` }}
+						className="flex items-center gap-1 px-2 rounded-r border border-foreground/20 bg-foreground/5 hover:bg-foreground/10 text-foreground/90 transition-colors"
 					>
 						<span className="text-[11px] text-foreground font-semibold">
 							Open
@@ -177,4 +181,3 @@ export function WorkspaceFooterRight({
 		</>
 	);
 }
-

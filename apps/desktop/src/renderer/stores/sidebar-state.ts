@@ -11,6 +11,7 @@ const DEFAULT_SIDEBAR_SIZE = 15;
 interface SidebarState {
 	isSidebarOpen: boolean;
 	sidebarSize: number;
+	lastOpenSidebarSize: number;
 	currentMode: SidebarMode;
 	isResizing: boolean;
 	toggleSidebar: () => void;
@@ -26,36 +27,45 @@ export const useSidebarStore = create<SidebarState>()(
 			(set, get) => ({
 				isSidebarOpen: true,
 				sidebarSize: DEFAULT_SIDEBAR_SIZE,
+				lastOpenSidebarSize: DEFAULT_SIDEBAR_SIZE,
 				currentMode: SidebarMode.Tabs,
 				isResizing: false,
 
 				toggleSidebar: () => {
-					const { isSidebarOpen, sidebarSize } = get();
+					const { isSidebarOpen, lastOpenSidebarSize } = get();
 					if (isSidebarOpen) {
 						set({ isSidebarOpen: false });
 					} else {
 						set({
 							isSidebarOpen: true,
-							sidebarSize:
-								sidebarSize === 0 ? DEFAULT_SIDEBAR_SIZE : sidebarSize,
+							sidebarSize: lastOpenSidebarSize,
 						});
 					}
 				},
 
 				setSidebarOpen: (open) => {
-					const { sidebarSize } = get();
+					const { lastOpenSidebarSize } = get();
 					set({
 						isSidebarOpen: open,
-						sidebarSize:
-							open && sidebarSize === 0 ? DEFAULT_SIDEBAR_SIZE : sidebarSize,
+						sidebarSize: open ? lastOpenSidebarSize : 0,
 					});
 				},
 
 				setSidebarSize: (size) => {
-					set({
-						sidebarSize: size,
-						isSidebarOpen: size > 0,
-					});
+					// When collapsing, don't update lastOpenSidebarSize
+					// When resizing to a new size, update both
+					if (size > 0) {
+						set({
+							sidebarSize: size,
+							lastOpenSidebarSize: size,
+							isSidebarOpen: true,
+						});
+					} else {
+						set({
+							sidebarSize: 0,
+							isSidebarOpen: false,
+						});
+					}
 				},
 
 				setMode: (mode) => {
