@@ -1,6 +1,7 @@
+import { Button } from "@superset/ui/button";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { CiSettings } from "react-icons/ci";
 import { useOpenSettings } from "renderer/stores";
 import { HOTKEYS } from "shared/hotkeys";
 
@@ -10,18 +11,19 @@ export function SettingsButton() {
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<button
-					type="button"
+				<Button
+					variant="ghost"
+					size="icon"
 					onClick={() => openSettings()}
-					className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
 					aria-label="Open settings"
+					className="no-drag"
 				>
-					<HiOutlineCog6Tooth className="h-4 w-4" />
-				</button>
+					<CiSettings className="size-5" />
+				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="bottom" showArrow={false}>
+			<TooltipContent side="bottom" sideOffset={8}>
 				<span className="flex items-center gap-2">
-					Settings
+					Open settings
 					<KbdGroup>
 						{HOTKEYS.SHOW_HOTKEYS.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
