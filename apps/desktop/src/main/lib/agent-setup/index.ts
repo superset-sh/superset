@@ -1,0 +1,45 @@
+import fs from "node:fs";
+import { createClaudeWrapper, createCodexWrapper } from "./agent-wrappers";
+import { createNotifyScript } from "./notify-hook";
+import { BASH_DIR, BIN_DIR, HOOKS_DIR, ZSH_DIR } from "./paths";
+import {
+	createBashWrapper,
+	createZshWrapper,
+	getShellArgs,
+	getShellEnv,
+} from "./shell-wrappers";
+
+/**
+ * Sets up the ~/.superset directory structure and agent wrappers
+ * Called on app startup
+ */
+export function setupAgentHooks(): void {
+	console.log("[agent-setup] Initializing agent hooks...");
+
+	// Create directories
+	fs.mkdirSync(BIN_DIR, { recursive: true });
+	fs.mkdirSync(HOOKS_DIR, { recursive: true });
+	fs.mkdirSync(ZSH_DIR, { recursive: true });
+	fs.mkdirSync(BASH_DIR, { recursive: true });
+
+	// Create scripts
+	createNotifyScript();
+	createClaudeWrapper();
+	createCodexWrapper();
+
+	// Create shell initialization wrappers
+	createZshWrapper();
+	createBashWrapper();
+
+	console.log("[agent-setup] Agent hooks initialized");
+}
+
+/**
+ * Returns the bin directory path
+ */
+export function getSupersetBinDir(): string {
+	return BIN_DIR;
+}
+
+// Re-export shell utilities for terminal usage
+export { getShellArgs, getShellEnv };
