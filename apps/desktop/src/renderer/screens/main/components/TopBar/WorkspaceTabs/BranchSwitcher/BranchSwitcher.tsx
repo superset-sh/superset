@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 
 interface BranchSwitcherProps {
 	projectId: string;
@@ -28,6 +29,7 @@ export function BranchSwitcher({
 	const [search, setSearch] = useState("");
 
 	const utils = trpc.useUtils();
+	const setActiveWorkspace = useSetActiveWorkspace();
 
 	// Fetch branches when dropdown opens
 	const { data: branchesData, isLoading } =
@@ -42,10 +44,15 @@ export function BranchSwitcher({
 		},
 	});
 
-	// Branches in use by worktrees
-	const inUseBranches = useMemo(() => {
-		return new Set(branchesData?.inUse ?? []);
+	// Branches in use by worktrees (branch -> workspaceId)
+	const inUseWorkspaces = useMemo(() => {
+		return branchesData?.inUseWorkspaces ?? {};
 	}, [branchesData]);
+
+	// Set of branch names in use for quick lookup
+	const inUseBranches = useMemo(() => {
+		return new Set(Object.keys(inUseWorkspaces));
+	}, [inUseWorkspaces]);
 
 	// Combine and dedupe branches, prioritize main/master
 	const branches = useMemo(() => {
@@ -80,12 +87,21 @@ export function BranchSwitcher({
 		return branches.filter((b) => b.toLowerCase().includes(term));
 	}, [branches, search]);
 
-	const handleSwitchBranch = (branch: string) => {
+	const handleBranchClick = (branch: string) => {
 		if (branch === currentBranch) {
 			setIsOpen(false);
 			return;
 		}
 
+		// If branch is in use by a worktree, jump to that workspace
+		const worktreeWorkspaceId = inUseWorkspaces[branch];
+		if (worktreeWorkspaceId) {
+			setActiveWorkspace.mutate({ id: worktreeWorkspaceId });
+			setIsOpen(false);
+			return;
+		}
+
+		// Otherwise switch this workspace to the new branch
 		toast.promise(switchBranch.mutateAsync({ projectId, branch }), {
 			loading: `Switching to ${branch}...`,
 			success: `Switched to ${branch}`,
@@ -147,7 +163,7 @@ export function BranchSwitcher({
 								return (
 									<DropdownMenuItem
 										key={branch}
-										onClick={() => handleSwitchBranch(branch)}
+										onClick={() => handleBranchClick(branch)}
 										disabled={switchBranch.isPending}
 										className="flex items-center gap-2 px-2 py-1.5"
 									>

@@ -278,19 +278,21 @@ export const createWorkspacesRouter = () => {
 					fetch: input.fetch,
 				});
 
-				// Get branches that are in use by worktrees
+				// Get branches that are in use by worktrees, with their workspace IDs
 				const projectWorkspaces = db.data.workspaces.filter(
 					(w) => w.projectId === input.projectId,
 				);
-				const worktreeBranches = new Set(
-					projectWorkspaces
-						.filter((w) => w.type === "worktree" && w.branch)
-						.map((w) => w.branch),
-				);
+				const worktreeBranchMap: Record<string, string> = {};
+				for (const ws of projectWorkspaces) {
+					if (ws.type === "worktree" && ws.branch) {
+						worktreeBranchMap[ws.branch] = ws.id;
+					}
+				}
 
 				return {
 					...branches,
-					inUse: Array.from(worktreeBranches),
+					inUse: Object.keys(worktreeBranchMap),
+					inUseWorkspaces: worktreeBranchMap, // branch -> workspaceId
 				};
 			}),
 
