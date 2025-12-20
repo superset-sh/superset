@@ -91,12 +91,8 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspace?.worktreePath]);
 
-	const {
-		isSidebarOpen,
-		lastOpenSidebarSize,
-		setSidebarSize,
-		setIsResizing,
-	} = useSidebarStore();
+	const { isSidebarOpen, lastOpenSidebarSize, setSidebarSize, setIsResizing } =
+		useSidebarStore();
 	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
 
 	useEffect(() => {

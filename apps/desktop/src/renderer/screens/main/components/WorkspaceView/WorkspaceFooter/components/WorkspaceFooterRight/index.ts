@@ -1,2 +1,1 @@
 export { WorkspaceFooterRight } from "./WorkspaceFooterRight";
-

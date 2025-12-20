@@ -30,9 +30,7 @@ export function WorkspaceFooterLeft() {
 					<TooltipTrigger asChild>
 						<span className="flex items-center gap-1.5 text-foreground/50">
 							<span className="shrink-0">from</span>
-							<span className="text-foreground/70 truncate">
-								{baseBranch}
-							</span>
+							<span className="text-foreground/70 truncate">{baseBranch}</span>
 						</span>
 					</TooltipTrigger>
 					<TooltipContent side="top" sideOffset={8}>
@@ -43,4 +41,3 @@ export function WorkspaceFooterLeft() {
 		</>
 	);
 }
-
