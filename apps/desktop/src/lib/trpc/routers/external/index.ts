@@ -3,6 +3,7 @@ import path from "node:path";
 import { clipboard, shell } from "electron";
 import { db } from "main/lib/db";
 import { EXTERNAL_APPS, type ExternalApp } from "main/lib/db/schemas";
+import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -151,7 +152,7 @@ export const createExternalRouter = () => {
 					path: z.string(),
 					line: z.number().optional(),
 					column: z.number().optional(),
-					cwd: z.string().optional(),
+					paneId: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -166,10 +167,12 @@ export const createExternalRouter = () => {
 				}
 
 				// Convert to absolute path - required for editor commands to work reliably
+				// Query actual cwd from the terminal's pty process if paneId is provided
 				if (!path.isAbsolute(filePath)) {
-					filePath = input.cwd
-						? path.resolve(input.cwd, filePath)
-						: path.resolve(filePath);
+					const cwd = input.paneId
+						? terminalManager.getCwd(input.paneId)
+						: null;
+					filePath = cwd ? path.resolve(cwd, filePath) : path.resolve(filePath);
 				}
 
 				// Build the file location string (file:line:column format for URL schemes)

@@ -1,4 +1,6 @@
+import { execSync } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { existsSync, readlinkSync } from "node:fs";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import {
 	closeSessionHistory,
@@ -261,6 +263,53 @@ export class TerminalManager extends EventEmitter {
 			cwd: session.cwd,
 			lastActive: session.lastActive,
 		};
+	}
+
+	/**
+	 * Get the current working directory of a terminal session's process.
+	 * Queries the actual cwd from the OS using the pty's PID.
+	 * Falls back to the initial cwd if the query fails.
+	 */
+	getCwd(paneId: string): string | null {
+		const session = this.sessions.get(paneId);
+		if (!session || !session.isAlive) {
+			return null;
+		}
+
+		const pid = session.pty.pid;
+
+		try {
+			if (process.platform === "darwin") {
+				// macOS: use lsof to get the cwd
+				// lsof -d cwd -Fn -p <pid> outputs lines like:
+				// p<pid>
+				// n<path>
+				const output = execSync(`lsof -d cwd -Fn -p ${pid}`, {
+					encoding: "utf-8",
+					timeout: 1000,
+				});
+				const lines = output.trim().split("\n");
+				for (const line of lines) {
+					if (line.startsWith("n") && line.length > 1) {
+						const cwd = line.slice(1);
+						if (existsSync(cwd)) {
+							return cwd;
+						}
+					}
+				}
+			} else if (process.platform === "linux") {
+				// Linux: read /proc/<pid>/cwd symlink
+				const cwd = readlinkSync(`/proc/${pid}/cwd`);
+				if (existsSync(cwd)) {
+					return cwd;
+				}
+			}
+		} catch {
+			// Query failed, fall back to initial cwd
+		}
+
+		// Fall back to initial cwd
+		return session.cwd;
 	}
 
 	async killByWorkspaceId(

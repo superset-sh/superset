@@ -90,7 +90,7 @@ function loadRenderer(xterm: XTerm): { dispose: () => void } {
 
 export function createTerminalInstance(
 	container: HTMLDivElement,
-	cwd?: string,
+	paneId: string,
 	initialTheme?: ITheme | null,
 ): {
 	xterm: XTerm;
@@ -148,7 +148,7 @@ export function createTerminalInstance(
 					path,
 					line,
 					column,
-					cwd,
+					paneId,
 				})
 				.catch((error) => {
 					console.error(

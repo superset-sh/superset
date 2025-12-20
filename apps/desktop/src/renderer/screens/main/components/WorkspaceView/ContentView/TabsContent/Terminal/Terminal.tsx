@@ -198,11 +198,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(
-			container,
-			workspaceCwd,
-			initialThemeRef.current,
-		);
+		} = createTerminalInstance(container, paneId, initialThemeRef.current);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
@@ -397,7 +393,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [paneId, workspaceId, workspaceCwd]);
+	}, [paneId, workspaceId]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
