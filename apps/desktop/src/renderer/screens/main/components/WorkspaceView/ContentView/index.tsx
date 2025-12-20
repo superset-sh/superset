@@ -8,7 +8,7 @@ export function ContentView() {
 	if (currentMode === SidebarMode.Changes) {
 		return (
 			<div className="h-full overflow-hidden bg-tertiary p-1">
-				<div className="h-full bg-background rounded-lg overflow-hidden">
+				<div className="h-full bg-background rounded-lg overflow-hidden border border-border">
 					<ChangesContent />
 				</div>
 			</div>
