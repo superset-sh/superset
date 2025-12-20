@@ -127,7 +127,7 @@ export function WorkspaceView() {
 					{isSidebarOpen && <Sidebar />}
 				</ResizablePanel>
 				<ResizableHandle
-					className="bg-transparent w-0 after:!w-1.5 after:!rounded-full data-[resize-handle-state=hover]:after:bg-border data-[resize-handle-state=drag]:after:bg-border after:transition-colors"
+					className="bg-transparent w-0 after:w-1.5! after:rounded-full! data-[resize-handle-state=hover]:after:bg-border data-[resize-handle-state=drag]:after:bg-border after:transition-colors"
 					onDragging={setIsResizing}
 				/>
 				<ResizablePanel className="overflow-hidden">
