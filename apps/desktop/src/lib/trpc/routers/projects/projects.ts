@@ -159,7 +159,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}): Promise<{
 					branches: Array<{ name: string; lastCommitDate: number }>;
 					defaultBranch: string;
-					hasOrigin: boolean;
 				}> => {
 					const project = db.data.projects.find(
 						(p) => p.id === input.projectId,
@@ -253,7 +252,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						return b.lastCommitDate - a.lastCommitDate;
 					});
 
-					return { branches, defaultBranch, hasOrigin };
+					return { branches, defaultBranch };
 				},
 			),
 

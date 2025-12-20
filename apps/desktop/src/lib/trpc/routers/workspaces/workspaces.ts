@@ -7,6 +7,7 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	branchExistsOnRemote,
 	checkNeedsRebase,
 	createWorktree,
 	detectBaseBranch,
@@ -74,11 +75,22 @@ export const createWorkspacesRouter = () => {
 				// Determine the start point for the worktree
 				let startPoint: string;
 				if (hasRemote) {
+					// Verify the branch exists on remote before attempting to use it
+					const existsOnRemote = await branchExistsOnRemote(
+						project.mainRepoPath,
+						targetBranch,
+					);
+					if (!existsOnRemote) {
+						throw new Error(
+							`Branch "${targetBranch}" does not exist on origin. Please select a different base branch.`,
+						);
+					}
+
 					// Fetch the target branch to ensure we're branching from latest (best-effort)
 					try {
 						await fetchDefaultBranch(project.mainRepoPath, targetBranch);
 					} catch {
-						// Silently continue - branch still exists locally, just might be stale
+						// Silently continue - branch exists on remote, just couldn't fetch
 					}
 					startPoint = `origin/${targetBranch}`;
 				} else {
