@@ -12,12 +12,14 @@
 	"dependencies": {
 		"@react-three/drei": "^10.7.6",
 		"@react-three/fiber": "^9.4.0",
+		"@sentry/nextjs": "^10.32.1",
 		"@superset/shared": "workspace:*",
 		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"dotenv": "^17.2.3",
 		"framer-motion": "^12.23.24",
 		"geist": "^1.5.1",
+		"import-in-the-middle": "2.0.1",
 		"next": "^16.0.10",
 		"nextra": "^4.6.1",
 		"nextra-theme-blog": "^4.6.1",
@@ -25,6 +27,7 @@
 		"posthog-js": "^1.306.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
+		"require-in-the-middle": "8.0.1",
 		"three": "^0.181.2",
 		"zod": "^4.1.13"
 	},

@@ -29,7 +29,10 @@ import { HiCheck, HiChevronUpDown, HiPlus } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useCreateWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -73,6 +76,7 @@ export function NewWorkspaceModal() {
 			{ enabled: !!selectedProjectId },
 		);
 	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const openNew = useOpenNew();
 
 	const currentProjectId = activeWorkspace?.projectId;
@@ -178,6 +182,8 @@ export function NewWorkspaceModal() {
 				});
 				return;
 			}
+			// Create a main workspace on the current branch for the new project
+			await createBranchWorkspace.mutateAsync({ projectId: result.project.id });
 			setSelectedProjectId(result.project.id);
 		} catch (error) {
 			toast.error("Failed to open project", {

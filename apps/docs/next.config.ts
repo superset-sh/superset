@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { withSentryConfig } from "@sentry/nextjs";
 import { config as dotenvConfig } from "dotenv";
 import type { NextConfig } from "next";
 import nextra from "nextra";
@@ -42,4 +43,13 @@ const nextConfig: NextConfig = {
 	skipTrailingSlashRedirect: true,
 };
 
-export default withNextra(nextConfig);
+export default withSentryConfig(withNextra(nextConfig), {
+	org: "superset-sh",
+	project: "docs",
+	silent: !process.env.CI,
+	authToken: process.env.SENTRY_AUTH_TOKEN,
+	widenClientFileUpload: true,
+	tunnelRoute: "/monitoring",
+	disableLogger: true,
+	automaticVercelMonitors: true,
+});

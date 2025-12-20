@@ -1,9 +1,10 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { env } from "./env";
 
 const allowedOrigins = [env.NEXT_PUBLIC_WEB_URL, env.NEXT_PUBLIC_ADMIN_URL];
+const isPublicRoute = createRouteMatcher(["/ingest(.*)", "/monitoring(.*)"]);
 
 function getCorsHeaders(origin: string | null) {
 	const isAllowed = origin && allowedOrigins.includes(origin);
@@ -17,6 +18,11 @@ function getCorsHeaders(origin: string | null) {
 }
 
 export default clerkMiddleware(async (_auth, req) => {
+	// Allow Sentry and PostHog routes without CORS processing
+	if (isPublicRoute(req)) {
+		return NextResponse.next();
+	}
+
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin);
 

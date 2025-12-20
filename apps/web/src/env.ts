@@ -15,6 +15,7 @@ export const env = createEnv({
 		DATABASE_URL_UNPOOLED: z.string().url(),
 		CLERK_SECRET_KEY: z.string(),
 		DESKTOP_AUTH_SECRET: z.string().min(32),
+		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 
 	client: {
@@ -26,6 +27,10 @@ export const env = createEnv({
 		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().url(),
+		NEXT_PUBLIC_SENTRY_DSN_WEB: z.string().optional(),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "preview", "production"])
+			.optional(),
 	},
 
 	experimental__runtimeEnv: {
@@ -39,6 +44,8 @@ export const env = createEnv({
 		NEXT_PUBLIC_COOKIE_DOMAIN: process.env.NEXT_PUBLIC_COOKIE_DOMAIN,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+		NEXT_PUBLIC_SENTRY_DSN_WEB: process.env.NEXT_PUBLIC_SENTRY_DSN_WEB,
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	},
 
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

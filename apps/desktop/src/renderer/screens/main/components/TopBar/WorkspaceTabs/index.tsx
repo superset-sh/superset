@@ -1,7 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import {
+	useCreateBranchWorkspace,
+	useSetActiveWorkspace,
+} from "renderer/react-query/workspaces";
 import {
 	useCurrentView,
 	useIsSettingsTabOpen,
@@ -20,6 +23,7 @@ export function WorkspacesTabs() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const currentView = useCurrentView();
 	const isSettingsTabOpen = useIsSettingsTabOpen();
 	const isSettingsActive = currentView === "settings";
@@ -31,6 +35,46 @@ export function WorkspacesTabs() {
 	const [hoveredWorkspaceId, setHoveredWorkspaceId] = useState<string | null>(
 		null,
 	);
+
+	// Track projects we've attempted to create workspaces for (persists across renders)
+	// Using ref to avoid re-triggering the effect
+	const attemptedProjectsRef = useRef<Set<string>>(new Set());
+	const [isCreating, setIsCreating] = useState(false);
+
+	// Auto-create main workspace for new projects (one-time per project)
+	// This only runs for projects we haven't attempted yet
+	useEffect(() => {
+		if (isCreating) return;
+
+		for (const group of groups) {
+			const projectId = group.project.id;
+			const hasMainWorkspace = group.workspaces.some(
+				(w) => w.type === "branch",
+			);
+
+			// Skip if already has main workspace or we've already attempted this project
+			if (hasMainWorkspace || attemptedProjectsRef.current.has(projectId)) {
+				continue;
+			}
+
+			// Mark as attempted before creating (prevents retries)
+			attemptedProjectsRef.current.add(projectId);
+			setIsCreating(true);
+
+			// Auto-create fails silently - this is a background convenience feature
+			// Users can manually create the workspace via the dropdown if needed
+			createBranchWorkspace.mutate(
+				{ projectId },
+				{
+					onSettled: () => {
+						setIsCreating(false);
+					},
+				},
+			);
+			// Only create one at a time
+			break;
+		}
+	}, [groups, isCreating, createBranchWorkspace.mutate]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);

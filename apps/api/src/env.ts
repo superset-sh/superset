@@ -12,14 +12,21 @@ export const env = createEnv({
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
 		GH_CLIENT_ID: z.string().min(1),
 		GH_CLIENT_SECRET: z.string().min(1),
+		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 	client: {
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		NEXT_PUBLIC_ADMIN_URL: z.string().url(),
+		NEXT_PUBLIC_SENTRY_DSN_API: z.string().optional(),
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: z
+			.enum(["development", "preview", "production"])
+			.optional(),
 	},
 	experimental__runtimeEnv: {
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
+		NEXT_PUBLIC_SENTRY_DSN_API: process.env.NEXT_PUBLIC_SENTRY_DSN_API,
+		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	},
 	emptyStringAsUndefined: true,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

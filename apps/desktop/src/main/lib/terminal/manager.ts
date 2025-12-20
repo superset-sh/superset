@@ -360,6 +360,25 @@ export class TerminalManager extends EventEmitter {
 		).length;
 	}
 
+	/**
+	 * Send a newline to all terminals in a workspace to refresh their prompts.
+	 * Useful after switching branches to update the branch name in prompts.
+	 */
+	refreshPromptsForWorkspace(workspaceId: string): void {
+		for (const [paneId, session] of this.sessions.entries()) {
+			if (session.workspaceId === workspaceId && session.isAlive) {
+				try {
+					session.pty.write("\n");
+				} catch (error) {
+					console.warn(
+						`[TerminalManager] Failed to refresh prompt for pane ${paneId}:`,
+						error,
+					);
+				}
+			}
+		}
+	}
+
 	detachAllListeners(): void {
 		for (const event of this.eventNames()) {
 			const name = String(event);

@@ -44,7 +44,7 @@ interface AppOption {
 	icon: string;
 }
 
-const APP_OPTIONS: AppOption[] = [
+export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
 	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
@@ -55,7 +55,7 @@ const APP_OPTIONS: AppOption[] = [
 	{ id: "terminal", label: "Terminal", icon: terminalIcon },
 ];
 
-const JETBRAINS_OPTIONS: AppOption[] = [
+export const JETBRAINS_OPTIONS: AppOption[] = [
 	{ id: "intellij", label: "IntelliJ IDEA", icon: intellijIcon },
 	{ id: "webstorm", label: "WebStorm", icon: webstormIcon },
 	{ id: "pycharm", label: "PyCharm", icon: pycharmIcon },
