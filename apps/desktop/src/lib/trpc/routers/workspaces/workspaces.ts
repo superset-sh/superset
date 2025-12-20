@@ -177,42 +177,24 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Could not determine current branch");
 				}
 
-				// Only allow one branch workspace per project at a time.
-				// If one already exists, activate it instead of creating a new one.
-				const existingBranchWorkspace = db.data.workspaces.find(
-					(w) => w.projectId === input.projectId && w.type === "branch",
-				);
-				if (existingBranchWorkspace) {
-					// If requesting the same branch (or no specific branch), just activate existing
-					if (!input.branch || existingBranchWorkspace.branch === branch) {
-						await db.update((data) => {
-							data.settings.lastActiveWorkspaceId = existingBranchWorkspace.id;
-							const ws = data.workspaces.find(
-								(w) => w.id === existingBranchWorkspace.id,
-							);
-							if (ws) {
-								ws.lastOpenedAt = Date.now();
-							}
-						});
-						return {
-							workspace: existingBranchWorkspace,
-							worktreePath: project.mainRepoPath,
-							projectId: project.id,
-							wasExisting: true,
-						};
-					}
-					// Different branch requested - user should switch instead
-					throw new Error(
-						`A main workspace already exists on branch "${existingBranchWorkspace.branch}". ` +
-							`Use the branch switcher to change branches.`,
-					);
-				}
-
-				// Only checkout if a specific branch was requested
+				// If a specific branch was requested, check for conflict before checkout
 				if (input.branch) {
+					const existingBranchWorkspace = db.data.workspaces.find(
+						(w) => w.projectId === input.projectId && w.type === "branch",
+					);
+					if (
+						existingBranchWorkspace &&
+						existingBranchWorkspace.branch !== branch
+					) {
+						throw new Error(
+							`A main workspace already exists on branch "${existingBranchWorkspace.branch}". ` +
+								`Use the branch switcher to change branches.`,
+						);
+					}
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
 				}
 
+				// Prepare new workspace (may not be used if existing found)
 				const workspace = {
 					id: nanoid(),
 					projectId: input.projectId,
@@ -226,8 +208,25 @@ export const createWorkspacesRouter = () => {
 					lastOpenedAt: Date.now(),
 				};
 
+				// Track which workspace "wins" - makes concurrent calls idempotent
+				let returnedWorkspace: typeof workspace = workspace;
+				let wasExisting = false;
+
 				await db.update((data) => {
-					// Shift all existing workspaces for this project to make room at the front
+					// Atomic check: if branch workspace already exists, activate it
+					const existing = data.workspaces.find(
+						(w) => w.projectId === input.projectId && w.type === "branch",
+					);
+
+					if (existing) {
+						wasExisting = true;
+						returnedWorkspace = existing as typeof workspace;
+						data.settings.lastActiveWorkspaceId = existing.id;
+						existing.lastOpenedAt = Date.now();
+						return;
+					}
+
+					// Create new workspace - shift existing ones to make room at front
 					for (const ws of data.workspaces) {
 						if (ws.projectId === input.projectId) {
 							ws.tabOrder += 1;
@@ -255,10 +254,10 @@ export const createWorkspacesRouter = () => {
 				});
 
 				return {
-					workspace,
+					workspace: returnedWorkspace,
 					worktreePath: project.mainRepoPath,
 					projectId: project.id,
-					wasExisting: false,
+					wasExisting,
 				};
 			}),
 

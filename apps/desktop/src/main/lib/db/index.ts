@@ -25,14 +25,27 @@ async function migrateWorkspaces(database: DB): Promise<void> {
 		}
 
 		// Add branch field if missing (copy from associated worktree)
-		if (!ws.branch && ws.worktreeId) {
-			const worktree = database.data.worktrees.find(
-				(wt) => wt.id === ws.worktreeId,
-			);
-			if (worktree) {
-				ws.branch = worktree.branch;
-				needsWrite = true;
+		if (!ws.branch) {
+			if (ws.worktreeId) {
+				const worktree = database.data.worktrees.find(
+					(wt) => wt.id === ws.worktreeId,
+				);
+				if (worktree) {
+					ws.branch = worktree.branch;
+				} else {
+					console.warn(
+						`Migration: Worktree ${ws.worktreeId} not found for workspace ${ws.id}, using fallback branch`,
+					);
+					ws.branch = "unknown";
+				}
+			} else {
+				// Workspace without worktreeId (shouldn't happen for existing data, but be safe)
+				console.warn(
+					`Migration: Workspace ${ws.id} has no worktreeId, using fallback branch`,
+				);
+				ws.branch = "unknown";
 			}
+			needsWrite = true;
 		}
 	}
 

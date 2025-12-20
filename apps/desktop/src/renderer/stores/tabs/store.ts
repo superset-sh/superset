@@ -88,16 +88,22 @@ export const useTabsStore = create<TabsStore>()(
 						(t) => t.workspaceId === workspaceId,
 					);
 					if (existingTab) {
+						const paneId =
+							state.focusedPaneIds[existingTab.id] ??
+							getFirstPaneId(existingTab.layout);
+
 						set({
 							activeTabIds: {
 								...state.activeTabIds,
 								[workspaceId]: existingTab.id,
 							},
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[existingTab.id]: paneId,
+							},
 						});
-						return {
-							tabId: existingTab.id,
-							paneId: state.focusedPaneIds[existingTab.id],
-						};
+
+						return { tabId: existingTab.id, paneId };
 					}
 
 					const { tab, pane } = createTabWithPane(

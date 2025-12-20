@@ -74,7 +74,7 @@ export function WorkspacesTabs() {
 			// Only create one at a time
 			break;
 		}
-	}, [groups, isCreating, createBranchWorkspace]);
+	}, [groups, isCreating, createBranchWorkspace.mutate]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
