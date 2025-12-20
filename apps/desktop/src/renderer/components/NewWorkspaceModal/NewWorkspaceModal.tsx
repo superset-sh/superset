@@ -102,6 +102,7 @@ export function NewWorkspaceModal() {
 	}, [branchData?.defaultBranch, baseBranch]);
 
 	// Reset base branch when project changes
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
 		setBaseBranch(null);
 	}, [selectedProjectId]);
@@ -297,9 +298,9 @@ export function NewWorkspaceModal() {
 									</div>
 
 									<div className="space-y-1.5">
-										<label className="text-xs text-muted-foreground">
+										<span className="text-xs text-muted-foreground">
 											Base branch
-										</label>
+										</span>
 										<Popover
 											open={baseBranchOpen}
 											onOpenChange={setBaseBranchOpen}
@@ -363,7 +364,9 @@ export function NewWorkspaceModal() {
 																<span className="flex items-center gap-2 shrink-0">
 																	{branch.lastCommitDate > 0 && (
 																		<span className="text-xs text-muted-foreground">
-																			{formatRelativeTime(branch.lastCommitDate)}
+																			{formatRelativeTime(
+																				branch.lastCommitDate,
+																			)}
 																		</span>
 																	)}
 																	{baseBranch === branch.name && (

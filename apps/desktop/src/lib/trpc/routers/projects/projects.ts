@@ -160,7 +160,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					branches: Array<{ name: string; lastCommitDate: number }>;
 					defaultBranch: string;
 				}> => {
-					const project = db.data.projects.find((p) => p.id === input.projectId);
+					const project = db.data.projects.find(
+						(p) => p.id === input.projectId,
+					);
 					if (!project) {
 						throw new Error(`Project ${input.projectId} not found`);
 					}

@@ -405,10 +405,7 @@ export async function detectBaseBranch(
 				bestAheadCount = count;
 				bestCandidate = candidate;
 			}
-		} catch {
-			// Branch doesn't exist or other error, skip
-			continue;
-		}
+		} catch {}
 	}
 
 	return bestCandidate;
