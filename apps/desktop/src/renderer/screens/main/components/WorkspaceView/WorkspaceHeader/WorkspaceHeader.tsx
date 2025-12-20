@@ -170,7 +170,9 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 							type="button"
 							className="flex items-center gap-1 h-[22px] px-2 rounded-r border border-foreground/20 bg-foreground/[0.05] hover:bg-foreground/[0.1] text-foreground/90 transition-colors"
 						>
-							<span className="text-[11px] text-foreground font-semibold">Open</span>
+							<span className="text-[11px] text-foreground font-semibold">
+								Open
+							</span>
 							<HiChevronDown className="size-3 text-foreground/60" />
 						</button>
 					</DropdownMenuTrigger>
