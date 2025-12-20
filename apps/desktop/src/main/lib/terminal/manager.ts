@@ -279,16 +279,34 @@ export class TerminalManager extends EventEmitter {
 			return null;
 		}
 
-		const pid = session.pty.pid;
+		const ptyPid = session.pty.pid;
 
 		try {
 			if (process.platform === "darwin") {
-				// macOS: use lsof to get the cwd
-				// lsof -d cwd -Fn -p <pid> outputs lines like:
-				// p<pid>
-				// fcwd
-				// n<path>
-				const output = execSync(`lsof -d cwd -Fn -p ${pid}`, {
+				// macOS: pty.pid may be a login wrapper, not the actual shell.
+				// Find the deepest child process (the shell) and get its cwd.
+				// pgrep -P <pid> finds child processes.
+				let targetPid = ptyPid;
+
+				// Walk down the process tree to find the actual shell
+				for (let i = 0; i < 5; i++) {
+					try {
+						const childOutput = execSync(`pgrep -P ${targetPid}`, {
+							encoding: "utf-8",
+							timeout: 500,
+						});
+						const childPids = childOutput.trim().split("\n").filter(Boolean);
+						if (childPids.length === 0) break;
+						// Take the first child (usually the shell or the deepest running process)
+						targetPid = Number.parseInt(childPids[0], 10);
+					} catch {
+						// No children found, use current targetPid
+						break;
+					}
+				}
+
+				// Get cwd of the target process using lsof
+				const output = execSync(`lsof -d cwd -Fn -p ${targetPid}`, {
 					encoding: "utf-8",
 					timeout: 1000,
 				});
@@ -298,25 +316,25 @@ export class TerminalManager extends EventEmitter {
 						const cwd = line.slice(1);
 						if (existsSync(cwd)) {
 							console.log(
-								`[TerminalManager.getCwd] Got cwd from lsof for pid ${pid}: ${cwd}`,
+								`[TerminalManager.getCwd] Got cwd from lsof for pid ${targetPid} (pty pid: ${ptyPid}): ${cwd}`,
 							);
 							return cwd;
 						}
 					}
 				}
 				console.warn(
-					`[TerminalManager.getCwd] lsof did not return valid cwd for pid ${pid}, output: ${output}`,
+					`[TerminalManager.getCwd] lsof did not return valid cwd for pid ${targetPid}, output: ${output}`,
 				);
 			} else if (process.platform === "linux") {
 				// Linux: read /proc/<pid>/cwd symlink
-				const cwd = readlinkSync(`/proc/${pid}/cwd`);
+				const cwd = readlinkSync(`/proc/${ptyPid}/cwd`);
 				if (existsSync(cwd)) {
 					return cwd;
 				}
 			}
 		} catch (error) {
 			console.warn(
-				`[TerminalManager.getCwd] Failed to get cwd for pid ${pid}:`,
+				`[TerminalManager.getCwd] Failed to get cwd for pty pid ${ptyPid}:`,
 				error,
 			);
 		}
