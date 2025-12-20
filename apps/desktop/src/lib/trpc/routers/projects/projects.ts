@@ -159,6 +159,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}): Promise<{
 					branches: Array<{ name: string; lastCommitDate: number }>;
 					defaultBranch: string;
+					hasOrigin: boolean;
 				}> => {
 					const project = db.data.projects.find(
 						(p) => p.id === input.projectId,
@@ -168,6 +169,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					}
 
 					const git = simpleGit(project.mainRepoPath);
+
+					// Check if origin remote exists
+					let hasOrigin = false;
+					try {
+						const remotes = await git.getRemotes();
+						hasOrigin = remotes.some((r) => r.name === "origin");
+					} catch {
+						// If we can't get remotes, assume no origin
+					}
 
 					// Get all branches (local and remote)
 					const branchSummary = await git.branch(["-a"]);
@@ -187,13 +197,16 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 					// Get branch dates for sorting
 					let branches: Array<{ name: string; lastCommitDate: number }> = [];
+
+					// Determine which ref pattern to use based on whether origin exists
+					const refPattern = hasOrigin ? "refs/remotes/origin/" : "refs/heads/";
+
 					try {
 						const branchInfo = await git.raw([
 							"for-each-ref",
 							"--sort=-committerdate",
 							"--format=%(refname:short) %(committerdate:unix)",
-							"refs/heads/",
-							"refs/remotes/origin/",
+							refPattern,
 						]);
 
 						const seen = new Set<string>();
@@ -211,7 +224,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								branch = branch.replace("origin/", "");
 							}
 
-							// Skip duplicates (prefer local over remote)
+							// Skip duplicates and HEAD
 							if (seen.has(branch)) continue;
 							if (branch === "HEAD") continue;
 							seen.add(branch);
@@ -223,10 +236,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 					} catch {
 						// Fallback: just list branches without dates
-						const allBranches = [
-							...new Set([...localBranches, ...remoteBranches]),
-						];
-						branches = allBranches.map((name) => ({ name, lastCommitDate: 0 }));
+						const branchList = hasOrigin ? remoteBranches : localBranches;
+						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
 					}
 
 					// Determine default branch
@@ -242,7 +253,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						return b.lastCommitDate - a.lastCommitDate;
 					});
 
-					return { branches, defaultBranch };
+					return { branches, defaultBranch, hasOrigin };
 				},
 			),
 

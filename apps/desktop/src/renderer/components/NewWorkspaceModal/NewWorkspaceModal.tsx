@@ -70,11 +70,14 @@ export function NewWorkspaceModal() {
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
-	const { data: branchData, isLoading: isBranchesLoading } =
-		trpc.projects.getBranches.useQuery(
-			{ projectId: selectedProjectId ?? "" },
-			{ enabled: !!selectedProjectId },
-		);
+	const {
+		data: branchData,
+		isLoading: isBranchesLoading,
+		isError: isBranchesError,
+	} = trpc.projects.getBranches.useQuery(
+		{ projectId: selectedProjectId ?? "" },
+		{ enabled: !!selectedProjectId },
+	);
 	const createWorkspace = useCreateWorkspace();
 	const createBranchWorkspace = useCreateBranchWorkspace();
 	const openNew = useOpenNew();
@@ -307,84 +310,90 @@ export function NewWorkspaceModal() {
 										<span className="text-xs text-muted-foreground">
 											Base branch
 										</span>
-										<Popover
-											open={baseBranchOpen}
-											onOpenChange={setBaseBranchOpen}
-										>
-											<PopoverTrigger asChild>
-												<Button
-													variant="outline"
-													size="sm"
-													className="w-full h-8 justify-between font-normal"
-													disabled={isBranchesLoading}
-												>
-													<span className="flex items-center gap-2 truncate">
-														<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-														<span className="truncate font-mono text-sm">
-															{baseBranch || "Select branch..."}
-														</span>
-														{baseBranch === branchData?.defaultBranch && (
-															<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																default
-															</span>
-														)}
-													</span>
-													<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
-												</Button>
-											</PopoverTrigger>
-											<PopoverContent
-												className="w-[--radix-popover-trigger-width] p-0"
-												align="start"
+										{isBranchesError ? (
+											<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
+												Failed to load branches
+											</div>
+										) : (
+											<Popover
+												open={baseBranchOpen}
+												onOpenChange={setBaseBranchOpen}
 											>
-												<Command shouldFilter={false}>
-													<CommandInput
-														placeholder="Search branches..."
-														value={branchSearch}
-														onValueChange={setBranchSearch}
-													/>
-													<CommandList className="max-h-[200px]">
-														<CommandEmpty>No branches found</CommandEmpty>
-														{filteredBranches.map((branch) => (
-															<CommandItem
-																key={branch.name}
-																value={branch.name}
-																onSelect={() => {
-																	setBaseBranch(branch.name);
-																	setBaseBranchOpen(false);
-																	setBranchSearch("");
-																}}
-																className="flex items-center justify-between"
-															>
-																<span className="flex items-center gap-2 truncate">
-																	<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																	<span className="truncate">
-																		{branch.name}
+												<PopoverTrigger asChild>
+													<Button
+														variant="outline"
+														size="sm"
+														className="w-full h-8 justify-between font-normal"
+														disabled={isBranchesLoading}
+													>
+														<span className="flex items-center gap-2 truncate">
+															<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+															<span className="truncate font-mono text-sm">
+																{baseBranch || "Select branch..."}
+															</span>
+															{baseBranch === branchData?.defaultBranch && (
+																<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																	default
+																</span>
+															)}
+														</span>
+														<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+													</Button>
+												</PopoverTrigger>
+												<PopoverContent
+													className="w-[--radix-popover-trigger-width] p-0"
+													align="start"
+												>
+													<Command shouldFilter={false}>
+														<CommandInput
+															placeholder="Search branches..."
+															value={branchSearch}
+															onValueChange={setBranchSearch}
+														/>
+														<CommandList className="max-h-[200px]">
+															<CommandEmpty>No branches found</CommandEmpty>
+															{filteredBranches.map((branch) => (
+																<CommandItem
+																	key={branch.name}
+																	value={branch.name}
+																	onSelect={() => {
+																		setBaseBranch(branch.name);
+																		setBaseBranchOpen(false);
+																		setBranchSearch("");
+																	}}
+																	className="flex items-center justify-between"
+																>
+																	<span className="flex items-center gap-2 truncate">
+																		<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																		<span className="truncate">
+																			{branch.name}
+																		</span>
+																		{branch.name ===
+																			branchData?.defaultBranch && (
+																			<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																				default
+																			</span>
+																		)}
 																	</span>
-																	{branch.name ===
-																		branchData?.defaultBranch && (
-																		<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																			default
-																		</span>
-																	)}
-																</span>
-																<span className="flex items-center gap-2 shrink-0">
-																	{branch.lastCommitDate > 0 && (
-																		<span className="text-xs text-muted-foreground">
-																			{formatRelativeTime(
-																				branch.lastCommitDate,
-																			)}
-																		</span>
-																	)}
-																	{baseBranch === branch.name && (
-																		<HiCheck className="size-4 text-primary" />
-																	)}
-																</span>
-															</CommandItem>
-														))}
-													</CommandList>
-												</Command>
-											</PopoverContent>
-										</Popover>
+																	<span className="flex items-center gap-2 shrink-0">
+																		{branch.lastCommitDate > 0 && (
+																			<span className="text-xs text-muted-foreground">
+																				{formatRelativeTime(
+																					branch.lastCommitDate,
+																				)}
+																			</span>
+																		)}
+																		{baseBranch === branch.name && (
+																			<HiCheck className="size-4 text-primary" />
+																		)}
+																	</span>
+																</CommandItem>
+															))}
+														</CommandList>
+													</Command>
+												</PopoverContent>
+											</Popover>
+										)}
 										<p className="text-[11px] text-muted-foreground/70">
 											Your new branch will be created from this branch
 										</p>
@@ -413,7 +422,7 @@ export function NewWorkspaceModal() {
 						<Button
 							className="w-full h-8 text-sm"
 							onClick={handleCreateWorkspace}
-							disabled={createWorkspace.isPending}
+							disabled={createWorkspace.isPending || isBranchesError}
 						>
 							Create Workspace
 						</Button>

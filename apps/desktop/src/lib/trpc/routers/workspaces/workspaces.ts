@@ -453,27 +453,46 @@ export const createWorkspacesRouter = () => {
 				: null;
 
 			// Detect and persist base branch for existing worktrees that don't have it
+			// We use undefined to mean "not yet attempted" and null to mean "attempted but not found"
 			let baseBranch = worktree?.baseBranch;
-			if (worktree && !baseBranch && project) {
-				try {
-					const defaultBranch = project.defaultBranch || "main";
-					const detected = await detectBaseBranch(
-						worktree.path,
-						worktree.branch,
-						defaultBranch,
-					);
-					if (detected) {
-						baseBranch = detected;
-						// Persist the detected base branch
+			if (worktree && baseBranch === undefined && project) {
+				// Only attempt detection if there's a remote origin
+				const hasRemote = await hasOriginRemote(project.mainRepoPath);
+				if (hasRemote) {
+					try {
+						const defaultBranch = project.defaultBranch || "main";
+						const detected = await detectBaseBranch(
+							worktree.path,
+							worktree.branch,
+							defaultBranch,
+						);
+						if (detected) {
+							baseBranch = detected;
+						}
+						// Persist the result (detected branch or null sentinel)
 						await db.update((data) => {
 							const wt = data.worktrees.find((w) => w.id === worktree.id);
 							if (wt) {
-								wt.baseBranch = detected;
+								wt.baseBranch = detected ?? null;
+							}
+						});
+					} catch {
+						// Detection failed, persist null to avoid retrying
+						await db.update((data) => {
+							const wt = data.worktrees.find((w) => w.id === worktree.id);
+							if (wt) {
+								wt.baseBranch = null;
 							}
 						});
 					}
-				} catch {
-					// Detection failed, continue without base branch
+				} else {
+					// No remote - persist null to avoid retrying
+					await db.update((data) => {
+						const wt = data.worktrees.find((w) => w.id === worktree.id);
+						if (wt) {
+							wt.baseBranch = null;
+						}
+					});
 				}
 			}
 

@@ -248,33 +248,63 @@ export async function hasOriginRemote(mainRepoPath: string): Promise<boolean> {
 export async function getDefaultBranch(mainRepoPath: string): Promise<string> {
 	const git = simpleGit(mainRepoPath);
 
-	try {
-		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
-		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
-		if (match) return match[1];
-	} catch {}
+	// First check if we have an origin remote
+	const hasRemote = await hasOriginRemote(mainRepoPath);
 
-	try {
-		const branches = await git.branch(["-r"]);
-		const remoteBranches = branches.all.map((b) => b.replace("origin/", ""));
+	if (hasRemote) {
+		// Try to get the default branch from origin/HEAD
+		try {
+			const headRef = await git.raw([
+				"symbolic-ref",
+				"refs/remotes/origin/HEAD",
+			]);
+			const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+			if (match) return match[1];
+		} catch {}
 
-		for (const candidate of ["main", "master", "develop", "trunk"]) {
-			if (remoteBranches.includes(candidate)) {
-				return candidate;
+		// Check remote branches for common default branch names
+		try {
+			const branches = await git.branch(["-r"]);
+			const remoteBranches = branches.all.map((b) => b.replace("origin/", ""));
+
+			for (const candidate of ["main", "master", "develop", "trunk"]) {
+				if (remoteBranches.includes(candidate)) {
+					return candidate;
+				}
 			}
-		}
-	} catch {}
+		} catch {}
 
-	try {
-		const hasRemote = await hasOriginRemote(mainRepoPath);
-		if (hasRemote) {
+		// Try ls-remote as last resort for remote repos
+		try {
 			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
 			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
 			if (symrefMatch) {
 				return symrefMatch[1];
 			}
-		}
-	} catch {}
+		} catch {}
+	} else {
+		// No remote - use the current local branch or check for common branch names
+		try {
+			const currentBranch = await getCurrentBranch(mainRepoPath);
+			if (currentBranch) {
+				return currentBranch;
+			}
+		} catch {}
+
+		// Fallback: check for common default branch names locally
+		try {
+			const localBranches = await git.branchLocal();
+			for (const candidate of ["main", "master", "develop", "trunk"]) {
+				if (localBranches.all.includes(candidate)) {
+					return candidate;
+				}
+			}
+			// If we have any local branches, use the first one
+			if (localBranches.all.length > 0) {
+				return localBranches.all[0];
+			}
+		} catch {}
+	}
 
 	return "main";
 }

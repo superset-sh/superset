@@ -207,7 +207,8 @@ export function WorkspaceItem({
 						onMouseEnter={onMouseEnter}
 						onMouseLeave={onMouseLeave}
 						className={cn(
-							"flex items-center gap-1.5 rounded-t-md transition-all w-full shrink-0 pr-6 pl-3 h-[80%]",
+							"flex items-center gap-1.5 rounded-t-md transition-all w-full shrink-0 pl-3 h-[80%]",
+							isBranchWorkspace ? "pr-2" : "pr-6",
 							isActive
 								? "text-foreground bg-tertiary-active"
 								: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30",
@@ -289,35 +290,32 @@ export function WorkspaceItem({
 						)}
 					</button>
 
-					<Tooltip delayDuration={500}>
-						<TooltipTrigger asChild>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={(e) => {
-									e.stopPropagation();
-									handleDeleteClick();
-								}}
-								className={cn(
-									"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
-									isActive ? "opacity-90" : "opacity-0",
-								)}
-								aria-label={
-									workspaceType === "branch"
-										? "Close workspace"
-										: "Delete workspace"
-								}
-							>
-								<HiMiniXMark />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							{workspaceType === "branch"
-								? "Close workspace"
-								: "Delete workspace"}
-						</TooltipContent>
-					</Tooltip>
+					{/* Only show close button for worktree workspaces */}
+					{!isBranchWorkspace && (
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleDeleteClick();
+									}}
+									className={cn(
+										"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
+										isActive ? "opacity-90" : "opacity-0",
+									)}
+									aria-label="Delete workspace"
+								>
+									<HiMiniXMark />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Delete workspace
+							</TooltipContent>
+						</Tooltip>
+					)}
 				</div>
 			</WorkspaceItemContextMenu>
 
