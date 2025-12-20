@@ -1,6 +1,7 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { useCallback, useRef } from "react";
+import { LuLoader } from "react-icons/lu";
 import { SUPERSET_THEME } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 import {
@@ -59,7 +60,8 @@ export function DiffViewer({
 				onMount={handleMount}
 				loading={
 					<div className="flex items-center justify-center h-full text-muted-foreground">
-						Loading editor...
+						<LuLoader className="w-4 h-4 animate-spin mr-2" />
+						<span>Loading editor...</span>
 					</div>
 				}
 				options={{
