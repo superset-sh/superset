@@ -34,7 +34,7 @@ export const useSidebarStore = create<SidebarState>()(
 				toggleSidebar: () => {
 					const { isSidebarOpen, lastOpenSidebarSize } = get();
 					if (isSidebarOpen) {
-						set({ isSidebarOpen: false });
+						set({ isSidebarOpen: false, sidebarSize: 0 });
 					} else {
 						set({
 							isSidebarOpen: true,
