@@ -12,11 +12,10 @@ import {
 
 const ExternalAppSchema = z.enum(EXTERNAL_APPS);
 
-/**
- * Open a path in the specified app.
- * Handles finder specially and falls back to system default if app command not found.
- */
-async function openPathInApp(filePath: string, app: ExternalApp): Promise<void> {
+async function openPathInApp(
+	filePath: string,
+	app: ExternalApp,
+): Promise<void> {
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;
@@ -47,10 +46,6 @@ export const createExternalRouter = () => {
 				shell.showItemInFolder(input);
 			}),
 
-		/**
-		 * Open a path in a specific app and save it as the user's preference.
-		 * Used by OpenInButton when user explicitly selects an app.
-		 */
 		openInApp: publicProcedure
 			.input(
 				z.object({
@@ -69,11 +64,6 @@ export const createExternalRouter = () => {
 			clipboard.writeText(input);
 		}),
 
-		/**
-		 * Open a file in the user's preferred editor.
-		 * Resolves relative paths and ~ before opening.
-		 * Used by terminal click-to-open.
-		 */
 		openFileInEditor: publicProcedure
 			.input(
 				z.object({

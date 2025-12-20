@@ -17,7 +17,6 @@ const BASH_DIR = path.join(SUPERSET_HOME_DIR, "bash");
  */
 function findRealBinary(name: string): string | null {
 	try {
-		// Get all paths, filter out both dev and prod superset bin dirs
 		const result = execSync(`which -a ${name} 2>/dev/null || true`, {
 			encoding: "utf-8",
 		});
@@ -36,9 +35,6 @@ function findRealBinary(name: string): string | null {
 	}
 }
 
-/**
- * Creates the notify.sh script
- */
 function createNotifyScript(): void {
 	const notifyPath = path.join(HOOKS_DIR, "notify.sh");
 	const script = `#!/bin/bash
@@ -78,9 +74,6 @@ curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/comple
 	fs.writeFileSync(notifyPath, script, { mode: 0o755 });
 }
 
-/**
- * Creates wrapper script for Claude Code
- */
 function createClaudeWrapper(): void {
 	const wrapperPath = path.join(BIN_DIR, "claude");
 	const realClaude = findRealBinary("claude");
@@ -105,9 +98,6 @@ exec "${realClaude}" --settings "$SUPERSET_CLAUDE_SETTINGS" "$@"
 	console.log(`[agent-setup] Created Claude wrapper -> ${realClaude}`);
 }
 
-/**
- * Creates wrapper script for Codex
- */
 function createCodexWrapper(): void {
 	const wrapperPath = path.join(BIN_DIR, "codex");
 	const realCodex = findRealBinary("codex");
@@ -155,10 +145,6 @@ export PATH="$HOME/${SUPERSET_DIR_NAME}/bin:$PATH"
 	console.log("[agent-setup] Created zsh wrapper");
 }
 
-/**
- * Creates bash initialization wrapper that intercepts shell startup
- * Sources user's real bashrc/profile then prepends our bin to PATH
- */
 function createBashWrapper(): void {
 	const rcfilePath = path.join(BASH_DIR, "rcfile");
 	const script = `# Superset bash rcfile wrapper
@@ -187,34 +173,23 @@ export PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 	console.log("[agent-setup] Created bash wrapper");
 }
 
-/**
- * Sets up the ~/.superset directory structure and agent wrappers
- * Called on app startup
- */
 export function setupAgentHooks(): void {
 	console.log("[agent-setup] Initializing agent hooks...");
 
-	// Create directories
 	fs.mkdirSync(BIN_DIR, { recursive: true });
 	fs.mkdirSync(HOOKS_DIR, { recursive: true });
 	fs.mkdirSync(ZSH_DIR, { recursive: true });
 	fs.mkdirSync(BASH_DIR, { recursive: true });
 
-	// Create scripts
 	createNotifyScript();
 	createClaudeWrapper();
 	createCodexWrapper();
-
-	// Create shell initialization wrappers
 	createZshWrapper();
 	createBashWrapper();
 
 	console.log("[agent-setup] Agent hooks initialized");
 }
 
-/**
- * Returns shell-specific environment variables for intercepting shell initialization
- */
 export function getShellEnv(shell: string): Record<string, string> {
 	if (shell.includes("zsh")) {
 		return {
@@ -226,25 +201,16 @@ export function getShellEnv(shell: string): Record<string, string> {
 	return {};
 }
 
-/**
- * Returns shell-specific arguments for intercepting shell initialization
- */
 export function getShellArgs(shell: string): string[] {
 	if (shell.includes("zsh")) {
-		// Zsh uses ZDOTDIR env var, no special args needed
-		// -l for login shell behavior
 		return ["-l"];
 	}
 	if (shell.includes("bash")) {
-		// Use our custom rcfile that sources user's files then fixes PATH
 		return ["--rcfile", path.join(BASH_DIR, "rcfile")];
 	}
 	return [];
 }
 
-/**
- * Returns the bin directory path
- */
 export function getSupersetBinDir(): string {
 	return BIN_DIR;
 }

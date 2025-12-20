@@ -45,7 +45,6 @@ export function getAppCommand(
 export function resolvePath(filePath: string, cwd?: string): string {
 	let resolved = filePath;
 
-	// Expand home directory
 	if (resolved.startsWith("~")) {
 		const home = process.env.HOME || process.env.USERPROFILE;
 		if (home) {
@@ -53,7 +52,6 @@ export function resolvePath(filePath: string, cwd?: string): string {
 		}
 	}
 
-	// Convert to absolute path
 	if (!nodePath.isAbsolute(resolved)) {
 		resolved = cwd
 			? nodePath.resolve(cwd, resolved)
@@ -96,5 +94,4 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 	});
 }
 
-/** All supported external apps (re-exported for convenience) */
 export { EXTERNAL_APPS, type ExternalApp };
