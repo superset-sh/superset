@@ -13,8 +13,8 @@ import {
 	HiOutlineBugAnt,
 	HiOutlineCommandLine,
 	HiOutlineEnvelope,
-	HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
+import { LuLifeBuoy } from "react-icons/lu";
 import { useOpenSettings } from "renderer/stores";
 import { HOTKEYS } from "shared/hotkeys";
 
@@ -44,18 +44,19 @@ export function HelpMenu() {
 					<DropdownMenuTrigger asChild>
 						<button
 							type="button"
-							className="no-drag flex h-8 w-8 items-center justify-center rounded-md text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+							className="flex items-center gap-1.5 h-[22px] px-2 rounded border border-foreground/15 bg-foreground/[0.03] hover:bg-foreground/[0.08] hover:border-foreground/25 text-foreground/70 hover:text-foreground/90 transition-all text-[11px] font-medium"
 							aria-label="Help menu"
 						>
-							<HiOutlineQuestionMarkCircle className="h-4 w-4" />
+							<LuLifeBuoy className="size-3.5" />
+							<span>Help</span>
 						</button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Help
+				<TooltipContent side="top" sideOffset={8}>
+					Get help & support
 				</TooltipContent>
 			</Tooltip>
-			<DropdownMenuContent align="end" side="bottom" className="w-64">
+			<DropdownMenuContent align="start" side="top" className="w-64">
 				<DropdownMenuItem onClick={handleContactUs}>
 					<HiOutlineEnvelope className="h-4 w-4" />
 					Contact Us

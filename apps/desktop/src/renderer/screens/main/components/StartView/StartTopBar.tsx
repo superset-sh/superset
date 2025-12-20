@@ -1,5 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
-import { SettingsButton } from "../TopBar/SettingsButton";
+import { SettingsButton } from "../SettingsButton";
 import { WindowControls } from "../TopBar/WindowControls";
 
 export function StartTopBar() {

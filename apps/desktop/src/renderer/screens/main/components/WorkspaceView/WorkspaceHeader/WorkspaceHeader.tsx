@@ -20,6 +20,7 @@ import {
 	JETBRAINS_OPTIONS,
 } from "renderer/components/OpenInButton";
 import { trpc } from "renderer/lib/trpc";
+import { HelpMenu } from "../../HelpMenu";
 
 interface WorkspaceHeaderProps {
 	worktreePath: string | undefined;
@@ -97,8 +98,9 @@ export function WorkspaceHeader({ worktreePath }: WorkspaceHeaderProps) {
 
 	return (
 		<div className="h-8 w-full flex items-center justify-between px-3 border-t border-border/50 bg-muted/40 text-[11px] shrink-0 select-none">
-			{/* Left side - Branch info (read-only) */}
+			{/* Left side - Help and Branch info */}
 			<div className="flex items-center gap-2">
+				<HelpMenu />
 				{currentBranch && (
 					<Tooltip>
 						<TooltipTrigger asChild>
