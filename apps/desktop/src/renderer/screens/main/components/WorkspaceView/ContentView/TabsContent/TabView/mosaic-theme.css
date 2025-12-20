@@ -3,9 +3,10 @@
 }
 
 .mosaic-theme-dark .mosaic-window {
-	border: 1px solid var(--color-border);
+	border: none;
 	border-radius: var(--radius-md);
 	overflow: hidden;
+	box-shadow: none;
 	transition:
 		border-color 0.15s ease,
 		box-shadow 0.15s ease;
