@@ -151,6 +151,99 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 		}),
 
+		getBranches: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(
+				async ({
+					input,
+				}): Promise<{
+					branches: Array<{ name: string; lastCommitDate: number }>;
+					defaultBranch: string;
+				}> => {
+					const project = db.data.projects.find((p) => p.id === input.projectId);
+					if (!project) {
+						throw new Error(`Project ${input.projectId} not found`);
+					}
+
+					const git = simpleGit(project.mainRepoPath);
+
+					// Get all branches (local and remote)
+					const branchSummary = await git.branch(["-a"]);
+
+					const localBranches: string[] = [];
+					const remoteBranches: string[] = [];
+
+					for (const name of Object.keys(branchSummary.branches)) {
+						if (name.startsWith("remotes/origin/")) {
+							if (name === "remotes/origin/HEAD") continue;
+							const remoteName = name.replace("remotes/origin/", "");
+							remoteBranches.push(remoteName);
+						} else {
+							localBranches.push(name);
+						}
+					}
+
+					// Get branch dates for sorting
+					let branches: Array<{ name: string; lastCommitDate: number }> = [];
+					try {
+						const branchInfo = await git.raw([
+							"for-each-ref",
+							"--sort=-committerdate",
+							"--format=%(refname:short) %(committerdate:unix)",
+							"refs/heads/",
+							"refs/remotes/origin/",
+						]);
+
+						const seen = new Set<string>();
+						for (const line of branchInfo.trim().split("\n")) {
+							if (!line) continue;
+							const lastSpaceIdx = line.lastIndexOf(" ");
+							let branch = line.substring(0, lastSpaceIdx);
+							const timestamp = Number.parseInt(
+								line.substring(lastSpaceIdx + 1),
+								10,
+							);
+
+							// Normalize remote branch names
+							if (branch.startsWith("origin/")) {
+								branch = branch.replace("origin/", "");
+							}
+
+							// Skip duplicates (prefer local over remote)
+							if (seen.has(branch)) continue;
+							if (branch === "HEAD") continue;
+							seen.add(branch);
+
+							branches.push({
+								name: branch,
+								lastCommitDate: timestamp * 1000,
+							});
+						}
+					} catch {
+						// Fallback: just list branches without dates
+						const allBranches = [
+							...new Set([...localBranches, ...remoteBranches]),
+						];
+						branches = allBranches.map((name) => ({ name, lastCommitDate: 0 }));
+					}
+
+					// Determine default branch
+					let defaultBranch = project.defaultBranch;
+					if (!defaultBranch) {
+						defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					}
+
+					// Sort: default branch first, then by date
+					branches.sort((a, b) => {
+						if (a.name === defaultBranch) return -1;
+						if (b.name === defaultBranch) return 1;
+						return b.lastCommitDate - a.lastCommitDate;
+					});
+
+					return { branches, defaultBranch };
+				},
+			),
+
 		openNew: publicProcedure.mutation(async (): Promise<OpenNewResult> => {
 			const window = getWindow();
 			if (!window) {

@@ -11,7 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiChevronDown } from "react-icons/hi2";
+import { HiChevronUpDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
 
@@ -108,15 +108,18 @@ export function BranchSelector({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<PopoverTrigger asChild>
-						<Button variant="outline" size="sm" className="gap-1">
-							<GoGitBranch className="size-4" />
-							<span>{currentBranch}</span>
-							<HiChevronDown className="size-3" />
-						</Button>
+						<button
+							type="button"
+							className="flex items-center gap-1 hover:text-foreground transition-colors"
+						>
+							<GoGitBranch className="size-3.5" />
+							<span className="max-w-[150px] truncate">{currentBranch}</span>
+							<HiChevronUpDown className="size-3" />
+						</button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Switch to a different branch
+				<TooltipContent side="bottom" sideOffset={8}>
+					Switch branch
 				</TooltipContent>
 			</Tooltip>
 			<PopoverContent className="w-[320px] p-0" align="start" sideOffset={4}>

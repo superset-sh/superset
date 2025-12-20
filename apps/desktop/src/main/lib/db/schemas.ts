@@ -45,6 +45,7 @@ export interface Worktree {
 	projectId: string;
 	path: string;
 	branch: string;
+	baseBranch?: string; // The branch this worktree was created from
 	createdAt: number;
 	gitStatus?: GitStatus;
 	githubStatus?: GitHubStatus;

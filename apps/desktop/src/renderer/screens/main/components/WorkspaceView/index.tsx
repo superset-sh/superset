@@ -108,7 +108,6 @@ export function WorkspaceView() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col">
-			<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
 			<ResizablePanelGroup
 				direction="horizontal"
 				className="flex-1 bg-tertiary"
@@ -131,8 +130,11 @@ export function WorkspaceView() {
 					onDragging={setIsResizing}
 				/>
 				<ResizablePanel defaultSize={100 - sidebarSize}>
-					<div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
-						<ContentView />
+					<div className="h-full bg-background rounded-t-lg flex flex-col overflow-hidden">
+						<div className="flex-1 min-h-0 h-full">
+							<ContentView />
+						</div>
+						<WorkspaceHeader worktreePath={activeWorkspace?.worktreePath} />
 					</div>
 				</ResizablePanel>
 			</ResizablePanelGroup>

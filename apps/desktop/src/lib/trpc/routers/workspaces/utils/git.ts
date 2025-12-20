@@ -358,3 +358,58 @@ export async function branchExistsOnRemote(
 		return false;
 	}
 }
+
+/**
+ * Detect which branch a worktree was likely based off of.
+ * Uses merge-base to find the closest common ancestor with candidate base branches.
+ */
+export async function detectBaseBranch(
+	worktreePath: string,
+	currentBranch: string,
+	defaultBranch: string,
+): Promise<string | null> {
+	const git = simpleGit(worktreePath);
+
+	// Candidate base branches to check, in priority order
+	const candidates = [
+		defaultBranch,
+		"main",
+		"master",
+		"develop",
+		"development",
+	].filter((b, i, arr) => arr.indexOf(b) === i); // dedupe
+
+	let bestCandidate: string | null = null;
+	let bestAheadCount = Number.POSITIVE_INFINITY;
+
+	for (const candidate of candidates) {
+		// Skip if this is the current branch
+		if (candidate === currentBranch) continue;
+
+		try {
+			// Check if the remote branch exists
+			const remoteBranch = `origin/${candidate}`;
+			await git.raw(["rev-parse", "--verify", remoteBranch]);
+
+			// Count how many commits the current branch is ahead of the merge-base
+			// The branch with the fewest commits "ahead" is likely the base
+			const mergeBase = await git.raw(["merge-base", "HEAD", remoteBranch]);
+			const aheadCount = await git.raw([
+				"rev-list",
+				"--count",
+				`${mergeBase.trim()}..HEAD`,
+			]);
+
+			const count = Number.parseInt(aheadCount.trim(), 10);
+			if (count < bestAheadCount) {
+				bestAheadCount = count;
+				bestCandidate = candidate;
+			}
+		} catch {
+			// Branch doesn't exist or other error, skip
+			continue;
+		}
+	}
+
+	return bestCandidate;
+}

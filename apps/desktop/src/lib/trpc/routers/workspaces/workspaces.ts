@@ -9,6 +9,7 @@ import { publicProcedure, router } from "../..";
 import {
 	checkNeedsRebase,
 	createWorktree,
+	detectBaseBranch,
 	fetchDefaultBranch,
 	generateBranchName,
 	getDefaultBranch,
@@ -31,6 +32,7 @@ export const createWorkspacesRouter = () => {
 					projectId: z.string(),
 					name: z.string().optional(),
 					branchName: z.string().optional(),
+					baseBranch: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -60,22 +62,25 @@ export const createWorkspacesRouter = () => {
 					});
 				}
 
+				// Use provided baseBranch or fall back to default
+				const targetBranch = input.baseBranch || defaultBranch;
+
 				// Check if this repo has a remote origin
 				const hasRemote = await hasOriginRemote(project.mainRepoPath);
 
 				// Determine the start point for the worktree
 				let startPoint: string;
 				if (hasRemote) {
-					// Fetch default branch to ensure we're branching from latest (best-effort)
+					// Fetch the target branch to ensure we're branching from latest (best-effort)
 					try {
-						await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
+						await fetchDefaultBranch(project.mainRepoPath, targetBranch);
 					} catch {
 						// Silently continue - branch still exists locally, just might be stale
 					}
-					startPoint = `origin/${defaultBranch}`;
+					startPoint = `origin/${targetBranch}`;
 				} else {
-					// For local-only repos, use the local default branch
-					startPoint = defaultBranch;
+					// For local-only repos, use the local branch
+					startPoint = targetBranch;
 				}
 
 				await createWorktree(
@@ -90,10 +95,11 @@ export const createWorkspacesRouter = () => {
 					projectId: input.projectId,
 					path: worktreePath,
 					branch,
+					baseBranch: targetBranch,
 					createdAt: Date.now(),
 					gitStatus: {
 						branch,
-						needsRebase: false, // Fresh off main, doesn't need rebase
+						needsRebase: false, // Fresh off base branch, doesn't need rebase
 						lastRefreshed: Date.now(),
 					},
 				};
@@ -224,7 +230,7 @@ export const createWorkspacesRouter = () => {
 			);
 		}),
 
-		getActive: publicProcedure.query(() => {
+		getActive: publicProcedure.query(async () => {
 			const { lastActiveWorkspaceId } = db.data.settings;
 
 			if (!lastActiveWorkspaceId) {
@@ -247,6 +253,31 @@ export const createWorkspacesRouter = () => {
 				(wt) => wt.id === workspace.worktreeId,
 			);
 
+			// Detect and persist base branch for existing worktrees that don't have it
+			let baseBranch = worktree?.baseBranch;
+			if (worktree && !baseBranch && project) {
+				try {
+					const defaultBranch = project.defaultBranch || "main";
+					const detected = await detectBaseBranch(
+						worktree.path,
+						worktree.branch,
+						defaultBranch,
+					);
+					if (detected) {
+						baseBranch = detected;
+						// Persist the detected base branch
+						await db.update((data) => {
+							const wt = data.worktrees.find((w) => w.id === worktree.id);
+							if (wt) {
+								wt.baseBranch = detected;
+							}
+						});
+					}
+				} catch {
+					// Detection failed, continue without base branch
+				}
+			}
+
 			return {
 				...workspace,
 				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
@@ -258,7 +289,11 @@ export const createWorkspacesRouter = () => {
 						}
 					: null,
 				worktree: worktree
-					? { branch: worktree.branch, gitStatus: worktree.gitStatus }
+					? {
+							branch: worktree.branch,
+							baseBranch,
+							gitStatus: worktree.gitStatus,
+						}
 					: null,
 			};
 		}),
