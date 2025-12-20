@@ -148,11 +148,8 @@ export function BranchSwitcher({
 									<DropdownMenuItem
 										key={branch}
 										onClick={() => handleSwitchBranch(branch)}
-										disabled={switchBranch.isPending || isInUse}
-										className={cn(
-											"flex items-center gap-2 px-2 py-1.5",
-											isInUse && "opacity-60",
-										)}
+										disabled={switchBranch.isPending}
+										className="flex items-center gap-2 px-2 py-1.5"
 									>
 										{isInUse ? (
 											<LuGitFork className="size-3.5 shrink-0 text-amber-500" />

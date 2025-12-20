@@ -82,6 +82,24 @@ export const useTabsStore = create<TabsStore>()(
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
 					const state = get();
+
+					// Idempotency check: if a tab already exists for this workspace, just activate it
+					const existingTab = state.tabs.find(
+						(t) => t.workspaceId === workspaceId,
+					);
+					if (existingTab) {
+						set({
+							activeTabIds: {
+								...state.activeTabIds,
+								[workspaceId]: existingTab.id,
+							},
+						});
+						return {
+							tabId: existingTab.id,
+							paneId: state.focusedPaneIds[existingTab.id],
+						};
+					}
+
 					const { tab, pane } = createTabWithPane(
 						workspaceId,
 						state.tabs,

@@ -4,7 +4,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 /**
  * Mutation hook for creating a new branch workspace
  * Automatically invalidates all workspace queries on success
- * Adds a tab for the new workspace
+ * Adds a tab for newly created workspaces (not existing ones)
  */
 export function useCreateBranchWorkspace(
 	options?: Parameters<
@@ -12,7 +12,6 @@ export function useCreateBranchWorkspace(
 	>[0],
 ) {
 	const utils = trpc.useUtils();
-	const addTab = useTabsStore((state) => state.addTab);
 
 	return trpc.workspaces.createBranchWorkspace.useMutation({
 		...options,
@@ -20,8 +19,11 @@ export function useCreateBranchWorkspace(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
-			// Add a tab for the new workspace
-			addTab(data.workspace.id);
+			// Only add a tab for newly created workspaces (not existing ones being activated)
+			// The store's addTab is idempotent, so duplicate calls are safe
+			if (!data.wasExisting) {
+				useTabsStore.getState().addTab(data.workspace.id);
+			}
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

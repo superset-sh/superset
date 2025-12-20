@@ -35,45 +35,46 @@ export function WorkspacesTabs() {
 	const [hoveredWorkspaceId, setHoveredWorkspaceId] = useState<string | null>(
 		null,
 	);
-	// Track which projects we've already tried to create main workspaces for
-	const [creatingForProjects, setCreatingForProjects] = useState<Set<string>>(
-		new Set(),
-	);
 
-	// Ensure every active project has a main (branch) workspace
+	// Track projects we've attempted to create workspaces for (persists across renders)
+	// Using ref to avoid re-triggering the effect
+	const attemptedProjectsRef = useRef<Set<string>>(new Set());
+	const [isCreating, setIsCreating] = useState(false);
+
+	// Auto-create main workspace for new projects (one-time per project)
+	// This only runs for projects we haven't attempted yet
 	useEffect(() => {
+		if (isCreating) return;
+
 		for (const group of groups) {
+			const projectId = group.project.id;
 			const hasMainWorkspace = group.workspaces.some(
 				(w) => w.type === "branch",
 			);
-			const alreadyCreating = creatingForProjects.has(group.project.id);
 
-			if (
-				!hasMainWorkspace &&
-				!alreadyCreating &&
-				!createBranchWorkspace.isPending
-			) {
-				// Mark as creating to prevent duplicate calls
-				setCreatingForProjects((prev) => new Set(prev).add(group.project.id));
-				// Create main workspace for this project
-				createBranchWorkspace.mutate(
-					{ projectId: group.project.id },
-					{
-						onSettled: () => {
-							// Remove from creating set when done (success or failure)
-							setCreatingForProjects((prev) => {
-								const next = new Set(prev);
-								next.delete(group.project.id);
-								return next;
-							});
-						},
-					},
-				);
-				// Only create one at a time to avoid race conditions
-				break;
+			// Skip if already has main workspace or we've already attempted this project
+			if (hasMainWorkspace || attemptedProjectsRef.current.has(projectId)) {
+				continue;
 			}
+
+			// Mark as attempted before creating (prevents retries)
+			attemptedProjectsRef.current.add(projectId);
+			setIsCreating(true);
+
+			// Auto-create fails silently - this is a background convenience feature
+			// Users can manually create the workspace via the dropdown if needed
+			createBranchWorkspace.mutate(
+				{ projectId },
+				{
+					onSettled: () => {
+						setIsCreating(false);
+					},
+				},
+			);
+			// Only create one at a time
+			break;
 		}
-	}, [groups, creatingForProjects, createBranchWorkspace]);
+	}, [groups, isCreating, createBranchWorkspace]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);

@@ -258,6 +258,7 @@ export const createWorkspacesRouter = () => {
 					workspace,
 					worktreePath: project.mainRepoPath,
 					projectId: project.id,
+					wasExisting: false,
 				};
 			}),
 

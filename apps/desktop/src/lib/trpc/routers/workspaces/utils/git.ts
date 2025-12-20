@@ -424,7 +424,7 @@ export interface CheckoutSafetyResult {
 
 /**
  * Performs safety checks before a branch checkout:
- * 1. Checks for uncommitted changes (staged/unstaged)
+ * 1. Checks for uncommitted changes (staged/unstaged/created/renamed)
  * 2. Checks for untracked files that might be overwritten
  * 3. Runs git fetch --prune to clean up stale remote refs
  * @param repoPath - Path to the repository
@@ -439,11 +439,22 @@ export async function checkBranchCheckoutSafety(
 		// Check for uncommitted changes
 		const status = await git.status();
 
+		// Check all forms of uncommitted changes:
+		// - staged: files added to index
+		// - modified: tracked files with unstaged changes
+		// - deleted: tracked files deleted but not staged
+		// - created: new files staged for commit
+		// - renamed: files renamed (staged)
+		// - conflicted: merge conflicts
 		const hasUncommittedChanges =
 			status.staged.length > 0 ||
 			status.modified.length > 0 ||
-			status.deleted.length > 0;
+			status.deleted.length > 0 ||
+			status.created.length > 0 ||
+			status.renamed.length > 0 ||
+			status.conflicted.length > 0;
 
+		// Untracked files that could be overwritten by checkout
 		const hasUntrackedFiles = status.not_added.length > 0;
 
 		if (hasUncommittedChanges) {
@@ -453,6 +464,17 @@ export async function checkBranchCheckoutSafety(
 					"Cannot switch branches: you have uncommitted changes. Please commit or stash your changes first.",
 				hasUncommittedChanges: true,
 				hasUntrackedFiles,
+			};
+		}
+
+		// Block on untracked files as they could be overwritten
+		if (hasUntrackedFiles) {
+			return {
+				safe: false,
+				error:
+					"Cannot switch branches: you have untracked files that may be overwritten. Please commit, stash, or remove them first.",
+				hasUncommittedChanges: false,
+				hasUntrackedFiles: true,
 			};
 		}
 
@@ -466,7 +488,7 @@ export async function checkBranchCheckoutSafety(
 		return {
 			safe: true,
 			hasUncommittedChanges: false,
-			hasUntrackedFiles,
+			hasUntrackedFiles: false,
 		};
 	} catch (error) {
 		return {
