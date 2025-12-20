@@ -35,7 +35,8 @@ function findBinaryPathsWindows(name: string): string[] {
  */
 export function findRealBinary(name: string): string | null {
 	if (!isValidBinaryName(name)) {
-		console.warn(`Unsafe binary name: ${name}`);
+		// Ok for now because we're hard-coding the binary name in the wrapper scripts
+		console.error(`Unsafe binary name: ${name}`);
 	}
 
 	try {
