@@ -1,9 +1,9 @@
 import { Button } from "@superset/ui/button";
-import { ButtonGroup } from "@superset/ui/button-group";
+import { ButtonGroup, ButtonGroupSeparator } from "@superset/ui/button-group";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useRef } from "react";
-import { HiChevronDown, HiMiniPlus } from "react-icons/hi2";
+import { HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
@@ -33,6 +33,11 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 
 	const handlePrimaryAction = () => {
 		primaryButtonRef.current?.blur();
+		openModal();
+	};
+
+	const handleQuickCreate = () => {
+		chevronButtonRef.current?.blur();
 		if (currentProject) {
 			toast.promise(
 				createWorkspace.mutateAsync({ projectId: currentProject.id }),
@@ -85,54 +90,50 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		}
 	};
 
-	const handleChevronClick = () => {
-		chevronButtonRef.current?.blur();
-		openModal();
-	};
 
 	return (
-		<ButtonGroup
-			className={[className, "group/split"].filter(Boolean).join(" ")}
-		>
+		<ButtonGroup className={`${className} ml-1 mt-1 rounded-md border border-border/50`}>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
 						ref={primaryButtonRef}
 						variant="ghost"
-						size="icon"
+						size="sm"
 						aria-label="New workspace"
-						className="ml-1 mt-1 size-7 text-muted-foreground hover:text-foreground group-hover/split:bg-accent/30 hover:!bg-accent"
+						className="h-7 gap-1 rounded-r-none px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
 						onClick={handlePrimaryAction}
-						disabled={
-							createWorkspace.isPending ||
-							createBranchWorkspace.isPending ||
-							openNew.isPending
-						}
 					>
-						<HiMiniPlus className="size-5" />
+						<HiMiniPlus className="size-4" />
+						<span className="text-xs">New</span>
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					{currentProject
-						? `New workspace in ${currentProject.name}`
-						: "New workspace"}
+					New workspace
 				</TooltipContent>
 			</Tooltip>
+			<ButtonGroupSeparator />
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
 						ref={chevronButtonRef}
 						variant="ghost"
 						size="icon"
-						aria-label="More workspace options"
-						className="mt-1 size-7 w-4 text-muted-foreground hover:text-foreground group-hover/split:bg-accent/30 hover:!bg-accent"
-						onClick={handleChevronClick}
+						aria-label="Quick create workspace"
+						className="size-7 rounded-l-none text-muted-foreground hover:bg-accent hover:text-foreground"
+						onClick={handleQuickCreate}
+						disabled={
+							createWorkspace.isPending ||
+							createBranchWorkspace.isPending ||
+							openNew.isPending
+						}
 					>
-						<HiChevronDown className="size-2.5" />
+						<HiOutlineBolt className="size-3.5" />
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					More options
+					{currentProject
+						? `Quick create in ${currentProject.name}`
+						: "Quick create workspace"}
 				</TooltipContent>
 			</Tooltip>
 		</ButtonGroup>
