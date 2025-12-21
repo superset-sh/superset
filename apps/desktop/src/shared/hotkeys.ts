@@ -178,9 +178,29 @@ export const HOTKEYS = {
 		category: "Terminal",
 	}),
 
+	// Workspace creation
+	NEW_WORKSPACE: hotkey({
+		keys: "meta+n",
+		label: "New Workspace",
+		category: "Workspace",
+		description: "Open the new workspace modal",
+	}),
+	QUICK_CREATE_WORKSPACE: hotkey({
+		keys: "meta+shift+n",
+		label: "Quick Create Workspace",
+		category: "Workspace",
+		description: "Quickly create a workspace in the current project",
+	}),
+	OPEN_PROJECT: hotkey({
+		keys: "meta+shift+o",
+		label: "Open Project",
+		category: "Workspace",
+		description: "Open an existing project folder",
+	}),
+
 	// Window
 	NEW_WINDOW: hotkey({
-		keys: "meta+shift+n",
+		keys: "meta+alt+n",
 		label: "New Window",
 		category: "Window",
 	}),

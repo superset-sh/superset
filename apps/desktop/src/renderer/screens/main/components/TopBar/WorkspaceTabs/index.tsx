@@ -163,59 +163,52 @@ export function WorkspacesTabs() {
 
 	return (
 		<div ref={containerRef} className="flex items-center h-full w-full">
-			<div className="flex items-center h-full min-w-0">
-				<div className="relative h-full overflow-hidden min-w-0">
-					<div
-						ref={scrollRef}
-						className="flex h-full overflow-x-auto hide-scrollbar gap-4"
-					>
-						{groups.map((group, groupIndex) => (
-							<Fragment key={group.project.id}>
-								<WorkspaceGroup
-									projectId={group.project.id}
-									projectName={group.project.name}
-									projectColor={group.project.color}
-									projectIndex={groupIndex}
-									workspaces={group.workspaces}
-									activeWorkspaceId={
-										isSettingsActive ? null : activeWorkspaceId
-									}
-									workspaceWidth={workspaceWidth}
-									hoveredWorkspaceId={hoveredWorkspaceId}
-									onWorkspaceHover={setHoveredWorkspaceId}
-								/>
-								{groupIndex < groups.length - 1 && (
-									<div className="flex items-center h-full py-2">
-										<div className="w-px h-full bg-border" />
-									</div>
-								)}
-							</Fragment>
-						))}
-						{isSettingsTabOpen && (
-							<>
-								{groups.length > 0 && (
-									<div className="flex items-center h-full py-2">
-										<div className="w-px h-full bg-border" />
-									</div>
-								)}
-								<SettingsTab
-									width={workspaceWidth}
-									isActive={isSettingsActive}
-								/>
-							</>
-						)}
-					</div>
-
-					{/* Fade effects for scroll indication */}
-					{showStartFade && (
-						<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
-					)}
-					{showEndFade && (
-						<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
+			<div className="relative h-full overflow-hidden min-w-0 flex-1">
+				<div
+					ref={scrollRef}
+					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
+				>
+					{groups.map((group, groupIndex) => (
+						<Fragment key={group.project.id}>
+							<WorkspaceGroup
+								projectId={group.project.id}
+								projectName={group.project.name}
+								projectColor={group.project.color}
+								projectIndex={groupIndex}
+								workspaces={group.workspaces}
+								activeWorkspaceId={isSettingsActive ? null : activeWorkspaceId}
+								workspaceWidth={workspaceWidth}
+								hoveredWorkspaceId={hoveredWorkspaceId}
+								onWorkspaceHover={setHoveredWorkspaceId}
+							/>
+							{groupIndex < groups.length - 1 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
+								</div>
+							)}
+						</Fragment>
+					))}
+					{isSettingsTabOpen && (
+						<>
+							{groups.length > 0 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
+								</div>
+							)}
+							<SettingsTab width={workspaceWidth} isActive={isSettingsActive} />
+						</>
 					)}
 				</div>
-				<CreateWorkspaceButton className="no-drag" />
+
+				{/* Fade effects for scroll indication */}
+				{showStartFade && (
+					<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
+				)}
+				{showEndFade && (
+					<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
+				)}
 			</div>
+			<CreateWorkspaceButton className="no-drag shrink-0" />
 		</div>
 	);
 }
