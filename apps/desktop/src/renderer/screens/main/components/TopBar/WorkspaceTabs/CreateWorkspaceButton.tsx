@@ -19,8 +19,8 @@ export interface CreateWorkspaceButtonProps {
 export function CreateWorkspaceButton({
 	className,
 }: CreateWorkspaceButtonProps) {
-	const primaryButtonRef = useRef<HTMLButtonElement>(null);
-	const chevronButtonRef = useRef<HTMLButtonElement>(null);
+	const modalButtonRef = useRef<HTMLButtonElement>(null);
+	const quickCreateButtonRef = useRef<HTMLButtonElement>(null);
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -33,13 +33,13 @@ export function CreateWorkspaceButton({
 		(p) => p.id === activeWorkspace?.projectId,
 	);
 
-	const handlePrimaryAction = () => {
-		primaryButtonRef.current?.blur();
+	const handleModalCreate = () => {
+		modalButtonRef.current?.blur();
 		openModal();
 	};
 
 	const handleQuickCreate = () => {
-		chevronButtonRef.current?.blur();
+		quickCreateButtonRef.current?.blur();
 		if (currentProject) {
 			toast.promise(
 				createWorkspace.mutateAsync({ projectId: currentProject.id }),
@@ -99,12 +99,12 @@ export function CreateWorkspaceButton({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						ref={primaryButtonRef}
+						ref={modalButtonRef}
 						variant="ghost"
 						size="sm"
 						aria-label="New workspace"
 						className="h-7 gap-1 rounded-r-none px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-						onClick={handlePrimaryAction}
+						onClick={handleModalCreate}
 					>
 						<HiMiniPlus className="size-4" />
 						<span className="text-xs">New</span>
@@ -118,7 +118,7 @@ export function CreateWorkspaceButton({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
-						ref={chevronButtonRef}
+						ref={quickCreateButtonRef}
 						variant="ghost"
 						size="icon"
 						aria-label="Quick create workspace"
