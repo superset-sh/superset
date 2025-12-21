@@ -87,8 +87,8 @@ export function ResizableSidebar() {
 				tabIndex={0}
 				onMouseDown={handleMouseDown}
 				className={cn(
-					"absolute top-0 -right-1 w-3 h-full cursor-col-resize z-10",
-					"after:absolute after:top-0 after:left-1 after:w-1 after:h-full after:transition-colors",
+					"absolute top-0 -right-2 w-5 h-full cursor-col-resize z-10",
+					"after:absolute after:top-0 after:left-2 after:w-1 after:h-full after:transition-colors",
 					"hover:after:bg-border focus:outline-none focus:after:bg-border",
 					isResizing && "after:bg-border",
 				)}
