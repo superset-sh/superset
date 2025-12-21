@@ -64,7 +64,7 @@ export function HeroSection() {
 				</motion.div>
 
 				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
-					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-8 lg:gap-12 items-center">
+					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-12 lg:gap-16 items-center">
 						{/* Left column - Text content */}
 						<motion.div
 							className="space-y-8"
@@ -79,14 +79,14 @@ export function HeroSection() {
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									<TypewriterText
-										text="The terminal app for parallel cli agents."
+										text="The Terminal for Coding Agents."
 										speed={40}
 										delay={600}
 									/>
 								</h1>
 								<p className="text-md sm:text-lg font-light text-muted-foreground max-w-[400px]">
-									Run dozens of Claude Code, Codex, or any other cli agents you
-									love.
+									Run agents like Claude Code, Codex, etc. in parallel on your
+									machine.
 								</p>
 							</div>
 
@@ -127,24 +127,15 @@ export function HeroSection() {
 }
 
 const SELECTOR_OPTIONS = [
-	"Use Agents",
-	"Manage Terminals",
-	"Open Worktrees",
-	"Customize Themes",
+	"Use Any Agents",
+	"Create Parallel Branches",
+	"See Changes",
 ] as const;
 
-const BACKGROUND_GRADIENTS: Record<string, string> = {
-	"Use Agents": "from-rose-900/80 via-pink-950/70 to-rose-950/80",
-	"Manage Terminals": "from-amber-900/80 via-yellow-950/70 to-orange-950/80",
-	"Open Worktrees": "from-blue-900/80 via-blue-950/70 to-blue-950/80",
-	"Customize Themes": "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
-};
-
 const DEMO_GIFS: Record<string, string> = {
-	"Use Agents": "/hero/use-agents.gif",
-	"Manage Terminals": "/hero/manage-terminals.gif",
-	"Open Worktrees": "/hero/open-worktrees.gif",
-	"Customize Themes": "/hero/change-themes.gif",
+	"Use Any Agents": "/hero/use-agents.gif",
+	"Create Parallel Branches": "/hero/open-worktrees.gif",
+	"See Changes": "/hero/see-changes.gif",
 };
 
 function ProductDemo() {
@@ -161,49 +152,37 @@ function ProductDemo() {
 	}, [activeOption, loadedGifs]);
 
 	return (
-		<div
-			className="relative w-full rounded-lg overflow-hidden"
-			style={{ aspectRatio: "710/500" }}
-		>
-			{/* Background layers - all rendered, opacity controlled by active state */}
-			{SELECTOR_OPTIONS.map((option) => (
-				<motion.div
-					key={option}
-					className={`absolute inset-0 bg-linear-to-br ${BACKGROUND_GRADIENTS[option]}`}
-					initial={false}
-					animate={{ opacity: activeOption === option ? 1 : 0 }}
-					transition={{ duration: 0.5, ease: "easeInOut" }}
-				/>
-			))}
-
-			{/* GIF layers - lazy loaded, centered with preserved aspect ratio */}
-			{SELECTOR_OPTIONS.map((option) => (
-				<motion.div
-					key={option}
-					className="absolute inset-6 bottom-16 flex items-center justify-center"
-					initial={false}
-					animate={{ opacity: activeOption === option ? 1 : 0 }}
-					transition={{ duration: 0.5, ease: "easeInOut" }}
-				>
-					{loadedGifs.has(option) && DEMO_GIFS[option] && (
-						<div
-							className="relative w-full h-full max-w-[90%] max-h-[90%]"
-							style={{ aspectRatio: "1812/1080" }}
-						>
+		<div className="relative w-full flex flex-col gap-3">
+			{/* Image container with border */}
+			<div
+				className="relative w-full rounded-lg overflow-hidden"
+				style={{ aspectRatio: "1812/1080" }}
+			>
+				{/* GIF layers - lazy loaded, full width with preserved aspect ratio */}
+				{SELECTOR_OPTIONS.map((option) => (
+					<motion.div
+						key={option}
+						className="absolute inset-0"
+						initial={false}
+						animate={{ opacity: activeOption === option ? 1 : 0 }}
+						transition={{ duration: 0.5, ease: "easeInOut" }}
+					>
+						{loadedGifs.has(option) && DEMO_GIFS[option] && (
 							<Image
 								src={DEMO_GIFS[option]}
 								alt={option}
 								fill
-								className="object-contain"
+								className="object-contain rounded-lg border border-border"
 								unoptimized
 								priority={option === SELECTOR_OPTIONS[0]}
 							/>
-						</div>
-					)}
-				</motion.div>
-			))}
+						)}
+					</motion.div>
+				))}
+			</div>
 
-			<div className="absolute bottom-3 left-3 right-3 flex items-center gap-2 overflow-x-auto pb-1">
+			{/* Selector pills - outside the image */}
+			<div className="flex items-center gap-2 overflow-x-auto">
 				{SELECTOR_OPTIONS.map((option) => (
 					<SelectorPill
 						key={option}
