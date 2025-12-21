@@ -12,11 +12,13 @@ import {
 } from "renderer/react-query/workspaces";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
-export interface WorkspaceDropdownProps {
+export interface CreateWorkspaceButtonProps {
 	className?: string;
 }
 
-export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
+export function CreateWorkspaceButton({
+	className,
+}: CreateWorkspaceButtonProps) {
 	const primaryButtonRef = useRef<HTMLButtonElement>(null);
 	const chevronButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -90,9 +92,10 @@ export function WorkspaceDropdown({ className }: WorkspaceDropdownProps) {
 		}
 	};
 
-
 	return (
-		<ButtonGroup className={`${className} ml-1 mt-1 rounded-md border border-border/50`}>
+		<ButtonGroup
+			className={`${className} ml-1 mt-1 rounded-md border border-border/50`}
+		>
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button
