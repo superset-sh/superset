@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
@@ -14,7 +14,7 @@ export function ProductDemo() {
 		<div className="relative w-full flex flex-col gap-3">
 			<div
 				className="relative w-full rounded-lg overflow-hidden"
-				style={{ aspectRatio: "1812/1080" }}
+				style={{ aspectRatio: "1728/1080" }}
 			>
 				{DEMO_OPTIONS.map((option) => (
 					<motion.div
@@ -24,13 +24,9 @@ export function ProductDemo() {
 						animate={{ opacity: activeOption === option.label ? 1 : 0 }}
 						transition={{ duration: 0.5, ease: "easeInOut" }}
 					>
-						<video
+						<DemoVideo
 							src={option.videoPath}
-							autoPlay
-							loop
-							muted
-							playsInline
-							className="w-full h-full object-contain rounded-lg border border-border"
+							isActive={activeOption === option.label}
 						/>
 					</motion.div>
 				))}
@@ -47,5 +43,37 @@ export function ProductDemo() {
 				))}
 			</div>
 		</div>
+	);
+}
+
+interface DemoVideoProps {
+	src: string;
+	isActive: boolean;
+}
+
+function DemoVideo({ src, isActive }: DemoVideoProps) {
+	const videoRef = useRef<HTMLVideoElement>(null);
+
+	useEffect(() => {
+		const video = videoRef.current;
+		if (!video) return;
+
+		if (isActive) {
+			video.currentTime = 0;
+			video.play();
+		} else {
+			video.pause();
+		}
+	}, [isActive]);
+
+	return (
+		<video
+			ref={videoRef}
+			src={src}
+			loop
+			muted
+			playsInline
+			className="w-full h-full object-contain rounded-lg border border-border"
+		/>
 	);
 }
