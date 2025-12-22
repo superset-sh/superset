@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef } from "react";
+import { Gradient } from "stripe-gradient";
 
 interface MeshGradientProps {
 	colors: readonly [string, string, string, string];
@@ -38,36 +39,27 @@ export function MeshGradient({
 		const canvas = canvasRef.current;
 		if (!canvas) return;
 
-		let gradient: GradientInstance | null = null;
+		const gradient = new Gradient() as GradientInstance;
+		gradient.initGradient(`#${canvasId}`);
 
-		const initGradient = async () => {
-			const { Gradient } = await import("stripe-gradient");
-			gradient = new Gradient() as GradientInstance;
-			gradient.initGradient(`#${canvasId}`);
-
-			setTimeout(() => {
-				if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
-					gradient.uniforms.u_global.value.noiseSpeed.value = speed;
-				}
-			}, 100);
-		};
-
-		initGradient();
+		setTimeout(() => {
+			if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
+				gradient.uniforms.u_global.value.noiseSpeed.value = speed;
+			}
+		}, 100);
 
 		return () => {
-			if (gradient) {
-				if (gradient.pause) {
-					gradient.pause();
-				}
-				if (gradient.conf) {
-					gradient.conf.playing = false;
-				}
-				const dummy = document.createElement("div");
-				dummy.appendChild(document.createElement("div"));
-				gradient.el = dummy;
-				if (gradient.disconnect) {
-					gradient.disconnect();
-				}
+			if (gradient.pause) {
+				gradient.pause();
+			}
+			if (gradient.conf) {
+				gradient.conf.playing = false;
+			}
+			const dummy = document.createElement("div");
+			dummy.appendChild(document.createElement("div"));
+			gradient.el = dummy;
+			if (gradient.disconnect) {
+				gradient.disconnect();
 			}
 		};
 	}, [canvasId, speed]);

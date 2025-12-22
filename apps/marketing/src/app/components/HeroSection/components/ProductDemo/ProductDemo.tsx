@@ -1,9 +1,9 @@
 "use client";
 
+import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { DemoVideo } from "./components/DemoVideo";
-import { MeshGradient } from "./components/MeshGradient";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
