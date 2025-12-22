@@ -209,13 +209,47 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 };
 
 /**
- * Gets the next pane ID in the layout, wrapping around to the first if at the end
+ * Gets pane IDs in visual navigation order: left-to-right, top-to-bottom.
+ *
+ * For react-mosaic layouts:
+ * - direction: "row" = horizontal split (first is left, second is right)
+ * - direction: "column" = vertical split (first is top, second is bottom)
+ *
+ * This traversal visits `first` before `second` at each node, which produces
+ * left-to-right ordering for horizontal splits and top-to-bottom for vertical splits.
+ *
+ * Example layout:
+ * ```
+ * ┌───────┬───────┐
+ * │   A   │   B   │  (row split: first=A, second=B)
+ * ├───────┼───────┤
+ * │   C   │   D   │  (row split: first=C, second=D)
+ * └───────┴───────┘
+ * ```
+ * If the top row is `first` in a column split, order would be: [A, B, C, D]
+ */
+export const getPaneIdsInVisualOrder = (
+	layout: MosaicNode<string>,
+): string[] => {
+	if (typeof layout === "string") {
+		return [layout];
+	}
+
+	return [
+		...getPaneIdsInVisualOrder(layout.first),
+		...getPaneIdsInVisualOrder(layout.second),
+	];
+};
+
+/**
+ * Gets the next pane ID in visual order (left-to-right, top-to-bottom),
+ * wrapping around to the first if at the end.
  */
 export const getNextPaneId = (
 	layout: MosaicNode<string>,
 	currentPaneId: string,
 ): string | null => {
-	const paneIds = extractPaneIdsFromLayout(layout);
+	const paneIds = getPaneIdsInVisualOrder(layout);
 	if (paneIds.length <= 1) return null;
 
 	const currentIndex = paneIds.indexOf(currentPaneId);
@@ -226,13 +260,14 @@ export const getNextPaneId = (
 };
 
 /**
- * Gets the previous pane ID in the layout, wrapping around to the last if at the beginning
+ * Gets the previous pane ID in visual order (right-to-left, bottom-to-top),
+ * wrapping around to the last if at the beginning.
  */
 export const getPreviousPaneId = (
 	layout: MosaicNode<string>,
 	currentPaneId: string,
 ): string | null => {
-	const paneIds = extractPaneIdsFromLayout(layout);
+	const paneIds = getPaneIdsInVisualOrder(layout);
 	if (paneIds.length <= 1) return null;
 
 	const currentIndex = paneIds.indexOf(currentPaneId);

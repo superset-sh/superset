@@ -33,8 +33,8 @@ export function WorkspaceView() {
 
 	// Get the active tab object for layout access
 	const activeTab = useMemo(
-		() => (activeTabId ? allTabs.find((t) => t.id === activeTabId) : null),
-		[activeTabId, allTabs],
+		() => (activeTabId ? tabs.find((t) => t.id === activeTabId) : null),
+		[activeTabId, tabs],
 	);
 
 	// Get focused pane ID for the active tab
