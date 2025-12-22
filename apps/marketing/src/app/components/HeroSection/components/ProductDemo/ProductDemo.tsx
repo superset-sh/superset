@@ -27,7 +27,7 @@ export function ProductDemo() {
 			))}
 
 			{/* Video container with border */}
-			<div className="absolute inset-6 bottom-20 rounded-lg border border-foreground/20 overflow-hidden">
+			<div className="absolute inset-6 bottom-20 rounded-lg border-foreground/20 overflow-hidden">
 				{DEMO_OPTIONS.map((option) => (
 					<motion.div
 						key={option.label}
