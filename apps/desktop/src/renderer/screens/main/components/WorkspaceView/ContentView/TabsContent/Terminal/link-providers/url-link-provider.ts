@@ -4,6 +4,8 @@ import {
 	MultiLineLinkProvider,
 } from "./multi-line-link-provider";
 
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
 export class UrlLinkProvider extends MultiLineLinkProvider {
 	private readonly URL_PATTERN =
 		/\bhttps?:\/\/(?:[^\s<>[\]()'"]+|\([^\s<>[\]()'"]*\))+/g;
@@ -21,6 +23,19 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 	protected shouldSkipMatch(_match: LinkMatch): boolean {
 		return false;
+	}
+
+	protected transformMatch(match: LinkMatch): LinkMatch | null {
+		const trimmed = match.text.replace(TRAILING_PUNCTUATION, "");
+		if (trimmed === match.text) {
+			return match;
+		}
+		const charsRemoved = match.text.length - trimmed.length;
+		return {
+			...match,
+			text: trimmed,
+			end: match.end - charsRemoved,
+		};
 	}
 
 	protected handleActivation(event: MouseEvent, text: string): void {

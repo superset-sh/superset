@@ -127,6 +127,14 @@ export function createTerminalInstance(
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
+	// Register URL provider first - more specific pattern takes precedence
+	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+		});
+	});
+	xterm.registerLinkProvider(urlLinkProvider);
+
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
@@ -147,13 +155,6 @@ export function createTerminalInstance(
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
-
-	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-		});
-	});
-	xterm.registerLinkProvider(urlLinkProvider);
 
 	xterm.unicode.activeVersion = "11";
 	fitAddon.fit();

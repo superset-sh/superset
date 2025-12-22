@@ -5,9 +5,14 @@ export interface LinkMatch {
 	index: number;
 	end: number;
 	combinedText: string;
-	groups: RegExpMatchArray;
+	regexMatch: RegExpMatchArray;
 }
 
+/**
+ * Abstract base class for terminal link providers that handles links spanning
+ * up to 3 wrapped lines (previous + current + next). Links spanning 4+ wrapped
+ * lines will be truncated.
+ */
 export abstract class MultiLineLinkProvider implements ILinkProvider {
 	constructor(protected readonly terminal: Terminal) {}
 
@@ -16,8 +21,16 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 	protected abstract handleActivation(
 		event: MouseEvent,
 		text: string,
-		groups: RegExpMatchArray,
+		regexMatch: RegExpMatchArray,
 	): void;
+
+	/**
+	 * Optional hook to transform a match before creating the link.
+	 * Useful for stripping trailing characters. Return null to skip the match.
+	 */
+	protected transformMatch(match: LinkMatch): LinkMatch | null {
+		return match;
+	}
 
 	provideLinks(
 		bufferLineNumber: number,
@@ -63,21 +76,26 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 				continue;
 			}
 
-			const linkMatch: LinkMatch = {
+			let linkMatch: LinkMatch | null = {
 				text: matchText,
 				index: matchIndex,
 				end: matchEnd,
 				combinedText,
-				groups: match,
+				regexMatch: match,
 			};
 
 			if (this.shouldSkipMatch(linkMatch)) {
 				continue;
 			}
 
+			linkMatch = this.transformMatch(linkMatch);
+			if (!linkMatch) {
+				continue;
+			}
+
 			const range = this.calculateLinkRange(
-				matchIndex,
-				matchEnd,
+				linkMatch.index,
+				linkMatch.end,
 				prevLineLength,
 				lineLength,
 				bufferLineNumber,
@@ -87,7 +105,7 @@ export abstract class MultiLineLinkProvider implements ILinkProvider {
 
 			links.push({
 				range,
-				text: matchText,
+				text: linkMatch.text,
 				activate: (event: MouseEvent, text: string) => {
 					this.handleActivation(event, text, match);
 				},

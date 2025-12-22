@@ -137,6 +137,58 @@ describe("UrlLinkProvider", () => {
 				"https://en.wikipedia.org/wiki/URL_(disambiguation)",
 			);
 		});
+
+		it("should strip trailing period from URL", async () => {
+			const terminal = createMockTerminal([
+				{ text: "See https://example.com." },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com");
+		});
+
+		it("should strip trailing comma from URL", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Visit https://example.com, then continue." },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com");
+		});
+
+		it("should strip multiple trailing punctuation", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Check https://example.com..." },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com");
+		});
+
+		it("should strip trailing exclamation and question marks", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Is it https://example.com?" },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com");
+		});
 	});
 
 	describe("wrapped lines - forward looking (next line)", () => {

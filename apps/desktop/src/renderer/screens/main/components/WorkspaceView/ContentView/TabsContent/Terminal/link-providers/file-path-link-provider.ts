@@ -26,8 +26,13 @@ export class FilePathLinkProvider extends MultiLineLinkProvider {
 	}
 
 	protected shouldSkipMatch(match: LinkMatch): boolean {
-		const { text: matchText, index: matchIndex, combinedText, groups } = match;
-		const filePath = groups[1];
+		const {
+			text: matchText,
+			index: matchIndex,
+			combinedText,
+			regexMatch,
+		} = match;
+		const filePath = regexMatch[1];
 
 		if (
 			matchText.startsWith("http://") ||
