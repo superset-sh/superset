@@ -176,7 +176,8 @@ class AuthService extends EventEmitter {
 
 	/**
 	 * Sign in with OAuth provider
-	 * Opens system browser directly to provider's OAuth (bypasses Clerk UI)
+	 * Opens system browser to API endpoint which redirects to provider's OAuth
+	 * This keeps OAuth client_id server-side only
 	 */
 	async signIn(
 		provider: AuthProvider,
@@ -186,33 +187,12 @@ class AuthService extends EventEmitter {
 			// Generate state for CSRF protection
 			const state = generateState();
 
-			let authUrl: URL;
-
-			if (provider === "github") {
-				// Build GitHub OAuth URL
-				authUrl = new URL("https://github.com/login/oauth/authorize");
-				authUrl.searchParams.set("client_id", env.GH_CLIENT_ID);
-				authUrl.searchParams.set(
-					"redirect_uri",
-					`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/github`,
-				);
-				authUrl.searchParams.set("scope", "user:email");
-				authUrl.searchParams.set("state", state);
-			} else {
-				// Build Google OAuth URL (default)
-				authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-				authUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
-				authUrl.searchParams.set(
-					"redirect_uri",
-					`${env.NEXT_PUBLIC_WEB_URL}/api/auth/desktop/google`,
-				);
-				authUrl.searchParams.set("response_type", "code");
-				authUrl.searchParams.set("scope", "openid email profile");
-				authUrl.searchParams.set("state", state);
-				// Force account selection every time
-				authUrl.searchParams.set("prompt", "select_account");
-				authUrl.searchParams.set("access_type", "online");
-			}
+			// Build URL to API endpoint that will redirect to OAuth provider
+			// The API handles adding client_id, keeping it server-side only
+			const authUrl = new URL(
+				`${env.NEXT_PUBLIC_API_URL}/api/auth/${provider}`,
+			);
+			authUrl.searchParams.set("state", state);
 
 			// Open OAuth flow in system browser
 			await shell.openExternal(authUrl.toString());
