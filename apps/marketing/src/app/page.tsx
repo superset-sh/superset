@@ -13,8 +13,8 @@ export default function Home() {
 		<main className="flex flex-col bg-background">
 			<HeroSection />
 			<TrustedBySection />
-			<FeaturesSection />
 			<VideoSection />
+			<FeaturesSection />
 			<SecuritySection />
 			<FAQSection />
 			<CTASection />
