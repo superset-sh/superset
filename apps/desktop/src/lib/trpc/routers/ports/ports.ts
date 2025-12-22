@@ -1,5 +1,6 @@
 import { observable } from "@trpc/server/observable";
-import { type DetectedPort, portManager } from "main/lib/terminal/port-manager";
+import { portManager } from "main/lib/terminal/port-manager";
+import type { DetectedPort } from "shared/types";
 import { publicProcedure, router } from "../..";
 
 type PortEvent =

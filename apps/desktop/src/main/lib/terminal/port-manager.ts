@@ -1,13 +1,6 @@
 import { EventEmitter } from "node:events";
 import net from "node:net";
-
-export interface DetectedPort {
-	port: number;
-	paneId: string;
-	workspaceId: string;
-	detectedAt: number;
-	contextLine: string;
-}
+import type { DetectedPort } from "shared/types";
 
 // How often to check if ports are still running (in ms)
 const HEALTH_CHECK_INTERVAL = 5000;

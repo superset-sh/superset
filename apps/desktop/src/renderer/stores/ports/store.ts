@@ -1,13 +1,6 @@
+import type { DetectedPort } from "shared/types";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-
-export interface DetectedPort {
-	port: number;
-	paneId: string;
-	workspaceId: string;
-	detectedAt: number;
-	contextLine: string;
-}
 
 interface PortsState {
 	ports: DetectedPort[];
