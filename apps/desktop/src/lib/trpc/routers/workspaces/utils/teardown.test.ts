@@ -121,6 +121,32 @@ describe("runTeardown", () => {
 		expect(result.error).toBeDefined();
 	});
 
+	test("captures stderr output in error message when teardown fails", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				teardown: ['echo "This is the error message" >&2 && exit 1'],
+			}),
+		);
+
+		const result = runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		expect(result.success).toBe(false);
+		expect(result.error).toBe("This is the error message");
+	});
+
+	test("captures stdout output in error message when stderr is empty", () => {
+		writeFileSync(
+			join(MAIN_REPO, ".superset", "config.json"),
+			JSON.stringify({
+				teardown: ['echo "stdout error info" && exit 1'],
+			}),
+		);
+
+		const result = runTeardown(MAIN_REPO, WORKTREE, "test-workspace");
+		expect(result.success).toBe(false);
+		expect(result.error).toBe("stdout error info");
+	});
+
 	test("chains multiple teardown commands with &&", () => {
 		const testFile = join(WORKTREE, "teardown-test.txt");
 		writeFileSync(

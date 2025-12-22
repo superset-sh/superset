@@ -62,7 +62,25 @@ export function runTeardown(
 
 		return { success: true };
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
+		// execSync throws an error with stdout/stderr buffers attached
+		let errorMessage = error instanceof Error ? error.message : String(error);
+
+		// Extract stderr/stdout from execSync error for more useful error messages
+		if (error && typeof error === "object") {
+			const execError = error as {
+				stderr?: Buffer | string;
+				stdout?: Buffer | string;
+			};
+			const stderr = execError.stderr?.toString().trim();
+			const stdout = execError.stdout?.toString().trim();
+
+			// Prefer stderr, fall back to stdout if stderr is empty
+			const output = stderr || stdout;
+			if (output) {
+				errorMessage = output;
+			}
+		}
+
 		console.error(
 			`Teardown failed for workspace ${workspaceName}:`,
 			errorMessage,

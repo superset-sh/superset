@@ -200,7 +200,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(
 			container,
-			workspaceCwd,
+			workspaceCwd ?? undefined,
 			initialThemeRef.current,
 		);
 		xtermRef.current = xterm;
