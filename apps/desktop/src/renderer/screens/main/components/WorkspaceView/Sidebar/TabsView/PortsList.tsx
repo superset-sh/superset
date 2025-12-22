@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo } from "react";
-import { LuExternalLink, LuRadioTower } from "react-icons/lu";
+import { useEffect, useMemo, useState } from "react";
+import { LuChevronRight, LuExternalLink, LuRadioTower } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { type DetectedPort, usePortsStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -88,21 +88,36 @@ export function PortsList() {
 		return result;
 	}, [ports, activeWorkspace?.id, workspaceNames]);
 
+	const [isCollapsed, setIsCollapsed] = useState(false);
+
 	if (ports.length === 0) {
 		return null;
 	}
 
 	return (
 		<div className="mt-3 pt-3 border-t border-border/40">
-			<div className="text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5">
+			<button
+				type="button"
+				aria-expanded={!isCollapsed}
+				onClick={() => setIsCollapsed(!isCollapsed)}
+				className="text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground focus-visible:text-muted-foreground focus-visible:outline-none transition-colors"
+			>
+				<LuChevronRight
+					className={`size-3 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+				/>
 				<LuRadioTower className="size-3" />
 				Ports
-			</div>
-			<div className="space-y-2">
-				{groupedPorts.map((group) => (
-					<WorkspacePortGroup key={group.workspaceId} group={group} />
-				))}
-			</div>
+				<span className="text-[10px] ml-auto font-normal">
+					{ports.length}
+				</span>
+			</button>
+			{!isCollapsed && (
+				<div className="space-y-2">
+					{groupedPorts.map((group) => (
+						<WorkspacePortGroup key={group.workspaceId} group={group} />
+					))}
+				</div>
+			)}
 		</div>
 	);
 }
@@ -157,19 +172,19 @@ interface PortBadgeProps {
 function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const panes = useTabsStore((s) => s.panes);
 	const setActiveMutation = trpc.workspaces.setActive.useMutation();
 	const utils = trpc.useUtils();
 
 	const handleClick = async () => {
-		const pane = panes[port.paneId];
-		if (!pane) return;
-
 		// If not in current workspace, switch to it first
 		if (!isCurrentWorkspace) {
 			await setActiveMutation.mutateAsync({ id: port.workspaceId });
 			await utils.workspaces.getActive.invalidate();
 		}
+
+		// Look up pane after potential workspace switch
+		const pane = useTabsStore.getState().panes[port.paneId];
+		if (!pane) return;
 
 		// Set the tab as active for this workspace
 		setActiveTab(port.workspaceId, pane.tabId);
@@ -178,33 +193,36 @@ function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 		setFocusedPane(pane.tabId, port.paneId);
 	};
 
-	const handleOpenInBrowser = (e: React.MouseEvent) => {
-		e.stopPropagation();
+	const handleOpenInBrowser = () => {
 		window.open(`http://localhost:${port.port}`, "_blank");
 	};
 
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<button
-					type="button"
-					onClick={handleClick}
-					className={`group inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-mono transition-colors ${
+				<div
+					className={`group relative inline-flex items-center gap-1 rounded-md text-xs font-mono transition-colors ${
 						isCurrentWorkspace
 							? "bg-primary/10 text-primary hover:bg-primary/20"
 							: "bg-muted/50 text-muted-foreground hover:bg-muted"
 					}`}
 				>
-					<span className="font-medium">{port.port}</span>
+					<button
+						type="button"
+						onClick={handleClick}
+						className="font-medium px-2 py-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-md"
+					>
+						{port.port}
+					</button>
 					<button
 						type="button"
 						onClick={handleOpenInBrowser}
-						className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
-						title="Open in browser"
+						aria-label={`Open port ${port.port} in browser`}
+						className="opacity-0 group-hover:opacity-100 pr-1.5 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none"
 					>
 						<LuExternalLink className="size-3" />
 					</button>
-				</button>
+				</div>
 			</TooltipTrigger>
 			<TooltipContent side="top" showArrow={false}>
 				<div className="text-xs space-y-1">
