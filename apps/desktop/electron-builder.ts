@@ -33,6 +33,7 @@ const config: Configuration = {
 	// ASAR configuration for native modules and external resources
 	asar: true,
 	asarUnpack: [
+		"**/node_modules/better-sqlite3/**/*",
 		"**/node_modules/node-pty/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
@@ -46,9 +47,20 @@ const config: Configuration = {
 			to: "resources",
 			filter: ["**/*"],
 		},
-		// Native module that can't be bundled by Vite.
+		// Database migrations from local-db package (copied to dist/resources/migrations by vite)
+		{
+			from: "dist/resources/migrations",
+			to: "resources/migrations",
+			filter: ["**/*"],
+		},
+		// Native modules that can't be bundled by Vite.
 		// The copy:native-modules script replaces symlinks with real files
 		// before building (required for Bun 1.3+ isolated installs).
+		{
+			from: "node_modules/better-sqlite3",
+			to: "node_modules/better-sqlite3",
+			filter: ["**/*"],
+		},
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",

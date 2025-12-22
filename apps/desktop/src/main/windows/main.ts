@@ -1,14 +1,16 @@
 import { join } from "node:path";
+import { workspaces, worktrees } from "@superset/local-db";
+import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { Notification, screen } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
+import { localDb } from "main/lib/local-db";
 import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
 import { setMainWindow } from "../lib/auto-updater";
-import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import {
@@ -87,14 +89,18 @@ export async function MainWindow() {
 				// Derive workspace name from workspaceId with safe fallbacks
 				let workspaceName = "Workspace";
 				try {
-					const workspaces = db.data?.workspaces;
-					const worktrees = db.data?.worktrees;
-					if (Array.isArray(workspaces) && Array.isArray(worktrees)) {
-						const workspace = workspaces.find(
-							(w) => w.id === event.workspaceId,
-						);
-						const worktree = workspace
-							? worktrees.find((wt) => wt.id === workspace.worktreeId)
+					if (event.workspaceId) {
+						const workspace = localDb
+							.select()
+							.from(workspaces)
+							.where(eq(workspaces.id, event.workspaceId))
+							.get();
+						const worktree = workspace?.worktreeId
+							? localDb
+									.select()
+									.from(worktrees)
+									.where(eq(worktrees.id, workspace.worktreeId))
+									.get()
 							: undefined;
 						workspaceName = workspace?.name || worktree?.branch || "Workspace";
 					}

@@ -1,7 +1,7 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import { LayoutGroup, motion } from "framer-motion";
-import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import {

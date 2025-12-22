@@ -7,9 +7,12 @@ import { shutdown as shutdownAnalytics, track } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
-import { initDb } from "./lib/db";
+import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
+
+// Initialize local SQLite database (runs migrations + legacy data migration on import)
+console.log("[main] Local database ready:", !!localDb);
 
 // Set different app name for dev to avoid singleton lock conflicts with production
 if (process.env.NODE_ENV === "development") {
@@ -120,7 +123,6 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 
-		await initDb();
 		await initAppState();
 		await authService.initialize();
 

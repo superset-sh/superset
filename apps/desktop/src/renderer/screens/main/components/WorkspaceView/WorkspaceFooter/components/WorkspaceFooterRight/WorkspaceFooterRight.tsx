@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -10,7 +11,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ExternalApp } from "main/lib/db/schemas";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuArrowUpRight, LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
