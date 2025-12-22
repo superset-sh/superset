@@ -6,13 +6,13 @@ import * as pty from "node-pty";
 import { getHistoryDir } from "../terminal-history";
 import { TerminalManager } from "./manager";
 
-// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
-const testTmpDir = join(tmpdir(), "superset-test");
-
 // Mock node-pty
 mock.module("node-pty", () => ({
 	spawn: mock(() => {}),
 }));
+
+// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
+const testTmpDir = join(tmpdir(), "superset-test");
 
 describe("TerminalManager", () => {
 	let manager: TerminalManager;

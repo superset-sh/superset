@@ -3,6 +3,7 @@ import { app, BrowserWindow } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { shutdown as shutdownAnalytics, track } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
@@ -48,6 +49,7 @@ async function processDeepLink(url: string): Promise<void> {
 				refreshTokenExpiresAt: result.refreshTokenExpiresAt,
 				state: result.state,
 			});
+			track("auth_completed");
 			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
@@ -138,9 +140,9 @@ if (!gotTheLock) {
 			await processDeepLink(coldStartUrl);
 		}
 
-		// Clean up all terminals when app is quitting
+		// Clean up all terminals and analytics when app is quitting
 		app.on("before-quit", async () => {
-			await terminalManager.cleanup();
+			await Promise.all([terminalManager.cleanup(), shutdownAnalytics()]);
 		});
 	})();
 }

@@ -85,4 +85,17 @@ mock.module("electron", () => ({
 		handle: mock(),
 		on: mock(),
 	},
+	shell: {
+		openExternal: mock(() => Promise.resolve()),
+	},
+}));
+
+// =============================================================================
+// Analytics Mock (has Electron/API dependencies)
+// =============================================================================
+
+mock.module("main/lib/analytics", () => ({
+	track: mock(() => {}),
+	clearUserCache: mock(() => {}),
+	shutdown: mock(() => Promise.resolve()),
 }));

@@ -18,6 +18,8 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GH_CLIENT_ID: z.string().min(1),
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+		NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
 	},
 
 	runtimeEnv: {
@@ -29,6 +31,8 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
 		GH_CLIENT_ID: process.env.GH_CLIENT_ID,
+		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
 	},
 	emptyStringAsUndefined: true,
 

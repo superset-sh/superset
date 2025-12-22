@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { track } from "main/lib/analytics";
 import { db } from "main/lib/db";
 import { terminalManager } from "main/lib/terminal";
 import { nanoid } from "nanoid";
@@ -166,6 +167,13 @@ export const createWorkspacesRouter = () => {
 				// Load setup configuration from the main repo (where .superset/config.json lives)
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					branch: branch,
+					base_branch: targetBranch,
+				});
+
 				return {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
@@ -269,6 +277,13 @@ export const createWorkspacesRouter = () => {
 							p.tabOrder = maxProjectTabOrder + 1;
 						}
 					}
+				});
+
+				track("workspace_opened", {
+					workspace_id: returnedWorkspace.id,
+					project_id: project.id,
+					type: "branch",
+					was_existing: wasExisting,
 				});
 
 				return {
@@ -772,6 +787,8 @@ export const createWorkspacesRouter = () => {
 						? `${terminalResult.failed} terminal process(es) may still be running`
 						: undefined;
 
+				track("workspace_deleted", { workspace_id: input.id });
+
 				return { success: true, teardownError, terminalWarning };
 			}),
 
@@ -1059,6 +1076,12 @@ export const createWorkspacesRouter = () => {
 				// Load setup configuration from the main repo
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
+				track("workspace_opened", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "worktree",
+				});
+
 				return {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
@@ -1109,6 +1132,8 @@ export const createWorkspacesRouter = () => {
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
 						: undefined;
+
+				track("workspace_closed", { workspace_id: input.id });
 
 				return { success: true, terminalWarning };
 			}),
