@@ -168,13 +168,13 @@ export const createTerminalRouter = () => {
 			.query(async ({ input: workspaceId }) => {
 				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
 				if (!workspace) {
-					return undefined;
+					return null;
 				}
 
 				const worktree = db.data.worktrees.find(
 					(wt) => wt.id === workspace.worktreeId,
 				);
-				return worktree?.path;
+				return worktree?.path ?? null;
 			}),
 
 		/**
