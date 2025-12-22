@@ -59,12 +59,15 @@ export class TerminalManager extends EventEmitter {
 	private async doCreateSession(
 		params: InternalCreateSessionParams,
 	): Promise<SessionResult> {
-		const { paneId, initialCommands } = params;
+		const { paneId, workspaceId, initialCommands } = params;
 
 		// Create the session
 		const session = await createSession(params, (id, data) => {
 			this.emit(`data:${id}`, data);
 		});
+
+		// Register terminal with port manager for process-based port detection
+		portManager.registerTerminal(paneId, workspaceId, session.pty.pid);
 
 		// Set up data handler
 		setupDataHandler(session, initialCommands, session.wasRecovered, () =>
@@ -124,7 +127,7 @@ export class TerminalManager extends EventEmitter {
 			await closeSessionHistory(session, exitCode);
 
 			// Clean up detected ports for this pane
-			portManager.removePortsForPane(paneId);
+			portManager.unregisterTerminal(paneId);
 
 			this.emit(`exit:${paneId}`, exitCode, signal);
 
