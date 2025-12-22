@@ -109,6 +109,9 @@ export class TerminalManager extends EventEmitter {
 				await closeSessionHistory(session, exitCode);
 				this.sessions.delete(paneId);
 
+				// Clean up old port registration before creating new session
+				portManager.unregisterTerminal(paneId);
+
 				try {
 					await this.doCreateSession({
 						...params,

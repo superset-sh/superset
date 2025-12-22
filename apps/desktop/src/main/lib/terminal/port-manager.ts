@@ -1,20 +1,26 @@
 import { exec } from "node:child_process";
 import { EventEmitter } from "node:events";
+import os from "node:os";
 import { promisify } from "node:util";
 import type { DetectedPort } from "shared/types";
 
 const execAsync = promisify(exec);
 
+// Port detection only works on macOS and Linux (uses pgrep/lsof)
+const IS_SUPPORTED_PLATFORM =
+	os.platform() === "darwin" || os.platform() === "linux";
+
 // How often to scan for listening ports (in ms)
+// 3 seconds balances responsiveness with CPU overhead from process tree scanning
 const PORT_SCAN_INTERVAL = 3000;
 
-// Ports to ignore (common system/ephemeral ports)
+// Ports to ignore - these are typically system services, not user dev servers
+// 80: HTTP, 443: HTTPS - usually handled by system web servers or proxies
 const IGNORED_PORTS = new Set([80, 443]);
 
-// Minimum valid port to track
+// Port range to track: 1024-65535 (user/unprivileged ports)
+// Ports 0-1023 are "well-known" ports requiring root and are typically system services
 const MIN_PORT = 1024;
-
-// Maximum valid port
 const MAX_PORT = 65535;
 
 interface TrackedTerminal {
@@ -26,9 +32,12 @@ interface TrackedTerminal {
 /**
  * Recursively get all descendant PIDs (children, grandchildren, etc.) of a process.
  * Uses pgrep to walk down the process tree from a given PID.
+ * Only works on macOS/Linux.
  */
 async function getAllDescendantPIDs(pid: number): Promise<number[]> {
-	const allPids = [pid];
+	if (!IS_SUPPORTED_PLATFORM) return [pid];
+
+	const seenPids = new Set<number>([pid]); // O(1) lookup for deduplication
 	const toProcess = [pid];
 
 	while (toProcess.length > 0) {
@@ -52,54 +61,74 @@ async function getAllDescendantPIDs(pid: number): Promise<number[]> {
 				.filter((p) => !Number.isNaN(p));
 
 			for (const childPid of children) {
-				if (!allPids.includes(childPid)) {
-					allPids.push(childPid);
+				if (!seenPids.has(childPid)) {
+					seenPids.add(childPid);
 					toProcess.push(childPid);
 				}
 			}
-		} catch {}
+		} catch (_error) {
+			// pgrep may fail if process exited or on permission issues
+			// This is expected for short-lived processes, so we continue silently
+		}
 	}
 
-	return allPids;
+	return Array.from(seenPids);
+}
+
+interface PortInfo {
+	port: number;
+	command: string;
 }
 
 /**
- * Get listening ports for a set of PIDs.
- * Returns an array of port numbers.
+ * Get listening ports for a set of PIDs, including the command name.
+ * Only works on macOS/Linux.
  */
-async function getListeningPortsForPIDs(pids: number[]): Promise<number[]> {
-	if (pids.length === 0) return [];
+async function getListeningPortsForPIDs(pids: number[]): Promise<PortInfo[]> {
+	if (!IS_SUPPORTED_PLATFORM || pids.length === 0) return [];
 
-	const allPorts: number[] = [];
+	const portMap = new Map<number, string>(); // port -> command (deduplicates)
 
 	// Check each PID for listening ports using lsof
 	for (const pid of pids) {
 		try {
 			// lsof for a specific PID's listening TCP ports
+			// Output: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
 			const { stdout } = await execAsync(
-				`lsof -Pan -p ${pid} -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $9}' | sed 's/.*://' || true`,
+				`lsof -Pan -p ${pid} -iTCP -sTCP:LISTEN 2>/dev/null || true`,
 				{ timeout: 2000 },
 			);
 
-			const ports = stdout
-				.trim()
-				.split("\n")
-				.filter(Boolean)
-				.map((p) => Number.parseInt(p, 10))
-				.filter(
-					(p) =>
-						!Number.isNaN(p) &&
-						p >= MIN_PORT &&
-						p <= MAX_PORT &&
-						!IGNORED_PORTS.has(p),
-				);
+			const lines = stdout.trim().split("\n").slice(1); // Skip header
+			for (const line of lines) {
+				const parts = line.split(/\s+/);
+				if (parts.length < 9) continue;
 
-			allPorts.push(...ports);
-		} catch {}
+				const command = parts[0]; // First column is COMMAND
+				const name = parts[parts.length - 1]; // Last column is NAME (e.g., *:3000)
+				const portMatch = name.match(/:(\d+)$/);
+				if (!portMatch) continue;
+
+				const port = Number.parseInt(portMatch[1], 10);
+				if (
+					!Number.isNaN(port) &&
+					port >= MIN_PORT &&
+					port <= MAX_PORT &&
+					!IGNORED_PORTS.has(port) &&
+					!portMap.has(port)
+				) {
+					portMap.set(port, command);
+				}
+			}
+		} catch (_error) {
+			// lsof may fail if process exited during scan - this is expected
+		}
 	}
 
-	// Deduplicate
-	return [...new Set(allPorts)];
+	return Array.from(portMap.entries()).map(([port, command]) => ({
+		port,
+		command,
+	}));
 }
 
 class PortManager extends EventEmitter {
@@ -112,11 +141,6 @@ class PortManager extends EventEmitter {
 	// Prevent concurrent scans
 	private isScanning = false;
 
-	constructor() {
-		super();
-		this.startPortScanning();
-	}
-
 	private makeKey(paneId: string, port: number): string {
 		return `${paneId}:${port}`;
 	}
@@ -124,13 +148,20 @@ class PortManager extends EventEmitter {
 	/**
 	 * Register a terminal session for port tracking.
 	 * Call this when a new terminal session is created.
+	 * Starts port scanning lazily on first terminal registration.
 	 */
 	registerTerminal(
 		paneId: string,
 		workspaceId: string,
 		shellPid: number,
 	): void {
+		const isFirstTerminal = this.terminals.size === 0;
 		this.terminals.set(paneId, { paneId, workspaceId, shellPid });
+
+		// Start scanning lazily when first terminal is registered
+		if (isFirstTerminal) {
+			this.startPortScanning();
+		}
 	}
 
 	/**
@@ -147,6 +178,13 @@ class PortManager extends EventEmitter {
 	 */
 	private startPortScanning(): void {
 		if (this.scanInterval) return;
+
+		if (!IS_SUPPORTED_PLATFORM) {
+			console.warn(
+				"[PortManager] Port detection is only supported on macOS and Linux",
+			);
+			return;
+		}
 
 		// Do an initial scan soon after startup
 		setTimeout(() => this.scanForPorts(), 1000);
@@ -190,16 +228,21 @@ class PortManager extends EventEmitter {
 					const descendantPids = await getAllDescendantPIDs(terminal.shellPid);
 
 					// Get listening ports for these PIDs
-					const ports = await getListeningPortsForPIDs(descendantPids);
+					const portInfos = await getListeningPortsForPIDs(descendantPids);
 
 					// Track and emit new ports
-					for (const port of ports) {
+					for (const { port, command } of portInfos) {
 						const key = this.makeKey(terminal.paneId, port);
 						foundPorts.add(key);
 
 						// Add port if not already tracked
 						if (!this.ports.has(key)) {
-							this.addPort(port, terminal.paneId, terminal.workspaceId);
+							this.addPort(
+								port,
+								terminal.paneId,
+								terminal.workspaceId,
+								command,
+							);
 						}
 					}
 				} catch (error) {
@@ -227,7 +270,12 @@ class PortManager extends EventEmitter {
 	/**
 	 * Add a detected port
 	 */
-	private addPort(port: number, paneId: string, workspaceId: string): void {
+	private addPort(
+		port: number,
+		paneId: string,
+		workspaceId: string,
+		command: string,
+	): void {
 		const key = this.makeKey(paneId, port);
 
 		const detectedPort: DetectedPort = {
@@ -235,7 +283,7 @@ class PortManager extends EventEmitter {
 			paneId,
 			workspaceId,
 			detectedAt: Date.now(),
-			contextLine: `Listening on port ${port}`,
+			contextLine: `${command} listening on port ${port}`,
 		};
 
 		this.ports.set(key, detectedPort);
@@ -288,14 +336,6 @@ class PortManager extends EventEmitter {
 	 */
 	async triggerScan(): Promise<void> {
 		await this.scanForPorts();
-	}
-
-	/**
-	 * @deprecated Use registerTerminal/unregisterTerminal instead.
-	 * This method is kept for backward compatibility but does nothing.
-	 */
-	scanOutput(_data: string, _paneId: string, _workspaceId: string): void {
-		// No-op: port detection is now process-based, not output-based
 	}
 }
 

@@ -180,9 +180,23 @@ function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 			await utils.workspaces.getActive.invalidate();
 		}
 
-		// Look up pane after potential workspace switch
-		const pane = useTabsStore.getState().panes[port.paneId];
-		if (!pane) return;
+		// Wait for tabs store to sync after workspace switch (with retry)
+		// The store updates asynchronously, so we poll briefly
+		let pane = useTabsStore.getState().panes[port.paneId];
+		if (!pane && !isCurrentWorkspace) {
+			// Retry a few times with small delays for store to sync
+			for (let i = 0; i < 5 && !pane; i++) {
+				await new Promise((r) => setTimeout(r, 50));
+				pane = useTabsStore.getState().panes[port.paneId];
+			}
+		}
+
+		if (!pane) {
+			console.warn(
+				`[PortsList] Could not find pane ${port.paneId} for port ${port.port}`,
+			);
+			return;
+		}
 
 		// Set the tab as active for this workspace
 		setActiveTab(port.workspaceId, pane.tabId);
