@@ -38,8 +38,7 @@ export function HeroSection() {
 									/>
 								</h1>
 								<p className="text-md sm:text-lg font-light text-muted-foreground max-w-[400px]">
-									Run agents like Claude Code, Codex, etc. in parallel on your
-									machine.
+									Run dozens of Claude Code, Codex, or any other in parallel.
 								</p>
 							</div>
 

@@ -8,7 +8,7 @@ export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		label: "Use Any Agents",
 		videoPath: "/hero/agents.mp4",
-		colors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
+		colors: ["#7f1d1d", "#991b1b", "#450a0a", "#1a1a2e"],
 	},
 	{
 		label: "Create Parallel Branches",
