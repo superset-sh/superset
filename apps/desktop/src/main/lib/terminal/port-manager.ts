@@ -17,11 +17,6 @@ const MIN_PORT = 1024;
 // Maximum valid port
 const MAX_PORT = 65535;
 
-interface ListeningPort {
-	port: number;
-	pid: number;
-}
-
 interface TrackedTerminal {
 	paneId: string;
 	workspaceId: string;
@@ -29,119 +24,82 @@ interface TrackedTerminal {
 }
 
 /**
- * Get all listening TCP ports and their PIDs using lsof
+ * Recursively get all descendant PIDs (children, grandchildren, etc.) of a process.
+ * Uses pgrep to walk down the process tree from a given PID.
  */
-async function getListeningPorts(): Promise<ListeningPort[]> {
-	try {
-		// lsof -i -P -n -sTCP:LISTEN outputs listening TCP sockets
-		// -i: network files, -P: don't resolve ports, -n: don't resolve hosts, -sTCP:LISTEN: only listening
-		const { stdout } = await execAsync(
-			"lsof -i -P -n -sTCP:LISTEN 2>/dev/null",
-			{ timeout: 5000 },
-		);
+async function getAllDescendantPIDs(pid: number): Promise<number[]> {
+	const allPids = [pid];
+	const toProcess = [pid];
 
-		const ports: ListeningPort[] = [];
-		const lines = stdout.split("\n").slice(1); // Skip header line
+	while (toProcess.length > 0) {
+		const currentPid = toProcess.shift();
+		if (currentPid === undefined) break;
 
-		for (const line of lines) {
-			if (!line.trim()) continue;
+		try {
+			// pgrep -P gets direct children of a process
+			const { stdout } = await execAsync(
+				`pgrep -P ${currentPid} 2>/dev/null || true`,
+				{
+					timeout: 2000,
+				},
+			);
 
-			// lsof output format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
-			// NAME is like: *:3000 or 127.0.0.1:3000 or [::1]:3000
-			const parts = line.split(/\s+/);
-			if (parts.length < 9) continue;
+			const children = stdout
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+				.map((p) => Number.parseInt(p, 10))
+				.filter((p) => !Number.isNaN(p));
 
-			const pid = Number.parseInt(parts[1], 10);
-			const name = parts[parts.length - 1]; // Last column is NAME
-
-			// Extract port from NAME (e.g., "*:3000", "127.0.0.1:3000", "[::1]:3000")
-			const portMatch = name.match(/:(\d+)$/);
-			if (!portMatch) continue;
-
-			const port = Number.parseInt(portMatch[1], 10);
-
-			if (
-				!Number.isNaN(pid) &&
-				!Number.isNaN(port) &&
-				port >= MIN_PORT &&
-				port <= MAX_PORT &&
-				!IGNORED_PORTS.has(port)
-			) {
-				// Avoid duplicates (same port can appear multiple times for IPv4/IPv6)
-				if (!ports.some((p) => p.port === port)) {
-					ports.push({ port, pid });
+			for (const childPid of children) {
+				if (!allPids.includes(childPid)) {
+					allPids.push(childPid);
+					toProcess.push(childPid);
 				}
 			}
-		}
-
-		return ports;
-	} catch {
-		// lsof might fail on some systems or if no ports are listening
-		return [];
+		} catch {}
 	}
+
+	return allPids;
 }
 
 /**
- * Get all process parent-child relationships in a single call.
- * Returns a Map from PID to parent PID.
+ * Get listening ports for a set of PIDs.
+ * Returns an array of port numbers.
  */
-async function getAllProcessParents(): Promise<Map<number, number>> {
-	const parentMap = new Map<number, number>();
+async function getListeningPortsForPIDs(pids: number[]): Promise<number[]> {
+	if (pids.length === 0) return [];
 
-	try {
-		// Get all processes with their parent PIDs in one call
-		// ps -A -o pid=,ppid= outputs: "  PID  PPID" for all processes
-		const { stdout } = await execAsync("ps -A -o pid=,ppid=", {
-			timeout: 5000,
-		});
+	const allPorts: number[] = [];
 
-		for (const line of stdout.split("\n")) {
-			const trimmed = line.trim();
-			if (!trimmed) continue;
+	// Check each PID for listening ports using lsof
+	for (const pid of pids) {
+		try {
+			// lsof for a specific PID's listening TCP ports
+			const { stdout } = await execAsync(
+				`lsof -Pan -p ${pid} -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $9}' | sed 's/.*://' || true`,
+				{ timeout: 2000 },
+			);
 
-			const parts = trimmed.split(/\s+/);
-			if (parts.length < 2) continue;
+			const ports = stdout
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+				.map((p) => Number.parseInt(p, 10))
+				.filter(
+					(p) =>
+						!Number.isNaN(p) &&
+						p >= MIN_PORT &&
+						p <= MAX_PORT &&
+						!IGNORED_PORTS.has(p),
+				);
 
-			const pid = Number.parseInt(parts[0], 10);
-			const ppid = Number.parseInt(parts[1], 10);
-
-			if (!Number.isNaN(pid) && !Number.isNaN(ppid)) {
-				parentMap.set(pid, ppid);
-			}
-		}
-	} catch {
-		// ps might fail
+			allPorts.push(...ports);
+		} catch {}
 	}
 
-	return parentMap;
-}
-
-/**
- * Check if a process is a descendant of a given ancestor PID.
- * Uses a pre-computed parent map for efficiency.
- */
-function isDescendantOf(
-	pid: number,
-	ancestorPid: number,
-	parentMap: Map<number, number>,
-): boolean {
-	let currentPid = pid;
-	let iterations = 0;
-	const maxIterations = 100; // Prevent infinite loops
-
-	while (currentPid > 1 && iterations < maxIterations) {
-		if (currentPid === ancestorPid) {
-			return true;
-		}
-
-		const ppid = parentMap.get(currentPid);
-		if (ppid === undefined || ppid === currentPid) break;
-
-		currentPid = ppid;
-		iterations++;
-	}
-
-	return false;
+	// Deduplicate
+	return [...new Set(allPorts)];
 }
 
 class PortManager extends EventEmitter {
@@ -212,7 +170,9 @@ class PortManager extends EventEmitter {
 	}
 
 	/**
-	 * Scan for listening ports and match them to terminal sessions
+	 * Scan for listening ports and match them to terminal sessions.
+	 * Uses a targeted approach: for each terminal, get all descendant processes
+	 * and check which ones are listening on ports.
 	 */
 	private async scanForPorts(): Promise<void> {
 		// Prevent concurrent scans
@@ -220,30 +180,33 @@ class PortManager extends EventEmitter {
 		this.isScanning = true;
 
 		try {
-			// Get all data needed for the scan in parallel
-			const [listeningPorts, parentMap] = await Promise.all([
-				getListeningPorts(),
-				getAllProcessParents(),
-			]);
-
 			// Track which ports we found in this scan (for cleanup)
 			const foundPorts = new Set<string>();
 
-			// For each listening port, check if it belongs to any of our terminals
-			for (const { port, pid } of listeningPorts) {
-				// Check each registered terminal
-				for (const terminal of this.terminals.values()) {
-					if (isDescendantOf(pid, terminal.shellPid, parentMap)) {
+			// For each terminal, find its descendant processes and their listening ports
+			for (const terminal of this.terminals.values()) {
+				try {
+					// Get all descendant PIDs of this terminal's shell
+					const descendantPids = await getAllDescendantPIDs(terminal.shellPid);
+
+					// Get listening ports for these PIDs
+					const ports = await getListeningPortsForPIDs(descendantPids);
+
+					// Track and emit new ports
+					for (const port of ports) {
 						const key = this.makeKey(terminal.paneId, port);
 						foundPorts.add(key);
 
 						// Add port if not already tracked
 						if (!this.ports.has(key)) {
-							this.addPort(port, terminal.paneId, terminal.workspaceId, pid);
+							this.addPort(port, terminal.paneId, terminal.workspaceId);
 						}
-						// Port belongs to this terminal, no need to check others
-						break;
 					}
+				} catch (error) {
+					console.error(
+						`[PortManager] Error scanning terminal ${terminal.paneId}:`,
+						error,
+					);
 				}
 			}
 
@@ -264,12 +227,7 @@ class PortManager extends EventEmitter {
 	/**
 	 * Add a detected port
 	 */
-	private addPort(
-		port: number,
-		paneId: string,
-		workspaceId: string,
-		pid: number,
-	): void {
+	private addPort(port: number, paneId: string, workspaceId: string): void {
 		const key = this.makeKey(paneId, port);
 
 		const detectedPort: DetectedPort = {
@@ -277,7 +235,7 @@ class PortManager extends EventEmitter {
 			paneId,
 			workspaceId,
 			detectedAt: Date.now(),
-			contextLine: `Process ${pid} listening on port ${port}`,
+			contextLine: `Listening on port ${port}`,
 		};
 
 		this.ports.set(key, detectedPort);
