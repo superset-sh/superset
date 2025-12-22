@@ -107,9 +107,7 @@ export function PortsList() {
 				/>
 				<LuRadioTower className="size-3" />
 				Ports
-				<span className="text-[10px] ml-auto font-normal">
-					{ports.length}
-				</span>
+				<span className="text-[10px] ml-auto font-normal">{ports.length}</span>
 			</button>
 			{!isCollapsed && (
 				<div className="space-y-2">
