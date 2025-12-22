@@ -11,11 +11,23 @@ export function ProductDemo() {
 	);
 
 	return (
-		<div className="relative w-full flex flex-col gap-3">
-			<div
-				className="relative w-full rounded-lg overflow-hidden border-2"
-				style={{ aspectRatio: "1728/1080" }}
-			>
+		<div
+			className="relative w-full rounded-lg overflow-hidden"
+			style={{ aspectRatio: "710/500" }}
+		>
+			{/* Background gradient layers */}
+			{DEMO_OPTIONS.map((option) => (
+				<motion.div
+					key={`bg-${option.label}`}
+					className={`absolute inset-0 bg-linear-to-br ${option.gradient}`}
+					initial={false}
+					animate={{ opacity: activeOption === option.label ? 1 : 0 }}
+					transition={{ duration: 0.5, ease: "easeInOut" }}
+				/>
+			))}
+
+			{/* Video container with border */}
+			<div className="absolute inset-6 bottom-20 rounded-lg border border-foreground/20 overflow-hidden">
 				{DEMO_OPTIONS.map((option) => (
 					<motion.div
 						key={option.label}
@@ -32,7 +44,7 @@ export function ProductDemo() {
 				))}
 			</div>
 
-			<div className="flex items-center gap-2 overflow-x-auto">
+			<div className="absolute bottom-4 left-6 right-6 flex items-center gap-2 overflow-x-auto">
 				{DEMO_OPTIONS.map((option) => (
 					<SelectorPill
 						key={option.label}
