@@ -82,7 +82,9 @@ function DemoVideo({ src, isActive }: DemoVideoProps) {
 
 		if (isActive) {
 			video.currentTime = 0;
-			video.play();
+			video.play().catch(() => {
+				// Silently ignore autoplay restrictions - expected behavior
+			});
 		} else {
 			video.pause();
 		}
