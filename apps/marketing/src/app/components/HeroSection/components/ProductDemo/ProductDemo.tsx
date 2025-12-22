@@ -13,7 +13,7 @@ export function ProductDemo() {
 	return (
 		<div className="relative w-full flex flex-col gap-3">
 			<div
-				className="relative w-full rounded-lg overflow-hidden"
+				className="relative w-full rounded-lg overflow-hidden border-2"
 				style={{ aspectRatio: "1728/1080" }}
 			>
 				{DEMO_OPTIONS.map((option) => (
@@ -73,7 +73,7 @@ function DemoVideo({ src, isActive }: DemoVideoProps) {
 			loop
 			muted
 			playsInline
-			className="w-full h-full object-contain rounded-lg border border-border"
+			className="absolute -inset-px object-cover"
 		/>
 	);
 }
