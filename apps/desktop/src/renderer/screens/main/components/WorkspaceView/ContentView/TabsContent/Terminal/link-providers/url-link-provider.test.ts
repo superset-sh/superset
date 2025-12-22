@@ -1,8 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
-import { UrlLinkProvider } from "./UrlLinkProvider";
+import { UrlLinkProvider } from "./url-link-provider";
 
-// Helper to create mock buffer lines
 function createMockLine(text: string, isWrapped = false): IBufferLine {
 	return {
 		translateToString: () => text,
@@ -13,7 +12,6 @@ function createMockLine(text: string, isWrapped = false): IBufferLine {
 	} as unknown as IBufferLine;
 }
 
-// Helper to create a mock terminal with given lines
 function createMockTerminal(
 	lines: Array<{ text: string; isWrapped?: boolean }>,
 ): Terminal {
@@ -33,7 +31,6 @@ function createMockTerminal(
 	} as unknown as Terminal;
 }
 
-// Helper to extract links from callback
 function getLinks(
 	provider: UrlLinkProvider,
 	lineNumber: number,
@@ -144,7 +141,6 @@ describe("UrlLinkProvider", () => {
 
 	describe("wrapped lines - forward looking (next line)", () => {
 		it("should detect URL that spans current line and wrapped next line", async () => {
-			// Simulate: "https://example.com/ver" + "y/long/path/here"
 			const terminal = createMockTerminal([
 				{ text: "https://example.com/ver" },
 				{ text: "y/long/path/here", isWrapped: true },
@@ -161,26 +157,6 @@ describe("UrlLinkProvider", () => {
 		});
 
 		it("should calculate correct range for multi-line URL starting on current line", async () => {
-			// Line 1 is 23 chars, Line 2 is 16 chars
-			const terminal = createMockTerminal([
-				{ text: "https://example.com/ver" }, // 23 chars
-				{ text: "y/long/path/here", isWrapped: true }, // 16 chars
-			]);
-			const onOpen = mock();
-			const provider = new UrlLinkProvider(terminal, onOpen);
-
-			const links = await getLinks(provider, 1);
-
-			expect(links[0].range.start.x).toBe(1); // Start at column 1
-			expect(links[0].range.start.y).toBe(1); // Line 1
-			expect(links[0].range.end.x).toBe(17); // Ends at column 17 on line 2 (16 chars + 1)
-			expect(links[0].range.end.y).toBe(2); // Line 2
-		});
-	});
-
-	describe("wrapped lines - backward looking (previous line)", () => {
-		it("should detect URL from previous line when current line is wrapped", async () => {
-			// Simulate: "https://example.com/ver" + "y/long/path/here"
 			const terminal = createMockTerminal([
 				{ text: "https://example.com/ver" },
 				{ text: "y/long/path/here", isWrapped: true },
@@ -188,7 +164,24 @@ describe("UrlLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new UrlLinkProvider(terminal, onOpen);
 
-			// When scanning line 2 (the wrapped line), it should find the full URL
+			const links = await getLinks(provider, 1);
+
+			expect(links[0].range.start.x).toBe(1);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.x).toBe(17);
+			expect(links[0].range.end.y).toBe(2);
+		});
+	});
+
+	describe("wrapped lines - backward looking (previous line)", () => {
+		it("should detect URL from previous line when current line is wrapped", async () => {
+			const terminal = createMockTerminal([
+				{ text: "https://example.com/ver" },
+				{ text: "y/long/path/here", isWrapped: true },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -205,7 +198,6 @@ describe("UrlLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new UrlLinkProvider(terminal, onOpen);
 
-			// Scan from line 2 (the wrapped line)
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -217,7 +209,6 @@ describe("UrlLinkProvider", () => {
 
 	describe("three-line wrapping", () => {
 		it("should handle URL spanning three lines when scanned from middle", async () => {
-			// This tests when current line is wrapped AND next line is also wrapped
 			const terminal = createMockTerminal([
 				{ text: "https://exa" },
 				{ text: "mple.com/ve", isWrapped: true },
@@ -226,7 +217,6 @@ describe("UrlLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new UrlLinkProvider(terminal, onOpen);
 
-			// Scan from middle line
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -238,7 +228,7 @@ describe("UrlLinkProvider", () => {
 		it("should not combine lines that are not wrapped", async () => {
 			const terminal = createMockTerminal([
 				{ text: "https://a.com" },
-				{ text: "https://b.com", isWrapped: false }, // Real newline, not wrapped
+				{ text: "https://b.com", isWrapped: false },
 			]);
 			const onOpen = mock();
 			const provider = new UrlLinkProvider(terminal, onOpen);

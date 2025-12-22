@@ -1,8 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import type { IBufferLine, ILink, Terminal } from "@xterm/xterm";
-import { FilePathLinkProvider } from "./FilePathLinkProvider";
+import { FilePathLinkProvider } from "./file-path-link-provider";
 
-// Helper to create mock buffer lines
 function createMockLine(text: string, isWrapped = false): IBufferLine {
 	return {
 		translateToString: () => text,
@@ -13,7 +12,6 @@ function createMockLine(text: string, isWrapped = false): IBufferLine {
 	} as unknown as IBufferLine;
 }
 
-// Helper to create a mock terminal with given lines
 function createMockTerminal(
 	lines: Array<{ text: string; isWrapped?: boolean }>,
 ): Terminal {
@@ -33,7 +31,6 @@ function createMockTerminal(
 	} as unknown as Terminal;
 }
 
-// Helper to extract links from callback
 function getLinks(
 	provider: FilePathLinkProvider,
 	lineNumber: number,
@@ -183,7 +180,6 @@ describe("FilePathLinkProvider", () => {
 
 	describe("wrapped lines - forward looking (next line)", () => {
 		it("should detect path that spans current line and wrapped next line", async () => {
-			// Simulate: "/path/to/very/long/fi" + "le/name.ts"
 			const terminal = createMockTerminal([
 				{ text: "/path/to/very/long/fi" },
 				{ text: "le/name.ts", isWrapped: true },
@@ -200,26 +196,6 @@ describe("FilePathLinkProvider", () => {
 		});
 
 		it("should calculate correct range for multi-line path starting on current line", async () => {
-			// Line 1 is 21 chars, Line 2 is 10 chars
-			const terminal = createMockTerminal([
-				{ text: "/path/to/very/long/fi" }, // 21 chars
-				{ text: "le/name.ts", isWrapped: true }, // 10 chars
-			]);
-			const onOpen = mock();
-			const provider = new FilePathLinkProvider(terminal, onOpen);
-
-			const links = await getLinks(provider, 1);
-
-			expect(links[0].range.start.x).toBe(1); // Start at column 1
-			expect(links[0].range.start.y).toBe(1); // Line 1
-			expect(links[0].range.end.x).toBe(11); // Ends at column 11 on line 2 (10 chars + 1)
-			expect(links[0].range.end.y).toBe(2); // Line 2
-		});
-	});
-
-	describe("wrapped lines - backward looking (previous line)", () => {
-		it("should detect path from previous line when current line is wrapped", async () => {
-			// Simulate: "/path/to/very/long/fi" + "le/name.ts"
 			const terminal = createMockTerminal([
 				{ text: "/path/to/very/long/fi" },
 				{ text: "le/name.ts", isWrapped: true },
@@ -227,7 +203,24 @@ describe("FilePathLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new FilePathLinkProvider(terminal, onOpen);
 
-			// When scanning line 2 (the wrapped line), it should find the full path
+			const links = await getLinks(provider, 1);
+
+			expect(links[0].range.start.x).toBe(1);
+			expect(links[0].range.start.y).toBe(1);
+			expect(links[0].range.end.x).toBe(11);
+			expect(links[0].range.end.y).toBe(2);
+		});
+	});
+
+	describe("wrapped lines - backward looking (previous line)", () => {
+		it("should detect path from previous line when current line is wrapped", async () => {
+			const terminal = createMockTerminal([
+				{ text: "/path/to/very/long/fi" },
+				{ text: "le/name.ts", isWrapped: true },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -244,7 +237,6 @@ describe("FilePathLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new FilePathLinkProvider(terminal, onOpen);
 
-			// Scan from line 2 (the wrapped line)
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -254,7 +246,6 @@ describe("FilePathLinkProvider", () => {
 
 	describe("three-line wrapping", () => {
 		it("should handle path spanning three lines when scanned from middle", async () => {
-			// This tests when current line is wrapped AND next line is also wrapped
 			const terminal = createMockTerminal([
 				{ text: "/path/to/ve" },
 				{ text: "ry/long/dir", isWrapped: true },
@@ -263,7 +254,6 @@ describe("FilePathLinkProvider", () => {
 			const onOpen = mock();
 			const provider = new FilePathLinkProvider(terminal, onOpen);
 
-			// Scan from middle line
 			const links = await getLinks(provider, 2);
 
 			expect(links.length).toBe(1);
@@ -275,7 +265,7 @@ describe("FilePathLinkProvider", () => {
 		it("should not combine lines that are not wrapped", async () => {
 			const terminal = createMockTerminal([
 				{ text: "/path/one.ts" },
-				{ text: "/path/two.ts", isWrapped: false }, // Real newline, not wrapped
+				{ text: "/path/two.ts", isWrapped: false },
 			]);
 			const onOpen = mock();
 			const provider = new FilePathLinkProvider(terminal, onOpen);

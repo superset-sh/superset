@@ -12,9 +12,8 @@ import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isAppHotkey } from "shared/hotkeys";
 import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { FilePathLinkProvider } from "./FilePathLinkProvider";
+import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
-import { UrlLinkProvider } from "./UrlLinkProvider";
 
 /**
  * Get the default terminal theme from localStorage cache.

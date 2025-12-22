@@ -1,6 +1,9 @@
 import type { Terminal } from "@xterm/xterm";
 import { parseLineColumnPath } from "line-column-path";
-import { type LinkMatch, MultiLineLinkProvider } from "./MultiLineLinkProvider";
+import {
+	type LinkMatch,
+	MultiLineLinkProvider,
+} from "./multi-line-link-provider";
 
 export class FilePathLinkProvider extends MultiLineLinkProvider {
 	private readonly FILE_PATH_PATTERN =
@@ -19,7 +22,6 @@ export class FilePathLinkProvider extends MultiLineLinkProvider {
 	}
 
 	protected getPattern(): RegExp {
-		// Return a new instance to reset lastIndex for global regex
 		return new RegExp(this.FILE_PATH_PATTERN.source, "g");
 	}
 
@@ -27,7 +29,6 @@ export class FilePathLinkProvider extends MultiLineLinkProvider {
 		const { text: matchText, index: matchIndex, combinedText, groups } = match;
 		const filePath = groups[1];
 
-		// Skip URLs
 		if (
 			matchText.startsWith("http://") ||
 			matchText.startsWith("https://") ||
@@ -39,12 +40,10 @@ export class FilePathLinkProvider extends MultiLineLinkProvider {
 			return true;
 		}
 
-		// Skip version strings (v1.2.3 format)
 		if (/^v?\d+\.\d+(\.\d+)*$/.test(filePath)) {
 			return true;
 		}
 
-		// Skip npm package references (@version context)
 		const contextStart = Math.max(0, matchIndex - 30);
 		const contextEnd = matchIndex + matchText.length;
 		const context = combinedText.substring(contextStart, contextEnd);
@@ -52,7 +51,6 @@ export class FilePathLinkProvider extends MultiLineLinkProvider {
 			return true;
 		}
 
-		// Skip pure numbers
 		if (/^\d+(:\d+)*$/.test(matchText)) {
 			return true;
 		}
