@@ -93,6 +93,11 @@ export async function createSession(
 	const { scrollback: recoveredScrollback, wasRecovered } =
 		await recoverScrollback(existingScrollback, workspaceId, paneId);
 
+	// Scan recovered scrollback for ports (verification will check if still listening)
+	if (wasRecovered && recoveredScrollback) {
+		portManager.scanOutput(recoveredScrollback, paneId, workspaceId);
+	}
+
 	const ptyProcess = spawnPty({
 		shell,
 		cols: terminalCols,

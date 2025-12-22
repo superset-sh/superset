@@ -12,8 +12,8 @@ export interface DetectedPort {
 // How often to check if ports are still running (in ms)
 const HEALTH_CHECK_INTERVAL = 5000;
 
-// Timeout for connection check (in ms)
-const CONNECTION_TIMEOUT = 1000;
+// Timeout for connection check (in ms) - 2s provides margin for loaded machines
+const CONNECTION_TIMEOUT = 2000;
 
 /**
  * Check if a port is listening on a specific host
@@ -92,13 +92,35 @@ const PORT_PATTERNS = [
 // Ports to ignore (common system/ephemeral ports)
 const IGNORED_PORTS = new Set([80, 443]);
 
+// Patterns indicating port is in use by something else (not this terminal)
+const PORT_IN_USE_PATTERNS = [
+	/port.+(?:is\s+)?(?:already\s+)?in\s+use/i,
+	/address\s+(?:already\s+)?in\s+use/i,
+	/EADDRINUSE/,
+	/port.+(?:is\s+)?(?:being\s+)?used\s+by/i,
+	/bind.*failed/i,
+	/cannot\s+bind/i,
+];
+
 // Delay before verifying a detected port (ms) - gives server time to fully start
 const VERIFICATION_DELAY = 500;
 
 // Max buffer size for incomplete lines (bytes) - prevents memory issues with pathological input
 const MAX_LINE_BUFFER = 4096;
 
+/**
+ * Check if a line indicates a port-in-use error (someone else owns the port)
+ */
+function isPortInUseError(line: string): boolean {
+	return PORT_IN_USE_PATTERNS.some((pattern) => pattern.test(line));
+}
+
 function extractPort(line: string): number | null {
+	// Skip lines that indicate port is in use by something else
+	if (isPortInUseError(line)) {
+		return null;
+	}
+
 	for (const pattern of PORT_PATTERNS) {
 		const match = line.match(pattern);
 		if (match?.[1]) {
