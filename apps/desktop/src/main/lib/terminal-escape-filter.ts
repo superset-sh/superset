@@ -107,12 +107,22 @@ const FILTER_PATTERNS = {
 	 * Hex values can be 2-4 digits per channel depending on terminal
 	 *
 	 * Common queries:
+	 * - OSC 4: Color palette (256 colors, index 0-255)
 	 * - OSC 10: Foreground color
 	 * - OSC 11: Background color
 	 * - OSC 12: Cursor color
 	 * - OSC 13-19: Various highlight colors
 	 */
 	oscColorResponse: `${ESC}\\]1[0-9];rgb:[0-9a-fA-F]{2,4}/[0-9a-fA-F]{2,4}/[0-9a-fA-F]{2,4}(?:${BEL}|${ESC}\\\\)`,
+
+	/**
+	 * OSC 4 color palette responses: ESC ] 4 ; Ps ; rgb:rr/gg/bb ST
+	 * Response to OSC 4 query for 256-color palette
+	 * Examples:
+	 * - ESC]4;0;rgb:0000/0000/0000 BEL (color 0 = black)
+	 * - ESC]4;15;rgb:ffff/ffff/ffff BEL (color 15 = white)
+	 */
+	osc4ColorPalette: `${ESC}\\]4;\\d+;rgb:[0-9a-fA-F]{2,4}/[0-9a-fA-F]{2,4}/[0-9a-fA-F]{2,4}(?:${BEL}|${ESC}\\\\)`,
 
 	/**
 	 * XTVERSION response: ESC P > | text ESC \
@@ -124,6 +134,15 @@ const FILTER_PATTERNS = {
 	 * ESC [ O - Unknown/malformed sequence that appears in some terminals
 	 */
 	unknownCSI_O: `${ESC}\\[O`,
+
+	/**
+	 * Window size/position reports (XTWINOPS responses): ESC [ Ps ; Ps ; Ps t
+	 * Responses to CSI 14/16/18/etc. t queries
+	 * Examples:
+	 * - ESC[4;950;1408t (window size in pixels)
+	 * - ESC[8;24;80t (window size in characters)
+	 */
+	windowSizeReport: `${ESC}\\[\\d+;\\d+;\\d+t`,
 
 	/**
 	 * DECSET/DECRST for filtered private modes: ESC [ ? Pm h or ESC [ ? Pm l
@@ -219,11 +238,11 @@ export class TerminalEscapeFilter {
 			return false;
 		}
 
-		// OSC color responses: ESC ] 1 (OSC 10-19)
+		// OSC color responses: ESC ] 1 (OSC 10-19) or ESC ] 4 (color palette)
 		if (secondChar === "]") {
 			if (str.length < 3) return false; // ESC ] alone - don't buffer
-			// Only buffer if it starts with 1 (OSC 10-19 color responses)
-			return str[2] === "1";
+			// Buffer if it starts with 1 (OSC 10-19) or 4 (color palette)
+			return str[2] === "1" || str[2] === "4";
 		}
 
 		// DCS responses: ESC P > (XTVERSION) or ESC P ! (DA3)

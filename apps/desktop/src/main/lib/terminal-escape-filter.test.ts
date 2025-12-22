@@ -232,6 +232,80 @@ describe("filterTerminalQueryResponses", () => {
 		});
 	});
 
+	describe("filters OSC 4 color palette responses", () => {
+		it("should filter OSC 4 color 0 (black)", () => {
+			const osc4 = `${ESC}]4;0;rgb:0000/0000/0000${BEL}`;
+			expect(filterTerminalQueryResponses(osc4)).toBe("");
+		});
+
+		it("should filter OSC 4 color 15 (white)", () => {
+			const osc4 = `${ESC}]4;15;rgb:ffff/ffff/ffff${BEL}`;
+			expect(filterTerminalQueryResponses(osc4)).toBe("");
+		});
+
+		it("should filter OSC 4 with ST terminator", () => {
+			const osc4 = `${ESC}]4;1;rgb:c9c9/1b1b/0000${ESC}\\`;
+			expect(filterTerminalQueryResponses(osc4)).toBe("");
+		});
+
+		it("should filter OSC 4 with short hex values", () => {
+			const osc4 = `${ESC}]4;8;rgb:68/68/68${BEL}`;
+			expect(filterTerminalQueryResponses(osc4)).toBe("");
+		});
+
+		it("should filter multiple OSC 4 responses in sequence", () => {
+			const input =
+				`${ESC}]4;0;rgb:0000/0000/0000${BEL}` +
+				`${ESC}]4;1;rgb:c9c9/1b1b/0000${BEL}` +
+				`${ESC}]4;2;rgb:0000/c2c2/0000${BEL}`;
+			expect(filterTerminalQueryResponses(input)).toBe("");
+		});
+
+		it("should filter OSC 4 mixed with text", () => {
+			const input = `before${ESC}]4;0;rgb:0000/0000/0000${BEL}after`;
+			expect(filterTerminalQueryResponses(input)).toBe("beforeafter");
+		});
+
+		it("should handle realistic opencode color palette query response", () => {
+			// This is similar to what the user reported seeing
+			const input =
+				`${ESC}]4;0;rgb:0000/0000/0000${BEL}` +
+				`${ESC}]4;1;rgb:c9c9/1b1b/0000${BEL}` +
+				`${ESC}]4;2;rgb:0000/c2c2/0000${BEL}` +
+				`${ESC}]4;3;rgb:c7c7/c4c4/0000${BEL}` +
+				`${ESC}]4;4;rgb:0202/2525/c7c7${BEL}` +
+				`${ESC}]4;5;rgb:c9c9/3030/c7c7${BEL}` +
+				`${ESC}]4;6;rgb:0000/c5c5/c7c7${BEL}` +
+				`${ESC}]4;7;rgb:c7c7/c7c7/c7c7${BEL}` +
+				`${ESC}]4;8;rgb:6868/6868/6868${BEL}` +
+				`${ESC}]4;9;rgb:ffff/6e6e/6e6e${BEL}` +
+				`${ESC}]4;10;rgb:5f5f/fafa/6868${BEL}` +
+				`${ESC}]4;11;rgb:ffff/fcfc/6767${BEL}` +
+				`${ESC}]4;12;rgb:6868/7171/ffff${BEL}` +
+				`${ESC}]4;13;rgb:ffff/7777/ffff${BEL}` +
+				`${ESC}]4;14;rgb:5f5f/fdfd/ffff${BEL}` +
+				`${ESC}]4;15;rgb:ffff/ffff/ffff${BEL}`;
+			expect(filterTerminalQueryResponses(input)).toBe("");
+		});
+	});
+
+	describe("filters window size reports", () => {
+		it("should filter window size in pixels report", () => {
+			const report = `${ESC}[4;950;1408t`;
+			expect(filterTerminalQueryResponses(report)).toBe("");
+		});
+
+		it("should filter window size in characters report", () => {
+			const report = `${ESC}[8;24;80t`;
+			expect(filterTerminalQueryResponses(report)).toBe("");
+		});
+
+		it("should filter window size mixed with text", () => {
+			const input = `before${ESC}[4;950;1408t after`;
+			expect(filterTerminalQueryResponses(input)).toBe("before after");
+		});
+	});
+
 	describe("filters Standard Mode Reports", () => {
 		it("should filter standard mode report", () => {
 			const report = `${ESC}[12;2$y`;
