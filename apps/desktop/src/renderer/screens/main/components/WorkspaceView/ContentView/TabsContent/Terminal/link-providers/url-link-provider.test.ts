@@ -404,6 +404,56 @@ describe("UrlLinkProvider", () => {
 		});
 	});
 
+	describe("ReDoS prevention", () => {
+		it("should handle pathological input without hanging", async () => {
+			// This input would cause catastrophic backtracking with nested quantifiers
+			// Old pattern: (?:[^\s<>[\]()'"]+|\([^\s<>[\]()'"]*\))+
+			const maliciousInput = `https://${"a".repeat(100)}(`;
+			const terminal = createMockTerminal([{ text: maliciousInput }]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const start = performance.now();
+			const links = await getLinks(provider, 1);
+			const elapsed = performance.now() - start;
+
+			// Should complete in under 100ms (old pattern would take seconds/minutes)
+			expect(elapsed).toBeLessThan(100);
+			expect(links.length).toBe(1);
+			// Unbalanced paren is trimmed
+			expect(links[0].text).toBe(`https://${"a".repeat(100)}`);
+		});
+
+		it("should handle repeated parentheses pattern efficiently", async () => {
+			// Another ReDoS pattern: alternating parens
+			const input = `https://example.com/${"()".repeat(50)}`;
+			const terminal = createMockTerminal([{ text: input }]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const start = performance.now();
+			const links = await getLinks(provider, 1);
+			const elapsed = performance.now() - start;
+
+			expect(elapsed).toBeLessThan(100);
+			expect(links.length).toBe(1);
+		});
+
+		it("should handle long URL with unmatched open paren", async () => {
+			const input = `https://example.com/${"x".repeat(50)}(${"y".repeat(50)}`;
+			const terminal = createMockTerminal([{ text: input }]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const start = performance.now();
+			const links = await getLinks(provider, 1);
+			const elapsed = performance.now() - start;
+
+			expect(elapsed).toBeLessThan(100);
+			expect(links.length).toBe(1);
+		});
+	});
+
 	describe("edge cases", () => {
 		it("should handle empty lines", async () => {
 			const terminal = createMockTerminal([{ text: "" }]);

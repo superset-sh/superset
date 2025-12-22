@@ -7,13 +7,15 @@ import {
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 
 /**
- * Trim unbalanced trailing parentheses from a URL.
- * Keeps balanced parens (like Wikipedia URLs) but removes trailing ) without matching (.
+ * Trim unbalanced parentheses from a URL.
+ * - Removes trailing ) without matching (
+ * - Removes trailing ( without matching )
  */
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
-	let lastValidIndex = url.length;
+	let endIndex = url.length;
 
+	// First pass: find first unmatched closing paren
 	for (let i = 0; i < url.length; i++) {
 		if (url[i] === "(") {
 			openCount++;
@@ -21,13 +23,20 @@ function trimUnbalancedParens(url: string): string {
 			if (openCount > 0) {
 				openCount--;
 			} else {
-				lastValidIndex = i;
+				endIndex = i;
 				break;
 			}
 		}
 	}
 
-	return url.slice(0, lastValidIndex);
+	let result = url.slice(0, endIndex);
+
+	// Second pass: trim trailing unmatched opening parens
+	while (result.endsWith("(")) {
+		result = result.slice(0, -1);
+	}
+
+	return result;
 }
 
 export class UrlLinkProvider extends MultiLineLinkProvider {
