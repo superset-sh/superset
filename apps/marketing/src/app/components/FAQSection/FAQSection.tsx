@@ -11,14 +11,14 @@ interface FAQItem {
 
 const FAQ_ITEMS: FAQItem[] = [
 	{
-		question: "Is Superset free to use?",
+		question: "I already use an IDE like Cursor, is this for me?",
 		answer:
-			"Yes, Superset is completely free and open source. You can self-host it, modify it, and use it however you like. The source code is available on GitHub under a permissive license.",
+			"Superset is designed to work with your existing tool, we natively support deep-linking to IDEs like Cursor so you can open your workspaces and files in your IDE.",
 	},
 	{
 		question: "Which AI coding agents are supported?",
 		answer:
-			"Superset works with any CLI-based coding agent including Claude Code, OpenAI Codex, Aider, and more. If it runs in a terminal, it runs in Superset. We're agent-agnostic by design.",
+			"Superset works with any CLI-based coding agent including Claude Code, OpenCode, OpenAI Codex, and more. If it runs in a terminal, it runs in Superset. We're agent-agnostic by design.",
 	},
 	{
 		question: "How does the parallel agent system work?",
@@ -26,15 +26,9 @@ const FAQ_ITEMS: FAQItem[] = [
 			"Each agent runs in its own isolated Git worktree, which means they can work on different branches or features simultaneously without conflicts. You can monitor all agents in real-time and switch between them instantly.",
 	},
 	{
-		question: "Does my code ever leave my machine?",
+		question: "Is Superset free to use?",
 		answer:
-			"No. Superset runs entirely on your local machine. Your code, your terminal sessions, and your work never touch our servers. The only network requests are made by the AI agents themselves to their respective APIs.",
-	},
-	{
-		question:
-			"How is Superset different from using agents in VS Code or Cursor?",
-		answer:
-			"Superset is built specifically for running multiple agents in parallel with full terminal access. Unlike IDE-integrated solutions, you get dedicated worktrees per agent, real-time visibility into all sessions, and the ability to run dozens of agents simultaneously.",
+			"Yes, Superset is completely free and open source. You can self-host it, modify it, and use it however you like. The source code is available on GitHub under a permissive license.",
 	},
 	{
 		question: "Can I use my own API keys?",
