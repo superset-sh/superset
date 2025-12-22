@@ -20,18 +20,21 @@ export async function recoverScrollback(
 	workspaceId: string,
 	paneId: string,
 ): Promise<{ scrollback: string; wasRecovered: boolean }> {
-	if (existingScrollback) {
-		return { scrollback: existingScrollback, wasRecovered: true };
+	let scrollbackToFilter: string | null = existingScrollback;
+
+	// If no existing scrollback, try to read from history file
+	if (!scrollbackToFilter) {
+		const historyReader = new HistoryReader(workspaceId, paneId);
+		const history = await historyReader.read();
+		scrollbackToFilter = history.scrollback || null;
 	}
 
-	const historyReader = new HistoryReader(workspaceId, paneId);
-	const history = await historyReader.read();
-
-	if (history.scrollback) {
-		// Strip protocol responses from recovered history
+	if (scrollbackToFilter) {
+		// Always filter recovered scrollback to strip terminal query responses
+		// that would display as garbage when replayed
 		const recoveryFilter = new TerminalEscapeFilter();
 		const filtered =
-			recoveryFilter.filter(history.scrollback) + recoveryFilter.flush();
+			recoveryFilter.filter(scrollbackToFilter) + recoveryFilter.flush();
 		return { scrollback: filtered, wasRecovered: true };
 	}
 
