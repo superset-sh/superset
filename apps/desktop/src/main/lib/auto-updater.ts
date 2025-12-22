@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { app } from "electron";
+import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import {
@@ -95,11 +95,15 @@ export function simulateUpdateReady(): void {
 	emitStatusChange(AUTO_UPDATE_STATUS.READY, "1.0.0-test");
 }
 
+/**
+ * Check for updates silently (for background/automatic checks)
+ * No user-facing dialogs - status is communicated via events to the toast
+ */
 export function checkForUpdates(): void {
 	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
-	isDismissed = false; // Reset dismissed state on new check
+	isDismissed = false;
 	emitStatusChange(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
 		console.error("[auto-updater] Failed to check for updates:", error);
@@ -107,16 +111,59 @@ export function checkForUpdates(): void {
 	});
 }
 
+/**
+ * Check for updates with user feedback (for menu-triggered checks)
+ * Shows dialogs for unsupported platforms, errors, and "up to date" states
+ */
 export function checkForUpdatesInteractive(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (env.NODE_ENV === "development") {
+		dialog.showMessageBox({
+			type: "info",
+			title: "Updates",
+			message: "Auto-updates are disabled in development mode.",
+		});
 		return;
 	}
-	isDismissed = false; // Reset dismissed state on manual check
+
+	if (!PLATFORM.IS_MAC) {
+		dialog.showMessageBox({
+			type: "info",
+			title: "Updates",
+			message: "Auto-updates are only available on macOS.",
+		});
+		return;
+	}
+
+	isDismissed = false;
 	emitStatusChange(AUTO_UPDATE_STATUS.CHECKING);
-	autoUpdater.checkForUpdates().catch((error) => {
-		console.error("[auto-updater] Failed to check for updates:", error);
-		emitStatusChange(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
-	});
+
+	autoUpdater
+		.checkForUpdates()
+		.then((result) => {
+			// If no update is available, show feedback to user
+			// (update-available case is handled by the toast via events)
+			if (
+				!result?.updateInfo ||
+				result.updateInfo.version === app.getVersion()
+			) {
+				dialog.showMessageBox({
+					type: "info",
+					title: "No Updates",
+					message: "You're up to date!",
+					detail: `Version ${app.getVersion()} is the latest version.`,
+				});
+			}
+		})
+		.catch((error) => {
+			console.error("[auto-updater] Failed to check for updates:", error);
+			emitStatusChange(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+			dialog.showMessageBox({
+				type: "error",
+				title: "Update Error",
+				message: "Failed to check for updates.",
+				detail: "Please try again later.",
+			});
+		});
 }
 
 export function setupAutoUpdater(): void {
