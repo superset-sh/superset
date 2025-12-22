@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MeshGradient } from "./components/MeshGradient";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
@@ -11,33 +11,35 @@ export function ProductDemo() {
 		DEMO_OPTIONS[0]?.label ?? "",
 	);
 
-	const activeColors = useMemo(() => {
-		const option = DEMO_OPTIONS.find((o) => o.label === activeOption);
-		return option?.colors ?? DEMO_OPTIONS[0]?.colors;
-	}, [activeOption]);
-
 	return (
 		<div className="relative w-full rounded-lg overflow-hidden">
-			{/* Animated mesh gradient background */}
-			{activeColors && (
-				<MeshGradient
-					key={activeOption}
-					colors={activeColors}
-					className="absolute inset-0 w-full h-full"
-				/>
-			)}
+			{/* Animated mesh gradient backgrounds - all rendered, opacity controlled */}
+			{DEMO_OPTIONS.map((option) => (
+				<motion.div
+					key={`gradient-${option.label}`}
+					className="absolute inset-0"
+					initial={false}
+					animate={{ opacity: activeOption === option.label ? 1 : 0 }}
+					transition={{ duration: 0.5, ease: "easeInOut" }}
+				>
+					<MeshGradient
+						colors={option.colors}
+						className="absolute inset-0 w-full h-full"
+					/>
+				</motion.div>
+			))}
 
 			{/* Content wrapper */}
 			<div className="relative flex flex-col gap-4 p-6">
 				{/* Video container with border */}
 				<div
-					className="relative w-full rounded-lg border border-foreground/20 overflow-hidden"
+					className="relative w-full rounded-lg overflow-hidden "
 					style={{ aspectRatio: "1728/1080" }}
 				>
 					{DEMO_OPTIONS.map((option) => (
 						<motion.div
 							key={option.label}
-							className="absolute inset-0"
+							className="absolute -inset-px"
 							initial={false}
 							animate={{ opacity: activeOption === option.label ? 1 : 0 }}
 							transition={{ duration: 0.5, ease: "easeInOut" }}
