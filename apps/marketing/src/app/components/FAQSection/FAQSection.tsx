@@ -97,16 +97,16 @@ export function FAQSection() {
 	return (
 		<section className="relative py-24 px-8 lg:px-[30px]">
 			<div className="max-w-7xl mx-auto">
-				<div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20">
+				<div className="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-12 xl:gap-20">
 					{/* Left Column - Title */}
 					<motion.div
-						className="lg:sticky lg:top-24 lg:self-start"
+						className="xl:sticky xl:top-24 xl:self-start"
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
 					>
-						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
+						<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
 							Frequently
 							<br />
 							asked questions

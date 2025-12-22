@@ -18,8 +18,8 @@ export function HeroSection() {
 			<div className="flex mt-14 min-h-[calc(100vh-64px)] items-center overflow-hidden">
 				<GridBackground />
 
-				<div className="relative w-full max-w-[1600px] mx-auto px-8 xl:px-[30px] py-16">
-					<div className="grid grid-cols-1 xl:grid-cols-[42%_58%] gap-12 xl:gap-16 items-center">
+				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
+					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-12 lg:gap-16 items-center">
 						<motion.div
 							className="space-y-8"
 							initial={{ opacity: 0, y: 20 }}
@@ -28,7 +28,7 @@ export function HeroSection() {
 						>
 							<div className="space-y-2 sm:space-y-6">
 								<h1
-									className="text-2xl sm:text-3xl xl:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground"
+									className="text-2xl sm:text-3xl lg:text-4xl font-normal tracking-normal leading-[1.3em] text-foreground"
 									style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
 								>
 									<TypewriterText
@@ -59,7 +59,7 @@ export function HeroSection() {
 						</motion.div>
 
 						<motion.div
-							className="relative"
+							className="relative w-full min-w-0"
 							initial={{ opacity: 0, x: 20 }}
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5, delay: 0.2 }}

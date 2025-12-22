@@ -13,7 +13,7 @@ export function ProductDemo() {
 	);
 
 	return (
-		<div className="relative w-full rounded-lg overflow-hidden">
+		<div className="relative w-full max-w-full rounded-lg overflow-hidden">
 			{/* Animated mesh gradient backgrounds - all rendered, opacity controlled */}
 			{DEMO_OPTIONS.map((option) => (
 				<motion.div

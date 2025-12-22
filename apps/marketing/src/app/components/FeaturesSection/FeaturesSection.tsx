@@ -75,8 +75,8 @@ export function FeaturesSection() {
 						return (
 							<motion.div
 								key={feature.title}
-								className={`grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center ${
-									isReversed ? "lg:direction-rtl" : ""
+								className={`grid grid-cols-1 xl:grid-cols-2 gap-12 xl:gap-16 items-center ${
+									isReversed ? "xl:direction-rtl" : ""
 								}`}
 								initial={{ opacity: 0, y: 40 }}
 								whileInView={{ opacity: 1, y: 0 }}
@@ -85,13 +85,13 @@ export function FeaturesSection() {
 							>
 								{/* Text Content */}
 								<div
-									className={`space-y-6 ${isReversed ? "lg:order-2" : "lg:order-1"}`}
+									className={`space-y-6 ${isReversed ? "xl:order-2" : "xl:order-1"}`}
 								>
 									<div className="space-y-4">
 										<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
 											{feature.tag}
 										</span>
-										<h3 className="text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-foreground">
+										<h3 className="text-2xl sm:text-3xl xl:text-4xl font-medium tracking-tight text-foreground">
 											{feature.title}
 										</h3>
 									</div>
@@ -101,7 +101,7 @@ export function FeaturesSection() {
 								</div>
 
 								{/* Image */}
-								<div className={`${isReversed ? "lg:order-1" : "lg:order-2"}`}>
+								<div className={`${isReversed ? "xl:order-1" : "xl:order-2"}`}>
 									<FeatureImage src={feature.imageSrc} alt={feature.imageAlt} />
 								</div>
 							</motion.div>
