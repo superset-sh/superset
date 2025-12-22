@@ -45,3 +45,20 @@ export const NOTIFICATION_EVENTS = {
 	AGENT_COMPLETE: "agent-complete",
 	FOCUS_TAB: "focus-tab",
 } as const;
+
+// Auto-update event types
+export const AUTO_UPDATE_EVENTS = {
+	STATUS_CHANGED: "status-changed",
+} as const;
+
+// Auto-update status values
+export const AUTO_UPDATE_STATUS = {
+	IDLE: "idle",
+	CHECKING: "checking",
+	DOWNLOADING: "downloading",
+	READY: "ready",
+	ERROR: "error",
+} as const;
+
+export type AutoUpdateStatus =
+	(typeof AUTO_UPDATE_STATUS)[keyof typeof AUTO_UPDATE_STATUS];

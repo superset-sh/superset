@@ -7,7 +7,6 @@ import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
-import { setMainWindow } from "../lib/auto-updater";
 import { db } from "../lib/db";
 import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
@@ -52,7 +51,6 @@ export async function MainWindow() {
 		},
 	});
 
-	setMainWindow(window);
 	createApplicationMenu();
 
 	currentWindow = window;
