@@ -12,6 +12,7 @@ export function toXtermTheme(colors: TerminalColors): ITheme {
 		cursorAccent: colors.cursorAccent,
 		selectionBackground: colors.selectionBackground,
 		selectionForeground: colors.selectionForeground,
+		selectionInactiveBackground: colors.selectionInactiveBackground,
 
 		// Standard ANSI colors
 		black: colors.black,
@@ -32,5 +33,8 @@ export function toXtermTheme(colors: TerminalColors): ITheme {
 		brightMagenta: colors.brightMagenta,
 		brightCyan: colors.brightCyan,
 		brightWhite: colors.brightWhite,
+
+		// Extended ANSI colors (16-255)
+		extendedAnsi: colors.extendedAnsi,
 	};
 }

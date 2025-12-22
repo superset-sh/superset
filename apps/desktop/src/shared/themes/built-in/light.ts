@@ -1,6 +1,43 @@
 import type { Theme } from "../types";
 
 /**
+ * Generate extended ANSI colors (16-255) for light theme.
+ * - Colors 16-231: 6x6x6 color cube (kept as-is, generally work fine)
+ * - Colors 232-255: Grayscale ramp (INVERTED for light theme visibility)
+ *
+ * On dark themes, grayscale 232=dark, 255=white.
+ * On light themes, we invert so 232=light, 255=dark for visibility.
+ */
+function generateLightExtendedAnsi(): string[] {
+	const colors: string[] = [];
+
+	// Colors 16-231: 6x6x6 color cube
+	// These are generally fine on both light and dark backgrounds
+	const levels = [0, 95, 135, 175, 215, 255];
+	for (let r = 0; r < 6; r++) {
+		for (let g = 0; g < 6; g++) {
+			for (let b = 0; b < 6; b++) {
+				colors.push(
+					`#${levels[r].toString(16).padStart(2, "0")}${levels[g].toString(16).padStart(2, "0")}${levels[b].toString(16).padStart(2, "0")}`,
+				);
+			}
+		}
+	}
+
+	// Colors 232-255: Grayscale ramp (INVERTED for light theme)
+	// Standard: 232=#080808 (darkest) to 255=#eeeeee (lightest)
+	// Inverted: 232=#eeeeee (lightest) to 255=#080808 (darkest)
+	for (let i = 0; i < 24; i++) {
+		// Invert: higher index = darker color
+		const gray = 238 - i * 10; // 238, 228, 218, ... 18, 8
+		const hex = Math.max(8, gray).toString(16).padStart(2, "0");
+		colors.push(`#${hex}${hex}${hex}`);
+	}
+
+	return colors;
+}
+
+/**
  * Light theme - based on the original Superset light mode colors
  */
 export const lightTheme: Theme = {
@@ -53,6 +90,7 @@ export const lightTheme: Theme = {
 		cursor: "#383a42",
 		cursorAccent: "#fafafa",
 		selectionBackground: "rgba(0, 0, 0, 0.15)",
+		selectionForeground: "#383a42",
 
 		// Light terminal palette - all colors visible on light background
 		black: "#000000",
@@ -73,5 +111,8 @@ export const lightTheme: Theme = {
 		brightMagenta: "#a626a4",
 		brightCyan: "#0184bc",
 		brightWhite: "#1e1e1e", // Dark - visible on light bg
+
+		// Extended ANSI colors (16-255) with inverted grayscale for light bg
+		extendedAnsi: generateLightExtendedAnsi(),
 	},
 };

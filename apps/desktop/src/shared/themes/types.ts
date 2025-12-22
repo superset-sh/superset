@@ -80,6 +80,7 @@ export interface TerminalColors {
 	cursorAccent?: string;
 	selectionBackground?: string;
 	selectionForeground?: string;
+	selectionInactiveBackground?: string;
 
 	// Standard ANSI colors (0-7)
 	black: string;
@@ -100,6 +101,9 @@ export interface TerminalColors {
 	brightMagenta: string;
 	brightCyan: string;
 	brightWhite: string;
+
+	// Extended ANSI colors (16-255) for 256-color mode
+	extendedAnsi?: string[];
 }
 
 /**
