@@ -127,7 +127,6 @@ export function createTerminalInstance(
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
-	// Register URL provider first - more specific pattern takes precedence
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);

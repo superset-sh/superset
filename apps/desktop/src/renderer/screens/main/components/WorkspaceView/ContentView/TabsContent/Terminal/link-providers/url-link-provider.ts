@@ -6,16 +6,10 @@ import {
 
 const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
 
-/**
- * Trim unbalanced parentheses from a URL.
- * - Removes trailing ) without matching (
- * - Removes trailing ( without matching )
- */
 function trimUnbalancedParens(url: string): string {
 	let openCount = 0;
 	let endIndex = url.length;
 
-	// First pass: find first unmatched closing paren
 	for (let i = 0; i < url.length; i++) {
 		if (url[i] === "(") {
 			openCount++;
@@ -31,7 +25,6 @@ function trimUnbalancedParens(url: string): string {
 
 	let result = url.slice(0, endIndex);
 
-	// Second pass: trim trailing unmatched opening parens
 	while (result.endsWith("(")) {
 		result = result.slice(0, -1);
 	}
@@ -40,8 +33,6 @@ function trimUnbalancedParens(url: string): string {
 }
 
 export class UrlLinkProvider extends MultiLineLinkProvider {
-	// Simple pattern without nested quantifiers to avoid ReDoS
-	// Parentheses handling is done in transformMatch
 	private readonly URL_PATTERN = /\bhttps?:\/\/[^\s<>[\]'"]+/g;
 
 	constructor(
@@ -61,11 +52,7 @@ export class UrlLinkProvider extends MultiLineLinkProvider {
 
 	protected transformMatch(match: LinkMatch): LinkMatch | null {
 		let text = match.text;
-
-		// Trim unbalanced trailing parentheses
 		text = trimUnbalancedParens(text);
-
-		// Trim trailing punctuation
 		text = text.replace(TRAILING_PUNCTUATION, "");
 
 		if (text === match.text) {
