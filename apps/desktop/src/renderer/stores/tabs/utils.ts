@@ -17,7 +17,25 @@ export const getTabDisplayName = (tab: Tab): string => {
 };
 
 /**
- * Extracts all pane IDs from a mosaic layout tree
+ * Extracts all pane IDs from a mosaic layout tree in visual navigation order:
+ * left-to-right, top-to-bottom.
+ *
+ * For react-mosaic layouts:
+ * - direction: "row" = horizontal split (first is left, second is right)
+ * - direction: "column" = vertical split (first is top, second is bottom)
+ *
+ * This traversal visits `first` before `second` at each node, which produces
+ * left-to-right ordering for horizontal splits and top-to-bottom for vertical splits.
+ *
+ * Example layout:
+ * ```
+ * ┌───────┬───────┐
+ * │   A   │   B   │  (row split: first=A, second=B)
+ * ├───────┼───────┤
+ * │   C   │   D   │  (row split: first=C, second=D)
+ * └───────┴───────┘
+ * ```
+ * If the top row is `first` in a column split, order would be: [A, B, C, D]
  */
 export const extractPaneIdsFromLayout = (
 	layout: MosaicNode<string>,
@@ -31,6 +49,9 @@ export const extractPaneIdsFromLayout = (
 		...extractPaneIdsFromLayout(layout.second),
 	];
 };
+
+/** Alias for extractPaneIdsFromLayout emphasizing the visual ordering contract */
+export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
 
 /**
  * Options for creating a pane with preset configuration
@@ -206,39 +227,6 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 		return layout;
 	}
 	return getFirstPaneId(layout.first);
-};
-
-/**
- * Gets pane IDs in visual navigation order: left-to-right, top-to-bottom.
- *
- * For react-mosaic layouts:
- * - direction: "row" = horizontal split (first is left, second is right)
- * - direction: "column" = vertical split (first is top, second is bottom)
- *
- * This traversal visits `first` before `second` at each node, which produces
- * left-to-right ordering for horizontal splits and top-to-bottom for vertical splits.
- *
- * Example layout:
- * ```
- * ┌───────┬───────┐
- * │   A   │   B   │  (row split: first=A, second=B)
- * ├───────┼───────┤
- * │   C   │   D   │  (row split: first=C, second=D)
- * └───────┴───────┘
- * ```
- * If the top row is `first` in a column split, order would be: [A, B, C, D]
- */
-export const getPaneIdsInVisualOrder = (
-	layout: MosaicNode<string>,
-): string[] => {
-	if (typeof layout === "string") {
-		return [layout];
-	}
-
-	return [
-		...getPaneIdsInVisualOrder(layout.first),
-		...getPaneIdsInVisualOrder(layout.second),
-	];
 };
 
 /**
