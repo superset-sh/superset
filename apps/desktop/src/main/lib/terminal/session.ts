@@ -9,7 +9,6 @@ import {
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
-import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -93,10 +92,8 @@ export async function createSession(
 	const { scrollback: recoveredScrollback, wasRecovered } =
 		await recoverScrollback(existingScrollback, workspaceId, paneId);
 
-	// Scan recovered scrollback for ports (verification will check if still listening)
-	if (wasRecovered && recoveredScrollback) {
-		portManager.scanOutput(recoveredScrollback, paneId, workspaceId);
-	}
+	// Note: Port detection is now process-based (via portManager.registerTerminal),
+	// so we no longer need to scan scrollback for port patterns
 
 	const ptyProcess = spawnPty({
 		shell,
@@ -163,8 +160,7 @@ export function setupDataHandler(
 		session.scrollback += filteredData;
 		session.historyWriter?.write(filteredData);
 
-		// Scan for port patterns in terminal output
-		portManager.scanOutput(filteredData, session.paneId, session.workspaceId);
+		// Note: Port detection is now process-based, no longer output-based
 
 		session.dataBatcher.write(data);
 
