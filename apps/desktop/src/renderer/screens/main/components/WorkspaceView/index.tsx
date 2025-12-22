@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
@@ -16,6 +17,7 @@ export function WorkspaceView() {
 	const addTab = useTabsStore((s) => s.addTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 
 	const tabs = useMemo(
 		() =>
@@ -28,6 +30,12 @@ export function WorkspaceView() {
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
 		: null;
+
+	// Get the active tab object for layout access
+	const activeTab = useMemo(
+		() => (activeTabId ? allTabs.find((t) => t.id === activeTabId) : null),
+		[activeTabId, allTabs],
+	);
 
 	// Get focused pane ID for the active tab
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
@@ -62,6 +70,23 @@ export function WorkspaceView() {
 			setActiveTab(activeWorkspaceId, tabs[index + 1].id);
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
+
+	// Switch between panes within a tab (⌘+⌥+Left/Right)
+	useHotkeys(HOTKEYS.PREV_PANE.keys, () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
+		if (prevPaneId) {
+			setFocusedPane(activeTabId, prevPaneId);
+		}
+	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
+
+	useHotkeys(HOTKEYS.NEXT_PANE.keys, () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
+		if (nextPaneId) {
+			setFocusedPane(activeTabId, nextPaneId);
+		}
+	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =

@@ -209,6 +209,40 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 };
 
 /**
+ * Gets the next pane ID in the layout, wrapping around to the first if at the end
+ */
+export const getNextPaneId = (
+	layout: MosaicNode<string>,
+	currentPaneId: string,
+): string | null => {
+	const paneIds = extractPaneIdsFromLayout(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(currentPaneId);
+	if (currentIndex === -1) return paneIds[0];
+
+	const nextIndex = (currentIndex + 1) % paneIds.length;
+	return paneIds[nextIndex];
+};
+
+/**
+ * Gets the previous pane ID in the layout, wrapping around to the last if at the beginning
+ */
+export const getPreviousPaneId = (
+	layout: MosaicNode<string>,
+	currentPaneId: string,
+): string | null => {
+	const paneIds = extractPaneIdsFromLayout(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(currentPaneId);
+	if (currentIndex === -1) return paneIds[paneIds.length - 1];
+
+	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
+	return paneIds[prevIndex];
+};
+
+/**
  * Finds the path to a specific pane ID in a mosaic layout
  * Returns the path as an array of MosaicBranch ("first" | "second"), or null if not found
  */
