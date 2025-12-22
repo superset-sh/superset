@@ -189,6 +189,47 @@ describe("UrlLinkProvider", () => {
 			expect(links.length).toBe(1);
 			expect(links[0].text).toBe("https://example.com");
 		});
+
+		it("should trim unbalanced trailing parenthesis", async () => {
+			const terminal = createMockTerminal([
+				{ text: "(see https://example.com)" },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com");
+		});
+
+		it("should keep balanced parentheses in URL", async () => {
+			const terminal = createMockTerminal([
+				{ text: "https://example.com/path(foo)" },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("https://example.com/path(foo)");
+		});
+
+		it("should handle URL in parentheses with balanced parens inside", async () => {
+			const terminal = createMockTerminal([
+				{ text: "(see https://en.wikipedia.org/wiki/URL_(disambiguation))" },
+			]);
+			const onOpen = mock();
+			const provider = new UrlLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe(
+				"https://en.wikipedia.org/wiki/URL_(disambiguation)",
+			);
+		});
 	});
 
 	describe("wrapped lines - forward looking (next line)", () => {
