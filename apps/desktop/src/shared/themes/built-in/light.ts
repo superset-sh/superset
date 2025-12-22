@@ -54,24 +54,24 @@ export const lightTheme: Theme = {
 		cursorAccent: "#ffffff",
 		selectionBackground: "rgba(0, 0, 0, 0.15)",
 
-		// Standard ANSI colors
+		// Standard ANSI colors - optimized for light background contrast
 		black: "#000000",
-		red: "#c91b00",
-		green: "#00c200",
-		yellow: "#c7c400",
-		blue: "#0225c7",
-		magenta: "#c930c7",
-		cyan: "#00c5c7",
-		white: "#c7c7c7",
+		red: "#c41a16",
+		green: "#007400",
+		yellow: "#826b28",
+		blue: "#0451a5",
+		magenta: "#a626a4",
+		cyan: "#0184bc",
+		white: "#333333", // Dark for light theme contrast
 
-		// Bright ANSI colors
-		brightBlack: "#686868",
-		brightRed: "#ff6e6e",
-		brightGreen: "#5ffa68",
-		brightYellow: "#fffc67",
-		brightBlue: "#6871ff",
-		brightMagenta: "#ff77ff",
-		brightCyan: "#5ffdff",
-		brightWhite: "#ffffff",
+		// Bright ANSI colors - darker variants for light background
+		brightBlack: "#5c5c5c",
+		brightRed: "#cd3131",
+		brightGreen: "#14862f",
+		brightYellow: "#b89500",
+		brightBlue: "#0066bf",
+		brightMagenta: "#bc05bc",
+		brightCyan: "#17a1c6",
+		brightWhite: "#1a1a1a", // Dark for light theme contrast
 	},
 };
