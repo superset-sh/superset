@@ -69,6 +69,12 @@ const PORT_PATTERNS = [
 	/server listening at .*:(\d{2,5})/i,
 	// Django/Flask - "Development server is running"
 	/development server .*:(\d{2,5})/i,
+	// Python http.server - "Serving HTTP on 0.0.0.0 port 8000"
+	/serving (?:http|https) on .* port (\d{2,5})/i,
+	// Java/Spring Boot - "Tomcat started on port(s): 8080"
+	/started on port\(s\):? ?(\d{2,5})/i,
+	// Generic "on port X" pattern (catches many frameworks)
+	/\bon port (\d{2,5})\b/i,
 ];
 
 // Ports to ignore (common system/ephemeral ports)
@@ -139,23 +145,12 @@ class PortManager extends EventEmitter {
 		this.isCheckingHealth = true;
 
 		try {
-			// Get unique ports (same port number might be tracked multiple times for different panes)
-			const uniquePorts = new Map<number, DetectedPort[]>();
-			for (const detectedPort of this.ports.values()) {
-				const existing = uniquePorts.get(detectedPort.port) || [];
-				existing.push(detectedPort);
-				uniquePorts.set(detectedPort.port, existing);
-			}
-
-			// Check each unique port
-			const checkPromises = Array.from(uniquePorts.entries()).map(
-				async ([portNum, detectedPorts]) => {
-					const isListening = await isPortListening(portNum);
+			// Check each tracked port
+			const checkPromises = Array.from(this.ports.values()).map(
+				async (detectedPort) => {
+					const isListening = await isPortListening(detectedPort.port);
 					if (!isListening) {
-						// Remove all tracked instances of this port
-						for (const detectedPort of detectedPorts) {
-							this.removePort(detectedPort.paneId, detectedPort.port);
-						}
+						this.removePort(detectedPort.paneId, detectedPort.port);
 					}
 				},
 			);
@@ -167,9 +162,23 @@ class PortManager extends EventEmitter {
 	}
 
 	/**
+	 * Check if a port number is already tracked by any pane
+	 */
+	private isPortTracked(port: number): boolean {
+		for (const detectedPort of this.ports.values()) {
+			if (detectedPort.port === port) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Schedule a port to be added after verification.
 	 * This verifies the port is actually listening before adding it,
 	 * which filters out false positives like "Port 3000 is in use" messages.
+	 * Only one entry per port number is allowed globally to prevent
+	 * tracking ports that belong to other panes.
 	 */
 	schedulePortVerification(
 		port: number,
@@ -179,8 +188,13 @@ class PortManager extends EventEmitter {
 	): void {
 		const key = this.makeKey(paneId, port);
 
-		// Don't verify if already tracked or already verifying
+		// Don't verify if already tracked by this pane or already verifying
 		if (this.ports.has(key) || this.pendingVerification.has(key)) {
+			return;
+		}
+
+		// Don't track if this port is already tracked by another pane
+		if (this.isPortTracked(port)) {
 			return;
 		}
 
@@ -189,8 +203,12 @@ class PortManager extends EventEmitter {
 		// Wait a short time for the server to fully start, then verify
 		setTimeout(async () => {
 			try {
+				// Double-check port isn't tracked yet (could have been added while waiting)
+				if (this.isPortTracked(port)) {
+					return;
+				}
 				const isListening = await isPortListening(port);
-				if (isListening && !this.ports.has(key)) {
+				if (isListening && !this.ports.has(key) && !this.isPortTracked(port)) {
 					this.addPortDirect(port, paneId, workspaceId, contextLine);
 				}
 			} finally {
