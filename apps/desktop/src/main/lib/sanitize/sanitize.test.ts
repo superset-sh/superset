@@ -47,7 +47,7 @@ describe("isValidBinaryName", () => {
 		it("should reject command substitution", () => {
 			expect(isValidBinaryName("$(whoami)")).toBe(false);
 			expect(isValidBinaryName("`id`")).toBe(false);
-			// biome-ignore lint/suspicious/noTemplateCurlyInString: Testing literal string "${PATH}" for security validation
+			// biome-ignore lint/suspicious/noTemplateCurlyInString: testing security validation
 			expect(isValidBinaryName("${PATH}")).toBe(false);
 		});
 

@@ -31,7 +31,6 @@ export function MeshGradient({
 	speed = 3e-6,
 }: MeshGradientProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const gradientRef = useRef<GradientInstance | null>(null);
 	const id = useId();
 	const canvasId = `gradient-canvas-${id.replace(/:/g, "")}`;
 
@@ -42,36 +41,27 @@ export function MeshGradient({
 		let gradient: GradientInstance | null = null;
 
 		const initGradient = async () => {
-			try {
-				const { Gradient } = await import("stripe-gradient");
-				gradient = new Gradient() as GradientInstance;
-				gradient.initGradient(`#${canvasId}`);
+			const { Gradient } = await import("stripe-gradient");
+			gradient = new Gradient() as GradientInstance;
+			gradient.initGradient(`#${canvasId}`);
 
-				// Slow down the animation speed (default is 5e-6)
-				setTimeout(() => {
-					if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
-						gradient.uniforms.u_global.value.noiseSpeed.value = speed;
-					}
-				}, 100);
-
-				gradientRef.current = gradient;
-			} catch (error) {
-				console.error("Failed to initialize gradient:", error);
-			}
+			setTimeout(() => {
+				if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
+					gradient.uniforms.u_global.value.noiseSpeed.value = speed;
+				}
+			}, 100);
 		};
 
 		initGradient();
 
 		return () => {
 			if (gradient) {
-				// Stop animation
 				if (gradient.pause) {
 					gradient.pause();
 				}
 				if (gradient.conf) {
 					gradient.conf.playing = false;
 				}
-				// Replace element with dummy to prevent classList errors in setTimeout callbacks
 				const dummy = document.createElement("div");
 				dummy.appendChild(document.createElement("div"));
 				gradient.el = dummy;
@@ -79,7 +69,6 @@ export function MeshGradient({
 					gradient.disconnect();
 				}
 			}
-			gradientRef.current = null;
 		};
 	}, [canvasId, speed]);
 
