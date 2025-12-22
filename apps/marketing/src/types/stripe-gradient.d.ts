@@ -1,5 +1,6 @@
 declare module "stripe-gradient" {
 	export class Gradient {
+		constructor();
 		initGradient(selector: string): void;
 		play(): void;
 		pause(): void;
