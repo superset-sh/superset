@@ -29,10 +29,11 @@ export function UpdateToast() {
 	// DEV ONLY: Expose test helper on window
 	useEffect(() => {
 		if (process.env.NODE_ENV === "development") {
-			(window as unknown as { __testUpdateToast: () => void }).__testUpdateToast =
-				() => {
-					simulateMutation.mutate();
-				};
+			(
+				window as unknown as { __testUpdateToast: () => void }
+			).__testUpdateToast = () => {
+				simulateMutation.mutate();
+			};
 		}
 	}, [simulateMutation]);
 
