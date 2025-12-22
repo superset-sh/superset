@@ -6,6 +6,7 @@ import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
+import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
@@ -32,6 +33,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		terminal: createTerminalRouter(),
 		changes: createChangesRouter(),
 		notifications: createNotificationsRouter(),
+		ports: createPortsRouter(),
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),

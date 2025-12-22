@@ -6,7 +6,7 @@ import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import jsonWorker from "monaco-editor/esm/vs/language/json/json.worker?worker";
 import tsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 import type React from "react";
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useMonacoTheme } from "renderer/stores/theme";
 
 self.MonacoEnvironment = {
@@ -56,22 +56,52 @@ async function initializeMonaco(): Promise<typeof monaco> {
 
 const monacoPromise = initializeMonaco();
 
+interface MonacoContextValue {
+	isReady: boolean;
+}
+
+const MonacoContext = createContext<MonacoContextValue>({ isReady: false });
+
+export function useMonacoReady(): boolean {
+	return useContext(MonacoContext).isReady;
+}
+
 interface MonacoProviderProps {
 	children: React.ReactNode;
 }
 
 export function MonacoProvider({ children }: MonacoProviderProps) {
 	const monacoTheme = useMonacoTheme();
+	const [isReady, setIsReady] = useState(false);
 
 	useEffect(() => {
+		if (isReady) return;
 		if (!monacoTheme) return;
 
-		monacoPromise.then((monacoInstance) => {
-			monacoInstance.editor.defineTheme(SUPERSET_THEME, monacoTheme);
-		});
-	}, [monacoTheme]);
+		let cancelled = false;
 
-	return <>{children}</>;
+		monacoPromise.then((monacoInstance) => {
+			if (cancelled) return;
+			monacoInstance.editor.defineTheme(SUPERSET_THEME, monacoTheme);
+			setIsReady(true);
+		});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [isReady, monacoTheme]);
+
+	useEffect(() => {
+		if (!isReady || !monacoTheme) return;
+
+		monaco.editor.defineTheme(SUPERSET_THEME, monacoTheme);
+	}, [isReady, monacoTheme]);
+
+	return (
+		<MonacoContext.Provider value={{ isReady }}>
+			{children}
+		</MonacoContext.Provider>
+	);
 }
 
 export { monaco, SUPERSET_THEME };

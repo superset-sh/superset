@@ -30,6 +30,7 @@
 		"react-fast-marquee": "^1.6.5",
 		"react-icons": "^5.5.0",
 		"require-in-the-middle": "8.0.1",
+		"stripe-gradient": "^1.0.1",
 		"three": "^0.181.2",
 		"zod": "^4.1.13"
 	},

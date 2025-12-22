@@ -90,7 +90,7 @@ export default function HomePage() {
 					<div className="flex flex-wrap items-center justify-center gap-4">
 						<Button size="lg" className="gap-2" asChild>
 							<a href={DOWNLOAD_URL_MAC_ARM64}>
-								Download for macOS
+								Download for Mac
 								<Download className="h-4 w-4" aria-hidden="true" />
 							</a>
 						</Button>

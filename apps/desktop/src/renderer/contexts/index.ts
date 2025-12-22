@@ -1,4 +1,8 @@
 export { AppProviders } from "./AppProviders";
-export { MonacoProvider, SUPERSET_THEME } from "./MonacoProvider";
+export {
+	MonacoProvider,
+	SUPERSET_THEME,
+	useMonacoReady,
+} from "./MonacoProvider";
 export { PostHogProvider } from "./PostHogProvider";
 export { TRPCProvider } from "./TRPCProvider";

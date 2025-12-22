@@ -181,7 +181,7 @@ export function DeleteWorkspaceDialog({
 
 				{!isLoading && canDelete && hasWarnings && (
 					<div className="px-4 pb-2">
-						<div className="text-sm text-amber-600 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-900/50 border border-amber-500 dark:border-amber-600 rounded px-2 py-1.5">
+						<div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded px-2 py-1.5">
 							{hasChanges && hasUnpushedCommits
 								? "Has uncommitted changes and unpushed commits"
 								: hasChanges

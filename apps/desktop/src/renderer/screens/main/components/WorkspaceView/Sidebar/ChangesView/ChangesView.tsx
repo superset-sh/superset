@@ -149,7 +149,7 @@ export function ChangesView() {
 
 	if (!worktreePath) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
 				No workspace selected
 			</div>
 		);
@@ -157,7 +157,7 @@ export function ChangesView() {
 
 	if (isLoading) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
 				Loading changes...
 			</div>
 		);
@@ -172,7 +172,7 @@ export function ChangesView() {
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
 				Unable to load changes
 			</div>
 		);
@@ -197,7 +197,7 @@ export function ChangesView() {
 	const prUrl = githubStatus?.pr?.url;
 
 	return (
-		<div className="flex flex-col h-full">
+		<div className="flex flex-col h-full p-2">
 			<ChangesHeader
 				ahead={status.ahead}
 				behind={status.behind}

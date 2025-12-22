@@ -23,6 +23,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronUpDown, HiPlus } from "react-icons/hi2";
@@ -101,12 +102,8 @@ export function NewWorkspaceModal() {
 		}
 	}, [isOpen, currentProjectId, selectedProjectId]);
 
-	// Auto-select default branch when branches load
-	useEffect(() => {
-		if (branchData?.defaultBranch && !baseBranch) {
-			setBaseBranch(branchData.defaultBranch);
-		}
-	}, [branchData?.defaultBranch, baseBranch]);
+	// Effective base branch - use explicit selection or fall back to default
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
 	// Reset base branch when project changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
@@ -152,7 +149,7 @@ export function NewWorkspaceModal() {
 				projectId: selectedProjectId,
 				name: workspaceName,
 				branchName: customBranchName,
-				baseBranch: baseBranch || undefined,
+				baseBranch: effectiveBaseBranch || undefined,
 			}),
 			{
 				loading: "Creating workspace...",
@@ -221,15 +218,22 @@ export function NewWorkspaceModal() {
 								))}
 							</SelectContent>
 						</Select>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8 shrink-0"
-							onClick={handleOpenNewProject}
-							disabled={openNew.isPending}
-						>
-							<HiPlus className="h-4 w-4" />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-8 w-8 shrink-0"
+									onClick={handleOpenNewProject}
+									disabled={openNew.isPending}
+								>
+									<HiPlus className="h-4 w-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={4}>
+								Add new project
+							</TooltipContent>
+						</Tooltip>
 					</div>
 				</div>
 
@@ -329,9 +333,10 @@ export function NewWorkspaceModal() {
 														<span className="flex items-center gap-2 truncate">
 															<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
 															<span className="truncate font-mono text-sm">
-																{baseBranch || "Select branch..."}
+																{effectiveBaseBranch || "Select branch..."}
 															</span>
-															{baseBranch === branchData?.defaultBranch && (
+															{effectiveBaseBranch ===
+																branchData?.defaultBranch && (
 																<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																	default
 																</span>
@@ -383,7 +388,7 @@ export function NewWorkspaceModal() {
 																				)}
 																			</span>
 																		)}
-																		{baseBranch === branch.name && (
+																		{effectiveBaseBranch === branch.name && (
 																			<HiCheck className="size-4 text-primary" />
 																		)}
 																	</span>

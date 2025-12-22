@@ -1,6 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
-import { HelpMenu } from "./HelpMenu";
-import { SettingsButton } from "./SettingsButton";
+import { SettingsButton } from "../SettingsButton";
 import { SidebarControl } from "./SidebarControl";
 import { WindowControls } from "./WindowControls";
 import { WorkspacesTabs } from "./WorkspaceTabs";
@@ -23,7 +22,6 @@ export function TopBar() {
 			</div>
 			<div className="flex items-center h-full pr-4">
 				<SettingsButton />
-				<HelpMenu />
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

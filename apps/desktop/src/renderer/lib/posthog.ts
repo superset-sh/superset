@@ -15,7 +15,7 @@ export function initPostHog() {
 		capture_exceptions: true,
 		person_profiles: "identified_only",
 		persistence: "localStorage",
-		debug: import.meta.env.DEV,
+		debug: false,
 		loaded: (ph) => {
 			ph.register({
 				app_name: "desktop",
@@ -23,8 +23,6 @@ export function initPostHog() {
 			});
 		},
 	});
-
-	console.log("[posthog] Initialized");
 }
 
 export { posthog };
