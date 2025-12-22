@@ -3,7 +3,6 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
@@ -15,6 +14,7 @@ import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider } from "./FilePathLinkProvider";
 import { suppressQueryResponses } from "./suppressQueryResponses";
+import { UrlLinkProvider } from "./UrlLinkProvider";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -103,17 +103,6 @@ export function createTerminalInstance(
 	const xterm = new XTerm(options);
 	const fitAddon = new FitAddon();
 
-	const webLinksAddon = new WebLinksAddon((event, uri) => {
-		// Only open URLs on CMD+click (Mac) or Ctrl+click (Windows/Linux)
-		if (!event.metaKey && !event.ctrlKey) {
-			return;
-		}
-		event.preventDefault();
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-		});
-	});
-
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
@@ -123,7 +112,6 @@ export function createTerminalInstance(
 	xterm.loadAddon(fitAddon);
 	const renderer = loadRenderer(xterm);
 
-	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
@@ -160,6 +148,13 @@ export function createTerminalInstance(
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
+
+	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+		});
+	});
+	xterm.registerLinkProvider(urlLinkProvider);
 
 	xterm.unicode.activeVersion = "11";
 	fitAddon.fit();
