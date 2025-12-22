@@ -48,31 +48,30 @@ export const lightTheme: Theme = {
 	},
 
 	terminal: {
-		background: "#ffffff",
-		foreground: "#333333",
-		cursor: "#333333",
-		cursorAccent: "#ffffff",
+		background: "#fafafa",
+		foreground: "#383a42",
+		cursor: "#383a42",
+		cursorAccent: "#fafafa",
 		selectionBackground: "rgba(0, 0, 0, 0.15)",
 
-		// Standard ANSI colors - pastel/light versions for use as backgrounds
-		// These lighter colors allow dark foreground text to be readable
+		// Light terminal palette - all colors visible on light background
 		black: "#000000",
-		red: "#ffcdd2", // Light red - readable bg for diff deletions
-		green: "#c8e6c9", // Light green - readable bg for diff additions
-		yellow: "#fff9c4", // Light yellow
-		blue: "#bbdefb", // Light blue
-		magenta: "#e1bee7", // Light magenta
-		cyan: "#b2ebf2", // Light cyan
-		white: "#757575", // Medium gray - visible on white bg
+		red: "#e45649",
+		green: "#50a14f",
+		yellow: "#c18401",
+		blue: "#0184bc",
+		magenta: "#a626a4",
+		cyan: "#0997b3",
+		white: "#383a42", // Dark - visible on light bg
 
-		// Bright ANSI colors - darker variants for text
-		brightBlack: "#424242",
-		brightRed: "#c62828", // Dark red for text
-		brightGreen: "#2e7d32", // Dark green for text
-		brightYellow: "#f9a825", // Dark yellow/amber for text
-		brightBlue: "#1565c0", // Dark blue for text
-		brightMagenta: "#6a1b9a", // Dark magenta for text
-		brightCyan: "#00838f", // Dark cyan for text
-		brightWhite: "#212121", // Near black - visible on white bg
+		// Bright variants - also dark for light bg visibility
+		brightBlack: "#4f525e",
+		brightRed: "#ca1243",
+		brightGreen: "#2e7d32",
+		brightYellow: "#986801",
+		brightBlue: "#4078f2",
+		brightMagenta: "#a626a4",
+		brightCyan: "#0184bc",
+		brightWhite: "#1e1e1e", // Dark - visible on light bg
 	},
 };
