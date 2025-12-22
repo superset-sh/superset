@@ -1,29 +1,29 @@
 export interface DemoOption {
 	label: string;
 	videoPath: string;
-	gradient: string;
+	colors: readonly [string, string, string, string];
 }
 
 export const DEMO_OPTIONS: readonly DemoOption[] = [
 	{
 		label: "Use Any Agents",
 		videoPath: "/hero/agents.mp4",
-		gradient: "from-rose-900/80 via-pink-950/70 to-rose-950/80",
+		colors: ["#be185d", "#9d174d", "#831843", "#1a1a2e"],
 	},
 	{
 		label: "Create Parallel Branches",
 		videoPath: "/hero/worktrees.mp4",
-		gradient: "from-blue-900/80 via-blue-950/70 to-blue-950/80",
+		colors: ["#1e40af", "#1e3a8a", "#172554", "#1a1a2e"],
 	},
 	{
 		label: "See Changes",
 		videoPath: "/hero/changes.mp4",
-		gradient: "from-amber-900/80 via-yellow-950/70 to-orange-950/80",
+		colors: ["#b45309", "#92400e", "#78350f", "#1a1a2e"],
 	},
 	{
 		label: "Open in Any IDE",
 		videoPath: "/hero/open-in.mp4",
-		gradient: "from-emerald-900/80 via-teal-950/70 to-emerald-950/80",
+		colors: ["#047857", "#065f46", "#064e3b", "#1a1a2e"],
 	},
 ] as const;
 

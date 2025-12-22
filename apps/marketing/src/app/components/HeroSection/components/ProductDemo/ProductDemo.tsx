@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MeshGradient } from "./components/MeshGradient";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
@@ -10,24 +11,27 @@ export function ProductDemo() {
 		DEMO_OPTIONS[0]?.label ?? "",
 	);
 
+	const activeColors = useMemo(() => {
+		const option = DEMO_OPTIONS.find((o) => o.label === activeOption);
+		return option?.colors ?? DEMO_OPTIONS[0]?.colors;
+	}, [activeOption]);
+
 	return (
 		<div
 			className="relative w-full rounded-lg overflow-hidden"
 			style={{ aspectRatio: "710/500" }}
 		>
-			{/* Background gradient layers */}
-			{DEMO_OPTIONS.map((option) => (
-				<motion.div
-					key={`bg-${option.label}`}
-					className={`absolute inset-0 bg-linear-to-br ${option.gradient}`}
-					initial={false}
-					animate={{ opacity: activeOption === option.label ? 1 : 0 }}
-					transition={{ duration: 0.5, ease: "easeInOut" }}
+			{/* Animated mesh gradient background */}
+			{activeColors && (
+				<MeshGradient
+					key={activeOption}
+					colors={activeColors}
+					className="absolute inset-0 w-full h-full"
 				/>
-			))}
+			)}
 
 			{/* Video container with border */}
-			<div className="absolute inset-6 bottom-20 rounded-lg border-foreground/20 overflow-hidden">
+			<div className="absolute inset-6 bottom-20 rounded-lg border border-foreground/20 overflow-hidden">
 				{DEMO_OPTIONS.map((option) => (
 					<motion.div
 						key={option.label}
