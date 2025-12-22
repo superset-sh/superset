@@ -12,6 +12,11 @@ import { TabContextMenu } from "./TabContextMenu";
 
 const DRAG_TYPE = "TAB";
 
+// Timing constants for context menu focus management
+// When Radix context menu closes, it restores focus to the trigger element.
+// We need to delay our focus and ignore blur events during this window.
+const CONTEXT_MENU_CLOSE_DELAY_MS = 50;
+
 interface DragItem {
 	type: typeof DRAG_TYPE;
 	tabId: string;
@@ -43,7 +48,8 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
-	const renameStartTimeRef = useRef<number>(0);
+	// Flag to ignore blur events caused by context menu's focus restoration
+	const ignoreNextBlurRef = useRef(false);
 
 	// Drag source for tab reordering
 	const [{ isDragging }, drag] = useDrag<
@@ -84,6 +90,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		}
 	};
 
+	// Select tab on right-click so the context menu actions apply to the correct tab
 	const handleContextMenu = () => {
 		if (activeWorkspaceId) {
 			setActiveTab(activeWorkspaceId, tab.id);
@@ -92,7 +99,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 
 	const startRename = () => {
 		setRenameValue(tab.userTitle ?? tab.name ?? displayName);
-		renameStartTimeRef.current = Date.now();
+		ignoreNextBlurRef.current = true;
 		setIsRenaming(true);
 	};
 
@@ -103,20 +110,20 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 			const timeoutId = setTimeout(() => {
 				inputRef.current?.focus();
 				inputRef.current?.select();
-			}, 50);
+			}, CONTEXT_MENU_CLOSE_DELAY_MS);
 			return () => clearTimeout(timeoutId);
 		}
 	}, [isRenaming]);
 
 	const handleBlur = () => {
-		// Ignore blur events within 200ms of starting rename
-		// This prevents the context menu's focus restoration from canceling rename
-		if (Date.now() - renameStartTimeRef.current < 200) {
+		// Ignore blur caused by context menu's focus restoration
+		if (ignoreNextBlurRef.current) {
+			ignoreNextBlurRef.current = false;
 			// Re-focus after the context menu finishes its focus restoration
 			setTimeout(() => {
 				inputRef.current?.focus();
 				inputRef.current?.select();
-			}, 50);
+			}, CONTEXT_MENU_CLOSE_DELAY_MS);
 			return;
 		}
 		submitRename();
@@ -140,7 +147,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		}
 	};
 
-	const attachRef = (el: HTMLButtonElement | null) => {
+	const attachRef = (el: HTMLElement | null) => {
 		drag(el);
 		drop(el);
 	};
@@ -151,10 +158,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 			<div className="w-full">
 				<div className="relative group">
 					<div
-						ref={(el) => {
-							drag(el);
-							drop(el);
-						}}
+						ref={attachRef}
 						className={`
 							w-full text-start px-3 py-2 rounded-md flex items-center gap-2 justify-between pr-8
 							${isActive ? "bg-tertiary-active" : ""}
@@ -220,9 +224,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 											<span className="relative inline-flex size-2 rounded-full bg-red-500" />
 										</span>
 									</TooltipTrigger>
-									<TooltipContent side="right">
-										Agent completed
-									</TooltipContent>
+									<TooltipContent side="right">Agent completed</TooltipContent>
 								</Tooltip>
 							)}
 						</div>
