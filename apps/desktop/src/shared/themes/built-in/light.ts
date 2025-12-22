@@ -54,24 +54,25 @@ export const lightTheme: Theme = {
 		cursorAccent: "#ffffff",
 		selectionBackground: "rgba(0, 0, 0, 0.15)",
 
-		// Standard ANSI colors - optimized for light background contrast
+		// Standard ANSI colors - pastel/light versions for use as backgrounds
+		// These lighter colors allow dark foreground text to be readable
 		black: "#000000",
-		red: "#c41a16",
-		green: "#007400",
-		yellow: "#826b28",
-		blue: "#0451a5",
-		magenta: "#a626a4",
-		cyan: "#0184bc",
-		white: "#333333", // Dark for light theme contrast
+		red: "#ffcdd2", // Light red - readable bg for diff deletions
+		green: "#c8e6c9", // Light green - readable bg for diff additions
+		yellow: "#fff9c4", // Light yellow
+		blue: "#bbdefb", // Light blue
+		magenta: "#e1bee7", // Light magenta
+		cyan: "#b2ebf2", // Light cyan
+		white: "#757575", // Medium gray - visible on white bg
 
-		// Bright ANSI colors - darker variants for light background
-		brightBlack: "#5c5c5c",
-		brightRed: "#cd3131",
-		brightGreen: "#14862f",
-		brightYellow: "#b89500",
-		brightBlue: "#0066bf",
-		brightMagenta: "#bc05bc",
-		brightCyan: "#17a1c6",
-		brightWhite: "#1a1a1a", // Dark for light theme contrast
+		// Bright ANSI colors - darker variants for text
+		brightBlack: "#424242",
+		brightRed: "#c62828", // Dark red for text
+		brightGreen: "#2e7d32", // Dark green for text
+		brightYellow: "#f9a825", // Dark yellow/amber for text
+		brightBlue: "#1565c0", // Dark blue for text
+		brightMagenta: "#6a1b9a", // Dark magenta for text
+		brightCyan: "#00838f", // Dark cyan for text
+		brightWhite: "#212121", // Near black - visible on white bg
 	},
 };
