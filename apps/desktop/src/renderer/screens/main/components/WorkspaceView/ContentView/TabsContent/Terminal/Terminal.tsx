@@ -8,7 +8,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
-import { useTerminalTheme } from "renderer/stores/theme";
+import { useTerminalTheme, useTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
 import { sanitizeForTitle } from "./commandBuffer";
 import {
@@ -49,9 +49,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const terminalTheme = useTerminalTheme();
+	const activeTheme = useTheme();
 
 	// Ref for initial theme to avoid recreating terminal on theme change
 	const initialThemeRef = useRef(terminalTheme);
+
+	// Ref for theme type to pass to terminal env without stale closure issues
+	const themeTypeRef = useRef(activeTheme?.type);
+	themeTypeRef.current = activeTheme?.type;
 
 	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
 
@@ -257,6 +262,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					workspaceId,
 					cols: xterm.cols,
 					rows: xterm.rows,
+					themeType: themeTypeRef.current,
 				},
 				{
 					onSuccess: (result) => {
@@ -315,6 +321,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				rows: xterm.rows,
 				initialCommands,
 				cwd: initialCwd,
+				themeType: themeTypeRef.current,
 			},
 			{
 				onSuccess: (result) => {

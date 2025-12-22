@@ -53,6 +53,8 @@ export interface CreateSessionParams {
 	cols?: number;
 	rows?: number;
 	initialCommands?: string[];
+	/** Theme type for setting COLORFGBG env var (light mode detection) */
+	themeType?: "dark" | "light";
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {

@@ -71,6 +71,7 @@ export function buildTerminalEnv(params: {
 	workspaceName?: string;
 	workspacePath?: string;
 	rootPath?: string;
+	themeType?: "dark" | "light";
 }): Record<string, string> {
 	const {
 		shell,
@@ -80,11 +81,18 @@ export function buildTerminalEnv(params: {
 		workspaceName,
 		workspacePath,
 		rootPath,
+		themeType,
 	} = params;
 
 	const baseEnv = sanitizeEnv(process.env) || {};
 	const shellEnv = getShellEnv(shell);
 	const locale = getLocale(baseEnv);
+
+	// COLORFGBG tells applications about terminal foreground/background colors
+	// Format: "foreground;background" using ANSI color indices (0=black, 15=white)
+	// Light mode: dark fg on light bg = "0;15"
+	// Dark mode: light fg on dark bg = "15;0"
+	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
 
 	const env: Record<string, string> = {
 		...baseEnv,
@@ -92,6 +100,7 @@ export function buildTerminalEnv(params: {
 		TERM_PROGRAM: "Superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
+		COLORFGBG: colorFgBg,
 		LANG: locale,
 		SUPERSET_PANE_ID: paneId,
 		SUPERSET_TAB_ID: tabId,

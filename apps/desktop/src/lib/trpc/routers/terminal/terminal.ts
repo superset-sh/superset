@@ -34,6 +34,7 @@ export const createTerminalRouter = () => {
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
 					initialCommands: z.array(z.string()).optional(),
+					themeType: z.enum(["dark", "light"]).optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -45,6 +46,7 @@ export const createTerminalRouter = () => {
 					rows,
 					cwd: cwdOverride,
 					initialCommands,
+					themeType,
 				} = input;
 
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
@@ -70,6 +72,7 @@ export const createTerminalRouter = () => {
 					cols,
 					rows,
 					initialCommands,
+					themeType,
 				});
 
 				return {

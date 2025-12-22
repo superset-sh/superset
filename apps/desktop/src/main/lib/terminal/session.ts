@@ -73,6 +73,7 @@ export async function createSession(
 		rows,
 		existingScrollback,
 		useFallbackShell = false,
+		themeType,
 	} = params;
 
 	const shell = useFallbackShell ? FALLBACK_SHELL : getDefaultShell();
@@ -88,6 +89,7 @@ export async function createSession(
 		workspaceName,
 		workspacePath,
 		rootPath,
+		themeType,
 	});
 
 	const { scrollback: recoveredScrollback, wasRecovered } =
