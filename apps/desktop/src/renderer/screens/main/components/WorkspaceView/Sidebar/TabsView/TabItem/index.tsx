@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -43,6 +43,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
+	const renameStartTimeRef = useRef<number>(0);
 
 	// Drag source for tab reordering
 	const [{ isDragging }, drag] = useDrag<
@@ -83,13 +84,42 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		}
 	};
 
+	const handleContextMenu = () => {
+		if (activeWorkspaceId) {
+			setActiveTab(activeWorkspaceId, tab.id);
+		}
+	};
+
 	const startRename = () => {
 		setRenameValue(tab.userTitle ?? tab.name ?? displayName);
+		renameStartTimeRef.current = Date.now();
 		setIsRenaming(true);
-		setTimeout(() => {
-			inputRef.current?.focus();
-			inputRef.current?.select();
-		}, 0);
+	};
+
+	// Focus input when entering rename mode
+	useEffect(() => {
+		if (isRenaming && inputRef.current) {
+			// Delay focus to let context menu fully close
+			const timeoutId = setTimeout(() => {
+				inputRef.current?.focus();
+				inputRef.current?.select();
+			}, 50);
+			return () => clearTimeout(timeoutId);
+		}
+	}, [isRenaming]);
+
+	const handleBlur = () => {
+		// Ignore blur events within 200ms of starting rename
+		// This prevents the context menu's focus restoration from canceling rename
+		if (Date.now() - renameStartTimeRef.current < 200) {
+			// Re-focus after the context menu finishes its focus restoration
+			setTimeout(() => {
+				inputRef.current?.focus();
+				inputRef.current?.select();
+			}, 50);
+			return;
+		}
+		submitRename();
 	};
 
 	const submitRename = () => {
@@ -115,6 +145,42 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		drop(el);
 	};
 
+	// When renaming, render input outside the context menu to avoid Radix focus management interference
+	if (isRenaming) {
+		return (
+			<div className="w-full">
+				<div className="relative group">
+					<div
+						ref={(el) => {
+							drag(el);
+							drop(el);
+						}}
+						className={`
+							w-full text-start px-3 py-2 rounded-md flex items-center gap-2 justify-between pr-8
+							${isActive ? "bg-tertiary-active" : ""}
+							${isDragging ? "opacity-50" : ""}
+							${isDragOver ? "bg-tertiary-active/50" : ""}
+						`}
+					>
+						<HiMiniCommandLine className="size-4" />
+						<div className="flex items-center gap-1 flex-1 min-w-0">
+							<Input
+								ref={inputRef}
+								variant="ghost"
+								value={renameValue}
+								onChange={(e) => setRenameValue(e.target.value)}
+								onBlur={handleBlur}
+								onKeyDown={handleKeyDown}
+								onClick={(e) => e.stopPropagation()}
+								className="flex-1"
+							/>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="w-full">
 			<TabContextMenu
@@ -127,6 +193,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 						ref={attachRef}
 						variant="ghost"
 						onClick={handleTabClick}
+						onContextMenu={handleContextMenu}
 						onDoubleClick={startRename}
 						onKeyDown={(e) => {
 							if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
@@ -144,34 +211,19 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 					>
 						<HiMiniCommandLine className="size-4" />
 						<div className="flex items-center gap-1 flex-1 min-w-0">
-							{isRenaming ? (
-								<Input
-									ref={inputRef}
-									variant="ghost"
-									value={renameValue}
-									onChange={(e) => setRenameValue(e.target.value)}
-									onBlur={submitRename}
-									onKeyDown={handleKeyDown}
-									onClick={(e) => e.stopPropagation()}
-									className="flex-1"
-								/>
-							) : (
-								<>
-									<span className="truncate flex-1">{displayName}</span>
-									{needsAttention && (
-										<Tooltip>
-											<TooltipTrigger asChild>
-												<span className="relative flex size-2 shrink-0 ml-1">
-													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-													<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-												</span>
-											</TooltipTrigger>
-											<TooltipContent side="right">
-												Agent completed
-											</TooltipContent>
-										</Tooltip>
-									)}
-								</>
+							<span className="truncate flex-1">{displayName}</span>
+							{needsAttention && (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<span className="relative flex size-2 shrink-0 ml-1">
+											<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+											<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+										</span>
+									</TooltipTrigger>
+									<TooltipContent side="right">
+										Agent completed
+									</TooltipContent>
+								</Tooltip>
 							)}
 						</div>
 					</Button>
