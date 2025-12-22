@@ -16,9 +16,9 @@ const HEALTH_CHECK_INTERVAL = 5000;
 const CONNECTION_TIMEOUT = 1000;
 
 /**
- * Check if a port is listening by attempting a TCP connection
+ * Check if a port is listening on a specific host
  */
-function isPortListening(port: number): Promise<boolean> {
+function checkPortOnHost(port: number, host: string): Promise<boolean> {
 	return new Promise((resolve) => {
 		const socket = new net.Socket();
 
@@ -44,8 +44,20 @@ function isPortListening(port: number): Promise<boolean> {
 			resolve(false);
 		});
 
-		socket.connect(port, "127.0.0.1");
+		socket.connect(port, host);
 	});
+}
+
+/**
+ * Check if a port is listening by attempting TCP connections on both IPv4 and IPv6
+ */
+async function isPortListening(port: number): Promise<boolean> {
+	// Check both IPv4 and IPv6, return true if either succeeds
+	const [ipv4, ipv6] = await Promise.all([
+		checkPortOnHost(port, "127.0.0.1"),
+		checkPortOnHost(port, "::1"),
+	]);
+	return ipv4 || ipv6;
 }
 
 // Port detection patterns for common frameworks
@@ -83,6 +95,9 @@ const IGNORED_PORTS = new Set([80, 443]);
 // Delay before verifying a detected port (ms) - gives server time to fully start
 const VERIFICATION_DELAY = 500;
 
+// Max buffer size for incomplete lines (bytes) - prevents memory issues with pathological input
+const MAX_LINE_BUFFER = 4096;
+
 function extractPort(line: string): number | null {
 	for (const pattern of PORT_PATTERNS) {
 		const match = line.match(pattern);
@@ -102,6 +117,7 @@ class PortManager extends EventEmitter {
 	private pendingVerification = new Set<string>(); // Ports currently being verified
 	private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
 	private isCheckingHealth = false;
+	private lineBuffers = new Map<string, string>(); // Buffer incomplete lines per pane
 
 	constructor() {
 		super();
@@ -272,6 +288,9 @@ class PortManager extends EventEmitter {
 		for (const port of portsToRemove) {
 			this.emit("port:remove", port);
 		}
+
+		// Clear the line buffer for this pane
+		this.lineBuffers.delete(paneId);
 	}
 
 	getAllPorts(): DetectedPort[] {
@@ -287,12 +306,30 @@ class PortManager extends EventEmitter {
 	/**
 	 * Scan terminal output for port patterns.
 	 * Detected ports are verified before being added to ensure they're actually listening.
+	 * Handles chunked output by buffering incomplete lines per pane.
 	 */
 	scanOutput(data: string, paneId: string, workspaceId: string): void {
-		// Split by newlines and check each line
-		const lines = data.split(/\r?\n/);
+		// Prepend any buffered incomplete line from previous chunk
+		const buffered = this.lineBuffers.get(paneId) || "";
+		const combined = buffered + data;
 
-		for (const line of lines) {
+		// Split by newlines
+		const parts = combined.split(/\r?\n/);
+
+		// If data doesn't end with a newline, the last part is incomplete - buffer it
+		const endsWithNewline = /[\r\n]$/.test(data);
+		const completeLines = endsWithNewline ? parts : parts.slice(0, -1);
+		const incompleteLine = endsWithNewline ? "" : (parts.at(-1) ?? "");
+
+		// Update buffer (with size limit to prevent memory issues)
+		if (incompleteLine && incompleteLine.length <= MAX_LINE_BUFFER) {
+			this.lineBuffers.set(paneId, incompleteLine);
+		} else {
+			this.lineBuffers.delete(paneId);
+		}
+
+		// Process complete lines
+		for (const line of completeLines) {
 			if (!line.trim()) continue;
 
 			const port = extractPort(line);
