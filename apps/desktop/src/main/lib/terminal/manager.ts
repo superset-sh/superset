@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
+import { portManager } from "./port-manager";
 import {
 	closeSessionHistory,
 	createSession,
@@ -121,6 +122,10 @@ export class TerminalManager extends EventEmitter {
 			}
 
 			await closeSessionHistory(session, exitCode);
+
+			// Clean up detected ports for this pane
+			portManager.removePortsForPane(paneId);
+
 			this.emit(`exit:${paneId}`, exitCode, signal);
 
 			// Clean up session after delay

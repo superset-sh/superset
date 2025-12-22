@@ -1,0 +1,289 @@
+import { EventEmitter } from "node:events";
+import net from "node:net";
+
+export interface DetectedPort {
+	port: number;
+	paneId: string;
+	workspaceId: string;
+	detectedAt: number;
+	contextLine: string;
+}
+
+// How often to check if ports are still running (in ms)
+const HEALTH_CHECK_INTERVAL = 5000;
+
+// Timeout for connection check (in ms)
+const CONNECTION_TIMEOUT = 1000;
+
+/**
+ * Check if a port is listening by attempting a TCP connection
+ */
+function isPortListening(port: number): Promise<boolean> {
+	return new Promise((resolve) => {
+		const socket = new net.Socket();
+
+		const cleanup = () => {
+			socket.removeAllListeners();
+			socket.destroy();
+		};
+
+		socket.setTimeout(CONNECTION_TIMEOUT);
+
+		socket.on("connect", () => {
+			cleanup();
+			resolve(true);
+		});
+
+		socket.on("timeout", () => {
+			cleanup();
+			resolve(false);
+		});
+
+		socket.on("error", () => {
+			cleanup();
+			resolve(false);
+		});
+
+		socket.connect(port, "127.0.0.1");
+	});
+}
+
+// Port detection patterns for common frameworks
+const PORT_PATTERNS = [
+	// Node.js/Express - "listening on port 3000" or "listening at :3000"
+	/listening (?:on|at) (?:port |:)?(\d{2,5})/i,
+	// Server started - "server running on port 3000"
+	/server (?:running|started|is running) (?:on|at) (?:port |:)?(\d{2,5})/i,
+	// localhost:PORT patterns
+	/localhost:(\d{2,5})/i,
+	// IP:PORT patterns
+	/127\.0\.0\.1:(\d{2,5})/i,
+	/0\.0\.0\.0:(\d{2,5})/i,
+	// HTTP URLs with port
+	/https?:\/\/[^:/]+:(\d{2,5})/i,
+	// Vite/Next.js/React - "ready on http://...:3000" or "started at http://...:3000"
+	/(?:ready|started|running) (?:on|at|in) (?:http:\/\/)?[^:]*:(\d{2,5})/i,
+	// Generic port binding - "bound to port 3000" or "binding to :3000"
+	/(?:bound to|binding to) (?:port )?:?(\d{2,5})/i,
+	// Fastify - "Server listening at"
+	/server listening at .*:(\d{2,5})/i,
+	// Django/Flask - "Development server is running"
+	/development server .*:(\d{2,5})/i,
+];
+
+// Ports to ignore (common system/ephemeral ports)
+const IGNORED_PORTS = new Set([80, 443]);
+
+// Delay before verifying a detected port (ms) - gives server time to fully start
+const VERIFICATION_DELAY = 500;
+
+function extractPort(line: string): number | null {
+	for (const pattern of PORT_PATTERNS) {
+		const match = line.match(pattern);
+		if (match?.[1]) {
+			const port = Number.parseInt(match[1], 10);
+			// Valid port range: 1024-65535 (user ports), excluding common ignored ports
+			if (port >= 1024 && port <= 65535 && !IGNORED_PORTS.has(port)) {
+				return port;
+			}
+		}
+	}
+	return null;
+}
+
+class PortManager extends EventEmitter {
+	private ports = new Map<string, DetectedPort>();
+	private pendingVerification = new Set<string>(); // Ports currently being verified
+	private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
+	private isCheckingHealth = false;
+
+	constructor() {
+		super();
+		this.startHealthCheck();
+	}
+
+	private makeKey(paneId: string, port: number): string {
+		return `${paneId}:${port}`;
+	}
+
+	/**
+	 * Start periodic health checks for all tracked ports
+	 */
+	private startHealthCheck(): void {
+		if (this.healthCheckInterval) return;
+
+		this.healthCheckInterval = setInterval(() => {
+			this.checkPortsHealth();
+		}, HEALTH_CHECK_INTERVAL);
+
+		// Don't prevent Node from exiting
+		this.healthCheckInterval.unref();
+	}
+
+	/**
+	 * Stop the health check interval
+	 */
+	stopHealthCheck(): void {
+		if (this.healthCheckInterval) {
+			clearInterval(this.healthCheckInterval);
+			this.healthCheckInterval = null;
+		}
+	}
+
+	/**
+	 * Check all tracked ports and remove any that are no longer listening
+	 */
+	private async checkPortsHealth(): Promise<void> {
+		// Prevent concurrent health checks
+		if (this.isCheckingHealth || this.ports.size === 0) return;
+		this.isCheckingHealth = true;
+
+		try {
+			// Get unique ports (same port number might be tracked multiple times for different panes)
+			const uniquePorts = new Map<number, DetectedPort[]>();
+			for (const detectedPort of this.ports.values()) {
+				const existing = uniquePorts.get(detectedPort.port) || [];
+				existing.push(detectedPort);
+				uniquePorts.set(detectedPort.port, existing);
+			}
+
+			// Check each unique port
+			const checkPromises = Array.from(uniquePorts.entries()).map(
+				async ([portNum, detectedPorts]) => {
+					const isListening = await isPortListening(portNum);
+					if (!isListening) {
+						// Remove all tracked instances of this port
+						for (const detectedPort of detectedPorts) {
+							this.removePort(detectedPort.paneId, detectedPort.port);
+						}
+					}
+				},
+			);
+
+			await Promise.all(checkPromises);
+		} finally {
+			this.isCheckingHealth = false;
+		}
+	}
+
+	/**
+	 * Schedule a port to be added after verification.
+	 * This verifies the port is actually listening before adding it,
+	 * which filters out false positives like "Port 3000 is in use" messages.
+	 */
+	schedulePortVerification(
+		port: number,
+		paneId: string,
+		workspaceId: string,
+		contextLine: string,
+	): void {
+		const key = this.makeKey(paneId, port);
+
+		// Don't verify if already tracked or already verifying
+		if (this.ports.has(key) || this.pendingVerification.has(key)) {
+			return;
+		}
+
+		this.pendingVerification.add(key);
+
+		// Wait a short time for the server to fully start, then verify
+		setTimeout(async () => {
+			try {
+				const isListening = await isPortListening(port);
+				if (isListening && !this.ports.has(key)) {
+					this.addPortDirect(port, paneId, workspaceId, contextLine);
+				}
+			} finally {
+				this.pendingVerification.delete(key);
+			}
+		}, VERIFICATION_DELAY);
+	}
+
+	/**
+	 * Directly add a port without verification (internal use)
+	 */
+	private addPortDirect(
+		port: number,
+		paneId: string,
+		workspaceId: string,
+		contextLine: string,
+	): boolean {
+		const key = this.makeKey(paneId, port);
+
+		// Don't add duplicate
+		if (this.ports.has(key)) {
+			return false;
+		}
+
+		const detectedPort: DetectedPort = {
+			port,
+			paneId,
+			workspaceId,
+			detectedAt: Date.now(),
+			contextLine: contextLine.trim().slice(0, 100), // Limit context line length
+		};
+
+		this.ports.set(key, detectedPort);
+		this.emit("port:add", detectedPort);
+		return true;
+	}
+
+	/**
+	 * Remove a specific port
+	 */
+	removePort(paneId: string, port: number): void {
+		const key = this.makeKey(paneId, port);
+		const detectedPort = this.ports.get(key);
+
+		if (detectedPort) {
+			this.ports.delete(key);
+			this.emit("port:remove", detectedPort);
+		}
+	}
+
+	removePortsForPane(paneId: string): void {
+		const portsToRemove: DetectedPort[] = [];
+
+		for (const [key, port] of this.ports.entries()) {
+			if (port.paneId === paneId) {
+				portsToRemove.push(port);
+				this.ports.delete(key);
+			}
+		}
+
+		for (const port of portsToRemove) {
+			this.emit("port:remove", port);
+		}
+	}
+
+	getAllPorts(): DetectedPort[] {
+		return Array.from(this.ports.values()).sort(
+			(a, b) => b.detectedAt - a.detectedAt,
+		);
+	}
+
+	getPortsByWorkspace(workspaceId: string): DetectedPort[] {
+		return this.getAllPorts().filter((p) => p.workspaceId === workspaceId);
+	}
+
+	/**
+	 * Scan terminal output for port patterns.
+	 * Detected ports are verified before being added to ensure they're actually listening.
+	 */
+	scanOutput(data: string, paneId: string, workspaceId: string): void {
+		// Split by newlines and check each line
+		const lines = data.split(/\r?\n/);
+
+		for (const line of lines) {
+			if (!line.trim()) continue;
+
+			const port = extractPort(line);
+			if (port !== null) {
+				// Schedule verification - port will only be added if it's actually listening
+				this.schedulePortVerification(port, paneId, workspaceId, line);
+			}
+		}
+	}
+}
+
+export const portManager = new PortManager();

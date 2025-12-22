@@ -9,6 +9,7 @@ import {
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
+import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -156,6 +157,9 @@ export function setupDataHandler(
 		const filteredData = session.escapeFilter.filter(dataToStore);
 		session.scrollback += filteredData;
 		session.historyWriter?.write(filteredData);
+
+		// Scan for port patterns in terminal output
+		portManager.scanOutput(filteredData, session.paneId, session.workspaceId);
 
 		session.dataBatcher.write(data);
 
