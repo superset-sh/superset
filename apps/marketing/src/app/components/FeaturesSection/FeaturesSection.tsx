@@ -24,17 +24,17 @@ const FEATURES: Feature[] = [
 		tag: "Universal Compatibility",
 		title: "Works with any CLI agent",
 		description:
-			"Superset is agent-agnostic. Use Claude Code, Codex, Aider, or any CLI-based coding tool. Switch between agents seamlessly without changing your workflow.",
+			"Superset is agent-agnostic. Use Claude Code, OpenCode, Cursor, or any CLI-based coding tool. Switch between agents seamlessly without changing your workflow.",
 		imageSrc: "/features/cli-agents.png",
 		imageAlt: "Various CLI agents running in Superset",
 	},
 	{
 		tag: "Isolation",
-		title: "Git worktrees keep everything clean",
+		title: "Changes are isolated",
 		description:
 			"Each agent runs in its own isolated Git worktree. No merge conflicts, no stepping on each other's changes. Review and merge work when you're ready.",
-		imageSrc: "/features/git-worktrees.png",
-		imageAlt: "Git worktree isolation in Superset",
+		imageSrc: "/features/isolation.png",
+		imageAlt: "Isolation in Superset",
 	},
 ];
 
@@ -67,31 +67,11 @@ function FeatureImage({ src, alt }: { src?: string; alt: string }) {
 export function FeaturesSection() {
 	return (
 		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-[1200px] mx-auto">
-				{/* Section Header */}
-				<motion.div
-					className="mb-20"
-					initial={{ opacity: 0, y: 20 }}
-					whileInView={{ opacity: 1, y: 0 }}
-					viewport={{ once: true }}
-					transition={{ duration: 0.5 }}
-				>
-					<div className="space-y-1">
-						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-foreground">
-							Features
-						</h2>
-						<p className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							Everything you need to supercharge your AI-assisted development
-							workflow.
-						</p>
-					</div>
-				</motion.div>
-
+			<div className="max-w-7xl mx-auto">
 				{/* Feature Rows */}
 				<div className="space-y-32">
 					{FEATURES.map((feature, index) => {
 						const isReversed = index % 2 === 1;
-
 						return (
 							<motion.div
 								key={feature.title}

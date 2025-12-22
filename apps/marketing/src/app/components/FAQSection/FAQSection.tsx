@@ -96,7 +96,7 @@ export function FAQSection() {
 
 	return (
 		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-[1200px] mx-auto">
+			<div className="max-w-7xl mx-auto">
 				<div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-12 lg:gap-20">
 					{/* Left Column - Title */}
 					<motion.div
