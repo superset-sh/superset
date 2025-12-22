@@ -22,6 +22,30 @@ const BEL = "\x07";
 const CLEAR_SCROLLBACK_PATTERN = new RegExp(`${ESC}\\[3J`);
 
 /**
+ * Private mode numbers that should be filtered from scrollback.
+ * These are DECSET (h) and DECRST (l) modes that shouldn't be replayed.
+ *
+ * Mouse tracking modes (1000-1006, 1015):
+ * - 1000: X10 mouse reporting (button press only)
+ * - 1002: Button-event tracking (press and release)
+ * - 1003: Any-event tracking (all mouse motion)
+ * - 1004: Focus events (focus in/out reporting)
+ * - 1005: UTF-8 mouse mode (legacy extended coordinates)
+ * - 1006: SGR extended mouse mode (modern extended coordinates)
+ * - 1015: URXVT extended mouse mode
+ *
+ * Alternate screen buffer modes (47, 1047, 1049):
+ * - 47: Use alternate screen buffer
+ * - 1047: Use alternate screen buffer (clears on exit)
+ * - 1049: Save cursor and use alternate screen buffer
+ *
+ * Other modes:
+ * - 2004: Bracketed paste mode
+ */
+const FILTERED_PRIVATE_MODES =
+	"1000|1002|1003|1004|1005|1006|1015|47|1047|1049|2004";
+
+/**
  * Pattern definitions for terminal query responses.
  * Each pattern matches a specific type of response that should be filtered.
  */
@@ -100,6 +124,19 @@ const FILTER_PATTERNS = {
 	 * ESC [ O - Unknown/malformed sequence that appears in some terminals
 	 */
 	unknownCSI_O: `${ESC}\\[O`,
+
+	/**
+	 * DECSET/DECRST for filtered private modes: ESC [ ? Pm h or ESC [ ? Pm l
+	 * These are mode-setting sequences that shouldn't be replayed from scrollback.
+	 *
+	 * When TUI applications (vim, opencode, htop) are killed, they don't get to
+	 * send their cleanup sequences. If we replay these modes from scrollback,
+	 * the terminal will re-enable them even though the application is dead.
+	 *
+	 * Most notably, mouse tracking modes (1000, 1002, 1003, 1006) cause mouse
+	 * events to generate escape sequences that appear as garbage text.
+	 */
+	decsetFiltered: `${ESC}\\[\\?(${FILTERED_PRIVATE_MODES})[hl]`,
 } as const;
 
 /**

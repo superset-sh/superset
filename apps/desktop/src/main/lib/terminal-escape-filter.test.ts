@@ -322,6 +322,110 @@ describe("filterTerminalQueryResponses", () => {
 		});
 	});
 
+	describe("filters mouse tracking DECSET/DECRST sequences", () => {
+		it("should filter mouse tracking enable sequence (mode 1000)", () => {
+			const decset = `${ESC}[?1000h`;
+			expect(filterTerminalQueryResponses(decset)).toBe("");
+		});
+
+		it("should filter mouse tracking disable sequence (mode 1000)", () => {
+			const decrst = `${ESC}[?1000l`;
+			expect(filterTerminalQueryResponses(decrst)).toBe("");
+		});
+
+		it("should filter button-event tracking (mode 1002)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1002h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1002l`)).toBe("");
+		});
+
+		it("should filter any-event tracking (mode 1003)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1003h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1003l`)).toBe("");
+		});
+
+		it("should filter focus events (mode 1004)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1004h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1004l`)).toBe("");
+		});
+
+		it("should filter UTF-8 mouse mode (mode 1005)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1005h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1005l`)).toBe("");
+		});
+
+		it("should filter SGR extended mouse mode (mode 1006)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1006h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1006l`)).toBe("");
+		});
+
+		it("should filter URXVT extended mouse mode (mode 1015)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1015h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1015l`)).toBe("");
+		});
+
+		it("should filter alternate screen buffer (mode 47)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?47h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?47l`)).toBe("");
+		});
+
+		it("should filter alternate screen buffer with clear (mode 1047)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1047h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1047l`)).toBe("");
+		});
+
+		it("should filter save cursor + alternate buffer (mode 1049)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?1049h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?1049l`)).toBe("");
+		});
+
+		it("should filter bracketed paste mode (mode 2004)", () => {
+			expect(filterTerminalQueryResponses(`${ESC}[?2004h`)).toBe("");
+			expect(filterTerminalQueryResponses(`${ESC}[?2004l`)).toBe("");
+		});
+
+		it("should filter multiple mouse mode sequences in a row", () => {
+			const input =
+				`${ESC}[?1000h${ESC}[?1002h${ESC}[?1003h${ESC}[?1006h`;
+			expect(filterTerminalQueryResponses(input)).toBe("");
+		});
+
+		it("should filter mouse modes mixed with text", () => {
+			const input = `before${ESC}[?1000h${ESC}[?1006hafter`;
+			expect(filterTerminalQueryResponses(input)).toBe("beforeafter");
+		});
+
+		it("should NOT filter unrelated DECSET modes", () => {
+			// Mode 25 (cursor visible) should NOT be filtered
+			const cursorVisible = `${ESC}[?25h`;
+			expect(filterTerminalQueryResponses(cursorVisible)).toBe(cursorVisible);
+
+			// Mode 7 (wraparound) should NOT be filtered
+			const wraparound = `${ESC}[?7h`;
+			expect(filterTerminalQueryResponses(wraparound)).toBe(wraparound);
+		});
+
+		it("should handle realistic TUI startup sequence", () => {
+			// Typical sequence when a TUI like opencode starts
+			const tuiStartup =
+				`${ESC}[?1049h` + // Enter alternate buffer
+				`${ESC}[?25l` + // Hide cursor
+				`${ESC}[?1000h` + // Enable mouse
+				`${ESC}[?1002h` + // Enable button tracking
+				`${ESC}[?1006h` + // Enable SGR mouse
+				`${ESC}[2J` + // Clear screen
+				`${ESC}[H` + // Cursor home
+				`Welcome to opencode`;
+
+			const expected =
+				`${ESC}[?25l` + // Hide cursor preserved (not filtered)
+				`${ESC}[2J` + // Clear screen preserved
+				`${ESC}[H` + // Cursor home preserved
+				`Welcome to opencode`;
+
+			expect(filterTerminalQueryResponses(tuiStartup)).toBe(expected);
+		});
+	});
+
 	describe("edge cases", () => {
 		it("should handle data with only ESC characters", () => {
 			const input = `${ESC}${ESC}${ESC}`;
@@ -473,6 +577,37 @@ describe("TerminalEscapeFilter (stateful)", () => {
 			const chunk = `${ESC}[0m$ `;
 			const result = filter.filter(chunk);
 			expect(result).toBe(`${ESC}[0m$ `);
+		});
+
+		it("should reassemble and filter split mouse tracking sequence", () => {
+			const filter = new TerminalEscapeFilter();
+			// Mouse tracking enable split across chunks
+			const chunk1 = `text${ESC}[?100`;
+			const chunk2 = `0h`;
+			const result1 = filter.filter(chunk1);
+			const result2 = filter.filter(chunk2);
+			// The mouse tracking sequence should be filtered out
+			expect(result1 + result2).toBe("text");
+		});
+
+		it("should reassemble and filter split SGR mouse mode", () => {
+			const filter = new TerminalEscapeFilter();
+			// SGR mouse mode split: ESC[?1006h
+			const chunk1 = `prompt${ESC}[?10`;
+			const chunk2 = `06h`;
+			const result1 = filter.filter(chunk1);
+			const result2 = filter.filter(chunk2);
+			expect(result1 + result2).toBe("prompt");
+		});
+
+		it("should reassemble and filter split alternate buffer sequence", () => {
+			const filter = new TerminalEscapeFilter();
+			// Alternate buffer ESC[?1049h split
+			const chunk1 = `${ESC}[?104`;
+			const chunk2 = `9h`;
+			const result1 = filter.filter(chunk1);
+			const result2 = filter.filter(chunk2);
+			expect(result1 + result2).toBe("");
 		});
 	});
 

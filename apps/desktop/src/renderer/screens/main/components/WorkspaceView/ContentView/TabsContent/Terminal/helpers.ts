@@ -17,6 +17,29 @@ import { FilePathLinkProvider } from "./FilePathLinkProvider";
 import { suppressQueryResponses } from "./suppressQueryResponses";
 
 /**
+ * Reset sequence for terminal modes that should be disabled when recovering a session.
+ * This is a safety measure to ensure TUI modes are disabled even if the filtering
+ * in terminal-escape-filter.ts misses something.
+ *
+ * Disables:
+ * - Mouse tracking modes (1000, 1002, 1003, 1004, 1005, 1006, 1015)
+ * - Alternate screen buffer (1049)
+ * - Bracketed paste mode (2004)
+ */
+const ESC = "\x1b";
+export const TERMINAL_MODE_RESET_SEQUENCE = [
+	`${ESC}[?1000l`, // Disable X10 mouse
+	`${ESC}[?1002l`, // Disable button-event tracking
+	`${ESC}[?1003l`, // Disable any-event tracking
+	`${ESC}[?1004l`, // Disable focus events
+	`${ESC}[?1005l`, // Disable UTF-8 mouse mode
+	`${ESC}[?1006l`, // Disable SGR extended mouse mode
+	`${ESC}[?1015l`, // Disable URXVT extended mouse mode
+	`${ESC}[?1049l`, // Disable alternate screen buffer
+	`${ESC}[?2004l`, // Disable bracketed paste mode
+].join("");
+
+/**
  * Get the default terminal theme from localStorage cache.
  * This reads cached terminal colors before store hydration to prevent flash.
  * Supports both built-in and custom themes via direct color cache.

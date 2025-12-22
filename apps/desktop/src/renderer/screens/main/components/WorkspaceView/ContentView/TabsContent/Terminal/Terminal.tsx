@@ -19,6 +19,7 @@ import {
 	setupKeyboardHandler,
 	setupPasteHandler,
 	setupResizeHandlers,
+	TERMINAL_MODE_RESET_SEQUENCE,
 } from "./helpers";
 import { parseCwd } from "./parseCwd";
 import { TerminalSearch } from "./TerminalSearch";
@@ -242,6 +243,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isNew: boolean;
 			scrollback: string;
 		}) => {
+			// Reset terminal modes before applying scrollback to ensure TUI modes
+			// (mouse tracking, alternate buffer, etc.) are disabled. This is a safety
+			// measure for recovered sessions where the TUI may have been killed without
+			// cleanup. The modes are also filtered in terminal-escape-filter.ts.
+			if (result.wasRecovered) {
+				xterm.write(TERMINAL_MODE_RESET_SEQUENCE);
+			}
 			xterm.write(result.scrollback);
 			updateCwdRef.current(result.scrollback);
 		};
