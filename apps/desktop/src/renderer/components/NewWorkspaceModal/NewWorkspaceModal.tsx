@@ -335,7 +335,8 @@ export function NewWorkspaceModal() {
 															<span className="truncate font-mono text-sm">
 																{effectiveBaseBranch || "Select branch..."}
 															</span>
-															{effectiveBaseBranch === branchData?.defaultBranch && (
+															{effectiveBaseBranch ===
+																branchData?.defaultBranch && (
 																<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
 																	default
 																</span>
