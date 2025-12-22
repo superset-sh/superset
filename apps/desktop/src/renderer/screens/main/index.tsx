@@ -32,8 +32,9 @@ function LoadingSpinner() {
 export function MainScreen() {
 	const utils = trpc.useUtils();
 	const { data: authState } = trpc.auth.getState.useQuery();
-	const isSignedIn = authState?.isSignedIn ?? false;
-	const isAuthLoading = !authState;
+	const isSignedIn =
+		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
+	const isAuthLoading = !process.env.SKIP_ENV_VALIDATION && !authState;
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {

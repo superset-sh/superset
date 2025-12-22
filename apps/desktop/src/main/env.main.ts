@@ -31,6 +31,7 @@ export const env = createEnv({
 		GH_CLIENT_ID: process.env.GH_CLIENT_ID,
 	},
 	emptyStringAsUndefined: true,
+	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 
 	// Main process runs in trusted Node.js environment
 	isServer: true,

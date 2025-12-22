@@ -40,4 +40,6 @@ const rawEnv = {
 		| undefined,
 };
 
-export const env = envSchema.parse(rawEnv);
+export const env = process.env.SKIP_ENV_VALIDATION
+	? (rawEnv as z.infer<typeof envSchema>)
+	: envSchema.parse(rawEnv);

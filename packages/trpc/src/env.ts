@@ -10,4 +10,5 @@ export const env = createEnv({
 	client: {},
 	runtimeEnv: process.env,
 	emptyStringAsUndefined: true,
+	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });

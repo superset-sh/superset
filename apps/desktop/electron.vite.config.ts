@@ -58,6 +58,9 @@ export default defineConfig({
 			"process.env.NODE_ENV": JSON.stringify(
 				process.env.NODE_ENV || "production",
 			),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
 			// API URLs - baked in at build time for main process
 			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
 				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
@@ -104,6 +107,9 @@ export default defineConfig({
 			"process.env.NODE_ENV": JSON.stringify(
 				process.env.NODE_ENV || "production",
 			),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
 		},
 
 		build: {
@@ -120,6 +126,9 @@ export default defineConfig({
 		define: {
 			// Core env vars - Vite replaces these at build time
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
 			"process.platform": JSON.stringify(process.platform),
 			// API URLs - available in renderer if needed
 			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(

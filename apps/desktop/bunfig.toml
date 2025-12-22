@@ -4,3 +4,4 @@ preload = ["./test-setup.ts"]
 
 [test.env]
 NODE_ENV = "test"
+SKIP_ENV_VALIDATION = "1"
