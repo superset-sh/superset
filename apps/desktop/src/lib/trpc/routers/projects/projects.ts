@@ -3,8 +3,10 @@ import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { track } from "main/lib/analytics";
 import { db } from "main/lib/db";
 import type { Project } from "main/lib/db/schemas";
+import { terminalManager } from "main/lib/terminal";
 import { nanoid } from "nanoid";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
@@ -547,6 +549,67 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				});
 
 				return { success: true };
+			}),
+
+		close: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = db.data.projects.find((p) => p.id === input.id);
+
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				// Find all workspaces for this project
+				const projectWorkspaces = db.data.workspaces.filter(
+					(w) => w.projectId === input.id,
+				);
+
+				// Kill all terminal processes in all workspaces of this project
+				let totalFailed = 0;
+				for (const workspace of projectWorkspaces) {
+					const terminalResult = await terminalManager.killByWorkspaceId(
+						workspace.id,
+					);
+					totalFailed += terminalResult.failed;
+				}
+
+				// Remove all workspace records and hide the project
+				await db.update((data) => {
+					// Remove all workspaces for this project
+					data.workspaces = data.workspaces.filter(
+						(w) => w.projectId !== input.id,
+					);
+
+					// Hide the project by setting tabOrder to null
+					const p = data.projects.find((p) => p.id === input.id);
+					if (p) {
+						p.tabOrder = null;
+					}
+
+					// Update active workspace if it was in this project
+					const closedWorkspaceIds = new Set(
+						projectWorkspaces.map((w) => w.id),
+					);
+					if (
+						data.settings.lastActiveWorkspaceId &&
+						closedWorkspaceIds.has(data.settings.lastActiveWorkspaceId)
+					) {
+						const sorted = data.workspaces
+							.slice()
+							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
+						data.settings.lastActiveWorkspaceId = sorted[0]?.id || undefined;
+					}
+				});
+
+				const terminalWarning =
+					totalFailed > 0
+						? `${totalFailed} terminal process(es) may still be running`
+						: undefined;
+
+				track("project_closed", { project_id: input.id });
+
+				return { success: true, terminalWarning };
 			}),
 	});
 };
