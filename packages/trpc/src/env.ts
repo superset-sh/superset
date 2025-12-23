@@ -5,6 +5,8 @@ export const env = createEnv({
 	server: {
 		CLERK_SECRET_KEY: z.string().min(1),
 		BLOB_READ_WRITE_TOKEN: z.string().min(1),
+		POSTHOG_API_KEY: z.string(),
+		POSTHOG_PROJECT_ID: z.string(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

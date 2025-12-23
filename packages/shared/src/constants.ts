@@ -39,7 +39,7 @@ export const TOKEN_CONFIG = {
 } as const;
 
 // PostHog
-export const POSTHOG_COOKIE_NAME = "ph_superset";
+export const POSTHOG_COOKIE_NAME = "superset";
 
 export const FEATURE_FLAGS = {
 	/** When enabled, users must sign in to use the desktop app */
