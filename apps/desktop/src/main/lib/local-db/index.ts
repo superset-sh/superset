@@ -22,29 +22,47 @@ const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
  * - Production (packaged .app): resources/migrations/
  * - Development (NODE_ENV=development): packages/local-db/drizzle/
  * - Preview (electron-vite preview): dist/resources/migrations/
+ * - Test environment: Use monorepo path relative to __dirname
  */
 function getMigrationsDirectory(): string {
-	if (app.isPackaged) {
+	// Check if running in Electron (app.getAppPath exists)
+	const isElectron =
+		typeof app?.getAppPath === "function" &&
+		typeof app?.isPackaged === "boolean";
+
+	if (isElectron && app.isPackaged) {
 		return join(process.resourcesPath, "resources/migrations");
 	}
 
 	const isDev = env.NODE_ENV === "development";
 
-	if (isDev) {
+	if (isElectron && isDev) {
 		// Development: source files in monorepo
 		return join(app.getAppPath(), "../../packages/local-db/drizzle");
 	}
 
-	// Preview mode: __dirname is dist/main, so go up one level to dist/resources/migrations
+	// Preview mode or test: __dirname is dist/main, so go up one level to dist/resources/migrations
 	const previewPath = join(__dirname, "../resources/migrations");
 	if (existsSync(previewPath)) {
 		return previewPath;
 	}
 
-	// Fallback: try monorepo path
-	const srcPath = join(app.getAppPath(), "../../packages/local-db/drizzle");
-	if (existsSync(srcPath)) {
-		return srcPath;
+	// Fallback: try monorepo path (for tests or dev without Electron)
+	// From apps/desktop/src/main/lib/local-db -> packages/local-db/drizzle
+	const monorepoPath = join(
+		__dirname,
+		"../../../../../packages/local-db/drizzle",
+	);
+	if (existsSync(monorepoPath)) {
+		return monorepoPath;
+	}
+
+	// Try Electron app path if available
+	if (isElectron) {
+		const srcPath = join(app.getAppPath(), "../../packages/local-db/drizzle");
+		if (existsSync(srcPath)) {
+			return srcPath;
+		}
 	}
 
 	console.warn(`[local-db] Migrations directory not found at: ${previewPath}`);
