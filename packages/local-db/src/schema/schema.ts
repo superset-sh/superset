@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 import type {
