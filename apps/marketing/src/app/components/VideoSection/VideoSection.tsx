@@ -14,12 +14,12 @@ export function VideoSection() {
 					transition={{ duration: 0.5 }}
 				>
 					<div className="space-y-1">
-						<h2 className="text-2xl sm:text-3xl font-mono tracking-[-0.01em] text-foreground">
+						<h2 className="text-2xl sm:text-3xl xl:text-4xl font-medium tracking-tight text-foreground">
 							A Superset of your favorite tools
 						</h2>
 						<p className="text-lg sm:text-xl font-light tracking-[-0.03em] text-muted-foreground max-w-[700px]">
-							We provides parallelization and better UX to enhance your Cursor,
-							Claude Code, OpenCode, etc. workflows.
+							We provides parallelization and better UX to enhance your Claude
+							Code, OpenCode, Cursor, etc.
 						</p>
 					</div>
 				</motion.div>
