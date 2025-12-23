@@ -42,18 +42,22 @@ const config: Configuration = {
 		"**/resources/sounds/**/*",
 	],
 
+	// Extra resources placed outside asar archive (accessible via process.resourcesPath)
+	extraResources: [
+		// Database migrations - must be outside asar for drizzle-orm to read
+		{
+			from: "dist/resources/migrations",
+			to: "resources/migrations",
+			filter: ["**/*"],
+		},
+	],
+
 	files: [
 		"dist/**/*",
 		"package.json",
 		{
 			from: pkg.resources,
 			to: "resources",
-			filter: ["**/*"],
-		},
-		// Database migrations from local-db package (copied to dist/resources/migrations by vite)
-		{
-			from: "dist/resources/migrations",
-			to: "resources/migrations",
 			filter: ["**/*"],
 		},
 		// Native modules that can't be bundled by Vite.
