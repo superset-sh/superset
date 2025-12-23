@@ -1,29 +1,55 @@
+import { kv } from "@vercel/kv";
 import { env } from "../env";
 
 const POSTHOG_API_BASE = "https://us.posthog.com";
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
+const CACHE_PREFIX = "posthog:";
 
-interface CacheEntry<T> {
-	data: T;
-	expiresAt: number;
-}
+// Check if KV is configured
+const isKVConfigured = Boolean(
+	process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN,
+);
 
-const cache = new Map<string, CacheEntry<unknown>>();
+// Fallback in-memory cache for local dev without KV
+const memoryCache = new Map<string, { data: unknown; expiresAt: number }>();
 
-function getCached<T>(key: string): T | null {
-	const entry = cache.get(key);
+async function getCached<T>(key: string): Promise<T | null> {
+	const cacheKey = `${CACHE_PREFIX}${key}`;
+
+	if (isKVConfigured) {
+		try {
+			return await kv.get<T>(cacheKey);
+		} catch {
+			// Fall through to memory cache on KV error
+		}
+	}
+
+	// Fallback to memory cache
+	const entry = memoryCache.get(cacheKey);
 	if (!entry) return null;
 	if (Date.now() > entry.expiresAt) {
-		cache.delete(key);
+		memoryCache.delete(cacheKey);
 		return null;
 	}
 	return entry.data as T;
 }
 
-function setCache<T>(key: string, data: T): void {
-	cache.set(key, {
+async function setCache<T>(key: string, data: T): Promise<void> {
+	const cacheKey = `${CACHE_PREFIX}${key}`;
+
+	if (isKVConfigured) {
+		try {
+			await kv.set(cacheKey, data, { ex: CACHE_TTL_SECONDS });
+			return;
+		} catch {
+			// Fall through to memory cache on KV error
+		}
+	}
+
+	// Fallback to memory cache
+	memoryCache.set(cacheKey, {
 		data,
-		expiresAt: Date.now() + CACHE_TTL_MS,
+		expiresAt: Date.now() + CACHE_TTL_SECONDS * 1000,
 	});
 }
 
@@ -133,7 +159,7 @@ export async function executeQuery<T = unknown>(
 	query: PostHogQuery,
 ): Promise<PostHogQueryResult<T>> {
 	const cacheKey = JSON.stringify(query);
-	const cached = getCached<PostHogQueryResult<T>>(cacheKey);
+	const cached = await getCached<PostHogQueryResult<T>>(cacheKey);
 	if (cached) {
 		return cached;
 	}
@@ -156,7 +182,7 @@ export async function executeQuery<T = unknown>(
 	}
 
 	const result = (await response.json()) as PostHogQueryResult<T>;
-	setCache(cacheKey, result);
+	await setCache(cacheKey, result);
 	return result;
 }
 
