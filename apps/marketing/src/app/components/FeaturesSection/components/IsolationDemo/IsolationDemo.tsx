@@ -117,10 +117,10 @@ export function IsolationDemo() {
 						components/HeroSection/HeroSection.tsx
 					</span>
 				</div>
-				<div className="flex items-center gap-2">
+				<div className="flex items-center gap-2 mx-2">
 					<button
 						type="button"
-						className="px-2 py-1 text-xs text-white/60 hover:text-white/80 bg-white/5 rounded transition-colors"
+						className="px-2 py-1 text-xs text-white/60 hover:text-white/80 bg-white/5 rounded transition-colors whitespace-nowrap"
 					>
 						Side by Side
 					</button>
