@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { HiCheck } from "react-icons/hi2";
-import type { Theme } from "shared/themes";
+import { getTerminalColors, type Theme } from "shared/themes";
 
 interface ThemeCardProps {
 	theme: Theme;
@@ -9,15 +9,16 @@ interface ThemeCardProps {
 }
 
 export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
-	const bgColor = theme.terminal.background;
-	const fgColor = theme.terminal.foreground;
+	const terminal = getTerminalColors(theme);
+	const bgColor = terminal.background;
+	const fgColor = terminal.foreground;
 	const accentColors = [
-		theme.terminal.red,
-		theme.terminal.green,
-		theme.terminal.yellow,
-		theme.terminal.blue,
-		theme.terminal.magenta,
-		theme.terminal.cyan,
+		terminal.red,
+		terminal.green,
+		terminal.yellow,
+		terminal.blue,
+		terminal.magenta,
+		terminal.cyan,
 	];
 
 	return (
@@ -41,7 +42,7 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
 					<div className="flex items-center gap-1">
 						<span
 							className="text-[11px] font-mono"
-							style={{ color: theme.terminal.green }}
+							style={{ color: terminal.green }}
 						>
 							$
 						</span>
@@ -51,13 +52,13 @@ export function ThemeCard({ theme, isSelected, onSelect }: ThemeCardProps) {
 					</div>
 					<div
 						className="text-[11px] font-mono"
-						style={{ color: theme.terminal.cyan }}
+						style={{ color: terminal.cyan }}
 					>
 						Starting development server...
 					</div>
 					<div
 						className="text-[11px] font-mono"
-						style={{ color: theme.terminal.yellow }}
+						style={{ color: terminal.yellow }}
 					>
 						Ready on http://localhost:3000
 					</div>

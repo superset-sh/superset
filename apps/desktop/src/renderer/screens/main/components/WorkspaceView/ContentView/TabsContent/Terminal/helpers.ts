@@ -10,7 +10,11 @@ import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isAppHotkey } from "shared/hotkeys";
-import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
+import {
+	builtInThemes,
+	DEFAULT_THEME_ID,
+	getTerminalColors,
+} from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
@@ -31,7 +35,7 @@ export function getDefaultTerminalTheme(): ITheme {
 		const themeId = localStorage.getItem("theme-id") ?? DEFAULT_THEME_ID;
 		const theme = builtInThemes.find((t) => t.id === themeId);
 		if (theme) {
-			return toXtermTheme(theme.terminal);
+			return toXtermTheme(getTerminalColors(theme));
 		}
 	} catch {
 		// Fall through to default
@@ -39,7 +43,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	// Final fallback to default theme
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
-		? toXtermTheme(defaultTheme.terminal)
+		? toXtermTheme(getTerminalColors(defaultTheme))
 		: { background: "#1a1a1a", foreground: "#d4d4d4" };
 }
 
