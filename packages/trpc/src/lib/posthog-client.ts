@@ -3,7 +3,8 @@ import { env } from "../env";
 
 const POSTHOG_API_BASE = "https://us.posthog.com";
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
-const CACHE_PREFIX = "posthog:";
+const NODE_ENV = process.env.NODE_ENV ?? "development";
+const CACHE_PREFIX = `posthog:${NODE_ENV}:`;
 
 // Check if KV is configured
 const isKVConfigured = Boolean(
