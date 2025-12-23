@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 
 export function VideoSection() {
 	return (
-		<section className="relative py-2 px-8 lg:px-[30px]">
+		<section className="relative py-12 px-8 lg:px-[30px]">
 			<div className="max-w-7xl mx-auto">
 				<motion.div
-					className="mb-20"
+					className="mb-12"
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
 					viewport={{ once: true }}

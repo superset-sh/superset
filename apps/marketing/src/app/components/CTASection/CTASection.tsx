@@ -20,9 +20,8 @@ export function CTASection() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
 					>
-						Give us a try
+						Get Superset Today
 					</motion.h2>
-
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}
