@@ -105,41 +105,57 @@ export const analyticsRouter = {
 		)
 		.query(async ({ input }) => {
 			const days = input?.days ?? 30;
-			const numWeeks = Math.ceil(days / 7);
+			const lookbackDays = days + 7; // Extra 7 days to cover rolling windows
 
-			// Calculate WAU for each week
-			const weeklyData: { week: string; count: number }[] = [];
-
-			for (let i = numWeeks - 1; i >= 0; i--) {
-				const weekEnd = i * 7;
-				const weekStart = weekEnd + 7;
-
-				// Only count workspace_created as meaningful product usage
-				const { results } = await executeHogQLQuery<[[number]]>(`
-					SELECT count(DISTINCT person_id) as wau_users
+			// Rolling 7-day WAU: for each day, count users with 3+ active days
+			// of workspace_created events in the preceding 7-day window
+			const { results } = await executeHogQLQuery<[string, number][]>(`
+				SELECT
+					report_date as date,
+					count(DISTINCT person_id) as wau
+				FROM (
+					SELECT
+						report_date,
+						person_id,
+						count(DISTINCT activity_date) as active_days
 					FROM (
-						SELECT person_id, count(DISTINCT toDate(timestamp)) as active_days
+						SELECT toDate(now()) - number as report_date
+						FROM numbers(${days})
+					) dates
+					CROSS JOIN (
+						SELECT
+							person_id,
+							toDate(timestamp) as activity_date
 						FROM events
-						WHERE timestamp >= now() - INTERVAL ${weekStart} DAY
-							AND timestamp < now() - INTERVAL ${weekEnd} DAY
-							AND event = 'workspace_created'
-						GROUP BY person_id
-						HAVING active_days >= 3
-					)
-				`);
+						WHERE event = 'workspace_created'
+							AND timestamp >= now() - INTERVAL ${lookbackDays} DAY
+					) activities
+					WHERE activity_date > report_date - 7
+						AND activity_date <= report_date
+					GROUP BY report_date, person_id
+					HAVING active_days >= 3
+				)
+				GROUP BY report_date
+				ORDER BY report_date ASC
+			`);
 
-				// Calculate the week's start date for the label
-				const weekDate = new Date();
-				weekDate.setDate(weekDate.getDate() - weekStart);
-				const weekLabel = weekDate.toISOString().split("T")[0] as string;
+			// Create a map of existing data
+			const dataMap = new Map(results.map(([date, count]) => [date, count]));
 
-				weeklyData.push({
-					week: weekLabel,
-					count: results[0]?.[0] ?? 0,
+			// Fill in all dates in the range (in case some days have 0 WAU)
+			const filledData: { date: string; count: number }[] = [];
+			const now = new Date();
+			for (let i = days - 1; i >= 0; i--) {
+				const date = new Date(now);
+				date.setDate(date.getDate() - i);
+				const dateStr = date.toISOString().split("T")[0] as string;
+				filledData.push({
+					date: dateStr,
+					count: dataMap.get(dateStr) ?? 0,
 				});
 			}
 
-			return weeklyData;
+			return filledData;
 		}),
 
 	getRetention: adminProcedure.query(async () => {

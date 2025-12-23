@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
 interface WAUData {
-	week: string;
+	date: string;
 	count: number;
 }
 
@@ -74,7 +74,7 @@ export function WAUTrendChart({
 					<ChartContainer config={chartConfig} className="h-[200px] w-full">
 						<AreaChart data={data} margin={{ left: 0, right: 0 }}>
 							<XAxis
-								dataKey="week"
+								dataKey="date"
 								tickLine={false}
 								axisLine={false}
 								tickFormatter={(v) =>
