@@ -2,7 +2,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
-import { env } from "renderer/env.renderer";
 import { trpc } from "renderer/lib/trpc";
 
 export function AccountSettings() {
@@ -10,19 +9,8 @@ export function AccountSettings() {
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
-	const triggerMainErrorMutation = trpc.settings.triggerTestError.useMutation({
-		onError: (error) => toast.error(`Main process error: ${error.message}`),
-	});
 
 	const signOut = () => signOutMutation.mutate();
-
-	const triggerRendererError = () => {
-		throw new Error("Test error from renderer process (Sentry test)");
-	};
-
-	const triggerMainError = () => {
-		triggerMainErrorMutation.mutate();
-	};
 
 	const initials = user?.name
 		?.split(" ")
@@ -82,24 +70,6 @@ export function AccountSettings() {
 						Sign Out
 					</Button>
 				</div>
-
-				{/* Developer Section - only in development */}
-				{env.NODE_ENV === "development" && (
-					<div className="pt-6 border-t">
-						<h3 className="text-sm font-medium mb-2">Developer</h3>
-						<p className="text-sm text-muted-foreground mb-4">
-							Test Sentry error reporting.
-						</p>
-						<div className="flex gap-2">
-							<Button variant="outline" onClick={triggerRendererError}>
-								Test Renderer Error
-							</Button>
-							<Button variant="outline" onClick={triggerMainError}>
-								Test Main Process Error
-							</Button>
-						</div>
-					</div>
-				)}
 			</div>
 		</div>
 	);
