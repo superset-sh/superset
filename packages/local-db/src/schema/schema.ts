@@ -1,5 +1,5 @@
-import crypto from "node:crypto";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { v4 as uuidv4 } from "uuid";
 
 import type {
 	ExternalApp,
@@ -17,7 +17,7 @@ export const projects = sqliteTable(
 	{
 		id: text("id")
 			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+			.$defaultFn(() => uuidv4()),
 		mainRepoPath: text("main_repo_path").notNull(),
 		name: text("name").notNull(),
 		color: text("color").notNull(),
@@ -50,7 +50,7 @@ export const worktrees = sqliteTable(
 	{
 		id: text("id")
 			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+			.$defaultFn(() => uuidv4()),
 		projectId: text("project_id")
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),
@@ -80,7 +80,7 @@ export const workspaces = sqliteTable(
 	{
 		id: text("id")
 			.primaryKey()
-			.$defaultFn(() => crypto.randomUUID()),
+			.$defaultFn(() => uuidv4()),
 		projectId: text("project_id")
 			.notNull()
 			.references(() => projects.id, { onDelete: "cascade" }),

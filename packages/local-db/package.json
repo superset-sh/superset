@@ -20,10 +20,12 @@
 	},
 	"dependencies": {
 		"drizzle-orm": "0.45.1",
+		"uuid": "^13.0.0",
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/uuid": "^11.0.0",
 		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"
 	}
