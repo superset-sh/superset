@@ -90,6 +90,24 @@ mock.module("electron", () => ({
 	},
 	shell: {
 		openExternal: mock(() => Promise.resolve()),
+		openPath: mock(() => Promise.resolve("")),
+	},
+	clipboard: {
+		writeText: mock(),
+		readText: mock(() => ""),
+	},
+	screen: {
+		getPrimaryDisplay: mock(() => ({
+			workAreaSize: { width: 1920, height: 1080 },
+		})),
+	},
+	Notification: mock(() => ({
+		show: mock(),
+		on: mock(),
+	})),
+	Menu: {
+		buildFromTemplate: mock(() => ({})),
+		setApplicationMenu: mock(),
 	},
 }));
 
