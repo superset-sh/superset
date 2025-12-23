@@ -18,7 +18,7 @@ const FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Which AI coding agents are supported?",
 		answer:
-			"Superset works with any CLI-based coding agent including Claude Code, OpenCode, OpenAI Codex, and more. If it runs in a terminal, it runs in Superset. We're agent-agnostic by design.",
+			"Superset works with any CLI-based coding agent including Claude Code, OpenCode, OpenAI Codex, and more. If it runs in a terminal, it runs in Superset.",
 	},
 	{
 		question: "How does the parallel agent system work?",
