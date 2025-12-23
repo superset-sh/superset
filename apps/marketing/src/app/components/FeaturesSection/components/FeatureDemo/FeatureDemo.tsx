@@ -25,7 +25,7 @@ export function FeatureDemo({
 			/>
 
 			{/* Content overlay */}
-			<div className="relative z-10 w-full h-full flex items-center justify-start lg:justify-center p-4 lg:p-6">
+			<div className="relative z-10 w-full h-full flex items-center justify-start sm:justify-center p-4 sm:p-6">
 				{children}
 			</div>
 		</div>
