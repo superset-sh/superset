@@ -34,6 +34,9 @@ const config: Configuration = {
 	asar: true,
 	asarUnpack: [
 		"**/node_modules/better-sqlite3/**/*",
+		// better-sqlite3 uses `bindings` to locate native modules - must be unpacked together
+		"**/node_modules/bindings/**/*",
+		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
@@ -59,6 +62,18 @@ const config: Configuration = {
 		{
 			from: "node_modules/better-sqlite3",
 			to: "node_modules/better-sqlite3",
+			filter: ["**/*"],
+		},
+		// better-sqlite3 uses `bindings` package to locate its native .node file
+		{
+			from: "node_modules/bindings",
+			to: "node_modules/bindings",
+			filter: ["**/*"],
+		},
+		// `bindings` requires `file-uri-to-path` for file:// URL handling
+		{
+			from: "node_modules/file-uri-to-path",
+			to: "node_modules/file-uri-to-path",
 			filter: ["**/*"],
 		},
 		{
