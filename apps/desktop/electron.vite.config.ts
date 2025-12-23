@@ -212,6 +212,9 @@ export default defineConfig({
 				input: {
 					index: resolve("src/renderer/index.html"),
 				},
+
+				// Externalize Sentry - it uses IPC to communicate with main process
+				external: [/^@sentry\/electron/],
 			},
 		},
 	},
