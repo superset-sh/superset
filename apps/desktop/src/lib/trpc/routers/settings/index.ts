@@ -165,5 +165,9 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		triggerTestError: publicProcedure.mutation(() => {
+			throw new Error("Test error from main process (Sentry test)");
+		}),
 	});
 };

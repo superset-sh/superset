@@ -1,3 +1,7 @@
+import { initSentry } from "./lib/sentry";
+
+initSentry();
+
 import React from "react";
 import ReactDom from "react-dom/client";
 

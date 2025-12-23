@@ -1,3 +1,7 @@
+import { initSentry } from "./lib/sentry";
+
+initSentry();
+
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
