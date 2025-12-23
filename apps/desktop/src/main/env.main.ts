@@ -20,6 +20,7 @@ export const env = createEnv({
 		GH_CLIENT_ID: z.string().min(1),
 		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
 		NEXT_PUBLIC_POSTHOG_HOST: z.string().default("https://us.i.posthog.com"),
+		SENTRY_DSN_DESKTOP: z.string().optional(),
 	},
 
 	runtimeEnv: {
@@ -33,6 +34,7 @@ export const env = createEnv({
 		GH_CLIENT_ID: process.env.GH_CLIENT_ID,
 		NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY,
 		NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+		SENTRY_DSN_DESKTOP: process.env.SENTRY_DSN_DESKTOP,
 	},
 	emptyStringAsUndefined: true,
 	skipValidation: !!process.env.SKIP_ENV_VALIDATION,

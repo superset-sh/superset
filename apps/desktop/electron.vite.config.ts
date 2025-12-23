@@ -106,6 +106,7 @@ export default defineConfig({
 					"electron",
 					"better-sqlite3", // Native module - must stay external
 					"node-pty", // Native module - must stay external
+					/^@sentry\/electron/,
 				],
 			},
 		},

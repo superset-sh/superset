@@ -62,6 +62,7 @@ jobs:
           GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
         run: bun run compile:app
 
       # Build the Electron app for macOS

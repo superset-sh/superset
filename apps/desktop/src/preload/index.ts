@@ -1,5 +1,3 @@
-import "@sentry/electron/preload";
-
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { exposeElectronTRPC } from "trpc-electron/main";
 

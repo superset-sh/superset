@@ -1,18 +1,28 @@
-import * as Sentry from "@sentry/electron/main";
-import { app } from "electron";
+import { env } from "../env.main";
 
-export function initSentry(): void {
-	const dsn = process.env.SENTRY_DSN_DESKTOP;
+let sentryInitialized = false;
 
-	if (!dsn) {
+export async function initSentry(): Promise<void> {
+	if (sentryInitialized) return;
+
+	if (!env.SENTRY_DSN_DESKTOP) {
 		return;
 	}
 
-	Sentry.init({
-		dsn,
-		environment: process.env.NODE_ENV || "production",
-		release: `superset-desktop@${app.getVersion()}`,
-		tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
-		sendDefaultPii: false,
-	});
+	try {
+		// Dynamic import to avoid bundler issues
+		const Sentry = await import("@sentry/electron/main");
+
+		Sentry.init({
+			dsn: env.SENTRY_DSN_DESKTOP,
+			environment: env.NODE_ENV,
+			tracesSampleRate: env.NODE_ENV === "development" ? 1.0 : 0.1,
+			sendDefaultPii: false,
+		});
+
+		sentryInitialized = true;
+		console.log("[sentry] Initialized in main process");
+	} catch (error) {
+		console.error("[sentry] Failed to initialize:", error);
+	}
 }
