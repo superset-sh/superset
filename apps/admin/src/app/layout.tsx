@@ -23,8 +23,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-	title: "Superset Admin",
-	description: "Admin dashboard for Superset",
+	title: "Superset | Company Dashboard",
+	description: "Analytics, Ops, and more",
 };
 
 export const viewport: Viewport = {

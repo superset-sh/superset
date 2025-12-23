@@ -19,23 +19,22 @@ import {
 	SidebarMenuItem,
 	SidebarRail,
 } from "@superset/ui/sidebar";
-import { LuChevronRight, LuHouse, LuUsers } from "react-icons/lu";
+import { usePathname } from "next/navigation";
+import { LuChevronRight, LuHouse, LuUsers, LuUserX } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";
 import { SearchForm } from "./components/SearchForm";
 
-const navigation = [
+const topLevelNav = [
 	{
-		title: "Overview",
-		items: [
-			{
-				title: "Dashboard",
-				url: "/",
-				icon: LuHouse,
-			},
-		],
+		title: "Home",
+		url: "/",
+		icon: LuHouse,
 	},
+];
+
+const sections = [
 	{
 		title: "User Management",
 		items: [
@@ -47,6 +46,7 @@ const navigation = [
 			{
 				title: "Deleted Users",
 				url: "/users/deleted",
+				icon: LuUserX,
 			},
 		],
 	},
@@ -57,6 +57,13 @@ export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 }
 
 export function AppSidebar({ user, ...props }: AppSidebarProps) {
+	const pathname = usePathname();
+
+	const isActive = (url: string) => {
+		if (url === "/") return pathname === "/";
+		return pathname.startsWith(url);
+	};
+
 	return (
 		<Sidebar {...props}>
 			<SidebarHeader>
@@ -64,7 +71,24 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 				<SearchForm />
 			</SidebarHeader>
 			<SidebarContent className="gap-0">
-				{navigation.map((section) => (
+				<SidebarGroup>
+					<SidebarGroupContent>
+						<SidebarMenu>
+							{topLevelNav.map((item) => (
+								<SidebarMenuItem key={item.title}>
+									<SidebarMenuButton asChild isActive={isActive(item.url)}>
+										<a href={item.url}>
+											<item.icon className="size-4" />
+											{item.title}
+										</a>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
+						</SidebarMenu>
+					</SidebarGroupContent>
+				</SidebarGroup>
+
+				{sections.map((section) => (
 					<Collapsible
 						key={section.title}
 						title={section.title}
@@ -86,7 +110,10 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 									<SidebarMenu>
 										{section.items.map((item) => (
 											<SidebarMenuItem key={item.title}>
-												<SidebarMenuButton asChild>
+												<SidebarMenuButton
+													asChild
+													isActive={isActive(item.url)}
+												>
 													<a href={item.url}>
 														{item.icon && <item.icon className="size-4" />}
 														{item.title}

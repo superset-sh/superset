@@ -20,7 +20,6 @@ export function AppSidebarHeader() {
 						/>
 						<div className="flex flex-col gap-0.5 leading-none">
 							<span className="font-medium">Superset</span>
-							<span className="">Admin Panel</span>
 						</div>
 					</a>
 				</SidebarMenuButton>
