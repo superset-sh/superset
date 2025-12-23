@@ -85,10 +85,8 @@ const config: Configuration = {
 		"!**/.DS_Store",
 	],
 
-	// Skip npm rebuild - dependencies already built in monorepo
-	npmRebuild: false,
-	buildDependenciesFromSource: false,
-	nodeGypRebuild: false,
+	// Rebuild native modules for Electron's Node.js version
+	npmRebuild: true,
 
 	// macOS
 	mac: {
