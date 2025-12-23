@@ -63,8 +63,8 @@ function copyModuleIfSymlink(
 function prepareNativeModules() {
 	console.log("Preparing native modules for electron-builder...");
 
-	// In bun workspaces, packages are hoisted to the monorepo root node_modules
-	const nodeModulesDir = join(dirname(import.meta.dirname), "..", "..", "node_modules");
+	// bun creates symlinks for direct dependencies in the workspace's node_modules
+	const nodeModulesDir = join(dirname(import.meta.dirname), "node_modules");
 
 	// Copy required native modules
 	for (const moduleName of NATIVE_MODULES) {

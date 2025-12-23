@@ -57,28 +57,28 @@ const config: Configuration = {
 			filter: ["**/*"],
 		},
 		// Native modules that can't be bundled by Vite.
-		// Paths are relative to monorepo root node_modules (hoisted by bun workspaces).
+		// bun creates symlinks for direct deps in workspace node_modules.
 		// The copy:native-modules script replaces symlinks with real files
 		// before building (required for Bun 1.3+ isolated installs).
 		{
-			from: "../../node_modules/better-sqlite3",
+			from: "node_modules/better-sqlite3",
 			to: "node_modules/better-sqlite3",
 			filter: ["**/*"],
 		},
 		// better-sqlite3 uses `bindings` package to locate its native .node file
 		{
-			from: "../../node_modules/bindings",
+			from: "node_modules/bindings",
 			to: "node_modules/bindings",
 			filter: ["**/*"],
 		},
 		// `bindings` requires `file-uri-to-path` for file:// URL handling
 		{
-			from: "../../node_modules/file-uri-to-path",
+			from: "node_modules/file-uri-to-path",
 			to: "node_modules/file-uri-to-path",
 			filter: ["**/*"],
 		},
 		{
-			from: "../../node_modules/node-pty",
+			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
 			filter: ["**/*"],
 		},
