@@ -38,7 +38,7 @@ export function OpenInDemo() {
 	return (
 		<motion.div
 			ref={ref}
-			className="relative w-full max-w-xs"
+			className="relative w-full max-w-sm"
 			initial={{ opacity: 0, y: 20 }}
 			animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 			transition={{ duration: 0.5 }}
@@ -59,18 +59,45 @@ export function OpenInDemo() {
 					</div>
 					<div className="flex items-center gap-1.5 text-white/50">
 						<HiOutlineFolder className="w-3.5 h-3.5" />
-						<span className="text-xs">HeroSection</span>
+						<span className="text-xs">src</span>
 					</div>
 				</div>
 
-				{/* File context */}
-				<div className="px-3 py-3">
-					<div className="flex items-center gap-2 text-white/60 text-xs mb-2">
-						<span className="text-white/40">components/</span>
-						<span className="text-white/80">HeroSection.tsx</span>
-					</div>
+				{/* File tree */}
+				<div className="py-2">
+					{FILE_TREE.map((item, index) => (
+						<motion.div
+							key={item.name}
+							className={`flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer transition-colors ${
+								item.selected
+									? "bg-white/10 text-white/90"
+									: "text-white/60 hover:bg-white/5"
+							}`}
+							style={{ paddingLeft: `${12 + (item.indent || 0) * 16}px` }}
+							initial={{ opacity: 0, x: -5 }}
+							animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -5 }}
+							transition={{ duration: 0.2, delay: 0.15 + index * 0.03 }}
+						>
+							{item.type === "folder" ? (
+								<>
+									<HiChevronRight
+										className={`w-3 h-3 text-white/40 ${item.expanded ? "rotate-90" : ""}`}
+									/>
+									<HiOutlineFolder className="w-3.5 h-3.5 text-white/50" />
+								</>
+							) : (
+								<>
+									<span className="w-3" />
+									<HiOutlineDocument className="w-3.5 h-3.5 text-white/40" />
+								</>
+							)}
+							<span>{item.name}</span>
+						</motion.div>
+					))}
+				</div>
 
-					{/* Button Group */}
+				{/* Button Group */}
+				<div className="px-3 py-3 border-t border-white/5">
 					<motion.div
 						className="inline-flex items-center"
 						initial={{ opacity: 0, scale: 0.95 }}
