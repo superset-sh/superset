@@ -15,69 +15,74 @@ import {
 } from "@superset/ui/chart";
 import { Skeleton } from "@superset/ui/skeleton";
 import type { ReactNode } from "react";
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
+import colors from "tailwindcss/colors";
 
-interface FunnelStep {
-	name: string;
+interface TrafficSource {
+	source: string;
 	count: number;
-	conversionRate: number;
 }
 
-interface FunnelChartProps {
-	title: string;
-	description?: string;
-	data: FunnelStep[] | null | undefined;
+interface TrafficSourcesChartProps {
+	data: TrafficSource[] | null | undefined;
 	isLoading?: boolean;
 	error?: { message: string } | null;
 	headerAction?: ReactNode;
 }
 
+// Tailwind 500 grade colors
+const COLORS = [
+	colors.blue[500],
+	colors.purple[500],
+	colors.teal[500],
+	colors.pink[500],
+	colors.orange[500],
+	colors.lime[500],
+	colors.cyan[500],
+	colors.rose[500],
+	colors.violet[500],
+	colors.green[500],
+];
+
 const chartConfig = {
 	count: {
-		label: "Users",
-		color: "var(--chart-1)",
+		label: "Visitors",
+		color: "var(--chart-3)",
 	},
 } satisfies ChartConfig;
 
-export function FunnelChart({
-	title,
-	description,
+export function TrafficSourcesChart({
 	data,
 	isLoading,
 	error,
 	headerAction,
-}: FunnelChartProps) {
+}: TrafficSourcesChartProps) {
 	return (
 		<Card>
 			<CardHeader>
 				<div className="flex items-center justify-between">
-					<CardTitle>{title}</CardTitle>
+					<div>
+						<CardTitle>Traffic Sources</CardTitle>
+						<CardDescription>Where visitors came from</CardDescription>
+					</div>
 					{headerAction}
 				</div>
-				{description && <CardDescription>{description}</CardDescription>}
 			</CardHeader>
 			<CardContent>
 				{isLoading ? (
-					<div className="space-y-3">
-						<Skeleton className="h-6 w-full" />
-						<Skeleton className="h-6 w-4/5" />
-						<Skeleton className="h-6 w-3/5" />
-						<Skeleton className="h-6 w-2/5" />
-					</div>
+					<Skeleton className="h-[300px] w-full" />
 				) : error ? (
-					<div className="flex h-[200px] items-center justify-center">
-						<p className="text-destructive text-sm">
-							Failed to load funnel data
-						</p>
+					<div className="flex h-[300px] items-center justify-center">
+						<p className="text-destructive text-sm">Failed to load</p>
 					</div>
 				) : !data || data.length === 0 ? (
-					<div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
+					<div className="flex h-[300px] items-center justify-center rounded-md border border-dashed">
 						<p className="text-muted-foreground text-sm">
-							No funnel data available for this period
+							No traffic data available for this period
 						</p>
 					</div>
 				) : (
-					<ChartContainer config={chartConfig} className="h-[200px] w-full">
+					<ChartContainer config={chartConfig} className="h-[300px] w-full">
 						<BarChart
 							data={data}
 							layout="vertical"
@@ -86,37 +91,36 @@ export function FunnelChart({
 							<XAxis type="number" hide />
 							<YAxis
 								type="category"
-								dataKey="name"
+								dataKey="source"
 								tickLine={false}
 								axisLine={false}
-								width={120}
+								width={180}
 								tick={{ fontSize: 12 }}
 							/>
 							<ChartTooltip
 								cursor={false}
 								content={
 									<ChartTooltipContent
-										formatter={(value, _name, item) => (
-											<div className="flex flex-col gap-1">
-												<span>{value.toLocaleString()} users</span>
-												<span className="text-muted-foreground">
-													{item.payload.conversionRate.toFixed(1)}% conversion
-												</span>
-											</div>
-										)}
+										formatter={(value) => `${value} visitors`}
 									/>
 								}
 							/>
 							<Bar
 								dataKey="count"
-								fill="var(--color-count)"
 								radius={[0, 4, 4, 0]}
 								label={{
 									position: "right",
 									fontSize: 12,
 									formatter: (value: number) => value.toLocaleString(),
 								}}
-							/>
+							>
+								{data.map((entry, index) => (
+									<Cell
+										key={entry.source}
+										fill={COLORS[index % COLORS.length]}
+									/>
+								))}
+							</Bar>
 						</BarChart>
 					</ChartContainer>
 				)}

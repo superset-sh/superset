@@ -8,6 +8,7 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
+import type { ReactNode } from "react";
 
 interface MetricCardProps {
 	title: string;
@@ -16,6 +17,7 @@ interface MetricCardProps {
 	isLoading?: boolean;
 	error?: { message: string } | null;
 	formatter?: (value: number) => string;
+	headerAction?: ReactNode;
 }
 
 export function MetricCard({
@@ -25,11 +27,15 @@ export function MetricCard({
 	isLoading,
 	error,
 	formatter = (v) => v.toLocaleString(),
+	headerAction,
 }: MetricCardProps) {
 	return (
 		<Card>
 			<CardHeader className="pb-2">
-				<CardTitle className="text-sm font-medium">{title}</CardTitle>
+				<div className="flex items-center justify-between">
+					<CardTitle className="text-sm font-medium">{title}</CardTitle>
+					{headerAction}
+				</div>
 				{description && <CardDescription>{description}</CardDescription>}
 			</CardHeader>
 			<CardContent>

@@ -17,6 +17,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import type { ReactNode } from "react";
 
 interface LeaderboardEntry {
 	userId: string;
@@ -33,6 +34,7 @@ interface LeaderboardTableProps {
 	isLoading?: boolean;
 	error?: { message: string } | null;
 	countLabel?: string;
+	headerAction?: ReactNode;
 }
 
 export function LeaderboardTable({
@@ -42,11 +44,15 @@ export function LeaderboardTable({
 	isLoading,
 	error,
 	countLabel = "Count",
+	headerAction,
 }: LeaderboardTableProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>{title}</CardTitle>
+				<div className="flex items-center justify-between">
+					<CardTitle>{title}</CardTitle>
+					{headerAction}
+				</div>
 				{description && <CardDescription>{description}</CardDescription>}
 			</CardHeader>
 			<CardContent>
@@ -64,9 +70,17 @@ export function LeaderboardTable({
 						))}
 					</div>
 				) : error ? (
-					<p className="text-destructive text-sm">Failed to load leaderboard</p>
+					<div className="flex h-[200px] items-center justify-center">
+						<p className="text-destructive text-sm">
+							Failed to load leaderboard
+						</p>
+					</div>
 				) : !data || data.length === 0 ? (
-					<p className="text-muted-foreground text-sm">No data available</p>
+					<div className="flex h-[200px] items-center justify-center rounded-md border border-dashed">
+						<p className="text-muted-foreground text-sm">
+							No leaderboard data available for this period
+						</p>
+					</div>
 				) : (
 					<Table>
 						<TableHeader>

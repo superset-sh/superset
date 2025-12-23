@@ -53,12 +53,60 @@ export interface FunnelsQuery {
 	};
 }
 
+export interface TrendsEventNode {
+	kind: "EventsNode";
+	event: string;
+	math?: "dau" | "total" | "unique_session";
+}
+
+export interface TrendsQuery {
+	kind: "TrendsQuery";
+	series: TrendsEventNode[];
+	dateRange?: {
+		date_from?: string;
+		date_to?: string;
+	};
+	breakdownFilter?: {
+		breakdown: string;
+		breakdown_type: "event" | "person";
+	};
+}
+
 export interface HogQLQuery {
 	kind: "HogQLQuery";
 	query: string;
 }
 
-export type PostHogQuery = FunnelsQuery | HogQLQuery;
+export interface RetentionEntity {
+	id: string;
+	type: "events" | "actions";
+}
+
+export interface RetentionFilter {
+	period: "Hour" | "Day" | "Week" | "Month";
+	totalIntervals: number;
+	retentionType: "retention_first_time" | "retention_recurring";
+	targetEntity: RetentionEntity;
+	returningEntity: RetentionEntity;
+}
+
+export interface RetentionQuery {
+	kind: "RetentionQuery";
+	dateRange?: {
+		date_from?: string;
+		date_to?: string;
+	};
+	properties?: unknown[];
+	retentionFilter: RetentionFilter;
+	filterTestAccounts?: boolean;
+}
+
+export interface InsightVizNode {
+	kind: "InsightVizNode";
+	source: FunnelsQuery | RetentionQuery | TrendsQuery;
+}
+
+export type PostHogQuery = FunnelsQuery | HogQLQuery | InsightVizNode;
 
 export interface FunnelResult {
 	action_id: string;
@@ -68,6 +116,17 @@ export interface FunnelResult {
 	count: number;
 	median_conversion_time?: number;
 	average_conversion_time?: number;
+}
+
+export interface RetentionValue {
+	count: number;
+	label: string;
+}
+
+export interface RetentionCohort {
+	date: string;
+	label: string;
+	values: RetentionValue[];
 }
 
 export async function executeQuery<T = unknown>(
@@ -104,19 +163,22 @@ export async function executeQuery<T = unknown>(
 export async function executeFunnelQuery(
 	series: FunnelStep[],
 	dateFrom = "-7d",
-): Promise<FunnelResult[][]> {
-	const query: FunnelsQuery = {
-		kind: "FunnelsQuery",
-		series,
-		dateRange: { date_from: dateFrom },
-		funnelsFilter: {
-			funnelWindowInterval: 14,
-			funnelWindowIntervalUnit: "day",
-			funnelOrderType: "ordered",
+): Promise<FunnelResult[]> {
+	const query: InsightVizNode = {
+		kind: "InsightVizNode",
+		source: {
+			kind: "FunnelsQuery",
+			series,
+			dateRange: { date_from: dateFrom },
+			funnelsFilter: {
+				funnelWindowInterval: 14,
+				funnelWindowIntervalUnit: "day",
+				funnelOrderType: "ordered",
+			},
 		},
 	};
 
-	const result = await executeQuery<FunnelResult[][]>(query);
+	const result = await executeQuery<FunnelResult[]>(query);
 	return result.results;
 }
 
@@ -133,4 +195,39 @@ export async function executeHogQLQuery<T = unknown[][]>(
 		results: result.results,
 		columns: result.columns ?? [],
 	};
+}
+
+export async function executeRetentionQuery(options: {
+	targetEvent: string;
+	returningEvent: string;
+	period?: "Hour" | "Day" | "Week" | "Month";
+	totalIntervals?: number;
+	dateFrom?: string;
+}): Promise<RetentionCohort[]> {
+	const {
+		targetEvent,
+		returningEvent,
+		period = "Week",
+		totalIntervals = 5,
+		dateFrom = "-35d",
+	} = options;
+
+	const query: InsightVizNode = {
+		kind: "InsightVizNode",
+		source: {
+			kind: "RetentionQuery",
+			dateRange: { date_from: dateFrom },
+			retentionFilter: {
+				period,
+				totalIntervals,
+				retentionType: "retention_first_time",
+				targetEntity: { id: targetEvent, type: "events" },
+				returningEntity: { id: returningEvent, type: "events" },
+			},
+			filterTestAccounts: true,
+		},
+	};
+
+	const result = await executeQuery<RetentionCohort[]>(query);
+	return result.results;
 }
