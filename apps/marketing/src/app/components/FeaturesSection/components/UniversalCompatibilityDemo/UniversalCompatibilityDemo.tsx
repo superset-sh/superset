@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useInView } from "framer-motion";
+import Image from "next/image";
 import { useRef } from "react";
 import { HiOutlineTerminal } from "react-icons/hi";
 import { HiOutlineCodeBracket, HiPlus } from "react-icons/hi2";
@@ -64,11 +65,11 @@ export function UniversalCompatibilityDemo() {
 						transition={{ duration: 0.3, delay: 0.1 + index * 0.08 }}
 					>
 						<div className="w-5 flex items-center justify-center shrink-0">
-							{/* eslint-disable-next-line @next/next/no-img-element */}
-							<img
+							<Image
 								src={agent.icon}
 								alt={agent.name}
-								style={{ width: agent.size, height: agent.size }}
+								width={agent.size}
+								height={agent.size}
 								className="object-contain"
 							/>
 						</div>
