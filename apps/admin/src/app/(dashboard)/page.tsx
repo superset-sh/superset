@@ -11,12 +11,8 @@ import { MetricCard } from "./components/MetricCard";
 export default function DashboardPage() {
 	const trpc = useTRPC();
 
-	const activationFunnel = useQuery(
-		trpc.analytics.getActivationFunnel.queryOptions(),
-	);
-
-	const onboardingFunnel = useQuery(
-		trpc.analytics.getOnboardingFunnel.queryOptions(),
+	const fullJourneyFunnel = useQuery(
+		trpc.analytics.getFullJourneyFunnel.queryOptions(),
 	);
 
 	const wau = useQuery(trpc.analytics.getWeeklyActiveUsers.queryOptions());
@@ -34,7 +30,7 @@ export default function DashboardPage() {
 				</p>
 			</div>
 
-			<div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+			<div className="grid gap-6 md:grid-cols-3">
 				<MetricCard
 					title="Weekly Active Users"
 					description="Users active 3+ days this week"
@@ -43,29 +39,16 @@ export default function DashboardPage() {
 					error={wau.error}
 				/>
 				<MetricCard
-					title="Activation Rate"
-					description="Identify to Terminal Opened"
+					title="Full Journey Conversion"
+					description="Site visit to terminal opened"
 					value={
-						activationFunnel.data && activationFunnel.data.length > 0
-							? activationFunnel.data[activationFunnel.data.length - 1]
+						fullJourneyFunnel.data && fullJourneyFunnel.data.length > 0
+							? fullJourneyFunnel.data[fullJourneyFunnel.data.length - 1]
 									?.conversionRate
 							: null
 					}
-					isLoading={activationFunnel.isLoading}
-					error={activationFunnel.error}
-					formatter={(v) => `${v.toFixed(1)}%`}
-				/>
-				<MetricCard
-					title="Download to Auth"
-					description="Marketing conversion rate"
-					value={
-						onboardingFunnel.data && onboardingFunnel.data.length > 0
-							? onboardingFunnel.data[onboardingFunnel.data.length - 1]
-									?.conversionRate
-							: null
-					}
-					isLoading={onboardingFunnel.isLoading}
-					error={onboardingFunnel.error}
+					isLoading={fullJourneyFunnel.isLoading}
+					error={fullJourneyFunnel.error}
 					formatter={(v) => `${v.toFixed(1)}%`}
 				/>
 				<MetricCard
@@ -78,22 +61,13 @@ export default function DashboardPage() {
 				/>
 			</div>
 
-			<div className="grid gap-6 lg:grid-cols-2">
-				<FunnelChart
-					title="Activation Funnel"
-					description="User journey from identification to terminal usage"
-					data={activationFunnel.data}
-					isLoading={activationFunnel.isLoading}
-					error={activationFunnel.error}
-				/>
-				<FunnelChart
-					title="Onboarding Funnel"
-					description="From marketing site to authenticated user"
-					data={onboardingFunnel.data}
-					isLoading={onboardingFunnel.isLoading}
-					error={onboardingFunnel.error}
-				/>
-			</div>
+			<FunnelChart
+				title="Full Journey Funnel"
+				description="From site visit to terminal usage"
+				data={fullJourneyFunnel.data}
+				isLoading={fullJourneyFunnel.isLoading}
+				error={fullJourneyFunnel.error}
+			/>
 
 			<LeaderboardTable
 				title="Workspace Leaderboard"

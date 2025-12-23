@@ -40,7 +40,7 @@ function formatFunnelResults(results: FunnelResult[][]): FunnelStepData[] {
 }
 
 export const analyticsRouter = {
-	getActivationFunnel: adminProcedure
+	getFullJourneyFunnel: adminProcedure
 		.input(
 			z
 				.object({
@@ -53,42 +53,7 @@ export const analyticsRouter = {
 
 			const results = await executeFunnelQuery(
 				[
-					{ kind: "EventsNode", event: "$identify", name: "Identified" },
-					{
-						kind: "EventsNode",
-						event: "auth_completed",
-						name: "Auth Completed",
-					},
-					{
-						kind: "EventsNode",
-						event: "workspace_created",
-						name: "Workspace Created",
-					},
-					{
-						kind: "EventsNode",
-						event: "terminal_opened",
-						name: "Terminal Opened",
-					},
-				],
-				dateFrom,
-			);
-
-			return formatFunnelResults(results);
-		}),
-
-	getOnboardingFunnel: adminProcedure
-		.input(
-			z
-				.object({
-					dateFrom: z.string().optional().default("-7d"),
-				})
-				.optional(),
-		)
-		.query(async ({ input }) => {
-			const dateFrom = input?.dateFrom ?? "-7d";
-
-			const results = await executeFunnelQuery(
-				[
+					{ kind: "EventsNode", event: "$pageview", name: "Site Visit" },
 					{
 						kind: "EventsNode",
 						event: "download_clicked",
@@ -99,11 +64,15 @@ export const analyticsRouter = {
 						event: "desktop_opened",
 						name: "Desktop Opened",
 					},
-					{ kind: "EventsNode", event: "auth_started", name: "Auth Started" },
 					{
 						kind: "EventsNode",
 						event: "auth_completed",
 						name: "Auth Completed",
+					},
+					{
+						kind: "EventsNode",
+						event: "terminal_opened",
+						name: "Terminal Opened",
 					},
 				],
 				dateFrom,
