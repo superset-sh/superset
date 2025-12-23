@@ -6,7 +6,10 @@ import {
 } from "@superset/ui/context-menu";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useCloseProject, useUpdateProject } from "renderer/react-query/projects";
+import {
+	useCloseProject,
+	useUpdateProject,
+} from "renderer/react-query/projects";
 import { PROJECT_COLORS } from "shared/constants/project-colors";
 
 interface WorkspaceGroupContextMenuProps {
