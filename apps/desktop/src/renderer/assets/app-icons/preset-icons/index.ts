@@ -1,7 +1,4 @@
-import {
-	PRESET_ICONS,
-	getPresetIcon,
-} from "@superset/ui/icons/preset-icons";
+import { getPresetIcon, PRESET_ICONS } from "@superset/ui/icons/preset-icons";
 import { useThemeStore } from "renderer/stores/theme/store";
 
 export { PRESET_ICONS, getPresetIcon };
