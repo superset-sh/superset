@@ -18,32 +18,39 @@ const SIDEBAR_FILES = [
 
 const DIFF_LINES = [
 	{ id: "line-1", type: "context", content: "export function HeroSection() {" },
-	{ id: "line-2", type: "context", content: "  return (" },
-	{ id: "line-3", type: "removed", content: '    <div className="hero-old">' },
+	{ id: "line-2", type: "context", content: "\u00A0\u00A0return (" },
+	{ id: "line-3", type: "removed", content: '\u00A0\u00A0\u00A0\u00A0<div className="hero-old">' },
 	{
 		id: "line-4",
 		type: "added",
-		content: '    <section className="relative py-24">',
+		content: '\u00A0\u00A0\u00A0\u00A0<section className="relative py-24">',
 	},
-	{ id: "line-5", type: "added", content: "      <GridBackground />" },
+	{ id: "line-5", type: "added", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<GridBackground />" },
 	{
 		id: "line-6",
 		type: "context",
-		content: '      <div className="max-w-7xl mx-auto">',
+		content: '\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<div className="max-w-7xl mx-auto">',
 	},
-	{ id: "line-7", type: "removed", content: "        <h1>Welcome</h1>" },
-	{ id: "line-8", type: "added", content: "        <motion.h1" },
+	{ id: "line-7", type: "removed", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<h1>Welcome</h1>" },
+	{ id: "line-8", type: "added", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0<motion.h1" },
 	{
 		id: "line-9",
 		type: "added",
-		content: "          initial={{ opacity: 0 }}",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0initial={{ opacity: 0 }}",
 	},
 	{
 		id: "line-10",
 		type: "added",
-		content: "          animate={{ opacity: 1 }}",
+		content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0animate={{ opacity: 1 }}",
 	},
-	{ id: "line-11", type: "added", content: "        >" },
+	{ id: "line-11", type: "added", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0>" },
+	{ id: "line-12", type: "added", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0Superset" },
+	{ id: "line-13", type: "added", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</motion.h1>" },
+	{ id: "line-14", type: "context", content: "\u00A0\u00A0\u00A0\u00A0\u00A0\u00A0</div>" },
+	{ id: "line-15", type: "removed", content: "\u00A0\u00A0\u00A0\u00A0</div>" },
+	{ id: "line-16", type: "added", content: "\u00A0\u00A0\u00A0\u00A0</section>" },
+	{ id: "line-17", type: "context", content: "\u00A0\u00A0);" },
+	{ id: "line-18", type: "context", content: "}" },
 ];
 
 export function IsolationDemo() {

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { FeatureDemo } from "./components/FeatureDemo";
 import { IsolationDemo } from "./components/IsolationDemo";
+import { OpenInDemo } from "./components/OpenInDemo";
 import { ParallelExecutionDemo } from "./components/ParallelExecutionDemo";
 import { UniversalCompatibilityDemo } from "./components/UniversalCompatibilityDemo";
 import { FEATURES } from "./constants";
@@ -11,6 +12,7 @@ const DEMO_COMPONENTS = [
 	ParallelExecutionDemo,
 	UniversalCompatibilityDemo,
 	IsolationDemo,
+	OpenInDemo,
 ];
 
 export function FeaturesSection() {

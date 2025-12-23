@@ -10,6 +10,8 @@
 		"./utils": "./src/lib/utils.ts",
 		"./ai-elements/*": "./src/components/ai-elements/*.tsx",
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",
+		"./icons/preset-icons": "./src/assets/icons/preset-icons/index.ts",
+		"./icons/preset-icons/*": "./src/assets/icons/preset-icons/*.svg",
 		"./*": "./src/components/ui/*.tsx"
 	},
 	"scripts": {
