@@ -49,29 +49,29 @@ export const lightTheme: Theme = {
 
 	terminal: {
 		background: "#ffffff",
-		foreground: "#333333",
-		cursor: "#333333",
+		foreground: "#000000",
+		cursor: "#000000",
 		cursorAccent: "#ffffff",
-		selectionBackground: "rgba(0, 0, 0, 0.15)",
+		selectionBackground: "#add6ff",
 
-		// Standard ANSI colors
-		black: "#000000",
-		red: "#c91b00",
-		green: "#00c200",
-		yellow: "#c7c400",
-		blue: "#0225c7",
-		magenta: "#c930c7",
-		cyan: "#00c5c7",
-		white: "#c7c7c7",
+		// Standard ANSI colors (xterm defaults)
+		black: "#2e3436",
+		red: "#cc0000",
+		green: "#4e9a06",
+		yellow: "#c4a000",
+		blue: "#3465a4",
+		magenta: "#75507b",
+		cyan: "#06989a",
+		white: "#d3d7cf",
 
-		// Bright ANSI colors
-		brightBlack: "#686868",
-		brightRed: "#ff6e6e",
-		brightGreen: "#5ffa68",
-		brightYellow: "#fffc67",
-		brightBlue: "#6871ff",
-		brightMagenta: "#ff77ff",
-		brightCyan: "#5ffdff",
-		brightWhite: "#ffffff",
+		// Bright ANSI colors (xterm defaults)
+		brightBlack: "#555753",
+		brightRed: "#ef2929",
+		brightGreen: "#8ae234",
+		brightYellow: "#fce94f",
+		brightBlue: "#729fcf",
+		brightMagenta: "#ad7fa8",
+		brightCyan: "#34e2e2",
+		brightWhite: "#eeeeec",
 	},
 };
