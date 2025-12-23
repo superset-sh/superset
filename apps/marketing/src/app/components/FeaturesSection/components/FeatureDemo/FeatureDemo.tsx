@@ -21,11 +21,11 @@ export function FeatureDemo({
 			{/* Background gradient */}
 			<MeshGradient
 				colors={colors}
-				className="absolute inset-0 w-full h-full"
+				className="absolute inset-0 w-full h-full rounded"
 			/>
 
 			{/* Content overlay */}
-			<div className="relative z-10 w-full h-full flex items-center justify-center p-6">
+			<div className="relative z-10 w-full h-full flex items-center justify-start lg:justify-center p-4 lg:p-6">
 				{children}
 			</div>
 		</div>
