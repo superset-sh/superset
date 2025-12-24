@@ -6,7 +6,6 @@ import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
-import { useSetWorkspaceAutoName } from "renderer/react-query/workspaces";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -104,20 +103,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
 	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
-	const setWorkspaceAutoNameMutation = useSetWorkspaceAutoName();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
 	const detachRef = useRef(detachMutation.mutate);
 	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
-	const setWorkspaceAutoNameRef = useRef(setWorkspaceAutoNameMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
-	setWorkspaceAutoNameRef.current = setWorkspaceAutoNameMutation.mutate;
 
 	const registerClearCallbackRef = useRef(
 		useTerminalCallbacksStore.getState().registerClearCallback,
@@ -135,15 +131,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const debouncedSetTabAutoTitleRef = useRef(
 		debounce((tabId: string, title: string) => {
 			setTabAutoTitleRef.current(tabId, title);
-		}, 100),
-	);
-
-	const workspaceIdRef = useRef(workspaceId);
-	workspaceIdRef.current = workspaceId;
-
-	const debouncedSetWorkspaceAutoNameRef = useRef(
-		debounce((id: string, name: string) => {
-			setWorkspaceAutoNameRef.current({ id, name });
 		}, 100),
 	);
 
@@ -350,14 +337,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 
+		// Listen for terminal title changes (OSC 0, 1, 2 sequences)
+		// Many shells and programs (vim, htop, etc.) set the terminal title via escape sequences
 		const titleDisposable = xterm.onTitleChange((title) => {
-			if (title) {
-				// Update tab title
-				if (parentTabIdRef.current) {
-					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
-				}
-				// Update workspace name if it hasn't been customized
-				debouncedSetWorkspaceAutoNameRef.current(workspaceIdRef.current, title);
+			if (title && parentTabIdRef.current) {
+				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
 			}
 		});
 
@@ -415,7 +399,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			debouncedSetWorkspaceAutoNameRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);

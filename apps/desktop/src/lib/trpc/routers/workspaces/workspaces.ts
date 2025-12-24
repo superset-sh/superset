@@ -701,38 +701,6 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		// Set workspace name from terminal title (auto-update)
-		setAutoName: publicProcedure
-			.input(
-				z.object({
-					id: z.string(),
-					name: z.string(),
-				}),
-			)
-			.mutation(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
-				if (!workspace) {
-					return { success: false, reason: "not_found" };
-				}
-
-				// Skip if name hasn't changed
-				if (workspace.name === input.name) {
-					return { success: false, reason: "unchanged" };
-				}
-
-				localDb
-					.update(workspaces)
-					.set({ name: input.name })
-					.where(eq(workspaces.id, input.id))
-					.run();
-
-				return { success: true };
-			}),
-
 		canDelete: publicProcedure
 			.input(
 				z.object({
