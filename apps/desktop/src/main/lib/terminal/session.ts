@@ -7,7 +7,6 @@ import {
 	extractContentAfterClear,
 	TerminalEscapeFilter,
 } from "../terminal-escape-filter";
-import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
@@ -17,22 +16,13 @@ const DEFAULT_ROWS = 24;
 
 export async function recoverScrollback(
 	existingScrollback: string | null,
-	workspaceId: string,
-	paneId: string,
+	_workspaceId: string,
+	_paneId: string,
 ): Promise<{ scrollback: string; wasRecovered: boolean }> {
+	// History persistence disabled - only use in-memory scrollback
+	// See: https://github.com/superset-sh/superset/pull/493
 	if (existingScrollback) {
 		return { scrollback: existingScrollback, wasRecovered: true };
-	}
-
-	const historyReader = new HistoryReader(workspaceId, paneId);
-	const history = await historyReader.read();
-
-	if (history.scrollback) {
-		// Strip protocol responses from recovered history
-		const recoveryFilter = new TerminalEscapeFilter();
-		const filtered =
-			recoveryFilter.filter(history.scrollback) + recoveryFilter.flush();
-		return { scrollback: filtered, wasRecovered: true };
 	}
 
 	return { scrollback: "", wasRecovered: false };
@@ -106,14 +96,8 @@ export async function createSession(
 		env,
 	});
 
-	const historyWriter = new HistoryWriter(
-		workspaceId,
-		paneId,
-		workingDir,
-		terminalCols,
-		terminalRows,
-	);
-	await historyWriter.init(recoveredScrollback || undefined);
+	// History persistence disabled - no HistoryWriter created
+	// See: https://github.com/superset-sh/superset/pull/493
 
 	const dataBatcher = new DataBatcher((batchedData) => {
 		onData(paneId, batchedData);
@@ -130,7 +114,7 @@ export async function createSession(
 		scrollback: recoveredScrollback,
 		isAlive: true,
 		wasRecovered,
-		historyWriter,
+		historyWriter: undefined,
 		escapeFilter: new TerminalEscapeFilter(),
 		dataBatcher,
 		shell,
@@ -181,42 +165,18 @@ export function setupDataHandler(
 }
 
 export async function closeSessionHistory(
-	session: TerminalSession,
-	exitCode?: number,
+	_session: TerminalSession,
+	_exitCode?: number,
 ): Promise<void> {
-	if (session.deleteHistoryOnExit) {
-		if (session.historyWriter) {
-			await session.historyWriter.close();
-			session.historyWriter = undefined;
-		}
-		const historyReader = new HistoryReader(
-			session.workspaceId,
-			session.paneId,
-		);
-		await historyReader.cleanup();
-		return;
-	}
-
-	if (session.historyWriter) {
-		await session.historyWriter.close(exitCode);
-		session.historyWriter = undefined;
-	}
+	// History persistence disabled - no-op
+	// See: https://github.com/superset-sh/superset/pull/493
 }
 
 export async function reinitializeHistory(
-	session: TerminalSession,
+	_session: TerminalSession,
 ): Promise<void> {
-	if (session.historyWriter) {
-		await session.historyWriter.close();
-		session.historyWriter = new HistoryWriter(
-			session.workspaceId,
-			session.paneId,
-			session.cwd,
-			session.cols,
-			session.rows,
-		);
-		await session.historyWriter.init();
-	}
+	// History persistence disabled - no-op
+	// See: https://github.com/superset-sh/superset/pull/493
 }
 
 export function flushSession(session: TerminalSession): void {
