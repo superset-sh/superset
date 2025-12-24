@@ -5,4 +5,5 @@ export { useDeleteWorkspace } from "./useDeleteWorkspace";
 export { useOpenWorktree } from "./useOpenWorktree";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";
 export { useSetActiveWorkspace } from "./useSetActiveWorkspace";
+export { useSetWorkspaceAutoName } from "./useSetWorkspaceAutoName";
 export { useUpdateWorkspace } from "./useUpdateWorkspace";

@@ -6,6 +6,7 @@ import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
+import { useSetWorkspaceAutoName } from "renderer/react-query/workspaces";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -103,8 +104,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
 	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
-	const setWorkspaceAutoNameMutation =
-		trpc.workspaces.setAutoName.useMutation();
+	const setWorkspaceAutoNameMutation = useSetWorkspaceAutoName();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
