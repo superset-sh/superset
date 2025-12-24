@@ -1,5 +1,5 @@
-import * as pty from "node-pty";
 import os from "node:os";
+import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
 import {
