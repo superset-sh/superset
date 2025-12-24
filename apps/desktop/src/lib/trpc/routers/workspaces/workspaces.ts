@@ -701,7 +701,7 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
-		// Set workspace name only if it hasn't been customized (still equals branch name)
+		// Set workspace name from terminal title (auto-update)
 		setAutoName: publicProcedure
 			.input(
 				z.object({
@@ -719,9 +719,9 @@ export const createWorkspacesRouter = () => {
 					return { success: false, reason: "not_found" };
 				}
 
-				// Only update if name still equals branch (not customized by user)
-				if (workspace.name !== workspace.branch) {
-					return { success: false, reason: "already_customized" };
+				// Skip if name hasn't changed
+				if (workspace.name === input.name) {
+					return { success: false, reason: "unchanged" };
 				}
 
 				localDb
