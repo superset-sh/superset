@@ -701,6 +701,38 @@ export const createWorkspacesRouter = () => {
 				return { success: true };
 			}),
 
+		// Set workspace name only if it hasn't been customized (still equals branch name)
+		setAutoName: publicProcedure
+			.input(
+				z.object({
+					id: z.string(),
+					name: z.string(),
+				}),
+			)
+			.mutation(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
+				if (!workspace) {
+					return { success: false, reason: "not_found" };
+				}
+
+				// Only update if name still equals branch (not customized by user)
+				if (workspace.name !== workspace.branch) {
+					return { success: false, reason: "already_customized" };
+				}
+
+				localDb
+					.update(workspaces)
+					.set({ name: input.name })
+					.where(eq(workspaces.id, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
 		canDelete: publicProcedure
 			.input(
 				z.object({
