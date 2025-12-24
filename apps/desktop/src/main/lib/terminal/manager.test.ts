@@ -21,7 +21,7 @@ const { TerminalManager } = await import("./manager");
 const testTmpDir = join(tmpdir(), "superset-test");
 
 describe("TerminalManager", () => {
-	let manager: TerminalManager;
+	let manager: InstanceType<typeof TerminalManager>;
 	let mockPty: {
 		write: ReturnType<typeof mock>;
 		resize: ReturnType<typeof mock>;
