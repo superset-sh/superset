@@ -25,7 +25,6 @@
 		"prepackage": "bun run copy:native-modules",
 		"package": "electron-builder --config electron-builder.ts",
 		"install:deps": "electron-builder install-app-deps",
-		"postinstall": "bun run install:deps",
 		"release": "electron-builder --publish always",
 		"clean:dev": "rimraf ./node_modules/.dev",
 		"typecheck": "tsc --noEmit",
