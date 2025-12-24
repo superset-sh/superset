@@ -337,8 +337,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 
-		// Listen for terminal title changes (OSC 0, 1, 2 sequences)
-		// Many shells and programs (vim, htop, etc.) set the terminal title via escape sequences
 		const titleDisposable = xterm.onTitleChange((title) => {
 			if (title && parentTabIdRef.current) {
 				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
