@@ -235,10 +235,9 @@ export function NewWorkspaceModal() {
 				onKeyDown={handleKeyDown}
 			>
 				<DialogHeader className="px-4 pt-4 pb-3">
-					<DialogTitle className="text-base">New Workspace</DialogTitle>
+					<DialogTitle className="text-base">Open Workspace</DialogTitle>
 				</DialogHeader>
 
-				{/* Project Selector */}
 				<div className="px-4 pb-3">
 					<div className="flex items-center gap-2">
 						<Select
@@ -277,7 +276,6 @@ export function NewWorkspaceModal() {
 
 				{selectedProjectId && (
 					<>
-						{/* Mode Switcher */}
 						<div className="px-4 pb-3">
 							<div className="flex p-0.5 bg-muted rounded-md">
 								<button
@@ -305,11 +303,9 @@ export function NewWorkspaceModal() {
 							</div>
 						</div>
 
-						{/* Content */}
 						<div className="px-4 pb-4">
 							{mode === "new" ? (
 								<div className="space-y-3">
-									{/* Title input - main action */}
 									<Input
 										ref={titleInputRef}
 										id="title"
@@ -319,7 +315,6 @@ export function NewWorkspaceModal() {
 										onChange={(e) => setTitle(e.target.value)}
 									/>
 
-									{/* Branch preview */}
 									{title && !showAdvanced && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
@@ -332,7 +327,6 @@ export function NewWorkspaceModal() {
 										</p>
 									)}
 
-									{/* Advanced options */}
 									<Collapsible
 										open={showAdvanced}
 										onOpenChange={setShowAdvanced}
@@ -460,7 +454,6 @@ export function NewWorkspaceModal() {
 										</CollapsibleContent>
 									</Collapsible>
 
-									{/* Submit button */}
 									<Button
 										className="w-full h-8 text-sm"
 										onClick={handleCreateWorkspace}
