@@ -18,7 +18,7 @@ const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
 function ensureAppHomeDirExists() {
 	mkdirSync(SUPERSET_HOME_DIR, { recursive: true });
 }
-ensureAppHomeDirExists()
+ensureAppHomeDirExists();
 /**
  * Gets the migrations directory path.
  *
