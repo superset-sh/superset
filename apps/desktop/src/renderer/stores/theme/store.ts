@@ -1,4 +1,5 @@
 import type { ITheme } from "@xterm/xterm";
+import { trpcClient } from "renderer/lib/trpc-client";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -78,6 +79,17 @@ function syncThemeToLocalStorage(theme: Theme): void {
 }
 
 /**
+ * Sync theme to Claude Code settings (fire-and-forget)
+ */
+function syncThemeToClaudeSettings(themeType: "dark" | "light"): void {
+	trpcClient.settings.updateClaudeTheme
+		.mutate({ theme: themeType })
+		.catch((error) => {
+			console.error("[theme] Failed to sync theme to Claude settings:", error);
+		});
+}
+
+/**
  * Apply a theme to the UI and terminal
  */
 function applyTheme(theme: Theme): {
@@ -91,6 +103,9 @@ function applyTheme(theme: Theme): {
 	updateThemeClass(theme.type);
 
 	syncThemeToLocalStorage(theme);
+
+	// Sync to Claude Code settings
+	syncThemeToClaudeSettings(theme.type);
 
 	// Convert to editor-specific formats
 	return {

@@ -1,5 +1,10 @@
 import fs from "node:fs";
-import { createClaudeWrapper, createCodexWrapper } from "./agent-wrappers";
+import {
+	createClaudeWrapper,
+	createCodexWrapper,
+	updateClaudeSettingsTheme,
+	type ClaudeTheme,
+} from "./agent-wrappers";
 import { createNotifyScript } from "./notify-hook";
 import { BASH_DIR, BIN_DIR, HOOKS_DIR, ZSH_DIR } from "./paths";
 import {
@@ -43,3 +48,6 @@ export function getSupersetBinDir(): string {
 
 // Re-export shell utilities for terminal usage
 export { getShellArgs, getShellEnv };
+
+// Re-export Claude settings utilities for theme sync
+export { updateClaudeSettingsTheme, type ClaudeTheme };

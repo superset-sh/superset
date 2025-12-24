@@ -1,4 +1,8 @@
 import { settings, type TerminalPreset } from "@superset/local-db";
+import {
+	updateClaudeSettingsTheme,
+	type ClaudeTheme,
+} from "main/lib/agent-setup";
 import { localDb } from "main/lib/local-db";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -163,6 +167,13 @@ export const createSettingsRouter = () => {
 					})
 					.run();
 
+				return { success: true };
+			}),
+
+		updateClaudeTheme: publicProcedure
+			.input(z.object({ theme: z.enum(["dark", "light"]) }))
+			.mutation(({ input }) => {
+				updateClaudeSettingsTheme(input.theme as ClaudeTheme);
 				return { success: true };
 			}),
 	});
