@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, renameSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
 import { projects, settings, workspaces, worktrees } from "@superset/local-db";
@@ -15,6 +15,10 @@ import {
 
 const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
 
+function ensureAppHomeDirExists() {
+	mkdirSync(SUPERSET_HOME_DIR, { recursive: true });
+}
+ensureAppHomeDirExists()
 /**
  * Gets the migrations directory path.
  *
