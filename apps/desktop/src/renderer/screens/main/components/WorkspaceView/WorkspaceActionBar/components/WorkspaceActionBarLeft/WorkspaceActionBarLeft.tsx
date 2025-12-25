@@ -1,15 +1,13 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { GoGitBranch } from "react-icons/go";
 import { trpc } from "renderer/lib/trpc";
-import { HelpMenu } from "../../../../HelpMenu";
 
-export function WorkspaceFooterLeft() {
+export function WorkspaceActionBarLeft() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const currentBranch = activeWorkspace?.worktree?.branch;
 	const baseBranch = activeWorkspace?.worktree?.baseBranch;
 	return (
 		<>
-			<HelpMenu />
 			{currentBranch && (
 				<Tooltip>
 					<TooltipTrigger asChild>
