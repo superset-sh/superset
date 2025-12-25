@@ -259,12 +259,13 @@ export function NewWorkspaceModal() {
 							<TooltipTrigger asChild>
 								<Button
 									variant="ghost"
-									size="icon"
-									className="h-8 w-8 shrink-0"
+									size="sm"
+									className="h-8 shrink-0 gap-1 text-xs"
 									onClick={handleOpenNewProject}
 									disabled={openNew.isPending}
 								>
 									<HiPlus className="h-4 w-4" />
+									Import
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" sideOffset={4}>

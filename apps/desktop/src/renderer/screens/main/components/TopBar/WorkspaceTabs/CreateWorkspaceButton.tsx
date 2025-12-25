@@ -111,7 +111,7 @@ export function CreateWorkspaceButton({
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					New workspace
+					Create workspace or project
 				</TooltipContent>
 			</Tooltip>
 			<ButtonGroupSeparator />
