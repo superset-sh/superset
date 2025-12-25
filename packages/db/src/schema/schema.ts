@@ -168,7 +168,7 @@ export const tasks = pgTable(
 		prUrl: text("pr_url"),
 
 		// External sync (null if local-only task)
-		externalProvider: text("external_provider"), // "linear" | "github" | null
+		externalProvider: integrationProvider("external_provider"),
 		externalId: text("external_id"),
 		externalKey: text("external_key"), // "SUPER-172", "#123"
 		externalUrl: text("external_url"),

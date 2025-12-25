@@ -44,7 +44,7 @@ ALTER TABLE "tasks" ADD COLUMN "estimate" integer;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "due_date" timestamp;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "labels" jsonb DEFAULT '[]'::jsonb;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "pr_url" text;--> statement-breakpoint
-ALTER TABLE "tasks" ADD COLUMN "external_provider" text;--> statement-breakpoint
+ALTER TABLE "tasks" ADD COLUMN "external_provider" "integration_provider";--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "external_id" text;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "external_key" text;--> statement-breakpoint
 ALTER TABLE "tasks" ADD COLUMN "external_url" text;--> statement-breakpoint

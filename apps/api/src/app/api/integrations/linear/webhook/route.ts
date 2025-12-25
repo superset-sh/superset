@@ -1,4 +1,8 @@
-import crypto from "node:crypto";
+import type { EntityWebhookPayloadWithIssueData } from "@linear/sdk/webhooks";
+import {
+	LINEAR_WEBHOOK_SIGNATURE_HEADER,
+	LinearWebhookClient,
+} from "@linear/sdk/webhooks";
 import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
@@ -11,88 +15,17 @@ import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 import { mapLinearPriority } from "@/lib/integrations/linear/utils";
 
-interface LinearWebhookPayload {
-	action: "create" | "update" | "remove";
-	type: "Issue" | "Comment" | "Project";
-	createdAt: string;
-	organizationId: string;
-	webhookId: string;
-	webhookTimestamp: number;
-	data: LinearIssueData | Record<string, unknown>;
-	url?: string;
-}
-
-interface LinearIssueData {
-	id: string;
-	identifier: string;
-	title: string;
-	description?: string;
-	priority: number;
-	priorityLabel: string;
-	state: {
-		id: string;
-		name: string;
-		type: string;
-		color: string;
-		position: number;
-	};
-	team: {
-		id: string;
-		key: string;
-		name: string;
-	};
-	assignee?: {
-		id: string;
-		name: string;
-		email: string;
-	};
-	creator?: {
-		id: string;
-		name: string;
-		email: string;
-	};
-	estimate?: number;
-	dueDate?: string;
-	branchName?: string;
-	startedAt?: string;
-	completedAt?: string;
-	labels: Array<{
-		id: string;
-		name: string;
-	}>;
-	url: string;
-	createdAt: string;
-	updatedAt: string;
-}
-
-function verifyWebhookSignature(
-	body: string,
-	signature: string,
-	secret: string,
-): boolean {
-	const hmac = crypto.createHmac("sha256", secret);
-	hmac.update(body);
-	const expectedSignature = hmac.digest("hex");
-	return crypto.timingSafeEqual(
-		Buffer.from(signature),
-		Buffer.from(expectedSignature),
-	);
-}
+const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
 export async function POST(request: Request) {
 	const body = await request.text();
-	const signature = request.headers.get("linear-signature");
+	const signature = request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER);
 
 	if (!signature) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	let payload: LinearWebhookPayload;
-	try {
-		payload = JSON.parse(body);
-	} catch {
-		return Response.json({ error: "Invalid JSON" }, { status: 400 });
-	}
+	const payload = webhookClient.parseData(Buffer.from(body), signature);
 
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
@@ -124,22 +57,12 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Unknown organization" }, { status: 404 });
 	}
 
-	const isValid = verifyWebhookSignature(
-		body,
-		signature,
-		env.LINEAR_WEBHOOK_SECRET,
-	);
-	if (!isValid) {
-		await db
-			.update(webhookEvents)
-			.set({ status: "failed", error: "Invalid signature" })
-			.where(eq(webhookEvents.id, webhookEvent.id));
-		return Response.json({ error: "Invalid signature" }, { status: 401 });
-	}
-
 	try {
 		if (payload.type === "Issue") {
-			await processIssueEvent(payload, connection);
+			await processIssueEvent(
+				payload as EntityWebhookPayloadWithIssueData,
+				connection,
+			);
 		}
 
 		await db
@@ -163,21 +86,12 @@ export async function POST(request: Request) {
 }
 
 async function processIssueEvent(
-	payload: LinearWebhookPayload,
+	payload: EntityWebhookPayloadWithIssueData,
 	connection: SelectIntegrationConnection,
 ) {
-	const issue = payload.data as LinearIssueData;
+	const issue = payload.data;
 
-	if (payload.action === "create") {
-		const existing = await db.query.tasks.findFirst({
-			where: and(
-				eq(tasks.externalProvider, "linear"),
-				eq(tasks.externalId, issue.id),
-			),
-		});
-
-		if (existing) return;
-
+	if (payload.action === "create" || payload.action === "update") {
 		let assigneeId: string | null = null;
 		if (issue.assignee?.email) {
 			const matchedUser = await db.query.users.findFirst({
@@ -186,75 +100,47 @@ async function processIssueEvent(
 			assigneeId = matchedUser?.id ?? null;
 		}
 
-		await db.insert(tasks).values({
+		const taskData = {
 			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
 			status: issue.state.name,
 			statusColor: issue.state.color,
 			statusType: issue.state.type,
-			statusPosition: issue.state.position,
 			priority: mapLinearPriority(issue.priority),
-			organizationId: connection.organizationId,
-			creatorId: connection.connectedByUserId,
 			assigneeId,
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 			labels: issue.labels.map((l) => l.name),
-			branch: issue.branchName ?? null,
 			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear",
+			externalProvider: "linear" as const,
 			externalId: issue.id,
 			externalKey: issue.identifier,
 			externalUrl: issue.url,
 			lastSyncedAt: new Date(),
-		});
-	} else if (payload.action === "update") {
-		const existingTask = await db.query.tasks.findFirst({
-			where: and(
-				eq(tasks.externalProvider, "linear"),
-				eq(tasks.externalId, issue.id),
-			),
-		});
-
-		if (!existingTask) return;
+		};
 
 		await db
-			.update(tasks)
-			.set({
-				title: issue.title,
-				description: issue.description ?? null,
-				status: issue.state.name,
-				statusColor: issue.state.color,
-				statusType: issue.state.type,
-				statusPosition: issue.state.position,
-				priority: mapLinearPriority(issue.priority),
-				estimate: issue.estimate ?? null,
-				dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
-				labels: issue.labels.map((l) => l.name),
-				branch: issue.branchName ?? null,
-				startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
-				completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-				externalKey: issue.identifier,
-				externalUrl: issue.url,
-				lastSyncedAt: new Date(),
-				syncError: null,
+			.insert(tasks)
+			.values({
+				...taskData,
+				organizationId: connection.organizationId,
+				creatorId: connection.connectedByUserId,
 			})
-			.where(eq(tasks.id, existingTask.id));
+			.onConflictDoUpdate({
+				target: [tasks.externalProvider, tasks.externalId],
+				set: { ...taskData, syncError: null },
+			});
 	} else if (payload.action === "remove") {
-		const existingTask = await db.query.tasks.findFirst({
-			where: and(
-				eq(tasks.externalProvider, "linear"),
-				eq(tasks.externalId, issue.id),
-			),
-		});
-
-		if (!existingTask) return;
-
 		await db
 			.update(tasks)
 			.set({ deletedAt: new Date() })
-			.where(eq(tasks.id, existingTask.id));
+			.where(
+				and(
+					eq(tasks.externalProvider, "linear"),
+					eq(tasks.externalId, issue.id),
+				),
+			);
 	}
 }

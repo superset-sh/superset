@@ -1,5 +1,5 @@
 {
-  "id": "14dba51c-5c7f-4538-91a7-68fe22c4a16f",
+  "id": "f3620c93-8c39-4113-93c3-447343424c2f",
   "prevId": "02578a34-8f27-455e-ac6c-4d30b916e179",
   "version": "7",
   "dialect": "postgresql",
@@ -752,7 +752,8 @@
         },
         "external_provider": {
           "name": "external_provider",
-          "type": "text",
+          "type": "integration_provider",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": false
         },

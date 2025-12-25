@@ -16,7 +16,7 @@ export default async function DashboardLayout({
 		<div className="flex min-h-screen flex-col">
 			<Header />
 
-			<div className="mx-auto min-h-[calc(100svh-13rem)] w-[95vw] max-w-screen-2xl pt-16">
+			<div className="mx-auto min-h-[calc(100svh-13rem)] w-[95vw] max-w-screen-2xl pb-8 pt-16">
 				<div className="flex flex-col gap-8 md:flex-row">
 					<aside className="w-80 shrink-0">
 						<div className="sticky top-24">

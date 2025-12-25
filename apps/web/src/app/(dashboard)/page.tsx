@@ -6,16 +6,16 @@ import { ProductDemo } from "./components/ProductDemo";
 
 export default function HomePage() {
 	return (
-		<div className="flex h-full flex-col gap-4 lg:flex-row">
-			<div className="flex shrink-0 flex-col gap-8 lg:max-w-sm">
-				<div className="lg:pt-16">
-					<h1 className="mb-3 text-2xl font-medium">Download Superset</h1>
+		<div className="flex flex-col gap-8">
+			<div className="flex flex-col items-center gap-6 text-center">
+				<div>
+					<h1 className="mb-3 text-3xl font-medium">Download Superset</h1>
 					<p className="text-muted-foreground">
 						Use the desktop app to start running parallel coding agents.
 					</p>
 				</div>
 
-				<div className="flex flex-wrap gap-3">
+				<div className="flex flex-wrap justify-center gap-3">
 					<Button size="lg" className="gap-2" asChild>
 						<a href={DOWNLOAD_URL_MAC_ARM64}>
 							Download for Mac
