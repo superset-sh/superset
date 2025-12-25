@@ -12,14 +12,13 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
-import { FaDiscord } from "react-icons/fa";
+import { FaDiscord, FaXTwitter } from "react-icons/fa6";
 import {
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineBugAnt,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlineEnvelope,
-	HiOutlineUser,
 } from "react-icons/hi2";
 import { LuLifeBuoy } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
@@ -40,10 +39,6 @@ export function AvatarDropdown() {
 		.toUpperCase()
 		.slice(0, 2);
 
-	const handleAccountSettings = () => {
-		openSettings("account");
-	};
-
 	const handleSettings = () => {
 		openSettings();
 	};
@@ -58,6 +53,10 @@ export function AvatarDropdown() {
 
 	const handleJoinDiscord = () => {
 		window.open(COMPANY.DISCORD_URL, "_blank");
+	};
+
+	const handleTwitter = () => {
+		window.open(COMPANY.X_URL, "_blank");
 	};
 
 	const handleViewHotkeys = () => {
@@ -76,7 +75,7 @@ export function AvatarDropdown() {
 					className="no-drag rounded-full focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
 					aria-label="User menu"
 				>
-					<Avatar className="h-7 w-7 cursor-pointer hover:opacity-80 transition-opacity">
+					<Avatar className="h-7 w-7 cursor-pointer hover:opacity-80 transition-opacity border border-border">
 						<AvatarImage src={user?.avatarUrl ?? undefined} />
 						<AvatarFallback className="text-xs">
 							{initials || "?"}
@@ -84,7 +83,7 @@ export function AvatarDropdown() {
 					</Avatar>
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-64">
+			<DropdownMenuContent align="end" className="w-56">
 				{user && (
 					<>
 						<div className="px-2 py-1.5">
@@ -94,17 +93,13 @@ export function AvatarDropdown() {
 						<DropdownMenuSeparator />
 					</>
 				)}
-				<DropdownMenuItem onClick={handleAccountSettings}>
-					<HiOutlineUser className="h-4 w-4" />
-					Account
-				</DropdownMenuItem>
 				<DropdownMenuItem onClick={handleSettings}>
 					<HiOutlineCog6Tooth className="h-4 w-4" />
 					Settings
 				</DropdownMenuItem>
 				<DropdownMenuItem onClick={handleViewHotkeys}>
 					<HiOutlineCommandLine className="h-4 w-4" />
-					<span className="flex-1">Keyboard Shortcuts</span>
+					<span className="flex-1">Hotkeys</span>
 					<KbdGroup>
 						{HOTKEYS.SHOW_HOTKEYS.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
@@ -117,14 +112,13 @@ export function AvatarDropdown() {
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
-						<DropdownMenuItem onClick={handleReportIssue}>
-							<HiOutlineBugAnt className="h-4 w-4" />
-							Report Issue
-						</DropdownMenuItem>
-
 						<DropdownMenuItem onClick={handleJoinDiscord}>
 							<FaDiscord className="h-4 w-4" />
-							Join Discord
+							Discord
+						</DropdownMenuItem>
+
+						<DropdownMenuItem onClick={handleTwitter}>
+							<FaXTwitter className="h-4 w-4" />X
 						</DropdownMenuItem>
 
 						<DropdownMenuItem onClick={handleContactUs}>
@@ -133,6 +127,11 @@ export function AvatarDropdown() {
 						</DropdownMenuItem>
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
+				<DropdownMenuSeparator />
+				<DropdownMenuItem onClick={handleReportIssue}>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem onClick={handleSignOut}>
 					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
