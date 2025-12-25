@@ -3,12 +3,18 @@ import { z } from "zod";
 
 export const env = createEnv({
 	server: {
+		NODE_ENV: z
+			.enum(["development", "production", "test"])
+			.default("development"),
 		CLERK_SECRET_KEY: z.string().min(1),
 		BLOB_READ_WRITE_TOKEN: z.string().min(1),
 		POSTHOG_API_KEY: z.string(),
+		POSTHOG_API_HOST: z.string().url().default("https://us.posthog.com"),
 		POSTHOG_PROJECT_ID: z.string(),
 		QSTASH_TOKEN: z.string().min(1),
 		NEXT_PUBLIC_API_URL: z.string().url(),
+		KV_REST_API_URL: z.string().url().optional(),
+		KV_REST_API_TOKEN: z.string().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

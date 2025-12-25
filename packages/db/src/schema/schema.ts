@@ -1,5 +1,4 @@
 import {
-	boolean,
 	index,
 	integer,
 	jsonb,
@@ -169,6 +168,7 @@ export const tasks = pgTable(
 
 		startedAt: timestamp("started_at"),
 		completedAt: timestamp("completed_at"),
+		deletedAt: timestamp("deleted_at"),
 
 		// Timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -220,12 +220,7 @@ export const integrationConnections = pgTable(
 		externalOrgId: text("external_org_id"),
 		externalOrgName: text("external_org_name"),
 
-		// Webhook
-		webhookId: text("webhook_id"),
-		webhookSecret: text("webhook_secret"),
-
 		// Settings
-		syncEnabled: boolean("sync_enabled").notNull().default(true),
 		config: jsonb(), // Provider-specific: { defaultTeamId, etc. }
 
 		createdAt: timestamp("created_at").notNull().defaultNow(),

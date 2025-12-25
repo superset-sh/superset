@@ -13,7 +13,6 @@ export const taskStatusEnumValues = [
 export const taskStatusEnum = z.enum(taskStatusEnumValues);
 export type TaskStatus = z.infer<typeof taskStatusEnum>;
 
-// Priority is standardized across systems (Linear uses 0-4 which maps to these)
 export const taskPriorityValues = [
 	"urgent",
 	"high",

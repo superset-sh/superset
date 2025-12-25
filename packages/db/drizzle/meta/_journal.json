@@ -36,6 +36,20 @@
       "when": 1766613465751,
       "tag": "0004_add_task_status_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766633630911,
+      "tag": "0005_remove_integration_sync_webhook_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766634069200,
+      "tag": "0006_add_tasks_deleted_at",
+      "breakpoints": true
     }
   ]
 }

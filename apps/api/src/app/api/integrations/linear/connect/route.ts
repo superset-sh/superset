@@ -4,14 +4,6 @@ import { organizationMembers, users } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 
-/**
- * Initiate Linear OAuth flow
- *
- * GET /api/integrations/linear/connect?organizationId=<uuid>
- *
- * Requires authenticated user who is a member of the organization.
- * Redirects to Linear's OAuth authorization page.
- */
 export async function GET(request: Request) {
 	const { userId: clerkUserId } = await auth();
 
@@ -29,7 +21,6 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// Get user from database
 	const user = await db.query.users.findFirst({
 		where: eq(users.clerkId, clerkUserId),
 	});
@@ -38,7 +29,6 @@ export async function GET(request: Request) {
 		return Response.json({ error: "User not found" }, { status: 404 });
 	}
 
-	// Verify user is a member of the organization
 	const membership = await db.query.organizationMembers.findFirst({
 		where: and(
 			eq(organizationMembers.organizationId, organizationId),
@@ -53,19 +43,16 @@ export async function GET(request: Request) {
 		);
 	}
 
-	// Build state parameter (will be verified in callback)
 	const state = Buffer.from(
-		JSON.stringify({
-			organizationId,
-			userId: user.id,
-		}),
+		JSON.stringify({ organizationId, userId: user.id }),
 	).toString("base64url");
 
-	// Build Linear OAuth URL
-	const redirectUri = `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`;
 	const linearAuthUrl = new URL("https://linear.app/oauth/authorize");
 	linearAuthUrl.searchParams.set("client_id", env.LINEAR_CLIENT_ID);
-	linearAuthUrl.searchParams.set("redirect_uri", redirectUri);
+	linearAuthUrl.searchParams.set(
+		"redirect_uri",
+		"https://e7e7cc5a4723.ngrok-free.app/api/integrations/linear/callback",
+	);
 	linearAuthUrl.searchParams.set("response_type", "code");
 	linearAuthUrl.searchParams.set("scope", "read,write,issues:create");
 	linearAuthUrl.searchParams.set("state", state);

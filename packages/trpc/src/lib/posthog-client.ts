@@ -1,15 +1,9 @@
 import { kv } from "@vercel/kv";
 import { env } from "../env";
 
-const POSTHOG_API_BASE = "https://us.posthog.com";
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
-const NODE_ENV = process.env.NODE_ENV ?? "development";
-const CACHE_PREFIX = `posthog:${NODE_ENV}:`;
-
-// Check if KV is configured
-const isKVConfigured = Boolean(
-	process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN,
-);
+const CACHE_PREFIX = `posthog:${env.NODE_ENV}:`;
+const isKVConfigured = Boolean(env.KV_REST_API_URL && env.KV_REST_API_TOKEN);
 
 // Fallback in-memory cache for local dev without KV
 const memoryCache = new Map<string, { data: unknown; expiresAt: number }>();
@@ -166,7 +160,7 @@ export async function executeQuery<T = unknown>(
 	}
 
 	const response = await fetch(
-		`${POSTHOG_API_BASE}/api/projects/${env.POSTHOG_PROJECT_ID}/query/`,
+		`${env.POSTHOG_API_HOST}/api/projects/${env.POSTHOG_PROJECT_ID}/query/`,
 		{
 			method: "POST",
 			headers: {

@@ -12,7 +12,6 @@
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.36.2",
-		"@uiw/react-md-editor": "^4.0.11",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/db": "workspace:*",
 		"@superset/queries": "workspace:*",
@@ -25,6 +24,8 @@
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
+		"@uiw/react-md-editor": "^4.0.11",
+		"framer-motion": "^12.23.26",
 		"geist": "^1.5.1",
 		"import-in-the-middle": "2.0.1",
 		"jose": "^6.1.3",
