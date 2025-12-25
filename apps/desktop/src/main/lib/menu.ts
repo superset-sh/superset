@@ -83,8 +83,6 @@ export function createApplicationMenu() {
 					click: () => {
 						autoUpdateEmitter.emit("update-downloaded", {
 							version: "99.0.0-test",
-							releaseUrl:
-								"https://github.com/superset-sh/superset/releases/tag/v99.0.0-test",
 						});
 					},
 				},

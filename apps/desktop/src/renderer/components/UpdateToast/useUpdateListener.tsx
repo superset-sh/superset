@@ -22,14 +22,13 @@ export function useUpdateListener() {
 					return;
 				}
 
-				const { version, releaseUrl } = event.data;
+				const { version } = event.data;
 
 				const toastId = toast.custom(
 					(id) => (
 						<UpdateToast
 							toastId={id}
 							version={version}
-							releaseUrl={releaseUrl}
 							onDismiss={handleDismiss}
 						/>
 					),

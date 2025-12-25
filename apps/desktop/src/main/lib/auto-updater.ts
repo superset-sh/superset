@@ -11,7 +11,6 @@ const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
 
 export interface UpdateDownloadedEvent {
 	version: string;
-	releaseUrl: string;
 }
 
 export const autoUpdateEmitter = new EventEmitter();
@@ -106,12 +105,7 @@ export function setupAutoUpdater(): void {
 
 		hasNotifiedUpdateDownloaded = true;
 
-		const event: UpdateDownloadedEvent = {
-			version: info.version,
-			releaseUrl: `${RELEASES_URL}/tag/v${info.version}`,
-		};
-
-		autoUpdateEmitter.emit("update-downloaded", event);
+		autoUpdateEmitter.emit("update-downloaded", { version: info.version });
 	});
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);

@@ -3,24 +3,24 @@ import { toast } from "@superset/ui/sonner";
 import { HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 
+const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
+
 interface UpdateToastProps {
 	toastId: string | number;
 	version: string;
-	releaseUrl: string;
 	onDismiss?: () => void;
 }
 
 export function UpdateToast({
 	toastId,
 	version,
-	releaseUrl,
 	onDismiss,
 }: UpdateToastProps) {
 	const openUrl = trpc.external.openUrl.useMutation();
 	const installUpdate = trpc.autoUpdate.installUpdate.useMutation();
 
 	const handleSeeChanges = () => {
-		openUrl.mutate(releaseUrl);
+		openUrl.mutate(RELEASES_URL);
 	};
 
 	const handleRestart = () => {
