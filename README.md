@@ -9,6 +9,7 @@
   </p>
 
 [![Superset Twitter](https://img.shields.io/badge/@superset_sh-555?logo=x)](https://x.com/superset_sh)
+[![Superset Twitter](https://img.shields.io/badge/Discord-555?logo=discord)]([https://x.com/superset_sh](https://discord.gg/cZeD9WYcV7))
 
 </div>
 
@@ -16,7 +17,7 @@
 Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
 Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
 
-https://github.com/user-attachments/assets/2c06d187-7e85-483a-92d3-d0078d440626
+https://github.com/user-attachments/assets/d85ec84f-34de-4e17-9d44-5ccbd225566f
 
 ## Getting Started
 
