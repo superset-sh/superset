@@ -36,7 +36,7 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 	};
 
 	return (
-		<div className="relative flex flex-col gap-3 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[340px]">
+		<div className="update-toast relative flex flex-col gap-3 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[340px]">
 			<div className="flex flex-col gap-0.5">
 				{isDownloading ? (
 					<>

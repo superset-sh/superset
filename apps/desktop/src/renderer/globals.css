@@ -252,8 +252,8 @@
 		-webkit-app-region: no-drag;
 	}
 
-	/* Disable sonner toast hover animation */
-	[data-sonner-toast]:hover {
+	/* Disable sonner toast hover animation for update toast only */
+	[data-sonner-toast]:has(.update-toast):hover {
 		transform: none !important;
 	}
 }
