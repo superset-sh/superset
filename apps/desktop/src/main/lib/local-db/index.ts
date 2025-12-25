@@ -19,6 +19,7 @@ function ensureAppHomeDirExists() {
 	mkdirSync(SUPERSET_HOME_DIR, { recursive: true });
 }
 ensureAppHomeDirExists();
+
 /**
  * Gets the migrations directory path.
  *

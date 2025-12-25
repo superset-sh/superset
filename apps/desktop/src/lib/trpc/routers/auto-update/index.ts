@@ -14,7 +14,6 @@ export const createAutoUpdateRouter = () => {
 	return router({
 		subscribe: publicProcedure.subscription(() => {
 			return observable<AutoUpdateStatusEvent>((emit) => {
-				// Emit current status immediately
 				emit.next(getUpdateStatus());
 
 				const onStatusChanged = (event: AutoUpdateStatusEvent) => {
@@ -41,7 +40,6 @@ export const createAutoUpdateRouter = () => {
 			dismissUpdate();
 		}),
 
-		// DEV ONLY
 		simulateReady: publicProcedure.mutation(() => {
 			simulateUpdateReady();
 		}),

@@ -4,10 +4,6 @@ import { trpc } from "renderer/lib/trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { UpdateToast } from "./UpdateToast";
 
-/**
- * Hook that listens for auto-update status changes via tRPC subscription.
- * Shows a toast notification when downloading or ready to install.
- */
 export function useUpdateListener() {
 	const toastIdRef = useRef<string | number | null>(null);
 
@@ -15,7 +11,6 @@ export function useUpdateListener() {
 		onData: (event) => {
 			const { status, version } = event;
 
-			// Dismiss existing toast if status changed to idle/checking/error
 			if (
 				status === AUTO_UPDATE_STATUS.IDLE ||
 				status === AUTO_UPDATE_STATUS.CHECKING ||
@@ -28,12 +23,10 @@ export function useUpdateListener() {
 				return;
 			}
 
-			// Show toast for downloading or ready states
 			if (
 				status === AUTO_UPDATE_STATUS.DOWNLOADING ||
 				status === AUTO_UPDATE_STATUS.READY
 			) {
-				// Dismiss existing toast before showing new one
 				if (toastIdRef.current !== null) {
 					toast.dismiss(toastIdRef.current);
 				}

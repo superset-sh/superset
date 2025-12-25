@@ -1,4 +1,3 @@
-// Auto-update status values
 export const AUTO_UPDATE_STATUS = {
 	IDLE: "idle",
 	CHECKING: "checking",

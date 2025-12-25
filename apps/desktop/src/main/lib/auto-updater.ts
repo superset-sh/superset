@@ -17,7 +17,6 @@ export interface AutoUpdateStatusEvent {
 
 export const autoUpdateEmitter = new EventEmitter();
 
-// Current state
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
 let isDismissed = false;
@@ -30,7 +29,6 @@ function emitStatus(
 	currentStatus = status;
 	currentVersion = version;
 
-	// Don't emit if dismissed and status is ready
 	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
 		return;
 	}
@@ -113,7 +111,6 @@ export function checkForUpdatesInteractive(): void {
 		});
 }
 
-// DEV ONLY: Simulate update for testing
 export function simulateUpdateReady(): void {
 	if (env.NODE_ENV !== "development") return;
 	isDismissed = false;
