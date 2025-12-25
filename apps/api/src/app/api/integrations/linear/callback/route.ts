@@ -49,8 +49,7 @@ export async function GET(request: Request) {
 			grant_type: "authorization_code",
 			client_id: env.LINEAR_CLIENT_ID,
 			client_secret: env.LINEAR_CLIENT_SECRET,
-			redirect_uri:
-				"https://e7e7cc5a4723.ngrok-free.app/api/integrations/linear/callback",
+			redirect_uri: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`,
 			code,
 		}),
 	});

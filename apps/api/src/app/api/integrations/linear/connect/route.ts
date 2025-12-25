@@ -51,7 +51,7 @@ export async function GET(request: Request) {
 	linearAuthUrl.searchParams.set("client_id", env.LINEAR_CLIENT_ID);
 	linearAuthUrl.searchParams.set(
 		"redirect_uri",
-		"https://e7e7cc5a4723.ngrok-free.app/api/integrations/linear/callback",
+		`${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`,
 	);
 	linearAuthUrl.searchParams.set("response_type", "code");
 	linearAuthUrl.searchParams.set("scope", "read,write,issues:create");
