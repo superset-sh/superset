@@ -2,31 +2,67 @@ import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
+import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
 	"https://github.com/superset-sh/superset/releases/latest/download";
-const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
 
-export interface UpdateDownloadedEvent {
-	version: string;
+export interface AutoUpdateStatusEvent {
+	status: AutoUpdateStatus;
+	version?: string;
+	error?: string;
 }
 
 export const autoUpdateEmitter = new EventEmitter();
 
-let hasNotifiedUpdateDownloaded = false;
+// Current state
+let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
+let currentVersion: string | undefined;
+let isDismissed = false;
+
+function emitStatus(
+	status: AutoUpdateStatus,
+	version?: string,
+	error?: string,
+): void {
+	currentStatus = status;
+	currentVersion = version;
+
+	// Don't emit if dismissed and status is ready
+	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
+		return;
+	}
+
+	autoUpdateEmitter.emit("status-changed", { status, version, error });
+}
+
+export function getUpdateStatus(): AutoUpdateStatusEvent {
+	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
+		return { status: AUTO_UPDATE_STATUS.IDLE };
+	}
+	return { status: currentStatus, version: currentVersion };
+}
 
 export function installUpdate(): void {
 	autoUpdater.quitAndInstall(false, true);
+}
+
+export function dismissUpdate(): void {
+	isDismissed = true;
+	autoUpdateEmitter.emit("status-changed", { status: AUTO_UPDATE_STATUS.IDLE });
 }
 
 export function checkForUpdates(): void {
 	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
 		console.error("[auto-updater] Failed to check for updates:", error);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 }
 
@@ -48,21 +84,46 @@ export function checkForUpdatesInteractive(): void {
 		return;
 	}
 
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
+
 	autoUpdater
 		.checkForUpdates()
 		.then((result) => {
-			if (!result || !result.updateInfo) {
-				autoUpdateEmitter.emit("update-not-available");
+			if (
+				!result?.updateInfo ||
+				result.updateInfo.version === app.getVersion()
+			) {
+				dialog.showMessageBox({
+					type: "info",
+					title: "No Updates",
+					message: "You're up to date!",
+					detail: `Version ${app.getVersion()} is the latest version.`,
+				});
 			}
 		})
 		.catch((error) => {
 			console.error("[auto-updater] Failed to check for updates:", error);
+			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
 				type: "error",
 				title: "Update Error",
 				message: "Failed to check for updates. Please try again later.",
 			});
 		});
+}
+
+// DEV ONLY: Simulate update for testing
+export function simulateUpdateReady(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.READY, "99.0.0-test");
+}
+
+export function simulateDownloading(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
 }
 
 export function setupAutoUpdater(): void {
@@ -81,31 +142,37 @@ export function setupAutoUpdater(): void {
 
 	autoUpdater.on("error", (error) => {
 		console.error("[auto-updater] Error during update check:", error);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+	});
+
+	autoUpdater.on("checking-for-update", () => {
+		console.info("[auto-updater] Checking for updates...");
+		emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	});
 
 	autoUpdater.on("update-available", (info) => {
 		console.info(
 			`[auto-updater] Update available: ${info.version}. Downloading...`,
 		);
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, info.version);
 	});
 
 	autoUpdater.on("update-not-available", () => {
 		console.info("[auto-updater] No updates available");
+		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+	});
+
+	autoUpdater.on("download-progress", (progress) => {
+		console.info(
+			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}%`,
+		);
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
-		if (hasNotifiedUpdateDownloaded) {
-			console.info("[auto-updater] Already notified about update, skipping");
-			return;
-		}
-
 		console.info(
-			`[auto-updater] Update downloaded (${info.version}). Notifying renderer.`,
+			`[auto-updater] Update downloaded (${info.version}). Ready to install.`,
 		);
-
-		hasNotifiedUpdateDownloaded = true;
-
-		autoUpdateEmitter.emit("update-downloaded", { version: info.version });
+		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);

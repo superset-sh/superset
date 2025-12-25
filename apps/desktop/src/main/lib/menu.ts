@@ -1,7 +1,11 @@
 import { COMPANY } from "@superset/shared/constants";
 import { app, Menu, shell } from "electron";
 import { env } from "main/env.main";
-import { autoUpdateEmitter, checkForUpdatesInteractive } from "./auto-updater";
+import {
+	checkForUpdatesInteractive,
+	simulateDownloading,
+	simulateUpdateReady,
+} from "./auto-updater";
 import { menuEmitter } from "./menu-events";
 
 export function createApplicationMenu() {
@@ -79,12 +83,12 @@ export function createApplicationMenu() {
 			label: "Dev",
 			submenu: [
 				{
-					label: "Simulate Update Available",
-					click: () => {
-						autoUpdateEmitter.emit("update-downloaded", {
-							version: "99.0.0-test",
-						});
-					},
+					label: "Simulate Update Downloading",
+					click: () => simulateDownloading(),
+				},
+				{
+					label: "Simulate Update Ready",
+					click: () => simulateUpdateReady(),
 				},
 			],
 		});

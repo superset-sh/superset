@@ -1,61 +1,72 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
+import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 
 const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
 
 interface UpdateToastProps {
 	toastId: string | number;
-	version: string;
-	onDismiss?: () => void;
+	status: "downloading" | "ready";
+	version?: string;
 }
 
-export function UpdateToast({
-	toastId,
-	version,
-	onDismiss,
-}: UpdateToastProps) {
+export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 	const openUrl = trpc.external.openUrl.useMutation();
-	const installUpdate = trpc.autoUpdate.installUpdate.useMutation();
+	const installMutation = trpc.autoUpdate.install.useMutation();
+	const dismissMutation = trpc.autoUpdate.dismiss.useMutation({
+		onSuccess: () => {
+			toast.dismiss(toastId);
+		},
+	});
+
+	const isDownloading = status === AUTO_UPDATE_STATUS.DOWNLOADING;
+	const isReady = status === AUTO_UPDATE_STATUS.READY;
 
 	const handleSeeChanges = () => {
 		openUrl.mutate(RELEASES_URL);
 	};
 
-	const handleRestart = () => {
-		installUpdate.mutate();
+	const handleInstall = () => {
+		installMutation.mutate();
 	};
 
-	const handleDismiss = () => {
-		toast.dismiss(toastId);
-		onDismiss?.();
+	const handleLater = () => {
+		dismissMutation.mutate();
 	};
 
 	return (
-		<div className="relative flex items-center gap-4 bg-popover text-popover-foreground rounded-lg border border-border p-4 pr-5 shadow-lg min-w-[420px]">
-			<button
-				type="button"
-				onClick={handleDismiss}
-				className="absolute -top-2 -left-2 size-5 flex items-center justify-center rounded-full bg-popover border border-border text-muted-foreground hover:text-foreground transition-colors"
-				aria-label="Dismiss"
-			>
-				<HiMiniXMark className="size-3" />
-			</button>
+		<div className="relative flex items-center gap-4 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[380px]">
 			<div className="flex flex-col gap-0.5 flex-1">
-				<span className="font-medium text-sm">New update available</span>
-				<span className="text-sm text-muted-foreground">
-					Restart to use the latest.
-				</span>
+				{isDownloading ? (
+					<>
+						<span className="font-medium text-sm">Downloading update...</span>
+						<span className="text-sm text-muted-foreground">
+							{version ? `Version ${version}` : "Please wait"}
+						</span>
+					</>
+				) : (
+					<>
+						<span className="font-medium text-sm">Update available</span>
+						<span className="text-sm text-muted-foreground">
+							{version ? `Version ${version} is ready to install` : "Ready to install"}
+						</span>
+					</>
+				)}
 			</div>
-			<div className="flex items-center gap-2 shrink-0">
-				<Button variant="outline" size="sm" onClick={handleSeeChanges}>
-					See changes
-				</Button>
-				<Button size="sm" onClick={handleRestart}>
-					Restart
-				</Button>
-			</div>
+			{isReady && (
+				<div className="flex items-center gap-2 shrink-0">
+					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
+						See changes
+					</Button>
+					<Button variant="ghost" size="sm" onClick={handleLater}>
+						Later
+					</Button>
+					<Button size="sm" onClick={handleInstall} disabled={installMutation.isPending}>
+						{installMutation.isPending ? "Installing..." : "Install"}
+					</Button>
+				</div>
+			)}
 		</div>
 	);
 }

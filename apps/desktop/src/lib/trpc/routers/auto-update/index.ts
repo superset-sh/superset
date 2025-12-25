@@ -1,41 +1,53 @@
 import { observable } from "@trpc/server/observable";
 import {
+	type AutoUpdateStatusEvent,
 	autoUpdateEmitter,
+	dismissUpdate,
+	getUpdateStatus,
 	installUpdate,
-	type UpdateDownloadedEvent,
+	simulateDownloading,
+	simulateUpdateReady,
 } from "main/lib/auto-updater";
 import { publicProcedure, router } from "../..";
-
-export type AutoUpdateEvent =
-	| {
-			type: "update-downloaded";
-			data: UpdateDownloadedEvent;
-	  }
-	| { type: "update-not-available" };
 
 export const createAutoUpdateRouter = () => {
 	return router({
 		subscribe: publicProcedure.subscription(() => {
-			return observable<AutoUpdateEvent>((emit) => {
-				const onUpdateDownloaded = (data: UpdateDownloadedEvent) => {
-					emit.next({ type: "update-downloaded", data });
+			return observable<AutoUpdateStatusEvent>((emit) => {
+				// Emit current status immediately
+				emit.next(getUpdateStatus());
+
+				const onStatusChanged = (event: AutoUpdateStatusEvent) => {
+					emit.next(event);
 				};
 
-				const onUpdateNotAvailable = () => {
-					emit.next({ type: "update-not-available" });
-				};
-
-				autoUpdateEmitter.on("update-downloaded", onUpdateDownloaded);
-				autoUpdateEmitter.on("update-not-available", onUpdateNotAvailable);
+				autoUpdateEmitter.on("status-changed", onStatusChanged);
 
 				return () => {
-					autoUpdateEmitter.off("update-downloaded", onUpdateDownloaded);
-					autoUpdateEmitter.off("update-not-available", onUpdateNotAvailable);
+					autoUpdateEmitter.off("status-changed", onStatusChanged);
 				};
 			});
 		}),
-		installUpdate: publicProcedure.mutation(() => {
+
+		getStatus: publicProcedure.query(() => {
+			return getUpdateStatus();
+		}),
+
+		install: publicProcedure.mutation(() => {
 			installUpdate();
+		}),
+
+		dismiss: publicProcedure.mutation(() => {
+			dismissUpdate();
+		}),
+
+		// DEV ONLY
+		simulateReady: publicProcedure.mutation(() => {
+			simulateUpdateReady();
+		}),
+
+		simulateDownloading: publicProcedure.mutation(() => {
+			simulateDownloading();
 		}),
 	});
 };
