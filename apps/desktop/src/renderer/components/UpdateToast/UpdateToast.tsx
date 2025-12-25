@@ -2,9 +2,7 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
-import { AUTO_UPDATE_STATUS } from "shared/auto-update";
-
-const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
+import { AUTO_UPDATE_STATUS, RELEASES_URL } from "shared/auto-update";
 
 interface UpdateToastProps {
 	toastId: string | number;
