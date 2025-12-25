@@ -56,7 +56,9 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 					<>
 						<span className="font-medium text-sm">Update available</span>
 						<span className="text-sm text-muted-foreground">
-							{version ? `Version ${version} is ready to install` : "Ready to install"}
+							{version
+								? `Version ${version} is ready to install`
+								: "Ready to install"}
 						</span>
 					</>
 				)}
@@ -66,7 +68,11 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
 						See changes
 					</Button>
-					<Button size="sm" onClick={handleInstall} disabled={installMutation.isPending}>
+					<Button
+						size="sm"
+						onClick={handleInstall}
+						disabled={installMutation.isPending}
+					>
 						{installMutation.isPending ? "Installing..." : "Install"}
 					</Button>
 				</div>

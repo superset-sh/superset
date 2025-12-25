@@ -9,9 +9,7 @@ export const PLATFORM = {
 
 // Ports - different for dev vs prod to allow running both simultaneously
 export const PORTS = {
-	// Vite dev server port
 	VITE_DEV_SERVER: env.NODE_ENV === "development" ? 5927 : 4927,
-	// Notification HTTP server port
 	NOTIFICATIONS: env.NODE_ENV === "development" ? 31416 : 31415,
 };
 
@@ -34,13 +32,11 @@ export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
 export const CONFIG_FILE_NAME = "config.json";
 
-// Config file template
 export const CONFIG_TEMPLATE = `{
   "setup": [],
   "teardown": []
 }`;
 
-// Notification event types
 export const NOTIFICATION_EVENTS = {
 	AGENT_COMPLETE: "agent-complete",
 	FOCUS_TAB: "focus-tab",

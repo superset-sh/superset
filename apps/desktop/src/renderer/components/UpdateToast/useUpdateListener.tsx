@@ -33,11 +33,7 @@ export function useUpdateListener() {
 
 				const toastId = toast.custom(
 					(id) => (
-						<UpdateToast
-							toastId={id}
-							status={status}
-							version={version}
-						/>
+						<UpdateToast toastId={id} status={status} version={version} />
 					),
 					{
 						duration: Number.POSITIVE_INFINITY,

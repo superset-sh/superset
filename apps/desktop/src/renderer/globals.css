@@ -254,6 +254,6 @@
 
 	/* Disable sonner toast hover animation for update toast only */
 	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0) !important;
+		transform: translateY(0);
 	}
 }
