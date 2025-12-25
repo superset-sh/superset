@@ -1,4 +1,5 @@
-import { app, type BrowserWindow, dialog } from "electron";
+import { EventEmitter } from "node:events";
+import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { PLATFORM } from "shared/constants";
@@ -6,12 +7,19 @@ import { PLATFORM } from "shared/constants";
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
 	"https://github.com/superset-sh/superset/releases/latest/download";
+const RELEASES_URL = "https://github.com/superset-sh/superset/releases";
 
-let mainWindow: BrowserWindow | null = null;
-let isUpdateDialogOpen = false;
+export interface UpdateDownloadedEvent {
+	version: string;
+	releaseUrl: string;
+}
 
-export function setMainWindow(window: BrowserWindow): void {
-	mainWindow = window;
+export const autoUpdateEmitter = new EventEmitter();
+
+let hasNotifiedUpdateDownloaded = false;
+
+export function installUpdate(): void {
+	autoUpdater.quitAndInstall(false, true);
 }
 
 export function checkForUpdates(): void {
@@ -45,11 +53,7 @@ export function checkForUpdatesInteractive(): void {
 		.checkForUpdates()
 		.then((result) => {
 			if (!result || !result.updateInfo) {
-				dialog.showMessageBox({
-					type: "info",
-					title: "No Updates",
-					message: "You are running the latest version.",
-				});
+				autoUpdateEmitter.emit("update-not-available");
 			}
 		})
 		.catch((error) => {
@@ -91,43 +95,23 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
-		if (isUpdateDialogOpen) {
-			console.info("[auto-updater] Update dialog already open, skipping");
+		if (hasNotifiedUpdateDownloaded) {
+			console.info("[auto-updater] Already notified about update, skipping");
 			return;
 		}
 
 		console.info(
-			`[auto-updater] Update downloaded (${info.version}). Prompting user to restart.`,
+			`[auto-updater] Update downloaded (${info.version}). Notifying renderer.`,
 		);
 
-		isUpdateDialogOpen = true;
+		hasNotifiedUpdateDownloaded = true;
 
-		const dialogOptions = {
-			type: "info" as const,
-			buttons: ["Restart Now", "Later"],
-			defaultId: 0,
-			cancelId: 1,
-			title: "Update Ready",
-			message: `Version ${info.version} is ready to install`,
-			detail:
-				"A new version has been downloaded. Restart the application to apply the update.",
+		const event: UpdateDownloadedEvent = {
+			version: info.version,
+			releaseUrl: `${RELEASES_URL}/tag/v${info.version}`,
 		};
 
-		const showDialog = mainWindow
-			? dialog.showMessageBox(mainWindow, dialogOptions)
-			: dialog.showMessageBox(dialogOptions);
-
-		showDialog
-			.then((response) => {
-				isUpdateDialogOpen = false;
-				if (response.response === 0) {
-					autoUpdater.quitAndInstall(false, true);
-				}
-			})
-			.catch((error) => {
-				isUpdateDialogOpen = false;
-				console.error("[auto-updater] Failed to show update dialog:", error);
-			});
+		autoUpdateEmitter.emit("update-downloaded", event);
 	});
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);
