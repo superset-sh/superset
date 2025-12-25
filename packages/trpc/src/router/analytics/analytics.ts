@@ -54,7 +54,47 @@ function formatWeekData(
 }
 
 export const analyticsRouter = {
-	getFullJourneyFunnel: adminProcedure
+	getActivationFunnel: adminProcedure
+		.input(
+			z
+				.object({
+					dateFrom: z.string().optional().default("-7d"),
+				})
+				.optional(),
+		)
+		.query(async ({ input }) => {
+			const dateFrom = input?.dateFrom ?? "-7d";
+
+			const results = await executeFunnelQuery(
+				[
+					{
+						kind: "EventsNode",
+						event: "desktop_opened",
+						name: "App Opened",
+					},
+					{
+						kind: "EventsNode",
+						event: "auth_completed",
+						name: "Signed Up",
+					},
+					{
+						kind: "EventsNode",
+						event: "project_opened",
+						name: "Opened Project",
+					},
+					{
+						kind: "EventsNode",
+						event: "workspace_created",
+						name: "Created Workspace",
+					},
+				],
+				dateFrom,
+			);
+
+			return formatFunnelResults(results);
+		}),
+
+	getMarketingFunnel: adminProcedure
 		.input(
 			z
 				.object({
@@ -76,17 +116,7 @@ export const analyticsRouter = {
 					{
 						kind: "EventsNode",
 						event: "desktop_opened",
-						name: "Desktop Opened",
-					},
-					{
-						kind: "EventsNode",
-						event: "auth_completed",
-						name: "Auth Completed",
-					},
-					{
-						kind: "EventsNode",
-						event: "terminal_opened",
-						name: "Terminal Opened",
+						name: "App Opened",
 					},
 				],
 				dateFrom,
@@ -105,10 +135,8 @@ export const analyticsRouter = {
 		)
 		.query(async ({ input }) => {
 			const days = input?.days ?? 30;
-			const lookbackDays = days + 7; // Extra 7 days to cover rolling windows
+			const lookbackDays = days + 7;
 
-			// Rolling 7-day WAU: for each day, count users with 3+ active days
-			// of workspace_created events in the preceding 7-day window
 			const { results } = await executeHogQLQuery<[string, number][]>(`
 				SELECT
 					report_date as date,
@@ -139,10 +167,7 @@ export const analyticsRouter = {
 				ORDER BY report_date ASC
 			`);
 
-			// Create a map of existing data
 			const dataMap = new Map(results.map(([date, count]) => [date, count]));
-
-			// Fill in all dates in the range (in case some days have 0 WAU)
 			const filledData: { date: string; count: number }[] = [];
 			const now = new Date();
 			for (let i = days - 1; i >= 0; i--) {
@@ -159,10 +184,9 @@ export const analyticsRouter = {
 		}),
 
 	getRetention: adminProcedure.query(async () => {
-		// Weekly cohort retention: users who auth'd and returned (any event)
 		const cohorts = await executeRetentionQuery({
 			targetEvent: "auth_completed",
-			returningEvent: "$pageview", // Any activity counts as returning
+			returningEvent: "terminal_opened",
 			period: "Week",
 			totalIntervals: 5,
 			dateFrom: "-35d",
@@ -216,17 +240,12 @@ export const analyticsRouter = {
 				return [] as LeaderboardEntry[];
 			}
 
-			// Extract user IDs from PostHog results
 			const userIds = results.map(([distinctId]) => distinctId);
-
-			// Fetch user details from our database
 			const dbUsers = await db.query.users.findMany({
 				where: inArray(users.id, userIds),
 			});
-
 			const userMap = new Map(dbUsers.map((u) => [u.id, u]));
 
-			// Join PostHog data with DB user data
 			const leaderboard: LeaderboardEntry[] = results
 				.map(([distinctId, count]) => {
 					const user = userMap.get(distinctId);
@@ -266,10 +285,7 @@ export const analyticsRouter = {
 				ORDER BY date ASC
 			`);
 
-			// Create a map of existing data
 			const dataMap = new Map(results.map(([date, count]) => [date, count]));
-
-			// Fill in all dates in the range
 			const filledData: { date: string; count: number }[] = [];
 			const now = new Date();
 			for (let i = days - 1; i >= 0; i--) {
@@ -296,7 +312,6 @@ export const analyticsRouter = {
 		.query(async ({ input }) => {
 			const days = input?.days ?? 30;
 
-			// Use TrendsQuery with breakdown for more reliable results
 			const query: InsightVizNode = {
 				kind: "InsightVizNode",
 				source: {
@@ -343,8 +358,6 @@ export const analyticsRouter = {
 		)
 		.query(async ({ input }) => {
 			const days = input?.days ?? 30;
-
-			// Fill in all dates in the range with zeros (no revenue tracking yet)
 			const filledData: { date: string; revenue: number; mrr: number }[] = [];
 			const now = new Date();
 

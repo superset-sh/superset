@@ -301,6 +301,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			const defaultBranch = await getDefaultBranch(mainRepoPath);
 			const project = upsertProject(mainRepoPath, defaultBranch);
 
+			track("project_opened", {
+				project_id: project.id,
+				method: "open",
+			});
+
 			return {
 				canceled: false,
 				project,
@@ -350,6 +355,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const defaultBranch = branchSummary.current || "main";
 
 				const project = upsertProject(input.path, defaultBranch);
+
+				track("project_opened", {
+					project_id: project.id,
+					method: "init",
+				});
 
 				return { project };
 			}),
@@ -420,6 +430,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								.set({ lastOpenedAt: Date.now() })
 								.where(eq(projects.id, existingProject.id))
 								.run();
+
+							track("project_opened", {
+								project_id: existingProject.id,
+								method: "clone",
+							});
+
 							return {
 								canceled: false as const,
 								success: true as const,
@@ -461,6 +477,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						})
 						.returning()
 						.get();
+
+					track("project_opened", {
+						project_id: project.id,
+						method: "clone",
+					});
 
 					return {
 						canceled: false as const,

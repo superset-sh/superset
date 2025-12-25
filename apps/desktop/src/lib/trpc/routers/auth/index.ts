@@ -1,6 +1,5 @@
 import { observable } from "@trpc/server/observable";
 import type { BrowserWindow } from "electron";
-import { clearUserCache } from "main/lib/analytics";
 import { authService } from "main/lib/auth";
 import { AUTH_PROVIDERS } from "shared/auth";
 import { z } from "zod";
@@ -54,7 +53,6 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 		 */
 		signOut: publicProcedure.mutation(async () => {
 			await authService.signOut();
-			clearUserCache();
 			return { success: true };
 		}),
 	});

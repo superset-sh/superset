@@ -19,15 +19,26 @@ import { WeekPicker } from "./components/WeekPicker";
 export default function DashboardPage() {
 	const trpc = useTRPC();
 
-	const [funnelRange, setFunnelRange] = useState<TimeRange>("-7d");
+	const [activationFunnelRange, setActivationFunnelRange] =
+		useState<TimeRange>("-7d");
+	const [marketingFunnelRange, setMarketingFunnelRange] =
+		useState<TimeRange>("-7d");
 	const [signupsRange, setSignupsRange] = useState<TimeRange>("-30d");
 	const [trafficRange, setTrafficRange] = useState<TimeRange>("-30d");
 	const [revenueRange, setRevenueRange] = useState<TimeRange>("-30d");
 	const [wauRange, setWauRange] = useState<TimeRange>("-30d");
 	const [leaderboardWeekOffset, setLeaderboardWeekOffset] = useState(0);
 
-	const fullJourneyFunnel = useQuery(
-		trpc.analytics.getFullJourneyFunnel.queryOptions({ dateFrom: funnelRange }),
+	const activationFunnel = useQuery(
+		trpc.analytics.getActivationFunnel.queryOptions({
+			dateFrom: activationFunnelRange,
+		}),
+	);
+
+	const marketingFunnel = useQuery(
+		trpc.analytics.getMarketingFunnel.queryOptions({
+			dateFrom: marketingFunnelRange,
+		}),
 	);
 
 	const wau = useQuery(
@@ -106,13 +117,30 @@ export default function DashboardPage() {
 			/>
 
 			<FunnelChart
-				title="Full Journey Funnel"
-				description="From site visit to terminal usage"
-				data={fullJourneyFunnel.data}
-				isLoading={fullJourneyFunnel.isLoading}
-				error={fullJourneyFunnel.error}
+				title="Activation Funnel"
+				description="From app open to workspace creation"
+				data={activationFunnel.data}
+				isLoading={activationFunnel.isLoading}
+				error={activationFunnel.error}
 				headerAction={
-					<TimeRangePicker value={funnelRange} onChange={setFunnelRange} />
+					<TimeRangePicker
+						value={activationFunnelRange}
+						onChange={setActivationFunnelRange}
+					/>
+				}
+			/>
+
+			<FunnelChart
+				title="Marketing Funnel"
+				description="From site visit to app download"
+				data={marketingFunnel.data}
+				isLoading={marketingFunnel.isLoading}
+				error={marketingFunnel.error}
+				headerAction={
+					<TimeRangePicker
+						value={marketingFunnelRange}
+						onChange={setMarketingFunnelRange}
+					/>
 				}
 			/>
 

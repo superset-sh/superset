@@ -1,5 +1,6 @@
 import type { BrowserWindow } from "electron";
 import { router } from "..";
+import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
@@ -25,6 +26,7 @@ import { createWorkspacesRouter } from "./workspaces";
  */
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
+		analytics: createAnalyticsRouter(),
 		auth: createAuthRouter(getWindow),
 		user: createUserRouter(),
 		window: createWindowRouter(getWindow),
