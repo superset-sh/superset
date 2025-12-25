@@ -7,6 +7,10 @@
 		".": {
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
+		},
+		"./integrations/*": {
+			"types": "./src/lib/integrations/*/index.ts",
+			"default": "./src/lib/integrations/*/index.ts"
 		}
 	},
 	"scripts": {
@@ -15,10 +19,12 @@
 	},
 	"dependencies": {
 		"@clerk/backend": "^2.27.0",
+		"@linear/sdk": "^29.0.0",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
 		"@trpc/server": "^11.7.1",
+		"@upstash/qstash": "^2.7.17",
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.1",

@@ -7,6 +7,8 @@ export const env = createEnv({
 		BLOB_READ_WRITE_TOKEN: z.string().min(1),
 		POSTHOG_API_KEY: z.string(),
 		POSTHOG_PROJECT_ID: z.string(),
+		QSTASH_TOKEN: z.string().min(1),
+		NEXT_PUBLIC_API_URL: z.string().url(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

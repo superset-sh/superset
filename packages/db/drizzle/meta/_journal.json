@@ -22,6 +22,20 @@
       "when": 1765569368202,
       "tag": "0002_add_deleted_at_users",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766609685767,
+      "tag": "0003_set_up_external_integrations",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766613465751,
+      "tag": "0004_add_task_status_metadata",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@
 	},
 	"dependencies": {
 		"@clerk/nextjs": "^6.36.2",
+		"@uiw/react-md-editor": "^4.0.11",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/db": "workspace:*",
 		"@superset/queries": "workspace:*",
