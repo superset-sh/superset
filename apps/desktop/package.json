@@ -16,6 +16,7 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist dist-electron release node_modules",
 		"start": "electron-vite preview",
+		"postinstall": "bun run scripts/patch-trpc-electron.ts",
 		"predev": "bun run clean:dev && bun run scripts/patch-dev-protocol.ts",
 		"dev": "cross-env NODE_ENV=development electron-vite dev --watch",
 		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-vite build",
