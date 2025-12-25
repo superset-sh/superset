@@ -1,6 +1,6 @@
 import type { LinearClient, WorkflowState } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import type { SelectTask } from "@superset/db/schema";
+import type { LinearConfig, SelectTask } from "@superset/db/schema";
 import { integrationConnections, tasks } from "@superset/db/schema";
 import {
 	getLinearClient,
@@ -21,7 +21,7 @@ const payloadSchema = z.object({
 	teamId: z.string().optional(),
 });
 
-async function getDefaultTeamId(
+async function getNewTasksTeamId(
 	organizationId: string,
 ): Promise<string | null> {
 	const connection = await db.query.integrationConnections.findFirst({
@@ -35,8 +35,8 @@ async function getDefaultTeamId(
 		return null;
 	}
 
-	const config = connection.config as { defaultTeamId?: string };
-	return config.defaultTeamId ?? null;
+	const config = connection.config as LinearConfig;
+	return config.newTasksTeamId ?? null;
 }
 
 async function findLinearState(
@@ -198,7 +198,7 @@ export async function POST(request: Request) {
 	}
 
 	const resolvedTeamId =
-		teamId ?? (await getDefaultTeamId(task.organizationId));
+		teamId ?? (await getNewTasksTeamId(task.organizationId));
 	if (!resolvedTeamId) {
 		return Response.json({ error: "No team configured", skipped: true });
 	}

@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import { FaGithub } from "react-icons/fa";
+import { SiLinear } from "react-icons/si";
 import {
 	IntegrationCard,
 	type IntegrationCardProps,
@@ -14,15 +14,7 @@ const integrations: IntegrationCardProps[] = [
 		description: "Sync issues bidirectionally with Linear.",
 		category: "Task Management",
 		accentColor: "#5E6AD2",
-		icon: (
-			<Image
-				src="/integrations/linear.svg"
-				alt=""
-				width={32}
-				height={32}
-				className="size-8"
-			/>
-		),
+		icon: <SiLinear className="size-8" />,
 	},
 	{
 		id: "github",

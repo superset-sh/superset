@@ -11,10 +11,19 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 
-import { taskPriorityValues, taskStatusEnumValues } from "./enums";
+import {
+	integrationProviderValues,
+	taskPriorityValues,
+	taskStatusEnumValues,
+} from "./enums";
+import type { IntegrationConfig } from "./types";
 
 export const taskStatus = pgEnum("task_status", taskStatusEnumValues);
 export const taskPriority = pgEnum("task_priority", taskPriorityValues);
+export const integrationProvider = pgEnum(
+	"integration_provider",
+	integrationProviderValues,
+);
 
 export const users = pgTable(
 	"users",
@@ -208,20 +217,17 @@ export const integrationConnections = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 
-		// Provider
-		provider: text().notNull(), // "linear" | "github" | "jira"
+		provider: integrationProvider().notNull(),
 
 		// OAuth tokens
 		accessToken: text("access_token").notNull(),
 		refreshToken: text("refresh_token"),
 		tokenExpiresAt: timestamp("token_expires_at"),
 
-		// External org info
 		externalOrgId: text("external_org_id"),
 		externalOrgName: text("external_org_name"),
 
-		// Settings
-		config: jsonb(), // Provider-specific: { defaultTeamId, etc. }
+		config: jsonb().$type<IntegrationConfig>(),
 
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")

@@ -7,11 +7,12 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
+import { SiLinear } from "react-icons/si";
 import { api } from "@/trpc/server";
 import { ConnectionControls } from "./components/ConnectionControls";
 import { ErrorHandler } from "./components/ErrorHandler";
+import { TeamSelector } from "./components/TeamSelector";
 
 export default async function LinearIntegrationPage() {
 	const trpc = await api();
@@ -27,9 +28,10 @@ export default async function LinearIntegrationPage() {
 		);
 	}
 
-	const isConnected = await trpc.integration.linear.getConnection.query({
+	const connection = await trpc.integration.linear.getConnection.query({
 		organizationId: organization.id,
 	});
+	const isConnected = !!connection;
 
 	return (
 		<div className="space-y-8">
@@ -45,12 +47,7 @@ export default async function LinearIntegrationPage() {
 
 			<div className="flex items-start gap-6">
 				<div className="flex size-16 items-center justify-center rounded-xl border bg-card p-3">
-					<Image
-						src="/integrations/linear.svg"
-						alt="Linear"
-						width={40}
-						height={40}
-					/>
+					<SiLinear className="size-10" />
 				</div>
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
@@ -85,6 +82,26 @@ export default async function LinearIntegrationPage() {
 					/>
 				</CardContent>
 			</Card>
+
+			{connection && (
+				<Card>
+					<CardHeader>
+						<CardTitle>Settings</CardTitle>
+						<CardDescription>
+							Configure how tasks sync between Superset and Linear.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<div className="space-y-2">
+							<p className="text-sm font-medium">Default team for new tasks</p>
+							<TeamSelector organizationId={organization.id} />
+							<p className="text-sm text-muted-foreground">
+								Tasks created in Superset will be synced to this Linear team.
+							</p>
+						</div>
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	);
 }

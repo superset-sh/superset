@@ -1,10 +1,10 @@
 import { db } from "@superset/db/client";
-import { integrationConnections } from "@superset/db/schema";
+import { integrationConnections, type LinearConfig } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
-import { verifyOrgAdmin, verifyOrgMembership } from "./utils";
+import { getLinearClient, verifyOrgAdmin, verifyOrgMembership } from "./utils";
 
 export const linearRouter = {
 	getConnection: protectedProcedure
@@ -16,9 +16,10 @@ export const linearRouter = {
 					eq(integrationConnections.organizationId, input.organizationId),
 					eq(integrationConnections.provider, "linear"),
 				),
-				columns: { id: true },
+				columns: { id: true, config: true },
 			});
-			return !!connection;
+			if (!connection) return null;
+			return { config: connection.config as LinearConfig | null };
 		}),
 
 	disconnect: protectedProcedure
@@ -39,6 +40,44 @@ export const linearRouter = {
 			if (result.length === 0) {
 				return { success: false, error: "No connection found" };
 			}
+
+			return { success: true };
+		}),
+
+	getTeams: protectedProcedure
+		.input(z.object({ organizationId: z.uuid() }))
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.userId, input.organizationId);
+			const client = await getLinearClient(input.organizationId);
+			if (!client) return [];
+			const teams = await client.teams();
+			return teams.nodes.map((t) => ({ id: t.id, name: t.name, key: t.key }));
+		}),
+
+	updateConfig: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.uuid(),
+				newTasksTeamId: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
+
+			const config: LinearConfig = {
+				provider: "linear",
+				newTasksTeamId: input.newTasksTeamId,
+			};
+
+			await db
+				.update(integrationConnections)
+				.set({ config })
+				.where(
+					and(
+						eq(integrationConnections.organizationId, input.organizationId),
+						eq(integrationConnections.provider, "linear"),
+					),
+				);
 
 			return { success: true };
 		}),

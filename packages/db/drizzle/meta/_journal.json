@@ -50,6 +50,13 @@
       "when": 1766634069200,
       "tag": "0006_add_tasks_deleted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766703047821,
+      "tag": "0007_strongly_type_provider",
+      "breakpoints": true
     }
   ]
 }
