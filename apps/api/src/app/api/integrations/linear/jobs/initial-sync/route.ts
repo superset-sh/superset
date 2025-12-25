@@ -112,50 +112,42 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	const externalIds = allIssueData.map((d) => d.issue.id);
-	const existingTasks =
-		externalIds.length > 0
-			? await db.query.tasks.findMany({
-					where: and(
-						eq(tasks.externalProvider, "linear"),
-						inArray(tasks.externalId, externalIds),
-					),
-				})
-			: [];
-	const existingByExternalId = new Set(existingTasks.map((t) => t.externalId));
-
 	for (const { issue, assignee, labels, state } of allIssueData) {
-		if (existingByExternalId.has(issue.id)) {
-			continue;
-		}
-
 		const assigneeId = assignee?.email
 			? (userByEmail.get(assignee.email) ?? null)
 			: null;
 
-		await db.insert(tasks).values({
+		const taskData = {
 			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
 			status: state?.name ?? "Backlog",
 			statusColor: state?.color ?? null,
 			statusType: state?.type ?? null,
-			statusPosition: state?.position ?? null,
 			priority: mapLinearPriority(issue.priority),
-			organizationId,
-			creatorId: creatorUserId,
 			assigneeId,
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 			labels: labels.map((l) => l.name),
-			branch: issue.branchName,
 			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear",
+			externalProvider: "linear" as const,
 			externalId: issue.id,
 			externalKey: issue.identifier,
 			externalUrl: issue.url,
 			lastSyncedAt: new Date(),
-		});
+		};
+
+		await db
+			.insert(tasks)
+			.values({
+				...taskData,
+				organizationId,
+				creatorId: creatorUserId,
+			})
+			.onConflictDoUpdate({
+				target: [tasks.externalProvider, tasks.externalId],
+				set: { ...taskData, syncError: null },
+			});
 	}
 }
