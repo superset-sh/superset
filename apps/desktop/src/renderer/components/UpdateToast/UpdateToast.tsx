@@ -54,19 +54,21 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 					</>
 				)}
 			</div>
-			{isReady && (
-				<div className="flex items-center gap-2">
+			<div className="flex items-center gap-2">
+				{isReady && (
 					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
 						See changes
 					</Button>
-					<Button variant="ghost" size="sm" onClick={handleLater}>
-						Later
-					</Button>
+				)}
+				<Button variant="ghost" size="sm" onClick={handleLater}>
+					Later
+				</Button>
+				{isReady && (
 					<Button size="sm" onClick={handleInstall} disabled={installMutation.isPending}>
 						{installMutation.isPending ? "Installing..." : "Install"}
 					</Button>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 }
