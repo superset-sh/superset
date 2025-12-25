@@ -253,7 +253,7 @@
 	}
 
 	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast):hover {
-		transform: none !important;
+	[data-sonner-toast]:has(.update-toast) {
+		transform: translateY(0) !important;
 	}
 }
