@@ -1,2 +1,0 @@
-CREATE TYPE "public"."integration_provider" AS ENUM('linear');--> statement-breakpoint
-ALTER TABLE "integration_connections" ALTER COLUMN "provider" SET DATA TYPE "public"."integration_provider" USING "provider"::"public"."integration_provider";

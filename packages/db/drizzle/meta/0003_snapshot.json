@@ -1,5 +1,5 @@
 {
-  "id": "c234d261-efbc-42f3-81b8-de5c14b0d9ec",
+  "id": "14dba51c-5c7f-4538-91a7-68fe22c4a16f",
   "prevId": "02578a34-8f27-455e-ac6c-4d30b916e179",
   "version": "7",
   "dialect": "postgresql",
@@ -164,7 +164,8 @@
         },
         "provider": {
           "name": "provider",
-          "type": "text",
+          "type": "integration_provider",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
@@ -197,25 +198,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "webhook_secret": {
-          "name": "webhook_secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sync_enabled": {
-          "name": "sync_enabled",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "config": {
           "name": "config",
@@ -687,6 +669,24 @@
           "primaryKey": false,
           "notNull": true
         },
+        "status_color": {
+          "name": "status_color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_type": {
+          "name": "status_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status_position": {
+          "name": "status_position",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
+        },
         "priority": {
           "name": "priority",
           "type": "task_priority",
@@ -783,6 +783,24 @@
         "sync_error": {
           "name": "sync_error",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "started_at": {
+          "name": "started_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
@@ -1126,6 +1144,13 @@
     }
   },
   "enums": {
+    "public.integration_provider": {
+      "name": "integration_provider",
+      "schema": "public",
+      "values": [
+        "linear"
+      ]
+    },
     "public.task_priority": {
       "name": "task_priority",
       "schema": "public",
