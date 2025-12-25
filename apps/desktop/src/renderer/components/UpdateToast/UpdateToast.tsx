@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 
@@ -37,6 +38,16 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 
 	return (
 		<div className="update-toast relative flex flex-col gap-3 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[340px]">
+			{isDownloading && (
+				<button
+					type="button"
+					onClick={handleLater}
+					className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+					aria-label="Dismiss"
+				>
+					<HiMiniXMark className="size-4" />
+				</button>
+			)}
 			<div className="flex flex-col gap-0.5">
 				{isDownloading ? (
 					<>
@@ -54,21 +65,19 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 					</>
 				)}
 			</div>
-			<div className="flex items-center gap-2">
-				{isReady && (
+			{isReady && (
+				<div className="flex items-center gap-2">
 					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
 						See changes
 					</Button>
-				)}
-				<Button variant="ghost" size="sm" onClick={handleLater}>
-					Later
-				</Button>
-				{isReady && (
+					<Button variant="ghost" size="sm" onClick={handleLater}>
+						Later
+					</Button>
 					<Button size="sm" onClick={handleInstall} disabled={installMutation.isPending}>
 						{installMutation.isPending ? "Installing..." : "Install"}
 					</Button>
-				)}
-			</div>
+				</div>
+			)}
 		</div>
 	);
 }
