@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { UpdateToast } from "./UpdateToast";
 
@@ -9,6 +9,10 @@ import { UpdateToast } from "./UpdateToast";
  */
 export function useUpdateListener() {
 	const toastIdRef = useRef<string | number | null>(null);
+
+	const handleDismiss = useCallback(() => {
+		toastIdRef.current = null;
+	}, []);
 
 	trpc.autoUpdate.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -26,11 +30,13 @@ export function useUpdateListener() {
 							toastId={id}
 							version={version}
 							releaseUrl={releaseUrl}
+							onDismiss={handleDismiss}
 						/>
 					),
 					{
 						duration: Number.POSITIVE_INFINITY,
 						position: "bottom-right",
+						unstyled: true,
 					},
 				);
 

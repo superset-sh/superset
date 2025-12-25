@@ -1,6 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import { app, Menu, shell } from "electron";
-import { checkForUpdatesInteractive } from "./auto-updater";
+import { env } from "main/env.main";
+import { autoUpdateEmitter, checkForUpdatesInteractive } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
 
 export function createApplicationMenu() {
@@ -71,6 +72,25 @@ export function createApplicationMenu() {
 			],
 		},
 	];
+
+	// DEV ONLY: Add Dev menu
+	if (env.NODE_ENV === "development") {
+		template.push({
+			label: "Dev",
+			submenu: [
+				{
+					label: "Simulate Update Available",
+					click: () => {
+						autoUpdateEmitter.emit("update-downloaded", {
+							version: "99.0.0-test",
+							releaseUrl:
+								"https://github.com/superset-sh/superset/releases/tag/v99.0.0-test",
+						});
+					},
+				},
+			],
+		});
+	}
 
 	if (process.platform === "darwin") {
 		template.unshift({
