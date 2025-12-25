@@ -6,7 +6,7 @@ import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
-import { WorkspaceFooter } from "./WorkspaceFooter";
+import { WorkspaceActionBar } from "./WorkspaceActionBar";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -114,7 +114,7 @@ export function WorkspaceView() {
 			<div className="flex-1 flex bg-tertiary overflow-hidden">
 				<ResizableSidebar />
 				<div className="flex-1 min-w-0 h-full bg-background rounded-t-lg flex flex-col overflow-hidden">
-					<WorkspaceFooter worktreePath={activeWorkspace?.worktreePath} />
+					<WorkspaceActionBar worktreePath={activeWorkspace?.worktreePath} />
 					<div className="flex-1 min-h-0 overflow-hidden">
 						<ContentView />
 					</div>

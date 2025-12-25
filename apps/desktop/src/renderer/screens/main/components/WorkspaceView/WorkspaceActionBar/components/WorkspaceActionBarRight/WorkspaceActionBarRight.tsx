@@ -45,13 +45,13 @@ function formatWorktreePath(
 	return { prefix: "", worktreeName: shortenedPath };
 }
 
-interface WorkspaceFooterRightProps {
+interface WorkspaceActionBarRightProps {
 	worktreePath: string;
 }
 
-export function WorkspaceFooterRight({
+export function WorkspaceActionBarRight({
 	worktreePath,
-}: WorkspaceFooterRightProps) {
+}: WorkspaceActionBarRightProps) {
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const utils = trpc.useUtils();
 	const { data: lastUsedApp = "cursor" } =
