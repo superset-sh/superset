@@ -36,16 +36,14 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 
 	return (
 		<div className="update-toast relative flex flex-col gap-3 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[340px]">
-			{isDownloading && (
-				<button
-					type="button"
-					onClick={handleLater}
-					className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
-					aria-label="Dismiss"
-				>
-					<HiMiniXMark className="size-4" />
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handleLater}
+				className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
+				aria-label="Dismiss"
+			>
+				<HiMiniXMark className="size-4" />
+			</button>
 			<div className="flex flex-col gap-0.5">
 				{isDownloading ? (
 					<>
@@ -67,9 +65,6 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 				<div className="flex items-center gap-2">
 					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
 						See changes
-					</Button>
-					<Button variant="ghost" size="sm" onClick={handleLater}>
-						Later
 					</Button>
 					<Button size="sm" onClick={handleInstall} disabled={installMutation.isPending}>
 						{installMutation.isPending ? "Installing..." : "Install"}
