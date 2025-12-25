@@ -46,7 +46,7 @@ export function createApplicationMenu() {
 				{
 					label: "Contact Us",
 					click: () => {
-						shell.openExternal(COMPANY.CONTACT_URL);
+						shell.openExternal(COMPANY.MAIL_TO);
 					},
 				},
 				{

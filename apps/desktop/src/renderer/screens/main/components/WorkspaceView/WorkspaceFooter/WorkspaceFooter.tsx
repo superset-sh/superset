@@ -9,7 +9,7 @@ export function WorkspaceFooter({ worktreePath }: WorkspaceFooterProps) {
 	if (!worktreePath) return null;
 
 	return (
-		<div className="pl-1 h-8 w-full flex items-center text-xs shrink-0 select-none bg-tertiary">
+		<div className="pl-1 pt-1 h-8 w-full flex items-center text-xs shrink-0 select-none bg-tertiary">
 			<div className="flex items-center gap-2 min-w-0">
 				<WorkspaceFooterLeft />
 			</div>
