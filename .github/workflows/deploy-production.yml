@@ -88,6 +88,12 @@ jobs:
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
+          LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
+          LINEAR_WEBHOOK_SECRET: ${{ secrets.LINEAR_WEBHOOK_SECRET }}
+          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+          QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
+          QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -110,7 +116,13 @@ jobs:
             --env POSTHOG_API_KEY=$POSTHOG_API_KEY \
             --env POSTHOG_PROJECT_ID=$POSTHOG_PROJECT_ID \
             --env KV_REST_API_URL=$KV_REST_API_URL \
-            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN
+            --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
+            --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
+            --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
+            --env QSTASH_TOKEN=$QSTASH_TOKEN \
+            --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
+            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY
 
   deploy-web:
     name: Deploy Web to Vercel
