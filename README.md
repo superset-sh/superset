@@ -16,7 +16,7 @@
 Run 10+ CLI coding agents like Claude Code, Codex, etc. in parallel on your machine. 
 Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.
 
-<img alt="example" src="apps/website/public/hero/use-agents.gif" />
+https://github.com/user-attachments/assets/2c06d187-7e85-483a-92d3-d0078d440626
 
 ## Getting Started
 
@@ -59,32 +59,20 @@ open apps/desktop/release
 
 ### Usage
 
-For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`)
-
-<div align="center">
-  <img width="600" alt="Creating a worktree" src="apps/website/public/hero/open-worktrees.gif" />
-</div>
-<br>
-
-
+For each parallel tasks, Superset uses git worktrees to clone a new branch on your machine. Automate copying env variables, installing dependencies, etc. through a config file (`.superset/config.json`).
 Each workspace gets their own organized terminal system. You can create default presets.
 
+<img width="602" height="445" alt="Screenshot 2025-12-24 at 9 33 35 PM" src="https://github.com/user-attachments/assets/d9a2cc66-722c-4e10-bb58-5c96b594c577" />
 
-<div align="center">
-  <img width="600" alt="Managing terminals" src="apps/website/public/hero/manage-terminals.gif" />
-</div>
-<br>
+Superset monitors your running agents, notify you when changes are ready, and help coordinate between multiple agents. There's a diff view with editor built in so you can quickly inspect and edit agents' changes.
 
-Superset monitors your running processes, notify you when changes are ready, and help coordinate between multiple agents. 
+<img width="600" height="447" alt="Screenshot 2025-12-24 at 9 33 51 PM" src="https://github.com/user-attachments/assets/ff890049-67a8-432b-8edd-bf9ff846ae16" />
 
+Superet is designed to be a superset of your existing tools. It works for any CLI agents that runs in the terminal. You can open your superset workspace in any apps like IDE, filesystem, terminal, etc. 
 
-<div align="center">
-<img width="500" alt="Notifications" src="assets/notifs.png" />
-</div>
-<br>
+<img width="602" height="445" alt="Screenshot 2025-12-24 at 9 34 04 PM" src="https://github.com/user-attachments/assets/1eb3fa42-db30-4a62-9a8f-22cb757b4866" />
 
 ### Tech Stack
-
 
 [![Electron](https://img.shields.io/badge/Electron-191970?logo=Electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-%2320232a.svg?logo=react&logoColor=%2361DAFB)](https://reactjs.org/)
