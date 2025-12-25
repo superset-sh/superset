@@ -42,7 +42,7 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 				<button
 					type="button"
 					onClick={handleLater}
-					className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+					className="absolute top-2 right-2 size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
 					aria-label="Dismiss"
 				>
 					<HiMiniXMark className="size-4" />
