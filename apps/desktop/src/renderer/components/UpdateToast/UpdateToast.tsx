@@ -36,8 +36,8 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 	};
 
 	return (
-		<div className="relative flex items-center gap-4 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[380px]">
-			<div className="flex flex-col gap-0.5 flex-1">
+		<div className="relative flex flex-col gap-3 bg-popover text-popover-foreground rounded-lg border border-border p-4 shadow-lg min-w-[340px]">
+			<div className="flex flex-col gap-0.5">
 				{isDownloading ? (
 					<>
 						<span className="font-medium text-sm">Downloading update...</span>
@@ -55,7 +55,7 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 				)}
 			</div>
 			{isReady && (
-				<div className="flex items-center gap-2 shrink-0">
+				<div className="flex items-center gap-2">
 					<Button variant="ghost" size="sm" onClick={handleSeeChanges}>
 						See changes
 					</Button>
