@@ -7,9 +7,9 @@ import {
 } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
-export function mapPriorityToLinear(
-	priority: "urgent" | "high" | "medium" | "low" | "none",
-): number {
+type Priority = "urgent" | "high" | "medium" | "low" | "none";
+
+export function mapPriorityToLinear(priority: Priority): number {
 	switch (priority) {
 		case "urgent":
 			return 1;
@@ -21,6 +21,21 @@ export function mapPriorityToLinear(
 			return 4;
 		default:
 			return 0;
+	}
+}
+
+export function mapPriorityFromLinear(linearPriority: number): Priority {
+	switch (linearPriority) {
+		case 1:
+			return "urgent";
+		case 2:
+			return "high";
+		case 3:
+			return "medium";
+		case 4:
+			return "low";
+		default:
+			return "none";
 	}
 }
 

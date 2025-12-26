@@ -11,9 +11,9 @@ import {
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
+import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
-import { mapLinearPriority } from "../utils";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -107,7 +107,7 @@ async function processIssueEvent(
 			status: issue.state.name,
 			statusColor: issue.state.color,
 			statusType: issue.state.type,
-			priority: mapLinearPriority(issue.priority),
+			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,

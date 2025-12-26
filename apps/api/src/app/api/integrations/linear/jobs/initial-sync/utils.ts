@@ -1,5 +1,5 @@
 import type { LinearClient } from "@linear/sdk";
-import { mapLinearPriority } from "../../utils";
+import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 
 export interface LinearIssue {
 	id: string;
@@ -107,7 +107,7 @@ export function mapIssueToTask(
 		status: issue.state.name,
 		statusColor: issue.state.color,
 		statusType: issue.state.type,
-		priority: mapLinearPriority(issue.priority),
+		priority: mapPriorityFromLinear(issue.priority),
 		assigneeId,
 		estimate: issue.estimate,
 		dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
