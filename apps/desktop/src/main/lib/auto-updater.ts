@@ -44,6 +44,11 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 }
 
 export function installUpdate(): void {
+	if (env.NODE_ENV === "development") {
+		console.info("[auto-updater] Install skipped in dev mode");
+		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+		return;
+	}
 	autoUpdater.quitAndInstall(false, true);
 }
 
