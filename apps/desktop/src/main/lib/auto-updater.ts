@@ -92,6 +92,7 @@ export function checkForUpdatesInteractive(): void {
 				!result?.updateInfo ||
 				result.updateInfo.version === app.getVersion()
 			) {
+				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
 					title: "No Updates",
