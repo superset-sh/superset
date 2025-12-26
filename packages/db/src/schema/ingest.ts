@@ -5,21 +5,22 @@ import {
 	pgSchema,
 	text,
 	timestamp,
+	uniqueIndex,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { integrationProvider } from "./schema";
 
 export const ingestSchema = pgSchema("ingest");
 
-// Raw webhook storage for debugging/replay
 export const webhookEvents = ingestSchema.table(
 	"webhook_events",
 	{
 		id: uuid().primaryKey().defaultRandom(),
 
 		// Source
-		provider: text().notNull(), // "linear" | "github" | etc.
-		eventId: text("event_id"), // Provider's event ID (idempotency)
-		eventType: text("event_type"), // "Issue", "issue.created", etc.
+		provider: integrationProvider().notNull(),
+		eventId: text("event_id").notNull(),
+		eventType: text("event_type"),
 
 		// Raw payload
 		payload: jsonb().notNull(),
@@ -37,7 +38,10 @@ export const webhookEvents = ingestSchema.table(
 			table.provider,
 			table.status,
 		),
-		index("webhook_events_event_id_idx").on(table.provider, table.eventId),
+		uniqueIndex("webhook_events_provider_event_id_idx").on(
+			table.provider,
+			table.eventId,
+		),
 		index("webhook_events_received_at_idx").on(table.receivedAt),
 	],
 );
