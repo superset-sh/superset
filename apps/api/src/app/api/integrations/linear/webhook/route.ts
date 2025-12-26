@@ -13,7 +13,7 @@ import {
 } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
-import { mapLinearPriority } from "@/lib/integrations/linear/utils";
+import { mapLinearPriority } from "../utils";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 

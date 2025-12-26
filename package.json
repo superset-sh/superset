@@ -6,6 +6,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.8",
+		"@types/lodash.chunk": "^4.2.9",
 		"sherif": "^1.7.0",
 		"turbo": "^2.5.8"
 	},
@@ -43,5 +44,8 @@
 		"packages/*",
 		"apps/*",
 		"tooling/*"
-	]
+	],
+	"dependencies": {
+		"lodash.chunk": "^4.2.0"
+	}
 }

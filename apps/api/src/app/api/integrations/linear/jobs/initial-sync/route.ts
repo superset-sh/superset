@@ -1,11 +1,14 @@
 import { LinearClient } from "@linear/sdk";
-import { db } from "@superset/db/client";
+import { buildConflictUpdateColumns, db } from "@superset/db";
 import { integrationConnections, tasks, users } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray } from "drizzle-orm";
+import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
-import { mapLinearPriority } from "@/lib/integrations/linear/utils";
+import { fetchAllIssues, mapIssueToTask } from "./utils";
+
+const BATCH_SIZE = 100;
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -64,42 +67,15 @@ async function performInitialSync(
 	organizationId: string,
 	creatorUserId: string,
 ) {
-	const teamsResponse = await client.teams();
-	const teams = teamsResponse.nodes;
+	const issues = await fetchAllIssues(client);
 
-	if (teams.length === 0) {
+	if (issues.length === 0) {
 		return;
 	}
 
-	const allIssueData = (
-		await Promise.all(
-			teams.map(async (team) => {
-				const issuesResponse = await team.issues({
-					first: 100,
-					filter: { state: { type: { nin: ["canceled", "completed"] } } },
-				});
-
-				const issueData = await Promise.all(
-					issuesResponse.nodes.map(async (issue) => {
-						const [assignee, labels, state] = await Promise.all([
-							issue.assignee,
-							issue.labels(),
-							issue.state,
-						]);
-						return { issue, assignee, labels: labels.nodes, state };
-					}),
-				);
-
-				return issueData;
-			}),
-		)
-	).flat();
-
 	const assigneeEmails = [
 		...new Set(
-			allIssueData
-				.map((d) => d.assignee?.email)
-				.filter((e): e is string => !!e),
+			issues.map((i) => i.assignee?.email).filter((e): e is string => !!e),
 		),
 	];
 
@@ -112,42 +88,39 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	for (const { issue, assignee, labels, state } of allIssueData) {
-		const assigneeId = assignee?.email
-			? (userByEmail.get(assignee.email) ?? null)
-			: null;
+	const taskValues = issues.map((issue) =>
+		mapIssueToTask(issue, organizationId, creatorUserId, userByEmail),
+	);
 
-		const taskData = {
-			slug: issue.identifier,
-			title: issue.title,
-			description: issue.description ?? null,
-			status: state?.name ?? "Backlog",
-			statusColor: state?.color ?? null,
-			statusType: state?.type ?? null,
-			priority: mapLinearPriority(issue.priority),
-			assigneeId,
-			estimate: issue.estimate ?? null,
-			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
-			labels: labels.map((l) => l.name),
-			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
-			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
-			externalProvider: "linear" as const,
-			externalId: issue.id,
-			externalKey: issue.identifier,
-			externalUrl: issue.url,
-			lastSyncedAt: new Date(),
-		};
+	const batches = chunk(taskValues, BATCH_SIZE);
 
+	for (const batch of batches) {
 		await db
 			.insert(tasks)
-			.values({
-				...taskData,
-				organizationId,
-				creatorId: creatorUserId,
-			})
+			.values(batch)
 			.onConflictDoUpdate({
 				target: [tasks.externalProvider, tasks.externalId],
-				set: { ...taskData, syncError: null },
+				set: {
+					...buildConflictUpdateColumns(tasks, [
+						"slug",
+						"title",
+						"description",
+						"status",
+						"statusColor",
+						"statusType",
+						"priority",
+						"assigneeId",
+						"estimate",
+						"dueDate",
+						"labels",
+						"startedAt",
+						"completedAt",
+						"externalKey",
+						"externalUrl",
+						"lastSyncedAt",
+					]),
+					syncError: null,
+				},
 			});
 	}
 }
