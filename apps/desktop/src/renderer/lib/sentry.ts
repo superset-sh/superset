@@ -5,7 +5,7 @@ let sentryInitialized = false;
 export async function initSentry(): Promise<void> {
 	if (sentryInitialized) return;
 
-	if (!env.SENTRY_DSN_DESKTOP) {
+	if (!env.SENTRY_DSN_DESKTOP || env.NODE_ENV !== "production") {
 		return;
 	}
 
@@ -16,7 +16,7 @@ export async function initSentry(): Promise<void> {
 		Sentry.init({
 			dsn: env.SENTRY_DSN_DESKTOP,
 			environment: env.NODE_ENV,
-			tracesSampleRate: env.NODE_ENV === "development" ? 1.0 : 0.1,
+			tracesSampleRate: 0.1,
 			replaysSessionSampleRate: 0.1,
 			replaysOnErrorSampleRate: 1.0,
 		});
