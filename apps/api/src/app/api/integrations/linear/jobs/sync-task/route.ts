@@ -46,18 +46,10 @@ async function findLinearState(
 ): Promise<string | undefined> {
 	const team = await client.team(teamId);
 	const states = await team.states();
-
-	const exactMatch = states.nodes.find(
+	const match = states.nodes.find(
 		(s: WorkflowState) => s.name.toLowerCase() === statusName.toLowerCase(),
 	);
-	if (exactMatch) {
-		return exactMatch.id;
-	}
-
-	const partialMatch = states.nodes.find((s: WorkflowState) =>
-		s.name.toLowerCase().includes(statusName.toLowerCase()),
-	);
-	return partialMatch?.id;
+	return match?.id;
 }
 
 async function syncTaskToLinear(
