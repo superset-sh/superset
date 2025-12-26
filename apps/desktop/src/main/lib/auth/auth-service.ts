@@ -149,7 +149,9 @@ class AuthService extends EventEmitter {
 	 * - 'invalid': Tokens are invalid/revoked (should clear session)
 	 * - 'network_error': Network unavailable (should keep session for offline use)
 	 */
-	private async refreshTokens(): Promise<"success" | "invalid" | "network_error"> {
+	private async refreshTokens(): Promise<
+		"success" | "invalid" | "network_error"
+	> {
 		if (!this.session?.refreshToken) {
 			return "invalid";
 		}
