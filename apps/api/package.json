@@ -25,6 +25,7 @@
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",
 		"jose": "^6.1.3",
+		"lodash.chunk": "^4.2.0",
 		"next": "^16.0.10",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
@@ -33,6 +34,7 @@
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
+		"@types/lodash.chunk": "^4.2.9",
 		"@types/node": "^24.9.1",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
