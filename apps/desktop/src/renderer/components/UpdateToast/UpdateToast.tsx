@@ -6,11 +6,17 @@ import { AUTO_UPDATE_STATUS, RELEASES_URL } from "shared/auto-update";
 
 interface UpdateToastProps {
 	toastId: string | number;
-	status: "downloading" | "ready";
+	status: "downloading" | "ready" | "error";
 	version?: string;
+	error?: string;
 }
 
-export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
+export function UpdateToast({
+	toastId,
+	status,
+	version,
+	error,
+}: UpdateToastProps) {
 	const openUrl = trpc.external.openUrl.useMutation();
 	const installMutation = trpc.autoUpdate.install.useMutation();
 	const dismissMutation = trpc.autoUpdate.dismiss.useMutation({
@@ -21,6 +27,7 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 
 	const isDownloading = status === AUTO_UPDATE_STATUS.DOWNLOADING;
 	const isReady = status === AUTO_UPDATE_STATUS.READY;
+	const isError = status === AUTO_UPDATE_STATUS.ERROR;
 
 	const handleSeeChanges = () => {
 		openUrl.mutate(RELEASES_URL);
@@ -45,7 +52,16 @@ export function UpdateToast({ toastId, status, version }: UpdateToastProps) {
 				<HiMiniXMark className="size-4" />
 			</button>
 			<div className="flex flex-col gap-0.5">
-				{isDownloading ? (
+				{isError ? (
+					<>
+						<span className="font-medium text-sm text-destructive">
+							Update failed
+						</span>
+						<span className="text-sm text-muted-foreground">
+							{error || "Please try again later"}
+						</span>
+					</>
+				) : isDownloading ? (
 					<>
 						<span className="font-medium text-sm">Downloading update...</span>
 						<span className="text-sm text-muted-foreground">

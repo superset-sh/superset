@@ -4,6 +4,7 @@ import { env } from "main/env.main";
 import {
 	checkForUpdatesInteractive,
 	simulateDownloading,
+	simulateError,
 	simulateUpdateReady,
 } from "./auto-updater";
 import { menuEmitter } from "./menu-events";
@@ -89,6 +90,10 @@ export function createApplicationMenu() {
 				{
 					label: "Simulate Update Ready",
 					click: () => simulateUpdateReady(),
+				},
+				{
+					label: "Simulate Update Error",
+					click: () => simulateError(),
 				},
 			],
 		});

@@ -129,6 +129,16 @@ export function simulateDownloading(): void {
 	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
 }
 
+export function simulateError(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(
+		AUTO_UPDATE_STATUS.ERROR,
+		undefined,
+		"Simulated error for testing",
+	);
+}
+
 export function setupAutoUpdater(): void {
 	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;

@@ -9,12 +9,11 @@ export function useUpdateListener() {
 
 	trpc.autoUpdate.subscribe.useSubscription(undefined, {
 		onData: (event) => {
-			const { status, version } = event;
+			const { status, version, error } = event;
 
 			if (
 				status === AUTO_UPDATE_STATUS.IDLE ||
-				status === AUTO_UPDATE_STATUS.CHECKING ||
-				status === AUTO_UPDATE_STATUS.ERROR
+				status === AUTO_UPDATE_STATUS.CHECKING
 			) {
 				if (toastIdRef.current !== null) {
 					toast.dismiss(toastIdRef.current);
@@ -25,7 +24,8 @@ export function useUpdateListener() {
 
 			if (
 				status === AUTO_UPDATE_STATUS.DOWNLOADING ||
-				status === AUTO_UPDATE_STATUS.READY
+				status === AUTO_UPDATE_STATUS.READY ||
+				status === AUTO_UPDATE_STATUS.ERROR
 			) {
 				if (toastIdRef.current !== null) {
 					toast.dismiss(toastIdRef.current);
@@ -33,7 +33,12 @@ export function useUpdateListener() {
 
 				const toastId = toast.custom(
 					(id) => (
-						<UpdateToast toastId={id} status={status} version={version} />
+						<UpdateToast
+							toastId={id}
+							status={status}
+							version={version}
+							error={error}
+						/>
 					),
 					{
 						duration: Number.POSITIVE_INFINITY,
