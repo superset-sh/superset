@@ -1,9 +1,16 @@
-import { Button } from "@superset/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "@superset/ui/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef } from "react";
-import { HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
+import { useCallback, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { HiFolderOpen, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
@@ -11,6 +18,7 @@ import {
 	useCreateWorkspace,
 } from "renderer/react-query/workspaces";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { HOTKEYS } from "shared/hotkeys";
 
 export interface CreateWorkspaceButtonProps {
 	className?: string;
@@ -19,8 +27,7 @@ export interface CreateWorkspaceButtonProps {
 export function CreateWorkspaceButton({
 	className,
 }: CreateWorkspaceButtonProps) {
-	const modalButtonRef = useRef<HTMLButtonElement>(null);
-	const quickCreateButtonRef = useRef<HTMLButtonElement>(null);
+	const [open, setOpen] = useState(false);
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -33,29 +40,18 @@ export function CreateWorkspaceButton({
 		(p) => p.id === activeWorkspace?.projectId,
 	);
 
-	const handleModalCreate = () => {
-		modalButtonRef.current?.blur();
+	const isLoading =
+		createWorkspace.isPending ||
+		createBranchWorkspace.isPending ||
+		openNew.isPending;
+
+	const handleModalCreate = useCallback(() => {
+		setOpen(false);
 		openModal();
-	};
+	}, [openModal]);
 
-	const handleQuickCreate = () => {
-		quickCreateButtonRef.current?.blur();
-		if (currentProject) {
-			toast.promise(
-				createWorkspace.mutateAsync({ projectId: currentProject.id }),
-				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-			);
-		} else {
-			handleOpenNewProject();
-		}
-	};
-
-	const handleOpenNewProject = async () => {
+	const handleOpenNewProject = useCallback(async () => {
+		setOpen(false);
 		try {
 			const result = await openNew.mutateAsync(undefined);
 			if (result.canceled) {
@@ -90,55 +86,94 @@ export function CreateWorkspaceButton({
 					error instanceof Error ? error.message : "An unknown error occurred",
 			});
 		}
-	};
+	}, [openNew, createBranchWorkspace]);
+
+	const handleQuickCreate = useCallback(() => {
+		setOpen(false);
+		if (currentProject) {
+			toast.promise(
+				createWorkspace.mutateAsync({ projectId: currentProject.id }),
+				{
+					loading: "Creating workspace...",
+					success: "Workspace created",
+					error: (err) =>
+						err instanceof Error ? err.message : "Failed to create workspace",
+				},
+			);
+		} else {
+			handleOpenNewProject();
+		}
+	}, [currentProject, createWorkspace, handleOpenNewProject]);
+
+	// Keyboard shortcuts
+	const handleQuickCreateHotkey = useCallback(() => {
+		if (!isLoading) handleQuickCreate();
+	}, [isLoading, handleQuickCreate]);
+
+	const handleOpenProjectHotkey = useCallback(() => {
+		if (!isLoading) handleOpenNewProject();
+	}, [isLoading, handleOpenNewProject]);
+
+	useHotkeys(HOTKEYS.NEW_WORKSPACE.keys, handleModalCreate);
+	useHotkeys(HOTKEYS.QUICK_CREATE_WORKSPACE.keys, handleQuickCreateHotkey);
+	useHotkeys(HOTKEYS.OPEN_PROJECT.keys, handleOpenProjectHotkey);
 
 	return (
-		<ButtonGroup
-			className={`${className} ml-1 mt-1 rounded-md border border-border/50`}
-		>
+		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button
-						ref={modalButtonRef}
-						variant="ghost"
-						size="sm"
-						aria-label="New workspace"
-						className="h-7 gap-1 rounded-r-none px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
-						onClick={handleModalCreate}
-					>
-						<HiMiniPlus className="size-4" />
-						<span className="text-xs">New</span>
-					</Button>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							aria-label="New workspace"
+							disabled={isLoading}
+							className={`${className} flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-40`}
+						>
+							<HiMiniPlus className="size-[18px] stroke-[0.5]" />
+						</button>
+					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
 					Create workspace or project
 				</TooltipContent>
 			</Tooltip>
-			<ButtonGroupSeparator />
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						ref={quickCreateButtonRef}
-						variant="ghost"
-						size="icon"
-						aria-label="Quick create workspace"
-						className="size-7 rounded-l-none text-muted-foreground hover:bg-accent hover:text-foreground"
-						onClick={handleQuickCreate}
-						disabled={
-							createWorkspace.isPending ||
-							createBranchWorkspace.isPending ||
-							openNew.isPending
-						}
-					>
-						<HiOutlineBolt className="size-3.5" />
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={4}>
-					{currentProject
-						? `Quick create in ${currentProject.name}`
-						: "Quick create workspace"}
-				</TooltipContent>
-			</Tooltip>
-		</ButtonGroup>
+			<DropdownMenuContent
+				align="end"
+				sideOffset={8}
+				className="w-48 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
+			>
+				<DropdownMenuItem
+					onClick={handleModalCreate}
+					className="rounded-md text-[13px]"
+				>
+					<HiMiniPlus className="size-[14px] opacity-60" />
+					New Workspace
+					<DropdownMenuShortcut className="opacity-40">⌘N</DropdownMenuShortcut>
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onClick={handleQuickCreate}
+					disabled={isLoading}
+					className="rounded-md text-[13px]"
+				>
+					<HiOutlineBolt className="size-[14px] opacity-60" />
+					Quick Create
+					<DropdownMenuShortcut className="opacity-40">
+						⌘⇧N
+					</DropdownMenuShortcut>
+				</DropdownMenuItem>
+				<DropdownMenuSeparator className="my-1 bg-border/40" />
+				<DropdownMenuItem
+					onClick={handleOpenNewProject}
+					disabled={isLoading}
+					className="rounded-md text-[13px]"
+				>
+					<HiFolderOpen className="size-[14px] opacity-60" />
+					Open Project
+					<DropdownMenuShortcut className="opacity-40">
+						⌘⇧O
+					</DropdownMenuShortcut>
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import { type BrowserWindow, shell } from "electron";
 import { env } from "main/env.main";
 import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
+import { tokenStorage } from "./token-storage";
 
 /**
  * Store for state parameter (CSRF protection)
@@ -36,7 +37,32 @@ function verifyState(state: string): boolean {
 	return true;
 }
 
-import { tokenStorage } from "./token-storage";
+interface TokenResponse {
+	accessToken: string;
+	accessTokenExpiresAt: number;
+	refreshToken: string;
+	refreshTokenExpiresAt: number;
+}
+
+/**
+ * Type guard to validate token response shape at runtime
+ */
+function isValidTokenResponse(data: unknown): data is TokenResponse {
+	if (typeof data !== "object" || data === null) {
+		return false;
+	}
+	const obj = data as Record<string, unknown>;
+	return (
+		typeof obj.accessToken === "string" &&
+		obj.accessToken.length > 0 &&
+		typeof obj.accessTokenExpiresAt === "number" &&
+		obj.accessTokenExpiresAt > 0 &&
+		typeof obj.refreshToken === "string" &&
+		obj.refreshToken.length > 0 &&
+		typeof obj.refreshTokenExpiresAt === "number" &&
+		obj.refreshTokenExpiresAt > 0
+	);
+}
 
 /**
  * Main authentication service
@@ -63,14 +89,25 @@ class AuthService extends EventEmitter {
 			if (session.refreshToken && session.refreshTokenExpiresAt > Date.now()) {
 				console.log("[auth] Attempting to refresh tokens on startup");
 				this.session = session; // Temporarily set to allow refresh
-				const refreshed = await this.refreshTokens();
-				if (refreshed) {
+				const result = await this.refreshTokens();
+
+				if (result === "success") {
 					console.log("[auth] Session restored via token refresh");
 					return;
 				}
+
+				if (result === "network_error") {
+					// Offline - keep session with expired access token
+					// User can work offline, and we'll refresh when online
+					console.log("[auth] Offline - keeping session for offline use");
+					this.session = session;
+					return;
+				}
+
+				// result === "invalid" - tokens are revoked, must clear
 			}
 
-			// Refresh failed or no valid refresh token
+			// Refresh token invalid/expired or no refresh token
 			console.log("[auth] Session fully expired, clearing");
 			await this.clearSession();
 			return;
@@ -93,6 +130,7 @@ class AuthService extends EventEmitter {
 	/**
 	 * Get access token for API calls
 	 * Automatically refreshes if access token is expired but refresh token is valid
+	 * Returns null if offline or tokens invalid (caller should handle gracefully)
 	 */
 	async getAccessToken(): Promise<string | null> {
 		if (!this.session) {
@@ -108,10 +146,17 @@ class AuthService extends EventEmitter {
 				this.session.refreshToken &&
 				this.session.refreshTokenExpiresAt > Date.now()
 			) {
-				const refreshed = await this.refreshTokens();
-				if (refreshed) {
+				const result = await this.refreshTokens();
+				if (result === "success") {
 					return this.session.accessToken;
 				}
+				if (result === "network_error") {
+					// Offline - return null but don't clear session
+					// User stays signed in, but can't make API calls until online
+					console.log("[auth] Offline - cannot refresh token");
+					return null;
+				}
+				// result === "invalid" - fall through to clear session
 			}
 
 			// Refresh failed or no valid refresh token
@@ -125,10 +170,16 @@ class AuthService extends EventEmitter {
 
 	/**
 	 * Refresh tokens using the refresh token
+	 * Returns: 'success' | 'invalid' | 'network_error'
+	 * - 'success': Tokens refreshed successfully
+	 * - 'invalid': Tokens are invalid/revoked (should clear session)
+	 * - 'network_error': Network unavailable (should keep session for offline use)
 	 */
-	private async refreshTokens(): Promise<boolean> {
+	private async refreshTokens(): Promise<
+		"success" | "invalid" | "network_error"
+	> {
 		if (!this.session?.refreshToken) {
-			return false;
+			return "invalid";
 		}
 
 		try {
@@ -147,30 +198,51 @@ class AuthService extends EventEmitter {
 
 			if (!response.ok) {
 				console.error("[auth] Token refresh failed:", response.status);
-				return false;
+				// 401/403 means tokens are actually invalid, not a network issue
+				if (response.status === 401 || response.status === 403) {
+					return "invalid";
+				}
+				// Other errors (500, etc) - treat as temporary, keep session
+				return "network_error";
 			}
 
-			const tokens = (await response.json()) as {
-				accessToken: string;
-				accessTokenExpiresAt: number;
-				refreshToken: string;
-				refreshTokenExpiresAt: number;
-			};
+			let data: unknown;
+			try {
+				data = await response.json();
+			} catch (parseErr) {
+				console.error(
+					"[auth] Token refresh JSON parse error:",
+					parseErr instanceof Error ? parseErr.message : parseErr,
+				);
+				return "invalid";
+			}
 
-			// Update session with new tokens
+			// Validate response shape before persisting
+			if (!isValidTokenResponse(data)) {
+				console.error(
+					"[auth] Token refresh response missing required fields:",
+					data,
+				);
+				return "invalid";
+			}
+
+			// Update session with validated tokens
 			this.session = {
-				accessToken: tokens.accessToken,
-				accessTokenExpiresAt: tokens.accessTokenExpiresAt,
-				refreshToken: tokens.refreshToken,
-				refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+				accessToken: data.accessToken,
+				accessTokenExpiresAt: data.accessTokenExpiresAt,
+				refreshToken: data.refreshToken,
+				refreshTokenExpiresAt: data.refreshTokenExpiresAt,
 			};
 
 			await tokenStorage.save(this.session);
 			console.log("[auth] Tokens refreshed successfully");
-			return true;
+			return "success";
 		} catch (err) {
-			console.error("[auth] Token refresh error:", err);
-			return false;
+			// Network errors (offline, DNS failure, etc) - keep session for offline use
+			const errType = err instanceof Error ? err.constructor.name : typeof err;
+			const errMsg = err instanceof Error ? err.message : String(err);
+			console.error(`[auth] Token refresh network error (${errType}):`, errMsg);
+			return "network_error";
 		}
 	}
 

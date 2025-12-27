@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { Menu, X } from "lucide-react";
+import { useState } from "react";
 import { SocialLinks } from "../SocialLinks";
 
 function SupersetLogo() {
@@ -26,6 +28,8 @@ interface HeaderProps {
 }
 
 export function Header({ ctaButtons }: HeaderProps) {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
 	return (
 		<header className="fixed top-0 left-0 right-0 z-50">
 			<div className="absolute inset-0 h-24 pointer-events-none bg-gradient-to-b from-background via-background/90 to-transparent" />
@@ -42,17 +46,53 @@ export function Header({ ctaButtons }: HeaderProps) {
 						<SupersetLogo />
 					</motion.a>
 
-					{/* Right side */}
+					{/* Desktop: Right side */}
 					<motion.div
-						className="flex items-center gap-2 sm:gap-3 md:gap-4"
+						className="hidden sm:flex items-center gap-3 md:gap-4"
 						initial={{ opacity: 0, x: 10 }}
 						animate={{ opacity: 1, x: 0 }}
 						transition={{ duration: 0.3, delay: 0.1 }}
 					>
 						<SocialLinks />
-						{ctaButtons}
+						<div className="flex items-center gap-3">{ctaButtons}</div>
 					</motion.div>
+
+					{/* Mobile: Hamburger button */}
+					<motion.button
+						type="button"
+						className="sm:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
+						onClick={() => setIsMenuOpen(!isMenuOpen)}
+						aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+						aria-expanded={isMenuOpen}
+						initial={{ opacity: 0, x: 10 }}
+						animate={{ opacity: 1, x: 0 }}
+						transition={{ duration: 0.3, delay: 0.1 }}
+					>
+						{isMenuOpen ? (
+							<X className="size-6" />
+						) : (
+							<Menu className="size-6" />
+						)}
+					</motion.button>
 				</div>
+
+				{/* Mobile menu */}
+				<AnimatePresence>
+					{isMenuOpen && (
+						<motion.div
+							className="sm:hidden absolute left-0 right-0 top-16 bg-background border-b border-border"
+							initial={{ opacity: 0, height: 0 }}
+							animate={{ opacity: 1, height: "auto" }}
+							exit={{ opacity: 0, height: 0 }}
+							transition={{ duration: 0.2 }}
+						>
+							<div className="px-4 py-4 flex flex-col gap-4">
+								<SocialLinks className="justify-center" />
+								<div className="flex flex-col gap-2">{ctaButtons}</div>
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 			</nav>
 		</header>
 	);
