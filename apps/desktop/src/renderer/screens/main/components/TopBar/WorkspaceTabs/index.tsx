@@ -10,8 +10,8 @@ import {
 	useIsSettingsTabOpen,
 } from "renderer/stores/app-state";
 import { HOTKEYS } from "shared/hotkeys";
+import { CreateWorkspaceButton } from "./CreateWorkspaceButton";
 import { SettingsTab } from "./SettingsTab";
-import { WorkspaceDropdown } from "./WorkspaceDropdown";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
 const MIN_WORKSPACE_WIDTH = 60;
@@ -214,7 +214,7 @@ export function WorkspacesTabs() {
 						<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
 					)}
 				</div>
-				<WorkspaceDropdown className="no-drag" />
+				<CreateWorkspaceButton className="no-drag" />
 			</div>
 		</div>
 	);

@@ -1,4 +1,4 @@
-import type { CheckItem } from "main/lib/db/schemas";
+import type { CheckItem } from "@superset/local-db";
 import { LuCheck, LuLoaderCircle, LuX } from "react-icons/lu";
 
 interface ChecksSummaryProps {

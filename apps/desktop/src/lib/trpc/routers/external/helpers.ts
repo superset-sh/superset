@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import nodePath from "node:path";
-import { EXTERNAL_APPS, type ExternalApp } from "main/lib/db/schemas";
+import { EXTERNAL_APPS, type ExternalApp } from "@superset/local-db";
 
 /** Map of app IDs to their macOS application names */
 const APP_NAMES: Record<ExternalApp, string | null> = {

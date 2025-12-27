@@ -16,7 +16,8 @@ export const COMPANY = {
 	GITHUB_URL: "https://github.com/superset-sh/superset",
 	TERMS_URL: "https://superset.sh/terms",
 	PRIVACY_URL: "https://superset.sh/privacy",
-	CONTACT_URL: "https://x.com/superset_sh",
+	X_URL: "https://x.com/superset_sh",
+	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 	SCRIPTS_URL: "https://superset.sh/scripts",
@@ -39,9 +40,11 @@ export const TOKEN_CONFIG = {
 } as const;
 
 // PostHog
-export const POSTHOG_COOKIE_NAME = "ph_superset";
+export const POSTHOG_COOKIE_NAME = "superset";
 
 export const FEATURE_FLAGS = {
 	/** When enabled, users must sign in to use the desktop app */
 	REQUIRE_DESKTOP_AUTH: "require-desktop-auth",
+	/** Gates access to /test/* routes. Only allows @superset.sh users. */
+	TEST_PAGES_ACCESS: "test-pages-access",
 } as const;

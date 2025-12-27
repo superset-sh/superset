@@ -177,6 +177,18 @@ export const HOTKEYS = {
 		label: "Next Terminal",
 		category: "Terminal",
 	}),
+	PREV_PANE: hotkey({
+		keys: "meta+alt+left",
+		label: "Previous Pane",
+		category: "Terminal",
+		description: "Focus the previous pane in the current tab",
+	}),
+	NEXT_PANE: hotkey({
+		keys: "meta+alt+right",
+		label: "Next Pane",
+		category: "Terminal",
+		description: "Focus the next pane in the current tab",
+	}),
 
 	// Window
 	NEW_WINDOW: hotkey({

@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { createTRPCContext } from "@superset/trpc";
 import { jwtVerify } from "jose";
 import { env } from "@/env";
@@ -29,13 +29,8 @@ async function verifyDesktopToken(token: string): Promise<string | null> {
  * Create tRPC context with support for multiple auth methods
  *
  * Auth methods supported (in order of precedence):
- * 1. Clerk session (cookie-based, web app)
- * 2. Clerk OAuth token (Bearer token from desktop app - legacy)
- * 3. Desktop JWT token (Bearer token from desktop app with Google OAuth)
- *
- * The `acceptsToken: 'oauth_token'` option allows the desktop app to
- * authenticate using Clerk OAuth access tokens obtained through the
- * PKCE OAuth flow (legacy method).
+ * 1. Clerk session token (Bearer token from web app)
+ * 2. Desktop JWT token (Bearer token from desktop app)
  *
  * Desktop JWT tokens are signed with DESKTOP_AUTH_SECRET and contain
  * the Clerk user ID in the `sub` claim.
@@ -46,15 +41,20 @@ export const createContext = async ({
 	req: Request;
 	resHeaders: Headers;
 }) => {
-	// First try Clerk auth (handles both session cookies and OAuth Bearer tokens)
-	const clerkAuth = await auth({ acceptsToken: "oauth_token" });
+	const authHeader = req.headers.get("authorization");
 
-	if (clerkAuth.userId) {
-		return createTRPCContext({ userId: clerkAuth.userId });
+	// First try Clerk auth (handles session tokens from web app as Bearer tokens)
+	const client = await clerkClient();
+	const { isSignedIn, toAuth } = await client.authenticateRequest(req);
+
+	if (isSignedIn) {
+		const auth = toAuth();
+		if (auth.userId) {
+			return createTRPCContext({ userId: auth.userId });
+		}
 	}
 
 	// If no Clerk auth, try desktop JWT token
-	const authHeader = req.headers.get("authorization");
 	if (authHeader?.startsWith("Bearer ")) {
 		const token = authHeader.slice(7);
 		const userId = await verifyDesktopToken(token);

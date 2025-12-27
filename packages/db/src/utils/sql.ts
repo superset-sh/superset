@@ -1,24 +1,17 @@
-import { sql } from "drizzle-orm";
-import type { AnyPgTable } from "drizzle-orm/pg-core";
+import { getTableColumns, type SQL, sql } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 
-/**
- * Helper to build conflict update columns using excluded values from INSERT
- * Used for PostgreSQL upsert operations with ON CONFLICT DO UPDATE
- *
- * @param table - The table definition
- * @param columns - Array of column names to update on conflict
- * @returns Object mapping column names to excluded values
- */
-export function buildConflictUpdateColumns<T extends AnyPgTable>(
-	_table: T,
-	columns: (keyof T["$inferInsert"])[],
-) {
-	const updateColumns = {} as Record<string, unknown>;
-
-	for (const column of columns) {
-		const columnName = String(column);
-		updateColumns[columnName] = sql.raw(`excluded.${columnName}`);
-	}
-
-	return updateColumns;
+export function buildConflictUpdateColumns<
+	T extends PgTable,
+	Q extends keyof T["_"]["columns"],
+>(table: T, columns: Q[]): Record<Q, SQL> {
+	const cls = getTableColumns(table);
+	return columns.reduce(
+		(acc, column) => {
+			const col = cls[column as string];
+			acc[column] = sql.raw(`excluded.${col?.name}`);
+			return acc;
+		},
+		{} as Record<Q, SQL>,
+	);
 }

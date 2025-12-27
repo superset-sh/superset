@@ -22,6 +22,20 @@
       "when": 1765569368202,
       "tag": "0002_add_deleted_at_users",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1766704473637,
+      "tag": "0003_set_up_linear_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766710371092,
+      "tag": "0004_webhook_events_idempotency",
+      "breakpoints": true
     }
   ]
 }

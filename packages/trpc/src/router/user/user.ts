@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { users } from "@superset/db/schema";
+import { organizationMembers, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
@@ -17,5 +17,24 @@ export const userRouter = {
 		}
 
 		return syncUserFromClerk(ctx.userId);
+	}),
+
+	myOrganization: protectedProcedure.query(async ({ ctx }) => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.clerkId, ctx.userId),
+		});
+
+		if (!user) {
+			return null;
+		}
+
+		const membership = await db.query.organizationMembers.findFirst({
+			where: eq(organizationMembers.userId, user.id),
+			with: {
+				organization: true,
+			},
+		});
+
+		return membership?.organization ?? null;
 	}),
 } satisfies TRPCRouterRecord;

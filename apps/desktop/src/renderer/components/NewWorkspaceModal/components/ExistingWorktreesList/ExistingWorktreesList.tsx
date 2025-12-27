@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LuGitBranch } from "react-icons/lu";
@@ -36,6 +37,28 @@ export function ExistingWorktreesList({
 		});
 	};
 
+	const handleOpenAll = async () => {
+		if (closedWorktrees.length === 0) return;
+
+		const count = closedWorktrees.length;
+		toast.promise(
+			(async () => {
+				for (const wt of closedWorktrees) {
+					await openWorktree.mutateAsync({ worktreeId: wt.id });
+				}
+			})(),
+			{
+				loading: `Opening ${count} workspaces...`,
+				success: () => {
+					onOpenSuccess();
+					return `Opened ${count} workspaces`;
+				},
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to open workspaces",
+			},
+		);
+	};
+
 	if (isLoading) {
 		return (
 			<div className="py-6 text-center text-xs text-muted-foreground">
@@ -64,6 +87,19 @@ export function ExistingWorktreesList({
 
 	return (
 		<div className="space-y-1">
+			{closedWorktrees.length > 1 && (
+				<div className="flex items-center justify-end pb-1">
+					<Button
+						variant="ghost"
+						size="sm"
+						className="h-6 px-2 text-xs"
+						onClick={handleOpenAll}
+						disabled={openWorktree.isPending}
+					>
+						Open All
+					</Button>
+				</div>
+			)}
 			{closedWorktrees.map((wt) => (
 				<button
 					key={wt.id}

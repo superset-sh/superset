@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
 import { NOTIFICATION_EVENTS } from "shared/constants";
@@ -13,6 +14,10 @@ export function useAgentHookListener() {
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 
+	// Use ref to avoid stale closure in subscription callback
+	const activeWorkspaceRef = useRef(activeWorkspace);
+	activeWorkspaceRef.current = activeWorkspace;
+
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
@@ -26,17 +31,16 @@ export function useAgentHookListener() {
 			if (event.type === NOTIFICATION_EVENTS.AGENT_COMPLETE) {
 				if (!paneId) return;
 
-				// Only show red dot if not already viewing this pane
 				const activeTabId = state.activeTabIds[workspaceId];
 				const focusedPaneId = activeTabId && state.focusedPaneIds[activeTabId];
 				const isAlreadyActive =
-					activeWorkspace?.id === workspaceId && focusedPaneId === paneId;
+					activeWorkspaceRef.current?.id === workspaceId &&
+					focusedPaneId === paneId;
 
 				if (!isAlreadyActive) {
 					state.setNeedsAttention(paneId, true);
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				// Switch to workspace view if not already there
 				const appState = useAppStore.getState();
 				if (appState.currentView !== "workspace") {
 					appState.setView("workspace");
