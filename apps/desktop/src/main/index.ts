@@ -14,6 +14,7 @@ import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
+import { processPersistence } from "./lib/terminal/persistence/manager";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -181,7 +182,12 @@ app.on("before-quit", async (event) => {
 	quitState = "cleaning";
 
 	try {
-		await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
+		await Promise.all([
+			processPersistence.enabled
+				? terminalManager.detachAll()
+				: terminalManager.cleanup(),
+			posthog?.shutdown(),
+		]);
 	} finally {
 		quitState = "ready-to-quit";
 		app.quit();
@@ -227,10 +233,11 @@ if (!gotTheLock) {
 			// App can continue without agent hooks, but log the failure
 		}
 
+		await processPersistence.initialize();
+
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 
-		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);

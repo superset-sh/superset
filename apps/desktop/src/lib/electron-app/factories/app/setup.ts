@@ -64,7 +64,6 @@ export async function makeAppSetup(
 	);
 
 	app.on("window-all-closed", () => !PLATFORM.IS_MAC && app.quit());
-	app.on("before-quit", () => {});
 
 	return window;
 }

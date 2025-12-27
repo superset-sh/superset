@@ -136,9 +136,6 @@ export const createTerminalRouter = () => {
 				await terminalManager.kill(input);
 			}),
 
-		/**
-		 * Detach from terminal (keep session alive)
-		 */
 		detach: publicProcedure
 			.input(
 				z.object({
@@ -146,7 +143,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.detach(input);
+				await terminalManager.detach(input);
 			}),
 
 		/**

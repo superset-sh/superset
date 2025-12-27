@@ -20,7 +20,7 @@ import {
 	setupPasteHandler,
 	setupResizeHandlers,
 } from "./helpers";
-import { parseCwd } from "./parseCwd";
+import { parseCwd } from "shared/parse-cwd";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
