@@ -106,15 +106,17 @@ export function CreateWorkspaceButton({
 	}, [currentProject, createWorkspace, handleOpenNewProject]);
 
 	// Keyboard shortcuts
-	useHotkeys(HOTKEYS.NEW_WORKSPACE.keys, handleModalCreate, [
-		handleModalCreate,
-	]);
-	useHotkeys(HOTKEYS.QUICK_CREATE_WORKSPACE.keys, () => {
+	const handleQuickCreateHotkey = useCallback(() => {
 		if (!isLoading) handleQuickCreate();
-	}, [handleQuickCreate, isLoading]);
-	useHotkeys(HOTKEYS.OPEN_PROJECT.keys, () => {
+	}, [isLoading, handleQuickCreate]);
+
+	const handleOpenProjectHotkey = useCallback(() => {
 		if (!isLoading) handleOpenNewProject();
-	}, [handleOpenNewProject, isLoading]);
+	}, [isLoading, handleOpenNewProject]);
+
+	useHotkeys(HOTKEYS.NEW_WORKSPACE.keys, handleModalCreate);
+	useHotkeys(HOTKEYS.QUICK_CREATE_WORKSPACE.keys, handleQuickCreateHotkey);
+	useHotkeys(HOTKEYS.OPEN_PROJECT.keys, handleOpenProjectHotkey);
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
