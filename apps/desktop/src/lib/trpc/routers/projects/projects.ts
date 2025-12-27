@@ -257,10 +257,24 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
 					}
 
-					// Determine default branch
-					let defaultBranch = project.defaultBranch;
-					if (!defaultBranch) {
-						defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					// Refresh default branch from remote (detects if it changed)
+					const remoteDefaultBranch = await refreshDefaultBranch(
+						project.mainRepoPath,
+					);
+
+					// Get default branch (use remote value if available, otherwise stored/detected)
+					const defaultBranch =
+						remoteDefaultBranch ||
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					// Save if changed or not previously set
+					if (defaultBranch !== project.defaultBranch) {
+						localDb
+							.update(projects)
+							.set({ defaultBranch })
+							.where(eq(projects.id, input.projectId))
+							.run();
 					}
 
 					// Sort: default branch first, then by date

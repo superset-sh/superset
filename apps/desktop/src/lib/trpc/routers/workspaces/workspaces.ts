@@ -68,11 +68,19 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
-				let defaultBranch = project.defaultBranch;
-				if (!defaultBranch) {
-					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				// Refresh default branch from remote (detects if it changed, e.g. master -> main)
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				// Get default branch (use remote value if available, otherwise stored/detected)
+				const defaultBranch =
+					remoteDefaultBranch ||
+					project.defaultBranch ||
+					(await getDefaultBranch(project.mainRepoPath));
+
+				// Save if changed or not previously set
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
