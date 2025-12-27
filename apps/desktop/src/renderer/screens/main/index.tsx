@@ -9,6 +9,7 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
+import { useChatPanelStore } from "renderer/stores/chat-panel-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -45,6 +46,7 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
+	const { togglePanel: toggleChatPanel } = useChatPanelStore();
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,
@@ -89,6 +91,10 @@ export function MainScreen() {
 	useHotkeys(HOTKEYS.TOGGLE_SIDEBAR.keys, () => {
 		if (isWorkspaceView) toggleSidebar();
 	}, [toggleSidebar, isWorkspaceView]);
+
+	useHotkeys(HOTKEYS.TOGGLE_CHAT_PANEL.keys, () => {
+		if (isWorkspaceView) toggleChatPanel();
+	}, [toggleChatPanel, isWorkspaceView]);
 
 	/**
 	 * Resolves the target pane for split operations.

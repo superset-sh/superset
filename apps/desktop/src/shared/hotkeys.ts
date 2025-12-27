@@ -126,6 +126,11 @@ export const HOTKEYS = {
 		label: "Toggle Sidebar",
 		category: "Layout",
 	}),
+	TOGGLE_CHAT_PANEL: hotkey({
+		keys: "meta+l",
+		label: "Toggle Chat Panel",
+		category: "Layout",
+	}),
 	SPLIT_RIGHT: hotkey({
 		keys: "meta+d",
 		label: "Split Right",

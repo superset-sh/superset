@@ -5,6 +5,7 @@
  */
 
 export * from "./app-state";
+export * from "./chat-panel-state";
 export * from "./ports";
 export * from "./ringtone";
 export * from "./sidebar-state";

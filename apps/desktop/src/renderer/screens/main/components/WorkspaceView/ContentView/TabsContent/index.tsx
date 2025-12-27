@@ -1,6 +1,8 @@
+import { ResizablePanel, ResizablePanelGroup } from "@superset/ui/resizable";
 import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { ChatPanelResizable } from "./ChatPanel";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
@@ -23,5 +25,12 @@ export function TabsContent() {
 		return <EmptyTabView />;
 	}
 
-	return <TabView tab={tabToRender} panes={panes} />;
+	return (
+		<ResizablePanelGroup direction="horizontal" className="flex-1 h-full">
+			<ResizablePanel defaultSize={70} minSize={30}>
+				<TabView tab={tabToRender} panes={panes} />
+			</ResizablePanel>
+			<ChatPanelResizable />
+		</ResizablePanelGroup>
+	);
 }
