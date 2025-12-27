@@ -333,25 +333,24 @@ export async function refreshDefaultBranch(
 ): Promise<string | null> {
 	const git = simpleGit(mainRepoPath);
 
-	// First check if we have an origin remote
 	const hasRemote = await hasOriginRemote(mainRepoPath);
 	if (!hasRemote) {
 		return null;
 	}
 
 	try {
-		// Update the local origin/HEAD symref from the remote
-		// This is the key command that syncs the default branch info
+		// Git doesn't auto-update origin/HEAD on fetch, so we must explicitly
+		// sync it to detect when the remote's default branch changes
 		await git.remote(["set-head", "origin", "--auto"]);
 
-		// Now read the updated symref
 		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
 		if (match) {
 			return match[1];
 		}
 	} catch {
-		// If set-head fails (e.g., network issues), try ls-remote as fallback
+		// set-head requires network access; fall back to ls-remote which may
+		// work in some edge cases or provide a more specific error
 		try {
 			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
 			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
@@ -359,7 +358,7 @@ export async function refreshDefaultBranch(
 				return symrefMatch[1];
 			}
 		} catch {
-			// Both methods failed
+			// Network unavailable - caller will use cached value
 		}
 	}
 

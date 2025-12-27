@@ -68,18 +68,16 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Refresh default branch from remote (detects if it changed, e.g. master -> main)
+				// Sync with remote in case the default branch changed (e.g. master -> main)
 				const remoteDefaultBranch = await refreshDefaultBranch(
 					project.mainRepoPath,
 				);
 
-				// Get default branch (use remote value if available, otherwise stored/detected)
 				const defaultBranch =
 					remoteDefaultBranch ||
 					project.defaultBranch ||
 					(await getDefaultBranch(project.mainRepoPath));
 
-				// Save if changed or not previously set
 				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
@@ -88,7 +86,6 @@ export const createWorkspacesRouter = () => {
 						.run();
 				}
 
-				// Use provided baseBranch or fall back to default
 				const targetBranch = input.baseBranch || defaultBranch;
 
 				// Check if this repo has a remote origin
@@ -1067,23 +1064,19 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				// Refresh and check if the remote's default branch has changed
+				// Sync with remote in case the default branch changed (e.g. master -> main)
 				const remoteDefaultBranch = await refreshDefaultBranch(
 					project.mainRepoPath,
 				);
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
 				let defaultBranch = project.defaultBranch;
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
 				}
-
-				// Update if the remote's default branch has changed
 				if (remoteDefaultBranch && remoteDefaultBranch !== defaultBranch) {
 					defaultBranch = remoteDefaultBranch;
 				}
 
-				// Save the default branch if it was updated or not previously set
 				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)

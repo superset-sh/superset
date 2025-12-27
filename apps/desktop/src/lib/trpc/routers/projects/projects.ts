@@ -257,18 +257,16 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
 					}
 
-					// Refresh default branch from remote (detects if it changed)
+					// Sync with remote in case the default branch changed (e.g. master -> main)
 					const remoteDefaultBranch = await refreshDefaultBranch(
 						project.mainRepoPath,
 					);
 
-					// Get default branch (use remote value if available, otherwise stored/detected)
 					const defaultBranch =
 						remoteDefaultBranch ||
 						project.defaultBranch ||
 						(await getDefaultBranch(project.mainRepoPath));
 
-					// Save if changed or not previously set
 					if (defaultBranch !== project.defaultBranch) {
 						localDb
 							.update(projects)
@@ -612,7 +610,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error(`Project ${input.id} not found`);
 				}
 
-				// Refresh and get the current default branch from remote
 				const remoteDefaultBranch = await refreshDefaultBranch(
 					project.mainRepoPath,
 				);
@@ -621,7 +618,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					remoteDefaultBranch &&
 					remoteDefaultBranch !== project.defaultBranch
 				) {
-					// Update the stored default branch
 					localDb
 						.update(projects)
 						.set({ defaultBranch: remoteDefaultBranch })
