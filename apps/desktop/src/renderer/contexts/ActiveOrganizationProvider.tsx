@@ -1,5 +1,9 @@
-import { createContext, type ReactNode, useContext } from "react";
-import { HiExclamationTriangle } from "react-icons/hi2";
+import { createContext, type ReactNode, useContext, useEffect } from "react";
+import {
+	setActiveOrganizationId,
+	useActiveOrganizationIdQuery,
+	useOrganizations,
+} from "renderer/lib/pglite";
 import { trpc } from "renderer/lib/trpc";
 
 interface ActiveOrganizationContextValue {
@@ -14,37 +18,37 @@ export function ActiveOrganizationProvider({
 }: {
 	children: ReactNode;
 }) {
-	const {
-		data: activeOrganizationId,
-		isLoading,
-		error,
-	} = trpc.settings.getActiveOrganizationId.useQuery();
+	const { data: user } = trpc.user.me.useQuery();
+	const orgsResult = useOrganizations(user?.id ?? "");
+	const organizations = orgsResult?.rows;
+	const { activeOrganizationId, isLoaded: isActiveOrgLoaded } =
+		useActiveOrganizationIdQuery();
 
-	if (isLoading) {
-		return (
-			<div className="flex h-full w-full items-center justify-center">
-				<div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-			</div>
-		);
+	// Auto-select first org if none selected (only after both queries loaded)
+	useEffect(() => {
+		if (isActiveOrgLoaded && !activeOrganizationId && organizations?.length) {
+			setActiveOrganizationId(organizations[0].id);
+		}
+	}, [isActiveOrgLoaded, activeOrganizationId, organizations]);
+
+	// Wait for both queries to finish loading
+	const orgsLoaded = orgsResult !== undefined;
+	if (!orgsLoaded || !isActiveOrgLoaded) {
+		return null;
 	}
 
-	if (error || !activeOrganizationId) {
-		return (
-			<div className="flex h-full w-full items-center justify-center">
-				<div className="flex flex-col items-center gap-3 text-center max-w-sm">
-					<HiExclamationTriangle className="h-10 w-10 text-destructive" />
-					<h2 className="text-lg font-semibold">No Organization Found</h2>
-					<p className="text-sm text-muted-foreground">
-						{error?.message ||
-							"You need to be part of an organization to use this feature."}
-					</p>
-				</div>
-			</div>
-		);
+	// Use activeOrganizationId if set, otherwise fall back to first org
+	const effectiveOrgId = activeOrganizationId ?? organizations?.[0]?.id;
+
+	if (!effectiveOrgId) {
+		// No orgs synced yet - children will show empty states
+		return null;
 	}
 
 	return (
-		<ActiveOrganizationContext.Provider value={{ activeOrganizationId }}>
+		<ActiveOrganizationContext.Provider
+			value={{ activeOrganizationId: effectiveOrgId }}
+		>
 			{children}
 		</ActiveOrganizationContext.Provider>
 	);

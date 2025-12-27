@@ -6,24 +6,18 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import {
+	setActiveOrganizationId,
+	useActiveOrganizationIdQuery,
+	useOrganizations,
+} from "renderer/lib/pglite";
 import { trpc } from "renderer/lib/trpc";
 
 export function OrganizationSwitcher() {
-	const { data: organizations } = trpc.organizations.list.useQuery();
-	const { data: activeOrganizationId } =
-		trpc.settings.getActiveOrganizationId.useQuery();
-	const utils = trpc.useUtils();
-
-	const setActiveOrganization =
-		trpc.settings.setActiveOrganizationId.useMutation({
-			onSuccess: (data) => {
-				console.log("[org-switcher] Mutation succeeded:", data);
-				utils.invalidate();
-			},
-			onError: (error) => {
-				console.error("[org-switcher] Mutation failed:", error);
-			},
-		});
+	const { data: user } = trpc.user.me.useQuery();
+	const orgsResult = useOrganizations(user?.id ?? "");
+	const organizations = orgsResult?.rows;
+	const { activeOrganizationId } = useActiveOrganizationIdQuery();
 
 	const activeOrganization = organizations?.find(
 		(organization) => organization.id === activeOrganizationId,
@@ -60,10 +54,8 @@ export function OrganizationSwitcher() {
 					<DropdownMenuItem
 						key={organization.id}
 						onSelect={() => {
-							console.log("[org-switcher] Switching to:", organization.id);
-							setActiveOrganization.mutate({
-								organizationId: organization.id,
-							});
+							console.log("[OrgSwitcher] Switching to:", organization.id);
+							setActiveOrganizationId(organization.id);
 						}}
 						className="gap-2"
 					>

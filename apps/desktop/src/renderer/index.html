@@ -15,7 +15,7 @@
       - img-src 'self' data: https://*.public.blob.vercel-storage.com: Allow images from same origin + data URIs + Vercel blob storage (avatars)
       - font-src 'self': Allow fonts from same origin
     -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http://127.0.0.1:* https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: https://*.public.blob.vercel-storage.com; font-src 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://*.posthog.com; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: http://127.0.0.1:* http://localhost:* https://*.posthog.com https://*.sentry.io sentry-ipc:; img-src 'self' data: https://*.public.blob.vercel-storage.com; font-src 'self';" />
   </head>
 
   <body>

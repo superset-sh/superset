@@ -11,7 +11,6 @@ import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
-import { startSync, stopSync } from "./lib/electric";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
@@ -130,11 +129,6 @@ if (!gotTheLock) {
 		await initAppState();
 		await authService.initialize();
 
-		// Start Electric SQL sync after auth is ready
-		startSync().catch((err) => {
-			console.error("[main] Failed to start sync:", err);
-		});
-
 		try {
 			setupAgentHooks();
 		} catch (error) {
@@ -151,9 +145,8 @@ if (!gotTheLock) {
 			await processDeepLink(coldStartUrl);
 		}
 
-		// Clean up all terminals, sync, and analytics when app is quitting
+		// Clean up all terminals and analytics when app is quitting
 		app.on("before-quit", async () => {
-			stopSync();
 			await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
 		});
 	})();

@@ -1,12 +1,4 @@
-import {
-	organizationMembers,
-	organizations,
-	settings,
-	type TerminalPreset,
-} from "@superset/local-db";
-import { eq } from "drizzle-orm";
-import { apiClient } from "main/lib/api-client";
-import { SYNC_EVENTS, syncEmitter } from "main/lib/electric";
+import { settings, type TerminalPreset } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -126,17 +118,14 @@ export const createSettingsRouter = () => {
 			const row = getSettings();
 			const storedId = row.selectedRingtoneId;
 
-			// If no stored ID, return default
 			if (!storedId) {
 				return DEFAULT_RINGTONE_ID;
 			}
 
-			// If stored ID is valid, return it
 			if (VALID_RINGTONE_IDS.includes(storedId)) {
 				return storedId;
 			}
 
-			// Stored ID is invalid/stale - self-heal by persisting the default
 			console.warn(
 				`[settings] Invalid ringtone ID "${storedId}" found, resetting to default`,
 			);
@@ -166,60 +155,6 @@ export const createSettingsRouter = () => {
 						set: { selectedRingtoneId: input.ringtoneId },
 					})
 					.run();
-
-				return { success: true };
-			}),
-
-		getActiveOrganizationId: publicProcedure.query(async () => {
-			const row = getSettings();
-			if (row.activeOrganizationId) {
-				return row.activeOrganizationId;
-			}
-
-			const user = await apiClient.user.me.query();
-			if (!user) {
-				throw new Error("User not authenticated");
-			}
-
-			const membership = localDb
-				.select({ organization_id: organizationMembers.organization_id })
-				.from(organizationMembers)
-				.innerJoin(
-					organizations,
-					eq(organizationMembers.organization_id, organizations.id),
-				)
-				.where(eq(organizationMembers.user_id, user.id))
-				.get();
-
-			if (!membership) {
-				throw new Error("User has no organizations");
-			}
-
-			localDb
-				.insert(settings)
-				.values({ id: 1, activeOrganizationId: membership.organization_id })
-				.onConflictDoUpdate({
-					target: settings.id,
-					set: { activeOrganizationId: membership.organization_id },
-				})
-				.run();
-
-			return membership.organization_id;
-		}),
-
-		setActiveOrganizationId: publicProcedure
-			.input(z.object({ organizationId: z.string().uuid() }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, activeOrganizationId: input.organizationId })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { activeOrganizationId: input.organizationId },
-					})
-					.run();
-
-				syncEmitter.emit(SYNC_EVENTS.TASKS_UPDATED);
 
 				return { success: true };
 			}),

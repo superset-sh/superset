@@ -1,4 +1,3 @@
-import type { SelectTask, TaskPriority } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@superset/ui/card";
@@ -20,7 +19,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Textarea } from "@superset/ui/textarea";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	HiCalendar,
 	HiCheckCircle,
@@ -29,7 +28,14 @@ import {
 	HiPencil,
 	HiUser,
 } from "react-icons/hi2";
-import { ActiveOrganizationProvider } from "renderer/contexts/ActiveOrganizationProvider";
+import {
+	type SelectTask,
+	type TaskPriority,
+	setActiveOrganizationId,
+	useActiveOrganizationIdQuery,
+	useOrganizations,
+	useTasks,
+} from "renderer/lib/pglite";
 import { trpc } from "renderer/lib/trpc";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 
@@ -253,28 +259,11 @@ function TaskCard({
 	);
 }
 
-function TasksList() {
-	const [tasks, setTasks] = useState<Task[] | null>(null);
+function TasksList({ organizationId }: { organizationId: string }) {
 	const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-	trpc.tasks.onUpdate.useSubscription(undefined, {
-		onData: ({ tasks: updatedTasks }) => {
-			setTasks(updatedTasks);
-		},
-	});
-
-	const isLoading = tasks === null;
-
-	if (isLoading) {
-		return (
-			<div className="flex items-center justify-center h-64">
-				<div className="flex flex-col items-center gap-2 text-muted-foreground">
-					<div className="h-6 w-6 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-					<span className="text-sm">Syncing tasks...</span>
-				</div>
-			</div>
-		);
-	}
+	const result = useTasks(organizationId);
+	const tasks = result?.rows ?? [];
 
 	if (tasks.length === 0) {
 		return (
@@ -324,26 +313,42 @@ function Sidebar() {
 	);
 }
 
-function TasksViewContent() {
+export function TasksView() {
+	const { data: user } = trpc.user.me.useQuery();
+	const orgsResult = useOrganizations(user?.id ?? "");
+	const organizations = orgsResult?.rows;
+	const { activeOrganizationId, isLoaded: isActiveOrgLoaded } =
+		useActiveOrganizationIdQuery();
+
+	// Auto-select first org if none selected
+	useEffect(() => {
+		if (isActiveOrgLoaded && !activeOrganizationId && organizations?.length) {
+			setActiveOrganizationId(organizations[0].id);
+		}
+	}, [isActiveOrgLoaded, activeOrganizationId, organizations]);
+
+	// Wait for both queries to finish loading
+	const orgsLoaded = orgsResult !== undefined;
+	if (!orgsLoaded || !isActiveOrgLoaded) {
+		return null;
+	}
+
+	const effectiveOrgId = activeOrganizationId ?? organizations?.[0]?.id;
+	if (!effectiveOrgId) {
+		return null;
+	}
+
 	return (
-		<div className="flex flex-1 bg-background">
+		<div className="flex flex-1 min-h-0 bg-background">
 			<Sidebar />
-			<div className="flex-1 flex flex-col">
-				<div className="border-b px-4 py-3">
+			<div className="flex-1 flex flex-col min-h-0">
+				<div className="border-b px-4 py-3 shrink-0">
 					<h1 className="text-lg font-semibold">Tasks</h1>
 				</div>
-				<ScrollArea className="flex-1">
-					<TasksList />
+				<ScrollArea className="flex-1 min-h-0">
+					<TasksList organizationId={effectiveOrgId} />
 				</ScrollArea>
 			</div>
 		</div>
-	);
-}
-
-export function TasksView() {
-	return (
-		<ActiveOrganizationProvider>
-			<TasksViewContent />
-		</ActiveOrganizationProvider>
 	);
 }

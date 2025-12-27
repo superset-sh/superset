@@ -127,11 +127,15 @@
         "@dnd-kit/sortable": "^10.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@electric-sql/client": "^1.3.1",
+        "@electric-sql/pglite": "^0.3.14",
+        "@electric-sql/pglite-react": "^0.2.32",
+        "@electric-sql/pglite-sync": "^0.4.0",
         "@electric-sql/react": "^1.0.25",
         "@monaco-editor/react": "^4.7.0",
         "@radix-ui/react-dialog": "^1.1.15",
         "@radix-ui/react-label": "^2.1.8",
         "@sentry/electron": "^7.5.0",
+        "@superset/db": "workspace:*",
         "@superset/local-db": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
@@ -221,6 +225,7 @@
         "bun-types": "^1.3.1",
         "code-inspector-plugin": "^1.2.2",
         "cross-env": "^10.0.0",
+        "drizzle-kit": "^0.31.8",
         "electron": "39.1.2",
         "electron-builder": "^26.0.12",
         "electron-extension-installer": "^2.0.0",
@@ -649,6 +654,14 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.10.2", "", {}, "sha512-z33Il7l5dKjUgGULTqBsQBQwckHh5AbIuxhdsIxDDiZAzBOrZO6q9ogcWC65kU382AfynTfgNumVcNIjuIua6w=="],
 
     "@electric-sql/client": ["@electric-sql/client@1.3.1", "", { "dependencies": { "@microsoft/fetch-event-source": "^2.0.1" }, "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" } }, "sha512-Tr7jY60acKfxuODOzGcJYzEXtTJyiE8l237hMpCPHjflr+qSGYVZ0NkOnFgAE2xIPFgP1zn05nQb3+mkUu8qUQ=="],
+
+    "@electric-sql/experimental": ["@electric-sql/experimental@1.0.14", "", { "optionalDependencies": { "@rollup/rollup-darwin-arm64": "^4.18.1" }, "peerDependencies": { "@electric-sql/client": "1.0.14" } }, "sha512-Wpv9UC7r4JYnQO4GbtQve7SVIX/VcBwAP12Xx11ObK2TBI+NJHtDRimUEKKQorq9Kr6yTAJ3BYOKCINxFsbDIg=="],
+
+    "@electric-sql/pglite": ["@electric-sql/pglite@0.3.14", "", {}, "sha512-3DB258dhqdsArOI1fIt7cb9RpUOgcDg5hXWVgVHAeqVQ/qxtFy605QKs4gx6mFq3jWsSPqDN8TgSEsqC3OfV9Q=="],
+
+    "@electric-sql/pglite-react": ["@electric-sql/pglite-react@0.2.32", "", { "peerDependencies": { "@electric-sql/pglite": "0.3.14", "react": "^18.0.0 || ^19.0.0 || ^19.0.0-rc" } }, "sha512-bLEzY0RV/MncQGiEOiqHmME6lcvZ4vcp47gYrFvqAgesS6pK8XTZxxRi+91eAElgcMtYlES2F2sVbOW+Rhye/g=="],
+
+    "@electric-sql/pglite-sync": ["@electric-sql/pglite-sync@0.4.0", "", { "dependencies": { "@electric-sql/client": "^1.0.9", "@electric-sql/experimental": "^1.0.9" }, "peerDependencies": { "@electric-sql/pglite": "0.3.14" } }, "sha512-0JUBXs7jK2monIrtvfSO7LmiKCyYfi+hQ+7EvVVNei0R7yeyRiSaywkk6yYtJZpTTRFKoByjpHwIc3fbXfgZSA=="],
 
     "@electric-sql/react": ["@electric-sql/react@1.0.25", "", { "dependencies": { "@electric-sql/client": "1.3.1", "use-sync-external-store": "^1.2.2" }, "peerDependencies": { "react": ">=18.3.1 <20.0.0" }, "optionalPeers": ["react"] }, "sha512-25Wf5/YWYjVg4SoQpVj8JLlKMF5zX8dgeZ9VsHOHi8XtxjaJcqZxrFjRnUMrnyaeYbEuPmc3KM6MLgqlzZ4OjQ=="],
 

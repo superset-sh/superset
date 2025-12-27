@@ -194,6 +194,7 @@ export default defineConfig({
 
 		optimizeDeps: {
 			include: ["monaco-editor"],
+			exclude: ["@electric-sql/pglite"], // PGlite has WASM that needs special handling
 		},
 
 		publicDir: resolve(resources, "public"),

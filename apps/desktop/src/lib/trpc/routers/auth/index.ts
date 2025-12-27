@@ -40,6 +40,32 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 		}),
 
 		/**
+		 * Subscribe to access token (for Electric sync in renderer)
+		 * Emits current token on subscribe and again when tokens refresh
+		 */
+		onAccessToken: publicProcedure.subscription(() => {
+			return observable<{ accessToken: string | null }>((emit) => {
+				const emitToken = async () => {
+					const accessToken = await authService.getAccessToken();
+					emit.next({ accessToken });
+				};
+
+				// Send initial token
+				emitToken();
+
+				// Listen for token refreshes
+				authService.on("tokens-refreshed", emitToken);
+				// Also re-emit on auth state changes (sign in/out)
+				authService.on("state-changed", emitToken);
+
+				return () => {
+					authService.off("tokens-refreshed", emitToken);
+					authService.off("state-changed", emitToken);
+				};
+			});
+		}),
+
+		/**
 		 * Sign in with OAuth provider
 		 */
 		signIn: publicProcedure
