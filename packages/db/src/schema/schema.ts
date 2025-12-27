@@ -1,16 +1,29 @@
 import {
 	index,
+	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
+	real,
 	text,
 	timestamp,
 	unique,
 	uuid,
 } from "drizzle-orm/pg-core";
 
-import { taskStatusEnumValues } from "./enums";
+import {
+	integrationProviderValues,
+	taskPriorityValues,
+	taskStatusEnumValues,
+} from "./enums";
+import type { IntegrationConfig } from "./types";
 
 export const taskStatus = pgEnum("task_status", taskStatusEnumValues);
+export const taskPriority = pgEnum("task_priority", taskPriorityValues);
+export const integrationProvider = pgEnum(
+	"integration_provider",
+	integrationProviderValues,
+);
 
 export const users = pgTable(
 	"users",
@@ -41,6 +54,7 @@ export const organizations = pgTable(
 	"organizations",
 	{
 		id: uuid().primaryKey().defaultRandom(),
+		clerkOrgId: text("clerk_org_id").unique(), // Clerk org ID - null until synced to Clerk
 		name: text().notNull(),
 		slug: text().notNull().unique(),
 		githubOrg: text("github_org"),
@@ -51,7 +65,10 @@ export const organizations = pgTable(
 			.defaultNow()
 			.$onUpdate(() => new Date()),
 	},
-	(table) => [index("organizations_slug_idx").on(table.slug)],
+	(table) => [
+		index("organizations_slug_idx").on(table.slug),
+		index("organizations_clerk_org_id_idx").on(table.clerkOrgId),
+	],
 );
 
 export type InsertOrganization = typeof organizations.$inferInsert;
@@ -67,6 +84,7 @@ export const organizationMembers = pgTable(
 		userId: uuid("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		role: text().notNull().default("member"), // "admin" | "member" | custom roles
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(table) => [
@@ -115,17 +133,24 @@ export const tasks = pgTable(
 	"tasks",
 	{
 		id: uuid().primaryKey().defaultRandom(),
+
+		// Core fields
 		slug: text().notNull().unique(),
 		title: text().notNull(),
 		description: text(),
-		status: taskStatus().notNull().default("planning"),
+		status: text().notNull(), // Flexible text - stores any status name
+		statusColor: text("status_color"),
+		statusType: text("status_type"),
+		statusPosition: real("status_position"),
+		priority: taskPriority().notNull().default("none"),
 
-		repositoryId: uuid("repository_id")
-			.notNull()
-			.references(() => repositories.id, { onDelete: "cascade" }),
+		// Ownership
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
+		repositoryId: uuid("repository_id").references(() => repositories.id, {
+			onDelete: "cascade",
+		}), // Optional - Linear tasks won't have this
 		assigneeId: uuid("assignee_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -133,8 +158,28 @@ export const tasks = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 
-		branch: text(),
+		// Planning
+		estimate: integer(),
+		dueDate: timestamp("due_date"),
+		labels: jsonb().$type<string[]>().default([]),
 
+		// Git/Work tracking
+		branch: text(),
+		prUrl: text("pr_url"),
+
+		// External sync (null if local-only task)
+		externalProvider: integrationProvider("external_provider"),
+		externalId: text("external_id"),
+		externalKey: text("external_key"), // "SUPER-172", "#123"
+		externalUrl: text("external_url"),
+		lastSyncedAt: timestamp("last_synced_at"),
+		syncError: text("sync_error"),
+
+		startedAt: timestamp("started_at"),
+		completedAt: timestamp("completed_at"),
+		deletedAt: timestamp("deleted_at"),
+
+		// Timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()
@@ -143,14 +188,63 @@ export const tasks = pgTable(
 	},
 	(table) => [
 		index("tasks_slug_idx").on(table.slug),
-		index("tasks_repository_id_idx").on(table.repositoryId),
 		index("tasks_organization_id_idx").on(table.organizationId),
+		index("tasks_repository_id_idx").on(table.repositoryId),
 		index("tasks_assignee_id_idx").on(table.assigneeId),
 		index("tasks_creator_id_idx").on(table.creatorId),
 		index("tasks_status_idx").on(table.status),
 		index("tasks_created_at_idx").on(table.createdAt),
+		index("tasks_external_provider_idx").on(table.externalProvider),
+		unique("tasks_external_unique").on(
+			table.externalProvider,
+			table.externalId,
+		),
 	],
 );
 
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
+
+// Integration connections for external providers (Linear, GitHub, etc.)
+export const integrationConnections = pgTable(
+	"integration_connections",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		connectedByUserId: uuid("connected_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+
+		provider: integrationProvider().notNull(),
+
+		// OAuth tokens
+		accessToken: text("access_token").notNull(),
+		refreshToken: text("refresh_token"),
+		tokenExpiresAt: timestamp("token_expires_at"),
+
+		externalOrgId: text("external_org_id"),
+		externalOrgName: text("external_org_name"),
+
+		config: jsonb().$type<IntegrationConfig>(),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		unique("integration_connections_unique").on(
+			table.organizationId,
+			table.provider,
+		),
+		index("integration_connections_org_idx").on(table.organizationId),
+	],
+);
+
+export type InsertIntegrationConnection =
+	typeof integrationConnections.$inferInsert;
+export type SelectIntegrationConnection =
+	typeof integrationConnections.$inferSelect;

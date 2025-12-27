@@ -1,3 +1,4 @@
+import type { TerminalPreset } from "@superset/local-db";
 import {
 	CommandDialog,
 	CommandEmpty,
@@ -6,7 +7,6 @@ import {
 	CommandItem,
 	CommandList,
 } from "@superset/ui/command";
-import type { TerminalPreset } from "main/lib/db/schemas";
 import {
 	HiMiniCommandLine,
 	HiMiniPlus,

@@ -1,4 +1,4 @@
-import type { TerminalPreset } from "main/lib/db/schemas";
+import type { TerminalPreset } from "@superset/local-db";
 
 export type { TerminalPreset };
 

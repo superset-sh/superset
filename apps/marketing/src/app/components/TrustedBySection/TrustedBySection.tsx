@@ -6,14 +6,9 @@ import Marquee from "react-fast-marquee";
 
 const CLIENT_LOGOS = [
 	{ name: "cadra", logo: "/logos/cadra.png", height: 38, text: "Cadra" },
-	{ name: "onlook", logo: "/logos/onlook.svg", height: 38 },
 	{ name: "ycombinator", logo: "/logos/yc.png", height: 44 },
-	{ name: "scribe", logo: "/logos/scribe.svg", height: 38 },
-	{ name: "adamcad", logo: "/logos/adam.svg", height: 32, marginTop: -5 },
-	{ name: "amazon", logo: "/logos/amazon.png", height: 32, marginTop: 20 },
-	{ name: "google", logo: "/logos/google.svg", height: 32, marginTop: 10 },
-	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 24 },
 	{ name: "mastra", logo: "/logos/mastra.svg", height: 28, text: "Mastra" },
+	{ name: "onlook", logo: "/logos/onlook.svg", height: 38 },
 	{
 		name: "trainloop",
 		logo: "/logos/trainloop.jpeg",
@@ -21,6 +16,11 @@ const CLIENT_LOGOS = [
 		borderRadius: 10,
 		text: "Trainloop",
 	},
+	{ name: "adamcad", logo: "/logos/adam.svg", height: 32, marginTop: -5 },
+	{ name: "scribe", logo: "/logos/scribe.svg", height: 38 },
+	{ name: "amazon", logo: "/logos/amazon.png", height: 32, marginTop: 20 },
+	{ name: "google", logo: "/logos/google.svg", height: 32, marginTop: 10 },
+	{ name: "servicenow", logo: "/logos/servicenow.svg", height: 24 },
 ] as {
 	name: string;
 	logo: string;
@@ -44,7 +44,6 @@ export function TrustedBySection() {
 						Trusted by engineers from
 					</h2>
 				</motion.div>
-
 				<motion.div
 					initial={{ opacity: 0, y: 20 }}
 					whileInView={{ opacity: 1, y: 0 }}
@@ -52,13 +51,10 @@ export function TrustedBySection() {
 					transition={{ duration: 0.5, delay: 0.2 }}
 					className="relative"
 				>
-					<Marquee
-						speed={30}
-						gradient={true}
-						gradientColor="hsl(var(--background))"
-						gradientWidth={100}
-						pauseOnHover={false}
-					>
+					{/* Left fade overlay */}
+					<div className="absolute left-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 bg-linear-to-r from-background to-transparent z-10 pointer-events-none" />
+
+					<Marquee speed={30} gradient={false} pauseOnHover={false}>
 						<div className="flex gap-12 sm:gap-16 md:gap-24 items-center mr-12 sm:mr-16 md:mr-24 h-14">
 							{CLIENT_LOGOS.map((client) => (
 								<div
@@ -86,6 +82,9 @@ export function TrustedBySection() {
 							))}
 						</div>
 					</Marquee>
+
+					{/* Right fade overlay */}
+					<div className="absolute right-0 top-0 bottom-0 w-24 sm:w-32 md:w-40 bg-linear-to-l from-background to-transparent z-10 pointer-events-none" />
 				</motion.div>
 			</div>
 		</section>

@@ -1,6 +1,5 @@
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
-import type { TerminalEscapeFilter } from "../terminal-escape-filter";
 import type { HistoryWriter } from "../terminal-history";
 
 export interface TerminalSession {
@@ -16,7 +15,6 @@ export interface TerminalSession {
 	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
-	escapeFilter: TerminalEscapeFilter;
 	dataBatcher: DataBatcher;
 	shell: string;
 	startTime: number;

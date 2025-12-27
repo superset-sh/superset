@@ -1,34 +1,8 @@
+import { getPresetIcon, PRESET_ICONS } from "@superset/ui/icons/preset-icons";
 import { useThemeStore } from "renderer/stores/theme/store";
-import claudeIcon from "./claude.svg";
-import codexIcon from "./codex.svg";
-import codexWhiteIcon from "./codex-white.svg";
-import cursorIcon from "./cursor.svg";
-import geminiIcon from "./gemini.svg";
-import opencodeIcon from "./opencode.svg";
-import opencodeWhiteIcon from "./opencode-white.svg";
 
-interface PresetIconSet {
-	light: string;
-	dark: string;
-}
-
-const PRESET_ICONS: Record<string, PresetIconSet> = {
-	claude: { light: claudeIcon, dark: claudeIcon },
-	codex: { light: codexIcon, dark: codexWhiteIcon },
-	gemini: { light: geminiIcon, dark: geminiIcon },
-	"cursor-agent": { light: cursorIcon, dark: cursorIcon },
-	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
-};
-
-export function getPresetIcon(
-	presetName: string,
-	isDark: boolean,
-): string | undefined {
-	const normalizedName = presetName.toLowerCase().trim();
-	const iconSet = PRESET_ICONS[normalizedName];
-	if (!iconSet) return undefined;
-	return isDark ? iconSet.dark : iconSet.light;
-}
+export { PRESET_ICONS, getPresetIcon };
+export type { PresetIconSet } from "@superset/ui/icons/preset-icons";
 
 export function usePresetIcon(presetName: string): string | undefined {
 	const activeTheme = useThemeStore((state) => state.activeTheme);

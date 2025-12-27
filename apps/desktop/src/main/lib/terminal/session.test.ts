@@ -29,24 +29,21 @@ describe("session", () => {
 			expect(result.wasRecovered).toBe(false);
 		});
 
-		it("should recover and filter scrollback from disk", async () => {
+		it("should recover scrollback from disk", async () => {
 			const workspaceId = "workspace-recover-test";
 			const paneId = "pane-recover-test";
 			const historyDir = getHistoryDir(workspaceId, paneId);
 
 			// Create test history file
 			await fs.mkdir(historyDir, { recursive: true });
-			const ESC = "\x1b";
-			// Include escape sequences that should be filtered
-			const rawScrollback = `hello${ESC}[1;1Rworld${ESC}[?1;0c`;
-			await fs.writeFile(join(historyDir, "scrollback.bin"), rawScrollback);
+			const scrollbackContent = "hello world";
+			await fs.writeFile(join(historyDir, "scrollback.bin"), scrollbackContent);
 
 			try {
 				const result = await recoverScrollback(null, workspaceId, paneId);
 
 				expect(result.wasRecovered).toBe(true);
-				// Escape sequences should be filtered out
-				expect(result.scrollback).toBe("helloworld");
+				expect(result.scrollback).toBe(scrollbackContent);
 			} finally {
 				// Cleanup
 				await fs.rm(historyDir, { recursive: true, force: true });
@@ -79,59 +76,22 @@ describe("session", () => {
 	});
 
 	describe("flushSession", () => {
-		it("should flush data batcher and escape filter", () => {
-			let flushedData = "";
+		it("should dispose data batcher", () => {
+			let disposed = false;
 			const mockDataBatcher = {
 				dispose: () => {
-					flushedData = "batcher disposed";
+					disposed = true;
 				},
 			};
 
-			const mockEscapeFilter = {
-				flush: () => "remaining data",
-				filter: () => "",
-			};
-
-			let historyWritten = "";
-
 			const mockSession = {
 				dataBatcher: mockDataBatcher,
-				escapeFilter: mockEscapeFilter,
 				scrollback: "initial",
-				historyWriter: {
-					write: (data: string) => {
-						historyWritten = data;
-					},
-				},
 			} as unknown as TerminalSession;
 
 			flushSession(mockSession);
 
-			expect(flushedData).toBe("batcher disposed");
-			expect(mockSession.scrollback).toBe("initialremaining data");
-			expect(historyWritten).toBe("remaining data");
-		});
-
-		it("should handle empty flush from escape filter", () => {
-			const mockDataBatcher = {
-				dispose: () => {},
-			};
-
-			const mockEscapeFilter = {
-				flush: () => "",
-			};
-
-			const mockSession = {
-				dataBatcher: mockDataBatcher,
-				escapeFilter: mockEscapeFilter,
-				scrollback: "original",
-				historyWriter: null,
-			} as unknown as TerminalSession;
-
-			flushSession(mockSession);
-
-			// Scrollback should not be modified when flush returns empty
-			expect(mockSession.scrollback).toBe("original");
+			expect(disposed).toBe(true);
 		});
 	});
 });

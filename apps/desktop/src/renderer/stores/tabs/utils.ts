@@ -17,7 +17,25 @@ export const getTabDisplayName = (tab: Tab): string => {
 };
 
 /**
- * Extracts all pane IDs from a mosaic layout tree
+ * Extracts all pane IDs from a mosaic layout tree in visual navigation order:
+ * left-to-right, top-to-bottom.
+ *
+ * For react-mosaic layouts:
+ * - direction: "row" = horizontal split (first is left, second is right)
+ * - direction: "column" = vertical split (first is top, second is bottom)
+ *
+ * This traversal visits `first` before `second` at each node, which produces
+ * left-to-right ordering for horizontal splits and top-to-bottom for vertical splits.
+ *
+ * Example layout:
+ * ```
+ * ┌───────┬───────┐
+ * │   A   │   B   │  (row split: first=A, second=B)
+ * ├───────┼───────┤
+ * │   C   │   D   │  (row split: first=C, second=D)
+ * └───────┴───────┘
+ * ```
+ * If the top row is `first` in a column split, order would be: [A, B, C, D]
  */
 export const extractPaneIdsFromLayout = (
 	layout: MosaicNode<string>,
@@ -31,6 +49,9 @@ export const extractPaneIdsFromLayout = (
 		...extractPaneIdsFromLayout(layout.second),
 	];
 };
+
+/** Alias for extractPaneIdsFromLayout emphasizing the visual ordering contract */
+export const getPaneIdsInVisualOrder = extractPaneIdsFromLayout;
 
 /**
  * Options for creating a pane with preset configuration
@@ -206,6 +227,42 @@ export const getFirstPaneId = (layout: MosaicNode<string>): string => {
 		return layout;
 	}
 	return getFirstPaneId(layout.first);
+};
+
+/**
+ * Gets the next pane ID in visual order (left-to-right, top-to-bottom),
+ * wrapping around to the first if at the end.
+ */
+export const getNextPaneId = (
+	layout: MosaicNode<string>,
+	currentPaneId: string,
+): string | null => {
+	const paneIds = getPaneIdsInVisualOrder(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(currentPaneId);
+	if (currentIndex === -1) return paneIds[0];
+
+	const nextIndex = (currentIndex + 1) % paneIds.length;
+	return paneIds[nextIndex];
+};
+
+/**
+ * Gets the previous pane ID in visual order (right-to-left, bottom-to-top),
+ * wrapping around to the last if at the beginning.
+ */
+export const getPreviousPaneId = (
+	layout: MosaicNode<string>,
+	currentPaneId: string,
+): string | null => {
+	const paneIds = getPaneIdsInVisualOrder(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(currentPaneId);
+	if (currentIndex === -1) return paneIds[paneIds.length - 1];
+
+	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
+	return paneIds[prevIndex];
 };
 
 /**

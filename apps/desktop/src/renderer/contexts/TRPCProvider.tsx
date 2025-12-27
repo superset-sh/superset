@@ -5,7 +5,19 @@ import superjson from "superjson";
 import { ipcLink } from "trpc-electron/renderer";
 
 export function TRPCProvider({ children }: { children: React.ReactNode }) {
-	const [queryClient] = useState(() => new QueryClient());
+	const [queryClient] = useState(
+		() =>
+			new QueryClient({
+				defaultOptions: {
+					queries: {
+						networkMode: "always",
+					},
+					mutations: {
+						networkMode: "always",
+					},
+				},
+			}),
+	);
 	const [trpcClient] = useState(() =>
 		trpc.createClient({
 			links: [ipcLink({ transformer: superjson })],

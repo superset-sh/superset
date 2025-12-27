@@ -1,17 +1,26 @@
 import { existsSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
+import {
+	projects,
+	type SelectProject,
+	settings,
+	workspaces,
+} from "@superset/local-db";
+import { desc, eq, inArray } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
-import { db } from "main/lib/db";
-import type { Project } from "main/lib/db/schemas";
-import { nanoid } from "nanoid";
+import { track } from "main/lib/analytics";
+import { localDb } from "main/lib/local-db";
+import { terminalManager } from "main/lib/terminal";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
+
+type Project = SelectProject;
 
 // Return types for openNew procedure
 type OpenNewCanceled = { canceled: true };
@@ -33,39 +42,34 @@ export type OpenNewResult =
  * If a project with the same mainRepoPath exists, updates lastOpenedAt.
  * Otherwise, creates a new project.
  */
-async function upsertProject(
-	mainRepoPath: string,
-	defaultBranch: string,
-): Promise<Project> {
+function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 	const name = basename(mainRepoPath);
 
-	let project = db.data.projects.find((p) => p.mainRepoPath === mainRepoPath);
+	const existing = localDb
+		.select()
+		.from(projects)
+		.where(eq(projects.mainRepoPath, mainRepoPath))
+		.get();
 
-	if (project) {
-		await db.update((data) => {
-			const p = data.projects.find((p) => p.id === project?.id);
-			if (p) {
-				p.lastOpenedAt = Date.now();
-				p.defaultBranch = defaultBranch;
-			}
-		});
-	} else {
-		project = {
-			id: nanoid(),
+	if (existing) {
+		localDb
+			.update(projects)
+			.set({ lastOpenedAt: Date.now(), defaultBranch })
+			.where(eq(projects.id, existing.id))
+			.run();
+		return { ...existing, lastOpenedAt: Date.now(), defaultBranch };
+	}
+
+	const project = localDb
+		.insert(projects)
+		.values({
 			mainRepoPath,
 			name,
 			color: assignRandomColor(),
-			tabOrder: null,
-			lastOpenedAt: Date.now(),
-			createdAt: Date.now(),
 			defaultBranch,
-		};
-
-		await db.update((data) => {
-			// biome-ignore lint/style/noNonNullAssertion: project is assigned above, TypeScript can't see it inside callback
-			data.projects.push(project!);
-		});
-	}
+		})
+		.returning()
+		.get();
 
 	return project;
 }
@@ -142,13 +146,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }): Project | null => {
-				return db.data.projects.find((p) => p.id === input.id) ?? null;
+				return (
+					localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.id))
+						.get() ?? null
+				);
 			}),
 
 		getRecents: publicProcedure.query((): Project[] => {
-			return db.data.projects
-				.slice()
-				.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
+			return localDb
+				.select()
+				.from(projects)
+				.orderBy(desc(projects.lastOpenedAt))
+				.all();
 		}),
 
 		getBranches: publicProcedure
@@ -160,9 +172,11 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					branches: Array<{ name: string; lastCommitDate: number }>;
 					defaultBranch: string;
 				}> => {
-					const project = db.data.projects.find(
-						(p) => p.id === input.projectId,
-					);
+					const project = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.id, input.projectId))
+						.get();
 					if (!project) {
 						throw new Error(`Project ${input.projectId} not found`);
 					}
@@ -285,7 +299,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			}
 
 			const defaultBranch = await getDefaultBranch(mainRepoPath);
-			const project = await upsertProject(mainRepoPath, defaultBranch);
+			const project = upsertProject(mainRepoPath, defaultBranch);
+
+			track("project_opened", {
+				project_id: project.id,
+				method: "open",
+			});
 
 			return {
 				canceled: false,
@@ -335,7 +354,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const branchSummary = await git.branch();
 				const defaultBranch = branchSummary.current || "main";
 
-				const project = await upsertProject(input.path, defaultBranch);
+				const project = upsertProject(input.path, defaultBranch);
+
+				track("project_opened", {
+					project_id: project.id,
+					method: "init",
+				});
 
 				return { project };
 			}),
@@ -390,38 +414,39 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					const clonePath = join(targetDir, repoName);
 
 					// Check if we already have a project for this path
-					const existingProject = db.data.projects.find(
-						(p) => p.mainRepoPath === clonePath,
-					);
+					const existingProject = localDb
+						.select()
+						.from(projects)
+						.where(eq(projects.mainRepoPath, clonePath))
+						.get();
 
 					if (existingProject) {
 						// Verify the filesystem path still exists
 						try {
 							await access(clonePath);
 							// Directory exists - update lastOpenedAt and return existing project
-							await db.update((data) => {
-								const p = data.projects.find(
-									(p) => p.id === existingProject.id,
-								);
-								if (p) {
-									p.lastOpenedAt = Date.now();
-								}
+							localDb
+								.update(projects)
+								.set({ lastOpenedAt: Date.now() })
+								.where(eq(projects.id, existingProject.id))
+								.run();
+
+							track("project_opened", {
+								project_id: existingProject.id,
+								method: "clone",
 							});
+
 							return {
 								canceled: false as const,
 								success: true as const,
-								project: existingProject,
+								project: { ...existingProject, lastOpenedAt: Date.now() },
 							};
 						} catch {
 							// Directory is missing - remove the stale project record and continue with clone
-							await db.update((data) => {
-								const index = data.projects.findIndex(
-									(p) => p.id === existingProject.id,
-								);
-								if (index !== -1) {
-									data.projects.splice(index, 1);
-								}
-							});
+							localDb
+								.delete(projects)
+								.where(eq(projects.id, existingProject.id))
+								.run();
 							// Continue to normal creation flow below
 						}
 					}
@@ -442,19 +467,20 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					// Create new project
 					const name = basename(clonePath);
 					const defaultBranch = await getDefaultBranch(clonePath);
-					const project: Project = {
-						id: nanoid(),
-						mainRepoPath: clonePath,
-						name,
-						color: assignRandomColor(),
-						tabOrder: null,
-						lastOpenedAt: Date.now(),
-						createdAt: Date.now(),
-						defaultBranch,
-					};
+					const project = localDb
+						.insert(projects)
+						.values({
+							mainRepoPath: clonePath,
+							name,
+							color: assignRandomColor(),
+							defaultBranch,
+						})
+						.returning()
+						.get();
 
-					await db.update((data) => {
-						data.projects.push(project);
+					track("project_opened", {
+						project_id: project.id,
+						method: "clone",
 					});
 
 					return {
@@ -489,23 +515,27 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					}),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const project = data.projects.find((p) => p.id === input.id);
-					if (!project) {
-						throw new Error(`Project ${input.id} not found`);
-					}
+			.mutation(({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.id} not found`);
+				}
 
-					if (input.patch.name !== undefined) {
-						project.name = input.patch.name;
-					}
-
-					if (input.patch.color !== undefined) {
-						project.color = input.patch.color;
-					}
-
-					project.lastOpenedAt = Date.now();
-				});
+				localDb
+					.update(projects)
+					.set({
+						...(input.patch.name !== undefined && { name: input.patch.name }),
+						...(input.patch.color !== undefined && {
+							color: input.patch.color,
+						}),
+						lastOpenedAt: Date.now(),
+					})
+					.where(eq(projects.id, input.id))
+					.run();
 
 				return { success: true };
 			}),
@@ -517,36 +547,116 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					toIndex: z.number(),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const { fromIndex, toIndex } = input;
+			.mutation(({ input }) => {
+				const { fromIndex, toIndex } = input;
 
-					const activeProjects = data.projects
-						.filter((p) => p.tabOrder !== null)
-						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
-						.sort((a, b) => a.tabOrder! - b.tabOrder!);
+				const activeProjects = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.tabOrder, projects.tabOrder)) // Just get all with non-null tabOrder
+					.all()
+					.filter((p) => p.tabOrder !== null)
+					.sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
 
-					if (
-						fromIndex < 0 ||
-						fromIndex >= activeProjects.length ||
-						toIndex < 0 ||
-						toIndex >= activeProjects.length
-					) {
-						throw new Error("Invalid fromIndex or toIndex");
-					}
+				if (
+					fromIndex < 0 ||
+					fromIndex >= activeProjects.length ||
+					toIndex < 0 ||
+					toIndex >= activeProjects.length
+				) {
+					throw new Error("Invalid fromIndex or toIndex");
+				}
 
-					const [removed] = activeProjects.splice(fromIndex, 1);
-					activeProjects.splice(toIndex, 0, removed);
+				const [removed] = activeProjects.splice(fromIndex, 1);
+				activeProjects.splice(toIndex, 0, removed);
 
-					activeProjects.forEach((project, index) => {
-						const p = data.projects.find((p) => p.id === project.id);
-						if (p) {
-							p.tabOrder = index;
-						}
-					});
-				});
+				for (let i = 0; i < activeProjects.length; i++) {
+					localDb
+						.update(projects)
+						.set({ tabOrder: i })
+						.where(eq(projects.id, activeProjects[i].id))
+						.run();
+				}
 
 				return { success: true };
+			}),
+
+		close: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				// Find all workspaces for this project
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.id))
+					.all();
+
+				// Kill all terminal processes in all workspaces of this project
+				let totalFailed = 0;
+				for (const workspace of projectWorkspaces) {
+					const terminalResult = await terminalManager.killByWorkspaceId(
+						workspace.id,
+					);
+					totalFailed += terminalResult.failed;
+				}
+
+				// Get workspace IDs for cleanup
+				const closedWorkspaceIds = projectWorkspaces.map((w) => w.id);
+
+				// Remove all workspaces for this project
+				if (closedWorkspaceIds.length > 0) {
+					localDb
+						.delete(workspaces)
+						.where(inArray(workspaces.id, closedWorkspaceIds))
+						.run();
+				}
+
+				// Hide the project by setting tabOrder to null
+				localDb
+					.update(projects)
+					.set({ tabOrder: null })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				// Update active workspace if it was in this project
+				const currentSettings = localDb.select().from(settings).get();
+				if (
+					currentSettings?.lastActiveWorkspaceId &&
+					closedWorkspaceIds.includes(currentSettings.lastActiveWorkspaceId)
+				) {
+					const remainingWorkspaces = localDb
+						.select()
+						.from(workspaces)
+						.orderBy(desc(workspaces.lastOpenedAt))
+						.all();
+
+					localDb
+						.update(settings)
+						.set({
+							lastActiveWorkspaceId: remainingWorkspaces[0]?.id ?? null,
+						})
+						.where(eq(settings.id, 1))
+						.run();
+				}
+
+				const terminalWarning =
+					totalFailed > 0
+						? `${totalFailed} terminal process(es) may still be running`
+						: undefined;
+
+				track("project_closed", { project_id: input.id });
+
+				return { success: true, terminalWarning };
 			}),
 	});
 };

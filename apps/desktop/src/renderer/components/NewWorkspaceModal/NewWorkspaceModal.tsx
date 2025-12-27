@@ -1,5 +1,10 @@
 import { Button } from "@superset/ui/button";
 import {
+	Collapsible,
+	CollapsibleContent,
+	CollapsibleTrigger,
+} from "@superset/ui/collapsible";
+import {
 	Command,
 	CommandEmpty,
 	CommandInput,
@@ -9,7 +14,6 @@ import {
 import {
 	Dialog,
 	DialogContent,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
@@ -23,9 +27,15 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useMemo, useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import { HiCheck, HiChevronUpDown, HiPlus } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiChevronUpDown,
+	HiPlus,
+} from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
@@ -67,6 +77,8 @@ export function NewWorkspaceModal() {
 	const [baseBranch, setBaseBranch] = useState<string | null>(null);
 	const [baseBranchOpen, setBaseBranchOpen] = useState(false);
 	const [branchSearch, setBranchSearch] = useState("");
+	const [showAdvanced, setShowAdvanced] = useState(false);
+	const titleInputRef = useRef<HTMLInputElement>(null);
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -101,12 +113,8 @@ export function NewWorkspaceModal() {
 		}
 	}, [isOpen, currentProjectId, selectedProjectId]);
 
-	// Auto-select default branch when branches load
-	useEffect(() => {
-		if (branchData?.defaultBranch && !baseBranch) {
-			setBaseBranch(branchData.defaultBranch);
-		}
-	}, [branchData?.defaultBranch, baseBranch]);
+	// Effective base branch - use explicit selection or fall back to default
+	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
 	// Reset base branch when project changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
@@ -129,6 +137,30 @@ export function NewWorkspaceModal() {
 		setMode("new");
 		setBaseBranch(null);
 		setBranchSearch("");
+		setShowAdvanced(false);
+	};
+
+	// Focus title input when modal opens and project is selected
+	useEffect(() => {
+		if (isOpen && selectedProjectId && mode === "new") {
+			// Small delay to ensure dialog is fully rendered
+			const timer = setTimeout(() => {
+				titleInputRef.current?.focus();
+			}, 50);
+			return () => clearTimeout(timer);
+		}
+	}, [isOpen, selectedProjectId, mode]);
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (
+			e.key === "Enter" &&
+			!e.shiftKey &&
+			mode === "new" &&
+			selectedProjectId
+		) {
+			e.preventDefault();
+			handleCreateWorkspace();
+		}
 	};
 
 	const handleClose = () => {
@@ -152,7 +184,7 @@ export function NewWorkspaceModal() {
 				projectId: selectedProjectId,
 				name: workspaceName,
 				branchName: customBranchName,
-				baseBranch: baseBranch || undefined,
+				baseBranch: effectiveBaseBranch || undefined,
 			}),
 			{
 				loading: "Creating workspace...",
@@ -198,12 +230,14 @@ export function NewWorkspaceModal() {
 
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-			<DialogContent className="sm:max-w-[380px] gap-0 p-0 overflow-hidden">
+			<DialogContent
+				className="sm:max-w-[380px] gap-0 p-0 overflow-hidden"
+				onKeyDown={handleKeyDown}
+			>
 				<DialogHeader className="px-4 pt-4 pb-3">
 					<DialogTitle className="text-base">Open Workspace</DialogTitle>
 				</DialogHeader>
 
-				{/* Project Selector */}
 				<div className="px-4 pb-3">
 					<div className="flex items-center gap-2">
 						<Select
@@ -221,22 +255,29 @@ export function NewWorkspaceModal() {
 								))}
 							</SelectContent>
 						</Select>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="h-8 w-8 shrink-0"
-							onClick={handleOpenNewProject}
-							disabled={openNew.isPending}
-						>
-							<HiPlus className="h-4 w-4" />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className="h-8 shrink-0 gap-1 text-xs"
+									onClick={handleOpenNewProject}
+									disabled={openNew.isPending}
+								>
+									<HiPlus className="h-4 w-4" />
+									Import
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={4}>
+								Add new project
+							</TooltipContent>
+						</Tooltip>
 					</div>
 				</div>
 
 				{selectedProjectId && (
 					<>
-						{/* Mode Switcher */}
-						<div className="px-4 pb-2">
+						<div className="px-4 pb-3">
 							<div className="flex p-0.5 bg-muted rounded-md">
 								<button
 									type="button"
@@ -247,7 +288,7 @@ export function NewWorkspaceModal() {
 											: "text-muted-foreground hover:text-foreground"
 									}`}
 								>
-									New Workspace
+									New
 								</button>
 								<button
 									type="button"
@@ -263,141 +304,164 @@ export function NewWorkspaceModal() {
 							</div>
 						</div>
 
-						{/* Content */}
 						<div className="px-4 pb-4">
 							{mode === "new" ? (
 								<div className="space-y-3">
-									<div className="space-y-1.5">
-										<label
-											htmlFor="title"
-											className="text-xs text-muted-foreground"
-										>
-											Title{" "}
-											<span className="text-muted-foreground/60">
-												(optional)
+									<Input
+										ref={titleInputRef}
+										id="title"
+										className="h-9 text-sm"
+										placeholder="Feature name (press Enter to create)"
+										value={title}
+										onChange={(e) => setTitle(e.target.value)}
+									/>
+
+									{title && !showAdvanced && (
+										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
+											<GoGitBranch className="size-3" />
+											<span className="font-mono">
+												{branchName || generateBranchFromTitle(title)}
 											</span>
-										</label>
-										<Input
-											id="title"
-											className="h-8 text-sm"
-											placeholder="Feature name"
-											value={title}
-											onChange={(e) => setTitle(e.target.value)}
-										/>
-									</div>
+											<span className="text-muted-foreground/60">
+												from {effectiveBaseBranch}
+											</span>
+										</p>
+									)}
 
-									<div className="space-y-1.5">
-										<label
-											htmlFor="branch"
-											className="text-xs text-muted-foreground"
-										>
-											Branch Name
-										</label>
-										<Input
-											id="branch"
-											className="h-8 text-sm font-mono"
-											placeholder={
-												title
-													? generateBranchFromTitle(title)
-													: "auto-generated"
-											}
-											value={branchName}
-											onChange={(e) => handleBranchNameChange(e.target.value)}
-										/>
-									</div>
-
-									<div className="space-y-1.5">
-										<span className="text-xs text-muted-foreground">
-											Base branch
-										</span>
-										{isBranchesError ? (
-											<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
-												Failed to load branches
-											</div>
-										) : (
-											<Popover
-												open={baseBranchOpen}
-												onOpenChange={setBaseBranchOpen}
-											>
-												<PopoverTrigger asChild>
-													<Button
-														variant="outline"
-														size="sm"
-														className="w-full h-8 justify-between font-normal"
-														disabled={isBranchesLoading}
-													>
-														<span className="flex items-center gap-2 truncate">
-															<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-															<span className="truncate font-mono text-sm">
-																{baseBranch || "Select branch..."}
-															</span>
-															{baseBranch === branchData?.defaultBranch && (
-																<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																	default
-																</span>
-															)}
-														</span>
-														<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
-													</Button>
-												</PopoverTrigger>
-												<PopoverContent
-													className="w-[--radix-popover-trigger-width] p-0"
-													align="start"
+									<Collapsible
+										open={showAdvanced}
+										onOpenChange={setShowAdvanced}
+									>
+										<CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+											<HiChevronDown
+												className={`size-3 transition-transform ${showAdvanced ? "" : "-rotate-90"}`}
+											/>
+											Advanced options
+										</CollapsibleTrigger>
+										<CollapsibleContent className="pt-3 space-y-3">
+											<div className="space-y-1.5">
+												<label
+													htmlFor="branch"
+													className="text-xs text-muted-foreground"
 												>
-													<Command shouldFilter={false}>
-														<CommandInput
-															placeholder="Search branches..."
-															value={branchSearch}
-															onValueChange={setBranchSearch}
-														/>
-														<CommandList className="max-h-[200px]">
-															<CommandEmpty>No branches found</CommandEmpty>
-															{filteredBranches.map((branch) => (
-																<CommandItem
-																	key={branch.name}
-																	value={branch.name}
-																	onSelect={() => {
-																		setBaseBranch(branch.name);
-																		setBaseBranchOpen(false);
-																		setBranchSearch("");
-																	}}
-																	className="flex items-center justify-between"
-																>
-																	<span className="flex items-center gap-2 truncate">
-																		<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-																		<span className="truncate">
-																			{branch.name}
-																		</span>
-																		{branch.name ===
-																			branchData?.defaultBranch && (
-																			<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-																				default
-																			</span>
-																		)}
+													Branch name
+												</label>
+												<Input
+													id="branch"
+													className="h-8 text-sm font-mono"
+													placeholder={
+														title
+															? generateBranchFromTitle(title)
+															: "auto-generated"
+													}
+													value={branchName}
+													onChange={(e) =>
+														handleBranchNameChange(e.target.value)
+													}
+												/>
+											</div>
+
+											<div className="space-y-1.5">
+												<span className="text-xs text-muted-foreground">
+													Base branch
+												</span>
+												{isBranchesError ? (
+													<div className="flex items-center gap-2 h-8 px-3 rounded-md border border-destructive/50 bg-destructive/10 text-destructive text-xs">
+														Failed to load branches
+													</div>
+												) : (
+													<Popover
+														open={baseBranchOpen}
+														onOpenChange={setBaseBranchOpen}
+													>
+														<PopoverTrigger asChild>
+															<Button
+																variant="outline"
+																size="sm"
+																className="w-full h-8 justify-between font-normal"
+																disabled={isBranchesLoading}
+															>
+																<span className="flex items-center gap-2 truncate">
+																	<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																	<span className="truncate font-mono text-sm">
+																		{effectiveBaseBranch || "Select branch..."}
 																	</span>
-																	<span className="flex items-center gap-2 shrink-0">
-																		{branch.lastCommitDate > 0 && (
-																			<span className="text-xs text-muted-foreground">
-																				{formatRelativeTime(
-																					branch.lastCommitDate,
+																	{effectiveBaseBranch ===
+																		branchData?.defaultBranch && (
+																		<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																			default
+																		</span>
+																	)}
+																</span>
+																<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+															</Button>
+														</PopoverTrigger>
+														<PopoverContent
+															className="w-[--radix-popover-trigger-width] p-0"
+															align="start"
+														>
+															<Command shouldFilter={false}>
+																<CommandInput
+																	placeholder="Search branches..."
+																	value={branchSearch}
+																	onValueChange={setBranchSearch}
+																/>
+																<CommandList className="max-h-[200px]">
+																	<CommandEmpty>No branches found</CommandEmpty>
+																	{filteredBranches.map((branch) => (
+																		<CommandItem
+																			key={branch.name}
+																			value={branch.name}
+																			onSelect={() => {
+																				setBaseBranch(branch.name);
+																				setBaseBranchOpen(false);
+																				setBranchSearch("");
+																			}}
+																			className="flex items-center justify-between"
+																		>
+																			<span className="flex items-center gap-2 truncate">
+																				<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+																				<span className="truncate">
+																					{branch.name}
+																				</span>
+																				{branch.name ===
+																					branchData?.defaultBranch && (
+																					<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+																						default
+																					</span>
 																				)}
 																			</span>
-																		)}
-																		{baseBranch === branch.name && (
-																			<HiCheck className="size-4 text-primary" />
-																		)}
-																	</span>
-																</CommandItem>
-															))}
-														</CommandList>
-													</Command>
-												</PopoverContent>
-											</Popover>
-										)}
-										<p className="text-[11px] text-muted-foreground/70">
-											Your new branch will be created from this branch
-										</p>
-									</div>
+																			<span className="flex items-center gap-2 shrink-0">
+																				{branch.lastCommitDate > 0 && (
+																					<span className="text-xs text-muted-foreground">
+																						{formatRelativeTime(
+																							branch.lastCommitDate,
+																						)}
+																					</span>
+																				)}
+																				{effectiveBaseBranch ===
+																					branch.name && (
+																					<HiCheck className="size-4 text-primary" />
+																				)}
+																			</span>
+																		</CommandItem>
+																	))}
+																</CommandList>
+															</Command>
+														</PopoverContent>
+													</Popover>
+												)}
+											</div>
+										</CollapsibleContent>
+									</Collapsible>
+
+									<Button
+										className="w-full h-8 text-sm"
+										onClick={handleCreateWorkspace}
+										disabled={createWorkspace.isPending || isBranchesError}
+									>
+										Create Workspace
+									</Button>
 								</div>
 							) : (
 								<ExistingWorktreesList
@@ -415,18 +479,6 @@ export function NewWorkspaceModal() {
 							Select a project to get started
 						</div>
 					</div>
-				)}
-
-				{mode === "new" && selectedProjectId && (
-					<DialogFooter className="px-4 pb-4 pt-0">
-						<Button
-							className="w-full h-8 text-sm"
-							onClick={handleCreateWorkspace}
-							disabled={createWorkspace.isPending || isBranchesError}
-						>
-							Create Workspace
-						</Button>
-					</DialogFooter>
 				)}
 			</DialogContent>
 		</Dialog>

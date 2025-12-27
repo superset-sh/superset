@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { SUPERSET_DIR_NAMES } from "shared/constants";
-import { isValidBinaryName } from "../sanitize";
 import { getDefaultShell } from "../terminal/env";
 
 /**
@@ -34,11 +33,6 @@ function findBinaryPathsWindows(name: string): string[] {
  * to avoid wrapper scripts calling each other.
  */
 export function findRealBinary(name: string): string | null {
-	if (!isValidBinaryName(name)) {
-		// Ok for now because we're hard-coding the binary name in the wrapper scripts
-		console.error(`Unsafe binary name: ${name}`);
-	}
-
 	try {
 		const isWindows = process.platform === "win32";
 		const allPaths = isWindows

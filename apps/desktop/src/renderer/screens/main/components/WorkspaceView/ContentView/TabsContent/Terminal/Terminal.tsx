@@ -1,7 +1,7 @@
-import "@xterm/xterm/css/xterm.css";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
+import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -337,6 +337,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 
+		const titleDisposable = xterm.onTitleChange((title) => {
+			if (title && parentTabIdRef.current) {
+				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+			}
+		});
+
 		const handleClear = () => {
 			xterm.clear();
 			clearScrollbackRef.current({ paneId });
@@ -382,6 +388,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isUnmounted = true;
 			inputDisposable.dispose();
 			keyDisposable.dispose();
+			titleDisposable.dispose();
 			cleanupKeyboard();
 			cleanupClickToMove();
 			cleanupFocus?.();

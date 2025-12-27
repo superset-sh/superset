@@ -1,7 +1,7 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import { LayoutGroup, motion } from "framer-motion";
-import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import {
@@ -17,6 +17,7 @@ import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { PortsList } from "./PortsList";
 import { PresetContextMenu } from "./PresetContextMenu";
 import { TabItem } from "./TabItem";
 import { TabsCommandDialog } from "./TabsCommandDialog";
@@ -276,6 +277,7 @@ export function TabsView() {
 						<div className="h-0.5 bg-primary rounded-full z-20 pointer-events-none mt-1" />
 					)}
 				</div>
+				<PortsList />
 			</LayoutGroup>
 		</nav>
 	);

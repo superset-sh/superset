@@ -11,7 +11,7 @@ export function CTASection() {
 	return (
 		<>
 			<section className="relative py-32 px-8 lg:px-[30px]">
-				<div className="max-w-[1200px] mx-auto flex flex-col items-center text-center">
+				<div className="max-w-7xl mx-auto flex flex-col items-center text-center">
 					<motion.h2
 						className="text-[32px] lg:text-[40px] font-normal tracking-normal leading-[1.3em] text-foreground mb-8"
 						style={{ fontFamily: "var(--font-ibm-plex-mono)" }}
@@ -20,9 +20,8 @@ export function CTASection() {
 						viewport={{ once: true }}
 						transition={{ duration: 0.5 }}
 					>
-						Give us a try
+						Get Superset Today
 					</motion.h2>
-
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						whileInView={{ opacity: 1, y: 0 }}

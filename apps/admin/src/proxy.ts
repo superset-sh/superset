@@ -1,7 +1,8 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
-import { db, eq } from "@superset/db";
+import { db } from "@superset/db/client";
 import { users } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
+import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { env } from "./env";

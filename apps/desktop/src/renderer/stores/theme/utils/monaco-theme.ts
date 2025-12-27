@@ -1,5 +1,5 @@
 import type { editor } from "monaco-editor";
-import type { Theme } from "shared/themes/types";
+import { getTerminalColors, type Theme } from "shared/themes";
 import { toHexAuto, withAlpha } from "shared/themes/utils";
 
 export interface MonacoTheme {
@@ -10,7 +10,8 @@ export interface MonacoTheme {
 }
 
 function createEditorColors(theme: Theme): editor.IColors {
-	const { terminal, ui } = theme;
+	const terminal = getTerminalColors(theme);
+	const { ui } = theme;
 	const hex = toHexAuto;
 	const alpha = withAlpha;
 
@@ -62,7 +63,7 @@ function createEditorColors(theme: Theme): editor.IColors {
 }
 
 function createTokenRules(theme: Theme): editor.ITokenThemeRule[] {
-	const { terminal } = theme;
+	const terminal = getTerminalColors(theme);
 	const hex = (color: string) => toHexAuto(color).slice(1);
 
 	return [

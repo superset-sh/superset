@@ -251,4 +251,9 @@
 	.no-drag {
 		-webkit-app-region: no-drag;
 	}
+
+	/* Disable sonner toast hover animation for update toast only */
+	[data-sonner-toast]:has(.update-toast) {
+		transform: translateY(0);
+	}
 }

@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { settings } from "@superset/local-db";
 import {
 	DEFAULT_RINGTONE_ID,
 	getRingtoneFilename,
 } from "../../shared/ringtones";
-import { db } from "./db";
+import { localDb } from "./local-db";
 import { getSoundPath } from "./sound-paths";
 
 /**
@@ -15,8 +16,8 @@ function getSelectedRingtoneFilename(): string {
 	const defaultFilename = getRingtoneFilename(DEFAULT_RINGTONE_ID);
 
 	try {
-		const selectedId =
-			db.data.settings.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
+		const settingsRow = localDb.select().from(settings).get();
+		const selectedId = settingsRow?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
 
 		// "none" means silent - return empty string intentionally
 		if (selectedId === "none") {

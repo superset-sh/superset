@@ -131,8 +131,8 @@ export function CreateWorkspaceButton({
 						</button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={6} className="text-xs">
-					New workspace
+				<TooltipContent side="bottom" sideOffset={4}>
+					Create workspace or project
 				</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent

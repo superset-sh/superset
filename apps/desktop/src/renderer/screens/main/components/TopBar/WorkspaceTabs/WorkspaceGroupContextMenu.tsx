@@ -6,7 +6,10 @@ import {
 } from "@superset/ui/context-menu";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useUpdateProject } from "renderer/react-query/projects";
+import {
+	useCloseProject,
+	useUpdateProject,
+} from "renderer/react-query/projects";
 import { PROJECT_COLORS } from "shared/constants/project-colors";
 
 interface WorkspaceGroupContextMenuProps {
@@ -26,6 +29,7 @@ export function WorkspaceGroupContextMenu({
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const skipBlurSubmit = useRef(false);
 	const updateProject = useUpdateProject();
+	const closeProject = useCloseProject();
 
 	useEffect(() => {
 		setName(projectName);
@@ -146,12 +150,11 @@ export function WorkspaceGroupContextMenu({
 				<button
 					type="button"
 					onClick={() => {
-						// TODO: Implement worktree configuration
-						inputRef.current?.focus();
+						closeProject.mutate({ id: projectId });
 					}}
-					className="w-full px-2 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-accent"
+					className="w-full px-2 py-1.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/10"
 				>
-					Configure worktree setup
+					Close Project
 				</button>
 			</ContextMenuContent>
 		</ContextMenu>

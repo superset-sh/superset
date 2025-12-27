@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import {
@@ -11,7 +12,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ExternalApp } from "main/lib/db/schemas";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
