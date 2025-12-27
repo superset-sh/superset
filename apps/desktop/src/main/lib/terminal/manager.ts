@@ -480,6 +480,7 @@ export class TerminalManager extends EventEmitter {
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 			flushSession(session);
+			this.osc7Buffers.delete(paneId);
 
 			if (session.isPersistentBackend && session.isExpectedDetach) {
 				return;
@@ -647,9 +648,11 @@ export class TerminalManager extends EventEmitter {
 			await processPersistence.killSession(sessionName).catch(() => {});
 		}
 
-		if (session.isAlive) {
+		if (session.isAlive && !session.isExpectedDetach) {
 			session.pty.kill();
 		} else {
+			this.osc7Buffers.delete(paneId);
+			portManager.removePortsForPane(paneId);
 			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
 		}
