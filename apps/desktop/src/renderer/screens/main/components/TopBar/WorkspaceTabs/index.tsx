@@ -16,7 +16,7 @@ import { WorkspaceGroup } from "./WorkspaceGroup";
 
 const MIN_WORKSPACE_WIDTH = 60;
 const MAX_WORKSPACE_WIDTH = 160;
-const ADD_BUTTON_WIDTH = 48;
+const ADD_BUTTON_WIDTH = 40;
 
 export function WorkspacesTabs() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
@@ -166,7 +166,7 @@ export function WorkspacesTabs() {
 			<div className="relative h-full overflow-hidden min-w-0 flex-1">
 				<div
 					ref={scrollRef}
-					className="flex h-full overflow-x-auto hide-scrollbar gap-4"
+					className="flex h-full overflow-x-auto hide-scrollbar gap-4 pr-10"
 				>
 					{groups.map((group, groupIndex) => (
 						<Fragment key={group.project.id}>
@@ -200,15 +200,23 @@ export function WorkspacesTabs() {
 					)}
 				</div>
 
-				{/* Fade effects for scroll indication */}
+				{/* Left fade for scroll indication */}
 				{showStartFade && (
 					<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
 				)}
-				{showEndFade && (
-					<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
-				)}
+
+				{/* Right side: gradient fade + button container */}
+				<div className="absolute right-0 top-0 h-full flex items-center pointer-events-none">
+					{/* Gradient fade - only show when content overflows */}
+					{showEndFade && (
+						<div className="h-full w-8 bg-linear-to-l from-background to-transparent" />
+					)}
+					{/* Button with solid background */}
+					<div className="h-full flex items-center bg-background pl-1 pr-2 pointer-events-auto">
+						<CreateWorkspaceButton className="no-drag" />
+					</div>
+				</div>
 			</div>
-			<CreateWorkspaceButton className="no-drag shrink-0" />
 		</div>
 	);
 }

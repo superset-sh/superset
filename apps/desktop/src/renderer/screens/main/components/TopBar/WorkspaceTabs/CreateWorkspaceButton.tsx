@@ -125,9 +125,9 @@ export function CreateWorkspaceButton({
 							type="button"
 							aria-label="New workspace"
 							disabled={isLoading}
-							className={`${className} mx-2 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground/60 transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground/80 active:scale-95 disabled:pointer-events-none disabled:opacity-40`}
+							className={`${className} flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-40`}
 						>
-							<HiMiniPlus className="size-[15px]" />
+							<HiMiniPlus className="size-[18px] stroke-[0.5]" />
 						</button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
