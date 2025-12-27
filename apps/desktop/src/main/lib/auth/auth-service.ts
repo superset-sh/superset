@@ -36,6 +36,33 @@ function verifyState(state: string): boolean {
 	return true;
 }
 
+interface TokenResponse {
+	accessToken: string;
+	accessTokenExpiresAt: number;
+	refreshToken: string;
+	refreshTokenExpiresAt: number;
+}
+
+/**
+ * Type guard to validate token response shape at runtime
+ */
+function isValidTokenResponse(data: unknown): data is TokenResponse {
+	if (typeof data !== "object" || data === null) {
+		return false;
+	}
+	const obj = data as Record<string, unknown>;
+	return (
+		typeof obj.accessToken === "string" &&
+		obj.accessToken.length > 0 &&
+		typeof obj.accessTokenExpiresAt === "number" &&
+		obj.accessTokenExpiresAt > 0 &&
+		typeof obj.refreshToken === "string" &&
+		obj.refreshToken.length > 0 &&
+		typeof obj.refreshTokenExpiresAt === "number" &&
+		obj.refreshTokenExpiresAt > 0
+	);
+}
+
 import { tokenStorage } from "./token-storage";
 
 /**
@@ -180,17 +207,10 @@ class AuthService extends EventEmitter {
 				return "network_error";
 			}
 
-			let tokens: {
-				accessToken: string;
-				accessTokenExpiresAt: number;
-				refreshToken: string;
-				refreshTokenExpiresAt: number;
-			};
-
+			let data: unknown;
 			try {
-				tokens = (await response.json()) as typeof tokens;
+				data = await response.json();
 			} catch (parseErr) {
-				// JSON parse error indicates malformed server response - treat as invalid
 				console.error(
 					"[auth] Token refresh JSON parse error:",
 					parseErr instanceof Error ? parseErr.message : parseErr,
@@ -198,12 +218,21 @@ class AuthService extends EventEmitter {
 				return "invalid";
 			}
 
-			// Update session with new tokens
+			// Validate response shape before persisting
+			if (!isValidTokenResponse(data)) {
+				console.error(
+					"[auth] Token refresh response missing required fields:",
+					data,
+				);
+				return "invalid";
+			}
+
+			// Update session with validated tokens
 			this.session = {
-				accessToken: tokens.accessToken,
-				accessTokenExpiresAt: tokens.accessTokenExpiresAt,
-				refreshToken: tokens.refreshToken,
-				refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+				accessToken: data.accessToken,
+				accessTokenExpiresAt: data.accessTokenExpiresAt,
+				refreshToken: data.refreshToken,
+				refreshTokenExpiresAt: data.refreshTokenExpiresAt,
 			};
 
 			await tokenStorage.save(this.session);
