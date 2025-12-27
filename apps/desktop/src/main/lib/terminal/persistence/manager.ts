@@ -79,9 +79,13 @@ set -ga terminal-overrides ",xterm-256color:Tc"
 		return this.backend.createSession(opts);
 	}
 
-	async attachSession(name: string): Promise<pty.IPty> {
+	async attachSession(
+		name: string,
+		cols?: number,
+		rows?: number,
+	): Promise<pty.IPty> {
 		if (!this.backend) throw new Error("No persistence backend available");
-		return this.backend.attachSession(name);
+		return this.backend.attachSession(name, cols, rows);
 	}
 
 	async detachSession(name: string): Promise<void> {
@@ -149,4 +153,4 @@ set -ga terminal-overrides ",xterm-256color:Tc"
 }
 
 export const processPersistence = new ProcessPersistence();
-export { getSessionName, getWorkspacePrefix };
+export { getSessionName, getWorkspacePrefix, TmuxBackend };

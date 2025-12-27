@@ -9,6 +9,7 @@ import { SUPERSET_HOME_DIR } from "../../app-environment";
 import type {
 	CreatePersistentSessionParams,
 	PersistenceBackend,
+	TmuxError,
 } from "./types";
 
 const exec = promisify(execCallback);
@@ -177,20 +178,43 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 		);
 	}
 
-	async attachSession(name: string): Promise<pty.IPty> {
-		const env = { ...process.env, PATH: EXTENDED_PATH };
-		delete env.TMUX;
+	async attachSession(name: string, cols = 80, rows = 24): Promise<pty.IPty> {
+		const env: Record<string, string | undefined> = {
+			...process.env,
+			PATH: EXTENDED_PATH,
+			TMUX: undefined,
+		};
+
+		await this.detachSession(name).catch(() => {});
 
 		return pty.spawn(
 			"tmux",
-			["-S", TMUX_SOCKET, "attach-session", "-t", name],
+			["-S", TMUX_SOCKET, "attach-session", "-d", "-t", name],
 			{
 				name: "xterm-256color",
-				cols: 80,
-				rows: 24,
+				cols,
+				rows,
 				env: env as Record<string, string>,
 			},
 		);
+	}
+
+	classifyError(error: unknown): TmuxError {
+		const msg =
+			error instanceof Error ? error.message.toLowerCase() : String(error);
+		if (msg.includes("no server") || msg.includes("connection refused")) {
+			return "NO_SERVER";
+		}
+		if (msg.includes("no such session") || msg.includes("can't find session")) {
+			return "NO_SESSION";
+		}
+		if (msg.includes("no such file") && msg.includes("sock")) {
+			return "SOCKET_MISSING";
+		}
+		if (msg.includes("not found") && msg.includes("tmux")) {
+			return "TMUX_NOT_FOUND";
+		}
+		return "ATTACH_FAILED";
 	}
 
 	async detachSession(name: string): Promise<void> {

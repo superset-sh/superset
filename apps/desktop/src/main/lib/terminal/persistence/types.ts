@@ -1,5 +1,22 @@
 import type * as pty from "node-pty";
 
+/** Error types from tmux operations */
+export type TmuxError =
+	| "NO_SERVER"
+	| "NO_SESSION"
+	| "SOCKET_MISSING"
+	| "TMUX_NOT_FOUND"
+	| "ATTACH_FAILED";
+
+/** Session lifecycle states for persistent terminals */
+export type SessionState =
+	| "disconnected" // tmux session exists, no attach PTY
+	| "connecting" // spawn attach in progress
+	| "connected" // attach PTY alive and wired
+	| "reconnecting" // auto-reconnect in progress
+	| "failed" // unrecoverable error
+	| "closed"; // session ended (user exit or killed)
+
 export interface PersistenceBackend {
 	name: "tmux";
 
@@ -15,7 +32,7 @@ export interface PersistenceBackend {
 		env: Record<string, string>;
 	}): Promise<void>;
 
-	attachSession(name: string): Promise<pty.IPty>;
+	attachSession(name: string, cols?: number, rows?: number): Promise<pty.IPty>;
 	detachSession(name: string): Promise<void>;
 	killSession(name: string): Promise<void>;
 
