@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import { track } from "main/lib/analytics";
+import { HistoryReader, HistoryWriter } from "../terminal-history";
 import {
 	buildTerminalEnv,
 	FALLBACK_SHELL,
@@ -157,13 +158,31 @@ export class TerminalManager extends EventEmitter {
 	): Promise<SessionResult> {
 		const { paneId, workspaceId, initialCommands } = params;
 
+		// Read saved CWD from metadata as fallback (in case tmux crashed previously)
+		const historyReader = new HistoryReader(workspaceId, paneId);
+		const savedMetadata = await historyReader.readMetadata();
+		const cwd = params.cwd ?? savedMetadata?.cwd ?? os.homedir();
+		const cols = params.cols ?? 80;
+		const rows = params.rows ?? 24;
+
+		// Create historyWriter for CWD tracking and backup scrollback persistence
+		// Even for tmux sessions, this provides resilience if tmux crashes
+		const historyWriter = new HistoryWriter(
+			workspaceId,
+			paneId,
+			cwd,
+			cols,
+			rows,
+		);
+		await historyWriter.init(opts.scrollback || undefined);
+
 		const session: TerminalSession = {
 			pty: ptyProcess,
 			paneId,
 			workspaceId,
-			cwd: params.cwd ?? os.homedir(),
-			cols: params.cols ?? 80,
-			rows: params.rows ?? 24,
+			cwd,
+			cols,
+			rows,
 			lastActive: Date.now(),
 			scrollback: opts.scrollback,
 			isAlive: true,
@@ -175,6 +194,7 @@ export class TerminalManager extends EventEmitter {
 			startTime: Date.now(),
 			usedFallback: false,
 			isPersistentBackend: opts.isPersistentBackend,
+			historyWriter,
 		};
 
 		setupDataHandler(session, initialCommands, opts.wasRecovered, () =>
