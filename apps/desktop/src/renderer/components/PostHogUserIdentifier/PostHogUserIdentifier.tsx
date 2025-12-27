@@ -12,6 +12,7 @@ export function PostHogUserIdentifier() {
 	useEffect(() => {
 		if (user) {
 			posthog.identify(user.id, { email: user.email, name: user.name });
+			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });
 
 			const trackedUserId = localStorage.getItem(AUTH_COMPLETED_KEY);
