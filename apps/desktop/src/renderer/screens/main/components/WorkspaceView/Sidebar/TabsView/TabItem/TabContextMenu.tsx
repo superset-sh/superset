@@ -23,11 +23,19 @@ export function TabContextMenu({
 }: TabContextMenuProps) {
 	const hasMultiplePanes = paneCount > 1;
 
+	const handleRenameSelect = (event: Event) => {
+		// Prevent default to stop Radix from restoring focus to the trigger
+		event.preventDefault();
+		onRename();
+	};
+
 	const contextMenuContent = (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent className="w-48">
-				<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
+				<ContextMenuItem onSelect={handleRenameSelect}>
+					Rename Tab
+				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuItem onSelect={onClose} className="text-destructive">
 					Close Tab
@@ -47,7 +55,9 @@ export function TabContextMenu({
 					<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 				</TooltipTrigger>
 				<ContextMenuContent className="w-48">
-					<ContextMenuItem onSelect={onRename}>Rename Tab</ContextMenuItem>
+					<ContextMenuItem onSelect={handleRenameSelect}>
+						Rename Tab
+					</ContextMenuItem>
 					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={onClose} className="text-destructive">
 						Close Tab
