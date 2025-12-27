@@ -95,6 +95,15 @@
 				// Clerk webhook
 				"CLERK_WEBHOOK_SECRET",
 
+				// PostHog server-side (from @superset/trpc)
+				"POSTHOG_API_KEY",
+				"POSTHOG_PROJECT_ID",
+				"POSTHOG_API_HOST",
+
+				// Vercel KV (optional, from @superset/trpc)
+				"KV_REST_API_URL",
+				"KV_REST_API_TOKEN",
+
 				// URLs specific to API
 				"NEXT_PUBLIC_ADMIN_URL",
 
