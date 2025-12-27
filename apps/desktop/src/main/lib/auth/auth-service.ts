@@ -180,12 +180,23 @@ class AuthService extends EventEmitter {
 				return "network_error";
 			}
 
-			const tokens = (await response.json()) as {
+			let tokens: {
 				accessToken: string;
 				accessTokenExpiresAt: number;
 				refreshToken: string;
 				refreshTokenExpiresAt: number;
 			};
+
+			try {
+				tokens = (await response.json()) as typeof tokens;
+			} catch (parseErr) {
+				// JSON parse error indicates malformed server response - treat as invalid
+				console.error(
+					"[auth] Token refresh JSON parse error:",
+					parseErr instanceof Error ? parseErr.message : parseErr,
+				);
+				return "invalid";
+			}
 
 			// Update session with new tokens
 			this.session = {
@@ -200,7 +211,9 @@ class AuthService extends EventEmitter {
 			return "success";
 		} catch (err) {
 			// Network errors (offline, DNS failure, etc) - keep session for offline use
-			console.error("[auth] Token refresh network error:", err);
+			const errType = err instanceof Error ? err.constructor.name : typeof err;
+			const errMsg = err instanceof Error ? err.message : String(err);
+			console.error(`[auth] Token refresh network error (${errType}):`, errMsg);
 			return "network_error";
 		}
 	}
