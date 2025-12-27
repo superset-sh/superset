@@ -19,6 +19,9 @@ export interface TerminalSession {
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
+	isPersistentBackend?: boolean;
+	isExpectedDetach?: boolean;
+	cleanupTimeout?: ReturnType<typeof setTimeout>;
 }
 
 export interface TerminalDataEvent {

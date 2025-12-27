@@ -3,6 +3,9 @@
  * OSC 7 format: ESC]7;file://hostname/path BEL (or ESC\)
  *
  * This is emitted by shells when the directory changes.
+ *
+ * NOTE: This module is shared between main and renderer processes.
+ * Do NOT add any Node.js dependencies here.
  */
 
 const ESC = "\x1b";
