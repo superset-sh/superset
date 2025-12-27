@@ -1,7 +1,6 @@
 {
 	"name": "@superset/db",
-	"description": "Drizzle database schema",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
 	"type": "module",
 	"exports": {
@@ -20,26 +19,30 @@
 		"./schema": {
 			"types": "./src/schema/index.ts",
 			"default": "./src/schema/index.ts"
+		},
+		"./utils": {
+			"types": "./src/utils/index.ts",
+			"default": "./src/utils/index.ts"
 		}
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"push": "drizzle-kit push",
 		"migrate": "drizzle-kit migrate",
-		"studio": "drizzle-kit studio"
+		"studio": "drizzle-kit studio",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
-		"@neondatabase/serverless": "1.0.1",
+		"@neondatabase/serverless": "1.0.2",
 		"@t3-oss/env-core": "^0.13.8",
 		"dotenv": "^17.2.3",
-		"drizzle-orm": "0.44.3",
-		"drizzle-zod": "0.8.2",
-		"zod": "^4.1.12"
+		"drizzle-orm": "0.45.1",
+		"zod": "^4.1.13"
 	},
 	"devDependencies": {
-		"@superset/typescript": "*",
+		"@superset/typescript": "workspace:*",
 		"@types/node": "^24.9.1",
-		"drizzle-kit": "0.31.1",
+		"drizzle-kit": "0.31.8",
 		"typescript": "^5.9.3"
 	}
 }

@@ -26,6 +26,8 @@ import {
 	WorkspaceList,
 	WorkspaceUse,
 } from "./commands/index";
+import { getDb } from "./lib/db";
+import { WorkspaceOrchestrator } from "./lib/orchestrators/workspace-orchestrator";
 import { AgentType, ProcessType } from "./types/process";
 import { WorkspaceType } from "./types/workspace";
 
@@ -337,10 +339,6 @@ program.action(async () => {
 
 	// Show current workspace if set
 	try {
-		const { getDb } = await import("./lib/db");
-		const { WorkspaceOrchestrator } = await import(
-			"./lib/orchestrators/workspace-orchestrator"
-		);
 		const db = getDb();
 		const orchestrator = new WorkspaceOrchestrator(db);
 		const currentWorkspace = await orchestrator.getCurrent();

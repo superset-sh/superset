@@ -82,6 +82,7 @@ export const useTabsStore = create<TabsStore>()(
 				// Tab operations
 				addTab: (workspaceId, options?: CreatePaneOptions) => {
 					const state = get();
+
 					const { tab, pane } = createTabWithPane(
 						workspaceId,
 						state.tabs,
@@ -318,12 +319,12 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Pane operations
-				addPane: (tabId) => {
+				addPane: (tabId, options?: CreatePaneOptions) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return "";
 
-					const newPane = createPane(tabId);
+					const newPane = createPane(tabId, "terminal", options);
 
 					// Add pane to layout (append to the right)
 					const newLayout: MosaicNode<string> = {
@@ -433,6 +434,17 @@ export const useTabsStore = create<TabsStore>()(
 							...state.panes,
 							[paneId]: state.panes[paneId]
 								? { ...state.panes[paneId], needsAttention }
+								: state.panes[paneId],
+						},
+					}));
+				},
+
+				updatePaneCwd: (paneId, cwd, confirmed) => {
+					set((state) => ({
+						panes: {
+							...state.panes,
+							[paneId]: state.panes[paneId]
+								? { ...state.panes[paneId], cwd, cwdConfirmed: confirmed }
 								: state.panes[paneId],
 						},
 					}));

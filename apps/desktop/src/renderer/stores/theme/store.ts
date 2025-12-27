@@ -2,13 +2,20 @@ import type { ITheme } from "@xterm/xterm";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
+	getTerminalColors,
 	type Theme,
 	type ThemeMetadata,
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcThemeStorage } from "../../lib/trpc-storage";
-import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
+import {
+	applyUIColors,
+	type MonacoTheme,
+	toMonacoTheme,
+	toXtermTheme,
+	updateThemeClass,
+} from "./utils";
 
 interface ThemeState {
 	/** Current active theme ID */
@@ -22,6 +29,9 @@ interface ThemeState {
 
 	/** Terminal theme in xterm.js format (derived from activeTheme) */
 	terminalTheme: ITheme | null;
+
+	/** Monaco editor theme (derived from activeTheme) */
+	monacoTheme: MonacoTheme | null;
 
 	/** Set the active theme by ID */
 	setTheme: (themeId: string) => void;
@@ -58,7 +68,10 @@ function syncThemeToLocalStorage(theme: Theme): void {
 	try {
 		localStorage.setItem("theme-type", theme.type);
 		localStorage.setItem("theme-id", theme.id);
-		localStorage.setItem("theme-terminal", JSON.stringify(theme.terminal));
+		localStorage.setItem(
+			"theme-terminal",
+			JSON.stringify(getTerminalColors(theme)),
+		);
 	} catch {
 		// localStorage may not be available
 	}
@@ -67,18 +80,23 @@ function syncThemeToLocalStorage(theme: Theme): void {
 /**
  * Apply a theme to the UI and terminal
  */
-function applyTheme(theme: Theme): ITheme {
+function applyTheme(theme: Theme): {
+	terminalTheme: ITheme;
+	monacoTheme: MonacoTheme;
+} {
 	// Apply UI colors to CSS variables
 	applyUIColors(theme.ui);
 
 	// Update dark/light class
 	updateThemeClass(theme.type);
 
-	// Sync theme to localStorage for instant flash-free loading
 	syncThemeToLocalStorage(theme);
 
-	// Convert terminal colors to xterm format
-	return toXtermTheme(theme.terminal);
+	// Convert to editor-specific formats
+	return {
+		terminalTheme: toXtermTheme(getTerminalColors(theme)),
+		monacoTheme: toMonacoTheme(theme),
+	};
 }
 
 export const useThemeStore = create<ThemeState>()(
@@ -89,6 +107,7 @@ export const useThemeStore = create<ThemeState>()(
 				customThemes: [],
 				activeTheme: null,
 				terminalTheme: null,
+				monacoTheme: null,
 
 				setTheme: (themeId: string) => {
 					const state = get();
@@ -99,12 +118,13 @@ export const useThemeStore = create<ThemeState>()(
 						return;
 					}
 
-					const terminalTheme = applyTheme(theme);
+					const { terminalTheme, monacoTheme } = applyTheme(theme);
 
 					set({
 						activeThemeId: themeId,
 						activeTheme: theme,
 						terminalTheme,
+						monacoTheme,
 					});
 				},
 
@@ -146,13 +166,13 @@ export const useThemeStore = create<ThemeState>()(
 					const theme = findTheme(state.activeThemeId, state.customThemes);
 
 					if (theme) {
-						const terminalTheme = applyTheme(theme);
+						const { terminalTheme, monacoTheme } = applyTheme(theme);
 						set({
 							activeTheme: theme,
 							terminalTheme,
+							monacoTheme,
 						});
 					} else {
-						// Fallback to default theme if saved theme not found
 						state.setTheme(DEFAULT_THEME_ID);
 					}
 				},
@@ -165,12 +185,8 @@ export const useThemeStore = create<ThemeState>()(
 					customThemes: state.customThemes,
 				}),
 				onRehydrateStorage: () => (state) => {
-					// Initialize theme after hydration
 					if (state) {
-						// Use setTimeout to ensure DOM is ready
-						setTimeout(() => {
-							state.initializeTheme();
-						}, 0);
+						state.initializeTheme();
 					}
 				},
 			},
@@ -183,5 +199,6 @@ export const useThemeStore = create<ThemeState>()(
 export const useTheme = () => useThemeStore((state) => state.activeTheme);
 export const useTerminalTheme = () =>
 	useThemeStore((state) => state.terminalTheme);
+export const useMonacoTheme = () => useThemeStore((state) => state.monacoTheme);
 export const useSetTheme = () => useThemeStore((state) => state.setTheme);
 export const useThemeId = () => useThemeStore((state) => state.activeThemeId);

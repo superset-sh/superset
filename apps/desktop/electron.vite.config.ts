@@ -1,3 +1,4 @@
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { dirname, normalize, resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
@@ -5,6 +6,7 @@ import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
 import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
+import type { Plugin } from "vite";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 import { main, resources } from "./package.json";
 
@@ -22,9 +24,74 @@ const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
 
+/**
+ * Plugin to copy resources (like sounds) to the dist folder for preview mode.
+ * In preview mode, __dirname resolves relative to dist/main, so resources
+ * need to be at dist/resources/sounds for the main process to access them.
+ *
+ * Cleans the destination first to avoid stale files from previous builds.
+ */
+function copyResourcesPlugin(): Plugin {
+	return {
+		name: "copy-resources",
+		writeBundle() {
+			// Copy sounds
+			const soundsSrc = resolve(resources, "sounds");
+			const soundsDest = resolve(devPath, "resources/sounds");
+
+			if (existsSync(soundsSrc)) {
+				if (existsSync(soundsDest)) {
+					rmSync(soundsDest, { recursive: true });
+				}
+				mkdirSync(soundsDest, { recursive: true });
+				cpSync(soundsSrc, soundsDest, { recursive: true });
+			}
+
+			// Copy database migrations from local-db package
+			const migrationsSrc = resolve(
+				__dirname,
+				"../../packages/local-db/drizzle",
+			);
+			const migrationsDest = resolve(devPath, "resources/migrations");
+
+			if (existsSync(migrationsSrc)) {
+				if (existsSync(migrationsDest)) {
+					rmSync(migrationsDest, { recursive: true });
+				}
+				mkdirSync(migrationsDest, { recursive: true });
+				cpSync(migrationsSrc, migrationsDest, { recursive: true });
+			}
+		},
+	};
+}
+
 export default defineConfig({
 	main: {
-		plugins: [tsconfigPaths],
+		plugins: [tsconfigPaths, copyResourcesPlugin()],
+
+		define: {
+			"process.env.NODE_ENV": JSON.stringify(
+				process.env.NODE_ENV || "production",
+			),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
+			// API URLs - baked in at build time for main process
+			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_WEB_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_WEB_URL || "https://app.superset.sh",
+			),
+			// OAuth client IDs - baked in at build time for main process
+			"process.env.GOOGLE_CLIENT_ID": JSON.stringify(
+				process.env.GOOGLE_CLIENT_ID,
+			),
+			"process.env.GH_CLIENT_ID": JSON.stringify(process.env.GH_CLIENT_ID),
+			"process.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+				process.env.SENTRY_DSN_DESKTOP,
+			),
+		},
 
 		build: {
 			rollupOptions: {
@@ -37,7 +104,9 @@ export default defineConfig({
 				// Only externalize native modules that can't be bundled
 				external: [
 					"electron",
+					"better-sqlite3", // Native module - must stay external
 					"node-pty", // Native module - must stay external
+					/^@sentry\/electron/,
 				],
 			},
 		},
@@ -54,6 +123,15 @@ export default defineConfig({
 			}),
 		],
 
+		define: {
+			"process.env.NODE_ENV": JSON.stringify(
+				process.env.NODE_ENV || "production",
+			),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
+		},
+
 		build: {
 			outDir: resolve(devPath, "preload"),
 			rollupOptions: {
@@ -66,9 +144,30 @@ export default defineConfig({
 
 	renderer: {
 		define: {
+			// Core env vars - Vite replaces these at build time
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
+			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
+				process.env.SKIP_ENV_VALIDATION || "",
+			),
 			"process.platform": JSON.stringify(process.platform),
+			// API URLs - available in renderer if needed
+			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_WEB_URL": JSON.stringify(
+				process.env.NEXT_PUBLIC_WEB_URL || "https://app.superset.sh",
+			),
+			// Custom env vars
 			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_KEY,
+			),
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_HOST,
+			),
+			"import.meta.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+				process.env.SENTRY_DSN_DESKTOP,
+			),
 		},
 
 		server: {
@@ -88,6 +187,15 @@ export default defineConfig({
 			}),
 		],
 
+		// Monaco editor worker configuration
+		worker: {
+			format: "es",
+		},
+
+		optimizeDeps: {
+			include: ["monaco-editor"],
+		},
+
 		publicDir: resolve(resources, "public"),
 
 		build: {
@@ -104,6 +212,9 @@ export default defineConfig({
 				input: {
 					index: resolve("src/renderer/index.html"),
 				},
+
+				// Externalize Sentry - it uses IPC to communicate with main process
+				external: [/^@sentry\/electron/],
 			},
 		},
 	},

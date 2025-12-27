@@ -18,6 +18,7 @@ jobs:
   build:
     name: Build - macOS (${{ matrix.arch }})
     runs-on: macos-latest
+    environment: production
 
     strategy:
       fail-fast: false
@@ -54,9 +55,19 @@ jobs:
 
       - name: Compile app with electron-vite
         working-directory: apps/desktop
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
         run: bun run compile:app
 
       # Build the Electron app for macOS
+      # Uses --publish never to prevent electron-builder from creating its own release
+      # The release job handles GitHub release creation
       - name: Build Electron app
         working-directory: apps/desktop
         env:
@@ -66,8 +77,7 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run package
+        run: bun run package -- --publish never
 
       # Upload artifacts separately to avoid nested zips
       - name: Upload DMG artifact

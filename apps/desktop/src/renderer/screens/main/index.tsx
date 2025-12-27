@@ -3,8 +3,11 @@ import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
+import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
+import { useUpdateListener } from "renderer/components/UpdateToast";
 import { trpc } from "renderer/lib/trpc";
+import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -28,16 +31,29 @@ function LoadingSpinner() {
 }
 
 export function MainScreen() {
+	const utils = trpc.useUtils();
+	const { data: authState } = trpc.auth.getState.useQuery();
+	const isSignedIn =
+		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
+	const isAuthLoading = !process.env.SKIP_ENV_VALIDATION && !authState;
+
+	// Subscribe to auth state changes
+	trpc.auth.onStateChange.useSubscription(undefined, {
+		onData: () => utils.auth.getState.invalidate(),
+	});
+
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
 	const {
 		data: activeWorkspace,
-		isLoading,
+		isLoading: isWorkspaceLoading,
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery();
+	} = trpc.workspaces.getActive.useQuery(undefined, {
+		enabled: isSignedIn,
+	});
 	const [isRetrying, setIsRetrying] = useState(false);
 	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
 	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
@@ -48,6 +64,7 @@ export function MainScreen() {
 	const tabs = useTabsStore((s) => s.tabs);
 
 	useAgentHookListener();
+	useUpdateListener();
 
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -140,8 +157,35 @@ export function MainScreen() {
 		isWorkspaceView,
 	]);
 
+	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	// Show loading while auth state is being determined
+	if (isAuthLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
+
+	// Show sign-in screen if user is not signed in
+	if (!isSignedIn) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<SignInScreen />
+				</AppFrame>
+			</>
+		);
+	}
 
 	const renderContent = () => {
 		if (currentView === "settings") {
@@ -222,6 +266,7 @@ export function MainScreen() {
 				)}
 			</AppFrame>
 			<SetupConfigModal />
+			<NewWorkspaceModal />
 		</DndProvider>
 	);
 }

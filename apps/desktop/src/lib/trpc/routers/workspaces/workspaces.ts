@@ -1,27 +1,40 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { db } from "main/lib/db";
-import { terminalManager } from "main/lib/terminal-manager";
-import { nanoid } from "nanoid";
+import {
+	projects,
+	type SelectWorktree,
+	settings,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
+import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { track } from "main/lib/analytics";
+import { localDb } from "main/lib/local-db";
+import { terminalManager } from "main/lib/terminal";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	branchExistsOnRemote,
 	checkNeedsRebase,
 	createWorktree,
+	detectBaseBranch,
 	fetchDefaultBranch,
 	generateBranchName,
+	getCurrentBranch,
 	getDefaultBranch,
 	hasOriginRemote,
 	hasUncommittedChanges,
 	hasUnpushedCommits,
+	listBranches,
 	removeWorktree,
+	safeCheckoutBranch,
 	worktreeExists,
 } from "./utils/git";
 import { fetchGitHubPRStatus } from "./utils/github";
 import { loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
-import { getWorktreePath } from "./utils/worktree";
+import { getWorkspacePath } from "./utils/worktree";
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -30,15 +43,21 @@ export const createWorkspacesRouter = () => {
 				z.object({
 					projectId: z.string(),
 					name: z.string().optional(),
+					branchName: z.string().optional(),
+					baseBranch: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				const branch = generateBranchName();
+				const branch = input.branchName?.trim() || generateBranchName();
 
 				const worktreePath = join(
 					homedir(),
@@ -53,11 +72,15 @@ export const createWorkspacesRouter = () => {
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
 					// Save it for future use
-					await db.update((data) => {
-						const p = data.projects.find((p) => p.id === project.id);
-						if (p) p.defaultBranch = defaultBranch;
-					});
+					localDb
+						.update(projects)
+						.set({ defaultBranch })
+						.where(eq(projects.id, project.id))
+						.run();
 				}
+
+				// Use provided baseBranch or fall back to default
+				const targetBranch = input.baseBranch || defaultBranch;
 
 				// Check if this repo has a remote origin
 				const hasRemote = await hasOriginRemote(project.mainRepoPath);
@@ -65,16 +88,27 @@ export const createWorkspacesRouter = () => {
 				// Determine the start point for the worktree
 				let startPoint: string;
 				if (hasRemote) {
-					// Fetch default branch to ensure we're branching from latest (best-effort)
-					try {
-						await fetchDefaultBranch(project.mainRepoPath, defaultBranch);
-					} catch {
-						// Silently continue - branch still exists locally, just might be stale
+					// Verify the branch exists on remote before attempting to use it
+					const existsOnRemote = await branchExistsOnRemote(
+						project.mainRepoPath,
+						targetBranch,
+					);
+					if (!existsOnRemote) {
+						throw new Error(
+							`Branch "${targetBranch}" does not exist on origin. Please select a different base branch.`,
+						);
 					}
-					startPoint = `origin/${defaultBranch}`;
+
+					// Fetch the target branch to ensure we're branching from latest (best-effort)
+					try {
+						await fetchDefaultBranch(project.mainRepoPath, targetBranch);
+					} catch {
+						// Silently continue - branch exists on remote, just couldn't fetch
+					}
+					startPoint = `origin/${targetBranch}`;
 				} else {
-					// For local-only repos, use the local default branch
-					startPoint = defaultBranch;
+					// For local-only repos, use the local branch
+					startPoint = targetBranch;
 				}
 
 				await createWorktree(
@@ -84,63 +118,90 @@ export const createWorkspacesRouter = () => {
 					startPoint,
 				);
 
-				const worktree = {
-					id: nanoid(),
-					projectId: input.projectId,
-					path: worktreePath,
-					branch,
-					createdAt: Date.now(),
-					gitStatus: {
+				// Insert worktree
+				const worktree = localDb
+					.insert(worktrees)
+					.values({
+						projectId: input.projectId,
+						path: worktreePath,
 						branch,
-						needsRebase: false, // Fresh off main, doesn't need rebase
-						lastRefreshed: Date.now(),
-					},
-				};
+						baseBranch: targetBranch,
+						gitStatus: {
+							branch,
+							needsRebase: false,
+							lastRefreshed: Date.now(),
+						},
+					})
+					.returning()
+					.get();
 
-				const projectWorkspaces = db.data.workspaces.filter(
-					(w) => w.projectId === input.projectId,
-				);
+				// Get max tab order for this project's workspaces
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.all();
 				const maxTabOrder =
 					projectWorkspaces.length > 0
 						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
 						: -1;
 
-				const workspace = {
-					id: nanoid(),
-					projectId: input.projectId,
-					worktreeId: worktree.id,
-					name: input.name ?? branch,
-					tabOrder: maxTabOrder + 1,
-					createdAt: Date.now(),
-					updatedAt: Date.now(),
-					lastOpenedAt: Date.now(),
-				};
+				// Insert workspace
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						worktreeId: worktree.id,
+						type: "worktree",
+						branch,
+						name: input.name ?? branch,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
 
-				await db.update((data) => {
-					data.worktrees.push(worktree);
-					data.workspaces.push(workspace);
-					data.settings.lastActiveWorkspaceId = workspace.id;
+				// Update settings
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastActiveWorkspaceId: workspace.id },
+					})
+					.run();
 
-					const p = data.projects.find((p) => p.id === input.projectId);
-					if (p) {
-						p.lastOpenedAt = Date.now();
+				// Update project
+				const activeProjects = localDb
+					.select()
+					.from(projects)
+					.where(isNotNull(projects.tabOrder))
+					.all();
+				const maxProjectTabOrder =
+					activeProjects.length > 0
+						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
+						: -1;
 
-						if (p.tabOrder === null) {
-							const activeProjects = data.projects.filter(
-								(proj) => proj.tabOrder !== null,
-							);
-							const maxProjectTabOrder =
-								activeProjects.length > 0
-									? // biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
-										Math.max(...activeProjects.map((proj) => proj.tabOrder!))
-									: -1;
-							p.tabOrder = maxProjectTabOrder + 1;
-						}
-					}
-				});
+				localDb
+					.update(projects)
+					.set({
+						lastOpenedAt: Date.now(),
+						tabOrder:
+							project.tabOrder === null
+								? maxProjectTabOrder + 1
+								: project.tabOrder,
+					})
+					.where(eq(projects.id, input.projectId))
+					.run();
 
 				// Load setup configuration from the main repo (where .superset/config.json lives)
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				track("workspace_created", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					branch: branch,
+					base_branch: targetBranch,
+				});
 
 				return {
 					workspace,
@@ -150,10 +211,289 @@ export const createWorkspacesRouter = () => {
 				};
 			}),
 
+		createBranchWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					branch: z.string().optional(), // If not provided, uses current branch
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				// Determine the branch - use provided or get current
+				const branch =
+					input.branch || (await getCurrentBranch(project.mainRepoPath));
+				if (!branch) {
+					throw new Error("Could not determine current branch");
+				}
+
+				// If a specific branch was requested, check for conflict before checkout
+				if (input.branch) {
+					const existingBranchWorkspace = localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.projectId, input.projectId),
+								eq(workspaces.type, "branch"),
+							),
+						)
+						.get();
+					if (
+						existingBranchWorkspace &&
+						existingBranchWorkspace.branch !== branch
+					) {
+						throw new Error(
+							`A main workspace already exists on branch "${existingBranchWorkspace.branch}". ` +
+								`Use the branch switcher to change branches.`,
+						);
+					}
+					await safeCheckoutBranch(project.mainRepoPath, input.branch);
+				}
+
+				// Check if branch workspace already exists
+				const existing = localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							eq(workspaces.type, "branch"),
+						),
+					)
+					.get();
+
+				if (existing) {
+					// Activate existing
+					localDb
+						.update(workspaces)
+						.set({ lastOpenedAt: Date.now() })
+						.where(eq(workspaces.id, existing.id))
+						.run();
+					localDb
+						.insert(settings)
+						.values({ id: 1, lastActiveWorkspaceId: existing.id })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { lastActiveWorkspaceId: existing.id },
+						})
+						.run();
+					return {
+						workspace: { ...existing, lastOpenedAt: Date.now() },
+						worktreePath: project.mainRepoPath,
+						projectId: project.id,
+						wasExisting: true,
+					};
+				}
+
+				// Shift existing workspaces to make room at front
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.all();
+				for (const ws of projectWorkspaces) {
+					localDb
+						.update(workspaces)
+						.set({ tabOrder: ws.tabOrder + 1 })
+						.where(eq(workspaces.id, ws.id))
+						.run();
+				}
+
+				// Insert new workspace
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: input.projectId,
+						type: "branch",
+						branch,
+						name: branch,
+						tabOrder: 0,
+					})
+					.returning()
+					.get();
+
+				// Update settings
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastActiveWorkspaceId: workspace.id },
+					})
+					.run();
+
+				// Update project
+				const activeProjects = localDb
+					.select()
+					.from(projects)
+					.where(isNotNull(projects.tabOrder))
+					.all();
+				const maxProjectTabOrder =
+					activeProjects.length > 0
+						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
+						: -1;
+
+				localDb
+					.update(projects)
+					.set({
+						lastOpenedAt: Date.now(),
+						tabOrder:
+							project.tabOrder === null
+								? maxProjectTabOrder + 1
+								: project.tabOrder,
+					})
+					.where(eq(projects.id, input.projectId))
+					.run();
+
+				track("workspace_opened", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "branch",
+					was_existing: false,
+				});
+
+				return {
+					workspace,
+					worktreePath: project.mainRepoPath,
+					projectId: project.id,
+					wasExisting: false,
+				};
+			}),
+
+		getBranches: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					fetch: z.boolean().optional(), // Whether to fetch remote refs (default: false, avoids UI stalls)
+				}),
+			)
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const branches = await listBranches(project.mainRepoPath, {
+					fetch: input.fetch,
+				});
+
+				// Get branches that are in use by worktrees, with their workspace IDs
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, input.projectId))
+					.all();
+				const worktreeBranchMap: Record<string, string> = {};
+				for (const ws of projectWorkspaces) {
+					if (ws.type === "worktree" && ws.branch) {
+						worktreeBranchMap[ws.branch] = ws.id;
+					}
+				}
+
+				return {
+					...branches,
+					inUse: Object.keys(worktreeBranchMap),
+					inUseWorkspaces: worktreeBranchMap, // branch -> workspaceId
+				};
+			}),
+
+		// Switch an existing branch workspace to a different branch
+		switchBranchWorkspace: publicProcedure
+			.input(
+				z.object({
+					projectId: z.string(),
+					branch: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${input.projectId} not found`);
+				}
+
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							eq(workspaces.type, "branch"),
+						),
+					)
+					.get();
+				if (!workspace) {
+					throw new Error("No branch workspace found for this project");
+				}
+
+				// Checkout the new branch with safety checks (terminals continue running on the new branch)
+				await safeCheckoutBranch(project.mainRepoPath, input.branch);
+
+				// Send newline to terminals so their prompts refresh with new branch
+				terminalManager.refreshPromptsForWorkspace(workspace.id);
+
+				// Update the workspace - name is always the branch for branch workspaces
+				const now = Date.now();
+				localDb
+					.update(workspaces)
+					.set({
+						branch: input.branch,
+						name: input.branch,
+						updatedAt: now,
+						lastOpenedAt: now,
+					})
+					.where(eq(workspaces.id, workspace.id))
+					.run();
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastActiveWorkspaceId: workspace.id },
+					})
+					.run();
+
+				const updatedWorkspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspace.id))
+					.get();
+				if (!updatedWorkspace) {
+					throw new Error(`Workspace ${workspace.id} not found after update`);
+				}
+
+				return {
+					workspace: updatedWorkspace,
+					worktreePath: project.mainRepoPath,
+				};
+			}),
+
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
@@ -161,13 +501,19 @@ export const createWorkspacesRouter = () => {
 			}),
 
 		getAll: publicProcedure.query(() => {
-			return db.data.workspaces.slice().sort((a, b) => a.tabOrder - b.tabOrder);
+			return localDb
+				.select()
+				.from(workspaces)
+				.all()
+				.sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
 
 		getAllGrouped: publicProcedure.query(() => {
-			const activeProjects = db.data.projects.filter(
-				(p) => p.tabOrder !== null,
-			);
+			const activeProjects = localDb
+				.select()
+				.from(projects)
+				.where(isNotNull(projects.tabOrder))
+				.all();
 
 			const groupsMap = new Map<
 				string,
@@ -181,8 +527,10 @@ export const createWorkspacesRouter = () => {
 					workspaces: Array<{
 						id: string;
 						projectId: string;
-						worktreeId: string;
+						worktreeId: string | null;
 						worktreePath: string;
+						type: "worktree" | "branch";
+						branch: string;
 						name: string;
 						tabOrder: number;
 						createdAt: number;
@@ -205,15 +553,18 @@ export const createWorkspacesRouter = () => {
 				});
 			}
 
-			const workspaces = db.data.workspaces
-				.slice()
+			const allWorkspaces = localDb
+				.select()
+				.from(workspaces)
+				.all()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 
-			for (const workspace of workspaces) {
+			for (const workspace of allWorkspaces) {
 				if (groupsMap.has(workspace.projectId)) {
 					groupsMap.get(workspace.projectId)?.workspaces.push({
 						...workspace,
-						worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+						type: workspace.type as "worktree" | "branch",
+						worktreePath: getWorkspacePath(workspace) ?? "",
 					});
 				}
 			}
@@ -223,32 +574,83 @@ export const createWorkspacesRouter = () => {
 			);
 		}),
 
-		getActive: publicProcedure.query(() => {
-			const { lastActiveWorkspaceId } = db.data.settings;
+		getActive: publicProcedure.query(async () => {
+			const settingsRow = localDb.select().from(settings).get();
+			const lastActiveWorkspaceId = settingsRow?.lastActiveWorkspaceId;
 
 			if (!lastActiveWorkspaceId) {
 				return null;
 			}
 
-			const workspace = db.data.workspaces.find(
-				(w) => w.id === lastActiveWorkspaceId,
-			);
+			const workspace = localDb
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.id, lastActiveWorkspaceId))
+				.get();
 			if (!workspace) {
 				throw new Error(
 					`Active workspace ${lastActiveWorkspaceId} not found in database`,
 				);
 			}
 
-			const project = db.data.projects.find(
-				(p) => p.id === workspace.projectId,
-			);
-			const worktree = db.data.worktrees.find(
-				(wt) => wt.id === workspace.worktreeId,
-			);
+			const project = localDb
+				.select()
+				.from(projects)
+				.where(eq(projects.id, workspace.projectId))
+				.get();
+			const worktree = workspace.worktreeId
+				? localDb
+						.select()
+						.from(worktrees)
+						.where(eq(worktrees.id, workspace.worktreeId))
+						.get()
+				: null;
+
+			// Detect and persist base branch for existing worktrees that don't have it
+			// We use undefined to mean "not yet attempted" and null to mean "attempted but not found"
+			let baseBranch = worktree?.baseBranch;
+			if (worktree && baseBranch === undefined && project) {
+				// Only attempt detection if there's a remote origin
+				const hasRemote = await hasOriginRemote(project.mainRepoPath);
+				if (hasRemote) {
+					try {
+						const defaultBranch = project.defaultBranch || "main";
+						const detected = await detectBaseBranch(
+							worktree.path,
+							worktree.branch,
+							defaultBranch,
+						);
+						if (detected) {
+							baseBranch = detected;
+						}
+						// Persist the result (detected branch or null sentinel)
+						localDb
+							.update(worktrees)
+							.set({ baseBranch: detected ?? null })
+							.where(eq(worktrees.id, worktree.id))
+							.run();
+					} catch {
+						// Detection failed, persist null to avoid retrying
+						localDb
+							.update(worktrees)
+							.set({ baseBranch: null })
+							.where(eq(worktrees.id, worktree.id))
+							.run();
+					}
+				} else {
+					// No remote - persist null to avoid retrying
+					localDb
+						.update(worktrees)
+						.set({ baseBranch: null })
+						.where(eq(worktrees.id, worktree.id))
+						.run();
+				}
+			}
 
 			return {
 				...workspace,
-				worktreePath: getWorktreePath(workspace.worktreeId) ?? "",
+				type: workspace.type as "worktree" | "branch",
+				worktreePath: getWorkspacePath(workspace) ?? "",
 				project: project
 					? {
 							id: project.id,
@@ -257,7 +659,11 @@ export const createWorkspacesRouter = () => {
 						}
 					: null,
 				worktree: worktree
-					? { branch: worktree.branch, gitStatus: worktree.gitStatus }
+					? {
+							branch: worktree.branch,
+							baseBranch,
+							gitStatus: worktree.gitStatus,
+						}
 					: null,
 			};
 		}),
@@ -271,20 +677,26 @@ export const createWorkspacesRouter = () => {
 					}),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const workspace = data.workspaces.find((w) => w.id === input.id);
-					if (!workspace) {
-						throw new Error(`Workspace ${input.id} not found`);
-					}
+			.mutation(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
+				if (!workspace) {
+					throw new Error(`Workspace ${input.id} not found`);
+				}
 
-					if (input.patch.name !== undefined) {
-						workspace.name = input.patch.name;
-					}
-
-					workspace.updatedAt = Date.now();
-					workspace.lastOpenedAt = Date.now();
-				});
+				const now = Date.now();
+				localDb
+					.update(workspaces)
+					.set({
+						...(input.patch.name !== undefined && { name: input.patch.name }),
+						updatedAt: now,
+						lastOpenedAt: now,
+					})
+					.where(eq(workspaces.id, input.id))
+					.run();
 
 				return { success: true };
 			}),
@@ -298,7 +710,11 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
 
 				if (!workspace) {
 					return {
@@ -314,6 +730,19 @@ export const createWorkspacesRouter = () => {
 				const activeTerminalCount =
 					terminalManager.getSessionCountByWorkspaceId(input.id);
 
+				// Branch workspaces are non-destructive to close - no git checks needed
+				if (workspace.type === "branch") {
+					return {
+						canDelete: true,
+						reason: null,
+						workspace,
+						warning: null,
+						activeTerminalCount,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
 				// If skipping git checks, return early with just terminal count
 				// This is used during polling to avoid expensive git operations
 				if (input.skipGitChecks) {
@@ -328,12 +757,18 @@ export const createWorkspacesRouter = () => {
 					};
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
-				const project = db.data.projects.find(
-					(p) => p.id === workspace.projectId,
-				);
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
 
 				if (worktree && project) {
 					try {
@@ -396,7 +831,11 @@ export const createWorkspacesRouter = () => {
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === input.id);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
 
 				if (!workspace) {
 					return { success: false, error: "Workspace not found" };
@@ -407,103 +846,139 @@ export const createWorkspacesRouter = () => {
 					input.id,
 				);
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
-				const project = db.data.projects.find(
-					(p) => p.id === workspace.projectId,
-				);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
 
 				let teardownError: string | undefined;
+				let worktree: SelectWorktree | undefined;
 
-				if (worktree && project) {
-					// Run teardown scripts before removing worktree
-					const exists = await worktreeExists(
-						project.mainRepoPath,
-						worktree.path,
-					);
+				// Branch workspaces don't have worktrees - skip worktree operations
+				if (workspace.type === "worktree" && workspace.worktreeId) {
+					worktree =
+						localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get() ?? undefined;
 
-					if (exists) {
-						const teardownResult = runTeardown(
+					if (worktree && project) {
+						// Run teardown scripts before removing worktree
+						const exists = await worktreeExists(
 							project.mainRepoPath,
 							worktree.path,
-							workspace.name,
 						);
-						if (!teardownResult.success) {
-							teardownError = teardownResult.error;
-						}
-					}
 
-					try {
 						if (exists) {
-							await removeWorktree(project.mainRepoPath, worktree.path);
-						} else {
-							console.warn(
-								`Worktree ${worktree.path} not found in git, skipping removal`,
+							const teardownResult = runTeardown(
+								project.mainRepoPath,
+								worktree.path,
+								workspace.name,
 							);
+							if (!teardownResult.success) {
+								teardownError = teardownResult.error;
+							}
 						}
-					} catch (error) {
-						const errorMessage =
-							error instanceof Error ? error.message : String(error);
-						console.error("Failed to remove worktree:", errorMessage);
-						return {
-							success: false,
-							error: `Failed to remove worktree: ${errorMessage}`,
-						};
+
+						try {
+							if (exists) {
+								await removeWorktree(project.mainRepoPath, worktree.path);
+							} else {
+								console.warn(
+									`Worktree ${worktree.path} not found in git, skipping removal`,
+								);
+							}
+						} catch (error) {
+							const errorMessage =
+								error instanceof Error ? error.message : String(error);
+							console.error("Failed to remove worktree:", errorMessage);
+							return {
+								success: false,
+								error: `Failed to remove worktree: ${errorMessage}`,
+							};
+						}
 					}
 				}
 
-				// Only proceed with DB cleanup if worktree was successfully removed (or doesn't exist)
-				await db.update((data) => {
-					data.workspaces = data.workspaces.filter((w) => w.id !== input.id);
+				// Proceed with DB cleanup
+				localDb.delete(workspaces).where(eq(workspaces.id, input.id)).run();
 
-					if (worktree) {
-						data.worktrees = data.worktrees.filter(
-							(wt) => wt.id !== worktree.id,
-						);
-					}
+				if (worktree) {
+					localDb.delete(worktrees).where(eq(worktrees.id, worktree.id)).run();
+				}
 
-					if (project) {
-						const remainingWorkspaces = data.workspaces.filter(
-							(w) => w.projectId === workspace.projectId,
-						);
-						if (remainingWorkspaces.length === 0) {
-							const p = data.projects.find((p) => p.id === workspace.projectId);
-							if (p) {
-								p.tabOrder = null;
-							}
-						}
+				if (project) {
+					const remainingWorkspaces = localDb
+						.select()
+						.from(workspaces)
+						.where(eq(workspaces.projectId, workspace.projectId))
+						.all();
+					if (remainingWorkspaces.length === 0) {
+						localDb
+							.update(projects)
+							.set({ tabOrder: null })
+							.where(eq(projects.id, workspace.projectId))
+							.run();
 					}
+				}
 
-					if (data.settings.lastActiveWorkspaceId === input.id) {
-						const sorted = data.workspaces
-							.slice()
-							.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
-						data.settings.lastActiveWorkspaceId = sorted[0]?.id || undefined;
-					}
-				});
+				const settingsRow = localDb.select().from(settings).get();
+				if (settingsRow?.lastActiveWorkspaceId === input.id) {
+					const sorted = localDb
+						.select()
+						.from(workspaces)
+						.orderBy(desc(workspaces.lastOpenedAt))
+						.all();
+					const newActiveId = sorted[0]?.id ?? null;
+					localDb
+						.insert(settings)
+						.values({ id: 1, lastActiveWorkspaceId: newActiveId })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { lastActiveWorkspaceId: newActiveId },
+						})
+						.run();
+				}
 
 				const terminalWarning =
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
 						: undefined;
 
+				track("workspace_deleted", { workspace_id: input.id });
+
 				return { success: true, teardownError, terminalWarning };
 			}),
 
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const workspace = data.workspaces.find((w) => w.id === input.id);
-					if (!workspace) {
-						throw new Error(`Workspace ${input.id} not found`);
-					}
+			.mutation(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
+				if (!workspace) {
+					throw new Error(`Workspace ${input.id} not found`);
+				}
 
-					data.settings.lastActiveWorkspaceId = input.id;
-					workspace.lastOpenedAt = Date.now();
-					workspace.updatedAt = Date.now();
-				});
+				const now = Date.now();
+				localDb
+					.update(workspaces)
+					.set({ lastOpenedAt: now, updatedAt: now })
+					.where(eq(workspaces.id, input.id))
+					.run();
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastActiveWorkspaceId: input.id })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastActiveWorkspaceId: input.id },
+					})
+					.run();
 
 				return { success: true };
 			}),
@@ -516,33 +991,35 @@ export const createWorkspacesRouter = () => {
 					toIndex: z.number(),
 				}),
 			)
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const { projectId, fromIndex, toIndex } = input;
+			.mutation(({ input }) => {
+				const { projectId, fromIndex, toIndex } = input;
 
-					const projectWorkspaces = data.workspaces
-						.filter((w) => w.projectId === projectId)
-						.sort((a, b) => a.tabOrder - b.tabOrder);
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, projectId))
+					.all()
+					.sort((a, b) => a.tabOrder - b.tabOrder);
 
-					if (
-						fromIndex < 0 ||
-						fromIndex >= projectWorkspaces.length ||
-						toIndex < 0 ||
-						toIndex >= projectWorkspaces.length
-					) {
-						throw new Error("Invalid fromIndex or toIndex");
-					}
+				if (
+					fromIndex < 0 ||
+					fromIndex >= projectWorkspaces.length ||
+					toIndex < 0 ||
+					toIndex >= projectWorkspaces.length
+				) {
+					throw new Error("Invalid fromIndex or toIndex");
+				}
 
-					const [removed] = projectWorkspaces.splice(fromIndex, 1);
-					projectWorkspaces.splice(toIndex, 0, removed);
+				const [removed] = projectWorkspaces.splice(fromIndex, 1);
+				projectWorkspaces.splice(toIndex, 0, removed);
 
-					projectWorkspaces.forEach((workspace, index) => {
-						const ws = data.workspaces.find((w) => w.id === workspace.id);
-						if (ws) {
-							ws.tabOrder = index;
-						}
-					});
-				});
+				for (let i = 0; i < projectWorkspaces.length; i++) {
+					localDb
+						.update(workspaces)
+						.set({ tabOrder: i })
+						.where(eq(workspaces.id, projectWorkspaces[i].id))
+						.run();
+				}
 
 				return { success: true };
 			}),
@@ -550,25 +1027,33 @@ export const createWorkspacesRouter = () => {
 		refreshGitStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = db.data.workspaces.find(
-					(w) => w.id === input.workspaceId,
-				);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
 				if (!workspace) {
 					throw new Error(`Workspace ${input.workspaceId} not found`);
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
 				if (!worktree) {
 					throw new Error(
 						`Worktree for workspace ${input.workspaceId} not found`,
 					);
 				}
 
-				const project = db.data.projects.find(
-					(p) => p.id === workspace.projectId,
-				);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
 				if (!project) {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
@@ -578,10 +1063,11 @@ export const createWorkspacesRouter = () => {
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
 					// Save it for future use
-					await db.update((data) => {
-						const p = data.projects.find((p) => p.id === project.id);
-						if (p) p.defaultBranch = defaultBranch;
-					});
+					localDb
+						.update(projects)
+						.set({ defaultBranch })
+						.where(eq(projects.id, project.id))
+						.run();
 				}
 
 				// Fetch default branch to get latest
@@ -600,12 +1086,11 @@ export const createWorkspacesRouter = () => {
 				};
 
 				// Update worktree in db
-				await db.update((data) => {
-					const wt = data.worktrees.find((w) => w.id === worktree.id);
-					if (wt) {
-						wt.gitStatus = gitStatus;
-					}
-				});
+				localDb
+					.update(worktrees)
+					.set({ gitStatus })
+					.where(eq(worktrees.id, worktree.id))
+					.run();
 
 				return { gitStatus };
 			}),
@@ -613,16 +1098,22 @@ export const createWorkspacesRouter = () => {
 		getGitHubStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(async ({ input }) => {
-				const workspace = db.data.workspaces.find(
-					(w) => w.id === input.workspaceId,
-				);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
 				if (!workspace) {
 					return null;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
 				if (!worktree) {
 					return null;
 				}
@@ -632,12 +1123,11 @@ export const createWorkspacesRouter = () => {
 
 				// Update cache if we got data
 				if (freshStatus) {
-					await db.update((data) => {
-						const wt = data.worktrees.find((w) => w.id === worktree.id);
-						if (wt) {
-							wt.githubStatus = freshStatus;
-						}
-					});
+					localDb
+						.update(worktrees)
+						.set({ githubStatus: freshStatus })
+						.where(eq(worktrees.id, worktree.id))
+						.run();
 				}
 
 				return freshStatus;
@@ -646,16 +1136,22 @@ export const createWorkspacesRouter = () => {
 		getWorktreeInfo: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
-				const workspace = db.data.workspaces.find(
-					(w) => w.id === input.workspaceId,
-				);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
 				if (!workspace) {
 					return null;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
 				if (!worktree) {
 					return null;
 				}
@@ -669,6 +1165,212 @@ export const createWorkspacesRouter = () => {
 					gitStatus: worktree.gitStatus ?? null,
 					githubStatus: worktree.githubStatus ?? null,
 				};
+			}),
+
+		getWorktreesByProject: publicProcedure
+			.input(z.object({ projectId: z.string() }))
+			.query(({ input }) => {
+				const projectWorktrees = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.projectId, input.projectId))
+					.all();
+
+				return projectWorktrees.map((wt) => {
+					const workspace = localDb
+						.select()
+						.from(workspaces)
+						.where(eq(workspaces.worktreeId, wt.id))
+						.get();
+					return {
+						...wt,
+						hasActiveWorkspace: workspace !== undefined,
+						workspace: workspace ?? null,
+					};
+				});
+			}),
+
+		openWorktree: publicProcedure
+			.input(
+				z.object({
+					worktreeId: z.string(),
+					name: z.string().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const worktree = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, input.worktreeId))
+					.get();
+				if (!worktree) {
+					throw new Error(`Worktree ${input.worktreeId} not found`);
+				}
+
+				// Check if worktree already has an active workspace
+				const existingWorkspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.worktreeId, input.worktreeId))
+					.get();
+				if (existingWorkspace) {
+					throw new Error("Worktree already has an active workspace");
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, worktree.projectId))
+					.get();
+				if (!project) {
+					throw new Error(`Project ${worktree.projectId} not found`);
+				}
+
+				// Verify worktree still exists on disk
+				const exists = await worktreeExists(
+					project.mainRepoPath,
+					worktree.path,
+				);
+				if (!exists) {
+					throw new Error("Worktree no longer exists on disk");
+				}
+
+				const projectWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, worktree.projectId))
+					.all();
+				const maxTabOrder =
+					projectWorkspaces.length > 0
+						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
+						: -1;
+
+				// Insert workspace
+				const workspace = localDb
+					.insert(workspaces)
+					.values({
+						projectId: worktree.projectId,
+						worktreeId: worktree.id,
+						type: "worktree",
+						branch: worktree.branch,
+						name: input.name ?? worktree.branch,
+						tabOrder: maxTabOrder + 1,
+					})
+					.returning()
+					.get();
+
+				// Update settings
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastActiveWorkspaceId: workspace.id },
+					})
+					.run();
+
+				// Update project
+				const activeProjects = localDb
+					.select()
+					.from(projects)
+					.where(isNotNull(projects.tabOrder))
+					.all();
+				const maxProjectTabOrder =
+					activeProjects.length > 0
+						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
+						: -1;
+
+				localDb
+					.update(projects)
+					.set({
+						lastOpenedAt: Date.now(),
+						tabOrder:
+							project.tabOrder === null
+								? maxProjectTabOrder + 1
+								: project.tabOrder,
+					})
+					.where(eq(projects.id, worktree.projectId))
+					.run();
+
+				// Load setup configuration from the main repo
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				track("workspace_opened", {
+					workspace_id: workspace.id,
+					project_id: project.id,
+					type: "worktree",
+				});
+
+				return {
+					workspace,
+					initialCommands: setupConfig?.setup || null,
+					worktreePath: worktree.path,
+					projectId: project.id,
+				};
+			}),
+
+		close: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.id))
+					.get();
+
+				if (!workspace) {
+					throw new Error("Workspace not found");
+				}
+
+				// Kill all terminal processes in this workspace
+				const terminalResult = await terminalManager.killByWorkspaceId(
+					input.id,
+				);
+
+				// Delete workspace record ONLY, keep worktree
+				localDb.delete(workspaces).where(eq(workspaces.id, input.id)).run();
+
+				// Check if project should be hidden (no more open workspaces)
+				const remainingWorkspaces = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.projectId, workspace.projectId))
+					.all();
+				if (remainingWorkspaces.length === 0) {
+					localDb
+						.update(projects)
+						.set({ tabOrder: null })
+						.where(eq(projects.id, workspace.projectId))
+						.run();
+				}
+
+				// Update active workspace if this was the active one
+				const settingsRow = localDb.select().from(settings).get();
+				if (settingsRow?.lastActiveWorkspaceId === input.id) {
+					const sorted = localDb
+						.select()
+						.from(workspaces)
+						.orderBy(desc(workspaces.lastOpenedAt))
+						.all();
+					const newActiveId = sorted[0]?.id ?? null;
+					localDb
+						.insert(settings)
+						.values({ id: 1, lastActiveWorkspaceId: newActiveId })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { lastActiveWorkspaceId: newActiveId },
+						})
+						.run();
+				}
+
+				const terminalWarning =
+					terminalResult.failed > 0
+						? `${terminalResult.failed} terminal process(es) may still be running`
+						: undefined;
+
+				track("workspace_closed", { workspace_id: input.id });
+
+				return { success: true, terminalWarning };
 			}),
 	});
 };

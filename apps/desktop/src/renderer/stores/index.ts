@@ -6,6 +6,8 @@
 
 export * from "./app-state";
 export * from "./chat-panel-state";
+export * from "./ports";
+export * from "./ringtone";
 export * from "./sidebar-state";
 export * from "./tabs"; // Now exports from tabs/index.ts
 export * from "./theme";

@@ -15,8 +15,7 @@ release
 *.local
 
 # Editor directories and files
-.vscode/.debug.env
-.vscode/settings.json
+.vscode
 .idea
 .DS_Store
 *.suo
@@ -35,13 +34,7 @@ yarn.lock
 
 # Env variables
 .env
-.env.production
-.env.development
-.env.test
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
 
 mise.toml
 
@@ -50,7 +43,12 @@ mise.toml
 
 # Turbo
 .turbo
-.envrc
+.cache
+
+# Next.js
+.next
+out
+next-env.d.ts
 
 # Superset
 # Ignore .superset directory except for config and scripts
@@ -61,3 +59,8 @@ mise.toml
 
 # tsbuildinfo
 *.tsbuildinfo
+
+# Environment files (secrets)
+.envrc
+.env.local
+.env

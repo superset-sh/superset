@@ -2,59 +2,20 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
+import { formatPathWithProject } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
+import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
 
-/**
- * Normalizes path separators to forward slashes for consistent handling
- */
-function normalizeSeparators(path: string): string {
-	return path.replace(/\\/g, "/");
-}
-
-/**
- * Formats a path for display, replacing the home directory with ~ and optionally
- * removing the trailing project name directory.
- * Handles both Unix and Windows paths.
- */
-function formatPath(
-	path: string,
-	projectName: string,
-	homeDir: string | undefined,
-): { display: string; full: string } {
-	// Normalize both path and homeDir to use forward slashes
-	const normalizedPath = normalizeSeparators(path);
-	const normalizedHome = homeDir ? normalizeSeparators(homeDir) : null;
-
-	// Replace home directory with ~ if we know the home dir
-	let fullPath = normalizedPath;
-	if (normalizedHome && normalizedPath.startsWith(normalizedHome)) {
-		fullPath = `~${normalizedPath.slice(normalizedHome.length)}`;
-	} else {
-		// Fallback: try common Unix patterns if home dir not available
-		fullPath = normalizedPath.replace(/^\/(?:Users|home)\/[^/]+/, "~");
-	}
-
-	// Escape special regex characters in project name
-	const escapedProjectName = projectName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	const suffixPattern = new RegExp(`/${escapedProjectName}$`);
-
-	// Remove trailing project name directory if it matches
-	const displayPath = fullPath.replace(suffixPattern, "");
-
-	return { display: displayPath, full: fullPath };
-}
-
 export function StartView() {
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
-	const createWorkspace = useCreateWorkspace();
+	const createBranchWorkspace = useCreateBranchWorkspace();
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 	const [initGitDialog, setInitGitDialog] = useState<{
@@ -86,7 +47,8 @@ export function StartView() {
 					return;
 				}
 
-				createWorkspace.mutate({ projectId: result.project.id });
+				// Create a main workspace on the current branch
+				createBranchWorkspace.mutate({ projectId: result.project.id });
 			},
 			onError: (err) => {
 				setError(err.message || "Failed to open project");
@@ -96,11 +58,12 @@ export function StartView() {
 
 	const handleOpenRecentProject = (projectId: string) => {
 		setError(null);
-		createWorkspace.mutate(
+		// Create/activate main workspace on current branch
+		createBranchWorkspace.mutate(
 			{ projectId },
 			{
 				onError: (err) => {
-					setError(err.message || "Failed to create workspace");
+					setError(err.message || "Failed to open workspace");
 				},
 			},
 		);
@@ -111,7 +74,7 @@ export function StartView() {
 		? recentProjects.slice(0, visibleCount)
 		: recentProjects.slice(0, 5);
 	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
-	const isLoading = openNew.isPending || createWorkspace.isPending;
+	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -142,14 +105,14 @@ export function StartView() {
 					{error && (
 						<div className="w-full max-w-[650px] mb-4 rounded-lg border border-border bg-card/80 backdrop-blur-sm shadow-sm overflow-hidden">
 							<div className="flex items-start gap-3 p-3">
-								<div className="flex-shrink-0 mt-0.5">
+								<div className="shrink-0 mt-0.5">
 									<HiExclamationTriangle className="h-4 w-4 text-amber-500" />
 								</div>
 								<p className="flex-1 text-sm text-foreground/90">{error}</p>
 								<button
 									type="button"
 									onClick={() => setError(null)}
-									className="flex-shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
+									className="shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors"
 									aria-label="Dismiss error"
 								>
 									<LuX className="h-3.5 w-3.5 text-muted-foreground" />
@@ -211,7 +174,7 @@ export function StartView() {
 
 									<div className="max-h-64 overflow-y-auto flex flex-col gap-1">
 										{displayedProjects.map((project) => {
-											const pathInfo = formatPath(
+											const pathInfo = formatPathWithProject(
 												project.mainRepoPath,
 												project.name,
 												homeDir,

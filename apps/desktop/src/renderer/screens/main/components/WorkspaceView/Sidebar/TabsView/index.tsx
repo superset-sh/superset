@@ -1,7 +1,7 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import { LayoutGroup, motion } from "framer-motion";
-import type { TerminalPreset } from "main/lib/db/schemas";
 import { useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import {
@@ -9,10 +9,16 @@ import {
 	HiMiniEllipsisHorizontal,
 	HiMiniPlus,
 } from "react-icons/hi2";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings, useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { PortsList } from "./PortsList";
+import { PresetContextMenu } from "./PresetContextMenu";
 import { TabItem } from "./TabItem";
 import { TabsCommandDialog } from "./TabsCommandDialog";
 
@@ -30,6 +36,7 @@ export function TabsView() {
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const addTab = useTabsStore((s) => s.addTab);
+	const addPane = useTabsStore((s) => s.addPane);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const reorderTabById = useTabsStore((s) => s.reorderTabById);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -39,6 +46,7 @@ export function TabsView() {
 	const containerRef = useRef<HTMLElement>(null);
 
 	const { presets } = usePresets();
+	const isDark = useIsDarkTheme();
 
 	const tabs = useMemo(
 		() =>
@@ -53,6 +61,20 @@ export function TabsView() {
 			addTab(activeWorkspaceId);
 			setCommandOpen(false);
 		}
+	};
+
+	const handleAddPane = () => {
+		if (!activeWorkspaceId) return;
+
+		const activeTabId = activeTabIds[activeWorkspaceId];
+		if (!activeTabId) {
+			// Fall back to creating a new tab if no active tab
+			handleAddTab();
+			return;
+		}
+
+		addPane(activeTabId);
+		setCommandOpen(false);
 	};
 
 	const handleOpenPresetsSettings = () => {
@@ -73,6 +95,25 @@ export function TabsView() {
 		if (preset.name) {
 			renameTab(tabId, preset.name);
 		}
+
+		setCommandOpen(false);
+	};
+
+	const handleSelectPresetAsPane = (preset: TerminalPreset) => {
+		if (!activeWorkspaceId) return;
+
+		const activeTabId = activeTabIds[activeWorkspaceId];
+		if (!activeTabId) {
+			// Fall back to opening as new tab if no active tab
+			handleSelectPreset(preset);
+			return;
+		}
+
+		// Add pane to current tab with preset options
+		addPane(activeTabId, {
+			initialCommands: preset.commands,
+			initialCwd: preset.cwd || undefined,
+		});
 
 		setCommandOpen(false);
 	};
@@ -134,39 +175,70 @@ export function TabsView() {
 					transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
 				>
 					<ButtonGroup className="w-full mb-1">
-						<Button
-							variant="ghost"
-							onClick={handleAddTab}
-							className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
-							disabled={!activeWorkspaceId}
+						<PresetContextMenu
+							hasActiveTab={
+								!!(activeWorkspaceId && activeTabIds[activeWorkspaceId])
+							}
+							onOpenAsNewTab={handleAddTab}
+							onOpenAsPane={handleAddPane}
 						>
-							<HiMiniPlus className="size-4" />
-							<span className="truncate flex-1">New Terminal</span>
-						</Button>
+							<Button
+								variant="ghost"
+								onClick={handleAddTab}
+								className="flex-1 text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between"
+								disabled={!activeWorkspaceId}
+							>
+								<HiMiniPlus className="size-4" />
+								<span className="truncate flex-1">New Terminal</span>
+							</Button>
+						</PresetContextMenu>
 						<Button
 							variant="ghost"
-							onClick={() => setCommandOpen(true)}
+							onClick={handleOpenPresetsSettings}
 							className="px-3 py-2 rounded-md cursor-pointer"
-							disabled={!activeWorkspaceId}
 						>
 							<HiMiniEllipsisHorizontal className="size-4" />
 						</Button>
 					</ButtonGroup>
 					{presets.length > 0 && (
 						<div className="ml-4 pl-1 space-y-0.5 mb-2 border-l-2">
-							{presets.map((preset) => (
-								<Button
-									key={preset.id}
-									variant="ghost"
-									onClick={() => handleSelectPreset(preset)}
-									disabled={!activeWorkspaceId}
-									className="w-full justify-start px-3 py-1.5 h-auto text-sm"
-									title={preset.cwd || undefined}
-								>
-									<HiMiniCommandLine className="size-4" />
-									<span className="truncate">{preset.name || "Unnamed"}</span>
-								</Button>
-							))}
+							{presets.map((preset) => {
+								const tooltipText = preset.description || preset.cwd;
+								const presetIcon = getPresetIcon(preset.name, isDark);
+								const hasActiveTab = !!(
+									activeWorkspaceId && activeTabIds[activeWorkspaceId]
+								);
+
+								return (
+									<PresetContextMenu
+										key={preset.id}
+										hasActiveTab={hasActiveTab}
+										tooltipText={tooltipText}
+										onOpenAsNewTab={() => handleSelectPreset(preset)}
+										onOpenAsPane={() => handleSelectPresetAsPane(preset)}
+									>
+										<Button
+											variant="ghost"
+											onClick={() => handleSelectPreset(preset)}
+											disabled={!activeWorkspaceId}
+											className="w-full justify-start px-3 py-1.5 h-auto text-sm"
+										>
+											{presetIcon ? (
+												<img
+													src={presetIcon}
+													alt=""
+													className="size-4 object-contain"
+												/>
+											) : (
+												<HiMiniCommandLine className="size-4" />
+											)}
+											<span className="truncate">
+												{preset.name || "default"}
+											</span>
+										</Button>
+									</PresetContextMenu>
+								);
+							})}
 						</div>
 					)}
 					<TabsCommandDialog
@@ -205,6 +277,7 @@ export function TabsView() {
 						<div className="h-0.5 bg-primary rounded-full z-20 pointer-events-none mt-1" />
 					)}
 				</div>
+				<PortsList />
 			</LayoutGroup>
 		</nav>
 	);

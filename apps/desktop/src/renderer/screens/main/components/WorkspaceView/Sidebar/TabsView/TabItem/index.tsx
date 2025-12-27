@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { useRef, useState } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useMemo, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -29,8 +30,14 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
+	const panes = useTabsStore((s) => s.panes);
 	const needsAttention = useTabsStore((s) =>
 		Object.values(s.panes).some((p) => p.tabId === tab.id && p.needsAttention),
+	);
+
+	const paneCount = useMemo(
+		() => Object.values(panes).filter((p) => p.tabId === tab.id).length,
+		[panes, tab.id],
 	);
 
 	const [isRenaming, setIsRenaming] = useState(false);
@@ -111,66 +118,72 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	return (
 		<div className="w-full">
 			<TabContextMenu
-				tab={tab}
+				paneCount={paneCount}
 				onClose={handleRemoveTab}
 				onRename={startRename}
 			>
-				<Button
-					ref={attachRef}
-					variant="ghost"
-					onClick={handleTabClick}
-					onDoubleClick={startRename}
-					onKeyDown={(e) => {
-						if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
-							e.preventDefault();
-							handleTabClick();
-						}
-					}}
-					tabIndex={0}
-					className={`
-					w-full text-start group px-3 py-2 rounded-md cursor-pointer flex items-center justify-between
-					${isActive ? "bg-tertiary-active" : ""}
-					${isDragging ? "opacity-50" : ""}
-					${isDragOver ? "bg-tertiary-active/50" : ""}
-				`}
-				>
-					<HiMiniCommandLine className="size-4" />
-					<div className="flex items-center gap-1 flex-1 min-w-0">
-						{isRenaming ? (
-							<Input
-								ref={inputRef}
-								variant="ghost"
-								value={renameValue}
-								onChange={(e) => setRenameValue(e.target.value)}
-								onBlur={submitRename}
-								onKeyDown={handleKeyDown}
-								onClick={(e) => e.stopPropagation()}
-								className="flex-1"
-							/>
-						) : (
-							<>
-								<span className="truncate flex-1">{displayName}</span>
-								{needsAttention && (
-									<span
-										className="relative flex size-2 shrink-0 ml-1"
-										title="Agent completed"
-									>
-										<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-										<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-									</span>
-								)}
-							</>
-						)}
-					</div>
+				<div className="relative group">
+					<Button
+						ref={attachRef}
+						variant="ghost"
+						onClick={handleTabClick}
+						onDoubleClick={startRename}
+						onKeyDown={(e) => {
+							if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
+								e.preventDefault();
+								handleTabClick();
+							}
+						}}
+						tabIndex={0}
+						className={`
+						w-full text-start px-3 py-2 rounded-md cursor-pointer flex items-center justify-between pr-8
+						${isActive ? "bg-tertiary-active" : ""}
+						${isDragging ? "opacity-50" : ""}
+						${isDragOver ? "bg-tertiary-active/50" : ""}
+					`}
+					>
+						<HiMiniCommandLine className="size-4" />
+						<div className="flex items-center gap-1 flex-1 min-w-0">
+							{isRenaming ? (
+								<Input
+									ref={inputRef}
+									variant="ghost"
+									value={renameValue}
+									onChange={(e) => setRenameValue(e.target.value)}
+									onBlur={submitRename}
+									onKeyDown={handleKeyDown}
+									onClick={(e) => e.stopPropagation()}
+									className="flex-1"
+								/>
+							) : (
+								<>
+									<span className="truncate flex-1">{displayName}</span>
+									{needsAttention && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<span className="relative flex size-2 shrink-0 ml-1">
+													<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+													<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+												</span>
+											</TooltipTrigger>
+											<TooltipContent side="right">
+												Agent completed
+											</TooltipContent>
+										</Tooltip>
+									)}
+								</>
+							)}
+						</div>
+					</Button>
 					<button
 						type="button"
 						tabIndex={-1}
 						onClick={handleRemoveTab}
-						className="cursor-pointer opacity-0 group-hover:opacity-100 ml-2 text-xs shrink-0"
+						className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer opacity-0 group-hover:opacity-100 text-xs"
 					>
 						<HiMiniXMark className="size-4" />
 					</button>
-				</Button>
+				</div>
 			</TabContextMenu>
 		</div>
 	);

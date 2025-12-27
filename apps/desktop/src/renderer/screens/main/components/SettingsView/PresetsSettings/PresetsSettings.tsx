@@ -1,7 +1,11 @@
 import { Button } from "@superset/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
-import { LuSparkles } from "react-icons/lu";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { usePresets } from "renderer/react-query/presets";
 import { PresetRow } from "./PresetRow";
 import {
@@ -12,9 +16,9 @@ import {
 
 interface PresetTemplate {
 	name: string;
-	description: string;
 	preset: {
 		name: string;
+		description: string;
 		cwd: string;
 		commands: string[];
 	};
@@ -22,10 +26,10 @@ interface PresetTemplate {
 
 const PRESET_TEMPLATES: PresetTemplate[] = [
 	{
-		name: "Codex (Danger Mode)",
-		description: "OpenAI Codex with full sandbox access and high reasoning",
+		name: "codex",
 		preset: {
-			name: "Codex Danger",
+			name: "codex",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: [
 				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
@@ -33,12 +37,39 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		},
 	},
 	{
-		name: "Claude (Danger Mode)",
-		description: "Claude Code with permissions auto-approved",
+		name: "claude",
 		preset: {
-			name: "Claude Danger",
+			name: "claude",
+			description: "Danger mode: All permissions auto-approved",
 			cwd: "",
 			commands: ["claude --dangerously-skip-permissions"],
+		},
+	},
+	{
+		name: "gemini",
+		preset: {
+			name: "gemini",
+			description: "Danger mode: All permissions auto-approved",
+			cwd: "",
+			commands: ["gemini --yolo"],
+		},
+	},
+	{
+		name: "cursor-agent",
+		preset: {
+			name: "cursor-agent",
+			description: "Cursor AI agent for terminal-based coding assistance",
+			cwd: "",
+			commands: ["cursor-agent"],
+		},
+	},
+	{
+		name: "opencode",
+		preset: {
+			name: "opencode",
+			description: "OpenCode: Open source AI coding agent",
+			cwd: "",
+			commands: ["opencode"],
 		},
 	},
 ];
@@ -53,6 +84,7 @@ export function PresetsSettings() {
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
+	const isDark = useIsDarkTheme();
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
@@ -167,23 +199,33 @@ export function PresetsSettings() {
 					</span>
 					{PRESET_TEMPLATES.map((template) => {
 						const alreadyAdded = isTemplateAdded(template);
+						const presetIcon = getPresetIcon(template.name, isDark);
 						return (
-							<Button
-								key={template.name}
-								variant="outline"
-								size="sm"
-								className="gap-1.5 text-xs h-7"
-								onClick={() => handleAddTemplate(template)}
-								title={alreadyAdded ? "Already added" : template.description}
-								disabled={alreadyAdded || createPreset.isPending}
-							>
-								{alreadyAdded ? (
-									<HiOutlineCheck className="h-3 w-3" />
-								) : (
-									<LuSparkles className="h-3 w-3" />
-								)}
-								{template.name}
-							</Button>
+							<Tooltip key={template.name}>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										className="gap-1.5 text-xs h-7"
+										onClick={() => handleAddTemplate(template)}
+										disabled={alreadyAdded || createPreset.isPending}
+									>
+										{alreadyAdded ? (
+											<HiOutlineCheck className="h-3 w-3" />
+										) : presetIcon ? (
+											<img
+												src={presetIcon}
+												alt=""
+												className="h-3 w-3 object-contain"
+											/>
+										) : null}
+										{template.name}
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" showArrow={false}>
+									{alreadyAdded ? "Already added" : template.preset.description}
+								</TooltipContent>
+							</Tooltip>
 						);
 					})}
 				</div>

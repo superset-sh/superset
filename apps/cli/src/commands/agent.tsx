@@ -4,6 +4,7 @@ import React from "react";
 import Table from "../components/Table";
 import { getDb } from "../lib/db";
 import { getDefaultLaunchCommand } from "../lib/launch/config";
+import { launchAgent } from "../lib/launch/run";
 import { ProcessOrchestrator } from "../lib/orchestrators/process-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
 import {
@@ -467,7 +468,6 @@ export function AgentStart({ workspaceId }: AgentStartProps) {
 
 					// Actually create the tmux session in the background
 					const agent = process as Agent;
-					const { launchAgent } = await import("../lib/launch/run");
 					const result = await launchAgent(agent, { attach: false });
 
 					if (!result.success) {
@@ -731,9 +731,6 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 
 				const agent = process as Agent;
 
-				// Import and call launchAgent
-				const { launchAgent } = await import("../lib/launch/run");
-
 				// Exit Ink to stop useInput before tmux takes over stdin
 				exit();
 				setImmediate(async () => {
@@ -742,10 +739,7 @@ export function AgentAttach({ id, onComplete: _onComplete }: AgentAttachProps) {
 					if (!result.success) {
 						// Update agent status to STOPPED on failure
 						try {
-							const db = (await import("../lib/db")).getDb();
-							const { ProcessOrchestrator } = await import(
-								"../lib/orchestrators/process-orchestrator"
-							);
+							const db = getDb();
 							const orchestrator = new ProcessOrchestrator(db);
 							await orchestrator.update(agent.id, {
 								status: ProcessStatus.STOPPED,

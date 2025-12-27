@@ -3,11 +3,13 @@ import { devtools } from "zustand/middleware";
 
 export type AppView = "workspace" | "settings";
 export type SettingsSection =
+	| "account"
 	| "project"
 	| "workspace"
 	| "appearance"
 	| "keyboard"
-	| "presets";
+	| "presets"
+	| "ringtones";
 
 interface AppState {
 	currentView: AppView;

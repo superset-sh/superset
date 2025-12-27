@@ -1,7 +1,10 @@
+import { useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
+import { NOTIFICATION_EVENTS } from "shared/constants";
 import { useAppStore } from "../app-state";
 import { useTabsStore } from "./store";
+import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 
 /**
  * Hook that listens for notification events via tRPC subscription.
@@ -11,58 +14,62 @@ export function useAgentHookListener() {
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 
+	// Use ref to avoid stale closure in subscription callback
+	const activeWorkspaceRef = useRef(activeWorkspace);
+	activeWorkspaceRef.current = activeWorkspace;
+
 	trpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
-			if (event.type === "agent-complete") {
-				const { paneId, workspaceId } = event.data;
-				if (!paneId || !workspaceId) return;
+			if (!event.data) return;
 
-				const state = useTabsStore.getState();
+			const state = useTabsStore.getState();
+			const target = resolveNotificationTarget(event.data, state);
+			if (!target) return;
 
-				// Find the tab containing this pane
-				const pane = state.panes[paneId];
-				if (!pane) return;
+			const { paneId, workspaceId } = target;
 
-				// Only show red dot if not already viewing this pane
+			if (event.type === NOTIFICATION_EVENTS.AGENT_COMPLETE) {
+				if (!paneId) return;
+
 				const activeTabId = state.activeTabIds[workspaceId];
 				const focusedPaneId = activeTabId && state.focusedPaneIds[activeTabId];
 				const isAlreadyActive =
-					activeWorkspace?.id === workspaceId && focusedPaneId === paneId;
+					activeWorkspaceRef.current?.id === workspaceId &&
+					focusedPaneId === paneId;
 
 				if (!isAlreadyActive) {
 					state.setNeedsAttention(paneId, true);
 				}
-			} else if (event.type === "focus-tab") {
-				const { paneId, workspaceId } = event.data;
-				if (!paneId || !workspaceId) return;
-
-				// Switch to workspace view if not already there
+			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
 				const appState = useAppStore.getState();
 				if (appState.currentView !== "workspace") {
 					appState.setView("workspace");
 				}
 
-				// Switch to the workspace first, then look up pane/tab from fresh state
 				setActiveWorkspace.mutate(
 					{ id: workspaceId },
 					{
 						onSuccess: () => {
-							// Get fresh state after workspace switch
-							const currentState = useTabsStore.getState();
+							const freshState = useTabsStore.getState();
+							const freshTarget = resolveNotificationTarget(
+								event.data,
+								freshState,
+							);
+							if (!freshTarget?.tabId) return;
 
-							// Look up pane from current state
-							const pane = currentState.panes[paneId];
-							if (!pane) return;
+							const freshTab = freshState.tabs.find(
+								(t) => t.id === freshTarget.tabId,
+							);
+							if (!freshTab || freshTab.workspaceId !== workspaceId) return;
 
-							const tabId = pane.tabId;
+							freshState.setActiveTab(workspaceId, freshTarget.tabId);
 
-							// Validate tab belongs to the target workspace
-							const tab = currentState.tabs.find((t) => t.id === tabId);
-							if (!tab || tab.workspaceId !== workspaceId) return;
-
-							// Set active tab and focused pane
-							currentState.setActiveTab(workspaceId, tabId);
-							currentState.setFocusedPane(tabId, paneId);
+							if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
+								freshState.setFocusedPane(
+									freshTarget.tabId,
+									freshTarget.paneId,
+								);
+							}
 						},
 					},
 				);

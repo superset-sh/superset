@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { MotionValue } from "framer-motion";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { modeIcons, modeLabels } from "./constants";
@@ -30,19 +31,24 @@ export function ModeNavigation({
 					const label = modeLabels[mode];
 
 					return (
-						<button
-							key={mode}
-							type="button"
-							onClick={() => onModeSelect(mode)}
-							title={label}
-							className={`relative z-10 h-8 w-8 rounded-sm flex items-center justify-center transition-colors duration-150 ${
-								isActive
-									? "text-sidebar-foreground"
-									: "text-sidebar-foreground/60 hover:text-sidebar-foreground/80"
-							}`}
-						>
-							<Icon className="w-3.5 h-3.5" />
-						</button>
+						<Tooltip key={mode}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => onModeSelect(mode)}
+									className={`relative z-10 h-8 w-8 rounded-sm flex items-center justify-center transition-colors duration-150 ${
+										isActive
+											? "text-sidebar-foreground"
+											: "text-sidebar-foreground/60 hover:text-sidebar-foreground/80"
+									}`}
+								>
+									<Icon className="w-3.5 h-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								{label}
+							</TooltipContent>
+						</Tooltip>
 					);
 				})}
 			</div>

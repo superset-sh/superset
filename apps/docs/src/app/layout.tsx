@@ -4,6 +4,8 @@ import { Footer, Layout, Navbar } from "nextra-theme-docs";
 import type * as React from "react";
 import "nextra-theme-docs/style.css";
 
+import { Providers } from "./providers";
+
 export const metadata = {
 	title: "Superset Docs",
 	description: "Superset Documentation",
@@ -31,15 +33,17 @@ export default async function DocsLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body>
-				<Layout
-					banner={banner}
-					navbar={navbar}
-					pageMap={await getPageMap()}
-					docsRepositoryBase="https://github.com/yourusername/superset"
-					footer={footer}
-				>
-					{children}
-				</Layout>
+				<Providers>
+					<Layout
+						banner={banner}
+						navbar={navbar}
+						pageMap={await getPageMap()}
+						docsRepositoryBase="https://github.com/yourusername/superset"
+						footer={footer}
+					>
+						{children}
+					</Layout>
+				</Providers>
 			</body>
 		</html>
 	);

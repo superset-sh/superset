@@ -5,6 +5,7 @@ import SelectInput from "ink-select-input";
 import TextInput from "ink-text-input";
 import React from "react";
 import { getDb } from "../lib/db";
+import { EnvironmentOrchestrator } from "../lib/orchestrators/environment-orchestrator";
 import { WorkspaceOrchestrator } from "../lib/orchestrators/workspace-orchestrator";
 import { AgentType } from "../types/process";
 import { WorkspaceType } from "../types/workspace";
@@ -167,9 +168,6 @@ export function Init({ onComplete }: InitProps) {
 			const orchestrator = new WorkspaceOrchestrator(db);
 
 			// Ensure at least one environment exists, create if missing
-			const { EnvironmentOrchestrator } = await import(
-				"../lib/orchestrators/environment-orchestrator"
-			);
 			const envOrchestrator = new EnvironmentOrchestrator(db);
 			const environments = await envOrchestrator.list();
 

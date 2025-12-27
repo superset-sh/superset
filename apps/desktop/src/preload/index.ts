@@ -1,9 +1,4 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
-import type {
-	IpcChannelName,
-	IpcRequest,
-	IpcResponse_,
-} from "shared/ipc-channels";
 import { exposeElectronTRPC } from "trpc-electron/main";
 
 declare global {
@@ -26,27 +21,12 @@ type IpcListener = (...args: unknown[]) => void;
 const listenerMap = new WeakMap<IpcListener, IpcListener>();
 
 /**
- * Type-safe IPC renderer API
+ * IPC renderer API
+ * Note: Primary IPC communication uses tRPC. This API is for low-level IPC needs.
  */
 const ipcRendererAPI = {
-	/**
-	 * Type-safe invoke method for IPC calls
-	 * @example
-	 * const workspace = await window.ipcRenderer.invoke("workspace-get", workspaceId);
-	 */
-	invoke: <T extends IpcChannelName>(
-		channel: T,
-		...args: IpcRequest<T> extends void ? [] : [IpcRequest<T>]
-	): Promise<IpcResponse_<T>> => {
-		return ipcRenderer.invoke(channel, ...args);
-	},
-
-	/**
-	 * Legacy untyped invoke for backwards compatibility
-	 * @deprecated Use typed invoke instead
-	 */
-	// biome-ignore lint/suspicious/noExplicitAny: Legacy API requires any for backwards compatibility
-	invokeUntyped: (channel: string, ...args: any[]) =>
+	// biome-ignore lint/suspicious/noExplicitAny: IPC invoke requires any for dynamic channel types
+	invoke: (channel: string, ...args: any[]) =>
 		ipcRenderer.invoke(channel, ...args),
 
 	// biome-ignore lint/suspicious/noExplicitAny: IPC send requires any for dynamic channel types

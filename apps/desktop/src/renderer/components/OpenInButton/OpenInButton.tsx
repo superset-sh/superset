@@ -1,3 +1,4 @@
+import type { ExternalApp } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import {
@@ -11,7 +12,6 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import type { ExternalApp } from "main/lib/db/schemas";
 import { useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuCopy } from "react-icons/lu";
@@ -44,7 +44,7 @@ interface AppOption {
 	icon: string;
 }
 
-const APP_OPTIONS: AppOption[] = [
+export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
 	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
@@ -55,7 +55,7 @@ const APP_OPTIONS: AppOption[] = [
 	{ id: "terminal", label: "Terminal", icon: terminalIcon },
 ];
 
-const JETBRAINS_OPTIONS: AppOption[] = [
+export const JETBRAINS_OPTIONS: AppOption[] = [
 	{ id: "intellij", label: "IntelliJ IDEA", icon: intellijIcon },
 	{ id: "webstorm", label: "WebStorm", icon: webstormIcon },
 	{ id: "pycharm", label: "PyCharm", icon: pycharmIcon },
@@ -72,7 +72,7 @@ const JETBRAINS_OPTIONS: AppOption[] = [
 
 const ALL_APP_OPTIONS = [...APP_OPTIONS, ...JETBRAINS_OPTIONS];
 
-const getAppOption = (id: ExternalApp) =>
+export const getAppOption = (id: ExternalApp) =>
 	ALL_APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
 
 export interface OpenInButtonProps {

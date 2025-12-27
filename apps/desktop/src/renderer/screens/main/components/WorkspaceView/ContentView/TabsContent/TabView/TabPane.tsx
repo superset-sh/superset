@@ -1,3 +1,4 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuMessageSquare } from "react-icons/lu";
@@ -13,6 +14,7 @@ import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbac
 import type { Pane, Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
+import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
 
 type SplitOrientation = "vertical" | "horizontal";
 
@@ -131,38 +133,64 @@ export function TabPane({
 	return (
 		<MosaicWindow<string>
 			path={path}
-			title={pane.name}
-			toolbarControls={
-				<div className="flex items-center gap-0.5">
-					<button
-						type="button"
-						onClick={handleSplitPane}
-						title="Split pane"
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					>
-						{splitIcon}
-					</button>
-					<button
-						type="button"
-						onClick={toggleChatPanel}
-						title={isChatOpen ? "Hide chat" : "Show chat"}
-						className={`rounded p-1 transition-colors hover:bg-muted-foreground/20 hover:text-foreground ${
-							isChatOpen ? "text-foreground" : "text-muted-foreground"
-						}`}
-					>
-						<LuMessageSquare className="size-4" />
-					</button>
-
-					<button
-						type="button"
-						onClick={handleClosePane}
-						title="Close pane"
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-					>
-						<HiMiniXMark className="size-4" />
-					</button>
+			title=""
+			renderToolbar={() => (
+				<div className="flex h-full w-full items-center justify-between px-2">
+					<div className="flex min-w-0 items-center gap-2">
+						<DirectoryNavigator
+							paneId={paneId}
+							currentCwd={pane.cwd}
+							cwdConfirmed={pane.cwdConfirmed}
+						/>
+					</div>
+					<div className="flex items-center gap-0.5">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleSplitPane}
+									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+								>
+									{splitIcon}
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Split pane
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={toggleChatPanel}
+									className={`rounded p-1 transition-colors hover:bg-muted-foreground/20 hover:text-foreground ${
+										isChatOpen ? "text-foreground" : "text-muted-foreground"
+									}`}
+								>
+									<LuMessageSquare className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								{isChatOpen ? "Hide chat" : "Show chat"}
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={handleClosePane}
+									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+								>
+									<HiMiniXMark className="size-4" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Close pane
+							</TooltipContent>
+						</Tooltip>
+					</div>
 				</div>
-			}
+			)}
 			className={isActive ? "mosaic-window-focused" : ""}
 		>
 			<TabContentContextMenu

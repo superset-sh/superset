@@ -93,6 +93,200 @@ describe("LFS Detection", () => {
 	});
 });
 
+describe("getDefaultBranch", () => {
+	// Import simpleGit directly to bypass any module mocks from other test files
+	const { simpleGit } = require("simple-git");
+
+	// Inline implementation for testing to avoid mock interference
+	async function getDefaultBranchForTest(
+		mainRepoPath: string,
+	): Promise<string> {
+		const git = simpleGit(mainRepoPath);
+
+		try {
+			const headRef = await git.raw([
+				"symbolic-ref",
+				"refs/remotes/origin/HEAD",
+			]);
+			const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+			if (match) return match[1];
+		} catch {
+			// origin/HEAD not set, continue to fallback
+		}
+
+		try {
+			const branches = await git.branch(["-r"]);
+			const remoteBranches = branches.all.map((b: string) =>
+				b.replace("origin/", ""),
+			);
+
+			for (const candidate of ["main", "master", "develop", "trunk"]) {
+				if (remoteBranches.includes(candidate)) {
+					return candidate;
+				}
+			}
+		} catch {
+			// Failed to list branches
+		}
+
+		return "main";
+	}
+
+	function createIsolatedTestRepo(testName: string): {
+		repoPath: string;
+		cleanup: () => void;
+	} {
+		const testDir = join(
+			__dirname,
+			`.test-${testName}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+		);
+		mkdirSync(testDir, { recursive: true });
+		execSync("git init", { cwd: testDir, stdio: "ignore" });
+		execSync("git config user.email 'test@test.com'", {
+			cwd: testDir,
+			stdio: "ignore",
+		});
+		execSync("git config user.name 'Test'", { cwd: testDir, stdio: "ignore" });
+		return {
+			repoPath: testDir,
+			cleanup: () => {
+				if (existsSync(testDir)) {
+					rmSync(testDir, { recursive: true, force: true });
+				}
+			},
+		};
+	}
+
+	test("returns main when no remote and no branches", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("empty");
+		try {
+			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("main");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("detects main from local remote branches", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("main");
+		try {
+			// Create a commit so we have something to reference
+			writeFileSync(join(repoPath, "test.txt"), "test");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			// Simulate fetched remote branches by creating remote tracking refs
+			execSync("git remote add origin https://example.com/repo.git", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git update-ref refs/remotes/origin/main HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("main");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("detects master from local remote branches", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("master");
+		try {
+			// Create a commit
+			writeFileSync(join(repoPath, "test.txt"), "test");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			// Simulate fetched remote with only master branch
+			execSync("git remote add origin https://example.com/repo.git", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git update-ref refs/remotes/origin/master HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("master");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("uses origin/HEAD when set", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("origin-head");
+		try {
+			// Create a commit
+			writeFileSync(join(repoPath, "test.txt"), "test");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			// Set up remote and origin/HEAD
+			execSync("git remote add origin https://example.com/repo.git", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git update-ref refs/remotes/origin/develop HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync(
+				"git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/develop",
+				{
+					cwd: repoPath,
+					stdio: "ignore",
+				},
+			);
+
+			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("develop");
+		} finally {
+			cleanup();
+		}
+	});
+
+	test("prefers main over master when both exist", async () => {
+		const { repoPath, cleanup } = createIsolatedTestRepo("prefer-main");
+		try {
+			// Create a commit
+			writeFileSync(join(repoPath, "test.txt"), "test");
+			execSync("git add . && git commit -m 'init'", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			// Simulate fetched remote with both main and master
+			execSync("git remote add origin https://example.com/repo.git", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git update-ref refs/remotes/origin/main HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+			execSync("git update-ref refs/remotes/origin/master HEAD", {
+				cwd: repoPath,
+				stdio: "ignore",
+			});
+
+			const result = await getDefaultBranchForTest(repoPath);
+			expect(result).toBe("main");
+		} finally {
+			cleanup();
+		}
+	});
+});
+
 describe("Shell Environment", () => {
 	test("getShellEnvironment returns PATH", async () => {
 		const { getShellEnvironment } = await import("./shell-env");

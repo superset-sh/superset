@@ -1,8 +1,10 @@
 import { cn } from "@superset/ui/utils";
 import {
+	HiOutlineBell,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlinePaintBrush,
+	HiOutlineUser,
 } from "react-icons/hi2";
 import type { SettingsSection } from "renderer/stores";
 
@@ -17,9 +19,19 @@ const GENERAL_SECTIONS: {
 	icon: React.ReactNode;
 }[] = [
 	{
+		id: "account",
+		label: "Account",
+		icon: <HiOutlineUser className="h-4 w-4" />,
+	},
+	{
 		id: "appearance",
 		label: "Appearance",
 		icon: <HiOutlinePaintBrush className="h-4 w-4" />,
+	},
+	{
+		id: "ringtones",
+		label: "Ringtones",
+		icon: <HiOutlineBell className="h-4 w-4" />,
 	},
 	{
 		id: "keyboard",

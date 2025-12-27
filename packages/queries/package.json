@@ -1,0 +1,28 @@
+{
+	"name": "@superset/queries",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./task": "./src/task/index.ts"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@superset/trpc": "workspace:*",
+		"@tanstack/react-query": "^5.90.10",
+		"@trpc/tanstack-react-query": "^11.7.1"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/react": "^19.2.7",
+		"react": "^19.2.3",
+		"typescript": "^5.9.3"
+	},
+	"peerDependencies": {
+		"react": "^19.2.3"
+	}
+}

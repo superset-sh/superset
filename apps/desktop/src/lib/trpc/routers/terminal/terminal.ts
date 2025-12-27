@@ -1,9 +1,13 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import { projects, workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { db } from "main/lib/db";
-import { terminalManager } from "main/lib/terminal-manager";
+import { eq } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
+import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getWorktreePath } from "../workspaces/utils/worktree";
+import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
 
 /**
@@ -45,16 +49,24 @@ export const createTerminalRouter = () => {
 					initialCommands,
 				} = input;
 
-				// Resolve cwd: absolute paths stay as-is, relative paths resolve against worktree
-				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
-				const worktreePath = workspace
-					? getWorktreePath(workspace.worktreeId)
+				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
+				const workspacePath = workspace
+					? (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
-				const cwd = resolveCwd(cwdOverride, worktreePath);
+				const cwd = resolveCwd(cwdOverride, workspacePath);
 
 				// Get project info for environment variables
 				const project = workspace
-					? db.data.projects.find((p) => p.id === workspace.projectId)
+					? localDb
+							.select()
+							.from(projects)
+							.where(eq(projects.id, workspace.projectId))
+							.get()
 					: undefined;
 
 				const result = await terminalManager.createOrAttach({
@@ -62,7 +74,7 @@ export const createTerminalRouter = () => {
 					tabId,
 					workspaceId,
 					workspaceName: workspace?.name,
-					workspacePath: worktreePath,
+					workspacePath,
 					rootPath: project?.mainRepoPath,
 					cwd,
 					cols,
@@ -163,16 +175,75 @@ export const createTerminalRouter = () => {
 		 */
 		getWorkspaceCwd: publicProcedure
 			.input(z.string())
-			.query(async ({ input: workspaceId }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
+			.query(({ input: workspaceId }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
 				if (!workspace) {
 					return undefined;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				if (!workspace.worktreeId) {
+					return undefined;
+				}
+
+				const worktree = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, workspace.worktreeId))
+					.get();
 				return worktree?.path;
+			}),
+
+		/**
+		 * List directory contents for navigation
+		 * Returns directories and files in the specified path
+		 */
+		listDirectory: publicProcedure
+			.input(
+				z.object({
+					dirPath: z.string(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const { dirPath } = input;
+
+				try {
+					const entries = await fs.readdir(dirPath, { withFileTypes: true });
+
+					const items = entries
+						.filter((entry) => !entry.name.startsWith("."))
+						.map((entry) => ({
+							name: entry.name,
+							path: path.join(dirPath, entry.name),
+							isDirectory: entry.isDirectory(),
+						}))
+						.sort((a, b) => {
+							// Directories first, then alphabetical
+							if (a.isDirectory && !b.isDirectory) return -1;
+							if (!a.isDirectory && b.isDirectory) return 1;
+							return a.name.localeCompare(b.name);
+						});
+
+					// Get parent directory
+					const parentPath = path.dirname(dirPath);
+					const hasParent = parentPath !== dirPath;
+
+					return {
+						currentPath: dirPath,
+						parentPath: hasParent ? parentPath : null,
+						items,
+					};
+				} catch {
+					return {
+						currentPath: dirPath,
+						parentPath: null,
+						items: [],
+						error: "Unable to read directory",
+					};
+				}
 			}),
 
 		stream: publicProcedure

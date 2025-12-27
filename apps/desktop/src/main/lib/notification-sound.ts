@@ -1,29 +1,41 @@
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { app } from "electron";
+import { settings } from "@superset/local-db";
+import {
+	DEFAULT_RINGTONE_ID,
+	getRingtoneFilename,
+} from "../../shared/ringtones";
+import { localDb } from "./local-db";
+import { getSoundPath } from "./sound-paths";
 
 /**
- * Gets the path to the notification sound file.
- * In development, reads from src/resources. In production, reads from the bundled resources.
+ * Gets the selected ringtone filename from the database.
+ * Falls back to default ringtone if the stored ID is invalid/stale.
  */
-function getNotificationSoundPath(): string {
-	const isDev = !app.isPackaged;
+function getSelectedRingtoneFilename(): string {
+	const defaultFilename = getRingtoneFilename(DEFAULT_RINGTONE_ID);
 
-	if (isDev) {
-		return join(app.getAppPath(), "src/resources/sounds/arcade.mp3");
+	try {
+		const settingsRow = localDb.select().from(settings).get();
+		const selectedId = settingsRow?.selectedRingtoneId ?? DEFAULT_RINGTONE_ID;
+
+		// "none" means silent - return empty string intentionally
+		if (selectedId === "none") {
+			return "";
+		}
+
+		const filename = getRingtoneFilename(selectedId);
+		// Fall back to default if stored ID is stale/unknown
+		return filename || defaultFilename;
+	} catch {
+		return defaultFilename;
 	}
-
-	return join(process.resourcesPath, "resources/sounds/arcade.mp3");
 }
 
 /**
- * Plays the custom notification sound.
- * Uses platform-specific commands to play the audio file.
+ * Plays a sound file using platform-specific commands
  */
-export function playNotificationSound(): void {
-	const soundPath = getNotificationSoundPath();
-
+function playSoundFile(soundPath: string): void {
 	if (!existsSync(soundPath)) {
 		console.warn(`[notification-sound] Sound file not found: ${soundPath}`);
 		return;
@@ -44,4 +56,20 @@ export function playNotificationSound(): void {
 			}
 		});
 	}
+}
+
+/**
+ * Plays the notification sound based on user's selected ringtone.
+ * Uses platform-specific commands to play the audio file.
+ */
+export function playNotificationSound(): void {
+	const filename = getSelectedRingtoneFilename();
+
+	// No sound if "none" is selected
+	if (!filename) {
+		return;
+	}
+
+	const soundPath = getSoundPath(filename);
+	playSoundFile(soundPath);
 }

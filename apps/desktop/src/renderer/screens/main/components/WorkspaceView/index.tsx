@@ -1,17 +1,12 @@
-import {
-	ResizableHandle,
-	ResizablePanel,
-	ResizablePanelGroup,
-} from "@superset/ui/resizable";
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import type { ImperativePanelHandle } from "react-resizable-panels";
 import { trpc } from "renderer/lib/trpc";
-import { useSidebarStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
-import { Sidebar } from "./Sidebar";
+import { ResizableSidebar } from "./ResizableSidebar";
+import { WorkspaceActionBar } from "./WorkspaceActionBar";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -22,6 +17,7 @@ export function WorkspaceView() {
 	const addTab = useTabsStore((s) => s.addTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
+	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 
 	const tabs = useMemo(
 		() =>
@@ -34,6 +30,12 @@ export function WorkspaceView() {
 	const activeTabId = activeWorkspaceId
 		? activeTabIds[activeWorkspaceId]
 		: null;
+
+	// Get the active tab object for layout access
+	const activeTab = useMemo(
+		() => (activeTabId ? tabs.find((t) => t.id === activeTabId) : null),
+		[activeTabId, tabs],
+	);
 
 	// Get focused pane ID for the active tab
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
@@ -69,6 +71,23 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
+	// Switch between panes within a tab (⌘+⌥+Left/Right)
+	useHotkeys(HOTKEYS.PREV_PANE.keys, () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
+		if (prevPaneId) {
+			setFocusedPane(activeTabId, prevPaneId);
+		}
+	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
+
+	useHotkeys(HOTKEYS.NEXT_PANE.keys, () => {
+		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+		const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
+		if (nextPaneId) {
+			setFocusedPane(activeTabId, nextPaneId);
+		}
+	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
+
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =
 		trpc.settings.getLastUsedApp.useQuery();
@@ -90,47 +109,17 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspace?.worktreePath]);
 
-	const { isSidebarOpen, sidebarSize, setSidebarSize, setIsResizing } =
-		useSidebarStore();
-	const sidebarPanelRef = useRef<ImperativePanelHandle>(null);
-
-	useEffect(() => {
-		const panel = sidebarPanelRef.current;
-		if (!panel) return;
-
-		if (isSidebarOpen) {
-			panel.expand();
-		} else {
-			panel.collapse();
-		}
-	}, [isSidebarOpen]);
-
 	return (
-		<ResizablePanelGroup direction="horizontal" className="flex-1 bg-tertiary">
-			<ResizablePanel
-				ref={sidebarPanelRef}
-				defaultSize={sidebarSize}
-				minSize={10}
-				maxSize={40}
-				collapsible
-				collapsedSize={0}
-				onCollapse={() => setSidebarSize(0)}
-				onExpand={() => setSidebarSize(15)}
-				onResize={setSidebarSize}
-			>
-				{isSidebarOpen && <Sidebar />}
-			</ResizablePanel>
-			<ResizableHandle
-				className="bg-tertiary hover:bg-border transition-colors"
-				onDragging={setIsResizing}
-			/>
-			<ResizablePanel defaultSize={100 - sidebarSize}>
-				<div className="flex-1 h-full p-1">
-					<div className="h-full bg-background rounded-lg flex flex-col overflow-hidden">
+		<div className="flex-1 h-full flex flex-col overflow-hidden">
+			<div className="flex-1 flex bg-tertiary overflow-hidden">
+				<ResizableSidebar />
+				<div className="flex-1 min-w-0 h-full bg-background rounded-t-lg flex flex-col overflow-hidden">
+					<WorkspaceActionBar worktreePath={activeWorkspace?.worktreePath} />
+					<div className="flex-1 min-h-0 overflow-hidden">
 						<ContentView />
 					</div>
 				</div>
-			</ResizablePanel>
-		</ResizablePanelGroup>
+			</div>
+		</div>
 	);
 }

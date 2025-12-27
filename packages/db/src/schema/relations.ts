@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 
 import {
+	integrationConnections,
 	organizationMembers,
 	organizations,
 	repositories,
@@ -12,12 +13,14 @@ export const usersRelations = relations(users, ({ many }) => ({
 	organizationMembers: many(organizationMembers),
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
+	connectedIntegrations: many(integrationConnections),
 }));
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
 	members: many(organizationMembers),
 	repositories: many(repositories),
 	tasks: many(tasks),
+	integrations: many(integrationConnections),
 }));
 
 export const organizationMembersRelations = relations(
@@ -65,3 +68,17 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		relationName: "creator",
 	}),
 }));
+
+export const integrationConnectionsRelations = relations(
+	integrationConnections,
+	({ one }) => ({
+		organization: one(organizations, {
+			fields: [integrationConnections.organizationId],
+			references: [organizations.id],
+		}),
+		connectedBy: one(users, {
+			fields: [integrationConnections.connectedByUserId],
+			references: [users.id],
+		}),
+	}),
+);

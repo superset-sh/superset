@@ -14,6 +14,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 process.env.NODE_ENV = "test";
+process.env.SKIP_ENV_VALIDATION = "1";
+process.env.GOOGLE_CLIENT_ID = "test-google-client-id";
+process.env.GH_CLIENT_ID = "test-github-client-id";
 
 const testTmpDir = join(tmpdir(), "superset-test");
 
@@ -48,21 +51,6 @@ const mockClassList = new Set<string>();
 // Electron Preload Mocks (exposed via contextBridge in real app)
 // =============================================================================
 
-const mockStorage = new Map<string, string>();
-
-global.window = {
-	electronStore: {
-		get: async (key: string) => mockStorage.get(key) || null,
-		set: async (key: string, value: string) => {
-			mockStorage.set(key, value);
-		},
-		delete: async (key: string) => {
-			mockStorage.delete(key);
-		},
-	},
-	// biome-ignore lint/suspicious/noExplicitAny: Test setup requires partial window mock
-} as any;
-
 // trpc-electron expects this global for renderer-side communication
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).electronTRPC = {
@@ -79,6 +67,8 @@ mock.module("electron", () => ({
 		getPath: mock(() => testTmpDir),
 		getName: mock(() => "test-app"),
 		getVersion: mock(() => "1.0.0"),
+		getAppPath: mock(() => testTmpDir),
+		isPackaged: false,
 	},
 	dialog: {
 		showOpenDialog: mock(() =>
@@ -97,5 +87,81 @@ mock.module("electron", () => ({
 	ipcMain: {
 		handle: mock(),
 		on: mock(),
+	},
+	shell: {
+		openExternal: mock(() => Promise.resolve()),
+		openPath: mock(() => Promise.resolve("")),
+	},
+	clipboard: {
+		writeText: mock(),
+		readText: mock(() => ""),
+	},
+	screen: {
+		getPrimaryDisplay: mock(() => ({
+			workAreaSize: { width: 1920, height: 1080 },
+		})),
+	},
+	Notification: mock(() => ({
+		show: mock(),
+		on: mock(),
+	})),
+	Menu: {
+		buildFromTemplate: mock(() => ({})),
+		setApplicationMenu: mock(),
+	},
+}));
+
+// =============================================================================
+// Analytics Mock (has Electron/API dependencies)
+// =============================================================================
+
+mock.module("main/lib/analytics", () => ({
+	track: mock(() => {}),
+	clearUserCache: mock(() => {}),
+	shutdown: mock(() => Promise.resolve()),
+}));
+
+// =============================================================================
+// Local DB Mock (better-sqlite3 not supported in Bun tests)
+// =============================================================================
+
+mock.module("main/lib/local-db", () => ({
+	localDb: {
+		select: mock(() => ({
+			from: mock(() => ({
+				where: mock(() => ({
+					get: mock(() => null),
+					all: mock(() => []),
+				})),
+				get: mock(() => null),
+				all: mock(() => []),
+			})),
+		})),
+		insert: mock(() => ({
+			values: mock(() => ({
+				returning: mock(() => ({
+					get: mock(() => ({ id: "test-id" })),
+				})),
+				onConflictDoUpdate: mock(() => ({
+					run: mock(),
+				})),
+				run: mock(),
+			})),
+		})),
+		update: mock(() => ({
+			set: mock(() => ({
+				where: mock(() => ({
+					run: mock(),
+					returning: mock(() => ({
+						get: mock(() => ({ id: "test-id" })),
+					})),
+				})),
+			})),
+		})),
+		delete: mock(() => ({
+			where: mock(() => ({
+				run: mock(),
+			})),
+		})),
 	},
 }));

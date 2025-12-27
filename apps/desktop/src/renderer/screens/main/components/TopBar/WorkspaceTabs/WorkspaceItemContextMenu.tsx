@@ -20,6 +20,8 @@ interface WorkspaceItemContextMenuProps {
 	worktreePath: string;
 	workspaceAlias?: string;
 	onRename: () => void;
+	canRename?: boolean;
+	showHoverCard?: boolean;
 }
 
 export function WorkspaceItemContextMenu({
@@ -28,6 +30,8 @@ export function WorkspaceItemContextMenu({
 	worktreePath,
 	workspaceAlias,
 	onRename,
+	canRename = true,
+	showHoverCard = true,
 }: WorkspaceItemContextMenuProps) {
 	const openInFinder = trpc.external.openInFinder.useMutation();
 
@@ -37,6 +41,26 @@ export function WorkspaceItemContextMenu({
 		}
 	};
 
+	// For branch workspaces, just show context menu without hover card
+	if (!showHoverCard) {
+		return (
+			<ContextMenu>
+				<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
+				<ContextMenuContent>
+					{canRename && (
+						<>
+							<ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
+							<ContextMenuSeparator />
+						</>
+					)}
+					<ContextMenuItem onSelect={handleOpenInFinder}>
+						Open in Finder
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
+		);
+	}
+
 	return (
 		<HoverCard openDelay={400} closeDelay={100}>
 			<ContextMenu>
@@ -44,8 +68,12 @@ export function WorkspaceItemContextMenu({
 					<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 				</HoverCardTrigger>
 				<ContextMenuContent>
-					<ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
-					<ContextMenuSeparator />
+					{canRename && (
+						<>
+							<ContextMenuItem onSelect={onRename}>Rename</ContextMenuItem>
+							<ContextMenuSeparator />
+						</>
+					)}
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						Open in Finder
 					</ContextMenuItem>
