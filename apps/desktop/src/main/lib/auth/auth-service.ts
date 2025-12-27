@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import { type BrowserWindow, shell } from "electron";
 import { env } from "main/env.main";
 import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
+import { tokenStorage } from "./token-storage";
 
 /**
  * Store for state parameter (CSRF protection)
@@ -62,8 +63,6 @@ function isValidTokenResponse(data: unknown): data is TokenResponse {
 		obj.refreshTokenExpiresAt > 0
 	);
 }
-
-import { tokenStorage } from "./token-storage";
 
 /**
  * Main authentication service
