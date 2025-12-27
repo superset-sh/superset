@@ -1,45 +1,40 @@
 {
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
+
+	// ============================================================================
+	// GLOBAL ENV VARS
+	// These affect caching for ALL packages. Only put truly shared vars here.
+	// ============================================================================
 	"globalEnv": [
+		// Database - used by api, web, admin
 		"DATABASE_URL",
 		"DATABASE_URL_UNPOOLED",
+
+		// Clerk Auth - used by all apps
 		"CLERK_SECRET_KEY",
-		"CLERK_WEBHOOK_SECRET",
-		"BLOB_READ_WRITE_TOKEN",
 		"NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
 		"NEXT_PUBLIC_CLERK_SIGN_IN_URL",
 		"NEXT_PUBLIC_CLERK_SIGN_UP_URL",
+
+		// Cross-app URLs - used by all apps
 		"NEXT_PUBLIC_API_URL",
 		"NEXT_PUBLIC_WEB_URL",
-		"NEXT_PUBLIC_MARKETING_URL",
-		"NEXT_PUBLIC_DOCS_URL",
-		"NEXT_PUBLIC_ADMIN_URL",
-		"POSTHOG_API_KEY",
-		"POSTHOG_PROJECT_ID",
-		"KV_REST_API_URL",
-		"KV_REST_API_TOKEN",
-		"DESKTOP_AUTH_SECRET",
-		"GOOGLE_CLIENT_ID",
-		"GOOGLE_CLIENT_SECRET",
-		"GH_CLIENT_ID",
-		"GH_CLIENT_SECRET",
-		"LINEAR_CLIENT_ID",
-		"LINEAR_CLIENT_SECRET",
-		"LINEAR_WEBHOOK_SECRET",
-		"QSTASH_TOKEN",
-		"QSTASH_CURRENT_SIGNING_KEY",
-		"QSTASH_NEXT_SIGNING_KEY",
+		"NEXT_PUBLIC_COOKIE_DOMAIN",
+
+		// Analytics - used by web, admin, marketing
 		"NEXT_PUBLIC_POSTHOG_KEY",
 		"NEXT_PUBLIC_POSTHOG_HOST",
-		"NEXT_PUBLIC_COOKIE_DOMAIN",
+
+		// Sentry - shared config
 		"SENTRY_AUTH_TOKEN",
-		"NEXT_PUBLIC_SENTRY_DSN_WEB",
-		"NEXT_PUBLIC_SENTRY_DSN_API",
-		"NEXT_PUBLIC_SENTRY_DSN_ADMIN",
-		"NEXT_PUBLIC_SENTRY_DSN_MARKETING",
 		"NEXT_PUBLIC_SENTRY_ENVIRONMENT"
 	],
+
+	// ============================================================================
+	// PASS-THROUGH ENV VARS
+	// These are available but DON'T affect caching (CI, platform vars, etc.)
+	// ============================================================================
 	"globalPassThroughEnv": [
 		"NODE_ENV",
 		"CI",
@@ -48,7 +43,14 @@
 		"VERCEL_URL",
 		"npm_lifecycle_event"
 	],
+
+	// ============================================================================
+	// TASKS
+	// ============================================================================
 	"tasks": {
+		// ------------------------------------------------------------------------
+		// Base build task (inherited by all packages)
+		// ------------------------------------------------------------------------
 		"build": {
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"dependsOn": ["^build"],
@@ -61,6 +63,100 @@
 				".cache/tsbuildinfo.json"
 			]
 		},
+
+		// ------------------------------------------------------------------------
+		// API - has the most secrets (OAuth, integrations, etc.)
+		// ------------------------------------------------------------------------
+		"@superset/api#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				// Desktop auth
+				"DESKTOP_AUTH_SECRET",
+
+				// OAuth providers
+				"GOOGLE_CLIENT_ID",
+				"GOOGLE_CLIENT_SECRET",
+				"GH_CLIENT_ID",
+				"GH_CLIENT_SECRET",
+
+				// Linear integration
+				"LINEAR_CLIENT_ID",
+				"LINEAR_CLIENT_SECRET",
+				"LINEAR_WEBHOOK_SECRET",
+
+				// QStash (background jobs)
+				"QSTASH_TOKEN",
+				"QSTASH_CURRENT_SIGNING_KEY",
+				"QSTASH_NEXT_SIGNING_KEY",
+
+				// Vercel Blob storage
+				"BLOB_READ_WRITE_TOKEN",
+
+				// Clerk webhook
+				"CLERK_WEBHOOK_SECRET",
+
+				// URLs specific to API
+				"NEXT_PUBLIC_ADMIN_URL",
+
+				// Sentry DSN
+				"NEXT_PUBLIC_SENTRY_DSN_API"
+			]
+		},
+
+		// ------------------------------------------------------------------------
+		// Web - main dashboard app
+		// ------------------------------------------------------------------------
+		"@superset/web#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				// Desktop auth (for OAuth callback)
+				"DESKTOP_AUTH_SECRET",
+
+				// URLs
+				"NEXT_PUBLIC_MARKETING_URL",
+				"NEXT_PUBLIC_DOCS_URL",
+
+				// Sentry DSN
+				"NEXT_PUBLIC_SENTRY_DSN_WEB"
+			]
+		},
+
+		// ------------------------------------------------------------------------
+		// Admin - internal dashboard
+		// ------------------------------------------------------------------------
+		"@superset/admin#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				// Sentry DSN
+				"NEXT_PUBLIC_SENTRY_DSN_ADMIN"
+			]
+		},
+
+		// ------------------------------------------------------------------------
+		// Marketing - public landing page
+		// ------------------------------------------------------------------------
+		"@superset/marketing#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				// Sentry DSN
+				"NEXT_PUBLIC_SENTRY_DSN_MARKETING"
+			]
+		},
+
+		// ------------------------------------------------------------------------
+		// Docs - documentation site
+		// ------------------------------------------------------------------------
+		"@superset/docs#build": {
+			"dependsOn": ["^build"],
+			"env": [
+				// Sentry DSN
+				"NEXT_PUBLIC_SENTRY_DSN_DOCS"
+			]
+		},
+
+		// ------------------------------------------------------------------------
+		// Other tasks
+		// ------------------------------------------------------------------------
 		"dev": {
 			"dependsOn": ["^dev"],
 			"cache": false,
