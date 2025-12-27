@@ -1,9 +1,9 @@
 "use client";
 
+import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { DemoVideo } from "./components/DemoVideo";
-import { MeshGradient } from "./components/MeshGradient";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
@@ -13,7 +13,7 @@ export function ProductDemo() {
 	);
 
 	return (
-		<div className="relative w-full rounded-lg overflow-hidden">
+		<div className="relative w-full max-w-full rounded-lg overflow-hidden">
 			{/* Animated mesh gradient backgrounds - all rendered, opacity controlled */}
 			{DEMO_OPTIONS.map((option) => (
 				<motion.div

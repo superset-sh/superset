@@ -1,4 +1,4 @@
-import type { CheckItem } from "main/lib/db/schemas";
+import type { CheckItem } from "@superset/local-db";
 import { useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import { CheckItemRow } from "./components/CheckItemRow";

@@ -1,5 +1,6 @@
+import { settings } from "@superset/local-db";
 import { clipboard, shell } from "electron";
-import { db } from "main/lib/db";
+import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -54,9 +55,14 @@ export const createExternalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					data.settings.lastUsedApp = input.app;
-				});
+				localDb
+					.insert(settings)
+					.values({ id: 1, lastUsedApp: input.app })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { lastUsedApp: input.app },
+					})
+					.run();
 				await openPathInApp(input.path, input.app);
 			}),
 
@@ -75,7 +81,8 @@ export const createExternalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const filePath = resolvePath(input.path, input.cwd);
-				const app = db.data.settings.lastUsedApp ?? "cursor";
+				const settingsRow = localDb.select().from(settings).get();
+				const app = settingsRow?.lastUsedApp ?? "cursor";
 				await openPathInApp(filePath, app);
 			}),
 	});

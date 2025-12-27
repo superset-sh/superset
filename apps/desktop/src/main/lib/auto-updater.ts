@@ -1,25 +1,71 @@
-import { app, type BrowserWindow, dialog } from "electron";
+import { EventEmitter } from "node:events";
+import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
+import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
 	"https://github.com/superset-sh/superset/releases/latest/download";
 
-let mainWindow: BrowserWindow | null = null;
-let isUpdateDialogOpen = false;
+export interface AutoUpdateStatusEvent {
+	status: AutoUpdateStatus;
+	version?: string;
+	error?: string;
+}
 
-export function setMainWindow(window: BrowserWindow): void {
-	mainWindow = window;
+export const autoUpdateEmitter = new EventEmitter();
+
+let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
+let currentVersion: string | undefined;
+let isDismissed = false;
+
+function emitStatus(
+	status: AutoUpdateStatus,
+	version?: string,
+	error?: string,
+): void {
+	currentStatus = status;
+	currentVersion = version;
+
+	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
+		return;
+	}
+
+	autoUpdateEmitter.emit("status-changed", { status, version, error });
+}
+
+export function getUpdateStatus(): AutoUpdateStatusEvent {
+	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
+		return { status: AUTO_UPDATE_STATUS.IDLE };
+	}
+	return { status: currentStatus, version: currentVersion };
+}
+
+export function installUpdate(): void {
+	if (env.NODE_ENV === "development") {
+		console.info("[auto-updater] Install skipped in dev mode");
+		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+		return;
+	}
+	autoUpdater.quitAndInstall(false, true);
+}
+
+export function dismissUpdate(): void {
+	isDismissed = true;
+	autoUpdateEmitter.emit("status-changed", { status: AUTO_UPDATE_STATUS.IDLE });
 }
 
 export function checkForUpdates(): void {
 	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
 		console.error("[auto-updater] Failed to check for updates:", error);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
 }
 
@@ -41,25 +87,56 @@ export function checkForUpdatesInteractive(): void {
 		return;
 	}
 
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
+
 	autoUpdater
 		.checkForUpdates()
 		.then((result) => {
-			if (!result || !result.updateInfo) {
+			if (
+				!result?.updateInfo ||
+				result.updateInfo.version === app.getVersion()
+			) {
+				emitStatus(AUTO_UPDATE_STATUS.IDLE);
 				dialog.showMessageBox({
 					type: "info",
 					title: "No Updates",
-					message: "You are running the latest version.",
+					message: "You're up to date!",
+					detail: `Version ${app.getVersion()} is the latest version.`,
 				});
 			}
 		})
 		.catch((error) => {
 			console.error("[auto-updater] Failed to check for updates:", error);
+			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
 				type: "error",
 				title: "Update Error",
 				message: "Failed to check for updates. Please try again later.",
 			});
 		});
+}
+
+export function simulateUpdateReady(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.READY, "99.0.0-test");
+}
+
+export function simulateDownloading(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
+}
+
+export function simulateError(): void {
+	if (env.NODE_ENV !== "development") return;
+	isDismissed = false;
+	emitStatus(
+		AUTO_UPDATE_STATUS.ERROR,
+		undefined,
+		"Simulated error for testing",
+	);
 }
 
 export function setupAutoUpdater(): void {
@@ -78,56 +155,37 @@ export function setupAutoUpdater(): void {
 
 	autoUpdater.on("error", (error) => {
 		console.error("[auto-updater] Error during update check:", error);
+		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+	});
+
+	autoUpdater.on("checking-for-update", () => {
+		console.info("[auto-updater] Checking for updates...");
+		emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	});
 
 	autoUpdater.on("update-available", (info) => {
 		console.info(
 			`[auto-updater] Update available: ${info.version}. Downloading...`,
 		);
+		emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, info.version);
 	});
 
 	autoUpdater.on("update-not-available", () => {
 		console.info("[auto-updater] No updates available");
+		emitStatus(AUTO_UPDATE_STATUS.IDLE);
+	});
+
+	autoUpdater.on("download-progress", (progress) => {
+		console.info(
+			`[auto-updater] Download progress: ${progress.percent.toFixed(1)}%`,
+		);
 	});
 
 	autoUpdater.on("update-downloaded", (info) => {
-		if (isUpdateDialogOpen) {
-			console.info("[auto-updater] Update dialog already open, skipping");
-			return;
-		}
-
 		console.info(
-			`[auto-updater] Update downloaded (${info.version}). Prompting user to restart.`,
+			`[auto-updater] Update downloaded (${info.version}). Ready to install.`,
 		);
-
-		isUpdateDialogOpen = true;
-
-		const dialogOptions = {
-			type: "info" as const,
-			buttons: ["Restart Now", "Later"],
-			defaultId: 0,
-			cancelId: 1,
-			title: "Update Ready",
-			message: `Version ${info.version} is ready to install`,
-			detail:
-				"A new version has been downloaded. Restart the application to apply the update.",
-		};
-
-		const showDialog = mainWindow
-			? dialog.showMessageBox(mainWindow, dialogOptions)
-			: dialog.showMessageBox(dialogOptions);
-
-		showDialog
-			.then((response) => {
-				isUpdateDialogOpen = false;
-				if (response.response === 0) {
-					autoUpdater.quitAndInstall(false, true);
-				}
-			})
-			.catch((error) => {
-				isUpdateDialogOpen = false;
-				console.error("[auto-updater] Failed to show update dialog:", error);
-			});
+		emitStatus(AUTO_UPDATE_STATUS.READY, info.version);
 	});
 
 	const interval = setInterval(checkForUpdates, UPDATE_CHECK_INTERVAL_MS);

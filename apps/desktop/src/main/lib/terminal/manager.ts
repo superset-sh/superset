@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import { track } from "main/lib/analytics";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
 import {
@@ -59,7 +60,7 @@ export class TerminalManager extends EventEmitter {
 	private async doCreateSession(
 		params: InternalCreateSessionParams,
 	): Promise<SessionResult> {
-		const { paneId, initialCommands } = params;
+		const { paneId, workspaceId, initialCommands } = params;
 
 		// Create the session
 		const session = await createSession(params, (id, data) => {
@@ -75,6 +76,9 @@ export class TerminalManager extends EventEmitter {
 		this.setupExitHandler(session, params);
 
 		this.sessions.set(paneId, session);
+
+		// Track terminal opened (only fires once per session creation)
+		track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
 
 		return {
 			isNew: true,

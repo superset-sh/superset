@@ -138,7 +138,10 @@ export async function createWorktree(
 				worktreePath,
 				"-b",
 				branch,
-				startPoint,
+				// Append ^{commit} to force Git to treat the startPoint as a commit,
+				// not a branch ref. This prevents implicit upstream tracking when
+				// creating a new branch from a remote branch like origin/main.
+				`${startPoint}^{commit}`,
 			],
 			{ env, timeout: 120_000 },
 		);

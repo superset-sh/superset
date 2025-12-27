@@ -5,7 +5,6 @@ import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
-	TerminalEscapeFilter,
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
@@ -28,11 +27,13 @@ export async function recoverScrollback(
 	const history = await historyReader.read();
 
 	if (history.scrollback) {
-		// Strip protocol responses from recovered history
-		const recoveryFilter = new TerminalEscapeFilter();
-		const filtered =
-			recoveryFilter.filter(history.scrollback) + recoveryFilter.flush();
-		return { scrollback: filtered, wasRecovered: true };
+		// Keep only a reasonable amount of scrollback history
+		const MAX_SCROLLBACK_CHARS = 500_000;
+		const scrollback =
+			history.scrollback.length > MAX_SCROLLBACK_CHARS
+				? history.scrollback.slice(-MAX_SCROLLBACK_CHARS)
+				: history.scrollback;
+		return { scrollback, wasRecovered: true };
 	}
 
 	return { scrollback: "", wasRecovered: false };
@@ -131,7 +132,6 @@ export async function createSession(
 		isAlive: true,
 		wasRecovered,
 		historyWriter,
-		escapeFilter: new TerminalEscapeFilter(),
 		dataBatcher,
 		shell,
 		startTime: Date.now(),
@@ -154,17 +154,15 @@ export function setupDataHandler(
 
 		if (containsClearScrollbackSequence(data)) {
 			session.scrollback = "";
-			session.escapeFilter = new TerminalEscapeFilter();
 			onHistoryReinit().catch(() => {});
 			dataToStore = extractContentAfterClear(data);
 		}
 
-		const filteredData = session.escapeFilter.filter(dataToStore);
-		session.scrollback += filteredData;
-		session.historyWriter?.write(filteredData);
+		session.scrollback += dataToStore;
+		session.historyWriter?.write(dataToStore);
 
 		// Scan for port patterns in terminal output
-		portManager.scanOutput(filteredData, session.paneId, session.workspaceId);
+		portManager.scanOutput(dataToStore, session.paneId, session.workspaceId);
 
 		session.dataBatcher.write(data);
 
@@ -221,10 +219,4 @@ export async function reinitializeHistory(
 
 export function flushSession(session: TerminalSession): void {
 	session.dataBatcher.dispose();
-
-	const remaining = session.escapeFilter.flush();
-	if (remaining) {
-		session.scrollback += remaining;
-		session.historyWriter?.write(remaining);
-	}
 }

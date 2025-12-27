@@ -3,7 +3,6 @@ import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
-import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
@@ -11,9 +10,13 @@ import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isAppHotkey } from "shared/hotkeys";
-import { builtInThemes, DEFAULT_THEME_ID } from "shared/themes";
+import {
+	builtInThemes,
+	DEFAULT_THEME_ID,
+	getTerminalColors,
+} from "shared/themes";
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
-import { FilePathLinkProvider } from "./FilePathLinkProvider";
+import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
 
 /**
@@ -32,7 +35,7 @@ export function getDefaultTerminalTheme(): ITheme {
 		const themeId = localStorage.getItem("theme-id") ?? DEFAULT_THEME_ID;
 		const theme = builtInThemes.find((t) => t.id === themeId);
 		if (theme) {
-			return toXtermTheme(theme.terminal);
+			return toXtermTheme(getTerminalColors(theme));
 		}
 	} catch {
 		// Fall through to default
@@ -40,7 +43,7 @@ export function getDefaultTerminalTheme(): ITheme {
 	// Final fallback to default theme
 	const defaultTheme = builtInThemes.find((t) => t.id === DEFAULT_THEME_ID);
 	return defaultTheme
-		? toXtermTheme(defaultTheme.terminal)
+		? toXtermTheme(getTerminalColors(defaultTheme))
 		: { background: "#1a1a1a", foreground: "#d4d4d4" };
 }
 
@@ -103,17 +106,6 @@ export function createTerminalInstance(
 	const xterm = new XTerm(options);
 	const fitAddon = new FitAddon();
 
-	const webLinksAddon = new WebLinksAddon((event, uri) => {
-		// Only open URLs on CMD+click (Mac) or Ctrl+click (Windows/Linux)
-		if (!event.metaKey && !event.ctrlKey) {
-			return;
-		}
-		event.preventDefault();
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
-			console.error("[Terminal] Failed to open URL:", uri, error);
-		});
-	});
-
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
@@ -123,7 +115,6 @@ export function createTerminalInstance(
 	xterm.loadAddon(fitAddon);
 	const renderer = loadRenderer(xterm);
 
-	xterm.loadAddon(webLinksAddon);
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
@@ -139,6 +130,13 @@ export function createTerminalInstance(
 		.catch(() => {});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
+
+	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
+		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			console.error("[Terminal] Failed to open URL:", uri, error);
+		});
+	});
+	xterm.registerLinkProvider(urlLinkProvider);
 
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,

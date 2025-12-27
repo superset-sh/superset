@@ -11,7 +11,7 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	capture_pageview: "history_change",
 	capture_pageleave: true,
 	capture_exceptions: true,
-	debug: env.NODE_ENV === "development",
+	debug: false,
 	cross_subdomain_cookie: true,
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
@@ -26,7 +26,7 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_WEB,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
-	enabled: !!env.NEXT_PUBLIC_SENTRY_DSN_WEB,
+	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
 	tracesSampleRate:
 		env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production" ? 0.1 : 1.0,
 	sendDefaultPii: true,

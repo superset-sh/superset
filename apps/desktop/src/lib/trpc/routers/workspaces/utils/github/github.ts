@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { CheckItem, GitHubStatus } from "main/lib/db/schemas";
+import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { branchExistsOnRemote } from "../git";
 import {
 	type GHPRResponse,

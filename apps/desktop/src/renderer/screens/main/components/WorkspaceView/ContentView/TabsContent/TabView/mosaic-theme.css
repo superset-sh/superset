@@ -3,8 +3,8 @@
 }
 
 .mosaic-theme-dark .mosaic-window {
-	border: none;
-	border-radius: var(--radius-md);
+	border: 1px solid var(--color-tertiary-active);
+	border-radius: var(--radius-lg);
 	overflow: hidden;
 	box-shadow: none;
 	transition:
@@ -22,6 +22,7 @@
 	display: flex;
 	align-items: center;
 	transition: background-color 0.15s ease;
+	border-radius: var(--radius-md) var(--radius-md) 0 0;
 }
 .mosaic-theme-dark
 	.mosaic-window
@@ -60,6 +61,14 @@
 .mosaic-theme-dark .mosaic-window-focused .mosaic-window-title {
 	color: var(--color-foreground);
 }
+.mosaic-theme-dark .mosaic-window .mosaic-window-body {
+	background: transparent;
+	border: none;
+	box-shadow: none;
+	border-radius: 0 0 var(--radius-md) var(--radius-md);
+	overflow: hidden;
+}
+
 .mosaic-window-content {
 	outline: none;
 }
@@ -83,6 +92,6 @@
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
 	background: rgba(59, 130, 246, 0.15);
 	border: 2px solid rgba(59, 130, 246, 0.4);
-	border-radius: var(--radius-md);
+	border-radius: var(--radius-lg);
 	opacity: 1;
 }

@@ -19,7 +19,7 @@ export function HeroSection() {
 				<GridBackground />
 
 				<div className="relative w-full max-w-[1600px] mx-auto px-8 lg:px-[30px] py-16">
-					<div className="grid grid-cols-1 lg:grid-cols-[42%_58%] gap-12 lg:gap-16 items-center">
+					<div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-12 lg:gap-16 items-center">
 						<motion.div
 							className="space-y-8"
 							initial={{ opacity: 0, y: 20 }}
@@ -59,7 +59,7 @@ export function HeroSection() {
 						</motion.div>
 
 						<motion.div
-							className="relative"
+							className="relative w-full min-w-0"
 							initial={{ opacity: 0, x: 20 }}
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5, delay: 0.2 }}

@@ -177,10 +177,42 @@ export const HOTKEYS = {
 		label: "Next Terminal",
 		category: "Terminal",
 	}),
+	PREV_PANE: hotkey({
+		keys: "meta+alt+left",
+		label: "Previous Pane",
+		category: "Terminal",
+		description: "Focus the previous pane in the current tab",
+	}),
+	NEXT_PANE: hotkey({
+		keys: "meta+alt+right",
+		label: "Next Pane",
+		category: "Terminal",
+		description: "Focus the next pane in the current tab",
+	}),
+
+	// Workspace creation
+	NEW_WORKSPACE: hotkey({
+		keys: "meta+n",
+		label: "New Workspace",
+		category: "Workspace",
+		description: "Open the new workspace modal",
+	}),
+	QUICK_CREATE_WORKSPACE: hotkey({
+		keys: "meta+shift+n",
+		label: "Quick Create Workspace",
+		category: "Workspace",
+		description: "Quickly create a workspace in the current project",
+	}),
+	OPEN_PROJECT: hotkey({
+		keys: "meta+shift+o",
+		label: "Open Project",
+		category: "Workspace",
+		description: "Open an existing project folder",
+	}),
 
 	// Window
 	NEW_WINDOW: hotkey({
-		keys: "meta+shift+n",
+		keys: "meta+alt+n",
 		label: "New Window",
 		category: "Window",
 	}),

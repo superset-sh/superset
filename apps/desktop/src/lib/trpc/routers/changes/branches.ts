@@ -1,4 +1,6 @@
-import { db } from "main/lib/db";
+import { worktrees } from "@superset/local-db";
+import { eq } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -59,24 +61,30 @@ export const createBranchesRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				const git = simpleGit(input.worktreePath);
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.path === input.worktreePath,
-				);
+				const worktree = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.path, input.worktreePath))
+					.get();
 				if (!worktree) {
 					throw new Error(`No worktree found at path "${input.worktreePath}"`);
 				}
 
 				await git.checkout(input.branch);
 
-				await db.update((data) => {
-					const wt = data.worktrees.find((w) => w.path === input.worktreePath);
-					if (wt) {
-						wt.branch = input.branch;
-						if (wt.gitStatus) {
-							wt.gitStatus.branch = input.branch;
-						}
-					}
-				});
+				// Update the branch in the worktree record
+				const gitStatus = worktree.gitStatus
+					? { ...worktree.gitStatus, branch: input.branch }
+					: null;
+
+				localDb
+					.update(worktrees)
+					.set({
+						branch: input.branch,
+						gitStatus,
+					})
+					.where(eq(worktrees.path, input.worktreePath))
+					.run();
 
 				return { success: true };
 			}),

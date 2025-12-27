@@ -2,6 +2,7 @@ import type { ITheme } from "@xterm/xterm";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
+	getTerminalColors,
 	type Theme,
 	type ThemeMetadata,
 } from "shared/themes";
@@ -67,7 +68,10 @@ function syncThemeToLocalStorage(theme: Theme): void {
 	try {
 		localStorage.setItem("theme-type", theme.type);
 		localStorage.setItem("theme-id", theme.id);
-		localStorage.setItem("theme-terminal", JSON.stringify(theme.terminal));
+		localStorage.setItem(
+			"theme-terminal",
+			JSON.stringify(getTerminalColors(theme)),
+		);
 	} catch {
 		// localStorage may not be available
 	}
@@ -90,7 +94,7 @@ function applyTheme(theme: Theme): {
 
 	// Convert to editor-specific formats
 	return {
-		terminalTheme: toXtermTheme(theme.terminal),
+		terminalTheme: toXtermTheme(getTerminalColors(theme)),
 		monacoTheme: toMonacoTheme(theme),
 	};
 }

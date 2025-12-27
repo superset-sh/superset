@@ -1,14 +1,22 @@
+import { initSentry } from "./lib/sentry";
+
+initSentry();
+
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import { PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
+import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
-import { initDb } from "./lib/db";
+import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
+
+// Initialize local SQLite database (runs migrations + legacy data migration on import)
+console.log("[main] Local database ready:", !!localDb);
 
 // Set different app name for dev to avoid singleton lock conflicts with production
 if (process.env.NODE_ENV === "development") {
@@ -118,7 +126,6 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 
-		await initDb();
 		await initAppState();
 		await authService.initialize();
 
@@ -138,9 +145,9 @@ if (!gotTheLock) {
 			await processDeepLink(coldStartUrl);
 		}
 
-		// Clean up all terminals when app is quitting
+		// Clean up all terminals and analytics when app is quitting
 		app.on("before-quit", async () => {
-			await terminalManager.cleanup();
+			await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
 		});
 	})();
 }

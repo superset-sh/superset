@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { projects, workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { db } from "main/lib/db";
+import { eq } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -48,7 +50,11 @@ export const createTerminalRouter = () => {
 				} = input;
 
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
-				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
 				const workspacePath = workspace
 					? (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
@@ -56,7 +62,11 @@ export const createTerminalRouter = () => {
 
 				// Get project info for environment variables
 				const project = workspace
-					? db.data.projects.find((p) => p.id === workspace.projectId)
+					? localDb
+							.select()
+							.from(projects)
+							.where(eq(projects.id, workspace.projectId))
+							.get()
 					: undefined;
 
 				const result = await terminalManager.createOrAttach({
@@ -165,15 +175,25 @@ export const createTerminalRouter = () => {
 		 */
 		getWorkspaceCwd: publicProcedure
 			.input(z.string())
-			.query(async ({ input: workspaceId }) => {
-				const workspace = db.data.workspaces.find((w) => w.id === workspaceId);
+			.query(({ input: workspaceId }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
 				if (!workspace) {
 					return undefined;
 				}
 
-				const worktree = db.data.worktrees.find(
-					(wt) => wt.id === workspace.worktreeId,
-				);
+				if (!workspace.worktreeId) {
+					return undefined;
+				}
+
+				const worktree = localDb
+					.select()
+					.from(worktrees)
+					.where(eq(worktrees.id, workspace.worktreeId))
+					.get();
 				return worktree?.path;
 			}),
 

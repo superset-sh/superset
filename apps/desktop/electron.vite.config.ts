@@ -35,16 +35,31 @@ function copyResourcesPlugin(): Plugin {
 	return {
 		name: "copy-resources",
 		writeBundle() {
-			const srcDir = resolve(resources, "sounds");
-			const destDir = resolve(devPath, "resources/sounds");
+			// Copy sounds
+			const soundsSrc = resolve(resources, "sounds");
+			const soundsDest = resolve(devPath, "resources/sounds");
 
-			if (existsSync(srcDir)) {
-				// Clean destination to avoid stale files
-				if (existsSync(destDir)) {
-					rmSync(destDir, { recursive: true });
+			if (existsSync(soundsSrc)) {
+				if (existsSync(soundsDest)) {
+					rmSync(soundsDest, { recursive: true });
 				}
-				mkdirSync(destDir, { recursive: true });
-				cpSync(srcDir, destDir, { recursive: true });
+				mkdirSync(soundsDest, { recursive: true });
+				cpSync(soundsSrc, soundsDest, { recursive: true });
+			}
+
+			// Copy database migrations from local-db package
+			const migrationsSrc = resolve(
+				__dirname,
+				"../../packages/local-db/drizzle",
+			);
+			const migrationsDest = resolve(devPath, "resources/migrations");
+
+			if (existsSync(migrationsSrc)) {
+				if (existsSync(migrationsDest)) {
+					rmSync(migrationsDest, { recursive: true });
+				}
+				mkdirSync(migrationsDest, { recursive: true });
+				cpSync(migrationsSrc, migrationsDest, { recursive: true });
 			}
 		},
 	};
@@ -73,6 +88,9 @@ export default defineConfig({
 				process.env.GOOGLE_CLIENT_ID,
 			),
 			"process.env.GH_CLIENT_ID": JSON.stringify(process.env.GH_CLIENT_ID),
+			"process.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+				process.env.SENTRY_DSN_DESKTOP,
+			),
 		},
 
 		build: {
@@ -86,7 +104,9 @@ export default defineConfig({
 				// Only externalize native modules that can't be bundled
 				external: [
 					"electron",
+					"better-sqlite3", // Native module - must stay external
 					"node-pty", // Native module - must stay external
+					/^@sentry\/electron/,
 				],
 			},
 		},
@@ -145,6 +165,9 @@ export default defineConfig({
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
+			"import.meta.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+				process.env.SENTRY_DSN_DESKTOP,
+			),
 		},
 
 		server: {
@@ -189,6 +212,9 @@ export default defineConfig({
 				input: {
 					index: resolve("src/renderer/index.html"),
 				},
+
+				// Externalize Sentry - it uses IPC to communicate with main process
+				external: [/^@sentry\/electron/],
 			},
 		},
 	},

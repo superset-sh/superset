@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { db } from "main/lib/db";
+import { projects } from "@superset/local-db";
+import { eq } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -41,7 +43,11 @@ export const createConfigRouter = () => {
 		shouldShowConfigToast: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
 				if (!project) {
 					return false;
 				}
@@ -57,13 +63,12 @@ export const createConfigRouter = () => {
 		// Mark the config toast as dismissed for a project
 		dismissConfigToast: publicProcedure
 			.input(z.object({ projectId: z.string() }))
-			.mutation(async ({ input }) => {
-				await db.update((data) => {
-					const project = data.projects.find((p) => p.id === input.projectId);
-					if (project) {
-						project.configToastDismissed = true;
-					}
-				});
+			.mutation(({ input }) => {
+				localDb
+					.update(projects)
+					.set({ configToastDismissed: true })
+					.where(eq(projects.id, input.projectId))
+					.run();
 				return { success: true };
 			}),
 
@@ -71,7 +76,11 @@ export const createConfigRouter = () => {
 		getConfigFilePath: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
 				if (!project) {
 					return null;
 				}
@@ -82,7 +91,11 @@ export const createConfigRouter = () => {
 		getConfigContent: publicProcedure
 			.input(z.object({ projectId: z.string() }))
 			.query(({ input }) => {
-				const project = db.data.projects.find((p) => p.id === input.projectId);
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.projectId))
+					.get();
 				if (!project) {
 					return { content: null, exists: false };
 				}

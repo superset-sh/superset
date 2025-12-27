@@ -5,6 +5,86 @@
  */
 
 /**
+ * Default xterm.js terminal colors for dark mode
+ */
+export const DEFAULT_TERMINAL_COLORS_DARK: TerminalColors = {
+	background: "#000000",
+	foreground: "#ffffff",
+	cursor: "#ffffff",
+	cursorAccent: "#000000",
+	selectionBackground: "#4d4d4d",
+
+	// Standard ANSI colors (xterm defaults)
+	black: "#2e3436",
+	red: "#cc0000",
+	green: "#4e9a06",
+	yellow: "#c4a000",
+	blue: "#3465a4",
+	magenta: "#75507b",
+	cyan: "#06989a",
+	white: "#d3d7cf",
+
+	// Bright ANSI colors (xterm defaults)
+	brightBlack: "#555753",
+	brightRed: "#ef2929",
+	brightGreen: "#8ae234",
+	brightYellow: "#fce94f",
+	brightBlue: "#729fcf",
+	brightMagenta: "#ad7fa8",
+	brightCyan: "#34e2e2",
+	brightWhite: "#eeeeec",
+};
+
+/**
+ * Default xterm.js terminal colors for light mode
+ */
+export const DEFAULT_TERMINAL_COLORS_LIGHT: TerminalColors = {
+	background: "#ffffff",
+	foreground: "#000000",
+	cursor: "#000000",
+	cursorAccent: "#ffffff",
+	selectionBackground: "#add6ff",
+
+	// Standard ANSI colors (xterm defaults)
+	black: "#2e3436",
+	red: "#cc0000",
+	green: "#4e9a06",
+	yellow: "#c4a000",
+	blue: "#3465a4",
+	magenta: "#75507b",
+	cyan: "#06989a",
+	white: "#d3d7cf",
+
+	// Bright ANSI colors (xterm defaults)
+	brightBlack: "#555753",
+	brightRed: "#ef2929",
+	brightGreen: "#8ae234",
+	brightYellow: "#fce94f",
+	brightBlue: "#729fcf",
+	brightMagenta: "#ad7fa8",
+	brightCyan: "#34e2e2",
+	brightWhite: "#eeeeec",
+};
+
+/**
+ * Get default terminal colors based on theme type
+ */
+export function getDefaultTerminalColors(
+	type: "dark" | "light",
+): TerminalColors {
+	return type === "dark"
+		? DEFAULT_TERMINAL_COLORS_DARK
+		: DEFAULT_TERMINAL_COLORS_LIGHT;
+}
+
+/**
+ * Get terminal colors from a theme, falling back to defaults if not defined
+ */
+export function getTerminalColors(theme: Theme): TerminalColors {
+	return theme.terminal ?? getDefaultTerminalColors(theme.type);
+}
+
+/**
  * UI color definitions for the application chrome
  * Color values should be valid CSS color strings (hex, rgb, oklch, etc.)
  */
@@ -121,8 +201,8 @@ export interface Theme {
 
 	/** UI colors for app chrome */
 	ui: UIColors;
-	/** Terminal ANSI colors */
-	terminal: TerminalColors;
+	/** Terminal ANSI colors (optional, falls back to xterm defaults based on theme type) */
+	terminal?: TerminalColors;
 
 	/** Whether this is a built-in theme */
 	isBuiltIn?: boolean;

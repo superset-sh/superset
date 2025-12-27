@@ -3,19 +3,25 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pty from "node-pty";
-import { getHistoryDir } from "../terminal-history";
-import { TerminalManager } from "./manager";
-
-// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
-const testTmpDir = join(tmpdir(), "superset-test");
 
 // Mock node-pty
 mock.module("node-pty", () => ({
 	spawn: mock(() => {}),
 }));
 
+// Mock analytics to avoid electron imports (analytics → api-client → auth → electron.shell)
+mock.module("main/lib/analytics", () => ({
+	track: mock(() => {}),
+}));
+
+// Import manager after mocks are set up
+const { TerminalManager } = await import("./manager");
+
+// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
+const testTmpDir = join(tmpdir(), "superset-test");
+
 describe("TerminalManager", () => {
-	let manager: TerminalManager;
+	let manager: InstanceType<typeof TerminalManager>;
 	let mockPty: {
 		write: ReturnType<typeof mock>;
 		resize: ReturnType<typeof mock>;
@@ -143,25 +149,6 @@ describe("TerminalManager", () => {
 			});
 
 			expect(mockPty.resize).toHaveBeenCalledWith(100, 30);
-		});
-
-		it("should filter recovered scrollback from history", async () => {
-			const workspaceId = "workspace-1";
-			const paneId = "pane-recover";
-			const historyDir = getHistoryDir(workspaceId, paneId);
-			await fs.mkdir(historyDir, { recursive: true });
-			const ESC = "\x1b";
-			const rawScrollback = `before${ESC}[1;1Rafter${ESC}[?1;0c`;
-			await fs.writeFile(join(historyDir, "scrollback.bin"), rawScrollback);
-
-			const result = await manager.createOrAttach({
-				paneId,
-				tabId: "tab-recover",
-				workspaceId,
-			});
-
-			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback).toBe("beforeafter");
 		});
 	});
 

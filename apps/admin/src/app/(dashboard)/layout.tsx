@@ -39,11 +39,11 @@ export default async function DashboardLayout({
 					<Breadcrumb>
 						<BreadcrumbList>
 							<BreadcrumbItem className="hidden md:block">
-								<BreadcrumbLink href="/">Admin Panel</BreadcrumbLink>
+								<BreadcrumbLink href="/">Superset</BreadcrumbLink>
 							</BreadcrumbItem>
 							<BreadcrumbSeparator className="hidden md:block" />
 							<BreadcrumbItem>
-								<BreadcrumbPage>Dashboard</BreadcrumbPage>
+								<BreadcrumbPage>Home</BreadcrumbPage>
 							</BreadcrumbItem>
 						</BreadcrumbList>
 					</Breadcrumb>

@@ -5,6 +5,7 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
+import { useUpdateListener } from "renderer/components/UpdateToast";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
@@ -63,6 +64,7 @@ export function MainScreen() {
 	const tabs = useTabsStore((s) => s.tabs);
 
 	useAgentHookListener();
+	useUpdateListener();
 
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
