@@ -17,7 +17,11 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
+import {
+	getDefaultBranch,
+	getGitRoot,
+	refreshDefaultBranch,
+} from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
 type Project = SelectProject;
@@ -579,6 +583,47 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				return { success: true };
+			}),
+
+		refreshDefaultBranch: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new Error(`Project ${input.id} not found`);
+				}
+
+				// Refresh and get the current default branch from remote
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				if (remoteDefaultBranch && remoteDefaultBranch !== project.defaultBranch) {
+					// Update the stored default branch
+					localDb
+						.update(projects)
+						.set({ defaultBranch: remoteDefaultBranch })
+						.where(eq(projects.id, input.id))
+						.run();
+
+					return {
+						success: true,
+						defaultBranch: remoteDefaultBranch,
+						changed: true,
+						previousBranch: project.defaultBranch,
+					};
+				}
+
+				return {
+					success: true,
+					defaultBranch: project.defaultBranch ?? remoteDefaultBranch,
+					changed: false,
+				};
 			}),
 
 		close: publicProcedure

@@ -27,6 +27,7 @@ import {
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	listBranches,
+	refreshDefaultBranch,
 	removeWorktree,
 	safeCheckoutBranch,
 	worktreeExists,
@@ -1058,11 +1059,24 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
+				// Refresh and check if the remote's default branch has changed
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
 				// Get default branch (lazy migration for existing projects without defaultBranch)
 				let defaultBranch = project.defaultBranch;
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				}
+
+				// Update if the remote's default branch has changed
+				if (remoteDefaultBranch && remoteDefaultBranch !== defaultBranch) {
+					defaultBranch = remoteDefaultBranch;
+				}
+
+				// Save the default branch if it was updated or not previously set
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
@@ -1092,7 +1106,7 @@ export const createWorkspacesRouter = () => {
 					.where(eq(worktrees.id, worktree.id))
 					.run();
 
-				return { gitStatus };
+				return { gitStatus, defaultBranch };
 			}),
 
 		getGitHubStatus: publicProcedure

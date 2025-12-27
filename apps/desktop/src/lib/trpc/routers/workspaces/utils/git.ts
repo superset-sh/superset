@@ -322,6 +322,53 @@ export async function fetchDefaultBranch(
 	return commit.trim();
 }
 
+/**
+ * Refreshes the local origin/HEAD symref from the remote and returns the current default branch.
+ * This detects when the remote repository's default branch has changed (e.g., master -> main).
+ * @param mainRepoPath - Path to the main repository
+ * @returns The current default branch name, or null if unable to determine
+ */
+export async function refreshDefaultBranch(
+	mainRepoPath: string,
+): Promise<string | null> {
+	const git = simpleGit(mainRepoPath);
+
+	// First check if we have an origin remote
+	const hasRemote = await hasOriginRemote(mainRepoPath);
+	if (!hasRemote) {
+		return null;
+	}
+
+	try {
+		// Update the local origin/HEAD symref from the remote
+		// This is the key command that syncs the default branch info
+		await git.remote(["set-head", "origin", "--auto"]);
+
+		// Now read the updated symref
+		const headRef = await git.raw([
+			"symbolic-ref",
+			"refs/remotes/origin/HEAD",
+		]);
+		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+		if (match) {
+			return match[1];
+		}
+	} catch {
+		// If set-head fails (e.g., network issues), try ls-remote as fallback
+		try {
+			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
+			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			if (symrefMatch) {
+				return symrefMatch[1];
+			}
+		} catch {
+			// Both methods failed
+		}
+	}
+
+	return null;
+}
+
 export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
