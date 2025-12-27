@@ -345,10 +345,7 @@ export async function refreshDefaultBranch(
 		await git.remote(["set-head", "origin", "--auto"]);
 
 		// Now read the updated symref
-		const headRef = await git.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-		]);
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
 		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
 		if (match) {
 			return match[1];

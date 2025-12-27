@@ -603,7 +603,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					project.mainRepoPath,
 				);
 
-				if (remoteDefaultBranch && remoteDefaultBranch !== project.defaultBranch) {
+				if (
+					remoteDefaultBranch &&
+					remoteDefaultBranch !== project.defaultBranch
+				) {
 					// Update the stored default branch
 					localDb
 						.update(projects)
