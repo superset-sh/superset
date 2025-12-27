@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import {
@@ -74,7 +74,7 @@ export function WorkspacesTabs() {
 			// Only create one at a time
 			break;
 		}
-	}, [groups, isCreating, createBranchWorkspace.mutate]);
+	}, [groups, isCreating, createBranchWorkspace]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
@@ -84,9 +84,9 @@ export function WorkspacesTabs() {
 		{ length: 9 },
 		(_, i) => `meta+${i + 1}`,
 	).join(", ");
-	useHotkeys(
-		workspaceKeys,
-		(event) => {
+
+	const handleWorkspaceSwitch = useCallback(
+		(event: KeyboardEvent) => {
 			const num = Number(event.key);
 			if (num >= 1 && num <= 9) {
 				const workspace = allWorkspaces[num - 1];
@@ -98,8 +98,7 @@ export function WorkspacesTabs() {
 		[allWorkspaces, setActiveWorkspace],
 	);
 
-	// Navigate to previous workspace (⌘+←)
-	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, () => {
+	const handlePrevWorkspace = useCallback(() => {
 		if (!activeWorkspaceId) return;
 		const currentIndex = allWorkspaces.findIndex(
 			(w) => w.id === activeWorkspaceId,
@@ -109,8 +108,7 @@ export function WorkspacesTabs() {
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
-	// Navigate to next workspace (⌘+→)
-	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, () => {
+	const handleNextWorkspace = useCallback(() => {
 		if (!activeWorkspaceId) return;
 		const currentIndex = allWorkspaces.findIndex(
 			(w) => w.id === activeWorkspaceId,
@@ -119,6 +117,10 @@ export function WorkspacesTabs() {
 			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+
+	useHotkeys(workspaceKeys, handleWorkspaceSwitch);
+	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, handlePrevWorkspace);
+	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, handleNextWorkspace);
 
 	useEffect(() => {
 		const checkScroll = () => {
