@@ -13,6 +13,16 @@ import type {
 
 const exec = promisify(execCallback);
 
+// GUI apps on macOS don't inherit shell PATH - add common Homebrew locations
+const EXTENDED_PATH = [
+	"/opt/homebrew/bin",
+	"/usr/local/bin",
+	process.env.PATH,
+].join(":");
+
+// Exec options with extended PATH for all tmux commands
+const execOpts = { env: { ...process.env, PATH: EXTENDED_PATH } };
+
 const TMUX_SOCKET = join(SUPERSET_HOME_DIR, "tmux.sock");
 const TMUX_CONFIG = join(SUPERSET_HOME_DIR, "tmux.conf");
 const SESSIONS_DIR = join(SUPERSET_HOME_DIR, "tmux-sessions");
@@ -74,7 +84,7 @@ export class TmuxBackend implements PersistenceBackend {
 
 	async isAvailable(): Promise<boolean> {
 		try {
-			await exec("which tmux");
+			await exec("which tmux", execOpts);
 			return true;
 		} catch {
 			return false;
@@ -85,6 +95,7 @@ export class TmuxBackend implements PersistenceBackend {
 		try {
 			await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} list-sessions 2>/dev/null`,
+				execOpts,
 			);
 			return true;
 		} catch {
@@ -105,7 +116,7 @@ export class TmuxBackend implements PersistenceBackend {
 
 		for (const opt of criticalOptions) {
 			try {
-				await exec(`tmux -S ${shellQuote(TMUX_SOCKET)} ${opt}`);
+				await exec(`tmux -S ${shellQuote(TMUX_SOCKET)} ${opt}`, execOpts);
 			} catch (error) {
 				console.debug(
 					`[TmuxBackend] Could not set option (may be fine): ${opt}`,
@@ -119,6 +130,7 @@ export class TmuxBackend implements PersistenceBackend {
 		try {
 			await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} has-session -t ${shellQuote(sessionName)} 2>/dev/null`,
+				execOpts,
 			);
 			return true;
 		} catch {
@@ -130,6 +142,7 @@ export class TmuxBackend implements PersistenceBackend {
 		try {
 			const { stdout } = await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} list-sessions -F '#{session_name}' 2>/dev/null`,
+				execOpts,
 			);
 			return stdout
 				.trim()
@@ -160,11 +173,12 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 
 		await exec(
 			`tmux -S ${shellQuote(TMUX_SOCKET)} -f ${shellQuote(TMUX_CONFIG)} new-session -d -s ${shellQuote(name)} -c ${shellQuote(cwd)} ${shellQuote(scriptPath)}`,
+			execOpts,
 		);
 	}
 
 	async attachSession(name: string): Promise<pty.IPty> {
-		const env = { ...process.env };
+		const env = { ...process.env, PATH: EXTENDED_PATH };
 		delete env.TMUX;
 
 		return pty.spawn(
@@ -183,6 +197,7 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 		try {
 			await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} detach-client -s ${shellQuote(name)} 2>/dev/null`,
+				execOpts,
 			);
 		} catch {
 			// Session may not have attached clients
@@ -192,6 +207,7 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 	async killSession(name: string): Promise<void> {
 		await exec(
 			`tmux -S ${shellQuote(TMUX_SOCKET)} kill-session -t ${shellQuote(name)}`,
+			execOpts,
 		);
 
 		const scriptPath = join(SESSIONS_DIR, `${name}.sh`);
@@ -211,6 +227,7 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 		try {
 			const { stdout } = await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} capture-pane -t ${shellQuote(name)} -p -e -S -50000`,
+				execOpts,
 			);
 			return stdout;
 		} catch {
@@ -222,6 +239,7 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 		try {
 			const { stdout } = await exec(
 				`tmux -S ${shellQuote(TMUX_SOCKET)} display-message -p -t ${shellQuote(name)} '#{session_activity}'`,
+				execOpts,
 			);
 			const timestamp = parseInt(stdout.trim(), 10);
 			return Number.isNaN(timestamp) ? null : timestamp * 1000;
