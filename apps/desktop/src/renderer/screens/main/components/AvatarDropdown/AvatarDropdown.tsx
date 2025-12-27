@@ -1,4 +1,4 @@
-import { COMPANY } from "@superset/shared/constants";
+import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	DropdownMenu,
@@ -22,6 +22,7 @@ import {
 	HiOutlineEnvelope,
 } from "react-icons/hi2";
 import { LuLifeBuoy } from "react-icons/lu";
+import { posthog } from "renderer/lib/posthog";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenSettings, useOpenTasks } from "renderer/stores";
 import { HOTKEYS } from "shared/hotkeys";
@@ -30,6 +31,9 @@ export function AvatarDropdown() {
 	const { data: user } = trpc.user.me.useQuery();
 	const openSettings = useOpenSettings();
 	const openTasks = useOpenTasks();
+	const hasTasksAccess = posthog.isFeatureEnabled(
+		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
+	);
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
@@ -103,10 +107,12 @@ export function AvatarDropdown() {
 					<HiOutlineCog6Tooth className="h-4 w-4" />
 					Settings
 				</DropdownMenuItem>
-				<DropdownMenuItem onClick={handleTasks}>
-					<HiOutlineClipboardDocumentList className="h-4 w-4" />
-					Tasks
-				</DropdownMenuItem>
+				{hasTasksAccess && (
+					<DropdownMenuItem onClick={handleTasks}>
+						<HiOutlineClipboardDocumentList className="h-4 w-4" />
+						Tasks
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onClick={handleViewHotkeys}>
 					<HiOutlineCommandLine className="h-4 w-4" />
 					<span className="flex-1">Hotkeys</span>
