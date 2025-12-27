@@ -1,5 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
+import { ChatPanelControl } from "./ChatPanelControl";
 import { SidebarControl } from "./SidebarControl";
 import { WindowControls } from "./WindowControls";
 import { WorkspacesTabs } from "./WorkspaceTabs";
@@ -10,12 +11,13 @@ export function TopBar() {
 	return (
 		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background">
 			<div
-				className="flex items-center gap-4 h-full"
+				className="flex items-center gap-1 h-full"
 				style={{
 					paddingLeft: isMac ? "80px" : "16px",
 				}}
 			>
 				<SidebarControl />
+				<ChatPanelControl />
 			</div>
 			<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
 				<WorkspacesTabs />

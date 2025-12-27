@@ -27,7 +27,7 @@ export function ChatPanelControl() {
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<span className="flex items-center gap-2">
-					Toggle chat sidebar
+					Toggle chat
 					<KbdGroup>
 						{HOTKEYS.TOGGLE_CHAT_PANEL.display.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
