@@ -12,11 +12,6 @@ import { TabContextMenu } from "./TabContextMenu";
 
 const DRAG_TYPE = "TAB";
 
-// Timing constants for context menu focus management
-// When Radix context menu closes, it restores focus to the trigger element.
-// We need to delay our focus and ignore blur events during this window.
-const CONTEXT_MENU_CLOSE_DELAY_MS = 50;
-
 interface DragItem {
 	type: typeof DRAG_TYPE;
 	tabId: string;
@@ -48,8 +43,8 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
-	// Flag to ignore blur events caused by context menu's focus restoration
-	const ignoreNextBlurRef = useRef(false);
+	// Track if we just started renaming to ignore spurious blur events
+	const justStartedRenamingRef = useRef(false);
 
 	// Drag source for tab reordering
 	const [{ isDragging }, drag] = useDrag<
@@ -99,31 +94,31 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 
 	const startRename = () => {
 		setRenameValue(tab.userTitle ?? tab.name ?? displayName);
-		ignoreNextBlurRef.current = true;
+		justStartedRenamingRef.current = true;
 		setIsRenaming(true);
 	};
 
 	// Focus input when entering rename mode
 	useEffect(() => {
 		if (isRenaming && inputRef.current) {
-			// Delay focus to let context menu fully close
+			inputRef.current.focus();
+			inputRef.current.select();
+			// Clear the flag after a short delay to allow any pending blur events to be ignored
 			const timeoutId = setTimeout(() => {
-				inputRef.current?.focus();
-				inputRef.current?.select();
-			}, CONTEXT_MENU_CLOSE_DELAY_MS);
+				justStartedRenamingRef.current = false;
+			}, 100);
 			return () => clearTimeout(timeoutId);
 		}
 	}, [isRenaming]);
 
 	const handleBlur = () => {
-		// Ignore blur caused by context menu's focus restoration
-		if (ignoreNextBlurRef.current) {
-			ignoreNextBlurRef.current = false;
-			// Re-focus after the context menu finishes its focus restoration
-			setTimeout(() => {
+		// Ignore blur if we just started renaming (focus may be temporarily stolen)
+		if (justStartedRenamingRef.current) {
+			// Re-focus the input after current event processing completes
+			queueMicrotask(() => {
 				inputRef.current?.focus();
 				inputRef.current?.select();
-			}, CONTEXT_MENU_CLOSE_DELAY_MS);
+			});
 			return;
 		}
 		submitRename();
@@ -152,7 +147,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		drop(el);
 	};
 
-	// When renaming, render input outside the context menu to avoid Radix focus management interference
+	// When renaming, render completely outside TabContextMenu to avoid Radix focus interference
 	if (isRenaming) {
 		return (
 			<div className="w-full">
@@ -180,6 +175,14 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 							/>
 						</div>
 					</div>
+					<button
+						type="button"
+						tabIndex={-1}
+						onClick={handleRemoveTab}
+						className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer opacity-0 group-hover:opacity-100 text-xs"
+					>
+						<HiMiniXMark className="size-4" />
+					</button>
 				</div>
 			</div>
 		);
@@ -200,18 +203,18 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 						onContextMenu={handleContextMenu}
 						onDoubleClick={startRename}
 						onKeyDown={(e) => {
-							if (!isRenaming && (e.key === "Enter" || e.key === " ")) {
+							if (e.key === "Enter" || e.key === " ") {
 								e.preventDefault();
 								handleTabClick();
 							}
 						}}
 						tabIndex={0}
 						className={`
-						w-full text-start px-3 py-2 rounded-md cursor-pointer flex items-center justify-between pr-8
-						${isActive ? "bg-tertiary-active" : ""}
-						${isDragging ? "opacity-50" : ""}
-						${isDragOver ? "bg-tertiary-active/50" : ""}
-					`}
+							w-full text-start px-3 py-2 rounded-md cursor-pointer flex items-center justify-between pr-8
+							${isActive ? "bg-tertiary-active" : ""}
+							${isDragging ? "opacity-50" : ""}
+							${isDragOver ? "bg-tertiary-active/50" : ""}
+						`}
 					>
 						<HiMiniCommandLine className="size-4" />
 						<div className="flex items-center gap-1 flex-1 min-w-0">
