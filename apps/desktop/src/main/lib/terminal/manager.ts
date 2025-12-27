@@ -2,6 +2,11 @@ import { EventEmitter } from "node:events";
 import os from "node:os";
 import { track } from "main/lib/analytics";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
+import { parseCwd } from "shared/parse-cwd";
+import {
+	containsClearScrollbackSequence,
+	extractContentAfterClear,
+} from "../terminal-escape-filter";
 import {
 	buildTerminalEnv,
 	FALLBACK_SHELL,
@@ -34,11 +39,14 @@ import type {
 	TerminalSession,
 } from "./types";
 
+const OSC7_BUFFER_SIZE = 4096;
+
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
 	private lifecycles = new Map<string, SessionLifecycle>();
 	private tmuxBackend = new TmuxBackend();
+	private osc7Buffers = new Map<string, string>();
 
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
 		const { paneId, cols, rows, workspaceId } = params;
@@ -50,6 +58,16 @@ export class TerminalManager extends EventEmitter {
 
 		const existing = this.sessions.get(paneId);
 		if (existing?.isAlive) {
+			const lifecycle = this.lifecycles.get(paneId);
+			if (lifecycle) {
+				const state = lifecycle.getState();
+				if (state === "failed") {
+					const reattached = await lifecycle.retry();
+					if (reattached) {
+						existing.pty = lifecycle.getPty()!;
+					}
+				}
+			}
 			existing.lastActive = Date.now();
 			if (cols !== undefined && rows !== undefined) {
 				this.resize({ paneId, cols, rows });
@@ -59,6 +77,11 @@ export class TerminalManager extends EventEmitter {
 				scrollback: existing.scrollback,
 				wasRecovered: existing.wasRecovered,
 			};
+		}
+
+		if (existing && !existing.isAlive && existing.isExpectedDetach) {
+			this.sessions.delete(paneId);
+			this.osc7Buffers.delete(paneId);
 		}
 
 		const creationPromise = this.doCreateOrAttachPersistent(params, existing);
@@ -239,12 +262,29 @@ export class TerminalManager extends EventEmitter {
 
 	private handleLifecycleData(paneId: string, data: string): void {
 		const session = this.sessions.get(paneId);
-		if (session) {
-			session.scrollback += data;
-			session.historyWriter?.write(data);
-			session.dataBatcher.write(data);
-			portManager.scanOutput(data, paneId, session.workspaceId);
+		if (!session) return;
+
+		let dataToStore = data;
+
+		if (containsClearScrollbackSequence(data)) {
+			session.scrollback = "";
+			reinitializeHistory(session).catch(() => {});
+			dataToStore = extractContentAfterClear(data);
 		}
+
+		session.scrollback += dataToStore;
+		session.historyWriter?.write(dataToStore);
+
+		const osc7Buffer = (this.osc7Buffers.get(paneId) ?? "") + data;
+		this.osc7Buffers.set(paneId, osc7Buffer.slice(-OSC7_BUFFER_SIZE));
+		const newCwd = parseCwd(osc7Buffer);
+		if (newCwd && newCwd !== session.cwd) {
+			session.cwd = newCwd;
+			session.historyWriter?.updateCwd(newCwd);
+		}
+
+		portManager.scanOutput(dataToStore, paneId, session.workspaceId);
+		session.dataBatcher.write(data);
 	}
 
 	private handleLifecycleError(
@@ -308,6 +348,10 @@ export class TerminalManager extends EventEmitter {
 		};
 
 		this.sessions.set(paneId, session);
+
+		if (opts.wasRecovered && opts.scrollback) {
+			portManager.scanOutput(opts.scrollback, paneId, workspaceId);
+		}
 
 		if (!opts.wasRecovered && initialCommands && initialCommands.length > 0) {
 			setTimeout(() => {
@@ -497,8 +541,21 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		const lifecycle = this.lifecycles.get(paneId);
-		if (lifecycle && lifecycle.getState() === "connected") {
-			lifecycle.write(data);
+		if (lifecycle) {
+			if (lifecycle.canWrite()) {
+				lifecycle.write(data);
+			} else {
+				const state = lifecycle.getState();
+				if (state === "reconnecting" || state === "connecting") {
+					console.warn(
+						`[TerminalManager] Write dropped for ${paneId}: lifecycle in ${state} state`,
+					);
+					return;
+				}
+				throw new Error(
+					`Cannot write to ${paneId}: lifecycle in ${state} state`,
+				);
+			}
 		} else {
 			session.pty.write(data);
 		}
@@ -532,7 +589,7 @@ export class TerminalManager extends EventEmitter {
 
 		try {
 			const lifecycle = this.lifecycles.get(paneId);
-			if (lifecycle && lifecycle.getState() === "connected") {
+			if (lifecycle) {
 				lifecycle.resize(cols, rows);
 			} else {
 				session.pty.resize(cols, rows);
@@ -620,9 +677,11 @@ export class TerminalManager extends EventEmitter {
 			}
 
 			session.isExpectedDetach = true;
+			session.isAlive = false;
 			await closeSessionHistoryForDetach(session);
-			session.pty.kill();
-			this.sessions.delete(paneId);
+			try {
+				session.pty.kill();
+			} catch {}
 		} else {
 			session.lastActive = Date.now();
 		}
@@ -796,13 +855,17 @@ export class TerminalManager extends EventEmitter {
 
 			if (session.isPersistentBackend && session.isAlive) {
 				session.isExpectedDetach = true;
+				session.isAlive = false;
 				await closeSessionHistoryForDetach(session);
-				session.pty.kill();
+				try {
+					session.pty.kill();
+				} catch {}
 			} else {
 				await this.kill({ paneId });
 			}
 		}
 		this.lifecycles.clear();
+		this.osc7Buffers.clear();
 		this.sessions.clear();
 	}
 
@@ -843,6 +906,7 @@ export class TerminalManager extends EventEmitter {
 
 		await Promise.all(exitPromises);
 		this.sessions.clear();
+		this.osc7Buffers.clear();
 		this.removeAllListeners();
 	}
 }

@@ -18,6 +18,7 @@ export class SessionLifecycle {
 	private retryCount = 0;
 	private lastDimensions = { cols: 80, rows: 24 };
 	private disposed = false;
+	private isDetaching = false;
 
 	constructor(
 		private readonly sessionName: string,
@@ -80,7 +81,7 @@ export class SessionLifecycle {
 				cols,
 				rows,
 			);
-			this.wireHandlers(cols, rows);
+			this.wireHandlers();
 
 			try {
 				this.ptyProcess.resize(cols, rows);
@@ -100,7 +101,7 @@ export class SessionLifecycle {
 		}
 	}
 
-	private wireHandlers(cols: number, rows: number): void {
+	private wireHandlers(): void {
 		if (!this.ptyProcess) return;
 
 		this.ptyProcess.onData((data) => {
@@ -112,7 +113,7 @@ export class SessionLifecycle {
 		this.ptyProcess.onExit(async () => {
 			this.ptyProcess = null;
 
-			if (this.disposed || this.state === "closed") return;
+			if (this.disposed || this.state === "closed" || this.isDetaching) return;
 
 			const sessionExists = await this.backend
 				.sessionExists(this.sessionName)
@@ -130,8 +131,11 @@ export class SessionLifecycle {
 				const delay = RETRY_DELAYS_MS[this.retryCount - 1] ?? 1000;
 				await new Promise((r) => setTimeout(r, delay));
 
-				if (!this.disposed) {
-					await this.doAttach(cols, rows);
+				if (!this.disposed && !this.isDetaching) {
+					await this.doAttach(
+						this.lastDimensions.cols,
+						this.lastDimensions.rows,
+					);
 				}
 			} else {
 				this.events.onError(
@@ -143,11 +147,16 @@ export class SessionLifecycle {
 		});
 	}
 
-	write(data: string): void {
+	write(data: string): boolean {
 		if (this.state !== "connected" || !this.ptyProcess) {
-			throw new Error(`Cannot write: session state is ${this.state}`);
+			return false;
 		}
 		this.ptyProcess.write(data);
+		return true;
+	}
+
+	canWrite(): boolean {
+		return this.state === "connected" && this.ptyProcess !== null;
 	}
 
 	resize(cols: number, rows: number): void {
@@ -161,6 +170,8 @@ export class SessionLifecycle {
 
 	async detach(): Promise<void> {
 		if (this.disposed) return;
+
+		this.isDetaching = true;
 
 		if (this.ptyProcess) {
 			try {
