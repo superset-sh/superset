@@ -4,6 +4,7 @@ import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
+import { captureSentryException, toError } from "./sentry";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 const UPDATE_FEED_URL =
@@ -36,6 +37,22 @@ function emitStatus(
 	autoUpdateEmitter.emit("status-changed", { status, version, error });
 }
 
+function reportAutoUpdaterError(action: string, error: unknown): string {
+	const normalizedError = toError(error);
+	console.error(`[auto-updater] ${action}:`, normalizedError);
+	void captureSentryException(normalizedError, {
+		tags: {
+			feature: "auto-updater",
+			action,
+		},
+		extra: {
+			current_version: app.getVersion(),
+			update_feed_url: UPDATE_FEED_URL,
+		},
+	});
+	return normalizedError.message;
+}
+
 export function getUpdateStatus(): AutoUpdateStatusEvent {
 	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
 		return { status: AUTO_UPDATE_STATUS.IDLE };
@@ -64,8 +81,11 @@ export function checkForUpdates(): void {
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
-		console.error("[auto-updater] Failed to check for updates:", error);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		emitStatus(
+			AUTO_UPDATE_STATUS.ERROR,
+			undefined,
+			reportAutoUpdaterError("checkForUpdates", error),
+		);
 	});
 }
 
@@ -107,8 +127,11 @@ export function checkForUpdatesInteractive(): void {
 			}
 		})
 		.catch((error) => {
-			console.error("[auto-updater] Failed to check for updates:", error);
-			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+			emitStatus(
+				AUTO_UPDATE_STATUS.ERROR,
+				undefined,
+				reportAutoUpdaterError("checkForUpdatesInteractive", error),
+			);
 			dialog.showMessageBox({
 				type: "error",
 				title: "Update Error",
@@ -154,8 +177,11 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("error", (error) => {
-		console.error("[auto-updater] Error during update check:", error);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		emitStatus(
+			AUTO_UPDATE_STATUS.ERROR,
+			undefined,
+			reportAutoUpdaterError("error", error),
+		);
 	});
 
 	autoUpdater.on("checking-for-update", () => {

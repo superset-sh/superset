@@ -145,7 +145,9 @@ export default defineConfig({
 	renderer: {
 		define: {
 			// Core env vars - Vite replaces these at build time
-			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
+			"process.env.NODE_ENV": JSON.stringify(
+				process.env.NODE_ENV || "production",
+			),
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
 			),
