@@ -54,9 +54,6 @@ print_summary() {
   [ ${#FAILED_STEPS[@]} -eq 0 ]
 }
 
-# ============================================================
-# Step 1: Load environment variables
-# ============================================================
 step_load_env() {
   echo "📂 Loading environment variables..."
 
@@ -74,9 +71,6 @@ step_load_env() {
   return 0
 }
 
-# ============================================================
-# Step 2: Check dependencies
-# ============================================================
 step_check_dependencies() {
   echo "🔍 Checking dependencies..."
   local missing=()
@@ -101,9 +95,6 @@ step_check_dependencies() {
   return 0
 }
 
-# ============================================================
-# Step 3: Stop Electric SQL container
-# ============================================================
 step_stop_electric() {
   echo "⚡ Stopping Electric SQL container..."
 
@@ -133,9 +124,6 @@ step_stop_electric() {
   return 0
 }
 
-# ============================================================
-# Step 4: Delete Neon branch
-# ============================================================
 step_delete_neon_branch() {
   echo "🗄️  Deleting Neon branch..."
 
@@ -167,9 +155,6 @@ step_delete_neon_branch() {
   return 0
 }
 
-# ============================================================
-# Main execution
-# ============================================================
 main() {
   echo "🧹 Tearing down Superset workspace..."
   echo ""

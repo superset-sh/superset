@@ -54,9 +54,6 @@ print_summary() {
   [ ${#FAILED_STEPS[@]} -eq 0 ]
 }
 
-# ============================================================
-# Step 1: Load environment variables
-# ============================================================
 step_load_env() {
   echo "📂 Loading environment variables..."
 
@@ -79,9 +76,6 @@ step_load_env() {
   return 0
 }
 
-# ============================================================
-# Step 2: Check dependencies
-# ============================================================
 step_check_dependencies() {
   echo "🔍 Checking dependencies..."
   local missing=()
@@ -114,9 +108,6 @@ step_check_dependencies() {
   return 0
 }
 
-# ============================================================
-# Step 3: Install dependencies
-# ============================================================
 step_install_dependencies() {
   echo "📥 Installing dependencies..."
 
@@ -134,9 +125,6 @@ step_install_dependencies() {
   return 0
 }
 
-# ============================================================
-# Step 4: Setup Neon branch
-# ============================================================
 step_setup_neon_branch() {
   echo "🗄️  Setting up Neon branch..."
 
@@ -201,9 +189,6 @@ step_setup_neon_branch() {
   return 0
 }
 
-# ============================================================
-# Step 5: Start Electric SQL container
-# ============================================================
 step_start_electric() {
   echo "⚡ Starting Electric SQL container..."
 
@@ -271,9 +256,6 @@ step_start_electric() {
   return 0
 }
 
-# ============================================================
-# Step 6: Write .env file
-# ============================================================
 step_write_env() {
   echo "📝 Writing .env file..."
 
@@ -322,9 +304,6 @@ step_write_env() {
   return 0
 }
 
-# ============================================================
-# Main execution
-# ============================================================
 main() {
   echo "🚀 Setting up Superset workspace..."
   echo ""
