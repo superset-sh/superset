@@ -3,7 +3,7 @@
 	font-family: Georgia, "Times New Roman", serif;
 	font-size: 1.1rem;
 	line-height: 1.8;
-	color: hsl(var(--foreground));
+	color: var(--foreground);
 }
 
 /* Layout - applied to article element */
@@ -59,7 +59,7 @@
 	display: block;
 	width: 4rem;
 	height: 2px;
-	background: hsl(var(--muted-foreground) / 0.4);
+	background: color-mix(in oklch, var(--muted-foreground), transparent 60%);
 	margin: 0.75rem auto 0;
 }
 
@@ -85,16 +85,13 @@
 .tufte-markdown p {
 	margin-top: 0;
 	margin-bottom: 1.4rem;
-	text-align: justify;
-	-webkit-hyphens: auto;
-	hyphens: auto;
 }
 
 .tufte-markdown blockquote {
 	font-style: italic;
 	margin: 1.5rem 0;
 	padding-left: 1.5rem;
-	border-left: 3px solid hsl(var(--muted-foreground) / 0.3);
+	border-left: 3px solid color-mix(in oklch, var(--muted-foreground), transparent 70%);
 }
 
 /* Lists */
@@ -119,22 +116,22 @@
 
 /* Links */
 .tufte-markdown a {
-	color: hsl(var(--foreground));
+	color: var(--foreground);
 	text-decoration: underline;
-	text-decoration-color: hsl(var(--muted-foreground) / 0.5);
+	text-decoration-color: color-mix(in oklch, var(--muted-foreground), transparent 50%);
 	text-underline-offset: 3px;
 	transition: text-decoration-color 0.15s ease;
 }
 
 .tufte-markdown a:hover {
-	text-decoration-color: hsl(var(--foreground));
+	text-decoration-color: var(--foreground);
 }
 
 /* Horizontal rule */
 .tufte-markdown hr {
 	border: none;
 	height: 1px;
-	background: hsl(var(--muted-foreground) / 0.3);
+	background: color-mix(in oklch, var(--muted-foreground), transparent 70%);
 	margin: 2.5rem auto;
 	width: 40%;
 }
@@ -149,21 +146,20 @@
 .tufte-markdown th {
 	text-align: left;
 	padding: 0.5rem 1rem;
-	border-bottom: 2px solid hsl(var(--muted-foreground) / 0.3);
+	border-bottom: 2px solid color-mix(in oklch, var(--muted-foreground), transparent 70%);
 	font-weight: 600;
 }
 
 .tufte-markdown td {
 	padding: 0.5rem 1rem;
-	border-bottom: 1px solid hsl(var(--muted-foreground) / 0.15);
+	border-bottom: 1px solid color-mix(in oklch, var(--muted-foreground), transparent 85%);
 }
 
 /* Code */
 .tufte-markdown code:not(pre code) {
-	font-family:
-		var(--font-mono), Consolas, "Liberation Mono", Menlo, Courier, monospace;
+	font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
 	font-size: 0.85em;
-	background: hsl(var(--muted) / 0.5);
+	background: color-mix(in oklch, var(--muted), transparent 50%);
 	padding: 0.15em 0.35em;
 	border-radius: 3px;
 }
