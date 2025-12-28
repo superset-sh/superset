@@ -13,6 +13,7 @@ import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
+import { processPersistence } from "./lib/terminal/persistence/manager";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -91,10 +92,33 @@ app.on("open-url", async (event, url) => {
 	await processDeepLink(url);
 });
 
-// Track when app is quitting to suppress expected termination errors
+type QuitState = "idle" | "cleaning" | "ready-to-quit";
+let quitState: QuitState = "idle";
 let isQuitting = false;
-app.on("before-quit", () => {
+
+app.on("before-quit", async (event) => {
 	isQuitting = true;
+
+	if (quitState === "ready-to-quit") return;
+	if (quitState === "cleaning") {
+		event.preventDefault();
+		return;
+	}
+
+	event.preventDefault();
+	quitState = "cleaning";
+
+	try {
+		if (processPersistence.enabled) {
+			await terminalManager.detachAll();
+		} else {
+			await terminalManager.cleanup();
+		}
+		await posthog?.shutdown();
+	} finally {
+		quitState = "ready-to-quit";
+		app.quit();
+	}
 });
 
 process.on("uncaughtException", (error) => {
@@ -136,18 +160,14 @@ if (!gotTheLock) {
 			// App can continue without agent hooks, but log the failure
 		}
 
+		await processPersistence.initialize();
+
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
 
-		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);
 		}
-
-		// Clean up all terminals and analytics when app is quitting
-		app.on("before-quit", async () => {
-			await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
-		});
 	})();
 }

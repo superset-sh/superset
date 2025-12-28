@@ -35,6 +35,7 @@ export class HistoryWriter {
 	private metaPath: string;
 	private metadata: SessionMetadata;
 	private streamErrored = false;
+	private pendingMetadataWrite: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		private workspaceId: string,
@@ -76,7 +77,6 @@ export class HistoryWriter {
 	write(data: string): void {
 		if (this.stream && !this.streamErrored) {
 			try {
-				// node-pty produces UTF-8 strings
 				this.stream.write(Buffer.from(data, "utf8"));
 			} catch {
 				this.streamErrored = true;
@@ -84,7 +84,61 @@ export class HistoryWriter {
 		}
 	}
 
+	updateCwd(cwd: string): void {
+		this.metadata.cwd = cwd;
+		this.debouncedWriteMetadata();
+	}
+
+	private debouncedWriteMetadata(): void {
+		if (this.pendingMetadataWrite) {
+			clearTimeout(this.pendingMetadataWrite);
+		}
+
+		this.pendingMetadataWrite = setTimeout(async () => {
+			this.pendingMetadataWrite = null;
+			try {
+				await fs.writeFile(
+					this.metaPath,
+					JSON.stringify(this.metadata, null, 2),
+				);
+			} catch (error) {
+				console.warn("[HistoryWriter] Failed to write metadata:", error);
+			}
+		}, 1000);
+
+		this.pendingMetadataWrite.unref();
+	}
+
+	async closeForDetach(): Promise<void> {
+		if (this.pendingMetadataWrite) {
+			clearTimeout(this.pendingMetadataWrite);
+			this.pendingMetadataWrite = null;
+		}
+
+		if (this.stream && !this.streamErrored) {
+			try {
+				await new Promise<void>((resolve) => {
+					this.stream?.end(() => resolve());
+				});
+			} catch {
+				// Ignore close errors
+			}
+		}
+		this.stream = null;
+
+		try {
+			await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
+		} catch {
+			// Ignore
+		}
+	}
+
 	async close(exitCode?: number): Promise<void> {
+		if (this.pendingMetadataWrite) {
+			clearTimeout(this.pendingMetadataWrite);
+			this.pendingMetadataWrite = null;
+		}
+
 		if (this.stream && !this.streamErrored) {
 			try {
 				await new Promise<void>((resolve) => {
@@ -112,11 +166,19 @@ export class HistoryReader {
 		private paneId: string,
 	) {}
 
+	async readMetadata(): Promise<SessionMetadata | null> {
+		try {
+			const metaPath = getMetadataPath(this.workspaceId, this.paneId);
+			const metaContent = await fs.readFile(metaPath, "utf-8");
+			return JSON.parse(metaContent);
+		} catch {
+			return null;
+		}
+	}
+
 	async read(): Promise<{ scrollback: string; metadata?: SessionMetadata }> {
 		try {
 			const filePath = getHistoryFilePath(this.workspaceId, this.paneId);
-			// Read as UTF-8 to match how node-pty produces terminal output
-			// The file is stored as raw bytes from UTF-8 encoded strings
 			const scrollback = await fs.readFile(filePath, "utf8");
 
 			let metadata: SessionMetadata | undefined;

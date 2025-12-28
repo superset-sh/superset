@@ -104,7 +104,12 @@ const config: Configuration = {
 		],
 		hardenedRuntime: true,
 		gatekeeperAssess: false,
-		notarize: true,
+		// Only notarize if Apple credentials are available
+		notarize: !!(
+			process.env.APPLE_ID &&
+			process.env.APPLE_ID_PASSWORD &&
+			process.env.APPLE_TEAM_ID
+		),
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,

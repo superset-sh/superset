@@ -1,5 +1,7 @@
+import fs from "node:fs/promises";
 import os from "node:os";
 import * as pty from "node-pty";
+import { parseCwd } from "shared/parse-cwd";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
 import {
@@ -18,25 +20,34 @@ export async function recoverScrollback(
 	existingScrollback: string | null,
 	workspaceId: string,
 	paneId: string,
-): Promise<{ scrollback: string; wasRecovered: boolean }> {
+): Promise<{ scrollback: string; wasRecovered: boolean; savedCwd?: string }> {
+	const historyReader = new HistoryReader(workspaceId, paneId);
+	const metadata = await historyReader.readMetadata();
+
 	if (existingScrollback) {
-		return { scrollback: existingScrollback, wasRecovered: true };
+		return {
+			scrollback: existingScrollback,
+			wasRecovered: true,
+			savedCwd: metadata?.cwd,
+		};
 	}
 
-	const historyReader = new HistoryReader(workspaceId, paneId);
 	const history = await historyReader.read();
 
 	if (history.scrollback) {
-		// Keep only a reasonable amount of scrollback history
 		const MAX_SCROLLBACK_CHARS = 500_000;
 		const scrollback =
 			history.scrollback.length > MAX_SCROLLBACK_CHARS
 				? history.scrollback.slice(-MAX_SCROLLBACK_CHARS)
 				: history.scrollback;
-		return { scrollback, wasRecovered: true };
+		return {
+			scrollback,
+			wasRecovered: true,
+			savedCwd: history.metadata?.cwd,
+		};
 	}
 
-	return { scrollback: "", wasRecovered: false };
+	return { scrollback: "", wasRecovered: false, savedCwd: metadata?.cwd };
 }
 
 function spawnPty(params: {
@@ -77,7 +88,6 @@ export async function createSession(
 	} = params;
 
 	const shell = useFallbackShell ? FALLBACK_SHELL : getDefaultShell();
-	const workingDir = cwd || os.homedir();
 	const terminalCols = cols || DEFAULT_COLS;
 	const terminalRows = rows || DEFAULT_ROWS;
 
@@ -91,8 +101,26 @@ export async function createSession(
 		rootPath,
 	});
 
-	const { scrollback: recoveredScrollback, wasRecovered } =
-		await recoverScrollback(existingScrollback, workspaceId, paneId);
+	const {
+		scrollback: recoveredScrollback,
+		wasRecovered,
+		savedCwd,
+	} = await recoverScrollback(existingScrollback, workspaceId, paneId);
+
+	let workingDir = cwd ?? savedCwd ?? os.homedir();
+
+	try {
+		const stats = await fs.stat(workingDir);
+		if (!stats.isDirectory()) {
+			throw new Error("Not a directory");
+		}
+		await fs.readdir(workingDir);
+	} catch {
+		console.warn(
+			`[session] CWD ${workingDir} not accessible, falling back to homedir`,
+		);
+		workingDir = os.homedir();
+	}
 
 	// Scan recovered scrollback for ports (verification will check if still listening)
 	if (wasRecovered && recoveredScrollback) {
@@ -139,6 +167,8 @@ export async function createSession(
 	};
 }
 
+const OSC7_BUFFER_SIZE = 4096;
+
 export function setupDataHandler(
 	session: TerminalSession,
 	initialCommands: string[] | undefined,
@@ -148,6 +178,7 @@ export function setupDataHandler(
 	const shouldRunCommands =
 		!wasRecovered && initialCommands && initialCommands.length > 0;
 	let commandsSent = false;
+	let osc7Buffer = "";
 
 	session.pty.onData((data) => {
 		let dataToStore = data;
@@ -161,7 +192,13 @@ export function setupDataHandler(
 		session.scrollback += dataToStore;
 		session.historyWriter?.write(dataToStore);
 
-		// Scan for port patterns in terminal output
+		osc7Buffer = (osc7Buffer + data).slice(-OSC7_BUFFER_SIZE);
+		const newCwd = parseCwd(osc7Buffer);
+		if (newCwd && newCwd !== session.cwd) {
+			session.cwd = newCwd;
+			session.historyWriter?.updateCwd(newCwd);
+		}
+
 		portManager.scanOutput(dataToStore, session.paneId, session.workspaceId);
 
 		session.dataBatcher.write(data);
@@ -197,6 +234,15 @@ export async function closeSessionHistory(
 
 	if (session.historyWriter) {
 		await session.historyWriter.close(exitCode);
+		session.historyWriter = undefined;
+	}
+}
+
+export async function closeSessionHistoryForDetach(
+	session: TerminalSession,
+): Promise<void> {
+	if (session.historyWriter) {
+		await session.historyWriter.closeForDetach();
 		session.historyWriter = undefined;
 	}
 }

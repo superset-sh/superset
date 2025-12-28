@@ -1,9 +1,32 @@
 import { EventEmitter } from "node:events";
+import os from "node:os";
 import { track } from "main/lib/analytics";
-import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
+import { HistoryReader, HistoryWriter } from "../terminal-history";
+import { parseCwd } from "shared/parse-cwd";
+import {
+	containsClearScrollbackSequence,
+	extractContentAfterClear,
+} from "../terminal-escape-filter";
+import {
+	buildTerminalEnv,
+	FALLBACK_SHELL,
+	getDefaultShell,
+	SHELL_CRASH_THRESHOLD_MS,
+} from "./env";
+import {
+	getSessionName,
+	processPersistence,
+	TmuxBackend,
+} from "./persistence/manager";
+import {
+	SessionLifecycle,
+	type SessionLifecycleEvents,
+} from "./persistence/session-lifecycle";
+import type { SessionState, TmuxError } from "./persistence/types";
 import { portManager } from "./port-manager";
 import {
 	closeSessionHistory,
+	closeSessionHistoryForDetach,
 	createSession,
 	flushSession,
 	reinitializeHistory,
@@ -16,22 +39,35 @@ import type {
 	TerminalSession,
 } from "./types";
 
+const OSC7_BUFFER_SIZE = 4096;
+
 export class TerminalManager extends EventEmitter {
 	private sessions = new Map<string, TerminalSession>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
+	private lifecycles = new Map<string, SessionLifecycle>();
+	private tmuxBackend = new TmuxBackend();
+	private osc7Buffers = new Map<string, string>();
 
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
-		const { paneId, cols, rows } = params;
+		const { paneId, cols, rows, workspaceId } = params;
 
-		// Deduplicate concurrent calls (prevents race in React Strict Mode)
 		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
 			return pending;
 		}
 
-		// Return existing session if alive
 		const existing = this.sessions.get(paneId);
 		if (existing?.isAlive) {
+			const lifecycle = this.lifecycles.get(paneId);
+			if (lifecycle) {
+				const state = lifecycle.getState();
+				if (state === "failed") {
+					const reattached = await lifecycle.retry();
+					if (reattached) {
+						existing.pty = lifecycle.getPty()!;
+					}
+				}
+			}
 			existing.lastActive = Date.now();
 			if (cols !== undefined && rows !== undefined) {
 				this.resize({ paneId, cols, rows });
@@ -43,11 +79,12 @@ export class TerminalManager extends EventEmitter {
 			};
 		}
 
-		// Create new session
-		const creationPromise = this.doCreateSession({
-			...params,
-			existingScrollback: existing?.scrollback || null,
-		});
+		if (existing && !existing.isAlive && existing.isExpectedDetach) {
+			this.sessions.delete(paneId);
+			this.osc7Buffers.delete(paneId);
+		}
+
+		const creationPromise = this.doCreateOrAttachPersistent(params, existing);
 		this.pendingSessions.set(paneId, creationPromise);
 
 		try {
@@ -55,6 +92,353 @@ export class TerminalManager extends EventEmitter {
 		} finally {
 			this.pendingSessions.delete(paneId);
 		}
+	}
+
+	private async doCreateOrAttachPersistent(
+		params: CreateSessionParams,
+		existing: TerminalSession | undefined,
+	): Promise<SessionResult> {
+		const { paneId, workspaceId } = params;
+		const sessionName = getSessionName(workspaceId, paneId);
+		const cols = params.cols ?? 80;
+		const rows = params.rows ?? 24;
+
+		if (processPersistence.enabled) {
+			try {
+				if (await processPersistence.sessionExists(sessionName)) {
+					const backendScrollback =
+						await this.captureScrollbackBounded(sessionName);
+
+					const lifecycle = this.getOrCreateLifecycle(
+						paneId,
+						sessionName,
+						params,
+					);
+					const attached = await lifecycle.ensureAttached(cols, rows);
+
+					if (attached && lifecycle.getPty()) {
+						return this.setupPersistentSessionWithLifecycle(lifecycle, params, {
+							scrollback: backendScrollback,
+							wasRecovered: true,
+							isPersistentBackend: true,
+						});
+					}
+
+					console.warn(
+						"[TerminalManager] Lifecycle attach failed, killing session",
+					);
+					await processPersistence.killSession(sessionName).catch(() => {});
+					this.lifecycles.delete(paneId);
+				}
+			} catch (error) {
+				console.warn("[TerminalManager] Failed to attach:", error);
+
+				try {
+					await processPersistence.killSession(sessionName);
+					console.log(
+						"[TerminalManager] Killed orphaned session:",
+						sessionName,
+					);
+				} catch {}
+				this.lifecycles.delete(paneId);
+			}
+
+			try {
+				await processPersistence.createSession({
+					name: sessionName,
+					cwd: params.cwd ?? os.homedir(),
+					shell: getDefaultShell(),
+					env: buildTerminalEnv({
+						shell: getDefaultShell(),
+						paneId: params.paneId,
+						tabId: params.tabId,
+						workspaceId: params.workspaceId,
+						workspaceName: params.workspaceName,
+						workspacePath: params.workspacePath,
+						rootPath: params.rootPath,
+					}),
+				});
+
+				const lifecycle = this.getOrCreateLifecycle(
+					paneId,
+					sessionName,
+					params,
+				);
+				const attached = await lifecycle.ensureAttached(cols, rows);
+
+				if (attached && lifecycle.getPty()) {
+					return this.setupPersistentSessionWithLifecycle(lifecycle, params, {
+						scrollback: "",
+						wasRecovered: false,
+						isPersistentBackend: true,
+					});
+				}
+
+				console.warn(
+					"[TerminalManager] Persistence failed after create, falling back",
+				);
+				this.lifecycles.delete(paneId);
+			} catch (error) {
+				console.warn(
+					"[TerminalManager] Persistence failed, falling back:",
+					error,
+				);
+				this.lifecycles.delete(paneId);
+			}
+		}
+
+		return this.doCreateSession({
+			...params,
+			existingScrollback: existing?.scrollback || null,
+		});
+	}
+
+	private async captureScrollbackBounded(sessionName: string): Promise<string> {
+		const MAX_SCROLLBACK_CHARS = 500_000;
+		try {
+			const scrollback = await Promise.race([
+				processPersistence.captureScrollback(sessionName),
+				new Promise<string>((_, reject) =>
+					setTimeout(() => reject(new Error("timeout")), 2000),
+				),
+			]);
+			return scrollback.length > MAX_SCROLLBACK_CHARS
+				? scrollback.slice(-MAX_SCROLLBACK_CHARS)
+				: scrollback;
+		} catch {
+			return "";
+		}
+	}
+
+	private getOrCreateLifecycle(
+		paneId: string,
+		sessionName: string,
+		params: CreateSessionParams,
+	): SessionLifecycle {
+		let lifecycle = this.lifecycles.get(paneId);
+		if (!lifecycle) {
+			lifecycle = new SessionLifecycle(sessionName, this.tmuxBackend, {
+				onStateChange: (state, prev) =>
+					this.handleLifecycleStateChange(paneId, state, prev),
+				onData: (data) => this.handleLifecycleData(paneId, data),
+				onError: (error, message) =>
+					this.handleLifecycleError(paneId, error, message),
+			});
+			this.lifecycles.set(paneId, lifecycle);
+		}
+		return lifecycle;
+	}
+
+	private handleLifecycleStateChange(
+		paneId: string,
+		state: SessionState,
+		prevState: SessionState,
+	): void {
+		const session = this.sessions.get(paneId);
+
+		if (state === "connected" && prevState === "reconnecting") {
+			console.log(`[TerminalManager] Reconnected session ${paneId}`);
+			if (session) {
+				session.isAlive = true;
+				const lifecycle = this.lifecycles.get(paneId);
+				if (lifecycle?.getPty()) {
+					session.pty = lifecycle.getPty()!;
+				}
+			}
+		}
+
+		if (state === "failed") {
+			this.emit(`error:${paneId}`, {
+				type: "persistence-failed",
+				recoverable: true,
+			});
+		}
+
+		if (state === "closed" && session) {
+			session.isAlive = false;
+			this.emit(`exit:${paneId}`, 0, undefined);
+		}
+	}
+
+	private handleLifecycleData(paneId: string, data: string): void {
+		const session = this.sessions.get(paneId);
+		if (!session) return;
+
+		let dataToStore = data;
+
+		if (containsClearScrollbackSequence(data)) {
+			session.scrollback = "";
+			reinitializeHistory(session).catch(() => {});
+			dataToStore = extractContentAfterClear(data);
+		}
+
+		session.scrollback += dataToStore;
+		session.historyWriter?.write(dataToStore);
+
+		const osc7Buffer = (this.osc7Buffers.get(paneId) ?? "") + data;
+		this.osc7Buffers.set(paneId, osc7Buffer.slice(-OSC7_BUFFER_SIZE));
+		const newCwd = parseCwd(osc7Buffer);
+		if (newCwd && newCwd !== session.cwd) {
+			session.cwd = newCwd;
+			session.historyWriter?.updateCwd(newCwd);
+		}
+
+		portManager.scanOutput(dataToStore, paneId, session.workspaceId);
+		session.dataBatcher.write(data);
+	}
+
+	private handleLifecycleError(
+		paneId: string,
+		error: TmuxError,
+		message: string,
+	): void {
+		console.warn(
+			`[TerminalManager] Lifecycle error for ${paneId}:`,
+			error,
+			message,
+		);
+	}
+
+	private async setupPersistentSessionWithLifecycle(
+		lifecycle: SessionLifecycle,
+		params: CreateSessionParams,
+		opts: {
+			scrollback: string;
+			wasRecovered: boolean;
+			isPersistentBackend: boolean;
+		},
+	): Promise<SessionResult> {
+		const { paneId, workspaceId, initialCommands } = params;
+		const ptyProcess = lifecycle.getPty()!;
+
+		const historyReader = new HistoryReader(workspaceId, paneId);
+		const savedMetadata = await historyReader.readMetadata();
+		const cwd = params.cwd ?? savedMetadata?.cwd ?? os.homedir();
+		const cols = params.cols ?? 80;
+		const rows = params.rows ?? 24;
+
+		const historyWriter = new HistoryWriter(
+			workspaceId,
+			paneId,
+			cwd,
+			cols,
+			rows,
+		);
+		await historyWriter.init(opts.scrollback || undefined);
+
+		const session: TerminalSession = {
+			pty: ptyProcess,
+			paneId,
+			workspaceId,
+			cwd,
+			cols,
+			rows,
+			lastActive: Date.now(),
+			scrollback: opts.scrollback,
+			isAlive: true,
+			wasRecovered: opts.wasRecovered,
+			dataBatcher: new (await import("../data-batcher")).DataBatcher((data) => {
+				this.emit(`data:${paneId}`, data);
+			}),
+			shell: getDefaultShell(),
+			startTime: Date.now(),
+			usedFallback: false,
+			isPersistentBackend: opts.isPersistentBackend,
+			historyWriter,
+		};
+
+		this.sessions.set(paneId, session);
+
+		if (opts.wasRecovered && opts.scrollback) {
+			portManager.scanOutput(opts.scrollback, paneId, workspaceId);
+		}
+
+		if (!opts.wasRecovered && initialCommands && initialCommands.length > 0) {
+			setTimeout(() => {
+				if (session.isAlive) {
+					const cmdString = `${initialCommands.join(" && ")}\n`;
+					lifecycle.write(cmdString);
+				}
+			}, 100);
+		}
+
+		track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
+
+		return {
+			isNew: true,
+			scrollback: opts.scrollback,
+			wasRecovered: opts.wasRecovered,
+		};
+	}
+
+	private async setupPersistentSession(
+		ptyProcess: import("node-pty").IPty,
+		params: CreateSessionParams,
+		opts: {
+			scrollback: string;
+			wasRecovered: boolean;
+			isPersistentBackend: boolean;
+		},
+	): Promise<SessionResult> {
+		const { paneId, workspaceId, initialCommands } = params;
+
+		// Read saved CWD from metadata as fallback (in case tmux crashed previously)
+		const historyReader = new HistoryReader(workspaceId, paneId);
+		const savedMetadata = await historyReader.readMetadata();
+		const cwd = params.cwd ?? savedMetadata?.cwd ?? os.homedir();
+		const cols = params.cols ?? 80;
+		const rows = params.rows ?? 24;
+
+		// Create historyWriter for CWD tracking and backup scrollback persistence
+		// Even for tmux sessions, this provides resilience if tmux crashes
+		const historyWriter = new HistoryWriter(
+			workspaceId,
+			paneId,
+			cwd,
+			cols,
+			rows,
+		);
+		await historyWriter.init(opts.scrollback || undefined);
+
+		const session: TerminalSession = {
+			pty: ptyProcess,
+			paneId,
+			workspaceId,
+			cwd,
+			cols,
+			rows,
+			lastActive: Date.now(),
+			scrollback: opts.scrollback,
+			isAlive: true,
+			wasRecovered: opts.wasRecovered,
+			dataBatcher: new (await import("../data-batcher")).DataBatcher((data) => {
+				this.emit(`data:${paneId}`, data);
+			}),
+			shell: getDefaultShell(),
+			startTime: Date.now(),
+			usedFallback: false,
+			isPersistentBackend: opts.isPersistentBackend,
+			historyWriter,
+		};
+
+		setupDataHandler(session, initialCommands, opts.wasRecovered, () =>
+			reinitializeHistory(session),
+		);
+
+		this.setupExitHandler(session, {
+			...params,
+			existingScrollback: opts.scrollback || null,
+		});
+
+		this.sessions.set(paneId, session);
+
+		track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
+
+		return {
+			isNew: true,
+			scrollback: opts.scrollback,
+			wasRecovered: opts.wasRecovered,
+		};
 	}
 
 	private async doCreateSession(
@@ -96,8 +480,19 @@ export class TerminalManager extends EventEmitter {
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 			flushSession(session);
+			this.osc7Buffers.delete(paneId);
 
-			// Check if shell crashed quickly - try fallback
+			if (session.isPersistentBackend && session.isExpectedDetach) {
+				return;
+			}
+
+			if (session.isPersistentBackend) {
+				await closeSessionHistory(session, exitCode);
+				portManager.removePortsForPane(paneId);
+				this.emit(`exit:${paneId}`, exitCode, signal);
+				return;
+			}
+
 			const sessionDuration = Date.now() - session.startTime;
 			const crashedQuickly =
 				sessionDuration < SHELL_CRASH_THRESHOLD_MS && exitCode !== 0;
@@ -116,7 +511,7 @@ export class TerminalManager extends EventEmitter {
 						existingScrollback: session.scrollback || null,
 						useFallbackShell: true,
 					});
-					return; // Recovered - don't emit exit
+					return;
 				} catch (fallbackError) {
 					console.error(
 						"[TerminalManager] Fallback shell also failed:",
@@ -127,16 +522,14 @@ export class TerminalManager extends EventEmitter {
 
 			await closeSessionHistory(session, exitCode);
 
-			// Clean up detected ports for this pane
 			portManager.removePortsForPane(paneId);
 
 			this.emit(`exit:${paneId}`, exitCode, signal);
 
-			// Clean up session after delay
-			const timeout = setTimeout(() => {
+			session.cleanupTimeout = setTimeout(() => {
 				this.sessions.delete(paneId);
 			}, 5000);
-			timeout.unref();
+			session.cleanupTimeout.unref();
 		});
 	}
 
@@ -148,7 +541,25 @@ export class TerminalManager extends EventEmitter {
 			throw new Error(`Terminal session ${paneId} not found or not alive`);
 		}
 
-		session.pty.write(data);
+		const lifecycle = this.lifecycles.get(paneId);
+		if (lifecycle) {
+			if (lifecycle.canWrite()) {
+				lifecycle.write(data);
+			} else {
+				const state = lifecycle.getState();
+				if (state === "reconnecting" || state === "connecting") {
+					console.warn(
+						`[TerminalManager] Write dropped for ${paneId}: lifecycle in ${state} state`,
+					);
+					return;
+				}
+				throw new Error(
+					`Cannot write to ${paneId}: lifecycle in ${state} state`,
+				);
+			}
+		} else {
+			session.pty.write(data);
+		}
 		session.lastActive = Date.now();
 	}
 
@@ -178,7 +589,12 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		try {
-			session.pty.resize(cols, rows);
+			const lifecycle = this.lifecycles.get(paneId);
+			if (lifecycle) {
+				lifecycle.resize(cols, rows);
+			} else {
+				session.pty.resize(cols, rows);
+			}
 			session.cols = cols;
 			session.rows = rows;
 			session.lastActive = Date.now();
@@ -221,15 +637,28 @@ export class TerminalManager extends EventEmitter {
 			session.deleteHistoryOnExit = true;
 		}
 
-		if (session.isAlive) {
+		const lifecycle = this.lifecycles.get(paneId);
+		if (lifecycle) {
+			lifecycle.close();
+			this.lifecycles.delete(paneId);
+		}
+
+		if (session.isPersistentBackend) {
+			const sessionName = getSessionName(session.workspaceId, paneId);
+			await processPersistence.killSession(sessionName).catch(() => {});
+		}
+
+		if (session.isAlive && !session.isExpectedDetach) {
 			session.pty.kill();
 		} else {
+			this.osc7Buffers.delete(paneId);
+			portManager.removePortsForPane(paneId);
 			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
 		}
 	}
 
-	detach(params: { paneId: string }): void {
+	async detach(params: { paneId: string }): Promise<void> {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 
@@ -238,7 +667,27 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		session.lastActive = Date.now();
+		if (session.isPersistentBackend && session.isAlive) {
+			if (session.cleanupTimeout) {
+				clearTimeout(session.cleanupTimeout);
+				session.cleanupTimeout = undefined;
+			}
+
+			const lifecycle = this.lifecycles.get(paneId);
+			if (lifecycle) {
+				lifecycle.detach();
+				this.lifecycles.delete(paneId);
+			}
+
+			session.isExpectedDetach = true;
+			session.isAlive = false;
+			await closeSessionHistoryForDetach(session);
+			try {
+				session.pty.kill();
+			} catch {}
+		} else {
+			session.lastActive = Date.now();
+		}
 	}
 
 	async clearScrollback(params: { paneId: string }): Promise<void> {
@@ -280,6 +729,7 @@ export class TerminalManager extends EventEmitter {
 		);
 
 		if (sessionsToKill.length === 0) {
+			await processPersistence.killByWorkspace(workspaceId);
 			return { killed: 0, failed: 0 };
 		}
 
@@ -288,6 +738,8 @@ export class TerminalManager extends EventEmitter {
 				this.killSessionWithTimeout(paneId, session),
 			),
 		);
+
+		await processPersistence.killByWorkspace(workspaceId);
 
 		const killed = results.filter(Boolean).length;
 		return { killed, failed: results.length - killed };
@@ -397,7 +849,35 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
+	async detachAll(): Promise<void> {
+		for (const [paneId, session] of this.sessions.entries()) {
+			const lifecycle = this.lifecycles.get(paneId);
+			if (lifecycle) {
+				lifecycle.detach();
+			}
+
+			if (session.isPersistentBackend && session.isAlive) {
+				session.isExpectedDetach = true;
+				session.isAlive = false;
+				await closeSessionHistoryForDetach(session);
+				try {
+					session.pty.kill();
+				} catch {}
+			} else {
+				await this.kill({ paneId });
+			}
+		}
+		this.lifecycles.clear();
+		this.osc7Buffers.clear();
+		this.sessions.clear();
+	}
+
 	async cleanup(): Promise<void> {
+		for (const lifecycle of this.lifecycles.values()) {
+			lifecycle.close();
+		}
+		this.lifecycles.clear();
+
 		const exitPromises: Promise<void>[] = [];
 
 		for (const [paneId, session] of this.sessions.entries()) {
@@ -429,6 +909,7 @@ export class TerminalManager extends EventEmitter {
 
 		await Promise.all(exitPromises);
 		this.sessions.clear();
+		this.osc7Buffers.clear();
 		this.removeAllListeners();
 	}
 }
