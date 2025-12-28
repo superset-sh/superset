@@ -59,7 +59,9 @@ fi
 success "Neon branch ready: $WORKSPACE_NAME"
 
 # Start Electric SQL container
-ELECTRIC_CONTAINER="superset-electric-$WORKSPACE_NAME"
+# Sanitize workspace name for Docker (valid chars only, max 64 chars)
+CONTAINER_SUFFIX=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+ELECTRIC_CONTAINER=$(echo "superset-electric-$CONTAINER_SUFFIX" | cut -c1-64)
 ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
 
 echo "⚡ Starting Electric SQL container..."
