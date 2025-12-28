@@ -42,6 +42,10 @@ export function suppressQueryResponses(terminal: Terminal): () => void {
 		}),
 	);
 
+	// OSC 4 - Indexed color palette query responses
+	// OSC 4;index;rgb:rrrr/gggg/bbbb (palette color for index)
+	disposables.push(parser.registerOscHandler(4, () => true));
+
 	// OSC 10-19 - Color query responses
 	// OSC 10: foreground color (ESC]10;rgb:ffff/ffff/ffff BEL)
 	// OSC 11: background color
