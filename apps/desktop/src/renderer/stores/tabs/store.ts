@@ -142,7 +142,7 @@ export const useTabsStore = create<TabsStore>()(
 					).filter((id) => id !== tabId);
 
 					if (state.activeTabIds[workspaceId] === tabId) {
-						newActiveTabIds[workspaceId] = findNextTab(state, tabId						);
+						newActiveTabIds[workspaceId] = findNextTab(state, tabId);
 					}
 
 					const newFocusedPaneIds = { ...state.focusedPaneIds };
