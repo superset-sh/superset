@@ -244,6 +244,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			scrollback: string;
 		}) => {
 			xterm.write(sanitizeTerminalScrollback(result.scrollback));
+			// Reset terminal modes that may have been enabled by restored scrollback
+			// This ensures scroll works correctly (not converted to arrow keys)
+			// - ?1049l: disable alternate screen buffer
+			// - ?1l: disable application cursor keys
+			// - ?1000l/?1002l/?1003l/?1006l: disable various mouse tracking modes
+			xterm.write(
+				"\x1b[?1049l\x1b[?1l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l",
+			);
 			updateCwdRef.current(result.scrollback);
 		};
 
