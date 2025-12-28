@@ -91,6 +91,13 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_DESKTOP": JSON.stringify(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			// PostHog - must match renderer for analytics in main process
+			"process.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_KEY,
+			),
+			"process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_HOST,
+			),
 		},
 
 		build: {
