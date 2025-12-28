@@ -322,6 +322,49 @@ export async function fetchDefaultBranch(
 	return commit.trim();
 }
 
+/**
+ * Refreshes the local origin/HEAD symref from the remote and returns the current default branch.
+ * This detects when the remote repository's default branch has changed (e.g., master -> main).
+ * @param mainRepoPath - Path to the main repository
+ * @returns The current default branch name, or null if unable to determine
+ */
+export async function refreshDefaultBranch(
+	mainRepoPath: string,
+): Promise<string | null> {
+	const git = simpleGit(mainRepoPath);
+
+	const hasRemote = await hasOriginRemote(mainRepoPath);
+	if (!hasRemote) {
+		return null;
+	}
+
+	try {
+		// Git doesn't auto-update origin/HEAD on fetch, so we must explicitly
+		// sync it to detect when the remote's default branch changes
+		await git.remote(["set-head", "origin", "--auto"]);
+
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
+		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+		if (match) {
+			return match[1];
+		}
+	} catch {
+		// set-head requires network access; fall back to ls-remote which may
+		// work in some edge cases or provide a more specific error
+		try {
+			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
+			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			if (symrefMatch) {
+				return symrefMatch[1];
+			}
+		} catch {
+			// Network unavailable - caller will use cached value
+		}
+	}
+
+	return null;
+}
+
 export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,

@@ -17,7 +17,11 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
+import {
+	getDefaultBranch,
+	getGitRoot,
+	refreshDefaultBranch,
+} from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
 type Project = SelectProject;
@@ -253,10 +257,22 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
 					}
 
-					// Determine default branch
-					let defaultBranch = project.defaultBranch;
-					if (!defaultBranch) {
-						defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					// Sync with remote in case the default branch changed (e.g. master -> main)
+					const remoteDefaultBranch = await refreshDefaultBranch(
+						project.mainRepoPath,
+					);
+
+					const defaultBranch =
+						remoteDefaultBranch ||
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					if (defaultBranch !== project.defaultBranch) {
+						localDb
+							.update(projects)
+							.set({ defaultBranch })
+							.where(eq(projects.id, input.projectId))
+							.run();
 					}
 
 					// Sort: default branch first, then by date
@@ -579,6 +595,54 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				}
 
 				return { success: true };
+			}),
+
+		refreshDefaultBranch: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new Error(`Project ${input.id} not found`);
+				}
+
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				if (
+					remoteDefaultBranch &&
+					remoteDefaultBranch !== project.defaultBranch
+				) {
+					localDb
+						.update(projects)
+						.set({ defaultBranch: remoteDefaultBranch })
+						.where(eq(projects.id, input.id))
+						.run();
+
+					return {
+						success: true,
+						defaultBranch: remoteDefaultBranch,
+						changed: true,
+						previousBranch: project.defaultBranch,
+					};
+				}
+
+				// Ensure we always return a valid default branch
+				const defaultBranch =
+					project.defaultBranch ??
+					remoteDefaultBranch ??
+					(await getDefaultBranch(project.mainRepoPath));
+
+				return {
+					success: true,
+					defaultBranch,
+					changed: false,
+				};
 			}),
 
 		close: publicProcedure

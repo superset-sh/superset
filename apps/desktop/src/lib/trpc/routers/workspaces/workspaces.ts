@@ -27,6 +27,7 @@ import {
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	listBranches,
+	refreshDefaultBranch,
 	removeWorktree,
 	safeCheckoutBranch,
 	worktreeExists,
@@ -67,11 +68,17 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
-				let defaultBranch = project.defaultBranch;
-				if (!defaultBranch) {
-					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				// Sync with remote in case the default branch changed (e.g. master -> main)
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				const defaultBranch =
+					remoteDefaultBranch ||
+					project.defaultBranch ||
+					(await getDefaultBranch(project.mainRepoPath));
+
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
@@ -79,7 +86,6 @@ export const createWorkspacesRouter = () => {
 						.run();
 				}
 
-				// Use provided baseBranch or fall back to default
 				const targetBranch = input.baseBranch || defaultBranch;
 
 				// Check if this repo has a remote origin
@@ -1058,11 +1064,20 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
+				// Sync with remote in case the default branch changed (e.g. master -> main)
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
 				let defaultBranch = project.defaultBranch;
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				}
+				if (remoteDefaultBranch && remoteDefaultBranch !== defaultBranch) {
+					defaultBranch = remoteDefaultBranch;
+				}
+
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
@@ -1092,7 +1107,7 @@ export const createWorkspacesRouter = () => {
 					.where(eq(worktrees.id, worktree.id))
 					.run();
 
-				return { gitStatus };
+				return { gitStatus, defaultBranch };
 			}),
 
 		getGitHubStatus: publicProcedure
