@@ -632,9 +632,15 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					};
 				}
 
+				// Ensure we always return a valid default branch
+				const defaultBranch =
+					project.defaultBranch ??
+					remoteDefaultBranch ??
+					(await getDefaultBranch(project.mainRepoPath));
+
 				return {
 					success: true,
-					defaultBranch: project.defaultBranch ?? remoteDefaultBranch,
+					defaultBranch,
 					changed: false,
 				};
 			}),
