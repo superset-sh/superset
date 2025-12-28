@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
 
@@ -12,7 +12,13 @@ import { SUPERSET_HOME_DIR } from "../app-environment";
 const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
 
 function ensureAppHomeDirExists() {
-	mkdirSync(SUPERSET_HOME_DIR, { recursive: true });
+	mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
+	try {
+		// Ensure other local users can't access Superset's app data (tmux socket, auth, etc.)
+		chmodSync(SUPERSET_HOME_DIR, 0o700);
+	} catch {
+		// Best-effort only (platform/filesystem dependent)
+	}
 }
 ensureAppHomeDirExists();
 

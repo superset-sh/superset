@@ -19,6 +19,7 @@ const { TerminalManager } = await import("./manager");
 
 // Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
 const testTmpDir = join(tmpdir(), "superset-test");
+const testCwd = join(testTmpDir, "cwd");
 
 describe("TerminalManager", () => {
 	let manager: InstanceType<typeof TerminalManager>;
@@ -37,11 +38,13 @@ describe("TerminalManager", () => {
 				recursive: true,
 				force: true,
 			});
-		} catch {
-			// Ignore if doesn't exist
-		}
+			} catch {
+				// Ignore if doesn't exist
+			}
 
-		manager = new TerminalManager();
+			await fs.mkdir(testCwd, { recursive: true });
+
+			manager = new TerminalManager();
 
 		// Setup mock pty
 		mockPty = {
@@ -84,36 +87,36 @@ describe("TerminalManager", () => {
 
 	describe("createOrAttach", () => {
 		it("should create a new terminal session", async () => {
-			const result = await manager.createOrAttach({
-				paneId: "pane-1",
-				tabId: "tab-1",
-				workspaceId: "workspace-1",
-				cwd: "/test/path",
-				cols: 80,
-				rows: 24,
-			});
+				const result = await manager.createOrAttach({
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "workspace-1",
+					cwd: testCwd,
+					cols: 80,
+					rows: 24,
+				});
 
 			expect(result.isNew).toBe(true);
 			expect(result.scrollback).toBe("");
 			expect(result.wasRecovered).toBe(false);
 			expect(pty.spawn).toHaveBeenCalledWith(
-				expect.any(String),
-				expect.any(Array),
-				expect.objectContaining({
-					cwd: "/test/path",
-					cols: 80,
-					rows: 24,
-				}),
-			);
-		});
+					expect.any(String),
+					expect.any(Array),
+					expect.objectContaining({
+						cwd: testCwd,
+						cols: 80,
+						rows: 24,
+					}),
+				);
+			});
 
 		it("should reuse existing terminal session", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-1",
-				tabId: "tab-1",
-				workspaceId: "workspace-1",
-				cwd: "/test/path",
-			});
+				await manager.createOrAttach({
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "workspace-1",
+					cwd: testCwd,
+				});
 
 			const spawnCallCount = (pty.spawn as ReturnType<typeof mock>).mock.calls
 				.length;
@@ -227,28 +230,28 @@ describe("TerminalManager", () => {
 				workspaceId: "workspace-1",
 			});
 
-			manager.signal({
-				paneId: "pane-1",
-				signal: "SIGINT",
+				manager.signal({
+					paneId: "pane-1",
+					signal: "SIGINT",
+				});
+
+				expect(mockPty.write).toHaveBeenCalledWith("\x03");
 			});
 
-			expect(mockPty.kill).toHaveBeenCalledWith("SIGINT");
+			it("should use SIGINT by default", async () => {
+				await manager.createOrAttach({
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "workspace-1",
+				});
+
+				manager.signal({
+					paneId: "pane-1",
+				});
+
+				expect(mockPty.write).toHaveBeenCalledWith("\x03");
+			});
 		});
-
-		it("should use SIGTERM by default", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-1",
-				tabId: "tab-1",
-				workspaceId: "workspace-1",
-			});
-
-			manager.signal({
-				paneId: "pane-1",
-			});
-
-			expect(mockPty.kill).toHaveBeenCalledWith("SIGTERM");
-		});
-	});
 
 	describe("kill", () => {
 		it("should kill and preserve history by default", async () => {
@@ -393,21 +396,21 @@ describe("TerminalManager", () => {
 
 	describe("getSession", () => {
 		it("should return session metadata", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-1",
-				tabId: "tab-1",
-				workspaceId: "workspace-1",
-				cwd: "/test/path",
-			});
+				await manager.createOrAttach({
+					paneId: "pane-1",
+					tabId: "tab-1",
+					workspaceId: "workspace-1",
+					cwd: testCwd,
+				});
 
 			const session = manager.getSession("pane-1");
 
-			expect(session).toMatchObject({
-				isAlive: true,
-				cwd: "/test/path",
+				expect(session).toMatchObject({
+					isAlive: true,
+					cwd: testCwd,
+				});
+				expect(session?.lastActive).toBeGreaterThan(0);
 			});
-			expect(session?.lastActive).toBeGreaterThan(0);
-		});
 
 		it("should return null for non-existent session", () => {
 			const session = manager.getSession("non-existent");

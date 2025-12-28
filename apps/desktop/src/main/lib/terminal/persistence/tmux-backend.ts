@@ -184,7 +184,8 @@ export class TmuxBackend implements PersistenceBackend {
 	async createSession(opts: CreatePersistentSessionParams): Promise<void> {
 		const { name, cwd, shell, env } = opts;
 
-		await fs.mkdir(SESSIONS_DIR, { recursive: true });
+		await fs.mkdir(SESSIONS_DIR, { recursive: true, mode: 0o700 });
+		await fs.chmod(SESSIONS_DIR, 0o700).catch(() => {});
 
 		const safeEnv = buildSafeEnvForScript(env);
 		const shellArgs = getShellArgs(shell);
@@ -197,7 +198,8 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 `;
 
 		const scriptPath = join(SESSIONS_DIR, `${name}.sh`);
-		await fs.writeFile(scriptPath, wrapperScript, { mode: 0o755 });
+		await fs.writeFile(scriptPath, wrapperScript, { mode: 0o700 });
+		await fs.chmod(scriptPath, 0o700).catch(() => {});
 
 		await exec(
 			`tmux -S ${shellQuote(TMUX_SOCKET)} -f ${shellQuote(TMUX_CONFIG)} new-session -d -s ${shellQuote(name)} -c ${shellQuote(cwd)} ${shellQuote(scriptPath)}`,

@@ -6,10 +6,14 @@ import path from "node:path";
 import { settings } from "@superset/local-db";
 import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import {
+	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_TERMINAL_SESSION_PERSISTENCE,
+	PROTOCOL_SCHEME,
+} from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
-import { initAppState } from "./lib/app-state";
+import { appState, initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
@@ -112,6 +116,17 @@ function getConfirmOnQuitSetting(): boolean {
 		return row?.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 	} catch {
 		return DEFAULT_CONFIRM_ON_QUIT;
+	}
+}
+
+function getTerminalSessionPersistenceSetting(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return (
+			row?.terminalSessionPersistence ?? DEFAULT_TERMINAL_SESSION_PERSISTENCE
+		);
+	} catch {
+		return DEFAULT_TERMINAL_SESSION_PERSISTENCE;
 	}
 }
 
@@ -228,15 +243,41 @@ if (!gotTheLock) {
 
 		try {
 			setupAgentHooks();
-		} catch (error) {
-			console.error("[main] Failed to set up agent hooks:", error);
-			// App can continue without agent hooks, but log the failure
-		}
+			} catch (error) {
+				console.error("[main] Failed to set up agent hooks:", error);
+				// App can continue without agent hooks, but log the failure
+			}
 
-		await processPersistence.initialize();
+			try {
+				await processPersistence.setEnabled(getTerminalSessionPersistenceSetting());
+			} catch (error) {
+				console.warn("[main] Terminal persistence init failed:", error);
+			}
 
-		await makeAppSetup(() => MainWindow());
-		setupAutoUpdater();
+			if (processPersistence.enabled) {
+				void processPersistence
+					.cleanupOrphanedSessions(async () => {
+						const tabsState = appState.data?.tabsState;
+						if (!tabsState) return [];
+
+						const tabById = new Map(tabsState.tabs.map((t) => [t.id, t]));
+
+						return Object.values(tabsState.panes)
+							.filter((p) => p.type === "terminal")
+							.map((p) => {
+								const tab = tabById.get(p.tabId);
+								if (!tab) return null;
+								return { wsId: tab.workspaceId, id: p.id };
+							})
+							.filter(
+								(p): p is { wsId: string; id: string } => p !== null,
+							);
+					})
+					.catch(() => {});
+			}
+
+			await makeAppSetup(() => MainWindow());
+			setupAutoUpdater();
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {

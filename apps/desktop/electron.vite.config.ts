@@ -98,10 +98,6 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
-			// Terminal persistence - enables tmux backend for session recovery
-			"process.env.SUPERSET_TERMINAL_PERSISTENCE": JSON.stringify(
-				process.env.SUPERSET_TERMINAL_PERSISTENCE,
-			),
 		},
 
 		build: {

@@ -13,41 +13,82 @@ import {
 } from "./tmux-backend";
 import type {
 	CreatePersistentSessionParams,
-	PersistenceBackend,
 } from "./types";
 
 const MAX_ORPHAN_AGE_MS = 72 * 60 * 60 * 1000;
 
 class ProcessPersistence {
-	private backend: PersistenceBackend | null = null;
+	private backend: TmuxBackend | null = null;
 	private _enabled = false;
-	private initialized = false;
+	private setEnabledPromise: Promise<void> | null = null;
 
 	get enabled(): boolean {
 		return this._enabled;
 	}
 
-	async initialize(): Promise<void> {
-		if (this.initialized) return;
-		this.initialized = true;
+	async getStatus(): Promise<{
+		supported: boolean;
+		tmuxAvailable: boolean;
+		enabled: boolean;
+	}> {
+		const supported = process.platform !== "win32";
+		if (!supported) {
+			return { supported, tmuxAvailable: false, enabled: false };
+		}
 
-		// Strict check: only enable when explicitly set to "1"
-		if (process.env.SUPERSET_TERMINAL_PERSISTENCE !== "1") {
+		if (!this.backend) {
+			const tmux = new TmuxBackend();
+			const tmuxAvailable = await tmux.isAvailable();
+			if (tmuxAvailable) {
+				this.backend = tmux;
+			}
+			return { supported, tmuxAvailable, enabled: this._enabled && tmuxAvailable };
+		}
+
+		const tmuxAvailable = await this.backend.isAvailable();
+		return { supported, tmuxAvailable, enabled: this._enabled && tmuxAvailable };
+	}
+
+	async setEnabled(enabled: boolean): Promise<void> {
+		if (enabled === this._enabled) return;
+
+		if (this.setEnabledPromise) {
+			await this.setEnabledPromise;
+			if (enabled === this._enabled) return;
+		}
+
+		this.setEnabledPromise = this.doSetEnabled(enabled);
+		try {
+			await this.setEnabledPromise;
+		} finally {
+			this.setEnabledPromise = null;
+		}
+	}
+
+	private async doSetEnabled(enabled: boolean): Promise<void> {
+		if (!enabled) {
+			this._enabled = false;
 			return;
 		}
 
 		if (process.platform === "win32") {
-			return;
+			this._enabled = false;
+			throw new Error("Terminal session persistence is not supported on Windows.");
 		}
 
-		const tmux = new TmuxBackend();
-		if (await tmux.isAvailable()) {
+		if (!this.backend) {
+			const tmux = new TmuxBackend();
+			const tmuxAvailable = await tmux.isAvailable();
+			if (!tmuxAvailable) {
+				throw new Error("tmux is not available. Install tmux to enable this.");
+			}
 			this.backend = tmux;
-			await this.copyTmuxConfig();
-			await tmux.ensureServerConfig();
-			await tmux.cleanupOrphanedScripts?.();
-			this._enabled = true;
 		}
+
+		await this.copyTmuxConfig();
+		await this.backend.ensureServerConfig();
+		await this.backend.cleanupOrphanedScripts?.();
+		this._enabled = true;
 	}
 
 	private async copyTmuxConfig(): Promise<void> {
@@ -65,24 +106,27 @@ set -g mouse off
 set -g status off
 set -g history-limit 50000
 set -g escape-time 0
-set -g default-terminal "xterm-256color"
-set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
+		set -g default-terminal "xterm-256color"
+		set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
 `;
-		await fs.writeFile(configPath, defaultConfig);
+		await fs.writeFile(configPath, defaultConfig, { mode: 0o600 });
+		await fs.chmod(configPath, 0o600).catch(() => {});
 	}
 
 	async sessionExists(sessionName: string): Promise<boolean> {
-		if (!this.backend) return false;
+		if (!this._enabled || !this.backend) return false;
 		return this.backend.sessionExists(sessionName);
 	}
 
 	async listSessions(prefix: string): Promise<string[]> {
-		if (!this.backend) return [];
+		if (!this._enabled || !this.backend) return [];
 		return this.backend.listSessions(prefix);
 	}
 
 	async createSession(opts: CreatePersistentSessionParams): Promise<void> {
-		if (!this.backend) throw new Error("No persistence backend available");
+		if (!this._enabled || !this.backend) {
+			throw new Error("Terminal session persistence is not enabled");
+		}
 		return this.backend.createSession(opts);
 	}
 
@@ -91,7 +135,9 @@ set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
 		cols?: number,
 		rows?: number,
 	): Promise<pty.IPty> {
-		if (!this.backend) throw new Error("No persistence backend available");
+		if (!this._enabled || !this.backend) {
+			throw new Error("Terminal session persistence is not enabled");
+		}
 		return this.backend.attachSession(name, cols, rows);
 	}
 
@@ -106,7 +152,7 @@ set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
 	}
 
 	async captureScrollback(name: string): Promise<string> {
-		if (!this.backend) return "";
+		if (!this._enabled || !this.backend) return "";
 		return this.backend.captureScrollback(name);
 	}
 
@@ -166,7 +212,7 @@ set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
 		sessionName: string,
 		events: SessionLifecycleEvents,
 	): SessionLifecycle {
-		if (!this.backend) {
+		if (!this._enabled || !this.backend) {
 			throw new Error("No persistence backend available");
 		}
 		return new SessionLifecycle(sessionName, this.backend, events);
