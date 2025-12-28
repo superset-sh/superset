@@ -1,56 +1,201 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
-error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+# Step tracking
+declare -a FAILED_STEPS=()
+declare -a SKIPPED_STEPS=()
+
+error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
+warn() { echo -e "${YELLOW}!${NC} $1"; }
 
-echo "🧹 Tearing down Superset workspace..."
+# Track step failure
+step_failed() {
+  FAILED_STEPS+=("$1")
+}
 
-# Load local .env
-if [ -f ".env" ]; then
-  # shellcheck disable=SC1091
+# Track step skipped
+step_skipped() {
+  SKIPPED_STEPS+=("$1")
+}
+
+# Print summary at the end
+print_summary() {
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📊 Teardown Summary"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if [ ${#FAILED_STEPS[@]} -eq 0 ] && [ ${#SKIPPED_STEPS[@]} -eq 0 ]; then
+    echo -e "${GREEN}All steps completed successfully!${NC}"
+  else
+    if [ ${#SKIPPED_STEPS[@]} -gt 0 ]; then
+      echo -e "${YELLOW}Skipped steps:${NC}"
+      for step in "${SKIPPED_STEPS[@]}"; do
+        echo "  - $step"
+      done
+    fi
+    if [ ${#FAILED_STEPS[@]} -gt 0 ]; then
+      echo -e "${RED}Failed steps:${NC}"
+      for step in "${FAILED_STEPS[@]}"; do
+        echo "  - $step"
+      done
+    fi
+  fi
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # Return non-zero if any steps failed
+  [ ${#FAILED_STEPS[@]} -eq 0 ]
+}
+
+# ============================================================
+# Step 1: Load environment variables
+# ============================================================
+step_load_env() {
+  echo "📂 Loading environment variables..."
+
+  if [ ! -f ".env" ]; then
+    error "No .env file found in current directory"
+    return 1
+  fi
+
   set -a
+  # shellcheck source=/dev/null
   source .env
   set +a
-fi
 
-# Check dependencies
-command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
-command -v docker &> /dev/null || error "Docker not installed. Install from https://docker.com"
+  success "Environment variables loaded"
+  return 0
+}
 
-# Check required environment variables
-NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
-[ -z "$NEON_PROJECT_ID" ] && error "NEON_PROJECT_ID environment variable is required"
+# ============================================================
+# Step 2: Check dependencies
+# ============================================================
+step_check_dependencies() {
+  echo "🔍 Checking dependencies..."
+  local missing=()
 
-BRANCH_ID="${NEON_BRANCH_ID:-}"
-if [ -z "$BRANCH_ID" ]; then
-  error "No NEON_BRANCH_ID found in .env; cannot delete branch"
-fi
+  if ! command -v neonctl &> /dev/null; then
+    missing+=("neonctl (Run: npm install -g neonctl)")
+  fi
 
-WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+  if ! command -v docker &> /dev/null; then
+    missing+=("docker (Install from https://docker.com)")
+  fi
 
-# Stop and remove Electric SQL container
-ELECTRIC_CONTAINER="${ELECTRIC_CONTAINER:-superset-electric-$WORKSPACE_NAME}"
+  if [ ${#missing[@]} -gt 0 ]; then
+    error "Missing dependencies:"
+    for dep in "${missing[@]}"; do
+      echo "  - $dep"
+    done
+    return 1
+  fi
 
-echo "⚡ Stopping Electric SQL container..."
-if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
-  docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
-  docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
-  success "Electric container stopped: $ELECTRIC_CONTAINER"
-else
-  echo "⚠️  Electric container '$ELECTRIC_CONTAINER' not found or already removed"
-fi
+  success "All dependencies found"
+  return 0
+}
 
-# Delete Neon branch for this workspace
-echo "🗄️  Deleting Neon branch: $WORKSPACE_NAME ($BRANCH_ID)"
-if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>/dev/null; then
-  success "Neon branch deleted: $WORKSPACE_NAME"
-else
-  echo "⚠️  Neon branch '$WORKSPACE_NAME' ($BRANCH_ID) not found or already deleted"
-fi
+# ============================================================
+# Step 3: Stop Electric SQL container
+# ============================================================
+step_stop_electric() {
+  echo "⚡ Stopping Electric SQL container..."
 
-echo "✨ Teardown complete!"
+  if ! command -v docker &> /dev/null; then
+    error "Docker not available"
+    return 1
+  fi
+
+  WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Sanitize workspace name for Docker (same logic as setup)
+  local container_suffix
+  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+  local default_container
+  default_container=$(echo "superset-electric-$container_suffix" | cut -c1-64)
+
+  ELECTRIC_CONTAINER="${ELECTRIC_CONTAINER:-$default_container}"
+
+  if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
+    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
+    docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
+    success "Electric container stopped: $ELECTRIC_CONTAINER"
+  else
+    warn "Electric container '$ELECTRIC_CONTAINER' not found or already removed"
+  fi
+
+  return 0
+}
+
+# ============================================================
+# Step 4: Delete Neon branch
+# ============================================================
+step_delete_neon_branch() {
+  echo "🗄️  Deleting Neon branch..."
+
+  NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
+  if [ -z "$NEON_PROJECT_ID" ]; then
+    error "NEON_PROJECT_ID environment variable is required"
+    return 1
+  fi
+
+  BRANCH_ID="${NEON_BRANCH_ID:-}"
+  if [ -z "$BRANCH_ID" ]; then
+    error "No NEON_BRANCH_ID found in .env; cannot delete branch"
+    return 1
+  fi
+
+  if ! command -v neonctl &> /dev/null; then
+    error "neonctl not available"
+    return 1
+  fi
+
+  WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  if neonctl branches delete "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --force 2>/dev/null; then
+    success "Neon branch deleted: $WORKSPACE_NAME ($BRANCH_ID)"
+  else
+    warn "Neon branch '$WORKSPACE_NAME' ($BRANCH_ID) not found or already deleted"
+  fi
+
+  return 0
+}
+
+# ============================================================
+# Main execution
+# ============================================================
+main() {
+  echo "🧹 Tearing down Superset workspace..."
+  echo ""
+
+  # Step 1: Load environment
+  if ! step_load_env; then
+    step_failed "Load environment variables"
+  fi
+
+  # Step 2: Check dependencies
+  if ! step_check_dependencies; then
+    step_failed "Check dependencies"
+  fi
+
+  # Step 3: Stop Electric SQL
+  if ! step_stop_electric; then
+    step_failed "Stop Electric SQL"
+  fi
+
+  # Step 4: Delete Neon branch
+  if ! step_delete_neon_branch; then
+    step_failed "Delete Neon branch"
+  fi
+
+  # Print summary and exit with appropriate code
+  print_summary
+}
+
+main "$@"
