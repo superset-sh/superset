@@ -3,9 +3,30 @@ import { Switch } from "@superset/ui/switch";
 import { trpc } from "renderer/lib/trpc";
 
 export function BehaviorSettings() {
+	const utils = trpc.useUtils();
 	const { data: confirmOnQuit, isLoading } =
 		trpc.settings.getConfirmOnQuit.useQuery();
-	const setConfirmOnQuit = trpc.settings.setConfirmOnQuit.useMutation();
+	const setConfirmOnQuit = trpc.settings.setConfirmOnQuit.useMutation({
+		onMutate: async ({ enabled }) => {
+			// Cancel outgoing fetches
+			await utils.settings.getConfirmOnQuit.cancel();
+			// Snapshot previous value
+			const previous = utils.settings.getConfirmOnQuit.getData();
+			// Optimistically update
+			utils.settings.getConfirmOnQuit.setData(undefined, enabled);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			// Rollback on error
+			if (context?.previous !== undefined) {
+				utils.settings.getConfirmOnQuit.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			// Refetch to ensure sync with server
+			utils.settings.getConfirmOnQuit.invalidate();
+		},
+	});
 
 	const handleToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });

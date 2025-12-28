@@ -95,6 +95,7 @@ app.on("open-url", async (event, url) => {
 type QuitState = "idle" | "confirming" | "confirmed" | "cleaning" | "ready-to-quit";
 let quitState: QuitState = "idle";
 let isQuitting = false;
+let skipConfirmation = false;
 
 /**
  * Check if the user has enabled the confirm-on-quit setting
@@ -110,6 +111,21 @@ function getConfirmOnQuitSetting(): boolean {
 	}
 }
 
+/**
+ * Skip the confirmation dialog for the next quit (e.g., auto-updater)
+ */
+export function setSkipQuitConfirmation(): void {
+	skipConfirmation = true;
+}
+
+/**
+ * Skip the confirmation dialog and quit immediately
+ */
+export function quitWithoutConfirmation(): void {
+	skipConfirmation = true;
+	app.quit();
+}
+
 app.on("before-quit", async (event) => {
 	isQuitting = true;
 
@@ -121,29 +137,34 @@ app.on("before-quit", async (event) => {
 
 	// Check if we need to show confirmation
 	if (quitState === "idle") {
-		const shouldConfirm = getConfirmOnQuitSetting();
+		const shouldConfirm = !skipConfirmation && getConfirmOnQuitSetting();
 
 		if (shouldConfirm) {
 			event.preventDefault();
 			quitState = "confirming";
 
-			const { response } = await dialog.showMessageBox({
-				type: "question",
-				buttons: ["Quit", "Cancel"],
-				defaultId: 0,
-				cancelId: 1,
-				title: "Quit Superset",
-				message: "Are you sure you want to quit?",
-			});
+			try {
+				const { response } = await dialog.showMessageBox({
+					type: "question",
+					buttons: ["Quit", "Cancel"],
+					defaultId: 0,
+					cancelId: 1,
+					title: "Quit Superset",
+					message: "Are you sure you want to quit?",
+				});
 
-			if (response === 1) {
-				// User cancelled
-				quitState = "idle";
-				isQuitting = false;
-				return;
+				if (response === 1) {
+					// User cancelled
+					quitState = "idle";
+					isQuitting = false;
+					return;
+				}
+			} catch (error) {
+				// Dialog failed - proceed with quit to avoid stuck state
+				console.error("[main] Quit confirmation dialog failed:", error);
 			}
 
-			// User confirmed, proceed with quit
+			// User confirmed or dialog failed, proceed with quit
 			quitState = "confirmed";
 			app.quit();
 			return;
@@ -178,8 +199,8 @@ process.on("unhandledRejection", (reason) => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-	// Another instance is already running, quit this one
-	app.quit();
+	// Another instance is already running, exit immediately without triggering before-quit
+	app.exit(0);
 } else {
 	// Handle deep links when second instance is launched (Windows/Linux)
 	app.on("second-instance", async (_event, argv) => {
