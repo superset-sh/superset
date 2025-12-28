@@ -17,6 +17,7 @@ env:
   MARKETING_ALIAS: marketing-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   ADMIN_ALIAS: admin-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   DOCS_ALIAS: docs-pr-${{ github.event.pull_request.number }}-superset.vercel.app
+  ELECTRIC_URL: https://superset-electric-pr-${{ github.event.pull_request.number }}.fly.dev/v1/shape
 
 jobs:
   deploy-database:
@@ -73,6 +74,51 @@ jobs:
         with:
           name: database-status
           path: database-status.env
+
+  deploy-electric:
+    name: Deploy Electric (Fly.io)
+    runs-on: ubuntu-latest
+    needs: deploy-database
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download database info
+        uses: actions/download-artifact@v4
+        with:
+          name: database-status
+
+      - name: Load database URL
+        run: |
+          source database-status.env
+          echo "DATABASE_URL_UNPOOLED=$DATABASE_URL_UNPOOLED" >> $GITHUB_ENV
+
+      - name: Deploy Electric to Fly.io
+        uses: superfly/fly-pr-review-apps@1.3.0
+        with:
+          name: superset-electric-pr-${{ github.event.number }}
+          region: iad
+          org: superset-670
+          config: fly.toml
+          secrets: |
+            DATABASE_URL=${{ env.DATABASE_URL_UNPOOLED }}
+            ELECTRIC_SECRET=${{ secrets.ELECTRIC_SECRET_PREVIEW }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Save Electric status
+        run: |
+          cat > electric-status.env << EOF
+          ELECTRIC_STATUS="✅"
+          ELECTRIC_LINK="<a href=\"https://fly.io/apps/superset-electric-pr-${{ github.event.number }}\">View App</a>"
+          EOF
+
+      - name: Upload Electric status
+        uses: actions/upload-artifact@v4
+        with:
+          name: electric-status
+          path: electric-status.env
 
   deploy-api:
     name: Deploy API
@@ -145,6 +191,8 @@ jobs:
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
+          ELECTRIC_URL: ${{ env.ELECTRIC_URL }}
+          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET_PREVIEW }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -174,7 +222,9 @@ jobs:
             --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
-            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY)
+            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
+            --env ELECTRIC_URL=$ELECTRIC_URL \
+            --env ELECTRIC_SECRET=$ELECTRIC_SECRET)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -517,7 +567,7 @@ jobs:
     name: Post Deployment Comment
     runs-on: ubuntu-latest
     if: always()
-    needs: [deploy-database, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
+    needs: [deploy-database, deploy-electric, deploy-api, deploy-web, deploy-marketing, deploy-admin, deploy-docs]
     permissions:
       contents: read
       pull-requests: write
@@ -536,6 +586,8 @@ jobs:
         run: |
           DATABASE_STATUS="❌"
           DATABASE_LINK="Failed to create"
+          ELECTRIC_STATUS="❌"
+          ELECTRIC_LINK="Failed to deploy"
           API_STATUS="❌"
           API_LINK="Failed to deploy"
           WEB_STATUS="❌"
@@ -549,6 +601,10 @@ jobs:
 
           if [[ "${{ needs.deploy-database.result }}" == "success" ]]; then
             source database-status.env
+          fi
+
+          if [[ "${{ needs.deploy-electric.result }}" == "success" ]]; then
+            source electric-status.env
           fi
 
           if [[ "${{ needs.deploy-api.result }}" == "success" ]]; then
@@ -571,7 +627,7 @@ jobs:
             source docs-status.env
           fi
 
-          export DATABASE_STATUS DATABASE_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
+          export DATABASE_STATUS DATABASE_LINK ELECTRIC_STATUS ELECTRIC_LINK API_STATUS API_LINK WEB_STATUS WEB_LINK MARKETING_STATUS MARKETING_LINK ADMIN_STATUS ADMIN_LINK DOCS_STATUS DOCS_LINK
           envsubst < .github/templates/preview-comment.md > final-comment.md
 
       - name: Post final deployment comment

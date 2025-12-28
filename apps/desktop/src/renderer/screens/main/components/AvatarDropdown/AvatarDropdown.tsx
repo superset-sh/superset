@@ -1,4 +1,4 @@
-import { COMPANY } from "@superset/shared/constants";
+import { COMPANY, FEATURE_FLAGS } from "@superset/shared/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	DropdownMenu,
@@ -12,22 +12,28 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { FaDiscord, FaXTwitter } from "react-icons/fa6";
 import {
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineBugAnt,
+	HiOutlineClipboardDocumentList,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
 	HiOutlineEnvelope,
 } from "react-icons/hi2";
 import { LuLifeBuoy } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
-import { useOpenSettings } from "renderer/stores";
+import { useOpenSettings, useOpenTasks } from "renderer/stores";
 import { HOTKEYS } from "shared/hotkeys";
 
 export function AvatarDropdown() {
 	const { data: user } = trpc.user.me.useQuery();
 	const openSettings = useOpenSettings();
+	const openTasks = useOpenTasks();
+	const hasTasksAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
+	);
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
@@ -41,6 +47,10 @@ export function AvatarDropdown() {
 
 	const handleSettings = () => {
 		openSettings();
+	};
+
+	const handleTasks = () => {
+		openTasks();
 	};
 
 	const handleContactUs = () => {
@@ -97,6 +107,12 @@ export function AvatarDropdown() {
 					<HiOutlineCog6Tooth className="h-4 w-4" />
 					Settings
 				</DropdownMenuItem>
+				{hasTasksAccess && (
+					<DropdownMenuItem onClick={handleTasks}>
+						<HiOutlineClipboardDocumentList className="h-4 w-4" />
+						Tasks
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onClick={handleViewHotkeys}>
 					<HiOutlineCommandLine className="h-4 w-4" />
 					<span className="flex-1">Hotkeys</span>

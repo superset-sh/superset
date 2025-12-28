@@ -12,19 +12,13 @@ import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
+import { createTasksRouter } from "./tasks";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createUserRouter } from "./user";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
-/**
- * Main application router
- * Combines all domain-specific routers into a single router
- *
- * Uses a getter function to access the current window, allowing
- * window recreation on macOS without stale references.
- */
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		analytics: createAnalyticsRouter(),
@@ -44,6 +38,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
+		tasks: createTasksRouter(),
 	});
 };
 

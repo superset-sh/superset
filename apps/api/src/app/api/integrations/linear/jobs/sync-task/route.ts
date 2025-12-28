@@ -164,10 +164,12 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
+	// TODO: In production, use env.NEXT_PUBLIC_API_URL
+	const qstashBaseUrl = "https://e7e7cc5a4723.ngrok-free.app";
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/sync-task`,
+		url: `${qstashBaseUrl}/api/integrations/linear/jobs/sync-task`,
 	});
 
 	if (!isValid) {

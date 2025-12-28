@@ -11,6 +11,8 @@ export const PLATFORM = {
 export const PORTS = {
 	VITE_DEV_SERVER: env.NODE_ENV === "development" ? 5927 : 4927,
 	NOTIFICATIONS: env.NODE_ENV === "development" ? 31416 : 31415,
+	// Electric SQL proxy port (local-first sync)
+	ELECTRIC: env.NODE_ENV === "development" ? 31418 : 31417,
 };
 
 // Note: For environment-aware paths, use main/lib/app-environment.ts instead.

@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 
 import { env } from "./env";
 
-const allowedOrigins = [env.NEXT_PUBLIC_WEB_URL, env.NEXT_PUBLIC_ADMIN_URL];
+const allowedOrigins = [
+	env.NEXT_PUBLIC_WEB_URL,
+	env.NEXT_PUBLIC_ADMIN_URL,
+	// Desktop app dev server
+	"http://localhost:5927",
+];
 const isPublicRoute = createRouteMatcher(["/ingest(.*)", "/monitoring(.*)"]);
 
 function getCorsHeaders(origin: string | null) {

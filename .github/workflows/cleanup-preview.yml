@@ -13,9 +13,6 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Delete Neon branch
         id: neon-cleanup
         uses: neondatabase/delete-branch-action@v3
@@ -25,15 +22,29 @@ jobs:
           branch: ${{ github.event.pull_request.head.ref }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
-      - name: Generate cleanup comment
+      - name: Setup Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Delete Electric Fly.io app
+        id: electric-cleanup
+        continue-on-error: true
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          NEON_STATUS="${{ steps.neon-cleanup.outcome == 'success' && '✅' || '⚠️' }}"
-          export NEON_STATUS
-          envsubst < .github/templates/cleanup-comment.md > final-comment.md
+          flyctl apps destroy "superset-electric-pr-${{ github.event.pull_request.number }}" --yes
+
+      # Note: Vercel preview deployments auto-expire automatically
 
       - name: Update comment
         if: always()
         uses: thollander/actions-comment-pull-request@v3
         with:
-          file-path: final-comment.md
+          message: |
+            ## 🧹 Preview Cleanup Complete
+
+            The following preview resources have been cleaned up:
+            - ${{ steps.neon-cleanup.outcome == 'success' && '✅' || '⚠️' }} Neon database branch
+            - ${{ steps.electric-cleanup.outcome == 'success' && '✅' || '⚠️' }} Electric Fly.io app
+
+            Thank you for your contribution! 🎉
           comment-tag: "🚀-preview-deployment"

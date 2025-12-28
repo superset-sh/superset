@@ -68,8 +68,7 @@ bun run clean:workspaces   # Clean all workspace node_modules
 1. **Keep diffs minimal** - targeted edits only
 2. **Follow existing patterns** - match the codebase style
 3. **Type safety** - avoid `any` unless necessary
-4. **Don't run dev servers** in automation
-5. **Search narrowly** - avoid reading large files/assets
+4. **Search narrowly** - avoid reading large files/assets
 
 ## Project Structure
 
@@ -146,6 +145,8 @@ components/                                # Used in 2+ pages (last resort)
 The `src/components/ui/`, `src/components/ai-elements`, and `src/components/react-flow/` directories contain shadcn/ui components. These use **kebab-case single files** (e.g., `button.tsx`, `base-node.tsx`) instead of the folder structure above. This is intentional—shadcn CLI expects this format for updates via `bunx shadcn@latest add`.
 
 ## Database Rules
+
+** IMPORTANT ** - Never touch the production database unless explicitly asked to. Even then, confirm with the user first.
 
 - Schema in `packages/db/src/`
 - Use Drizzle ORM for all database operations

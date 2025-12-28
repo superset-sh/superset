@@ -8,6 +8,20 @@
       "when": 1766444030452,
       "tag": "0000_initial_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1766773809299,
+      "tag": "0001_add_synced_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1766776955487,
+      "tag": "0002_add_active_organization_id",
+      "breakpoints": true
     }
   ]
 }

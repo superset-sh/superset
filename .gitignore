@@ -64,3 +64,5 @@ next-env.d.ts
 .envrc
 .env.local
 .env
+
+examples

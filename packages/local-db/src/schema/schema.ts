@@ -125,7 +125,143 @@ export const settings = sqliteTable("settings", {
 		mode: "boolean",
 	}),
 	selectedRingtoneId: text("selected_ringtone_id"),
+	activeOrganizationId: text("active_organization_id"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
+
+// =============================================================================
+// Synced tables - mirrored from cloud Postgres via Electric SQL
+// Column names match Postgres exactly (snake_case) so Electric data writes directly
+// =============================================================================
+
+export type TaskPriority = "urgent" | "high" | "medium" | "low" | "none";
+export type IntegrationProvider = "linear";
+
+/**
+ * Users table - synced from cloud
+ */
+export const users = sqliteTable(
+	"users",
+	{
+		id: text("id").primaryKey(),
+		clerk_id: text("clerk_id").notNull().unique(),
+		name: text("name").notNull(),
+		email: text("email").notNull().unique(),
+		avatar_url: text("avatar_url"),
+		deleted_at: text("deleted_at"),
+		created_at: text("created_at").notNull(),
+		updated_at: text("updated_at").notNull(),
+	},
+	(table) => [
+		index("users_email_idx").on(table.email),
+		index("users_clerk_id_idx").on(table.clerk_id),
+	],
+);
+
+export type InsertUser = typeof users.$inferInsert;
+export type SelectUser = typeof users.$inferSelect;
+
+/**
+ * Organizations table - synced from cloud
+ */
+export const organizations = sqliteTable(
+	"organizations",
+	{
+		id: text("id").primaryKey(),
+		clerk_org_id: text("clerk_org_id").unique(),
+		name: text("name").notNull(),
+		slug: text("slug").notNull().unique(),
+		github_org: text("github_org"),
+		avatar_url: text("avatar_url"),
+		created_at: text("created_at").notNull(),
+		updated_at: text("updated_at").notNull(),
+	},
+	(table) => [
+		index("organizations_slug_idx").on(table.slug),
+		index("organizations_clerk_org_id_idx").on(table.clerk_org_id),
+	],
+);
+
+export type InsertOrganization = typeof organizations.$inferInsert;
+export type SelectOrganization = typeof organizations.$inferSelect;
+
+/**
+ * Organization members table - synced from cloud
+ */
+export const organizationMembers = sqliteTable(
+	"organization_members",
+	{
+		id: text("id").primaryKey(),
+		organization_id: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		user_id: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		role: text("role").notNull(),
+		created_at: text("created_at").notNull(),
+	},
+	(table) => [
+		index("organization_members_organization_id_idx").on(table.organization_id),
+		index("organization_members_user_id_idx").on(table.user_id),
+	],
+);
+
+export type InsertOrganizationMember = typeof organizationMembers.$inferInsert;
+export type SelectOrganizationMember = typeof organizationMembers.$inferSelect;
+
+/**
+ * Tasks table - synced from cloud
+ */
+export const tasks = sqliteTable(
+	"tasks",
+	{
+		id: text("id").primaryKey(),
+		slug: text("slug").notNull().unique(),
+		title: text("title").notNull(),
+		description: text("description"),
+		status: text("status").notNull(),
+		status_color: text("status_color"),
+		status_type: text("status_type"),
+		status_position: integer("status_position"),
+		priority: text("priority").notNull().$type<TaskPriority>(),
+		organization_id: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		repository_id: text("repository_id"),
+		assignee_id: text("assignee_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		creator_id: text("creator_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		estimate: integer("estimate"),
+		due_date: text("due_date"),
+		labels: text("labels", { mode: "json" }).$type<string[]>(),
+		branch: text("branch"),
+		pr_url: text("pr_url"),
+		external_provider: text("external_provider").$type<IntegrationProvider>(),
+		external_id: text("external_id"),
+		external_key: text("external_key"),
+		external_url: text("external_url"),
+		last_synced_at: text("last_synced_at"),
+		sync_error: text("sync_error"),
+		started_at: text("started_at"),
+		completed_at: text("completed_at"),
+		deleted_at: text("deleted_at"),
+		created_at: text("created_at").notNull(),
+		updated_at: text("updated_at").notNull(),
+	},
+	(table) => [
+		index("tasks_slug_idx").on(table.slug),
+		index("tasks_organization_id_idx").on(table.organization_id),
+		index("tasks_assignee_id_idx").on(table.assignee_id),
+		index("tasks_status_idx").on(table.status),
+		index("tasks_created_at_idx").on(table.created_at),
+	],
+);
+
+export type InsertTask = typeof tasks.$inferInsert;
+export type SelectTask = typeof tasks.$inferSelect;

@@ -95,6 +95,8 @@ jobs:
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
+          ELECTRIC_URL: ${{ secrets.ELECTRIC_URL }}
+          ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET }}
         run: |
           vercel pull --yes --environment=production --token=$VERCEL_TOKEN
           vercel build --prod --token=$VERCEL_TOKEN
@@ -124,7 +126,9 @@ jobs:
             --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
-            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY
+            --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
+            --env ELECTRIC_URL=$ELECTRIC_URL \
+            --env ELECTRIC_SECRET=$ELECTRIC_SECRET
 
   deploy-web:
     name: Deploy Web to Vercel

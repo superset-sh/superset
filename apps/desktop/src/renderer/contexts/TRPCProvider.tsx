@@ -11,9 +11,11 @@ export function TRPCProvider({ children }: { children: React.ReactNode }) {
 				defaultOptions: {
 					queries: {
 						networkMode: "always",
+						retry: false,
 					},
 					mutations: {
 						networkMode: "always",
+						retry: false,
 					},
 				},
 			}),

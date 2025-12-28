@@ -43,8 +43,6 @@ export const TOKEN_CONFIG = {
 export const POSTHOG_COOKIE_NAME = "superset";
 
 export const FEATURE_FLAGS = {
-	/** When enabled, users must sign in to use the desktop app */
-	REQUIRE_DESKTOP_AUTH: "require-desktop-auth",
-	/** Gates access to /test/* routes. Only allows @superset.sh users. */
-	TEST_PAGES_ACCESS: "test-pages-access",
+	/** Gates access to experimental Electric SQL tasks feature. */
+	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
 } as const;

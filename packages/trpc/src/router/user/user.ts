@@ -37,4 +37,23 @@ export const userRouter = {
 
 		return membership?.organization ?? null;
 	}),
+
+	myOrganizations: protectedProcedure.query(async ({ ctx }) => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.clerkId, ctx.userId),
+		});
+
+		if (!user) {
+			return [];
+		}
+
+		const memberships = await db.query.organizationMembers.findMany({
+			where: eq(organizationMembers.userId, user.id),
+			with: {
+				organization: true,
+			},
+		});
+
+		return memberships.map((m) => m.organization);
+	}),
 } satisfies TRPCRouterRecord;

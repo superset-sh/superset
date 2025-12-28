@@ -24,7 +24,7 @@
 		"nextra": "^4.6.1",
 		"nextra-theme-blog": "^4.6.1",
 		"nextra-theme-docs": "^4.6.1",
-		"posthog-js": "^1.306.1",
+		"posthog-js": "1.310.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
 		"require-in-the-middle": "8.0.1",

@@ -1,5 +1,9 @@
-import posthog from "posthog-js/dist/module.full.no-external";
+import posthogFull from "posthog-js/dist/module.full.no-external";
+import type { PostHog } from "posthog-js/react";
 import { env } from "../env.renderer";
+
+// Cast to standard PostHog type for compatibility with posthog-js/react
+export const posthog = posthogFull as unknown as PostHog;
 
 export function initPostHog() {
 	if (!env.NEXT_PUBLIC_POSTHOG_KEY) {
@@ -7,7 +11,7 @@ export function initPostHog() {
 		return;
 	}
 
-	posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+	posthogFull.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 		api_host: env.NEXT_PUBLIC_POSTHOG_HOST,
 		defaults: "2025-11-30",
 		capture_pageview: false,
@@ -24,5 +28,3 @@ export function initPostHog() {
 		},
 	});
 }
-
-export { posthog };

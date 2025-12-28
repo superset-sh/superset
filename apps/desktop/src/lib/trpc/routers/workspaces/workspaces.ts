@@ -858,7 +858,6 @@ export const createWorkspacesRouter = () => {
 					.where(eq(projects.id, workspace.projectId))
 					.get();
 
-				let teardownError: string | undefined;
 				let worktree: SelectWorktree | undefined;
 
 				// Branch workspaces don't have worktrees - skip worktree operations
@@ -878,14 +877,18 @@ export const createWorkspacesRouter = () => {
 						);
 
 						if (exists) {
-							const teardownResult = runTeardown(
+							runTeardown(
 								project.mainRepoPath,
 								worktree.path,
 								workspace.name,
-							);
-							if (!teardownResult.success) {
-								teardownError = teardownResult.error;
-							}
+							).then((result) => {
+								if (!result.success) {
+									console.error(
+										`Teardown failed for workspace ${workspace.name}:`,
+										result.error,
+									);
+								}
+							});
 						}
 
 						try {
@@ -955,7 +958,7 @@ export const createWorkspacesRouter = () => {
 
 				track("workspace_deleted", { workspace_id: input.id });
 
-				return { success: true, teardownError, terminalWarning };
+				return { success: true, terminalWarning };
 			}),
 
 		setActive: publicProcedure

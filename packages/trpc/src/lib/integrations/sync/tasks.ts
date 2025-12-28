@@ -25,6 +25,9 @@ export async function syncTask(taskId: string) {
 		columns: { provider: true },
 	});
 
+	// TODO: In production, use env.NEXT_PUBLIC_API_URL
+	const qstashBaseUrl = "https://e7e7cc5a4723.ngrok-free.app";
+
 	const results = await Promise.allSettled(
 		connections.map(async (conn) => {
 			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
@@ -33,7 +36,7 @@ export async function syncTask(taskId: string) {
 			}
 
 			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_API_URL}${endpoint}`,
+				url: `${qstashBaseUrl}${endpoint}`,
 				body: { taskId },
 				retries: 3,
 			});

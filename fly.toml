@@ -1,0 +1,29 @@
+app = "superset-electric"
+primary_region = "iad"
+
+[build]
+  image = "electricsql/electric:latest"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[env]
+  # DATABASE_URL and ELECTRIC_SECRET set via `flyctl secrets`
+  ELECTRIC_DATABASE_USE_IPV6 = "true"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "20s"
+    method = "GET"
+    path = "/v1/health"
+
+[mounts]
+  source = "electric_data"
+  destination = "/var/lib/electric"

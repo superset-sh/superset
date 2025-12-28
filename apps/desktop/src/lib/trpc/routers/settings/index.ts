@@ -6,9 +6,6 @@ import { publicProcedure, router } from "../..";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
-/**
- * Gets the settings row, creating one if it doesn't exist
- */
 function getSettings() {
 	let row = localDb.select().from(settings).get();
 	if (!row) {
@@ -121,17 +118,14 @@ export const createSettingsRouter = () => {
 			const row = getSettings();
 			const storedId = row.selectedRingtoneId;
 
-			// If no stored ID, return default
 			if (!storedId) {
 				return DEFAULT_RINGTONE_ID;
 			}
 
-			// If stored ID is valid, return it
 			if (VALID_RINGTONE_IDS.includes(storedId)) {
 				return storedId;
 			}
 
-			// Stored ID is invalid/stale - self-heal by persisting the default
 			console.warn(
 				`[settings] Invalid ringtone ID "${storedId}" found, resetting to default`,
 			);
@@ -149,7 +143,6 @@ export const createSettingsRouter = () => {
 		setSelectedRingtoneId: publicProcedure
 			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
-				// Validate ringtone ID exists
 				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
 					throw new Error(`Invalid ringtone ID: ${input.ringtoneId}`);
 				}

@@ -1,4 +1,6 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -21,6 +23,7 @@ import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
+import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceView } from "./components/WorkspaceView";
 
@@ -45,6 +48,9 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
+	const hasTasksAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
+	);
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,
@@ -190,6 +196,9 @@ export function MainScreen() {
 	const renderContent = () => {
 		if (currentView === "settings") {
 			return <SettingsView />;
+		}
+		if (currentView === "tasks" && hasTasksAccess) {
+			return <TasksView />;
 		}
 		return <WorkspaceView />;
 	};
