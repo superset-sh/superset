@@ -170,9 +170,9 @@ export const createSettingsRouter = () => {
 			return row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
 		}),
 
-			setConfirmOnQuit: publicProcedure
-				.input(z.object({ enabled: z.boolean() }))
-				.mutation(({ input }) => {
+		setConfirmOnQuit: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
 					.values({ id: 1, confirmOnQuit: input.enabled })
@@ -182,45 +182,45 @@ export const createSettingsRouter = () => {
 					})
 					.run();
 
-					return { success: true };
-				}),
-
-			getTerminalSessionPersistence: publicProcedure.query(async () => {
-				const row = getSettings();
-				const enabled =
-					row.terminalSessionPersistence ?? DEFAULT_TERMINAL_SESSION_PERSISTENCE;
-				const { supported, tmuxAvailable } = await processPersistence.getStatus();
-				return { enabled, supported, tmuxAvailable };
+				return { success: true };
 			}),
 
-			setTerminalSessionPersistence: publicProcedure
-				.input(z.object({ enabled: z.boolean() }))
-				.mutation(async ({ input }) => {
+		getTerminalSessionPersistence: publicProcedure.query(async () => {
+			const row = getSettings();
+			const enabled =
+				row.terminalSessionPersistence ?? DEFAULT_TERMINAL_SESSION_PERSISTENCE;
+			const { supported, tmuxAvailable } = await processPersistence.getStatus();
+			return { enabled, supported, tmuxAvailable };
+		}),
+
+		setTerminalSessionPersistence: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(async ({ input }) => {
+				if (input.enabled) {
+					await processPersistence.setEnabled(true);
+				}
+
+				try {
+					localDb
+						.insert(settings)
+						.values({ id: 1, terminalSessionPersistence: input.enabled })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { terminalSessionPersistence: input.enabled },
+						})
+						.run();
+				} catch (error) {
 					if (input.enabled) {
-						await processPersistence.setEnabled(true);
+						await processPersistence.setEnabled(false).catch(() => {});
 					}
+					throw error;
+				}
 
-					try {
-						localDb
-							.insert(settings)
-							.values({ id: 1, terminalSessionPersistence: input.enabled })
-							.onConflictDoUpdate({
-								target: settings.id,
-								set: { terminalSessionPersistence: input.enabled },
-							})
-							.run();
-					} catch (error) {
-						if (input.enabled) {
-							await processPersistence.setEnabled(false).catch(() => {});
-						}
-						throw error;
-					}
+				if (!input.enabled) {
+					await processPersistence.setEnabled(false);
+				}
 
-					if (!input.enabled) {
-						await processPersistence.setEnabled(false);
-					}
-
-					return { success: true };
-				}),
-		});
-	};
+				return { success: true };
+			}),
+	});
+};

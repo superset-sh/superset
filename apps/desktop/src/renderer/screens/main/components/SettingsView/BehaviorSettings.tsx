@@ -83,51 +83,51 @@ export function BehaviorSettings() {
 			</div>
 
 			<div className="space-y-6">
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
-								Confirm before quitting
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
+							Confirm before quitting
 						</Label>
 						<p className="text-xs text-muted-foreground">
 							Show a confirmation dialog when quitting the app
 						</p>
 					</div>
-						<Switch
-							id="confirm-on-quit"
-							checked={confirmOnQuit ?? true}
-							onCheckedChange={handleConfirmOnQuitToggle}
-							disabled={isLoadingConfirmOnQuit || setConfirmOnQuit.isPending}
-						/>
-					</div>
+					<Switch
+						id="confirm-on-quit"
+						checked={confirmOnQuit ?? true}
+						onCheckedChange={handleConfirmOnQuitToggle}
+						disabled={isLoadingConfirmOnQuit || setConfirmOnQuit.isPending}
+					/>
+				</div>
 
-					<div className="flex items-center justify-between">
-						<div className="space-y-0.5">
-							<Label
-								htmlFor="terminal-session-persistence"
-								className="text-sm font-medium"
-							>
-								Keep terminal sessions running across restarts
-							</Label>
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label
+							htmlFor="terminal-session-persistence"
+							className="text-sm font-medium"
+						>
+							Keep terminal sessions running across restarts
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							Uses tmux to keep terminal processes alive when you quit and
+							reopen Superset (experimental).
+						</p>
+						{!terminalPersistenceEnabled && !canEnableTerminalPersistence && (
 							<p className="text-xs text-muted-foreground">
-								Uses tmux to keep terminal processes alive when you quit and
-								reopen Superset (experimental).
+								{(terminalPersistence?.supported ?? false)
+									? "Requires tmux to be installed."
+									: "Not supported on Windows yet."}
 							</p>
-							{!terminalPersistenceEnabled && !canEnableTerminalPersistence && (
-								<p className="text-xs text-muted-foreground">
-									{(terminalPersistence?.supported ?? false)
-										? "Requires tmux to be installed."
-										: "Not supported on Windows yet."}
-								</p>
-							)}
-						</div>
-						<Switch
-							id="terminal-session-persistence"
-							checked={terminalPersistenceEnabled}
-							onCheckedChange={handleTerminalPersistenceToggle}
-							disabled={terminalPersistenceDisabled}
-						/>
+						)}
 					</div>
+					<Switch
+						id="terminal-session-persistence"
+						checked={terminalPersistenceEnabled}
+						onCheckedChange={handleTerminalPersistenceToggle}
+						disabled={terminalPersistenceDisabled}
+					/>
 				</div>
 			</div>
+		</div>
 	);
 }

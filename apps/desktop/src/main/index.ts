@@ -243,41 +243,41 @@ if (!gotTheLock) {
 
 		try {
 			setupAgentHooks();
-			} catch (error) {
-				console.error("[main] Failed to set up agent hooks:", error);
-				// App can continue without agent hooks, but log the failure
-			}
+		} catch (error) {
+			console.error("[main] Failed to set up agent hooks:", error);
+			// App can continue without agent hooks, but log the failure
+		}
 
-			try {
-				await processPersistence.setEnabled(getTerminalSessionPersistenceSetting());
-			} catch (error) {
-				console.warn("[main] Terminal persistence init failed:", error);
-			}
+		try {
+			await processPersistence.setEnabled(
+				getTerminalSessionPersistenceSetting(),
+			);
+		} catch (error) {
+			console.warn("[main] Terminal persistence init failed:", error);
+		}
 
-			if (processPersistence.enabled) {
-				void processPersistence
-					.cleanupOrphanedSessions(async () => {
-						const tabsState = appState.data?.tabsState;
-						if (!tabsState) return [];
+		if (processPersistence.enabled) {
+			void processPersistence
+				.cleanupOrphanedSessions(async () => {
+					const tabsState = appState.data?.tabsState;
+					if (!tabsState) return [];
 
-						const tabById = new Map(tabsState.tabs.map((t) => [t.id, t]));
+					const tabById = new Map(tabsState.tabs.map((t) => [t.id, t]));
 
-						return Object.values(tabsState.panes)
-							.filter((p) => p.type === "terminal")
-							.map((p) => {
-								const tab = tabById.get(p.tabId);
-								if (!tab) return null;
-								return { wsId: tab.workspaceId, id: p.id };
-							})
-							.filter(
-								(p): p is { wsId: string; id: string } => p !== null,
-							);
-					})
-					.catch(() => {});
-			}
+					return Object.values(tabsState.panes)
+						.filter((p) => p.type === "terminal")
+						.map((p) => {
+							const tab = tabById.get(p.tabId);
+							if (!tab) return null;
+							return { wsId: tab.workspaceId, id: p.id };
+						})
+						.filter((p): p is { wsId: string; id: string } => p !== null);
+				})
+				.catch(() => {});
+		}
 
-			await makeAppSetup(() => MainWindow());
-			setupAutoUpdater();
+		await makeAppSetup(() => MainWindow());
+		setupAutoUpdater();
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {

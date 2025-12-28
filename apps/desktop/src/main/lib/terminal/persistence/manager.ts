@@ -11,9 +11,7 @@ import {
 	getWorkspacePrefix,
 	TmuxBackend,
 } from "./tmux-backend";
-import type {
-	CreatePersistentSessionParams,
-} from "./types";
+import type { CreatePersistentSessionParams } from "./types";
 
 const MAX_ORPHAN_AGE_MS = 72 * 60 * 60 * 1000;
 
@@ -42,11 +40,19 @@ class ProcessPersistence {
 			if (tmuxAvailable) {
 				this.backend = tmux;
 			}
-			return { supported, tmuxAvailable, enabled: this._enabled && tmuxAvailable };
+			return {
+				supported,
+				tmuxAvailable,
+				enabled: this._enabled && tmuxAvailable,
+			};
 		}
 
 		const tmuxAvailable = await this.backend.isAvailable();
-		return { supported, tmuxAvailable, enabled: this._enabled && tmuxAvailable };
+		return {
+			supported,
+			tmuxAvailable,
+			enabled: this._enabled && tmuxAvailable,
+		};
 	}
 
 	async setEnabled(enabled: boolean): Promise<void> {
@@ -73,7 +79,9 @@ class ProcessPersistence {
 
 		if (process.platform === "win32") {
 			this._enabled = false;
-			throw new Error("Terminal session persistence is not supported on Windows.");
+			throw new Error(
+				"Terminal session persistence is not supported on Windows.",
+			);
 		}
 
 		if (!this.backend) {

@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import os from "node:os";
 import { track } from "main/lib/analytics";
+import { sanitizeTerminalScrollback } from "shared/terminal-scrollback-sanitizer";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import {
 	buildTerminalEnv,
@@ -12,7 +13,6 @@ import { getSessionName, processPersistence } from "./persistence/manager";
 import type { SessionLifecycle } from "./persistence/session-lifecycle";
 import type { PersistenceErrorCode, SessionState } from "./persistence/types";
 import { portManager } from "./port-manager";
-import { sanitizeTerminalScrollback } from "shared/terminal-scrollback-sanitizer";
 import {
 	closeSessionHistory,
 	closeSessionHistoryForDetach,
@@ -38,7 +38,7 @@ export class TerminalManager extends EventEmitter {
 	private osc7Buffers = new Map<string, string>();
 
 	async createOrAttach(params: CreateSessionParams): Promise<SessionResult> {
-		const { paneId, cols, rows, workspaceId } = params;
+		const { paneId, cols, rows } = params;
 
 		const pending = this.pendingSessions.get(paneId);
 		if (pending) {
@@ -53,7 +53,10 @@ export class TerminalManager extends EventEmitter {
 				if (state === "failed") {
 					const reattached = await lifecycle.retry();
 					if (reattached) {
-						existing.pty = lifecycle.getPty()!;
+						const pty = lifecycle.getPty();
+						if (pty) {
+							existing.pty = pty;
+						}
 					}
 				}
 			}
@@ -266,8 +269,9 @@ export class TerminalManager extends EventEmitter {
 			if (session) {
 				session.isAlive = true;
 				const lifecycle = this.lifecycles.get(paneId);
-				if (lifecycle?.getPty()) {
-					session.pty = lifecycle.getPty()!;
+				const pty = lifecycle?.getPty();
+				if (pty) {
+					session.pty = pty;
 				}
 			}
 		}
@@ -302,7 +306,7 @@ export class TerminalManager extends EventEmitter {
 			osc7Buffer,
 			() => reinitializeHistory(session),
 		);
-		this.osc7Buffers.set(paneId, newOsc7Buffer);
+		this.osc7Buffers.set(paneId, newOsc7Buffer.slice(-OSC7_BUFFER_SIZE));
 	}
 
 	private handleLifecycleError(
@@ -327,7 +331,12 @@ export class TerminalManager extends EventEmitter {
 		},
 	): Promise<SessionResult> {
 		const { paneId, workspaceId, initialCommands } = params;
-		const ptyProcess = lifecycle.getPty()!;
+		const ptyProcess = lifecycle.getPty();
+		if (!ptyProcess) {
+			throw new Error(
+				`[TerminalManager] Expected PTY to be available for pane ${paneId}`,
+			);
+		}
 
 		const historyReader = new HistoryReader(workspaceId, paneId);
 		const savedMetadata = await historyReader.readMetadata();
@@ -409,76 +418,6 @@ export class TerminalManager extends EventEmitter {
 		return {
 			isNew: true,
 			scrollback: effectiveScrollback,
-			wasRecovered: opts.wasRecovered,
-		};
-	}
-
-	private async setupPersistentSession(
-		ptyProcess: import("node-pty").IPty,
-		params: CreateSessionParams,
-		opts: {
-			scrollback: string;
-			wasRecovered: boolean;
-			isPersistentBackend: boolean;
-		},
-	): Promise<SessionResult> {
-		const { paneId, workspaceId, initialCommands } = params;
-
-		// Read saved CWD from metadata as fallback (in case tmux crashed previously)
-		const historyReader = new HistoryReader(workspaceId, paneId);
-		const savedMetadata = await historyReader.readMetadata();
-		const cwd = params.cwd ?? savedMetadata?.cwd ?? os.homedir();
-		const cols = params.cols ?? 80;
-		const rows = params.rows ?? 24;
-
-		// Create historyWriter for CWD tracking and backup scrollback persistence
-		// Even for tmux sessions, this provides resilience if tmux crashes
-		const historyWriter = new HistoryWriter(
-			workspaceId,
-			paneId,
-			cwd,
-			cols,
-			rows,
-		);
-		await historyWriter.init(opts.scrollback || undefined);
-
-		const session: TerminalSession = {
-			pty: ptyProcess,
-			paneId,
-			workspaceId,
-			cwd,
-			cols,
-			rows,
-			lastActive: Date.now(),
-			scrollback: opts.scrollback,
-			isAlive: true,
-			wasRecovered: opts.wasRecovered,
-			dataBatcher: new (await import("../data-batcher")).DataBatcher((data) => {
-				this.emit(`data:${paneId}`, data);
-			}),
-			shell: getDefaultShell(),
-			startTime: Date.now(),
-			usedFallback: false,
-			isPersistentBackend: opts.isPersistentBackend,
-			historyWriter,
-		};
-
-		setupDataHandler(session, initialCommands, opts.wasRecovered, () =>
-			reinitializeHistory(session),
-		);
-
-		this.setupExitHandler(session, {
-			...params,
-			existingScrollback: opts.scrollback || null,
-		});
-
-		this.sessions.set(paneId, session);
-
-		track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
-
-		return {
-			isNew: true,
-			scrollback: opts.scrollback,
 			wasRecovered: opts.wasRecovered,
 		};
 	}
