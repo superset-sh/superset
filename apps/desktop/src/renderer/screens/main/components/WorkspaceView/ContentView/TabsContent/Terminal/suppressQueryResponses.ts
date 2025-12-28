@@ -25,6 +25,14 @@ export function suppressQueryResponses(terminal: Terminal): () => void {
 	// CPR: ESC[24;1R (row;column)
 	disposables.push(parser.registerCsiHandler({ final: "R" }, () => true));
 
+	// CSI sequences ending in 'I' - Focus In report
+	// Sent when terminal gains focus (mode 1004 enabled)
+	disposables.push(parser.registerCsiHandler({ final: "I" }, () => true));
+
+	// CSI sequences ending in 'O' - Focus Out report
+	// Sent when terminal loses focus (mode 1004 enabled)
+	disposables.push(parser.registerCsiHandler({ final: "O" }, () => true));
+
 	// CSI sequences ending in 'y' with '$' intermediate - Mode Reports
 	// DECRPM: ESC[?1;2$y (private mode report)
 	// Standard mode report: ESC[12;2$y
