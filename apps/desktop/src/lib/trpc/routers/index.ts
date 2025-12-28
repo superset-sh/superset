@@ -3,6 +3,7 @@ import { router } from "..";
 import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
+import { createAutocompleteRouter } from "./autocomplete";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
@@ -23,6 +24,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		analytics: createAnalyticsRouter(),
 		auth: createAuthRouter(getWindow),
+		autocomplete: createAutocompleteRouter(),
 		autoUpdate: createAutoUpdateRouter(),
 		user: createUserRouter(),
 		window: createWindowRouter(getWindow),

@@ -10,6 +10,14 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { HOTKEYS } from "shared/hotkeys";
+import {
+	CompletionDropdown,
+	GhostText,
+	HistoryPicker,
+	useAutocompleteStore,
+	useFileCompletions,
+	useGhostSuggestion,
+} from "./Autocomplete";
 import { sanitizeForTitle } from "./commandBuffer";
 import {
 	createTerminalInstance,
@@ -44,6 +52,28 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
+
+	// Autocomplete state
+	const setCommandBuffer = useAutocompleteStore((s) => s.setCommandBuffer);
+	const clearCommandBuffer = useAutocompleteStore((s) => s.clearCommandBuffer);
+	const backspaceCommandBuffer = useAutocompleteStore(
+		(s) => s.backspaceCommandBuffer,
+	);
+	const appendToCommandBuffer = useAutocompleteStore(
+		(s) => s.appendToCommandBuffer,
+	);
+	const closeHistoryPicker = useAutocompleteStore((s) => s.closeHistoryPicker);
+	const isHistoryPickerOpen = useAutocompleteStore(
+		(s) => s.isHistoryPickerOpen,
+	);
+	const isCompletionDropdownOpen = useAutocompleteStore(
+		(s) => s.isCompletionDropdownOpen,
+	);
+	const suggestion = useAutocompleteStore((s) => s.suggestion);
+	const closeCompletionDropdown = useAutocompleteStore(
+		(s) => s.closeCompletionDropdown,
+	);
+
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
@@ -55,7 +85,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
 
+	// Ghost suggestion hook
+	useGhostSuggestion({
+		workspaceId,
+		enabled: isFocused && !isHistoryPickerOpen && !isCompletionDropdownOpen,
+	});
+
+	// File completions hook
+	const { triggerCompletion } = useFileCompletions({
+		cwd: terminalCwd,
+	});
+
 	// Refs avoid effect re-runs when these values change
+	const triggerCompletionRef = useRef(triggerCompletion);
+	triggerCompletionRef.current = triggerCompletion;
+
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
 
@@ -290,16 +334,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
 				}
 				commandBufferRef.current = "";
+				clearCommandBuffer();
 			} else if (domEvent.key === "Backspace") {
 				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
+				backspaceCommandBuffer();
 			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
 				commandBufferRef.current = "";
+				clearCommandBuffer();
 			} else if (
 				domEvent.key.length === 1 &&
 				!domEvent.ctrlKey &&
 				!domEvent.metaKey
 			) {
 				commandBufferRef.current += domEvent.key;
+				appendToCommandBuffer(domEvent.key);
 			}
 		};
 
@@ -357,6 +405,33 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
 			onShiftEnter: () => handleWrite("\\\n"),
 			onClear: handleClear,
+			onHistoryPicker: () => {
+				useAutocompleteStore.getState().openHistoryPicker();
+			},
+			autocomplete: {
+				getSuggestion: () => ({
+					suggestion: useAutocompleteStore.getState().suggestion,
+					buffer: useAutocompleteStore.getState().commandBuffer,
+				}),
+				onAcceptSuggestion: (suffix) => {
+					const fullCommand =
+						useAutocompleteStore.getState().commandBuffer + suffix;
+					handleWrite(suffix);
+					commandBufferRef.current = fullCommand;
+					setCommandBuffer(fullCommand);
+				},
+				onTabCompletion: async () => {
+					const triggered = await triggerCompletionRef.current();
+					if (!triggered) {
+						// No completions, let shell handle Tab
+						handleWrite("\t");
+					}
+					return triggered;
+				},
+				isDropdownOpen: () =>
+					useAutocompleteStore.getState().isCompletionDropdownOpen,
+				closeDropdown: () => closeCompletionDropdown(),
+			},
 		});
 
 		// Setup click-to-move cursor (click on prompt line to move cursor)
@@ -381,6 +456,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cleanupPaste = setupPasteHandler(xterm, {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
+				setCommandBuffer(commandBufferRef.current);
 			},
 		});
 
@@ -400,11 +476,25 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);
+			// Clear autocomplete state
+			clearCommandBuffer();
+			closeHistoryPicker();
+			closeCompletionDropdown();
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [paneId, workspaceId, workspaceCwd]);
+	}, [
+		paneId,
+		workspaceId,
+		workspaceCwd,
+		appendToCommandBuffer,
+		backspaceCommandBuffer,
+		clearCommandBuffer,
+		closeCompletionDropdown,
+		closeHistoryPicker,
+		setCommandBuffer,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
@@ -434,6 +524,42 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
+	// Handler for history picker selection
+	const handleHistorySelect = useCallback(
+		(command: string) => {
+			if (!isExitedRef.current) {
+				// Clear current line and write selected command
+				writeRef.current({ paneId, data: "\x15" }); // Ctrl+U to clear line
+				writeRef.current({ paneId, data: command });
+				commandBufferRef.current = command;
+				setCommandBuffer(command);
+			}
+			// Refocus terminal after selection
+			xtermRef.current?.focus();
+		},
+		[paneId, setCommandBuffer],
+	);
+
+	// Handler for closing history picker (refocuses terminal)
+	const handleHistoryClose = useCallback(() => {
+		closeHistoryPicker();
+		// Refocus terminal after closing
+		xtermRef.current?.focus();
+	}, [closeHistoryPicker]);
+
+	// Handler for completion selection
+	const handleCompletionSelect = useCallback(
+		(insertText: string) => {
+			if (!isExitedRef.current) {
+				writeRef.current({ paneId, data: insertText });
+				commandBufferRef.current += insertText;
+				setCommandBuffer(commandBufferRef.current);
+			}
+			closeCompletionDropdown();
+		},
+		[paneId, setCommandBuffer, closeCompletionDropdown],
+	);
+
 	return (
 		<div
 			role="application"
@@ -447,6 +573,32 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
+
+			{/* Ghost text suggestion overlay */}
+			<GhostText
+				xterm={xtermRef.current}
+				isVisible={
+					isFocused &&
+					!isHistoryPickerOpen &&
+					!isCompletionDropdownOpen &&
+					!!suggestion
+				}
+			/>
+
+			{/* History picker modal (Ctrl+R) */}
+			<HistoryPicker
+				workspaceId={workspaceId}
+				onSelect={handleHistorySelect}
+				onClose={handleHistoryClose}
+			/>
+
+			{/* File completion dropdown (Tab) */}
+			<CompletionDropdown
+				xterm={xtermRef.current}
+				onSelect={handleCompletionSelect}
+				onClose={closeCompletionDropdown}
+			/>
+
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

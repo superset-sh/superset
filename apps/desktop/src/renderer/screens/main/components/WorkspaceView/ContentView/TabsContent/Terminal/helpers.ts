@@ -177,6 +177,21 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for Cmd+K to clear the terminal */
 	onClear?: () => void;
+	/** Callback for Ctrl+R to open history picker */
+	onHistoryPicker?: () => void;
+	/** Autocomplete callbacks */
+	autocomplete?: {
+		/** Get current suggestion for ghost text */
+		getSuggestion?: () => { suggestion: string | null; buffer: string };
+		/** Called when user accepts suggestion with Right Arrow */
+		onAcceptSuggestion?: (suffix: string) => void;
+		/** Called when Tab is pressed for file completion */
+		onTabCompletion?: () => Promise<boolean>;
+		/** Check if completion dropdown is open */
+		isDropdownOpen?: () => boolean;
+		/** Close completion dropdown */
+		closeDropdown?: () => void;
+	};
 }
 
 export interface PasteHandlerOptions {
@@ -262,6 +277,67 @@ export function setupKeyboardHandler(
 				options.onClear();
 			}
 			return false;
+		}
+
+		// Ctrl+R to open history picker (intercept before shell gets it)
+		const isHistorySearch =
+			event.key.toLowerCase() === "r" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.shiftKey &&
+			!event.altKey;
+
+		if (isHistorySearch) {
+			if (event.type === "keydown" && options.onHistoryPicker) {
+				options.onHistoryPicker();
+			}
+			return false;
+		}
+
+		// Handle autocomplete interactions (only on keydown)
+		if (event.type === "keydown" && options.autocomplete) {
+			const { autocomplete } = options;
+
+			// Handle Escape to close dropdown
+			if (event.key === "Escape" && autocomplete.isDropdownOpen?.()) {
+				autocomplete.closeDropdown?.();
+				return false;
+			}
+
+			// Handle Right Arrow to accept ghost suggestion
+			if (
+				event.key === "ArrowRight" &&
+				!event.metaKey &&
+				!event.ctrlKey &&
+				!event.altKey &&
+				!event.shiftKey
+			) {
+				const state = autocomplete.getSuggestion?.();
+				if (
+					state?.suggestion &&
+					state.buffer &&
+					state.suggestion.startsWith(state.buffer)
+				) {
+					const suffix = state.suggestion.slice(state.buffer.length);
+					if (suffix) {
+						autocomplete.onAcceptSuggestion?.(suffix);
+						return false;
+					}
+				}
+			}
+
+			// Tab completion disabled for now - let shell handle Tab natively
+			// TODO: Re-enable when we have proper context-aware completion
+			// if (
+			// 	event.key === "Tab" &&
+			// 	!event.shiftKey &&
+			// 	!event.ctrlKey &&
+			// 	!event.metaKey &&
+			// 	!autocomplete.isDropdownOpen?.()
+			// ) {
+			// 	autocomplete.onTabCompletion?.();
+			// 	return false;
+			// }
 		}
 
 		if (event.type !== "keydown") return true;

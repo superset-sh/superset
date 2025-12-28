@@ -1,6 +1,11 @@
 import os from "node:os";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
+import {
+	CommandTracker,
+	commandHistoryManager,
+	parseOscSequences,
+} from "../command-history";
 import { DataBatcher } from "../data-batcher";
 import {
 	containsClearScrollbackSequence,
@@ -120,6 +125,16 @@ export async function createSession(
 		onData(paneId, batchedData);
 	});
 
+	// Create command tracker for history recording
+	const commandTracker = new CommandTracker((command, exitCode) => {
+		commandHistoryManager.record({
+			command,
+			workspaceId,
+			cwd: workingDir,
+			exitCode,
+		});
+	});
+
 	return {
 		pty: ptyProcess,
 		paneId,
@@ -133,6 +148,7 @@ export async function createSession(
 		wasRecovered,
 		historyWriter,
 		dataBatcher,
+		commandTracker,
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
@@ -150,12 +166,20 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		let dataToStore = data;
+		// Parse OSC 133 sequences for command history tracking
+		const { events, cleanData } = parseOscSequences(data);
 
-		if (containsClearScrollbackSequence(data)) {
+		// Process command history events
+		for (const event of events) {
+			session.commandTracker?.processEvent(event);
+		}
+
+		let dataToStore = cleanData;
+
+		if (containsClearScrollbackSequence(cleanData)) {
 			session.scrollback = "";
 			onHistoryReinit().catch(() => {});
-			dataToStore = extractContentAfterClear(data);
+			dataToStore = extractContentAfterClear(cleanData);
 		}
 
 		session.scrollback += dataToStore;
@@ -164,7 +188,8 @@ export function setupDataHandler(
 		// Scan for port patterns in terminal output
 		portManager.scanOutput(dataToStore, session.paneId, session.workspaceId);
 
-		session.dataBatcher.write(data);
+		// Send original data (with OSC sequences stripped) to renderer
+		session.dataBatcher.write(cleanData);
 
 		if (shouldRunCommands && !commandsSent) {
 			commandsSent = true;

@@ -1,0 +1,1 @@
+export { GhostText } from "./GhostText";

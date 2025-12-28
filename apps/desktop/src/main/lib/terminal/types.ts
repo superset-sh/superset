@@ -1,4 +1,5 @@
 import type * as pty from "node-pty";
+import type { CommandTracker } from "../command-history";
 import type { DataBatcher } from "../data-batcher";
 import type { HistoryWriter } from "../terminal-history";
 
@@ -16,6 +17,7 @@ export interface TerminalSession {
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
 	dataBatcher: DataBatcher;
+	commandTracker?: CommandTracker;
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
