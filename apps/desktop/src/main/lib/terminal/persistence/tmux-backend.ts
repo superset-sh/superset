@@ -28,21 +28,41 @@ const TMUX_SOCKET = join(SUPERSET_HOME_DIR, "tmux.sock");
 const TMUX_CONFIG = join(SUPERSET_HOME_DIR, "tmux.conf");
 const SESSIONS_DIR = join(SUPERSET_HOME_DIR, "tmux-sessions");
 
+// Environment variables that are safe to pass to tmux session wrapper scripts.
+// Be careful adding new keys - they're written to disk in wrapper scripts.
+// Missing keys here can cause subtle bugs (e.g., SSH agent not working, GPG signing failing)
 const SAFE_ENV_KEYS = [
+	// Superset-specific
 	"SUPERSET_PANE_ID",
 	"SUPERSET_WORKSPACE_ID",
 	"SUPERSET_WORKSPACE_NAME",
 	"SUPERSET_WORKSPACE_PATH",
 	"SUPERSET_ROOT_PATH",
 	"SUPERSET_TAB_ID",
+	// Shell configuration
 	"ZDOTDIR",
 	"SUPERSET_ORIG_ZDOTDIR",
+	"SHELL",
+	"HOME",
+	"USER",
+	"LOGNAME",
+	// Terminal
 	"TERM",
 	"COLORTERM",
+	// Locale
 	"LANG",
 	"LC_ALL",
 	"LC_CTYPE",
-	"SHELL",
+	// SSH/GPG - critical for developers
+	"SSH_AUTH_SOCK",
+	"SSH_AGENT_PID",
+	"GPG_TTY",
+	"GPG_AGENT_INFO",
+	// XDG directories - modern Linux/macOS standard
+	"XDG_CONFIG_HOME",
+	"XDG_DATA_HOME",
+	"XDG_CACHE_HOME",
+	"XDG_RUNTIME_DIR",
 ];
 
 function shellQuote(s: string): string {
@@ -114,10 +134,12 @@ export class TmuxBackend implements PersistenceBackend {
 		// - prefix None: no tmux key prefix conflicts
 		// - status off: hide tmux status bar
 		// - mouse off: CRITICAL - prevents scroll wheel from being sent to shell
+		// - escape-time 0: instant ESC key response (important for vim/emacs users)
 		const criticalOptions = [
 			"set-option -g prefix None",
 			"set-option -g status off",
 			"set-option -g mouse off",
+			"set-option -g escape-time 0",
 		];
 
 		for (const opt of criticalOptions) {
