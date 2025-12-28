@@ -564,16 +564,8 @@ export async function checkBranchCheckoutSafety(
 	const git = simpleGit(repoPath);
 
 	try {
-		// Check for uncommitted changes
 		const status = await git.status();
 
-		// Check all forms of uncommitted changes:
-		// - staged: files added to index
-		// - modified: tracked files with unstaged changes
-		// - deleted: tracked files deleted but not staged
-		// - created: new files staged for commit
-		// - renamed: files renamed (staged)
-		// - conflicted: merge conflicts
 		const hasUncommittedChanges =
 			status.staged.length > 0 ||
 			status.modified.length > 0 ||
@@ -582,7 +574,6 @@ export async function checkBranchCheckoutSafety(
 			status.renamed.length > 0 ||
 			status.conflicted.length > 0;
 
-		// Untracked files that could be overwritten by checkout
 		const hasUntrackedFiles = status.not_added.length > 0;
 
 		if (hasUncommittedChanges) {
@@ -595,7 +586,7 @@ export async function checkBranchCheckoutSafety(
 			};
 		}
 
-		// Block on untracked files as they could be overwritten
+		// Block on untracked files as they could be overwritten by checkout
 		if (hasUntrackedFiles) {
 			return {
 				safe: false,
@@ -606,11 +597,11 @@ export async function checkBranchCheckoutSafety(
 			};
 		}
 
-		// Fetch and prune stale remote refs (best-effort)
+		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
 			await git.fetch(["--prune"]);
 		} catch {
-			// Ignore fetch errors (e.g., offline) - not critical for safety
+			// Ignore fetch errors
 		}
 
 		return {

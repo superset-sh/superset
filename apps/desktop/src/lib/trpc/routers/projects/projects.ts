@@ -100,7 +100,6 @@ function extractRepoName(urlInput: string): string | null {
 		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 			// Get pathname and strip query/hash (URL constructor handles this)
 			const pathname = parsed.pathname;
-			// Get the last segment of the path
 			repoSegment = pathname.split("/").filter(Boolean).pop();
 		}
 	} catch {
@@ -121,20 +120,15 @@ function extractRepoName(urlInput: string): string | null {
 
 	if (!repoSegment) return null;
 
-	// Strip query string and hash if present (for edge cases)
 	repoSegment = repoSegment.split("?")[0].split("#")[0];
-
-	// Remove trailing .git extension
 	repoSegment = repoSegment.replace(/\.git$/, "");
 
-	// Decode percent-encoded characters
 	try {
 		repoSegment = decodeURIComponent(repoSegment);
 	} catch {
 		// Invalid encoding, continue with raw value
 	}
 
-	// Trim any remaining whitespace or special characters at boundaries
 	repoSegment = repoSegment.trim();
 
 	// Validate against safe filename regex
@@ -196,7 +190,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						// If we can't get remotes, assume no origin
 					}
 
-					// Get all branches (local and remote)
 					const branchSummary = await git.branch(["-a"]);
 
 					const localBranches: string[] = [];
@@ -463,7 +456,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								.delete(projects)
 								.where(eq(projects.id, existingProject.id))
 								.run();
-							// Continue to normal creation flow below
 						}
 					}
 
@@ -658,14 +650,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error("Project not found");
 				}
 
-				// Find all workspaces for this project
 				const projectWorkspaces = localDb
 					.select()
 					.from(workspaces)
 					.where(eq(workspaces.projectId, input.id))
 					.all();
 
-				// Kill all terminal processes in all workspaces of this project
 				let totalFailed = 0;
 				for (const workspace of projectWorkspaces) {
 					const terminalResult = await terminalManager.killByWorkspaceId(
@@ -674,10 +664,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					totalFailed += terminalResult.failed;
 				}
 
-				// Get workspace IDs for cleanup
 				const closedWorkspaceIds = projectWorkspaces.map((w) => w.id);
 
-				// Remove all workspaces for this project
 				if (closedWorkspaceIds.length > 0) {
 					localDb
 						.delete(workspaces)

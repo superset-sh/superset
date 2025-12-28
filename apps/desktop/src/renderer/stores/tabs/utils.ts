@@ -94,7 +94,6 @@ export const generateTabName = (existingTabs: Tab[]): string => {
 		})
 		.filter((n) => n > 0);
 
-	// Find the next available number
 	let nextNumber = 1;
 	while (existingNumbers.includes(nextNumber)) {
 		nextNumber++;
@@ -168,18 +167,13 @@ export const removePaneFromLayout = (
 		return layout === paneIdToRemove ? null : layout;
 	}
 
-	// Recursively remove from both branches
 	const newFirst = removePaneFromLayout(layout.first, paneIdToRemove);
 	const newSecond = removePaneFromLayout(layout.second, paneIdToRemove);
 
-	// If both branches are gone, return null
 	if (!newFirst && !newSecond) return null;
-
-	// If one branch is gone, return the other
 	if (!newFirst) return newSecond;
 	if (!newSecond) return newFirst;
 
-	// Both branches still exist, return updated layout
 	return {
 		...layout,
 		first: newFirst,

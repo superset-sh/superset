@@ -17,7 +17,6 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
 			try {
 				const state = await config.get();
 				if (!state) return null;
-				// Wrap in zustand persist format
 				return JSON.stringify({ state, version: 0 });
 			} catch (error) {
 				console.error("[trpc-storage] Failed to get state:", error);
