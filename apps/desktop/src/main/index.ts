@@ -3,10 +3,10 @@ import { initSentry } from "./lib/sentry";
 initSentry();
 
 import path from "node:path";
-import { app, BrowserWindow, dialog } from "electron";
 import { settings } from "@superset/local-db";
+import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { PROTOCOL_SCHEME, DEFAULT_CONFIRM_ON_QUIT } from "shared/constants";
+import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
