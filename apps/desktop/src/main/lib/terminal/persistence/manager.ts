@@ -52,10 +52,13 @@ class ProcessPersistence {
 
 	private async copyTmuxConfig(): Promise<void> {
 		const configPath = join(SUPERSET_HOME_DIR, "tmux.conf");
-		try {
-			await fs.access(configPath);
-		} catch {
-			const defaultConfig = `# Superset tmux config - minimal, non-conflicting
+		// IMPORTANT: mouse off is CRITICAL for proper scroll behavior
+		// Without it, scroll wheel events are sent to the shell and interpreted
+		// as up/down arrows (cycling through command history)
+		// Always overwrite to ensure correct settings (don't skip if file exists)
+		// The terminal-overrides with kmous@ disables mouse capability at terminfo level
+		const defaultConfig = `# Superset tmux config - minimal, non-conflicting
+# DO NOT EDIT - this file is managed by Superset and will be overwritten
 set -g prefix None
 unbind C-b
 set -g mouse off
@@ -63,10 +66,9 @@ set -g status off
 set -g history-limit 50000
 set -g escape-time 0
 set -g default-terminal "xterm-256color"
-set -ga terminal-overrides ",xterm-256color:Tc"
+set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
 `;
-			await fs.writeFile(configPath, defaultConfig);
-		}
+		await fs.writeFile(configPath, defaultConfig);
 	}
 
 	async sessionExists(sessionName: string): Promise<boolean> {

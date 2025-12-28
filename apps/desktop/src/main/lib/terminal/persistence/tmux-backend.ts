@@ -110,9 +110,14 @@ export class TmuxBackend implements PersistenceBackend {
 			return;
 		}
 
+		// Critical options that must be set for proper Superset integration
+		// - prefix None: no tmux key prefix conflicts
+		// - status off: hide tmux status bar
+		// - mouse off: CRITICAL - prevents scroll wheel from being sent to shell
 		const criticalOptions = [
 			"set-option -g prefix None",
 			"set-option -g status off",
+			"set-option -g mouse off",
 		];
 
 		for (const opt of criticalOptions) {
@@ -176,6 +181,14 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 			`tmux -S ${shellQuote(TMUX_SOCKET)} -f ${shellQuote(TMUX_CONFIG)} new-session -d -s ${shellQuote(name)} -c ${shellQuote(cwd)} ${shellQuote(scriptPath)}`,
 			execOpts,
 		);
+
+		// Ensure mouse is disabled for this session (critical for proper scroll behavior)
+		await exec(
+			`tmux -S ${shellQuote(TMUX_SOCKET)} set-option -t ${shellQuote(name)} mouse off`,
+			execOpts,
+		).catch(() => {
+			// Non-fatal - server-wide setting should already be off
+		});
 	}
 
 	async attachSession(name: string, cols = 80, rows = 24): Promise<pty.IPty> {
