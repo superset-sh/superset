@@ -95,42 +95,42 @@ export class TerminalManager extends EventEmitter {
 		const cols = params.cols ?? 80;
 		const rows = params.rows ?? 24;
 
-		if (processPersistence.enabled) {
-			try {
-				if (await processPersistence.sessionExists(sessionName)) {
-					const backendScrollback =
-						await this.captureScrollbackBounded(sessionName);
+		// Always attempt to attach to an existing tmux session if it exists (even if
+		// persistence is currently disabled) so we don't orphan long-running shells.
+		try {
+			if (await processPersistence.sessionExists(sessionName)) {
+				const backendScrollback =
+					await this.captureScrollbackBounded(sessionName);
 
-					const lifecycle = this.getOrCreateLifecycle(paneId, sessionName);
-					const attached = await lifecycle.ensureAttached(cols, rows);
+				const lifecycle = this.getOrCreateLifecycle(paneId, sessionName);
+				const attached = await lifecycle.ensureAttached(cols, rows);
 
-					if (attached && lifecycle.getPty()) {
-						return this.setupPersistentSessionWithLifecycle(lifecycle, params, {
-							scrollback: backendScrollback,
-							wasRecovered: true,
-							isPersistentBackend: true,
-						});
-					}
-
-					console.warn(
-						"[TerminalManager] Lifecycle attach failed, killing session",
-					);
-					await processPersistence.killSession(sessionName).catch(() => {});
-					this.lifecycles.delete(paneId);
+				if (attached && lifecycle.getPty()) {
+					return this.setupPersistentSessionWithLifecycle(lifecycle, params, {
+						scrollback: backendScrollback,
+						wasRecovered: true,
+						isPersistentBackend: true,
+					});
 				}
-			} catch (error) {
-				console.warn("[TerminalManager] Failed to attach:", error);
 
-				try {
-					await processPersistence.killSession(sessionName);
-					console.log(
-						"[TerminalManager] Killed orphaned session:",
-						sessionName,
-					);
-				} catch {}
+				console.warn(
+					"[TerminalManager] Lifecycle attach failed, killing session",
+				);
+				await processPersistence.killSession(sessionName).catch(() => {});
 				this.lifecycles.delete(paneId);
 			}
+		} catch (error) {
+			console.warn("[TerminalManager] Failed to attach:", error);
 
+			try {
+				await processPersistence.killSession(sessionName);
+				console.log("[TerminalManager] Killed orphaned session:", sessionName);
+			} catch {}
+			this.lifecycles.delete(paneId);
+		}
+
+		// Only create new persistent tmux sessions when the user preference is enabled.
+		if (processPersistence.enabled) {
 			try {
 				await processPersistence.createSession({
 					name: sessionName,
@@ -182,12 +182,7 @@ export class TerminalManager extends EventEmitter {
 	private async captureScrollbackBounded(sessionName: string): Promise<string> {
 		const MAX_SCROLLBACK_CHARS = 500_000;
 		try {
-			const scrollback = await Promise.race([
-				processPersistence.captureScrollback(sessionName),
-				new Promise<string>((_, reject) =>
-					setTimeout(() => reject(new Error("timeout")), 2000),
-				),
-			]);
+			const scrollback = await processPersistence.captureScrollback(sessionName);
 			const bounded =
 				scrollback.length > MAX_SCROLLBACK_CHARS
 					? scrollback.slice(-MAX_SCROLLBACK_CHARS)

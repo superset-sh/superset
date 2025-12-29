@@ -18,6 +18,11 @@ import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
+import {
+	quitWithoutConfirmation as quitWithoutConfirmationInternal,
+	setSkipQuitConfirmation as setSkipQuitConfirmationInternal,
+	shouldSkipQuitConfirmation,
+} from "./lib/quit-confirmation";
 import { processPersistence } from "./lib/terminal/persistence/manager";
 import { MainWindow } from "./windows/main";
 
@@ -105,7 +110,6 @@ type QuitState =
 	| "ready-to-quit";
 let quitState: QuitState = "idle";
 let isQuitting = false;
-let skipConfirmation = false;
 
 /**
  * Check if the user has enabled the confirm-on-quit setting
@@ -134,15 +138,16 @@ function getTerminalSessionPersistenceSetting(): boolean {
  * Skip the confirmation dialog for the next quit (e.g., auto-updater)
  */
 export function setSkipQuitConfirmation(): void {
-	skipConfirmation = true;
+	// Kept for backwards-compatibility; prefer importing from main/lib/quit-confirmation.
+	setSkipQuitConfirmationInternal();
 }
 
 /**
  * Skip the confirmation dialog and quit immediately
  */
 export function quitWithoutConfirmation(): void {
-	skipConfirmation = true;
-	app.quit();
+	// Kept for backwards-compatibility; prefer importing from main/lib/quit-confirmation.
+	quitWithoutConfirmationInternal();
 }
 
 app.on("before-quit", async (event) => {
@@ -156,7 +161,8 @@ app.on("before-quit", async (event) => {
 
 	// Check if we need to show confirmation
 	if (quitState === "idle") {
-		const shouldConfirm = !skipConfirmation && getConfirmOnQuitSetting();
+		const shouldConfirm =
+			!shouldSkipQuitConfirmation() && getConfirmOnQuitSetting();
 
 		if (shouldConfirm) {
 			event.preventDefault();
@@ -248,12 +254,29 @@ if (!gotTheLock) {
 			// App can continue without agent hooks, but log the failure
 		}
 
-		try {
-			await processPersistence.setEnabled(
-				getTerminalSessionPersistenceSetting(),
-			);
-		} catch (error) {
-			console.warn("[main] Terminal persistence init failed:", error);
+		const terminalPersistenceSetting = getTerminalSessionPersistenceSetting();
+
+		if (terminalPersistenceSetting) {
+			try {
+				await processPersistence.setEnabled(true);
+			} catch (error) {
+				console.warn("[main] Terminal persistence init failed:", error);
+				// Keep settings UI consistent if tmux was removed after enabling.
+				try {
+					localDb
+						.insert(settings)
+						.values({ id: 1, terminalSessionPersistence: false })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { terminalSessionPersistence: false },
+						})
+						.run();
+				} catch {}
+			}
+		} else {
+			// Persistence is disabled: ensure any leftover Superset tmux sessions
+			// (e.g., after a crash/force-quit) are cleaned up on startup.
+			await processPersistence.cleanupAllSupersetSessions().catch(() => {});
 		}
 
 		if (processPersistence.enabled) {

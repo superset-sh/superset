@@ -11,6 +11,7 @@ import type {
 	PersistenceBackend,
 	PersistenceErrorCode,
 } from "./types";
+import { spawnWithBoundedOutput } from "./spawn-bounded";
 
 const exec = promisify(execCallback);
 
@@ -22,7 +23,13 @@ const EXTENDED_PATH = [
 ].join(":");
 
 // Exec options with extended PATH for all tmux commands
-const execOpts = { env: { ...process.env, PATH: EXTENDED_PATH } };
+const execOpts = {
+	env: (() => {
+		const env = { ...process.env, PATH: EXTENDED_PATH } as NodeJS.ProcessEnv;
+		delete env.TMUX;
+		return env;
+	})(),
+};
 
 const TMUX_SOCKET = join(SUPERSET_HOME_DIR, "tmux.sock");
 const TMUX_CONFIG = join(SUPERSET_HOME_DIR, "tmux.conf");
@@ -263,31 +270,57 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 	}
 
 	async killSession(name: string): Promise<void> {
-		await exec(
-			`tmux -S ${shellQuote(TMUX_SOCKET)} kill-session -t ${shellQuote(name)}`,
-			execOpts,
-		);
-
 		const scriptPath = join(SESSIONS_DIR, `${name}.sh`);
 		try {
-			await fs.rm(scriptPath);
-		} catch (error) {
-			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-				console.warn(
-					`[TmuxBackend] Failed to clean wrapper script ${scriptPath}:`,
-					error,
-				);
+			await exec(
+				`tmux -S ${shellQuote(TMUX_SOCKET)} kill-session -t ${shellQuote(name)}`,
+				execOpts,
+			);
+		} finally {
+			try {
+				await fs.rm(scriptPath);
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+					console.warn(
+						`[TmuxBackend] Failed to clean wrapper script ${scriptPath}:`,
+						error,
+					);
+				}
 			}
 		}
 	}
 
 	async captureScrollback(name: string): Promise<string> {
 		try {
-			const { stdout } = await exec(
-				`tmux -S ${shellQuote(TMUX_SOCKET)} capture-pane -t ${shellQuote(name)} -p -e -S -50000`,
-				execOpts,
-			);
-			return stdout;
+			const result = await spawnWithBoundedOutput({
+				command: "tmux",
+				args: [
+					"-S",
+					TMUX_SOCKET,
+					"capture-pane",
+					"-t",
+					name,
+					"-p",
+					"-e",
+					"-S",
+					"-50000",
+				],
+				env: execOpts.env,
+				timeoutMs: 2000,
+				maxStdoutBytes: 4 * 1024 * 1024, // 4MB tail
+				maxStderrBytes: 64 * 1024,
+			});
+
+			if (result.exitCode !== 0) {
+				// If we timed out but captured something, return the partial tail
+				// rather than dropping scrollback entirely.
+				if (result.timedOut && result.stdout) {
+					return result.stdout;
+				}
+				return "";
+			}
+
+			return result.stdout;
 		} catch {
 			return "";
 		}

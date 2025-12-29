@@ -3,6 +3,7 @@ import { promises as fs } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as pty from "node-pty";
+import type { TerminalSession } from "./types";
 
 // Mock node-pty
 mock.module("node-pty", () => ({
@@ -995,27 +996,27 @@ describe("TerminalManager", () => {
 			// biome-ignore lint/suspicious/noExplicitAny: Test needs to monkey-patch for regression coverage
 			(processPersistence as any).killByWorkspace = killByWorkspaceSpy;
 
-			try {
-				const paneId = "pane-persistent-delete";
-				const workspaceId = "workspace-persistent-delete";
+				try {
+					const paneId = "pane-persistent-delete";
+					const workspaceId = "workspace-persistent-delete";
 
-				const persistentSession = {
-					pty: mockPty as unknown as pty.IPty,
-					paneId,
-					workspaceId,
-					cwd: testCwd,
-					cols: 80,
-					rows: 24,
-					lastActive: Date.now(),
-					scrollback: "",
-					isAlive: false,
-					wasRecovered: false,
-					dataBatcher: { dispose: mock(() => {}) },
-					shell: "/bin/sh",
-					startTime: Date.now(),
-					usedFallback: false,
-					isPersistentBackend: true,
-				};
+					const persistentSession: TerminalSession = {
+						pty: mockPty as unknown as pty.IPty,
+						paneId,
+						workspaceId,
+						cwd: testCwd,
+						cols: 80,
+						rows: 24,
+						lastActive: Date.now(),
+						scrollback: "",
+						isAlive: false,
+						wasRecovered: false,
+						dataBatcher: { dispose: mock(() => {}) } as unknown as TerminalSession["dataBatcher"],
+						shell: "/bin/sh",
+						startTime: Date.now(),
+						usedFallback: false,
+						isPersistentBackend: true,
+					};
 
 				// biome-ignore lint/suspicious/noExplicitAny: Access private map for regression coverage
 				(manager as any).sessions.set(paneId, persistentSession);

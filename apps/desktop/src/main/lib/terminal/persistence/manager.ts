@@ -18,10 +18,41 @@ const MAX_ORPHAN_AGE_MS = 72 * 60 * 60 * 1000;
 class ProcessPersistence {
 	private backend: TmuxBackend | null = null;
 	private _enabled = false;
+	private backendInitPromise: Promise<TmuxBackend | null> | null = null;
 	private setEnabledPromise: Promise<void> | null = null;
 
 	get enabled(): boolean {
 		return this._enabled;
+	}
+
+	private async ensureBackend(): Promise<TmuxBackend | null> {
+		const supported = process.platform !== "win32";
+		if (!supported) {
+			this.backend = null;
+			return null;
+		}
+
+		if (this.backend) {
+			return this.backend;
+		}
+
+		if (this.backendInitPromise) {
+			return this.backendInitPromise;
+		}
+
+		this.backendInitPromise = (async () => {
+			const tmux = new TmuxBackend();
+			const tmuxAvailable = await tmux.isAvailable();
+			if (!tmuxAvailable) {
+				return null;
+			}
+			this.backend = tmux;
+			return tmux;
+		})().finally(() => {
+			this.backendInitPromise = null;
+		});
+
+		return this.backendInitPromise;
 	}
 
 	async getStatus(): Promise<{
@@ -34,20 +65,8 @@ class ProcessPersistence {
 			return { supported, tmuxAvailable: false, enabled: false };
 		}
 
-		if (!this.backend) {
-			const tmux = new TmuxBackend();
-			const tmuxAvailable = await tmux.isAvailable();
-			if (tmuxAvailable) {
-				this.backend = tmux;
-			}
-			return {
-				supported,
-				tmuxAvailable,
-				enabled: this._enabled && tmuxAvailable,
-			};
-		}
-
-		const tmuxAvailable = await this.backend.isAvailable();
+		const backend = await this.ensureBackend();
+		const tmuxAvailable = backend ? await backend.isAvailable() : false;
 		return {
 			supported,
 			tmuxAvailable,
@@ -84,18 +103,14 @@ class ProcessPersistence {
 			);
 		}
 
-		if (!this.backend) {
-			const tmux = new TmuxBackend();
-			const tmuxAvailable = await tmux.isAvailable();
-			if (!tmuxAvailable) {
-				throw new Error("tmux is not available. Install tmux to enable this.");
-			}
-			this.backend = tmux;
+		const backend = await this.ensureBackend();
+		if (!backend) {
+			throw new Error("tmux is not available. Install tmux to enable this.");
 		}
 
 		await this.copyTmuxConfig();
-		await this.backend.ensureServerConfig();
-		await this.backend.cleanupOrphanedScripts?.();
+		await backend.ensureServerConfig();
+		await backend.cleanupOrphanedScripts?.();
 		this._enabled = true;
 	}
 
@@ -122,20 +137,26 @@ set -g escape-time 0
 	}
 
 	async sessionExists(sessionName: string): Promise<boolean> {
-		if (!this._enabled || !this.backend) return false;
-		return this.backend.sessionExists(sessionName);
+		const backend = await this.ensureBackend();
+		if (!backend) return false;
+		return backend.sessionExists(sessionName);
 	}
 
 	async listSessions(prefix: string): Promise<string[]> {
-		if (!this._enabled || !this.backend) return [];
-		return this.backend.listSessions(prefix);
+		const backend = await this.ensureBackend();
+		if (!backend) return [];
+		return backend.listSessions(prefix);
 	}
 
 	async createSession(opts: CreatePersistentSessionParams): Promise<void> {
-		if (!this._enabled || !this.backend) {
+		if (!this._enabled) {
 			throw new Error("Terminal session persistence is not enabled");
 		}
-		return this.backend.createSession(opts);
+		const backend = await this.ensureBackend();
+		if (!backend) {
+			throw new Error("tmux is not available. Install tmux to enable this.");
+		}
+		return backend.createSession(opts);
 	}
 
 	async attachSession(
@@ -143,43 +164,49 @@ set -g escape-time 0
 		cols?: number,
 		rows?: number,
 	): Promise<pty.IPty> {
-		if (!this._enabled || !this.backend) {
-			throw new Error("Terminal session persistence is not enabled");
+		const backend = await this.ensureBackend();
+		if (!backend) {
+			throw new Error("No persistence backend available");
 		}
-		return this.backend.attachSession(name, cols, rows);
+		return backend.attachSession(name, cols, rows);
 	}
 
 	async detachSession(name: string): Promise<void> {
-		if (!this.backend) return;
-		return this.backend.detachSession(name);
+		const backend = await this.ensureBackend();
+		if (!backend) return;
+		return backend.detachSession(name);
 	}
 
 	async killSession(name: string): Promise<void> {
-		if (!this.backend) return;
-		return this.backend.killSession(name);
+		const backend = await this.ensureBackend();
+		if (!backend) return;
+		return backend.killSession(name);
 	}
 
 	async captureScrollback(name: string): Promise<string> {
-		if (!this._enabled || !this.backend) return "";
-		return this.backend.captureScrollback(name);
+		const backend = await this.ensureBackend();
+		if (!backend) return "";
+		return backend.captureScrollback(name);
 	}
 
 	async killByWorkspace(workspaceId: string): Promise<void> {
-		if (!this.backend) return;
+		const backend = await this.ensureBackend();
+		if (!backend) return;
 		const prefix = getWorkspacePrefix(workspaceId);
-		const sessions = await this.backend.listSessions(prefix);
+		const sessions = await backend.listSessions(prefix);
 		for (const session of sessions) {
-			await this.backend.killSession(session).catch(() => {});
+			await backend.killSession(session).catch(() => {});
 		}
 	}
 
 	async cleanupOrphanedSessions(
 		getKnownPaneIds: () => Promise<Array<{ wsId: string; id: string }>>,
 	): Promise<void> {
-		if (!this.backend) return;
+		const backend = await this.ensureBackend();
+		if (!backend) return;
 
 		try {
-			const backendSessions = await this.backend.listSessions("superset-");
+			const backendSessions = await backend.listSessions("superset-");
 			const knownPanes = await getKnownPaneIds();
 
 			for (const session of backendSessions) {
@@ -188,9 +215,9 @@ set -g escape-time 0
 				);
 				if (isKnown) continue;
 
-				if (this.backend.getSessionLastActivity) {
+				if (backend.getSessionLastActivity) {
 					const lastActivity =
-						await this.backend.getSessionLastActivity(session);
+						await backend.getSessionLastActivity(session);
 					if (lastActivity === null) {
 						console.log(
 							`[ProcessPersistence] Keeping orphan (unknown age): ${session}`,
@@ -203,12 +230,27 @@ set -g escape-time 0
 						console.log(
 							`[ProcessPersistence] Cleaning stale orphan: ${session}`,
 						);
-						await this.backend.killSession(session).catch(() => {});
+						await backend.killSession(session).catch(() => {});
 					}
 				}
 			}
 		} catch (error) {
 			console.warn("[ProcessPersistence] Orphan cleanup failed:", error);
+		}
+	}
+
+	async cleanupAllSupersetSessions(): Promise<void> {
+		const backend = await this.ensureBackend();
+		if (!backend) return;
+
+		try {
+			const sessions = await backend.listSessions("superset-");
+			for (const session of sessions) {
+				await backend.killSession(session).catch(() => {});
+			}
+			await backend.cleanupOrphanedScripts?.();
+		} catch (error) {
+			console.warn("[ProcessPersistence] Failed to cleanup Superset sessions:", error);
 		}
 	}
 
@@ -220,7 +262,7 @@ set -g escape-time 0
 		sessionName: string,
 		events: SessionLifecycleEvents,
 	): SessionLifecycle {
-		if (!this._enabled || !this.backend) {
+		if (!this.backend) {
 			throw new Error("No persistence backend available");
 		}
 		return new SessionLifecycle(sessionName, this.backend, events);
