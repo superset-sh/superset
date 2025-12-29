@@ -145,7 +145,7 @@ export class HistoryWriter {
 					this.stream?.end(() => resolve());
 				});
 			} catch {
-				// Ignore close errors
+				// Ignore
 			}
 		}
 		this.stream = null;

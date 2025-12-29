@@ -123,22 +123,18 @@ export const useTabsStore = create<TabsStore>()(
 					const tabToRemove = state.tabs.find((t) => t.id === tabId);
 					if (!tabToRemove) return;
 
-					// Kill all terminals for panes in this tab
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
 					for (const paneId of paneIds) {
 						killTerminalForPane(paneId);
 					}
 
-					// Remove all panes belonging to this tab
 					const newPanes = { ...state.panes };
 					for (const paneId of paneIds) {
 						delete newPanes[paneId];
 					}
 
-					// Remove tab
 					const newTabs = state.tabs.filter((t) => t.id !== tabId);
 
-					// Update active tab if needed
 					const workspaceId = tabToRemove.workspaceId;
 					const newActiveTabIds = { ...state.activeTabIds };
 					const newHistoryStack = (
@@ -149,7 +145,6 @@ export const useTabsStore = create<TabsStore>()(
 						newActiveTabIds[workspaceId] = findNextTab(state, tabId);
 					}
 
-					// Clean up focused pane tracking
 					const newFocusedPaneIds = { ...state.focusedPaneIds };
 					delete newFocusedPaneIds[tabId];
 
@@ -281,11 +276,9 @@ export const useTabsStore = create<TabsStore>()(
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
 
-					// Get panes that should exist based on the new layout
 					const newPaneIds = new Set(extractPaneIdsFromLayout(layout));
 					const oldPaneIds = new Set(extractPaneIdsFromLayout(tab.layout));
 
-					// Find removed panes and clean them up
 					const removedPaneIds = Array.from(oldPaneIds).filter(
 						(id) => !newPaneIds.has(id),
 					);
@@ -326,7 +319,6 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPane = createPane(tabId, "terminal", options);
 
-					// Add pane to layout (append to the right)
 					const newLayout: MosaicNode<string> = {
 						direction: "row",
 						first: tab.layout,
@@ -362,10 +354,8 @@ export const useTabsStore = create<TabsStore>()(
 						return;
 					}
 
-					// Kill the terminal
 					killTerminalForPane(paneId);
 
-					// Remove pane from layout
 					const newLayout = removePaneFromLayout(tab.layout, paneId);
 					if (!newLayout) {
 						// This shouldn't happen since we checked isLastPaneInTab
@@ -373,7 +363,6 @@ export const useTabsStore = create<TabsStore>()(
 						return;
 					}
 
-					// Remove pane from panes map
 					const newPanes = { ...state.panes };
 					delete newPanes[paneId];
 

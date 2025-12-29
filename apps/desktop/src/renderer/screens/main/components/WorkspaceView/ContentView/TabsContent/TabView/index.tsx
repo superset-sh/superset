@@ -42,7 +42,6 @@ export function TabView({ tab, panes }: TabViewProps) {
 
 	const focusedPaneId = focusedPaneIds[tab.id];
 
-	// Get valid pane IDs for this tab
 	const validPaneIds = new Set(getPaneIdsForTab(panes, tab.id));
 	const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
 
@@ -73,7 +72,6 @@ export function TabView({ tab, panes }: TabViewProps) {
 				removePane(removedId);
 			}
 
-			// Update the layout
 			updateTabLayout(tab.id, newLayout);
 		},
 		[tab.id, tab.layout, updateTabLayout, removePane],

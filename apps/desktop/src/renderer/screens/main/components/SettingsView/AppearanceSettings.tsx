@@ -1,4 +1,18 @@
-import { useSetTheme, useThemeId, useThemeStore } from "renderer/stores";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
+import {
+	type MarkdownStyle,
+	useMarkdownStyle,
+	useSetMarkdownStyle,
+	useSetTheme,
+	useThemeId,
+	useThemeStore,
+} from "renderer/stores";
 import { builtInThemes } from "shared/themes";
 import { ThemeCard } from "./ThemeCard";
 
@@ -6,6 +20,8 @@ export function AppearanceSettings() {
 	const activeThemeId = useThemeId();
 	const setTheme = useSetTheme();
 	const customThemes = useThemeStore((state) => state.customThemes);
+	const markdownStyle = useMarkdownStyle();
+	const setMarkdownStyle = useSetMarkdownStyle();
 
 	const allThemes = [...builtInThemes, ...customThemes];
 
@@ -34,7 +50,29 @@ export function AppearanceSettings() {
 					</div>
 				</div>
 
-				{/* Future: Custom theme import */}
+				<div className="pt-6 border-t">
+					<h3 className="text-sm font-medium mb-2">Markdown Style</h3>
+					<p className="text-sm text-muted-foreground mb-4">
+						Rendering style for markdown files when viewing rendered content
+					</p>
+					<Select
+						value={markdownStyle}
+						onValueChange={(value) => setMarkdownStyle(value as MarkdownStyle)}
+					>
+						<SelectTrigger className="w-[200px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="default">Default</SelectItem>
+							<SelectItem value="tufte">Tufte</SelectItem>
+						</SelectContent>
+					</Select>
+					<p className="text-xs text-muted-foreground mt-2">
+						Tufte style uses elegant serif typography inspired by Edward Tufte's
+						books
+					</p>
+				</div>
+
 				<div className="pt-6 border-t">
 					<h3 className="text-sm font-medium mb-2">Custom Themes</h3>
 					<p className="text-sm text-muted-foreground">

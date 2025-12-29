@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 			provider: "linear",
 			eventId: `${payload.organizationId}-${payload.webhookTimestamp}`,
 			eventType: `${payload.type}.${payload.action}`,
-			payload: payload as unknown as Record<string, unknown>,
+			payload,
 			status: "pending",
 		})
 		.returning();

@@ -34,7 +34,7 @@ import {
 	HiCheck,
 	HiChevronDown,
 	HiChevronUpDown,
-	HiPlus,
+	HiFolderOpen,
 } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
@@ -264,12 +264,12 @@ export function NewWorkspaceModal() {
 									onClick={handleOpenNewProject}
 									disabled={openNew.isPending}
 								>
-									<HiPlus className="h-4 w-4" />
-									Import
+									<HiFolderOpen className="h-4 w-4" />
+									Open
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" sideOffset={4}>
-								Add new project
+								Open a new project
 							</TooltipContent>
 						</Tooltip>
 					</div>

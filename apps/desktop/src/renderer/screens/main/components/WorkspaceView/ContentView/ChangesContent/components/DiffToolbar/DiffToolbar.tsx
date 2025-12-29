@@ -3,6 +3,8 @@ import { Button } from "@superset/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import {
 	HiMiniArrowsRightLeft,
+	HiMiniCodeBracket,
+	HiMiniDocumentText,
 	HiMiniListBullet,
 	HiMiniMinus,
 	HiMiniPencil,
@@ -21,6 +23,9 @@ interface DiffToolbarProps {
 	isActioning?: boolean;
 	isEditable?: boolean;
 	isSaving?: boolean;
+	isMarkdownFile?: boolean;
+	showRendered?: boolean;
+	onToggleRendered?: () => void;
 }
 
 export function DiffToolbar({
@@ -33,6 +38,9 @@ export function DiffToolbar({
 	isActioning = false,
 	isEditable = false,
 	isSaving = false,
+	isMarkdownFile = false,
+	showRendered = false,
+	onToggleRendered,
 }: DiffToolbarProps) {
 	const canStage = category === "unstaged";
 	const canUnstage = category === "staged";
@@ -41,26 +49,52 @@ export function DiffToolbar({
 	return (
 		<div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
 			<div className="flex items-center gap-3">
-				<ToggleGroup
-					type="single"
-					value={viewMode}
-					onValueChange={(value) => {
-						if (value) onViewModeChange(value as DiffViewMode);
-					}}
-					variant="outline"
-					size="sm"
-				>
-					<ToggleGroupItem value="side-by-side" aria-label="Side by side view">
-						<HiMiniArrowsRightLeft className="w-4 h-4 mr-1.5" />
-						Side by Side
-					</ToggleGroupItem>
-					<ToggleGroupItem value="inline" aria-label="Inline view">
-						<HiMiniListBullet className="w-4 h-4 mr-1.5" />
-						Inline
-					</ToggleGroupItem>
-				</ToggleGroup>
+				{!showRendered && (
+					<ToggleGroup
+						type="single"
+						value={viewMode}
+						onValueChange={(value) => {
+							if (value) onViewModeChange(value as DiffViewMode);
+						}}
+						variant="outline"
+						size="sm"
+					>
+						<ToggleGroupItem
+							value="side-by-side"
+							aria-label="Side by side view"
+						>
+							<HiMiniArrowsRightLeft className="w-4 h-4 mr-1.5" />
+							Side by Side
+						</ToggleGroupItem>
+						<ToggleGroupItem value="inline" aria-label="Inline view">
+							<HiMiniListBullet className="w-4 h-4 mr-1.5" />
+							Inline
+						</ToggleGroupItem>
+					</ToggleGroup>
+				)}
 
-				{isEditable && (
+				{isMarkdownFile && onToggleRendered && (
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={onToggleRendered}
+						className="gap-1.5"
+					>
+						{showRendered ? (
+							<>
+								<HiMiniCodeBracket className="w-4 h-4" />
+								View Diff
+							</>
+						) : (
+							<>
+								<HiMiniDocumentText className="w-4 h-4" />
+								View Rendered
+							</>
+						)}
+					</Button>
+				)}
+
+				{isEditable && !showRendered && (
 					<Badge variant="secondary" className="gap-1 text-xs">
 						<HiMiniPencil className="w-3 h-3" />
 						{isSaving ? "Saving..." : "Editable"}

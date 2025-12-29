@@ -1340,7 +1340,6 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Workspace not found");
 				}
 
-				// Kill all terminal processes in this workspace
 				const terminalResult = await terminalManager.killByWorkspaceId(
 					input.id,
 				);

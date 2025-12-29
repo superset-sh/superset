@@ -108,7 +108,6 @@ export async function GET(request: Request) {
 		});
 	} catch (error) {
 		console.error("Failed to queue initial sync job:", error);
-		// Connection saved successfully, just sync failed - redirect with warning
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?warning=sync_queued_failed`,
 		);
