@@ -2,6 +2,9 @@ import { spawn } from "node:child_process";
 import nodePath from "node:path";
 import { EXTERNAL_APPS, type ExternalApp } from "@superset/local-db";
 
+/** VS Code Insiders app name for fallback when VS Code is not installed */
+export const VSCODE_INSIDERS_APP_NAME = "Visual Studio Code - Insiders";
+
 /** Map of app IDs to their macOS application names */
 const APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
@@ -37,6 +40,16 @@ export function getAppCommand(
 	const appName = APP_NAMES[app];
 	if (!appName) return null;
 	return { command: "open", args: ["-a", appName, targetPath] };
+}
+
+/**
+ * Get the command to open a path in VS Code Insiders.
+ * Used as fallback when VS Code is not installed.
+ */
+export function getVscodeInsidersCommand(
+	targetPath: string,
+): { command: string; args: string[] } {
+	return { command: "open", args: ["-a", VSCODE_INSIDERS_APP_NAME, targetPath] };
 }
 
 /**
