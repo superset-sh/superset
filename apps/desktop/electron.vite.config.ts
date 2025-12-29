@@ -98,12 +98,17 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
+			// Terminal daemon mode - for terminal session persistence
+			"process.env.SUPERSET_TERMINAL_DAEMON": JSON.stringify(
+				process.env.SUPERSET_TERMINAL_DAEMON || "",
+			),
 		},
 
 		build: {
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
+					"terminal-host": resolve("src/main/terminal-host/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

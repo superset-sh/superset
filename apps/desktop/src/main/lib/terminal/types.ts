@@ -38,6 +38,16 @@ export interface SessionResult {
 	isNew: boolean;
 	scrollback: string;
 	wasRecovered: boolean;
+	/** Snapshot from daemon (if using daemon mode) */
+	snapshot?: {
+		snapshotAnsi: string;
+		rehydrateSequences: string;
+		cwd: string | null;
+		modes: Record<string, boolean>;
+		cols: number;
+		rows: number;
+		scrollbackLines: number;
+	};
 }
 
 export interface CreateSessionParams {

@@ -4,7 +4,7 @@ import { projects, workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import { terminalManager } from "main/lib/terminal";
+import { getActiveTerminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
@@ -25,6 +25,9 @@ import { resolveCwd } from "./utils";
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
+	// Get the active terminal manager (in-process or daemon-based)
+	const terminalManager = getActiveTerminalManager();
+
 	return router({
 		createOrAttach: publicProcedure
 			.input(
@@ -87,6 +90,8 @@ export const createTerminalRouter = () => {
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
+					// Include snapshot for daemon mode (renderer can use for rehydration)
+					snapshot: result.snapshot,
 				};
 			}),
 
