@@ -355,7 +355,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\\\n"),
+			onShiftEnter: () => handleWrite("\n"),
 			onClear: handleClear,
 		});
 
