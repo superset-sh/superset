@@ -125,12 +125,12 @@ class ProcessPersistence {
 # DO NOT EDIT - this file is managed by Superset and will be overwritten
 set -g prefix None
 unbind C-b
-set -g mouse off
+set -g mouse on
 set -g status off
 set -g history-limit 50000
 set -g escape-time 0
-		set -g default-terminal "xterm-256color"
-		set -ga terminal-overrides ",xterm-256color:Tc:kmous@"
+set -g default-terminal "xterm-256color"
+set -ga terminal-overrides ",xterm-256color:Tc"
 `;
 		await fs.writeFile(configPath, defaultConfig, { mode: 0o600 });
 		await fs.chmod(configPath, 0o600).catch(() => {});
@@ -216,8 +216,7 @@ set -g escape-time 0
 				if (isKnown) continue;
 
 				if (backend.getSessionLastActivity) {
-					const lastActivity =
-						await backend.getSessionLastActivity(session);
+					const lastActivity = await backend.getSessionLastActivity(session);
 					if (lastActivity === null) {
 						console.log(
 							`[ProcessPersistence] Keeping orphan (unknown age): ${session}`,
@@ -250,7 +249,10 @@ set -g escape-time 0
 			}
 			await backend.cleanupOrphanedScripts?.();
 		} catch (error) {
-			console.warn("[ProcessPersistence] Failed to cleanup Superset sessions:", error);
+			console.warn(
+				"[ProcessPersistence] Failed to cleanup Superset sessions:",
+				error,
+			);
 		}
 	}
 

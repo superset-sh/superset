@@ -34,6 +34,8 @@ export interface PersistenceBackend {
 
 	attachSession(name: string, cols?: number, rows?: number): Promise<pty.IPty>;
 	detachSession(name: string): Promise<void>;
+	resizeWindow(name: string, cols: number, rows: number): Promise<void>;
+	refreshClient(name: string): Promise<void>;
 	killSession(name: string): Promise<void>;
 
 	captureScrollback(name: string): Promise<string>;

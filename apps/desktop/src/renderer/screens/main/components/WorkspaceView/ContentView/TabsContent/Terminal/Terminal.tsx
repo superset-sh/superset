@@ -256,6 +256,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isNew: boolean;
 			scrollback: string;
 		}) => {
+			// For recovered sessions, skip writing old scrollback to avoid garbled display
+			// from terminal size mismatch. Let tmux redraw fresh content instead.
+			if (result.wasRecovered) {
+				// Just extract cwd from scrollback without displaying it
+				const restored = sanitizeRestoredScrollback(
+					sanitizeTerminalScrollback(result.scrollback),
+				);
+				updateCwdRef.current(restored);
+				return;
+			}
+
 			const restored = sanitizeRestoredScrollback(
 				sanitizeTerminalScrollback(result.scrollback),
 			);

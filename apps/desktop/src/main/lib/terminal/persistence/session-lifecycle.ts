@@ -124,6 +124,13 @@ export class SessionLifecycle {
 				this.ptyProcess.resize(cols, rows);
 			} catch {}
 
+			// Clear screen before refresh to prevent flash of garbled content from old terminal size
+			// ESC[2J = clear entire screen, ESC[H = cursor to home position
+			this.ptyProcess.write("\x1b[2J\x1b[H");
+
+			// Force tmux to redraw after attach
+			await this.backend.refreshClient(this.sessionName);
+
 			// Track if this was a successful reconnection
 			this._wasRetrying = wasInRetryState;
 			this._lastErrorCode = null;

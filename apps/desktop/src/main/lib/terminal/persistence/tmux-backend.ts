@@ -222,11 +222,32 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 		});
 	}
 
+	/**
+	 * Resize the tmux window before attaching. This ensures tmux sends
+	 * correctly-sized content from the start, preventing garbled display.
+	 */
+	async resizeWindow(name: string, cols: number, rows: number): Promise<void> {
+		try {
+			await exec(
+				`tmux -S ${shellQuote(TMUX_SOCKET)} resize-window -t ${shellQuote(name)} -x ${cols} -y ${rows}`,
+				execOpts,
+			);
+		} catch {
+			// Non-fatal - window might not exist yet or tmux version doesn't support this
+		}
+	}
+
 	async attachSession(name: string, cols = 80, rows = 24): Promise<pty.IPty> {
-		const env = { ...process.env, PATH: EXTENDED_PATH } as Record<string, string>;
+		const env = { ...process.env, PATH: EXTENDED_PATH } as Record<
+			string,
+			string
+		>;
 		delete env.TMUX;
 
 		await this.detachSession(name).catch(() => {});
+
+		// Resize tmux window BEFORE attaching to prevent garbled content
+		await this.resizeWindow(name, cols, rows);
 
 		return pty.spawn(
 			"tmux",
@@ -238,6 +259,21 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 				env: env as Record<string, string>,
 			},
 		);
+	}
+
+	/**
+	 * Force tmux to redraw the client. Useful after attach when terminal size may have changed.
+	 * Uses refresh-client -S which forces a complete screen redraw.
+	 */
+	async refreshClient(name: string): Promise<void> {
+		try {
+			await exec(
+				`tmux -S ${shellQuote(TMUX_SOCKET)} refresh-client -S -t ${shellQuote(name)}`,
+				execOpts,
+			);
+		} catch {
+			// Non-fatal - client will eventually sync
+		}
 	}
 
 	classifyError(error: unknown): PersistenceErrorCode {
