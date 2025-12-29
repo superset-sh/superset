@@ -118,7 +118,21 @@ class NdjsonParser {
 				try {
 					messages.push(JSON.parse(line));
 				} catch {
-					log("warn", "Failed to parse NDJSON line", { line });
+					// Truncate and redact potentially sensitive data in error logs
+					const maxLen = 100;
+					const truncated =
+						line.length > maxLen
+							? `${line.slice(0, maxLen)}... (truncated)`
+							: line;
+					// Redact anything that looks like a token or secret
+					const redacted = truncated.replace(
+						/["']?(?:token|secret|password|key|auth)["']?\s*[:=]\s*["']?[^"'\s,}]+["']?/gi,
+						"[REDACTED]",
+					);
+					log("warn", "Failed to parse NDJSON line", {
+						preview: redacted,
+						length: line.length,
+					});
 				}
 			}
 
@@ -198,7 +212,7 @@ const handlers: Record<string, RequestHandler> = {
 		log("info", "Client authenticated successfully");
 	},
 
-	createOrAttach: (socket, id, payload, clientState) => {
+	createOrAttach: async (socket, id, payload, clientState) => {
 		if (!clientState.authenticated) {
 			sendError(socket, id, "NOT_AUTHENTICATED", "Must authenticate first");
 			return;
@@ -207,13 +221,19 @@ const handlers: Record<string, RequestHandler> = {
 		const request = payload as CreateOrAttachRequest;
 		log("info", `Creating/attaching session: ${request.sessionId}`);
 
-		const response = terminalHost.createOrAttach(socket, request);
-		sendSuccess(socket, id, response);
+		try {
+			const response = await terminalHost.createOrAttach(socket, request);
+			sendSuccess(socket, id, response);
 
-		log(
-			"info",
-			`Session ${request.sessionId} ${response.isNew ? "created" : "attached"}`,
-		);
+			log(
+				"info",
+				`Session ${request.sessionId} ${response.isNew ? "created" : "attached"}`,
+			);
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			sendError(socket, id, "CREATE_ATTACH_FAILED", message);
+			log("error", `Failed to create/attach session: ${message}`);
+		}
 	},
 
 	write: (socket, id, payload, clientState) => {
@@ -352,42 +372,92 @@ function handleConnection(socket: Socket) {
 	});
 }
 
-function startServer(): Promise<void> {
-	return new Promise((resolve, reject) => {
-		// Ensure superset directory exists with proper permissions
-		if (!existsSync(SUPERSET_HOME_DIR)) {
-			mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
-			log("info", `Created directory: ${SUPERSET_HOME_DIR}`);
+/**
+ * Check if there's an active daemon listening on the socket.
+ * Returns true if socket is live and responding.
+ */
+function isSocketLive(): Promise<boolean> {
+	return new Promise((resolve) => {
+		if (!existsSync(SOCKET_PATH)) {
+			resolve(false);
+			return;
 		}
 
-		// Ensure directory has correct permissions
+		const testSocket = new (require("node:net").Socket)();
+		const timeout = setTimeout(() => {
+			testSocket.destroy();
+			resolve(false);
+		}, 1000);
+
+		testSocket.on("connect", () => {
+			clearTimeout(timeout);
+			testSocket.destroy();
+			resolve(true);
+		});
+
+		testSocket.on("error", () => {
+			clearTimeout(timeout);
+			resolve(false);
+		});
+
+		testSocket.connect(SOCKET_PATH);
+	});
+}
+
+async function startServer(): Promise<void> {
+	// Ensure superset directory exists with proper permissions
+	if (!existsSync(SUPERSET_HOME_DIR)) {
+		mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
+		log("info", `Created directory: ${SUPERSET_HOME_DIR}`);
+	}
+
+	// Ensure directory has correct permissions
+	try {
+		chmodSync(SUPERSET_HOME_DIR, 0o700);
+	} catch {
+		// May fail if not owner, that's okay
+	}
+
+	// Check if socket is live before removing it
+	// This prevents orphaning a running daemon
+	if (existsSync(SOCKET_PATH)) {
+		const isLive = await isSocketLive();
+		if (isLive) {
+			log("error", "Another daemon is already running and responsive");
+			throw new Error("Another daemon is already running");
+		}
+
+		// Socket exists but not responsive - safe to remove
 		try {
-			chmodSync(SUPERSET_HOME_DIR, 0o700);
+			unlinkSync(SOCKET_PATH);
+			log("info", "Removed stale socket file");
+		} catch (error) {
+			throw new Error(`Failed to remove stale socket: ${error}`);
+		}
+	}
+
+	// Clean up stale PID file if socket was removed
+	if (existsSync(PID_PATH)) {
+		try {
+			unlinkSync(PID_PATH);
 		} catch {
-			// May fail if not owner, that's okay
+			// Ignore - may not have permission
 		}
+	}
 
-		// Remove stale socket if it exists
-		if (existsSync(SOCKET_PATH)) {
-			try {
-				unlinkSync(SOCKET_PATH);
-				log("info", "Removed stale socket file");
-			} catch (error) {
-				reject(new Error(`Failed to remove stale socket: ${error}`));
-				return;
-			}
-		}
+	// Initialize auth token
+	authToken = ensureAuthToken();
 
-		// Initialize auth token
-		authToken = ensureAuthToken();
+	// Initialize terminal host
+	terminalHost = new TerminalHost();
 
-		// Initialize terminal host
-		terminalHost = new TerminalHost();
+	// Create server
+	const newServer = createServer(handleConnection);
+	server = newServer;
 
-		// Create server
-		server = createServer(handleConnection);
-
-		server.on("error", (error: NodeJS.ErrnoException) => {
+	// Wrap server.listen in a Promise for async/await
+	await new Promise<void>((resolve, reject) => {
+		newServer.on("error", (error: NodeJS.ErrnoException) => {
 			if (error.code === "EADDRINUSE") {
 				log("error", "Socket already in use - another daemon may be running");
 				reject(new Error("Socket already in use"));
@@ -397,7 +467,7 @@ function startServer(): Promise<void> {
 			}
 		});
 
-		server.listen(SOCKET_PATH, () => {
+		newServer.listen(SOCKET_PATH, () => {
 			// Set socket permissions (readable/writable by owner only)
 			try {
 				chmodSync(SOCKET_PATH, 0o600);

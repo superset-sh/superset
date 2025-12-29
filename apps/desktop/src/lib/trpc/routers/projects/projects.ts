@@ -12,7 +12,7 @@ import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
-import { terminalManager } from "main/lib/terminal";
+import { getActiveTerminalManager } from "main/lib/terminal";
 import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -658,9 +658,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				let totalFailed = 0;
 				for (const workspace of projectWorkspaces) {
-					const terminalResult = await terminalManager.killByWorkspaceId(
-						workspace.id,
-					);
+					const terminalResult =
+						await getActiveTerminalManager().killByWorkspaceId(workspace.id);
 					totalFailed += terminalResult.failed;
 				}
 

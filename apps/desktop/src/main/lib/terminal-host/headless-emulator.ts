@@ -65,6 +65,9 @@ export class HeadlessEmulator {
 	private pendingOutput: string[] = [];
 	private onDataCallback?: (data: string) => void;
 
+	// Buffer for partial escape sequences that span chunk boundaries
+	private escapeSequenceBuffer = "";
+
 	constructor(options: HeadlessEmulatorOptions = {}) {
 		const { cols = 80, rows = 24, scrollback = 10000 } = options;
 
@@ -112,11 +115,8 @@ export class HeadlessEmulator {
 	write(data: string): void {
 		if (this.disposed) return;
 
-		// Parse for mode changes before writing to terminal
-		this.parseModeChanges(data);
-
-		// Parse for OSC-7 (CWD) sequences
-		this.parseOsc7(data);
+		// Parse escape sequences with chunk-safe buffering
+		this.parseEscapeSequences(data);
 
 		// Write to headless terminal (buffered/async)
 		this.terminal.write(data);
@@ -129,11 +129,8 @@ export class HeadlessEmulator {
 	async writeSync(data: string): Promise<void> {
 		if (this.disposed) return;
 
-		// Parse for mode changes before writing to terminal
-		this.parseModeChanges(data);
-
-		// Parse for OSC-7 (CWD) sequences
-		this.parseOsc7(data);
+		// Parse escape sequences with chunk-safe buffering
+		this.parseEscapeSequences(data);
 
 		// Write to headless terminal and wait for completion
 		return new Promise<void>((resolve) => {
@@ -259,6 +256,124 @@ export class HeadlessEmulator {
 	// ===========================================================================
 	// Private Methods
 	// ===========================================================================
+
+	/**
+	 * Parse escape sequences with chunk-safe buffering.
+	 * PTY output can split sequences across chunks, so we buffer partial sequences.
+	 */
+	private parseEscapeSequences(data: string): void {
+		// Prepend any buffered partial sequence from previous chunk
+		const fullData = this.escapeSequenceBuffer + data;
+		this.escapeSequenceBuffer = "";
+
+		// Find the last ESC in the data - anything after it might be incomplete
+		const lastEscIndex = fullData.lastIndexOf(ESC);
+
+		if (lastEscIndex === -1) {
+			// No escape sequences, parse everything
+			this.parseModeChanges(fullData);
+			this.parseOsc7(fullData);
+			return;
+		}
+
+		// Check if there's a potential incomplete sequence at the end
+		const afterLastEsc = fullData.slice(lastEscIndex);
+
+		// Determine if the sequence is complete
+		// DECSET/DECRST: ESC[?...h or ESC[?...l - complete when ends with h or l
+		// OSC-7: ESC]7;...BEL or ESC]7;...ESC\ - complete when ends with BEL or ST
+		const isComplete = this.isSequenceComplete(afterLastEsc);
+
+		if (isComplete) {
+			// All sequences are complete, parse everything
+			this.parseModeChanges(fullData);
+			this.parseOsc7(fullData);
+		} else {
+			// Buffer the incomplete sequence for next chunk
+			this.escapeSequenceBuffer = afterLastEsc;
+
+			// Parse only the complete portion
+			const completeData = fullData.slice(0, lastEscIndex);
+			if (completeData) {
+				this.parseModeChanges(completeData);
+				this.parseOsc7(completeData);
+			}
+		}
+	}
+
+	/**
+	 * Check if a string starting with ESC contains a complete escape sequence.
+	 * Uses string-based regex building to avoid control character linter errors.
+	 */
+	private isSequenceComplete(str: string): boolean {
+		if (!str.startsWith(ESC)) return true;
+
+		const escEscaped = escapeRegex(ESC);
+		const belEscaped = escapeRegex(BEL);
+
+		// Check for complete DECSET/DECRST: ESC[?...h or ESC[?...l
+		const modePattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`);
+		if (modePattern.test(str)) {
+			// Has a complete mode sequence, but check if there's more after
+			const modePatternGlobal = new RegExp(
+				`${escEscaped}\\[\\?[0-9;]+[hl]`,
+				"g",
+			);
+			const matches = str.match(modePatternGlobal);
+			if (matches) {
+				// Find where the last complete sequence ends
+				const lastMatch = matches[matches.length - 1];
+				const lastMatchEnd = str.lastIndexOf(lastMatch) + lastMatch.length;
+				// If there's an ESC after all complete sequences, it's incomplete
+				const remainder = str.slice(lastMatchEnd);
+				if (remainder.includes(ESC)) {
+					return this.isSequenceComplete(
+						remainder.slice(remainder.indexOf(ESC)),
+					);
+				}
+				return true;
+			}
+		}
+
+		// Check for complete OSC-7: ESC]7;...BEL or ESC]7;...ESC\
+		if (str.includes(BEL) || str.includes(`${ESC}\\`)) {
+			// Might have complete OSC sequence
+			const osc7Pattern = new RegExp(
+				`${escEscaped}\\]7;[^${belEscaped}${escEscaped}]*(?:${belEscaped}|${escEscaped}\\\\)`,
+			);
+			if (osc7Pattern.test(str)) {
+				return true;
+			}
+		}
+
+		// Check for obviously incomplete patterns
+		// ESC alone, or ESC[, or ESC[?, or ESC[?123 (no terminator)
+		if (str === ESC) return false;
+		if (str === `${ESC}[`) return false;
+		if (str === `${ESC}]`) return false;
+
+		// Incomplete mode sequence: ESC[?digits but no h/l
+		const incompleteModePattern = new RegExp(`^${escEscaped}\\[\\?[0-9;]*$`);
+		if (incompleteModePattern.test(str)) return false;
+
+		// Incomplete OSC sequence: ESC]digit; but no BEL or ST
+		const incompleteOscPattern = new RegExp(`^${escEscaped}\\][0-9];`);
+		if (
+			incompleteOscPattern.test(str) &&
+			!str.includes(BEL) &&
+			!str.includes(`${ESC}\\`)
+		) {
+			return false;
+		}
+
+		// If we got here with just ESC and some chars but no recognizable complete sequence,
+		// consider it incomplete if it looks like the start of a sequence we care about
+		const startsWithCsiOrOsc = new RegExp(`^${escEscaped}[\\[\\]]`);
+		if (startsWithCsiOrOsc.test(str)) return false;
+
+		// Otherwise assume it's complete (might be some other sequence we don't track)
+		return true;
+	}
 
 	/**
 	 * Parse DECSET/DECRST sequences from terminal data

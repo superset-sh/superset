@@ -11,7 +11,7 @@
 
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { existsSync, readFileSync, unlinkSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { connect, type Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -48,11 +48,13 @@ const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
+const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
 const SPAWN_WAIT_MS = 2000;
 const REQUEST_TIMEOUT_MS = 30000;
+const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
 
 // =============================================================================
 // NDJSON Parser
@@ -337,6 +339,78 @@ export class TerminalHostClient extends EventEmitter {
 	// ===========================================================================
 
 	/**
+	 * Check if there's an active daemon listening on the socket.
+	 * Returns true if socket is live and responding.
+	 */
+	private isSocketLive(): Promise<boolean> {
+		return new Promise((resolve) => {
+			if (!existsSync(SOCKET_PATH)) {
+				resolve(false);
+				return;
+			}
+
+			const testSocket = connect(SOCKET_PATH);
+			const timeout = setTimeout(() => {
+				testSocket.destroy();
+				resolve(false);
+			}, 1000);
+
+			testSocket.on("connect", () => {
+				clearTimeout(timeout);
+				testSocket.destroy();
+				resolve(true);
+			});
+
+			testSocket.on("error", () => {
+				clearTimeout(timeout);
+				resolve(false);
+			});
+		});
+	}
+
+	/**
+	 * Acquire spawn lock to prevent concurrent daemon spawns.
+	 * Returns true if lock acquired, false if another spawn is in progress.
+	 */
+	private acquireSpawnLock(): boolean {
+		try {
+			// Check if lock exists and is recent (within timeout)
+			if (existsSync(SPAWN_LOCK_PATH)) {
+				const lockContent = readFileSync(SPAWN_LOCK_PATH, "utf-8").trim();
+				const lockTime = Number.parseInt(lockContent, 10);
+				if (
+					!Number.isNaN(lockTime) &&
+					Date.now() - lockTime < SPAWN_LOCK_TIMEOUT_MS
+				) {
+					// Lock is held by another process
+					return false;
+				}
+				// Stale lock, remove it
+				unlinkSync(SPAWN_LOCK_PATH);
+			}
+
+			// Create lock file with current timestamp
+			writeFileSync(SPAWN_LOCK_PATH, String(Date.now()), { mode: 0o600 });
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Release spawn lock
+	 */
+	private releaseSpawnLock(): void {
+		try {
+			if (existsSync(SPAWN_LOCK_PATH)) {
+				unlinkSync(SPAWN_LOCK_PATH);
+			}
+		} catch {
+			// Best effort cleanup
+		}
+	}
+
+	/**
 	 * Spawn the daemon process if not running
 	 */
 	private async spawnDaemon(): Promise<void> {
@@ -351,8 +425,16 @@ export class TerminalHostClient extends EventEmitter {
 			return;
 		}
 
-		// Clean up stale socket file if it exists
+		// Check if socket is live before removing it
+		// This prevents orphaning a running daemon that just doesn't have a PID file
 		if (existsSync(SOCKET_PATH)) {
+			const isLive = await this.isSocketLive();
+			if (isLive) {
+				console.log("[TerminalHostClient] Socket is live, daemon is running");
+				return;
+			}
+
+			// Socket exists but not responsive - safe to remove
 			console.log("[TerminalHostClient] Removing stale socket file");
 			try {
 				unlinkSync(SOCKET_PATH);
@@ -361,41 +443,53 @@ export class TerminalHostClient extends EventEmitter {
 			}
 		}
 
-		// Get path to daemon script
-		const daemonScript = this.getDaemonScriptPath();
-		console.log(`[TerminalHostClient] Daemon script path: ${daemonScript}`);
-		console.log(
-			`[TerminalHostClient] Script exists: ${existsSync(daemonScript)}`,
-		);
-
-		if (!existsSync(daemonScript)) {
-			throw new Error(`Daemon script not found: ${daemonScript}`);
+		// Acquire spawn lock to prevent concurrent spawns
+		if (!this.acquireSpawnLock()) {
+			console.log("[TerminalHostClient] Another spawn in progress, waiting...");
+			// Wait for the other spawn to complete
+			await this.waitForDaemon();
+			return;
 		}
 
-		console.log(
-			`[TerminalHostClient] Spawning daemon with execPath: ${process.execPath}`,
-		);
+		try {
+			// Get path to daemon script
+			const daemonScript = this.getDaemonScriptPath();
+			console.log(`[TerminalHostClient] Daemon script path: ${daemonScript}`);
+			console.log(
+				`[TerminalHostClient] Script exists: ${existsSync(daemonScript)}`,
+			);
 
-		// Spawn daemon as detached process
-		const child = spawn(process.execPath, [daemonScript], {
-			detached: true,
-			stdio: "ignore",
-			env: {
-				...process.env,
-				ELECTRON_RUN_AS_NODE: "1",
-				NODE_ENV: process.env.NODE_ENV,
-			},
-		});
+			if (!existsSync(daemonScript)) {
+				throw new Error(`Daemon script not found: ${daemonScript}`);
+			}
 
-		console.log(`[TerminalHostClient] Daemon spawned with PID: ${child.pid}`);
+			console.log(
+				`[TerminalHostClient] Spawning daemon with execPath: ${process.execPath}`,
+			);
 
-		// Unref to allow parent to exit independently
-		child.unref();
+			// Spawn daemon as detached process
+			const child = spawn(process.execPath, [daemonScript], {
+				detached: true,
+				stdio: "ignore",
+				env: {
+					...process.env,
+					ELECTRON_RUN_AS_NODE: "1",
+					NODE_ENV: process.env.NODE_ENV,
+				},
+			});
 
-		// Wait for daemon to start
-		console.log("[TerminalHostClient] Waiting for daemon to start...");
-		await this.waitForDaemon();
-		console.log("[TerminalHostClient] Daemon started successfully");
+			console.log(`[TerminalHostClient] Daemon spawned with PID: ${child.pid}`);
+
+			// Unref to allow parent to exit independently
+			child.unref();
+
+			// Wait for daemon to start
+			console.log("[TerminalHostClient] Waiting for daemon to start...");
+			await this.waitForDaemon();
+			console.log("[TerminalHostClient] Daemon started successfully");
+		} finally {
+			this.releaseSpawnLock();
+		}
 	}
 
 	/**

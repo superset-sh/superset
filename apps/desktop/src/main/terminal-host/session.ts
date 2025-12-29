@@ -185,8 +185,9 @@ export class Session {
 
 	/**
 	 * Attach a client to this session
+	 * Returns a snapshot after flushing any pending writes to ensure consistency
 	 */
-	attach(socket: Socket): TerminalSnapshot {
+	async attach(socket: Socket): Promise<TerminalSnapshot> {
 		if (this.disposed) {
 			throw new Error("Session disposed");
 		}
@@ -205,8 +206,9 @@ export class Session {
 		socket.once("close", cleanup);
 		socket.once("error", cleanup);
 
-		// Return current snapshot
-		return this.emulator.getSnapshot();
+		// Return current snapshot after flushing pending writes
+		// This ensures any output produced while no clients were attached is included
+		return this.emulator.getSnapshotAsync();
 	}
 
 	/**

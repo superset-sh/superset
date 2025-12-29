@@ -352,20 +352,53 @@ export class DaemonTerminalManager extends EventEmitter {
 	async killByWorkspaceId(
 		workspaceId: string,
 	): Promise<{ killed: number; failed: number }> {
-		const sessionsToKill = Array.from(this.sessions.entries()).filter(
+		// Collect paneIds to kill (from local state or daemon)
+		let paneIdsToKill: string[] = [];
+
+		// First check local sessions map
+		const localSessions = Array.from(this.sessions.entries()).filter(
 			([, session]) => session.workspaceId === workspaceId,
 		);
+		paneIdsToKill = localSessions.map(([paneId]) => paneId);
 
-		if (sessionsToKill.length === 0) {
+		// If no local sessions, query daemon directly
+		// This handles the case where app restarted but daemon still has sessions
+		if (paneIdsToKill.length === 0) {
+			try {
+				const response = await this.client.listSessions();
+				const daemonSessions = response.sessions.filter(
+					(s) => s.workspaceId === workspaceId && s.isAlive,
+				);
+
+				if (daemonSessions.length > 0) {
+					console.log(
+						`[DaemonTerminalManager] Found ${daemonSessions.length} orphaned daemon sessions for workspace ${workspaceId}`,
+					);
+					paneIdsToKill = daemonSessions.map((s) => s.paneId);
+				}
+			} catch (error) {
+				console.warn(
+					"[DaemonTerminalManager] Failed to query daemon for sessions:",
+					error,
+				);
+			}
+		}
+
+		if (paneIdsToKill.length === 0) {
 			return { killed: 0, failed: 0 };
 		}
 
 		let killed = 0;
 		let failed = 0;
 
-		for (const [paneId] of sessionsToKill) {
+		for (const paneId of paneIdsToKill) {
 			try {
-				await this.kill({ paneId, deleteHistory: true });
+				await this.client.kill({ sessionId: paneId, deleteHistory: true });
+				// Clean up local state if it exists
+				const session = this.sessions.get(paneId);
+				if (session) {
+					session.isAlive = false;
+				}
 				killed++;
 			} catch {
 				failed++;

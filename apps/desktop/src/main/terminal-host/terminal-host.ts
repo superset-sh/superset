@@ -33,10 +33,10 @@ export class TerminalHost {
 	/**
 	 * Create or attach to a terminal session
 	 */
-	createOrAttach(
+	async createOrAttach(
 		socket: Socket,
 		request: CreateOrAttachRequest,
-	): CreateOrAttachResponse {
+	): Promise<CreateOrAttachResponse> {
 		const { sessionId } = request;
 
 		let session = this.sessions.get(sessionId);
@@ -74,8 +74,8 @@ export class TerminalHost {
 			isNew = true;
 		}
 
-		// Attach client to session
-		const snapshot = session.attach(socket);
+		// Attach client to session (async to ensure pending writes are flushed)
+		const snapshot = await session.attach(socket);
 
 		return {
 			isNew,

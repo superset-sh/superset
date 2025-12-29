@@ -10,7 +10,7 @@ import {
 import { and, desc, eq, isNotNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
-import { terminalManager } from "main/lib/terminal";
+import { getActiveTerminalManager } from "main/lib/terminal";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -494,7 +494,7 @@ export const createWorkspacesRouter = () => {
 				await safeCheckoutBranch(project.mainRepoPath, input.branch);
 
 				// Send newline to terminals so their prompts refresh with new branch
-				terminalManager.refreshPromptsForWorkspace(workspace.id);
+				getActiveTerminalManager().refreshPromptsForWorkspace(workspace.id);
 
 				// Update the workspace - name is always the branch for branch workspaces
 				const now = Date.now();
@@ -777,7 +777,7 @@ export const createWorkspacesRouter = () => {
 				}
 
 				const activeTerminalCount =
-					terminalManager.getSessionCountByWorkspaceId(input.id);
+					getActiveTerminalManager().getSessionCountByWorkspaceId(input.id);
 
 				// Branch workspaces are non-destructive to close - no git checks needed
 				if (workspace.type === "branch") {
@@ -891,9 +891,8 @@ export const createWorkspacesRouter = () => {
 				}
 
 				// Kill all terminal processes in this workspace first
-				const terminalResult = await terminalManager.killByWorkspaceId(
-					input.id,
-				);
+				const terminalResult =
+					await getActiveTerminalManager().killByWorkspaceId(input.id);
 
 				const project = localDb
 					.select()
@@ -1412,9 +1411,8 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Workspace not found");
 				}
 
-				const terminalResult = await terminalManager.killByWorkspaceId(
-					input.id,
-				);
+				const terminalResult =
+					await getActiveTerminalManager().killByWorkspaceId(input.id);
 
 				// Delete workspace record ONLY, keep worktree
 				localDb.delete(workspaces).where(eq(workspaces.id, input.id)).run();
