@@ -46,6 +46,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
+	const [attachFailed, setAttachFailed] = useState(false);
+	const [attachErrorCode, setAttachErrorCode] = useState<string | null>(null);
+	const [isRetrying, setIsRetrying] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
@@ -107,17 +110,24 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const resizeMutation = trpc.terminal.resize.useMutation();
 	const detachMutation = trpc.terminal.detach.useMutation();
 	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
+	const retryAttachMutation = trpc.terminal.retryAttach.useMutation();
+	const killPersistentSessionMutation =
+		trpc.terminal.killPersistentSession.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
 	const detachRef = useRef(detachMutation.mutate);
 	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
+	const retryAttachRef = useRef(retryAttachMutation.mutate);
+	const killPersistentSessionRef = useRef(killPersistentSessionMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
 	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
+	retryAttachRef.current = retryAttachMutation.mutate;
+	killPersistentSessionRef.current = killPersistentSessionMutation.mutate;
 
 	const registerClearCallbackRef = useRef(
 		useTerminalCallbacksStore.getState().registerClearCallback,
@@ -325,6 +335,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 			{
 				onSuccess: (result) => {
+					// Check if attach failed but session exists (user needs to decide)
+					if (result.attachFailed) {
+						setAttachFailed(true);
+						setAttachErrorCode(result.errorCode ?? null);
+						return;
+					}
+
+					setAttachFailed(false);
+					setAttachErrorCode(null);
+
 					// Clear after successful creation to prevent re-running on future reattach
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
@@ -441,6 +461,85 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
+	const handleRetryAttach = () => {
+		if (!xtermRef.current) return;
+		setIsRetrying(true);
+		retryAttachRef.current(
+			{
+				paneId,
+				tabId,
+				workspaceId,
+				cols: xtermRef.current.cols,
+				rows: xtermRef.current.rows,
+			},
+			{
+				onSuccess: (result) => {
+					setIsRetrying(false);
+					if (result.attachFailed) {
+						setAttachFailed(true);
+						setAttachErrorCode(result.errorCode ?? null);
+						return;
+					}
+					setAttachFailed(false);
+					setAttachErrorCode(null);
+					if (xtermRef.current && result.scrollback) {
+						xtermRef.current.write(
+							sanitizeRestoredScrollback(
+								sanitizeTerminalScrollback(result.scrollback),
+							),
+						);
+					}
+					setSubscriptionEnabled(true);
+				},
+				onError: () => {
+					setIsRetrying(false);
+				},
+			},
+		);
+	};
+
+	const handleKillAndRestart = () => {
+		setIsRetrying(true);
+		killPersistentSessionRef.current(
+			{ paneId, workspaceId },
+			{
+				onSuccess: () => {
+					setAttachFailed(false);
+					setAttachErrorCode(null);
+					setIsRetrying(false);
+					// Restart terminal after killing the session
+					if (xtermRef.current) {
+						xtermRef.current.clear();
+						createOrAttachRef.current(
+							{
+								paneId,
+								tabId: parentTabIdRef.current || paneId,
+								workspaceId,
+								cols: xtermRef.current.cols,
+								rows: xtermRef.current.rows,
+							},
+							{
+								onSuccess: (result) => {
+									if (xtermRef.current && result.scrollback) {
+										xtermRef.current.write(
+											sanitizeRestoredScrollback(
+												sanitizeTerminalScrollback(result.scrollback),
+											),
+										);
+									}
+									setSubscriptionEnabled(true);
+								},
+							},
+						);
+					}
+				},
+				onError: () => {
+					setIsRetrying(false);
+				},
+			},
+		);
+	};
+
 	return (
 		<div
 			role="application"
@@ -454,6 +553,41 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
+			{attachFailed && (
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80">
+					<div className="mx-4 max-w-md rounded-lg border border-yellow-600/50 bg-yellow-950/90 p-6 text-center">
+						<div className="mb-2 text-lg font-semibold text-yellow-200">
+							Session Recovery Failed
+						</div>
+						<p className="mb-4 text-sm text-yellow-300/80">
+							A terminal session exists but could not be reattached.
+							{attachErrorCode && (
+								<span className="mt-1 block text-xs text-yellow-400/60">
+									Error: {attachErrorCode}
+								</span>
+							)}
+						</p>
+						<div className="flex justify-center gap-3">
+							<button
+								type="button"
+								onClick={handleRetryAttach}
+								disabled={isRetrying}
+								className="rounded-md bg-yellow-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-yellow-500 disabled:opacity-50"
+							>
+								{isRetrying ? "Retrying..." : "Retry Attach"}
+							</button>
+							<button
+								type="button"
+								onClick={handleKillAndRestart}
+								disabled={isRetrying}
+								className="rounded-md border border-red-600/50 bg-red-950/50 px-4 py-2 text-sm font-medium text-red-300 transition-colors hover:bg-red-900/50 disabled:opacity-50"
+							>
+								Kill Session & Start Fresh
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

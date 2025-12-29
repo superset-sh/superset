@@ -41,6 +41,12 @@ export interface SessionResult {
 	isNew: boolean;
 	scrollback: string;
 	wasRecovered: boolean;
+	/** True if attach to existing tmux session failed (session preserved for manual recovery) */
+	attachFailed?: boolean;
+	/** Error code when attachFailed is true */
+	errorCode?: string;
+	/** Session name for manual kill if needed */
+	sessionName?: string;
 }
 
 export interface CreateSessionParams {

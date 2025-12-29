@@ -87,6 +87,8 @@ export const createTerminalRouter = () => {
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
+					attachFailed: result.attachFailed,
+					errorCode: result.errorCode,
 				};
 			}),
 
@@ -144,6 +146,78 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				await terminalManager.detach(input);
+			}),
+
+		/**
+		 * Kill a persistent tmux session and restart fresh
+		 * Used when attach failed but tmux session may still be running
+		 */
+		killPersistentSession: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					workspaceId: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await terminalManager.killPersistentSession(input);
+			}),
+
+		/**
+		 * Retry attaching to a persistent session after a failure
+		 * Used by the recovery UI when attach fails
+		 */
+		retryAttach: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					tabId: z.string(),
+					workspaceId: z.string(),
+					cols: z.number().optional(),
+					rows: z.number().optional(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const { paneId, tabId, workspaceId, cols, rows } = input;
+
+				// Get workspace info for environment
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, workspaceId))
+					.get();
+				const workspacePath = workspace
+					? (getWorkspacePath(workspace) ?? undefined)
+					: undefined;
+
+				const project = workspace
+					? localDb
+							.select()
+							.from(projects)
+							.where(eq(projects.id, workspace.projectId))
+							.get()
+					: undefined;
+
+				const result = await terminalManager.createOrAttach({
+					paneId,
+					tabId,
+					workspaceId,
+					workspaceName: workspace?.name,
+					workspacePath,
+					rootPath: project?.mainRepoPath,
+					cwd: workspacePath,
+					cols,
+					rows,
+				});
+
+				return {
+					paneId,
+					isNew: result.isNew,
+					scrollback: result.scrollback,
+					wasRecovered: result.wasRecovered,
+					attachFailed: result.attachFailed,
+					errorCode: result.errorCode,
+				};
 			}),
 
 		/**

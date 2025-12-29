@@ -113,20 +113,65 @@ export class TerminalManager extends EventEmitter {
 					});
 				}
 
-				console.warn(
-					"[TerminalManager] Lifecycle attach failed, killing session",
-				);
-				await processPersistence.killSession(sessionName).catch(() => {});
-				this.lifecycles.delete(paneId);
+				// Attach failed - check if error indicates session provably doesn't exist
+				const errorCode = lifecycle.lastErrorCode;
+				if (errorCode && lifecycle.isSafeToProceed()) {
+					// Safe to proceed - session doesn't exist, just clear state and fall back
+					console.log(
+						`[TerminalManager] Attach failed with ${errorCode}, session doesn't exist - falling back`,
+					);
+					this.lifecycles.delete(paneId);
+				} else {
+					// Session may still be running - preserve it and surface error to user
+					console.warn(
+						`[TerminalManager] Attach failed with ${errorCode ?? "unknown"}, preserving tmux session for manual recovery`,
+					);
+					this.emit(`attach-failed:${paneId}`, {
+						sessionName,
+						errorCode: errorCode ?? "ATTACH_FAILED",
+						recoverable: true,
+					});
+					// Don't delete lifecycle - user may retry
+					// Don't kill session - it may have running processes
+					// Return a result indicating recovery is needed
+					return {
+						isNew: false,
+						scrollback: backendScrollback,
+						wasRecovered: false,
+						attachFailed: true,
+						errorCode: errorCode ?? "ATTACH_FAILED",
+					};
+				}
 			}
 		} catch (error) {
 			console.warn("[TerminalManager] Failed to attach:", error);
 
-			try {
-				await processPersistence.killSession(sessionName);
-				console.log("[TerminalManager] Killed orphaned session:", sessionName);
-			} catch {}
-			this.lifecycles.delete(paneId);
+			// For unexpected errors, check if we can safely proceed
+			const lifecycle = this.lifecycles.get(paneId);
+			const errorCode = lifecycle?.lastErrorCode;
+			if (errorCode && lifecycle?.isSafeToProceed()) {
+				console.log(
+					`[TerminalManager] Error classified as ${errorCode}, safe to proceed`,
+				);
+				this.lifecycles.delete(paneId);
+			} else {
+				// Preserve session - emit error for user action
+				console.warn(
+					`[TerminalManager] Unexpected attach error, preserving session for manual recovery`,
+				);
+				this.emit(`attach-failed:${paneId}`, {
+					sessionName,
+					errorCode: errorCode ?? "ATTACH_FAILED",
+					recoverable: true,
+				});
+				return {
+					isNew: false,
+					scrollback: "",
+					wasRecovered: false,
+					attachFailed: true,
+					errorCode: errorCode ?? "ATTACH_FAILED",
+				};
+			}
 		}
 
 		// Only create new persistent tmux sessions when the user preference is enabled.
@@ -182,7 +227,8 @@ export class TerminalManager extends EventEmitter {
 	private async captureScrollbackBounded(sessionName: string): Promise<string> {
 		const MAX_SCROLLBACK_CHARS = 500_000;
 		try {
-			const scrollback = await processPersistence.captureScrollback(sessionName);
+			const scrollback =
+				await processPersistence.captureScrollback(sessionName);
 			const bounded =
 				scrollback.length > MAX_SCROLLBACK_CHARS
 					? scrollback.slice(-MAX_SCROLLBACK_CHARS)
@@ -260,13 +306,16 @@ export class TerminalManager extends EventEmitter {
 		prevState: SessionState,
 	): void {
 		const session = this.sessions.get(paneId);
+		const lifecycle = this.lifecycles.get(paneId);
 
-		if (state === "connected" && prevState === "reconnecting") {
+		// Detect reconnection: connected after a retry cycle
+		// The state flow is: reconnecting → connecting → connected
+		// So we can't check prevState === "reconnecting" directly
+		if (state === "connected" && lifecycle?.wasRetrying) {
 			console.log(`[TerminalManager] Reconnected session ${paneId}`);
 			if (session) {
 				session.isAlive = true;
-				const lifecycle = this.lifecycles.get(paneId);
-				const pty = lifecycle?.getPty();
+				const pty = lifecycle.getPty();
 				if (pty) {
 					session.pty = pty;
 				}
@@ -695,6 +744,71 @@ export class TerminalManager extends EventEmitter {
 		} else {
 			session.lastActive = Date.now();
 		}
+	}
+
+	/**
+	 * Kill a persistent tmux session by workspaceId + paneId.
+	 * Used when attach failed and user wants to kill the orphaned session.
+	 * This works even when there's no active TerminalSession.
+	 */
+	async killPersistentSession(params: {
+		workspaceId: string;
+		paneId: string;
+	}): Promise<void> {
+		const { workspaceId, paneId } = params;
+		const sessionName = getSessionName(workspaceId, paneId);
+
+		console.log(`[TerminalManager] Killing persistent session: ${sessionName}`);
+
+		// Clean up any existing lifecycle
+		const lifecycle = this.lifecycles.get(paneId);
+		if (lifecycle) {
+			try {
+				await lifecycle.close();
+			} catch {}
+			this.lifecycles.delete(paneId);
+		}
+
+		// Kill the tmux session
+		await processPersistence.killSession(sessionName).catch((err) => {
+			console.warn(
+				`[TerminalManager] Failed to kill tmux session ${sessionName}:`,
+				err,
+			);
+		});
+
+		// Clean up any existing session state
+		const session = this.sessions.get(paneId);
+		if (session) {
+			session.isAlive = false;
+			await this.cleanupSession(paneId, session, 0);
+			this.emit(`exit:${paneId}`, 0, undefined);
+		}
+	}
+
+	/**
+	 * Retry attaching to a persistent session after a previous attach failure.
+	 * Clears any failed lifecycle state and attempts fresh attach.
+	 */
+	async retryAttach(params: CreateSessionParams): Promise<SessionResult> {
+		const { paneId } = params;
+
+		console.log(`[TerminalManager] Retrying attach for pane ${paneId}`);
+
+		// Clean up any failed lifecycle state
+		const existingLifecycle = this.lifecycles.get(paneId);
+		if (existingLifecycle) {
+			try {
+				await existingLifecycle.close();
+			} catch {}
+			this.lifecycles.delete(paneId);
+		}
+
+		// Clear any pending session promise
+		this.pendingSessions.delete(paneId);
+
+		// Attempt fresh attach through normal flow
+		return this.createOrAttach(params);
 	}
 
 	async clearScrollback(params: { paneId: string }): Promise<void> {

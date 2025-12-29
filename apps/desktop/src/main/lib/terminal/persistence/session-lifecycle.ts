@@ -9,6 +9,13 @@ const MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [100, 500, 1000];
 const MAX_BUFFER_BYTES = 1024 * 1024; // 1MB max buffer
 
+/** Error codes that indicate the session provably doesn't exist - safe to proceed without preserving */
+const SAFE_TO_PROCEED_CODES: Set<PersistenceErrorCode> = new Set([
+	"NO_SERVER",
+	"NO_SESSION",
+	"SOCKET_MISSING",
+]);
+
 export interface SessionLifecycleEvents {
 	onStateChange: (state: SessionState, prevState: SessionState) => void;
 	onError: (error: PersistenceErrorCode, message: string) => void;
@@ -22,6 +29,8 @@ export class SessionLifecycle {
 	private lastDimensions = { cols: 80, rows: 24 };
 	private disposed = false;
 	private isDetaching = false;
+	private _wasRetrying = false;
+	private _lastErrorCode: PersistenceErrorCode | null = null;
 
 	// Data buffering until handler is set
 	private dataBuffer: string[] = [];
@@ -40,6 +49,24 @@ export class SessionLifecycle {
 
 	getPty(): pty.IPty | null {
 		return this.ptyProcess;
+	}
+
+	/** Returns true if the last failure was due to a reconnection attempt */
+	get wasRetrying(): boolean {
+		return this._wasRetrying;
+	}
+
+	/** Returns the last error code, if any */
+	get lastErrorCode(): PersistenceErrorCode | null {
+		return this._lastErrorCode;
+	}
+
+	/** Returns true if the last error indicates the session provably doesn't exist */
+	isSafeToProceed(): boolean {
+		return (
+			this._lastErrorCode !== null &&
+			SAFE_TO_PROCEED_CODES.has(this._lastErrorCode)
+		);
 	}
 
 	private transition(newState: SessionState): void {
@@ -75,11 +102,13 @@ export class SessionLifecycle {
 	}
 
 	private async doAttach(cols: number, rows: number): Promise<boolean> {
+		const wasInRetryState = this._wasRetrying || this.state === "reconnecting";
 		this.transition("connecting");
 
 		try {
 			const sessionExists = await this.backend.sessionExists(this.sessionName);
 			if (!sessionExists) {
+				this._lastErrorCode = "NO_SESSION";
 				this.transition("closed");
 				return false;
 			}
@@ -95,11 +124,33 @@ export class SessionLifecycle {
 				this.ptyProcess.resize(cols, rows);
 			} catch {}
 
+			// Track if this was a successful reconnection
+			this._wasRetrying = wasInRetryState;
+			this._lastErrorCode = null;
 			this.retryCount = 0;
 			this.transition("connected");
 			return true;
 		} catch (error) {
 			const tmuxError = this.backend.classifyError(error);
+			this._lastErrorCode = tmuxError;
+
+			// If this is an initial attach (not a reconnect from onExit) and error is retryable,
+			// attempt bounded retries before failing
+			if (!wasInRetryState && !SAFE_TO_PROCEED_CODES.has(tmuxError)) {
+				if (this.retryCount < MAX_RETRIES) {
+					this.retryCount++;
+					const delay = RETRY_DELAYS_MS[this.retryCount - 1] ?? 1000;
+					console.log(
+						`[SessionLifecycle] Initial attach failed, retry ${this.retryCount}/${MAX_RETRIES} in ${delay}ms`,
+					);
+					await new Promise((r) => setTimeout(r, delay));
+
+					if (!this.disposed && !this.isDetaching) {
+						return this.doAttach(cols, rows);
+					}
+				}
+			}
+
 			this.events.onError(
 				tmuxError,
 				error instanceof Error ? error.message : String(error),
