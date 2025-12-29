@@ -276,26 +276,33 @@ async function getFileVersions(
 	}
 }
 
+/** Helper to safely get git show content with size limit */
+async function safeGitShow(
+	git: ReturnType<typeof simpleGit>,
+	spec: string,
+): Promise<string> {
+	try {
+		const content = await git.show([spec]);
+		// Enforce size limit on git content
+		if (content.length > MAX_FILE_SIZE) {
+			return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+		}
+		return content;
+	} catch {
+		return "";
+	}
+}
+
 async function getAgainstBaseVersions(
 	git: ReturnType<typeof simpleGit>,
 	filePath: string,
 	originalPath: string,
 	defaultBranch: string,
 ): Promise<FileVersions> {
-	let original = "";
-	let modified = "";
-
-	try {
-		original = await git.show([`origin/${defaultBranch}:${originalPath}`]);
-	} catch {
-		original = "";
-	}
-
-	try {
-		modified = await git.show([`HEAD:${filePath}`]);
-	} catch {
-		modified = "";
-	}
+	const [original, modified] = await Promise.all([
+		safeGitShow(git, `origin/${defaultBranch}:${originalPath}`),
+		safeGitShow(git, `HEAD:${filePath}`),
+	]);
 
 	return { original, modified };
 }
@@ -306,20 +313,10 @@ async function getCommittedVersions(
 	originalPath: string,
 	commitHash: string,
 ): Promise<FileVersions> {
-	let original = "";
-	let modified = "";
-
-	try {
-		original = await git.show([`${commitHash}^:${originalPath}`]);
-	} catch {
-		original = "";
-	}
-
-	try {
-		modified = await git.show([`${commitHash}:${filePath}`]);
-	} catch {
-		modified = "";
-	}
+	const [original, modified] = await Promise.all([
+		safeGitShow(git, `${commitHash}^:${originalPath}`),
+		safeGitShow(git, `${commitHash}:${filePath}`),
+	]);
 
 	return { original, modified };
 }
@@ -329,20 +326,10 @@ async function getStagedVersions(
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
-	let original = "";
-	let modified = "";
-
-	try {
-		original = await git.show([`HEAD:${originalPath}`]);
-	} catch {
-		original = "";
-	}
-
-	try {
-		modified = await git.show([`:0:${filePath}`]);
-	} catch {
-		modified = "";
-	}
+	const [original, modified] = await Promise.all([
+		safeGitShow(git, `HEAD:${originalPath}`),
+		safeGitShow(git, `:0:${filePath}`),
+	]);
 
 	return { original, modified };
 }
@@ -353,23 +340,27 @@ async function getUnstagedVersions(
 	filePath: string,
 	originalPath: string,
 ): Promise<FileVersions> {
-	let original = "";
-	let modified = "";
-
-	try {
-		original = await git.show([`:0:${originalPath}`]);
-	} catch {
-		try {
-			original = await git.show([`HEAD:${originalPath}`]);
-		} catch {
-			original = "";
-		}
+	// Try staged version first, fall back to HEAD
+	let original = await safeGitShow(git, `:0:${originalPath}`);
+	if (!original) {
+		original = await safeGitShow(git, `HEAD:${originalPath}`);
 	}
 
-	try {
-		modified = await readFile(join(worktreePath, filePath), "utf-8");
-	} catch {
-		modified = "";
+	let modified = "";
+	// Validate path before reading from filesystem (prevents path traversal)
+	const validation = await validatePathInWorktree(worktreePath, filePath);
+	if (validation.valid && validation.resolvedPath) {
+		try {
+			// Check file size before reading
+			const stats = await lstat(validation.resolvedPath);
+			if (stats.size <= MAX_FILE_SIZE) {
+				modified = await readFile(validation.resolvedPath, "utf-8");
+			} else {
+				modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+			}
+		} catch {
+			modified = "";
+		}
 	}
 
 	return { original, modified };

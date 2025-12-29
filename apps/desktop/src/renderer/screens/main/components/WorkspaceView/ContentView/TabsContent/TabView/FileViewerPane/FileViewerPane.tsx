@@ -237,6 +237,14 @@ export function FileViewerPane({
 			},
 		);
 
+	// P1-1: Update originalContentRef when raw content loads (dirty tracking fix)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
+	useEffect(() => {
+		if (rawFileData?.ok === true && !isDirty) {
+			originalContentRef.current = rawFileData.content;
+		}
+	}, [rawFileData]);
+
 	// Early return AFTER hooks
 	if (!fileViewer) {
 		return (
@@ -311,6 +319,10 @@ export function FileViewerPane({
 
 	const fileName = filePath.split("/").pop() || filePath;
 
+	// P1-3: Only allow editing for staged/unstaged diffs (not committed/against-main)
+	const isDiffEditable =
+		diffCategory === "staged" || diffCategory === "unstaged";
+
 	// Render content based on view mode
 	const renderContent = () => {
 		if (viewMode === "diff") {
@@ -330,6 +342,7 @@ export function FileViewerPane({
 			}
 			return (
 				<DiffViewer
+					key={filePath}
 					contents={{
 						original: diffData.original,
 						modified: diffData.modified,
@@ -337,8 +350,8 @@ export function FileViewerPane({
 					}}
 					viewMode="inline"
 					filePath={filePath}
-					editable
-					onSave={handleSaveDiff}
+					editable={isDiffEditable}
+					onSave={isDiffEditable ? handleSaveDiff : undefined}
 				/>
 			);
 		}
@@ -385,8 +398,10 @@ export function FileViewerPane({
 			);
 		}
 
+		// P0-2: Key by filePath to force remount and fresh action registration
 		return (
 			<Editor
+				key={filePath}
 				height="100%"
 				language={detectLanguage(filePath)}
 				value={rawFileData.content}
@@ -418,7 +433,11 @@ export function FileViewerPane({
 	};
 
 	// Determine which view modes are available
-	const isMarkdown = filePath.endsWith(".md") || filePath.endsWith(".markdown");
+	// P1-2: Include .mdx for consistency with default view mode logic
+	const isMarkdown =
+		filePath.endsWith(".md") ||
+		filePath.endsWith(".markdown") ||
+		filePath.endsWith(".mdx");
 	const hasDiff = !!diffCategory;
 
 	const splitIcon =
@@ -428,8 +447,9 @@ export function FileViewerPane({
 			<TbLayoutRows className="size-4" />
 		);
 
-	// Show editable badge for raw and diff modes (not rendered)
-	const showEditableBadge = viewMode !== "rendered";
+	// Show editable badge only for editable modes
+	const showEditableBadge =
+		viewMode === "raw" || (viewMode === "diff" && isDiffEditable);
 	const isSaving = saveFileMutation.isPending;
 
 	return (
