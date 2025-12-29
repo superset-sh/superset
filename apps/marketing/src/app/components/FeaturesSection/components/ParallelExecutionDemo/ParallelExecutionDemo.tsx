@@ -272,7 +272,9 @@ export function ParallelExecutionDemo() {
 						))}
 						{chatMessages.map((line, index) => (
 							<div key={`chat-${index}-${line.slice(0, 10)}`}>
-								<div className={`${line.startsWith(">") ? "text-green-400" : ""}`}>
+								<div
+									className={`${line.startsWith(">") ? "text-green-400" : ""}`}
+								>
 									{line || "\u00A0"}
 								</div>
 								<div className="mt-1">
