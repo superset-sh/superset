@@ -116,7 +116,8 @@ export const createFileViewerPane = (
 		defaultViewMode = "diff";
 	} else if (
 		options.filePath.endsWith(".md") ||
-		options.filePath.endsWith(".markdown")
+		options.filePath.endsWith(".markdown") ||
+		options.filePath.endsWith(".mdx")
 	) {
 		defaultViewMode = "rendered";
 	}

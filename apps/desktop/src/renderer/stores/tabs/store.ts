@@ -389,7 +389,8 @@ export const useTabsStore = create<TabsStore>()(
 							viewMode = "diff";
 						} else if (
 							options.filePath.endsWith(".md") ||
-							options.filePath.endsWith(".markdown")
+							options.filePath.endsWith(".markdown") ||
+							options.filePath.endsWith(".mdx")
 						) {
 							viewMode = "rendered";
 						}

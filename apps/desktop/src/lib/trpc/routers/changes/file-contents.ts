@@ -23,7 +23,8 @@ type ReadWorkingFileResult =
 	  };
 
 /**
- * Validates that a file path is within the worktree and doesn't escape via symlinks
+ * Validates that a file path is within the worktree and doesn't escape via symlinks.
+ * Requires the file to exist (uses realpath).
  */
 async function validatePathInWorktree(
 	worktreePath: string,
@@ -56,6 +57,48 @@ async function validatePathInWorktree(
 		return { valid: true, resolvedPath: realFilePath };
 	} catch {
 		// File doesn't exist
+		return { valid: false, reason: "not-found" };
+	}
+}
+
+/**
+ * Validates that a file path is safe for writing within the worktree.
+ * Does not require the file to exist (validates path structure and parent directory).
+ */
+async function validatePathForWrite(
+	worktreePath: string,
+	filePath: string,
+): Promise<{ valid: boolean; resolvedPath?: string; reason?: string }> {
+	// Reject absolute paths
+	if (isAbsolute(filePath)) {
+		return { valid: false, reason: "outside-worktree" };
+	}
+
+	// Normalize and check for traversal
+	const normalizedPath = normalize(filePath);
+	if (normalizedPath.startsWith("..") || normalizedPath.includes("/../")) {
+		return { valid: false, reason: "outside-worktree" };
+	}
+
+	const fullPath = join(worktreePath, normalizedPath);
+
+	// Resolve the worktree path and verify our target path is within it
+	try {
+		const realWorktreePath = await realpath(worktreePath);
+
+		// For writes, we can't realpath the file (it may not exist), but we can check
+		// the normalized path structure is within the worktree
+		const candidatePath = join(realWorktreePath, normalizedPath);
+		const relativePath = relative(realWorktreePath, candidatePath);
+
+		// If relative path starts with "..", the file is outside worktree
+		if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+			return { valid: false, reason: "outside-worktree" };
+		}
+
+		return { valid: true, resolvedPath: candidatePath };
+	} catch {
+		// Worktree path doesn't exist or isn't accessible
 		return { valid: false, reason: "not-found" };
 	}
 }
@@ -117,8 +160,21 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const fullPath = join(input.worktreePath, input.filePath);
-				await writeFile(fullPath, input.content, "utf-8");
+				// Validate path is within worktree (prevents path traversal attacks)
+				const validation = await validatePathForWrite(
+					input.worktreePath,
+					input.filePath,
+				);
+
+				if (!validation.valid || !validation.resolvedPath) {
+					throw new Error(
+						validation.reason === "outside-worktree"
+							? "Cannot write to files outside worktree"
+							: "File path validation failed",
+					);
+				}
+
+				await writeFile(validation.resolvedPath, input.content, "utf-8");
 				return { success: true };
 			}),
 

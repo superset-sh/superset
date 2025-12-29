@@ -29,6 +29,7 @@ export function ViewModeToggle() {
 			<button
 				type="button"
 				onClick={() => handleModeChange("workbench")}
+				aria-pressed={currentMode === "workbench"}
 				className={cn(
 					"px-3 py-1 text-sm font-medium rounded-md transition-all",
 					currentMode === "workbench"
@@ -41,6 +42,7 @@ export function ViewModeToggle() {
 			<button
 				type="button"
 				onClick={() => handleModeChange("review")}
+				aria-pressed={currentMode === "review"}
 				className={cn(
 					"px-3 py-1 text-sm font-medium rounded-md transition-all",
 					currentMode === "review"

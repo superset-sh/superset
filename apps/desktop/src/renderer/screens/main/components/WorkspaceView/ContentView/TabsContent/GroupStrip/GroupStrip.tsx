@@ -55,9 +55,9 @@ function GroupItem({
 					e.stopPropagation();
 					onClose();
 				}}
-				className="absolute -right-1 -top-1 p-0.5 rounded-full bg-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+				className="absolute -right-1.5 -top-1.5 p-1 rounded-full bg-muted opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
 			>
-				<HiMiniXMark className="size-2.5" />
+				<HiMiniXMark className="size-2" />
 			</button>
 		</div>
 	);
