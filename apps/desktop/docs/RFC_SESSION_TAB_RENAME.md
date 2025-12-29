@@ -18,6 +18,18 @@ UI follow-up:
 
 This fixes a fundamental UX confusion where "New Terminal" creates a whole new layout instead of adding a terminal.
 
+### Motivation
+
+This is a stepping stone toward a more **Conductor-like** workflow: the ability to view **code (files/diffs)** and **terminals** together in a single window/layout, without constantly switching “modes”.
+
+This matters most for the “review + feedback loop” workflow:
+- Reviewing code and plans while giving feedback to an AI via the CLI
+- Keeping the terminal visible while reading changes/diffs and docs
+
+Today the design makes this difficult because the user often has to switch between views to accomplish what should be one continuous flow.
+
+Longer-term, this structure also sets us up to support higher-level review workflows (e.g., creating GitHub review comments from inside Superset), but that is explicitly out of scope for the MVP.
+
 ### Goals
 
 - Make “New Terminal” add a terminal to the current layout by default
