@@ -11,7 +11,13 @@
 
 import { spawn } from "node:child_process";
 import { EventEmitter } from "node:events";
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readFileSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { connect, type Socket } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -374,6 +380,11 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private acquireSpawnLock(): boolean {
 		try {
+			// Ensure superset home directory exists before any file operations
+			if (!existsSync(SUPERSET_HOME_DIR)) {
+				mkdirSync(SUPERSET_HOME_DIR, { recursive: true, mode: 0o700 });
+			}
+
 			// Check if lock exists and is recent (within timeout)
 			if (existsSync(SPAWN_LOCK_PATH)) {
 				const lockContent = readFileSync(SPAWN_LOCK_PATH, "utf-8").trim();

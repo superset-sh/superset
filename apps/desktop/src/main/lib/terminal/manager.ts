@@ -378,7 +378,7 @@ export class TerminalManager extends EventEmitter {
 		});
 	}
 
-	getSessionCountByWorkspaceId(workspaceId: string): number {
+	async getSessionCountByWorkspaceId(workspaceId: string): Promise<number> {
 		return Array.from(this.sessions.values()).filter(
 			(session) => session.workspaceId === workspaceId && session.isAlive,
 		).length;

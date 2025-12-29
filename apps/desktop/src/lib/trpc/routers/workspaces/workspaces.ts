@@ -777,7 +777,9 @@ export const createWorkspacesRouter = () => {
 				}
 
 				const activeTerminalCount =
-					getActiveTerminalManager().getSessionCountByWorkspaceId(input.id);
+					await getActiveTerminalManager().getSessionCountByWorkspaceId(
+						input.id,
+					);
 
 				// Branch workspaces are non-destructive to close - no git checks needed
 				if (workspace.type === "branch") {
