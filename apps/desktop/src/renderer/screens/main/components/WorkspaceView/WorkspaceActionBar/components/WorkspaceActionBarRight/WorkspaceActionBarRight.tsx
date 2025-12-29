@@ -21,6 +21,7 @@ import {
 } from "renderer/components/OpenInButton";
 import { shortenHomePath } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
+import { ConvertToCloudButton } from "../ConvertToCloudButton";
 
 interface FormattedPath {
 	prefix: string;
@@ -80,6 +81,10 @@ export function WorkspaceActionBarRight({
 
 	return (
 		<>
+			<ConvertToCloudButton />
+
+			<div className="w-2" />
+
 			{/* Path - clickable to open */}
 			<Tooltip>
 				<TooltipTrigger asChild>
