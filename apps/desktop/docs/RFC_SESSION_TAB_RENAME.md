@@ -48,7 +48,19 @@ Longer-term, this structure also sets us up to support higher-level review workf
 
 ### Terminology Note
 
-This RFC uses **Group** as the user-facing term for the layout container (currently called a Tab). We explicitly avoid **Session** because it’s already used for other concepts (terminal sessions, auth sessions, etc.). If “Group” feels too generic, “Layout” is the main alternative.
+> **⚠️ Decision needed:** What should we call the layout container?
+
+This RFC uses **Group** as the placeholder term for the layout container (currently called a Tab). We explicitly avoid **Session** because it's already used for other concepts (terminal sessions, auth sessions, etc.).
+
+| Option | Pros | Cons |
+|--------|------|------|
+| **Group** | Familiar from browser tab groups, suggests "collection of things" | Generic, could mean anything |
+| **Layout** | Describes exactly what it is (a pane arrangement) | Less personal/memorable, sounds technical |
+| **Space** | Used by macOS (Spaces), implies a "workspace within a workspace" | Could conflict with "Workspace" terminology |
+| **Canvas** | Creative, implies "arrange things freely" | Uncommon in dev tools, learning curve |
+| **View** | Simple, familiar | Overloaded term (file view, diff view, etc.) |
+
+**Current recommendation:** **Group** - but revisit after user testing.
 
 ---
 
@@ -193,9 +205,60 @@ Workspace                                Workspace
   - **Rendered**: markdown rendering for docs/plans
   - **Raw**: plain text/code view
   - **Diff**: inline/side-by-side diff for changed files
-- Open behavior: clicking a file in **Changes** or **Pinned** opens/reuses a File Viewer pane in the active Group.
-- Reuse policy: reuse the most-recent unlocked File Viewer pane in the active Group; if none exists, create a new pane via auto-split.
-- Lock/pin: locked panes are not replaced when clicking other files (Pinned files default to locked).
+
+**Default mode selection:**
+| File context | Default mode |
+|--------------|--------------|
+| File is in Changes (modified) | **Diff** |
+| File is `.md` / `.mdx` | **Rendered** |
+| All other files | **Raw** |
+
+User can switch modes via a toggle in the pane header.
+
+**Open behavior:** Clicking a file in **Changes** or **Pinned** opens/reuses a File Viewer pane in the active Group.
+
+**Reuse policy:** Reuse the most-recent unlocked File Viewer pane in the active Group; if none exists, create a new pane via auto-split. Track "most recent" by last-focused timestamp.
+
+**Lock/pin concept:**
+- By default, File Viewer panes are **unlocked** (preview mode). Clicking another file replaces the content.
+- **Locking** a pane (via a 🔒 toggle or double-clicking the file tab) prevents it from being replaced. This lets you keep important files open while browsing others.
+- Files opened from **Pinned** default to locked.
+- Visual indicator: locked panes show a pin/lock icon in their header.
+
+```
+Example: You have 2 file viewer panes open
+
+┌─────────────────────┬─────────────────────┐
+│ 📄 README.md   [🔒] │ 📄 config.ts   [ ]  │  ← README is locked, config is unlocked
+└─────────────────────┴─────────────────────┘
+
+Click "utils.ts" in Changes sidebar:
+→ config.ts pane gets replaced with utils.ts (it was unlocked)
+→ README.md stays open (it was locked)
+```
+
+#### Auto-Split Algorithm
+
+When creating a new pane (terminal or file viewer), the system needs to decide how to split the layout.
+
+**Options considered:**
+
+| Option | Behavior | Pros | Cons |
+|--------|----------|------|------|
+| **A. Always horizontal** | New pane appears to the right | Predictable | Wastes vertical space on wide monitors |
+| **B. Always vertical** | New pane appears below | Predictable | Wastes horizontal space |
+| **C. Aspect-ratio based** | Split the longer dimension | Adapts to window shape | Less predictable |
+| **D. Largest-pane based** | Find largest pane, split it | Balances layout | Complex, may split unexpected pane |
+| **E. User preference** | Setting: "Default split direction" | User control | Extra config |
+
+**Recommendation: Option C (aspect-ratio based)** with a twist:
+
+1. Look at the **focused pane's** dimensions (not the whole layout)
+2. If pane width > height × 1.5 → split **horizontal** (new pane to right)
+3. Else → split **vertical** (new pane below)
+4. Fallback for first pane: horizontal split
+
+This adapts to the current layout naturally. A wide terminal gets split horizontally; a tall one gets split vertically.
 
 ### 3. Interaction Flows
 
@@ -328,17 +391,122 @@ Legend:
 
 ## Open Questions
 
-1. **Group persistence**: Should groups persist across app restarts?
-   - **Recommendation**: Yes, with terminal reconnection where possible.
+### 1. Group persistence
+Should groups persist across app restarts?
 
-2. **Empty groups**: What happens when the last Pane in a Group is closed?
-   - **Recommendation**: Keep the Group with an empty state + “New Terminal” prompt.
+**Recommendation**: Yes, with terminal reconnection where possible.
 
-3. **Group limits**: Maximum groups per workspace?
-   - **Recommendation**: No hard limit, but warn above 10.
+---
 
-4. **Cross-group pane movement**: Allow moving panes between groups?
-   - **Recommendation**: Yes, via context menu (drag/drop optional follow-up).
+### 2. Empty groups
+What happens when the last Pane in a Group is closed?
+
+| Option | Behavior | Pros | Cons |
+|--------|----------|------|------|
+| **A. Delete the Group** | Group disappears when last pane closes | Simple, no empty states | Loses the "named layout" if user wants to reuse it |
+| **B. Keep with empty state** | Show empty Group with "New Terminal" prompt | Preserves named layouts | Adds a third state (has panes / empty / doesn't exist) |
+| **C. Keep but auto-create pane** | Immediately create a new terminal pane | Never empty | Unexpected terminal spawning |
+
+**Recommendation**: **Option A (Delete the Group)** for MVP simplicity. If users want to keep a layout, they don't close all panes. Revisit if feedback suggests people want persistent named layouts.
+
+---
+
+### 3. Group limits
+Maximum groups per workspace?
+
+**Recommendation**: No hard limit, but warn above 10.
+
+---
+
+### 4. Cross-group pane movement
+Allow moving panes between groups?
+
+**Recommendation**: Yes, via context menu (drag/drop optional follow-up).
+
+---
+
+### 5. Terminal discoverability across Groups
+
+> **⚠️ Decision needed:** How do users find a specific terminal when they have many terminals across multiple Groups?
+
+**Problem:** The sidebar becomes file-centric (Changes, Pinned, Ports). If a user has 5 terminals across 2 Groups, how do they find the one running `npm run build`?
+
+**Options:**
+
+| Option | Description | Pros | Cons |
+|--------|-------------|------|------|
+| **A. Sidebar terminal section** | Keep a collapsible "Terminals" section in sidebar | Familiar, always visible | Clutters sidebar, competes with file focus |
+| **B. Quick-switch overlay** | `Cmd+Shift+T` opens a searchable terminal picker | Fast, keyboard-centric | Hidden, discoverability issue |
+| **C. Mosaic pane headers** | Show terminal name/command in each pane header | Always visible in-context | Only works for visible panes |
+| **D. Group hover preview** | Hovering a Group tab shows thumbnail/list of panes | Non-intrusive | Requires mouse, slow |
+| **E. Combined B + C** | Pane headers + quick-switch overlay | Best of both worlds | More to build |
+
+**Visual: Option B (Quick-switch overlay)**
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Cmd+Shift+T pressed:                                              │
+│ ┌──────────────────────────────────────────────────────────────┐ │
+│ │ 🔍 Search terminals...                                        │ │
+│ ├──────────────────────────────────────────────────────────────┤ │
+│ │ ● npm run dev          [dev-server] Group                    │ │
+│ │   claude --chat        [review] Group                        │ │
+│ │   npm run build        [review] Group                        │ │
+│ │   zsh                  [main] Group                          │ │
+│ └──────────────────────────────────────────────────────────────┘ │
+│ ↑↓ to navigate, Enter to switch, Esc to cancel                   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Visual: Option A (Sidebar terminal section)**
+```
+┌─────────────────────┐
+│ Sidebar             │
+├─────────────────────┤
+│ ▼ Changes       [⟳] │
+│   file1.ts          │
+│   file2.ts          │
+├─────────────────────┤
+│ ▶ Pinned        [+] │
+├─────────────────────┤
+│ ▼ Terminals         │  ← Collapsible section
+│   ● npm run dev     │
+│     [dev-server]    │
+│   ○ claude --chat   │
+│     [review]        │
+│   ○ npm run build   │
+│     [review]        │
+├─────────────────────┤
+│ ▶ Ports             │
+└─────────────────────┘
+```
+
+**Recommendation**: **Option E (Combined B + C)** - Show terminal name/command in Mosaic pane headers (always visible for current Group), plus a quick-switch overlay for cross-Group navigation. MVP: Start with C (pane headers), add B (quick-switch) as fast follow.
+
+---
+
+### 6. Workbench ↔ Review transition behavior
+
+When switching between Workbench and Review modes, what state is preserved?
+
+**Behavior:**
+- **Workbench → Review**: Remember which Group was active. Review mode shows the full-screen Changes page.
+- **Review → Workbench**: Return to the last active Group. If no Groups exist, create the first Group.
+- **Keyboard shortcut**: Consider `Cmd+Shift+R` to toggle between modes (or a single-key shortcut if available).
+
+```
+User flow example:
+
+1. User is in Workbench, Group "review" is active
+2. User clicks "Review" toggle → switches to Review mode (full-screen Changes)
+3. User reviews diffs, stages files
+4. User clicks "Workbench" toggle → returns to Group "review" exactly as they left it
+```
+
+**State preserved across toggle:**
+- Active Group selection
+- Pane arrangement within each Group
+- Terminal sessions (still running in background during Review mode)
+- File Viewer pane contents and lock state
 
 ---
 
