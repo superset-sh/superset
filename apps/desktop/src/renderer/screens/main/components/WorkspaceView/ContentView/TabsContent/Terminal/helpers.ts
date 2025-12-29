@@ -114,6 +114,32 @@ export function createTerminalInstance(
 
 	xterm.open(container);
 
+	// Always scroll the terminal viewport on mouse wheel.
+	// By default, xterm.js converts wheel events into up/down keypresses in the alternate buffer
+	// (no scrollback) which can cause interactive prompts to cycle selection instead of scrolling.
+	// Hold Shift to pass wheel events through to the running app (vim/less/tmux, etc.).
+	xterm.attachCustomWheelEventHandler((event) => {
+		if (event.shiftKey) {
+			return true;
+		}
+
+		const viewport = (
+			xterm as unknown as {
+				_core?: { viewport?: { getLinesScrolled: (ev: WheelEvent) => number } };
+			}
+		)._core?.viewport;
+		const amount =
+			viewport?.getLinesScrolled?.(event) ??
+			(event.deltaY === 0 ? 0 : event.deltaY < 0 ? -3 : 3);
+
+		if (amount !== 0) {
+			xterm.scrollLines(amount);
+		}
+
+		event.preventDefault();
+		return false;
+	});
+
 	xterm.loadAddon(fitAddon);
 	const renderer = loadRenderer(xterm);
 
