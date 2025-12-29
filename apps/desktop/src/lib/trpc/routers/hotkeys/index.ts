@@ -61,11 +61,17 @@ export const createHotkeysRouter = (getWindow: () => BrowserWindow | null) => {
 			}
 
 			const exportFile = createHotkeysExport(appState.data.hotkeysState);
-			await writeFile(
-				result.filePath,
-				JSON.stringify(exportFile, null, 2),
-				"utf-8",
-			);
+			try {
+				await writeFile(
+					result.filePath,
+					JSON.stringify(exportFile, null, 2),
+					"utf-8",
+				);
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : "Failed to write file";
+				return { canceled: false, error: message };
+			}
 
 			return { canceled: false, path: result.filePath };
 		}),
