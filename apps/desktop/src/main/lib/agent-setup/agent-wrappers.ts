@@ -131,7 +131,7 @@ exec "$REAL_BIN" "$@"
 
 export function getOpenCodePluginContent(notifyPath: string): string {
 	const templateOpen = String.fromCharCode(36, 123);
-	const shellLine = `      await $\`bash ${templateOpen}notifyPath} ${templateOpen}payload\`;`;
+	const shellLine = `      await $\`bash ${templateOpen}notifyPath} ${templateOpen}payload}\`;`;
 	return [
 		OPENCODE_PLUGIN_MARKER,
 		"export const SupersetNotifyPlugin = async ({ $ }) => {",
