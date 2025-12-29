@@ -28,7 +28,7 @@ export function MarkdownRenderer({
 	const globalStyle = useMarkdownStyle();
 	const style = styleProp ?? globalStyle;
 	const config = styleConfigs[style];
-	const articleRef = useRef<HTMLArticleElement | null>(null);
+	const articleRef = useRef<HTMLElement | null>(null);
 
 	return (
 		<SelectionContextMenu selectAllContainerRef={articleRef}>

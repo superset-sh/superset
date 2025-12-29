@@ -6,7 +6,11 @@ import {
 	ContextMenuShortcut,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import type { MouseEvent as ReactMouseEvent, ReactNode, RefObject } from "react";
+import type {
+	MouseEvent as ReactMouseEvent,
+	ReactNode,
+	RefObject,
+} from "react";
 import { useState } from "react";
 import { LuCopy } from "react-icons/lu";
 
@@ -26,6 +30,50 @@ export function SelectionContextMenu<T extends HTMLElement>({
 }: SelectionContextMenuProps<T>) {
 	const [selectionText, setSelectionText] = useState("");
 	const [linkHref, setLinkHref] = useState<string | null>(null);
+
+	const copyTextToClipboard = async (text: string) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			return;
+		} catch {
+			// Fall through to legacy copy method.
+		}
+
+		const selection = document.getSelection();
+		const savedRanges =
+			selection?.rangeCount && selection.rangeCount > 0
+				? Array.from({ length: selection.rangeCount }, (_, index) =>
+						selection.getRangeAt(index).cloneRange(),
+					)
+				: [];
+
+		const textarea = document.createElement("textarea");
+		textarea.value = text;
+		textarea.setAttribute("readonly", "");
+		textarea.style.position = "fixed";
+		textarea.style.top = "-9999px";
+		textarea.style.left = "-9999px";
+		textarea.style.opacity = "0";
+		document.body.appendChild(textarea);
+
+		textarea.select();
+		textarea.setSelectionRange(0, textarea.value.length);
+
+		try {
+			document.execCommand("copy");
+		} catch {
+			// Ignore; clipboard access may be restricted.
+		} finally {
+			textarea.remove();
+		}
+
+		if (selection) {
+			selection.removeAllRanges();
+			for (const range of savedRanges) {
+				selection.addRange(range);
+			}
+		}
+	};
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
@@ -51,24 +99,12 @@ export function SelectionContextMenu<T extends HTMLElement>({
 		const text = selection?.toString() ?? selectionText;
 		if (!text) return;
 
-		try {
-			await navigator.clipboard.writeText(text);
-		} catch {
-			try {
-				document.execCommand("copy");
-			} catch {
-				// Ignore; clipboard access may be restricted.
-			}
-		}
+		await copyTextToClipboard(text);
 	};
 
 	const handleCopyLinkAddress = async () => {
 		if (!linkHref) return;
-		try {
-			await navigator.clipboard.writeText(linkHref);
-		} catch {
-			// Ignore; clipboard access may be restricted.
-		}
+		await copyTextToClipboard(linkHref);
 	};
 
 	const handleSelectAll = () => {
@@ -88,7 +124,10 @@ export function SelectionContextMenu<T extends HTMLElement>({
 
 	return (
 		<ContextMenu onOpenChange={handleOpenChange}>
-			<ContextMenuTrigger asChild onContextMenuCapture={handleContextMenuCapture}>
+			<ContextMenuTrigger
+				asChild
+				onContextMenuCapture={handleContextMenuCapture}
+			>
 				{children}
 			</ContextMenuTrigger>
 			<ContextMenuContent>
