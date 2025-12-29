@@ -17,12 +17,12 @@ import { appState, initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { terminalManager } from "./lib/terminal";
 import {
 	quitWithoutConfirmation as quitWithoutConfirmationInternal,
 	setSkipQuitConfirmation as setSkipQuitConfirmationInternal,
 	shouldSkipQuitConfirmation,
 } from "./lib/quit-confirmation";
+import { terminalManager } from "./lib/terminal";
 import { processPersistence } from "./lib/terminal/persistence/manager";
 import { MainWindow } from "./windows/main";
 

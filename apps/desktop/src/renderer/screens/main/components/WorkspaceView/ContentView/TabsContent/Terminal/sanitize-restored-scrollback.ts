@@ -24,10 +24,7 @@ const STATEFUL_PRIVATE_MODES = new RegExp(
 );
 
 // Scroll region changes (DECSTBM). These affect scrolling behavior without adding display content.
-const SCROLL_REGION = new RegExp(
-	`${ESC}\\[(?:\\d{1,3}(?:;\\d{1,3})?)?r`,
-	"g",
-);
+const SCROLL_REGION = new RegExp(`${ESC}\\[(?:\\d{1,3}(?:;\\d{1,3})?)?r`, "g");
 
 export function sanitizeRestoredScrollback(data: string): string {
 	if (!data) return data;
@@ -38,4 +35,3 @@ export function sanitizeRestoredScrollback(data: string): string {
 		.replace(STATEFUL_PRIVATE_MODES, "")
 		.replace(SCROLL_REGION, "");
 }
-

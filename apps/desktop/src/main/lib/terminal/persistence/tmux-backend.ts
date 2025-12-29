@@ -6,12 +6,12 @@ import { promisify } from "node:util";
 import * as pty from "node-pty";
 import { getShellArgs } from "../../agent-setup";
 import { SUPERSET_HOME_DIR } from "../../app-environment";
+import { spawnWithBoundedOutput } from "./spawn-bounded";
 import type {
 	CreatePersistentSessionParams,
 	PersistenceBackend,
 	PersistenceErrorCode,
 } from "./types";
-import { spawnWithBoundedOutput } from "./spawn-bounded";
 
 const exec = promisify(execCallback);
 

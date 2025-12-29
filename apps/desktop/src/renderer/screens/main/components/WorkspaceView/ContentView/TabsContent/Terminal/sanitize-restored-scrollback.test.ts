@@ -33,4 +33,3 @@ describe("sanitizeRestoredScrollback", () => {
 		expect(sanitizeRestoredScrollback(input)).toBe("x y z");
 	});
 });
-

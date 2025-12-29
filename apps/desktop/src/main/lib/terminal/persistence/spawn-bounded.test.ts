@@ -31,7 +31,10 @@ describe("spawnWithBoundedOutput", () => {
 	it("kills on timeout and returns partial output", async () => {
 		const result = await spawnWithBoundedOutput({
 			command: process.execPath,
-			args: ["-e", `process.stdout.write("START"); setInterval(() => {}, 1000);`],
+			args: [
+				"-e",
+				`process.stdout.write("START"); setInterval(() => {}, 1000);`,
+			],
 			timeoutMs: 50,
 			maxStdoutBytes: 64 * 1024,
 			maxStderrBytes: 4 * 1024,
@@ -41,4 +44,3 @@ describe("spawnWithBoundedOutput", () => {
 		expect(result.stdout).toContain("START");
 	});
 });
-

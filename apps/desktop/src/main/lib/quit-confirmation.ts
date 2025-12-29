@@ -20,4 +20,3 @@ export function quitWithoutConfirmation(): void {
 	setSkipQuitConfirmation();
 	app.quit();
 }
-

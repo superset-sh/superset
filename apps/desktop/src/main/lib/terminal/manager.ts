@@ -303,7 +303,7 @@ export class TerminalManager extends EventEmitter {
 	private handleLifecycleStateChange(
 		paneId: string,
 		state: SessionState,
-		prevState: SessionState,
+		_prevState: SessionState,
 	): void {
 		const session = this.sessions.get(paneId);
 		const lifecycle = this.lifecycles.get(paneId);

@@ -522,9 +522,8 @@ describe("TerminalManager", () => {
 		});
 
 		it("should kill tmux sessions for persistent backends when cleaning up", async () => {
-			const originalKillSession = processPersistence.killSession.bind(
-				processPersistence,
-			);
+			const originalKillSession =
+				processPersistence.killSession.bind(processPersistence);
 			const killSessionSpy = mock(async () => {});
 			// biome-ignore lint/suspicious/noExplicitAny: Test needs to monkey-patch for regression coverage
 			(processPersistence as any).killSession = killSessionSpy;
@@ -989,34 +988,35 @@ describe("TerminalManager", () => {
 		});
 
 		it("should mark persistent sessions for history deletion", async () => {
-			const originalKillByWorkspace = processPersistence.killByWorkspace.bind(
-				processPersistence,
-			);
+			const originalKillByWorkspace =
+				processPersistence.killByWorkspace.bind(processPersistence);
 			const killByWorkspaceSpy = mock(async () => {});
 			// biome-ignore lint/suspicious/noExplicitAny: Test needs to monkey-patch for regression coverage
 			(processPersistence as any).killByWorkspace = killByWorkspaceSpy;
 
-				try {
-					const paneId = "pane-persistent-delete";
-					const workspaceId = "workspace-persistent-delete";
+			try {
+				const paneId = "pane-persistent-delete";
+				const workspaceId = "workspace-persistent-delete";
 
-					const persistentSession: TerminalSession = {
-						pty: mockPty as unknown as pty.IPty,
-						paneId,
-						workspaceId,
-						cwd: testCwd,
-						cols: 80,
-						rows: 24,
-						lastActive: Date.now(),
-						scrollback: "",
-						isAlive: false,
-						wasRecovered: false,
-						dataBatcher: { dispose: mock(() => {}) } as unknown as TerminalSession["dataBatcher"],
-						shell: "/bin/sh",
-						startTime: Date.now(),
-						usedFallback: false,
-						isPersistentBackend: true,
-					};
+				const persistentSession: TerminalSession = {
+					pty: mockPty as unknown as pty.IPty,
+					paneId,
+					workspaceId,
+					cwd: testCwd,
+					cols: 80,
+					rows: 24,
+					lastActive: Date.now(),
+					scrollback: "",
+					isAlive: false,
+					wasRecovered: false,
+					dataBatcher: {
+						dispose: mock(() => {}),
+					} as unknown as TerminalSession["dataBatcher"],
+					shell: "/bin/sh",
+					startTime: Date.now(),
+					usedFallback: false,
+					isPersistentBackend: true,
+				};
 
 				// biome-ignore lint/suspicious/noExplicitAny: Access private map for regression coverage
 				(manager as any).sessions.set(paneId, persistentSession);
