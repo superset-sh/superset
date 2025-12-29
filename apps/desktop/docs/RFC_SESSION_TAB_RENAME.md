@@ -22,6 +22,8 @@ This fixes a fundamental UX confusion where "New Terminal" creates a whole new l
 
 This is a stepping stone toward a more **Conductor-like** workflow: the ability to view **code (files/diffs)** and **terminals** together in a single window/layout, without constantly switching “modes”.
 
+Concretely, this unblocks the File Viewer work in `FILE_VIEWER_PANE_SPEC.md` by making “files/diffs” a first-class **pane** that can live alongside terminals in the Mosaic layout.
+
 This matters most for the “review + feedback loop” workflow:
 - Reviewing code and plans while giving feedback to an AI via the CLI
 - Keeping the terminal visible while reading changes/diffs and docs
