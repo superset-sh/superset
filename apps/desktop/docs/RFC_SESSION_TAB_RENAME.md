@@ -178,7 +178,7 @@ Workspace                                Workspace
 
 - Sidebar becomes stacked sections (Changes, Pinned, Ports, …) so file navigation/actions don’t replace the main content.
 - No “Terminals” list in the sidebar for MVP (terminal panes are navigated in-place via the Mosaic layout + existing pane focus shortcuts).
-- Content area always renders the Mosaic layout (no Tabs/Changes content swap).
+- In **Workbench**, content always renders the Mosaic layout (no Tabs/Changes content swap driven by sidebar mode).
 
 #### Workspace View Toggle (Workbench | Review)
 
