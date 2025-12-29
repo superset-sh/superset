@@ -3,7 +3,7 @@
 > **Status**: Draft
 > **Author**: Claude + Andreas
 > **Date**: 2025-12-29
-> **Related**: FILE_VIEWER_PANE_SPEC.md
+> **Related**: FILE_VIEWER_PANE_SPEC.md (draft; will be added/linked separately)
 
 ## Summary
 
