@@ -219,6 +219,34 @@ describe("Terminal Host Session Lifecycle", () => {
 	}
 
 	/**
+	 * Wait for a session to be ready (alive and accepting requests)
+	 */
+	async function waitForSessionReady(
+		socket: Socket,
+		sessionId: string,
+		timeoutMs = 3000,
+	): Promise<boolean> {
+		const startTime = Date.now();
+		while (Date.now() - startTime < timeoutMs) {
+			const listRequest: IpcRequest = {
+				id: `list-${Date.now()}`,
+				type: "listSessions",
+				payload: undefined,
+			};
+			const response = await sendRequest(socket, listRequest);
+			if (response.ok) {
+				const payload = response.payload as ListSessionsResponse;
+				const session = payload.sessions.find((s) => s.sessionId === sessionId);
+				if (session?.isAlive) {
+					return true;
+				}
+			}
+			await new Promise((r) => setTimeout(r, 100));
+		}
+		return false;
+	}
+
+	/**
 	 * Authenticate with the daemon
 	 */
 	async function authenticate(socket: Socket): Promise<void> {
@@ -358,6 +386,11 @@ describe("Terminal Host Session Lifecycle", () => {
 					);
 				}
 
+				// Wait for the session to be fully ready before attaching
+				// PTY spawn can be async and session needs to be alive for attach
+				const isReady = await waitForSessionReady(socket, "test-session-2");
+				expect(isReady).toBe(true);
+
 				// Attach to same session
 				const createRequest2: IpcRequest = {
 					id: "test-create-2b",
@@ -374,6 +407,10 @@ describe("Terminal Host Session Lifecycle", () => {
 				};
 
 				const response2 = await sendRequest(socket, createRequest2);
+				if (!response2.ok) {
+					// Log error details for debugging
+					console.error("Attach failed:", JSON.stringify(response2, null, 2));
+				}
 				expect(response2.ok).toBe(true);
 				if (response2.ok) {
 					const payload = response2.payload as CreateOrAttachResponse;

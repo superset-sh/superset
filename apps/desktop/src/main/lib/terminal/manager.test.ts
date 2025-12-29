@@ -664,12 +664,18 @@ describe("TerminalManager", () => {
 				workspaceId: "other-workspace",
 			});
 
-			expect(manager.getSessionCountByWorkspaceId("workspace-count")).toBe(2);
-			expect(manager.getSessionCountByWorkspaceId("other-workspace")).toBe(1);
+			expect(
+				await manager.getSessionCountByWorkspaceId("workspace-count"),
+			).toBe(2);
+			expect(
+				await manager.getSessionCountByWorkspaceId("other-workspace"),
+			).toBe(1);
 		});
 
-		it("should return zero for non-existent workspace", () => {
-			expect(manager.getSessionCountByWorkspaceId("non-existent")).toBe(0);
+		it("should return zero for non-existent workspace", async () => {
+			expect(await manager.getSessionCountByWorkspaceId("non-existent")).toBe(
+				0,
+			);
 		});
 
 		it("should not count dead sessions", async () => {
@@ -695,7 +701,9 @@ describe("TerminalManager", () => {
 			// Wait for state to update
 			await new Promise((resolve) => setTimeout(resolve, 100));
 
-			expect(manager.getSessionCountByWorkspaceId("workspace-mixed")).toBe(1);
+			expect(
+				await manager.getSessionCountByWorkspaceId("workspace-mixed"),
+			).toBe(1);
 		});
 	});
 

@@ -68,6 +68,9 @@ export class HeadlessEmulator {
 	// Buffer for partial escape sequences that span chunk boundaries
 	private escapeSequenceBuffer = "";
 
+	// Maximum buffer size to prevent unbounded growth (safety cap)
+	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
+
 	constructor(options: HeadlessEmulatorOptions = {}) {
 		const { cols = 80, rows = 24, scrollback = 10000 } = options;
 
@@ -260,119 +263,100 @@ export class HeadlessEmulator {
 	/**
 	 * Parse escape sequences with chunk-safe buffering.
 	 * PTY output can split sequences across chunks, so we buffer partial sequences.
+	 *
+	 * IMPORTANT: We only buffer sequences we actually track (DECSET/DECRST and OSC-7).
+	 * Other escape sequences (colors, cursor moves, etc.) are NOT buffered to prevent
+	 * memory leaks from unbounded buffer growth.
 	 */
 	private parseEscapeSequences(data: string): void {
 		// Prepend any buffered partial sequence from previous chunk
 		const fullData = this.escapeSequenceBuffer + data;
 		this.escapeSequenceBuffer = "";
 
-		// Find the last ESC in the data - anything after it might be incomplete
-		const lastEscIndex = fullData.lastIndexOf(ESC);
+		// Parse complete sequences in the data
+		this.parseModeChanges(fullData);
+		this.parseOsc7(fullData);
 
-		if (lastEscIndex === -1) {
-			// No escape sequences, parse everything
-			this.parseModeChanges(fullData);
-			this.parseOsc7(fullData);
-			return;
-		}
+		// Check for incomplete sequences we care about at the end
+		// We only buffer DECSET/DECRST (ESC[?...) and OSC-7 (ESC]7;...)
+		const incompleteSequence = this.findIncompleteTrackedSequence(fullData);
 
-		// Check if there's a potential incomplete sequence at the end
-		const afterLastEsc = fullData.slice(lastEscIndex);
-
-		// Determine if the sequence is complete
-		// DECSET/DECRST: ESC[?...h or ESC[?...l - complete when ends with h or l
-		// OSC-7: ESC]7;...BEL or ESC]7;...ESC\ - complete when ends with BEL or ST
-		const isComplete = this.isSequenceComplete(afterLastEsc);
-
-		if (isComplete) {
-			// All sequences are complete, parse everything
-			this.parseModeChanges(fullData);
-			this.parseOsc7(fullData);
-		} else {
-			// Buffer the incomplete sequence for next chunk
-			this.escapeSequenceBuffer = afterLastEsc;
-
-			// Parse only the complete portion
-			const completeData = fullData.slice(0, lastEscIndex);
-			if (completeData) {
-				this.parseModeChanges(completeData);
-				this.parseOsc7(completeData);
+		if (incompleteSequence) {
+			// Cap buffer size to prevent unbounded growth
+			if (
+				incompleteSequence.length <= HeadlessEmulator.MAX_ESCAPE_BUFFER_SIZE
+			) {
+				this.escapeSequenceBuffer = incompleteSequence;
 			}
+			// If buffer too large, just discard it (likely malformed or attack)
 		}
 	}
 
 	/**
-	 * Check if a string starting with ESC contains a complete escape sequence.
-	 * Uses string-based regex building to avoid control character linter errors.
+	 * Find an incomplete DECSET/DECRST or OSC-7 sequence at the end of data.
+	 * Returns the incomplete sequence string, or null if none found.
+	 *
+	 * We ONLY buffer sequences we track:
+	 * - DECSET/DECRST: ESC[?...h or ESC[?...l
+	 * - OSC-7: ESC]7;...BEL or ESC]7;...ESC\
+	 *
+	 * Other CSI sequences (ESC[31m, ESC[H, etc.) are NOT buffered.
 	 */
-	private isSequenceComplete(str: string): boolean {
-		if (!str.startsWith(ESC)) return true;
-
+	private findIncompleteTrackedSequence(data: string): string | null {
 		const escEscaped = escapeRegex(ESC);
-		const belEscaped = escapeRegex(BEL);
 
-		// Check for complete DECSET/DECRST: ESC[?...h or ESC[?...l
-		const modePattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`);
-		if (modePattern.test(str)) {
-			// Has a complete mode sequence, but check if there's more after
-			const modePatternGlobal = new RegExp(
-				`${escEscaped}\\[\\?[0-9;]+[hl]`,
-				"g",
-			);
-			const matches = str.match(modePatternGlobal);
-			if (matches) {
-				// Find where the last complete sequence ends
-				const lastMatch = matches[matches.length - 1];
-				const lastMatchEnd = str.lastIndexOf(lastMatch) + lastMatch.length;
-				// If there's an ESC after all complete sequences, it's incomplete
-				const remainder = str.slice(lastMatchEnd);
-				if (remainder.includes(ESC)) {
-					return this.isSequenceComplete(
-						remainder.slice(remainder.indexOf(ESC)),
-					);
+		// Look for potential incomplete sequences from the end
+		const lastEscIndex = data.lastIndexOf(ESC);
+		if (lastEscIndex === -1) return null;
+
+		const afterLastEsc = data.slice(lastEscIndex);
+
+		// Check if this looks like a sequence we track
+
+		// Pattern: ESC[? - start of DECSET/DECRST
+		if (afterLastEsc.startsWith(`${ESC}[?`)) {
+			// Check if it's complete (ends with h or l after digits)
+			const completePattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`);
+			if (completePattern.test(afterLastEsc)) {
+				// Complete DECSET/DECRST - check if there's another incomplete after
+				const globalPattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`, "g");
+				const matches = afterLastEsc.match(globalPattern);
+				if (matches) {
+					const lastMatch = matches[matches.length - 1];
+					const lastMatchEnd =
+						afterLastEsc.lastIndexOf(lastMatch) + lastMatch.length;
+					const remainder = afterLastEsc.slice(lastMatchEnd);
+					if (remainder.includes(ESC)) {
+						return this.findIncompleteTrackedSequence(remainder);
+					}
 				}
-				return true;
+				return null; // Complete
 			}
+			// Incomplete DECSET/DECRST - buffer it
+			return afterLastEsc;
 		}
 
-		// Check for complete OSC-7: ESC]7;...BEL or ESC]7;...ESC\
-		if (str.includes(BEL) || str.includes(`${ESC}\\`)) {
-			// Might have complete OSC sequence
-			const osc7Pattern = new RegExp(
-				`${escEscaped}\\]7;[^${belEscaped}${escEscaped}]*(?:${belEscaped}|${escEscaped}\\\\)`,
-			);
-			if (osc7Pattern.test(str)) {
-				return true;
+		// Pattern: ESC]7; - start of OSC-7
+		if (afterLastEsc.startsWith(`${ESC}]7;`)) {
+			// Check if it's complete (ends with BEL or ESC\)
+			if (afterLastEsc.includes(BEL) || afterLastEsc.includes(`${ESC}\\`)) {
+				return null; // Complete
 			}
+			// Incomplete OSC-7 - buffer it
+			return afterLastEsc;
 		}
 
-		// Check for obviously incomplete patterns
-		// ESC alone, or ESC[, or ESC[?, or ESC[?123 (no terminator)
-		if (str === ESC) return false;
-		if (str === `${ESC}[`) return false;
-		if (str === `${ESC}]`) return false;
+		// Check for partial starts of tracked sequences
+		// These could become tracked sequences with more data
+		if (afterLastEsc === ESC) return afterLastEsc; // Just ESC
+		if (afterLastEsc === `${ESC}[`) return afterLastEsc; // ESC[
+		if (afterLastEsc === `${ESC}]`) return afterLastEsc; // ESC]
+		if (afterLastEsc === `${ESC}]7`) return afterLastEsc; // ESC]7
+		const incompleteDecset = new RegExp(`^${escEscaped}\\[\\?[0-9;]*$`);
+		if (incompleteDecset.test(afterLastEsc)) return afterLastEsc; // ESC[?123
 
-		// Incomplete mode sequence: ESC[?digits but no h/l
-		const incompleteModePattern = new RegExp(`^${escEscaped}\\[\\?[0-9;]*$`);
-		if (incompleteModePattern.test(str)) return false;
-
-		// Incomplete OSC sequence: ESC]digit; but no BEL or ST
-		const incompleteOscPattern = new RegExp(`^${escEscaped}\\][0-9];`);
-		if (
-			incompleteOscPattern.test(str) &&
-			!str.includes(BEL) &&
-			!str.includes(`${ESC}\\`)
-		) {
-			return false;
-		}
-
-		// If we got here with just ESC and some chars but no recognizable complete sequence,
-		// consider it incomplete if it looks like the start of a sequence we care about
-		const startsWithCsiOrOsc = new RegExp(`^${escEscaped}[\\[\\]]`);
-		if (startsWithCsiOrOsc.test(str)) return false;
-
-		// Otherwise assume it's complete (might be some other sequence we don't track)
-		return true;
+		// Not a sequence we track (e.g., ESC[31m, ESC[H) - don't buffer
+		return null;
 	}
 
 	/**

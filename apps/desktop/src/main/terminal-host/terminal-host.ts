@@ -72,6 +72,16 @@ export class TerminalHost {
 
 			this.sessions.set(sessionId, session);
 			isNew = true;
+		} else if (session.isAlive) {
+			// Attaching to existing session - resize to requested dimensions
+			// This ensures the snapshot reflects the client's current terminal size
+			// Note: Resize can fail if PTY is in a bad state (e.g., EBADF)
+			// We catch and ignore these errors since the session may still be usable
+			try {
+				session.resize(request.cols, request.rows);
+			} catch {
+				// Ignore resize failures - session may still be attachable
+			}
 		}
 
 		// Attach client to session (async to ensure pending writes are flushed)

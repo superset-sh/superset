@@ -408,10 +408,30 @@ export class DaemonTerminalManager extends EventEmitter {
 		return { killed, failed };
 	}
 
-	getSessionCountByWorkspaceId(workspaceId: string): number {
-		return Array.from(this.sessions.values()).filter(
+	async getSessionCountByWorkspaceId(workspaceId: string): Promise<number> {
+		// First check local sessions
+		const localCount = Array.from(this.sessions.values()).filter(
 			(session) => session.workspaceId === workspaceId && session.isAlive,
 		).length;
+
+		if (localCount > 0) {
+			return localCount;
+		}
+
+		// If no local sessions, query daemon directly
+		// This handles the case where app restarted but daemon still has sessions
+		try {
+			const response = await this.client.listSessions();
+			return response.sessions.filter(
+				(s) => s.workspaceId === workspaceId && s.isAlive,
+			).length;
+		} catch (error) {
+			console.warn(
+				"[DaemonTerminalManager] Failed to query daemon for session count:",
+				error,
+			);
+			return 0;
+		}
 	}
 
 	/**
