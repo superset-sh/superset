@@ -2,6 +2,16 @@ import { describe, expect, it } from "bun:test";
 import { sanitizeTerminalScrollback } from "./terminal-scrollback-sanitizer";
 
 describe("sanitizeTerminalScrollback", () => {
+	it("preserves DA1 request sequences (ESC[c)", () => {
+		const input = `before\n\x1b[c\nafter`;
+		expect(sanitizeTerminalScrollback(input)).toBe(input);
+	});
+
+	it("preserves DA2 request sequences (ESC[>c)", () => {
+		const input = `before\n\x1b[>c\nafter`;
+		expect(sanitizeTerminalScrollback(input)).toBe(input);
+	});
+
 	it("removes caret-escaped DA responses", () => {
 		const input = `before\n^[[>0;276;0c\nafter`;
 		expect(sanitizeTerminalScrollback(input)).toBe(`before\n\nafter`);

@@ -14,13 +14,20 @@
 const ESC = "\x1b";
 
 // Raw control sequence variants
-const DA_RESPONSE_RAW = new RegExp(`${ESC}\\[[?>]?[0-9;]*c`, "g");
+// IMPORTANT: Do NOT match DA requests like ESC[c or ESC[>c, since xterm.js must see
+// those in order to respond to programs querying terminal capabilities.
+const DA1_RESPONSE_RAW = new RegExp(`${ESC}\\[\\?\\d[0-9;]*c`, "g");
+const DA2_RESPONSE_RAW = new RegExp(`${ESC}\\[>\\d+(?:;\\d+)+c`, "g");
+// Some terminals can lose the private prefix byte, leaving "ESC[0;276;0c".
+const DA_RESPONSE_RAW_NO_PREFIX = new RegExp(`${ESC}\\[\\d+(?:;\\d+)+c`, "g");
 const CPR_RESPONSE_RAW = new RegExp(`${ESC}\\[[?>]?[0-9;]*R`, "g");
 const MODE_REPORT_RAW = new RegExp(`${ESC}\\[[?>]?[0-9;]*\\$y`, "g");
 const MOUSE_SGR_RAW = new RegExp(`${ESC}\\[<\\d+(?:;\\d+){2}[Mm]`, "g");
 
 // tty "echoctl" caret-escaped variants (ESC becomes "^[" so CSI becomes "^[[")
-const DA_RESPONSE_CARET = /\^\[\[[?>]?[0-9;]*c/g;
+const DA1_RESPONSE_CARET = /\^\[\[\?\d[0-9;]*c/g;
+const DA2_RESPONSE_CARET = /\^\[\[>\d+(?:;\d+)+c/g;
+const DA_RESPONSE_CARET_NO_PREFIX = /\^\[\[\d+(?:;\d+)+c/g;
 const CPR_RESPONSE_CARET = /\^\[\[[?>]?[0-9;]*R/g;
 const MODE_REPORT_CARET = /\^\[\[[?>]?[0-9;]*\$y/g;
 const MOUSE_SGR_CARET = /\^\[\[<\d+(?:;\d+){2}[Mm]/g;
@@ -33,8 +40,12 @@ const MOUSE_SGR_PAYLOAD_RUN = /(?:\d{1,3};\d{1,3};\d{1,3}M){2,}/g;
 const DA_PAYLOAD = /(^|\s)[?>]?\d{1,4}(?:;\d{1,4}){1,4}c(?=$|\s)/g;
 
 const PATTERNS: readonly RegExp[] = [
-	DA_RESPONSE_RAW,
-	DA_RESPONSE_CARET,
+	DA1_RESPONSE_RAW,
+	DA1_RESPONSE_CARET,
+	DA2_RESPONSE_RAW,
+	DA2_RESPONSE_CARET,
+	DA_RESPONSE_RAW_NO_PREFIX,
+	DA_RESPONSE_CARET_NO_PREFIX,
 	CPR_RESPONSE_RAW,
 	CPR_RESPONSE_CARET,
 	MODE_REPORT_RAW,

@@ -216,11 +216,8 @@ exec ${shellQuote(shell)} ${shellArgs.map(shellQuote).join(" ")}
 	}
 
 	async attachSession(name: string, cols = 80, rows = 24): Promise<pty.IPty> {
-		const env: Record<string, string | undefined> = {
-			...process.env,
-			PATH: EXTENDED_PATH,
-			TMUX: undefined,
-		};
+		const env = { ...process.env, PATH: EXTENDED_PATH } as Record<string, string>;
+		delete env.TMUX;
 
 		await this.detachSession(name).catch(() => {});
 

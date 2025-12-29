@@ -15,12 +15,6 @@ export function suppressQueryResponses(terminal: Terminal): () => void {
 	const disposables: { dispose: () => void }[] = [];
 	const parser = terminal.parser;
 
-	// CSI sequences ending in 'c' - Device Attributes responses
-	// DA1: ESC[?1;2c (primary device attributes)
-	// DA2: ESC[>0;276;0c (secondary device attributes)
-	// Also handles ESC[0;276;0c (without ? or > prefix)
-	disposables.push(parser.registerCsiHandler({ final: "c" }, () => true));
-
 	// CSI sequences ending in 'R' - Cursor Position Report
 	// CPR: ESC[24;1R (row;column)
 	disposables.push(parser.registerCsiHandler({ final: "R" }, () => true));
@@ -31,6 +25,19 @@ export function suppressQueryResponses(terminal: Terminal): () => void {
 	disposables.push(
 		parser.registerCsiHandler({ intermediates: "$", final: "y" }, () => {
 			return true; // Suppress - don't display
+		}),
+	);
+
+	// DA2 responses can leak into output when tty echo state is wrong.
+	// If we process them, xterm's built-in DA2 request handler will treat them as a request
+	// and emit another DA2 response, potentially causing a feedback loop.
+	//
+	// IMPORTANT: Allow real DA2 *requests* (ESC[>c, ESC[>0c) through so programs can query.
+	disposables.push(
+		parser.registerCsiHandler({ prefix: ">", final: "c" }, (params) => {
+			const flatParams = params.flatMap((p) => (Array.isArray(p) ? p : [p]));
+			// Responses are "CSI > Pp ; Pv ; Pc c" (2+ params). Requests are 0/1 param.
+			return flatParams.length > 1;
 		}),
 	);
 
@@ -50,8 +57,21 @@ export function suppressQueryResponses(terminal: Terminal): () => void {
 	// etc.
 	for (let i = 10; i <= 19; i++) {
 		disposables.push(
-			parser.registerOscHandler(i, () => {
-				return true; // Suppress - don't display
+			parser.registerOscHandler(i, (data) => {
+				const slots = data.split(";").map((s) => s.trim());
+
+				// Allow queries (slots contain "?") so programs can get the response.
+				if (slots.some((s) => s === "?")) {
+					return false;
+				}
+
+				// Suppress xterm-style rgb:* responses that can leak into output and mutate colors.
+				// Still allow other set formats (e.g. #RRGGBB).
+				if (slots.some((s) => s.startsWith("rgb:"))) {
+					return true;
+				}
+
+				return false;
 			}),
 		);
 	}

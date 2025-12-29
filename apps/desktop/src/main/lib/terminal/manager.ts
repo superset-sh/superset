@@ -161,12 +161,14 @@ export class TerminalManager extends EventEmitter {
 				console.warn(
 					"[TerminalManager] Persistence failed after create, falling back",
 				);
+				await processPersistence.killSession(sessionName).catch(() => {});
 				this.lifecycles.delete(paneId);
 			} catch (error) {
 				console.warn(
 					"[TerminalManager] Persistence failed, falling back:",
 					error,
 				);
+				await processPersistence.killSession(sessionName).catch(() => {});
 				this.lifecycles.delete(paneId);
 			}
 		}
