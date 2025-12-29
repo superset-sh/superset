@@ -1,5 +1,6 @@
 import { EventEmitter } from "node:events";
 import { track } from "main/lib/analytics";
+import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
 import {
@@ -61,6 +62,10 @@ export class TerminalManager extends EventEmitter {
 		params: InternalCreateSessionParams,
 	): Promise<SessionResult> {
 		const { paneId, workspaceId, initialCommands } = params;
+
+		void ensureAgentHooks().catch((error) => {
+			console.warn("[TerminalManager] Agent hook ensure failed:", error);
+		});
 
 		// Create the session
 		const session = await createSession(params, (id, data) => {

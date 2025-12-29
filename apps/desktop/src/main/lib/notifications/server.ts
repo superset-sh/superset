@@ -16,6 +16,9 @@ export const notificationsEmitter = new EventEmitter();
 
 const app = express();
 
+// Parse JSON request bodies
+app.use(express.json());
+
 // CORS
 app.use((req, res, next) => {
 	res.setHeader("Access-Control-Allow-Origin", "*");
