@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
-import { trpcHotkeysStorage } from "renderer/lib/trpc-storage";
+import {
+	trpcHotkeysStorage,
+	setSkipNextHotkeysPersist,
+} from "renderer/lib/trpc-storage";
 import {
 	canonicalizeHotkeyForPlatform,
 	formatHotkeyDisplay,
@@ -10,6 +13,7 @@ import {
 	getDefaultHotkey,
 	getEffectiveHotkey,
 	getEffectiveHotkeysMap,
+	hasPrimaryModifier,
 	HOTKEYS,
 	HOTKEYS_STATE_VERSION,
 	type HotkeyCategory,
@@ -75,6 +79,8 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 							? null
 							: canonicalizeHotkeyForPlatform(keys, platform);
 					if (keys !== null && !canonical) return;
+					// App hotkeys must include ctrl or meta to work in terminal
+					if (canonical !== null && !hasPrimaryModifier(canonical)) return;
 
 					const defaultValue = getDefaultHotkey(id, platform);
 					const overrides = getOverridesForPlatform(
@@ -113,6 +119,8 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 								? null
 								: canonicalizeHotkeyForPlatform(keys, platform);
 						if (keys !== null && !canonical) continue;
+						// App hotkeys must include ctrl or meta to work in terminal
+						if (canonical !== null && !hasPrimaryModifier(canonical)) continue;
 						const defaultValue = getDefaultHotkey(hotkeyId, platform);
 						if (canonical === defaultValue) {
 							delete nextOverrides[hotkeyId];
@@ -291,9 +299,17 @@ export function useHotkeysSync() {
 				.query()
 				.then((state: HotkeysState) => {
 					const current = useHotkeysStore.getState().hotkeysState;
-					if (JSON.stringify(current) === JSON.stringify(state)) {
+					// Use structural comparison that's order-independent
+					const currentStr = JSON.stringify(
+						current,
+						Object.keys(current).sort(),
+					);
+					const newStr = JSON.stringify(state, Object.keys(state).sort());
+					if (currentStr === newStr) {
 						return;
 					}
+					// Skip persistence to avoid echo writes back to storage
+					setSkipNextHotkeysPersist(true);
 					replace(state);
 				})
 				.catch((error: unknown) => {

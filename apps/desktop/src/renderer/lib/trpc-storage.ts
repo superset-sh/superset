@@ -3,6 +3,16 @@ import { createJSONStorage, type StateStorage } from "zustand/middleware";
 import { trpcClient } from "./trpc-client";
 
 /**
+ * Flag to skip the next hotkeys persist operation.
+ * Used when syncing from remote to avoid echo writes.
+ */
+let skipNextHotkeysPersist = false;
+
+export function setSkipNextHotkeysPersist(skip: boolean): void {
+	skipNextHotkeysPersist = skip;
+}
+
+/**
  * Creates a Zustand storage adapter that uses tRPC for persistence.
  * This ensures all state is persisted through the centralized appState lowdb instance.
  */
@@ -71,6 +81,11 @@ export const trpcHotkeysStorage = createJSONStorage(() =>
 			return { hotkeysState };
 		},
 		set: (input) => {
+			// Skip persistence when syncing from remote to avoid echo writes
+			if (skipNextHotkeysPersist) {
+				skipNextHotkeysPersist = false;
+				return Promise.resolve();
+			}
 			const state = input as { hotkeysState: HotkeysState };
 			return trpcClient.uiState.hotkeys.set.mutate(state.hotkeysState);
 		},

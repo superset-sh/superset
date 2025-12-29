@@ -19,6 +19,12 @@ mock.module("renderer/lib/trpc-client", () => ({
 			openUrl: { mutate: mock(() => Promise.resolve()) },
 			openFileInEditor: { mutate: mock(() => Promise.resolve()) },
 		},
+		uiState: {
+			hotkeys: {
+				get: { query: mock(() => Promise.resolve(null)) },
+				set: { mutate: mock(() => Promise.resolve()) },
+			},
+		},
 	},
 }));
 
