@@ -142,7 +142,8 @@ app.on("before-quit", async (event) => {
 	// Skip confirmation in development mode to avoid interrupting hot-reload
 	if (quitState === "idle") {
 		const isDev = process.env.NODE_ENV === "development";
-		const shouldConfirm = !skipConfirmation && !isDev && getConfirmOnQuitSetting();
+		const shouldConfirm =
+			!skipConfirmation && !isDev && getConfirmOnQuitSetting();
 
 		if (shouldConfirm) {
 			event.preventDefault();
