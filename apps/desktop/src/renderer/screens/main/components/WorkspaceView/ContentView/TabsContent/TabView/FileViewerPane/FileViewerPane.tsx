@@ -135,6 +135,13 @@ export function FileViewerPane({
 	const commitHash = fileViewer?.commitHash;
 	const oldPath = fileViewer?.oldPath;
 
+	// Fetch branch info for against-main diffs (P1-1)
+	const { data: branchData } = trpc.changes.getBranches.useQuery(
+		{ worktreePath },
+		{ enabled: !!worktreePath && diffCategory === "against-main" },
+	);
+	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
+
 	// Save mutation
 	const saveFileMutation = trpc.changes.saveFile.useMutation({
 		onSuccess: () => {
@@ -147,6 +154,26 @@ export function FileViewerPane({
 			utils.changes.readWorkingFile.invalidate();
 			utils.changes.getFileContents.invalidate();
 			utils.changes.getStatus.invalidate();
+
+			// P1-2: Switch to unstaged view if saving from staged (edits become unstaged changes)
+			if (diffCategory === "staged") {
+				const panes = useTabsStore.getState().panes;
+				const currentPane = panes[paneId];
+				if (currentPane?.fileViewer) {
+					useTabsStore.setState({
+						panes: {
+							...panes,
+							[paneId]: {
+								...currentPane,
+								fileViewer: {
+									...currentPane.fileViewer,
+									diffCategory: "unstaged",
+								},
+							},
+						},
+					});
+				}
+			}
 		},
 	});
 
@@ -226,6 +253,9 @@ export function FileViewerPane({
 				oldPath,
 				category: diffCategory ?? "unstaged",
 				commitHash,
+				// P1-1: Pass defaultBranch for against-main diffs
+				defaultBranch:
+					diffCategory === "against-main" ? effectiveBaseBranch : undefined,
 			},
 			{
 				enabled:

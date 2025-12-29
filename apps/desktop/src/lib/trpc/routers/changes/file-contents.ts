@@ -64,6 +64,7 @@ async function validatePathInWorktree(
 /**
  * Validates that a file path is safe for writing within the worktree.
  * Does not require the file to exist (validates path structure and parent directory).
+ * Also checks for symlink escape attacks.
  */
 async function validatePathForWrite(
 	worktreePath: string,
@@ -86,17 +87,43 @@ async function validatePathForWrite(
 	try {
 		const realWorktreePath = await realpath(worktreePath);
 
-		// For writes, we can't realpath the file (it may not exist), but we can check
-		// the normalized path structure is within the worktree
-		const candidatePath = join(realWorktreePath, normalizedPath);
-		const relativePath = relative(realWorktreePath, candidatePath);
-
-		// If relative path starts with "..", the file is outside worktree
-		if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
-			return { valid: false, reason: "outside-worktree" };
+		// Check if target file exists and is a symlink - reject symlinks to prevent escape
+		try {
+			const stats = await lstat(fullPath);
+			if (stats.isSymbolicLink()) {
+				// File exists and is a symlink - verify target is within worktree
+				const realFilePath = await realpath(fullPath);
+				const relativePath = relative(realWorktreePath, realFilePath);
+				if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+					return { valid: false, reason: "outside-worktree" };
+				}
+				return { valid: true, resolvedPath: realFilePath };
+			}
+		} catch {
+			// File doesn't exist yet - that's fine for writes, continue with parent check
 		}
 
-		return { valid: true, resolvedPath: candidatePath };
+		// Resolve parent directory to catch symlink escapes in parent path
+		const parentDir = join(fullPath, "..");
+		try {
+			const realParentPath = await realpath(parentDir);
+			const parentRelative = relative(realWorktreePath, realParentPath);
+			if (parentRelative.startsWith("..") || isAbsolute(parentRelative)) {
+				return { valid: false, reason: "outside-worktree" };
+			}
+			// Construct final path using resolved parent + filename
+			const fileName = normalizedPath.split("/").pop() || normalizedPath;
+			const candidatePath = join(realParentPath, fileName);
+			return { valid: true, resolvedPath: candidatePath };
+		} catch {
+			// Parent directory doesn't exist - fall back to path validation
+			const candidatePath = join(realWorktreePath, normalizedPath);
+			const relativePath = relative(realWorktreePath, candidatePath);
+			if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+				return { valid: false, reason: "outside-worktree" };
+			}
+			return { valid: true, resolvedPath: candidatePath };
+		}
 	} catch {
 		// Worktree path doesn't exist or isn't accessible
 		return { valid: false, reason: "not-found" };
@@ -283,8 +310,8 @@ async function safeGitShow(
 ): Promise<string> {
 	try {
 		const content = await git.show([spec]);
-		// Enforce size limit on git content
-		if (content.length > MAX_FILE_SIZE) {
+		// Enforce size limit on git content (use byteLength for accurate UTF-8 size)
+		if (Buffer.byteLength(content, "utf-8") > MAX_FILE_SIZE) {
 			return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 		}
 		return content;
