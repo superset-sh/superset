@@ -64,6 +64,7 @@
 		"@xterm/addon-unicode11": "^0.8.0",
 		"@xterm/addon-web-links": "^0.11.0",
 		"@xterm/addon-webgl": "^0.18.0",
+		"@xterm/headless": "^5.5.0",
 		"@xterm/xterm": "^5.5.0",
 		"better-sqlite3": "12.5.0",
 		"bindings": "^1.5.0",
