@@ -22,6 +22,7 @@ The main observable outcomes are:
 - The existing “changes” model in code remains the source of truth for Review mode (i.e., “Review” uses the current changes store + TRPC endpoints).
 - We will not introduce a new “New Group” hotkey in MVP. Group creation is via UI.
 - We will not do an internal rename (Tab → Group in code) in MVP. That is a follow-up to reduce churn and avoid persisted-state migration risk.
+- The Workbench sidebar stays file-centric for MVP (Changes + Ports at minimum). We will not add a terminal list to the sidebar in MVP; “find terminal across Groups” is handled later (pane headers + quick-switch overlay).
 
 
 ## Open Questions
@@ -78,6 +79,14 @@ None currently. If implementation work surfaces new ambiguity, add it here as an
   Rationale: Prevents accidental or hostile reads outside the worktree (e.g., `../.ssh/id_rsa` or symlink escapes) and keeps File Viewer behavior safe and predictable. Implement checks in the main/TRPC boundary, not in renderer code.
   Date/Author: 2025-12-29 / Agent recommendation (confirm during implementation)
 
+- Decision (DL-006): `Cmd+T` / “New Terminal” from Review switches to Workbench and creates a terminal pane in the active Group (fallback: create first Group).
+  Rationale: “New Terminal” is only meaningful when the Mosaic surface is visible; switching back makes the outcome observable and keeps the shortcut consistent across modes.
+  Date/Author: 2025-12-29 / Agent recommendation (confirm during implementation)
+
+- Decision (DL-007): Default File Viewer mode: Diff for changed files; Rendered for markdown; Raw for everything else.
+  Rationale: Matches intent most of the time (review wants diffs, plans/docs want rendered markdown) while keeping the escape hatch (mode toggle) in the pane header.
+  Date/Author: 2025-12-29 / Agent recommendation (confirm during implementation)
+
 
 ## Outcomes & Retrospective
 
@@ -130,7 +139,7 @@ Create a new UI component (for example `GroupStrip`) that is only visible in `Wo
 
 Milestone 3: Refactor the Workbench sidebar into stacked, file-centric sections and stop using sidebar “mode” to drive main content.
 
-Replace `Sidebar/ModeCarousel` with a sidebar that always shows stacked sections (at minimum: Changes, Pinned, Ports). The Workbench sidebar should not drive the main content into a “changes” view; instead, in Workbench it should only trigger actions (open a file viewer pane, pin/unpin, copy port, etc.). This is also where the Review entrypoint lives: the user switches to Review via the workspace header toggle, not via the sidebar.
+Replace `Sidebar/ModeCarousel` with a sidebar that always shows stacked sections (at minimum: Changes and Ports; Pinned can be a follow-up). The Workbench sidebar should not drive the main content into a “changes” view; instead, in Workbench it should only trigger actions (open a file viewer pane, copy port, etc.). The Review entrypoint lives in the workspace header: the user switches to Review via the `Workbench | Review` toggle, not via the sidebar.
 
 Milestone 4: Add a `file-viewer` pane type and render it inside Mosaic.
 
@@ -150,7 +159,7 @@ Update the Workbench “Changes” section so that clicking a file opens it in a
 
 Milestone 6: Update “New Terminal” behavior and confirm hotkeys remain intuitive.
 
-Ensure the “New Terminal” action (UI button and `Cmd+T`) adds a terminal pane to the active group in Workbench. Keep the existing close/split/navigate pane hotkeys consistent. If Review mode is active, define whether `Cmd+T` switches back to Workbench or creates a terminal group/pane in the background; document the chosen behavior and validate it in manual testing.
+Ensure the “New Terminal” action (UI button and `Cmd+T`) adds a terminal pane to the active group in Workbench. In Review, `Cmd+T` first switches to Workbench and then creates a terminal pane (fallback: create first Group). Keep the existing close/split/navigate pane hotkeys consistent.
 
 
 ## Concrete Steps
@@ -163,6 +172,7 @@ Quality gates (run early and often):
 
   bun run typecheck
   bun run lint
+  bun run lint:check-node-imports
 
 Local dev (to manually validate UI flows):
 
@@ -180,6 +190,7 @@ Manual verification checklist for Workbench/Review:
   - Toggle to Review and confirm the same file is selected in the Changes view.
   - Toggle the file viewer mode between Rendered/Raw/Diff and confirm it matches expected behavior.
 - Switch to Review and confirm the focused diff workflow still works (staging, editing, etc.).
+- While in Review, press `Cmd+T` and confirm it switches to Workbench and creates a terminal pane.
 
 
 ## Validation and Acceptance
@@ -195,6 +206,7 @@ Project validation:
 
 - `bun run typecheck` succeeds.
 - `bun run lint` succeeds.
+- `bun run lint:check-node-imports` succeeds.
 - Existing tests continue to pass via `bun test` (or at least the desktop-relevant subset, if the repo supports filtered tests).
 
 
@@ -237,3 +249,5 @@ New/updated interfaces that must exist at the end of implementation (names are s
 
 
 Plan revision note (2025-12-29): Updated Open Questions and Decision Log with answers for DL-001..DL-003, and added recommended defaults for DL-004/DL-005 so the plan remains self-contained and implementable without further context.
+
+Plan revision note (2025-12-29): Added MVP assumptions about the Workbench sidebar (no terminals list) and captured recommended defaults for `Cmd+T` behavior in Review and File Viewer default mode selection.
