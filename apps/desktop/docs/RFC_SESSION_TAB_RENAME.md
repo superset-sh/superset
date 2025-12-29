@@ -14,7 +14,9 @@ Rename the core UI hierarchy to match user mental models:
 UI follow-up:
 - Move Group switching from the left sidebar to a small tab strip above the content area
 - Make the left sidebar primarily file-centric (Changes/Pinned/etc.), not a “terminal list”
-- Keep a dedicated **Changes page** for focused reviews (file viewer panes are for “in-flow” context)
+- Add a workspace-level view toggle: **Workbench | Review**
+  - **Workbench** = Groups strip + Mosaic (in-flow terminals + file viewer panes)
+  - **Review** = dedicated Changes page for focused reviews
 
 This fixes a fundamental UX confusion where "New Terminal" creates a whole new layout instead of adding a terminal.
 
@@ -42,7 +44,7 @@ Longer-term, this structure also sets us up to support higher-level review workf
 
 - Changing the workspace (top bar) model or terminology
 - Reworking terminal lifecycle/persistence beyond what’s required to support the rename/migration
-- Removing the dedicated Changes page (we still want a focused review surface)
+- Removing the dedicated Changes page (Review mode needs a focused review surface)
 
 ### Terminology Note
 
@@ -177,7 +179,12 @@ Workspace                                Workspace
 - Sidebar becomes stacked sections (Changes, Pinned, Ports, …) so file navigation/actions don’t replace the main content.
 - No “Terminals” list in the sidebar for MVP (terminal panes are navigated in-place via the Mosaic layout + existing pane focus shortcuts).
 - Content area always renders the Mosaic layout (no Tabs/Changes content swap).
-- Provide an “Open Changes” action that navigates to a dedicated **Changes page** for focused reviews.
+
+#### Workspace View Toggle (Workbench | Review)
+
+- Add a workspace-level view toggle in `WorkspaceActionBar`: **Workbench | Review**
+  - **Workbench**: Groups strip + Mosaic content (in-flow terminals + file viewer panes)
+  - **Review**: dedicated Changes page for focused review (Groups strip hidden)
 
 #### File Viewer Pane (MVP)
 
@@ -255,6 +262,7 @@ Optional follow-up (internal rename): If we later rename internal state (tabs �
 ### Phase 0: UX Fix (MVP)
 
 - [ ] Add Group switcher strip above content
+- [ ] Add workspace-level view toggle in `WorkspaceActionBar`: **Workbench | Review**
 - [ ] Make `Cmd+T` / “New Terminal” create a terminal pane in the active Group (fallback: create first Group)
 - [ ] Update UI copy + hotkey labels: “Tab” → “Group” where we mean the layout container
 
@@ -263,7 +271,7 @@ Optional follow-up (internal rename): If we later rename internal state (tabs �
 - [ ] Refactor sidebar into stacked sections (Changes, Pinned, Ports, …)
 - [ ] Clicking a file opens/reuses a file viewer pane in the active Group
 - [ ] Remove the content-area mode swap (content always renders the Mosaic layout)
-- [ ] Keep a dedicated Changes page (current `ChangesContent`) for focused review workflows
+- [ ] Keep a dedicated Changes page (current `ChangesContent`) for focused review workflows (Review mode)
 
 ### Phase 2: Optional Internal Rename
 
@@ -280,7 +288,9 @@ Optional follow-up (internal rename): If we later rename internal state (tabs �
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ Workspace Tabs (unchanged)                                                │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ Groups: [● review] [dev-server] [+]        (Cmd+T = New Terminal Pane)    │
+│ WorkspaceActionBar (workspace header)                View: [Workbench|Review] │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Workbench: Groups: [● review] [dev-server] [+]     (Cmd+T = New Terminal) │
 ├─────────────────────────┬────────────────────────────────────────────────┤
 │ SIDEBAR (files)         │  GROUP: review                                  │
 │ ┌─────────────────────┐ │  ┌──────────────────┬────────────────────────┐ │
@@ -292,7 +302,26 @@ Optional follow-up (internal rename): If we later rename internal state (tabs �
 
 Legend:
   [+] in Groups strip = New Group
-  Cmd+T = New Terminal Pane in active Group
+  Workbench shows Groups strip + Mosaic
+  Review shows the dedicated Changes page (focused review)
+```
+
+### Review Mode (focused Changes page)
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Workspace Tabs (unchanged)                                                │
+├──────────────────────────────────────────────────────────────────────────┤
+│ WorkspaceActionBar (workspace header)                View: [Workbench|Review] │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Review: Focused Changes page (no Groups strip)                            │
+│ ┌─────────────────────────┬────────────────────────────────────────────┐ │
+│ │ Changes list / filters   │ Diff / editor / actions                     │ │
+│ │ - Against main           │ - View diff                                 │ │
+│ │ - Staged / Unstaged      │ - Stage / unstage / discard                 │ │
+│ │ - Commits                │ - Commit / PR helpers                        │ │
+│ └─────────────────────────┴────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
