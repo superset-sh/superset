@@ -1,5 +1,3 @@
-import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -21,25 +19,8 @@ async function hasUpstreamBranch(
 
 export const createGitOperationsRouter = () => {
 	return router({
-		saveFile: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					filePath: z.string(),
-					content: z.string(),
-				}),
-			)
-			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const resolvedWorktree = resolve(input.worktreePath);
-				const fullPath = resolve(resolvedWorktree, input.filePath);
-
-				if (!fullPath.startsWith(`${resolvedWorktree}/`)) {
-					throw new Error("Invalid file path: path traversal detected");
-				}
-
-				await writeFile(fullPath, input.content, "utf-8");
-				return { success: true };
-			}),
+		// NOTE: saveFile is defined in file-contents.ts with hardened path validation
+		// Do NOT add saveFile here - it would overwrite the secure version
 
 		commit: publicProcedure
 			.input(

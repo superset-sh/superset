@@ -113,24 +113,22 @@ export function GroupStrip() {
 		removeTab(tabId);
 	};
 
-	if (tabs.length === 0) {
-		return null;
-	}
-
 	return (
 		<div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-background shrink-0">
-			<div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
-				{tabs.map((tab) => (
-					<GroupItem
-						key={tab.id}
-						tab={tab}
-						isActive={tab.id === activeTabId}
-						needsAttention={tabsWithAttention.has(tab.id)}
-						onSelect={() => handleSelectGroup(tab.id)}
-						onClose={() => handleCloseGroup(tab.id)}
-					/>
-				))}
-			</div>
+			{tabs.length > 0 && (
+				<div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+					{tabs.map((tab) => (
+						<GroupItem
+							key={tab.id}
+							tab={tab}
+							isActive={tab.id === activeTabId}
+							needsAttention={tabsWithAttention.has(tab.id)}
+							onSelect={() => handleSelectGroup(tab.id)}
+							onClose={() => handleCloseGroup(tab.id)}
+						/>
+					))}
+				</div>
+			)}
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<Button

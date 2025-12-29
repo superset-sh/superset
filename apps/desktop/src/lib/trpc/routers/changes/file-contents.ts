@@ -1,5 +1,12 @@
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
-import { isAbsolute, join, normalize, relative } from "node:path";
+import {
+	basename,
+	dirname,
+	isAbsolute,
+	join,
+	normalize,
+	relative,
+} from "node:path";
 import type { FileContents } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
@@ -104,7 +111,8 @@ async function validatePathForWrite(
 		}
 
 		// Resolve parent directory to catch symlink escapes in parent path
-		const parentDir = join(fullPath, "..");
+		// Use dirname() for cross-platform compatibility (handles both / and \ separators)
+		const parentDir = dirname(fullPath);
 		try {
 			const realParentPath = await realpath(parentDir);
 			const parentRelative = relative(realWorktreePath, realParentPath);
@@ -112,7 +120,8 @@ async function validatePathForWrite(
 				return { valid: false, reason: "outside-worktree" };
 			}
 			// Construct final path using resolved parent + filename
-			const fileName = normalizedPath.split("/").pop() || normalizedPath;
+			// Use basename() for cross-platform compatibility
+			const fileName = basename(normalizedPath);
 			const candidatePath = join(realParentPath, fileName);
 			return { valid: true, resolvedPath: candidatePath };
 		} catch {
@@ -303,17 +312,25 @@ async function getFileVersions(
 	}
 }
 
-/** Helper to safely get git show content with size limit */
+/** Helper to safely get git show content with size limit and memory protection */
 async function safeGitShow(
 	git: ReturnType<typeof simpleGit>,
 	spec: string,
 ): Promise<string> {
 	try {
-		const content = await git.show([spec]);
-		// Enforce size limit on git content (use byteLength for accurate UTF-8 size)
-		if (Buffer.byteLength(content, "utf-8") > MAX_FILE_SIZE) {
-			return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+		// Preflight: check blob size before loading into memory
+		// This prevents memory spikes from large files in git history
+		try {
+			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
+			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
+			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
+				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+			}
+		} catch {
+			// cat-file failed (blob doesn't exist) - let git.show handle the error
 		}
+
+		const content = await git.show([spec]);
 		return content;
 	} catch {
 		return "";
