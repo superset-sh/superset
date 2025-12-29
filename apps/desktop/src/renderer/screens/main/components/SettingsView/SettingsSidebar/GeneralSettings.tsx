@@ -4,6 +4,7 @@ import {
 	HiOutlineBell,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
+	HiOutlineComputerDesktop,
 	HiOutlinePaintBrush,
 	HiOutlineUser,
 } from "react-icons/hi2";
@@ -43,6 +44,11 @@ const GENERAL_SECTIONS: {
 		id: "presets",
 		label: "Presets",
 		icon: <HiOutlineCog6Tooth className="h-4 w-4" />,
+	},
+	{
+		id: "terminal",
+		label: "Terminal",
+		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
 	},
 	{
 		id: "behavior",

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bb9f9f85-bcbb-4003-b20f-4c172a1c6fc8",
+  "id": "334d24a4-5204-4d61-904a-bdd0498a401d",
   "prevId": "d5a52ac9-bc1e-4529-89bf-5748d4df5006",
   "tables": {
     "organization_members": {
@@ -337,6 +337,20 @@
         "terminal_link_behavior": {
           "name": "terminal_link_behavior",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "navigation_style": {
+          "name": "navigation_style",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_persistence": {
+          "name": "terminal_persistence",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -811,6 +825,14 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
+        },
+        "is_unread": {
+          "name": "is_unread",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
         }
       },
       "indexes": {

@@ -6,6 +6,8 @@ import {
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_GROUP_TABS_POSITION,
+	DEFAULT_NAVIGATION_STYLE,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -13,6 +15,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
+const VALID_GROUP_TABS_POSITIONS = ["sidebar", "content-header"] as const;
 
 function getSettings() {
 	let row = localDb.select().from(settings).get();
@@ -202,6 +205,92 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNavigationStyle: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.navigationStyle ?? DEFAULT_NAVIGATION_STYLE;
+		}),
+
+		setNavigationStyle: publicProcedure
+			.input(z.object({ style: z.enum(["top-bar", "sidebar"]) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, navigationStyle: input.style })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { navigationStyle: input.style },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getGroupTabsPosition: publicProcedure.query(() => {
+			const row = getSettings();
+			const storedPosition = row.groupTabsPosition;
+
+			if (!storedPosition) {
+				return DEFAULT_GROUP_TABS_POSITION;
+			}
+
+			if (
+				VALID_GROUP_TABS_POSITIONS.includes(
+					storedPosition as (typeof VALID_GROUP_TABS_POSITIONS)[number],
+				)
+			) {
+				return storedPosition;
+			}
+
+			console.warn(
+				`[settings] Invalid group tabs position "${storedPosition}" found, resetting to default`,
+			);
+			localDb
+				.insert(settings)
+				.values({ id: 1, groupTabsPosition: DEFAULT_GROUP_TABS_POSITION })
+				.onConflictDoUpdate({
+					target: settings.id,
+					set: { groupTabsPosition: DEFAULT_GROUP_TABS_POSITION },
+				})
+				.run();
+			return DEFAULT_GROUP_TABS_POSITION;
+		}),
+
+		setGroupTabsPosition: publicProcedure
+			.input(z.object({ position: z.enum(VALID_GROUP_TABS_POSITIONS) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, groupTabsPosition: input.position })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { groupTabsPosition: input.position },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalPersistence: publicProcedure.query(() => {
+			const row = getSettings();
+			// Default to false (terminal persistence disabled by default)
+			return row.terminalPersistence ?? false;
+		}),
+
+		setTerminalPersistence: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPersistence: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPersistence: input.enabled },
 					})
 					.run();
 

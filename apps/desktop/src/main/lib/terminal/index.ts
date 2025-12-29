@@ -1,3 +1,5 @@
+import { settings } from "@superset/local-db";
+import { localDb } from "main/lib/local-db";
 import {
 	DaemonTerminalManager,
 	getDaemonTerminalManager,
@@ -18,23 +20,47 @@ export type {
 // Terminal Manager Selection
 // =============================================================================
 
+// Cache the daemon mode setting to avoid repeated DB reads
+// This is set once at app startup and doesn't change until restart
+let cachedDaemonMode: boolean | null = null;
+
 /**
  * Check if daemon mode is enabled.
- * For now, this is controlled by an environment variable.
- * Later, this will be read from user settings.
+ * Reads from user settings (terminalPersistence) or falls back to env var.
+ * The value is cached since it requires app restart to take effect.
  */
 export function isDaemonModeEnabled(): boolean {
-	// Enable daemon mode via environment variable for testing
-	// In production, this will be read from user settings
-	//
-	// Note: SUPERSET_TERMINAL_DAEMON is baked in at build time via electron.vite.config.ts
-	// Set it before running `bun dev` or `bun build`:
-	//   SUPERSET_TERMINAL_DAEMON=1 bun dev
-	const enabled = process.env.SUPERSET_TERMINAL_DAEMON === "1";
-	console.log(
-		`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (SUPERSET_TERMINAL_DAEMON="${process.env.SUPERSET_TERMINAL_DAEMON}")`,
-	);
-	return enabled;
+	// Return cached value if available
+	if (cachedDaemonMode !== null) {
+		return cachedDaemonMode;
+	}
+
+	// First check environment variable override (for development/testing)
+	if (process.env.SUPERSET_TERMINAL_DAEMON === "1") {
+		console.log(
+			"[TerminalManager] Daemon mode: ENABLED (via SUPERSET_TERMINAL_DAEMON env var)",
+		);
+		cachedDaemonMode = true;
+		return true;
+	}
+
+	// Read from user settings
+	try {
+		const row = localDb.select().from(settings).get();
+		const enabled = row?.terminalPersistence ?? false;
+		console.log(
+			`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
+		);
+		cachedDaemonMode = enabled;
+		return enabled;
+	} catch (error) {
+		console.warn(
+			"[TerminalManager] Failed to read settings, defaulting to disabled:",
+			error,
+		);
+		cachedDaemonMode = false;
+		return false;
+	}
 }
 
 /**

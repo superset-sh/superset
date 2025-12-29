@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `navigation_style` text;

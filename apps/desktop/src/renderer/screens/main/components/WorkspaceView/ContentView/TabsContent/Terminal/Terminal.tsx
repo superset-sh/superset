@@ -314,9 +314,24 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
+			snapshot?: {
+				snapshotAnsi: string;
+				rehydrateSequences: string;
+				cwd: string | null;
+				modes: Record<string, boolean>;
+				cols: number;
+				rows: number;
+				scrollbackLines: number;
+			};
 		}) => {
 			xterm.write(result.scrollback);
 			updateCwdRef.current(result.scrollback);
+
+			// Apply rehydration sequences to restore terminal modes (e.g., alternate screen for TUI apps)
+			// This must come after the scrollback content to properly restore the terminal state
+			if (result.snapshot?.rehydrateSequences) {
+				xterm.write(result.snapshot.rehydrateSequences);
+			}
 		};
 
 		const restartTerminal = () => {
