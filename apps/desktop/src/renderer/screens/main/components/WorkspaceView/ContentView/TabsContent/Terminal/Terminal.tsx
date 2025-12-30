@@ -329,6 +329,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				requestAnimationFrame(() => {
 					try {
 						fitAddon.fit();
+						// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
+						// This also forces full-screen TUIs (opencode, vim, etc.) to redraw after reattach.
+						if (xtermRef.current !== xterm) return;
+						resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+						xterm.refresh(0, xterm.rows - 1);
 					} catch (error) {
 						console.warn("[Terminal] fit() failed after restoration:", error);
 					}
