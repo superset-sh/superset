@@ -1,5 +1,6 @@
 "use client";
 
+import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { motion, useInView } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
@@ -110,9 +111,12 @@ function SpinnerIcon({
 
 export function ParallelExecutionDemo() {
 	const ref = useRef<HTMLDivElement>(null);
+	const terminalRef = useRef<HTMLDivElement>(null);
 	const isInView = useInView(ref, { once: true, margin: "-100px" });
 	const [displayedLines, setDisplayedLines] = useState<string[]>([]);
 	const [showCursor, setShowCursor] = useState(true);
+	const [inputValue, setInputValue] = useState("");
+	const [chatMessages, setChatMessages] = useState<string[]>([]);
 
 	// Line-by-line animation
 	useEffect(() => {
@@ -138,6 +142,26 @@ export function ParallelExecutionDemo() {
 		}, 530);
 		return () => clearInterval(interval);
 	}, []);
+
+	// Auto-scroll to bottom when new messages are added
+	useEffect(() => {
+		if (terminalRef.current && chatMessages.length > 0) {
+			terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+		}
+	}, [chatMessages]);
+
+	const handleSubmit = () => {
+		if (!inputValue.trim()) return;
+		setChatMessages((prev) => [...prev, `> ${inputValue}`]);
+		setInputValue("");
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			handleSubmit();
+		}
+	};
 
 	return (
 		<motion.div
@@ -234,13 +258,37 @@ export function ParallelExecutionDemo() {
 				{/* Terminal Area */}
 				<div className="flex-1 flex flex-col min-w-0">
 					{/* Terminal content */}
-					<div className="flex-1 p-4 font-mono text-xs leading-relaxed text-white/80 overflow-hidden">
+					<div
+						ref={terminalRef}
+						className="flex-1 p-4 font-mono text-xs leading-relaxed text-white/80 overflow-y-auto"
+					>
 						{displayedLines.map((line, index) => (
 							<div
 								key={`line-${index}-${line.slice(0, 10)}`}
 								className={`${line.startsWith("$") || line.startsWith(">") ? "text-green-400" : ""} ${line.startsWith("Read:") ? "text-blue-400" : ""} ${line.startsWith("✓") ? "text-green-400" : ""}`}
 							>
 								{line || "\u00A0"}
+							</div>
+						))}
+						{chatMessages.map((line, index) => (
+							<div key={`chat-${index}-${line.slice(0, 10)}`}>
+								<div
+									className={`${line.startsWith(">") ? "text-green-400" : ""}`}
+								>
+									{line || "\u00A0"}
+								</div>
+								<div className="mt-1">
+									Try us out,{" "}
+									<a
+										href={DOWNLOAD_URL_MAC_ARM64}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="text-blue-400 hover:text-blue-300 underline underline-offset-2"
+									>
+										download Superset
+									</a>
+								</div>
+								<div>{"\u00A0"}</div>
 							</div>
 						))}
 						{displayedLines.length === TERMINAL_LINES.length && (
@@ -256,16 +304,29 @@ export function ParallelExecutionDemo() {
 					<div className="border-t border-white/5 p-2">
 						<div className="flex items-center gap-2 px-3 py-1.5 bg-[#2a2a2a]/60 rounded-lg border border-white/10">
 							<span className="text-white/30 text-xs">{">"}</span>
-							<span className="text-white/50 text-xs flex-1">
-								Type a message...
-							</span>
+							<input
+								type="text"
+								value={inputValue}
+								onChange={(e) => setInputValue(e.target.value)}
+								onKeyDown={handleKeyDown}
+								placeholder="Type a message..."
+								className="text-white/80 text-xs flex-1 bg-transparent outline-none placeholder:text-white/50"
+							/>
 							<div className="flex items-center gap-1">
-								<div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center">
+								<button
+									type="button"
+									onClick={handleSubmit}
+									className="w-5 h-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+								>
 									<span className="text-[10px] text-white/40">⌘</span>
-								</div>
-								<div className="w-5 h-5 rounded bg-white/10 flex items-center justify-center">
+								</button>
+								<button
+									type="button"
+									onClick={handleSubmit}
+									className="w-5 h-5 rounded bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
+								>
 									<span className="text-[10px] text-white/40">↵</span>
-								</div>
+								</button>
 							</div>
 						</div>
 					</div>

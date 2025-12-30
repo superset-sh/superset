@@ -174,7 +174,7 @@ export function createTerminalInstance(
 }
 
 export interface KeyboardHandlerOptions {
-	/** Callback for Shift+Enter to create a line continuation (like iTerm) */
+	/** Callback for Shift+Enter (sends ESC+CR to avoid \ appearing in Claude Code while keeping line continuation behavior) */
 	onShiftEnter?: () => void;
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
@@ -227,7 +227,7 @@ export function setupPasteHandler(
 /**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
- * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
+ * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
  * - Clear terminal: Uses the configured clear shortcut
  *
  * Returns a cleanup function to remove the handler.

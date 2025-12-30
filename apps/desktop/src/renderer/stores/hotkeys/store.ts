@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
 import {
-	trpcHotkeysStorage,
 	setSkipNextHotkeysPersist,
+	trpcHotkeysStorage,
 } from "renderer/lib/trpc-storage";
 import {
 	canonicalizeHotkeyForPlatform,
@@ -13,7 +13,6 @@ import {
 	getDefaultHotkey,
 	getEffectiveHotkey,
 	getEffectiveHotkeysMap,
-	hasPrimaryModifier,
 	HOTKEYS,
 	HOTKEYS_STATE_VERSION,
 	type HotkeyCategory,
@@ -21,6 +20,7 @@ import {
 	type HotkeyId,
 	type HotkeyPlatform,
 	type HotkeysState,
+	hasPrimaryModifier,
 	hotkeyFromKeyboardEvent,
 	isOsReservedHotkey,
 	isTerminalReservedHotkey,

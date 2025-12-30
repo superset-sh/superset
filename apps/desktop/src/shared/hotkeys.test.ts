@@ -25,8 +25,28 @@ describe("canonicalizeHotkeyForPlatform", () => {
 });
 
 describe("deriveNonMacDefault", () => {
-	it("maps meta to ctrl+shift and adds alt for shifted defaults", () => {
+	it("returns null for null input", () => {
+		expect(deriveNonMacDefault(null)).toBeNull();
+	});
+
+	it("returns null for invalid hotkey", () => {
+		expect(deriveNonMacDefault("invalid+key+combo+extra")).toBeNull();
+	});
+
+	it("returns unchanged hotkey when no meta modifier present", () => {
+		expect(deriveNonMacDefault("ctrl+k")).toBe("ctrl+k");
+	});
+
+	it("maps meta+key to ctrl+shift+key (simple meta case)", () => {
+		expect(deriveNonMacDefault("meta+k")).toBe("ctrl+shift+k");
+	});
+
+	it("maps meta+shift to ctrl+alt+shift (adds alt for shifted defaults)", () => {
 		expect(deriveNonMacDefault("meta+shift+w")).toBe("ctrl+alt+shift+w");
+	});
+
+	it("maps meta+alt to ctrl+alt+shift", () => {
+		expect(deriveNonMacDefault("meta+alt+k")).toBe("ctrl+alt+shift+k");
 	});
 });
 
