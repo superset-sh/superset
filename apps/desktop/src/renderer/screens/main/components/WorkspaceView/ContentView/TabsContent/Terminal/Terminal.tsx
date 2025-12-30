@@ -322,60 +322,60 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 			// xterm.write() is asynchronous - escape sequences may not be fully
 			// processed when the terminal first renders, causing garbled display.
-				// Force a re-render after write completes to ensure correct display.
-				// (Symptom: restored terminals show corrupted text until resized)
-				// Using fitAddon.fit() which triggers a full re-layout and re-render.
-				xterm.write(result.scrollback, () => {
-					const redraw = () => {
-						requestAnimationFrame(() => {
-							try {
-								fitAddon.fit();
-								if (xtermRef.current !== xterm) return;
-
-								// Reattached sessions can sometimes render partially until the user resizes the
-								// pane. Nudge rows by 1 and revert to force a full repaint + TUI redraw.
-								const cols = xterm.cols;
-								const rows = xterm.rows;
-								if (cols <= 0 || rows <= 0) return;
-
-								if (!result.isNew && rows > 2) {
-									const nudgeRows = rows - 1;
-									xterm.resize(cols, nudgeRows);
-									resizeRef.current({ paneId, cols, rows: nudgeRows });
-									xterm.resize(cols, rows);
-								}
-
-								// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-								// This also forces full-screen TUIs (opencode, vim, etc.) to redraw after reattach.
-								resizeRef.current({ paneId, cols, rows });
-								xterm.refresh(0, rows - 1);
-							} catch (error) {
-								console.warn(
-									"[Terminal] redraw() failed after restoration:",
-									error,
-								);
-							}
-						});
-					};
-
-					const scheduleRedraw = (delayMs: number) => {
-						setTimeout(() => {
+			// Force a re-render after write completes to ensure correct display.
+			// (Symptom: restored terminals show corrupted text until resized)
+			// Using fitAddon.fit() which triggers a full re-layout and re-render.
+			xterm.write(result.scrollback, () => {
+				const redraw = () => {
+					requestAnimationFrame(() => {
+						try {
+							fitAddon.fit();
 							if (xtermRef.current !== xterm) return;
-							redraw();
-						}, delayMs);
-					};
 
-					// Run multiple redraw passes to avoid timing issues with layout, fonts, and renderer init.
-					scheduleRedraw(0);
-					scheduleRedraw(50);
-					scheduleRedraw(250);
-					scheduleRedraw(1000);
+							// Reattached sessions can sometimes render partially until the user resizes the
+							// pane. Nudge rows by 1 and revert to force a full repaint + TUI redraw.
+							const cols = xterm.cols;
+							const rows = xterm.rows;
+							if (cols <= 0 || rows <= 0) return;
 
-					// If font metrics settle after restoration, run one more redraw.
-					void document.fonts?.ready.then(() => {
-						scheduleRedraw(0);
+							if (!result.isNew && rows > 2) {
+								const nudgeRows = rows - 1;
+								xterm.resize(cols, nudgeRows);
+								resizeRef.current({ paneId, cols, rows: nudgeRows });
+								xterm.resize(cols, rows);
+							}
+
+							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
+							// This also forces full-screen TUIs (opencode, vim, etc.) to redraw after reattach.
+							resizeRef.current({ paneId, cols, rows });
+							xterm.refresh(0, rows - 1);
+						} catch (error) {
+							console.warn(
+								"[Terminal] redraw() failed after restoration:",
+								error,
+							);
+						}
 					});
+				};
+
+				const scheduleRedraw = (delayMs: number) => {
+					setTimeout(() => {
+						if (xtermRef.current !== xterm) return;
+						redraw();
+					}, delayMs);
+				};
+
+				// Run multiple redraw passes to avoid timing issues with layout, fonts, and renderer init.
+				scheduleRedraw(0);
+				scheduleRedraw(50);
+				scheduleRedraw(250);
+				scheduleRedraw(1000);
+
+				// If font metrics settle after restoration, run one more redraw.
+				void document.fonts?.ready.then(() => {
+					scheduleRedraw(0);
 				});
+			});
 			updateCwdRef.current(result.scrollback);
 		} catch (error) {
 			console.error("[Terminal] Restoration failed:", error);
