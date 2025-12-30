@@ -4,11 +4,6 @@ import {
 	type TerminalPreset,
 } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
-import { disposeDaemonManager } from "main/lib/terminal/daemon-manager";
-import {
-	disposeTerminalHostClient,
-	getTerminalHostClient,
-} from "main/lib/terminal-host/client";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_NAVIGATION_STYLE,
@@ -254,34 +249,5 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
-
-		/**
-		 * Restart the terminal host daemon.
-		 * This shuts down the current daemon and disposes the client.
-		 * A new daemon will be spawned automatically on the next terminal operation.
-		 *
-		 * NOTE: This will NOT kill existing terminal sessions - they will be
-		 * orphaned and the daemon will exit after cleaning them up.
-		 */
-		restartDaemon: publicProcedure.mutation(async () => {
-			try {
-				const client = getTerminalHostClient();
-				// Request daemon shutdown (will kill sessions and exit)
-				await client.shutdown({ killSessions: true });
-			} catch (error) {
-				console.warn(
-					"[settings] Daemon shutdown request failed (may already be stopped):",
-					error,
-				);
-			}
-
-			// Dispose both the client and the daemon manager so fresh instances
-			// are created on next use. The manager caches a client reference,
-			// so it must be disposed when the client is disposed.
-			disposeTerminalHostClient();
-			disposeDaemonManager();
-
-			return { success: true };
-		}),
 	});
 };
