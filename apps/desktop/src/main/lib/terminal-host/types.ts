@@ -213,6 +213,14 @@ export interface ClearScrollbackRequest {
 	sessionId: string;
 }
 
+/**
+ * Shutdown the daemon gracefully
+ */
+export interface ShutdownRequest {
+	/** Optional: Kill all sessions before shutdown (default: false) */
+	killSessions?: boolean;
+}
+
 // =============================================================================
 // IPC Message Framing
 // =============================================================================
@@ -300,4 +308,5 @@ export type RequestTypeMap = {
 	killAll: { request: KillAllRequest; response: EmptyResponse };
 	listSessions: { request: undefined; response: ListSessionsResponse };
 	clearScrollback: { request: ClearScrollbackRequest; response: EmptyResponse };
+	shutdown: { request: ShutdownRequest; response: EmptyResponse };
 };

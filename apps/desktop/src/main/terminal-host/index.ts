@@ -37,6 +37,7 @@ import {
 	type KillRequest,
 	PROTOCOL_VERSION,
 	type ResizeRequest,
+	type ShutdownRequest,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
 import { TerminalHost } from "./terminal-host";
@@ -312,6 +313,31 @@ const handlers: Record<string, RequestHandler> = {
 		const request = payload as ClearScrollbackRequest;
 		const response = terminalHost.clearScrollback(request);
 		sendSuccess(socket, id, response);
+	},
+
+	shutdown: (socket, id, payload, clientState) => {
+		if (!clientState.authenticated) {
+			sendError(socket, id, "NOT_AUTHENTICATED", "Must authenticate first");
+			return;
+		}
+
+		const request = payload as ShutdownRequest;
+		log("info", "Shutdown requested via IPC", {
+			killSessions: request.killSessions,
+		});
+
+		// Send success response before shutting down
+		sendSuccess(socket, id, { success: true });
+
+		// Kill sessions if requested
+		if (request.killSessions) {
+			terminalHost.killAll({ deleteHistory: false });
+		}
+
+		// Schedule shutdown after a brief delay to allow response to be sent
+		setTimeout(() => {
+			stopServer().then(() => process.exit(0));
+		}, 100);
 	},
 };
 

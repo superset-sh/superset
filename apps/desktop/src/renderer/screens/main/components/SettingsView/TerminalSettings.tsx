@@ -1,4 +1,6 @@
+import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { trpc } from "renderer/lib/trpc";
 
@@ -32,8 +34,26 @@ export function TerminalSettings() {
 			},
 		});
 
+	const restartDaemon = trpc.settings.restartDaemon.useMutation({
+		onSuccess: () => {
+			toast.success("Terminal daemon restarted", {
+				description:
+					"A new daemon will start automatically when you open a terminal.",
+			});
+		},
+		onError: (error) => {
+			toast.error("Failed to restart daemon", {
+				description: error.message,
+			});
+		},
+	});
+
 	const handleToggle = (enabled: boolean) => {
 		setTerminalPersistence.mutate({ enabled });
+	};
+
+	const handleRestartDaemon = () => {
+		restartDaemon.mutate();
 	};
 
 	return (
@@ -69,6 +89,24 @@ export function TerminalSettings() {
 						disabled={isLoading || setTerminalPersistence.isPending}
 					/>
 				</div>
+
+				{/* Daemon Management - only show when persistence is enabled */}
+				{terminalPersistence && (
+					<div className="pt-6 border-t">
+						<h3 className="text-sm font-medium mb-2">Terminal Daemon</h3>
+						<p className="text-sm text-muted-foreground mb-4">
+							Restart the terminal daemon to pick up new code after an app
+							update. This will close all terminal sessions.
+						</p>
+						<Button
+							variant="outline"
+							onClick={handleRestartDaemon}
+							disabled={restartDaemon.isPending}
+						>
+							{restartDaemon.isPending ? "Restarting..." : "Restart Daemon"}
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	);
