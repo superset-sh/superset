@@ -148,13 +148,12 @@ export class TerminalHostClient extends EventEmitter {
 	 * Spawns daemon if needed.
 	 */
 	async ensureConnected(): Promise<void> {
-		// Already connected - fast path
+		// Already connected - fast path (no logging to avoid noise on every API call)
 		if (
 			this.connectionState === ConnectionState.CONNECTED &&
 			this.socket &&
 			this.authenticated
 		) {
-			console.log("[TerminalHostClient] Already connected and authenticated");
 			return;
 		}
 
