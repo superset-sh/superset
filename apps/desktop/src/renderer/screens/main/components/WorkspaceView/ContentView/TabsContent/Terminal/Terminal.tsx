@@ -329,11 +329,23 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				requestAnimationFrame(() => {
 					try {
 						fitAddon.fit();
+						if (xtermRef.current !== xterm) return;
+
+						// Some full-screen TUIs don't reliably repaint after reattach unless they
+						// receive an actual resize signal. Nudge rows by 1 and revert to force a redraw.
+						const cols = xterm.cols;
+						const rows = xterm.rows;
+						if (isAlternateScreenRef.current && rows > 2) {
+							const nudgeRows = rows - 1;
+							xterm.resize(cols, nudgeRows);
+							resizeRef.current({ paneId, cols, rows: nudgeRows });
+							xterm.resize(cols, rows);
+						}
+
 						// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
 						// This also forces full-screen TUIs (opencode, vim, etc.) to redraw after reattach.
-						if (xtermRef.current !== xterm) return;
-						resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
-						xterm.refresh(0, xterm.rows - 1);
+						resizeRef.current({ paneId, cols, rows });
+						xterm.refresh(0, rows - 1);
 					} catch (error) {
 						console.warn("[Terminal] fit() failed after restoration:", error);
 					}
