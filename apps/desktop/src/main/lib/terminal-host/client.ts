@@ -38,6 +38,7 @@ import {
 	type ListSessionsResponse,
 	PROTOCOL_VERSION,
 	type ResizeRequest,
+	type ShutdownRequest,
 	type TerminalDataEvent,
 	type TerminalExitEvent,
 	type WriteRequest,
@@ -646,6 +647,22 @@ export class TerminalHostClient extends EventEmitter {
 			"clearScrollback",
 			request,
 		)) as EmptyResponse;
+	}
+
+	/**
+	 * Shutdown the daemon gracefully.
+	 * After calling this, the client should be disposed and a new daemon
+	 * will be spawned on the next getTerminalHostClient() call.
+	 */
+	async shutdown(request: ShutdownRequest = {}): Promise<EmptyResponse> {
+		await this.ensureConnected();
+		const response = (await this.sendRequest(
+			"shutdown",
+			request,
+		)) as EmptyResponse;
+		// Disconnect after shutdown request is sent
+		this.disconnect();
+		return response;
 	}
 
 	/**
