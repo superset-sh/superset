@@ -37,9 +37,13 @@ export function TerminalSettings() {
 	const restartDaemon = trpc.settings.restartDaemon.useMutation({
 		onSuccess: () => {
 			toast.success("Terminal daemon restarted", {
-				description:
-					"A new daemon will start automatically when you open a terminal.",
+				description: "Reloading window to reset terminal connections...",
 			});
+			// Reload the window after a short delay to let the toast show
+			// This ensures all terminal components get fresh state
+			setTimeout(() => {
+				window.location.reload();
+			}, 1500);
 		},
 		onError: (error) => {
 			toast.error("Failed to restart daemon", {
