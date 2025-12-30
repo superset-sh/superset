@@ -4,6 +4,7 @@ import {
 	type TerminalPreset,
 } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
+import { disposeDaemonManager } from "main/lib/terminal/daemon-manager";
 import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
@@ -321,8 +322,11 @@ export const createSettingsRouter = () => {
 				);
 			}
 
-			// Dispose the client so a new one is created on next use
+			// Dispose both the client and the daemon manager so fresh instances
+			// are created on next use. The manager caches a client reference,
+			// so it must be disposed when the client is disposed.
 			disposeTerminalHostClient();
+			disposeDaemonManager();
 
 			return { success: true };
 		}),

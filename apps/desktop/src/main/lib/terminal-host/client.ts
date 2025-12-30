@@ -706,6 +706,7 @@ export class TerminalHostClient extends EventEmitter {
 			this.socket = null;
 		}
 		this.authenticated = false;
+		this.connectionState = ConnectionState.DISCONNECTED;
 	}
 
 	/**

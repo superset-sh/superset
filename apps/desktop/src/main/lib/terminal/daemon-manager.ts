@@ -484,3 +484,15 @@ export function getDaemonTerminalManager(): DaemonTerminalManager {
 	}
 	return daemonManager;
 }
+
+/**
+ * Dispose the daemon manager singleton.
+ * Must be called when the terminal host client is disposed (e.g., daemon restart)
+ * to ensure the manager gets a fresh client reference on next use.
+ */
+export function disposeDaemonManager(): void {
+	if (daemonManager) {
+		daemonManager.removeAllListeners();
+		daemonManager = null;
+	}
+}
