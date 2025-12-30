@@ -118,7 +118,6 @@ export default defineConfig({
 					"electron",
 					"better-sqlite3", // Native module - must stay external
 					"node-pty", // Native module - must stay external
-					"@xterm/headless", // Terminal headless emulator for daemon
 					/^@sentry\/electron/,
 				],
 			},
