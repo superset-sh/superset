@@ -245,6 +245,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		for (const event of events) {
 			if (event.type === "data") {
+				// Track alternate screen mode from queued events too
+				// (escape sequences sent before stream was ready)
+				if (
+					event.data.includes("\x1b[?1049h") ||
+					event.data.includes("\x1b[?47h")
+				) {
+					isAlternateScreenRef.current = true;
+				}
+				if (
+					event.data.includes("\x1b[?1049l") ||
+					event.data.includes("\x1b[?47l")
+				) {
+					isAlternateScreenRef.current = false;
+				}
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
@@ -276,6 +290,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Track alternate screen mode from snapshot for our own reference
 			// (xterm.buffer.active.type is unreliable after HMR/recovery)
 			isAlternateScreenRef.current = !!result.snapshot?.modes.alternateScreen;
+
+			// Also parse scrollback for escape sequences in case snapshot.modes is incomplete
+			// This handles cases where the daemon didn't track the mode but the sequences are in history
+			if (result.scrollback) {
+				const hasEnterAlt =
+					result.scrollback.includes("\x1b[?1049h") ||
+					result.scrollback.includes("\x1b[?47h");
+				const hasExitAlt =
+					result.scrollback.includes("\x1b[?1049l") ||
+					result.scrollback.includes("\x1b[?47l");
+				// If we see enter without exit, we're likely in alternate screen
+				if (hasEnterAlt && !hasExitAlt) {
+					isAlternateScreenRef.current = true;
+				}
+			}
 
 			// If session was in alternate screen mode, enter it BEFORE writing content.
 			// rehydrateSequences intentionally excludes alternate screen mode (1049) because
