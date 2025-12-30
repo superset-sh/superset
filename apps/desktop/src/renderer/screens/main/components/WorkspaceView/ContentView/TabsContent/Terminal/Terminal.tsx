@@ -476,9 +476,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}) => {
 			const { domEvent } = event;
 			if (domEvent.key === "Enter") {
-				const title = sanitizeForTitle(commandBufferRef.current);
-				if (title && parentTabIdRef.current) {
-					debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+				// Don't auto-title from keyboard when in alternate screen (TUI apps like vim, codex)
+				// TUI apps set their own title via escape sequences handled by onTitleChange
+				if (xterm.buffer.active.type !== "alternate") {
+					const title = sanitizeForTitle(commandBufferRef.current);
+					if (title && parentTabIdRef.current) {
+						debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
+					}
 				}
 				commandBufferRef.current = "";
 			} else if (domEvent.key === "Backspace") {
