@@ -366,8 +366,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				xterm.write(result.snapshot.rehydrateSequences);
 			}
 
-			// Then apply the scrollback content
-			xterm.write(result.scrollback);
+			// xterm.write() is asynchronous - escape sequences may not be fully
+			// processed when the terminal first renders, causing garbled display.
+			// Force a re-render after write completes to ensure correct display.
+			// (Symptom: restored terminals show corrupted text until resized)
+			xterm.write(result.scrollback, () => {
+				xterm.refresh(0, xterm.rows - 1);
+			});
 			updateCwdRef.current(result.scrollback);
 		};
 
