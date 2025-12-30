@@ -206,11 +206,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
+	const resizeAsyncRef = useRef(resizeMutation.mutateAsync);
 	const detachRef = useRef(detachMutation.mutate);
 	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
+	resizeAsyncRef.current = resizeMutation.mutateAsync;
 	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
 
@@ -326,6 +328,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// (Symptom: restored terminals show corrupted text until resized)
 			// Using fitAddon.fit() which triggers a full re-layout and re-render.
 			xterm.write(result.scrollback, () => {
+				let didForceRepaint = false;
+
 				const redraw = () => {
 					requestAnimationFrame(() => {
 						try {
@@ -333,16 +337,58 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 							if (xtermRef.current !== xterm) return;
 
 							// Reattached sessions can sometimes render partially until the user resizes the
-							// pane. Nudge rows by 1 and revert to force a full repaint + TUI redraw.
+							// pane. Nudge dimensions to force a full repaint + TUI redraw.
 							const cols = xterm.cols;
 							const rows = xterm.rows;
 							if (cols <= 0 || rows <= 0) return;
 
-							if (!result.isNew && rows > 2) {
-								const nudgeRows = rows - 1;
-								xterm.resize(cols, nudgeRows);
-								resizeRef.current({ paneId, cols, rows: nudgeRows });
-								xterm.resize(cols, rows);
+							if (!result.isNew && !didForceRepaint) {
+								didForceRepaint = true;
+
+								void (async () => {
+									try {
+										if (xtermRef.current !== xterm) return;
+
+										// TUIs run in alt-screen and don't care about scrollback reflow.
+										// Prefer nudging `cols` to force a full line reflow + repaint.
+										if (isAlternateScreenRef.current && cols > 2) {
+											const nudgeCols = cols - 1;
+											xterm.resize(nudgeCols, rows);
+											xterm.resize(cols, rows);
+											await resizeAsyncRef.current({
+												paneId,
+												cols: nudgeCols,
+												rows,
+											});
+											await new Promise((resolve) => {
+												setTimeout(resolve, 16);
+											});
+											if (xtermRef.current !== xterm) return;
+											await resizeAsyncRef.current({ paneId, cols, rows });
+											return;
+										}
+
+										// For non-alt-screen, only nudge the PTY (avoid changing xterm scrollback).
+										if (rows > 2) {
+											const nudgeRows = rows - 1;
+											await resizeAsyncRef.current({
+												paneId,
+												cols,
+												rows: nudgeRows,
+											});
+											await new Promise((resolve) => {
+												setTimeout(resolve, 16);
+											});
+											if (xtermRef.current !== xterm) return;
+											await resizeAsyncRef.current({ paneId, cols, rows });
+										}
+									} catch (error) {
+										console.warn(
+											"[Terminal] force repaint failed after restoration:",
+											error,
+										);
+									}
+								})();
 							}
 
 							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
