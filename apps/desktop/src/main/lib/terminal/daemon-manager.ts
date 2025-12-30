@@ -352,39 +352,32 @@ export class DaemonTerminalManager extends EventEmitter {
 	async killByWorkspaceId(
 		workspaceId: string,
 	): Promise<{ killed: number; failed: number }> {
-		// Collect paneIds to kill (from local state or daemon)
-		let paneIdsToKill: string[] = [];
+		// Always query daemon for the authoritative list of sessions
+		// Local sessions map may be incomplete after app restart
+		const paneIdsToKill = new Set<string>();
 
-		// First check local sessions map
-		const localSessions = Array.from(this.sessions.entries()).filter(
-			([, session]) => session.workspaceId === workspaceId,
-		);
-		paneIdsToKill = localSessions.map(([paneId]) => paneId);
-
-		// If no local sessions, query daemon directly
-		// This handles the case where app restarted but daemon still has sessions
-		if (paneIdsToKill.length === 0) {
-			try {
-				const response = await this.client.listSessions();
-				const daemonSessions = response.sessions.filter(
-					(s) => s.workspaceId === workspaceId && s.isAlive,
-				);
-
-				if (daemonSessions.length > 0) {
-					console.log(
-						`[DaemonTerminalManager] Found ${daemonSessions.length} orphaned daemon sessions for workspace ${workspaceId}`,
-					);
-					paneIdsToKill = daemonSessions.map((s) => s.paneId);
+		// Query daemon for all sessions in this workspace
+		try {
+			const response = await this.client.listSessions();
+			for (const session of response.sessions) {
+				if (session.workspaceId === workspaceId && session.isAlive) {
+					paneIdsToKill.add(session.paneId);
 				}
-			} catch (error) {
-				console.warn(
-					"[DaemonTerminalManager] Failed to query daemon for sessions:",
-					error,
-				);
+			}
+		} catch (error) {
+			console.warn(
+				"[DaemonTerminalManager] Failed to query daemon for sessions:",
+				error,
+			);
+			// Fall back to local sessions if daemon query fails
+			for (const [paneId, session] of this.sessions.entries()) {
+				if (session.workspaceId === workspaceId) {
+					paneIdsToKill.add(paneId);
+				}
 			}
 		}
 
-		if (paneIdsToKill.length === 0) {
+		if (paneIdsToKill.size === 0) {
 			return { killed: 0, failed: 0 };
 		}
 
@@ -409,17 +402,8 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	async getSessionCountByWorkspaceId(workspaceId: string): Promise<number> {
-		// First check local sessions
-		const localCount = Array.from(this.sessions.values()).filter(
-			(session) => session.workspaceId === workspaceId && session.isAlive,
-		).length;
-
-		if (localCount > 0) {
-			return localCount;
-		}
-
-		// If no local sessions, query daemon directly
-		// This handles the case where app restarted but daemon still has sessions
+		// Always query daemon for the authoritative count
+		// Local sessions map may be incomplete after app restart
 		try {
 			const response = await this.client.listSessions();
 			return response.sessions.filter(
@@ -430,7 +414,10 @@ export class DaemonTerminalManager extends EventEmitter {
 				"[DaemonTerminalManager] Failed to query daemon for session count:",
 				error,
 			);
-			return 0;
+			// Fall back to local sessions if daemon query fails
+			return Array.from(this.sessions.values()).filter(
+				(session) => session.workspaceId === workspaceId && session.isAlive,
+			).length;
 		}
 	}
 
