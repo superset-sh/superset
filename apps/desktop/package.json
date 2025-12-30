@@ -109,6 +109,7 @@
 		"rehype-raw": "^7.0.0",
 		"rehype-sanitize": "^6.0.0",
 		"remark-gfm": "^4.0.1",
+		"semver": "^7.7.3",
 		"shell-quote": "^1.8.3",
 		"simple-git": "^3.30.0",
 		"strip-ansi": "^7.1.2",

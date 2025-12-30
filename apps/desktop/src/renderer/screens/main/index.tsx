@@ -7,7 +7,9 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
+import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
@@ -35,6 +37,14 @@ function LoadingSpinner() {
 
 export function MainScreen() {
 	const utils = trpc.useUtils();
+
+	// Version check - blocks app if outdated
+	const {
+		isLoading: isVersionLoading,
+		isBlocked: isVersionBlocked,
+		requirements: versionRequirements,
+	} = useVersionCheck();
+
 	const { data: authState } = trpc.auth.getState.useQuery();
 	const isSignedIn =
 		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
@@ -166,6 +176,31 @@ export function MainScreen() {
 	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	// Show loading while version check is in progress
+	if (isVersionLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
+
+	// Block app if version is outdated
+	if (isVersionBlocked && versionRequirements) {
+		return (
+			<UpdateRequiredPage
+				currentVersion={window.App.appVersion}
+				minimumVersion={versionRequirements.minimumVersion}
+				message={versionRequirements.message}
+			/>
+		);
+	}
 
 	// Show loading while auth state is being determined
 	if (isAuthLoading) {
