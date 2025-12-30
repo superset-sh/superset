@@ -5,4 +5,5 @@ export interface TerminalProps {
 
 export type TerminalStreamEvent =
 	| { type: "data"; data: string }
-	| { type: "exit"; exitCode: number };
+	| { type: "exit"; exitCode: number }
+	| { type: "disconnect"; reason: string };

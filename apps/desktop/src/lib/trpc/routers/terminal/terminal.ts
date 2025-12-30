@@ -257,6 +257,7 @@ export const createTerminalRouter = () => {
 				return observable<
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
+					| { type: "disconnect"; reason: string }
 				>((emit) => {
 					const onData = (data: string) => {
 						emit.next({ type: "data", data });
@@ -267,13 +268,19 @@ export const createTerminalRouter = () => {
 						emit.complete();
 					};
 
+					const onDisconnect = (reason: string) => {
+						emit.next({ type: "disconnect", reason });
+					};
+
 					terminalManager.on(`data:${paneId}`, onData);
 					terminalManager.on(`exit:${paneId}`, onExit);
+					terminalManager.on(`disconnect:${paneId}`, onDisconnect);
 
 					// Cleanup on unsubscribe
 					return () => {
 						terminalManager.off(`data:${paneId}`, onData);
 						terminalManager.off(`exit:${paneId}`, onExit);
+						terminalManager.off(`disconnect:${paneId}`, onDisconnect);
 					};
 				});
 			}),

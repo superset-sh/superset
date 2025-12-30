@@ -264,6 +264,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
 			xtermRef.current.writeln("[Press any key to restart]");
+		} else if (event.type === "disconnect") {
+			// Daemon connection lost - show error UI with retry option
+			setConnectionError(event.reason || "Connection to terminal daemon lost");
 		}
 	};
 
@@ -342,11 +345,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				if (event.type === "data") {
 					xterm.write(event.data);
 					updateCwdRef.current(event.data);
-				} else {
+				} else if (event.type === "exit") {
 					isExitedRef.current = true;
 					setSubscriptionEnabled(false);
 					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
 					xterm.writeln("[Press any key to restart]");
+				} else if (event.type === "disconnect") {
+					setConnectionError(
+						event.reason || "Connection to terminal daemon lost",
+					);
 				}
 			}
 		};

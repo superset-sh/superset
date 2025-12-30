@@ -97,13 +97,28 @@ export class DaemonTerminalManager extends EventEmitter {
 			},
 		);
 
-		// Handle client disconnection
+		// Handle client disconnection - notify all active sessions
 		this.client.on("disconnected", () => {
 			console.warn("[DaemonTerminalManager] Disconnected from daemon");
+			// Emit disconnect event for all active sessions so terminals can show error UI
+			for (const [paneId, session] of this.sessions.entries()) {
+				if (session.isAlive) {
+					this.emit(
+						`disconnect:${paneId}`,
+						"Connection to terminal daemon lost",
+					);
+				}
+			}
 		});
 
 		this.client.on("error", (error: Error) => {
 			console.error("[DaemonTerminalManager] Client error:", error.message);
+			// Emit error event for all active sessions
+			for (const [paneId, session] of this.sessions.entries()) {
+				if (session.isAlive) {
+					this.emit(`disconnect:${paneId}`, error.message);
+				}
+			}
 		});
 	}
 
