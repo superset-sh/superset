@@ -1,14 +1,23 @@
 import { toast } from "@superset/ui/sonner";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { UpdateToast } from "./UpdateToast";
 
-export function useUpdateListener() {
+export function useUpdateListener(options: { enabled?: boolean } = {}) {
+	const enabled = options.enabled ?? true;
 	const toastIdRef = useRef<string | number | null>(null);
+
+	useEffect(() => {
+		if (!enabled && toastIdRef.current !== null) {
+			toast.dismiss(toastIdRef.current);
+			toastIdRef.current = null;
+		}
+	}, [enabled]);
 
 	trpc.autoUpdate.subscribe.useSubscription(undefined, {
 		onData: (event) => {
+			if (!enabled) return;
 			const { status, version, error } = event;
 
 			if (

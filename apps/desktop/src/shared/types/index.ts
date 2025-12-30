@@ -4,5 +4,6 @@ export * from "./electron";
 export * from "./mosaic";
 export * from "./ports";
 export * from "./tab";
+export * from "./version-gate";
 export * from "./workspace";
 export * from "./worktree";

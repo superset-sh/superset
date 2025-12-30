@@ -16,6 +16,7 @@ import { createTasksRouter } from "./tasks";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
 import { createUserRouter } from "./user";
+import { createVersionGateRouter } from "./version-gate";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -39,6 +40,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
 		tasks: createTasksRouter(),
+		versionGate: createVersionGateRouter(),
 	});
 };
 

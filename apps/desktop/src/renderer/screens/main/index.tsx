@@ -10,6 +10,7 @@ import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
+import { UpdateRequiredScreen } from "renderer/screens/update-required";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -35,10 +36,13 @@ function LoadingSpinner() {
 
 export function MainScreen() {
 	const utils = trpc.useUtils();
+	const { data: versionGateStatus, isError: isVersionGateError } =
+		trpc.versionGate.getStatus.useQuery();
 	const { data: authState } = trpc.auth.getState.useQuery();
 	const isSignedIn =
 		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
 	const isAuthLoading = !process.env.SKIP_ENV_VALIDATION && !authState;
+	const isVersionGateLoading = !isVersionGateError && !versionGateStatus;
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {
@@ -70,7 +74,7 @@ export function MainScreen() {
 	const tabs = useTabsStore((s) => s.tabs);
 
 	useAgentHookListener();
-	useUpdateListener();
+	useUpdateListener({ enabled: !versionGateStatus?.isUpdateRequired });
 
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -166,6 +170,23 @@ export function MainScreen() {
 	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	if (isVersionGateLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
+
+	if (versionGateStatus?.isUpdateRequired) {
+		return <UpdateRequiredScreen status={versionGateStatus} />;
+	}
 
 	// Show loading while auth state is being determined
 	if (isAuthLoading) {

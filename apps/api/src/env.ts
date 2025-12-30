@@ -14,6 +14,7 @@ export const env = createEnv({
 		ELECTRIC_URL: z.string().url(),
 		ELECTRIC_SECRET: z.string().min(16),
 		BLOB_READ_WRITE_TOKEN: z.string(),
+		DESKTOP_MINIMUM_SUPPORTED_VERSION: z.string().optional(),
 		DESKTOP_AUTH_SECRET: z.string().min(32),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
