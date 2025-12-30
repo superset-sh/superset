@@ -79,6 +79,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const didFirstRenderRef = useRef(false);
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
 	const renderDisposableRef = useRef<IDisposable | null>(null);
+	const restoreSequenceRef = useRef(0);
 
 	// Track alternate screen mode ourselves (xterm.buffer.active.type is unreliable after HMR/recovery)
 	// Updated from: snapshot.modes.alternateScreen on restore, escape sequences in stream
@@ -287,6 +288,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Clear before applying to prevent double-apply on concurrent triggers.
 		pendingInitialStateRef.current = null;
+		const restoreSequence = ++restoreSequenceRef.current;
 
 		try {
 			// Track alternate screen mode from snapshot for our own reference
@@ -333,55 +335,43 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				const redraw = () => {
 					requestAnimationFrame(() => {
 						try {
+							if (restoreSequenceRef.current !== restoreSequence) return;
+							if (xtermRef.current !== xterm) return;
+
 							fitAddon.fit();
 							if (xtermRef.current !== xterm) return;
 
-							// Reattached sessions can sometimes render partially until the user resizes the
-							// pane. Nudge dimensions to force a full repaint + TUI redraw.
+							// Reattached sessions can sometimes render partially until the user resizes the pane.
+							// Force a repaint and (for restored TUIs) one SIGWINCH cycle to trigger a redraw.
 							const cols = xterm.cols;
 							const rows = xterm.rows;
 							if (cols <= 0 || rows <= 0) return;
 
-							if (!result.isNew && !didForceRepaint) {
-								didForceRepaint = true;
+							const shouldForceRepaint =
+								!result.isNew && isAlternateScreenRef.current && rows > 2;
 
+							if (shouldForceRepaint && !didForceRepaint) {
+								didForceRepaint = true;
+								const nudgeRows = rows - 1;
+
+								// Order matters: send the nudge, yield a frame, then restore. This ensures
+								// the PTY actually delivers SIGWINCH and the TUI repaints into the buffer.
 								void (async () => {
 									try {
+										await resizeAsyncRef.current({
+											paneId,
+											cols,
+											rows: nudgeRows,
+										});
+										await new Promise((resolve) => {
+											setTimeout(resolve, 16);
+										});
+										if (restoreSequenceRef.current !== restoreSequence) return;
 										if (xtermRef.current !== xterm) return;
-
-										// TUIs run in alt-screen and don't care about scrollback reflow.
-										// Prefer nudging `cols` to force a full line reflow + repaint.
-										if (isAlternateScreenRef.current && cols > 2) {
-											const nudgeCols = cols - 1;
-											xterm.resize(nudgeCols, rows);
-											xterm.resize(cols, rows);
-											await resizeAsyncRef.current({
-												paneId,
-												cols: nudgeCols,
-												rows,
-											});
-											await new Promise((resolve) => {
-												setTimeout(resolve, 16);
-											});
-											if (xtermRef.current !== xterm) return;
-											await resizeAsyncRef.current({ paneId, cols, rows });
-											return;
-										}
-
-										// For non-alt-screen, only nudge the PTY (avoid changing xterm scrollback).
-										if (rows > 2) {
-											const nudgeRows = rows - 1;
-											await resizeAsyncRef.current({
-												paneId,
-												cols,
-												rows: nudgeRows,
-											});
-											await new Promise((resolve) => {
-												setTimeout(resolve, 16);
-											});
-											if (xtermRef.current !== xterm) return;
-											await resizeAsyncRef.current({ paneId, cols, rows });
-										}
+										await resizeAsyncRef.current({ paneId, cols, rows });
+										if (restoreSequenceRef.current !== restoreSequence) return;
+										if (xtermRef.current !== xterm) return;
+										xterm.refresh(0, rows - 1);
 									} catch (error) {
 										console.warn(
 											"[Terminal] force repaint failed after restoration:",
@@ -389,11 +379,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 										);
 									}
 								})();
+							} else {
+								// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
+								resizeRef.current({ paneId, cols, rows });
 							}
-
-							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-							// This also forces full-screen TUIs (opencode, vim, etc.) to redraw after reattach.
-							resizeRef.current({ paneId, cols, rows });
 							xterm.refresh(0, rows - 1);
 						} catch (error) {
 							console.warn(
@@ -404,22 +393,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					});
 				};
 
-				const scheduleRedraw = (delayMs: number) => {
-					setTimeout(() => {
-						if (xtermRef.current !== xterm) return;
-						redraw();
-					}, delayMs);
-				};
-
-				// Run multiple redraw passes to avoid timing issues with layout, fonts, and renderer init.
-				scheduleRedraw(0);
-				scheduleRedraw(50);
-				scheduleRedraw(250);
-				scheduleRedraw(1000);
-
-				// If font metrics settle after restoration, run one more redraw.
+				// Redraw once immediately, and once again after fonts settle.
+				redraw();
 				void document.fonts?.ready.then(() => {
-					scheduleRedraw(0);
+					if (restoreSequenceRef.current !== restoreSequence) return;
+					if (xtermRef.current !== xterm) return;
+					redraw();
 				});
 			});
 			updateCwdRef.current(result.scrollback);
