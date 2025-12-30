@@ -182,7 +182,8 @@ export default function ScriptsPage() {
 								<code className="text-amber-500 dark:text-amber-400">
 									.gitignore
 								</code>{" "}
-								if you don&apos;t want to share configs
+								for personal configs - Superset will automatically copy it to
+								new worktrees
 							</li>
 							<li>Or commit it to share workspace setup with your team</li>
 						</ul>

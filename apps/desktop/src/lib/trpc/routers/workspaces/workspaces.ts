@@ -33,7 +33,7 @@ import {
 	worktreeExists,
 } from "./utils/git";
 import { fetchGitHubPRStatus } from "./utils/github";
-import { loadSetupConfig } from "./utils/setup";
+import { copySupersetConfigToWorktree, loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
 import { getWorkspacePath } from "./utils/worktree";
 
@@ -123,6 +123,10 @@ export const createWorkspacesRouter = () => {
 					worktreePath,
 					startPoint,
 				);
+
+				// Copy .superset directory to worktree if it's gitignored (not present in worktree)
+				// This ensures setup scripts like "./.superset/setup.sh" work even when gitignored
+				copySupersetConfigToWorktree(project.mainRepoPath, worktreePath);
 
 				// Insert worktree
 				const worktree = localDb
