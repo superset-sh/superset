@@ -269,9 +269,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		pendingInitialStateRef.current = null;
 
 		try {
-			// Apply rehydration sequences FIRST to restore terminal modes
-			// (e.g., alternate screen, app cursor mode, bracketed paste)
-			// This must come before the scrollback content for correct TUI restoration
+			// If session was in alternate screen mode, enter it BEFORE writing content.
+			// rehydrateSequences intentionally excludes alternate screen mode (1049) because
+			// sending it after content would clear the screen. We must send it first so xterm
+			// knows to use the alternate buffer, then write content into it.
+			if (result.snapshot?.modes.alternateScreen) {
+				xterm.write("\x1b[?1049h");
+			}
+
+			// Apply rehydration sequences to restore other terminal modes
+			// (app cursor mode, bracketed paste, mouse tracking, etc.)
 			if (result.snapshot?.rehydrateSequences) {
 				xterm.write(result.snapshot.rehydrateSequences);
 			}
