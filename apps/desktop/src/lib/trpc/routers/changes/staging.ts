@@ -1,9 +1,13 @@
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertWorktreePathInDb } from "./security";
+import {
+	gitCheckoutFile,
+	gitStageAll,
+	gitStageFile,
+	gitUnstageAll,
+	gitUnstageFile,
+	secureFs,
+} from "./security";
 
 export const createStagingRouter = () => {
 	return router({
@@ -15,12 +19,7 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
-				// P2: Use -- to prevent paths starting with - from being interpreted as flags
-				await git.add(["--", input.filePath]);
+				await gitStageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -32,11 +31,7 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
-				await git.reset(["HEAD", "--", input.filePath]);
+				await gitUnstageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -48,33 +43,21 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
-				await git.checkout(["--", input.filePath]);
+				await gitCheckoutFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
 		stageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
-				await git.add("-A");
+				await gitStageAll(input.worktreePath);
 				return { success: true };
 			}),
 
 		unstageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				const git = simpleGit(input.worktreePath);
-				await git.reset(["HEAD"]);
+				await gitUnstageAll(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -86,12 +69,8 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
-
-				// filePath comes from git status output, which git already sandboxes
-				const fullPath = join(input.worktreePath, input.filePath);
-				await rm(fullPath, { recursive: true, force: true });
+				// secureFs.delete validates path and checks for symlink escapes
+				await secureFs.delete(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 	});

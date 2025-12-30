@@ -4,7 +4,11 @@ import { localDb } from "main/lib/local-db";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertWorktreePathInDb } from "./security";
+import {
+	assertRegisteredWorktree,
+	getRegisteredWorktree,
+	gitSwitchBranch,
+} from "./security";
 
 export const createBranchesRouter = () => {
 	return router({
@@ -19,8 +23,7 @@ export const createBranchesRouter = () => {
 					defaultBranch: string;
 					checkedOutBranches: Record<string, string>;
 				}> => {
-					// SECURITY: Validate worktreePath exists in localDb
-					assertWorktreePathInDb(input.worktreePath);
+					assertRegisteredWorktree(input.worktreePath);
 
 					const git = simpleGit(input.worktreePath);
 
@@ -63,13 +66,11 @@ export const createBranchesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb and get record
-				const worktree = assertWorktreePathInDb(input.worktreePath);
+				// Get worktree record for updating branch info
+				const worktree = getRegisteredWorktree(input.worktreePath);
 
-				const git = simpleGit(input.worktreePath);
-
-				// P2: Use -- to ensure branch is treated as refname, not flag
-				await git.checkout(["--", input.branch]);
+				// Use gitSwitchBranch which uses `git switch` (correct branch syntax)
+				await gitSwitchBranch(input.worktreePath, input.branch);
 
 				// Update the branch in the worktree record
 				const gitStatus = worktree.gitStatus

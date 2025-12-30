@@ -1,9 +1,12 @@
-import { lstat, readFile, writeFile } from "node:fs/promises";
 import type { FileContents } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { validateFilePath, validateWorktreePathInDb } from "./security";
+import {
+	assertRegisteredWorktree,
+	PathValidationError,
+	secureFs,
+} from "./security";
 import { detectLanguage } from "./utils/parse-status";
 
 /** Maximum file size for reading (2 MiB) */
@@ -49,10 +52,7 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
-				// SECURITY: Validate worktreePath exists in localDb to prevent arbitrary FS access
-				if (!validateWorktreePathInDb(input.worktreePath)) {
-					throw new Error(`Unauthorized: worktree path not found in database`);
-				}
+				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
@@ -84,26 +84,18 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb to prevent arbitrary FS access
-				if (!validateWorktreePathInDb(input.worktreePath)) {
-					throw new Error(`Unauthorized: worktree path not found in database`);
-				}
-
-				// Validate path doesn't escape worktree
-				const validation = validateFilePath(input.worktreePath, input.filePath);
-
-				if (!validation.valid) {
-					throw new Error("Invalid file path");
-				}
-
-				await writeFile(validation.fullPath, input.content, "utf-8");
+				// secureFs.writeFile handles all validation including symlink checks
+				await secureFs.writeFile(
+					input.worktreePath,
+					input.filePath,
+					input.content,
+				);
 				return { success: true };
 			}),
 
 		/**
 		 * Read a working tree file safely with size cap and binary detection.
 		 * Used for File Viewer raw/rendered modes.
-		 * Follows DL-005 (path validation) and DL-008 (size/binary policy).
 		 */
 		readWorkingFile: publicProcedure
 			.input(
@@ -113,50 +105,37 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
-				// SECURITY: Validate worktreePath exists in localDb to prevent arbitrary FS access
-				if (!validateWorktreePathInDb(input.worktreePath)) {
-					return { ok: false, reason: "outside-worktree" };
-				}
-
-				// Validate path doesn't escape worktree
-				const validation = validateFilePath(input.worktreePath, input.filePath);
-
-				if (!validation.valid) {
-					return { ok: false, reason: "outside-worktree" };
-				}
-
-				const resolvedPath = validation.fullPath;
-
-				// Check file size
 				try {
-					const stats = await lstat(resolvedPath);
+					// Check file size first (uses stat which follows symlinks)
+					const stats = await secureFs.stat(input.worktreePath, input.filePath);
 					if (stats.size > MAX_FILE_SIZE) {
 						return { ok: false, reason: "too-large" };
 					}
-				} catch {
+
+					// Read file content as buffer for binary detection
+					const buffer = await secureFs.readFileBuffer(
+						input.worktreePath,
+						input.filePath,
+					);
+
+					// Check for binary content
+					if (isBinaryContent(buffer)) {
+						return { ok: false, reason: "binary" };
+					}
+
+					return {
+						ok: true,
+						content: buffer.toString("utf-8"),
+						truncated: false,
+						byteLength: buffer.length,
+					};
+				} catch (error) {
+					if (error instanceof PathValidationError) {
+						return { ok: false, reason: "outside-worktree" };
+					}
+					// File not found or other read error
 					return { ok: false, reason: "not-found" };
 				}
-
-				// Read file content
-				let buffer: Buffer;
-				try {
-					buffer = await readFile(resolvedPath);
-				} catch {
-					return { ok: false, reason: "not-found" };
-				}
-
-				// Check for binary content
-				if (isBinaryContent(buffer)) {
-					return { ok: false, reason: "binary" };
-				}
-
-				// Return content as string
-				return {
-					ok: true,
-					content: buffer.toString("utf-8"),
-					truncated: false,
-					byteLength: buffer.length,
-				};
 			}),
 	});
 };
@@ -274,20 +253,17 @@ async function getUnstagedVersions(
 	}
 
 	let modified = "";
-	// Validate path before reading from filesystem
-	const validation = validateFilePath(worktreePath, filePath);
-	if (validation.valid) {
-		try {
-			// Check file size before reading
-			const stats = await lstat(validation.fullPath);
-			if (stats.size <= MAX_FILE_SIZE) {
-				modified = await readFile(validation.fullPath, "utf-8");
-			} else {
-				modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
-			}
-		} catch {
-			modified = "";
+	try {
+		// Check file size before reading (uses stat which follows symlinks)
+		const stats = await secureFs.stat(worktreePath, filePath);
+		if (stats.size <= MAX_FILE_SIZE) {
+			modified = await secureFs.readFile(worktreePath, filePath);
+		} else {
+			modified = `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
 		}
+	} catch {
+		// File doesn't exist or validation failed - that's ok for diff display
+		modified = "";
 	}
 
 	return { original, modified };

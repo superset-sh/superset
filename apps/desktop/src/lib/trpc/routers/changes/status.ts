@@ -1,9 +1,8 @@
-import { lstat, readFile } from "node:fs/promises";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertWorktreePathInDb, validateFilePath } from "./security";
+import { assertRegisteredWorktree, secureFs } from "./security";
 import { applyNumstatToFiles } from "./utils/apply-numstat";
 import {
 	parseGitLog,
@@ -21,8 +20,7 @@ export const createStatusRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<GitChangesStatus> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
@@ -67,8 +65,7 @@ export const createStatusRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<ChangedFile[]> => {
-				// SECURITY: Validate worktreePath exists in localDb
-				assertWorktreePathInDb(input.worktreePath);
+				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
 
@@ -150,25 +147,31 @@ async function getBranchComparison(
 /** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
+/**
+ * Apply line counts to untracked files.
+ *
+ * Uses secureFs which:
+ * - Validates paths don't escape worktree
+ * - Uses stat (follows symlinks) for accurate size checks
+ * - Checks for symlink escapes
+ */
 async function applyUntrackedLineCount(
 	worktreePath: string,
 	untracked: ChangedFile[],
 ): Promise<void> {
 	for (const file of untracked) {
 		try {
-			// P0 SECURITY: Validate path doesn't escape worktree (rejects .. and absolute)
-			const validation = validateFilePath(worktreePath, file.path);
-			if (!validation.valid) continue;
-
-			// P0 PERFORMANCE: Skip large files to avoid OOM on polling
-			const stats = await lstat(validation.fullPath);
+			// secureFs.stat uses stat (follows symlinks) for accurate size
+			const stats = await secureFs.stat(worktreePath, file.path);
 			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 
-			const content = await readFile(validation.fullPath, "utf-8");
+			const content = await secureFs.readFile(worktreePath, file.path);
 			const lineCount = content.split("\n").length;
 			file.additions = lineCount;
 			file.deletions = 0;
-		} catch {}
+		} catch {
+			// Skip files that fail validation or reading
+		}
 	}
 }
 
