@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -26,6 +26,21 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
 
+type CreateOrAttachResult = {
+	wasRecovered: boolean;
+	isNew: boolean;
+	scrollback: string;
+	snapshot?: {
+		snapshotAnsi: string;
+		rehydrateSequences: string;
+		cwd: string | null;
+		modes: Record<string, boolean>;
+		cols: number;
+		rows: number;
+		scrollbackLines: number;
+	};
+};
+
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
 	const panes = useTabsStore((s) => s.panes);
@@ -41,7 +56,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
-	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -57,6 +71,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const initialThemeRef = useRef(terminalTheme);
 
 	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
+
+	// Gate streaming until initial state restoration is applied to avoid interleaving output.
+	const isStreamReadyRef = useRef(false);
+
+	// Gate restoration until xterm has rendered at least once (renderer/viewport ready).
+	const didFirstRenderRef = useRef(false);
+	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
+	const renderDisposableRef = useRef<IDisposable | null>(null);
 
 	// Refs avoid effect re-runs when these values change
 	const isFocusedRef = useRef(isFocused);
@@ -195,11 +217,96 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		useTerminalCallbacksStore.getState().unregisterClearCallback,
 	);
 
+	const parentTabIdRef = useRef(parentTabId);
+	parentTabIdRef.current = parentTabId;
+
+	const setTabAutoTitleRef = useRef(setTabAutoTitle);
+	setTabAutoTitleRef.current = setTabAutoTitle;
+
+	const debouncedSetTabAutoTitleRef = useRef(
+		debounce((tabId: string, title: string) => {
+			setTabAutoTitleRef.current(tabId, title);
+		}, 100),
+	);
+
+	const flushPendingEvents = useCallback(() => {
+		const xterm = xtermRef.current;
+		if (!xterm) return;
+		if (pendingEventsRef.current.length === 0) return;
+
+		const events = pendingEventsRef.current.splice(
+			0,
+			pendingEventsRef.current.length,
+		);
+
+		for (const event of events) {
+			if (event.type === "data") {
+				xterm.write(event.data);
+				updateCwdRef.current(event.data);
+			} else if (event.type === "exit") {
+				isExitedRef.current = true;
+				isStreamReadyRef.current = false;
+				xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
+				xterm.writeln("[Press any key to restart]");
+			} else if (event.type === "disconnect") {
+				setConnectionError(
+					event.reason || "Connection to terminal daemon lost",
+				);
+			}
+		}
+	}, []);
+
+	const maybeApplyInitialState = useCallback(() => {
+		if (!didFirstRenderRef.current) return;
+		const result = pendingInitialStateRef.current;
+		if (!result) return;
+
+		const xterm = xtermRef.current;
+		const fitAddon = fitAddonRef.current;
+		if (!xterm || !fitAddon) return;
+
+		// Clear before applying to prevent double-apply on concurrent triggers.
+		pendingInitialStateRef.current = null;
+
+		try {
+			// Apply rehydration sequences FIRST to restore terminal modes
+			// (e.g., alternate screen, app cursor mode, bracketed paste)
+			// This must come before the scrollback content for correct TUI restoration
+			if (result.snapshot?.rehydrateSequences) {
+				xterm.write(result.snapshot.rehydrateSequences);
+			}
+
+			// xterm.write() is asynchronous - escape sequences may not be fully
+			// processed when the terminal first renders, causing garbled display.
+			// Force a re-render after write completes to ensure correct display.
+			// (Symptom: restored terminals show corrupted text until resized)
+			// Using fitAddon.fit() which triggers a full re-layout and re-render.
+			xterm.write(result.scrollback, () => {
+				requestAnimationFrame(() => {
+					try {
+						fitAddon.fit();
+					} catch (error) {
+						console.warn("[Terminal] fit() failed after restoration:", error);
+					}
+				});
+			});
+			updateCwdRef.current(result.scrollback);
+		} catch (error) {
+			console.error("[Terminal] Restoration failed:", error);
+		}
+
+		// Enable streaming after initial state has been queued into xterm's write buffer.
+		isStreamReadyRef.current = true;
+		flushPendingEvents();
+	}, [flushPendingEvents]);
+
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
 		const xterm = xtermRef.current;
-		const fitAddon = fitAddonRef.current;
 		if (!xterm) return;
+
+		isStreamReadyRef.current = false;
+		pendingInitialStateRef.current = null;
 
 		xterm.clear();
 		xterm.writeln("Retrying connection...\r\n");
@@ -215,41 +322,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			{
 				onSuccess: (result) => {
 					setConnectionError(null);
-					// Apply rehydration sequences first
-					if (result.snapshot?.rehydrateSequences) {
-						xterm.write(result.snapshot.rehydrateSequences);
-					}
-					// Force re-render after write completes
-					xterm.write(result.scrollback, () => {
-						requestAnimationFrame(() => {
-							fitAddon?.fit();
-						});
-					});
-					setSubscriptionEnabled(true);
+					pendingInitialStateRef.current = result;
+					maybeApplyInitialState();
 				},
 				onError: (error) => {
 					setConnectionError(error.message || "Connection failed");
-					setSubscriptionEnabled(true);
+					isStreamReadyRef.current = true;
+					flushPendingEvents();
 				},
 			},
 		);
-	}, [paneId, workspaceId]);
-
-	const parentTabIdRef = useRef(parentTabId);
-	parentTabIdRef.current = parentTabId;
-
-	const setTabAutoTitleRef = useRef(setTabAutoTitle);
-	setTabAutoTitleRef.current = setTabAutoTitle;
-
-	const debouncedSetTabAutoTitleRef = useRef(
-		debounce((tabId: string, title: string) => {
-			setTabAutoTitleRef.current(tabId, title);
-		}, 100),
-	);
+	}, [paneId, workspaceId, maybeApplyInitialState, flushPendingEvents]);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		// Queue events until terminal is ready to prevent data loss
-		if (!xtermRef.current || !subscriptionEnabled) {
+		if (!xtermRef.current || !isStreamReadyRef.current) {
 			pendingEventsRef.current.push(event);
 			return;
 		}
@@ -259,7 +346,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
-			setSubscriptionEnabled(false);
+			isStreamReadyRef.current = false;
 			xtermRef.current.writeln(
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
@@ -323,6 +410,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+		isStreamReadyRef.current = false;
+		didFirstRenderRef.current = false;
+		pendingInitialStateRef.current = null;
 
 		if (isFocusedRef.current) {
 			xterm.focus();
@@ -335,66 +425,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			searchAddonRef.current = searchAddon;
 		});
 
-		const flushPendingEvents = () => {
-			if (pendingEventsRef.current.length === 0) return;
-			const events = pendingEventsRef.current.splice(
-				0,
-				pendingEventsRef.current.length,
-			);
-			for (const event of events) {
-				if (event.type === "data") {
-					xterm.write(event.data);
-					updateCwdRef.current(event.data);
-				} else if (event.type === "exit") {
-					isExitedRef.current = true;
-					setSubscriptionEnabled(false);
-					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
-					xterm.writeln("[Press any key to restart]");
-				} else if (event.type === "disconnect") {
-					setConnectionError(
-						event.reason || "Connection to terminal daemon lost",
-					);
-				}
-			}
-		};
-
-		const applyInitialState = (result: {
-			wasRecovered: boolean;
-			isNew: boolean;
-			scrollback: string;
-			snapshot?: {
-				snapshotAnsi: string;
-				rehydrateSequences: string;
-				cwd: string | null;
-				modes: Record<string, boolean>;
-				cols: number;
-				rows: number;
-				scrollbackLines: number;
-			};
-		}) => {
-			// Apply rehydration sequences FIRST to restore terminal modes
-			// (e.g., alternate screen, app cursor mode, bracketed paste)
-			// This must come before the scrollback content for correct TUI restoration
-			if (result.snapshot?.rehydrateSequences) {
-				xterm.write(result.snapshot.rehydrateSequences);
-			}
-
-			// xterm.write() is asynchronous - escape sequences may not be fully
-			// processed when the terminal first renders, causing garbled display.
-			// Force a re-render after write completes to ensure correct display.
-			// (Symptom: restored terminals show corrupted text until resized)
-			// Using fitAddon.fit() which triggers a full re-layout and re-render.
-			xterm.write(result.scrollback, () => {
-				requestAnimationFrame(() => {
-					fitAddon.fit();
-				});
-			});
-			updateCwdRef.current(result.scrollback);
-		};
+		// Wait for xterm to render once before applying restoration data.
+		// This prevents crashes when writing rehydrate escape sequences too early.
+		renderDisposableRef.current?.dispose();
+		renderDisposableRef.current = xterm.onRender(() => {
+			renderDisposableRef.current?.dispose();
+			renderDisposableRef.current = null;
+			didFirstRenderRef.current = true;
+			maybeApplyInitialState();
+		});
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
-			setSubscriptionEnabled(false);
+			isStreamReadyRef.current = false;
 			xterm.clear();
 			createOrAttachRef.current(
 				{
@@ -406,14 +449,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				},
 				{
 					onSuccess: (result) => {
-						applyInitialState(result);
-						setSubscriptionEnabled(true);
-						flushPendingEvents();
+						pendingInitialStateRef.current = result;
+						maybeApplyInitialState();
 					},
 					onError: (error) => {
 						console.error("[Terminal] Failed to restart:", error);
 						setConnectionError(error.message || "Failed to restart terminal");
-						setSubscriptionEnabled(true);
+						isStreamReadyRef.current = true;
+						flushPendingEvents();
 					},
 				},
 			);
@@ -470,16 +513,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
-					// Always apply initial state (scrollback) first, then flush pending events
-					// This ensures we don't lose terminal history when reattaching
-					applyInitialState(result);
-					setSubscriptionEnabled(true);
-					flushPendingEvents();
+					// Defer initial state restoration until xterm has rendered once.
+					// Streaming is enabled only after restoration is queued into xterm.
+					pendingInitialStateRef.current = result;
+					maybeApplyInitialState();
 				},
 				onError: (error) => {
 					console.error("[Terminal] Failed to create/attach:", error);
 					setConnectionError(error.message || "Failed to connect to terminal");
-					setSubscriptionEnabled(true);
+					isStreamReadyRef.current = true;
+					flushPendingEvents();
 				},
 			},
 		);
@@ -549,12 +592,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId });
-			setSubscriptionEnabled(false);
+			isStreamReadyRef.current = false;
+			didFirstRenderRef.current = false;
+			pendingInitialStateRef.current = null;
+			renderDisposableRef.current?.dispose();
+			renderDisposableRef.current = null;
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 		};
-	}, [paneId, workspaceId, workspaceCwd]);
+	}, [
+		paneId,
+		workspaceId,
+		workspaceCwd,
+		flushPendingEvents,
+		maybeApplyInitialState,
+	]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
