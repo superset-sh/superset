@@ -1,7 +1,9 @@
+import { app } from "electron";
 import { observable } from "@trpc/server/observable";
 import {
 	type AutoUpdateStatusEvent,
 	autoUpdateEmitter,
+	checkForUpdatesInteractive,
 	dismissUpdate,
 	getUpdateStatus,
 	installUpdate,
@@ -31,6 +33,14 @@ export const createAutoUpdateRouter = () => {
 
 		getStatus: publicProcedure.query(() => {
 			return getUpdateStatus();
+		}),
+
+		getVersion: publicProcedure.query(() => {
+			return app.getVersion();
+		}),
+
+		checkForUpdates: publicProcedure.mutation(() => {
+			checkForUpdatesInteractive();
 		}),
 
 		install: publicProcedure.mutation(() => {

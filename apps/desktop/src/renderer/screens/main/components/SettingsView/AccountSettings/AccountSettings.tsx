@@ -2,15 +2,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
+import { HiOutlineClipboardDocument } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
+import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 
 export function AccountSettings() {
 	const { data: user, isLoading } = trpc.user.me.useQuery();
+	const { data: version } = trpc.autoUpdate.getVersion.useQuery();
+	const { data: updateStatus } = trpc.autoUpdate.getStatus.useQuery();
+	const checkForUpdatesMutation = trpc.autoUpdate.checkForUpdates.useMutation();
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
 
 	const signOut = () => signOutMutation.mutate();
+	const isChecking = updateStatus?.status === AUTO_UPDATE_STATUS.CHECKING;
 
 	const initials = user?.name
 		?.split(" ")
@@ -20,7 +26,7 @@ export function AccountSettings() {
 		.slice(0, 2);
 
 	return (
-		<div className="p-6 max-w-4xl">
+		<div className="p-6 max-w-4xl min-w-[500px]">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Account</h2>
 				<p className="text-sm text-muted-foreground mt-1">
@@ -60,12 +66,40 @@ export function AccountSettings() {
 					</div>
 				</div>
 
-				{/* Sign Out Section */}
+				{/* Version */}
 				<div className="pt-6 border-t">
-					<h3 className="text-sm font-medium mb-2">Sign Out</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						Sign out of your Superset account on this device.
-					</p>
+					<div className="flex items-start justify-between">
+						<div className="space-y-1">
+							<p className="text-sm text-muted-foreground">Version</p>
+							<button
+								type="button"
+								className="flex items-center gap-2 text-sm font-mono hover:text-foreground text-muted-foreground"
+								onClick={() => {
+									navigator.clipboard.writeText(version ?? "");
+								}}
+							>
+								<HiOutlineClipboardDocument className="h-4 w-4" />
+								{version}
+							</button>
+						</div>
+						<div className="text-right space-y-1">
+							<button
+								type="button"
+								className="text-sm text-primary hover:underline disabled:opacity-50"
+								onClick={() => checkForUpdatesMutation.mutate()}
+								disabled={isChecking}
+							>
+								Check for updates
+							</button>
+							<p className="text-sm text-muted-foreground">
+								{isChecking ? "Checking..." : "Up to date"}
+							</p>
+						</div>
+					</div>
+				</div>
+
+				{/* Sign Out */}
+				<div className="pt-6 border-t">
 					<Button variant="outline" onClick={() => signOut()}>
 						Sign Out
 					</Button>
