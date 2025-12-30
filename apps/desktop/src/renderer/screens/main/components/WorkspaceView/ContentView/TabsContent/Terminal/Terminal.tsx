@@ -80,6 +80,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
 	const renderDisposableRef = useRef<IDisposable | null>(null);
 
+	// Track alternate screen mode ourselves (xterm.buffer.active.type is unreliable after HMR/recovery)
+	// Updated from: snapshot.modes.alternateScreen on restore, escape sequences in stream
+	const isAlternateScreenRef = useRef(false);
+
 	// Refs avoid effect re-runs when these values change
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
@@ -269,6 +273,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		pendingInitialStateRef.current = null;
 
 		try {
+			// Track alternate screen mode from snapshot for our own reference
+			// (xterm.buffer.active.type is unreliable after HMR/recovery)
+			isAlternateScreenRef.current = !!result.snapshot?.modes.alternateScreen;
+
 			// If session was in alternate screen mode, enter it BEFORE writing content.
 			// rehydrateSequences intentionally excludes alternate screen mode (1049) because
 			// sending it after content would clear the screen. We must send it first so xterm
@@ -349,6 +357,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 
 		if (event.type === "data") {
+			// Track alternate screen mode changes from escape sequences
+			// Check for both modern (1049) and legacy (47) alternate screen sequences
+			if (
+				event.data.includes("\x1b[?1049h") ||
+				event.data.includes("\x1b[?47h")
+			) {
+				isAlternateScreenRef.current = true;
+			}
+			if (
+				event.data.includes("\x1b[?1049l") ||
+				event.data.includes("\x1b[?47l")
+			) {
+				isAlternateScreenRef.current = false;
+			}
 			xtermRef.current.write(event.data);
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
@@ -445,6 +467,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const restartTerminal = () => {
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
+			isAlternateScreenRef.current = false; // Reset for new shell
 			xterm.clear();
 			createOrAttachRef.current(
 				{
@@ -485,7 +508,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			if (domEvent.key === "Enter") {
 				// Don't auto-title from keyboard when in alternate screen (TUI apps like vim, codex)
 				// TUI apps set their own title via escape sequences handled by onTitleChange
-				if (xterm.buffer.active.type !== "alternate") {
+				// Use our own tracking (isAlternateScreenRef) because xterm.buffer.active.type
+				// is unreliable after HMR or recovery - the new xterm instance doesn't know
+				// about escape sequences that were sent before it was created.
+				if (!isAlternateScreenRef.current) {
 					const title = sanitizeForTitle(commandBufferRef.current);
 					if (title && parentTabIdRef.current) {
 						debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
@@ -606,6 +632,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isStreamReadyRef.current = false;
 			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
+			isAlternateScreenRef.current = false;
 			renderDisposableRef.current?.dispose();
 			renderDisposableRef.current = null;
 			xterm.dispose();
