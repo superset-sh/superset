@@ -198,6 +198,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
 		const xterm = xtermRef.current;
+		const fitAddon = fitAddonRef.current;
 		if (!xterm) return;
 
 		xterm.clear();
@@ -218,7 +219,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (result.snapshot?.rehydrateSequences) {
 						xterm.write(result.snapshot.rehydrateSequences);
 					}
-					xterm.write(result.scrollback);
+					// Force re-render after write completes
+					xterm.write(result.scrollback, () => {
+						requestAnimationFrame(() => {
+							fitAddon?.fit();
+						});
+					});
 					setSubscriptionEnabled(true);
 				},
 				onError: (error) => {
@@ -370,8 +376,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// processed when the terminal first renders, causing garbled display.
 			// Force a re-render after write completes to ensure correct display.
 			// (Symptom: restored terminals show corrupted text until resized)
+			// Using fitAddon.fit() which triggers a full re-layout and re-render.
 			xterm.write(result.scrollback, () => {
-				xterm.refresh(0, xterm.rows - 1);
+				requestAnimationFrame(() => {
+					fitAddon.fit();
+				});
 			});
 			updateCwdRef.current(result.scrollback);
 		};
