@@ -363,9 +363,14 @@ function handleConnection(socket: Socket) {
 		}
 	});
 
-	socket.on("close", () => {
+	const handleDisconnect = () => {
 		log("info", `Client disconnected: ${remoteId}`);
-	});
+		// Detach this socket from all sessions it was attached to
+		// This is centralized here to avoid per-session socket listeners
+		terminalHost.detachFromAllSessions(socket);
+	};
+
+	socket.on("close", handleDisconnect);
 
 	socket.on("error", (error) => {
 		log("error", `Socket error for ${remoteId}`, { error: error.message });

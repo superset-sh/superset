@@ -186,6 +186,9 @@ export class Session {
 	/**
 	 * Attach a client to this session
 	 * Returns a snapshot after flushing any pending writes to ensure consistency
+	 *
+	 * Note: Socket disconnect handling is centralized in the daemon's handleConnection
+	 * to avoid adding per-session listeners which could cause MaxListenersExceededWarning
 	 */
 	async attach(socket: Socket): Promise<TerminalSnapshot> {
 		if (this.disposed) {
@@ -198,13 +201,6 @@ export class Session {
 			attachedAt: Date.now(),
 		});
 		this.lastAttachedAt = new Date();
-
-		// Handle client disconnect
-		const cleanup = () => {
-			this.attachedClients.delete(socket);
-		};
-		socket.once("close", cleanup);
-		socket.once("error", cleanup);
 
 		// Return current snapshot after flushing pending writes
 		// This ensures any output produced while no clients were attached is included

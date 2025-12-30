@@ -425,19 +425,8 @@ export class TerminalHostClient extends EventEmitter {
 	 * Spawn the daemon process if not running
 	 */
 	private async spawnDaemon(): Promise<void> {
-		// Check if daemon is already running via PID file
-		if (this.isDaemonRunning()) {
-			console.log(
-				"[TerminalHostClient] Daemon already running (PID file exists)",
-			);
-			// Daemon is running but socket might be stale
-			// Give it a moment and return
-			await this.sleep(500);
-			return;
-		}
-
-		// Check if socket is live before removing it
-		// This prevents orphaning a running daemon that just doesn't have a PID file
+		// Check if socket is live first - this is the authoritative check
+		// PID file can be stale if daemon crashed and PID was reused by another process
 		if (existsSync(SOCKET_PATH)) {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
@@ -449,6 +438,17 @@ export class TerminalHostClient extends EventEmitter {
 			console.log("[TerminalHostClient] Removing stale socket file");
 			try {
 				unlinkSync(SOCKET_PATH);
+			} catch {
+				// Ignore - might not have permission
+			}
+		}
+
+		// Also clean up stale PID file if socket was not live
+		// This handles the case where daemon crashed and PID was reused
+		if (existsSync(PID_PATH)) {
+			console.log("[TerminalHostClient] Removing stale PID file");
+			try {
+				unlinkSync(PID_PATH);
 			} catch {
 				// Ignore - might not have permission
 			}
@@ -500,25 +500,6 @@ export class TerminalHostClient extends EventEmitter {
 			console.log("[TerminalHostClient] Daemon started successfully");
 		} finally {
 			this.releaseSpawnLock();
-		}
-	}
-
-	/**
-	 * Check if daemon process is running
-	 */
-	private isDaemonRunning(): boolean {
-		if (!existsSync(PID_PATH)) {
-			return false;
-		}
-
-		try {
-			const pid = Number.parseInt(readFileSync(PID_PATH, "utf-8").trim(), 10);
-			// Check if process exists (kill with signal 0)
-			process.kill(pid, 0);
-			return true;
-		} catch {
-			// Process doesn't exist or no permission
-			return false;
 		}
 	}
 
