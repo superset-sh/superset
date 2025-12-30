@@ -324,14 +324,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				scrollbackLines: number;
 			};
 		}) => {
-			xterm.write(result.scrollback);
-			updateCwdRef.current(result.scrollback);
-
-			// Apply rehydration sequences to restore terminal modes (e.g., alternate screen for TUI apps)
-			// This must come after the scrollback content to properly restore the terminal state
+			// Apply rehydration sequences FIRST to restore terminal modes
+			// (e.g., alternate screen, app cursor mode, bracketed paste)
+			// This must come before the scrollback content for correct TUI restoration
 			if (result.snapshot?.rehydrateSequences) {
 				xterm.write(result.snapshot.rehydrateSequences);
 			}
+
+			// Then apply the scrollback content
+			xterm.write(result.scrollback);
+			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {

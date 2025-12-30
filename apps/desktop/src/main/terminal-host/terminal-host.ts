@@ -42,6 +42,13 @@ export class TerminalHost {
 		let session = this.sessions.get(sessionId);
 		let isNew = false;
 
+		// If session exists but is dead, dispose it and create a new one
+		if (session && !session.isAlive) {
+			session.dispose();
+			this.sessions.delete(sessionId);
+			session = undefined;
+		}
+
 		if (!session) {
 			// Create new session
 			session = createSession(request);
@@ -72,8 +79,8 @@ export class TerminalHost {
 
 			this.sessions.set(sessionId, session);
 			isNew = true;
-		} else if (session.isAlive) {
-			// Attaching to existing session - resize to requested dimensions
+		} else {
+			// Attaching to existing live session - resize to requested dimensions
 			// This ensures the snapshot reflects the client's current terminal size
 			// Note: Resize can fail if PTY is in a bad state (e.g., EBADF)
 			// We catch and ignore these errors since the session may still be usable
@@ -119,6 +126,11 @@ export class TerminalHost {
 		const session = this.sessions.get(request.sessionId);
 		if (session) {
 			session.detach(socket);
+			// Clean up dead sessions when last client detaches
+			if (!session.isAlive && session.clientCount === 0) {
+				session.dispose();
+				this.sessions.delete(request.sessionId);
+			}
 		}
 		return { success: true };
 	}
@@ -171,6 +183,21 @@ export class TerminalHost {
 	}
 
 	/**
+	 * Detach a socket from all sessions it's attached to
+	 * Called when a client connection closes
+	 */
+	detachFromAllSessions(socket: Socket): void {
+		for (const [sessionId, session] of this.sessions.entries()) {
+			session.detach(socket);
+			// Clean up dead sessions when last client detaches
+			if (!session.isAlive && session.clientCount === 0) {
+				session.dispose();
+				this.sessions.delete(sessionId);
+			}
+		}
+	}
+
+	/**
 	 * Clean up all sessions on shutdown
 	 */
 	dispose(): void {
@@ -204,12 +231,30 @@ export class TerminalHost {
 		_signal?: number,
 	): void {
 		// Keep session around for a bit so clients can see exit status
-		// Then clean up
+		// Then clean up (reschedule if clients still attached)
+		this.scheduleSessionCleanup(sessionId);
+	}
+
+	/**
+	 * Schedule cleanup of a dead session
+	 * Reschedules if clients are still attached
+	 */
+	private scheduleSessionCleanup(sessionId: string): void {
 		setTimeout(() => {
 			const session = this.sessions.get(sessionId);
-			if (session && !session.isAlive && session.clientCount === 0) {
+			if (!session || session.isAlive) {
+				// Session was recreated or is alive, nothing to clean up
+				return;
+			}
+
+			if (session.clientCount === 0) {
+				// No clients attached, safe to clean up
 				session.dispose();
 				this.sessions.delete(sessionId);
+			} else {
+				// Clients still attached, reschedule cleanup
+				// They'll see the exit status and can restart
+				this.scheduleSessionCleanup(sessionId);
 			}
 		}, 5000);
 	}
