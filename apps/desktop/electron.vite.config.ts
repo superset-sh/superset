@@ -8,7 +8,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import type { Plugin } from "vite";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-import { main, resources } from "./package.json";
+import { main, resources, version } from "./package.json";
 
 // Dev server port - must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
 const DEV_SERVER_PORT = 5927;
@@ -137,6 +137,7 @@ export default defineConfig({
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
 			),
+			__APP_VERSION__: JSON.stringify(version),
 		},
 
 		build: {

@@ -11,7 +11,11 @@ export function PostHogUserIdentifier() {
 
 	useEffect(() => {
 		if (user) {
-			posthog.identify(user.id, { email: user.email, name: user.name });
+			posthog.identify(user.id, {
+				email: user.email,
+				name: user.name,
+				desktop_version: window.App.appVersion,
+			});
 			posthog.reloadFeatureFlags();
 			setUserId({ userId: user.id });
 

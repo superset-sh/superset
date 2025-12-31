@@ -355,7 +355,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\\\n"),
+			onShiftEnter: () => handleWrite("\x1b\r"), // ESC + CR for line continuation without '\'
 			onClear: handleClear,
 		});
 
