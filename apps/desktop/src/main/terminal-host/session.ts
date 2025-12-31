@@ -37,6 +37,13 @@ import {
  */
 const ATTACH_FLUSH_TIMEOUT_MS = 500;
 
+/**
+ * Maximum bytes allowed in subprocess stdin queue.
+ * Prevents OOM if subprocess stdin is backpressured (e.g., slow PTY consumer).
+ * 2MB is generous - typical large paste is ~50KB.
+ */
+const MAX_SUBPROCESS_STDIN_QUEUE_BYTES = 2_000_000;
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -89,6 +96,10 @@ export class Session {
 	private subprocessStdinQueuedBytes = 0;
 	private subprocessStdinDrainArmed = false;
 
+	// Promise that resolves when PTY is ready to accept writes
+	private ptyReadyPromise: Promise<void>;
+	private ptyReadyResolve: (() => void) | null = null;
+
 	private emulatorWriteQueue: string[] = [];
 	private emulatorWriteQueuedBytes = 0;
 	private emulatorWriteScheduled = false;
@@ -109,6 +120,11 @@ export class Session {
 		this.shell = options.shell || this.getDefaultShell();
 		this.createdAt = new Date();
 		this.lastAttachedAt = new Date();
+
+		// Initialize PTY ready promise
+		this.ptyReadyPromise = new Promise((resolve) => {
+			this.ptyReadyResolve = resolve;
+		});
 
 		// Create headless emulator
 		this.emulator = new HeadlessEmulator({
@@ -251,6 +267,11 @@ export class Session {
 				console.log(
 					`[Session ${this.sessionId}] PTY spawned with pid ${this.ptyPid}`,
 				);
+				// Resolve the ready promise so callers can await PTY readiness
+				if (this.ptyReadyResolve) {
+					this.ptyReadyResolve();
+					this.ptyReadyResolve = null;
+				}
 				break;
 
 			case PtySubprocessIpcType.Data: {
@@ -375,6 +396,24 @@ export class Session {
 		if (!this.subprocess?.stdin || this.disposed) return false;
 
 		const payloadBuffer = payload ?? Buffer.alloc(0);
+		const frameSize = 5 + payloadBuffer.length; // 5-byte header + payload
+
+		// Check queue limit to prevent OOM under backpressure
+		if (
+			this.subprocessStdinQueuedBytes + frameSize >
+			MAX_SUBPROCESS_STDIN_QUEUE_BYTES
+		) {
+			console.warn(
+				`[Session ${this.sessionId}] stdin queue full (${this.subprocessStdinQueuedBytes} bytes), dropping frame`,
+			);
+			this.broadcastEvent("error", {
+				type: "error",
+				error: "Write queue full - input dropped",
+				code: "WRITE_QUEUE_FULL",
+			} satisfies TerminalErrorEvent);
+			return false;
+		}
+
 		const header = createFrameHeader(type, payloadBuffer.length);
 
 		this.subprocessStdinQueue.push(header);
@@ -532,6 +571,14 @@ export class Session {
 	 */
 	get isAlive(): boolean {
 		return this.subprocess !== null && this.exitCode === null;
+	}
+
+	/**
+	 * Wait for PTY to be ready to accept writes.
+	 * Returns immediately if already ready, or waits for Spawned event.
+	 */
+	waitForReady(): Promise<void> {
+		return this.ptyReadyPromise;
 	}
 
 	/**

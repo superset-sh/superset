@@ -1,6 +1,10 @@
 import { settings } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
 import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "main/lib/terminal-host/client";
+import {
 	DaemonTerminalManager,
 	getDaemonTerminalManager,
 } from "./daemon-manager";
@@ -74,4 +78,30 @@ export function getActiveTerminalManager():
 		return getDaemonTerminalManager();
 	}
 	return terminalManager;
+}
+
+/**
+ * Shutdown any orphaned daemon process.
+ * Should be called on app startup when daemon mode is disabled to clean up
+ * any daemon left running from a previous session with persistence enabled.
+ */
+export async function shutdownOrphanedDaemon(): Promise<void> {
+	if (isDaemonModeEnabled()) {
+		// Daemon mode is enabled, don't shutdown
+		return;
+	}
+
+	try {
+		const client = getTerminalHostClient();
+		// Try to connect and shutdown - if no daemon is running, this will fail
+		// which is fine (nothing to clean up)
+		await client.shutdown({ killSessions: true });
+		console.log("[TerminalManager] Shutdown orphaned daemon successfully");
+	} catch {
+		// No daemon running or failed to connect - this is expected
+		console.log("[TerminalManager] No orphaned daemon to shutdown");
+	} finally {
+		// Always dispose the client to clean up any partial state
+		disposeTerminalHostClient();
+	}
 }

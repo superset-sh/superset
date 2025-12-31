@@ -458,7 +458,12 @@ export class DaemonTerminalManager extends EventEmitter {
 	detachAllListeners(): void {
 		for (const event of this.eventNames()) {
 			const name = String(event);
-			if (name.startsWith("data:") || name.startsWith("exit:")) {
+			if (
+				name.startsWith("data:") ||
+				name.startsWith("exit:") ||
+				name.startsWith("disconnect:") ||
+				name.startsWith("error:")
+			) {
 				this.removeAllListeners(event);
 			}
 		}
