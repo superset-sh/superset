@@ -13,7 +13,8 @@ interface TopBarProps {
 export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const isMac = platform === "darwin";
+	// Default to Mac layout while loading to avoid overlap with traffic lights
+	const isMac = platform === undefined || platform === "darwin";
 	const isSidebarMode = navigationStyle === "sidebar";
 
 	return (
