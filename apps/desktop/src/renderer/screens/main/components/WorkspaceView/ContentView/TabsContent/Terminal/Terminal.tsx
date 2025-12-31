@@ -104,7 +104,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	isFocusedRef.current = isFocused;
 
 	// Some GPU renderers (notably xterm-webgl) can fail to repaint correctly after
-	// pane/tab switching until a resize happens. Schedule a redraw on focus.
+	// pane/tab switching until a resize happens. Schedule a lightweight redraw on focus.
 	const redrawRafRef = useRef<number | null>(null);
 	const scheduleRedraw = useCallback(() => {
 		if (redrawRafRef.current !== null) return;
@@ -113,26 +113,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			redrawRafRef.current = null;
 
 			const xterm = xtermRef.current;
-			const fitAddon = fitAddonRef.current;
-			if (!xterm || !fitAddon) return;
-
-			try {
-				fitAddon.fit();
-			} catch {
-				// Ignore fit errors
-			}
+			if (!xterm) return;
 
 			const cols = xterm.cols;
 			const rows = xterm.rows;
 			if (cols <= 0 || rows <= 0) return;
 
-			// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-			resizeRef.current({ paneId, cols, rows });
-
-			const renderer = rendererRef.current?.current;
-			if (renderer?.kind === "webgl") {
-				renderer.clearTextureAtlas?.();
-			}
 			xterm.refresh(0, rows - 1);
 		});
 	}, [paneId]);
@@ -820,15 +806,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			fitAddon,
 			(cols, rows) => {
 				resizeRef.current({ paneId, cols, rows });
-				// Repaint immediately after a resize; without this, WebGL terminals can
-				// remain partially drawn until the next user interaction.
-				if (rows > 0) {
-					const renderer = rendererRef.current?.current;
-					if (renderer?.kind === "webgl") {
-						renderer.clearTextureAtlas?.();
-					}
-					xterm.refresh(0, rows - 1);
-				}
 			},
 		);
 		const cleanupPaste = setupPasteHandler(xterm, {
