@@ -5,7 +5,6 @@ import { SidebarControl } from "./SidebarControl";
 import { WindowControls } from "./WindowControls";
 import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 import { WorkspacesTabs } from "./WorkspaceTabs";
-import { CreateWorkspaceButton } from "./WorkspaceTabs/CreateWorkspaceButton";
 
 interface TopBarProps {
 	navigationStyle?: NavigationStyle;
@@ -46,7 +45,6 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 			)}
 
 			<div className="flex items-center h-full pr-4">
-				{isSidebarMode && <CreateWorkspaceButton />}
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
 			</div>

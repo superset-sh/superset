@@ -36,6 +36,7 @@ import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
+	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
@@ -57,6 +58,7 @@ type Mode = "existing" | "new";
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
+	const preSelectedProjectId = usePreSelectedProjectId();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
@@ -94,12 +96,15 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	// Auto-select current project when modal opens
+	// Auto-select project when modal opens (prioritize pre-selected, then current)
 	useEffect(() => {
-		if (isOpen && currentProjectId && !selectedProjectId) {
-			setSelectedProjectId(currentProjectId);
+		if (isOpen && !selectedProjectId) {
+			const projectToSelect = preSelectedProjectId ?? currentProjectId;
+			if (projectToSelect) {
+				setSelectedProjectId(projectToSelect);
+			}
 		}
-	}, [isOpen, currentProjectId, selectedProjectId]);
+	}, [isOpen, currentProjectId, selectedProjectId, preSelectedProjectId]);
 
 	// Effective base branch - use explicit selection or fall back to default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
