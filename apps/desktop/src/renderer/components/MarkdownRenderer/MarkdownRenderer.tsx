@@ -1,9 +1,11 @@
 import { cn } from "@superset/ui/utils";
+import { useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import rehypeRaw from "rehype-raw";
 import rehypeSanitize from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import { useMarkdownStyle } from "renderer/stores";
+import { SelectionContextMenu } from "./components";
 import { defaultConfig } from "./styles/default/config";
 import { tufteConfig } from "./styles/tufte/config";
 
@@ -26,24 +28,27 @@ export function MarkdownRenderer({
 	const globalStyle = useMarkdownStyle();
 	const style = styleProp ?? globalStyle;
 	const config = styleConfigs[style];
+	const articleRef = useRef<HTMLElement | null>(null);
 
 	return (
-		<div
-			className={cn(
-				"markdown-renderer h-full overflow-y-auto",
-				config.wrapperClass,
-				className,
-			)}
-		>
-			<article className={config.articleClass}>
-				<ReactMarkdown
-					remarkPlugins={[remarkGfm]}
-					rehypePlugins={[rehypeRaw, rehypeSanitize]}
-					components={config.components}
-				>
-					{content}
-				</ReactMarkdown>
-			</article>
-		</div>
+		<SelectionContextMenu selectAllContainerRef={articleRef}>
+			<div
+				className={cn(
+					"markdown-renderer h-full overflow-y-auto select-text",
+					config.wrapperClass,
+					className,
+				)}
+			>
+				<article ref={articleRef} className={config.articleClass}>
+					<ReactMarkdown
+						remarkPlugins={[remarkGfm]}
+						rehypePlugins={[rehypeRaw, rehypeSanitize]}
+						components={config.components}
+					>
+						{content}
+					</ReactMarkdown>
+				</article>
+			</div>
+		</SelectionContextMenu>
 	);
 }

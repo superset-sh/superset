@@ -1,3 +1,4 @@
+import { app } from "electron";
 import { env } from "main/env.main";
 import { PostHog } from "posthog-node";
 
@@ -39,6 +40,7 @@ export function track(
 			...properties,
 			app_name: "desktop",
 			platform: process.platform,
+			desktop_version: app.getVersion(),
 		},
 	});
 }

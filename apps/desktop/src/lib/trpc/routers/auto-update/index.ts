@@ -2,6 +2,7 @@ import { observable } from "@trpc/server/observable";
 import {
 	type AutoUpdateStatusEvent,
 	autoUpdateEmitter,
+	checkForUpdates,
 	dismissUpdate,
 	getUpdateStatus,
 	installUpdate,
@@ -31,6 +32,10 @@ export const createAutoUpdateRouter = () => {
 
 		getStatus: publicProcedure.query(() => {
 			return getUpdateStatus();
+		}),
+
+		check: publicProcedure.mutation(() => {
+			checkForUpdates();
 		}),
 
 		install: publicProcedure.mutation(() => {
