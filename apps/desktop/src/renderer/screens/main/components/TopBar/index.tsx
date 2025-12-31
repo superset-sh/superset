@@ -22,7 +22,7 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 			<div
 				className="flex items-center gap-2 h-full"
 				style={{
-					paddingLeft: isMac ? "80px" : "16px",
+					paddingLeft: isMac ? "88px" : "16px",
 				}}
 			>
 				{isSidebarMode && <WorkspaceSidebarControl />}
