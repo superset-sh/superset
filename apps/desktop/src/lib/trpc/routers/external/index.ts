@@ -7,7 +7,6 @@ import {
 	EXTERNAL_APPS,
 	type ExternalApp,
 	getAppCommand,
-	getVscodeInsidersCommand,
 	resolvePath,
 	spawnAsync,
 } from "./helpers";
@@ -25,18 +24,6 @@ async function openPathInApp(
 
 	const cmd = getAppCommand(app, filePath);
 	if (cmd) {
-		// For VS Code, try to fallback to VS Code Insiders if VS Code is not installed
-		if (app === "vscode") {
-			try {
-				await spawnAsync(cmd.command, cmd.args);
-				return;
-			} catch {
-				// VS Code not installed, try VS Code Insiders
-				const insidersCmd = getVscodeInsidersCommand(filePath);
-				await spawnAsync(insidersCmd.command, insidersCmd.args);
-				return;
-			}
-		}
 		await spawnAsync(cmd.command, cmd.args);
 		return;
 	}

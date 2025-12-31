@@ -73,6 +73,7 @@ export type WorkspaceType = z.infer<typeof workspaceTypeSchema>;
 export const EXTERNAL_APPS = [
 	"finder",
 	"vscode",
+	"vscode-insiders",
 	"cursor",
 	"sublime",
 	"xcode",
