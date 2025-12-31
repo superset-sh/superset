@@ -9,16 +9,16 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { HiFolderOpen, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
 	useCreateBranchWorkspace,
 	useCreateWorkspace,
 } from "renderer/react-query/workspaces";
+import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-import { HOTKEYS } from "shared/hotkeys";
 
 export interface CreateWorkspaceButtonProps {
 	className?: string;
@@ -114,9 +114,22 @@ export function CreateWorkspaceButton({
 		if (!isLoading) handleOpenNewProject();
 	}, [isLoading, handleOpenNewProject]);
 
-	useHotkeys(HOTKEYS.NEW_WORKSPACE.keys, handleModalCreate);
-	useHotkeys(HOTKEYS.QUICK_CREATE_WORKSPACE.keys, handleQuickCreateHotkey);
-	useHotkeys(HOTKEYS.OPEN_PROJECT.keys, handleOpenProjectHotkey);
+	useAppHotkey("NEW_WORKSPACE", handleModalCreate, undefined, [
+		handleModalCreate,
+	]);
+	useAppHotkey("QUICK_CREATE_WORKSPACE", handleQuickCreateHotkey, undefined, [
+		handleQuickCreateHotkey,
+	]);
+	useAppHotkey("OPEN_PROJECT", handleOpenProjectHotkey, undefined, [
+		handleOpenProjectHotkey,
+	]);
+
+	const newWorkspaceShortcut = useHotkeyText("NEW_WORKSPACE");
+	const quickCreateShortcut = useHotkeyText("QUICK_CREATE_WORKSPACE");
+	const openProjectShortcut = useHotkeyText("OPEN_PROJECT");
+	const showNewWorkspaceShortcut = newWorkspaceShortcut !== "Unassigned";
+	const showQuickCreateShortcut = quickCreateShortcut !== "Unassigned";
+	const showOpenProjectShortcut = openProjectShortcut !== "Unassigned";
 
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
@@ -134,7 +147,17 @@ export function CreateWorkspaceButton({
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					Create workspace or project
+					<HotkeyTooltipContent
+						label="Create workspace or project"
+						items={[
+							{ label: "New Workspace", id: "NEW_WORKSPACE" },
+							{
+								label: "Quick Create",
+								id: "QUICK_CREATE_WORKSPACE",
+							},
+							{ label: "Open Project", id: "OPEN_PROJECT" },
+						]}
+					/>
 				</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent
@@ -148,7 +171,11 @@ export function CreateWorkspaceButton({
 				>
 					<HiMiniPlus className="size-[14px] opacity-60" />
 					New Workspace
-					<DropdownMenuShortcut className="opacity-40">⌘N</DropdownMenuShortcut>
+					{showNewWorkspaceShortcut && (
+						<DropdownMenuShortcut className="opacity-40">
+							{newWorkspaceShortcut}
+						</DropdownMenuShortcut>
+					)}
 				</DropdownMenuItem>
 				<DropdownMenuItem
 					onClick={handleQuickCreate}
@@ -157,9 +184,11 @@ export function CreateWorkspaceButton({
 				>
 					<HiOutlineBolt className="size-[14px] opacity-60" />
 					Quick Create
-					<DropdownMenuShortcut className="opacity-40">
-						⌘⇧N
-					</DropdownMenuShortcut>
+					{showQuickCreateShortcut && (
+						<DropdownMenuShortcut className="opacity-40">
+							{quickCreateShortcut}
+						</DropdownMenuShortcut>
+					)}
 				</DropdownMenuItem>
 				<DropdownMenuSeparator className="my-1 bg-border/40" />
 				<DropdownMenuItem
@@ -169,9 +198,11 @@ export function CreateWorkspaceButton({
 				>
 					<HiFolderOpen className="size-[14px] opacity-60" />
 					Open Project
-					<DropdownMenuShortcut className="opacity-40">
-						⌘⇧O
-					</DropdownMenuShortcut>
+					{showOpenProjectShortcut && (
+						<DropdownMenuShortcut className="opacity-40">
+							{openProjectShortcut}
+						</DropdownMenuShortcut>
+					)}
 				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>

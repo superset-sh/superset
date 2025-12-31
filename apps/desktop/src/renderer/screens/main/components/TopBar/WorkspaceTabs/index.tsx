@@ -1,5 +1,4 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useCreateBranchWorkspace,
@@ -9,7 +8,7 @@ import {
 	useCurrentView,
 	useIsSettingsTabOpen,
 } from "renderer/stores/app-state";
-import { HOTKEYS } from "shared/hotkeys";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import { CreateWorkspaceButton } from "./CreateWorkspaceButton";
 import { SettingsTab } from "./SettingsTab";
 import { WorkspaceGroup } from "./WorkspaceGroup";
@@ -79,20 +78,11 @@ export function WorkspacesTabs() {
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	// Workspace switching shortcuts (⌘+1-9) - combined into single hook call
-	const workspaceKeys = Array.from(
-		{ length: 9 },
-		(_, i) => `meta+${i + 1}`,
-	).join(", ");
-
 	const handleWorkspaceSwitch = useCallback(
-		(event: KeyboardEvent) => {
-			const num = Number(event.key);
-			if (num >= 1 && num <= 9) {
-				const workspace = allWorkspaces[num - 1];
-				if (workspace) {
-					setActiveWorkspace.mutate({ id: workspace.id });
-				}
+		(index: number) => {
+			const workspace = allWorkspaces[index];
+			if (workspace) {
+				setActiveWorkspace.mutate({ id: workspace.id });
 			}
 		},
 		[allWorkspaces, setActiveWorkspace],
@@ -118,9 +108,66 @@ export function WorkspacesTabs() {
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
-	useHotkeys(workspaceKeys, handleWorkspaceSwitch);
-	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, handlePrevWorkspace);
-	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, handleNextWorkspace);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_1",
+		() => handleWorkspaceSwitch(0),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_2",
+		() => handleWorkspaceSwitch(1),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_3",
+		() => handleWorkspaceSwitch(2),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_4",
+		() => handleWorkspaceSwitch(3),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_5",
+		() => handleWorkspaceSwitch(4),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_6",
+		() => handleWorkspaceSwitch(5),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_7",
+		() => handleWorkspaceSwitch(6),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_8",
+		() => handleWorkspaceSwitch(7),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_9",
+		() => handleWorkspaceSwitch(8),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey("PREV_WORKSPACE", handlePrevWorkspace, undefined, [
+		handlePrevWorkspace,
+	]);
+	useAppHotkey("NEXT_WORKSPACE", handleNextWorkspace, undefined, [
+		handleNextWorkspace,
+	]);
 
 	useEffect(() => {
 		const checkScroll = () => {

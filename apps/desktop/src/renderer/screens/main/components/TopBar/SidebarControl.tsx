@@ -1,9 +1,8 @@
 import { Button } from "@superset/ui/button";
-import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniBars3, HiMiniBars3BottomLeft } from "react-icons/hi2";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useSidebarStore } from "renderer/stores";
-import { HOTKEYS } from "shared/hotkeys";
 
 export function SidebarControl() {
 	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
@@ -26,14 +25,10 @@ export function SidebarControl() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
-				<span className="flex items-center gap-2">
-					Toggle sidebar
-					<KbdGroup>
-						{HOTKEYS.TOGGLE_SIDEBAR.display.map((key) => (
-							<Kbd key={key}>{key}</Kbd>
-						))}
-					</KbdGroup>
-				</span>
+				<HotkeyTooltipContent
+					label="Toggle sidebar"
+					hotkeyId="TOGGLE_SIDEBAR"
+				/>
 			</TooltipContent>
 		</Tooltip>
 	);

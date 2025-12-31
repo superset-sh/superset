@@ -25,7 +25,7 @@ import {
 import { LuLifeBuoy } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenSettings, useOpenTasks } from "renderer/stores";
-import { HOTKEYS } from "shared/hotkeys";
+import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 
 export function AvatarDropdown() {
 	const { data: user } = trpc.user.me.useQuery();
@@ -34,6 +34,7 @@ export function AvatarDropdown() {
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
+	const hotkeysShortcut = useHotkeyDisplay("SHOW_HOTKEYS");
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
@@ -117,7 +118,7 @@ export function AvatarDropdown() {
 					<HiOutlineCommandLine className="h-4 w-4" />
 					<span className="flex-1">Hotkeys</span>
 					<KbdGroup>
-						{HOTKEYS.SHOW_HOTKEYS.display.map((key) => (
+						{hotkeysShortcut.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
 						))}
 					</KbdGroup>

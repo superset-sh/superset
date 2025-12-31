@@ -4,12 +4,11 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
-import { HOTKEYS } from "shared/hotkeys";
 import { sanitizeForTitle } from "./commandBuffer";
 import {
 	createTerminalInstance,
@@ -179,8 +178,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [isFocused]);
 
-	useHotkeys(
-		HOTKEYS.FIND_IN_TERMINAL.keys,
+	useAppHotkey(
+		"FIND_IN_TERMINAL",
 		() => {
 			setIsSearchOpen((prev) => !prev);
 		},

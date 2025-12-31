@@ -1,10 +1,16 @@
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import { HOTKEYS } from "shared/hotkeys";
-
-const shortcuts = [HOTKEYS.NEW_TERMINAL, HOTKEYS.OPEN_IN_APP];
+import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 
 export function EmptyTabView() {
+	const newTerminalDisplay = useHotkeyDisplay("NEW_TERMINAL");
+	const openInAppDisplay = useHotkeyDisplay("OPEN_IN_APP");
+
+	const shortcuts = [
+		{ label: "New Terminal", display: newTerminalDisplay },
+		{ label: "Open in App", display: openInAppDisplay },
+	];
+
 	return (
 		<div className="flex-1 h-full flex flex-col items-center justify-center gap-6">
 			<div className="p-4 rounded-lg bg-muted border border-border">

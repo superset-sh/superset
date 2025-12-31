@@ -10,7 +10,7 @@ import { NOTIFICATION_EVENTS, PORTS } from "shared/constants";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
 import { appState } from "../lib/app-state";
-import { createApplicationMenu } from "../lib/menu";
+import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import {
 	type AgentCompleteEvent,
@@ -54,6 +54,7 @@ export async function MainWindow() {
 	});
 
 	createApplicationMenu();
+	registerMenuHotkeyUpdates();
 
 	currentWindow = window;
 

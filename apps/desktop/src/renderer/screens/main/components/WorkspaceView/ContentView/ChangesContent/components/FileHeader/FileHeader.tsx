@@ -86,7 +86,7 @@ export function FileHeader({ file, worktreePath }: FileHeaderProps) {
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						Open in {currentApp.label}
+						Open in {currentApp.displayLabel ?? currentApp.label}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>

@@ -6,6 +6,7 @@ import { createAutoUpdateRouter } from "./auto-update";
 import { createChangesRouter } from "./changes";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
+import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
 import { createPortsRouter } from "./ports";
@@ -33,6 +34,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		notifications: createNotificationsRouter(),
 		ports: createPortsRouter(),
 		menu: createMenuRouter(),
+		hotkeys: createHotkeysRouter(getWindow),
 		external: createExternalRouter(),
 		settings: createSettingsRouter(),
 		config: createConfigRouter(),

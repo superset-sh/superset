@@ -4,4 +4,5 @@ export {
 	getAppOption,
 	JETBRAINS_OPTIONS,
 	OpenInButton,
+	VSCODE_OPTIONS,
 } from "./OpenInButton";
