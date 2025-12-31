@@ -225,9 +225,9 @@ export function ChangesView() {
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto">
-					{/* Against Main */}
+					{/* Against base branch */}
 					<CategorySection
-						title="Against Main"
+						title={`Against ${effectiveBaseBranch}`}
 						count={status.againstMain.length}
 						isExpanded={expandedSections["against-main"]}
 						onToggle={() => toggleSection("against-main")}
