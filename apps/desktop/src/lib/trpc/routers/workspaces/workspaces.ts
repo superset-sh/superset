@@ -319,8 +319,9 @@ export const createWorkspacesRouter = () => {
 						.run();
 				}
 
-				// Insert new workspace
-				const workspace = localDb
+				// Insert new workspace with conflict handling for race conditions
+				// The unique partial index (projectId WHERE type='branch') prevents duplicates
+				const insertResult = localDb
 					.insert(workspaces)
 					.values({
 						projectId: input.projectId,
@@ -329,8 +330,30 @@ export const createWorkspacesRouter = () => {
 						name: branch,
 						tabOrder: 0,
 					})
+					.onConflictDoNothing()
 					.returning()
-					.get();
+					.all();
+
+				// If insert returned nothing, another concurrent call won the race
+				// Fetch the existing workspace instead
+				const workspace =
+					insertResult[0] ??
+					localDb
+						.select()
+						.from(workspaces)
+						.where(
+							and(
+								eq(workspaces.projectId, input.projectId),
+								eq(workspaces.type, "branch"),
+							),
+						)
+						.get();
+
+				if (!workspace) {
+					throw new Error("Failed to create or find branch workspace");
+				}
+
+				const wasExisting = insertResult.length === 0;
 
 				// Update settings
 				localDb
@@ -342,41 +365,43 @@ export const createWorkspacesRouter = () => {
 					})
 					.run();
 
-				// Update project
-				const activeProjects = localDb
-					.select()
-					.from(projects)
-					.where(isNotNull(projects.tabOrder))
-					.all();
-				const maxProjectTabOrder =
-					activeProjects.length > 0
-						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
-						: -1;
+				// Update project (only if we actually inserted a new workspace)
+				if (!wasExisting) {
+					const activeProjects = localDb
+						.select()
+						.from(projects)
+						.where(isNotNull(projects.tabOrder))
+						.all();
+					const maxProjectTabOrder =
+						activeProjects.length > 0
+							? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
+							: -1;
 
-				localDb
-					.update(projects)
-					.set({
-						lastOpenedAt: Date.now(),
-						tabOrder:
-							project.tabOrder === null
-								? maxProjectTabOrder + 1
-								: project.tabOrder,
-					})
-					.where(eq(projects.id, input.projectId))
-					.run();
+					localDb
+						.update(projects)
+						.set({
+							lastOpenedAt: Date.now(),
+							tabOrder:
+								project.tabOrder === null
+									? maxProjectTabOrder + 1
+									: project.tabOrder,
+						})
+						.where(eq(projects.id, input.projectId))
+						.run();
 
-				track("workspace_opened", {
-					workspace_id: workspace.id,
-					project_id: project.id,
-					type: "branch",
-					was_existing: false,
-				});
+					track("workspace_opened", {
+						workspace_id: workspace.id,
+						project_id: project.id,
+						type: "branch",
+						was_existing: false,
+					});
+				}
 
 				return {
 					workspace,
 					worktreePath: project.mainRepoPath,
 					projectId: project.id,
-					wasExisting: false,
+					wasExisting,
 				};
 			}),
 

@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
 import { useMemo } from "react";
 import { HiMiniPlus, HiMiniXMark } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -11,6 +12,7 @@ interface GroupItemProps {
 	tab: Tab;
 	isActive: boolean;
 	needsAttention: boolean;
+	isSidebarMode: boolean;
 	onSelect: () => void;
 	onClose: () => void;
 }
@@ -19,11 +21,71 @@ function GroupItem({
 	tab,
 	isActive,
 	needsAttention,
+	isSidebarMode,
 	onSelect,
 	onClose,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
 
+	if (isSidebarMode) {
+		// Sidebar mode: browser-tab style matching workspace tabs
+		return (
+			<div className="group relative flex items-end shrink-0 h-full">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onSelect}
+							className={cn(
+								"flex items-center gap-1.5 rounded-t-md transition-all w-full shrink-0 pl-3 pr-6 h-[80%]",
+								isActive
+									? "text-foreground bg-tertiary-active"
+									: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30",
+							)}
+						>
+							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+								{displayName}
+							</span>
+							{needsAttention && (
+								<span className="relative flex size-2 shrink-0">
+									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+									<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+								</span>
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={4}>
+						{displayName}
+					</TooltipContent>
+				</Tooltip>
+				<Tooltip delayDuration={500}>
+					<TooltipTrigger asChild>
+						<Button
+							type="button"
+							variant="ghost"
+							size="icon"
+							onClick={(e) => {
+								e.stopPropagation();
+								onClose();
+							}}
+							className={cn(
+								"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
+								isActive ? "opacity-90" : "opacity-0",
+							)}
+							aria-label="Close group"
+						>
+							<HiMiniXMark />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						Close group
+					</TooltipContent>
+				</Tooltip>
+			</div>
+		);
+	}
+
+	// Top-bar mode: original pill style
 	return (
 		<div className="relative group flex items-center">
 			<Tooltip>
@@ -65,6 +127,8 @@ function GroupItem({
 
 export function GroupStrip() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: navigationStyle } = trpc.settings.getNavigationStyle.useQuery();
+	const isSidebarMode = navigationStyle === "sidebar";
 	const activeWorkspaceId = activeWorkspace?.id;
 
 	const allTabs = useTabsStore((s) => s.tabs);
@@ -114,18 +178,36 @@ export function GroupStrip() {
 	};
 
 	return (
-		<div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-background shrink-0">
+		<div
+			className={cn(
+				"flex gap-1 px-2 bg-background shrink-0",
+				isSidebarMode
+					? "items-end h-10"
+					: "items-center py-1 border-b border-border",
+			)}
+		>
 			{tabs.length > 0 && (
-				<div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
+				<div
+					className={cn(
+						"flex gap-0.5 overflow-x-auto scrollbar-none",
+						isSidebarMode ? "items-end h-full" : "items-center gap-1",
+					)}
+				>
 					{tabs.map((tab) => (
-						<GroupItem
+						<div
 							key={tab.id}
-							tab={tab}
-							isActive={tab.id === activeTabId}
-							needsAttention={tabsWithAttention.has(tab.id)}
-							onSelect={() => handleSelectGroup(tab.id)}
-							onClose={() => handleCloseGroup(tab.id)}
-						/>
+							className={isSidebarMode ? "h-full shrink-0" : undefined}
+							style={isSidebarMode ? { width: "120px" } : undefined}
+						>
+							<GroupItem
+								tab={tab}
+								isActive={tab.id === activeTabId}
+								needsAttention={tabsWithAttention.has(tab.id)}
+								isSidebarMode={isSidebarMode}
+								onSelect={() => handleSelectGroup(tab.id)}
+								onClose={() => handleCloseGroup(tab.id)}
+							/>
+						</div>
 					))}
 				</div>
 			)}
@@ -134,10 +216,10 @@ export function GroupStrip() {
 					<Button
 						variant="ghost"
 						size="icon"
-						className="size-6 shrink-0"
+						className={cn("shrink-0", isSidebarMode ? "size-7 mb-1" : "size-6")}
 						onClick={handleAddGroup}
 					>
-						<HiMiniPlus className="size-3.5" />
+						<HiMiniPlus className={isSidebarMode ? "size-4" : "size-3.5"} />
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
