@@ -66,15 +66,25 @@ export class TerminalHost {
 				env: request.env,
 			});
 
-			// Run initial commands if provided
+			// Run initial commands if provided (after PTY is ready)
 			if (request.initialCommands && request.initialCommands.length > 0) {
-				// Wait a bit for shell to initialize, then run commands
-				setTimeout(() => {
+				const initialCommands = request.initialCommands;
+				// Wait for PTY to be ready, then run commands
+				session.waitForReady().then(() => {
+					// Double-check session is still alive after await
 					if (session?.isAlive) {
-						const cmdString = `${request.initialCommands?.join(" && ")}\n`;
-						session.write(cmdString);
+						try {
+							const cmdString = `${initialCommands.join(" && ")}\n`;
+							session.write(cmdString);
+						} catch (error) {
+							// Log but don't crash - initialCommands are best-effort
+							console.error(
+								`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
+								error,
+							);
+						}
 					}
-				}, 100);
+				});
 			}
 
 			this.sessions.set(sessionId, session);

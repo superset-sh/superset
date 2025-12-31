@@ -74,6 +74,9 @@ const SPAWN_WAIT_MS = 2000;
 const REQUEST_TIMEOUT_MS = 30000;
 const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
 
+// Queue limits
+const MAX_NOTIFY_QUEUE_BYTES = 2_000_000; // 2MB cap to prevent OOM
+
 // =============================================================================
 // NDJSON Parser
 // =============================================================================
@@ -641,18 +644,26 @@ export class TerminalHostClient extends EventEmitter {
 	 * Used for high-frequency messages like terminal input, where request/response
 	 * overhead can cause timeouts under load and drop data. The daemon may still
 	 * send a response for compatibility, but this client will ignore it.
+	 *
+	 * Returns false if queue is full (caller should handle).
 	 */
-	private sendNotification(type: string, payload: unknown): void {
-		if (!this.socket) return;
+	private sendNotification(type: string, payload: unknown): boolean {
+		if (!this.socket) return false;
 
 		const id = `notify_${++this.requestCounter}`;
 		const message = `${JSON.stringify({ id, type, payload })}\n`;
+		const messageBytes = Buffer.byteLength(message, "utf8");
+
+		// Check queue limit to prevent OOM under backpressure
+		if (this.notifyQueueBytes + messageBytes > MAX_NOTIFY_QUEUE_BYTES) {
+			return false;
+		}
 
 		// If we're already backpressured, just queue.
 		if (this.notifyDrainArmed || this.notifyQueue.length > 0) {
 			this.notifyQueue.push(message);
-			this.notifyQueueBytes += Buffer.byteLength(message, "utf8");
-			return;
+			this.notifyQueueBytes += messageBytes;
+			return true;
 		}
 
 		const canWrite = this.socket.write(message);
@@ -661,6 +672,7 @@ export class TerminalHostClient extends EventEmitter {
 			// subsequent notifications we enqueue.
 			this.notifyDrainArmed = true;
 		}
+		return true;
 	}
 
 	private flushNotifyQueue(): void {
@@ -715,7 +727,16 @@ export class TerminalHostClient extends EventEmitter {
 	writeNoAck(request: WriteRequest): void {
 		void this.ensureConnected()
 			.then(() => {
-				this.sendNotification("write", request);
+				const sent = this.sendNotification("write", request);
+				if (!sent) {
+					// Queue full - notify the session so it can surface the error to the user
+					this.emit(
+						"terminalError",
+						request.sessionId,
+						"Write queue full - input dropped",
+						"QUEUE_FULL",
+					);
+				}
 			})
 			.catch((error) => {
 				this.emit(

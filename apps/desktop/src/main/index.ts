@@ -13,7 +13,7 @@ import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { terminalManager } from "./lib/terminal";
+import { shutdownOrphanedDaemon, terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -221,6 +221,10 @@ if (!gotTheLock) {
 		await app.whenReady();
 
 		await initAppState();
+
+		// Cleanup any orphaned daemon if persistence is now disabled
+		await shutdownOrphanedDaemon();
+
 		await authService.initialize();
 
 		try {
