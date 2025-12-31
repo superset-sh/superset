@@ -20,11 +20,14 @@ import {
 	setupKeyboardHandler,
 	setupPasteHandler,
 	setupResizeHandlers,
+	type TerminalRenderer,
 } from "./helpers";
 import { parseCwd } from "./parseCwd";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
+
+const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
 
 type CreateOrAttachResult = {
 	wasRecovered: boolean;
@@ -53,6 +56,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
+	const rendererRef = useRef<TerminalRenderer | null>(null);
 	const isExitedRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
@@ -207,13 +211,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
-	const resizeAsyncRef = useRef(resizeMutation.mutateAsync);
 	const detachRef = useRef(detachMutation.mutate);
 	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
-	resizeAsyncRef.current = resizeMutation.mutateAsync;
 	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
 
@@ -273,6 +275,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",
 				);
+			} else if (event.type === "error") {
+				const message = event.code
+					? `${event.code}: ${event.error}`
+					: event.error;
+				console.warn("[Terminal] stream error:", message);
+
+				// Don't block interaction for non-fatal issues like a paste drop.
+				if (event.code === "WRITE_QUEUE_FULL") {
+					xterm.writeln(`\r\n[Terminal] ${message}`);
+				} else {
+					setConnectionError(message);
+				}
 			}
 		}
 	}, []);
@@ -328,10 +342,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// processed when the terminal first renders, causing garbled display.
 			// Force a re-render after write completes to ensure correct display.
 			// (Symptom: restored terminals show corrupted text until resized)
-			// Using fitAddon.fit() which triggers a full re-layout and re-render.
+			// Use fitAddon.fit() and (when using WebGL) clear the glyph atlas to force a full repaint.
 			xterm.write(result.scrollback, () => {
-				let didForceRepaint = false;
-
 				const redraw = () => {
 					requestAnimationFrame(() => {
 						try {
@@ -342,46 +354,23 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 							if (xtermRef.current !== xterm) return;
 
 							// Reattached sessions can sometimes render partially until the user resizes the pane.
-							// Force a repaint and (for restored TUIs) one SIGWINCH cycle to trigger a redraw.
+							// WebGL off fully fixes this, which strongly suggests a WebGL texture-atlas repaint bug.
+							// Clearing the atlas forces xterm-webgl to rebuild glyphs and repaint without a resize nudge.
 							const cols = xterm.cols;
 							const rows = xterm.rows;
 							if (cols <= 0 || rows <= 0) return;
 
-							const shouldForceRepaint =
-								!result.isNew && isAlternateScreenRef.current && rows > 2;
+							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
+							resizeRef.current({ paneId, cols, rows });
 
-							if (shouldForceRepaint && !didForceRepaint) {
-								didForceRepaint = true;
-								const nudgeRows = rows - 1;
-
-								// Order matters: send the nudge, yield a frame, then restore. This ensures
-								// the PTY actually delivers SIGWINCH and the TUI repaints into the buffer.
-								void (async () => {
-									try {
-										await resizeAsyncRef.current({
-											paneId,
-											cols,
-											rows: nudgeRows,
-										});
-										await new Promise((resolve) => {
-											setTimeout(resolve, 16);
-										});
-										if (restoreSequenceRef.current !== restoreSequence) return;
-										if (xtermRef.current !== xterm) return;
-										await resizeAsyncRef.current({ paneId, cols, rows });
-										if (restoreSequenceRef.current !== restoreSequence) return;
-										if (xtermRef.current !== xterm) return;
-										xterm.refresh(0, rows - 1);
-									} catch (error) {
-										console.warn(
-											"[Terminal] force repaint failed after restoration:",
-											error,
-										);
-									}
-								})();
-							} else {
-								// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-								resizeRef.current({ paneId, cols, rows });
+							if (!result.isNew) {
+								const renderer = rendererRef.current;
+								if (renderer?.kind === "webgl") {
+									// Clear twice: once immediately, and once after fonts settle.
+									// This reduces restore artifacts (especially for TUIs like opencode)
+									// and prevents stale glyphs when fonts swap in.
+									renderer.clearTextureAtlas?.();
+								}
 							}
 							xterm.refresh(0, rows - 1);
 						} catch (error) {
@@ -409,7 +398,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		// Enable streaming after initial state has been queued into xterm's write buffer.
 		isStreamReadyRef.current = true;
 		flushPendingEvents();
-	}, [flushPendingEvents]);
+	}, [flushPendingEvents, paneId]);
 
 	const handleRetryConnection = useCallback(() => {
 		setConnectionError(null);
@@ -479,6 +468,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		} else if (event.type === "disconnect") {
 			// Daemon connection lost - show error UI with retry option
 			setConnectionError(event.reason || "Connection to terminal daemon lost");
+		} else if (event.type === "error") {
+			const message = event.code
+				? `${event.code}: ${event.error}`
+				: event.error;
+			console.warn("[Terminal] stream error:", message);
+
+			if (event.code === "WRITE_QUEUE_FULL") {
+				xtermRef.current.writeln(`\r\n[Terminal] ${message}`);
+			} else {
+				setConnectionError(message);
+			}
 		}
 	};
 
@@ -525,6 +525,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const {
 			xterm,
 			fitAddon,
+			renderer,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, {
 			cwd: workspaceCwd,
@@ -534,6 +535,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		});
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
+		rendererRef.current = renderer;
 		isExitedRef.current = false;
 		isStreamReadyRef.current = false;
 		didFirstRenderRef.current = false;
@@ -553,12 +555,27 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		// Wait for xterm to render once before applying restoration data.
 		// This prevents crashes when writing rehydrate escape sequences too early.
 		renderDisposableRef.current?.dispose();
+		let firstRenderFallback: ReturnType<typeof setTimeout> | null = null;
+
 		renderDisposableRef.current = xterm.onRender(() => {
+			if (firstRenderFallback) {
+				clearTimeout(firstRenderFallback);
+				firstRenderFallback = null;
+			}
 			renderDisposableRef.current?.dispose();
 			renderDisposableRef.current = null;
 			didFirstRenderRef.current = true;
 			maybeApplyInitialState();
 		});
+
+		// Failure-proofing: if the renderer never emits an initial render (e.g. WebGL hiccup,
+		// offscreen mount), don't leave the session stuck in "not ready" forever.
+		firstRenderFallback = setTimeout(() => {
+			if (isUnmounted) return;
+			if (didFirstRenderRef.current) return;
+			didFirstRenderRef.current = true;
+			maybeApplyInitialState();
+		}, FIRST_RENDER_RESTORE_FALLBACK_MS);
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
@@ -712,6 +729,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		return () => {
 			isUnmounted = true;
+			if (firstRenderFallback) {
+				clearTimeout(firstRenderFallback);
+			}
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();
@@ -734,6 +754,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
+			rendererRef.current = null;
 		};
 	}, [
 		paneId,

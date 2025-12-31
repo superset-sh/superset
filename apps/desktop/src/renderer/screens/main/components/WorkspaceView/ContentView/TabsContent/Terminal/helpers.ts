@@ -61,35 +61,55 @@ export function getDefaultTerminalBg(): string {
  * Load GPU-accelerated renderer with automatic fallback.
  * Tries WebGL first, falls back to Canvas if WebGL fails.
  */
-function loadRenderer(xterm: XTerm): { dispose: () => void } {
+export type TerminalRenderer = {
+	kind: "webgl" | "canvas" | "dom";
+	dispose: () => void;
+	clearTextureAtlas?: () => void;
+};
+
+function loadRenderer(xterm: XTerm): TerminalRenderer {
 	let renderer: WebglAddon | CanvasAddon | null = null;
+	let webglAddon: WebglAddon | null = null;
+	let kind: TerminalRenderer["kind"] = "dom";
+
+	const tryLoadCanvas = () => {
+		try {
+			renderer = new CanvasAddon();
+			xterm.loadAddon(renderer);
+			kind = "canvas";
+		} catch {
+			// Canvas fallback failed, use default renderer
+		}
+	};
 
 	try {
-		const webglAddon = new WebglAddon();
+		webglAddon = new WebglAddon();
 
 		webglAddon.onContextLoss(() => {
-			webglAddon.dispose();
-			try {
-				renderer = new CanvasAddon();
-				xterm.loadAddon(renderer);
-			} catch {
-				// Canvas fallback failed, use default renderer
-			}
+			webglAddon?.dispose();
+			webglAddon = null;
+			tryLoadCanvas();
 		});
 
 		xterm.loadAddon(webglAddon);
 		renderer = webglAddon;
+		kind = "webgl";
 	} catch {
-		try {
-			renderer = new CanvasAddon();
-			xterm.loadAddon(renderer);
-		} catch {
-			// Both renderers failed, use default
-		}
+		tryLoadCanvas();
 	}
 
 	return {
+		kind,
 		dispose: () => renderer?.dispose(),
+		clearTextureAtlas: webglAddon
+			? () => {
+					try {
+						webglAddon?.clearTextureAtlas();
+					} catch (error) {
+						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
+					}
+				}
+			: undefined,
 	};
 }
 
@@ -105,6 +125,7 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	renderer: TerminalRenderer;
 	cleanup: () => void;
 } {
 	const { cwd, initialTheme, onFileLinkClick } = options;
@@ -185,6 +206,7 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
+		renderer,
 		cleanup: () => {
 			cleanupQuerySuppression();
 			renderer.dispose();
