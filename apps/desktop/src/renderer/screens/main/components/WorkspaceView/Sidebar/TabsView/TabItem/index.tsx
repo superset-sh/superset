@@ -43,8 +43,6 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
-	// Track if we just started renaming to ignore spurious blur events
-	const justStartedRenamingRef = useRef(false);
 
 	// Drag source for tab reordering
 	const [{ isDragging }, drag] = useDrag<
@@ -85,16 +83,8 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		}
 	};
 
-	// Select tab on right-click so the context menu actions apply to the correct tab
-	const handleContextMenu = () => {
-		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tab.id);
-		}
-	};
-
 	const startRename = () => {
 		setRenameValue(tab.userTitle ?? tab.name ?? displayName);
-		justStartedRenamingRef.current = true;
 		setIsRenaming(true);
 	};
 
@@ -103,26 +93,8 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		if (isRenaming && inputRef.current) {
 			inputRef.current.focus();
 			inputRef.current.select();
-			// Clear the flag after a short delay to allow any pending blur events to be ignored
-			const timeoutId = setTimeout(() => {
-				justStartedRenamingRef.current = false;
-			}, 100);
-			return () => clearTimeout(timeoutId);
 		}
 	}, [isRenaming]);
-
-	const handleBlur = () => {
-		// Ignore blur if we just started renaming (focus may be temporarily stolen)
-		if (justStartedRenamingRef.current) {
-			// Re-focus the input after current event processing completes
-			queueMicrotask(() => {
-				inputRef.current?.focus();
-				inputRef.current?.select();
-			});
-			return;
-		}
-		submitRename();
-	};
 
 	const submitRename = () => {
 		const trimmedValue = renameValue.trim();
@@ -147,7 +119,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 		drop(el);
 	};
 
-	// When renaming, render completely outside TabContextMenu to avoid Radix focus interference
+	// When renaming, render outside TabContextMenu to avoid Radix focus interference
 	if (isRenaming) {
 		return (
 			<div className="w-full">
@@ -168,7 +140,7 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 								variant="ghost"
 								value={renameValue}
 								onChange={(e) => setRenameValue(e.target.value)}
-								onBlur={handleBlur}
+								onBlur={submitRename}
 								onKeyDown={handleKeyDown}
 								onClick={(e) => e.stopPropagation()}
 								className="flex-1"
@@ -200,7 +172,6 @@ export function TabItem({ tab, index, isActive }: TabItemProps) {
 						ref={attachRef}
 						variant="ghost"
 						onClick={handleTabClick}
-						onContextMenu={handleContextMenu}
 						onDoubleClick={startRename}
 						onKeyDown={(e) => {
 							if (e.key === "Enter" || e.key === " ") {
