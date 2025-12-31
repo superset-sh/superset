@@ -328,13 +328,25 @@ class PortManager extends EventEmitter {
 		const buffered = this.lineBuffers.get(paneId) || "";
 		const combined = buffered + data;
 
-		// Split by newlines
-		const parts = combined.split(/\r?\n/);
+		// Fast path: avoid splitting/regex on obviously irrelevant output (e.g., full-screen TUIs).
+		// Still maintain the incomplete-line buffer so patterns spanning chunks can be detected later.
+		const lastNewlineIndex = Math.max(
+			combined.lastIndexOf("\n"),
+			combined.lastIndexOf("\r"),
+		);
 
-		// If data doesn't end with a newline, the last part is incomplete - buffer it
-		const endsWithNewline = /[\r\n]$/.test(data);
-		const completeLines = endsWithNewline ? parts : parts.slice(0, -1);
-		const incompleteLine = endsWithNewline ? "" : (parts.at(-1) ?? "");
+		// No newline yet → only an incomplete line to buffer.
+		if (lastNewlineIndex === -1) {
+			if (combined.length <= MAX_LINE_BUFFER) {
+				this.lineBuffers.set(paneId, combined);
+			} else {
+				this.lineBuffers.delete(paneId);
+			}
+			return;
+		}
+
+		const completePart = combined.slice(0, lastNewlineIndex);
+		const incompleteLine = combined.slice(lastNewlineIndex + 1);
 
 		// Update buffer (with size limit to prevent memory issues)
 		if (incompleteLine && incompleteLine.length <= MAX_LINE_BUFFER) {
@@ -343,13 +355,26 @@ class PortManager extends EventEmitter {
 			this.lineBuffers.delete(paneId);
 		}
 
-		// Process complete lines
+		// Heuristic: only do full line processing if the chunk *looks* like it could contain a port.
+		// Sample both the head and tail to handle long logs without scanning huge strings.
+		const sample =
+			completePart.length > 4096
+				? `${completePart.slice(0, 2048)}${completePart.slice(-2048)}`
+				: completePart;
+		const looksRelevant =
+			/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|https?:\/\/|listening|started|ready|running|\bon port\b)/i.test(
+				sample,
+			);
+		if (!looksRelevant) return;
+
+		// Split by newlines (only on the completed portion)
+		const completeLines = completePart.split(/\r?\n/);
+
 		for (const line of completeLines) {
 			if (!line.trim()) continue;
 
 			const port = extractPort(line);
 			if (port !== null) {
-				// Schedule verification - port will only be added if it's actually listening
 				this.schedulePortVerification(port, paneId, workspaceId, line);
 			}
 		}

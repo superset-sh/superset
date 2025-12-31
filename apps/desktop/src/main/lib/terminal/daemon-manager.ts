@@ -129,6 +129,18 @@ export class DaemonTerminalManager extends EventEmitter {
 				}
 			}
 		});
+
+		// Terminal-specific errors (e.g., subprocess backpressure limits)
+		this.client.on(
+			"terminalError",
+			(sessionId: string, error: string, code?: string) => {
+				const paneId = sessionId;
+				console.error(
+					`[DaemonTerminalManager] Terminal error for ${paneId}: ${code ?? "UNKNOWN"}: ${error}`,
+				);
+				this.emit(`error:${paneId}`, { error, code });
+			},
+		);
 	}
 
 	// ===========================================================================
@@ -249,13 +261,9 @@ export class DaemonTerminalManager extends EventEmitter {
 			throw new Error(`Terminal session ${paneId} not found or not alive`);
 		}
 
-		// Fire and forget - daemon will handle the write
-		this.client.write({ sessionId: paneId, data }).catch((error) => {
-			console.error(
-				`[DaemonTerminalManager] Write failed for ${paneId}:`,
-				error,
-			);
-		});
+		// Fire and forget - daemon will handle the write.
+		// Use the no-ack fast path to avoid per-chunk request timeouts under load.
+		this.client.writeNoAck({ sessionId: paneId, data });
 
 		session.lastActive = Date.now();
 	}
@@ -451,12 +459,7 @@ export class DaemonTerminalManager extends EventEmitter {
 	refreshPromptsForWorkspace(workspaceId: string): void {
 		for (const [paneId, session] of this.sessions.entries()) {
 			if (session.workspaceId === workspaceId && session.isAlive) {
-				this.client.write({ sessionId: paneId, data: "\n" }).catch((error) => {
-					console.warn(
-						`[DaemonTerminalManager] Failed to refresh prompt for pane ${paneId}:`,
-						error,
-					);
-				});
+				this.client.writeNoAck({ sessionId: paneId, data: "\n" });
 			}
 		}
 	}

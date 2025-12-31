@@ -2,23 +2,30 @@
  * Terminal Host Session
  *
  * A session owns:
- * - A PTY process (node-pty)
+ * - A PTY subprocess (isolates blocking writes from main daemon)
  * - A HeadlessEmulator instance for state tracking
  * - A set of attached clients
  * - Output capture to disk
  */
 
+import * as path from "node:path";
 import type { Socket } from "node:net";
-import * as pty from "node-pty";
+import { spawn, type ChildProcess } from "node:child_process";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
 	SessionMeta,
 	TerminalDataEvent,
+	TerminalErrorEvent,
 	TerminalExitEvent,
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
+import {
+	PtySubprocessFrameDecoder,
+	PtySubprocessIpcType,
+	createFrameHeader,
+} from "./pty-subprocess-ipc";
 
 // =============================================================================
 // Types
@@ -57,12 +64,25 @@ export class Session {
 	readonly shell: string;
 	readonly createdAt: Date;
 
-	private ptyProcess: pty.IPty | null = null;
+	private subprocess: ChildProcess | null = null;
+	private subprocessReady = false;
+	private ptyPid: number | null = null;
 	private emulator: HeadlessEmulator;
 	private attachedClients: Map<Socket, AttachedClient> = new Map();
+	private clientSocketsWaitingForDrain: Set<Socket> = new Set();
+	private subprocessStdoutPaused = false;
 	private lastAttachedAt: Date;
 	private exitCode: number | null = null;
 	private disposed = false;
+	private subprocessDecoder: PtySubprocessFrameDecoder | null = null;
+	private subprocessStdinQueue: Buffer[] = [];
+	private subprocessStdinQueuedBytes = 0;
+	private subprocessStdinDrainArmed = false;
+
+	private emulatorWriteQueue: string[] = [];
+	private emulatorWriteQueuedBytes = 0;
+	private emulatorWriteScheduled = false;
+	private emulatorFlushWaiters: Array<() => void> = [];
 
 	// Callbacks
 	private onSessionExit?: (
@@ -93,16 +113,18 @@ export class Session {
 		// Listen for emulator output (query responses)
 		this.emulator.onData((data) => {
 			// If no clients attached, send responses back to PTY
-			// This allows TUIs to function while app is closed
-			if (this.attachedClients.size === 0 && this.ptyProcess) {
-				this.ptyProcess.write(data);
+			if (
+				this.attachedClients.size === 0 &&
+				this.subprocess &&
+				this.subprocessReady
+			) {
+				this.sendWriteToSubprocess(data);
 			}
-			// When clients are attached, the renderer handles responses
 		});
 	}
 
 	/**
-	 * Spawn the PTY process
+	 * Spawn the PTY process via subprocess
 	 */
 	spawn(options: {
 		cwd: string;
@@ -110,7 +132,7 @@ export class Session {
 		rows: number;
 		env?: Record<string, string>;
 	}): void {
-		if (this.ptyProcess) {
+		if (this.subprocess) {
 			throw new Error("PTY already spawned");
 		}
 
@@ -119,53 +141,368 @@ export class Session {
 		// Build environment - filter out undefined values and ELECTRON_RUN_AS_NODE
 		const processEnv: Record<string, string> = {};
 		for (const [key, value] of Object.entries(process.env)) {
-			// Skip ELECTRON_RUN_AS_NODE (daemon runs with this, but spawned shells shouldn't)
 			if (key === "ELECTRON_RUN_AS_NODE") continue;
 			if (value !== undefined) {
 				processEnv[key] = value;
 			}
 		}
-		// Add custom env vars
 		Object.assign(processEnv, env);
-		// Ensure TERM is set
 		processEnv.TERM = "xterm-256color";
 
 		// Get shell args
 		const shellArgs = this.getShellArgs(this.shell);
 
-		this.ptyProcess = pty.spawn(this.shell, shellArgs, {
-			name: "xterm-256color",
+		// Spawn PTY subprocess
+		// The subprocess script is bundled alongside terminal-host.js
+		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
+
+		// Use electron as node to run the subprocess
+		const electronPath = process.execPath;
+		this.subprocess = spawn(electronPath, [subprocessPath], {
+			stdio: ["pipe", "pipe", "inherit"], // pipe stdin/stdout, inherit stderr
+			env: {
+				...process.env,
+				ELECTRON_RUN_AS_NODE: "1",
+			},
+		});
+
+		// Read framed messages from subprocess stdout
+		if (this.subprocess.stdout) {
+			this.subprocessDecoder = new PtySubprocessFrameDecoder();
+			this.subprocess.stdout.on("data", (chunk: Buffer) => {
+				try {
+					const frames = this.subprocessDecoder?.push(chunk) ?? [];
+					for (const frame of frames) {
+						this.handleSubprocessFrame(frame.type, frame.payload);
+					}
+				} catch (error) {
+					console.error(
+						`[Session ${this.sessionId}] Failed to parse subprocess frames:`,
+						error,
+					);
+				}
+			});
+		}
+
+		// Handle subprocess exit
+		this.subprocess.on("exit", (code) => {
+			console.log(
+				`[Session ${this.sessionId}] Subprocess exited with code ${code}`,
+			);
+			this.handleSubprocessExit(code ?? -1);
+		});
+
+		this.subprocess.on("error", (error) => {
+			console.error(`[Session ${this.sessionId}] Subprocess error:`, error);
+			this.handleSubprocessExit(-1);
+		});
+
+		// Store pending spawn config
+		this.pendingSpawn = {
+			shell: this.shell,
+			args: shellArgs,
+			cwd,
 			cols,
 			rows,
-			cwd,
 			env: processEnv,
-		});
+		};
+	}
 
-		// Handle PTY data
-		this.ptyProcess.onData((data) => {
-			// Feed data to emulator for state tracking
-			this.emulator.write(data);
+	private pendingSpawn: {
+		shell: string;
+		args: string[];
+		cwd: string;
+		cols: number;
+		rows: number;
+		env: Record<string, string>;
+	} | null = null;
 
-			// Send to all attached clients
-			this.broadcastEvent("data", {
-				type: "data",
-				data,
-			} satisfies TerminalDataEvent);
-		});
+	/**
+	 * Handle frames from the PTY subprocess
+	 */
+	private handleSubprocessFrame(
+		type: PtySubprocessIpcType,
+		payload: Buffer,
+	): void {
+		switch (type) {
+			case PtySubprocessIpcType.Ready:
+				this.subprocessReady = true;
+				console.log(
+					`[Session ${this.sessionId}] Subprocess ready, spawning PTY`,
+				);
+				if (this.pendingSpawn) {
+					this.sendSpawnToSubprocess(this.pendingSpawn);
+					this.pendingSpawn = null;
+				}
+				break;
 
-		// Handle PTY exit
-		this.ptyProcess.onExit(({ exitCode, signal }) => {
+			case PtySubprocessIpcType.Spawned:
+				this.ptyPid = payload.length >= 4 ? payload.readUInt32LE(0) : null;
+				console.log(
+					`[Session ${this.sessionId}] PTY spawned with pid ${this.ptyPid}`,
+				);
+				break;
+
+			case PtySubprocessIpcType.Data: {
+				if (payload.length === 0) break;
+				const data = payload.toString("utf8");
+
+				this.enqueueEmulatorWrite(data);
+
+				this.broadcastEvent("data", {
+					type: "data",
+					data,
+				} satisfies TerminalDataEvent);
+				break;
+			}
+
+			case PtySubprocessIpcType.Exit: {
+				const exitCode = payload.length >= 4 ? payload.readInt32LE(0) : 0;
+				const signal = payload.length >= 8 ? payload.readInt32LE(4) : 0;
+				this.exitCode = exitCode;
+
+				this.broadcastEvent("exit", {
+					type: "exit",
+					exitCode,
+					signal: signal !== 0 ? signal : undefined,
+				} satisfies TerminalExitEvent);
+
+				this.onSessionExit?.(
+					this.sessionId,
+					exitCode,
+					signal !== 0 ? signal : undefined,
+				);
+				break;
+			}
+
+			case PtySubprocessIpcType.Error: {
+				const errorMessage =
+					payload.length > 0
+						? payload.toString("utf8")
+						: "Unknown subprocess error";
+
+				console.error(
+					`[Session ${this.sessionId}] Subprocess error:`,
+					errorMessage,
+				);
+
+				this.broadcastEvent("error", {
+					type: "error",
+					error: errorMessage,
+					code: errorMessage.includes("Write queue full")
+						? "WRITE_QUEUE_FULL"
+						: "SUBPROCESS_ERROR",
+				} satisfies TerminalErrorEvent);
+				break;
+			}
+		}
+	}
+
+	/**
+	 * Handle subprocess exiting
+	 */
+	private handleSubprocessExit(exitCode: number): void {
+		if (this.exitCode === null) {
 			this.exitCode = exitCode;
 
-			// Notify attached clients
 			this.broadcastEvent("exit", {
 				type: "exit",
 				exitCode,
-				signal,
 			} satisfies TerminalExitEvent);
 
-			// Notify session manager
-			this.onSessionExit?.(this.sessionId, exitCode, signal);
+			this.onSessionExit?.(this.sessionId, exitCode);
+		}
+
+		this.subprocess = null;
+		this.subprocessReady = false;
+		this.subprocessDecoder = null;
+		this.subprocessStdinQueue = [];
+		this.subprocessStdinQueuedBytes = 0;
+		this.subprocessStdinDrainArmed = false;
+		this.subprocessStdoutPaused = false;
+
+		this.emulatorWriteQueue = [];
+		this.emulatorWriteQueuedBytes = 0;
+		this.emulatorWriteScheduled = false;
+		const waiters = this.emulatorFlushWaiters;
+		this.emulatorFlushWaiters = [];
+		for (const resolve of waiters) resolve();
+	}
+
+	/**
+	 * Flush queued frames to subprocess stdin, respecting stream backpressure.
+	 */
+	private flushSubprocessStdinQueue(): void {
+		if (!this.subprocess?.stdin || this.disposed) return;
+
+		while (this.subprocessStdinQueue.length > 0) {
+			const buf = this.subprocessStdinQueue[0];
+			const canWrite = this.subprocess.stdin.write(buf);
+			if (!canWrite) {
+				if (!this.subprocessStdinDrainArmed) {
+					this.subprocessStdinDrainArmed = true;
+					this.subprocess.stdin.once("drain", () => {
+						this.subprocessStdinDrainArmed = false;
+						this.flushSubprocessStdinQueue();
+					});
+				}
+				return;
+			}
+
+			this.subprocessStdinQueue.shift();
+			this.subprocessStdinQueuedBytes -= buf.length;
+		}
+	}
+
+	/**
+	 * Send a frame to the subprocess.
+	 * Returns false if write buffer is full (caller should handle).
+	 */
+	private sendFrameToSubprocess(
+		type: PtySubprocessIpcType,
+		payload?: Buffer,
+	): boolean {
+		if (!this.subprocess?.stdin || this.disposed) return false;
+
+		const payloadBuffer = payload ?? Buffer.alloc(0);
+		const header = createFrameHeader(type, payloadBuffer.length);
+
+		this.subprocessStdinQueue.push(header);
+		this.subprocessStdinQueuedBytes += header.length;
+
+		if (payloadBuffer.length > 0) {
+			this.subprocessStdinQueue.push(payloadBuffer);
+			this.subprocessStdinQueuedBytes += payloadBuffer.length;
+		}
+
+		const wasBackpressured = this.subprocessStdinDrainArmed;
+		this.flushSubprocessStdinQueue();
+
+		if (this.subprocessStdinDrainArmed && !wasBackpressured) {
+			console.warn(
+				`[Session ${this.sessionId}] stdin buffer full, write may be delayed`,
+			);
+		}
+
+		return !this.subprocessStdinDrainArmed;
+	}
+
+	private sendSpawnToSubprocess(payload: {
+		shell: string;
+		args: string[];
+		cwd: string;
+		cols: number;
+		rows: number;
+		env: Record<string, string>;
+	}): boolean {
+		return this.sendFrameToSubprocess(
+			PtySubprocessIpcType.Spawn,
+			Buffer.from(JSON.stringify(payload), "utf8"),
+		);
+	}
+
+	private sendWriteToSubprocess(data: string): boolean {
+		// Chunk large writes to avoid allocating/queuing massive single frames.
+		const MAX_CHUNK_CHARS = 8192;
+		let ok = true;
+
+		for (let offset = 0; offset < data.length; offset += MAX_CHUNK_CHARS) {
+			const part = data.slice(offset, offset + MAX_CHUNK_CHARS);
+			ok =
+				this.sendFrameToSubprocess(
+					PtySubprocessIpcType.Write,
+					Buffer.from(part, "utf8"),
+				) && ok;
+		}
+
+		return ok;
+	}
+
+	private sendResizeToSubprocess(cols: number, rows: number): boolean {
+		const payload = Buffer.allocUnsafe(8);
+		payload.writeUInt32LE(cols, 0);
+		payload.writeUInt32LE(rows, 4);
+		return this.sendFrameToSubprocess(PtySubprocessIpcType.Resize, payload);
+	}
+
+	private sendKillToSubprocess(signal?: string): boolean {
+		const payload = signal ? Buffer.from(signal, "utf8") : undefined;
+		return this.sendFrameToSubprocess(PtySubprocessIpcType.Kill, payload);
+	}
+
+	private sendDisposeToSubprocess(): boolean {
+		return this.sendFrameToSubprocess(PtySubprocessIpcType.Dispose);
+	}
+
+	private enqueueEmulatorWrite(data: string): void {
+		this.emulatorWriteQueue.push(data);
+		this.emulatorWriteQueuedBytes += data.length;
+		this.scheduleEmulatorWrite();
+	}
+
+	private scheduleEmulatorWrite(): void {
+		if (this.emulatorWriteScheduled || this.disposed) return;
+		this.emulatorWriteScheduled = true;
+		setImmediate(() => {
+			this.processEmulatorWriteQueue();
+		});
+	}
+
+	private processEmulatorWriteQueue(): void {
+		if (this.disposed) {
+			this.emulatorWriteQueue = [];
+			this.emulatorWriteQueuedBytes = 0;
+			this.emulatorWriteScheduled = false;
+			const waiters = this.emulatorFlushWaiters;
+			this.emulatorFlushWaiters = [];
+			for (const resolve of waiters) resolve();
+			return;
+		}
+
+		const start = performance.now();
+		const hasClients = this.attachedClients.size > 0;
+		const backlogBytes = this.emulatorWriteQueuedBytes;
+
+		// Keep the daemon responsive while still ensuring the emulator catches up eventually.
+		const baseBudgetMs = hasClients ? 5 : 25;
+		const budgetMs = backlogBytes > 1024 * 1024 ? Math.max(baseBudgetMs, 25) : baseBudgetMs;
+		const MAX_CHUNK_CHARS = 8192;
+
+		while (this.emulatorWriteQueue.length > 0) {
+			if (performance.now() - start > budgetMs) break;
+
+			let chunk = this.emulatorWriteQueue[0];
+			if (chunk.length > MAX_CHUNK_CHARS) {
+				this.emulatorWriteQueue[0] = chunk.slice(MAX_CHUNK_CHARS);
+				chunk = chunk.slice(0, MAX_CHUNK_CHARS);
+			} else {
+				this.emulatorWriteQueue.shift();
+			}
+			this.emulatorWriteQueuedBytes -= chunk.length;
+			this.emulator.write(chunk);
+		}
+
+		if (this.emulatorWriteQueue.length > 0) {
+			setImmediate(() => {
+				this.processEmulatorWriteQueue();
+			});
+			return;
+		}
+
+		this.emulatorWriteScheduled = false;
+		const waiters = this.emulatorFlushWaiters;
+		this.emulatorFlushWaiters = [];
+		for (const resolve of waiters) resolve();
+	}
+
+	private async flushEmulatorWrites(): Promise<void> {
+		if (this.emulatorWriteQueue.length === 0 && !this.emulatorWriteScheduled) {
+			return;
+		}
+
+		await new Promise<void>((resolve) => {
+			this.emulatorFlushWaiters.push(resolve);
+			this.scheduleEmulatorWrite();
 		});
 	}
 
@@ -173,7 +510,7 @@ export class Session {
 	 * Check if session is alive (PTY running)
 	 */
 	get isAlive(): boolean {
-		return this.ptyProcess !== null && this.exitCode === null;
+		return this.subprocess !== null && this.exitCode === null;
 	}
 
 	/**
@@ -185,25 +522,19 @@ export class Session {
 
 	/**
 	 * Attach a client to this session
-	 * Returns a snapshot after flushing any pending writes to ensure consistency
-	 *
-	 * Note: Socket disconnect handling is centralized in the daemon's handleConnection
-	 * to avoid adding per-session listeners which could cause MaxListenersExceededWarning
 	 */
 	async attach(socket: Socket): Promise<TerminalSnapshot> {
 		if (this.disposed) {
 			throw new Error("Session disposed");
 		}
 
-		// Track client
 		this.attachedClients.set(socket, {
 			socket,
 			attachedAt: Date.now(),
 		});
 		this.lastAttachedAt = new Date();
 
-		// Return current snapshot after flushing pending writes
-		// This ensures any output produced while no clients were attached is included
+		await this.flushEmulatorWrites();
 		return this.emulator.getSnapshotAsync();
 	}
 
@@ -212,24 +543,26 @@ export class Session {
 	 */
 	detach(socket: Socket): void {
 		this.attachedClients.delete(socket);
+		this.clientSocketsWaitingForDrain.delete(socket);
+		this.maybeResumeSubprocessStdout();
 	}
 
 	/**
-	 * Write data to PTY
+	 * Write data to PTY (non-blocking - sent to subprocess)
 	 */
 	write(data: string): void {
-		if (!this.ptyProcess) {
+		if (!this.subprocess || !this.subprocessReady) {
 			throw new Error("PTY not spawned");
 		}
-		this.ptyProcess.write(data);
+		this.sendWriteToSubprocess(data);
 	}
 
 	/**
 	 * Resize PTY and emulator
 	 */
 	resize(cols: number, rows: number): void {
-		if (this.ptyProcess) {
-			this.ptyProcess.resize(cols, rows);
+		if (this.subprocess && this.subprocessReady) {
+			this.sendResizeToSubprocess(cols, rows);
 		}
 		this.emulator.resize(cols, rows);
 	}
@@ -242,7 +575,7 @@ export class Session {
 	}
 
 	/**
-	 * Get session snapshot (for debugging/inspection)
+	 * Get session snapshot
 	 */
 	getSnapshot(): TerminalSnapshot {
 		return this.emulator.getSnapshot();
@@ -270,12 +603,17 @@ export class Session {
 	 * Kill the PTY process
 	 */
 	kill(signal: string = "SIGTERM"): void {
-		if (this.ptyProcess) {
-			try {
-				this.ptyProcess.kill(signal);
-			} catch {
-				// Process might already be dead
-			}
+		if (this.subprocess && this.subprocessReady) {
+			this.sendKillToSubprocess(signal);
+			return;
+		}
+
+		// If the subprocess isn't ready yet, fall back to killing the subprocess itself
+		// so session termination is reliable ( differentiation isn't meaningful pre-spawn).
+		try {
+			this.subprocess?.kill(signal as NodeJS.Signals);
+		} catch {
+			// Ignore
 		}
 	}
 
@@ -286,15 +624,31 @@ export class Session {
 		if (this.disposed) return;
 		this.disposed = true;
 
-		// Kill PTY
-		this.kill("SIGKILL");
-		this.ptyProcess = null;
+		if (this.subprocess) {
+			this.sendDisposeToSubprocess();
+			// Force kill after timeout
+			setTimeout(() => {
+				this.subprocess?.kill("SIGKILL");
+			}, 1000);
+			this.subprocess = null;
+		}
+		this.subprocessReady = false;
+		this.subprocessDecoder = null;
+		this.subprocessStdinQueue = [];
+		this.subprocessStdinQueuedBytes = 0;
+		this.subprocessStdinDrainArmed = false;
 
-		// Dispose emulator
+		this.emulatorWriteQueue = [];
+		this.emulatorWriteQueuedBytes = 0;
+		this.emulatorWriteScheduled = false;
+		const waiters = this.emulatorFlushWaiters;
+		this.emulatorFlushWaiters = [];
+		for (const resolve of waiters) resolve();
+
 		this.emulator.dispose();
-
-		// Clear clients
 		this.attachedClients.clear();
+		this.clientSocketsWaitingForDrain.clear();
+		this.subprocessStdoutPaused = false;
 	}
 
 	/**
@@ -311,11 +665,11 @@ export class Session {
 	// ===========================================================================
 
 	/**
-	 * Broadcast an event to all attached clients
+	 * Broadcast an event to all attached clients with backpressure awareness.
 	 */
 	private broadcastEvent(
 		eventType: string,
-		payload: TerminalDataEvent | TerminalExitEvent,
+		payload: TerminalDataEvent | TerminalExitEvent | TerminalErrorEvent,
 	): void {
 		const event: IpcEvent = {
 			type: "event",
@@ -328,12 +682,47 @@ export class Session {
 
 		for (const { socket } of this.attachedClients.values()) {
 			try {
-				socket.write(message);
+				const canWrite = socket.write(message);
+				if (!canWrite) {
+					// Socket buffer full - data will be queued but may cause memory pressure
+					// In production, could track this and pause PTY output temporarily
+					console.warn(
+						`[Session ${this.sessionId}] Client socket buffer full, output may be delayed`,
+					);
+					this.handleClientBackpressure(socket);
+				}
 			} catch {
-				// Client might have disconnected
 				this.attachedClients.delete(socket);
+				this.clientSocketsWaitingForDrain.delete(socket);
 			}
 		}
+	}
+
+	private handleClientBackpressure(socket: Socket): void {
+		// If the client can’t keep up, pause reading from the subprocess stdout.
+		// This will backpressure the subprocess stdout pipe, which in turn pauses
+		// PTY reads inside the subprocess (preventing runaway buffering/CPU).
+		if (!this.subprocessStdoutPaused && this.subprocess?.stdout) {
+			this.subprocessStdoutPaused = true;
+			this.subprocess.stdout.pause();
+		}
+
+		if (this.clientSocketsWaitingForDrain.has(socket)) return;
+		this.clientSocketsWaitingForDrain.add(socket);
+
+		socket.once("drain", () => {
+			this.clientSocketsWaitingForDrain.delete(socket);
+			this.maybeResumeSubprocessStdout();
+		});
+	}
+
+	private maybeResumeSubprocessStdout(): void {
+		if (this.clientSocketsWaitingForDrain.size > 0) return;
+		if (!this.subprocessStdoutPaused) return;
+		if (!this.subprocess?.stdout) return;
+
+		this.subprocessStdoutPaused = false;
+		this.subprocess.stdout.resume();
 	}
 
 	/**
@@ -352,9 +741,8 @@ export class Session {
 	private getShellArgs(shell: string): string[] {
 		const shellName = shell.split("/").pop() || "";
 
-		// Common shells that support login shell
 		if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
-			return ["-l"]; // Login shell
+			return ["-l"];
 		}
 
 		return [];

@@ -23,6 +23,9 @@ import {
 const ESC = "\x1b";
 const BEL = "\x07";
 
+const DEBUG_EMULATOR_TIMING =
+	process.env.SUPERSET_TERMINAL_EMULATOR_DEBUG === "1";
+
 /**
  * DECSET/DECRST mode numbers we track
  */
@@ -118,11 +121,27 @@ export class HeadlessEmulator {
 	write(data: string): void {
 		if (this.disposed) return;
 
-		// Parse escape sequences with chunk-safe buffering
-		this.parseEscapeSequences(data);
+		if (!DEBUG_EMULATOR_TIMING) {
+			// Parse escape sequences with chunk-safe buffering
+			this.parseEscapeSequences(data);
+			// Write to headless terminal (buffered/async)
+			this.terminal.write(data);
+			return;
+		}
 
-		// Write to headless terminal (buffered/async)
+		const parseStart = performance.now();
+		this.parseEscapeSequences(data);
+		const parseTime = performance.now() - parseStart;
+
+		const terminalStart = performance.now();
 		this.terminal.write(data);
+		const terminalTime = performance.now() - terminalStart;
+
+		if (parseTime > 2 || terminalTime > 2) {
+			console.warn(
+				`[HeadlessEmulator] write(${data.length}b): parse=${parseTime.toFixed(1)}ms, terminal=${terminalTime.toFixed(1)}ms`,
+			);
+		}
 	}
 
 	/**

@@ -40,6 +40,7 @@ import {
 	type ResizeRequest,
 	type ShutdownRequest,
 	type TerminalDataEvent,
+	type TerminalErrorEvent,
 	type TerminalExitEvent,
 	type WriteRequest,
 } from "./types";
@@ -78,16 +79,22 @@ const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
 // =============================================================================
 
 class NdjsonParser {
-	private buffer = "";
+	// Use array buffering to avoid O(n²) string concatenation on high-volume streams
+	private chunks: string[] = [];
+	private remainder = "";
 
 	parse(chunk: string): Array<IpcResponse | IpcEvent> {
-		this.buffer += chunk;
 		const messages: Array<IpcResponse | IpcEvent> = [];
 
-		let newlineIndex = this.buffer.indexOf("\n");
+		// Prepend any remainder from previous parse
+		const data = this.remainder + chunk;
+		this.remainder = "";
+
+		let startIndex = 0;
+		let newlineIndex = data.indexOf("\n");
+
 		while (newlineIndex !== -1) {
-			const line = this.buffer.slice(0, newlineIndex);
-			this.buffer = this.buffer.slice(newlineIndex + 1);
+			const line = data.slice(startIndex, newlineIndex);
 
 			if (line.trim()) {
 				try {
@@ -97,7 +104,13 @@ class NdjsonParser {
 				}
 			}
 
-			newlineIndex = this.buffer.indexOf("\n");
+			startIndex = newlineIndex + 1;
+			newlineIndex = data.indexOf("\n", startIndex);
+		}
+
+		// Save any remaining data after the last newline
+		if (startIndex < data.length) {
+			this.remainder = data.slice(startIndex);
 		}
 
 		return messages;
@@ -121,6 +134,8 @@ interface PendingRequest {
 export interface TerminalHostClientEvents {
 	data: (sessionId: string, data: string) => void;
 	exit: (sessionId: string, exitCode: number, signal?: number) => void;
+	/** Terminal-specific error (e.g., write queue full - paste dropped) */
+	terminalError: (sessionId: string, error: string, code?: string) => void;
 	connected: () => void;
 	disconnected: () => void;
 	error: (error: Error) => void;
@@ -138,6 +153,9 @@ export class TerminalHostClient extends EventEmitter {
 	private authenticated = false;
 	private connectionState = ConnectionState.DISCONNECTED;
 	private disposed = false;
+	private notifyQueue: string[] = [];
+	private notifyQueueBytes = 0;
+	private notifyDrainArmed = false;
 
 	// ===========================================================================
 	// Connection Management
@@ -282,6 +300,10 @@ export class TerminalHostClient extends EventEmitter {
 			}
 		});
 
+		this.socket.on("drain", () => {
+			this.flushNotifyQueue();
+		});
+
 		this.socket.on("close", () => {
 			this.handleDisconnect();
 		});
@@ -313,7 +335,10 @@ export class TerminalHostClient extends EventEmitter {
 		} else if (message.type === "event") {
 			// Event from daemon
 			const event = message as IpcEvent;
-			const payload = event.payload as TerminalDataEvent | TerminalExitEvent;
+			const payload = event.payload as
+				| TerminalDataEvent
+				| TerminalExitEvent
+				| TerminalErrorEvent;
 
 			if (payload.type === "data") {
 				this.emit("data", event.sessionId, (payload as TerminalDataEvent).data);
@@ -324,6 +349,16 @@ export class TerminalHostClient extends EventEmitter {
 					event.sessionId,
 					exitPayload.exitCode,
 					exitPayload.signal,
+				);
+			} else if (payload.type === "error") {
+				const errorPayload = payload as TerminalErrorEvent;
+				// Emit terminal-specific error so callers can handle it
+				// This is critical for "Write queue full" - paste was silently dropped before!
+				this.emit(
+					"terminalError",
+					event.sessionId,
+					errorPayload.error,
+					errorPayload.code,
 				);
 			}
 		}
@@ -336,6 +371,9 @@ export class TerminalHostClient extends EventEmitter {
 		this.socket = null;
 		this.authenticated = false;
 		this.connectionState = ConnectionState.DISCONNECTED;
+		this.notifyQueue = [];
+		this.notifyQueueBytes = 0;
+		this.notifyDrainArmed = false;
 
 		// Reject all pending requests
 		for (const [id, pending] of this.pendingRequests.entries()) {
@@ -599,6 +637,53 @@ export class TerminalHostClient extends EventEmitter {
 		});
 	}
 
+	/**
+	 * Send a notification (no pending request / no timeout).
+	 *
+	 * Used for high-frequency messages like terminal input, where request/response
+	 * overhead can cause timeouts under load and drop data. The daemon may still
+	 * send a response for compatibility, but this client will ignore it.
+	 */
+	private sendNotification(type: string, payload: unknown): void {
+		if (!this.socket) return;
+
+		const id = `notify_${++this.requestCounter}`;
+		const message = `${JSON.stringify({ id, type, payload })}\n`;
+
+		// If we're already backpressured, just queue.
+		if (this.notifyDrainArmed || this.notifyQueue.length > 0) {
+			this.notifyQueue.push(message);
+			this.notifyQueueBytes += Buffer.byteLength(message, "utf8");
+			return;
+		}
+
+		const canWrite = this.socket.write(message);
+		if (!canWrite) {
+			// Message is queued internally by the socket; arm drain to flush any
+			// subsequent notifications we enqueue.
+			this.notifyDrainArmed = true;
+		}
+	}
+
+	private flushNotifyQueue(): void {
+		if (!this.socket) return;
+		if (!this.notifyDrainArmed && this.notifyQueue.length === 0) return;
+
+		this.notifyDrainArmed = false;
+
+		while (this.notifyQueue.length > 0) {
+			const message = this.notifyQueue.shift();
+			if (!message) break;
+			this.notifyQueueBytes -= Buffer.byteLength(message, "utf8");
+
+			const canWrite = this.socket.write(message);
+			if (!canWrite) {
+				this.notifyDrainArmed = true;
+				return;
+			}
+		}
+	}
+
 	// ===========================================================================
 	// Public API
 	// ===========================================================================
@@ -622,6 +707,21 @@ export class TerminalHostClient extends EventEmitter {
 	async write(request: WriteRequest): Promise<EmptyResponse> {
 		await this.ensureConnected();
 		return (await this.sendRequest("write", request)) as EmptyResponse;
+	}
+
+	/**
+	 * Write data without waiting for a response (best-effort, backpressured).
+	 * Prevents large pastes from timing out and dropping chunks when the daemon
+	 * is busy processing output.
+	 */
+	writeNoAck(request: WriteRequest): void {
+		void this.ensureConnected()
+			.then(() => {
+				this.sendNotification("write", request);
+			})
+			.catch((error) => {
+				this.emit("error", error instanceof Error ? error : new Error(String(error)));
+			});
 	}
 
 	/**

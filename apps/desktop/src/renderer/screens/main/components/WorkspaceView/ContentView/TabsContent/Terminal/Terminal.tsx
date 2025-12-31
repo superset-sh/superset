@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
+import { toast } from "@superset/ui/sonner";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -28,6 +29,11 @@ import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
 
 const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
+
+// Module-level map to track pending detach timeouts.
+// This survives React StrictMode's unmount/remount cycle, allowing us to
+// cancel a pending detach if the component immediately remounts.
+const pendingDetaches = new Map<string, NodeJS.Timeout>();
 
 type CreateOrAttachResult = {
 	wasRecovered: boolean;
@@ -88,6 +94,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Track alternate screen mode ourselves (xterm.buffer.active.type is unreliable after HMR/recovery)
 	// Updated from: snapshot.modes.alternateScreen on restore, escape sequences in stream
 	const isAlternateScreenRef = useRef(false);
+	// Track bracketed paste mode so large pastes can preserve a single bracketed-paste envelope.
+	const isBracketedPasteRef = useRef(false);
+	// Track mode toggles across chunk boundaries (escape sequences can span stream frames).
+	const modeScanBufferRef = useRef("");
 
 	// Refs avoid effect re-runs when these values change
 	const isFocusedRef = useRef(isFocused);
@@ -102,6 +112,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
+
+	// Use ref for workspaceCwd to avoid terminal recreation when query loads
+	// (changing from undefined→string triggers useEffect, causing xterm errors)
+	const workspaceCwdRef = useRef(workspaceCwd);
+	workspaceCwdRef.current = workspaceCwd;
 
 	// Query terminal link behavior setting
 	const { data: terminalLinkBehavior } =
@@ -238,6 +253,36 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}, 100),
 	);
 
+	const updateModesFromData = useCallback((data: string) => {
+		// Escape sequences can be split across streamed frames, so scan using a small carry buffer.
+		const combined = modeScanBufferRef.current + data;
+
+		const enterAltIndex = Math.max(
+			combined.lastIndexOf("\x1b[?1049h"),
+			combined.lastIndexOf("\x1b[?47h"),
+		);
+		const exitAltIndex = Math.max(
+			combined.lastIndexOf("\x1b[?1049l"),
+			combined.lastIndexOf("\x1b[?47l"),
+		);
+		if (enterAltIndex !== -1 || exitAltIndex !== -1) {
+			isAlternateScreenRef.current = enterAltIndex > exitAltIndex;
+		}
+
+		const enableBracketedIndex = combined.lastIndexOf("\x1b[?2004h");
+		const disableBracketedIndex = combined.lastIndexOf("\x1b[?2004l");
+		if (enableBracketedIndex !== -1 || disableBracketedIndex !== -1) {
+			isBracketedPasteRef.current =
+				enableBracketedIndex > disableBracketedIndex;
+		}
+
+		// Keep a small tail in case the next chunk starts mid-sequence.
+		modeScanBufferRef.current = combined.slice(-32);
+	}, []);
+
+	const updateModesFromDataRef = useRef(updateModesFromData);
+	updateModesFromDataRef.current = updateModesFromData;
+
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
 		if (!xterm) return;
@@ -250,20 +295,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		for (const event of events) {
 			if (event.type === "data") {
-				// Track alternate screen mode from queued events too
-				// (escape sequences sent before stream was ready)
-				if (
-					event.data.includes("\x1b[?1049h") ||
-					event.data.includes("\x1b[?47h")
-				) {
-					isAlternateScreenRef.current = true;
-				}
-				if (
-					event.data.includes("\x1b[?1049l") ||
-					event.data.includes("\x1b[?47l")
-				) {
-					isAlternateScreenRef.current = false;
-				}
+				updateModesFromDataRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
@@ -281,8 +313,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					: event.error;
 				console.warn("[Terminal] stream error:", message);
 
-				// Don't block interaction for non-fatal issues like a paste drop.
-				if (event.code === "WRITE_QUEUE_FULL") {
+				toast.error("Terminal error", {
+					description: message,
+				});
+
+				// Don't block interaction for non-fatal issues like a paste drop or a
+				// transient write failure (we keep the session alive).
+				if (
+					event.code === "WRITE_QUEUE_FULL" ||
+					event.code === "WRITE_FAILED"
+				) {
 					xterm.writeln(`\r\n[Terminal] ${message}`);
 				} else {
 					setConnectionError(message);
@@ -308,6 +348,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Track alternate screen mode from snapshot for our own reference
 			// (xterm.buffer.active.type is unreliable after HMR/recovery)
 			isAlternateScreenRef.current = !!result.snapshot?.modes.alternateScreen;
+			isBracketedPasteRef.current = !!result.snapshot?.modes.bracketedPaste;
+			modeScanBufferRef.current = "";
 
 			// Also parse scrollback for escape sequences in case snapshot.modes is incomplete
 			// This handles cases where the daemon didn't track the mode but the sequences are in history
@@ -321,6 +363,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				// If we see enter without exit, we're likely in alternate screen
 				if (hasEnterAlt && !hasExitAlt) {
 					isAlternateScreenRef.current = true;
+				}
+
+				// Bracketed paste mode can toggle during a session - use the last seen state.
+				const bracketEnableIndex = result.scrollback.lastIndexOf("\x1b[?2004h");
+				const bracketDisableIndex =
+					result.scrollback.lastIndexOf("\x1b[?2004l");
+				if (bracketEnableIndex !== -1 || bracketDisableIndex !== -1) {
+					isBracketedPasteRef.current =
+						bracketEnableIndex > bracketDisableIndex;
 				}
 			}
 
@@ -442,20 +493,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 
 		if (event.type === "data") {
-			// Track alternate screen mode changes from escape sequences
-			// Check for both modern (1049) and legacy (47) alternate screen sequences
-			if (
-				event.data.includes("\x1b[?1049h") ||
-				event.data.includes("\x1b[?47h")
-			) {
-				isAlternateScreenRef.current = true;
-			}
-			if (
-				event.data.includes("\x1b[?1049l") ||
-				event.data.includes("\x1b[?47l")
-			) {
-				isAlternateScreenRef.current = false;
-			}
+			updateModesFromDataRef.current(event.data);
 			xtermRef.current.write(event.data);
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
@@ -474,7 +512,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				: event.error;
 			console.warn("[Terminal] stream error:", message);
 
-			if (event.code === "WRITE_QUEUE_FULL") {
+			toast.error("Terminal error", {
+				description: message,
+			});
+
+			if (event.code === "WRITE_QUEUE_FULL" || event.code === "WRITE_FAILED") {
 				xtermRef.current.writeln(`\r\n[Terminal] ${message}`);
 			} else {
 				setConnectionError(message);
@@ -520,6 +562,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const container = terminalRef.current;
 		if (!container) return;
 
+		// Cancel any pending detach from a previous unmount (e.g., React StrictMode's
+		// simulated unmount/remount cycle). This prevents the detach from corrupting
+		// the terminal state when we're immediately remounting.
+		const pendingDetach = pendingDetaches.get(paneId);
+		if (pendingDetach) {
+			clearTimeout(pendingDetach);
+			pendingDetaches.delete(paneId);
+		}
+
 		let isUnmounted = false;
 
 		const {
@@ -528,7 +579,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			renderer,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, {
-			cwd: workspaceCwd,
+			cwd: workspaceCwdRef.current,
 			initialTheme: initialThemeRef.current,
 			onFileLinkClick: (path, line, column) =>
 				handleFileLinkClickRef.current(path, line, column),
@@ -581,6 +632,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
 			isAlternateScreenRef.current = false; // Reset for new shell
+			isBracketedPasteRef.current = false;
+			modeScanBufferRef.current = "";
 			xterm.clear();
 			createOrAttachRef.current(
 				{
@@ -725,6 +778,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			onPaste: (text) => {
 				commandBufferRef.current += text;
 			},
+			onWrite: handleWrite,
+			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 
 		return () => {
@@ -743,26 +798,39 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId });
+
+			// Debounce detach to handle React StrictMode's unmount/remount cycle.
+			// If the component remounts quickly (as in StrictMode), the new mount will
+			// cancel this timeout, preventing the detach from corrupting terminal state.
+			const detachTimeout = setTimeout(() => {
+				detachRef.current({ paneId });
+				pendingDetaches.delete(paneId);
+			}, 50);
+			pendingDetaches.set(paneId, detachTimeout);
+
 			isStreamReadyRef.current = false;
 			didFirstRenderRef.current = false;
 			pendingInitialStateRef.current = null;
 			isAlternateScreenRef.current = false;
+			isBracketedPasteRef.current = false;
+			modeScanBufferRef.current = "";
 			renderDisposableRef.current?.dispose();
 			renderDisposableRef.current = null;
-			xterm.dispose();
+
+			// Delay xterm.dispose() to let internal timeouts complete.
+			// xterm.open() schedules a setTimeout for Viewport.syncScrollArea.
+			// If we dispose synchronously, that timeout fires after _renderer is
+			// cleared, causing "Cannot read properties of undefined (reading 'dimensions')".
+			// Using setTimeout(0) ensures our dispose runs after xterm's internal callback.
+			setTimeout(() => {
+				xterm.dispose();
+			}, 0);
+
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 			rendererRef.current = null;
 		};
-	}, [
-		paneId,
-		workspaceId,
-		workspaceCwd,
-		flushPendingEvents,
-		maybeApplyInitialState,
-	]);
+	}, [paneId, workspaceId, flushPendingEvents, maybeApplyInitialState]);
 
 	useEffect(() => {
 		const xterm = xtermRef.current;

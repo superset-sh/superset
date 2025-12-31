@@ -109,6 +109,7 @@ export default defineConfig({
 				input: {
 					index: resolve("src/main/index.ts"),
 					"terminal-host": resolve("src/main/terminal-host/index.ts"),
+					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

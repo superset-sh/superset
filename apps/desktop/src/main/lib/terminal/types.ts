@@ -1,6 +1,7 @@
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
 import type { HistoryWriter } from "../terminal-history";
+import type { PtyWriteQueue } from "./pty-write-queue";
 
 export interface TerminalSession {
 	pty: pty.IPty;
@@ -16,6 +17,8 @@ export interface TerminalSession {
 	wasRecovered: boolean;
 	historyWriter?: HistoryWriter;
 	dataBatcher: DataBatcher;
+	/** Queued writer to prevent blocking on large writes */
+	writeQueue: PtyWriteQueue;
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;

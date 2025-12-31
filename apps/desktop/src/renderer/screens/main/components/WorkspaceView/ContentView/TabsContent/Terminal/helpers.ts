@@ -139,17 +139,35 @@ export function createTerminalInstance(
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
+	// Track cleanup state to prevent operations on disposed terminal
+	let isDisposed = false;
+	let renderer: { dispose: () => void } | null = null;
+	let rafId: number | null = null;
+
 	xterm.open(container);
 
+	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
-	const renderer = loadRenderer(xterm);
-
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
+	// Defer GPU renderer loading to next animation frame.
+	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
+	// the renderer to be ready. Loading WebGL/Canvas immediately after open() can
+	// cause a race condition where the setTimeout fires during addon initialization,
+	// when _renderer is temporarily undefined (old renderer disposed, new not yet set).
+	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
+	// default DOM renderer, then we safely swap to WebGL/Canvas.
+	rafId = requestAnimationFrame(() => {
+		rafId = null;
+		if (isDisposed) return;
+		renderer = loadRenderer(xterm);
+	});
+
 	import("@xterm/addon-ligatures")
 		.then(({ LigaturesAddon }) => {
+			if (isDisposed) return;
 			try {
 				xterm.loadAddon(new LigaturesAddon());
 			} catch {
@@ -201,8 +219,12 @@ export function createTerminalInstance(
 		fitAddon,
 		renderer,
 		cleanup: () => {
+			isDisposed = true;
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+			}
 			cleanupQuerySuppression();
-			renderer.dispose();
+			renderer?.dispose();
 		},
 	};
 }
@@ -217,6 +239,10 @@ export interface KeyboardHandlerOptions {
 export interface PasteHandlerOptions {
 	/** Callback when text is pasted, receives the pasted text */
 	onPaste?: (text: string) => void;
+	/** Optional direct write callback to bypass xterm's paste burst */
+	onWrite?: (data: string) => void;
+	/** Whether bracketed paste mode is enabled for the current terminal */
+	isBracketedPasteEnabled?: () => boolean;
 }
 
 /**
@@ -240,6 +266,8 @@ export function setupPasteHandler(
 	const textarea = xterm.textarea;
 	if (!textarea) return () => {};
 
+	let cancelActivePaste: (() => void) | null = null;
+
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain");
 		if (!text) return;
@@ -248,12 +276,100 @@ export function setupPasteHandler(
 		event.stopImmediatePropagation();
 
 		options.onPaste?.(text);
-		xterm.paste(text);
+
+		// Cancel any in-flight chunked paste to avoid overlapping writes.
+		cancelActivePaste?.();
+		cancelActivePaste = null;
+
+		// Chunk large pastes to avoid sending a single massive input burst that can
+		// overwhelm the PTY pipeline (especially when the app is repainting heavily).
+		const MAX_SYNC_PASTE_CHARS = 16_384;
+
+		// If no direct write callback is provided, fall back to xterm's paste()
+		// (it handles newline normalization and bracketed paste mode internally).
+		if (!options.onWrite) {
+			const CHUNK_CHARS = 4096;
+			const CHUNK_DELAY_MS = 5;
+
+			if (text.length <= MAX_SYNC_PASTE_CHARS) {
+				xterm.paste(text);
+				return;
+			}
+
+			let cancelled = false;
+			let offset = 0;
+
+			const pasteNext = () => {
+				if (cancelled) return;
+
+				const chunk = text.slice(offset, offset + CHUNK_CHARS);
+				offset += CHUNK_CHARS;
+				xterm.paste(chunk);
+
+				if (offset < text.length) {
+					setTimeout(pasteNext, CHUNK_DELAY_MS);
+				}
+			};
+
+			cancelActivePaste = () => {
+				cancelled = true;
+			};
+
+			pasteNext();
+			return;
+		}
+
+		// Direct write path: replicate xterm's paste normalization, but stream in
+		// controlled chunks while preserving bracketed-paste semantics.
+		const preparedText = text.replace(/\r?\n/g, "\r");
+		const bracketedPasteEnabled = options.isBracketedPasteEnabled?.() ?? false;
+		const shouldBracket = bracketedPasteEnabled;
+
+		// For small/medium pastes, preserve the fast path and avoid timers.
+		if (preparedText.length <= MAX_SYNC_PASTE_CHARS) {
+			options.onWrite(
+				shouldBracket ? `\x1b[200~${preparedText}\x1b[201~` : preparedText,
+			);
+			return;
+		}
+
+		let cancelled = false;
+		let offset = 0;
+		const CHUNK_CHARS = 16_384;
+		const CHUNK_DELAY_MS = 0;
+
+		const pasteNext = () => {
+			if (cancelled) return;
+
+			const chunk = preparedText.slice(offset, offset + CHUNK_CHARS);
+			offset += CHUNK_CHARS;
+
+			if (shouldBracket) {
+				// Wrap each chunk to avoid long-running "open" bracketed paste blocks,
+				// which some TUIs may defer repainting until the closing sequence arrives.
+				options.onWrite?.(`\x1b[200~${chunk}\x1b[201~`);
+			} else {
+				options.onWrite?.(chunk);
+			}
+
+			if (offset < preparedText.length) {
+				setTimeout(pasteNext, CHUNK_DELAY_MS);
+				return;
+			}
+		};
+
+		cancelActivePaste = () => {
+			cancelled = true;
+		};
+
+		pasteNext();
 	};
 
 	textarea.addEventListener("paste", handlePaste, { capture: true });
 
 	return () => {
+		cancelActivePaste?.();
+		cancelActivePaste = null;
 		textarea.removeEventListener("paste", handlePaste, { capture: true });
 	};
 }
