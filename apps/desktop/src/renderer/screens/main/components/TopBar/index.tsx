@@ -1,7 +1,7 @@
 import type { NavigationStyle } from "@superset/local-db";
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
-import { SidebarControl } from "./SidebarControl";
+import { SidebarControl } from "../SidebarControl";
 import { WindowControls } from "./WindowControls";
 import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 import { WorkspacesTabs } from "./WorkspaceTabs";
@@ -25,7 +25,7 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 				}}
 			>
 				{isSidebarMode && <WorkspaceSidebarControl />}
-				<SidebarControl />
+				{!isSidebarMode && <SidebarControl />}
 			</div>
 
 			{isSidebarMode ? (
