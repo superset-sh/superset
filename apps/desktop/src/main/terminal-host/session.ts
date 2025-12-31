@@ -86,6 +86,7 @@ export class Session {
 	private disposed = false;
 	private subprocessDecoder: PtySubprocessFrameDecoder | null = null;
 	private subprocessStdinQueue: Buffer[] = [];
+	private subprocessStdinQueuedBytes = 0;
 	private subprocessStdinDrainArmed = false;
 
 	private emulatorWriteQueue: string[] = [];

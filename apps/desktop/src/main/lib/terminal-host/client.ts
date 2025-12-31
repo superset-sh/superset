@@ -152,6 +152,7 @@ export class TerminalHostClient extends EventEmitter {
 	private connectionState = ConnectionState.DISCONNECTED;
 	private disposed = false;
 	private notifyQueue: string[] = [];
+	private notifyQueueBytes = 0;
 	private notifyDrainArmed = false;
 
 	// ===========================================================================
