@@ -84,6 +84,8 @@ export function getActiveTerminalManager():
  * Shutdown any orphaned daemon process.
  * Should be called on app startup when daemon mode is disabled to clean up
  * any daemon left running from a previous session with persistence enabled.
+ *
+ * Uses shutdownIfRunning() to avoid spawning a new daemon just to shut it down.
  */
 export async function shutdownOrphanedDaemon(): Promise<void> {
 	if (isDaemonModeEnabled()) {
@@ -93,13 +95,21 @@ export async function shutdownOrphanedDaemon(): Promise<void> {
 
 	try {
 		const client = getTerminalHostClient();
-		// Try to connect and shutdown - if no daemon is running, this will fail
-		// which is fine (nothing to clean up)
-		await client.shutdown({ killSessions: true });
-		console.log("[TerminalManager] Shutdown orphaned daemon successfully");
-	} catch {
-		// No daemon running or failed to connect - this is expected
-		console.log("[TerminalManager] No orphaned daemon to shutdown");
+		// Use shutdownIfRunning to avoid spawning a daemon if none exists
+		const { wasRunning } = await client.shutdownIfRunning({
+			killSessions: true,
+		});
+		if (wasRunning) {
+			console.log("[TerminalManager] Shutdown orphaned daemon successfully");
+		} else {
+			console.log("[TerminalManager] No orphaned daemon to shutdown");
+		}
+	} catch (error) {
+		// Unexpected error during shutdown attempt
+		console.warn(
+			"[TerminalManager] Error during orphan daemon cleanup:",
+			error,
+		);
 	} finally {
 		// Always dispose the client to clean up any partial state
 		disposeTerminalHostClient();
