@@ -162,6 +162,9 @@ throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid task state transiti
 
 // INTERNAL_SERVER_ERROR - Unexpected failures (use sparingly, prefer specific codes)
 throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to process task" });
+
+// NOT_IMPLEMENTED - Feature exists but isn't ready yet
+throw new TRPCError({ code: "NOT_IMPLEMENTED", message: "Feature not yet implemented" });
 ```
 
 **Pattern for external service failures:**
