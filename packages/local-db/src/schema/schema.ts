@@ -5,6 +5,7 @@ import type {
 	ExternalApp,
 	GitHubStatus,
 	GitStatus,
+	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
 } from "./zod";
@@ -127,6 +128,9 @@ export const settings = sqliteTable("settings", {
 	selectedRingtoneId: text("selected_ringtone_id"),
 	activeOrganizationId: text("active_organization_id"),
 	confirmOnQuit: integer("confirm_on_quit", { mode: "boolean" }),
+	terminalLinkBehavior: text(
+		"terminal_link_behavior",
+	).$type<TerminalLinkBehavior>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

@@ -96,3 +96,13 @@ export const EXTERNAL_APPS = [
 ] as const;
 
 export type ExternalApp = (typeof EXTERNAL_APPS)[number];
+
+/**
+ * Terminal link behavior options
+ */
+export const TERMINAL_LINK_BEHAVIORS = [
+	"external-editor",
+	"file-viewer",
+] as const;
+
+export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];

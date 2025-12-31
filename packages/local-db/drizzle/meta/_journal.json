@@ -29,6 +29,13 @@
       "when": 1766932805546,
       "tag": "0003_add_confirm_on_quit_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1767166138761,
+      "tag": "0004_add_terminal_link_behavior_setting",
+      "breakpoints": true
     }
   ]
 }
