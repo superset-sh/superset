@@ -119,13 +119,21 @@ export interface CreateTerminalOptions {
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
 }
 
+/**
+ * Mutable reference to the terminal renderer.
+ * Used because the GPU renderer is loaded asynchronously after the terminal is created.
+ */
+export interface TerminalRendererRef {
+	current: TerminalRenderer;
+}
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
 	options: CreateTerminalOptions = {},
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	renderer: TerminalRenderer;
+	renderer: TerminalRendererRef;
 	cleanup: () => void;
 } {
 	const { cwd, initialTheme, onFileLinkClick } = options;
@@ -142,8 +150,17 @@ export function createTerminalInstance(
 
 	// Track cleanup state to prevent operations on disposed terminal
 	let isDisposed = false;
-	let renderer: { dispose: () => void } | null = null;
 	let rafId: number | null = null;
+
+	// Use a ref pattern so the renderer can be updated after rAF.
+	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
+	const rendererRef: TerminalRendererRef = {
+		current: {
+			kind: "dom",
+			dispose: () => {},
+			clearTextureAtlas: undefined,
+		},
+	};
 
 	xterm.open(container);
 
@@ -163,7 +180,7 @@ export function createTerminalInstance(
 	rafId = requestAnimationFrame(() => {
 		rafId = null;
 		if (isDisposed) return;
-		renderer = loadRenderer(xterm);
+		rendererRef.current = loadRenderer(xterm);
 	});
 
 	import("@xterm/addon-ligatures")
@@ -224,14 +241,14 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
-		renderer,
+		renderer: rendererRef,
 		cleanup: () => {
 			isDisposed = true;
 			if (rafId !== null) {
 				cancelAnimationFrame(rafId);
 			}
 			cleanupQuerySuppression();
-			renderer?.dispose();
+			rendererRef.current.dispose();
 		},
 	};
 }
