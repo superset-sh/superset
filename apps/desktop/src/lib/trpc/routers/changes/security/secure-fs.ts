@@ -1,27 +1,23 @@
 import type { Stats } from "node:fs";
 import { lstat, readFile, rm, stat, writeFile } from "node:fs/promises";
-import { assertRegisteredWorktree, resolveSecurePath } from "./path-validation";
+import {
+	assertRegisteredWorktree,
+	resolvePathInWorktree,
+} from "./path-validation";
 
 /**
- * Secure filesystem operations that enforce validation.
+ * Secure filesystem operations with built-in validation.
  *
- * Design principle: You cannot perform filesystem operations without
- * going through validation. The validation is built into each operation.
+ * Each operation:
+ * 1. Validates worktree is registered (security boundary)
+ * 2. Validates path doesn't escape worktree (defense in depth)
+ * 3. Performs the filesystem operation
  *
- * All operations:
- * 1. Validate worktree is registered in database
- * 2. Validate path doesn't escape worktree
- * 3. Check for symlink escapes (configurable)
- *
- * Use Biome's restricted-imports rule to ban direct `node:fs` imports
- * in router files - this module should be the only FS access point.
+ * See path-validation.ts for the full security model and threat assumptions.
  */
 export const secureFs = {
 	/**
 	 * Read a file within a worktree.
-	 *
-	 * Validates path and checks for symlink escapes to prevent
-	 * reading files outside the worktree via symlinks.
 	 */
 	async readFile(
 		worktreePath: string,
@@ -29,33 +25,24 @@ export const secureFs = {
 		encoding: BufferEncoding = "utf-8",
 	): Promise<string> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-		});
+		const fullPath = resolvePathInWorktree(worktreePath, filePath);
 		return readFile(fullPath, encoding);
 	},
 
 	/**
 	 * Read a file as a Buffer within a worktree.
-	 *
-	 * Validates path and checks for symlink escapes.
 	 */
 	async readFileBuffer(
 		worktreePath: string,
 		filePath: string,
 	): Promise<Buffer> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-		});
+		const fullPath = resolvePathInWorktree(worktreePath, filePath);
 		return readFile(fullPath);
 	},
 
 	/**
 	 * Write content to a file within a worktree.
-	 *
-	 * Validates path and checks for symlink escapes to prevent
-	 * writing files outside the worktree via symlinks.
 	 */
 	async writeFile(
 		worktreePath: string,
@@ -63,9 +50,7 @@ export const secureFs = {
 		content: string,
 	): Promise<void> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-		});
+		const fullPath = resolvePathInWorktree(worktreePath, filePath);
 		await writeFile(fullPath, content, "utf-8");
 	},
 
@@ -73,14 +58,13 @@ export const secureFs = {
 	 * Delete a file or directory within a worktree.
 	 *
 	 * DANGEROUS: Uses recursive + force deletion.
-	 * Validates path and checks for symlink escapes.
 	 * Explicitly prevents deleting the worktree root.
 	 */
 	async delete(worktreePath: string, filePath: string): Promise<void> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-			allowRoot: false, // Explicitly prevent deleting worktree root
+		// allowRoot: false prevents deleting the worktree itself
+		const fullPath = resolvePathInWorktree(worktreePath, filePath, {
+			allowRoot: false,
 		});
 		await rm(fullPath, { recursive: true, force: true });
 	},
@@ -89,14 +73,10 @@ export const secureFs = {
 	 * Get file stats within a worktree.
 	 *
 	 * Uses `stat` (follows symlinks) to get the real file size.
-	 * This is important for size checks - lstat would return
-	 * the symlink size, not the target file size.
 	 */
 	async stat(worktreePath: string, filePath: string): Promise<Stats> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-		});
+		const fullPath = resolvePathInWorktree(worktreePath, filePath);
 		return stat(fullPath);
 	},
 
@@ -108,9 +88,7 @@ export const secureFs = {
 	 */
 	async lstat(worktreePath: string, filePath: string): Promise<Stats> {
 		assertRegisteredWorktree(worktreePath);
-		const fullPath = await resolveSecurePath(worktreePath, filePath, {
-			checkSymlinks: true,
-		});
+		const fullPath = resolvePathInWorktree(worktreePath, filePath);
 		return lstat(fullPath);
 	},
 
@@ -122,9 +100,7 @@ export const secureFs = {
 	async exists(worktreePath: string, filePath: string): Promise<boolean> {
 		try {
 			assertRegisteredWorktree(worktreePath);
-			const fullPath = await resolveSecurePath(worktreePath, filePath, {
-				checkSymlinks: true,
-			});
+			const fullPath = resolvePathInWorktree(worktreePath, filePath);
 			await stat(fullPath);
 			return true;
 		} catch {
