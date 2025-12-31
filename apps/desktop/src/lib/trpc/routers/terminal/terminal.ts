@@ -103,7 +103,16 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.write(input);
+				try {
+					terminalManager.write(input);
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Write failed";
+					terminalManager.emit(`error:${input.paneId}`, {
+						error: message,
+						code: "WRITE_FAILED",
+					});
+				}
 			}),
 
 		resize: publicProcedure
@@ -258,6 +267,7 @@ export const createTerminalRouter = () => {
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
 					| { type: "disconnect"; reason: string }
+					| { type: "error"; error: string; code?: string }
 				>((emit) => {
 					const onData = (data: string) => {
 						emit.next({ type: "data", data });
@@ -272,15 +282,25 @@ export const createTerminalRouter = () => {
 						emit.next({ type: "disconnect", reason });
 					};
 
+					const onError = (payload: { error: string; code?: string }) => {
+						emit.next({
+							type: "error",
+							error: payload.error,
+							code: payload.code,
+						});
+					};
+
 					terminalManager.on(`data:${paneId}`, onData);
 					terminalManager.on(`exit:${paneId}`, onExit);
 					terminalManager.on(`disconnect:${paneId}`, onDisconnect);
+					terminalManager.on(`error:${paneId}`, onError);
 
 					// Cleanup on unsubscribe
 					return () => {
 						terminalManager.off(`data:${paneId}`, onData);
 						terminalManager.off(`exit:${paneId}`, onExit);
 						terminalManager.off(`disconnect:${paneId}`, onDisconnect);
+						terminalManager.off(`error:${paneId}`, onError);
 					};
 				});
 			}),

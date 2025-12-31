@@ -30,6 +30,7 @@ import {
 	type DetachRequest,
 	type HelloRequest,
 	type HelloResponse,
+	type IpcEvent,
 	type IpcErrorResponse,
 	type IpcRequest,
 	type IpcSuccessResponse,
@@ -38,6 +39,7 @@ import {
 	PROTOCOL_VERSION,
 	type ResizeRequest,
 	type ShutdownRequest,
+	type TerminalErrorEvent,
 	type WriteRequest,
 } from "../lib/terminal-host/types";
 import { TerminalHost } from "./terminal-host";
@@ -244,8 +246,39 @@ const handlers: Record<string, RequestHandler> = {
 		}
 
 		const request = payload as WriteRequest;
-		const response = terminalHost.write(request);
-		sendSuccess(socket, id, response);
+
+		const isNotify = id.startsWith("notify_");
+
+		try {
+			const response = terminalHost.write(request);
+			// High-frequency write notifications don't need responses; suppress to avoid
+			// saturating the socket and dropping input under load.
+			if (!isNotify) {
+				sendSuccess(socket, id, response);
+			}
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Write failed";
+
+			if (isNotify) {
+				// Emit a session-scoped error event so the main process can surface it.
+				// (No response is sent for notify writes.)
+				const event: IpcEvent = {
+					type: "event",
+					event: "error",
+					sessionId: request.sessionId,
+					payload: {
+						type: "error",
+						error: message,
+						code: "WRITE_FAILED",
+					} satisfies TerminalErrorEvent,
+				};
+				socket.write(`${JSON.stringify(event)}\n`);
+				log("warn", `Write failed for ${request.sessionId}`, { error: message });
+				return;
+			}
+
+			sendError(socket, id, "WRITE_FAILED", message);
+		}
 	},
 
 	resize: (socket, id, payload, clientState) => {

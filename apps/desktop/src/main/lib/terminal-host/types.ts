@@ -284,7 +284,20 @@ export interface TerminalExitEvent {
 	signal?: number;
 }
 
-export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
+/**
+ * Terminal error event (e.g., write queue full, subprocess error)
+ */
+export interface TerminalErrorEvent {
+	type: "error";
+	error: string;
+	/** Error code for programmatic handling */
+	code?: "WRITE_QUEUE_FULL" | "SUBPROCESS_ERROR" | "WRITE_FAILED" | "UNKNOWN";
+}
+
+export type TerminalEvent =
+	| TerminalDataEvent
+	| TerminalExitEvent
+	| TerminalErrorEvent;
 
 // =============================================================================
 // Request/Response Type Map
