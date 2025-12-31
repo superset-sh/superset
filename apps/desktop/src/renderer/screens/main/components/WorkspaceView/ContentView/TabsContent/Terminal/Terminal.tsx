@@ -102,56 +102,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const isFocusedRef = useRef(isFocused);
 	isFocusedRef.current = isFocused;
 
-	// Some GPU renderers (notably xterm-webgl) can fail to repaint correctly after
-	// pane/tab switching until a resize happens. Schedule a lightweight redraw on focus.
-	const redrawRafRef = useRef<number | null>(null);
-	const scheduleRedraw = useCallback(() => {
-		if (redrawRafRef.current !== null) return;
-
-		let attempt = 0;
-		const MAX_REDRAW_ATTEMPTS = 5;
-
-		const tick = () => {
-			redrawRafRef.current = requestAnimationFrame(() => {
-				redrawRafRef.current = null;
-
-				const xterm = xtermRef.current;
-				if (!xterm) return;
-
-				// Avoid refreshing while the terminal is still hidden/laying out (e.g. tab switch),
-				// as WebGL renderers can glitch when asked to render into a 0×0 container.
-				const container = terminalRef.current;
-				const rect = container?.getBoundingClientRect();
-				if (
-					rect &&
-					(rect.width < 10 || rect.height < 10) &&
-					attempt < MAX_REDRAW_ATTEMPTS
-				) {
-					attempt += 1;
-					tick();
-					return;
-				}
-
-				const cols = xterm.cols;
-				const rows = xterm.rows;
-				if (cols <= 0 || rows <= 0) return;
-
-				xterm.refresh(0, rows - 1);
-			});
-		};
-
-		tick();
-	}, []);
-
-	useEffect(() => {
-		return () => {
-			if (redrawRafRef.current !== null) {
-				cancelAnimationFrame(redrawRafRef.current);
-				redrawRafRef.current = null;
-			}
-		};
-	}, []);
-
 	const paneInitialCommandsRef = useRef(paneInitialCommands);
 	const paneInitialCwdRef = useRef(paneInitialCwd);
 	const clearPaneInitialDataRef = useRef(clearPaneInitialData);
@@ -595,13 +545,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	useEffect(() => {
 		if (isFocused && xtermRef.current) {
 			xtermRef.current.focus();
-			scheduleRedraw();
-			void document.fonts?.ready.then(() => {
-				if (!isFocusedRef.current) return;
-				scheduleRedraw();
-			});
 		}
-	}, [isFocused, scheduleRedraw]);
+	}, [isFocused]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",
