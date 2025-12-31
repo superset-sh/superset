@@ -6,6 +6,7 @@ import {
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_NAVIGATION_STYLE,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -202,6 +203,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getNavigationStyle: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.navigationStyle ?? DEFAULT_NAVIGATION_STYLE;
+		}),
+
+		setNavigationStyle: publicProcedure
+			.input(z.object({ style: z.enum(["top-bar", "sidebar"]) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, navigationStyle: input.style })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { navigationStyle: input.style },
 					})
 					.run();
 

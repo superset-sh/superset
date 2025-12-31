@@ -2,6 +2,7 @@ import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import { DndProvider } from "react-dnd";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
@@ -19,6 +20,9 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import { DEFAULT_NAVIGATION_STYLE } from "shared/constants";
+import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -26,6 +30,7 @@ import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
+import { ResizableWorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 function LoadingSpinner() {
@@ -57,9 +62,15 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
+	const { toggleOpen: toggleWorkspaceSidebar } = useWorkspaceSidebarStore();
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
+
+	// Navigation style setting
+	const { data: navigationStyle } = trpc.settings.getNavigationStyle.useQuery();
+	const effectiveNavigationStyle = navigationStyle ?? DEFAULT_NAVIGATION_STYLE;
+	const isSidebarMode = effectiveNavigationStyle === "sidebar";
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,
@@ -110,6 +121,10 @@ export function MainScreen() {
 		undefined,
 		[toggleSidebar, isWorkspaceView],
 	);
+
+	useHotkeys(HOTKEYS.TOGGLE_WORKSPACE_SIDEBAR.keys, () => {
+		if (isSidebarMode) toggleWorkspaceSidebar();
+	}, [toggleWorkspaceSidebar, isSidebarMode]);
 
 	/**
 	 * Resolves the target pane for split operations.
@@ -336,8 +351,11 @@ export function MainScreen() {
 					<StartView />
 				) : (
 					<div className="flex flex-col h-full w-full">
-						<TopBar />
-						<div className="flex flex-1 overflow-hidden">{renderContent()}</div>
+						<TopBar navigationStyle={effectiveNavigationStyle} />
+						<div className="flex flex-1 overflow-hidden">
+							{isSidebarMode && <ResizableWorkspaceSidebar />}
+							{renderContent()}
+						</div>
 					</div>
 				)}
 			</AppFrame>

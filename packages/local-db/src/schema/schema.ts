@@ -113,6 +113,11 @@ export type InsertWorkspace = typeof workspaces.$inferInsert;
 export type SelectWorkspace = typeof workspaces.$inferSelect;
 
 /**
+ * Navigation style for workspace display
+ */
+export type NavigationStyle = "top-bar" | "sidebar";
+
+/**
  * Settings table - single row with typed columns
  */
 export const settings = sqliteTable("settings", {
@@ -131,6 +136,7 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	navigationStyle: text("navigation_style").$type<NavigationStyle>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

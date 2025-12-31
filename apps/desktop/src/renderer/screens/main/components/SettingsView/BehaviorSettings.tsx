@@ -10,33 +10,52 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { trpc } from "renderer/lib/trpc";
 
+type NavigationStyle = "top-bar" | "sidebar";
+
 export function BehaviorSettings() {
 	const utils = trpc.useUtils();
-	const { data: confirmOnQuit, isLoading } =
+
+	// Confirm on quit setting
+	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
 		trpc.settings.getConfirmOnQuit.useQuery();
 	const setConfirmOnQuit = trpc.settings.setConfirmOnQuit.useMutation({
 		onMutate: async ({ enabled }) => {
-			// Cancel outgoing fetches
 			await utils.settings.getConfirmOnQuit.cancel();
-			// Snapshot previous value
 			const previous = utils.settings.getConfirmOnQuit.getData();
-			// Optimistically update
 			utils.settings.getConfirmOnQuit.setData(undefined, enabled);
 			return { previous };
 		},
 		onError: (_err, _vars, context) => {
-			// Rollback on error
 			if (context?.previous !== undefined) {
 				utils.settings.getConfirmOnQuit.setData(undefined, context.previous);
 			}
 		},
 		onSettled: () => {
-			// Refetch to ensure sync with server
 			utils.settings.getConfirmOnQuit.invalidate();
 		},
 	});
 
-	const handleToggle = (enabled: boolean) => {
+	// Navigation style setting
+	const { data: navigationStyle, isLoading: isNavLoading } =
+		trpc.settings.getNavigationStyle.useQuery();
+	const setNavigationStyle = trpc.settings.setNavigationStyle.useMutation({
+		onMutate: async ({ style }) => {
+			await utils.settings.getNavigationStyle.cancel();
+			const previous = utils.settings.getNavigationStyle.getData();
+			utils.settings.getNavigationStyle.setData(undefined, style);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getNavigationStyle.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getNavigationStyle.invalidate();
+		},
+	});
+
+	const handleConfirmToggle = (enabled: boolean) => {
 		setConfirmOnQuit.mutate({ enabled });
 	};
 
@@ -71,6 +90,10 @@ export function BehaviorSettings() {
 		});
 	};
 
+	const handleNavigationStyleChange = (style: NavigationStyle) => {
+		setNavigationStyle.mutate({ style });
+	};
+
 	return (
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8">
@@ -81,6 +104,32 @@ export function BehaviorSettings() {
 			</div>
 
 			<div className="space-y-6">
+				{/* Navigation Style */}
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label htmlFor="navigation-style" className="text-sm font-medium">
+							Navigation style
+						</Label>
+						<p className="text-xs text-muted-foreground">
+							Choose how workspaces are displayed
+						</p>
+					</div>
+					<Select
+						value={navigationStyle ?? "top-bar"}
+						onValueChange={handleNavigationStyleChange}
+						disabled={isNavLoading || setNavigationStyle.isPending}
+					>
+						<SelectTrigger id="navigation-style" className="w-[140px]">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="top-bar">Top bar</SelectItem>
+							<SelectItem value="sidebar">Sidebar</SelectItem>
+						</SelectContent>
+					</Select>
+				</div>
+
+				{/* Confirm on Quit */}
 				<div className="flex items-center justify-between">
 					<div className="space-y-0.5">
 						<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
@@ -93,8 +142,8 @@ export function BehaviorSettings() {
 					<Switch
 						id="confirm-on-quit"
 						checked={confirmOnQuit ?? true}
-						onCheckedChange={handleToggle}
-						disabled={isLoading || setConfirmOnQuit.isPending}
+						onCheckedChange={handleConfirmToggle}
+						disabled={isConfirmLoading || setConfirmOnQuit.isPending}
 					/>
 				</div>
 

@@ -423,7 +423,12 @@ export const HOTKEYS = {
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({
 		keys: "meta+b",
-		label: "Toggle Sidebar",
+		label: "Toggle Files Sidebar",
+		category: "Layout",
+	}),
+	TOGGLE_WORKSPACE_SIDEBAR: hotkey({
+		keys: "meta+shift+b",
+		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	}),
 	SPLIT_RIGHT: defineHotkey({
