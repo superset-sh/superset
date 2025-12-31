@@ -245,6 +245,44 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	/**
+	 * Try to connect and authenticate to an existing daemon without spawning.
+	 * Returns true if successfully connected and authenticated, false if no daemon running.
+	 * This is useful for cleanup operations that should only act on existing daemons.
+	 */
+	async tryConnectAndAuthenticate(): Promise<boolean> {
+		// Already connected and authenticated
+		if (
+			this.connectionState === ConnectionState.CONNECTED &&
+			this.socket &&
+			this.authenticated
+		) {
+			return true;
+		}
+
+		// Don't interfere with an in-progress connection
+		if (this.connectionState === ConnectionState.CONNECTING) {
+			return false;
+		}
+
+		this.connectionState = ConnectionState.CONNECTING;
+
+		try {
+			const connected = await this.tryConnect();
+			if (!connected) {
+				this.connectionState = ConnectionState.DISCONNECTED;
+				return false;
+			}
+
+			await this.authenticate();
+			this.connectionState = ConnectionState.CONNECTED;
+			return true;
+		} catch {
+			this.connectionState = ConnectionState.DISCONNECTED;
+			return false;
+		}
+	}
+
+	/**
 	 * Try to connect to the daemon socket.
 	 * Returns true if connected, false if daemon not running.
 	 */
@@ -816,6 +854,27 @@ export class TerminalHostClient extends EventEmitter {
 		// Disconnect after shutdown request is sent
 		this.disconnect();
 		return response;
+	}
+
+	/**
+	 * Shutdown the daemon if it's currently running, without spawning a new one.
+	 * Returns true if daemon was running and shutdown was sent, false if no daemon was running.
+	 * This is useful for cleanup operations that should only affect existing daemons.
+	 */
+	async shutdownIfRunning(
+		request: ShutdownRequest = {},
+	): Promise<{ wasRunning: boolean }> {
+		const connected = await this.tryConnectAndAuthenticate();
+		if (!connected) {
+			return { wasRunning: false };
+		}
+
+		try {
+			await this.sendRequest("shutdown", request);
+		} finally {
+			this.disconnect();
+		}
+		return { wasRunning: true };
 	}
 
 	/**
