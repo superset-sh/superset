@@ -54,6 +54,9 @@ export function WorkspaceItem({
 	const closeSettings = useCloseSettings();
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
+	const clearWorkspaceAttention = useTabsStore(
+		(s) => s.clearWorkspaceAttention,
+	);
 	const rename = useWorkspaceRename(id, title);
 
 	// Shared delete logic
@@ -119,6 +122,7 @@ export function WorkspaceItem({
 							if (!rename.isRenaming) {
 								closeSettings();
 								setActive.mutate({ id });
+								clearWorkspaceAttention(id);
 							}
 						}}
 						onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}

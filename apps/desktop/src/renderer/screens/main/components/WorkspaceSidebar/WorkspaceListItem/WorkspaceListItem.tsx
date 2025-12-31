@@ -72,6 +72,9 @@ export function WorkspaceListItem({
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const markWorkspaceAsUnread = useTabsStore((s) => s.markWorkspaceAsUnread);
+	const clearWorkspaceAttention = useTabsStore(
+		(s) => s.clearWorkspaceAttention,
+	);
 	const openInFinder = trpc.external.openInFinder.useMutation();
 
 	// Shared delete logic
@@ -99,6 +102,7 @@ export function WorkspaceListItem({
 	const handleClick = () => {
 		if (!rename.isRenaming) {
 			setActiveWorkspace.mutate({ id });
+			clearWorkspaceAttention(id);
 		}
 	};
 

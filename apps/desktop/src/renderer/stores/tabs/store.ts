@@ -570,6 +570,33 @@ export const useTabsStore = create<TabsStore>()(
 					set({ panes: newPanes });
 				},
 
+				clearWorkspaceAttention: (workspaceId) => {
+					const state = get();
+					const workspaceTabs = state.tabs.filter(
+						(t) => t.workspaceId === workspaceId,
+					);
+					const workspacePaneIds = workspaceTabs.flatMap((t) =>
+						extractPaneIdsFromLayout(t.layout),
+					);
+
+					if (workspacePaneIds.length === 0) {
+						return;
+					}
+
+					const newPanes = { ...state.panes };
+					let hasChanges = false;
+					for (const paneId of workspacePaneIds) {
+						if (newPanes[paneId]?.needsAttention) {
+							newPanes[paneId] = { ...newPanes[paneId], needsAttention: false };
+							hasChanges = true;
+						}
+					}
+
+					if (hasChanges) {
+						set({ panes: newPanes });
+					}
+				},
+
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => ({
 						panes: {
