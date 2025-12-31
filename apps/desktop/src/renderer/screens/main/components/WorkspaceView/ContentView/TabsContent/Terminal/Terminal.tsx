@@ -2,7 +2,6 @@ import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
-import { toast } from "@superset/ui/sonner";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -121,7 +120,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 			xterm.refresh(0, rows - 1);
 		});
-	}, [paneId]);
+	}, []);
 
 	useEffect(() => {
 		return () => {

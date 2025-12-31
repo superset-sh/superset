@@ -8,9 +8,9 @@
  * to avoid JSON escaping overhead on escape-sequence-heavy PTY output.
  */
 
-import * as pty from "node-pty";
-import type { IPty } from "node-pty";
 import { write as fsWrite } from "node:fs";
+import type { IPty } from "node-pty";
+import * as pty from "node-pty";
 import {
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
@@ -63,8 +63,7 @@ const MAX_OUTPUT_BATCH_SIZE_BYTES = 128 * 1024; // 128KB max per flush
 let stdoutDraining = true;
 let ptyPaused = false;
 
-const DEBUG_OUTPUT_BATCHING =
-	process.env.SUPERSET_PTY_SUBPROCESS_DEBUG === "1";
+const DEBUG_OUTPUT_BATCHING = process.env.SUPERSET_PTY_SUBPROCESS_DEBUG === "1";
 
 // =============================================================================
 // Helpers
@@ -188,7 +187,10 @@ function flush(): void {
 						writeBackoffMs === 0
 							? MIN_WRITE_BACKOFF_MS
 							: Math.min(writeBackoffMs * 2, MAX_WRITE_BACKOFF_MS);
-					if (DEBUG_OUTPUT_BATCHING && writeBackoffMs === MIN_WRITE_BACKOFF_MS) {
+					if (
+						DEBUG_OUTPUT_BATCHING &&
+						writeBackoffMs === MIN_WRITE_BACKOFF_MS
+					) {
 						console.error("[pty-subprocess] PTY input backpressured (EAGAIN)");
 					}
 					setTimeout(flush, writeBackoffMs);
@@ -227,7 +229,7 @@ function flush(): void {
 
 	// Fallback: node-pty's write() is synchronous and can block.
 	// This path should rarely be used on macOS, but keep it for safety.
-	let chunk = writeQueue.shift();
+	const chunk = writeQueue.shift();
 	if (!chunk) {
 		flushing = false;
 		return;

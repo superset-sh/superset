@@ -97,15 +97,6 @@ export class DaemonTerminalManager extends EventEmitter {
 			},
 		);
 
-		// Forward terminal-specific error events (e.g., write queue full)
-		this.client.on(
-			"terminalError",
-			(sessionId: string, error: string, code?: string) => {
-				const paneId = sessionId;
-				this.emit(`error:${paneId}`, { error, code });
-			},
-		);
-
 		// Handle client disconnection - notify all active sessions
 		this.client.on("disconnected", () => {
 			console.warn("[DaemonTerminalManager] Disconnected from daemon");

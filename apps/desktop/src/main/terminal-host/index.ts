@@ -30,8 +30,8 @@ import {
 	type DetachRequest,
 	type HelloRequest,
 	type HelloResponse,
-	type IpcEvent,
 	type IpcErrorResponse,
+	type IpcEvent,
 	type IpcRequest,
 	type IpcSuccessResponse,
 	type KillAllRequest,
@@ -273,7 +273,9 @@ const handlers: Record<string, RequestHandler> = {
 					} satisfies TerminalErrorEvent,
 				};
 				socket.write(`${JSON.stringify(event)}\n`);
-				log("warn", `Write failed for ${request.sessionId}`, { error: message });
+				log("warn", `Write failed for ${request.sessionId}`, {
+					error: message,
+				});
 				return;
 			}
 

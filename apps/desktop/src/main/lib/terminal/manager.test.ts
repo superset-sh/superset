@@ -165,6 +165,9 @@ describe("TerminalManager", () => {
 				data: "ls -la\n",
 			});
 
+			// Wait for PtyWriteQueue async flush (uses setTimeout internally)
+			await new Promise((resolve) => setTimeout(resolve, 20));
+
 			expect(mockPty.write).toHaveBeenCalledWith("ls -la\n");
 		});
 

@@ -8,9 +8,9 @@
  * - Output capture to disk
  */
 
-import * as path from "node:path";
+import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
-import { spawn, type ChildProcess } from "node:child_process";
+import * as path from "node:path";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
@@ -22,10 +22,20 @@ import type {
 	TerminalSnapshot,
 } from "../lib/terminal-host/types";
 import {
+	createFrameHeader,
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
-	createFrameHeader,
 } from "./pty-subprocess-ipc";
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Timeout for flushing emulator writes during attach.
+ * Prevents indefinite hang when continuous output (e.g., tail -f) keeps the queue non-empty.
+ */
+const ATTACH_FLUSH_TIMEOUT_MS = 500;
 
 // =============================================================================
 // Types
@@ -76,7 +86,6 @@ export class Session {
 	private disposed = false;
 	private subprocessDecoder: PtySubprocessFrameDecoder | null = null;
 	private subprocessStdinQueue: Buffer[] = [];
-	private subprocessStdinQueuedBytes = 0;
 	private subprocessStdinDrainArmed = false;
 
 	private emulatorWriteQueue: string[] = [];
@@ -465,7 +474,8 @@ export class Session {
 
 		// Keep the daemon responsive while still ensuring the emulator catches up eventually.
 		const baseBudgetMs = hasClients ? 5 : 25;
-		const budgetMs = backlogBytes > 1024 * 1024 ? Math.max(baseBudgetMs, 25) : baseBudgetMs;
+		const budgetMs =
+			backlogBytes > 1024 * 1024 ? Math.max(baseBudgetMs, 25) : baseBudgetMs;
 		const MAX_CHUNK_CHARS = 8192;
 
 		while (this.emulatorWriteQueue.length > 0) {
@@ -495,15 +505,25 @@ export class Session {
 		for (const resolve of waiters) resolve();
 	}
 
-	private async flushEmulatorWrites(): Promise<void> {
+	private async flushEmulatorWrites(timeoutMs?: number): Promise<void> {
 		if (this.emulatorWriteQueue.length === 0 && !this.emulatorWriteScheduled) {
 			return;
 		}
 
-		await new Promise<void>((resolve) => {
+		const flushPromise = new Promise<void>((resolve) => {
 			this.emulatorFlushWaiters.push(resolve);
 			this.scheduleEmulatorWrite();
 		});
+
+		if (timeoutMs !== undefined) {
+			// Race against timeout to prevent indefinite hang with continuous output
+			await Promise.race([
+				flushPromise,
+				new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+			]);
+		} else {
+			await flushPromise;
+		}
 	}
 
 	/**
@@ -534,7 +554,8 @@ export class Session {
 		});
 		this.lastAttachedAt = new Date();
 
-		await this.flushEmulatorWrites();
+		// Use timeout to prevent indefinite hang with continuous output (e.g., tail -f)
+		await this.flushEmulatorWrites(ATTACH_FLUSH_TIMEOUT_MS);
 		return this.emulator.getSnapshotAsync();
 	}
 

@@ -79,8 +79,6 @@ const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
 // =============================================================================
 
 class NdjsonParser {
-	// Use array buffering to avoid O(n²) string concatenation on high-volume streams
-	private chunks: string[] = [];
 	private remainder = "";
 
 	parse(chunk: string): Array<IpcResponse | IpcEvent> {
@@ -154,7 +152,6 @@ export class TerminalHostClient extends EventEmitter {
 	private connectionState = ConnectionState.DISCONNECTED;
 	private disposed = false;
 	private notifyQueue: string[] = [];
-	private notifyQueueBytes = 0;
 	private notifyDrainArmed = false;
 
 	// ===========================================================================
@@ -720,7 +717,10 @@ export class TerminalHostClient extends EventEmitter {
 				this.sendNotification("write", request);
 			})
 			.catch((error) => {
-				this.emit("error", error instanceof Error ? error : new Error(String(error)));
+				this.emit(
+					"error",
+					error instanceof Error ? error : new Error(String(error)),
+				);
 			});
 	}
 

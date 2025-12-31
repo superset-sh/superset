@@ -90,7 +90,8 @@ export class PtySubprocessFrameDecoder {
 				}
 
 				this.frameType = type;
-				this.payload = payloadLength > 0 ? Buffer.allocUnsafe(payloadLength) : null;
+				this.payload =
+					payloadLength > 0 ? Buffer.allocUnsafe(payloadLength) : null;
 				this.payloadOffset = 0;
 				this.headerOffset = 0;
 
@@ -125,4 +126,3 @@ export class PtySubprocessFrameDecoder {
 		return frames;
 	}
 }
-
