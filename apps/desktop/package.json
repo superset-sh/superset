@@ -129,7 +129,7 @@
 		"@types/culori": "^4.0.1",
 		"@types/http-proxy": "^1.17.17",
 		"@types/lodash": "^4.17.20",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.0.3",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
 		"@types/react-syntax-highlighter": "^15.5.13",

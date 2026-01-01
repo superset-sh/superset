@@ -35,7 +35,7 @@
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/postcss": "^4.0.9",
 		"@types/mdx": "^2.0.13",
-		"@types/node": "^24.9.1",
+		"@types/node": "^25.0.3",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
 		"@types/three": "^0.181.0",
