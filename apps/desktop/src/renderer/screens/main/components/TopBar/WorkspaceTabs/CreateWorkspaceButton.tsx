@@ -10,7 +10,6 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
 import { HiFolderOpen, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
@@ -147,17 +146,7 @@ export function CreateWorkspaceButton({
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					<HotkeyTooltipContent
-						label="Create workspace or project"
-						items={[
-							{ label: "New Workspace", id: "NEW_WORKSPACE" },
-							{
-								label: "Quick Create",
-								id: "QUICK_CREATE_WORKSPACE",
-							},
-							{ label: "Open Project", id: "OPEN_PROJECT" },
-						]}
-					/>
+					Create workspace or project
 				</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent
