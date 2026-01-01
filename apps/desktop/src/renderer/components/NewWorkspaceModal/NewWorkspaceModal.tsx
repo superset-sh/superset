@@ -27,22 +27,12 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
-import {
-	HiCheck,
-	HiChevronDown,
-	HiChevronUpDown,
-	HiFolderOpen,
-} from "react-icons/hi2";
+import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { trpc } from "renderer/lib/trpc";
-import { useOpenNew } from "renderer/react-query/projects";
-import {
-	useCreateBranchWorkspace,
-	useCreateWorkspace,
-} from "renderer/react-query/workspaces";
+import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -91,8 +81,6 @@ export function NewWorkspaceModal() {
 		{ enabled: !!selectedProjectId },
 	);
 	const createWorkspace = useCreateWorkspace();
-	const createBranchWorkspace = useCreateBranchWorkspace();
-	const openNew = useOpenNew();
 
 	const currentProjectId = activeWorkspace?.projectId;
 
@@ -198,36 +186,6 @@ export function NewWorkspaceModal() {
 		);
 	};
 
-	const handleOpenNewProject = async () => {
-		try {
-			const result = await openNew.mutateAsync(undefined);
-			if (result.canceled) {
-				return;
-			}
-			if ("error" in result) {
-				toast.error("Failed to open project", {
-					description: result.error,
-				});
-				return;
-			}
-			if ("needsGitInit" in result) {
-				toast.error("Selected folder is not a git repository", {
-					description:
-						"Please use 'Open project' from the start view to initialize git.",
-				});
-				return;
-			}
-			// Create a main workspace on the current branch for the new project
-			await createBranchWorkspace.mutateAsync({ projectId: result.project.id });
-			setSelectedProjectId(result.project.id);
-		} catch (error) {
-			toast.error("Failed to open project", {
-				description:
-					error instanceof Error ? error.message : "An unknown error occurred",
-			});
-		}
-	};
-
 	return (
 		<Dialog modal open={isOpen} onOpenChange={(open) => !open && handleClose()}>
 			<DialogContent
@@ -239,40 +197,21 @@ export function NewWorkspaceModal() {
 				</DialogHeader>
 
 				<div className="px-4 pb-3">
-					<div className="flex items-center gap-2">
-						<Select
-							value={selectedProjectId ?? ""}
-							onValueChange={setSelectedProjectId}
-						>
-							<SelectTrigger className="flex-1 h-8 text-sm">
-								<SelectValue placeholder="Select project" />
-							</SelectTrigger>
-							<SelectContent>
-								{recentProjects.map((project) => (
-									<SelectItem key={project.id} value={project.id}>
-										{project.name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									className="h-8 shrink-0 gap-1 text-xs"
-									onClick={handleOpenNewProject}
-									disabled={openNew.isPending}
-								>
-									<HiFolderOpen className="h-4 w-4" />
-									Open
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" sideOffset={4}>
-								Open a new project
-							</TooltipContent>
-						</Tooltip>
-					</div>
+					<Select
+						value={selectedProjectId ?? ""}
+						onValueChange={setSelectedProjectId}
+					>
+						<SelectTrigger className="w-full h-8 text-sm">
+							<SelectValue placeholder="Select project" />
+						</SelectTrigger>
+						<SelectContent>
+							{recentProjects.map((project) => (
+								<SelectItem key={project.id} value={project.id}>
+									{project.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 				</div>
 
 				{selectedProjectId && (
