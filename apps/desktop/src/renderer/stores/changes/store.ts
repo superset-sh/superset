@@ -44,7 +44,7 @@ const initialState = {
 	viewMode: "side-by-side" as DiffViewMode,
 	fileListViewMode: "grouped" as FileListViewMode,
 	expandedSections: {
-		"against-main": true,
+		"against-base": true,
 		committed: true,
 		staged: true,
 		unstaged: true,
@@ -67,7 +67,7 @@ export const useChangesStore = create<ChangesState>()(
 							[worktreePath]: file
 								? {
 										file,
-										category: category ?? "against-main",
+										category: category ?? "against-base",
 										commitHash: commitHash ?? null,
 									}
 								: null,

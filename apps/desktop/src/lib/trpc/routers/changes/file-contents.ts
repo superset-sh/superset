@@ -14,7 +14,7 @@ export const createFileContentsRouter = () => {
 					worktreePath: z.string(),
 					filePath: z.string(),
 					oldPath: z.string().optional(),
-					category: z.enum(["against-main", "committed", "staged", "unstaged"]),
+					category: z.enum(["against-base", "committed", "staged", "unstaged"]),
 					commitHash: z.string().optional(),
 					defaultBranch: z.string().optional(),
 				}),
@@ -57,7 +57,7 @@ export const createFileContentsRouter = () => {
 	});
 };
 
-type DiffCategory = "against-main" | "committed" | "staged" | "unstaged";
+type DiffCategory = "against-base" | "committed" | "staged" | "unstaged";
 
 interface FileVersions {
 	original: string;
@@ -74,8 +74,8 @@ async function getFileVersions(
 	commitHash?: string,
 ): Promise<FileVersions> {
 	switch (category) {
-		case "against-main":
-			return getAgainstMainVersions(git, filePath, originalPath, defaultBranch);
+		case "against-base":
+			return getAgainstBaseVersions(git, filePath, originalPath, defaultBranch);
 
 		case "committed":
 			if (!commitHash) {
@@ -91,7 +91,7 @@ async function getFileVersions(
 	}
 }
 
-async function getAgainstMainVersions(
+async function getAgainstBaseVersions(
 	git: ReturnType<typeof simpleGit>,
 	filePath: string,
 	originalPath: string,

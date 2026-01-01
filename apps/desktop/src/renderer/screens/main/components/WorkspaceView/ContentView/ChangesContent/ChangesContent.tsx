@@ -28,7 +28,7 @@ export function ChangesContent() {
 
 	const selectedFileState = getSelectedFile(worktreePath || "");
 	const selectedFile = selectedFileState?.file ?? null;
-	const selectedCategory = selectedFileState?.category ?? "against-main";
+	const selectedCategory = selectedFileState?.category ?? "against-base";
 	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
