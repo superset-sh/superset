@@ -1,18 +1,27 @@
 import type { IPty } from "node-pty";
 
 /**
- * A write queue for PTY that prevents blocking the event loop.
+ * A write queue for PTY that reduces event loop starvation.
  *
- * Problem: node-pty's write() is synchronous and blocks when the kernel's
- * PTY buffer fills up (~4KB on macOS). Large pastes (e.g., 16KB+) can freeze
- * the entire daemon, causing all requests to timeout.
+ * Context: This is used in the non-daemon (in-process) terminal mode.
+ * For daemon mode, the real backpressure handling (EAGAIN retry with backoff)
+ * is implemented in pty-subprocess.ts.
  *
- * Solution: Queue writes and process them in chunks, yielding to the event
- * loop between chunks. This keeps the daemon responsive while still delivering
- * all data to the PTY.
+ * Problem: node-pty's write() is synchronous. While the kernel buffer rarely
+ * fills completely, processing large pastes in a single event loop tick can
+ * starve other work (IPC handlers, UI updates).
+ *
+ * Solution: Queue writes and process them in small chunks, yielding to the
+ * event loop between chunks via setTimeout. This improves responsiveness
+ * during large pastes.
+ *
+ * Limitations:
+ * - Does NOT handle true kernel-level backpressure (EAGAIN/EWOULDBLOCK)
+ * - If node-pty.write() blocks, this cannot prevent it
+ * - For robust backpressure handling, use daemon mode with subprocess isolation
  *
  * Features:
- * - Chunked writes to prevent blocking
+ * - Chunked writes to reduce event loop starvation
  * - Memory-bounded queue to prevent OOM
  * - Backpressure signaling when queue is full
  * - Graceful handling of PTY closure
