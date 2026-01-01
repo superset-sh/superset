@@ -9,7 +9,12 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
-import { HiFolderOpen, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
+import {
+	HiChevronDown,
+	HiFolderOpen,
+	HiMiniPlus,
+	HiOutlineBolt,
+} from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
@@ -131,69 +136,91 @@ export function CreateWorkspaceButton({
 	const showOpenProjectShortcut = openProjectShortcut !== "Unassigned";
 
 	return (
-		<DropdownMenu open={open} onOpenChange={setOpen}>
+		<div
+			className={`${className} flex h-6 items-center rounded-md text-muted-foreground transition-colors duration-150`}
+		>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<DropdownMenuTrigger asChild>
-						<button
-							type="button"
-							aria-label="New workspace"
-							disabled={isLoading}
-							className={`${className} flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-95 disabled:pointer-events-none disabled:opacity-40`}
-						>
-							<HiMiniPlus className="size-[18px] stroke-[0.5]" />
-						</button>
-					</DropdownMenuTrigger>
+					<button
+						type="button"
+						aria-label="New workspace"
+						disabled={isLoading}
+						onClick={handleModalCreate}
+						className="flex h-6 items-center gap-1 rounded-l-md pl-1.5 pr-1 text-[12px] font-medium transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+					>
+						<HiMiniPlus className="size-[14px] stroke-[0.5]" />
+						<span>Create</span>
+					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					Create workspace or project
+					New workspace
 				</TooltipContent>
 			</Tooltip>
-			<DropdownMenuContent
-				align="end"
-				sideOffset={8}
-				className="w-48 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
-			>
-				<DropdownMenuItem
-					onClick={handleModalCreate}
-					className="rounded-md text-[13px]"
+
+			<DropdownMenu open={open} onOpenChange={setOpen}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								aria-label="More create options"
+								disabled={isLoading}
+								className="flex h-6 w-5 items-center justify-center rounded-r-md border-l border-border/30 transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+							>
+								<HiChevronDown className="size-[12px]" />
+							</button>
+						</DropdownMenuTrigger>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={4}>
+						More options
+					</TooltipContent>
+				</Tooltip>
+				<DropdownMenuContent
+					align="end"
+					sideOffset={8}
+					className="w-48 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
 				>
-					<HiMiniPlus className="size-[14px] opacity-60" />
-					New Workspace
-					{showNewWorkspaceShortcut && (
-						<DropdownMenuShortcut className="opacity-40">
-							{newWorkspaceShortcut}
-						</DropdownMenuShortcut>
-					)}
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					onClick={handleQuickCreate}
-					disabled={isLoading}
-					className="rounded-md text-[13px]"
-				>
-					<HiOutlineBolt className="size-[14px] opacity-60" />
-					Quick Create
-					{showQuickCreateShortcut && (
-						<DropdownMenuShortcut className="opacity-40">
-							{quickCreateShortcut}
-						</DropdownMenuShortcut>
-					)}
-				</DropdownMenuItem>
-				<DropdownMenuSeparator className="my-1 bg-border/40" />
-				<DropdownMenuItem
-					onClick={handleOpenNewProject}
-					disabled={isLoading}
-					className="rounded-md text-[13px]"
-				>
-					<HiFolderOpen className="size-[14px] opacity-60" />
-					Open Project
-					{showOpenProjectShortcut && (
-						<DropdownMenuShortcut className="opacity-40">
-							{openProjectShortcut}
-						</DropdownMenuShortcut>
-					)}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					<DropdownMenuItem
+						onClick={handleModalCreate}
+						className="rounded-md text-[13px]"
+					>
+						<HiMiniPlus className="size-[14px] opacity-60" />
+						New Workspace
+						{showNewWorkspaceShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{newWorkspaceShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+					<DropdownMenuItem
+						onClick={handleQuickCreate}
+						disabled={isLoading}
+						className="rounded-md text-[13px]"
+					>
+						<HiOutlineBolt className="size-[14px] opacity-60" />
+						Quick Create
+						{showQuickCreateShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{quickCreateShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+					<DropdownMenuSeparator className="my-1 bg-border/40" />
+					<DropdownMenuItem
+						onClick={handleOpenNewProject}
+						disabled={isLoading}
+						className="rounded-md text-[13px]"
+					>
+						<HiFolderOpen className="size-[14px] opacity-60" />
+						Open Project
+						{showOpenProjectShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{openProjectShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
 	);
 }
