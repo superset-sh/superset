@@ -268,21 +268,8 @@ export function setupKeyboardHandler(
 		if (!event.metaKey && !event.ctrlKey) return true;
 
 		if (isAppHotkeyEvent(event)) {
-			document.dispatchEvent(
-				new KeyboardEvent(event.type, {
-					key: event.key,
-					code: event.code,
-					keyCode: event.keyCode,
-					which: event.which,
-					ctrlKey: event.ctrlKey,
-					shiftKey: event.shiftKey,
-					altKey: event.altKey,
-					metaKey: event.metaKey,
-					repeat: event.repeat,
-					bubbles: true,
-					cancelable: true,
-				}),
-			);
+			// Return false to prevent xterm from processing the key.
+			// The original event bubbles to document where useAppHotkey handles it.
 			return false;
 		}
 
