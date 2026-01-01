@@ -90,6 +90,24 @@ export interface TerminalSnapshot {
 	rows: number;
 	/** Scrollback line count */
 	scrollbackLines: number;
+	/** Debug diagnostics for troubleshooting (optional) */
+	debug?: {
+		/** xterm's internal buffer type */
+		xtermBufferType: string;
+		/** Whether serialized output contains alt screen entry */
+		hasAltScreenEntry: boolean;
+		/** Alt buffer stats if in alt screen */
+		altBuffer?: {
+			lines: number;
+			nonEmptyLines: number;
+			totalChars: number;
+			cursorX: number;
+			cursorY: number;
+			sampleLines: string[];
+		};
+		/** Normal buffer line count */
+		normalBufferLines: number;
+	};
 }
 
 // =============================================================================

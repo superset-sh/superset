@@ -50,6 +50,20 @@ export interface SessionResult {
 		cols: number;
 		rows: number;
 		scrollbackLines: number;
+		/** Debug diagnostics for troubleshooting */
+		debug?: {
+			xtermBufferType: string;
+			hasAltScreenEntry: boolean;
+			altBuffer?: {
+				lines: number;
+				nonEmptyLines: number;
+				totalChars: number;
+				cursorX: number;
+				cursorY: number;
+				sampleLines: string[];
+			};
+			normalBufferLines: number;
+		};
 	};
 }
 

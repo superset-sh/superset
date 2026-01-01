@@ -247,6 +247,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				cols: response.snapshot.cols,
 				rows: response.snapshot.rows,
 				scrollbackLines: response.snapshot.scrollbackLines,
+				debug: response.snapshot.debug,
 			},
 		};
 	}
