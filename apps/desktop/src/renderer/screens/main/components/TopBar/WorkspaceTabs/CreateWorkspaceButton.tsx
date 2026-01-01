@@ -149,7 +149,7 @@ export function CreateWorkspaceButton({
 						className="flex h-6 items-center gap-1 rounded-l-md pl-1.5 pr-1 text-[12px] font-medium transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
 					>
 						<HiMiniPlus className="size-[14px] stroke-[0.5]" />
-						<span>Create</span>
+						<span>Workspace</span>
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
