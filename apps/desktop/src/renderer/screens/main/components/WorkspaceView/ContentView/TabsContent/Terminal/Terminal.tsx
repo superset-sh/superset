@@ -372,15 +372,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Also parse scrollback for escape sequences in case snapshot.modes is incomplete
 			// This handles cases where the daemon didn't track the mode but the sequences are in history
 			if (result.scrollback) {
-				const hasEnterAlt =
-					result.scrollback.includes("\x1b[?1049h") ||
-					result.scrollback.includes("\x1b[?47h");
-				const hasExitAlt =
-					result.scrollback.includes("\x1b[?1049l") ||
-					result.scrollback.includes("\x1b[?47l");
-				// If we see enter without exit, we're likely in alternate screen
-				if (hasEnterAlt && !hasExitAlt) {
-					isAlternateScreenRef.current = true;
+				// Use lastIndexOf to find the final state - handles multiple enter/exit cycles
+				// (e.g., user opened vim, closed it, opened it again)
+				const enterAltIndex = Math.max(
+					result.scrollback.lastIndexOf("\x1b[?1049h"),
+					result.scrollback.lastIndexOf("\x1b[?47h"),
+				);
+				const exitAltIndex = Math.max(
+					result.scrollback.lastIndexOf("\x1b[?1049l"),
+					result.scrollback.lastIndexOf("\x1b[?47l"),
+				);
+				if (enterAltIndex !== -1 || exitAltIndex !== -1) {
+					isAlternateScreenRef.current = enterAltIndex > exitAltIndex;
 				}
 
 				// Bracketed paste mode can toggle during a session - use the last seen state.
