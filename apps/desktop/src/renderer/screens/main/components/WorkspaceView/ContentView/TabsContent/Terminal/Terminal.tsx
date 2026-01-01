@@ -47,6 +47,19 @@ type CreateOrAttachResult = {
 		cols: number;
 		rows: number;
 		scrollbackLines: number;
+		debug?: {
+			xtermBufferType: string;
+			hasAltScreenEntry: boolean;
+			altBuffer?: {
+				lines: number;
+				nonEmptyLines: number;
+				totalChars: number;
+				cursorX: number;
+				cursorY: number;
+				sampleLines: string[];
+			};
+			normalBufferLines: number;
+		};
 	};
 };
 
@@ -279,11 +292,23 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
 		if (!xterm) return;
-		if (pendingEventsRef.current.length === 0) return;
+		if (pendingEventsRef.current.length === 0) {
+			console.log(
+				`[Terminal][${paneId.slice(-8)}] FLUSH: no pending events time=${Date.now()}`,
+			);
+			return;
+		}
 
 		const events = pendingEventsRef.current.splice(
 			0,
 			pendingEventsRef.current.length,
+		);
+		const totalBytes = events.reduce(
+			(sum, e) => sum + (e.type === "data" ? e.data.length : 0),
+			0,
+		);
+		console.log(
+			`[Terminal][${paneId.slice(-8)}] FLUSHING ${events.length} events (${totalBytes} bytes) time=${Date.now()}`,
 		);
 
 		for (const event of events) {
@@ -368,18 +393,79 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				}
 			}
 
-			// If session was in alternate screen mode, enter it BEFORE writing content.
-			// rehydrateSequences intentionally excludes alternate screen mode (1049) because
-			// sending it after content would clear the screen. We must send it first so xterm
-			// knows to use the alternate buffer, then write content into it.
-			if (result.snapshot?.modes.alternateScreen) {
-				xterm.write("\x1b[?1049h");
-			}
-
 			// Apply rehydration sequences to restore other terminal modes
 			// (app cursor mode, bracketed paste, mouse tracking, etc.)
 			if (result.snapshot?.rehydrateSequences) {
 				xterm.write(result.snapshot.rehydrateSequences);
+			}
+
+			// Resize xterm to match snapshot dimensions before applying content.
+			// The snapshot's cursor positioning assumes specific cols/rows.
+			const snapshotCols = result.snapshot?.cols;
+			const snapshotRows = result.snapshot?.rows;
+			if (
+				snapshotCols &&
+				snapshotRows &&
+				(xterm.cols !== snapshotCols || xterm.rows !== snapshotRows)
+			) {
+				xterm.resize(snapshotCols, snapshotRows);
+			}
+
+			const isAltScreenReattach =
+				!result.isNew && result.snapshot?.modes.alternateScreen;
+
+			// EXPERIMENTAL: For alt-screen (TUI) sessions, the serialized snapshot often
+			// renders incorrectly because styled spaces and positioning get lost.
+			// Instead of writing broken snapshot, enter alt-screen and trigger SIGWINCH
+			// so the TUI redraws itself via the live stream.
+			if (isAltScreenReattach) {
+				console.log(
+					`[Terminal][${paneId.slice(-8)}] ALT-SCREEN REATTACH: skipping snapshot, triggering SIGWINCH redraw`,
+				);
+
+				// Enter alt-screen mode so TUI output goes to correct buffer
+				xterm.write("\x1b[?1049h");
+
+				// Apply rehydration sequences for other modes (bracketed paste, etc.)
+				if (result.snapshot?.rehydrateSequences) {
+					// Filter out alt-screen sequences since we already entered
+					const ESC = "\x1b";
+					const filteredRehydrate = result.snapshot.rehydrateSequences
+						.split(ESC + "[?1049h")
+						.join("")
+						.split(ESC + "[?47h")
+						.join("");
+					if (filteredRehydrate) {
+						xterm.write(filteredRehydrate);
+					}
+				}
+
+				// Enable streaming BEFORE resize so TUI output comes through
+				isStreamReadyRef.current = true;
+				flushPendingEvents();
+
+				// Fit xterm to container and trigger SIGWINCH
+				requestAnimationFrame(() => {
+					if (xtermRef.current !== xterm) return;
+					fitAddon.fit();
+
+					const cols = xterm.cols;
+					const rows = xterm.rows;
+					if (cols > 0 && rows > 0) {
+						console.log(
+							`[Terminal][${paneId.slice(-8)}] ALT-SCREEN SIGWINCH: ${cols}x${rows} -> ${cols}x${rows - 1} -> ${cols}x${rows}`,
+						);
+						// Resize down then up to guarantee SIGWINCH
+						resizeRef.current({ paneId, cols, rows: rows - 1 });
+						setTimeout(() => {
+							if (xtermRef.current !== xterm) return;
+							resizeRef.current({ paneId, cols, rows });
+						}, 100);
+					}
+				});
+
+				updateCwdRef.current(result.scrollback);
+				return; // Skip normal snapshot flow
 			}
 
 			// xterm.write() is asynchronous - escape sequences may not be fully
@@ -433,15 +519,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (xtermRef.current !== xterm) return;
 					redraw();
 				});
+
+				// Enable streaming AFTER xterm has processed the snapshot.
+				// This prevents live PTY output from interleaving with snapshot replay.
+				isStreamReadyRef.current = true;
+				flushPendingEvents();
 			});
 			updateCwdRef.current(result.scrollback);
 		} catch (error) {
 			console.error("[Terminal] Restoration failed:", error);
 		}
-
-		// Enable streaming after initial state has been queued into xterm's write buffer.
-		isStreamReadyRef.current = true;
-		flushPendingEvents();
 	}, [flushPendingEvents, paneId]);
 
 	const handleRetryConnection = useCallback(() => {
@@ -481,6 +568,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		// Queue events until terminal is ready to prevent data loss
 		if (!xtermRef.current || !isStreamReadyRef.current) {
+			const dataLen = event.type === "data" ? event.data.length : 0;
+			console.log(
+				`[Terminal][${paneId.slice(-8)}] QUEUING event type=${event.type} len=${dataLen} totalQueued=${pendingEventsRef.current.length + 1} time=${Date.now()}`,
+			);
 			pendingEventsRef.current.push(event);
 			return;
 		}

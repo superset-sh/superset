@@ -243,6 +243,233 @@ These are experiments that can confirm root causes quickly:
 
 ---
 
+## Investigation Log (January 2026)
+
+### Observed Corruption
+
+When switching workspaces with OpenCode running, the restored terminal shows **missing content**:
+- The "opencode" ASCII art logo is completely missing
+- The "Ask anything..." input box is missing
+- Only partial UI elements remain (agent name, status bar)
+- Cursor position is wrong (middle of screen instead of input area)
+
+This is NOT garbled characters or wrong colors—it's **missing screen regions**, suggesting the snapshot content is incomplete or truncated.
+
+### Hypotheses Tested and Ruled Out
+
+| # | Hypothesis | Test | Result |
+|---|------------|------|--------|
+| 1 | **Live events interleaving with snapshot** - Events arrive before snapshot is applied | Added logging: `PENDING_EVENTS` count at snapshot time | ❌ PENDING_EVENTS=0 in all cases |
+| 2 | **Double alt-screen entry** - Manual `\x1b[?1049h` + scrollback's copy | Disabled manual entry, logged if scrollback contains it | ❌ Still corrupted with manual entry disabled |
+| 3 | **WebGL renderer issues** - Glyph atlas corruption | Forced Canvas renderer via localStorage | ❌ Still corrupted with Canvas |
+| 4 | **Dimension mismatch** - Snapshot written at wrong cols/rows | Logged xterm vs snapshot dimensions | ❌ MATCH=true (106x60 = 106x60) |
+| 5 | **Alt-screen buffer mismatch** - modes.altScreen disagrees with scrollback's last transition | Logged lastIndexOf for enter/exit sequences | ❌ CONSISTENT=true |
+
+### Key Observations from Logs
+
+```
+APPLYING SNAPSHOT: scrollback=8247 rehydrate=48 altScreen=true PENDING_EVENTS=0
+ALT-SCREEN CHECK: modes.altScreen=true scrollbackHasAlt=true
+ALT-SCREEN TRANSITION: lastEnterIdx=275 lastExitIdx=-1 lastTransition=ENTER CONSISTENT=true
+DIMENSION CHECK: xterm=106x60 snapshot=106x60 MATCH=true
+```
+
+- Dimensions match perfectly
+- Alt-screen mode is consistent between daemon and scrollback
+- No pending events at snapshot time
+- rehydrateSequences is only 48 bytes (may be too small for full TUI state?)
+
+### Remaining Hypotheses (Not Yet Tested)
+
+1. **Flush timeout during snapshot** - Daemon's `flushEmulatorWrites()` times out under heavy output, capturing incomplete screen state
+
+2. **Snapshot content is incomplete/stale** - The headless emulator isn't capturing the full screen buffer correctly for alternate screen TUIs
+
+3. **Missing TUI state in rehydrateSequences** - 48 bytes may not cover all modes TUIs need (scroll region, saved cursor, character sets, etc.)
+
+4. **Cursor position not in snapshot** - TUI assumes cursor is in input area, but we're not restoring cursor position
+
+### Next Steps
+
+1. **Investigate daemon-side snapshot generation** (`headless-emulator.ts`)
+   - Is the alternate screen buffer being serialized correctly?
+   - Is cursor position included in the snapshot?
+   - Does flush timeout occur during capture?
+
+2. **Log actual snapshot content** - Inspect first/last bytes to see if content is truncated
+
+3. **Compare headless emulator state vs actual screen** - Hash comparison to detect discrepancies
+
+### Code Changes Made During Investigation
+
+Added diagnostic logging to `Terminal.tsx`:
+- `APPLYING SNAPSHOT` - scrollback size, rehydrate size, alt screen mode, pending events
+- `ALT-SCREEN CHECK` - whether scrollback/rehydrate contain alt-screen sequences
+- `ALT-SCREEN TRANSITION` - which transition (enter/exit) came last, consistency check
+- `DIMENSION CHECK` - xterm cols/rows vs snapshot cols/rows
+- `QUEUING/FLUSHING` - event timing during reattach
+
+These logs can be removed once the root cause is found.
+
+---
+
+## ROOT CAUSE IDENTIFIED & FIX IMPLEMENTED (January 2026)
+
+### The Bug: Flush Timeout During Snapshot
+
+**Location:** `Session.attach()` in `apps/desktop/src/main/terminal-host/session.ts`
+
+**The Problem Flow:**
+
+```
+1. User switches tabs, triggering attach()
+2. attach() calls flushEmulatorWrites(500ms) to process pending PTY output
+3. With continuous TUI output (like OpenCode), the queue NEVER empties in 500ms
+4. Promise.race() times out, but emulatorWriteQueue still has unprocessed data
+5. attach() immediately calls getSnapshotAsync()
+6. Snapshot captures INCOMPLETE state - queued data never made it to xterm!
+```
+
+**The Data Flow:**
+```
+PTY → Session.emulatorWriteQueue → HeadlessEmulator.terminal (xterm) → snapshot
+                    ↑
+            STUCK HERE if timeout
+```
+
+**Why Previous Tests Missed This:**
+- Renderer-side logs showed `PENDING_EVENTS=0` - but that's the RENDERER's queue
+- The DAEMON's `emulatorWriteQueue` was the culprit
+- The bug is invisible from the renderer's perspective
+
+### The Fix: Snapshot Boundary Tracking
+
+Instead of waiting for the entire queue to empty (impossible with continuous output), we now:
+
+1. **Mark a "snapshot boundary"** when attach() is called (current queue length)
+2. **Decrement the counter** as items are processed
+3. **Resolve when boundary reached** (processed all pre-attach data)
+4. **Ignore post-attach data** for snapshot purposes (it will be streamed live)
+
+**Key Changes:**
+
+```typescript
+// session.ts - New state tracking
+private snapshotBoundaryIndex: number | null = null;
+private snapshotBoundaryWaiters: Array<() => void> = [];
+
+// New method: flushToSnapshotBoundary(timeoutMs)
+// - Sets boundary = queue.length at call time
+// - Waits for that many items to be processed
+// - Guarantees consistent point-in-time snapshot
+
+// attach() now uses:
+const reachedBoundary = await this.flushToSnapshotBoundary(ATTACH_FLUSH_TIMEOUT_MS);
+// Instead of:
+await this.flushEmulatorWrites(ATTACH_FLUSH_TIMEOUT_MS);  // OLD - broken
+```
+
+### Why This Fix Works
+
+- With continuous output, new data keeps arriving AFTER attach() is called
+- We only care about data received BEFORE attach - that's what defines our snapshot point
+- By counting items instead of waiting for empty, we get a consistent snapshot
+- Post-attach data streams live to the renderer (normal operation)
+
+### Logging Added for Verification
+
+**Daemon-side (`session.ts`):**
+```
+[Session X] ATTACH FLUSH OK: flushTime=123ms processed=42 items (8192 bytes)
+[Session X] ATTACH FLUSH TIMEOUT: flushTime=500ms queueBefore=100 queueAfter=75
+```
+
+**Headless emulator (`headless-emulator.ts`):**
+```
+[HeadlessEmulator] SNAPSHOT: altScreen=true snapshotSize=12345 rehydrateSize=48 cols=106 rows=60
+```
+
+### Testing Needed
+
+1. Run OpenCode in a terminal
+2. Switch to a different workspace tab
+3. Switch back
+4. Verify: ASCII art logo and input box should now be visible
+5. Check logs for "ATTACH FLUSH OK" instead of "ATTACH FLUSH TIMEOUT"
+
+---
+
+## FINAL FIX: SIGWINCH-Based TUI Redraw (January 2026)
+
+### Why Snapshots Don't Work for TUIs
+
+After implementing the snapshot boundary fix above, we discovered a **deeper issue**: even with correct snapshots, TUI rendering was still broken.
+
+**The Problem:**
+
+1. TUIs use "styled spaces" (spaces with background colors) to create UI elements
+2. SerializeAddon captures buffer cell content, but serialization of styled empty cells is inconsistent
+3. When restored, the serialized snapshot renders sparsely—missing panels, borders, and UI chrome
+
+**Diagnostic Data:**
+```
+ALT-BUFFER: lines=52 nonEmpty=14 chars=2156
+```
+A full TUI screen (91×52 = 4732 cells) should have far more content. The alt buffer was sparse.
+
+### The Solution: Skip Snapshot, Trigger SIGWINCH
+
+Instead of trying to perfectly serialize and restore TUI state, we now:
+
+1. **Skip writing the broken snapshot** for alt-screen (TUI) sessions
+2. **Enter alt-screen mode** directly so TUI output goes to the correct buffer
+3. **Enable streaming first** so live PTY output comes through
+4. **Trigger SIGWINCH** via resize down/up—TUI redraws itself from scratch
+
+**Key Code (Terminal.tsx):**
+```typescript
+if (isAltScreenReattach) {
+  // Enter alt-screen mode
+  xterm.write("\x1b[?1049h");
+  
+  // Apply non-alt-screen rehydration sequences
+  if (result.snapshot?.rehydrateSequences) { ... }
+  
+  // Enable streaming BEFORE resize
+  isStreamReadyRef.current = true;
+  flushPendingEvents();
+  
+  // Trigger SIGWINCH
+  resizeRef.current({ paneId, cols, rows: rows - 1 });
+  setTimeout(() => {
+    resizeRef.current({ paneId, cols, rows });
+  }, 100);
+  
+  return; // Skip normal snapshot flow
+}
+```
+
+### Trade-offs
+
+| Aspect | Before (Snapshot) | After (SIGWINCH) |
+|--------|-------------------|------------------|
+| Visual continuity | Broken (sparse/corrupted) | Brief flash as TUI redraws |
+| Correctness | Unreliable | Reliable (TUI owns its state) |
+| Complexity | High (serialize/deserialize TUI state) | Low (let TUI handle it) |
+| Performance | Single write of serialized data | TUI full repaint via stream |
+
+### Why This Works
+
+- TUIs maintain their own internal state and can redraw on SIGWINCH
+- We're not trying to perfectly capture a moving target (incremental TUI updates)
+- The TUI is the authority on its own display—we just trigger a refresh
+
+### Non-TUI Sessions Unchanged
+
+Normal shell sessions (not in alternate screen mode) still use the snapshot approach, which works correctly for scrollback history and shell prompts.
+
+---
+
 ## Reference links
 
 - xterm.js flow control guide (buffering, time-sliced processing, throughput limits): https://xtermjs.org/docs/guides/flowcontrol/

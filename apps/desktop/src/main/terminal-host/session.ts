@@ -105,6 +105,10 @@ export class Session {
 	private emulatorWriteScheduled = false;
 	private emulatorFlushWaiters: Array<() => void> = [];
 
+	// Snapshot boundary tracking - allows capturing consistent state with continuous output
+	private snapshotBoundaryIndex: number | null = null;
+	private snapshotBoundaryWaiters: Array<() => void> = [];
+
 	// Callbacks
 	private onSessionExit?: (
 		sessionId: string,
@@ -355,9 +359,13 @@ export class Session {
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
 		this.emulatorWriteScheduled = false;
+		this.snapshotBoundaryIndex = null;
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
+		const boundaryWaiters = this.snapshotBoundaryWaiters;
+		this.snapshotBoundaryWaiters = [];
+		for (const resolve of boundaryWaiters) resolve();
 	}
 
 	/**
@@ -502,9 +510,13 @@ export class Session {
 			this.emulatorWriteQueue = [];
 			this.emulatorWriteQueuedBytes = 0;
 			this.emulatorWriteScheduled = false;
+			this.snapshotBoundaryIndex = null;
 			const waiters = this.emulatorFlushWaiters;
 			this.emulatorFlushWaiters = [];
 			for (const resolve of waiters) resolve();
+			const boundaryWaiters = this.snapshotBoundaryWaiters;
+			this.snapshotBoundaryWaiters = [];
+			for (const resolve of boundaryWaiters) resolve();
 			return;
 		}
 
@@ -527,9 +539,35 @@ export class Session {
 				chunk = chunk.slice(0, MAX_CHUNK_CHARS);
 			} else {
 				this.emulatorWriteQueue.shift();
+
+				// Decrement boundary counter if tracking
+				if (this.snapshotBoundaryIndex !== null) {
+					this.snapshotBoundaryIndex--;
+				}
 			}
+
 			this.emulatorWriteQueuedBytes -= chunk.length;
 			this.emulator.write(chunk);
+
+			// Check if we've reached the snapshot boundary (processed all items up to it)
+			if (this.snapshotBoundaryIndex === 0) {
+				this.snapshotBoundaryIndex = null;
+				const boundaryWaiters = this.snapshotBoundaryWaiters;
+				this.snapshotBoundaryWaiters = [];
+				for (const resolve of boundaryWaiters) resolve();
+				// Continue processing remaining items (arrived after boundary was set)
+				if (this.emulatorWriteQueue.length > 0) {
+					setImmediate(() => {
+						this.processEmulatorWriteQueue();
+					});
+					return;
+				}
+				this.emulatorWriteScheduled = false;
+				const waiters = this.emulatorFlushWaiters;
+				this.emulatorFlushWaiters = [];
+				for (const resolve of waiters) resolve();
+				return;
+			}
 		}
 
 		if (this.emulatorWriteQueue.length > 0) {
@@ -540,6 +578,15 @@ export class Session {
 		}
 
 		this.emulatorWriteScheduled = false;
+
+		// If we've drained the queue, any pending boundary is also reached
+		if (this.snapshotBoundaryIndex !== null) {
+			this.snapshotBoundaryIndex = null;
+			const boundaryWaiters = this.snapshotBoundaryWaiters;
+			this.snapshotBoundaryWaiters = [];
+			for (const resolve of boundaryWaiters) resolve();
+		}
+
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
@@ -564,6 +611,50 @@ export class Session {
 		} else {
 			await flushPromise;
 		}
+	}
+
+	/**
+	 * Flush emulator writes up to current queue position (snapshot boundary).
+	 * Unlike flushEmulatorWrites, this captures a consistent point-in-time state
+	 * even with continuous output - we only wait for data received BEFORE this call.
+	 *
+	 * The key insight: snapshotBoundaryIndex tracks how many items REMAIN that
+	 * need to be processed. Each time we shift an item, we decrement it.
+	 * When it reaches 0, we've processed everything up to the boundary.
+	 */
+	private async flushToSnapshotBoundary(timeoutMs: number): Promise<boolean> {
+		// Mark the current queue length as how many items we need to process
+		const itemsToProcess = this.emulatorWriteQueue.length;
+
+		if (itemsToProcess === 0 && !this.emulatorWriteScheduled) {
+			return true; // Already flushed
+		}
+
+		// Set the boundary counter - processEmulatorWriteQueue will decrement this
+		this.snapshotBoundaryIndex = itemsToProcess;
+
+		const boundaryPromise = new Promise<void>((resolve) => {
+			this.snapshotBoundaryWaiters.push(resolve);
+			this.scheduleEmulatorWrite();
+		});
+
+		const timeoutPromise = new Promise<void>((resolve) =>
+			setTimeout(resolve, timeoutMs),
+		);
+
+		await Promise.race([boundaryPromise, timeoutPromise]);
+
+		// Check if we actually reached the boundary or timed out
+		const reachedBoundary = this.snapshotBoundaryIndex === null;
+
+		// Clean up if timed out (boundary wasn't reached)
+		if (!reachedBoundary) {
+			this.snapshotBoundaryIndex = null;
+			// Remove our waiter from the list
+			this.snapshotBoundaryWaiters = [];
+		}
+
+		return reachedBoundary;
 	}
 
 	/**
@@ -602,8 +693,39 @@ export class Session {
 		});
 		this.lastAttachedAt = new Date();
 
-		// Use timeout to prevent indefinite hang with continuous output (e.g., tail -f)
-		await this.flushEmulatorWrites(ATTACH_FLUSH_TIMEOUT_MS);
+		// Use snapshot boundary flush for consistent state with continuous output.
+		// This ensures we capture all data received BEFORE attach was called,
+		// even if new data continues to arrive during the flush.
+		const queuedBefore = this.emulatorWriteQueuedBytes;
+		const queueItemsBefore = this.emulatorWriteQueue.length;
+		const flushStart = performance.now();
+
+		const reachedBoundary = await this.flushToSnapshotBoundary(
+			ATTACH_FLUSH_TIMEOUT_MS,
+		);
+
+		const flushTime = performance.now() - flushStart;
+		const queuedAfter = this.emulatorWriteQueuedBytes;
+
+		// ALWAYS log attach for debugging
+		const modes = this.emulator.getModes();
+		console.log(
+			`[Session ${this.sessionId}] ATTACH: ` +
+				`reachedBoundary=${reachedBoundary} ` +
+				`flushTime=${flushTime.toFixed(0)}ms ` +
+				`queueBefore=${queueItemsBefore} queueAfter=${this.emulatorWriteQueue.length} ` +
+				`altScreen=${modes.alternateScreen}`,
+		);
+
+		if (!reachedBoundary) {
+			console.warn(
+				`[Session ${this.sessionId}] ATTACH FLUSH TIMEOUT: ` +
+					`flushTime=${flushTime.toFixed(0)}ms ` +
+					`queueBefore=${queueItemsBefore} items (${queuedBefore} bytes) ` +
+					`queueAfter=${this.emulatorWriteQueue.length} items (${queuedAfter} bytes)`,
+			);
+		}
+
 		return this.emulator.getSnapshotAsync();
 	}
 
@@ -710,9 +832,13 @@ export class Session {
 		this.emulatorWriteQueue = [];
 		this.emulatorWriteQueuedBytes = 0;
 		this.emulatorWriteScheduled = false;
+		this.snapshotBoundaryIndex = null;
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
+		const boundaryWaiters = this.snapshotBoundaryWaiters;
+		this.snapshotBoundaryWaiters = [];
+		for (const resolve of boundaryWaiters) resolve();
 
 		this.emulator.dispose();
 		this.attachedClients.clear();

@@ -229,6 +229,51 @@ export class HeadlessEmulator {
 
 		const rehydrateSequences = this.generateRehydrateSequences();
 
+		// Build debug diagnostics
+		const xtermBufferType = this.terminal.buffer.active.type;
+		const hasAltScreenEntry = snapshotAnsi.includes("\x1b[?1049h");
+
+		let altBufferDebug:
+			| {
+					lines: number;
+					nonEmptyLines: number;
+					totalChars: number;
+					cursorX: number;
+					cursorY: number;
+					sampleLines: string[];
+			  }
+			| undefined;
+
+		if (this.modes.alternateScreen || xtermBufferType === "alternate") {
+			const altBuffer = this.terminal.buffer.alternate;
+			let nonEmptyLines = 0;
+			let totalChars = 0;
+			const sampleLines: string[] = [];
+
+			for (let i = 0; i < altBuffer.length; i++) {
+				const line = altBuffer.getLine(i);
+				if (line) {
+					const lineText = line.translateToString(true);
+					if (lineText.trim().length > 0) {
+						nonEmptyLines++;
+						totalChars += lineText.length;
+						if (sampleLines.length < 3) {
+							sampleLines.push(lineText.slice(0, 80));
+						}
+					}
+				}
+			}
+
+			altBufferDebug = {
+				lines: altBuffer.length,
+				nonEmptyLines,
+				totalChars,
+				cursorX: altBuffer.cursorX,
+				cursorY: altBuffer.cursorY,
+				sampleLines,
+			};
+		}
+
 		return {
 			snapshotAnsi,
 			rehydrateSequences,
@@ -237,6 +282,12 @@ export class HeadlessEmulator {
 			cols: this.terminal.cols,
 			rows: this.terminal.rows,
 			scrollbackLines: this.getScrollbackLines(),
+			debug: {
+				xtermBufferType,
+				hasAltScreenEntry,
+				altBuffer: altBufferDebug,
+				normalBufferLines: this.terminal.buffer.normal.length,
+			},
 		};
 	}
 
