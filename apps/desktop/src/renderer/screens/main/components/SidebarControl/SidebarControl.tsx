@@ -14,7 +14,7 @@ export function SidebarControl() {
 					variant="ghost"
 					size="icon"
 					onClick={toggleSidebar}
-					aria-label="Toggle sidebar"
+					aria-label="Toggle Changes Sidebar"
 					className="no-drag"
 				>
 					{isSidebarOpen ? (
@@ -26,7 +26,7 @@ export function SidebarControl() {
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<HotkeyTooltipContent
-					label="Toggle sidebar"
+					label="Toggle Changes Sidebar"
 					hotkeyId="TOGGLE_SIDEBAR"
 				/>
 			</TooltipContent>
