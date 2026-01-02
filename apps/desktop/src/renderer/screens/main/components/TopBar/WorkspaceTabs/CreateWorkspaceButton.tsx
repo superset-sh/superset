@@ -9,7 +9,6 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
-import { InitGitDialog } from "../../StartView/InitGitDialog";
 import {
 	HiChevronDown,
 	HiFolderOpen,
@@ -24,6 +23,7 @@ import {
 } from "renderer/react-query/workspaces";
 import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { InitGitDialog } from "../../StartView/InitGitDialog";
 
 export interface CreateWorkspaceButtonProps {
 	className?: string;
