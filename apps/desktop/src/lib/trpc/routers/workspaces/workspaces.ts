@@ -881,18 +881,19 @@ export const createWorkspacesRouter = () => {
 						);
 
 						if (exists) {
-							runTeardown(
+							// Ensure teardown scripts like "./.superset/teardown.sh" exist even when .superset is gitignored
+							copySupersetConfigToWorktree(project.mainRepoPath, worktree.path);
+							const teardownResult = await runTeardown(
 								project.mainRepoPath,
 								worktree.path,
 								workspace.name,
-							).then((result) => {
-								if (!result.success) {
-									console.error(
-										`Teardown failed for workspace ${workspace.name}:`,
-										result.error,
-									);
-								}
-							});
+							);
+							if (!teardownResult.success) {
+								console.error(
+									`Teardown failed for workspace ${workspace.name}:`,
+									teardownResult.error,
+								);
+							}
 						}
 
 						try {
