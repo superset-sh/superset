@@ -28,13 +28,9 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 	const language = match ? match[1] : undefined;
 	const codeString = String(children).replace(/\n$/, "");
 
-	// Check if this is inline code by looking at the node position
-	// In react-markdown, code blocks are wrapped in <pre> which results in multiline content
-	// Inline code is typically single-line and has no language class
 	const isInline =
 		!language && node?.position?.start.line === node?.position?.end.line;
 
-	// Inline code (single backticks)
 	if (isInline) {
 		return (
 			<code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
@@ -43,7 +39,6 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 		);
 	}
 
-	// Code block (with or without language)
 	return (
 		<SyntaxHighlighter
 			style={syntaxStyle as Record<string, React.CSSProperties>}
