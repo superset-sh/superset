@@ -4,7 +4,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
-import { HOTKEYS } from "shared/hotkeys";
+import { getHotkey } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
 
@@ -52,7 +52,7 @@ export function WorkspaceView() {
 		: "workbench";
 
 	// Tab management shortcuts
-	useHotkeys(HOTKEYS.NEW_TERMINAL.keys, () => {
+	useHotkeys(getHotkey("NEW_TERMINAL"), () => {
 		if (activeWorkspaceId) {
 			// If in Review mode, switch to Workbench first
 			if (viewMode === "review") {
@@ -62,7 +62,7 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspaceId, addTab, viewMode, setWorkspaceViewMode]);
 
-	useHotkeys(HOTKEYS.CLOSE_TERMINAL.keys, () => {
+	useHotkeys(getHotkey("CLOSE_TERMINAL"), () => {
 		// Close focused pane (which may close the tab if it's the last pane)
 		if (focusedPaneId) {
 			removePane(focusedPaneId);
@@ -70,7 +70,7 @@ export function WorkspaceView() {
 	}, [focusedPaneId, removePane]);
 
 	// Switch between tabs (⌘+Up/Down)
-	useHotkeys(HOTKEYS.PREV_TERMINAL.keys, () => {
+	useHotkeys(getHotkey("PREV_TERMINAL"), () => {
 		if (!activeWorkspaceId || !activeTabId) return;
 		const index = tabs.findIndex((t) => t.id === activeTabId);
 		if (index > 0) {
@@ -78,7 +78,7 @@ export function WorkspaceView() {
 		}
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
-	useHotkeys(HOTKEYS.NEXT_TERMINAL.keys, () => {
+	useHotkeys(getHotkey("NEXT_TERMINAL"), () => {
 		if (!activeWorkspaceId || !activeTabId) return;
 		const index = tabs.findIndex((t) => t.id === activeTabId);
 		if (index < tabs.length - 1) {
@@ -87,7 +87,7 @@ export function WorkspaceView() {
 	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
 
 	// Switch between panes within a tab (⌘+⌥+Left/Right)
-	useHotkeys(HOTKEYS.PREV_PANE.keys, () => {
+	useHotkeys(getHotkey("PREV_PANE"), () => {
 		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
 		const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
 		if (prevPaneId) {
@@ -95,7 +95,7 @@ export function WorkspaceView() {
 		}
 	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
 
-	useHotkeys(HOTKEYS.NEXT_PANE.keys, () => {
+	useHotkeys(getHotkey("NEXT_PANE"), () => {
 		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
 		const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
 		if (nextPaneId) {

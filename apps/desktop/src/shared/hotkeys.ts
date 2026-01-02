@@ -426,7 +426,7 @@ export const HOTKEYS = {
 		label: "Toggle Files Sidebar",
 		category: "Layout",
 	}),
-	TOGGLE_WORKSPACE_SIDEBAR: hotkey({
+	TOGGLE_WORKSPACE_SIDEBAR: defineHotkey({
 		keys: "meta+shift+b",
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
@@ -578,6 +578,15 @@ export function getDefaultHotkey(
 	platform: HotkeyPlatform,
 ): string | null {
 	return HOTKEYS[id].defaults[platform];
+}
+
+/**
+ * Get the hotkey binding for the current platform.
+ * Convenience wrapper around getDefaultHotkey.
+ * Returns empty string if no hotkey is defined (safe for useHotkeys).
+ */
+export function getHotkey(id: HotkeyId): string {
+	return getDefaultHotkey(id, getCurrentPlatform()) ?? "";
 }
 
 export function getEffectiveHotkey(

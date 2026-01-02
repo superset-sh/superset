@@ -5,7 +5,7 @@ import {
 	useCreateBranchWorkspace,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { HOTKEYS } from "shared/hotkeys";
+import { getHotkey } from "shared/hotkeys";
 
 /**
  * Shared hook for workspace keyboard shortcuts and auto-creation logic.
@@ -105,8 +105,8 @@ export function useWorkspaceShortcuts() {
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
 	useHotkeys(workspaceKeys, handleWorkspaceSwitch);
-	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, handlePrevWorkspace);
-	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, handleNextWorkspace);
+	useHotkeys(getHotkey("PREV_WORKSPACE"), handlePrevWorkspace);
+	useHotkeys(getHotkey("NEXT_WORKSPACE"), handleNextWorkspace);
 
 	return {
 		groups,

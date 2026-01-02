@@ -19,7 +19,7 @@ const fileViewerStateSchema = z.object({
 	isLocked: z.boolean(),
 	diffLayout: z.enum(["inline", "side-by-side"]),
 	diffCategory: z
-		.enum(["against-main", "committed", "staged", "unstaged"])
+		.enum(["against-base", "committed", "staged", "unstaged"])
 		.optional(),
 	commitHash: z.string().optional(),
 	oldPath: z.string().optional(),

@@ -137,10 +137,10 @@ export function FileViewerPane({
 	const commitHash = fileViewer?.commitHash;
 	const oldPath = fileViewer?.oldPath;
 
-	// Fetch branch info for against-main diffs (P1-1)
+	// Fetch branch info for against-base diffs (P1-1)
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
 		{ worktreePath },
-		{ enabled: !!worktreePath && diffCategory === "against-main" },
+		{ enabled: !!worktreePath && diffCategory === "against-base" },
 	);
 	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
 
@@ -274,9 +274,9 @@ export function FileViewerPane({
 				oldPath,
 				category: diffCategory ?? "unstaged",
 				commitHash,
-				// P1-1: Pass defaultBranch for against-main diffs
+				// P1-1: Pass defaultBranch for against-base diffs
 				defaultBranch:
-					diffCategory === "against-main" ? effectiveBaseBranch : undefined,
+					diffCategory === "against-base" ? effectiveBaseBranch : undefined,
 			},
 			{
 				enabled:
