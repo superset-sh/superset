@@ -8,6 +8,11 @@ import {
 	useSelectedRingtoneId,
 	useSetRingtone,
 } from "renderer/stores";
+import {
+	isItemVisible,
+	SETTING_ITEM_ID,
+	type SettingItemId,
+} from "../settings-search";
 
 function formatDuration(seconds: number): string {
 	return `${seconds}s`;
@@ -149,7 +154,15 @@ function RingtoneCard({
 	);
 }
 
-export function RingtonesSettings() {
+interface RingtonesSettingsProps {
+	visibleItems?: SettingItemId[] | null;
+}
+
+export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
+	const showNotification = isItemVisible(
+		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
+		visibleItems,
+	);
 	const selectedRingtoneId = useSelectedRingtoneId();
 	const setRingtone = useSetRingtone();
 	const [playingId, setPlayingId] = useState<string | null>(null);
@@ -238,29 +251,33 @@ export function RingtonesSettings() {
 
 			<div className="space-y-8">
 				{/* Ringtone Section */}
-				<div>
-					<h3 className="text-sm font-medium mb-4">Notification Sound</h3>
-					<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-						{AVAILABLE_RINGTONES.map((ringtone) => (
-							<RingtoneCard
-								key={ringtone.id}
-								ringtone={ringtone}
-								isSelected={selectedRingtoneId === ringtone.id}
-								isPlaying={playingId === ringtone.id}
-								onSelect={() => handleSelect(ringtone.id)}
-								onTogglePlay={() => handleTogglePlay(ringtone)}
-							/>
-						))}
-					</div>
-				</div>
+				{showNotification && (
+					<>
+						<div>
+							<h3 className="text-sm font-medium mb-4">Notification Sound</h3>
+							<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+								{AVAILABLE_RINGTONES.map((ringtone) => (
+									<RingtoneCard
+										key={ringtone.id}
+										ringtone={ringtone}
+										isSelected={selectedRingtoneId === ringtone.id}
+										isPlaying={playingId === ringtone.id}
+										onSelect={() => handleSelect(ringtone.id)}
+										onTogglePlay={() => handleTogglePlay(ringtone)}
+									/>
+								))}
+							</div>
+						</div>
 
-				{/* Tip */}
-				<div className="pt-6 border-t">
-					<p className="text-sm text-muted-foreground">
-						Click the play button to preview a sound. Click stop or play another
-						to stop the current sound.
-					</p>
-				</div>
+						{/* Tip */}
+						<div className="pt-6 border-t">
+							<p className="text-sm text-muted-foreground">
+								Click the play button to preview a sound. Click stop or play
+								another to stop the current sound.
+							</p>
+						</div>
+					</>
+				)}
 			</div>
 		</div>
 	);

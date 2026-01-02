@@ -8,11 +8,13 @@ import type { SettingsSection } from "renderer/stores";
 interface ProjectsSettingsProps {
 	activeSection: SettingsSection;
 	onSectionChange: (section: SettingsSection) => void;
+	searchQuery?: string;
 }
 
 export function ProjectsSettings({
 	activeSection,
 	onSectionChange,
+	searchQuery = "",
 }: ProjectsSettingsProps) {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -27,6 +29,27 @@ export function ProjectsSettings({
 			setExpandedProjects(new Set(groups.map((g) => g.project.id)));
 		}
 	}, [groups]);
+
+	// Filter groups based on search query
+	const filteredGroups = groups
+		.map((group) => {
+			const projectMatches = group.project.name
+				.toLowerCase()
+				.includes(searchQuery.toLowerCase());
+			const matchingWorkspaces = group.workspaces.filter((ws) =>
+				ws.name.toLowerCase().includes(searchQuery.toLowerCase()),
+			);
+
+			// Include if project name matches or any workspace matches
+			if (projectMatches || matchingWorkspaces.length > 0) {
+				return {
+					...group,
+					workspaces: projectMatches ? group.workspaces : matchingWorkspaces,
+				};
+			}
+			return null;
+		})
+		.filter(Boolean) as typeof groups;
 
 	const toggleProject = (projectId: string) => {
 		setExpandedProjects((prev) => {
@@ -51,7 +74,7 @@ export function ProjectsSettings({
 		onSectionChange("workspace");
 	};
 
-	if (groups.length === 0) {
+	if (filteredGroups.length === 0) {
 		return null;
 	}
 
@@ -61,7 +84,7 @@ export function ProjectsSettings({
 				Projects
 			</h2>
 			<nav className="flex flex-col gap-0.5">
-				{groups.map((group) => (
+				{filteredGroups.map((group) => (
 					<div key={group.project.id}>
 						{/* Project header */}
 						<div
