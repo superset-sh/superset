@@ -1,6 +1,10 @@
 import type { ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+	oneDark,
+	oneLight,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useTheme } from "renderer/stores";
 
 interface CodeNode {
 	position?: {
@@ -16,6 +20,10 @@ interface CodeBlockProps {
 }
 
 export function CodeBlock({ children, className, node }: CodeBlockProps) {
+	const theme = useTheme();
+	const isDark = theme?.type !== "light";
+	const syntaxStyle = isDark ? oneDark : oneLight;
+
 	const match = /language-(\w+)/.exec(className || "");
 	const language = match ? match[1] : undefined;
 	const codeString = String(children).replace(/\n$/, "");
@@ -35,25 +43,11 @@ export function CodeBlock({ children, className, node }: CodeBlockProps) {
 		);
 	}
 
-	// Code block with language - use syntax highlighting
-	if (language) {
-		return (
-			<SyntaxHighlighter
-				style={oneDark as Record<string, React.CSSProperties>}
-				language={language}
-				PreTag="div"
-				className="rounded-md text-sm"
-			>
-				{codeString}
-			</SyntaxHighlighter>
-		);
-	}
-
-	// Code block without language - use plain text styling matching oneDark theme
+	// Code block (with or without language)
 	return (
 		<SyntaxHighlighter
-			style={oneDark as Record<string, React.CSSProperties>}
-			language="text"
+			style={syntaxStyle as Record<string, React.CSSProperties>}
+			language={language ?? "text"}
 			PreTag="div"
 			className="rounded-md text-sm"
 		>
