@@ -236,8 +236,10 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		return {
 			isNew: response.isNew,
-			// For backwards compatibility, provide scrollback from snapshot
-			scrollback: response.snapshot.snapshotAnsi,
+			// In daemon mode, snapshot.snapshotAnsi is the canonical content source.
+			// We set scrollback to empty to avoid duplicating the payload over IPC.
+			// The renderer should prefer snapshot.snapshotAnsi when available.
+			scrollback: "",
 			wasRecovered: response.wasRecovered,
 			snapshot: {
 				snapshotAnsi: response.snapshot.snapshotAnsi,

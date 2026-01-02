@@ -353,33 +353,36 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const restoreSequence = ++restoreSequenceRef.current;
 
 		try {
+			// Canonical initial content: prefer snapshot (daemon mode) over scrollback (non-daemon)
+			// In daemon mode, scrollback is empty to avoid duplicating the payload over IPC.
+			const initialAnsi = result.snapshot?.snapshotAnsi ?? result.scrollback;
+
 			// Track alternate screen mode from snapshot for our own reference
 			// (xterm.buffer.active.type is unreliable after HMR/recovery)
 			isAlternateScreenRef.current = !!result.snapshot?.modes.alternateScreen;
 			isBracketedPasteRef.current = !!result.snapshot?.modes.bracketedPaste;
 			modeScanBufferRef.current = "";
 
-			// Also parse scrollback for escape sequences in case snapshot.modes is incomplete
-			// This handles cases where the daemon didn't track the mode but the sequences are in history
-			if (result.scrollback) {
+			// Fallback: parse initialAnsi for escape sequences when snapshot.modes is unavailable.
+			// This handles non-daemon mode and edge cases where daemon didn't track the mode.
+			if (initialAnsi && result.snapshot?.modes === undefined) {
 				// Use lastIndexOf to find the final state - handles multiple enter/exit cycles
 				// (e.g., user opened vim, closed it, opened it again)
 				const enterAltIndex = Math.max(
-					result.scrollback.lastIndexOf("\x1b[?1049h"),
-					result.scrollback.lastIndexOf("\x1b[?47h"),
+					initialAnsi.lastIndexOf("\x1b[?1049h"),
+					initialAnsi.lastIndexOf("\x1b[?47h"),
 				);
 				const exitAltIndex = Math.max(
-					result.scrollback.lastIndexOf("\x1b[?1049l"),
-					result.scrollback.lastIndexOf("\x1b[?47l"),
+					initialAnsi.lastIndexOf("\x1b[?1049l"),
+					initialAnsi.lastIndexOf("\x1b[?47l"),
 				);
 				if (enterAltIndex !== -1 || exitAltIndex !== -1) {
 					isAlternateScreenRef.current = enterAltIndex > exitAltIndex;
 				}
 
 				// Bracketed paste mode can toggle during a session - use the last seen state.
-				const bracketEnableIndex = result.scrollback.lastIndexOf("\x1b[?2004h");
-				const bracketDisableIndex =
-					result.scrollback.lastIndexOf("\x1b[?2004l");
+				const bracketEnableIndex = initialAnsi.lastIndexOf("\x1b[?2004h");
+				const bracketDisableIndex = initialAnsi.lastIndexOf("\x1b[?2004l");
 				if (bracketEnableIndex !== -1 || bracketDisableIndex !== -1) {
 					isBracketedPasteRef.current =
 						bracketEnableIndex > bracketDisableIndex;
@@ -459,7 +462,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					});
 				});
 
-				updateCwdRef.current(result.scrollback);
+				// Use snapshot.cwd if available, otherwise parse from content
+				if (result.snapshot?.cwd) {
+					updateCwdRef.current(result.snapshot.cwd);
+				} else {
+					updateCwdRef.current(initialAnsi);
+				}
 				return; // Skip normal snapshot flow
 			}
 
@@ -468,7 +476,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Force a re-render after write completes to ensure correct display.
 			// (Symptom: restored terminals show corrupted text until resized)
 			// Use fitAddon.fit() and (when using WebGL) clear the glyph atlas to force a full repaint.
-			xterm.write(result.scrollback, () => {
+			xterm.write(initialAnsi, () => {
 				const redraw = () => {
 					requestAnimationFrame(() => {
 						try {
@@ -520,7 +528,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isStreamReadyRef.current = true;
 				flushPendingEvents();
 			});
-			updateCwdRef.current(result.scrollback);
+			// Use snapshot.cwd if available, otherwise parse from content
+			if (result.snapshot?.cwd) {
+				updateCwdRef.current(result.snapshot.cwd);
+			} else {
+				updateCwdRef.current(initialAnsi);
+			}
 		} catch (error) {
 			console.error("[Terminal] Restoration failed:", error);
 		}
