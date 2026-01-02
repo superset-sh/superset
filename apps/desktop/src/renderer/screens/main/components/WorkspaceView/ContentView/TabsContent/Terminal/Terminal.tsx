@@ -88,7 +88,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					// e.g., /repo vs /repo-other should not match
 					if (path === workspaceCwd) {
 						filePath = ".";
-					} else if (path.startsWith(workspaceCwd + "/")) {
+					} else if (path.startsWith(`${workspaceCwd}/`)) {
 						filePath = path.slice(workspaceCwd.length + 1);
 					} else if (path.startsWith("/")) {
 						// Absolute path outside workspace - still try to open it

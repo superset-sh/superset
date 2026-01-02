@@ -4,16 +4,12 @@ import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
-import { DEFAULT_NAVIGATION_STYLE } from "shared/constants";
 import { HOTKEYS } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
-import { WorkspaceActionBar } from "./WorkspaceActionBar";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const { data: navigationStyle } = trpc.settings.getNavigationStyle.useQuery();
-	const effectiveNavigationStyle = navigationStyle ?? DEFAULT_NAVIGATION_STYLE;
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -133,10 +129,6 @@ export function WorkspaceView() {
 			<div className="flex-1 flex bg-tertiary overflow-hidden">
 				<ResizableSidebar />
 				<div className="flex-1 min-w-0 h-full bg-background rounded-t-lg flex flex-col overflow-hidden">
-					<WorkspaceActionBar
-						worktreePath={activeWorkspace?.worktreePath}
-						navigationStyle={effectiveNavigationStyle}
-					/>
 					<div className="flex-1 min-h-0 overflow-hidden">
 						<ContentView />
 					</div>

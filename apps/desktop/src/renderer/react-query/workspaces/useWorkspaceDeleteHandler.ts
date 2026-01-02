@@ -72,8 +72,7 @@ export function useWorkspaceDeleteHandler({
 
 			// Only skip dialog if we have data confirming it's safe to delete
 			const isEmpty =
-				canDeleteData &&
-				canDeleteData.canDelete &&
+				canDeleteData?.canDelete &&
 				canDeleteData.activeTerminalCount === 0 &&
 				!canDeleteData.warning &&
 				!canDeleteData.hasChanges &&

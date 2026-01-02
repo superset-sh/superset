@@ -3,6 +3,7 @@ import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
 import { SidebarControl } from "../SidebarControl";
 import { WindowControls } from "./WindowControls";
+import { WorkspaceControls } from "./WorkspaceControls";
 import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 import { WorkspacesTabs } from "./WorkspaceTabs";
 
@@ -30,7 +31,7 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 			</div>
 
 			{isSidebarMode ? (
-				<div className="flex items-center gap-2 flex-1 overflow-hidden h-full px-4">
+				<div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden h-full px-4">
 					{activeWorkspace && (
 						<span className="text-sm font-medium truncate">
 							{activeWorkspace.project?.name ?? "Workspace"}
@@ -40,12 +41,17 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 					)}
 				</div>
 			) : (
-				<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
+				<div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden h-full">
 					<WorkspacesTabs />
 				</div>
 			)}
 
-			<div className="flex items-center h-full pr-4">
+			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				<WorkspaceControls
+					workspaceId={activeWorkspace?.id}
+					worktreePath={activeWorkspace?.worktreePath}
+					branch={activeWorkspace?.worktree?.branch}
+				/>
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
 			</div>

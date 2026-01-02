@@ -8,8 +8,8 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import {
-	PathValidationError,
 	assertRegisteredWorktree,
+	PathValidationError,
 	resolvePathInWorktree,
 } from "./path-validation";
 
@@ -40,7 +40,7 @@ async function assertRealpathInWorktree(
 		const worktreeReal = await realpath(worktreePath);
 
 		// Ensure realpath is within worktree (with proper boundary check)
-		if (!real.startsWith(worktreeReal + "/") && real !== worktreeReal) {
+		if (!real.startsWith(`${worktreeReal}/`) && real !== worktreeReal) {
 			throw new PathValidationError(
 				"File is a symlink pointing outside the worktree",
 				"SYMLINK_ESCAPE",
@@ -188,7 +188,7 @@ export const secureFs = {
 			const real = await realpath(fullPath);
 			const worktreeReal = await realpath(worktreePath);
 
-			return !real.startsWith(worktreeReal + "/") && real !== worktreeReal;
+			return !real.startsWith(`${worktreeReal}/`) && real !== worktreeReal;
 		} catch {
 			// If we can't determine, assume not escaping (file may not exist)
 			return false;
