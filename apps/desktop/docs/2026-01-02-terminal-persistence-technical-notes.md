@@ -12,10 +12,12 @@ This document captures the technical decisions, debugging investigations, and so
 
 1. [Architecture Overview](#architecture-overview)
 2. [TUI Restoration: Why SIGWINCH Instead of Snapshots](#tui-restoration-why-sigwinch-instead-of-snapshots)
-3. [Large Paste Reliability: Subprocess Isolation + Backpressure](#large-paste-reliability-subprocess-isolation--backpressure)
-4. [Renderer Notes: WebGL vs Canvas on macOS](#renderer-notes-webgl-vs-canvas-on-macos)
-5. [Design Options Considered](#design-options-considered)
-6. [Reference Links](#reference-links)
+3. [Keeping Terminals Mounted Across Workspace Switches](#keeping-terminals-mounted-across-workspace-switches)
+4. [Large Paste Reliability: Subprocess Isolation + Backpressure](#large-paste-reliability-subprocess-isolation--backpressure)
+5. [Renderer Notes: WebGL vs Canvas on macOS](#renderer-notes-webgl-vs-canvas-on-macos)
+6. [Design Options Considered](#design-options-considered)
+7. [Future Improvements](#future-improvements)
+8. [Reference Links](#reference-links)
 
 ---
 
@@ -110,6 +112,58 @@ if (isAltScreenReattach) {
 | Complexity | High | Low |
 
 **Non-TUI sessions** (normal shells) still use the snapshot approach, which works correctly for scrollback history and shell prompts.
+
+---
+
+## Keeping Terminals Mounted Across Workspace Switches
+
+### The Problem
+
+Even with SIGWINCH-based TUI restoration working correctly, switching between workspaces still caused intermittent white screen issues for TUI apps. Manual window resize would fix it, but the experience was jarring.
+
+**Root cause:** When switching workspaces, React unmounts the `Terminal` component entirely, destroying the xterm.js instance. On return, a new xterm instance must be created and reattached to the existing PTY session. Despite correct SIGWINCH timing, race conditions between xterm initialization and PTY output caused blank/white screens.
+
+### The Solution: Keep All Terminals Mounted
+
+Instead of unmounting Terminal components on workspace/tab switch:
+
+1. **Render all tabs from all workspaces** simultaneously in `TabsContent`
+2. **Hide inactive tabs with CSS** (`visibility: hidden; pointer-events: none;`)
+3. **Show only the active tab** for the active workspace
+
+**Implementation:** `TabsContent/index.tsx` renders `allTabs` with visibility toggling instead of conditional rendering.
+
+### Why `visibility: hidden` Instead of `display: none`
+
+Using `visibility: hidden` (not `display: none`) is critical:
+- `display: none` removes the element from layout, giving it 0×0 dimensions
+- xterm.js and FitAddon expect non-zero dimensions to function correctly
+- `visibility: hidden` preserves the element's layout dimensions while hiding it visually
+
+### Why This Works
+
+- xterm.js instances persist across navigation—no recreation needed
+- No state reconstruction, no reattach timing issues
+- The terminal stays exactly as it was when hidden
+- The complex SIGWINCH/snapshot restoration code becomes a fallback path only (used for app restart recovery)
+
+### Trade-offs
+
+| Aspect | Impact | Mitigation |
+|--------|--------|------------|
+| Memory | Each terminal holds scrollback buffer + xterm render state | See Future Improvements: LRU hibernation |
+| CPU | Hidden terminals still process PTY output | See Future Improvements: buffer output |
+| DOM nodes | Many elements even when hidden | `visibility: hidden` is cheap; browser optimizes |
+
+### When This Applies
+
+This optimization is **only enabled when Terminal Persistence is ON** in Settings. When persistence is disabled, the original behavior (unmount on switch) is used.
+
+### Fallback Path
+
+The SIGWINCH-based restoration logic remains in `Terminal.tsx` as a fallback for:
+- **App restart recovery** — fresh xterm must reattach to daemon's PTY session
+- **Edge cases** — any scenario where the Terminal component truly remounts
 
 ---
 
@@ -227,6 +281,48 @@ Host each terminal in a persistent Electron view.
 ### What We Chose
 
 For v1, we implemented a daemon with SIGWINCH-based TUI restoration. This balances correctness (TUI redraws itself) with implementation complexity.
+
+**Update (v1.1):** We discovered that keeping xterm instances mounted (Option A) eliminates the reattach timing issues that caused white screen flashes during workspace/tab switches. When terminal persistence is enabled, we now render all tabs and toggle visibility instead of unmounting. The SIGWINCH restoration logic remains as a fallback for app restart recovery when a fresh xterm instance must reattach to an existing PTY session.
+
+---
+
+## Future Improvements
+
+These are documented for future work. They are not blocking for the current implementation.
+
+### 1. Buffer PTY Output for Hidden Terminals
+
+Currently, hidden terminals continue processing PTY output through xterm.js. For users with many terminals producing continuous output, this wastes CPU cycles.
+
+**Proposed solution:**
+- When a terminal becomes hidden, pause writes to xterm
+- Buffer PTY events in memory (or discard if not in alt-screen mode)
+- On show, flush buffered events to xterm
+
+### 2. LRU Terminal Hibernation
+
+For users with many workspaces (10+), keeping all terminals alive may use excessive memory.
+
+**Proposed solution:**
+- Track terminal last-active timestamps
+- When memory pressure is detected, hibernate oldest inactive terminals
+- Hibernation = dispose xterm instance, keep PTY alive in daemon
+- On reactivation, create new xterm and run normal restore flow
+
+### 3. Reduce Scrollback for Hidden Terminals
+
+Each terminal's scrollback buffer can be large (default 10,000 lines).
+
+**Proposed solution:**
+- Reduce `scrollback` option for inactive terminals
+- Restore full scrollback on activation (daemon has full history)
+
+### 4. Memory Usage Metrics
+
+Add observability to understand real-world memory usage patterns:
+- Track number of terminals per user session
+- Track memory per terminal (xterm buffers + DOM)
+- Surface warnings if approaching problematic thresholds
 
 ---
 

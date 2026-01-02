@@ -292,23 +292,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
 		if (!xterm) return;
-		if (pendingEventsRef.current.length === 0) {
-			console.log(
-				`[Terminal][${paneId.slice(-8)}] FLUSH: no pending events time=${Date.now()}`,
-			);
-			return;
-		}
+		if (pendingEventsRef.current.length === 0) return;
 
 		const events = pendingEventsRef.current.splice(
 			0,
 			pendingEventsRef.current.length,
-		);
-		const totalBytes = events.reduce(
-			(sum, e) => sum + (e.type === "data" ? e.data.length : 0),
-			0,
-		);
-		console.log(
-			`[Terminal][${paneId.slice(-8)}] FLUSHING ${events.length} events (${totalBytes} bytes) time=${Date.now()}`,
 		);
 
 		for (const event of events) {
@@ -348,7 +336,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		}
 		// biome-ignore lint/correctness/useExhaustiveDependencies: refs used intentionally to avoid recreating callback
-	}, [paneId, setConnectionError]);
+	}, [setConnectionError]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs (resizeRef, updateCwdRef, rendererRef) used intentionally to read latest values without recreating callback
 	const maybeApplyInitialState = useCallback(() => {
@@ -419,54 +407,56 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			const isAltScreenReattach =
 				!result.isNew && result.snapshot?.modes.alternateScreen;
 
-			// EXPERIMENTAL: For alt-screen (TUI) sessions, the serialized snapshot often
-			// renders incorrectly because styled spaces and positioning get lost.
-			// Instead of writing broken snapshot, enter alt-screen and trigger SIGWINCH
-			// so the TUI redraws itself via the live stream.
+			// For alt-screen (TUI) sessions, the serialized snapshot often renders
+			// incorrectly because styled spaces and positioning get lost. Instead of
+			// writing broken snapshot, enter alt-screen and trigger SIGWINCH so the
+			// TUI redraws itself via the live stream.
+			// NOTE: This is primarily a fallback path for app restart recovery.
+			// During normal workspace/tab switching with persistence enabled,
+			// terminals stay mounted and this code path is not triggered.
 			if (isAltScreenReattach) {
-				console.log(
-					`[Terminal][${paneId.slice(-8)}] ALT-SCREEN REATTACH: skipping snapshot, triggering SIGWINCH redraw`,
-				);
-
-				// Enter alt-screen mode so TUI output goes to correct buffer
-				xterm.write("\x1b[?1049h");
-
-				// Apply rehydration sequences for other modes (bracketed paste, etc.)
-				if (result.snapshot?.rehydrateSequences) {
-					// Filter out alt-screen sequences since we already entered
-					const ESC = "\x1b";
-					const filteredRehydrate = result.snapshot.rehydrateSequences
-						.split(ESC + "[?1049h")
-						.join("")
-						.split(ESC + "[?47h")
-						.join("");
-					if (filteredRehydrate) {
-						xterm.write(filteredRehydrate);
+				// Enter alt-screen mode and WAIT for xterm to process it before proceeding.
+				// xterm.write() is async - if we trigger SIGWINCH before alt-screen is entered,
+				// the TUI receives SIGWINCH in normal mode, ignores it, then xterm switches
+				// buffers and we get a white screen.
+				xterm.write("\x1b[?1049h", () => {
+					// Apply rehydration sequences for other modes (bracketed paste, etc.)
+					if (result.snapshot?.rehydrateSequences) {
+						// Filter out alt-screen sequences since we already entered
+						const ESC = "\x1b";
+						const filteredRehydrate = result.snapshot.rehydrateSequences
+							.split(ESC + "[?1049h")
+							.join("")
+							.split(ESC + "[?47h")
+							.join("");
+						if (filteredRehydrate) {
+							xterm.write(filteredRehydrate);
+						}
 					}
-				}
 
-				// Enable streaming BEFORE resize so TUI output comes through
-				isStreamReadyRef.current = true;
-				flushPendingEvents();
+					// NOW safe to enable streaming and flush pending events
+					isStreamReadyRef.current = true;
+					flushPendingEvents();
 
-				// Fit xterm to container and trigger SIGWINCH
-				requestAnimationFrame(() => {
-					if (xtermRef.current !== xterm) return;
-					fitAddon.fit();
+					// Fit xterm to container and trigger SIGWINCH
+					requestAnimationFrame(() => {
+						if (xtermRef.current !== xterm) return;
 
-					const cols = xterm.cols;
-					const rows = xterm.rows;
-					if (cols > 0 && rows > 0) {
-						console.log(
-							`[Terminal][${paneId.slice(-8)}] ALT-SCREEN SIGWINCH: ${cols}x${rows} -> ${cols}x${rows - 1} -> ${cols}x${rows}`,
-						);
-						// Resize down then up to guarantee SIGWINCH
-						resizeRef.current({ paneId, cols, rows: rows - 1 });
-						setTimeout(() => {
-							if (xtermRef.current !== xterm) return;
-							resizeRef.current({ paneId, cols, rows });
-						}, 100);
-					}
+						fitAddon.fit();
+						const cols = xterm.cols;
+						const rows = xterm.rows;
+
+						if (cols > 0 && rows > 0) {
+							// Resize down then up to guarantee SIGWINCH
+							resizeRef.current({ paneId, cols, rows: rows - 1 });
+							setTimeout(() => {
+								if (xtermRef.current !== xterm) return;
+								resizeRef.current({ paneId, cols, rows });
+								// Force xterm to repaint after SIGWINCH completes
+								xterm.refresh(0, rows - 1);
+							}, 100);
+						}
+					});
 				});
 
 				updateCwdRef.current(result.scrollback);
@@ -580,10 +570,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		// Queue events until terminal is ready to prevent data loss
 		if (!xtermRef.current || !isStreamReadyRef.current) {
-			const dataLen = event.type === "data" ? event.data.length : 0;
-			console.log(
-				`[Terminal][${paneId.slice(-8)}] QUEUING event type=${event.type} len=${dataLen} totalQueued=${pendingEventsRef.current.length + 1} time=${Date.now()}`,
-			);
 			pendingEventsRef.current.push(event);
 			return;
 		}

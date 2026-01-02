@@ -55,8 +55,13 @@ export function TerminalSettings() {
 							Terminal persistence
 						</Label>
 						<p className="text-xs text-muted-foreground">
-							Keep terminal sessions alive across app restarts. TUI apps like
-							Claude Code will resume exactly where you left off.
+							Keep terminal sessions alive across app restarts and workspace
+							switches. TUI apps like Claude Code will resume exactly where you
+							left off.
+						</p>
+						<p className="text-xs text-muted-foreground/70 mt-1">
+							May use more memory with many terminals open. Disable if you
+							notice performance issues.
 						</p>
 						<p className="text-xs text-muted-foreground/70 mt-1">
 							Requires app restart to take effect.
