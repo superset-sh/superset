@@ -7,7 +7,17 @@ import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
 const MAX_OUTPUT_CHARS = 8_000;
-const MAX_BUFFER_BYTES = 2 * 1024 * 1024;
+const DEFAULT_MAX_BUFFER_BYTES = 16 * 1024 * 1024;
+const envMaxBufferBytes = Number(
+	process.env.SUPERSET_TEARDOWN_MAX_BUFFER_BYTES,
+);
+const MAX_BUFFER_BYTES =
+	Number.isFinite(envMaxBufferBytes) && envMaxBufferBytes > 0
+		? envMaxBufferBytes
+		: DEFAULT_MAX_BUFFER_BYTES;
+
+const SHOULD_LOG_TEARDOWN_VERBOSE =
+	process.env.SUPERSET_TEARDOWN_VERBOSE_LOGS === "1";
 
 export interface TeardownResult {
 	success: boolean;
@@ -19,7 +29,11 @@ function safeToString(value: unknown): string {
 	if (Buffer.isBuffer(value)) return value.toString("utf-8");
 	if (value instanceof Error) return value.stack ?? value.message;
 	if (value && typeof value === "object") {
-		return Object.prototype.toString.call(value);
+		try {
+			return JSON.stringify(value);
+		} catch {
+			return Object.prototype.toString.call(value);
+		}
 	}
 	return String(value);
 }
@@ -64,7 +78,11 @@ function formatOutput(label: string, output: unknown): string | null {
 		return `${label}:\n${raw}`;
 	}
 
-	return `${label} (truncated to ${MAX_OUTPUT_CHARS} chars):\n${raw.slice(-MAX_OUTPUT_CHARS)}`;
+	const half = Math.floor(MAX_OUTPUT_CHARS / 2);
+	const head = raw.slice(0, half);
+	const tail = raw.slice(-half);
+
+	return `${label} (truncated to ${MAX_OUTPUT_CHARS} chars):\n${head}\n... [truncated] ...\n${tail}`;
 }
 
 function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
@@ -112,7 +130,7 @@ export async function runTeardown(
 	try {
 		const shellEnv = await getShellEnvironment();
 		console.log(
-			`[workspaces/teardown] Running teardown for workspace ${workspaceName}: ${command}`,
+			`[workspaces/teardown] Running teardown for workspace ${workspaceName}${SHOULD_LOG_TEARDOWN_VERBOSE ? `: ${command}` : ""}`,
 		);
 
 		const stdout = execSync(command, {
@@ -128,9 +146,11 @@ export async function runTeardown(
 			stdio: "pipe",
 		});
 
-		const formattedStdout = formatOutput("stdout", stdout);
-		if (formattedStdout) {
-			console.log(`[workspaces/teardown] ${formattedStdout}`);
+		if (SHOULD_LOG_TEARDOWN_VERBOSE) {
+			const formattedStdout = formatOutput("stdout", stdout);
+			if (formattedStdout) {
+				console.log(`[workspaces/teardown] ${formattedStdout}`);
+			}
 		}
 		console.log(
 			`[workspaces/teardown] Completed for workspace ${workspaceName}`,
@@ -159,12 +179,15 @@ export async function runTeardown(
 		}
 
 		const statusSuffix =
-			typeof execError.status === "number"
+			typeof execError.status === "number" && execError.status !== 0
 				? ` (exit code ${execError.status})`
 				: "";
+		const signalSuffix = execError.signal
+			? ` (signal ${execError.signal})`
+			: "";
 		return {
 			success: false,
-			error: `${execError.message}${statusSuffix}`,
+			error: `${execError.message}${statusSuffix}${signalSuffix}`,
 		};
 	}
 }

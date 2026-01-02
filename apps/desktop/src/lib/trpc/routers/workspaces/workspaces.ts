@@ -882,16 +882,34 @@ export const createWorkspacesRouter = () => {
 
 						if (exists) {
 							// Ensure teardown scripts like "./.superset/teardown.sh" exist even when .superset is gitignored
-							copySupersetConfigToWorktree(project.mainRepoPath, worktree.path);
-							const teardownResult = await runTeardown(
-								project.mainRepoPath,
-								worktree.path,
-								workspace.name,
-							);
-							if (!teardownResult.success) {
+							try {
+								await copySupersetConfigToWorktree(
+									project.mainRepoPath,
+									worktree.path,
+								);
+							} catch (error) {
 								console.error(
-									`Teardown failed for workspace ${workspace.name}:`,
-									teardownResult.error,
+									`Failed to copy superset config for workspace ${workspace.name}:`,
+									error,
+								);
+							}
+
+							try {
+								const teardownResult = await runTeardown(
+									project.mainRepoPath,
+									worktree.path,
+									workspace.name,
+								);
+								if (!teardownResult.success) {
+									console.error(
+										`Teardown failed for workspace ${workspace.name}:`,
+										teardownResult.error,
+									);
+								}
+							} catch (error) {
+								console.error(
+									`Teardown threw for workspace ${workspace.name}:`,
+									error,
 								);
 							}
 						}
