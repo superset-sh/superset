@@ -258,9 +258,6 @@ export class Session {
 		switch (type) {
 			case PtySubprocessIpcType.Ready:
 				this.subprocessReady = true;
-				console.log(
-					`[Session ${this.sessionId}] Subprocess ready, spawning PTY`,
-				);
 				if (this.pendingSpawn) {
 					this.sendSpawnToSubprocess(this.pendingSpawn);
 					this.pendingSpawn = null;
@@ -269,9 +266,6 @@ export class Session {
 
 			case PtySubprocessIpcType.Spawned:
 				this.ptyPid = payload.length >= 4 ? payload.readUInt32LE(0) : null;
-				console.log(
-					`[Session ${this.sessionId}] PTY spawned with pid ${this.ptyPid}`,
-				);
 				// Resolve the ready promise so callers can await PTY readiness
 				if (this.ptyReadyResolve) {
 					this.ptyReadyResolve();
@@ -295,9 +289,6 @@ export class Session {
 			case PtySubprocessIpcType.Exit: {
 				const exitCode = payload.length >= 4 ? payload.readInt32LE(0) : 0;
 				const signal = payload.length >= 8 ? payload.readInt32LE(4) : 0;
-				console.log(
-					`[Session ${this.sessionId}] Received EXIT frame: exitCode=${exitCode}, signal=${signal}`,
-				);
 				this.exitCode = exitCode;
 
 				this.broadcastEvent("exit", {
@@ -487,18 +478,8 @@ export class Session {
 	}
 
 	private sendKillToSubprocess(signal?: string): boolean {
-		console.log(
-			`[Session ${this.sessionId}] sendKillToSubprocess(${signal}): subprocess.stdin=${!!this.subprocess?.stdin}, disposed=${this.disposed}`,
-		);
 		const payload = signal ? Buffer.from(signal, "utf8") : undefined;
-		const result = this.sendFrameToSubprocess(
-			PtySubprocessIpcType.Kill,
-			payload,
-		);
-		console.log(
-			`[Session ${this.sessionId}] sendKillToSubprocess(): sendFrameToSubprocess returned ${result}`,
-		);
-		return result;
+		return this.sendFrameToSubprocess(PtySubprocessIpcType.Kill, payload);
 	}
 
 	private sendDisposeToSubprocess(): boolean {
@@ -728,33 +709,13 @@ export class Session {
 		// Use snapshot boundary flush for consistent state with continuous output.
 		// This ensures we capture all data received BEFORE attach was called,
 		// even if new data continues to arrive during the flush.
-		const queuedBefore = this.emulatorWriteQueuedBytes;
-		const queueItemsBefore = this.emulatorWriteQueue.length;
-		const flushStart = performance.now();
-
 		const reachedBoundary = await this.flushToSnapshotBoundary(
 			ATTACH_FLUSH_TIMEOUT_MS,
 		);
 
-		const flushTime = performance.now() - flushStart;
-		const queuedAfter = this.emulatorWriteQueuedBytes;
-
-		// ALWAYS log attach for debugging
-		const modes = this.emulator.getModes();
-		console.log(
-			`[Session ${this.sessionId}] ATTACH: ` +
-				`reachedBoundary=${reachedBoundary} ` +
-				`flushTime=${flushTime.toFixed(0)}ms ` +
-				`queueBefore=${queueItemsBefore} queueAfter=${this.emulatorWriteQueue.length} ` +
-				`altScreen=${modes.alternateScreen}`,
-		);
-
 		if (!reachedBoundary) {
 			console.warn(
-				`[Session ${this.sessionId}] ATTACH FLUSH TIMEOUT: ` +
-					`flushTime=${flushTime.toFixed(0)}ms ` +
-					`queueBefore=${queueItemsBefore} items (${queuedBefore} bytes) ` +
-					`queueAfter=${this.emulatorWriteQueue.length} items (${queuedAfter} bytes)`,
+				`[Session ${this.sessionId}] Attach flush timeout after ${ATTACH_FLUSH_TIMEOUT_MS}ms`,
 			);
 		}
 
@@ -828,15 +789,8 @@ export class Session {
 	 * The actual PTY termination is async - use isTerminating to check state.
 	 */
 	kill(signal: string = "SIGTERM"): void {
-		console.log(
-			`[Session ${this.sessionId}] kill(): terminatingAt=${this.terminatingAt}, subprocess=${!!this.subprocess}, subprocessReady=${this.subprocessReady}, ptyPid=${this.ptyPid}`,
-		);
-
 		// Idempotent: if already terminating, don't send another signal
 		if (this.terminatingAt !== null) {
-			console.log(
-				`[Session ${this.sessionId}] kill(): already terminating, skipping`,
-			);
 			return;
 		}
 
@@ -844,24 +798,16 @@ export class Session {
 		this.terminatingAt = Date.now();
 
 		if (this.subprocess && this.subprocessReady) {
-			const sent = this.sendKillToSubprocess(signal);
-			console.log(
-				`[Session ${this.sessionId}] kill(): sendKillToSubprocess(${signal}) returned ${sent}`,
-			);
+			this.sendKillToSubprocess(signal);
 			return;
 		}
 
 		// If the subprocess isn't ready yet, fall back to killing the subprocess itself
 		// so session termination is reliable (differentiation isn't meaningful pre-spawn).
-		console.log(
-			`[Session ${this.sessionId}] kill(): subprocess not ready, using direct kill`,
-		);
 		try {
 			this.subprocess?.kill(signal as NodeJS.Signals);
-		} catch (error) {
-			console.log(
-				`[Session ${this.sessionId}] kill(): direct kill failed: ${error}`,
-			);
+		} catch {
+			// Process may already be dead
 		}
 	}
 

@@ -173,16 +173,11 @@ export class TerminalHost {
 		const { sessionId } = request;
 		const session = this.sessions.get(sessionId);
 
-		console.log(
-			`[TerminalHost] kill(${sessionId}): found=${!!session}, isTerminating=${session?.isTerminating}, isAlive=${session?.isAlive}`,
-		);
-
 		if (!session) {
 			return { success: true };
 		}
 
 		session.kill();
-		console.log(`[TerminalHost] kill(${sessionId}): session.kill() called`);
 
 		// Set up fail-safe timer to force-dispose if exit never fires.
 		// This prevents zombie sessions if the PTY process hangs.

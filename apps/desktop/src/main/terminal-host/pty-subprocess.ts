@@ -299,22 +299,16 @@ function handleSpawn(payload: Buffer): void {
 		});
 
 		ptyProcess.onExit(({ exitCode, signal }) => {
-			console.error(
-				`[pty-subprocess] onExit fired: exitCode=${exitCode}, signal=${signal}`,
-			);
 			flushOutput();
 
 			const exitPayload = Buffer.allocUnsafe(8);
 			exitPayload.writeInt32LE(exitCode ?? 0, 0);
 			exitPayload.writeInt32LE(signal ?? 0, 4);
 			send(PtySubprocessIpcType.Exit, exitPayload);
-			console.error("[pty-subprocess] onExit: EXIT frame sent");
 
 			ptyProcess = null;
 			ptyFd = null;
-			console.error("[pty-subprocess] onExit: scheduling process.exit(0)");
 			setTimeout(() => {
-				console.error("[pty-subprocess] onExit: calling process.exit(0)");
 				process.exit(0);
 			}, 100);
 		});
@@ -352,12 +346,8 @@ function handleResize(payload: Buffer): void {
 
 function handleKill(payload: Buffer): void {
 	const signal = payload.length > 0 ? payload.toString("utf8") : "SIGTERM";
-	console.error(
-		`[pty-subprocess] handleKill: ptyProcess=${!!ptyProcess}, pid=${ptyProcess?.pid}, signal=${signal}`,
-	);
 
 	if (!ptyProcess) {
-		console.error("[pty-subprocess] handleKill: no ptyProcess to kill");
 		return;
 	}
 
@@ -365,15 +355,9 @@ function handleKill(payload: Buffer): void {
 
 	// Step 1: Send the requested signal (usually SIGTERM for graceful shutdown)
 	try {
-		console.error(
-			`[pty-subprocess] handleKill: calling pty.kill(${signal}) on pid ${pid}`,
-		);
 		ptyProcess.kill(signal);
-		console.error("[pty-subprocess] handleKill: pty.kill() returned");
-	} catch (error) {
-		console.error(
-			`[pty-subprocess] handleKill: pty.kill() threw: ${error instanceof Error ? error.message : String(error)}`,
-		);
+	} catch {
+		// Process may already be dead
 	}
 
 	// Step 2: Escalate to SIGKILL if still alive after 2 seconds
@@ -381,9 +365,6 @@ function handleKill(payload: Buffer): void {
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
-		console.error(
-			`[pty-subprocess] handleKill: escalating to SIGKILL for pid ${pid}`,
-		);
 		try {
 			ptyProcess.kill("SIGKILL");
 		} catch {
@@ -396,7 +377,7 @@ function handleKill(payload: Buffer): void {
 			if (!ptyProcess) return; // Finally exited via onExit
 
 			console.error(
-				`[pty-subprocess] handleKill: forcing exit, onExit never fired for pid ${pid}`,
+				`[pty-subprocess] Force exit: onExit never fired for pid ${pid}`,
 			);
 
 			// Synthesize Exit frame since onExit won't fire
