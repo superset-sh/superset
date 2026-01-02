@@ -39,6 +39,11 @@ export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
 
 export interface SessionResult {
 	isNew: boolean;
+	/**
+	 * Initial terminal content (ANSI).
+	 * In daemon mode, this is empty - prefer `snapshot.snapshotAnsi` when available.
+	 * In non-daemon mode, this contains the recovered scrollback content.
+	 */
 	scrollback: string;
 	wasRecovered: boolean;
 	/** Snapshot from daemon (if using daemon mode) */
