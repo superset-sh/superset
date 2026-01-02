@@ -2,18 +2,32 @@ import type { ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
+interface CodeNode {
+	position?: {
+		start: { line: number; column: number };
+		end: { line: number; column: number };
+	};
+}
+
 interface CodeBlockProps {
 	children?: ReactNode;
 	className?: string;
-	node?: unknown;
+	node?: CodeNode;
 }
 
-export function CodeBlock({ children, className }: CodeBlockProps) {
+export function CodeBlock({ children, className, node }: CodeBlockProps) {
 	const match = /language-(\w+)/.exec(className || "");
 	const language = match ? match[1] : undefined;
 	const codeString = String(children).replace(/\n$/, "");
 
-	if (!language) {
+	// Check if this is inline code by looking at the node position
+	// In react-markdown, code blocks are wrapped in <pre> which results in multiline content
+	// Inline code is typically single-line and has no language class
+	const isInline =
+		!language && node?.position?.start.line === node?.position?.end.line;
+
+	// Inline code (single backticks)
+	if (isInline) {
 		return (
 			<code className="px-1.5 py-0.5 rounded bg-muted font-mono text-sm">
 				{children}
@@ -21,10 +35,25 @@ export function CodeBlock({ children, className }: CodeBlockProps) {
 		);
 	}
 
+	// Code block with language - use syntax highlighting
+	if (language) {
+		return (
+			<SyntaxHighlighter
+				style={oneDark as Record<string, React.CSSProperties>}
+				language={language}
+				PreTag="div"
+				className="rounded-md text-sm"
+			>
+				{codeString}
+			</SyntaxHighlighter>
+		);
+	}
+
+	// Code block without language - use plain text styling matching oneDark theme
 	return (
 		<SyntaxHighlighter
 			style={oneDark as Record<string, React.CSSProperties>}
-			language={language}
+			language="text"
 			PreTag="div"
 			className="rounded-md text-sm"
 		>

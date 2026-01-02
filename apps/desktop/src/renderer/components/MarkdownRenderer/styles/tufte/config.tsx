@@ -7,8 +7,10 @@ export const tufteConfig: MarkdownStyleConfig = {
 	articleClass: "",
 	components: {
 		// Minimal overrides - let CSS handle styling
-		code: ({ className, children }) => (
-			<CodeBlock className={className}>{children}</CodeBlock>
+		code: ({ className, children, node }) => (
+			<CodeBlock className={className} node={node}>
+				{children}
+			</CodeBlock>
 		),
 	},
 };

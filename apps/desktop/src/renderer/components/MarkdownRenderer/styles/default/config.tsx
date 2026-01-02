@@ -7,8 +7,10 @@ export const defaultConfig: MarkdownStyleConfig = {
 	wrapperClass: "default-markdown",
 	articleClass: "px-8 py-6 max-w-none",
 	components: {
-		code: ({ className, children }) => (
-			<CodeBlock className={className}>{children}</CodeBlock>
+		code: ({ className, children, node }) => (
+			<CodeBlock className={className} node={node}>
+				{children}
+			</CodeBlock>
 		),
 		table: ({ children }) => (
 			<div className="overflow-x-auto my-4">
