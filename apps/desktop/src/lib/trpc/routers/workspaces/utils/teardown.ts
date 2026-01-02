@@ -7,7 +7,7 @@ import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
 const MAX_OUTPUT_CHARS = 8_000;
-const MAX_BUFFER_BYTES = 10 * 1024 * 1024;
+const MAX_BUFFER_BYTES = 2 * 1024 * 1024;
 
 export interface TeardownResult {
 	success: boolean;
@@ -17,7 +17,42 @@ export interface TeardownResult {
 function safeToString(value: unknown): string {
 	if (typeof value === "string") return value;
 	if (Buffer.isBuffer(value)) return value.toString("utf-8");
+	if (value instanceof Error) return value.stack ?? value.message;
+	if (value && typeof value === "object") {
+		return Object.prototype.toString.call(value);
+	}
 	return String(value);
+}
+
+function normalizeExecSyncError(error: unknown): {
+	message: string;
+	status?: number | null;
+	signal?: NodeJS.Signals | null;
+	stdout?: unknown;
+	stderr?: unknown;
+} {
+	const base = {
+		message: error instanceof Error ? error.message : String(error),
+	};
+
+	if (!error || typeof error !== "object") {
+		return base;
+	}
+
+	const execError = error as {
+		status?: number | null;
+		signal?: NodeJS.Signals | null;
+		stdout?: unknown;
+		stderr?: unknown;
+	};
+
+	return {
+		...base,
+		status: execError.status,
+		signal: execError.signal,
+		stdout: execError.stdout,
+		stderr: execError.stderr,
+	};
 }
 
 function formatOutput(label: string, output: unknown): string | null {
@@ -103,16 +138,10 @@ export async function runTeardown(
 
 		return { success: true };
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : String(error);
-		const errorAsUnknown = error as unknown as {
-			status?: number | null;
-			signal?: NodeJS.Signals | null;
-			stdout?: unknown;
-			stderr?: unknown;
-		};
+		const execError = normalizeExecSyncError(error);
 
-		const formattedStdout = formatOutput("stdout", errorAsUnknown.stdout);
-		const formattedStderr = formatOutput("stderr", errorAsUnknown.stderr);
+		const formattedStdout = formatOutput("stdout", execError.stdout);
+		const formattedStderr = formatOutput("stderr", execError.stderr);
 		const output = [formattedStdout, formattedStderr]
 			.filter(Boolean)
 			.join("\n\n");
@@ -120,9 +149,9 @@ export async function runTeardown(
 		console.error(
 			`[workspaces/teardown] Failed for workspace ${workspaceName}`,
 			{
-				status: errorAsUnknown.status,
-				signal: errorAsUnknown.signal,
-				error: errorMessage,
+				status: execError.status,
+				signal: execError.signal,
+				error: execError.message,
 			},
 		);
 		if (output) {
@@ -130,12 +159,12 @@ export async function runTeardown(
 		}
 
 		const statusSuffix =
-			typeof errorAsUnknown.status === "number"
-				? ` (exit code ${errorAsUnknown.status})`
+			typeof execError.status === "number"
+				? ` (exit code ${execError.status})`
 				: "";
 		return {
 			success: false,
-			error: `${errorMessage}${statusSuffix}`,
+			error: `${execError.message}${statusSuffix}`,
 		};
 	}
 }
