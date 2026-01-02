@@ -97,7 +97,9 @@ export async function runTeardown(
 		if (formattedStdout) {
 			console.log(`[workspaces/teardown] ${formattedStdout}`);
 		}
-		console.log(`[workspaces/teardown] Completed for workspace ${workspaceName}`);
+		console.log(
+			`[workspaces/teardown] Completed for workspace ${workspaceName}`,
+		);
 
 		return { success: true };
 	} catch (error) {
@@ -111,7 +113,9 @@ export async function runTeardown(
 
 		const formattedStdout = formatOutput("stdout", errorAsUnknown.stdout);
 		const formattedStderr = formatOutput("stderr", errorAsUnknown.stderr);
-		const output = [formattedStdout, formattedStderr].filter(Boolean).join("\n\n");
+		const output = [formattedStdout, formattedStderr]
+			.filter(Boolean)
+			.join("\n\n");
 
 		console.error(
 			`[workspaces/teardown] Failed for workspace ${workspaceName}`,
