@@ -52,6 +52,34 @@ When implementing an executable specification (ExecPlan), do not prompt the user
 
 When discussing an executable specification (ExecPlan), record decisions in a log in the spec for posterity; it should be unambiguously clear why any change to the specification was made. ExecPlans are living documents, and it should always be possible to restart from _only_ the ExecPlan and no other work.
 
+## Design Standards (CRITICAL)
+
+Before drafting an ExecPlan, review the codebase standards to ensure your design aligns with established patterns:
+
+**Always check:**
+- `AGENTS.md` (root) - Architecture principles, coding conventions, code smells to avoid
+- `apps/desktop/AGENTS.md` - Desktop-specific guidance (if desktop work)
+
+**Key standards your plan must follow:**
+
+| Category | Standard |
+|----------|----------|
+| **Architecture** | Separation of concerns, minimal coupling, fail-safe by default |
+| **Parameters** | Functions with 2+ params use object signatures |
+| **Type Safety** | No `as any`, `@ts-ignore`, or empty catch blocks |
+| **Error Handling** | tRPC routers use proper error codes (NOT_FOUND, UNAUTHORIZED, etc.) |
+| **Desktop** | No Node.js imports in renderer/shared code |
+| **Next.js** | No `middleware.ts` (use `proxy.ts` - Next.js 16) |
+| **Logging** | Prefixed with context: `[domain/operation] message` |
+
+**When planning, verify:**
+1. Does this design follow existing patterns in the codebase?
+2. Are there similar implementations to reference?
+3. Does the approach align with the architecture principles in AGENTS.md?
+4. Have I avoided the code smells listed in AGENTS.md?
+
+If your plan requires deviating from established patterns, document the rationale in the Decision Log and call it out explicitly for review.
+
 ## Requirements
 
 NON-NEGOTIABLE REQUIREMENTS:
@@ -62,6 +90,7 @@ NON-NEGOTIABLE REQUIREMENTS:
 * Every ExecPlan must produce a demonstrably working behavior, not merely code changes to "meet a definition".
 * Every ExecPlan must define every term of art in plain language or do not use it.
 * Every ExecPlan must reference AGENTS.md conventions for this repository.
+* Every ExecPlan must follow the design standards and coding conventions documented in AGENTS.md.
 
 Purpose and intent come first. Begin by explaining, in a few sentences, why the work matters from a user's perspective: what someone can do after this change that they could not do before, and how to see it working. Then guide the reader through the exact steps to achieve that outcome, including what to edit, what to run, and what they should observe.
 
@@ -121,6 +150,107 @@ Specify repository context explicitly. Name files with full repository-relative 
 Be idempotent and safe. Write the steps so they can be run multiple times without causing damage or drift. If a step can fail halfway, include how to retry or adapt.
 
 Validation is not optional. Include instructions to run `bun run typecheck`, `bun run lint`, and `bun test` as appropriate. Describe expected outputs and error messages so a novice can tell success from failure.
+
+## Common Failure Modes (Avoid These)
+
+**Undefined jargon**: Using terms like "hydration", "middleware", "IPC" without defining them. If a novice wouldn't know the term, define it inline.
+
+**Letter-of-the-law implementations**: Code that technically meets the specification but does nothing meaningful. Example: "add a button" results in a button that exists but has no handler, no styling, no integration.
+
+**Outsourcing key decisions**: Saying "choose an appropriate library" or "implement error handling as needed" instead of being prescriptive. The plan should make these decisions explicit.
+
+**Assuming context**: Phrases like "as we discussed", "the usual pattern", or "following the existing approach" without spelling out what that means.
+
+**Validation theater**: Saying "verify it works" without specifying the exact command, input, and expected output.
+
+**Incomplete state transitions**: Describing the happy path but not error cases, edge cases, or rollback scenarios.
+
+## Milestones
+
+When work spans multiple days or involves significant complexity, break it into milestones. Each milestone must be:
+
+1. **Independently verifiable** - Can be tested and validated on its own
+2. **Incrementally valuable** - Adds working functionality, not just scaffolding
+3. **Narratively complete** - Tells a story: goal → work → result → proof
+
+For each milestone, include:
+- A brief paragraph describing the scope
+- What will exist at the end that did not exist before
+- The commands to run and acceptance criteria
+- How to verify success before proceeding
+
+**Example milestone structure:**
+
+    ### Milestone 1: IPC Channel Foundation
+
+    This milestone establishes the type-safe IPC channel for workspace operations.
+    At completion, the main process can receive workspace requests and return
+    typed responses, though no UI integration exists yet.
+
+    Scope:
+    - Define IpcChannels types in src/shared/ipc-channels.ts
+    - Implement handler in src/main/lib/workspace-ipcs.ts
+    - Add unit tests for the handler
+
+    Acceptance:
+        bun test apps/desktop/src/main/lib/workspace-ipcs.test.ts
+        # Expected: All tests pass
+
+    Verify before proceeding: Types compile, tests pass, handler logs correctly.
+
+Progress tracks granular tasks; milestones tell the story. Both must exist for complex plans.
+
+## Prototyping & Spike Milestones
+
+When facing significant unknowns or risky technical decisions, include explicit prototyping milestones to de-risk before full implementation.
+
+**When to use spikes:**
+- Evaluating an unfamiliar library or API
+- Validating that a proposed approach is feasible
+- Comparing two implementation strategies
+- Testing performance characteristics before committing
+
+**Spike structure:**
+
+    ### Spike: Evaluate node-pty vs xterm.js for terminal rendering
+
+    Goal: Determine which library better suits our terminal requirements.
+
+    Approach:
+    - Create minimal implementations with each library
+    - Test: resize handling, Unicode support, performance with large output
+    - Measure: memory usage, CPU during rapid output
+
+    Success criteria:
+    - One library clearly outperforms on our key requirements
+    - OR: Both are viable with documented tradeoffs for Decision Log
+
+    Outcome: [To be filled after spike completes]
+
+**Guidelines for spikes:**
+- Keep them additive and isolated (don't modify production code)
+- Set a time box (e.g., "2 hours max")
+- Document findings in Surprises & Discoveries
+- Record the decision in Decision Log with evidence
+
+## Parallel Implementations & Safe Refactoring
+
+When migrating or refactoring, prefer patterns that keep the codebase working throughout:
+
+**Additive-then-subtractive**: Add new code alongside old code, verify tests pass with both, then remove old code. Never delete-then-replace in a single step.
+
+**Parallel implementations**: During migrations, keep both the old adapter and new implementation running. Validate both paths work, then retire the old one with tests proving equivalence.
+
+**Feature flags**: For risky changes, consider implementing behind a flag so rollback is a config change, not a code revert.
+
+    Example: Migrating from REST to tRPC
+
+    1. Add tRPC endpoint alongside existing REST endpoint
+    2. Update one caller to use tRPC, verify it works
+    3. Gradually migrate remaining callers
+    4. Remove REST endpoint only after all callers migrated and tested
+
+Document parallel implementation strategies in the Plan of Work and include cleanup steps.
 
 ## Skeleton of a Good ExecPlan
 
