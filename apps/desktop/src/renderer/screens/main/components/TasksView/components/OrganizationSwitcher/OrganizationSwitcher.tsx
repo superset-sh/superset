@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { useOrganizations } from "renderer/contexts";
-import { useActiveOrganization } from "renderer/lib/pglite";
+import { useActiveOrganization } from "renderer/contexts/TanStackDbProvider";
 
 export function OrganizationSwitcher() {
 	const organizations = useOrganizations();

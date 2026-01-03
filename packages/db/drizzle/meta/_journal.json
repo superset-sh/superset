@@ -36,6 +36,13 @@
       "when": 1766710371092,
       "tag": "0004_webhook_events_idempotency",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1767417796387,
+      "tag": "0005_create_settings_tables",
+      "breakpoints": true
     }
   ]
 }

@@ -66,7 +66,22 @@ export async function GET(request: Request): Promise<Response> {
 		originUrl.searchParams.set(`params[${index + 1}]`, String(value));
 	});
 
+	console.log("[electric-proxy] Forwarding request:", {
+		table: tableName,
+		orgId: organizationId,
+		userId: user.id,
+		whereFragment: whereClause.fragment,
+		whereParams: whereClause.params,
+		electricUrl: `${originUrl.toString().substring(0, 150)}...`,
+	});
+
 	const response = await fetch(originUrl.toString());
+
+	console.log("[electric-proxy] Response:", {
+		status: response.status,
+		statusText: response.statusText,
+		contentType: response.headers.get("content-type"),
+	});
 
 	// Forward headers, but remove content-encoding/length per Electric docs
 	// (these can cause issues when proxying compressed responses)

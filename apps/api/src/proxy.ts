@@ -14,7 +14,7 @@ function getCorsHeaders(origin: string | null) {
 	const isAllowed = origin && allowedOrigins.includes(origin);
 	return {
 		"Access-Control-Allow-Origin": isAllowed ? origin : "",
-		"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+		"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
 		"Access-Control-Allow-Headers":
 			"Content-Type, Authorization, x-trpc-source, trpc-accept",
 		"Access-Control-Allow-Credentials": "true",
