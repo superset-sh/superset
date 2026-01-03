@@ -1,4 +1,5 @@
 import { settings } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -38,7 +39,17 @@ async function openPathInApp(
 export const createExternalRouter = () => {
 	return router({
 		openUrl: publicProcedure.input(z.string()).mutation(async ({ input }) => {
-			await shell.openExternal(input);
+			try {
+				await shell.openExternal(input);
+			} catch (error) {
+				const errorMessage =
+					error instanceof Error ? error.message : "Unknown error";
+				console.error("[external/openUrl] Failed to open URL:", input, error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: errorMessage,
+				});
+			}
 		}),
 
 		openInFinder: publicProcedure

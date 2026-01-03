@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { CanvasAddon } from "@xterm/addon-canvas";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
@@ -135,6 +136,12 @@ export function createTerminalInstance(
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
 		trpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
+			toast.error("Failed to open URL", {
+				description:
+					error instanceof Error
+						? error.message
+						: "Could not open URL in browser",
+			});
 		});
 	});
 	xterm.registerLinkProvider(urlLinkProvider);
