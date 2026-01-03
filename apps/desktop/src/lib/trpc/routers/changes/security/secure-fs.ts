@@ -2,11 +2,13 @@ import type { Stats } from "node:fs";
 import {
 	lstat,
 	readFile,
+	readlink,
 	realpath,
 	rm,
 	stat,
 	writeFile,
 } from "node:fs/promises";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import {
 	assertRegisteredWorktree,
 	PathValidationError,
@@ -26,6 +28,137 @@ import {
  */
 
 /**
+ * Check if a resolved path is within the worktree boundary using path.relative().
+ * This is safer than string prefix matching which can have boundary bugs.
+ */
+function isPathWithinWorktree(
+	worktreeReal: string,
+	targetReal: string,
+): boolean {
+	if (targetReal === worktreeReal) {
+		return true;
+	}
+	const relativePath = relative(worktreeReal, targetReal);
+	// If relative path starts with ".." or is absolute, it's outside
+	return (
+		!relativePath.startsWith("..") &&
+		!isAbsolute(relativePath) &&
+		relativePath !== ""
+	);
+}
+
+/**
+ * Validate that the parent directory chain stays within the worktree.
+ * Handles the case where the target file doesn't exist yet (ENOENT).
+ *
+ * This function walks up the directory tree to find the first existing
+ * ancestor and validates it. It also detects dangling symlinks by checking
+ * if any component is a symlink pointing outside the worktree.
+ *
+ * @throws PathValidationError if any ancestor escapes the worktree
+ */
+async function assertParentInWorktree(
+	worktreePath: string,
+	fullPath: string,
+): Promise<void> {
+	const worktreeReal = await realpath(worktreePath);
+	let currentPath = dirname(fullPath);
+
+	// Walk up the directory tree until we find an existing directory
+	while (currentPath !== dirname(currentPath)) {
+		// Stop at filesystem root
+		try {
+			// First check if this path component is a symlink (even if target doesn't exist)
+			const stats = await lstat(currentPath);
+
+			if (stats.isSymbolicLink()) {
+				// This is a symlink - validate its target even if it doesn't exist
+				const linkTarget = await readlink(currentPath);
+				// Resolve the link target relative to the symlink's parent
+				const resolvedTarget = isAbsolute(linkTarget)
+					? linkTarget
+					: resolve(dirname(currentPath), linkTarget);
+
+				// Try to get the realpath of the resolved target
+				try {
+					const targetReal = await realpath(resolvedTarget);
+					if (!isPathWithinWorktree(worktreeReal, targetReal)) {
+						throw new PathValidationError(
+							"Symlink in path resolves outside the worktree",
+							"SYMLINK_ESCAPE",
+						);
+					}
+				} catch (error) {
+					// Target doesn't exist - check if the resolved target path
+					// would be within worktree if it existed
+					if (
+						error instanceof Error &&
+						"code" in error &&
+						error.code === "ENOENT"
+					) {
+						// For dangling symlinks, validate the target path itself
+						// We need to check if the target, when resolved, would be in worktree
+						// This is conservative: if we can't determine, fail closed
+						const targetRelative = relative(worktreeReal, resolvedTarget);
+						if (targetRelative.startsWith("..") || isAbsolute(targetRelative)) {
+							throw new PathValidationError(
+								"Dangling symlink points outside the worktree",
+								"SYMLINK_ESCAPE",
+							);
+						}
+						// Target would be within worktree if it existed - continue
+						return;
+					}
+					if (error instanceof PathValidationError) {
+						throw error;
+					}
+					// Other errors - fail closed for security
+					throw new PathValidationError(
+						"Cannot validate symlink target",
+						"SYMLINK_ESCAPE",
+					);
+				}
+				return; // Symlink validated successfully
+			}
+
+			// Not a symlink - get realpath and validate
+			const parentReal = await realpath(currentPath);
+			if (!isPathWithinWorktree(worktreeReal, parentReal)) {
+				throw new PathValidationError(
+					"Parent directory resolves outside the worktree",
+					"SYMLINK_ESCAPE",
+				);
+			}
+			return; // Found valid ancestor
+		} catch (error) {
+			if (error instanceof PathValidationError) {
+				throw error;
+			}
+			if (
+				error instanceof Error &&
+				"code" in error &&
+				error.code === "ENOENT"
+			) {
+				// This ancestor doesn't exist either, keep walking up
+				currentPath = dirname(currentPath);
+				continue;
+			}
+			// Other errors (EACCES, ENOTDIR, etc.) - fail closed for security
+			throw new PathValidationError(
+				"Cannot validate path ancestry",
+				"SYMLINK_ESCAPE",
+			);
+		}
+	}
+
+	// Reached filesystem root without finding valid ancestor
+	throw new PathValidationError(
+		"Could not validate path ancestry within worktree",
+		"SYMLINK_ESCAPE",
+	);
+}
+
+/**
  * Check if the resolved realpath stays within the worktree boundary.
  * Prevents symlink escape attacks where a symlink points outside the worktree.
  *
@@ -39,29 +172,39 @@ async function assertRealpathInWorktree(
 		const real = await realpath(fullPath);
 		const worktreeReal = await realpath(worktreePath);
 
-		// Ensure realpath is within worktree (with proper boundary check)
-		if (!real.startsWith(`${worktreeReal}/`) && real !== worktreeReal) {
+		// Use path.relative for safer boundary checking
+		if (!isPathWithinWorktree(worktreeReal, real)) {
 			throw new PathValidationError(
 				"File is a symlink pointing outside the worktree",
 				"SYMLINK_ESCAPE",
 			);
 		}
 	} catch (error) {
-		// If realpath fails with ENOENT, file doesn't exist yet - that's OK for writes
+		// If realpath fails with ENOENT, file doesn't exist yet
+		// Validate the parent directory chain instead
 		if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+			await assertParentInWorktree(worktreePath, fullPath);
 			return;
 		}
 		// Re-throw PathValidationError
 		if (error instanceof PathValidationError) {
 			throw error;
 		}
-		// Other errors (permission denied, etc.) - let them propagate
-		throw error;
+		// Other errors (permission denied, etc.) - fail closed for security
+		throw new PathValidationError(
+			"Cannot validate file path",
+			"SYMLINK_ESCAPE",
+		);
 	}
 }
 export const secureFs = {
 	/**
 	 * Read a file within a worktree.
+	 *
+	 * SECURITY: Enforces symlink-escape check. If the file is a symlink
+	 * pointing outside the worktree, this will throw PathValidationError.
+	 *
+	 * @throws PathValidationError with code "SYMLINK_ESCAPE" if file escapes worktree
 	 */
 	async readFile(
 		worktreePath: string,
@@ -70,11 +213,20 @@ export const secureFs = {
 	): Promise<string> {
 		assertRegisteredWorktree(worktreePath);
 		const fullPath = resolvePathInWorktree(worktreePath, filePath);
+
+		// Block reads through symlinks that escape the worktree
+		await assertRealpathInWorktree(worktreePath, fullPath);
+
 		return readFile(fullPath, encoding);
 	},
 
 	/**
 	 * Read a file as a Buffer within a worktree.
+	 *
+	 * SECURITY: Enforces symlink-escape check. If the file is a symlink
+	 * pointing outside the worktree, this will throw PathValidationError.
+	 *
+	 * @throws PathValidationError with code "SYMLINK_ESCAPE" if file escapes worktree
 	 */
 	async readFileBuffer(
 		worktreePath: string,
@@ -82,6 +234,10 @@ export const secureFs = {
 	): Promise<Buffer> {
 		assertRegisteredWorktree(worktreePath);
 		const fullPath = resolvePathInWorktree(worktreePath, filePath);
+
+		// Block reads through symlinks that escape the worktree
+		await assertRealpathInWorktree(worktreePath, fullPath);
+
 		return readFile(fullPath);
 	},
 
@@ -165,10 +321,13 @@ export const secureFs = {
 	/**
 	 * Check if a file is a symlink that points outside the worktree.
 	 *
-	 * Use this to warn users when viewing files that resolve outside
-	 * the worktree boundary (potential malicious repo symlink).
+	 * WARNING: This is a best-effort helper for UI warnings only.
+	 * It returns `false` on errors, so it is NOT suitable as a security gate.
+	 * For security enforcement, use the read/write methods which call
+	 * assertRealpathInWorktree internally.
 	 *
-	 * @returns true if the file is a symlink escaping the worktree
+	 * @returns true if the file is definitely a symlink escaping the worktree,
+	 *          false if not escaping OR if we can't determine (errors)
 	 */
 	async isSymlinkEscaping(
 		worktreePath: string,
@@ -188,9 +347,10 @@ export const secureFs = {
 			const real = await realpath(fullPath);
 			const worktreeReal = await realpath(worktreePath);
 
-			return !real.startsWith(`${worktreeReal}/`) && real !== worktreeReal;
+			return !isPathWithinWorktree(worktreeReal, real);
 		} catch {
 			// If we can't determine, assume not escaping (file may not exist)
+			// NOTE: This makes this method unsuitable as a security gate
 			return false;
 		}
 	},

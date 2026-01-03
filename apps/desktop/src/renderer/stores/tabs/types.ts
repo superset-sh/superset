@@ -37,6 +37,10 @@ export interface AddFileViewerPaneOptions {
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
 	oldPath?: string;
+	/** Line to scroll to (raw mode only) */
+	line?: number;
+	/** Column to scroll to (raw mode only) */
+	column?: number;
 }
 
 /**

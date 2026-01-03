@@ -416,6 +416,8 @@ export const useTabsStore = create<TabsStore>()(
 										diffCategory: options.diffCategory,
 										commitHash: options.commitHash,
 										oldPath: options.oldPath,
+										initialLine: options.line,
+										initialColumn: options.column,
 									},
 								},
 							},

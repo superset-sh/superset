@@ -11,7 +11,9 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 /**
- * Zod schema for FileViewerState - matches shared/tabs-types.ts
+ * Zod schema for FileViewerState persistence.
+ * Note: initialLine/initialColumn from shared/tabs-types.ts are intentionally
+ * omitted as they are transient (applied once on open, not persisted).
  */
 const fileViewerStateSchema = z.object({
 	filePath: z.string(),

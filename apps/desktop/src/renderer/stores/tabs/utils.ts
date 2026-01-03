@@ -99,6 +99,10 @@ export interface CreateFileViewerPaneOptions {
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
 	oldPath?: string;
+	/** Line to scroll to (raw mode only) */
+	line?: number;
+	/** Column to scroll to (raw mode only) */
+	column?: number;
 }
 
 /**
@@ -130,6 +134,8 @@ export const createFileViewerPane = (
 		diffCategory: options.diffCategory,
 		commitHash: options.commitHash,
 		oldPath: options.oldPath,
+		initialLine: options.line,
+		initialColumn: options.column,
 	};
 
 	// Use filename for display name

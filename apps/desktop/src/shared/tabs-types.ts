@@ -38,6 +38,10 @@ export interface FileViewerState {
 	commitHash?: string;
 	/** Original path for renamed files */
 	oldPath?: string;
+	/** Initial line to scroll to (raw mode only, transient - applied once) */
+	initialLine?: number;
+	/** Initial column to scroll to (raw mode only, transient - applied once) */
+	initialColumn?: number;
 }
 
 /**

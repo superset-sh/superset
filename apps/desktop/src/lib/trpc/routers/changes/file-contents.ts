@@ -22,7 +22,12 @@ type ReadWorkingFileResult =
 	| { ok: true; content: string; truncated: boolean; byteLength: number }
 	| {
 			ok: false;
-			reason: "not-found" | "too-large" | "binary" | "outside-worktree";
+			reason:
+				| "not-found"
+				| "too-large"
+				| "binary"
+				| "outside-worktree"
+				| "symlink-escape";
 	  };
 
 /**
@@ -131,6 +136,10 @@ export const createFileContentsRouter = () => {
 					};
 				} catch (error) {
 					if (error instanceof PathValidationError) {
+						// Map specific error codes to distinct reasons
+						if (error.code === "SYMLINK_ESCAPE") {
+							return { ok: false, reason: "symlink-escape" };
+						}
 						return { ok: false, reason: "outside-worktree" };
 					}
 					// File not found or other read error

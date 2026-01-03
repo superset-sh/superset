@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
@@ -79,28 +80,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		(path: string, line?: number, column?: number) => {
 			const behavior = terminalLinkBehavior ?? "external-editor";
 
-			if (behavior === "file-viewer") {
-				// Normalize absolute paths to worktree-relative paths for file viewer
-				// File viewer expects relative paths, but terminal links can be absolute
-				let filePath = path;
-				if (workspaceCwd) {
-					// Use path boundary check to avoid incorrect prefix stripping
-					// e.g., /repo vs /repo-other should not match
-					if (path === workspaceCwd) {
-						filePath = ".";
-					} else if (path.startsWith(`${workspaceCwd}/`)) {
-						filePath = path.slice(workspaceCwd.length + 1);
-					} else if (path.startsWith("/")) {
-						// Absolute path outside workspace - still try to open it
-						// but warn in console as it may fail validation
-						console.warn(
-							"[Terminal] Opening absolute path outside workspace:",
-							path,
-						);
-					}
-				}
-				addFileViewerPane(workspaceId, { filePath });
-			} else {
+			// Helper to open in external editor
+			const openInExternalEditor = () => {
 				trpcClient.external.openFileInEditor
 					.mutate({
 						path,
@@ -114,7 +95,43 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 							path,
 							error,
 						);
+						toast.error("Failed to open file in editor", {
+							description: path,
+						});
 					});
+			};
+
+			if (behavior === "file-viewer") {
+				// If workspaceCwd is not loaded yet, fall back to external editor
+				// This prevents confusing errors when the workspace is still initializing
+				if (!workspaceCwd) {
+					console.warn(
+						"[Terminal] workspaceCwd not loaded, falling back to external editor",
+					);
+					openInExternalEditor();
+					return;
+				}
+
+				// Normalize absolute paths to worktree-relative paths for file viewer
+				// File viewer expects relative paths, but terminal links can be absolute
+				let filePath = path;
+				// Use path boundary check to avoid incorrect prefix stripping
+				// e.g., /repo vs /repo-other should not match
+				if (path === workspaceCwd) {
+					filePath = ".";
+				} else if (path.startsWith(`${workspaceCwd}/`)) {
+					filePath = path.slice(workspaceCwd.length + 1);
+				} else if (path.startsWith("/")) {
+					// Absolute path outside workspace - show warning and don't attempt to open
+					toast.warning("File is outside the workspace", {
+						description:
+							"Switch to 'External editor' in Settings to open this file",
+					});
+					return;
+				}
+				addFileViewerPane(workspaceId, { filePath, line, column });
+			} else {
+				openInExternalEditor();
 			}
 		},
 		[terminalLinkBehavior, workspaceId, workspaceCwd, addFileViewerPane],
