@@ -1,16 +1,33 @@
 import { LuImageOff } from "react-icons/lu";
 
 /**
- * Check if a URL is external (http:// or https://).
- * External images are blocked by default to prevent:
- * - Tracking pixels leaking user IP/activity
- * - Automatic downloads of large/malicious files
- * - Internal network exposure
+ * Check if an image source is safe to load.
+ *
+ * Uses strict ALLOWLIST approach - only data: URLs are safe.
+ *
+ * ALLOWED:
+ * - data: URLs (embedded base64 images)
+ *
+ * BLOCKED (everything else):
+ * - http://, https:// (tracking pixels, privacy leak)
+ * - file:// URLs (arbitrary local file access)
+ * - Absolute paths /... or \... (become file:// in Electron)
+ * - Relative paths with .. (can escape repo boundary)
+ * - UNC paths //server/share (Windows NTLM credential leak)
+ * - Empty or malformed sources
+ *
+ * Security context: In Electron production, renderer loads via file://
+ * protocol. Any non-data: image src could access local filesystem or
+ * trigger network requests to attacker-controlled servers.
  */
-function isExternalUrl(src: string | undefined): boolean {
+function isSafeImageSrc(src: string | undefined): boolean {
 	if (!src) return false;
-	const lower = src.toLowerCase().trim();
-	return lower.startsWith("http://") || lower.startsWith("https://");
+	const trimmed = src.trim();
+	if (trimmed.length === 0) return false;
+
+	// Only allow data: URLs (embedded images)
+	// These are self-contained and can't access external resources
+	return trimmed.toLowerCase().startsWith("data:");
 }
 
 interface SafeImageProps {
@@ -20,30 +37,30 @@ interface SafeImageProps {
 }
 
 /**
- * Safe image component that blocks external URLs by default.
+ * Safe image component for untrusted markdown content.
  *
- * Allowed:
- * - Relative paths (./image.png, ../assets/logo.svg)
- * - Data URLs (data:image/png;base64,...)
- * - File URLs (file://...)
+ * Only renders embedded data: URLs. All other sources are blocked
+ * to prevent local file access,  network requests, and path traversal
+ * attacks from malicious repository content.
  *
- * Blocked:
- * - HTTP/HTTPS URLs (privacy risk from untrusted repos)
+ * Future: Could add opt-in support for repo-relative images via a
+ * secure loader that validates paths through secureFs and serves
+ * as blob: URLs.
  */
 export function SafeImage({ src, alt, className }: SafeImageProps) {
-	if (isExternalUrl(src)) {
+	if (!isSafeImageSrc(src)) {
 		return (
 			<div
 				className={`inline-flex items-center gap-2 px-3 py-2 rounded-md bg-muted text-muted-foreground text-sm ${className ?? ""}`}
-				title={`External image blocked: ${src}`}
+				title={`Image blocked: ${src ?? "(empty)"}`}
 			>
 				<LuImageOff className="w-4 h-4 flex-shrink-0" />
-				<span className="truncate max-w-[300px]">External image blocked</span>
+				<span className="truncate max-w-[300px]">Image blocked</span>
 			</div>
 		);
 	}
 
-	// Safe to render - relative path or data URL
+	// Safe to render - embedded data: URL
 	return (
 		<img
 			src={src}
