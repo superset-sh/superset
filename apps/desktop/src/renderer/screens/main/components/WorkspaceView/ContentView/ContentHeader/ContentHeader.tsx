@@ -5,15 +5,24 @@ interface ContentHeaderProps {
 	leadingAction?: ReactNode;
 	/** Mode-specific header content (e.g., GroupStrip or file info) */
 	children: ReactNode;
+	/** Optional trailing action (e.g., WorkspaceControls) */
+	trailingAction?: ReactNode;
 }
 
-export function ContentHeader({ leadingAction, children }: ContentHeaderProps) {
+export function ContentHeader({
+	leadingAction,
+	children,
+	trailingAction,
+}: ContentHeaderProps) {
 	return (
 		<div className="flex items-end bg-background shrink-0">
 			{leadingAction && (
 				<div className="flex items-center h-10 pl-2">{leadingAction}</div>
 			)}
-			{children}
+			<div className="flex-1 min-w-0">{children}</div>
+			{trailingAction && (
+				<div className="flex items-center h-10 pr-2">{trailingAction}</div>
+			)}
 		</div>
 	);
 }

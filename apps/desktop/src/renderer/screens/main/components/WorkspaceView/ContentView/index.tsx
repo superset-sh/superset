@@ -2,6 +2,7 @@ import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
 import { DEFAULT_NAVIGATION_STYLE } from "shared/constants";
 import { SidebarControl } from "../../SidebarControl";
+import { WorkspaceControls } from "../../TopBar/WorkspaceControls";
 import { ChangesContent } from "./ChangesContent";
 import { ContentHeader } from "./ContentHeader";
 import { TabsContent } from "./TabsContent";
@@ -25,12 +26,23 @@ export function ContentView() {
 	const isSidebarMode =
 		(navigationStyle ?? DEFAULT_NAVIGATION_STYLE) === "sidebar";
 
+	// Render WorkspaceControls in ContentHeader when in sidebar mode
+	const workspaceControls = isSidebarMode ? (
+		<WorkspaceControls
+			workspaceId={activeWorkspace?.id}
+			worktreePath={activeWorkspace?.worktreePath}
+		/>
+	) : undefined;
+
 	if (viewMode === "review") {
 		return (
 			<div className="h-full flex flex-col overflow-hidden">
 				{isSidebarMode && (
-					<ContentHeader leadingAction={<SidebarControl />}>
-						{/* Review mode has no additional header content - FileHeader is inside ChangesContent */}
+					<ContentHeader
+						leadingAction={<SidebarControl />}
+						trailingAction={workspaceControls}
+					>
+						{/* Review mode has no group tabs */}
 						<div />
 					</ContentHeader>
 				)}
@@ -47,6 +59,7 @@ export function ContentView() {
 		<div className="h-full flex flex-col overflow-hidden">
 			<ContentHeader
 				leadingAction={isSidebarMode ? <SidebarControl /> : undefined}
+				trailingAction={workspaceControls}
 			>
 				<GroupStrip />
 			</ContentHeader>

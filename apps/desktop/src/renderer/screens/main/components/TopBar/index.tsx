@@ -47,10 +47,12 @@ export function TopBar({ navigationStyle = "top-bar" }: TopBarProps) {
 			)}
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
-				<WorkspaceControls
-					workspaceId={activeWorkspace?.id}
-					worktreePath={activeWorkspace?.worktreePath}
-				/>
+				{!isSidebarMode && (
+					<WorkspaceControls
+						workspaceId={activeWorkspace?.id}
+						worktreePath={activeWorkspace?.worktreePath}
+					/>
+				)}
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
 			</div>
