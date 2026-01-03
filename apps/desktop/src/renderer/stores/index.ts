@@ -1,5 +1,4 @@
 export * from "./app-state";
-export * from "./chat-panel-state";
 export * from "./hotkeys";
 export * from "./markdown-preferences";
 export * from "./ports";

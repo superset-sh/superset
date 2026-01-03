@@ -1,6 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
-import { ChatPanelControl } from "./ChatPanelControl";
 import { SidebarControl } from "./SidebarControl";
 import { WindowControls } from "./WindowControls";
 import { WorkspacesTabs } from "./WorkspaceTabs";
@@ -17,7 +16,6 @@ export function TopBar() {
 				}}
 			>
 				<SidebarControl />
-				<ChatPanelControl />
 			</div>
 			<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
 				<WorkspacesTabs />
