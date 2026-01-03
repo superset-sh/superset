@@ -1,9 +1,8 @@
 import { Button } from "@superset/ui/button";
-import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPanelRight, LuPanelRightClose } from "react-icons/lu";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useChatPanelStore } from "renderer/stores";
-import { HOTKEYS } from "shared/hotkeys";
 
 export function ChatPanelControl() {
 	const { isOpen, togglePanel } = useChatPanelStore();
@@ -26,14 +25,10 @@ export function ChatPanelControl() {
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
-				<span className="flex items-center gap-2">
-					Toggle chat
-					<KbdGroup>
-						{HOTKEYS.TOGGLE_CHAT_PANEL.display.map((key) => (
-							<Kbd key={key}>{key}</Kbd>
-						))}
-					</KbdGroup>
-				</span>
+				<HotkeyTooltipContent
+					label="Toggle chat panel"
+					hotkeyId="TOGGLE_CHAT_PANEL"
+				/>
 			</TooltipContent>
 		</Tooltip>
 	);

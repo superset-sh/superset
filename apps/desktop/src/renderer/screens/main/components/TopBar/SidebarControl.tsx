@@ -1,11 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuPanelRight, LuPanelRightClose } from "react-icons/lu";
+import { HiMiniBars3, HiMiniBars3BottomLeft } from "react-icons/hi2";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { useChatPanelStore } from "renderer/stores";
+import { useSidebarStore } from "renderer/stores";
 
-export function ChatPanelControl() {
-	const { isOpen, togglePanel } = useChatPanelStore();
+export function SidebarControl() {
+	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
 
 	return (
 		<Tooltip>
@@ -13,21 +13,21 @@ export function ChatPanelControl() {
 				<Button
 					variant="ghost"
 					size="icon"
-					onClick={togglePanel}
-					aria-label={isOpen ? "Hide chat" : "Show chat"}
+					onClick={toggleSidebar}
+					aria-label={isSidebarOpen ? "Hide sidebar" : "Show sidebar"}
 					className="no-drag"
 				>
-					{isOpen ? (
-						<LuPanelRightClose className="size-4" />
+					{isSidebarOpen ? (
+						<HiMiniBars3BottomLeft className="size-4" />
 					) : (
-						<LuPanelRight className="size-4" />
+						<HiMiniBars3 className="size-4" />
 					)}
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<HotkeyTooltipContent
-					label="Toggle chat panel"
-					hotkeyId="TOGGLE_CHAT_PANEL"
+					label="Toggle sidebar"
+					hotkeyId="TOGGLE_SIDEBAR"
 				/>
 			</TooltipContent>
 		</Tooltip>
