@@ -236,6 +236,7 @@ class AuthService extends EventEmitter {
 
 			await tokenStorage.save(this.session);
 			console.log("[auth] Tokens refreshed successfully");
+			this.emit("tokens-refreshed");
 			return "success";
 		} catch (err) {
 			// Network errors (offline, DNS failure, etc) - keep session for offline use
