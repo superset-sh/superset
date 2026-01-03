@@ -102,7 +102,13 @@ export function buildTerminalEnv(params: {
 		SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 	};
 
+	// Security: Don't expose API keys to terminal processes
 	delete env.GOOGLE_API_KEY;
+
+	// Don't propagate Electron's NODE_ENV to terminals - it causes unexpected
+	// behavior in user commands (e.g., pnpm install skipping devDependencies
+	// when NODE_ENV=production)
+	delete env.NODE_ENV;
 
 	return env;
 }

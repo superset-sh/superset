@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import {
 	buildTerminalEnv,
 	FALLBACK_SHELL,
@@ -109,6 +109,46 @@ describe("env", () => {
 			tabId: "tab-1",
 			workspaceId: "ws-1",
 		};
+
+		// Defensive tests: NODE_ENV should NEVER be propagated to terminals
+		// because Electron's NODE_ENV (typically "production") causes unexpected
+		// behavior in user commands (e.g., pnpm install skipping devDependencies)
+		describe("should not propagate NODE_ENV to terminals", () => {
+			const originalNodeEnv = process.env.NODE_ENV;
+
+			afterEach(() => {
+				// Restore original value after each test
+				if (originalNodeEnv === undefined) {
+					delete process.env.NODE_ENV;
+				} else {
+					process.env.NODE_ENV = originalNodeEnv;
+				}
+			});
+
+			it("should remove NODE_ENV when set to 'production'", () => {
+				process.env.NODE_ENV = "production";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.NODE_ENV).toBeUndefined();
+			});
+
+			it("should remove NODE_ENV when set to 'development'", () => {
+				process.env.NODE_ENV = "development";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.NODE_ENV).toBeUndefined();
+			});
+
+			it("should remove NODE_ENV when set to 'test'", () => {
+				process.env.NODE_ENV = "test";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.NODE_ENV).toBeUndefined();
+			});
+
+			it("should not have NODE_ENV when it was never set", () => {
+				delete process.env.NODE_ENV;
+				const result = buildTerminalEnv(baseParams);
+				expect(result.NODE_ENV).toBeUndefined();
+			});
+		});
 
 		it("should set TERM_PROGRAM to Superset", () => {
 			const result = buildTerminalEnv(baseParams);
