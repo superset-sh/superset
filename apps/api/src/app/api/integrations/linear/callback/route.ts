@@ -99,11 +99,19 @@ export async function GET(request: Request) {
 			},
 		});
 
-	await qstash.publishJSON({
-		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
-		body: { organizationId, creatorUserId: userId },
-		retries: 3,
-	});
+	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+	try {
+		await qstash.publishJSON({
+			url: `${qstashBaseUrl}/api/integrations/linear/jobs/initial-sync`,
+			body: { organizationId, creatorUserId: userId },
+			retries: 3,
+		});
+	} catch (error) {
+		console.error("Failed to queue initial sync job:", error);
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear?warning=sync_queued_failed`,
+		);
+	}
 
 	return Response.redirect(`${env.NEXT_PUBLIC_WEB_URL}/integrations/linear`);
 }

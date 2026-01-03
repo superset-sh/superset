@@ -1,7 +1,8 @@
+import { PostHogProvider as PHProvider } from "posthog-js/react";
 import type React from "react";
 import { useEffect, useState } from "react";
 
-import { initPostHog } from "../lib/posthog";
+import { initPostHog, posthog } from "../lib/posthog";
 
 interface PostHogProviderProps {
 	children: React.ReactNode;
@@ -20,5 +21,5 @@ export function PostHogProvider({ children }: PostHogProviderProps) {
 		return null;
 	}
 
-	return <>{children}</>;
+	return <PHProvider client={posthog}>{children}</PHProvider>;
 }

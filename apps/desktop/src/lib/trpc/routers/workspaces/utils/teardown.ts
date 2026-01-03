@@ -2,6 +2,7 @@ import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { SetupConfig } from "shared/types";
+import { getShellEnvironment } from "./shell-env";
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
 
@@ -34,11 +35,11 @@ function loadSetupConfig(mainRepoPath: string): SetupConfig | null {
 	}
 }
 
-export function runTeardown(
+export async function runTeardown(
 	mainRepoPath: string,
 	worktreePath: string,
 	workspaceName: string,
-): TeardownResult {
+): Promise<TeardownResult> {
 	// Load config from the main repo (where .superset/config.json lives)
 	const config = loadSetupConfig(mainRepoPath);
 
@@ -49,11 +50,13 @@ export function runTeardown(
 	const command = config.teardown.join(" && ");
 
 	try {
+		const shellEnv = await getShellEnvironment();
+
 		execSync(command, {
 			cwd: worktreePath,
 			timeout: TEARDOWN_TIMEOUT_MS,
 			env: {
-				...process.env,
+				...shellEnv,
 				SUPERSET_WORKSPACE_NAME: workspaceName,
 				SUPERSET_ROOT_PATH: mainRepoPath,
 			},

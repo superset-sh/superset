@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import { DiffToolbar } from "./components/DiffToolbar";
@@ -15,12 +16,19 @@ export function ChangesContent() {
 	const worktreePath = activeWorkspace?.worktreePath;
 	const utils = trpc.useUtils();
 
-	const { viewMode, setViewMode, baseBranch, getSelectedFile, selectFile } =
-		useChangesStore();
+	const {
+		viewMode,
+		setViewMode,
+		baseBranch,
+		getSelectedFile,
+		selectFile,
+		getShowRenderedMarkdown,
+		toggleRenderedMarkdown,
+	} = useChangesStore();
 
 	const selectedFileState = getSelectedFile(worktreePath || "");
 	const selectedFile = selectedFileState?.file ?? null;
-	const selectedCategory = selectedFileState?.category ?? "against-main";
+	const selectedCategory = selectedFileState?.category ?? "against-base";
 	const selectedCommitHash = selectedFileState?.commitHash ?? null;
 
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
@@ -79,6 +87,17 @@ export function ChangesContent() {
 	const isUnstaged = selectedCategory === "unstaged";
 	const isStaged = selectedCategory === "staged";
 	const isEditable = isUnstaged || isStaged;
+
+	const isMarkdownFile = /\.(md|mdx)$/i.test(selectedFile?.path ?? "");
+	const showRendered = worktreePath
+		? getShowRenderedMarkdown(worktreePath)
+		: false;
+
+	const handleToggleRendered = () => {
+		if (worktreePath) {
+			toggleRenderedMarkdown(worktreePath);
+		}
+	};
 
 	const handleDiscard = () => {
 		if (!worktreePath || !selectedFile) return;
@@ -145,15 +164,22 @@ export function ChangesContent() {
 					isActioning={isPending}
 					isEditable={isEditable}
 					isSaving={saveFileMutation.isPending}
+					isMarkdownFile={isMarkdownFile}
+					showRendered={showRendered}
+					onToggleRendered={handleToggleRendered}
 				/>
-				<div className="flex-1">
-					<DiffViewer
-						contents={contents}
-						viewMode={viewMode}
-						filePath={selectedFile.path}
-						editable={isEditable}
-						onSave={handleSave}
-					/>
+				<div className="flex-1 overflow-hidden">
+					{isMarkdownFile && showRendered ? (
+						<MarkdownRenderer content={contents.modified} />
+					) : (
+						<DiffViewer
+							contents={contents}
+							viewMode={viewMode}
+							filePath={selectedFile.path}
+							editable={isEditable}
+							onSave={handleSave}
+						/>
+					)}
 				</div>
 			</div>
 

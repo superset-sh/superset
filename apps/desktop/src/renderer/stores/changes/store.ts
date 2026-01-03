@@ -15,13 +15,13 @@ interface SelectedFileState {
 }
 
 interface ChangesState {
-	selectedFiles: Record<string, SelectedFileState | null>; // worktreePath → selection
+	selectedFiles: Record<string, SelectedFileState | null>;
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
 	baseBranch: string | null;
+	showRenderedMarkdown: Record<string, boolean>;
 
-	// Actions
 	selectFile: (
 		worktreePath: string,
 		file: ChangedFile | null,
@@ -34,6 +34,8 @@ interface ChangesState {
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
 	setBaseBranch: (branch: string | null) => void;
+	toggleRenderedMarkdown: (worktreePath: string) => void;
+	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	reset: (worktreePath: string) => void;
 }
 
@@ -42,12 +44,13 @@ const initialState = {
 	viewMode: "side-by-side" as DiffViewMode,
 	fileListViewMode: "grouped" as FileListViewMode,
 	expandedSections: {
-		"against-main": true,
+		"against-base": true,
 		committed: true,
 		staged: true,
 		unstaged: true,
 	},
 	baseBranch: null,
+	showRenderedMarkdown: {} as Record<string, boolean>,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -64,7 +67,7 @@ export const useChangesStore = create<ChangesState>()(
 							[worktreePath]: file
 								? {
 										file,
-										category: category ?? "against-main",
+										category: category ?? "against-base",
 										commitHash: commitHash ?? null,
 									}
 								: null,
@@ -108,6 +111,20 @@ export const useChangesStore = create<ChangesState>()(
 					set({ baseBranch: branch });
 				},
 
+				toggleRenderedMarkdown: (worktreePath) => {
+					const { showRenderedMarkdown } = get();
+					set({
+						showRenderedMarkdown: {
+							...showRenderedMarkdown,
+							[worktreePath]: !showRenderedMarkdown[worktreePath],
+						},
+					});
+				},
+
+				getShowRenderedMarkdown: (worktreePath) => {
+					return get().showRenderedMarkdown[worktreePath] ?? false;
+				},
+
 				reset: (worktreePath) => {
 					const { selectedFiles } = get();
 					set({
@@ -126,6 +143,7 @@ export const useChangesStore = create<ChangesState>()(
 					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
 					baseBranch: state.baseBranch,
+					showRenderedMarkdown: state.showRenderedMarkdown,
 				}),
 			},
 		),

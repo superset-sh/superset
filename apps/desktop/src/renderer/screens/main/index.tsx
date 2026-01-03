@@ -1,27 +1,31 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
-import { useHotkeys } from "react-hotkeys-hook";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
+import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useChatPanelStore } from "renderer/stores/chat-panel-state";
+import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
-import { HOTKEYS } from "shared/hotkeys";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
+import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceView } from "./components/WorkspaceView";
 
@@ -33,6 +37,14 @@ function LoadingSpinner() {
 
 export function MainScreen() {
 	const utils = trpc.useUtils();
+
+	// Version check - blocks app if outdated
+	const {
+		isLoading: isVersionLoading,
+		isBlocked: isVersionBlocked,
+		requirements: versionRequirements,
+	} = useVersionCheck();
+
 	const { data: authState } = trpc.auth.getState.useQuery();
 	const isSignedIn =
 		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
@@ -47,6 +59,9 @@ export function MainScreen() {
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
 	const { togglePanel: toggleChatPanel } = useChatPanelStore();
+	const hasTasksAccess = useFeatureFlagEnabled(
+		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
+	);
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,
@@ -67,6 +82,7 @@ export function MainScreen() {
 
 	useAgentHookListener();
 	useUpdateListener();
+	useHotkeysSync();
 
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
@@ -84,17 +100,27 @@ export function MainScreen() {
 	const activeTab = tabs.find((t) => t.id === activeTabId);
 	const isWorkspaceView = currentView === "workspace";
 
-	useHotkeys(HOTKEYS.SHOW_HOTKEYS.keys, () => openSettings("keyboard"), [
+	useAppHotkey("SHOW_HOTKEYS", () => openSettings("keyboard"), undefined, [
 		openSettings,
 	]);
 
-	useHotkeys(HOTKEYS.TOGGLE_SIDEBAR.keys, () => {
-		if (isWorkspaceView) toggleSidebar();
-	}, [toggleSidebar, isWorkspaceView]);
+	useAppHotkey(
+		"TOGGLE_SIDEBAR",
+		() => {
+			if (isWorkspaceView) toggleSidebar();
+		},
+		undefined,
+		[toggleSidebar, isWorkspaceView],
+	);
 
-	useHotkeys(HOTKEYS.TOGGLE_CHAT_PANEL.keys, () => {
-		if (isWorkspaceView) toggleChatPanel();
-	}, [toggleChatPanel, isWorkspaceView]);
+	useAppHotkey(
+		"TOGGLE_CHAT_PANEL",
+		() => {
+			if (isWorkspaceView) toggleChatPanel();
+		},
+		undefined,
+		[toggleChatPanel, isWorkspaceView],
+	);
 
 	/**
 	 * Resolves the target pane for split operations.
@@ -115,57 +141,109 @@ export function MainScreen() {
 		[setFocusedPane],
 	);
 
-	useHotkeys(HOTKEYS.SPLIT_AUTO.keys, () => {
-		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
-			if (!target) return;
-			const dimensions = getPaneDimensions(target.paneId);
-			if (dimensions) {
-				splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
+	useAppHotkey(
+		"SPLIT_AUTO",
+		() => {
+			if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				const dimensions = getPaneDimensions(target.paneId);
+				if (dimensions) {
+					splitPaneAuto(activeTabId, target.paneId, dimensions, target.path);
+				}
 			}
-		}
-	}, [
-		activeTabId,
-		focusedPaneId,
-		activeTab,
-		splitPaneAuto,
-		resolveSplitTarget,
-		isWorkspaceView,
-	]);
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneAuto,
+			resolveSplitTarget,
+			isWorkspaceView,
+		],
+	);
 
-	useHotkeys(HOTKEYS.SPLIT_RIGHT.keys, () => {
-		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
-			if (!target) return;
-			splitPaneVertical(activeTabId, target.paneId, target.path);
-		}
-	}, [
-		activeTabId,
-		focusedPaneId,
-		activeTab,
-		splitPaneVertical,
-		resolveSplitTarget,
-		isWorkspaceView,
-	]);
+	useAppHotkey(
+		"SPLIT_RIGHT",
+		() => {
+			if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneVertical(activeTabId, target.paneId, target.path);
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneVertical,
+			resolveSplitTarget,
+			isWorkspaceView,
+		],
+	);
 
-	useHotkeys(HOTKEYS.SPLIT_DOWN.keys, () => {
-		if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
-			const target = resolveSplitTarget(focusedPaneId, activeTabId, activeTab);
-			if (!target) return;
-			splitPaneHorizontal(activeTabId, target.paneId, target.path);
-		}
-	}, [
-		activeTabId,
-		focusedPaneId,
-		activeTab,
-		splitPaneHorizontal,
-		resolveSplitTarget,
-		isWorkspaceView,
-	]);
+	useAppHotkey(
+		"SPLIT_DOWN",
+		() => {
+			if (isWorkspaceView && activeTabId && focusedPaneId && activeTab) {
+				const target = resolveSplitTarget(
+					focusedPaneId,
+					activeTabId,
+					activeTab,
+				);
+				if (!target) return;
+				splitPaneHorizontal(activeTabId, target.paneId, target.path);
+			}
+		},
+		undefined,
+		[
+			activeTabId,
+			focusedPaneId,
+			activeTab,
+			splitPaneHorizontal,
+			resolveSplitTarget,
+			isWorkspaceView,
+		],
+	);
 
 	const isLoading = isWorkspaceLoading;
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
+
+	// Show loading while version check is in progress
+	if (isVersionLoading) {
+		return (
+			<>
+				<Background />
+				<AppFrame>
+					<div className="flex h-full w-full items-center justify-center bg-background">
+						<LoadingSpinner />
+					</div>
+				</AppFrame>
+			</>
+		);
+	}
+
+	// Block app if version is outdated
+	if (isVersionBlocked && versionRequirements) {
+		return (
+			<UpdateRequiredPage
+				currentVersion={window.App.appVersion}
+				minimumVersion={versionRequirements.minimumVersion}
+				message={versionRequirements.message}
+			/>
+		);
+	}
 
 	// Show loading while auth state is being determined
 	if (isAuthLoading) {
@@ -196,6 +274,9 @@ export function MainScreen() {
 	const renderContent = () => {
 		if (currentView === "settings") {
 			return <SettingsView />;
+		}
+		if (currentView === "tasks" && hasTasksAccess) {
+			return <TasksView />;
 		}
 		return <WorkspaceView />;
 	};

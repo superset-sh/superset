@@ -68,8 +68,161 @@ bun run clean:workspaces   # Clean all workspace node_modules
 1. **Keep diffs minimal** - targeted edits only
 2. **Follow existing patterns** - match the codebase style
 3. **Type safety** - avoid `any` unless necessary
-4. **Don't run dev servers** in automation
-5. **Search narrowly** - avoid reading large files/assets
+4. **Search narrowly** - avoid reading large files/assets
+
+---
+
+## Architecture & Design Principles
+
+These are default heuristics for making design decisions across the monorepo. When in doubt, prefer consistency with existing patterns over novel abstractions.
+
+### Separation of Concerns
+
+- **Separate by ownership + lifecycle**: Keep transport (routes, API handlers), orchestration (tRPC procedures), and domain rules in distinct layers when complexity warrants it.
+- **Co-locate by lifecycle**: Feature-specific code lives together, not split by "type" (e.g., all task-related code in `router/task/`).
+- **Boundary layers own error handling**: Domain utilities return data or throw specific errors; only boundary code (tRPC procedures, API routes) should catch and transform to `TRPCError` or HTTP responses.
+
+### Minimal Coupling
+
+- Keep modules self-contained with narrow public APIs; avoid importing "app state" into lower layers.
+- Apply the Law of Demeter: depend on direct collaborators (passed dependencies), not transitive globals.
+- When a module grows complex, prefer injecting dependencies (logger, db, external clients) rather than importing singletons so tests can substitute fakes.
+
+### Right Tool for the Job
+
+- Prefer existing primitives before writing new ones: check `packages/ui`, `packages/constants`, existing utilities.
+- Use lookup objects/maps over `if (type === ...)` conditionals scattered across call sites when handling multiple cases.
+- Match persistence + complexity to requirements: keep constants as code when static; use Drizzle for multi-tenant data.
+
+### Fail-Safe by Default
+
+- Validate at boundaries (Zod schemas for tRPC inputs, API route bodies) and handle invalid input with clear, user-visible errors.
+- External API data is untrusted: handle missing fields, unknown enums, and unexpected shapes; prefer tolerant parsing + explicit fallbacks.
+- Never swallow errors silently—at minimum log them with context.
+
+### Avoid Premature Abstraction
+
+- Start with the simplest correct solution; add complexity only when requirements demand it.
+- Use the "three instances" heuristic for new helpers: don't abstract until you've seen the pattern three times.
+- Don't introduce frameworks/DSLs for one-off cases.
+
+### Keep Orchestrators Thin
+
+- tRPC procedures and API route handlers should validate + delegate; complex domain rules live in utilities or service functions.
+- A function should operate at one level of abstraction (orchestrate steps *or* perform low-level work, not both).
+
+### When to Extract a Service Layer
+
+Use case-by-case judgment. Extract business logic from tRPC procedures when:
+- The procedure exceeds ~50 lines of non-trivial logic
+- The same logic is needed by multiple procedures or entry points
+- Complex error handling with multiple failure modes
+- You need to mock the logic independently for testing
+
+Otherwise, inline logic in procedures is fine for straightforward CRUD.
+
+---
+
+## Coding Conventions
+
+### Object Signatures for 2+ Parameters
+
+Functions with 2+ parameters should accept a single params object instead of positional arguments:
+
+```typescript
+// ✅ Good
+const createTask = ({ title, userId, priority }: {
+  title: string;
+  userId: string;
+  priority?: number
+}) => { ... };
+
+// ❌ Bad - positional arguments
+const createTask = (title: string, userId: string, priority?: number) => { ... };
+```
+
+**Why?** Named parameters are self-documenting, order-independent, and easier to extend.
+
+### Error Handling with TRPCError
+
+Use appropriate error codes consistently:
+
+```typescript
+// NOT_FOUND - Resource doesn't exist
+throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+
+// UNAUTHORIZED - Not logged in
+throw new TRPCError({ code: "UNAUTHORIZED", message: "Must be logged in" });
+
+// FORBIDDEN - Logged in but no permission
+throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized to access this task" });
+
+// BAD_REQUEST - Invalid input that passed Zod validation
+throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid task state transition" });
+
+// INTERNAL_SERVER_ERROR - Unexpected failures (use sparingly, prefer specific codes)
+throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to process task" });
+
+// NOT_IMPLEMENTED - Feature exists but isn't ready yet
+throw new TRPCError({ code: "NOT_IMPLEMENTED", message: "Feature not yet implemented" });
+```
+
+**Pattern for external service failures:**
+```typescript
+try {
+  const result = await externalService.call(params);
+  if (!result.ok) {
+    console.error("[context] External service error:", result.error);
+    throw new TRPCError({
+      code: "INTERNAL_SERVER_ERROR",
+      message: "External service unavailable"
+    });
+  }
+  return result.data;
+} catch (error) {
+  console.error("[context] Unexpected error:", error);
+  throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Operation failed" });
+}
+```
+
+### Logging Conventions
+
+Use prefixed console logging with consistent context:
+
+```typescript
+// Pattern: [domain/operation] message
+console.log("[auth/refresh] Refreshing token for user:", userId);
+console.error("[sync/linear] Failed to sync:", error);
+console.warn("[task/archive] Task already archived:", taskId);
+```
+
+**What to log:**
+- ✅ Entry/exit of significant operations
+- ✅ External API calls (without sensitive data)
+- ✅ Error conditions with context (IDs, relevant state)
+- ❌ Sensitive data (tokens, passwords, PII)
+- ❌ High-frequency operations in loops (batch the log)
+
+---
+
+## Code Smells to Avoid
+
+| Smell | Symptom | Preferred Fix |
+|-------|---------|---------------|
+| Magic numbers | Hardcoded `100`, `3`, `"linear"` in logic | Extract to named constants at module top |
+| Provider conditionals | Repeated `if (provider === ...)` | Use a lookup object/map pattern |
+| God procedures | tRPC procedure does validation + business rules + I/O + error handling | Extract a utility function; keep procedure thin |
+| Cross-layer imports | UI importing from `packages/db` internals | Go through proper package exports |
+| Opacity | Reader can't understand intent within 30 seconds | Rename variables, extract named functions |
+| Primitive obsession | Passing raw `string` for IDs everywhere | Consider branded types or wrapper objects for critical IDs |
+| Shotgun surgery | One logical change requires edits in 5+ files | Co-locate related code; reconsider boundaries |
+| Silent error swallowing | `catch(() => {})` or `catch(e) { return null }` | At minimum log the error; prefer re-throwing or explicit handling |
+| Optional deps without reason | `logger?: Logger` in interface | Make required unless truly optional; document why if optional |
+| Barrel file abuse | `export * from "./module"` creating circular deps | Import from concrete files directly when possible |
+| Deep nesting | 4+ levels of if/for/try nesting | Early returns, extract functions, invert conditions |
+| Boolean blindness | `doThing(true, false, true)` | Use options object with named properties |
+
+---
 
 ## Project Structure
 
@@ -146,6 +299,8 @@ components/                                # Used in 2+ pages (last resort)
 The `src/components/ui/`, `src/components/ai-elements`, and `src/components/react-flow/` directories contain shadcn/ui components. These use **kebab-case single files** (e.g., `button.tsx`, `base-node.tsx`) instead of the folder structure above. This is intentional—shadcn CLI expects this format for updates via `bunx shadcn@latest add`.
 
 ## Database Rules
+
+** IMPORTANT ** - Never touch the production database unless explicitly asked to. Even then, confirm with the user first.
 
 - Schema in `packages/db/src/`
 - Use Drizzle ORM for all database operations

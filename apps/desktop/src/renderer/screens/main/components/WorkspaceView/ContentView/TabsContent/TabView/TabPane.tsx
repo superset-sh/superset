@@ -4,6 +4,7 @@ import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import {
 	registerPaneRef,
 	unregisterPaneRef,
@@ -150,7 +151,10 @@ export function TabPane({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" showArrow={false}>
-								Split pane
+								<HotkeyTooltipContent
+									label="Split pane"
+									hotkeyId="SPLIT_AUTO"
+								/>
 							</TooltipContent>
 						</Tooltip>
 						<Tooltip>
@@ -164,7 +168,10 @@ export function TabPane({
 								</button>
 							</TooltipTrigger>
 							<TooltipContent side="bottom" showArrow={false}>
-								Close pane
+								<HotkeyTooltipContent
+									label="Close pane"
+									hotkeyId="CLOSE_TERMINAL"
+								/>
 							</TooltipContent>
 						</Tooltip>
 					</div>

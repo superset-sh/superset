@@ -8,8 +8,9 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
 import { trpcClient } from "renderer/lib/trpc-client";
+import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
-import { isAppHotkey } from "shared/hotkeys";
+import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -173,9 +174,9 @@ export function createTerminalInstance(
 }
 
 export interface KeyboardHandlerOptions {
-	/** Callback for Shift+Enter to create a line continuation (like iTerm) */
+	/** Callback for Shift+Enter (sends ESC+CR to avoid \ appearing in Claude Code while keeping line continuation behavior) */
 	onShiftEnter?: () => void;
-	/** Callback for Cmd+K to clear the terminal */
+	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
 }
 
@@ -226,8 +227,8 @@ export function setupPasteHandler(
 /**
  * Setup keyboard handling for xterm including:
  * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
- * - Shift+Enter: Creates a line continuation (like iTerm) instead of executing
- * - Cmd+K: Clears the terminal
+ * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
+ * - Clear terminal: Uses the configured clear shortcut
  *
  * Returns a cleanup function to remove the handler.
  */
@@ -250,12 +251,11 @@ export function setupKeyboardHandler(
 			return false;
 		}
 
+		if (isTerminalReservedEvent(event)) return true;
+
+		const clearKeys = getHotkeyKeys("CLEAR_TERMINAL");
 		const isClearShortcut =
-			event.key.toLowerCase() === "k" &&
-			event.metaKey &&
-			!event.shiftKey &&
-			!event.ctrlKey &&
-			!event.altKey;
+			clearKeys !== null && matchesHotkeyEvent(event, clearKeys);
 
 		if (isClearShortcut) {
 			if (event.type === "keydown" && options.onClear) {
@@ -267,22 +267,9 @@ export function setupKeyboardHandler(
 		if (event.type !== "keydown") return true;
 		if (!event.metaKey && !event.ctrlKey) return true;
 
-		if (isAppHotkey(event)) {
-			document.dispatchEvent(
-				new KeyboardEvent(event.type, {
-					key: event.key,
-					code: event.code,
-					keyCode: event.keyCode,
-					which: event.which,
-					ctrlKey: event.ctrlKey,
-					shiftKey: event.shiftKey,
-					altKey: event.altKey,
-					metaKey: event.metaKey,
-					repeat: event.repeat,
-					bubbles: true,
-					cancelable: true,
-				}),
-			);
+		if (isAppHotkeyEvent(event)) {
+			// Return false to prevent xterm from processing the key.
+			// The original event bubbles to document where useAppHotkey handles it.
 			return false;
 		}
 

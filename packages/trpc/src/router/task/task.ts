@@ -8,11 +8,11 @@ import { syncTask } from "../../lib/integrations/sync";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 import { createTaskSchema, updateTaskSchema } from "./schema";
 
-const assignee = alias(users, "assignee");
-const creator = alias(users, "creator");
-
 export const taskRouter = {
 	all: publicProcedure.query(() => {
+		const assignee = alias(users, "assignee");
+		const creator = alias(users, "creator");
+
 		return db
 			.select({
 				task: tasks,

@@ -2,6 +2,7 @@ import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
+import { setSkipQuitConfirmation } from "main/index";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
 
@@ -49,6 +50,8 @@ export function installUpdate(): void {
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
 		return;
 	}
+	// Skip confirmation dialog - quitAndInstall internally calls app.quit()
+	setSkipQuitConfirmation();
 	autoUpdater.quitAndInstall(false, true);
 }
 

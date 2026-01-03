@@ -3,9 +3,10 @@ import { initSentry } from "./lib/sentry";
 initSentry();
 
 import path from "node:path";
-import { app, BrowserWindow } from "electron";
+import { settings } from "@superset/local-db";
+import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { PROTOCOL_SCHEME } from "shared/constants";
+import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
@@ -91,10 +92,103 @@ app.on("open-url", async (event, url) => {
 	await processDeepLink(url);
 });
 
-// Track when app is quitting to suppress expected termination errors
+type QuitState =
+	| "idle"
+	| "confirming"
+	| "confirmed"
+	| "cleaning"
+	| "ready-to-quit";
+let quitState: QuitState = "idle";
 let isQuitting = false;
-app.on("before-quit", () => {
+let skipConfirmation = false;
+
+/**
+ * Check if the user has enabled the confirm-on-quit setting
+ */
+function getConfirmOnQuitSetting(): boolean {
+	try {
+		const row = localDb.select().from(settings).get();
+		return row?.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
+	} catch {
+		return DEFAULT_CONFIRM_ON_QUIT;
+	}
+}
+
+/**
+ * Skip the confirmation dialog for the next quit (e.g., auto-updater)
+ */
+export function setSkipQuitConfirmation(): void {
+	skipConfirmation = true;
+}
+
+/**
+ * Skip the confirmation dialog and quit immediately
+ */
+export function quitWithoutConfirmation(): void {
+	skipConfirmation = true;
+	app.quit();
+}
+
+app.on("before-quit", async (event) => {
 	isQuitting = true;
+
+	if (quitState === "ready-to-quit") return;
+	if (quitState === "cleaning" || quitState === "confirming") {
+		event.preventDefault();
+		return;
+	}
+
+	// Check if we need to show confirmation
+	// Skip confirmation in development mode to avoid interrupting hot-reload
+	if (quitState === "idle") {
+		const isDev = process.env.NODE_ENV === "development";
+		const shouldConfirm =
+			!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+
+		if (shouldConfirm) {
+			event.preventDefault();
+			quitState = "confirming";
+
+			try {
+				const { response } = await dialog.showMessageBox({
+					type: "question",
+					buttons: ["Quit", "Cancel"],
+					defaultId: 0,
+					cancelId: 1,
+					title: "Quit Superset",
+					message: "Are you sure you want to quit?",
+				});
+
+				if (response === 1) {
+					// User cancelled
+					quitState = "idle";
+					isQuitting = false;
+					return;
+				}
+			} catch (error) {
+				// Dialog failed - proceed with quit to avoid stuck state
+				console.error("[main] Quit confirmation dialog failed:", error);
+			}
+
+			// User confirmed or dialog failed, proceed with quit
+			quitState = "confirmed";
+			app.quit();
+			return;
+		}
+
+		// No confirmation needed
+		quitState = "confirmed";
+	}
+
+	event.preventDefault();
+	quitState = "cleaning";
+
+	try {
+		await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
+	} finally {
+		quitState = "ready-to-quit";
+		app.quit();
+	}
 });
 
 process.on("uncaughtException", (error) => {
@@ -111,8 +205,8 @@ process.on("unhandledRejection", (reason) => {
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
-	// Another instance is already running, quit this one
-	app.quit();
+	// Another instance is already running, exit immediately without triggering before-quit
+	app.exit(0);
 } else {
 	// Handle deep links when second instance is launched (Windows/Linux)
 	app.on("second-instance", async (_event, argv) => {
@@ -144,10 +238,5 @@ if (!gotTheLock) {
 		if (coldStartUrl) {
 			await processDeepLink(coldStartUrl);
 		}
-
-		// Clean up all terminals and analytics when app is quitting
-		app.on("before-quit", async () => {
-			await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
-		});
 	})();
 }

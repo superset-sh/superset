@@ -33,26 +33,43 @@ import rustroverIcon from "renderer/assets/app-icons/rustrover.svg";
 import sublimeIcon from "renderer/assets/app-icons/sublime.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
+import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import { trpc } from "renderer/lib/trpc";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface AppOption {
 	id: ExternalApp;
 	label: string;
 	icon: string;
+	displayLabel?: string;
 }
 
 export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
-	{ id: "vscode", label: "VS Code", icon: vscodeIcon },
 	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
 	{ id: "iterm", label: "iTerm", icon: itermIcon },
 	{ id: "warp", label: "Warp", icon: warpIcon },
 	{ id: "terminal", label: "Terminal", icon: terminalIcon },
+];
+
+export const VSCODE_OPTIONS: AppOption[] = [
+	{
+		id: "vscode",
+		label: "Standard",
+		icon: vscodeIcon,
+		displayLabel: "VS Code",
+	},
+	{
+		id: "vscode-insiders",
+		label: "Insiders",
+		icon: vscodeInsidersIcon,
+		displayLabel: "VS Code Insiders",
+	},
 ];
 
 export const JETBRAINS_OPTIONS: AppOption[] = [
@@ -70,7 +87,11 @@ export const JETBRAINS_OPTIONS: AppOption[] = [
 	{ id: "rustrover", label: "RustRover", icon: rustroverIcon },
 ];
 
-const ALL_APP_OPTIONS = [...APP_OPTIONS, ...JETBRAINS_OPTIONS];
+const ALL_APP_OPTIONS = [
+	...APP_OPTIONS,
+	...VSCODE_OPTIONS,
+	...JETBRAINS_OPTIONS,
+];
 
 export const getAppOption = (id: ExternalApp) =>
 	ALL_APP_OPTIONS.find((app) => app.id === id) ?? APP_OPTIONS[1];
@@ -90,6 +111,11 @@ export function OpenInButton({
 }: OpenInButtonProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const utils = trpc.useUtils();
+	const openInShortcut = useHotkeyText("OPEN_IN_APP");
+	const copyPathShortcut = useHotkeyText("COPY_PATH");
+	const showOpenInShortcut = showShortcuts && openInShortcut !== "Unassigned";
+	const showCopyPathShortcut =
+		showShortcuts && copyPathShortcut !== "Unassigned";
 
 	const { data: lastUsedApp = "cursor" } =
 		trpc.settings.getLastUsedApp.useQuery();
@@ -139,7 +165,9 @@ export function OpenInButton({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						{`Open in ${currentApp.label}${showShortcuts ? " (⌘O)" : ""}`}
+						{`Open in ${currentApp.displayLabel ?? currentApp.label}${
+							showOpenInShortcut ? ` (${openInShortcut})` : ""
+						}`}
 					</TooltipContent>
 				</Tooltip>
 			)}
@@ -170,11 +198,44 @@ export function OpenInButton({
 								/>
 								<span>{app.label}</span>
 							</div>
-							{showShortcuts && app.id === lastUsedApp && (
-								<span className="text-xs text-muted-foreground">⌘O</span>
+							{showOpenInShortcut && app.id === lastUsedApp && (
+								<span className="text-xs text-muted-foreground">
+									{openInShortcut}
+								</span>
 							)}
 						</DropdownMenuItem>
 					))}
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger className="flex items-center gap-2">
+							<img
+								src={vscodeIcon}
+								alt="VS Code"
+								className="size-4 object-contain"
+							/>
+							<span>VS Code</span>
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className="w-48">
+							{VSCODE_OPTIONS.map((app) => (
+								<DropdownMenuItem
+									key={app.id}
+									onClick={() => handleOpenIn(app.id)}
+									className="flex items-center justify-between"
+								>
+									<div className="flex items-center gap-2">
+										<img
+											src={app.icon}
+											alt={app.label}
+											className="size-4 object-contain"
+										/>
+										<span>{app.label}</span>
+									</div>
+									{showShortcuts && app.id === lastUsedApp && (
+										<span className="text-xs text-muted-foreground">⌘O</span>
+									)}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger className="flex items-center gap-2">
 							<img
@@ -199,8 +260,10 @@ export function OpenInButton({
 										/>
 										<span>{app.label}</span>
 									</div>
-									{showShortcuts && app.id === lastUsedApp && (
-										<span className="text-xs text-muted-foreground">⌘O</span>
+									{showOpenInShortcut && app.id === lastUsedApp && (
+										<span className="text-xs text-muted-foreground">
+											{openInShortcut}
+										</span>
 									)}
 								</DropdownMenuItem>
 							))}
@@ -215,8 +278,10 @@ export function OpenInButton({
 							<LuCopy className="size-4" />
 							<span>Copy path</span>
 						</div>
-						{showShortcuts && (
-							<span className="text-xs text-muted-foreground">⌘⇧C</span>
+						{showCopyPathShortcut && (
+							<span className="text-xs text-muted-foreground">
+								{copyPathShortcut}
+							</span>
 						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>

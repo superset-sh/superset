@@ -8,7 +8,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import type { Plugin } from "vite";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
-import { main, resources } from "./package.json";
+import { main, resources, version } from "./package.json";
 
 // Dev server port - must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
 const DEV_SERVER_PORT = 5927;
@@ -91,6 +91,13 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_DESKTOP": JSON.stringify(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			// PostHog - must match renderer for analytics in main process
+			"process.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_KEY,
+			),
+			"process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+				process.env.NEXT_PUBLIC_POSTHOG_HOST,
+			),
 		},
 
 		build: {
@@ -130,6 +137,7 @@ export default defineConfig({
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
 			),
+			__APP_VERSION__: JSON.stringify(version),
 		},
 
 		build: {
@@ -185,6 +193,17 @@ export default defineConfig({
 				hotKeys: ["altKey"],
 				hideConsole: true,
 			}),
+
+			// Inject env vars into index.html CSP
+			{
+				name: "html-env-transform",
+				transformIndexHtml(html) {
+					return html.replace(
+						/%NEXT_PUBLIC_API_URL%/g,
+						process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+					);
+				},
+			},
 		],
 
 		// Monaco editor worker configuration
@@ -194,6 +213,7 @@ export default defineConfig({
 
 		optimizeDeps: {
 			include: ["monaco-editor"],
+			exclude: ["@electric-sql/pglite"],
 		},
 
 		publicDir: resolve(resources, "public"),

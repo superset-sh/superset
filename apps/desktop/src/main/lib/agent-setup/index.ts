@@ -1,7 +1,18 @@
 import fs from "node:fs";
-import { createClaudeWrapper, createCodexWrapper } from "./agent-wrappers";
+import {
+	createClaudeWrapper,
+	createCodexWrapper,
+	createOpenCodePlugin,
+	createOpenCodeWrapper,
+} from "./agent-wrappers";
 import { createNotifyScript } from "./notify-hook";
-import { BASH_DIR, BIN_DIR, HOOKS_DIR, ZSH_DIR } from "./paths";
+import {
+	BASH_DIR,
+	BIN_DIR,
+	HOOKS_DIR,
+	OPENCODE_PLUGIN_DIR,
+	ZSH_DIR,
+} from "./paths";
 import {
 	createBashWrapper,
 	createZshWrapper,
@@ -21,11 +32,14 @@ export function setupAgentHooks(): void {
 	fs.mkdirSync(HOOKS_DIR, { recursive: true });
 	fs.mkdirSync(ZSH_DIR, { recursive: true });
 	fs.mkdirSync(BASH_DIR, { recursive: true });
+	fs.mkdirSync(OPENCODE_PLUGIN_DIR, { recursive: true });
 
 	// Create scripts
 	createNotifyScript();
 	createClaudeWrapper();
 	createCodexWrapper();
+	createOpenCodePlugin();
+	createOpenCodeWrapper();
 
 	// Create shell initialization wrappers
 	createZshWrapper();

@@ -322,6 +322,49 @@ export async function fetchDefaultBranch(
 	return commit.trim();
 }
 
+/**
+ * Refreshes the local origin/HEAD symref from the remote and returns the current default branch.
+ * This detects when the remote repository's default branch has changed (e.g., master -> main).
+ * @param mainRepoPath - Path to the main repository
+ * @returns The current default branch name, or null if unable to determine
+ */
+export async function refreshDefaultBranch(
+	mainRepoPath: string,
+): Promise<string | null> {
+	const git = simpleGit(mainRepoPath);
+
+	const hasRemote = await hasOriginRemote(mainRepoPath);
+	if (!hasRemote) {
+		return null;
+	}
+
+	try {
+		// Git doesn't auto-update origin/HEAD on fetch, so we must explicitly
+		// sync it to detect when the remote's default branch changes
+		await git.remote(["set-head", "origin", "--auto"]);
+
+		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
+		const match = headRef.trim().match(/refs\/remotes\/origin\/(.+)/);
+		if (match) {
+			return match[1];
+		}
+	} catch {
+		// set-head requires network access; fall back to ls-remote which may
+		// work in some edge cases or provide a more specific error
+		try {
+			const result = await git.raw(["ls-remote", "--symref", "origin", "HEAD"]);
+			const symrefMatch = result.match(/ref:\s+refs\/heads\/(.+?)\tHEAD/);
+			if (symrefMatch) {
+				return symrefMatch[1];
+			}
+		} catch {
+			// Network unavailable - caller will use cached value
+		}
+	}
+
+	return null;
+}
+
 export async function checkNeedsRebase(
 	worktreePath: string,
 	defaultBranch: string,
@@ -521,16 +564,8 @@ export async function checkBranchCheckoutSafety(
 	const git = simpleGit(repoPath);
 
 	try {
-		// Check for uncommitted changes
 		const status = await git.status();
 
-		// Check all forms of uncommitted changes:
-		// - staged: files added to index
-		// - modified: tracked files with unstaged changes
-		// - deleted: tracked files deleted but not staged
-		// - created: new files staged for commit
-		// - renamed: files renamed (staged)
-		// - conflicted: merge conflicts
 		const hasUncommittedChanges =
 			status.staged.length > 0 ||
 			status.modified.length > 0 ||
@@ -539,7 +574,6 @@ export async function checkBranchCheckoutSafety(
 			status.renamed.length > 0 ||
 			status.conflicted.length > 0;
 
-		// Untracked files that could be overwritten by checkout
 		const hasUntrackedFiles = status.not_added.length > 0;
 
 		if (hasUncommittedChanges) {
@@ -552,7 +586,7 @@ export async function checkBranchCheckoutSafety(
 			};
 		}
 
-		// Block on untracked files as they could be overwritten
+		// Block on untracked files as they could be overwritten by checkout
 		if (hasUntrackedFiles) {
 			return {
 				safe: false,
@@ -563,11 +597,11 @@ export async function checkBranchCheckoutSafety(
 			};
 		}
 
-		// Fetch and prune stale remote refs (best-effort)
+		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
 			await git.fetch(["--prune"]);
 		} catch {
-			// Ignore fetch errors (e.g., offline) - not critical for safety
+			// Ignore fetch errors
 		}
 
 		return {

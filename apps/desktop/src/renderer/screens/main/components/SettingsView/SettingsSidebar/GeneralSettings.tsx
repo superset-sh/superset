@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import {
+	HiOutlineAdjustmentsHorizontal,
 	HiOutlineBell,
 	HiOutlineCog6Tooth,
 	HiOutlineCommandLine,
@@ -42,6 +43,11 @@ const GENERAL_SECTIONS: {
 		id: "presets",
 		label: "Presets",
 		icon: <HiOutlineCog6Tooth className="h-4 w-4" />,
+	},
+	{
+		id: "behavior",
+		label: "Behavior",
+		icon: <HiOutlineAdjustmentsHorizontal className="h-4 w-4" />,
 	},
 ];
 

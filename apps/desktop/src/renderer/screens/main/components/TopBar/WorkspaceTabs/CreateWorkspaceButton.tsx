@@ -1,16 +1,29 @@
-import { Button } from "@superset/ui/button";
-import { ButtonGroup, ButtonGroupSeparator } from "@superset/ui/button-group";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef } from "react";
-import { HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
+import { useCallback, useState } from "react";
+import {
+	HiChevronDown,
+	HiFolderOpen,
+	HiMiniPlus,
+	HiOutlineBolt,
+} from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNew } from "renderer/react-query/projects";
 import {
 	useCreateBranchWorkspace,
 	useCreateWorkspace,
 } from "renderer/react-query/workspaces";
+import { useAppHotkey, useHotkeyText } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { InitGitDialog } from "../../StartView/InitGitDialog";
 
 export interface CreateWorkspaceButtonProps {
 	className?: string;
@@ -19,8 +32,11 @@ export interface CreateWorkspaceButtonProps {
 export function CreateWorkspaceButton({
 	className,
 }: CreateWorkspaceButtonProps) {
-	const modalButtonRef = useRef<HTMLButtonElement>(null);
-	const quickCreateButtonRef = useRef<HTMLButtonElement>(null);
+	const [open, setOpen] = useState(false);
+	const [initGitDialog, setInitGitDialog] = useState<{
+		isOpen: boolean;
+		selectedPath: string;
+	}>({ isOpen: false, selectedPath: "" });
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -33,29 +49,18 @@ export function CreateWorkspaceButton({
 		(p) => p.id === activeWorkspace?.projectId,
 	);
 
-	const handleModalCreate = () => {
-		modalButtonRef.current?.blur();
+	const isLoading =
+		createWorkspace.isPending ||
+		createBranchWorkspace.isPending ||
+		openNew.isPending;
+
+	const handleModalCreate = useCallback(() => {
+		setOpen(false);
 		openModal();
-	};
+	}, [openModal]);
 
-	const handleQuickCreate = () => {
-		quickCreateButtonRef.current?.blur();
-		if (currentProject) {
-			toast.promise(
-				createWorkspace.mutateAsync({ projectId: currentProject.id }),
-				{
-					loading: "Creating workspace...",
-					success: "Workspace created",
-					error: (err) =>
-						err instanceof Error ? err.message : "Failed to create workspace",
-				},
-			);
-		} else {
-			handleOpenNewProject();
-		}
-	};
-
-	const handleOpenNewProject = async () => {
+	const handleOpenNewProject = useCallback(async () => {
+		setOpen(false);
 		try {
 			const result = await openNew.mutateAsync(undefined);
 			if (result.canceled) {
@@ -68,9 +73,9 @@ export function CreateWorkspaceButton({
 				return;
 			}
 			if ("needsGitInit" in result) {
-				toast.error("Selected folder is not a git repository", {
-					description:
-						"Please use 'Open project' from the start view to initialize git.",
+				setInitGitDialog({
+					isOpen: true,
+					selectedPath: result.selectedPath,
 				});
 				return;
 			}
@@ -90,55 +95,146 @@ export function CreateWorkspaceButton({
 					error instanceof Error ? error.message : "An unknown error occurred",
 			});
 		}
-	};
+	}, [openNew, createBranchWorkspace]);
+
+	const handleQuickCreate = useCallback(() => {
+		setOpen(false);
+		if (currentProject) {
+			toast.promise(
+				createWorkspace.mutateAsync({ projectId: currentProject.id }),
+				{
+					loading: "Creating workspace...",
+					success: "Workspace created",
+					error: (err) =>
+						err instanceof Error ? err.message : "Failed to create workspace",
+				},
+			);
+		} else {
+			handleOpenNewProject();
+		}
+	}, [currentProject, createWorkspace, handleOpenNewProject]);
+
+	// Keyboard shortcuts
+	const handleQuickCreateHotkey = useCallback(() => {
+		if (!isLoading) handleQuickCreate();
+	}, [isLoading, handleQuickCreate]);
+
+	const handleOpenProjectHotkey = useCallback(() => {
+		if (!isLoading) handleOpenNewProject();
+	}, [isLoading, handleOpenNewProject]);
+
+	useAppHotkey("NEW_WORKSPACE", handleModalCreate, undefined, [
+		handleModalCreate,
+	]);
+	useAppHotkey("QUICK_CREATE_WORKSPACE", handleQuickCreateHotkey, undefined, [
+		handleQuickCreateHotkey,
+	]);
+	useAppHotkey("OPEN_PROJECT", handleOpenProjectHotkey, undefined, [
+		handleOpenProjectHotkey,
+	]);
+
+	const newWorkspaceShortcut = useHotkeyText("NEW_WORKSPACE");
+	const quickCreateShortcut = useHotkeyText("QUICK_CREATE_WORKSPACE");
+	const openProjectShortcut = useHotkeyText("OPEN_PROJECT");
+	const showNewWorkspaceShortcut = newWorkspaceShortcut !== "Unassigned";
+	const showQuickCreateShortcut = quickCreateShortcut !== "Unassigned";
+	const showOpenProjectShortcut = openProjectShortcut !== "Unassigned";
 
 	return (
-		<ButtonGroup
-			className={`${className} ml-1 mt-1 rounded-md border border-border/50`}
+		<div
+			className={`${className} flex h-6 items-center rounded-md text-muted-foreground transition-colors duration-150`}
 		>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<Button
-						ref={modalButtonRef}
-						variant="ghost"
-						size="sm"
+					<button
+						type="button"
 						aria-label="New workspace"
-						className="h-7 gap-1 rounded-r-none px-2 text-muted-foreground hover:bg-accent hover:text-foreground"
+						disabled={isLoading}
 						onClick={handleModalCreate}
+						className="flex h-6 items-center gap-1 rounded-l-md pl-1.5 pr-1 text-[12px] font-medium transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
 					>
-						<HiMiniPlus className="size-4" />
-						<span className="text-xs">New</span>
-					</Button>
+						<HiMiniPlus className="size-[14px] stroke-[0.5]" />
+						<span>Workspace</span>
+					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					Create workspace or project
+					New workspace
 				</TooltipContent>
 			</Tooltip>
-			<ButtonGroupSeparator />
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						ref={quickCreateButtonRef}
-						variant="ghost"
-						size="icon"
-						aria-label="Quick create workspace"
-						className="size-7 rounded-l-none text-muted-foreground hover:bg-accent hover:text-foreground"
+
+			<DropdownMenu open={open} onOpenChange={setOpen}>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								aria-label="More create options"
+								disabled={isLoading}
+								className="flex h-6 w-5 items-center justify-center rounded-r-md border-l border-border/30 transition-all duration-150 hover:bg-foreground/[0.06] hover:text-foreground active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40"
+							>
+								<HiChevronDown className="size-[12px]" />
+							</button>
+						</DropdownMenuTrigger>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={4}>
+						More options
+					</TooltipContent>
+				</Tooltip>
+				<DropdownMenuContent
+					align="end"
+					sideOffset={8}
+					className="w-48 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
+				>
+					<DropdownMenuItem
+						onClick={handleModalCreate}
+						className="rounded-md text-[13px]"
+					>
+						<HiMiniPlus className="size-[14px] opacity-60" />
+						New Workspace
+						{showNewWorkspaceShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{newWorkspaceShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+					<DropdownMenuItem
 						onClick={handleQuickCreate}
-						disabled={
-							createWorkspace.isPending ||
-							createBranchWorkspace.isPending ||
-							openNew.isPending
-						}
+						disabled={isLoading}
+						className="rounded-md text-[13px]"
 					>
-						<HiOutlineBolt className="size-3.5" />
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={4}>
-					{currentProject
-						? `Quick create in ${currentProject.name}`
-						: "Quick create workspace"}
-				</TooltipContent>
-			</Tooltip>
-		</ButtonGroup>
+						<HiOutlineBolt className="size-[14px] opacity-60" />
+						Quick Create
+						{showQuickCreateShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{quickCreateShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+					<DropdownMenuSeparator className="my-1 bg-border/40" />
+					<DropdownMenuItem
+						onClick={handleOpenNewProject}
+						disabled={isLoading}
+						className="rounded-md text-[13px]"
+					>
+						<HiFolderOpen className="size-[14px] opacity-60" />
+						Open Project
+						{showOpenProjectShortcut && (
+							<DropdownMenuShortcut className="opacity-40">
+								{openProjectShortcut}
+							</DropdownMenuShortcut>
+						)}
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<InitGitDialog
+				isOpen={initGitDialog.isOpen}
+				selectedPath={initGitDialog.selectedPath}
+				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
+				onError={(error) =>
+					toast.error("Failed to initialize git", { description: error })
+				}
+			/>
+		</div>
 	);
 }

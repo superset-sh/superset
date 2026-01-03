@@ -25,6 +25,8 @@ export async function syncTask(taskId: string) {
 		columns: { provider: true },
 	});
 
+	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+
 	const results = await Promise.allSettled(
 		connections.map(async (conn) => {
 			const endpoint = PROVIDER_ENDPOINTS[conn.provider];
@@ -33,7 +35,7 @@ export async function syncTask(taskId: string) {
 			}
 
 			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_API_URL}${endpoint}`,
+				url: `${qstashBaseUrl}${endpoint}`,
 				body: { taskId },
 				retries: 3,
 			});

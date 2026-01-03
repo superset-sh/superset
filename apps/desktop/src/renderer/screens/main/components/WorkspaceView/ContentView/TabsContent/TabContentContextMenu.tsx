@@ -18,6 +18,7 @@ import {
 	LuRows2,
 	LuX,
 } from "react-icons/lu";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 import type { Tab } from "renderer/stores/tabs/types";
 
 interface TabContentContextMenuProps {
@@ -45,6 +46,8 @@ export function TabContentContextMenu({
 }: TabContentContextMenuProps) {
 	// Filter out current tab from available targets
 	const targetTabs = availableTabs.filter((t) => t.id !== currentTabId);
+	const clearShortcut = useHotkeyText("CLEAR_TERMINAL");
+	const showClearShortcut = clearShortcut !== "Unassigned";
 
 	return (
 		<ContextMenu>
@@ -61,7 +64,9 @@ export function TabContentContextMenu({
 				<ContextMenuItem onSelect={onClearTerminal}>
 					<LuEraser className="size-4" />
 					Clear Terminal
-					<ContextMenuShortcut>⌘K</ContextMenuShortcut>
+					{showClearShortcut && (
+						<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
+					)}
 				</ContextMenuItem>
 				<ContextMenuSeparator />
 				<ContextMenuSub>

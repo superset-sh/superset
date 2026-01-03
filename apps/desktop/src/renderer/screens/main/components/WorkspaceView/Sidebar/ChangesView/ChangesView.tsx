@@ -165,7 +165,7 @@ export function ChangesView() {
 
 	if (
 		!status ||
-		!status.againstMain ||
+		!status.againstBase ||
 		!status.commits ||
 		!status.staged ||
 		!status.unstaged ||
@@ -179,7 +179,7 @@ export function ChangesView() {
 	}
 
 	const hasChanges =
-		status.againstMain.length > 0 ||
+		status.againstBase.length > 0 ||
 		status.commits.length > 0 ||
 		status.staged.length > 0 ||
 		status.unstaged.length > 0 ||
@@ -225,19 +225,19 @@ export function ChangesView() {
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto">
-					{/* Against Main */}
+					{/* Against base branch */}
 					<CategorySection
-						title="Against Main"
-						count={status.againstMain.length}
-						isExpanded={expandedSections["against-main"]}
-						onToggle={() => toggleSection("against-main")}
+						title={`Against ${effectiveBaseBranch}`}
+						count={status.againstBase.length}
+						isExpanded={expandedSections["against-base"]}
+						onToggle={() => toggleSection("against-base")}
 					>
 						<FileList
-							files={status.againstMain}
+							files={status.againstBase}
 							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
-							onFileSelect={(file) => handleFileSelect(file, "against-main")}
+							onFileSelect={(file) => handleFileSelect(file, "against-base")}
 						/>
 					</CategorySection>
 

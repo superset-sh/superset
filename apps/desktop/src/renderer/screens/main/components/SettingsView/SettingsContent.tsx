@@ -1,6 +1,7 @@
 import type { SettingsSection } from "renderer/stores";
 import { AccountSettings } from "./AccountSettings";
 import { AppearanceSettings } from "./AppearanceSettings";
+import { BehaviorSettings } from "./BehaviorSettings";
 import { KeyboardShortcutsSettings } from "./KeyboardShortcutsSettings";
 import { PresetsSettings } from "./PresetsSettings";
 import { ProjectSettings } from "./ProjectSettings";
@@ -21,6 +22,7 @@ export function SettingsContent({ activeSection }: SettingsContentProps) {
 			{activeSection === "ringtones" && <RingtonesSettings />}
 			{activeSection === "keyboard" && <KeyboardShortcutsSettings />}
 			{activeSection === "presets" && <PresetsSettings />}
+			{activeSection === "behavior" && <BehaviorSettings />}
 		</div>
 	);
 }

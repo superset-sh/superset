@@ -1,5 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useCreateBranchWorkspace,
@@ -9,14 +8,14 @@ import {
 	useCurrentView,
 	useIsSettingsTabOpen,
 } from "renderer/stores/app-state";
-import { HOTKEYS } from "shared/hotkeys";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import { CreateWorkspaceButton } from "./CreateWorkspaceButton";
 import { SettingsTab } from "./SettingsTab";
 import { WorkspaceGroup } from "./WorkspaceGroup";
 
 const MIN_WORKSPACE_WIDTH = 60;
 const MAX_WORKSPACE_WIDTH = 160;
-const ADD_BUTTON_WIDTH = 48;
+const ADD_BUTTON_WIDTH = 40;
 
 export function WorkspacesTabs() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
@@ -74,32 +73,22 @@ export function WorkspacesTabs() {
 			// Only create one at a time
 			break;
 		}
-	}, [groups, isCreating, createBranchWorkspace.mutate]);
+	}, [groups, isCreating, createBranchWorkspace]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	// Workspace switching shortcuts (⌘+1-9) - combined into single hook call
-	const workspaceKeys = Array.from(
-		{ length: 9 },
-		(_, i) => `meta+${i + 1}`,
-	).join(", ");
-	useHotkeys(
-		workspaceKeys,
-		(event) => {
-			const num = Number(event.key);
-			if (num >= 1 && num <= 9) {
-				const workspace = allWorkspaces[num - 1];
-				if (workspace) {
-					setActiveWorkspace.mutate({ id: workspace.id });
-				}
+	const handleWorkspaceSwitch = useCallback(
+		(index: number) => {
+			const workspace = allWorkspaces[index];
+			if (workspace) {
+				setActiveWorkspace.mutate({ id: workspace.id });
 			}
 		},
 		[allWorkspaces, setActiveWorkspace],
 	);
 
-	// Navigate to previous workspace (⌘+←)
-	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, () => {
+	const handlePrevWorkspace = useCallback(() => {
 		if (!activeWorkspaceId) return;
 		const currentIndex = allWorkspaces.findIndex(
 			(w) => w.id === activeWorkspaceId,
@@ -109,8 +98,7 @@ export function WorkspacesTabs() {
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
 
-	// Navigate to next workspace (⌘+→)
-	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, () => {
+	const handleNextWorkspace = useCallback(() => {
 		if (!activeWorkspaceId) return;
 		const currentIndex = allWorkspaces.findIndex(
 			(w) => w.id === activeWorkspaceId,
@@ -119,6 +107,67 @@ export function WorkspacesTabs() {
 			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
 		}
 	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_1",
+		() => handleWorkspaceSwitch(0),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_2",
+		() => handleWorkspaceSwitch(1),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_3",
+		() => handleWorkspaceSwitch(2),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_4",
+		() => handleWorkspaceSwitch(3),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_5",
+		() => handleWorkspaceSwitch(4),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_6",
+		() => handleWorkspaceSwitch(5),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_7",
+		() => handleWorkspaceSwitch(6),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_8",
+		() => handleWorkspaceSwitch(7),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey(
+		"JUMP_TO_WORKSPACE_9",
+		() => handleWorkspaceSwitch(8),
+		undefined,
+		[handleWorkspaceSwitch],
+	);
+	useAppHotkey("PREV_WORKSPACE", handlePrevWorkspace, undefined, [
+		handlePrevWorkspace,
+	]);
+	useAppHotkey("NEXT_WORKSPACE", handleNextWorkspace, undefined, [
+		handleNextWorkspace,
+	]);
 
 	useEffect(() => {
 		const checkScroll = () => {
@@ -163,58 +212,59 @@ export function WorkspacesTabs() {
 
 	return (
 		<div ref={containerRef} className="flex items-center h-full w-full">
-			<div className="flex items-center h-full min-w-0">
-				<div className="relative h-full overflow-hidden min-w-0">
-					<div
-						ref={scrollRef}
-						className="flex h-full overflow-x-auto hide-scrollbar gap-4"
-					>
-						{groups.map((group, groupIndex) => (
-							<Fragment key={group.project.id}>
-								<WorkspaceGroup
-									projectId={group.project.id}
-									projectName={group.project.name}
-									projectColor={group.project.color}
-									projectIndex={groupIndex}
-									workspaces={group.workspaces}
-									activeWorkspaceId={
-										isSettingsActive ? null : activeWorkspaceId
-									}
-									workspaceWidth={workspaceWidth}
-									hoveredWorkspaceId={hoveredWorkspaceId}
-									onWorkspaceHover={setHoveredWorkspaceId}
-								/>
-								{groupIndex < groups.length - 1 && (
-									<div className="flex items-center h-full py-2">
-										<div className="w-px h-full bg-border" />
-									</div>
-								)}
-							</Fragment>
-						))}
-						{isSettingsTabOpen && (
-							<>
-								{groups.length > 0 && (
-									<div className="flex items-center h-full py-2">
-										<div className="w-px h-full bg-border" />
-									</div>
-								)}
-								<SettingsTab
-									width={workspaceWidth}
-									isActive={isSettingsActive}
-								/>
-							</>
-						)}
-					</div>
-
-					{/* Fade effects for scroll indication */}
-					{showStartFade && (
-						<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
-					)}
-					{showEndFade && (
-						<div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-linear-to-l from-background to-transparent" />
+			<div className="relative h-full overflow-hidden min-w-0 flex-1">
+				<div
+					ref={scrollRef}
+					className="flex h-full overflow-x-auto hide-scrollbar gap-4 pr-10"
+				>
+					{groups.map((group, groupIndex) => (
+						<Fragment key={group.project.id}>
+							<WorkspaceGroup
+								projectId={group.project.id}
+								projectName={group.project.name}
+								projectColor={group.project.color}
+								projectIndex={groupIndex}
+								workspaces={group.workspaces}
+								activeWorkspaceId={isSettingsActive ? null : activeWorkspaceId}
+								workspaceWidth={workspaceWidth}
+								hoveredWorkspaceId={hoveredWorkspaceId}
+								onWorkspaceHover={setHoveredWorkspaceId}
+							/>
+							{groupIndex < groups.length - 1 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
+								</div>
+							)}
+						</Fragment>
+					))}
+					{isSettingsTabOpen && (
+						<>
+							{groups.length > 0 && (
+								<div className="flex items-center h-full py-2">
+									<div className="w-px h-full bg-border" />
+								</div>
+							)}
+							<SettingsTab width={workspaceWidth} isActive={isSettingsActive} />
+						</>
 					)}
 				</div>
-				<CreateWorkspaceButton className="no-drag" />
+
+				{/* Left fade for scroll indication */}
+				{showStartFade && (
+					<div className="pointer-events-none absolute left-0 top-0 h-full w-8 bg-linear-to-r from-background to-transparent" />
+				)}
+
+				{/* Right side: gradient fade + button container */}
+				<div className="absolute right-0 top-0 h-full flex items-center pointer-events-none">
+					{/* Gradient fade - only show when content overflows */}
+					{showEndFade && (
+						<div className="h-full w-8 bg-linear-to-l from-background to-transparent" />
+					)}
+					{/* Button with solid background */}
+					<div className="h-full flex items-center bg-background pl-1 pr-2 pointer-events-auto">
+						<CreateWorkspaceButton className="no-drag" />
+					</div>
+				</div>
 			</div>
 		</div>
 	);

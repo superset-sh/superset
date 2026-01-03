@@ -174,17 +174,16 @@ export default function ScriptsPage() {
 								to chain commands that depend on each other
 							</li>
 							<li>
-								Add{" "}
+								Commit{" "}
 								<code className="text-amber-500 dark:text-amber-400">
 									.superset/
 								</code>{" "}
-								to your{" "}
-								<code className="text-amber-500 dark:text-amber-400">
-									.gitignore
-								</code>{" "}
-								if you don&apos;t want to share configs
+								to share workspace setup with your team
 							</li>
-							<li>Or commit it to share workspace setup with your team</li>
+							<li>
+								For machine-specific values, use environment variables in your
+								scripts instead of hardcoding paths
+							</li>
 						</ul>
 					</section>
 				</motion.div>

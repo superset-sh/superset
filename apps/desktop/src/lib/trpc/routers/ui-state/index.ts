@@ -1,5 +1,12 @@
+import { observable } from "@trpc/server/observable";
 import { appState } from "main/lib/app-state";
 import type { TabsState, ThemeState } from "main/lib/app-state/schemas";
+import { hotkeysEmitter } from "main/lib/hotkeys-events";
+import {
+	buildOverridesFromBindings,
+	HOTKEYS_STATE_VERSION,
+	type HotkeysState,
+} from "shared/hotkeys";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -156,6 +163,15 @@ const themeStateSchema = z.object({
 	customThemes: z.array(themeSchema),
 });
 
+const hotkeysStateSchema = z.object({
+	version: z.number(),
+	byPlatform: z.object({
+		darwin: z.record(z.string(), z.string().nullable()).default({}),
+		win32: z.record(z.string(), z.string().nullable()).default({}),
+		linux: z.record(z.string(), z.string().nullable()).default({}),
+	}),
+});
+
 /**
  * UI State router - manages tabs and theme persistence via lowdb
  */
@@ -189,6 +205,60 @@ export const createUiStateRouter = () => {
 					await appState.write();
 					return { success: true };
 				}),
+		}),
+
+		// Hotkeys state procedures
+		hotkeys: router({
+			get: publicProcedure.query((): HotkeysState => {
+				return appState.data.hotkeysState;
+			}),
+
+			set: publicProcedure
+				.input(hotkeysStateSchema)
+				.mutation(async ({ input }) => {
+					const version =
+						input.version === HOTKEYS_STATE_VERSION
+							? input.version
+							: HOTKEYS_STATE_VERSION;
+
+					const normalized: HotkeysState = {
+						version,
+						byPlatform: {
+							darwin: buildOverridesFromBindings(
+								input.byPlatform.darwin ?? {},
+								"darwin",
+							),
+							win32: buildOverridesFromBindings(
+								input.byPlatform.win32 ?? {},
+								"win32",
+							),
+							linux: buildOverridesFromBindings(
+								input.byPlatform.linux ?? {},
+								"linux",
+							),
+						},
+					};
+
+					appState.data.hotkeysState = normalized;
+					await appState.write();
+					hotkeysEmitter.emit("change", {
+						version: normalized.version,
+						updatedAt: new Date().toISOString(),
+					});
+					return { success: true };
+				}),
+
+			subscribe: publicProcedure.subscription(() => {
+				return observable<{ version: number; updatedAt: string }>((emit) => {
+					const onChange = (data: { version: number; updatedAt: string }) => {
+						emit.next(data);
+					};
+					hotkeysEmitter.on("change", onChange);
+					return () => {
+						hotkeysEmitter.off("change", onChange);
+					};
+				});
+			}),
 		}),
 	});
 };

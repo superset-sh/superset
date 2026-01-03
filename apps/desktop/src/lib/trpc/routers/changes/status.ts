@@ -43,7 +43,7 @@ export const createStatusRouter = () => {
 				return {
 					branch: parsed.branch,
 					defaultBranch,
-					againstMain: branchComparison.againstMain,
+					againstBase: branchComparison.againstBase,
 					commits: branchComparison.commits,
 					staged: parsed.staged,
 					unstaged: parsed.unstaged,
@@ -90,7 +90,7 @@ export const createStatusRouter = () => {
 
 interface BranchComparison {
 	commits: GitChangesStatus["commits"];
-	againstMain: ChangedFile[];
+	againstBase: ChangedFile[];
 	ahead: number;
 	behind: number;
 }
@@ -100,7 +100,7 @@ async function getBranchComparison(
 	defaultBranch: string,
 ): Promise<BranchComparison> {
 	let commits: GitChangesStatus["commits"] = [];
-	let againstMain: ChangedFile[] = [];
+	let againstBase: ChangedFile[] = [];
 	let ahead = 0;
 	let behind = 0;
 
@@ -128,9 +128,9 @@ async function getBranchComparison(
 				"--name-status",
 				`origin/${defaultBranch}...HEAD`,
 			]);
-			againstMain = parseNameStatus(nameStatus);
+			againstBase = parseNameStatus(nameStatus);
 
-			await applyNumstatToFiles(git, againstMain, [
+			await applyNumstatToFiles(git, againstBase, [
 				"diff",
 				"--numstat",
 				`origin/${defaultBranch}...HEAD`,
@@ -138,7 +138,7 @@ async function getBranchComparison(
 		}
 	} catch {}
 
-	return { commits, againstMain, ahead, behind };
+	return { commits, againstBase, ahead, behind };
 }
 
 async function applyUntrackedLineCount(

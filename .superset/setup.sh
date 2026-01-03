@@ -1,69 +1,345 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -uo pipefail
 
+# Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
-error() { echo -e "${RED}✗${NC} $1"; exit 1; }
+# Step tracking
+declare -a FAILED_STEPS=()
+declare -a SKIPPED_STEPS=()
+
+error() { echo -e "${RED}✗${NC} $1"; }
 success() { echo -e "${GREEN}✓${NC} $1"; }
+warn() { echo -e "${YELLOW}!${NC} $1"; }
 
-echo "🚀 Setting up Superset workspace..."
+# Track step failure
+step_failed() {
+  FAILED_STEPS+=("$1")
+}
 
-# Load root .env for this script (provides NEON_PROJECT_ID, etc.)
-if [ -n "$SUPERSET_ROOT_PATH" ] && [ -f "$SUPERSET_ROOT_PATH/.env" ]; then
+# Track step skipped
+step_skipped() {
+  SKIPPED_STEPS+=("$1")
+}
+
+# Print summary at the end
+print_summary() {
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📊 Setup Summary"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if [ ${#FAILED_STEPS[@]} -eq 0 ] && [ ${#SKIPPED_STEPS[@]} -eq 0 ]; then
+    echo -e "${GREEN}All steps completed successfully!${NC}"
+  else
+    if [ ${#SKIPPED_STEPS[@]} -gt 0 ]; then
+      echo -e "${YELLOW}Skipped steps:${NC}"
+      for step in "${SKIPPED_STEPS[@]}"; do
+        echo "  - $step"
+      done
+    fi
+    if [ ${#FAILED_STEPS[@]} -gt 0 ]; then
+      echo -e "${RED}Failed steps:${NC}"
+      for step in "${FAILED_STEPS[@]}"; do
+        echo "  - $step"
+      done
+    fi
+  fi
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  # Return non-zero if any steps failed
+  [ ${#FAILED_STEPS[@]} -eq 0 ]
+}
+
+step_load_env() {
+  echo "📂 Loading environment variables..."
+
+  if [ -z "${SUPERSET_ROOT_PATH:-}" ]; then
+    error "SUPERSET_ROOT_PATH not set"
+    return 1
+  fi
+
+  if [ ! -f "$SUPERSET_ROOT_PATH/.env" ]; then
+    error "Root .env file not found at $SUPERSET_ROOT_PATH/.env"
+    return 1
+  fi
+
   set -a
+  # shellcheck source=/dev/null
   source "$SUPERSET_ROOT_PATH/.env"
   set +a
-fi
 
-# Check dependencies
-command -v bun &> /dev/null || error "Bun not installed. Install from https://bun.sh"
-command -v neonctl &> /dev/null || error "Neon CLI not installed. Run: npm install -g neonctl"
-command -v jq &> /dev/null || error "jq not installed. Run: brew install jq"
+  success "Environment variables loaded"
+  return 0
+}
 
-# Check required environment variables
-NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
-[ -z "$NEON_PROJECT_ID" ] && error "NEON_PROJECT_ID environment variable is required"
+step_check_dependencies() {
+  echo "🔍 Checking dependencies..."
+  local missing=()
 
-# Install dependencies
-echo "📥 Installing dependencies..."
-bun install
-success "Dependencies installed"
+  if ! command -v bun &> /dev/null; then
+    missing+=("bun (Install from https://bun.sh)")
+  fi
 
-# Create or get Neon branch for this workspace
-WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+  if ! command -v neonctl &> /dev/null; then
+    missing+=("neonctl (Run: npm install -g neonctl)")
+  fi
 
-# Check if branch already exists
-EXISTING_BRANCH=$(neonctl branches list --project-id "$NEON_PROJECT_ID" --output json | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id")
+  if ! command -v jq &> /dev/null; then
+    missing+=("jq (Run: brew install jq)")
+  fi
 
-if [ -n "$EXISTING_BRANCH" ]; then
-  echo "🗄️  Using existing Neon branch..."
-  BRANCH_ID="$EXISTING_BRANCH"
-  # Get connection strings for existing branch
-  DIRECT_URL=$(neonctl connection-string "$EXISTING_BRANCH" --project-id "$NEON_PROJECT_ID")
-  POOLED_URL=$(neonctl connection-string "$EXISTING_BRANCH" --project-id "$NEON_PROJECT_ID" --pooled)
-else
-  echo "🗄️  Creating Neon branch..."
-  NEON_OUTPUT=$(neonctl branches create \
-    --project-id "$NEON_PROJECT_ID" \
-    --name "$WORKSPACE_NAME" \
-    --output json)
-  BRANCH_ID=$(echo "$NEON_OUTPUT" | jq -r '.branch.id')
-  # Get connection strings for new branch
-  DIRECT_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID")
-  POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --pooled)
-fi
+  if ! command -v docker &> /dev/null; then
+    missing+=("docker (Install from https://docker.com)")
+  fi
 
-# Copy root .env and append branch-specific values
-cp "$SUPERSET_ROOT_PATH/.env" .env
-cat >> .env << EOF
+  if [ ${#missing[@]} -gt 0 ]; then
+    error "Missing dependencies:"
+    for dep in "${missing[@]}"; do
+      echo "  - $dep"
+    done
+    return 1
+  fi
 
-# Workspace Database (Neon Branch)
-NEON_BRANCH_ID=$BRANCH_ID
-DATABASE_URL=$POOLED_URL
-DATABASE_URL_UNPOOLED=$DIRECT_URL
-EOF
+  success "All dependencies found"
+  return 0
+}
 
-success "Neon branch created: $WORKSPACE_NAME"
-echo "✨ Done!"
+step_install_dependencies() {
+  echo "📥 Installing dependencies..."
+
+  if ! command -v bun &> /dev/null; then
+    error "Bun not available, skipping dependency installation"
+    return 1
+  fi
+
+  if ! bun install; then
+    error "Failed to install dependencies"
+    return 1
+  fi
+
+  success "Dependencies installed"
+  return 0
+}
+
+step_setup_neon_branch() {
+  echo "🗄️  Setting up Neon branch..."
+
+  NEON_PROJECT_ID="${NEON_PROJECT_ID:-}"
+  if [ -z "$NEON_PROJECT_ID" ]; then
+    error "NEON_PROJECT_ID environment variable is required"
+    return 1
+  fi
+
+  if ! command -v neonctl &> /dev/null; then
+    error "neonctl not available"
+    return 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    error "jq not available"
+    return 1
+  fi
+
+  WORKSPACE_NAME="${SUPERSET_WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Check if branch already exists
+  local branches_output
+  if ! branches_output=$(neonctl branches list --project-id "$NEON_PROJECT_ID" --output json 2>&1); then
+    error "Failed to list Neon branches: $branches_output"
+    return 1
+  fi
+
+  EXISTING_BRANCH=$(echo "$branches_output" | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id")
+
+  if [ -n "$EXISTING_BRANCH" ]; then
+    echo "  Using existing Neon branch..."
+    BRANCH_ID="$EXISTING_BRANCH"
+  else
+    echo "  Creating new Neon branch..."
+    local neon_output
+    if ! neon_output=$(neonctl branches create \
+        --project-id "$NEON_PROJECT_ID" \
+        --name "$WORKSPACE_NAME" \
+        --output json 2>&1); then
+      error "Failed to create Neon branch: $neon_output"
+      return 1
+    fi
+    BRANCH_ID=$(echo "$neon_output" | jq -r '.branch.id')
+  fi
+
+  # Get connection strings
+  if ! DIRECT_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner 2>&1); then
+    error "Failed to get direct connection string: $DIRECT_URL"
+    return 1
+  fi
+
+  if ! POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner --pooled 2>&1); then
+    error "Failed to get pooled connection string: $POOLED_URL"
+    return 1
+  fi
+
+  # Export for use in other steps
+  export BRANCH_ID DIRECT_URL POOLED_URL WORKSPACE_NAME
+
+  success "Neon branch ready: $WORKSPACE_NAME"
+  return 0
+}
+
+step_start_electric() {
+  echo "⚡ Starting Electric SQL container..."
+
+  if ! command -v docker &> /dev/null; then
+    error "Docker not available"
+    return 1
+  fi
+
+  if [ -z "${DIRECT_URL:-}" ]; then
+    error "Database URL not available (Neon branch setup may have failed)"
+    return 1
+  fi
+
+  WORKSPACE_NAME="${WORKSPACE_NAME:-$(basename "$PWD")}"
+
+  # Sanitize workspace name for Docker (valid chars only, max 64 chars)
+  local container_suffix
+  container_suffix=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g' | sed 's/--*/-/g' | sed 's/^-//' | sed 's/-$//')
+  ELECTRIC_CONTAINER=$(echo "superset-electric-$container_suffix" | cut -c1-64)
+  ELECTRIC_SECRET="${ELECTRIC_SECRET:-local_electric_dev_secret}"
+
+  # Stop and remove existing container if it exists
+  if docker ps -a --format '{{.Names}}' | grep -q "^${ELECTRIC_CONTAINER}$"; then
+    echo "  Stopping existing container..."
+    docker stop "$ELECTRIC_CONTAINER" &> /dev/null || true
+    docker rm "$ELECTRIC_CONTAINER" &> /dev/null || true
+  fi
+
+  # Start Electric container with auto-assigned port
+  if ! docker run -d \
+      --name "$ELECTRIC_CONTAINER" \
+      -p 3000 \
+      -e DATABASE_URL="$DIRECT_URL" \
+      -e ELECTRIC_SECRET="$ELECTRIC_SECRET" \
+      electricsql/electric:latest &> /dev/null; then
+    error "Failed to start Electric container"
+    return 1
+  fi
+
+  # Get the auto-assigned port
+  ELECTRIC_PORT=$(docker port "$ELECTRIC_CONTAINER" 3000 | cut -d: -f2)
+
+  # Wait for Electric to be ready
+  echo "  Waiting for Electric to be ready on port $ELECTRIC_PORT..."
+  local ready=false
+  for i in {1..30}; do
+    if curl -s "http://localhost:$ELECTRIC_PORT/v1/health" &> /dev/null; then
+      ready=true
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$ready" = false ]; then
+    error "Electric failed to start within 30s. Check logs: docker logs $ELECTRIC_CONTAINER"
+    return 1
+  fi
+
+  ELECTRIC_URL="http://localhost:$ELECTRIC_PORT/v1/shape"
+
+  # Export for use in other steps
+  export ELECTRIC_CONTAINER ELECTRIC_PORT ELECTRIC_URL ELECTRIC_SECRET
+
+  success "Electric SQL running at $ELECTRIC_URL"
+  return 0
+}
+
+step_write_env() {
+  echo "📝 Writing .env file..."
+
+  if [ -z "${SUPERSET_ROOT_PATH:-}" ] || [ ! -f "$SUPERSET_ROOT_PATH/.env" ]; then
+    error "Root .env file not available"
+    return 1
+  fi
+
+  # Copy root .env
+  if ! cp "$SUPERSET_ROOT_PATH/.env" .env; then
+    error "Failed to copy root .env"
+    return 1
+  fi
+
+  # Append workspace-specific values
+  {
+    echo ""
+    echo "# Workspace Database (Neon Branch)"
+    if [ -n "${BRANCH_ID:-}" ]; then
+      echo "NEON_BRANCH_ID=$BRANCH_ID"
+    fi
+    if [ -n "${POOLED_URL:-}" ]; then
+      echo "DATABASE_URL=$POOLED_URL"
+    fi
+    if [ -n "${DIRECT_URL:-}" ]; then
+      echo "DATABASE_URL_UNPOOLED=$DIRECT_URL"
+    fi
+
+    echo ""
+    echo "# Workspace Electric SQL (Docker)"
+    if [ -n "${ELECTRIC_CONTAINER:-}" ]; then
+      echo "ELECTRIC_CONTAINER=$ELECTRIC_CONTAINER"
+    fi
+    if [ -n "${ELECTRIC_PORT:-}" ]; then
+      echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+    fi
+    if [ -n "${ELECTRIC_URL:-}" ]; then
+      echo "ELECTRIC_URL=$ELECTRIC_URL"
+    fi
+    if [ -n "${ELECTRIC_SECRET:-}" ]; then
+      echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
+    fi
+  } >> .env
+
+  success "Workspace .env written"
+  return 0
+}
+
+main() {
+  echo "🚀 Setting up Superset workspace..."
+  echo ""
+
+  # Step 1: Load environment
+  if ! step_load_env; then
+    step_failed "Load environment variables"
+  fi
+
+  # Step 2: Check dependencies
+  if ! step_check_dependencies; then
+    step_failed "Check dependencies"
+  fi
+
+  # Step 3: Install dependencies
+  if ! step_install_dependencies; then
+    step_failed "Install dependencies"
+  fi
+
+  # Step 4: Setup Neon branch
+  if ! step_setup_neon_branch; then
+    step_failed "Setup Neon branch"
+  fi
+
+  # Step 5: Start Electric SQL
+  if ! step_start_electric; then
+    step_failed "Start Electric SQL"
+  fi
+
+  # Step 6: Write .env file
+  if ! step_write_env; then
+    step_failed "Write .env file"
+  fi
+
+  # Print summary and exit with appropriate code
+  print_summary
+}
+
+main "$@"

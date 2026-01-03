@@ -13,7 +13,7 @@ export type FileStatus =
 
 /** Change categories for organizing the sidebar */
 export type ChangeCategory =
-	| "against-main"
+	| "against-base"
 	| "committed"
 	| "staged"
 	| "unstaged";
@@ -41,7 +41,7 @@ export interface CommitInfo {
 export interface GitChangesStatus {
 	branch: string;
 	defaultBranch: string; // Default branch (main/master)
-	againstMain: ChangedFile[]; // All files changed vs default branch
+	againstBase: ChangedFile[]; // All files changed vs base branch
 	commits: CommitInfo[]; // Individual commits on branch (not on default)
 	staged: ChangedFile[];
 	unstaged: ChangedFile[];

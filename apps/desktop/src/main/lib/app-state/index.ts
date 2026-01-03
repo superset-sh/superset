@@ -22,6 +22,14 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 			...defaultAppState.themeState,
 			...(data.themeState ?? {}),
 		},
+		hotkeysState: {
+			...defaultAppState.hotkeysState,
+			...(data.hotkeysState ?? {}),
+			byPlatform: {
+				...defaultAppState.hotkeysState.byPlatform,
+				...(data.hotkeysState?.byPlatform ?? {}),
+			},
+		},
 	};
 }
 

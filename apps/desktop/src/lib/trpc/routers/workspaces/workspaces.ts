@@ -27,12 +27,13 @@ import {
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	listBranches,
+	refreshDefaultBranch,
 	removeWorktree,
 	safeCheckoutBranch,
 	worktreeExists,
 } from "./utils/git";
 import { fetchGitHubPRStatus } from "./utils/github";
-import { loadSetupConfig } from "./utils/setup";
+import { copySupersetConfigToWorktree, loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
 import { getWorkspacePath } from "./utils/worktree";
 
@@ -67,11 +68,17 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
-				let defaultBranch = project.defaultBranch;
-				if (!defaultBranch) {
-					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				// Sync with remote in case the default branch changed (e.g. master -> main)
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				const defaultBranch =
+					remoteDefaultBranch ||
+					project.defaultBranch ||
+					(await getDefaultBranch(project.mainRepoPath));
+
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
@@ -79,7 +86,6 @@ export const createWorkspacesRouter = () => {
 						.run();
 				}
 
-				// Use provided baseBranch or fall back to default
 				const targetBranch = input.baseBranch || defaultBranch;
 
 				// Check if this repo has a remote origin
@@ -117,6 +123,10 @@ export const createWorkspacesRouter = () => {
 					worktreePath,
 					startPoint,
 				);
+
+				// Copy .superset directory to worktree if it's gitignored (not present in worktree)
+				// This ensures setup scripts like "./.superset/setup.sh" work even when gitignored
+				copySupersetConfigToWorktree(project.mainRepoPath, worktreePath);
 
 				// Insert worktree
 				const worktree = localDb
@@ -852,7 +862,6 @@ export const createWorkspacesRouter = () => {
 					.where(eq(projects.id, workspace.projectId))
 					.get();
 
-				let teardownError: string | undefined;
 				let worktree: SelectWorktree | undefined;
 
 				// Branch workspaces don't have worktrees - skip worktree operations
@@ -872,14 +881,18 @@ export const createWorkspacesRouter = () => {
 						);
 
 						if (exists) {
-							const teardownResult = runTeardown(
+							runTeardown(
 								project.mainRepoPath,
 								worktree.path,
 								workspace.name,
-							);
-							if (!teardownResult.success) {
-								teardownError = teardownResult.error;
-							}
+							).then((result) => {
+								if (!result.success) {
+									console.error(
+										`Teardown failed for workspace ${workspace.name}:`,
+										result.error,
+									);
+								}
+							});
 						}
 
 						try {
@@ -949,7 +962,7 @@ export const createWorkspacesRouter = () => {
 
 				track("workspace_deleted", { workspace_id: input.id });
 
-				return { success: true, teardownError, terminalWarning };
+				return { success: true, terminalWarning };
 			}),
 
 		setActive: publicProcedure
@@ -1058,11 +1071,20 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
 
-				// Get default branch (lazy migration for existing projects without defaultBranch)
+				// Sync with remote in case the default branch changed (e.g. master -> main)
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
 				let defaultBranch = project.defaultBranch;
 				if (!defaultBranch) {
 					defaultBranch = await getDefaultBranch(project.mainRepoPath);
-					// Save it for future use
+				}
+				if (remoteDefaultBranch && remoteDefaultBranch !== defaultBranch) {
+					defaultBranch = remoteDefaultBranch;
+				}
+
+				if (defaultBranch !== project.defaultBranch) {
 					localDb
 						.update(projects)
 						.set({ defaultBranch })
@@ -1092,7 +1114,7 @@ export const createWorkspacesRouter = () => {
 					.where(eq(worktrees.id, worktree.id))
 					.run();
 
-				return { gitStatus };
+				return { gitStatus, defaultBranch };
 			}),
 
 		getGitHubStatus: publicProcedure
@@ -1322,7 +1344,6 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Workspace not found");
 				}
 
-				// Kill all terminal processes in this workspace
 				const terminalResult = await terminalManager.killByWorkspaceId(
 					input.id,
 				);

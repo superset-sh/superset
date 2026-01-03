@@ -1,14 +1,12 @@
 import { settings, type TerminalPreset } from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
+import { DEFAULT_CONFIRM_ON_QUIT } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
 
-/**
- * Gets the settings row, creating one if it doesn't exist
- */
 function getSettings() {
 	let row = localDb.select().from(settings).get();
 	if (!row) {
@@ -121,17 +119,14 @@ export const createSettingsRouter = () => {
 			const row = getSettings();
 			const storedId = row.selectedRingtoneId;
 
-			// If no stored ID, return default
 			if (!storedId) {
 				return DEFAULT_RINGTONE_ID;
 			}
 
-			// If stored ID is valid, return it
 			if (VALID_RINGTONE_IDS.includes(storedId)) {
 				return storedId;
 			}
 
-			// Stored ID is invalid/stale - self-heal by persisting the default
 			console.warn(
 				`[settings] Invalid ringtone ID "${storedId}" found, resetting to default`,
 			);
@@ -149,7 +144,6 @@ export const createSettingsRouter = () => {
 		setSelectedRingtoneId: publicProcedure
 			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
-				// Validate ringtone ID exists
 				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
 					throw new Error(`Invalid ringtone ID: ${input.ringtoneId}`);
 				}
@@ -160,6 +154,27 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { selectedRingtoneId: input.ringtoneId },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getConfirmOnQuit: publicProcedure.query(() => {
+			const row = getSettings();
+			// Default to true (confirm on quit enabled by default)
+			return row.confirmOnQuit ?? DEFAULT_CONFIRM_ON_QUIT;
+		}),
+
+		setConfirmOnQuit: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, confirmOnQuit: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { confirmOnQuit: input.enabled },
 					})
 					.run();
 

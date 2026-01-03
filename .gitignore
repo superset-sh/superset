@@ -64,3 +64,6 @@ next-env.d.ts
 .envrc
 .env.local
 .env
+
+# Reference material downloaded for agents
+examples

@@ -47,7 +47,9 @@ export function CategorySection({
 					) : (
 						<HiChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
 					)}
-					<span className="text-sm font-medium">{title}</span>
+					<span className="text-sm font-medium truncate text-ellipsis">
+						{title}
+					</span>
 					<span className="text-xs text-muted-foreground shrink-0">
 						({count})
 					</span>

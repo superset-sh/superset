@@ -14,13 +14,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiChevronDown } from "react-icons/hi2";
 import { LuArrowUpRight, LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
+import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
 	APP_OPTIONS,
 	getAppOption,
 	JETBRAINS_OPTIONS,
+	VSCODE_OPTIONS,
 } from "renderer/components/OpenInButton";
 import { shortenHomePath } from "renderer/lib/formatPath";
 import { trpc } from "renderer/lib/trpc";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface FormattedPath {
 	prefix: string;
@@ -63,6 +66,10 @@ export function WorkspaceActionBarRight({
 
 	const formattedPath = formatWorktreePath(worktreePath, homeDir);
 	const currentApp = getAppOption(lastUsedApp);
+	const openInShortcut = useHotkeyText("OPEN_IN_APP");
+	const copyPathShortcut = useHotkeyText("COPY_PATH");
+	const showOpenInShortcut = openInShortcut !== "Unassigned";
+	const showCopyPathShortcut = copyPathShortcut !== "Unassigned";
 
 	const handleOpenInEditor = () => {
 		openInApp.mutate({ path: worktreePath, app: lastUsedApp });
@@ -105,9 +112,9 @@ export function WorkspaceActionBarRight({
 				</TooltipTrigger>
 				<TooltipContent side="top" sideOffset={8}>
 					<span className="flex items-center gap-1.5">
-						Open in {currentApp.label}
+						Open in {currentApp.displayLabel ?? currentApp.label}
 						<kbd className="px-1.5 py-0.5 text-[10px] font-sans bg-foreground/10 rounded">
-							⌘O
+							{showOpenInShortcut ? openInShortcut : "—"}
 						</kbd>
 					</span>
 				</TooltipContent>
@@ -140,11 +147,39 @@ export function WorkspaceActionBarRight({
 								className="size-4 object-contain mr-2"
 							/>
 							{app.label}
-							{app.id === lastUsedApp && (
-								<DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
+							{app.id === lastUsedApp && showOpenInShortcut && (
+								<DropdownMenuShortcut>{openInShortcut}</DropdownMenuShortcut>
 							)}
 						</DropdownMenuItem>
 					))}
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger>
+							<img
+								src={vscodeIcon}
+								alt="VS Code"
+								className="size-4 object-contain mr-2"
+							/>
+							VS Code
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent className="w-44">
+							{VSCODE_OPTIONS.map((app) => (
+								<DropdownMenuItem
+									key={app.id}
+									onClick={() => handleOpenInOtherApp(app.id)}
+								>
+									<img
+										src={app.icon}
+										alt={app.label}
+										className="size-4 object-contain mr-2"
+									/>
+									{app.label}
+									{app.id === lastUsedApp && (
+										<DropdownMenuShortcut>⌘O</DropdownMenuShortcut>
+									)}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
 					<DropdownMenuSub>
 						<DropdownMenuSubTrigger>
 							<img
@@ -174,7 +209,9 @@ export function WorkspaceActionBarRight({
 					<DropdownMenuItem onClick={handleCopyPath}>
 						<LuCopy className="size-4 mr-2" />
 						Copy path
-						<DropdownMenuShortcut>⌘⇧C</DropdownMenuShortcut>
+						{showCopyPathShortcut && (
+							<DropdownMenuShortcut>{copyPathShortcut}</DropdownMenuShortcut>
+						)}
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>

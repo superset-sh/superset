@@ -17,7 +17,11 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getDefaultBranch, getGitRoot } from "../workspaces/utils/git";
+import {
+	getDefaultBranch,
+	getGitRoot,
+	refreshDefaultBranch,
+} from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
 
 type Project = SelectProject;
@@ -96,7 +100,6 @@ function extractRepoName(urlInput: string): string | null {
 		if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 			// Get pathname and strip query/hash (URL constructor handles this)
 			const pathname = parsed.pathname;
-			// Get the last segment of the path
 			repoSegment = pathname.split("/").filter(Boolean).pop();
 		}
 	} catch {
@@ -117,20 +120,15 @@ function extractRepoName(urlInput: string): string | null {
 
 	if (!repoSegment) return null;
 
-	// Strip query string and hash if present (for edge cases)
 	repoSegment = repoSegment.split("?")[0].split("#")[0];
-
-	// Remove trailing .git extension
 	repoSegment = repoSegment.replace(/\.git$/, "");
 
-	// Decode percent-encoded characters
 	try {
 		repoSegment = decodeURIComponent(repoSegment);
 	} catch {
 		// Invalid encoding, continue with raw value
 	}
 
-	// Trim any remaining whitespace or special characters at boundaries
 	repoSegment = repoSegment.trim();
 
 	// Validate against safe filename regex
@@ -192,7 +190,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						// If we can't get remotes, assume no origin
 					}
 
-					// Get all branches (local and remote)
 					const branchSummary = await git.branch(["-a"]);
 
 					const localBranches: string[] = [];
@@ -253,10 +250,22 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						branches = branchList.map((name) => ({ name, lastCommitDate: 0 }));
 					}
 
-					// Determine default branch
-					let defaultBranch = project.defaultBranch;
-					if (!defaultBranch) {
-						defaultBranch = await getDefaultBranch(project.mainRepoPath);
+					// Sync with remote in case the default branch changed (e.g. master -> main)
+					const remoteDefaultBranch = await refreshDefaultBranch(
+						project.mainRepoPath,
+					);
+
+					const defaultBranch =
+						remoteDefaultBranch ||
+						project.defaultBranch ||
+						(await getDefaultBranch(project.mainRepoPath));
+
+					if (defaultBranch !== project.defaultBranch) {
+						localDb
+							.update(projects)
+							.set({ defaultBranch })
+							.where(eq(projects.id, input.projectId))
+							.run();
 					}
 
 					// Sort: default branch first, then by date
@@ -447,7 +456,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								.delete(projects)
 								.where(eq(projects.id, existingProject.id))
 								.run();
-							// Continue to normal creation flow below
 						}
 					}
 
@@ -581,6 +589,54 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				return { success: true };
 			}),
 
+		refreshDefaultBranch: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.mutation(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new Error(`Project ${input.id} not found`);
+				}
+
+				const remoteDefaultBranch = await refreshDefaultBranch(
+					project.mainRepoPath,
+				);
+
+				if (
+					remoteDefaultBranch &&
+					remoteDefaultBranch !== project.defaultBranch
+				) {
+					localDb
+						.update(projects)
+						.set({ defaultBranch: remoteDefaultBranch })
+						.where(eq(projects.id, input.id))
+						.run();
+
+					return {
+						success: true,
+						defaultBranch: remoteDefaultBranch,
+						changed: true,
+						previousBranch: project.defaultBranch,
+					};
+				}
+
+				// Ensure we always return a valid default branch
+				const defaultBranch =
+					project.defaultBranch ??
+					remoteDefaultBranch ??
+					(await getDefaultBranch(project.mainRepoPath));
+
+				return {
+					success: true,
+					defaultBranch,
+					changed: false,
+				};
+			}),
+
 		close: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
@@ -594,14 +650,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					throw new Error("Project not found");
 				}
 
-				// Find all workspaces for this project
 				const projectWorkspaces = localDb
 					.select()
 					.from(workspaces)
 					.where(eq(workspaces.projectId, input.id))
 					.all();
 
-				// Kill all terminal processes in all workspaces of this project
 				let totalFailed = 0;
 				for (const workspace of projectWorkspaces) {
 					const terminalResult = await terminalManager.killByWorkspaceId(
@@ -610,10 +664,8 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					totalFailed += terminalResult.failed;
 				}
 
-				// Get workspace IDs for cleanup
 				const closedWorkspaceIds = projectWorkspaces.map((w) => w.id);
 
-				// Remove all workspaces for this project
 				if (closedWorkspaceIds.length > 0) {
 					localDb
 						.delete(workspaces)

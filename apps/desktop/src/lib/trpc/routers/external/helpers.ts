@@ -6,6 +6,7 @@ import { EXTERNAL_APPS, type ExternalApp } from "@superset/local-db";
 const APP_NAMES: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
 	vscode: "Visual Studio Code",
+	"vscode-insiders": "Visual Studio Code - Insiders",
 	cursor: "Cursor",
 	xcode: "Xcode",
 	iterm: "iTerm",

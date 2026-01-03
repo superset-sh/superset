@@ -2,10 +2,17 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
+	shared: {
+		NODE_ENV: z
+			.enum(["development", "production", "test"])
+			.default("development"),
+	},
 	server: {
 		DATABASE_URL: z.string(),
 		DATABASE_URL_UNPOOLED: z.string(),
 		CLERK_SECRET_KEY: z.string(),
+		ELECTRIC_URL: z.string().url(),
+		ELECTRIC_SECRET: z.string().min(16),
 		BLOB_READ_WRITE_TOKEN: z.string(),
 		DESKTOP_AUTH_SECRET: z.string().min(32),
 		GOOGLE_CLIENT_ID: z.string().min(1),
@@ -30,6 +37,7 @@ export const env = createEnv({
 			.optional(),
 	},
 	experimental__runtimeEnv: {
+		NODE_ENV: process.env.NODE_ENV,
 		NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 		NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 		NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
