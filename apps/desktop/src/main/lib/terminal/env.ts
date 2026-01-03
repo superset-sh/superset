@@ -63,6 +63,65 @@ export function sanitizeEnv(
 	return Object.keys(sanitized).length > 0 ? sanitized : undefined;
 }
 
+/**
+ * Prefixes for app/build-time variables that should not leak into user terminals.
+ * These can cause cross-project config bleed and unexpected behavior.
+ */
+const APP_ENV_PREFIXES = [
+	"VITE_",
+	"MAIN_VITE_",
+	"NEXT_PUBLIC_",
+	"TURBO_",
+	"ELECTRON_VITE_",
+];
+
+/**
+ * Exact-match env vars from Electron/app that should not propagate to terminals.
+ * - Behavior-changing: Can alter Node.js/Electron runtime behavior
+ * - App secrets: Superset-specific credentials that shouldn't leak
+ */
+const APP_ENV_DENYLIST = [
+	// Behavior-changing Node/Electron vars
+	"NODE_ENV", // Causes npm/pnpm to skip devDependencies
+	"NODE_OPTIONS", // Can inject flags, affect memory limits
+	"NODE_PATH", // Silently changes module resolution
+	"ELECTRON_RUN_AS_NODE", // Makes Electron behave as plain Node.js
+
+	// Superset app secrets/config (exact matches)
+	"GOOGLE_API_KEY",
+	"GOOGLE_CLIENT_ID",
+	"GH_CLIENT_ID",
+	"SENTRY_DSN_DESKTOP",
+];
+
+/**
+ * Remove Electron/app-specific env vars from the base environment.
+ * This is applied BEFORE merging with shellEnv so user-provided values win.
+ *
+ * Why delete from baseEnv instead of final env?
+ * - If user explicitly sets NODE_OPTIONS in their shell, we should respect it
+ * - We only want to prevent Electron's internal env from bleeding through
+ */
+export function removeAppEnvVars(
+	env: Record<string, string>,
+): Record<string, string> {
+	const cleaned = { ...env };
+
+	// Remove exact-match denylist vars
+	for (const key of APP_ENV_DENYLIST) {
+		delete cleaned[key];
+	}
+
+	// Remove prefix-match vars (app/build-time leakage)
+	for (const key of Object.keys(cleaned)) {
+		if (APP_ENV_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+			delete cleaned[key];
+		}
+	}
+
+	return cleaned;
+}
+
 export function buildTerminalEnv(params: {
 	shell: string;
 	paneId: string;
@@ -82,13 +141,18 @@ export function buildTerminalEnv(params: {
 		rootPath,
 	} = params;
 
-	const baseEnv = sanitizeEnv(process.env) || {};
+	// Get Electron's process.env and remove app-specific vars BEFORE merging
+	// This ensures user's shellEnv values will override (user wins)
+	const rawBaseEnv = sanitizeEnv(process.env) || {};
+	const baseEnv = removeAppEnvVars(rawBaseEnv);
+
+	// shellEnv contains user's shell environment - these should win over baseEnv
 	const shellEnv = getShellEnv(shell);
-	const locale = getLocale(baseEnv);
+	const locale = getLocale(rawBaseEnv);
 
 	const env: Record<string, string> = {
 		...baseEnv,
-		...shellEnv,
+		...shellEnv, // User's env wins over cleaned baseEnv
 		TERM_PROGRAM: "Superset",
 		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
 		COLORTERM: "truecolor",
@@ -101,14 +165,6 @@ export function buildTerminalEnv(params: {
 		SUPERSET_ROOT_PATH: rootPath || "",
 		SUPERSET_PORT: String(PORTS.NOTIFICATIONS),
 	};
-
-	// Security: Don't expose API keys to terminal processes
-	delete env.GOOGLE_API_KEY;
-
-	// Don't propagate Electron's NODE_ENV to terminals - it causes unexpected
-	// behavior in user commands (e.g., pnpm install skipping devDependencies
-	// when NODE_ENV=production)
-	delete env.NODE_ENV;
 
 	return env;
 }

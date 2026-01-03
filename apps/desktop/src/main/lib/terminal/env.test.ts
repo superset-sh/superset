@@ -1,8 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
 	buildTerminalEnv,
 	FALLBACK_SHELL,
 	getLocale,
+	removeAppEnvVars,
 	SHELL_CRASH_THRESHOLD_MS,
 	sanitizeEnv,
 } from "./env";
@@ -102,6 +103,175 @@ describe("env", () => {
 		});
 	});
 
+	describe("removeAppEnvVars", () => {
+		describe("behavior-changing Node/Electron vars", () => {
+			it("should remove NODE_ENV", () => {
+				const env = { NODE_ENV: "production", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.NODE_ENV).toBeUndefined();
+				expect(result.PATH).toBe("/usr/bin");
+			});
+
+			it("should remove NODE_OPTIONS", () => {
+				const env = {
+					NODE_OPTIONS: "--max-old-space-size=4096",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.NODE_OPTIONS).toBeUndefined();
+				expect(result.PATH).toBe("/usr/bin");
+			});
+
+			it("should remove NODE_PATH", () => {
+				const env = { NODE_PATH: "/custom/modules", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.NODE_PATH).toBeUndefined();
+				expect(result.PATH).toBe("/usr/bin");
+			});
+
+			it("should remove ELECTRON_RUN_AS_NODE", () => {
+				const env = { ELECTRON_RUN_AS_NODE: "1", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.ELECTRON_RUN_AS_NODE).toBeUndefined();
+				expect(result.PATH).toBe("/usr/bin");
+			});
+		});
+
+		describe("app secrets (exact match)", () => {
+			it("should remove GOOGLE_API_KEY", () => {
+				const env = { GOOGLE_API_KEY: "secret", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.GOOGLE_API_KEY).toBeUndefined();
+			});
+
+			it("should remove GOOGLE_CLIENT_ID", () => {
+				const env = { GOOGLE_CLIENT_ID: "client-id", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.GOOGLE_CLIENT_ID).toBeUndefined();
+			});
+
+			it("should remove GH_CLIENT_ID", () => {
+				const env = { GH_CLIENT_ID: "gh-client-id", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.GH_CLIENT_ID).toBeUndefined();
+			});
+
+			it("should remove SENTRY_DSN_DESKTOP", () => {
+				const env = {
+					SENTRY_DSN_DESKTOP: "https://sentry.io/xxx",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.SENTRY_DSN_DESKTOP).toBeUndefined();
+			});
+		});
+
+		describe("prefix-based app/build vars", () => {
+			it("should remove VITE_* vars", () => {
+				const env = {
+					VITE_API_URL: "http://localhost",
+					VITE_DEBUG: "true",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.VITE_API_URL).toBeUndefined();
+				expect(result.VITE_DEBUG).toBeUndefined();
+				expect(result.PATH).toBe("/usr/bin");
+			});
+
+			it("should remove MAIN_VITE_* vars", () => {
+				const env = { MAIN_VITE_KEY: "value", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.MAIN_VITE_KEY).toBeUndefined();
+			});
+
+			it("should remove NEXT_PUBLIC_* vars", () => {
+				const env = {
+					NEXT_PUBLIC_API_URL: "https://api.example.com",
+					NEXT_PUBLIC_POSTHOG_KEY: "phkey",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.NEXT_PUBLIC_API_URL).toBeUndefined();
+				expect(result.NEXT_PUBLIC_POSTHOG_KEY).toBeUndefined();
+			});
+
+			it("should remove TURBO_* vars", () => {
+				const env = {
+					TURBO_TEAM: "team",
+					TURBO_TOKEN: "token",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.TURBO_TEAM).toBeUndefined();
+				expect(result.TURBO_TOKEN).toBeUndefined();
+			});
+
+			it("should remove ELECTRON_VITE_* vars", () => {
+				const env = { ELECTRON_VITE_DEV: "true", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.ELECTRON_VITE_DEV).toBeUndefined();
+			});
+		});
+
+		describe("should preserve legitimate user vars", () => {
+			it("should preserve PATH, HOME, SHELL, USER", () => {
+				const env = {
+					PATH: "/usr/bin:/usr/local/bin",
+					HOME: "/Users/test",
+					SHELL: "/bin/zsh",
+					USER: "testuser",
+					NODE_ENV: "production", // Should be removed
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.PATH).toBe("/usr/bin:/usr/local/bin");
+				expect(result.HOME).toBe("/Users/test");
+				expect(result.SHELL).toBe("/bin/zsh");
+				expect(result.USER).toBe("testuser");
+				expect(result.NODE_ENV).toBeUndefined();
+			});
+
+			it("should preserve SSH_AUTH_SOCK (important for git)", () => {
+				const env = { SSH_AUTH_SOCK: "/tmp/ssh-agent.sock", PATH: "/usr/bin" };
+				const result = removeAppEnvVars(env);
+				expect(result.SSH_AUTH_SOCK).toBe("/tmp/ssh-agent.sock");
+			});
+
+			it("should preserve language manager vars (NVM, PYENV, etc.)", () => {
+				const env = {
+					NVM_DIR: "/Users/test/.nvm",
+					PYENV_ROOT: "/Users/test/.pyenv",
+					RBENV_ROOT: "/Users/test/.rbenv",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.NVM_DIR).toBe("/Users/test/.nvm");
+				expect(result.PYENV_ROOT).toBe("/Users/test/.pyenv");
+				expect(result.RBENV_ROOT).toBe("/Users/test/.rbenv");
+			});
+
+			it("should preserve proxy vars", () => {
+				const env = {
+					HTTP_PROXY: "http://proxy:8080",
+					HTTPS_PROXY: "http://proxy:8080",
+					NO_PROXY: "localhost,127.0.0.1",
+					PATH: "/usr/bin",
+				};
+				const result = removeAppEnvVars(env);
+				expect(result.HTTP_PROXY).toBe("http://proxy:8080");
+				expect(result.HTTPS_PROXY).toBe("http://proxy:8080");
+				expect(result.NO_PROXY).toBe("localhost,127.0.0.1");
+			});
+		});
+
+		it("should not mutate the original env object", () => {
+			const env = { NODE_ENV: "production", PATH: "/usr/bin" };
+			const result = removeAppEnvVars(env);
+			expect(env.NODE_ENV).toBe("production"); // Original unchanged
+			expect(result.NODE_ENV).toBeUndefined(); // Result cleaned
+		});
+	});
+
 	describe("buildTerminalEnv", () => {
 		const baseParams = {
 			shell: "/bin/zsh",
@@ -110,112 +280,118 @@ describe("env", () => {
 			workspaceId: "ws-1",
 		};
 
-		// Defensive tests: NODE_ENV should NEVER be propagated to terminals
-		// because Electron's NODE_ENV (typically "production") causes unexpected
-		// behavior in user commands (e.g., pnpm install skipping devDependencies)
-		describe("should not propagate NODE_ENV to terminals", () => {
-			const originalNodeEnv = process.env.NODE_ENV;
+		// Store original env vars to restore after tests
+		const originalEnvVars: Record<string, string | undefined> = {};
+		const varsToTrack = [
+			"NODE_ENV",
+			"NODE_OPTIONS",
+			"NODE_PATH",
+			"ELECTRON_RUN_AS_NODE",
+			"GOOGLE_API_KEY",
+			"VITE_TEST_VAR",
+			"NEXT_PUBLIC_TEST",
+		];
 
-			afterEach(() => {
-				// Restore original value after each test
-				if (originalNodeEnv === undefined) {
-					delete process.env.NODE_ENV;
+		beforeEach(() => {
+			// Save original values
+			for (const key of varsToTrack) {
+				originalEnvVars[key] = process.env[key];
+			}
+		});
+
+		afterEach(() => {
+			// Restore original values
+			for (const key of varsToTrack) {
+				if (originalEnvVars[key] === undefined) {
+					delete process.env[key];
 				} else {
-					process.env.NODE_ENV = originalNodeEnv;
+					process.env[key] = originalEnvVars[key];
 				}
-			});
+			}
+		});
 
-			it("should remove NODE_ENV when set to 'production'", () => {
+		describe("should not propagate app env vars to terminals", () => {
+			it("should remove NODE_ENV from Electron's process.env", () => {
 				process.env.NODE_ENV = "production";
 				const result = buildTerminalEnv(baseParams);
 				expect(result.NODE_ENV).toBeUndefined();
 			});
 
-			it("should remove NODE_ENV when set to 'development'", () => {
-				process.env.NODE_ENV = "development";
+			it("should remove NODE_OPTIONS from Electron's process.env", () => {
+				process.env.NODE_OPTIONS = "--inspect";
 				const result = buildTerminalEnv(baseParams);
-				expect(result.NODE_ENV).toBeUndefined();
+				expect(result.NODE_OPTIONS).toBeUndefined();
 			});
 
-			it("should remove NODE_ENV when set to 'test'", () => {
-				process.env.NODE_ENV = "test";
+			it("should remove VITE_* vars from Electron's process.env", () => {
+				process.env.VITE_TEST_VAR = "test-value";
 				const result = buildTerminalEnv(baseParams);
-				expect(result.NODE_ENV).toBeUndefined();
+				expect(result.VITE_TEST_VAR).toBeUndefined();
 			});
 
-			it("should not have NODE_ENV when it was never set", () => {
-				delete process.env.NODE_ENV;
+			it("should remove NEXT_PUBLIC_* vars from Electron's process.env", () => {
+				process.env.NEXT_PUBLIC_TEST = "test-value";
 				const result = buildTerminalEnv(baseParams);
-				expect(result.NODE_ENV).toBeUndefined();
-			});
-		});
-
-		it("should set TERM_PROGRAM to Superset", () => {
-			const result = buildTerminalEnv(baseParams);
-			expect(result.TERM_PROGRAM).toBe("Superset");
-		});
-
-		it("should set COLORTERM to truecolor", () => {
-			const result = buildTerminalEnv(baseParams);
-			expect(result.COLORTERM).toBe("truecolor");
-		});
-
-		it("should set Superset-specific env vars", () => {
-			const result = buildTerminalEnv(baseParams);
-
-			expect(result.SUPERSET_PANE_ID).toBe("pane-1");
-			expect(result.SUPERSET_TAB_ID).toBe("tab-1");
-			expect(result.SUPERSET_WORKSPACE_ID).toBe("ws-1");
-		});
-
-		it("should handle optional workspace params", () => {
-			const result = buildTerminalEnv({
-				...baseParams,
-				workspaceName: "my-workspace",
-				workspacePath: "/path/to/workspace",
-				rootPath: "/root/path",
+				expect(result.NEXT_PUBLIC_TEST).toBeUndefined();
 			});
 
-			expect(result.SUPERSET_WORKSPACE_NAME).toBe("my-workspace");
-			expect(result.SUPERSET_WORKSPACE_PATH).toBe("/path/to/workspace");
-			expect(result.SUPERSET_ROOT_PATH).toBe("/root/path");
-		});
-
-		it("should default optional params to empty string", () => {
-			const result = buildTerminalEnv(baseParams);
-
-			expect(result.SUPERSET_WORKSPACE_NAME).toBe("");
-			expect(result.SUPERSET_WORKSPACE_PATH).toBe("");
-			expect(result.SUPERSET_ROOT_PATH).toBe("");
-		});
-
-		it("should remove GOOGLE_API_KEY for security", () => {
-			// Temporarily set GOOGLE_API_KEY
-			const originalKey = process.env.GOOGLE_API_KEY;
-			process.env.GOOGLE_API_KEY = "secret-key";
-
-			try {
+			it("should remove GOOGLE_API_KEY from Electron's process.env", () => {
+				process.env.GOOGLE_API_KEY = "secret-key";
 				const result = buildTerminalEnv(baseParams);
 				expect(result.GOOGLE_API_KEY).toBeUndefined();
-			} finally {
-				// Restore original value
-				if (originalKey === undefined) {
-					delete process.env.GOOGLE_API_KEY;
-				} else {
-					process.env.GOOGLE_API_KEY = originalKey;
-				}
-			}
+			});
 		});
 
-		it("should set LANG to a UTF-8 locale", () => {
-			const result = buildTerminalEnv(baseParams);
-			expect(result.LANG).toContain("UTF-8");
-		});
+		describe("terminal metadata", () => {
+			it("should set TERM_PROGRAM to Superset", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.TERM_PROGRAM).toBe("Superset");
+			});
 
-		it("should include SUPERSET_PORT", () => {
-			const result = buildTerminalEnv(baseParams);
-			expect(result.SUPERSET_PORT).toBeDefined();
-			expect(typeof result.SUPERSET_PORT).toBe("string");
+			it("should set COLORTERM to truecolor", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.COLORTERM).toBe("truecolor");
+			});
+
+			it("should set Superset-specific env vars", () => {
+				const result = buildTerminalEnv(baseParams);
+
+				expect(result.SUPERSET_PANE_ID).toBe("pane-1");
+				expect(result.SUPERSET_TAB_ID).toBe("tab-1");
+				expect(result.SUPERSET_WORKSPACE_ID).toBe("ws-1");
+			});
+
+			it("should handle optional workspace params", () => {
+				const result = buildTerminalEnv({
+					...baseParams,
+					workspaceName: "my-workspace",
+					workspacePath: "/path/to/workspace",
+					rootPath: "/root/path",
+				});
+
+				expect(result.SUPERSET_WORKSPACE_NAME).toBe("my-workspace");
+				expect(result.SUPERSET_WORKSPACE_PATH).toBe("/path/to/workspace");
+				expect(result.SUPERSET_ROOT_PATH).toBe("/root/path");
+			});
+
+			it("should default optional params to empty string", () => {
+				const result = buildTerminalEnv(baseParams);
+
+				expect(result.SUPERSET_WORKSPACE_NAME).toBe("");
+				expect(result.SUPERSET_WORKSPACE_PATH).toBe("");
+				expect(result.SUPERSET_ROOT_PATH).toBe("");
+			});
+
+			it("should set LANG to a UTF-8 locale", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.LANG).toContain("UTF-8");
+			});
+
+			it("should include SUPERSET_PORT", () => {
+				const result = buildTerminalEnv(baseParams);
+				expect(result.SUPERSET_PORT).toBeDefined();
+				expect(typeof result.SUPERSET_PORT).toBe("string");
+			});
 		});
 	});
 });
