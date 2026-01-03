@@ -52,33 +52,14 @@ When implementing an executable specification (ExecPlan), do not prompt the user
 
 When discussing an executable specification (ExecPlan), record decisions in a log in the spec for posterity; it should be unambiguously clear why any change to the specification was made. ExecPlans are living documents, and it should always be possible to restart from _only_ the ExecPlan and no other work.
 
-## Design Standards (CRITICAL)
+## Design Standards
 
-Before drafting an ExecPlan, review the codebase standards to ensure your design aligns with established patterns:
+Before drafting, review `AGENTS.md` (root) and any app-specific `AGENTS.md` to ensure your design aligns with established patterns.
 
-**Always check:**
-- `AGENTS.md` (root) - Architecture principles, coding conventions, code smells to avoid
-- `apps/desktop/AGENTS.md` - Desktop-specific guidance (if desktop work)
-
-**Key standards your plan must follow:**
-
-| Category | Standard |
-|----------|----------|
-| **Architecture** | Separation of concerns, minimal coupling, fail-safe by default |
-| **Parameters** | Functions with 2+ params use object signatures |
-| **Type Safety** | No `as any`, `@ts-ignore`, or empty catch blocks |
-| **Error Handling** | tRPC routers use proper error codes (NOT_FOUND, UNAUTHORIZED, etc.) |
-| **Desktop** | No Node.js imports in renderer/shared code |
-| **Next.js** | No `middleware.ts` (use `proxy.ts` - Next.js 16) |
-| **Logging** | Prefixed with context: `[domain/operation] message` |
-
-**When planning, verify:**
-1. Does this design follow existing patterns in the codebase?
-2. Are there similar implementations to reference?
-3. Does the approach align with the architecture principles in AGENTS.md?
-4. Have I avoided the code smells listed in AGENTS.md?
-
-If your plan requires deviating from established patterns, document the rationale in the Decision Log and call it out explicitly for review.
+**When planning, ask yourself:**
+1. Are there similar implementations in the codebase to reference?
+2. Does this approach follow existing architectural patterns?
+3. If deviating from conventions, is the rationale documented in the Decision Log?
 
 ## Requirements
 
