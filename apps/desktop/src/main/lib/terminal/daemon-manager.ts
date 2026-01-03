@@ -12,6 +12,11 @@
 import { EventEmitter } from "node:events";
 import { track } from "main/lib/analytics";
 import {
+	containsClearScrollbackSequence,
+	extractContentAfterClear,
+} from "../terminal-escape-filter";
+import { HistoryReader, HistoryWriter } from "../terminal-history";
+import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
 	type TerminalHostClient,
@@ -48,6 +53,30 @@ export class DaemonTerminalManager extends EventEmitter {
 	private sessions = new Map<string, SessionInfo>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
 
+	/** History writers for persisting scrollback to disk (for reboot recovery) */
+	private historyWriters = new Map<string, HistoryWriter>();
+
+	/** Buffer for data received before history writer is initialized */
+	private pendingHistoryData = new Map<string, string[]>();
+
+	/** Track sessions that are initializing history (to know when to buffer) */
+	private historyInitializing = new Set<string>();
+
+	/**
+	 * Sticky cold restore info - survives multiple createOrAttach calls.
+	 * This ensures React StrictMode double-mounts still see cold restore.
+	 * Cleared when renderer acknowledges via ackColdRestore().
+	 */
+	private coldRestoreInfo = new Map<
+		string,
+		{
+			scrollback: string;
+			previousCwd: string | undefined;
+			cols: number;
+			rows: number;
+		}
+	>();
+
 	constructor() {
 		super();
 		this.client = getTerminalHostClient();
@@ -75,6 +104,9 @@ export class DaemonTerminalManager extends EventEmitter {
 				portManager.scanOutput(data, paneId, workspaceId);
 			}
 
+			// Write to history file for reboot persistence
+			this.writeToHistory(paneId, data);
+
 			// Emit to listeners (TRPC router subscription)
 			this.emit(`data:${paneId}`, data);
 		});
@@ -93,6 +125,9 @@ export class DaemonTerminalManager extends EventEmitter {
 
 				// Clean up detected ports
 				portManager.removePortsForPane(paneId);
+
+				// Close history writer with exit code (writes endedAt to meta.json)
+				this.closeHistoryWriter(paneId, exitCode);
 
 				// Emit exit event
 				this.emit(`exit:${paneId}`, exitCode, signal);
@@ -142,6 +177,132 @@ export class DaemonTerminalManager extends EventEmitter {
 	}
 
 	// ===========================================================================
+	// History Persistence (for reboot recovery)
+	// ===========================================================================
+
+	/**
+	 * Initialize a history writer for a session.
+	 * Called after createOrAttach succeeds.
+	 */
+	private async initHistoryWriter(
+		paneId: string,
+		workspaceId: string,
+		cwd: string,
+		cols: number,
+		rows: number,
+		initialScrollback?: string,
+	): Promise<void> {
+		// Mark as initializing so data events get buffered
+		this.historyInitializing.add(paneId);
+		this.pendingHistoryData.set(paneId, []);
+
+		try {
+			const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows);
+			await writer.init(initialScrollback);
+			this.historyWriters.set(paneId, writer);
+
+			// Flush any buffered data
+			const buffered = this.pendingHistoryData.get(paneId) || [];
+			for (const data of buffered) {
+				this.writeToHistory(paneId, data);
+			}
+		} catch (error) {
+			console.error(
+				`[DaemonTerminalManager] Failed to init history writer for ${paneId}:`,
+				error,
+			);
+		} finally {
+			this.historyInitializing.delete(paneId);
+			this.pendingHistoryData.delete(paneId);
+		}
+	}
+
+	/**
+	 * Write data to history file.
+	 * Handles clear scrollback detection and buffering during init.
+	 */
+	private writeToHistory(paneId: string, data: string): void {
+		// If still initializing, buffer the data
+		if (this.historyInitializing.has(paneId)) {
+			const buffer = this.pendingHistoryData.get(paneId);
+			if (buffer) {
+				buffer.push(data);
+			}
+			return;
+		}
+
+		const writer = this.historyWriters.get(paneId);
+		if (!writer) {
+			return;
+		}
+
+		// Handle clear scrollback (Cmd+K) - reinitialize history
+		if (containsClearScrollbackSequence(data)) {
+			const session = this.sessions.get(paneId);
+			if (session) {
+				// Close current writer and reinitialize with empty scrollback
+				writer.close().catch(() => {});
+				this.historyWriters.delete(paneId);
+
+				// Create new writer (will only contain content after clear)
+				const contentAfterClear = extractContentAfterClear(data);
+				this.initHistoryWriter(
+					paneId,
+					session.workspaceId,
+					session.cwd,
+					80, // cols - will be updated on next resize
+					24, // rows - will be updated on next resize
+					contentAfterClear || undefined,
+				).catch(() => {});
+			}
+			return;
+		}
+
+		// Normal write
+		writer.write(data);
+	}
+
+	/**
+	 * Close a history writer and write endedAt to meta.json.
+	 */
+	private closeHistoryWriter(paneId: string, exitCode?: number): void {
+		const writer = this.historyWriters.get(paneId);
+		if (writer) {
+			writer.close(exitCode).catch((error) => {
+				console.error(
+					`[DaemonTerminalManager] Failed to close history writer for ${paneId}:`,
+					error,
+				);
+			});
+			this.historyWriters.delete(paneId);
+		}
+
+		// Clean up any pending data
+		this.historyInitializing.delete(paneId);
+		this.pendingHistoryData.delete(paneId);
+	}
+
+	/**
+	 * Clean up history files for a session.
+	 */
+	private async cleanupHistory(
+		paneId: string,
+		workspaceId: string,
+	): Promise<void> {
+		this.closeHistoryWriter(paneId);
+
+		try {
+			const reader = new HistoryReader(workspaceId, paneId);
+			await reader.cleanup();
+		} catch (error) {
+			console.error(
+				`[DaemonTerminalManager] Failed to cleanup history for ${paneId}:`,
+				error,
+			);
+		}
+	}
+
+	// ===========================================================================
 	// Public API (matches original TerminalManager interface)
 	// ===========================================================================
 
@@ -180,9 +341,36 @@ export class DaemonTerminalManager extends EventEmitter {
 			initialCommands,
 		} = params;
 
-		console.log(
-			`[DaemonTerminalManager] createOrAttach called for paneId: ${paneId}`,
-		);
+		// FIRST: Check for sticky cold restore info (survives React StrictMode remounts)
+		// This ensures the second mount still sees the cold restore detected on first mount
+		const stickyRestore = this.coldRestoreInfo.get(paneId);
+		if (stickyRestore) {
+			return {
+				isNew: false,
+				scrollback: stickyRestore.scrollback,
+				wasRecovered: true,
+				isColdRestore: true,
+				previousCwd: stickyRestore.previousCwd,
+				snapshot: {
+					snapshotAnsi: stickyRestore.scrollback,
+					rehydrateSequences: "",
+					cwd: stickyRestore.previousCwd || null,
+					modes: {},
+					cols: stickyRestore.cols,
+					rows: stickyRestore.rows,
+					scrollbackLines: 0,
+				},
+			};
+		}
+
+		// Check for cold restore: read existing history from disk BEFORE calling daemon
+		// This detects if there's scrollback from a previous session that ended uncleanly
+		const historyReader = new HistoryReader(workspaceId, paneId);
+		const existingHistory = await historyReader.read();
+		const hasPreviousSession =
+			!!existingHistory.metadata && !!existingHistory.scrollback;
+		const wasUncleanShutdown =
+			hasPreviousSession && !existingHistory.metadata?.endedAt;
 
 		// Build environment for the terminal
 		const shell = getDefaultShell();
@@ -197,9 +385,6 @@ export class DaemonTerminalManager extends EventEmitter {
 		});
 
 		// Call daemon
-		console.log(
-			`[DaemonTerminalManager] Calling daemon createOrAttach with sessionId: ${paneId}`,
-		);
 		const response = await this.client.createOrAttach({
 			sessionId: paneId, // Use paneId as sessionId for simplicity
 			paneId,
@@ -216,9 +401,14 @@ export class DaemonTerminalManager extends EventEmitter {
 			initialCommands,
 		});
 
-		console.log(
-			`[DaemonTerminalManager] Daemon response: isNew=${response.isNew}, wasRecovered=${response.wasRecovered}`,
-		);
+		// Detect cold restore: daemon created new session but we have unclean history
+		const isColdRestore = response.isNew && wasUncleanShutdown;
+
+		// For cold restore, use the previous session's cwd; otherwise use daemon's cwd
+		const previousCwd = existingHistory.metadata?.cwd;
+		const sessionCwd = isColdRestore
+			? previousCwd || cwd || ""
+			: response.snapshot.cwd || cwd || "";
 
 		// Track session locally
 		this.sessions.set(paneId, {
@@ -226,12 +416,69 @@ export class DaemonTerminalManager extends EventEmitter {
 			workspaceId,
 			isAlive: true,
 			lastActive: Date.now(),
-			cwd: response.snapshot.cwd || cwd || "",
+			cwd: sessionCwd,
 		});
 
-		// Track terminal opened
-		if (response.isNew) {
+		// Initialize history writer for reboot persistence
+		// For cold restore: start fresh (scrollback is read-only display)
+		// For recovered session: include existing scrollback
+		// For new session: start empty
+		const initialScrollback = response.wasRecovered
+			? response.snapshot.snapshotAnsi
+			: undefined;
+		this.initHistoryWriter(
+			paneId,
+			workspaceId,
+			sessionCwd,
+			response.snapshot.cols || cols,
+			response.snapshot.rows || rows,
+			initialScrollback,
+		).catch((error) => {
+			console.error(
+				`[DaemonTerminalManager] Failed to init history for ${paneId}:`,
+				error,
+			);
+		});
+
+		// Track terminal opened (but not for cold restore - that's a continuation)
+		if (response.isNew && !isColdRestore) {
 			track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
+		}
+
+		// For cold restore, return disk scrollback instead of daemon snapshot
+		if (isColdRestore) {
+			// Cap scrollback size for performance (matches non-daemon mode)
+			const MAX_SCROLLBACK_CHARS = 500_000;
+			const scrollback =
+				existingHistory.scrollback.length > MAX_SCROLLBACK_CHARS
+					? existingHistory.scrollback.slice(-MAX_SCROLLBACK_CHARS)
+					: existingHistory.scrollback;
+
+			// Store in sticky map - survives React StrictMode remounts
+			// Renderer must call ackColdRestore() to clear this
+			this.coldRestoreInfo.set(paneId, {
+				scrollback,
+				previousCwd: previousCwd || undefined,
+				cols: existingHistory.metadata?.cols || cols,
+				rows: existingHistory.metadata?.rows || rows,
+			});
+
+			return {
+				isNew: false, // Not truly new - we're restoring
+				scrollback: scrollback,
+				wasRecovered: true,
+				isColdRestore: true,
+				previousCwd: previousCwd || undefined,
+				snapshot: {
+					snapshotAnsi: scrollback,
+					rehydrateSequences: "",
+					cwd: previousCwd || null,
+					modes: {},
+					cols: existingHistory.metadata?.cols || cols,
+					rows: existingHistory.metadata?.rows || rows,
+					scrollbackLines: 0,
+				},
+			};
 		}
 
 		return {
@@ -265,8 +512,17 @@ export class DaemonTerminalManager extends EventEmitter {
 		// Fire and forget - daemon will handle the write.
 		// Use the no-ack fast path to avoid per-chunk request timeouts under load.
 		this.client.writeNoAck({ sessionId: paneId, data });
+	}
 
-		session.lastActive = Date.now();
+	/**
+	 * Acknowledge cold restore - clears the sticky cold restore info.
+	 * Call this after the renderer has displayed the cold restore UI
+	 * and the user has started a new shell.
+	 */
+	ackColdRestore(paneId: string): void {
+		if (this.coldRestoreInfo.has(paneId)) {
+			this.coldRestoreInfo.delete(paneId);
+		}
 	}
 
 	resize(params: { paneId: string; cols: number; rows: number }): void {
@@ -339,6 +595,13 @@ export class DaemonTerminalManager extends EventEmitter {
 			this.emit(`exit:${paneId}`, 0, "SIGTERM");
 		}
 
+		// Close and optionally delete history
+		if (deleteHistory && session) {
+			await this.cleanupHistory(paneId, session.workspaceId);
+		} else {
+			this.closeHistoryWriter(paneId, 0);
+		}
+
 		await this.client.kill({ sessionId: paneId, deleteHistory });
 	}
 
@@ -370,6 +633,21 @@ export class DaemonTerminalManager extends EventEmitter {
 		const session = this.sessions.get(paneId);
 		if (session) {
 			session.lastActive = Date.now();
+
+			// Reinitialize history file (clear the scrollback on disk too)
+			const writer = this.historyWriters.get(paneId);
+			if (writer) {
+				await writer.close().catch(() => {});
+				this.historyWriters.delete(paneId);
+				await this.initHistoryWriter(
+					paneId,
+					session.workspaceId,
+					session.cwd,
+					80,
+					24,
+					undefined,
+				);
+			}
 		}
 	}
 
@@ -436,6 +714,9 @@ export class DaemonTerminalManager extends EventEmitter {
 					session.isAlive = false;
 					this.emit(`exit:${paneId}`, 0, "SIGTERM");
 				}
+
+				// Clean up history files when deleting workspace
+				await this.cleanupHistory(paneId, workspaceId);
 
 				await this.client.kill({ sessionId: paneId, deleteHistory: true });
 				killed++;
@@ -508,8 +789,30 @@ export class DaemonTerminalManager extends EventEmitter {
 	 * IMPORTANT: In daemon mode, we intentionally do NOT kill sessions.
 	 * The whole point of the daemon is to persist terminals across app restarts.
 	 * We only disconnect from the daemon and clear local state.
+	 *
+	 * We DO close history writers gracefully so meta.json gets endedAt written.
+	 * This allows cold restore detection on next app launch.
 	 */
 	async cleanup(): Promise<void> {
+		// Close all history writers gracefully (writes endedAt to meta.json)
+		// This is important for cold restore detection - if the app crashes
+		// or laptop reboots, endedAt won't be written, indicating unclean shutdown.
+		const closePromises: Promise<void>[] = [];
+		for (const [paneId, writer] of this.historyWriters.entries()) {
+			closePromises.push(
+				writer.close().catch((error) => {
+					console.error(
+						`[DaemonTerminalManager] Failed to close history for ${paneId}:`,
+						error,
+					);
+				}),
+			);
+		}
+		await Promise.all(closePromises);
+		this.historyWriters.clear();
+		this.historyInitializing.clear();
+		this.pendingHistoryData.clear();
+
 		// Disconnect from daemon but DON'T kill sessions - they should persist
 		// across app restarts. This is the core feature of daemon mode.
 		this.sessions.clear();
@@ -523,6 +826,14 @@ export class DaemonTerminalManager extends EventEmitter {
 	 * not during normal app shutdown.
 	 */
 	async forceKillAll(): Promise<void> {
+		// Close all history writers
+		for (const writer of this.historyWriters.values()) {
+			await writer.close().catch(() => {});
+		}
+		this.historyWriters.clear();
+		this.historyInitializing.clear();
+		this.pendingHistoryData.clear();
+
 		await this.client.killAll({});
 		this.sessions.clear();
 	}

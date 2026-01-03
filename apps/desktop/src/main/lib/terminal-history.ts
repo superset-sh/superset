@@ -71,6 +71,14 @@ export class HistoryWriter {
 			this.streamErrored = true;
 			this.stream = null;
 		});
+
+		// Write meta.json immediately (without endedAt)
+		// This enables cold restore detection - if app crashes, meta.json exists but has no endedAt
+		try {
+			await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
+		} catch {
+			// Ignore metadata write errors
+		}
 	}
 
 	write(data: string): void {

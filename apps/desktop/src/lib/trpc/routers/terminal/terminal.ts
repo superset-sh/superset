@@ -39,6 +39,7 @@ export const createTerminalRouter = () => {
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
 					initialCommands: z.array(z.string()).optional(),
+					skipColdRestore: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -50,6 +51,7 @@ export const createTerminalRouter = () => {
 					rows,
 					cwd: cwdOverride,
 					initialCommands,
+					skipColdRestore,
 				} = input;
 
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
@@ -83,6 +85,7 @@ export const createTerminalRouter = () => {
 					cols,
 					rows,
 					initialCommands,
+					skipColdRestore,
 				});
 
 				return {
@@ -90,6 +93,9 @@ export const createTerminalRouter = () => {
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
+					// Cold restore fields (for reboot recovery)
+					isColdRestore: result.isColdRestore,
+					previousCwd: result.previousCwd,
 					// Include snapshot for daemon mode (renderer can use for rehydration)
 					snapshot: result.snapshot,
 				};
@@ -122,6 +128,16 @@ export const createTerminalRouter = () => {
 						code: "WRITE_FAILED",
 					});
 				}
+			}),
+
+		/**
+		 * Acknowledge cold restore - clears the sticky cold restore info.
+		 * Call this after displaying the cold restore UI and starting a new shell.
+		 */
+		ackColdRestore: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.mutation(({ input }) => {
+				terminalManager.ackColdRestore(input.paneId);
 			}),
 
 		resize: publicProcedure

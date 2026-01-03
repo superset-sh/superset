@@ -46,6 +46,18 @@ export interface SessionResult {
 	 */
 	scrollback: string;
 	wasRecovered: boolean;
+	/**
+	 * True if this is a cold restore from disk after reboot/crash.
+	 * The daemon didn't have this session, but we found scrollback on disk
+	 * with an unclean shutdown (meta.json has no endedAt).
+	 * UI should show "Session Restored" banner and "Start Shell" action.
+	 */
+	isColdRestore?: boolean;
+	/**
+	 * The cwd from the previous session (for cold restore).
+	 * Use this to start the new shell in the same directory.
+	 */
+	previousCwd?: string;
 	/** Snapshot from daemon (if using daemon mode) */
 	snapshot?: {
 		snapshotAnsi: string;
@@ -83,6 +95,8 @@ export interface CreateSessionParams {
 	cols?: number;
 	rows?: number;
 	initialCommands?: string[];
+	/** Skip cold restore detection (used when auto-resuming after cold restore) */
+	skipColdRestore?: boolean;
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {

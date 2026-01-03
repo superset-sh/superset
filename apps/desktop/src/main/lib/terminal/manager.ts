@@ -170,6 +170,14 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
+	/**
+	 * Acknowledge cold restore (no-op in non-daemon mode).
+	 * Cold restore only applies to daemon mode where sessions survive app restart.
+	 */
+	ackColdRestore(_paneId: string): void {
+		// No-op in non-daemon mode - cold restore is a daemon-only feature
+	}
+
 	resize(params: { paneId: string; cols: number; rows: number }): void {
 		const { paneId, cols, rows } = params;
 

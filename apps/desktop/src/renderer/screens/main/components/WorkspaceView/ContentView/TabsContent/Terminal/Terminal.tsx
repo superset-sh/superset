@@ -35,10 +35,23 @@ const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
 // cancel a pending detach if the component immediately remounts.
 const pendingDetaches = new Map<string, NodeJS.Timeout>();
 
+// Module-level map to track cold restore state across StrictMode cycles.
+// When cold restore is detected, we store the state here so it survives
+// the unmount/remount that StrictMode causes. Without this, the first mount
+// detects cold restore and sets state, but StrictMode unmounts and remounts
+// with fresh state, losing the cold restore detection.
+const coldRestoreState = new Map<
+	string,
+	{ isRestored: boolean; cwd: string | null; scrollback: string }
+>();
+
 type CreateOrAttachResult = {
 	wasRecovered: boolean;
 	isNew: boolean;
 	scrollback: string;
+	// Cold restore fields (for reboot recovery)
+	isColdRestore?: boolean;
+	previousCwd?: string;
 	snapshot?: {
 		snapshotAnsi: string;
 		rehydrateSequences: string;
@@ -82,6 +95,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
+	// Cold restore state (for reboot recovery)
+	const [isRestoredMode, setIsRestoredMode] = useState(false);
+	const [restoredCwd, setRestoredCwd] = useState<string | null>(null);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
@@ -579,6 +595,63 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		setConnectionError,
 	]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refs (createOrAttachRef, resizeRef) used intentionally to read latest values without recreating callback
+	const handleStartShell = useCallback(() => {
+		const xterm = xtermRef.current;
+		const fitAddon = fitAddonRef.current;
+		if (!xterm || !fitAddon) return;
+
+		// Clear restored mode (both React state and module-level map)
+		setIsRestoredMode(false);
+		coldRestoreState.delete(paneId);
+
+		// Acknowledge cold restore to main process (clears sticky state)
+		trpcClient.terminal.ackColdRestore.mutate({ paneId }).catch(() => {
+			// Ignore errors - not critical
+		});
+
+		// Add visual separator
+		xterm.write("\r\n\x1b[90m─── New session ───\x1b[0m\r\n\r\n");
+
+		// Reset state for new session
+		isStreamReadyRef.current = false;
+		pendingInitialStateRef.current = null;
+		isAlternateScreenRef.current = false;
+		isBracketedPasteRef.current = false;
+		modeScanBufferRef.current = "";
+
+		// Create new session with previous cwd
+		createOrAttachRef.current(
+			{
+				paneId,
+				tabId: parentTabIdRef.current || paneId,
+				workspaceId,
+				cols: xterm.cols,
+				rows: xterm.rows,
+				cwd: restoredCwd || undefined,
+			},
+			{
+				onSuccess: (result) => {
+					pendingInitialStateRef.current = result;
+					maybeApplyInitialState();
+				},
+				onError: (error) => {
+					console.error("[Terminal] Failed to start shell:", error);
+					setConnectionError(error.message || "Failed to start shell");
+					isStreamReadyRef.current = true;
+					flushPendingEvents();
+				},
+			},
+		);
+	}, [
+		paneId,
+		workspaceId,
+		restoredCwd,
+		maybeApplyInitialState,
+		flushPendingEvents,
+		setConnectionError,
+	]);
+
 	const handleStreamData = (event: TerminalStreamEvent) => {
 		// Queue events until terminal is ready to prevent data loss
 		if (!xtermRef.current || !isStreamReadyRef.current) {
@@ -811,6 +884,49 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
+
+					// FIRST: Check if we have stored cold restore state from a previous mount
+					// (StrictMode causes unmount/remount - check this BEFORE result.isColdRestore
+					// because the second mount's result won't have isColdRestore=true)
+					const storedColdRestore = coldRestoreState.get(paneId);
+					if (storedColdRestore?.isRestored) {
+						setIsRestoredMode(true);
+						setRestoredCwd(storedColdRestore.cwd);
+
+						// Write scrollback to terminal as read-only display
+						if (storedColdRestore.scrollback && xterm) {
+							xterm.write(storedColdRestore.scrollback);
+						}
+
+						// Mark first render complete but don't enable streaming
+						didFirstRenderRef.current = true;
+						return;
+					}
+
+					// Handle cold restore (reboot recovery) - first detection
+					// Store in module-level map to survive StrictMode remount
+					if (result.isColdRestore) {
+						const scrollback =
+							result.snapshot?.snapshotAnsi ?? result.scrollback;
+						coldRestoreState.set(paneId, {
+							isRestored: true,
+							cwd: result.previousCwd || null,
+							scrollback: scrollback,
+						});
+						setIsRestoredMode(true);
+						setRestoredCwd(result.previousCwd || null);
+
+						// Write scrollback to terminal as read-only display
+						if (scrollback && xterm) {
+							xterm.write(scrollback);
+						}
+
+						// Mark first render complete but don't enable streaming
+						// (shell isn't running - user must click Start Shell)
+						didFirstRenderRef.current = true;
+						return;
+					}
+
 					// Defer initial state restoration until xterm has rendered once.
 					// Streaming is enabled only after restoration is queued into xterm.
 					pendingInitialStateRef.current = result;
@@ -986,6 +1102,30 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
 					>
 						Retry Connection
+					</button>
+				</div>
+			)}
+			{isRestoredMode && (
+				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
+					<div className="mb-4 px-4 text-center max-w-md">
+						<p className="text-blue-300 font-semibold flex items-center gap-2 justify-center">
+							<span className="text-xl">↻</span>
+							Session Restored
+						</p>
+						<p className="mt-2 text-sm text-gray-400">
+							Your previous terminal output was preserved. Click below to start
+							a new shell session.
+						</p>
+						{restoredCwd && (
+							<p className="mt-2 text-gray-500 text-xs">{restoredCwd}</p>
+						)}
+					</div>
+					<button
+						type="button"
+						onClick={handleStartShell}
+						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+					>
+						Start Shell
 					</button>
 				</div>
 			)}
