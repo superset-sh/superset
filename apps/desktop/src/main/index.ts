@@ -14,7 +14,10 @@ import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
+import { registerDefaultFilters } from "./lib/terminal-output-filters";
 import { MainWindow } from "./windows/main";
+
+registerDefaultFilters();
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
 console.log("[main] Local database ready:", !!localDb);

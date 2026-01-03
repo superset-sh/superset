@@ -7,6 +7,7 @@ import {
 	extractContentAfterClear,
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
+import { terminalOutputFilterChain } from "../terminal-output-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
@@ -166,10 +167,10 @@ export function setupDataHandler(
 		session.scrollback += dataToStore;
 		session.historyWriter?.write(dataToStore);
 
-		// Scan for port patterns in terminal output
 		portManager.scanOutput(dataToStore, session.paneId, session.workspaceId);
 
-		session.dataBatcher.write(data);
+		const dataToDisplay = terminalOutputFilterChain.apply(data);
+		session.dataBatcher.write(dataToDisplay);
 
 		if (initialCommandString && !commandsSent) {
 			commandsSent = true;
