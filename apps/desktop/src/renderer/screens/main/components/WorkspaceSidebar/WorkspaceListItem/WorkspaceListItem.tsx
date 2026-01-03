@@ -103,7 +103,7 @@ export function WorkspaceListItem({
 		workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
 	);
 	const hasPaneAttention = Object.values(panes)
-		.filter((p) => workspacePaneIds.has(p.id))
+		.filter((p) => p != null && workspacePaneIds.has(p.id))
 		.some((p) => p.needsAttention);
 
 	// Show indicator if workspace is manually marked as unread OR has pane-level attention
