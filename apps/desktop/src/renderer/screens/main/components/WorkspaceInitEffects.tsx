@@ -16,6 +16,9 @@ import {
  * CloneRepoDialog), the dialog may close before initialization completes.
  * This component ensures the terminal is still created when the workspace
  * becomes ready.
+ *
+ * Also handles the case where pending setup data is lost (e.g., after retry
+ * or app restart) by fetching setup commands from the backend on demand.
  */
 export function WorkspaceInitEffects() {
 	const initProgress = useWorkspaceInitStore((s) => s.initProgress);
@@ -35,6 +38,7 @@ export function WorkspaceInitEffects() {
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
 	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
+	const utils = trpc.useUtils();
 
 	// Helper to create terminal with setup commands
 	const handleTerminalSetup = useCallback(
@@ -110,7 +114,7 @@ export function WorkspaceInitEffects() {
 	);
 
 	useEffect(() => {
-		// Process all pending setups
+		// Process pending setups that have reached ready state
 		for (const [workspaceId, setup] of Object.entries(pendingTerminalSetups)) {
 			const progress = initProgress[workspaceId];
 
@@ -133,9 +137,60 @@ export function WorkspaceInitEffects() {
 			}
 
 			// Clean up pending if failed (user will use retry or delete)
+			// Note: losing pending data is OK now - we fetch on demand when ready
 			if (progress?.step === "failed") {
 				removePendingTerminalSetup(workspaceId);
 			}
+		}
+
+		// Handle workspaces that became ready without pending setup data
+		// (e.g., after retry or app restart during init)
+		for (const [workspaceId, progress] of Object.entries(initProgress)) {
+			// Only process ready workspaces that don't have pending setup
+			if (progress.step !== "ready") {
+				continue;
+			}
+			if (pendingTerminalSetups[workspaceId]) {
+				continue; // Already handled above
+			}
+			if (processingRef.current.has(workspaceId)) {
+				continue;
+			}
+
+			// Mark as processing and fetch setup commands from backend
+			processingRef.current.add(workspaceId);
+
+			utils.workspaces.getSetupCommands
+				.fetch({ workspaceId })
+				.then((setupData) => {
+					if (!setupData) {
+						// Workspace not found or no project - just clear progress
+						clearProgress(workspaceId);
+						processingRef.current.delete(workspaceId);
+						return;
+					}
+
+					// Create a pending setup from fetched data and handle it
+					const fetchedSetup: PendingTerminalSetup = {
+						workspaceId,
+						projectId: setupData.projectId,
+						initialCommands: setupData.initialCommands,
+					};
+
+					handleTerminalSetup(fetchedSetup, () => {
+						clearProgress(workspaceId);
+						processingRef.current.delete(workspaceId);
+					});
+				})
+				.catch((error) => {
+					console.error(
+						"[WorkspaceInitEffects] Failed to fetch setup commands:",
+						error,
+					);
+					// Still clear progress to avoid being stuck
+					clearProgress(workspaceId);
+					processingRef.current.delete(workspaceId);
+				});
 		}
 	}, [
 		initProgress,
@@ -143,6 +198,7 @@ export function WorkspaceInitEffects() {
 		removePendingTerminalSetup,
 		clearProgress,
 		handleTerminalSetup,
+		utils.workspaces.getSetupCommands,
 	]);
 
 	// Renderless component

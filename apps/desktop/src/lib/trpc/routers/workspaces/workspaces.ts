@@ -1789,6 +1789,43 @@ export const createWorkspacesRouter = () => {
 			.query(({ input }) => {
 				return workspaceInitManager.getProgress(input.workspaceId) ?? null;
 			}),
+
+		/**
+		 * Get setup commands for a workspace.
+		 * Used as a fallback when pending terminal setup data is lost (e.g., after retry or app restart).
+		 * Re-reads the project config to get fresh commands.
+		 */
+		getSetupCommands: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+
+				if (!workspace) {
+					return null;
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+
+				if (!project) {
+					return null;
+				}
+
+				// Re-read config from project to get fresh commands
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
+				return {
+					projectId: project.id,
+					initialCommands: setupConfig?.setup ?? null,
+				};
+			}),
 	});
 };
 
