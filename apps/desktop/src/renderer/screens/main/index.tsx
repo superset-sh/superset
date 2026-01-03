@@ -27,6 +27,7 @@ import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
+import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 function LoadingSpinner() {
@@ -357,6 +358,7 @@ export function MainScreen() {
 			</AppFrame>
 			<SetupConfigModal />
 			<NewWorkspaceModal />
+			<WorkspaceInitEffects />
 		</DndProvider>
 	);
 }

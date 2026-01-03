@@ -53,6 +53,7 @@ async function initializeWorkspaceWorktree({
 	worktreePath,
 	branch,
 	baseBranch,
+	baseBranchWasExplicit,
 	mainRepoPath,
 }: {
 	workspaceId: string;
@@ -61,6 +62,8 @@ async function initializeWorkspaceWorktree({
 	worktreePath: string;
 	branch: string;
 	baseBranch: string;
+	/** If true, user explicitly specified baseBranch - don't auto-update it */
+	baseBranchWasExplicit: boolean;
 	mainRepoPath: string;
 }): Promise<void> {
 	const manager = workspaceInitManager;
@@ -79,6 +82,9 @@ async function initializeWorkspaceWorktree({
 		manager.updateProgress(workspaceId, "syncing", "Syncing with remote...");
 		const remoteDefaultBranch = await refreshDefaultBranch(mainRepoPath);
 
+		// Track the effective baseBranch - may be updated if auto-derived and remote differs
+		let effectiveBaseBranch = baseBranch;
+
 		// Update project's default branch if it changed
 		if (remoteDefaultBranch) {
 			const project = localDb
@@ -91,6 +97,20 @@ async function initializeWorkspaceWorktree({
 					.update(projects)
 					.set({ defaultBranch: remoteDefaultBranch })
 					.where(eq(projects.id, projectId))
+					.run();
+			}
+
+			// P1 Fix: If baseBranch was auto-derived (not explicit) and differs from remote,
+			// update the worktree record so retries use the correct branch
+			if (!baseBranchWasExplicit && remoteDefaultBranch !== baseBranch) {
+				console.log(
+					`[workspace-init] Auto-updating baseBranch from "${baseBranch}" to "${remoteDefaultBranch}" for workspace ${workspaceId}`,
+				);
+				effectiveBaseBranch = remoteDefaultBranch;
+				localDb
+					.update(worktrees)
+					.set({ baseBranch: remoteDefaultBranch })
+					.where(eq(worktrees.id, worktreeId))
 					.run();
 			}
 		}
@@ -112,20 +132,20 @@ async function initializeWorkspaceWorktree({
 		if (hasRemote) {
 			const existsOnRemote = await branchExistsOnRemote(
 				mainRepoPath,
-				baseBranch,
+				effectiveBaseBranch,
 			);
 			if (!existsOnRemote) {
 				manager.updateProgress(
 					workspaceId,
 					"failed",
 					"Branch does not exist on remote",
-					`Branch "${baseBranch}" does not exist on origin. Please delete this workspace and try again with a different base branch.`,
+					`Branch "${effectiveBaseBranch}" does not exist on origin. Please delete this workspace and try again with a different base branch.`,
 				);
 				return;
 			}
-			startPoint = `origin/${baseBranch}`;
+			startPoint = `origin/${effectiveBaseBranch}`;
 		} else {
-			startPoint = baseBranch;
+			startPoint = effectiveBaseBranch;
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {
@@ -141,7 +161,7 @@ async function initializeWorkspaceWorktree({
 		);
 		if (hasRemote) {
 			try {
-				await fetchDefaultBranch(mainRepoPath, baseBranch);
+				await fetchDefaultBranch(mainRepoPath, effectiveBaseBranch);
 			} catch {
 				// Silently continue - branch exists on remote, just couldn't fetch
 			}
@@ -219,7 +239,7 @@ async function initializeWorkspaceWorktree({
 			workspace_id: workspaceId,
 			project_id: projectId,
 			branch,
-			base_branch: baseBranch,
+			base_branch: effectiveBaseBranch,
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
@@ -383,6 +403,7 @@ export const createWorkspacesRouter = () => {
 					worktreePath,
 					branch,
 					baseBranch: targetBranch,
+					baseBranchWasExplicit: !!input.baseBranch,
 					mainRepoPath: project.mainRepoPath,
 				});
 
@@ -1679,6 +1700,8 @@ export const createWorkspacesRouter = () => {
 				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
 
 				// Run initialization in background (DO NOT await)
+				// On retry, the worktree.baseBranch is already correct (either originally explicit
+				// or auto-corrected by P1 fix), so we treat it as explicit to prevent further updates
 				initializeWorkspaceWorktree({
 					workspaceId: input.workspaceId,
 					projectId: workspace.projectId,
@@ -1686,6 +1709,7 @@ export const createWorkspacesRouter = () => {
 					worktreePath: worktree.path,
 					branch: worktree.branch,
 					baseBranch: worktree.baseBranch ?? project.defaultBranch ?? "main",
+					baseBranchWasExplicit: true,
 					mainRepoPath: project.mainRepoPath,
 				});
 

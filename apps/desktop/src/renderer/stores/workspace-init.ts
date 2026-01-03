@@ -2,19 +2,35 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
+/**
+ * Data needed to create a terminal when workspace becomes ready.
+ * Stored globally so it survives dialog/hook unmounts.
+ */
+export interface PendingTerminalSetup {
+	workspaceId: string;
+	projectId: string;
+	initialCommands: string[] | null;
+}
+
 interface WorkspaceInitState {
 	// Map of workspaceId -> progress
 	initProgress: Record<string, WorkspaceInitProgress>;
 
+	// Map of workspaceId -> pending terminal setup (survives dialog unmount)
+	pendingTerminalSetups: Record<string, PendingTerminalSetup>;
+
 	// Actions
 	updateProgress: (progress: WorkspaceInitProgress) => void;
 	clearProgress: (workspaceId: string) => void;
+	addPendingTerminalSetup: (setup: PendingTerminalSetup) => void;
+	removePendingTerminalSetup: (workspaceId: string) => void;
 }
 
 export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 	devtools(
 		(set, get) => ({
 			initProgress: {},
+			pendingTerminalSetups: {},
 
 			updateProgress: (progress) => {
 				set((state) => ({
@@ -24,13 +40,8 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 					},
 				}));
 
-				// Note: We no longer auto-clear "ready" state on a timer.
-				// Consumers (e.g., useCreateWorkspace) must explicitly call clearProgress()
-				// after they've handled the ready event. This prevents race conditions where
-				// the progress is cleared before the consumer can observe it.
-				//
-				// For memory hygiene, we do clear "ready" progress after 5 minutes
-				// (long enough that any React effect will have run).
+				// For memory hygiene, clear "ready" progress after 5 minutes
+				// (long enough that WorkspaceInitEffects will have processed it)
 				if (progress.step === "ready") {
 					setTimeout(
 						() => {
@@ -48,6 +59,22 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 				set((state) => {
 					const { [workspaceId]: _, ...rest } = state.initProgress;
 					return { initProgress: rest };
+				});
+			},
+
+			addPendingTerminalSetup: (setup) => {
+				set((state) => ({
+					pendingTerminalSetups: {
+						...state.pendingTerminalSetups,
+						[setup.workspaceId]: setup,
+					},
+				}));
+			},
+
+			removePendingTerminalSetup: (workspaceId) => {
+				set((state) => {
+					const { [workspaceId]: _, ...rest } = state.pendingTerminalSetups;
+					return { pendingTerminalSetups: rest };
 				});
 			},
 		}),
