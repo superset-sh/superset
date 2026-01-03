@@ -8,7 +8,7 @@ import {
 	stat,
 	writeFile,
 } from "node:fs/promises";
-import { dirname, isAbsolute, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import {
 	assertRegisteredWorktree,
 	PathValidationError,
@@ -39,12 +39,18 @@ function isPathWithinWorktree(
 		return true;
 	}
 	const relativePath = relative(worktreeReal, targetReal);
-	// If relative path starts with ".." or is absolute, it's outside
-	return (
-		!relativePath.startsWith("..") &&
-		!isAbsolute(relativePath) &&
-		relativePath !== ""
-	);
+	// Check if path escapes worktree:
+	// - ".." means direct parent
+	// - "../" prefix means ancestor escape (use sep for cross-platform)
+	// - Absolute path means completely outside
+	// Note: Don't use startsWith("..") as it incorrectly catches "..config" directories
+	const escapesWorktree =
+		relativePath === ".." ||
+		relativePath.startsWith(`..${sep}`) ||
+		isAbsolute(relativePath) ||
+		relativePath === "";
+
+	return !escapesWorktree;
 }
 
 /**
@@ -180,10 +186,10 @@ async function assertRealpathInWorktree(
 			);
 		}
 	} catch (error) {
-		// If realpath fails with ENOENT, file doesn't exist yet
-		// Validate the parent directory chain instead
+		// If realpath fails with ENOENT, the target doesn't exist
+		// But the path itself might be a dangling symlink - check that first!
 		if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-			await assertParentInWorktree(worktreePath, fullPath);
+			await assertDanglingSymlinkSafe(worktreePath, fullPath);
 			return;
 		}
 		// Re-throw PathValidationError
@@ -195,6 +201,69 @@ async function assertRealpathInWorktree(
 			"Cannot validate file path",
 			"SYMLINK_ESCAPE",
 		);
+	}
+}
+
+/**
+ * Handle the ENOENT case: check if fullPath is a dangling symlink pointing outside
+ * the worktree, or if it truly doesn't exist (in which case validate parent chain).
+ *
+ * Attack scenario this prevents:
+ * - Repo contains `docs/config.yml` → symlink to `~/.ssh/some_new_file` (doesn't exist)
+ * - realpath() fails with ENOENT (target missing)
+ * - Without this check, we'd only validate parent (`docs/`) which is valid
+ * - Write would follow symlink and create `~/.ssh/some_new_file`
+ *
+ * @throws PathValidationError if symlink escapes worktree
+ */
+async function assertDanglingSymlinkSafe(
+	worktreePath: string,
+	fullPath: string,
+): Promise<void> {
+	const worktreeReal = await realpath(worktreePath);
+
+	try {
+		// Check if the path itself exists (as a symlink or otherwise)
+		const stats = await lstat(fullPath);
+
+		if (stats.isSymbolicLink()) {
+			// It's a dangling symlink - validate where it points
+			const linkTarget = await readlink(fullPath);
+			const resolvedTarget = isAbsolute(linkTarget)
+				? linkTarget
+				: resolve(dirname(fullPath), linkTarget);
+
+			// Check if the resolved target would be within worktree
+			// For dangling symlinks, we can't use realpath on the target,
+			// so we check the literal resolved path
+			const targetRelative = relative(worktreeReal, resolvedTarget);
+			if (
+				targetRelative === ".." ||
+				targetRelative.startsWith(`..${sep}`) ||
+				isAbsolute(targetRelative)
+			) {
+				throw new PathValidationError(
+					"Dangling symlink points outside the worktree",
+					"SYMLINK_ESCAPE",
+				);
+			}
+			// Dangling symlink points within worktree - allow the operation
+			return;
+		}
+
+		// Not a symlink but lstat succeeded - weird state, but validate parent chain
+		await assertParentInWorktree(worktreePath, fullPath);
+	} catch (error) {
+		if (error instanceof PathValidationError) {
+			throw error;
+		}
+		if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+			// Path truly doesn't exist (not even as a symlink) - validate parent chain
+			await assertParentInWorktree(worktreePath, fullPath);
+			return;
+		}
+		// Other errors - fail closed
+		throw new PathValidationError("Cannot validate path", "SYMLINK_ESCAPE");
 	}
 }
 export const secureFs = {

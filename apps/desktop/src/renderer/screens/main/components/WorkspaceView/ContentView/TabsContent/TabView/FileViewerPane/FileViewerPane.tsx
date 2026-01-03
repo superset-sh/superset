@@ -262,6 +262,12 @@ export function FileViewerPane({
 		hasAppliedInitialLocationRef.current = false;
 	}, [filePath]);
 
+	// P1: Reset navigation flag when line/column changes (e.g., clicking same file from terminal with different line)
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Only reset when coordinates change
+	useEffect(() => {
+		hasAppliedInitialLocationRef.current = false;
+	}, [initialLine, initialColumn]);
+
 	// Fetch raw file content - always call hook, use enabled to control fetching
 	const { data: rawFileData, isLoading: isLoadingRaw } =
 		trpc.changes.readWorkingFile.useQuery(
@@ -471,7 +477,9 @@ export function FileViewerPane({
 						? "Binary file preview not supported"
 						: rawFileData?.reason === "outside-worktree"
 							? "File is outside worktree"
-							: "File not found";
+							: rawFileData?.reason === "symlink-escape"
+								? "File is a symlink pointing outside worktree"
+								: "File not found";
 			return (
 				<div className="flex items-center justify-center h-full text-muted-foreground">
 					{errorMessage}
