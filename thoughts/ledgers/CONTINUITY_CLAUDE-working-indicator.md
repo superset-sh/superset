@@ -1,7 +1,7 @@
 ---
 created: 2026-01-02T19:50:00Z
-last_updated: 2026-01-02T19:50:00Z
-session_count: 1
+last_updated: 2026-01-03T15:58:00Z
+session_count: 2
 status: IN_PROGRESS
 ---
 
@@ -265,3 +265,29 @@ Key features:
 
 ### Breaking Changes
 None - backwards compatible with existing persisted state (migration handled)
+
+---
+
+## Code Review #2 (2026-01-03)
+
+### Feedback Analysis
+
+#### P2 Issues
+
+| Issue | Valid? | Action |
+|-------|--------|--------|
+| **P2-A**: `server.ts:141` hardcodes `"2"` instead of using `HOOK_PROTOCOL_VERSION` constant | ✅ VALID | Fix - import and use the constant |
+| **P2-B**: `trpc-storage.ts` always returns `version: 0`, disabling Zustand persist versioning | ⚠️ VALID but PRE-EXISTING | This is NOT introduced by working-indicators. The adapter was already broken. Migration is idempotent so no corruption. Low priority. |
+
+#### Questions
+
+| Question | Response |
+|----------|----------|
+| **Q1**: With persistent terminals, can agent still be running after restart? Should use timeout/liveness? | Agent CAN still be running in daemon. However, status will auto-correct on next event (Start/Stop/Permission). Brief window of incorrect status is acceptable. Adding liveness check adds complexity for marginal benefit. **Decision: Document this limitation, don't add liveness check.** |
+| **Q2**: `resolvePaneId` fallback - misattribute vs drop events? | **Misattribution is better than dropping.** If dropped, user sees NO indicator. If misattributed, at least SOME indicator shows on workspace. Worst case: wrong pane shows indicator, but user still gets alerted. **Decision: Keep current behavior, document trade-off.** |
+| **Q3**: Should `thoughts/shared/handoffs/*` artifacts ship in repo? | ❌ **NO** - these are session artifacts. Should be in `.gitignore` or removed before merge. |
+
+### Action Items
+- [x] P2-A: Use `HOOK_PROTOCOL_VERSION` constant in server.ts ✅ Fixed
+- [ ] Q3: Remove or gitignore handoff artifacts before merge
+- [ ] (Optional) P2-B: Fix trpc-storage version handling (separate PR - pre-existing issue)

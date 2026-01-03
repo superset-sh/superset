@@ -3,6 +3,7 @@ import express from "express";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import { appState } from "../app-state";
+import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 
 /**
  * The environment this server is running in.
@@ -138,9 +139,9 @@ app.get("/hook/complete", (req, res) => {
 	}
 
 	// Log version for debugging (helpful when troubleshooting hook issues)
-	if (version && version !== "2") {
+	if (version && version !== HOOK_PROTOCOL_VERSION) {
 		console.log(
-			`[notifications] Received hook v${version} request (server expects v2)`,
+			`[notifications] Received hook v${version} request (server expects v${HOOK_PROTOCOL_VERSION})`,
 		);
 	}
 
