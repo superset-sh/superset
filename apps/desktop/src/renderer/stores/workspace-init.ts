@@ -24,14 +24,23 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 					},
 				}));
 
-				// Auto-clear ready state after a short delay
+				// Note: We no longer auto-clear "ready" state on a timer.
+				// Consumers (e.g., useCreateWorkspace) must explicitly call clearProgress()
+				// after they've handled the ready event. This prevents race conditions where
+				// the progress is cleared before the consumer can observe it.
+				//
+				// For memory hygiene, we do clear "ready" progress after 5 minutes
+				// (long enough that any React effect will have run).
 				if (progress.step === "ready") {
-					setTimeout(() => {
-						const current = get().initProgress[progress.workspaceId];
-						if (current?.step === "ready") {
-							get().clearProgress(progress.workspaceId);
-						}
-					}, 1500);
+					setTimeout(
+						() => {
+							const current = get().initProgress[progress.workspaceId];
+							if (current?.step === "ready") {
+								get().clearProgress(progress.workspaceId);
+							}
+						},
+						5 * 60 * 1000,
+					); // 5 minutes
 				}
 			},
 

@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -43,6 +43,48 @@ export function useCreateWorkspace(
 
 	// Watch for init progress changes to create terminal when ready
 	const initProgress = useWorkspaceInitStore((s) => s.initProgress);
+	const clearProgress = useWorkspaceInitStore((s) => s.clearProgress);
+
+	// Helper to handle terminal setup for a ready workspace
+	const handleTerminalSetup = useCallback(
+		(setup: PendingTerminalSetup) => {
+			if (
+				Array.isArray(setup.initialCommands) &&
+				setup.initialCommands.length > 0
+			) {
+				const { tabId, paneId } = addTab(setup.workspaceId);
+				setTabAutoTitle(tabId, "Workspace Setup");
+				createOrAttach.mutate({
+					paneId,
+					tabId,
+					workspaceId: setup.workspaceId,
+					initialCommands: setup.initialCommands,
+				});
+			} else {
+				// Show config toast if no setup commands
+				toast.info("No setup script configured", {
+					description: "Automate workspace setup with a config.json file",
+					action: {
+						label: "Configure",
+						onClick: () => openConfigModal(setup.projectId),
+					},
+					onDismiss: () => {
+						dismissConfigToast.mutate({ projectId: setup.projectId });
+					},
+				});
+			}
+			// Clear progress after handling - prevents memory buildup
+			clearProgress(setup.workspaceId);
+		},
+		[
+			addTab,
+			setTabAutoTitle,
+			createOrAttach,
+			openConfigModal,
+			dismissConfigToast,
+			clearProgress,
+		],
+	);
 
 	// Effect to create terminal when pending workspaces become ready
 	useEffect(() => {
@@ -52,33 +94,7 @@ export function useCreateWorkspace(
 			// Create terminal when workspace becomes ready
 			if (progress?.step === "ready") {
 				pendingTerminalSetups.current.delete(workspaceId);
-
-				// Create terminal tab with setup commands if present
-				if (
-					Array.isArray(setup.initialCommands) &&
-					setup.initialCommands.length > 0
-				) {
-					const { tabId, paneId } = addTab(workspaceId);
-					setTabAutoTitle(tabId, "Workspace Setup");
-					createOrAttach.mutate({
-						paneId,
-						tabId,
-						workspaceId,
-						initialCommands: setup.initialCommands,
-					});
-				} else {
-					// Show config toast if no setup commands
-					toast.info("No setup script configured", {
-						description: "Automate workspace setup with a config.json file",
-						action: {
-							label: "Configure",
-							onClick: () => openConfigModal(setup.projectId),
-						},
-						onDismiss: () => {
-							dismissConfigToast.mutate({ projectId: setup.projectId });
-						},
-					});
-				}
+				handleTerminalSetup(setup);
 			}
 
 			// Clear from pending if failed (user will use retry or delete)
@@ -86,14 +102,7 @@ export function useCreateWorkspace(
 				pendingTerminalSetups.current.delete(workspaceId);
 			}
 		}
-	}, [
-		initProgress,
-		addTab,
-		setTabAutoTitle,
-		createOrAttach,
-		openConfigModal,
-		dismissConfigToast,
-	]);
+	}, [initProgress, handleTerminalSetup]);
 
 	return trpc.workspaces.create.useMutation({
 		...options,
@@ -101,39 +110,30 @@ export function useCreateWorkspace(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
+			const setup: PendingTerminalSetup = {
+				workspaceId: data.workspace.id,
+				projectId: data.projectId,
+				initialCommands: data.initialCommands,
+			};
+
 			// If workspace is still initializing, defer terminal creation
 			if (data.isInitializing) {
-				pendingTerminalSetups.current.set(data.workspace.id, {
-					workspaceId: data.workspace.id,
-					projectId: data.projectId,
-					initialCommands: data.initialCommands,
-				});
+				// Check if init already completed (race condition: "ready" arrived before onSuccess)
+				const currentProgress =
+					useWorkspaceInitStore.getState().initProgress[data.workspace.id];
+
+				if (currentProgress?.step === "ready") {
+					// Already ready - create terminal immediately
+					handleTerminalSetup(setup);
+				} else if (currentProgress?.step === "failed") {
+					// Already failed - don't add to pending (user will use retry or delete)
+				} else {
+					// Still initializing - add to pending for effect to pick up
+					pendingTerminalSetups.current.set(data.workspace.id, setup);
+				}
 			} else {
 				// Workspace is ready immediately (shouldn't happen for worktrees, but handle it)
-				if (
-					Array.isArray(data.initialCommands) &&
-					data.initialCommands.length > 0
-				) {
-					const { tabId, paneId } = addTab(data.workspace.id);
-					setTabAutoTitle(tabId, "Workspace Setup");
-					createOrAttach.mutate({
-						paneId,
-						tabId,
-						workspaceId: data.workspace.id,
-						initialCommands: data.initialCommands,
-					});
-				} else {
-					toast.info("No setup script configured", {
-						description: "Automate workspace setup with a config.json file",
-						action: {
-							label: "Configure",
-							onClick: () => openConfigModal(data.projectId),
-						},
-						onDismiss: () => {
-							dismissConfigToast.mutate({ projectId: data.projectId });
-						},
-					});
-				}
+				handleTerminalSetup(setup);
 			}
 
 			// Call user's onSuccess if provided

@@ -1,5 +1,14 @@
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
@@ -30,6 +39,7 @@ export function WorkspaceInitializingView({
 }: WorkspaceInitializingViewProps) {
 	const progress = useWorkspaceInitProgress(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
+	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
 	const retryMutation = trpc.workspaces.retryInit.useMutation();
 	const deleteMutation = trpc.workspaces.delete.useMutation();
@@ -47,6 +57,7 @@ export function WorkspaceInitializingView({
 	};
 
 	const handleDelete = () => {
+		setShowDeleteConfirm(false);
 		deleteMutation.mutate(
 			{ id: workspaceId },
 			{
@@ -62,53 +73,93 @@ export function WorkspaceInitializingView({
 	// Failed state
 	if (hasFailed) {
 		return (
-			<div className="flex flex-col items-center justify-center h-full px-8">
-				<div className="flex flex-col items-center max-w-sm text-center space-y-6">
-					{/* Error icon */}
-					<div className="flex items-center justify-center size-16 rounded-full bg-destructive/10">
-						<HiExclamationTriangle className="size-8 text-destructive" />
-					</div>
+			<>
+				<div className="flex flex-col items-center justify-center h-full px-8">
+					<div className="flex flex-col items-center max-w-sm text-center space-y-6">
+						{/* Error icon */}
+						<div className="flex items-center justify-center size-16 rounded-full bg-destructive/10">
+							<HiExclamationTriangle className="size-8 text-destructive" />
+						</div>
 
-					{/* Title and description */}
-					<div className="space-y-2">
-						<h2 className="text-lg font-medium text-foreground">
-							Workspace setup failed
-						</h2>
-						<p className="text-sm text-muted-foreground">{workspaceName}</p>
-						{progress?.error && (
-							<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2">
-								{progress.error}
-							</p>
-						)}
-					</div>
-
-					{/* Action buttons */}
-					<div className="flex gap-3">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={handleDelete}
-							disabled={deleteMutation.isPending}
-						>
-							{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
-						</Button>
-						<Button
-							size="sm"
-							onClick={handleRetry}
-							disabled={retryMutation.isPending}
-						>
-							{retryMutation.isPending ? (
-								<>
-									<LuLoader className="mr-2 size-4 animate-spin" />
-									Retrying...
-								</>
-							) : (
-								"Retry"
+						{/* Title and description */}
+						<div className="space-y-2">
+							<h2 className="text-lg font-medium text-foreground">
+								Workspace setup failed
+							</h2>
+							<p className="text-sm text-muted-foreground">{workspaceName}</p>
+							{progress?.error && (
+								<p className="text-xs text-destructive/80 mt-2 bg-destructive/5 rounded-md px-3 py-2">
+									{progress.error}
+								</p>
 							)}
-						</Button>
+						</div>
+
+						{/* Action buttons */}
+						<div className="flex gap-3">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setShowDeleteConfirm(true)}
+								disabled={deleteMutation.isPending}
+							>
+								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+							</Button>
+							<Button
+								size="sm"
+								onClick={handleRetry}
+								disabled={retryMutation.isPending}
+							>
+								{retryMutation.isPending ? (
+									<>
+										<LuLoader className="mr-2 size-4 animate-spin" />
+										Retrying...
+									</>
+								) : (
+									"Retry"
+								)}
+							</Button>
+						</div>
 					</div>
 				</div>
-			</div>
+
+				{/* Delete confirmation dialog */}
+				<AlertDialog
+					open={showDeleteConfirm}
+					onOpenChange={setShowDeleteConfirm}
+				>
+					<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+						<AlertDialogHeader className="px-4 pt-4 pb-2">
+							<AlertDialogTitle className="font-medium">
+								Delete workspace "{workspaceName}"?
+							</AlertDialogTitle>
+							<AlertDialogDescription asChild>
+								<div className="text-muted-foreground">
+									This workspace failed to initialize. Deleting will clean up
+									any partial files that were created.
+								</div>
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => setShowDeleteConfirm(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={handleDelete}
+							>
+								Delete
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</>
 		);
 	}
 

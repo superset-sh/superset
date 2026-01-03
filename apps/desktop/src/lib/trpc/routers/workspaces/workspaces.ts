@@ -69,8 +69,8 @@ async function initializeWorkspaceWorktree({
 		// Acquire per-project lock to prevent concurrent git operations
 		await manager.acquireProjectLock(projectId);
 
-		// Check cancellation before starting
-		if (manager.isCancelled(workspaceId)) {
+		// Check cancellation before starting (use durable cancellation check)
+		if (manager.isCancellationRequested(workspaceId)) {
 			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
@@ -95,7 +95,7 @@ async function initializeWorkspaceWorktree({
 			}
 		}
 
-		if (manager.isCancelled(workspaceId)) {
+		if (manager.isCancellationRequested(workspaceId)) {
 			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
@@ -128,7 +128,7 @@ async function initializeWorkspaceWorktree({
 			startPoint = baseBranch;
 		}
 
-		if (manager.isCancelled(workspaceId)) {
+		if (manager.isCancellationRequested(workspaceId)) {
 			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
@@ -147,7 +147,7 @@ async function initializeWorkspaceWorktree({
 			}
 		}
 
-		if (manager.isCancelled(workspaceId)) {
+		if (manager.isCancellationRequested(workspaceId)) {
 			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
@@ -161,7 +161,7 @@ async function initializeWorkspaceWorktree({
 		await createWorktree(mainRepoPath, branch, worktreePath, startPoint);
 		manager.markWorktreeCreated(workspaceId);
 
-		if (manager.isCancelled(workspaceId)) {
+		if (manager.isCancellationRequested(workspaceId)) {
 			// Cleanup: remove the worktree we just created
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
@@ -183,7 +183,7 @@ async function initializeWorkspaceWorktree({
 		);
 		copySupersetConfigToWorktree(mainRepoPath, worktreePath);
 
-		if (manager.isCancelled(workspaceId)) {
+		if (manager.isCancellationRequested(workspaceId)) {
 			try {
 				await removeWorktree(mainRepoPath, worktreePath);
 			} catch (e) {
@@ -250,6 +250,8 @@ async function initializeWorkspaceWorktree({
 			errorMessage,
 		);
 	} finally {
+		// Always finalize the job to unblock waitForInit() callers (e.g., delete mutation)
+		manager.finalizeJob(workspaceId);
 		manager.releaseProjectLock(projectId);
 	}
 }
@@ -1026,14 +1028,16 @@ export const createWorkspacesRouter = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				// Cancel any ongoing initialization first
+				// Cancel any ongoing initialization and wait for it to complete
+				// This ensures we don't race with init's git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
+					console.log(
+						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
+					);
 					workspaceInitManager.cancel(input.id);
-					// Small delay to let init job stop at next cancellation check
-					await new Promise((resolve) => setTimeout(resolve, 100));
+					// Wait for init to finish (up to 30s) - it will see cancellation and exit
+					await workspaceInitManager.waitForInit(input.id, 30000);
 				}
-				// Clear the job (whether it was initializing, failed, or already done)
-				workspaceInitManager.clearJob(input.id);
 
 				// Kill all terminal processes in this workspace first
 				const terminalResult = await terminalManager.killByWorkspaceId(
@@ -1058,43 +1062,51 @@ export const createWorkspacesRouter = () => {
 							.get() ?? undefined;
 
 					if (worktree && project) {
-						// Run teardown scripts before removing worktree
-						const exists = await worktreeExists(
-							project.mainRepoPath,
-							worktree.path,
-						);
-
-						if (exists) {
-							runTeardown(
-								project.mainRepoPath,
-								worktree.path,
-								workspace.name,
-							).then((result) => {
-								if (!result.success) {
-									console.error(
-										`Teardown failed for workspace ${workspace.name}:`,
-										result.error,
-									);
-								}
-							});
-						}
+						// Acquire project lock before any git operations
+						// This prevents racing with any concurrent init operations
+						await workspaceInitManager.acquireProjectLock(project.id);
 
 						try {
+							// Run teardown scripts before removing worktree
+							const exists = await worktreeExists(
+								project.mainRepoPath,
+								worktree.path,
+							);
+
 							if (exists) {
-								await removeWorktree(project.mainRepoPath, worktree.path);
-							} else {
-								console.warn(
-									`Worktree ${worktree.path} not found in git, skipping removal`,
-								);
+								runTeardown(
+									project.mainRepoPath,
+									worktree.path,
+									workspace.name,
+								).then((result) => {
+									if (!result.success) {
+										console.error(
+											`Teardown failed for workspace ${workspace.name}:`,
+											result.error,
+										);
+									}
+								});
 							}
-						} catch (error) {
-							const errorMessage =
-								error instanceof Error ? error.message : String(error);
-							console.error("Failed to remove worktree:", errorMessage);
-							return {
-								success: false,
-								error: `Failed to remove worktree: ${errorMessage}`,
-							};
+
+							try {
+								if (exists) {
+									await removeWorktree(project.mainRepoPath, worktree.path);
+								} else {
+									console.warn(
+										`Worktree ${worktree.path} not found in git, skipping removal`,
+									);
+								}
+							} catch (error) {
+								const errorMessage =
+									error instanceof Error ? error.message : String(error);
+								console.error("Failed to remove worktree:", errorMessage);
+								return {
+									success: false,
+									error: `Failed to remove worktree: ${errorMessage}`,
+								};
+							}
+						} finally {
+							workspaceInitManager.releaseProjectLock(project.id);
 						}
 					}
 				}
@@ -1145,6 +1157,10 @@ export const createWorkspacesRouter = () => {
 						: undefined;
 
 				track("workspace_deleted", { workspace_id: input.id });
+
+				// Clear init job state only after all cleanup is complete
+				// This ensures cancellation signals remain visible during cleanup
+				workspaceInitManager.clearJob(input.id);
 
 				return { success: true, terminalWarning };
 			}),

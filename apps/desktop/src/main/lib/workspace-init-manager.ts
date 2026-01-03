@@ -27,6 +27,11 @@ class WorkspaceInitManager extends EventEmitter {
 	private projectLocks = new Map<string, Promise<void>>();
 	private projectLockResolvers = new Map<string, () => void>();
 
+	// Coordination state that persists even after job progress is cleared
+	private donePromises = new Map<string, Promise<void>>();
+	private doneResolvers = new Map<string, () => void>();
+	private cancellations = new Set<string>();
+
 	/**
 	 * Check if a workspace is currently initializing
 	 */
@@ -71,6 +76,18 @@ class WorkspaceInitManager extends EventEmitter {
 			);
 			this.jobs.delete(workspaceId);
 		}
+
+		// Clear any stale cancellation state from previous attempt
+		this.cancellations.delete(workspaceId);
+
+		// Create done promise for coordination (allows delete to wait for init completion)
+		let resolve: () => void;
+		const promise = new Promise<void>((r) => {
+			resolve = r;
+		});
+		this.donePromises.set(workspaceId, promise);
+		// biome-ignore lint/style/noNonNullAssertion: resolve is assigned in Promise constructor
+		this.doneResolvers.set(workspaceId, resolve!);
 
 		const progress: WorkspaceInitProgress = {
 			workspaceId,
@@ -142,28 +159,94 @@ class WorkspaceInitManager extends EventEmitter {
 	}
 
 	/**
-	 * Cancel an initialization job
+	 * Cancel an initialization job.
+	 * Sets cancellation flag on job (if exists) AND adds to cancellations Set.
+	 * The Set persists even after job is cleared, preventing the race where
+	 * clearJob() removes the cancellation signal before init can observe it.
 	 */
 	cancel(workspaceId: string): void {
+		// Add to durable cancellations set (survives clearJob)
+		this.cancellations.add(workspaceId);
+
 		const job = this.jobs.get(workspaceId);
 		if (job) {
 			job.cancelled = true;
-			console.log(`[workspace-init] Cancelled job for ${workspaceId}`);
 		}
+		console.log(`[workspace-init] Cancelled job for ${workspaceId}`);
 	}
 
 	/**
-	 * Check if a job has been cancelled
+	 * Check if a job has been cancelled (legacy - checks job record only).
+	 * @deprecated Use isCancellationRequested() for race-safe cancellation checks.
 	 */
 	isCancelled(workspaceId: string): boolean {
 		return this.jobs.get(workspaceId)?.cancelled ?? false;
 	}
 
 	/**
-	 * Clear a job (called before retry or after delete)
+	 * Check if cancellation has been requested for a workspace.
+	 * This checks the durable cancellations Set, which persists even after
+	 * the job record is cleared. Use this in init flow for race-safe checks.
+	 */
+	isCancellationRequested(workspaceId: string): boolean {
+		return this.cancellations.has(workspaceId);
+	}
+
+	/**
+	 * Clear a job (called before retry or after delete).
+	 * Also cleans up coordination state (done promise, cancellation).
 	 */
 	clearJob(workspaceId: string): void {
 		this.jobs.delete(workspaceId);
+		this.donePromises.delete(workspaceId);
+		this.doneResolvers.delete(workspaceId);
+		this.cancellations.delete(workspaceId);
+	}
+
+	/**
+	 * Finalize a job, resolving the done promise.
+	 * MUST be called in all init exit paths (success, failure, cancellation).
+	 * This allows waitForInit() to unblock.
+	 */
+	finalizeJob(workspaceId: string): void {
+		const resolve = this.doneResolvers.get(workspaceId);
+		if (resolve) {
+			resolve();
+			console.log(`[workspace-init] Finalized job for ${workspaceId}`);
+		}
+		// Note: We don't delete the promise/resolver here - clearJob does that.
+		// This allows multiple calls to finalizeJob to be idempotent.
+	}
+
+	/**
+	 * Wait for an init job to complete (success, failure, or cancellation).
+	 * Returns immediately if no init is in progress.
+	 *
+	 * @param workspaceId - The workspace to wait for
+	 * @param timeoutMs - Maximum time to wait (default 30s). On timeout, returns without error.
+	 */
+	async waitForInit(workspaceId: string, timeoutMs = 30000): Promise<void> {
+		const promise = this.donePromises.get(workspaceId);
+		if (!promise) {
+			// No init in progress or already completed
+			return;
+		}
+
+		console.log(
+			`[workspace-init] Waiting for init to complete: ${workspaceId}`,
+		);
+
+		await Promise.race([
+			promise,
+			new Promise<void>((resolve) => {
+				setTimeout(() => {
+					console.warn(
+						`[workspace-init] Wait timed out after ${timeoutMs}ms for ${workspaceId}`,
+					);
+					resolve();
+				}, timeoutMs);
+			}),
+		]);
 	}
 
 	/**
