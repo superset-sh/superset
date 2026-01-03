@@ -26,6 +26,8 @@ import {
 interface WorkspaceInitializingViewProps {
 	workspaceId: string;
 	workspaceName: string;
+	/** True if init was interrupted (e.g., app restart during init) */
+	isInterrupted?: boolean;
 }
 
 // Steps to display in the progress view (skip pending and ready)
@@ -36,6 +38,7 @@ const DISPLAY_STEPS: WorkspaceInitStep[] = INIT_STEP_ORDER.filter(
 export function WorkspaceInitializingView({
 	workspaceId,
 	workspaceName,
+	isInterrupted = false,
 }: WorkspaceInitializingViewProps) {
 	const progress = useWorkspaceInitProgress(workspaceId);
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
@@ -69,6 +72,98 @@ export function WorkspaceInitializingView({
 	};
 
 	const currentStep = progress?.step ?? "pending";
+
+	// Interrupted state (app restart during init - no in-memory progress)
+	if (isInterrupted && !progress) {
+		return (
+			<>
+				<div className="flex flex-col items-center justify-center h-full px-8">
+					<div className="flex flex-col items-center max-w-sm text-center space-y-6">
+						{/* Warning icon */}
+						<div className="flex items-center justify-center size-16 rounded-full bg-yellow-500/10">
+							<HiExclamationTriangle className="size-8 text-yellow-500" />
+						</div>
+
+						{/* Title and description */}
+						<div className="space-y-2">
+							<h2 className="text-lg font-medium text-foreground">
+								Setup was interrupted
+							</h2>
+							<p className="text-sm text-muted-foreground">{workspaceName}</p>
+							<p className="text-xs text-muted-foreground/80 mt-2">
+								The app was closed before workspace setup completed. You can
+								retry the setup or delete this workspace.
+							</p>
+						</div>
+
+						{/* Action buttons */}
+						<div className="flex gap-3">
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setShowDeleteConfirm(true)}
+								disabled={deleteMutation.isPending}
+							>
+								{deleteMutation.isPending ? "Deleting..." : "Delete Workspace"}
+							</Button>
+							<Button
+								size="sm"
+								onClick={handleRetry}
+								disabled={retryMutation.isPending}
+							>
+								{retryMutation.isPending ? (
+									<>
+										<LuLoader className="mr-2 size-4 animate-spin" />
+										Retrying...
+									</>
+								) : (
+									"Retry Setup"
+								)}
+							</Button>
+						</div>
+					</div>
+				</div>
+
+				{/* Delete confirmation dialog */}
+				<AlertDialog
+					open={showDeleteConfirm}
+					onOpenChange={setShowDeleteConfirm}
+				>
+					<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+						<AlertDialogHeader className="px-4 pt-4 pb-2">
+							<AlertDialogTitle className="font-medium">
+								Delete workspace "{workspaceName}"?
+							</AlertDialogTitle>
+							<AlertDialogDescription asChild>
+								<div className="text-muted-foreground">
+									This workspace was not fully set up. Deleting will clean up
+									any partial files that were created.
+								</div>
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+							<Button
+								variant="ghost"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={() => setShowDeleteConfirm(false)}
+							>
+								Cancel
+							</Button>
+							<Button
+								variant="destructive"
+								size="sm"
+								className="h-7 px-3 text-xs"
+								onClick={handleDelete}
+							>
+								Delete
+							</Button>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			</>
+		);
+	}
 
 	// Failed state
 	if (hasFailed) {

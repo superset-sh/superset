@@ -413,10 +413,15 @@ export async function hasUnpushedCommits(
 	}
 }
 
+export type BranchExistsResult =
+	| { status: "exists" }
+	| { status: "not_found" }
+	| { status: "error"; message: string };
+
 export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,
-): Promise<boolean> {
+): Promise<BranchExistsResult> {
 	const git = simpleGit(worktreePath);
 	try {
 		// Use ls-remote to check actual remote state (not just local refs)
@@ -428,10 +433,58 @@ export async function branchExistsOnRemote(
 			branchName,
 		]);
 		// If we get output, the branch exists
-		return result.trim().length > 0;
-	} catch {
-		// --exit-code makes git return non-zero if no matching refs found
-		return false;
+		return result.trim().length > 0
+			? { status: "exists" }
+			: { status: "not_found" };
+	} catch (error) {
+		// --exit-code makes git return non-zero (exit code 2) if no matching refs found
+		// Other errors (network, auth) have different exit codes or error messages
+		const errorMessage =
+			error instanceof Error ? error.message.toLowerCase() : String(error);
+
+		// Exit code 2 = no matching refs (branch doesn't exist)
+		// This is the expected case for "branch not found"
+		if (
+			errorMessage.includes("exit code 2") ||
+			errorMessage.includes("could not find remote ref")
+		) {
+			return { status: "not_found" };
+		}
+
+		// Network/connectivity errors
+		if (
+			errorMessage.includes("could not resolve host") ||
+			errorMessage.includes("unable to access") ||
+			errorMessage.includes("connection refused") ||
+			errorMessage.includes("network is unreachable") ||
+			errorMessage.includes("timed out") ||
+			errorMessage.includes("ssl") ||
+			errorMessage.includes("could not read from remote")
+		) {
+			return {
+				status: "error",
+				message: "Cannot connect to remote. Check your network connection.",
+			};
+		}
+
+		// Auth errors
+		if (
+			errorMessage.includes("authentication") ||
+			errorMessage.includes("permission denied") ||
+			errorMessage.includes("403") ||
+			errorMessage.includes("401")
+		) {
+			return {
+				status: "error",
+				message: "Authentication failed. Check your Git credentials.",
+			};
+		}
+
+		// Unknown error - treat as verification failure
+		return {
+			status: "error",
+			message: `Failed to verify branch: ${error instanceof Error ? error.message : String(error)}`,
+		};
 	}
 }
 

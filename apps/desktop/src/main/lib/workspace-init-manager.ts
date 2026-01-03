@@ -204,7 +204,7 @@ class WorkspaceInitManager extends EventEmitter {
 	}
 
 	/**
-	 * Finalize a job, resolving the done promise.
+	 * Finalize a job, resolving the done promise and cleaning up coordination state.
 	 * MUST be called in all init exit paths (success, failure, cancellation).
 	 * This allows waitForInit() to unblock.
 	 */
@@ -214,8 +214,15 @@ class WorkspaceInitManager extends EventEmitter {
 			resolve();
 			console.log(`[workspace-init] Finalized job for ${workspaceId}`);
 		}
-		// Note: We don't delete the promise/resolver here - clearJob does that.
-		// This allows multiple calls to finalizeJob to be idempotent.
+
+		// Clean up coordination state to prevent memory leaks
+		// This is safe because waitForInit() either:
+		// 1. Already resolved (promise completed)
+		// 2. Will return immediately (promise no longer in map)
+		this.donePromises.delete(workspaceId);
+		this.doneResolvers.delete(workspaceId);
+		// Note: Don't clear cancellations here - clearJob handles that
+		// to allow cancellation signal to persist through async cleanup
 	}
 
 	/**

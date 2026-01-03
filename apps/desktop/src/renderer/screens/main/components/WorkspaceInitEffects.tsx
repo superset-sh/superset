@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -27,6 +27,9 @@ export function WorkspaceInitEffects() {
 	);
 	const clearProgress = useWorkspaceInitStore((s) => s.clearProgress);
 
+	// Track which setups are currently being processed to prevent duplicate handling
+	const processingRef = useRef<Set<string>>(new Set());
+
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
@@ -35,19 +38,53 @@ export function WorkspaceInitEffects() {
 
 	// Helper to create terminal with setup commands
 	const handleTerminalSetup = useCallback(
-		(setup: PendingTerminalSetup) => {
+		(setup: PendingTerminalSetup, onComplete: () => void) => {
 			if (
 				Array.isArray(setup.initialCommands) &&
 				setup.initialCommands.length > 0
 			) {
 				const { tabId, paneId } = addTab(setup.workspaceId);
 				setTabAutoTitle(tabId, "Workspace Setup");
-				createOrAttach.mutate({
-					paneId,
-					tabId,
-					workspaceId: setup.workspaceId,
-					initialCommands: setup.initialCommands,
-				});
+				createOrAttach.mutate(
+					{
+						paneId,
+						tabId,
+						workspaceId: setup.workspaceId,
+						initialCommands: setup.initialCommands,
+					},
+					{
+						onSuccess: () => {
+							onComplete();
+						},
+						onError: (error) => {
+							console.error(
+								"[WorkspaceInitEffects] Failed to create terminal:",
+								error,
+							);
+							toast.error("Failed to create terminal", {
+								description:
+									error.message || "Terminal setup failed. Please try again.",
+								action: {
+									label: "Open Terminal",
+									onClick: () => {
+										// Allow user to manually trigger terminal creation
+										const { tabId: newTabId, paneId: newPaneId } = addTab(
+											setup.workspaceId,
+										);
+										createOrAttach.mutate({
+											paneId: newPaneId,
+											tabId: newTabId,
+											workspaceId: setup.workspaceId,
+											initialCommands: setup.initialCommands ?? undefined,
+										});
+									},
+								},
+							});
+							// Still complete to prevent infinite retries
+							onComplete();
+						},
+					},
+				);
 			} else {
 				// Show config toast if no setup commands
 				toast.info("No setup script configured", {
@@ -60,6 +97,7 @@ export function WorkspaceInitEffects() {
 						dismissConfigToast.mutate({ projectId: setup.projectId });
 					},
 				});
+				onComplete();
 			}
 		},
 		[
@@ -76,15 +114,22 @@ export function WorkspaceInitEffects() {
 		for (const [workspaceId, setup] of Object.entries(pendingTerminalSetups)) {
 			const progress = initProgress[workspaceId];
 
+			// Skip if already being processed
+			if (processingRef.current.has(workspaceId)) {
+				continue;
+			}
+
 			// Create terminal when workspace becomes ready
 			if (progress?.step === "ready") {
-				// Remove from pending FIRST to prevent duplicate processing
-				removePendingTerminalSetup(workspaceId);
+				// Mark as processing to prevent duplicate handling
+				processingRef.current.add(workspaceId);
 
-				handleTerminalSetup(setup);
-
-				// Clear progress after handling
-				clearProgress(workspaceId);
+				handleTerminalSetup(setup, () => {
+					// Only remove from pending after successful handling
+					removePendingTerminalSetup(workspaceId);
+					clearProgress(workspaceId);
+					processingRef.current.delete(workspaceId);
+				});
 			}
 
 			// Clean up pending if failed (user will use retry or delete)

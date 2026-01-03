@@ -130,11 +130,19 @@ async function initializeWorkspaceWorktree({
 
 		let startPoint: string;
 		if (hasRemote) {
-			const existsOnRemote = await branchExistsOnRemote(
+			const branchCheck = await branchExistsOnRemote(
 				mainRepoPath,
 				effectiveBaseBranch,
 			);
-			if (!existsOnRemote) {
+
+			if (branchCheck.status === "error") {
+				// Network/auth error - can't verify, but allow proceeding with local ref
+				console.warn(
+					`[workspace-init] Cannot verify remote branch: ${branchCheck.message}. Falling back to local ref.`,
+				);
+				// Try to use local tracking branch if available
+				startPoint = effectiveBaseBranch;
+			} else if (branchCheck.status === "not_found") {
 				manager.updateProgress(
 					workspaceId,
 					"failed",
@@ -142,8 +150,10 @@ async function initializeWorkspaceWorktree({
 					`Branch "${effectiveBaseBranch}" does not exist on origin. Please delete this workspace and try again with a different base branch.`,
 				);
 				return;
+			} else {
+				// Branch exists on remote
+				startPoint = `origin/${effectiveBaseBranch}`;
 			}
-			startPoint = `origin/${effectiveBaseBranch}`;
 		} else {
 			startPoint = effectiveBaseBranch;
 		}

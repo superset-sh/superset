@@ -19,7 +19,16 @@ export function WorkspaceView() {
 	// Check if active workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(activeWorkspaceId ?? "");
 	const hasFailed = useHasWorkspaceFailed(activeWorkspaceId ?? "");
-	const showInitView = activeWorkspaceId && (isInitializing || hasFailed);
+
+	// Also check for incomplete init after app restart:
+	// - worktree type workspace with null gitStatus means init never completed
+	// - This handles the case where app restarts during init (in-memory progress lost)
+	const hasIncompleteInit =
+		activeWorkspace?.type === "worktree" &&
+		activeWorkspace?.worktree?.gitStatus === null;
+
+	const showInitView =
+		activeWorkspaceId && (isInitializing || hasFailed || hasIncompleteInit);
 
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
@@ -170,6 +179,7 @@ export function WorkspaceView() {
 							<WorkspaceInitializingView
 								workspaceId={activeWorkspaceId}
 								workspaceName={activeWorkspace?.name ?? "Workspace"}
+								isInterrupted={hasIncompleteInit && !isInitializing}
 							/>
 						) : (
 							<ContentView />

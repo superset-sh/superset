@@ -44,10 +44,14 @@ export async function fetchGitHubPRStatus(
 		const branchName = branchOutput.trim();
 
 		// Check if branch exists on remote and get PR info in parallel
-		const [existsOnRemote, prInfo] = await Promise.all([
+		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
 			getPRForBranch(worktreePath, branchName),
 		]);
+
+		// Convert result to boolean - only "exists" is true
+		// "not_found" and "error" both mean we can't confirm it exists
+		const existsOnRemote = branchCheck.status === "exists";
 
 		const result: GitHubStatus = {
 			pr: prInfo,
