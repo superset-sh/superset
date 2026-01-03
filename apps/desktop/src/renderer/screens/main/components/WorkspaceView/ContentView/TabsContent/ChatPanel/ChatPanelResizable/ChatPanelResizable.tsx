@@ -1,5 +1,5 @@
 import { ResizableHandle, ResizablePanel } from "@superset/ui/resizable";
-import { useChatPanelStore } from "renderer/stores";
+import { useChatPanelStore } from "renderer/stores/chat-panel-state";
 import { ChatPanel } from "../ChatPanel";
 
 export function ChatPanelResizable() {

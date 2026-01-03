@@ -12,7 +12,6 @@ import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
-import { useChatPanelStore } from "renderer/stores/chat-panel-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -58,7 +57,6 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
-	const { togglePanel: toggleChatPanel } = useChatPanelStore();
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
@@ -111,15 +109,6 @@ export function MainScreen() {
 		},
 		undefined,
 		[toggleSidebar, isWorkspaceView],
-	);
-
-	useAppHotkey(
-		"TOGGLE_CHAT_PANEL",
-		() => {
-			if (isWorkspaceView) toggleChatPanel();
-		},
-		undefined,
-		[toggleChatPanel, isWorkspaceView],
 	);
 
 	/**
