@@ -7,11 +7,14 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
+import { observable } from "@trpc/server/observable";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { terminalManager } from "main/lib/terminal";
+import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
+import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
@@ -36,6 +39,220 @@ import { fetchGitHubPRStatus } from "./utils/github";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./utils/setup";
 import { runTeardown } from "./utils/teardown";
 import { getWorkspacePath } from "./utils/worktree";
+
+/**
+ * Background initialization for workspace worktree.
+ * This runs after the fast-path mutation returns, streaming progress to the renderer.
+ *
+ * Does NOT throw - errors are communicated via progress events.
+ */
+async function initializeWorkspaceWorktree({
+	workspaceId,
+	projectId,
+	worktreeId,
+	worktreePath,
+	branch,
+	baseBranch,
+	mainRepoPath,
+}: {
+	workspaceId: string;
+	projectId: string;
+	worktreeId: string;
+	worktreePath: string;
+	branch: string;
+	baseBranch: string;
+	mainRepoPath: string;
+}): Promise<void> {
+	const manager = workspaceInitManager;
+
+	try {
+		// Acquire per-project lock to prevent concurrent git operations
+		await manager.acquireProjectLock(projectId);
+
+		// Check cancellation before starting
+		if (manager.isCancelled(workspaceId)) {
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 1: Sync with remote
+		manager.updateProgress(workspaceId, "syncing", "Syncing with remote...");
+		const remoteDefaultBranch = await refreshDefaultBranch(mainRepoPath);
+
+		// Update project's default branch if it changed
+		if (remoteDefaultBranch) {
+			const project = localDb
+				.select()
+				.from(projects)
+				.where(eq(projects.id, projectId))
+				.get();
+			if (project && remoteDefaultBranch !== project.defaultBranch) {
+				localDb
+					.update(projects)
+					.set({ defaultBranch: remoteDefaultBranch })
+					.where(eq(projects.id, projectId))
+					.run();
+			}
+		}
+
+		if (manager.isCancelled(workspaceId)) {
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 2: Verify remote and branch
+		manager.updateProgress(
+			workspaceId,
+			"verifying",
+			"Verifying base branch...",
+		);
+		const hasRemote = await hasOriginRemote(mainRepoPath);
+
+		let startPoint: string;
+		if (hasRemote) {
+			const existsOnRemote = await branchExistsOnRemote(
+				mainRepoPath,
+				baseBranch,
+			);
+			if (!existsOnRemote) {
+				manager.updateProgress(
+					workspaceId,
+					"failed",
+					"Branch does not exist on remote",
+					`Branch "${baseBranch}" does not exist on origin. Please delete this workspace and try again with a different base branch.`,
+				);
+				return;
+			}
+			startPoint = `origin/${baseBranch}`;
+		} else {
+			startPoint = baseBranch;
+		}
+
+		if (manager.isCancelled(workspaceId)) {
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 3: Fetch latest
+		manager.updateProgress(
+			workspaceId,
+			"fetching",
+			"Fetching latest changes...",
+		);
+		if (hasRemote) {
+			try {
+				await fetchDefaultBranch(mainRepoPath, baseBranch);
+			} catch {
+				// Silently continue - branch exists on remote, just couldn't fetch
+			}
+		}
+
+		if (manager.isCancelled(workspaceId)) {
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 4: Create worktree (SLOW)
+		manager.updateProgress(
+			workspaceId,
+			"creating_worktree",
+			"Creating git worktree...",
+		);
+		await createWorktree(mainRepoPath, branch, worktreePath, startPoint);
+		manager.markWorktreeCreated(workspaceId);
+
+		if (manager.isCancelled(workspaceId)) {
+			// Cleanup: remove the worktree we just created
+			try {
+				await removeWorktree(mainRepoPath, worktreePath);
+			} catch (e) {
+				console.error(
+					"[workspace-init] Failed to cleanup worktree after cancel:",
+					e,
+				);
+			}
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 5: Copy config
+		manager.updateProgress(
+			workspaceId,
+			"copying_config",
+			"Copying configuration...",
+		);
+		copySupersetConfigToWorktree(mainRepoPath, worktreePath);
+
+		if (manager.isCancelled(workspaceId)) {
+			try {
+				await removeWorktree(mainRepoPath, worktreePath);
+			} catch (e) {
+				console.error(
+					"[workspace-init] Failed to cleanup worktree after cancel:",
+					e,
+				);
+			}
+			manager.updateProgress(workspaceId, "failed", "Cancelled");
+			return;
+		}
+
+		// Step 6: Finalize
+		manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
+
+		// Update worktree record with git status
+		localDb
+			.update(worktrees)
+			.set({
+				gitStatus: {
+					branch,
+					needsRebase: false,
+					lastRefreshed: Date.now(),
+				},
+			})
+			.where(eq(worktrees.id, worktreeId))
+			.run();
+
+		// Done!
+		manager.updateProgress(workspaceId, "ready", "Ready");
+
+		track("workspace_initialized", {
+			workspace_id: workspaceId,
+			project_id: projectId,
+			branch,
+			base_branch: baseBranch,
+		});
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		console.error(
+			`[workspace-init] Failed to initialize ${workspaceId}:`,
+			errorMessage,
+		);
+
+		// Best-effort cleanup if worktree was created
+		if (manager.wasWorktreeCreated(workspaceId)) {
+			try {
+				await removeWorktree(mainRepoPath, worktreePath);
+				console.log(
+					`[workspace-init] Cleaned up partial worktree at ${worktreePath}`,
+				);
+			} catch (cleanupError) {
+				console.error(
+					"[workspace-init] Failed to cleanup partial worktree:",
+					cleanupError,
+				);
+			}
+		}
+
+		manager.updateProgress(
+			workspaceId,
+			"failed",
+			"Initialization failed",
+			errorMessage,
+		);
+	} finally {
+		manager.releaseProjectLock(projectId);
+	}
+}
 
 export const createWorkspacesRouter = () => {
 	return router({
@@ -68,67 +285,13 @@ export const createWorkspacesRouter = () => {
 					branch,
 				);
 
-				// Sync with remote in case the default branch changed (e.g. master -> main)
-				const remoteDefaultBranch = await refreshDefaultBranch(
-					project.mainRepoPath,
-				);
-
-				const defaultBranch =
-					remoteDefaultBranch ||
-					project.defaultBranch ||
-					(await getDefaultBranch(project.mainRepoPath));
-
-				if (defaultBranch !== project.defaultBranch) {
-					localDb
-						.update(projects)
-						.set({ defaultBranch })
-						.where(eq(projects.id, project.id))
-						.run();
-				}
-
+				// Use cached defaultBranch for fast path, will refresh in background
+				// If no cached value exists, use "main" as fallback (background will verify)
+				const defaultBranch = project.defaultBranch || "main";
 				const targetBranch = input.baseBranch || defaultBranch;
 
-				// Check if this repo has a remote origin
-				const hasRemote = await hasOriginRemote(project.mainRepoPath);
-
-				// Determine the start point for the worktree
-				let startPoint: string;
-				if (hasRemote) {
-					// Verify the branch exists on remote before attempting to use it
-					const existsOnRemote = await branchExistsOnRemote(
-						project.mainRepoPath,
-						targetBranch,
-					);
-					if (!existsOnRemote) {
-						throw new Error(
-							`Branch "${targetBranch}" does not exist on origin. Please select a different base branch.`,
-						);
-					}
-
-					// Fetch the target branch to ensure we're branching from latest (best-effort)
-					try {
-						await fetchDefaultBranch(project.mainRepoPath, targetBranch);
-					} catch {
-						// Silently continue - branch exists on remote, just couldn't fetch
-					}
-					startPoint = `origin/${targetBranch}`;
-				} else {
-					// For local-only repos, use the local branch
-					startPoint = targetBranch;
-				}
-
-				await createWorktree(
-					project.mainRepoPath,
-					branch,
-					worktreePath,
-					startPoint,
-				);
-
-				// Copy .superset directory to worktree if it's gitignored (not present in worktree)
-				// This ensures setup scripts like "./.superset/setup.sh" work even when gitignored
-				copySupersetConfigToWorktree(project.mainRepoPath, worktreePath);
-
-				// Insert worktree
+				// Insert worktree record immediately (before git operations)
+				// gitStatus will be updated when initialization completes
 				const worktree = localDb
 					.insert(worktrees)
 					.values({
@@ -136,11 +299,7 @@ export const createWorkspacesRouter = () => {
 						path: worktreePath,
 						branch,
 						baseBranch: targetBranch,
-						gitStatus: {
-							branch,
-							needsRebase: false,
-							lastRefreshed: Date.now(),
-						},
+						gitStatus: null, // Will be set when init completes
 					})
 					.returning()
 					.get();
@@ -156,7 +315,7 @@ export const createWorkspacesRouter = () => {
 						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
 						: -1;
 
-				// Insert workspace
+				// Insert workspace record immediately
 				const workspace = localDb
 					.insert(workspaces)
 					.values({
@@ -170,7 +329,7 @@ export const createWorkspacesRouter = () => {
 					.returning()
 					.get();
 
-				// Update settings
+				// Update settings to make this the active workspace
 				localDb
 					.insert(settings)
 					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
@@ -180,7 +339,7 @@ export const createWorkspacesRouter = () => {
 					})
 					.run();
 
-				// Update project
+				// Update project tab order if needed
 				const activeProjects = localDb
 					.select()
 					.from(projects)
@@ -203,9 +362,7 @@ export const createWorkspacesRouter = () => {
 					.where(eq(projects.id, input.projectId))
 					.run();
 
-				// Load setup configuration from the main repo (where .superset/config.json lives)
-				const setupConfig = loadSetupConfig(project.mainRepoPath);
-
+				// Track workspace creation (not initialization - that's tracked when it completes)
 				track("workspace_created", {
 					workspace_id: workspace.id,
 					project_id: project.id,
@@ -213,11 +370,29 @@ export const createWorkspacesRouter = () => {
 					base_branch: targetBranch,
 				});
 
+				// Start tracking the initialization job
+				workspaceInitManager.startJob(workspace.id, input.projectId);
+
+				// Start background initialization (DO NOT await - return immediately)
+				initializeWorkspaceWorktree({
+					workspaceId: workspace.id,
+					projectId: input.projectId,
+					worktreeId: worktree.id,
+					worktreePath,
+					branch,
+					baseBranch: targetBranch,
+					mainRepoPath: project.mainRepoPath,
+				});
+
+				// Load setup configuration (fast operation, can return with response)
+				const setupConfig = loadSetupConfig(project.mainRepoPath);
+
 				return {
 					workspace,
 					initialCommands: setupConfig?.setup || null,
 					worktreePath,
 					projectId: project.id,
+					isInitializing: true,
 				};
 			}),
 
@@ -851,6 +1026,15 @@ export const createWorkspacesRouter = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
+				// Cancel any ongoing initialization first
+				if (workspaceInitManager.isInitializing(input.id)) {
+					workspaceInitManager.cancel(input.id);
+					// Small delay to let init job stop at next cancellation check
+					await new Promise((resolve) => setTimeout(resolve, 100));
+				}
+				// Clear the job (whether it was initializing, failed, or already done)
+				workspaceInitManager.clearJob(input.id);
+
 				// Kill all terminal processes in this workspace first
 				const terminalResult = await terminalManager.killByWorkspaceId(
 					input.id,
@@ -1392,6 +1576,114 @@ export const createWorkspacesRouter = () => {
 				track("workspace_closed", { workspace_id: input.id });
 
 				return { success: true, terminalWarning };
+			}),
+
+		/**
+		 * Subscribe to workspace initialization progress events.
+		 * Streams progress updates for workspaces that are currently initializing.
+		 */
+		onInitProgress: publicProcedure
+			.input(
+				z.object({ workspaceIds: z.array(z.string()).optional() }).optional(),
+			)
+			.subscription(({ input }) => {
+				return observable<WorkspaceInitProgress>((emit) => {
+					const handler = (progress: WorkspaceInitProgress) => {
+						// If specific workspaces requested, filter
+						if (
+							input?.workspaceIds &&
+							!input.workspaceIds.includes(progress.workspaceId)
+						) {
+							return;
+						}
+						emit.next(progress);
+					};
+
+					// Send current state for initializing/failed workspaces
+					for (const progress of workspaceInitManager.getAllProgress()) {
+						if (
+							!input?.workspaceIds ||
+							input.workspaceIds.includes(progress.workspaceId)
+						) {
+							emit.next(progress);
+						}
+					}
+
+					workspaceInitManager.on("progress", handler);
+
+					return () => {
+						workspaceInitManager.off("progress", handler);
+					};
+				});
+			}),
+
+		/**
+		 * Retry initialization for a failed workspace.
+		 * Clears the failed state and restarts the initialization process.
+		 */
+		retryInit: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(async ({ input }) => {
+				const workspace = localDb
+					.select()
+					.from(workspaces)
+					.where(eq(workspaces.id, input.workspaceId))
+					.get();
+
+				if (!workspace) {
+					throw new Error("Workspace not found");
+				}
+
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+
+				if (!worktree) {
+					throw new Error("Worktree not found");
+				}
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+
+				if (!project) {
+					throw new Error("Project not found");
+				}
+
+				// Clear the failed state
+				workspaceInitManager.clearJob(input.workspaceId);
+
+				// Start fresh initialization
+				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
+
+				// Run initialization in background (DO NOT await)
+				initializeWorkspaceWorktree({
+					workspaceId: input.workspaceId,
+					projectId: workspace.projectId,
+					worktreeId: worktree.id,
+					worktreePath: worktree.path,
+					branch: worktree.branch,
+					baseBranch: worktree.baseBranch ?? project.defaultBranch ?? "main",
+					mainRepoPath: project.mainRepoPath,
+				});
+
+				return { success: true };
+			}),
+
+		/**
+		 * Get current initialization progress for a workspace.
+		 * Returns null if the workspace is not initializing.
+		 */
+		getInitProgress: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.query(({ input }) => {
+				return workspaceInitManager.getProgress(input.workspaceId) ?? null;
 			}),
 	});
 };

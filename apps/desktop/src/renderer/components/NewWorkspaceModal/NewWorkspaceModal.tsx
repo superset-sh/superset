@@ -167,23 +167,30 @@ export function NewWorkspaceModal() {
 		const workspaceName = title.trim() || undefined;
 		const customBranchName = branchName.trim() || undefined;
 
-		toast.promise(
-			createWorkspace.mutateAsync({
+		try {
+			const result = await createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
 				branchName: customBranchName,
 				baseBranch: effectiveBaseBranch || undefined,
-			}),
-			{
-				loading: "Creating workspace...",
-				success: () => {
-					handleClose();
-					return "Workspace created";
-				},
-				error: (err) =>
-					err instanceof Error ? err.message : "Failed to create workspace",
-			},
-		);
+			});
+
+			// Close modal immediately - workspace appears in sidebar
+			handleClose();
+
+			// Show appropriate toast based on initialization state
+			if (result.isInitializing) {
+				toast.success("Workspace created", {
+					description: "Setting up in the background...",
+				});
+			} else {
+				toast.success("Workspace created");
+			}
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Failed to create workspace",
+			);
+		}
 	};
 
 	return (

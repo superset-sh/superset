@@ -6,3 +6,4 @@ export * from "./ringtone";
 export * from "./sidebar-state";
 export * from "./tabs";
 export * from "./theme";
+export * from "./workspace-init";
