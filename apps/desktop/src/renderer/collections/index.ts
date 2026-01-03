@@ -16,6 +16,19 @@ import { createHttpTrpcClient } from "../lib/trpc-http-client";
 // Use Electric's built-in snake_case to camelCase mapper
 const columnMapper = snakeCamelMapper();
 
+// Helper to convert null values to undefined for tRPC compatibility
+const nullToUndefined = <T extends Record<string, unknown>>(
+	obj: T,
+): { [K in keyof T]: T[K] extends null ? undefined : T[K] } => {
+	const result = {} as { [K in keyof T]: T[K] extends null ? undefined : T[K] };
+	for (const key in obj) {
+		result[key] = (obj[key] === null ? undefined : obj[key]) as {
+			[K in keyof T]: T[K] extends null ? undefined : T[K];
+		}[Extract<keyof T, string>];
+	}
+	return result;
+};
+
 // ============================================
 // ELECTRIC COLLECTIONS (Synced per-org)
 // ============================================
@@ -31,31 +44,9 @@ export const createOrgCollections = ({
 	apiUrl: string;
 	headers?: Record<string, string>;
 }) => {
-	// Create custom fetch client with auth headers
-	const fetchClient = headers
-		? (input: RequestInfo | URL, init?: RequestInit) => {
-				const mergedHeaders = {
-					...headers,
-					...(init?.headers as Record<string, string>),
-				};
-				console.log("[createOrgCollections/fetchClient] Request details:", {
-					url: typeof input === "string" ? input : input.toString(),
-					hasAuthHeader: !!mergedHeaders.Authorization,
-					authHeaderValue: `${mergedHeaders.Authorization?.substring(0, 20)}...`,
-					allHeaders: Object.keys(mergedHeaders),
-					initHeaders: init?.headers,
-				});
-				return fetch(input, {
-					...init,
-					headers: mergedHeaders,
-				});
-			}
-		: undefined;
-
 	console.log("[createOrgCollections] Creating collections with:", {
 		orgId,
 		electricUrl,
-		hasFetchClient: !!fetchClient,
 		hasHeaders: !!headers,
 		headerKeys: headers ? Object.keys(headers) : [],
 	});
@@ -73,7 +64,7 @@ export const createOrgCollections = ({
 					table: "tasks",
 					where: `organization_id = '${orgId}'`,
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -81,16 +72,23 @@ export const createOrgCollections = ({
 			// Write operations via tRPC HTTP client
 			onInsert: async ({ transaction }) => {
 				const item = transaction.mutations[0].modified;
-				const result = await httpTrpcClient.task.create.mutate(item);
+				// Convert null to undefined for tRPC compatibility
+				const result = await httpTrpcClient.task.create.mutate(
+					nullToUndefined(item) as Parameters<
+						typeof httpTrpcClient.task.create.mutate
+					>[0],
+				);
 				return { txid: result.txid };
 			},
 
 			onUpdate: async ({ transaction }) => {
-				const { original, modified } = transaction.mutations[0];
-				const result = await httpTrpcClient.task.update.mutate({
-					id: original.id,
-					...modified,
-				});
+				const { modified } = transaction.mutations[0];
+				// Convert null to undefined for tRPC compatibility
+				const result = await httpTrpcClient.task.update.mutate(
+					nullToUndefined(modified) as Parameters<
+						typeof httpTrpcClient.task.update.mutate
+					>[0],
+				);
 				return { txid: result.txid };
 			},
 
@@ -112,7 +110,7 @@ export const createOrgCollections = ({
 					table: "repositories",
 					where: `organization_id = '${orgId}'`,
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -124,11 +122,8 @@ export const createOrgCollections = ({
 			},
 
 			onUpdate: async ({ transaction }) => {
-				const { original, modified } = transaction.mutations[0];
-				const result = await httpTrpcClient.repository.update.mutate({
-					id: original.id,
-					...modified,
-				});
+				const { modified } = transaction.mutations[0];
+				const result = await httpTrpcClient.repository.update.mutate(modified);
 				return { txid: result.txid };
 			},
 		}),
@@ -144,7 +139,7 @@ export const createOrgCollections = ({
 					table: "organization_members",
 					where: `organization_id = '${orgId}'`,
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -162,7 +157,7 @@ export const createOrgCollections = ({
 					// Note: We might need to filter this differently
 					// For now, sync all users who are members of this org
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -192,19 +187,6 @@ export const createUserCollections = ({
 	apiUrl: string;
 	headers?: Record<string, string>;
 }) => {
-	// Create custom fetch client with auth headers
-	const fetchClient = headers
-		? (input: RequestInfo | URL, init?: RequestInit) => {
-				return fetch(input, {
-					...init,
-					headers: {
-						...headers,
-						...(init?.headers as Record<string, string>),
-					},
-				});
-			}
-		: undefined;
-
 	// User Settings (synced across all devices)
 	const userSettings = createCollection(
 		electricCollectionOptions<SelectUserSetting>({
@@ -215,7 +197,7 @@ export const createUserCollections = ({
 					table: "user_settings",
 					where: `user_id = '${userId}'`,
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -264,19 +246,6 @@ export const createOrgSettingsCollection = ({
 	apiUrl: string;
 	headers?: Record<string, string>;
 }) => {
-	// Create custom fetch client with auth headers
-	const fetchClient = headers
-		? (input: RequestInfo | URL, init?: RequestInit) => {
-				return fetch(input, {
-					...init,
-					headers: {
-						...headers,
-						...(init?.headers as Record<string, string>),
-					},
-				});
-			}
-		: undefined;
-
 	return createCollection(
 		electricCollectionOptions<SelectOrgSetting>({
 			id: `org-settings-${orgId}`,
@@ -286,7 +255,7 @@ export const createOrgSettingsCollection = ({
 					table: "org_settings",
 					where: `organization_id = '${orgId}'`,
 				},
-				fetchClient,
+				headers,
 				columnMapper,
 			},
 			getKey: (item) => item.id,

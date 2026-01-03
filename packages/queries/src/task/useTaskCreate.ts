@@ -16,7 +16,10 @@ export function useTaskCreate(trpc: TRPCClient) {
 					queryKey: trpc.task.byRepository.queryKey(variables.repositoryId),
 				});
 				if (data.task) {
-					queryClient.setQueryData(trpc.task.byId.queryKey(data.task.id), data.task);
+					queryClient.setQueryData(
+						trpc.task.byId.queryKey(data.task.id),
+						data.task,
+					);
 				}
 			},
 		}),

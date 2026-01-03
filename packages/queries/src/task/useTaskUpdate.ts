@@ -13,7 +13,10 @@ export function useTaskUpdate(trpc: TRPCClient) {
 		trpc.task.update.mutationOptions({
 			onSuccess: (data) => {
 				if (data.task) {
-					queryClient.setQueryData(trpc.task.byId.queryKey(data.task.id), data.task);
+					queryClient.setQueryData(
+						trpc.task.byId.queryKey(data.task.id),
+						data.task,
+					);
 					void queryClient.invalidateQueries({
 						queryKey: trpc.task.all.queryKey(),
 					});
