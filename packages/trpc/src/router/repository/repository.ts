@@ -1,7 +1,7 @@
-import { db } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import { repositories } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
@@ -66,11 +66,22 @@ export const repositoryRouter = {
 			}),
 		)
 		.mutation(async ({ input }) => {
-			const [repository] = await db
-				.insert(repositories)
-				.values(input)
-				.returning();
-			return repository;
+			// Execute in transaction to get txid
+			const result = await dbWs.transaction(async (tx) => {
+				const [repository] = await tx
+					.insert(repositories)
+					.values(input)
+					.returning();
+
+				const result = await tx.execute<{ txid: string }>(
+					sql`SELECT txid_current()::text as txid`,
+				);
+				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+
+				return { repository, txid };
+			});
+
+			return result;
 		}),
 
 	update: protectedProcedure
@@ -83,18 +94,41 @@ export const repositoryRouter = {
 		)
 		.mutation(async ({ input }) => {
 			const { id, ...data } = input;
-			const [repository] = await db
-				.update(repositories)
-				.set(data)
-				.where(eq(repositories.id, id))
-				.returning();
-			return repository;
+
+			// Execute in transaction to get txid
+			const result = await dbWs.transaction(async (tx) => {
+				const [repository] = await tx
+					.update(repositories)
+					.set(data)
+					.where(eq(repositories.id, id))
+					.returning();
+
+				const result = await tx.execute<{ txid: string }>(
+					sql`SELECT txid_current()::text as txid`,
+				);
+				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+
+				return { repository, txid };
+			});
+
+			return result;
 		}),
 
 	delete: protectedProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ input }) => {
-			await db.delete(repositories).where(eq(repositories.id, input));
-			return { success: true };
+			// Execute in transaction to get txid
+			const result = await dbWs.transaction(async (tx) => {
+				await tx.delete(repositories).where(eq(repositories.id, input));
+
+				const result = await tx.execute<{ txid: string }>(
+					sql`SELECT txid_current()::text as txid`,
+				);
+				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+
+				return { txid };
+			});
+
+			return result;
 		}),
 } satisfies TRPCRouterRecord;

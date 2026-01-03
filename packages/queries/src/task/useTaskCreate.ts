@@ -15,8 +15,8 @@ export function useTaskCreate(trpc: TRPCClient) {
 				void queryClient.invalidateQueries({
 					queryKey: trpc.task.byRepository.queryKey(variables.repositoryId),
 				});
-				if (data) {
-					queryClient.setQueryData(trpc.task.byId.queryKey(data.id), data);
+				if (data.task) {
+					queryClient.setQueryData(trpc.task.byId.queryKey(data.task.id), data.task);
 				}
 			},
 		}),

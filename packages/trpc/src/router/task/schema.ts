@@ -22,7 +22,7 @@ export const updateTaskSchema = z.object({
 	description: z.string().nullable().optional(),
 	status: z.string().optional(),
 	priority: z.enum(taskPriorityValues).optional(),
-	repositoryId: z.string().uuid().optional(),
+	repositoryId: z.string().uuid().nullable().optional(),
 	assigneeId: z.string().uuid().nullable().optional(),
 	branch: z.string().nullable().optional(),
 	prUrl: z.string().url().nullable().optional(),
