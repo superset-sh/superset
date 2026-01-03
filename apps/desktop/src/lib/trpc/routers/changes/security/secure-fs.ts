@@ -341,8 +341,13 @@ export const secureFs = {
 	/**
 	 * Delete a file or directory within a worktree.
 	 *
-	 * DANGEROUS: Uses recursive + force deletion.
-	 * Explicitly prevents deleting the worktree root.
+	 * SECURITY: Validates the real path is within worktree before deletion.
+	 * - Symlinks: Deletes the link itself (safe - link lives in worktree)
+	 * - Files/dirs: Validates realpath then deletes
+	 *
+	 * This prevents symlink escape attacks where a malicious repo contains
+	 * `docs -> /Users/victim` and a delete of `docs/file` would delete
+	 * `/Users/victim/file`.
 	 */
 	async delete(worktreePath: string, filePath: string): Promise<void> {
 		assertRegisteredWorktree(worktreePath);
@@ -350,6 +355,36 @@ export const secureFs = {
 		const fullPath = resolvePathInWorktree(worktreePath, filePath, {
 			allowRoot: false,
 		});
+
+		let stats: Stats;
+		try {
+			stats = await lstat(fullPath);
+		} catch (error) {
+			// File doesn't exist - idempotent delete, nothing to do
+			if (
+				error instanceof Error &&
+				"code" in error &&
+				error.code === "ENOENT"
+			) {
+				return;
+			}
+			throw error;
+		}
+
+		if (stats.isSymbolicLink()) {
+			// Symlink - safe to delete the link itself (it lives in the worktree).
+			// Don't use recursive as we're just removing the symlink file.
+			await rm(fullPath);
+			return;
+		}
+
+		// Regular file or directory - validate realpath is within worktree.
+		// This catches path traversal via symlinked parent components:
+		// e.g., `docs -> /victim`, delete `docs/file` → realpath is `/victim/file`
+		await assertRealpathInWorktree(worktreePath, fullPath);
+
+		// Safe to delete - realpath confirmed within worktree.
+		// Note: Symlinks INSIDE a directory are safe - rm deletes the links, not targets.
 		await rm(fullPath, { recursive: true, force: true });
 	},
 
