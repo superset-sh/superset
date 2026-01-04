@@ -102,7 +102,7 @@ async function initializeWorkspaceWorktree({
 					.run();
 			}
 
-			// P1 Fix: If baseBranch was auto-derived (not explicit) and differs from remote,
+			// If baseBranch was auto-derived and differs from remote,
 			// update the worktree record so retries use the correct branch
 			if (!baseBranchWasExplicit && remoteDefaultBranch !== baseBranch) {
 				console.log(
@@ -295,7 +295,6 @@ async function initializeWorkspaceWorktree({
 			.where(eq(worktrees.id, worktreeId))
 			.run();
 
-		// Done!
 		manager.updateProgress(workspaceId, "ready", "Ready");
 
 		track("workspace_initialized", {
@@ -400,7 +399,6 @@ export const createWorkspacesRouter = () => {
 						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
 						: -1;
 
-				// Insert workspace record immediately
 				const workspace = localDb
 					.insert(workspaces)
 					.values({
@@ -414,7 +412,6 @@ export const createWorkspacesRouter = () => {
 					.returning()
 					.get();
 
-				// Update settings to make this the active workspace
 				localDb
 					.insert(settings)
 					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
@@ -424,7 +421,6 @@ export const createWorkspacesRouter = () => {
 					})
 					.run();
 
-				// Update project tab order if needed
 				const activeProjects = localDb
 					.select()
 					.from(projects)
@@ -455,7 +451,6 @@ export const createWorkspacesRouter = () => {
 					base_branch: targetBranch,
 				});
 
-				// Start tracking the initialization job
 				workspaceInitManager.startJob(workspace.id, input.projectId);
 
 				// Start background initialization (DO NOT await - return immediately)

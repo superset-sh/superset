@@ -28,7 +28,6 @@ export function checkWorkspaceUsability(
 	workspaceId: string,
 	worktreePath: string | null | undefined,
 ): WorkspaceUsabilityCheck {
-	// Check if currently initializing
 	if (workspaceInitManager.isInitializing(workspaceId)) {
 		return {
 			usable: false,
@@ -37,7 +36,6 @@ export function checkWorkspaceUsability(
 		};
 	}
 
-	// Check if initialization failed
 	if (workspaceInitManager.hasFailed(workspaceId)) {
 		return {
 			usable: false,
@@ -46,7 +44,6 @@ export function checkWorkspaceUsability(
 		};
 	}
 
-	// Check if path exists
 	if (!worktreePath) {
 		return { usable: false, reason: "path_missing" };
 	}

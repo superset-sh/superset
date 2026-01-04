@@ -82,7 +82,6 @@ export const useWorkspaceInitStore = create<WorkspaceInitState>()(
 	),
 );
 
-// Convenience hooks
 export const useWorkspaceInitProgress = (workspaceId: string) =>
 	useWorkspaceInitStore((state) => state.initProgress[workspaceId]);
 
