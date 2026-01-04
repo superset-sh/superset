@@ -392,10 +392,12 @@ export const secureFs = {
 	 * Get file stats within a worktree.
 	 *
 	 * Uses `stat` (follows symlinks) to get the real file size.
+	 * Validates that the resolved path stays within the worktree boundary.
 	 */
 	async stat(worktreePath: string, filePath: string): Promise<Stats> {
 		assertRegisteredWorktree(worktreePath);
 		const fullPath = resolvePathInWorktree(worktreePath, filePath);
+		await assertRealpathInWorktree(worktreePath, fullPath);
 		return stat(fullPath);
 	},
 
@@ -414,12 +416,13 @@ export const secureFs = {
 	/**
 	 * Check if a file exists within a worktree.
 	 *
-	 * Returns false for non-existent files and validation failures.
+	 * Returns false for non-existent files, symlink escapes, and validation failures.
 	 */
 	async exists(worktreePath: string, filePath: string): Promise<boolean> {
 		try {
 			assertRegisteredWorktree(worktreePath);
 			const fullPath = resolvePathInWorktree(worktreePath, filePath);
+			await assertRealpathInWorktree(worktreePath, fullPath);
 			await stat(fullPath);
 			return true;
 		} catch {

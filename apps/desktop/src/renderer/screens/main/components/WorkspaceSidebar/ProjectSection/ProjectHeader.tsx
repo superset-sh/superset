@@ -18,6 +18,7 @@ export function ProjectHeader({
 		<button
 			type="button"
 			onClick={onToggleCollapse}
+			aria-expanded={!isCollapsed}
 			className={cn(
 				"flex items-center gap-2 w-full px-3 py-2 text-sm font-medium",
 				"hover:bg-muted/50 transition-colors",

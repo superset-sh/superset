@@ -98,6 +98,13 @@ export function TabView({ tab, panes }: TabViewProps) {
 
 			// Route file-viewer panes to FileViewerPane component
 			if (pane.type === "file-viewer") {
+				if (!worktreePath) {
+					return (
+						<div className="w-full h-full flex items-center justify-center text-muted-foreground">
+							Workspace path unavailable
+						</div>
+					);
+				}
 				return (
 					<FileViewerPane
 						paneId={paneId}

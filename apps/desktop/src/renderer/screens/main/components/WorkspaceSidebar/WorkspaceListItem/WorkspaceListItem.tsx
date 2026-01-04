@@ -12,6 +12,7 @@ import {
 	HoverCardTrigger,
 } from "@superset/ui/hover-card";
 import { Input } from "@superset/ui/input";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
@@ -77,11 +78,15 @@ export function WorkspaceListItem({
 		(s) => s.clearWorkspaceAttention,
 	);
 	const utils = trpc.useUtils();
-	const openInFinder = trpc.external.openInFinder.useMutation();
+	const openInFinder = trpc.external.openInFinder.useMutation({
+		onError: (error) => toast.error(`Failed to open: ${error.message}`),
+	});
 	const setUnread = trpc.workspaces.setUnread.useMutation({
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 		},
+		onError: (error) =>
+			toast.error(`Failed to update unread status: ${error.message}`),
 	});
 
 	// Shared delete logic
