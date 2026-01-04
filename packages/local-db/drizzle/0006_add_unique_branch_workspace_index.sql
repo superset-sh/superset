@@ -25,7 +25,7 @@ WHERE last_active_workspace_id IN (
         )
     )
 );
-
+--> statement-breakpoint
 -- Delete duplicate branch workspaces, keeping the most recently used per project
 -- Survivor selection: highest last_opened_at, then lowest id as tiebreaker
 DELETE FROM workspaces
@@ -41,6 +41,6 @@ AND id NOT IN (
     ) ranked
     WHERE rn = 1
 );
-
+--> statement-breakpoint
 -- Now safe to create the unique index
 CREATE UNIQUE INDEX IF NOT EXISTS `workspaces_unique_branch_per_project` ON `workspaces` (`project_id`) WHERE `type` = 'branch';
