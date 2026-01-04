@@ -2,10 +2,7 @@ import type React from "react";
 import { PostHogUserIdentifier } from "renderer/components/PostHogUserIdentifier";
 import { AuthProvider } from "./AuthProvider";
 import { MonacoProvider } from "./MonacoProvider";
-import { OrganizationProvider } from "./OrganizationProvider";
-import { OrganizationsProvider } from "./OrganizationsProvider";
 import { PostHogProvider } from "./PostHogProvider";
-import { CollectionsProvider } from "./TanStackDbProvider";
 import { TRPCProvider } from "./TRPCProvider";
 
 interface AppProvidersProps {
@@ -18,13 +15,7 @@ export function AppProviders({ children }: AppProvidersProps) {
 			<TRPCProvider>
 				<AuthProvider>
 					<PostHogUserIdentifier />
-					<OrganizationsProvider>
-						<OrganizationProvider>
-							<CollectionsProvider>
-								<MonacoProvider>{children}</MonacoProvider>
-							</CollectionsProvider>
-						</OrganizationProvider>
-					</OrganizationsProvider>
+					<MonacoProvider>{children}</MonacoProvider>
 				</AuthProvider>
 			</TRPCProvider>
 		</PostHogProvider>

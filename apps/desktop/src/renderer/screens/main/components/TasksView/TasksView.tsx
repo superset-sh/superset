@@ -31,7 +31,13 @@ import {
 	HiPencil,
 	HiUser,
 } from "react-icons/hi2";
-import { useCollections, useOrganization } from "renderer/contexts";
+import {
+	CollectionsProvider,
+	OrganizationProvider,
+	OrganizationsProvider,
+	useCollections,
+	useOrganization,
+} from "renderer/contexts";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 
 type Task = SelectTask;
@@ -361,5 +367,13 @@ function TasksViewContent() {
 }
 
 export function TasksView() {
-	return <TasksViewContent />;
+	return (
+		<OrganizationsProvider>
+			<OrganizationProvider>
+				<CollectionsProvider>
+					<TasksViewContent />
+				</CollectionsProvider>
+			</OrganizationProvider>
+		</OrganizationsProvider>
+	);
 }

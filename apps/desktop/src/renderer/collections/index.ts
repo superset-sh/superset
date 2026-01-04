@@ -5,36 +5,46 @@ import type {
 	SelectTask,
 	SelectUser,
 } from "@superset/db/schema";
+import type { AppRouter } from "@superset/trpc";
 import { localStorageCollectionOptions } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
-import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
-import { createHttpTrpcClient } from "../lib/trpc-http-client";
+import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import superjson from "superjson";
 
-// Use Electric's built-in snake_case to camelCase mapper
 const columnMapper = snakeCamelMapper();
 
-// Helper to convert null values to undefined for tRPC compatibility
-const nullToUndefined = <T extends Record<string, unknown>>(
-	obj: T,
-): { [K in keyof T]: T[K] extends null ? undefined : T[K] } => {
-	const result = {} as { [K in keyof T]: T[K] extends null ? undefined : T[K] };
-	for (const key in obj) {
-		result[key] = (obj[key] === null ? undefined : obj[key]) as {
-			[K in keyof T]: T[K] extends null ? undefined : T[K];
-		}[Extract<keyof T, string>];
-	}
-	return result;
+/**
+ * HTTP-based tRPC client for making API calls to the backend server.
+ * Used in collections for write operations.
+ */
+const createHttpTrpcClient = ({
+	apiUrl,
+	headers,
+}: {
+	apiUrl: string;
+	headers?: Record<string, string>;
+}) => {
+	return createTRPCProxyClient<AppRouter>({
+		links: [
+			httpBatchLink({
+				url: `${apiUrl}/trpc`,
+				headers,
+				transformer: superjson,
+			}),
+		],
+	});
 };
 
-// ============================================
-// ELECTRIC COLLECTIONS (Synced per-org)
-// ============================================
+export interface DeviceSetting {
+	key: string;
+	value: unknown;
+}
 
-export const createOrgCollections = ({
+export const createCollections = ({
 	orgId,
 	electricUrl,
-	apiUrl: _apiUrl,
+	apiUrl,
 	headers,
 }: {
 	orgId: string;
@@ -42,17 +52,8 @@ export const createOrgCollections = ({
 	apiUrl: string;
 	headers?: Record<string, string>;
 }) => {
-	console.log("[createOrgCollections] Creating collections with:", {
-		orgId,
-		electricUrl,
-		hasHeaders: !!headers,
-		headerKeys: headers ? Object.keys(headers) : [],
-	});
+	const httpTrpcClient = createHttpTrpcClient({ apiUrl, headers });
 
-	// Create HTTP tRPC client for write operations
-	const httpTrpcClient = createHttpTrpcClient({ headers });
-
-	// Tasks Collection
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${orgId}`,
@@ -60,7 +61,6 @@ export const createOrgCollections = ({
 				url: electricUrl,
 				params: {
 					table: "tasks",
-					where: `organization_id = '${orgId}'`,
 				},
 				headers,
 				columnMapper,
@@ -70,23 +70,13 @@ export const createOrgCollections = ({
 			// Write operations via tRPC HTTP client
 			onInsert: async ({ transaction }) => {
 				const item = transaction.mutations[0].modified;
-				// Convert null to undefined for tRPC compatibility
-				const result = await httpTrpcClient.task.create.mutate(
-					nullToUndefined(item) as Parameters<
-						typeof httpTrpcClient.task.create.mutate
-					>[0],
-				);
+				const result = await httpTrpcClient.task.create.mutate(item);
 				return { txid: result.txid };
 			},
 
 			onUpdate: async ({ transaction }) => {
 				const { modified } = transaction.mutations[0];
-				// Convert null to undefined for tRPC compatibility
-				const result = await httpTrpcClient.task.update.mutate(
-					nullToUndefined(modified) as Parameters<
-						typeof httpTrpcClient.task.update.mutate
-					>[0],
-				);
+				const result = await httpTrpcClient.task.update.mutate(modified);
 				return { txid: result.txid };
 			},
 
@@ -98,7 +88,6 @@ export const createOrgCollections = ({
 		}),
 	);
 
-	// Repositories Collection
 	const repositories = createCollection(
 		electricCollectionOptions<SelectRepository>({
 			id: `repositories-${orgId}`,
@@ -106,7 +95,6 @@ export const createOrgCollections = ({
 				url: electricUrl,
 				params: {
 					table: "repositories",
-					where: `organization_id = '${orgId}'`,
 				},
 				headers,
 				columnMapper,
@@ -135,7 +123,6 @@ export const createOrgCollections = ({
 				url: electricUrl,
 				params: {
 					table: "organization_members",
-					where: `organization_id = '${orgId}'`,
 				},
 				headers,
 				columnMapper,
@@ -144,7 +131,6 @@ export const createOrgCollections = ({
 		}),
 	);
 
-	// Users Collection (all users in the org - read-only from members)
 	const users = createCollection(
 		electricCollectionOptions<SelectUser>({
 			id: `users-${orgId}`,
@@ -152,8 +138,6 @@ export const createOrgCollections = ({
 				url: electricUrl,
 				params: {
 					table: "users",
-					// Note: We might need to filter this differently
-					// For now, sync all users who are members of this org
 				},
 				headers,
 				columnMapper,
@@ -162,26 +146,6 @@ export const createOrgCollections = ({
 		}),
 	);
 
-	return {
-		tasks,
-		repositories,
-		members,
-		users,
-	};
-};
-
-
-// ============================================
-// DEVICE COLLECTIONS (LocalStorage)
-// ============================================
-
-export interface DeviceSetting {
-	key: string;
-	value: unknown;
-}
-
-export const createDeviceCollections = () => {
-	// Device Settings (never synced - this machine only)
 	const deviceSettings = createCollection(
 		localStorageCollectionOptions<DeviceSetting>({
 			storageKey: "device-settings",
@@ -191,13 +155,12 @@ export const createDeviceCollections = () => {
 	);
 
 	return {
+		tasks,
+		repositories,
+		members,
+		users,
 		deviceSettings,
 	};
 };
 
-// ============================================
-// TYPES
-// ============================================
-
-export type OrgCollections = ReturnType<typeof createOrgCollections>;
-export type DeviceCollections = ReturnType<typeof createDeviceCollections>;
+export type Collections = ReturnType<typeof createCollections>;

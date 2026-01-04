@@ -29,11 +29,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
 	} = trpc.user.myOrganizations.useQuery();
 
 	if (isLoading) {
-		return (
-			<div className="flex h-full items-center justify-center">
-				<div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
-			</div>
-		);
+		return null;
 	}
 
 	// If unauthorized, show sign-in screen

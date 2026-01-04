@@ -14,7 +14,6 @@
 		"@clerk/nextjs": "^6.36.2",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/db": "workspace:*",
-		"@superset/queries": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@superset/ui": "workspace:*",

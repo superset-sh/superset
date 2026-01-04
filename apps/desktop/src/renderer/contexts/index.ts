@@ -15,5 +15,5 @@ export {
 	useOrganizations,
 } from "./OrganizationsProvider";
 export { PostHogProvider } from "./PostHogProvider";
-export { CollectionsProvider, useCollections } from "./TanStackDbProvider";
+export { CollectionsProvider, useCollections } from "./CollectionsProvider";
 export { TRPCProvider } from "./TRPCProvider";
