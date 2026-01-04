@@ -15,6 +15,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 const VALID_RINGTONE_IDS = RINGTONES.map((r) => r.id);
+const VALID_GROUP_TABS_POSITIONS = ["sidebar", "content-header"] as const;
 
 function getSettings() {
 	let row = localDb.select().from(settings).get();
@@ -232,11 +233,36 @@ export const createSettingsRouter = () => {
 
 		getGroupTabsPosition: publicProcedure.query(() => {
 			const row = getSettings();
-			return row.groupTabsPosition ?? DEFAULT_GROUP_TABS_POSITION;
+			const storedPosition = row.groupTabsPosition;
+
+			if (!storedPosition) {
+				return DEFAULT_GROUP_TABS_POSITION;
+			}
+
+			if (
+				VALID_GROUP_TABS_POSITIONS.includes(
+					storedPosition as (typeof VALID_GROUP_TABS_POSITIONS)[number],
+				)
+			) {
+				return storedPosition;
+			}
+
+			console.warn(
+				`[settings] Invalid group tabs position "${storedPosition}" found, resetting to default`,
+			);
+			localDb
+				.insert(settings)
+				.values({ id: 1, groupTabsPosition: DEFAULT_GROUP_TABS_POSITION })
+				.onConflictDoUpdate({
+					target: settings.id,
+					set: { groupTabsPosition: DEFAULT_GROUP_TABS_POSITION },
+				})
+				.run();
+			return DEFAULT_GROUP_TABS_POSITION;
 		}),
 
 		setGroupTabsPosition: publicProcedure
-			.input(z.object({ position: z.enum(["sidebar", "content-header"]) }))
+			.input(z.object({ position: z.enum(VALID_GROUP_TABS_POSITIONS) }))
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)

@@ -8,6 +8,9 @@ import { ChangesView } from "./ChangesView";
 import { ModeCarousel } from "./ModeCarousel";
 import { TabsView } from "./TabsView";
 
+// Stable reference to avoid ModeCarousel effect churn
+const SIDEBAR_MODES: SidebarMode[] = [SidebarMode.Tabs, SidebarMode.Changes];
+
 export function Sidebar() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const workspaceId = activeWorkspace?.id;
@@ -64,12 +67,10 @@ export function Sidebar() {
 	}
 
 	// Workbench mode with groups in sidebar: show ModeCarousel with Tabs/Changes
-	const modes: SidebarMode[] = [SidebarMode.Tabs, SidebarMode.Changes];
-
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
 			<ModeCarousel
-				modes={modes}
+				modes={SIDEBAR_MODES}
 				currentMode={currentMode}
 				onModeSelect={setMode}
 				isDragging={isResizing}
