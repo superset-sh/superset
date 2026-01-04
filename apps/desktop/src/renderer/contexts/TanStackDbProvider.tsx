@@ -2,47 +2,38 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
 	createContext,
 	type ReactNode,
-	useCallback,
 	useContext,
-	useEffect,
 	useMemo,
+	useRef,
 	useState,
 } from "react";
 import {
 	createDeviceCollections,
 	createOrgCollections,
-	createOrgSettingsCollection,
-	createUserCollections,
 	type DeviceCollections,
 	type OrgCollections,
-	type UserCollections,
 } from "renderer/collections";
 import { trpc } from "renderer/lib/trpc";
-import { type Organization, useOrganizations } from "./OrganizationsProvider";
+import { useAuth } from "./AuthProvider";
+import { useOrganization } from "./OrganizationProvider";
 
-const ACTIVE_ORG_KEY = "superset_active_organization_id";
+interface CollectionsContextValue {
+	// Org collections (Electric-synced, per-org)
+	tasks: OrgCollections["tasks"] | null;
+	repositories: OrgCollections["repositories"] | null;
+	members: OrgCollections["members"] | null;
+	users: OrgCollections["users"] | null;
 
-interface TanStackDbContextValue {
-	// Current context
-	userId: string | null;
-	activeOrganization: Organization;
-
-	// Collections
-	orgCollections: OrgCollections | null;
-	userCollections: UserCollections | null;
-	deviceCollections: DeviceCollections;
-
-	// Actions
-	switchOrganization: (orgId: string) => void;
+	// Device collections (localStorage, device-only)
+	deviceSettings: DeviceCollections["deviceSettings"];
 
 	// Status
 	isInitializing: boolean;
 	error: Error | null;
 }
 
-const TanStackDbContext = createContext<TanStackDbContextValue | null>(null);
+const CollectionsContext = createContext<CollectionsContextValue | null>(null);
 
-// Query client for TanStack DB (required even though we're using Electric)
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
@@ -52,98 +43,41 @@ const queryClient = new QueryClient({
 	},
 });
 
-export function TanStackDbProvider({
-	children,
-	accessToken,
-}: {
-	children: ReactNode;
-	accessToken: string | null;
-}) {
-	const organizations = useOrganizations();
-	const [userId, setUserId] = useState<string | null>(null);
-	const [activeOrganizationId, setActiveOrganizationId] = useState<string>(
-		() => {
-			const stored = localStorage.getItem(ACTIVE_ORG_KEY);
-			const valid = organizations.find((o) => o.id === stored);
-			return valid?.id ?? organizations[0].id;
-		},
-	);
+export function CollectionsProvider({ children }: { children: ReactNode }) {
+	// Get access token and organization from providers
+	const { accessToken } = useAuth();
+	const { activeOrganizationId } = useOrganization();
 
-	const [orgCollections, setOrgCollections] = useState<OrgCollections | null>(
-		null,
-	);
-	const [userCollections, setUserCollections] =
-		useState<UserCollections | null>(null);
-	const [isInitializing, setIsInitializing] = useState(true);
+	// Ensure user is loaded
+	const { data: user } = trpc.user.me.useQuery();
+
 	const [error, setError] = useState<Error | null>(null);
-
-	const activeOrganization = organizations.find(
-		(o) => o.id === activeOrganizationId,
-	);
-	if (!activeOrganization) {
-		throw new Error(`Active organization not found: ${activeOrganizationId}.`);
-	}
 
 	// Get API URL from environment
 	const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
-	// Electric URL is proxied through the API server with org filtering
-	const electricUrl = `${apiUrl.replace("/api", "")}/api/electric/v1/shape?organizationId=${activeOrganizationId}`;
 
 	// Device collections (created once, never change)
 	const deviceCollections = useMemo(() => createDeviceCollections(), []);
 
-	// Get user ID from auth
-	const { data: user } = trpc.user.me.useQuery();
+	// Stable map of collections per org (never recreate collections, just cache them)
+	const collectionsCache = useRef<Map<string, OrgCollections>>(new Map());
 
-	// Update userId when user data loads
-	useEffect(() => {
-		if (user?.id) {
-			setUserId(user.id);
+	// Get or create collections for the active org
+	const orgCollections = useMemo(() => {
+		if (!user?.id || !activeOrganizationId) return null;
+
+		const cached = collectionsCache.current.get(activeOrganizationId);
+		if (cached) {
+			console.log(
+				"[CollectionsProvider] Reusing cached collections for org:",
+				activeOrganizationId,
+			);
+			return cached;
 		}
-	}, [user?.id]);
-
-	// Create user collections when userId or accessToken changes
-	useEffect(() => {
-		if (!userId || accessToken === null) return;
 
 		try {
-			const headers = accessToken
-				? { Authorization: `Bearer ${accessToken}` }
-				: undefined;
-
-			const newUserCollections = createUserCollections({
-				userId,
-				electricUrl,
-				apiUrl,
-				headers,
-			});
-
-			setUserCollections(newUserCollections);
-		} catch (err) {
-			console.error("[TanStackDB] Failed to create user collections:", err);
-			setError(err as Error);
-		}
-	}, [userId, accessToken, electricUrl]);
-
-	// Create org collections when org, userId, or accessToken changes
-	useEffect(() => {
-		if (!userId || !activeOrganizationId || accessToken === null) return;
-
-		console.log(
-			"[TanStackDB] Creating collections for organization:",
-			activeOrganizationId,
-		);
-		console.log("[TanStackDB] Access token present:", !!accessToken);
-		console.log("[TanStackDB] Access token length:", accessToken?.length);
-
-		try {
-			const headers = accessToken
-				? { Authorization: `Bearer ${accessToken}` }
-				: undefined;
-			console.log("[TanStackDB] Headers created:", {
-				hasHeaders: !!headers,
-				hasAuth: !!headers?.Authorization,
-			});
+			const headers = { Authorization: `Bearer ${accessToken}` };
+			const electricUrl = `${apiUrl}/electric/v1/shape?organizationId=${activeOrganizationId}`;
 
 			const newOrgCollections = createOrgCollections({
 				orgId: activeOrganizationId,
@@ -152,41 +86,31 @@ export function TanStackDbProvider({
 				headers,
 			});
 
-			const orgSettings = createOrgSettingsCollection({
-				orgId: activeOrganizationId,
-				electricUrl,
-				apiUrl,
-				headers,
-			});
-
-			setOrgCollections({
-				...newOrgCollections,
-				orgSettings,
-			});
+			// Cache the collections
+			collectionsCache.current.set(activeOrganizationId, newOrgCollections);
 
 			setError(null);
-			setIsInitializing(false);
+			return newOrgCollections;
 		} catch (err) {
-			console.error("[TanStackDB] Failed to create org collections:", err);
+			console.error(
+				"[CollectionsProvider] Failed to create org collections:",
+				err,
+			);
 			setError(err as Error);
-			setIsInitializing(false);
+			return null;
 		}
-	}, [activeOrganizationId, userId, accessToken, electricUrl]);
+	}, [activeOrganizationId, user?.id, accessToken, apiUrl]);
 
-	const switchOrganization = useCallback((newOrgId: string) => {
-		console.log("[TanStackDB] Switching to organization:", newOrgId);
-		localStorage.setItem(ACTIVE_ORG_KEY, newOrgId);
-		setActiveOrganizationId(newOrgId);
-		setIsInitializing(true);
-	}, []);
+	const isInitializing = !user?.id || !orgCollections;
 
-	const value: TanStackDbContextValue = {
-		userId,
-		activeOrganization,
-		orgCollections,
-		userCollections,
-		deviceCollections,
-		switchOrganization,
+	const value: CollectionsContextValue = {
+		// Org collections (null if not initialized)
+		tasks: orgCollections?.tasks ?? null,
+		repositories: orgCollections?.repositories ?? null,
+		members: orgCollections?.members ?? null,
+		users: orgCollections?.users ?? null,
+		// Device collections (always available)
+		deviceSettings,
 		isInitializing,
 		error,
 	};
@@ -213,9 +137,9 @@ export function TanStackDbProvider({
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<TanStackDbContext.Provider value={value}>
+			<CollectionsContext.Provider value={value}>
 				{children}
-			</TanStackDbContext.Provider>
+			</CollectionsContext.Provider>
 		</QueryClientProvider>
 	);
 }
@@ -224,37 +148,10 @@ export function TanStackDbProvider({
 // HOOKS
 // ============================================
 
-export const useTanStackDb = () => {
-	const context = useContext(TanStackDbContext);
+export const useCollections = () => {
+	const context = useContext(CollectionsContext);
 	if (!context) {
-		throw new Error("useTanStackDb must be used within TanStackDbProvider");
+		throw new Error("useCollections must be used within CollectionsProvider");
 	}
 	return context;
-};
-
-// Convenience hook to maintain compatibility with old useActiveOrganization
-export const useActiveOrganization = () => {
-	const { activeOrganization, switchOrganization } = useTanStackDb();
-	return { activeOrganization, switchOrganization };
-};
-
-export const useOrgCollections = () => {
-	const { orgCollections } = useTanStackDb();
-	if (!orgCollections) {
-		throw new Error("No organization collections available");
-	}
-	return orgCollections;
-};
-
-export const useUserCollections = () => {
-	const { userCollections } = useTanStackDb();
-	if (!userCollections) {
-		throw new Error("No user collections available");
-	}
-	return userCollections;
-};
-
-export const useDeviceCollections = () => {
-	const { deviceCollections } = useTanStackDb();
-	return deviceCollections;
 };

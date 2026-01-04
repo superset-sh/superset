@@ -1,11 +1,9 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
 	SelectOrganizationMember,
-	SelectOrgSetting,
 	SelectRepository,
 	SelectTask,
 	SelectUser,
-	SelectUserSetting,
 } from "@superset/db/schema";
 import { localStorageCollectionOptions } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
@@ -172,118 +170,6 @@ export const createOrgCollections = ({
 	};
 };
 
-// ============================================
-// USER COLLECTIONS (Synced per-user, cross-org)
-// ============================================
-
-export const createUserCollections = ({
-	userId,
-	electricUrl,
-	apiUrl,
-	headers,
-}: {
-	userId: string;
-	electricUrl: string;
-	apiUrl: string;
-	headers?: Record<string, string>;
-}) => {
-	// User Settings (synced across all devices)
-	const userSettings = createCollection(
-		electricCollectionOptions<SelectUserSetting>({
-			id: `user-settings-${userId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "user_settings",
-					where: `user_id = '${userId}'`,
-				},
-				headers,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const response = await fetch(`${apiUrl}/user-settings`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json", ...headers },
-					body: JSON.stringify(item),
-				});
-				const { txid } = await response.json();
-				return { txid };
-			},
-
-			onUpdate: async ({ transaction }) => {
-				const { original, modified } = transaction.mutations[0];
-				const response = await fetch(`${apiUrl}/user-settings/${original.id}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json", ...headers },
-					body: JSON.stringify(modified),
-				});
-				const { txid } = await response.json();
-				return { txid };
-			},
-		}),
-	);
-
-	return {
-		userSettings,
-	};
-};
-
-// ============================================
-// ORG SETTINGS COLLECTIONS (Synced per-org)
-// ============================================
-
-export const createOrgSettingsCollection = ({
-	orgId,
-	electricUrl,
-	apiUrl,
-	headers,
-}: {
-	orgId: string;
-	electricUrl: string;
-	apiUrl: string;
-	headers?: Record<string, string>;
-}) => {
-	return createCollection(
-		electricCollectionOptions<SelectOrgSetting>({
-			id: `org-settings-${orgId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "org_settings",
-					where: `organization_id = '${orgId}'`,
-				},
-				headers,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-
-			onInsert: async ({ transaction }) => {
-				const item = transaction.mutations[0].modified;
-				const response = await fetch(`${apiUrl}/org-settings`, {
-					method: "POST",
-					headers: { "Content-Type": "application/json", ...headers },
-					body: JSON.stringify(item),
-				});
-				const { txid } = await response.json();
-				return { txid };
-			},
-
-			onUpdate: async ({ transaction }) => {
-				const { original, modified } = transaction.mutations[0];
-				const response = await fetch(`${apiUrl}/org-settings/${original.id}`, {
-					method: "PATCH",
-					headers: { "Content-Type": "application/json", ...headers },
-					body: JSON.stringify(modified),
-				});
-				const { txid } = await response.json();
-				return { txid };
-			},
-		}),
-	);
-};
 
 // ============================================
 // DEVICE COLLECTIONS (LocalStorage)
@@ -313,8 +199,5 @@ export const createDeviceCollections = () => {
 // TYPES
 // ============================================
 
-export type OrgCollections = ReturnType<typeof createOrgCollections> & {
-	orgSettings: Collection<SelectOrgSetting>;
-};
-export type UserCollections = ReturnType<typeof createUserCollections>;
+export type OrgCollections = ReturnType<typeof createOrgCollections>;
 export type DeviceCollections = ReturnType<typeof createDeviceCollections>;

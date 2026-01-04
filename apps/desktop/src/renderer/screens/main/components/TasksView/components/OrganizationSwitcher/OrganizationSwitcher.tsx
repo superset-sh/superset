@@ -6,8 +6,10 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
-import { useOrganizations } from "renderer/contexts";
-import { useActiveOrganization } from "renderer/contexts/TanStackDbProvider";
+import {
+	useActiveOrganization,
+	useOrganizations,
+} from "renderer/contexts";
 
 export function OrganizationSwitcher() {
 	const organizations = useOrganizations();

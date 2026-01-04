@@ -31,7 +31,7 @@ import {
 	HiPencil,
 	HiUser,
 } from "react-icons/hi2";
-import { useOrgCollections } from "renderer/contexts/TanStackDbProvider";
+import { useCollections, useOrganization } from "renderer/contexts";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 
 type Task = SelectTask;
@@ -48,7 +48,7 @@ function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps) {
 	const [description, setDescription] = useState(task.description || "");
 	const [priority, setPriority] = useState(task.priority);
 	const [isSaving, setIsSaving] = useState(false);
-	const { tasks: tasksCollection } = useOrgCollections();
+	const { tasks: tasksCollection } = useCollections();
 
 	const handleSave = async () => {
 		setIsSaving(true);
@@ -261,17 +261,22 @@ function TaskCard({
 
 function TasksList() {
 	const [editingTask, setEditingTask] = useState<Task | null>(null);
-	const { tasks: tasksCollection } = useOrgCollections();
+	const { tasks: tasksCollection } = useCollections();
+	const { activeOrganizationId } = useOrganization();
 
 	// Query all task objects from collection
-	const { data: allTasks, isLoading } = useLiveQuery((q) =>
-		q.from({ tasks: tasksCollection }),
+	// Include tasksCollection and activeOrganizationId in deps to force re-query when they change
+	const { data: allTasks, isLoading } = useLiveQuery(
+		(q) => q.from({ tasks: tasksCollection }),
+		[tasksCollection, activeOrganizationId],
 	);
 
 	console.log("[TasksList] Query result:", {
 		isLoading,
 		allTasksLength: allTasks?.length,
 		allTasks: allTasks,
+		collectionId: (tasksCollection as any).id,
+		collectionInstance: tasksCollection,
 	});
 
 	// Filter out deleted tasks in JavaScript
