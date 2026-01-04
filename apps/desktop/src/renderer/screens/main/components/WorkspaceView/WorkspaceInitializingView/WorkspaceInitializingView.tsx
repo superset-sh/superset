@@ -320,7 +320,7 @@ export function WorkspaceInitializingView({
 
 				{/* Helper text */}
 				<p className="text-xs text-muted-foreground/60">
-					This usually takes 5-15 seconds
+					Takes 10s to a few minutes depending on the size of your repo
 				</p>
 			</div>
 		</div>
