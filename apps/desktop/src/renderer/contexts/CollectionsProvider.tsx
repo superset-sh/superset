@@ -5,7 +5,7 @@ import {
 	useMemo,
 	useRef,
 } from "react";
-import { createCollections, type Collections } from "renderer/collections";
+import { type Collections, createCollections } from "renderer/collections";
 import { env } from "renderer/env.renderer";
 import { useAuth } from "./AuthProvider";
 import { useOrganization } from "./OrganizationProvider";

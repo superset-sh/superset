@@ -1,4 +1,5 @@
 export { AppProviders } from "./AppProviders";
+export { CollectionsProvider, useCollections } from "./CollectionsProvider";
 export {
 	MonacoProvider,
 	SUPERSET_THEME,
@@ -15,5 +16,4 @@ export {
 	useOrganizations,
 } from "./OrganizationsProvider";
 export { PostHogProvider } from "./PostHogProvider";
-export { CollectionsProvider, useCollections } from "./CollectionsProvider";
 export { TRPCProvider } from "./TRPCProvider";

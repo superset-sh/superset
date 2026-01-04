@@ -277,22 +277,9 @@ function TasksList() {
 		[tasksCollection, activeOrganizationId],
 	);
 
-	console.log("[TasksList] Query result:", {
-		isLoading,
-		allTasksLength: allTasks?.length,
-		allTasks: allTasks,
-		collectionId: (tasksCollection as any).id,
-		collectionInstance: tasksCollection,
-	});
-
 	// Filter out deleted tasks in JavaScript
 	const tasks = (allTasks?.filter((task) => task.deletedAt === null) ||
 		[]) as Task[];
-
-	console.log("[TasksList] Filtered tasks:", {
-		tasksLength: tasks.length,
-		tasks,
-	});
 
 	if (isLoading) {
 		return (
