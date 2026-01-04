@@ -59,6 +59,10 @@ const mockHead = {
 		setAttribute: mock(() => {}),
 		appendChild: mock(() => {}),
 		textContent: "",
+		type: "",
+	})),
+	createTextNode: mock((text: string) => ({
+		textContent: text,
 	})),
 };
 
