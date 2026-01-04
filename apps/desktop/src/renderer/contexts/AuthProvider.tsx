@@ -13,33 +13,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		undefined,
 	);
 
-	// Subscribe to access token from auth service
 	trpc.auth.onAccessToken.useSubscription(undefined, {
-		onData: (data) => {
-			console.log("[AuthProvider] Access token updated:", {
-				hasToken: !!data.accessToken,
-				tokenLength: data.accessToken?.length,
-			});
-			setAccessToken(data.accessToken);
-		},
+		onData: (data) => setAccessToken(data.accessToken),
 		onError: (err) => {
 			console.error("[AuthProvider] Token subscription error:", err);
 		},
 	});
 
-	// Loading - waiting for first token emission
 	if (accessToken === undefined) {
 		return null;
 	}
 
-	// No token - show sign in screen
 	if (accessToken === null) {
-		// Import dynamically to avoid circular deps
 		const SignInScreen = require("renderer/screens/sign-in").default;
 		return <SignInScreen />;
 	}
 
-	// Have token - provide to children
 	const value: AuthContextValue = {
 		accessToken,
 		isAuthenticated: true,

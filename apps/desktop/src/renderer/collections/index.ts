@@ -14,10 +14,6 @@ import superjson from "superjson";
 
 const columnMapper = snakeCamelMapper();
 
-/**
- * HTTP-based tRPC client for making API calls to the backend server.
- * Used in collections for write operations.
- */
 const createHttpTrpcClient = ({
 	apiUrl,
 	headers,
@@ -28,7 +24,7 @@ const createHttpTrpcClient = ({
 	return createTRPCProxyClient<AppRouter>({
 		links: [
 			httpBatchLink({
-				url: `${apiUrl}/trpc`,
+				url: `${apiUrl}/api/trpc`,
 				headers,
 				transformer: superjson,
 			}),
@@ -67,7 +63,6 @@ export const createCollections = ({
 			},
 			getKey: (item) => item.id,
 
-			// Write operations via tRPC HTTP client
 			onInsert: async ({ transaction }) => {
 				const item = transaction.mutations[0].modified;
 				const result = await httpTrpcClient.task.create.mutate(item);
@@ -115,7 +110,6 @@ export const createCollections = ({
 		}),
 	);
 
-	// Organization Members Collection (join of organization_members + users)
 	const members = createCollection(
 		electricCollectionOptions<SelectOrganizationMember>({
 			id: `members-${orgId}`,

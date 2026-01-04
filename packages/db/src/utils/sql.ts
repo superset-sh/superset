@@ -1,5 +1,5 @@
 import { getTableColumns, type SQL, sql } from "drizzle-orm";
-import type { PgTable } from "drizzle-orm/pg-core";
+import type { PgTable, PgTransaction } from "drizzle-orm/pg-core";
 
 export function buildConflictUpdateColumns<
 	T extends PgTable,
@@ -14,4 +14,14 @@ export function buildConflictUpdateColumns<
 		},
 		{} as Record<Q, SQL>,
 	);
+}
+
+export async function getCurrentTxid(
+	// biome-ignore lint/suspicious/noExplicitAny: Transaction type varies by client (Neon, PostgresJs, etc)
+	tx: PgTransaction<any, any, any>,
+): Promise<number> {
+	const result = await tx.execute<{ txid: string }>(
+		sql`SELECT txid_current()::text as txid`,
+	);
+	return Number.parseInt(result.rows[0]?.txid ?? "", 10);
 }

@@ -1,3 +1,4 @@
+import type { TaskPriority } from "@superset/db/enums";
 import type { SelectTask } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -32,19 +33,16 @@ import {
 	HiUser,
 } from "react-icons/hi2";
 import {
+	ActiveOrganizationProvider,
 	CollectionsProvider,
-	OrganizationProvider,
 	OrganizationsProvider,
+	useActiveOrganization,
 	useCollections,
-	useOrganization,
 } from "renderer/contexts";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 
-type Task = SelectTask;
-type TaskPriority = "urgent" | "high" | "medium" | "low" | "none";
-
 interface TaskEditDialogProps {
-	task: Task;
+	task: SelectTask;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }
@@ -150,8 +148,8 @@ function TaskCard({
 	task,
 	onEdit,
 }: {
-	task: Task;
-	onEdit: (task: Task) => void;
+	task: SelectTask;
+	onEdit: (task: SelectTask) => void;
 }) {
 	const priorityColors: Record<string, string> = {
 		urgent: "bg-red-500",
@@ -266,9 +264,9 @@ function TaskCard({
 }
 
 function TasksList() {
-	const [editingTask, setEditingTask] = useState<Task | null>(null);
+	const [editingTask, setEditingTask] = useState<SelectTask | null>(null);
 	const { tasks: tasksCollection } = useCollections();
-	const { activeOrganizationId } = useOrganization();
+	const { activeOrganizationId } = useActiveOrganization();
 
 	// Query all task objects from collection
 	// Include tasksCollection and activeOrganizationId in deps to force re-query when they change
@@ -279,7 +277,7 @@ function TasksList() {
 
 	// Filter out deleted tasks in JavaScript
 	const tasks = (allTasks?.filter((task) => task.deletedAt === null) ||
-		[]) as Task[];
+		[]) as SelectTask[];
 
 	if (isLoading) {
 		return (
@@ -356,11 +354,11 @@ function TasksViewContent() {
 export function TasksView() {
 	return (
 		<OrganizationsProvider>
-			<OrganizationProvider>
+			<ActiveOrganizationProvider>
 				<CollectionsProvider>
 					<TasksViewContent />
 				</CollectionsProvider>
-			</OrganizationProvider>
+			</ActiveOrganizationProvider>
 		</OrganizationsProvider>
 	);
 }

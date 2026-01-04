@@ -48,11 +48,6 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 				const emitToken = async () => {
 					try {
 						const accessToken = await authService.getAccessToken();
-						console.log("[auth/onAccessToken] Emitting token:", {
-							hasToken: !!accessToken,
-							tokenLength: accessToken?.length,
-							authState: authService.getState(),
-						});
 						emit.next({ accessToken });
 					} catch (err) {
 						console.error("[auth/onAccessToken] Error getting token:", err);
@@ -61,20 +56,15 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 				};
 
 				const handler = () => {
-					console.log(
-						"[auth/onAccessToken] Auth event fired, re-emitting token",
-					);
 					void emitToken();
 				};
 
-				console.log("[auth/onAccessToken] Subscription started");
 				void emitToken();
 
 				authService.on("tokens-refreshed", handler);
 				authService.on("state-changed", handler);
 
 				return () => {
-					console.log("[auth/onAccessToken] Subscription ended");
 					authService.off("tokens-refreshed", handler);
 					authService.off("state-changed", handler);
 				};

@@ -7,14 +7,14 @@ import {
 } from "react";
 import { type Collections, createCollections } from "renderer/collections";
 import { env } from "renderer/env.renderer";
+import { useActiveOrganization } from "./ActiveOrganizationProvider";
 import { useAuth } from "./AuthProvider";
-import { useOrganization } from "./OrganizationProvider";
 
 const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { accessToken } = useAuth();
-	const { activeOrganizationId } = useOrganization();
+	const { activeOrganizationId } = useActiveOrganization();
 
 	// Stable map of collections per org (never recreate collections, just cache them)
 	const collectionsCache = useRef<Map<string, Collections>>(new Map());

@@ -32,13 +32,7 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
 		return null;
 	}
 
-	// If unauthorized, show sign-in screen
-	// Check both error.data?.code and error.message for UNAUTHORIZED
 	if (error) {
-		console.log("[OrganizationsProvider] Error:", error);
-		console.log("[OrganizationsProvider] Error code:", error.data?.code);
-		console.log("[OrganizationsProvider] Error message:", error.message);
-
 		if (
 			error.data?.code === "UNAUTHORIZED" ||
 			error.message?.includes("Not authenticated")

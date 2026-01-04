@@ -1,7 +1,8 @@
 import { db, dbWs } from "@superset/db/client";
 import { repositories } from "@superset/db/schema";
+import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
@@ -66,17 +67,13 @@ export const repositoryRouter = {
 			}),
 		)
 		.mutation(async ({ input }) => {
-			// Execute in transaction to get txid
 			const result = await dbWs.transaction(async (tx) => {
 				const [repository] = await tx
 					.insert(repositories)
 					.values(input)
 					.returning();
 
-				const result = await tx.execute<{ txid: string }>(
-					sql`SELECT txid_current()::text as txid`,
-				);
-				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+				const txid = await getCurrentTxid(tx);
 
 				return { repository, txid };
 			});
@@ -95,7 +92,6 @@ export const repositoryRouter = {
 		.mutation(async ({ input }) => {
 			const { id, ...data } = input;
 
-			// Execute in transaction to get txid
 			const result = await dbWs.transaction(async (tx) => {
 				const [repository] = await tx
 					.update(repositories)
@@ -103,10 +99,7 @@ export const repositoryRouter = {
 					.where(eq(repositories.id, id))
 					.returning();
 
-				const result = await tx.execute<{ txid: string }>(
-					sql`SELECT txid_current()::text as txid`,
-				);
-				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+				const txid = await getCurrentTxid(tx);
 
 				return { repository, txid };
 			});
@@ -117,14 +110,10 @@ export const repositoryRouter = {
 	delete: protectedProcedure
 		.input(z.string().uuid())
 		.mutation(async ({ input }) => {
-			// Execute in transaction to get txid
 			const result = await dbWs.transaction(async (tx) => {
 				await tx.delete(repositories).where(eq(repositories.id, input));
 
-				const result = await tx.execute<{ txid: string }>(
-					sql`SELECT txid_current()::text as txid`,
-				);
-				const txid = Number.parseInt(result.rows[0]?.txid ?? "", 10);
+				const txid = await getCurrentTxid(tx);
 
 				return { txid };
 			});
