@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { SignInScreen } from "renderer/screens/sign-in";
 
 interface AuthContextValue {
 	accessToken: string;
@@ -25,7 +26,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	}
 
 	if (accessToken === null) {
-		const SignInScreen = require("renderer/screens/sign-in").default;
 		return <SignInScreen />;
 	}
 
