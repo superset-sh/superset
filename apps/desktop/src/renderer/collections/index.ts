@@ -19,7 +19,7 @@ const createHttpTrpcClient = ({
 	getHeaders,
 }: {
 	apiUrl: string;
-	getHeaders?: () => Record<string, string>;
+	getHeaders: () => Record<string, string>;
 }) => {
 	return createTRPCProxyClient<AppRouter>({
 		links: [
@@ -46,7 +46,7 @@ export const createCollections = ({
 	orgId: string;
 	electricUrl: string;
 	apiUrl: string;
-	getHeaders?: () => Record<string, string>;
+	getHeaders: () => Record<string, string>;
 }) => {
 	const httpTrpcClient = createHttpTrpcClient({ apiUrl, getHeaders });
 
@@ -58,7 +58,7 @@ export const createCollections = ({
 				params: {
 					table: "tasks",
 				},
-				headers: getHeaders?.(),
+				headers: getHeaders(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -91,7 +91,7 @@ export const createCollections = ({
 				params: {
 					table: "repositories",
 				},
-				headers: getHeaders?.(),
+				headers: getHeaders(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -118,7 +118,7 @@ export const createCollections = ({
 				params: {
 					table: "organization_members",
 				},
-				headers: getHeaders?.(),
+				headers: getHeaders(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -133,7 +133,7 @@ export const createCollections = ({
 				params: {
 					table: "users",
 				},
-				headers: getHeaders?.(),
+				headers: getHeaders(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
