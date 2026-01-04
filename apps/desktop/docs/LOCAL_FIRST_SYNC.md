@@ -1,3 +1,5 @@
+> **DEPRECATED (PGLite)**: This document describes a PGLite-based architecture that was replaced by TanstackDb + Electric in PR #585. Kept for historical context.
+
 # Local-First Sync Plan
 
 ## Current State
