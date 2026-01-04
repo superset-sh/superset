@@ -245,7 +245,7 @@ export function setupPasteHandler(
 
 /**
  * Setup keyboard handling for xterm including:
- * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
+ * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
  * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
  * - Clear terminal: Uses the configured clear shortcut
  *

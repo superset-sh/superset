@@ -1,10 +1,9 @@
 import { useMemo } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
-import { getHotkey } from "shared/hotkeys";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
 
@@ -52,77 +51,117 @@ export function WorkspaceView() {
 		: "workbench";
 
 	// Tab management shortcuts
-	useHotkeys(getHotkey("NEW_GROUP"), () => {
-		if (activeWorkspaceId) {
-			// If in Review mode, switch to Workbench first
-			if (viewMode === "review") {
-				setWorkspaceViewMode(activeWorkspaceId, "workbench");
+	useAppHotkey(
+		"NEW_GROUP",
+		() => {
+			if (activeWorkspaceId) {
+				// If in Review mode, switch to Workbench first
+				if (viewMode === "review") {
+					setWorkspaceViewMode(activeWorkspaceId, "workbench");
+				}
+				addTab(activeWorkspaceId);
 			}
-			addTab(activeWorkspaceId);
-		}
-	}, [activeWorkspaceId, addTab, viewMode, setWorkspaceViewMode]);
+		},
+		undefined,
+		[activeWorkspaceId, addTab, viewMode, setWorkspaceViewMode],
+	);
 
-	useHotkeys(getHotkey("CLOSE_TERMINAL"), () => {
-		// Close focused pane (which may close the tab if it's the last pane)
-		if (focusedPaneId) {
-			removePane(focusedPaneId);
-		}
-	}, [focusedPaneId, removePane]);
+	useAppHotkey(
+		"CLOSE_TERMINAL",
+		() => {
+			// Close focused pane (which may close the tab if it's the last pane)
+			if (focusedPaneId) {
+				removePane(focusedPaneId);
+			}
+		},
+		undefined,
+		[focusedPaneId, removePane],
+	);
 
 	// Switch between tabs (⌘+Up/Down)
-	useHotkeys(getHotkey("PREV_TERMINAL"), () => {
-		if (!activeWorkspaceId || !activeTabId) return;
-		const index = tabs.findIndex((t) => t.id === activeTabId);
-		if (index > 0) {
-			setActiveTab(activeWorkspaceId, tabs[index - 1].id);
-		}
-	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
+	useAppHotkey(
+		"PREV_TERMINAL",
+		() => {
+			if (!activeWorkspaceId || !activeTabId) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			if (index > 0) {
+				setActiveTab(activeWorkspaceId, tabs[index - 1].id);
+			}
+		},
+		undefined,
+		[activeWorkspaceId, activeTabId, tabs, setActiveTab],
+	);
 
-	useHotkeys(getHotkey("NEXT_TERMINAL"), () => {
-		if (!activeWorkspaceId || !activeTabId) return;
-		const index = tabs.findIndex((t) => t.id === activeTabId);
-		if (index < tabs.length - 1) {
-			setActiveTab(activeWorkspaceId, tabs[index + 1].id);
-		}
-	}, [activeWorkspaceId, activeTabId, tabs, setActiveTab]);
+	useAppHotkey(
+		"NEXT_TERMINAL",
+		() => {
+			if (!activeWorkspaceId || !activeTabId) return;
+			const index = tabs.findIndex((t) => t.id === activeTabId);
+			if (index < tabs.length - 1) {
+				setActiveTab(activeWorkspaceId, tabs[index + 1].id);
+			}
+		},
+		undefined,
+		[activeWorkspaceId, activeTabId, tabs, setActiveTab],
+	);
 
 	// Switch between panes within a tab (⌘+⌥+Left/Right)
-	useHotkeys(getHotkey("PREV_PANE"), () => {
-		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
-		const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
-		if (prevPaneId) {
-			setFocusedPane(activeTabId, prevPaneId);
-		}
-	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
+	useAppHotkey(
+		"PREV_PANE",
+		() => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const prevPaneId = getPreviousPaneId(activeTab.layout, focusedPaneId);
+			if (prevPaneId) {
+				setFocusedPane(activeTabId, prevPaneId);
+			}
+		},
+		undefined,
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
 
-	useHotkeys(getHotkey("NEXT_PANE"), () => {
-		if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
-		const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
-		if (nextPaneId) {
-			setFocusedPane(activeTabId, nextPaneId);
-		}
-	}, [activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane]);
+	useAppHotkey(
+		"NEXT_PANE",
+		() => {
+			if (!activeTabId || !activeTab?.layout || !focusedPaneId) return;
+			const nextPaneId = getNextPaneId(activeTab.layout, focusedPaneId);
+			if (nextPaneId) {
+				setFocusedPane(activeTabId, nextPaneId);
+			}
+		},
+		undefined,
+		[activeTabId, activeTab?.layout, focusedPaneId, setFocusedPane],
+	);
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =
 		trpc.settings.getLastUsedApp.useQuery();
 	const openInApp = trpc.external.openInApp.useMutation();
-	useHotkeys("meta+o", () => {
-		if (activeWorkspace?.worktreePath) {
-			openInApp.mutate({
-				path: activeWorkspace.worktreePath,
-				app: lastUsedApp,
-			});
-		}
-	}, [activeWorkspace?.worktreePath, lastUsedApp]);
+	useAppHotkey(
+		"OPEN_IN_APP",
+		() => {
+			if (activeWorkspace?.worktreePath) {
+				openInApp.mutate({
+					path: activeWorkspace.worktreePath,
+					app: lastUsedApp,
+				});
+			}
+		},
+		undefined,
+		[activeWorkspace?.worktreePath, lastUsedApp],
+	);
 
 	// Copy path shortcut
 	const copyPath = trpc.external.copyPath.useMutation();
-	useHotkeys("meta+shift+c", () => {
-		if (activeWorkspace?.worktreePath) {
-			copyPath.mutate(activeWorkspace.worktreePath);
-		}
-	}, [activeWorkspace?.worktreePath]);
+	useAppHotkey(
+		"COPY_PATH",
+		() => {
+			if (activeWorkspace?.worktreePath) {
+				copyPath.mutate(activeWorkspace.worktreePath);
+			}
+		},
+		undefined,
+		[activeWorkspace?.worktreePath],
+	);
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
