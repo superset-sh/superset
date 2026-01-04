@@ -4,6 +4,7 @@ export {
 	isVisibleOnAnyDisplay,
 } from "./bounds-validation";
 export {
+	isValidWindowState,
 	loadWindowState,
 	saveWindowState,
 	type WindowState,

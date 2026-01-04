@@ -58,7 +58,7 @@ export function saveWindowState(state: WindowState): void {
 	}
 }
 
-function isValidWindowState(value: unknown): value is WindowState {
+export function isValidWindowState(value: unknown): value is WindowState {
 	if (!value || typeof value !== "object") return false;
 	const v = value as Record<string, unknown>;
 	return (
