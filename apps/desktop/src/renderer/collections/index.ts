@@ -16,16 +16,16 @@ const columnMapper = snakeCamelMapper();
 
 const createHttpTrpcClient = ({
 	apiUrl,
-	headers,
+	getHeaders,
 }: {
 	apiUrl: string;
-	headers?: Record<string, string>;
+	getHeaders?: () => Record<string, string>;
 }) => {
 	return createTRPCProxyClient<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${apiUrl}/api/trpc`,
-				headers,
+				headers: getHeaders,
 				transformer: superjson,
 			}),
 		],
@@ -41,14 +41,14 @@ export const createCollections = ({
 	orgId,
 	electricUrl,
 	apiUrl,
-	headers,
+	getHeaders,
 }: {
 	orgId: string;
 	electricUrl: string;
 	apiUrl: string;
-	headers?: Record<string, string>;
+	getHeaders?: () => Record<string, string>;
 }) => {
-	const httpTrpcClient = createHttpTrpcClient({ apiUrl, headers });
+	const httpTrpcClient = createHttpTrpcClient({ apiUrl, getHeaders });
 
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
@@ -58,7 +58,7 @@ export const createCollections = ({
 				params: {
 					table: "tasks",
 				},
-				headers,
+				headers: getHeaders?.(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -91,7 +91,7 @@ export const createCollections = ({
 				params: {
 					table: "repositories",
 				},
-				headers,
+				headers: getHeaders?.(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -118,7 +118,7 @@ export const createCollections = ({
 				params: {
 					table: "organization_members",
 				},
-				headers,
+				headers: getHeaders?.(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,
@@ -133,7 +133,7 @@ export const createCollections = ({
 				params: {
 					table: "users",
 				},
-				headers,
+				headers: getHeaders?.(),
 				columnMapper,
 			},
 			getKey: (item) => item.id,

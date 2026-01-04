@@ -55,7 +55,7 @@ const mockHead = {
 		if (tag === "head") return [mockHead];
 		return [];
 	}),
-	createElement: mock((tag: string) => ({
+	createElement: mock((_tag: string) => ({
 		setAttribute: mock(() => {}),
 		appendChild: mock(() => {}),
 		textContent: "",

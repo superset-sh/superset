@@ -16,6 +16,10 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { accessToken } = useAuth();
 	const { activeOrganizationId } = useActiveOrganization();
 
+	// Keep ref to always get current token (handles token refresh without recreating collections)
+	const accessTokenRef = useRef(accessToken);
+	accessTokenRef.current = accessToken;
+
 	// Stable map of collections per org (never recreate collections, just cache them)
 	const collectionsCache = useRef<Map<string, Collections>>(new Map());
 
@@ -25,19 +29,21 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		const cached = collectionsCache.current.get(activeOrganizationId);
 		if (cached) return cached;
 
-		const headers = { Authorization: `Bearer ${accessToken}` };
+		const getHeaders = () => ({
+			Authorization: `Bearer ${accessTokenRef.current}`,
+		});
 		const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape?organizationId=${activeOrganizationId}`;
 
 		const newCollections = createCollections({
 			orgId: activeOrganizationId,
 			electricUrl,
 			apiUrl: env.NEXT_PUBLIC_API_URL,
-			headers,
+			getHeaders,
 		});
 
 		collectionsCache.current.set(activeOrganizationId, newCollections);
 		return newCollections;
-	}, [activeOrganizationId, accessToken]);
+	}, [activeOrganizationId]);
 
 	if (!collections) {
 		return null;
