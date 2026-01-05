@@ -1,6 +1,7 @@
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
 import { WindowControls } from "./WindowControls";
+import { OpenInMenuButton } from "./WorkspaceControls/OpenInMenuButton";
 import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 
 export function TopBar() {
@@ -31,6 +32,12 @@ export function TopBar() {
 			</div>
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{activeWorkspace?.worktreePath && (
+					<OpenInMenuButton
+						worktreePath={activeWorkspace.worktreePath}
+						branch={activeWorkspace.worktree?.branch}
+					/>
+				)}
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
 			</div>

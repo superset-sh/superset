@@ -23,10 +23,7 @@ export function ContentView() {
 	const showGroupStrip = viewMode === "workbench";
 
 	const workspaceControls = (
-		<WorkspaceControls
-			workspaceId={activeWorkspace?.id}
-			worktreePath={activeWorkspace?.worktreePath}
-		/>
+		<WorkspaceControls workspaceId={activeWorkspace?.id} />
 	);
 
 	if (viewMode === "review") {
