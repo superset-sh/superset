@@ -1,8 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { GroupItem } from "./GroupItem";
