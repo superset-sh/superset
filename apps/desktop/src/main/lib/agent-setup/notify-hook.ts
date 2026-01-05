@@ -26,17 +26,26 @@ else
 fi
 
 # Extract event type - Claude uses "hook_event_name", Codex uses "type"
-EVENT_TYPE=$(echo "$INPUT" | grep -o '"hook_event_name":"[^"]*"' | cut -d'"' -f4)
+# Use flexible pattern to handle optional whitespace: "key": "value" or "key":"value"
+EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$EVENT_TYPE" ]; then
   # Check for Codex "type" field (e.g., "agent-turn-complete")
-  CODEX_TYPE=$(echo "$INPUT" | grep -o '"type":"[^"]*"' | cut -d'"' -f4)
+  CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
   if [ "$CODEX_TYPE" = "agent-turn-complete" ]; then
     EVENT_TYPE="Stop"
   fi
 fi
 
-# Default to "Stop" if not found
-[ -z "$EVENT_TYPE" ] && EVENT_TYPE="Stop"
+# NOTE: We intentionally do NOT default to "Stop" if EVENT_TYPE is empty.
+# Parse failures should not trigger completion notifications.
+# The server will ignore requests with missing eventType (forward compatibility).
+
+# Map UserPromptSubmit to Start for simpler handling
+[ "$EVENT_TYPE" = "UserPromptSubmit" ] && EVENT_TYPE="Start"
+
+# If no event type was found, skip the notification
+# This prevents parse failures from causing false completion notifications
+[ -z "$EVENT_TYPE" ] && exit 0
 
 # Timeouts prevent blocking agent completion if notification server is unresponsive
 curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/complete" \\
@@ -45,6 +54,8 @@ curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${PORTS.NOTIFICATIONS}}/hook/comple
   --data-urlencode "tabId=$SUPERSET_TAB_ID" \\
   --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \\
   --data-urlencode "eventType=$EVENT_TYPE" \\
+  --data-urlencode "env=$SUPERSET_ENV" \\
+  --data-urlencode "version=$SUPERSET_HOOK_VERSION" \\
   > /dev/null 2>&1
 `;
 }

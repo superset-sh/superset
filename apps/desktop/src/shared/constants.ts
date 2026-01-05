@@ -40,7 +40,7 @@ export const CONFIG_TEMPLATE = `{
 }`;
 
 export const NOTIFICATION_EVENTS = {
-	AGENT_COMPLETE: "agent-complete",
+	AGENT_LIFECYCLE: "agent-lifecycle",
 	FOCUS_TAB: "focus-tab",
 } as const;
 

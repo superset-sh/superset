@@ -12,7 +12,7 @@ import {
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
-export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v3";
+export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v4";
 
 const REAL_BINARY_RESOLVER = `find_real_binary() {
   local name="$1"
@@ -72,6 +72,7 @@ export function getOpenCodeGlobalPluginPath(): string {
 export function getClaudeSettingsContent(notifyPath: string): string {
 	const settings = {
 		hooks: {
+			UserPromptSubmit: [{ hooks: [{ type: "command", command: notifyPath }] }],
 			Stop: [{ hooks: [{ type: "command", command: notifyPath }] }],
 			PermissionRequest: [
 				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
@@ -144,7 +145,7 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" * Superset Notification Plugin for OpenCode",
 		" *",
 		" * This plugin sends desktop notifications when OpenCode sessions need attention.",
-		" * It hooks into session.idle, session.error, and permission.ask events.",
+		" * It hooks into session.status (busy/idle), session.error, and permission.ask events.",
 		" *",
 		" * IMPORTANT: Subagent/Background Task Filtering",
 		" * --------------------------------------------",
@@ -164,8 +165,8 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx",
 		" */",
 		"export const SupersetNotifyPlugin = async ({ $, client }) => {",
-		"  if (globalThis.__supersetOpencodeNotifyPluginV3) return {};",
-		"  globalThis.__supersetOpencodeNotifyPluginV3 = true;",
+		"  if (globalThis.__supersetOpencodeNotifyPluginV4) return {};",
+		"  globalThis.__supersetOpencodeNotifyPluginV4 = true;",
 		"",
 		"  // Only run inside a Superset terminal session",
 		"  if (!process?.env?.SUPERSET_TAB_ID) return {};",
@@ -216,16 +217,29 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		"",
 		"  return {",
 		"    event: async ({ event }) => {",
-		"      // Handle session completion events",
-		'      if (event.type === "session.idle" || event.type === "session.error") {',
+		"      // Handle session status changes (busy = working, idle = done)",
+		'      if (event.type === "session.status") {',
 		"        const sessionID = event.properties?.sessionID;",
+		"        const status = event.properties?.status;",
 		"",
 		"        // Skip notifications for child/subagent sessions",
-		"        // This prevents notification spam when background agents complete",
 		"        if (await isChildSession(sessionID)) {",
 		"          return;",
 		"        }",
 		"",
+		'        if (status?.type === "busy") {',
+		'          await notify("Start");',
+		'        } else if (status?.type === "idle") {',
+		'          await notify("Stop");',
+		"        }",
+		"      }",
+		"",
+		"      // Handle session errors (also means session stopped)",
+		'      if (event.type === "session.error") {',
+		"        const sessionID = event.properties?.sessionID;",
+		"        if (await isChildSession(sessionID)) {",
+		"          return;",
+		"        }",
 		'        await notify("Stop");',
 		"      }",
 		"    },",
@@ -275,24 +289,43 @@ export function createCodexWrapper(): void {
 }
 
 /**
- * Creates OpenCode plugin file with notification hooks
+ * Creates OpenCode plugin file with notification hooks.
+ * Only writes to environment-specific path - NOT the global path.
+ * Global path causes dev/prod conflicts when both are running.
  */
 export function createOpenCodePlugin(): void {
 	const pluginPath = getOpenCodePluginPath();
 	const notifyPath = getNotifyScriptPath();
 	const content = getOpenCodePluginContent(notifyPath);
 	fs.writeFileSync(pluginPath, content, { mode: 0o644 });
+	console.log("[agent-setup] Created OpenCode plugin");
+}
+
+/**
+ * Cleans up stale global OpenCode plugin that may have been written by older versions.
+ * Only removes if the file contains our marker to avoid deleting user-installed plugins.
+ * This prevents dev/prod cross-talk when both environments are running.
+ */
+export function cleanupGlobalOpenCodePlugin(): void {
 	try {
 		const globalPluginPath = getOpenCodeGlobalPluginPath();
-		fs.mkdirSync(path.dirname(globalPluginPath), { recursive: true });
-		fs.writeFileSync(globalPluginPath, content, { mode: 0o644 });
+		if (!fs.existsSync(globalPluginPath)) return;
+
+		const content = fs.readFileSync(globalPluginPath, "utf-8");
+		// Check for any version of our marker (v1, v2, v3, v4, etc.)
+		if (content.includes("// Superset opencode plugin")) {
+			fs.unlinkSync(globalPluginPath);
+			console.log(
+				"[agent-setup] Removed stale global OpenCode plugin to prevent dev/prod conflicts",
+			);
+		}
 	} catch (error) {
+		// Ignore errors - this is best-effort cleanup
 		console.warn(
-			"[agent-setup] Failed to write global OpenCode plugin:",
+			"[agent-setup] Failed to cleanup global OpenCode plugin:",
 			error,
 		);
 	}
-	console.log("[agent-setup] Created OpenCode plugin");
 }
 
 /**
