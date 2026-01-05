@@ -42,9 +42,9 @@ export function FileViewerToolbar({
 	onClosePane,
 }: FileViewerToolbarProps) {
 	return (
-		<div className="flex h-full w-full items-center justify-between px-2">
+		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
-				<span className="truncate text-xs font-medium">
+				<span className="truncate text-xs text-muted-foreground">
 					{isDirty && <span className="text-amber-500 mr-1">●</span>}
 					{fileName}
 				</span>
@@ -90,7 +90,7 @@ export function FileViewerToolbar({
 								<button
 									type="button"
 									onClick={onToggleLock}
-									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+									className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 								>
 									{isLocked ? (
 										<HiMiniLockClosed className="size-3" />
