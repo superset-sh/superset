@@ -1,15 +1,10 @@
-import { trpc } from "renderer/lib/trpc";
-import { OpenInMenuButton } from "./OpenInMenuButton";
+interface WorkspaceControlsProps {
+	workspaceId?: string | undefined;
+}
 
-export function WorkspaceControls() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const worktreePath = activeWorkspace?.worktreePath;
+export function WorkspaceControls({ workspaceId }: WorkspaceControlsProps) {
+	if (!workspaceId) return null;
 
-	if (!worktreePath) return null;
-
-	return (
-		<div className="flex items-center gap-2 no-drag">
-			<OpenInMenuButton worktreePath={worktreePath} />
-		</div>
-	);
+	// TODO: Add ViewModeToggleCompact when implemented
+	return null;
 }

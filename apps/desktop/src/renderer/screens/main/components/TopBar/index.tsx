@@ -33,7 +33,10 @@ export function TopBar() {
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
 				{activeWorkspace?.worktreePath && (
-					<OpenInMenuButton worktreePath={activeWorkspace.worktreePath} />
+					<OpenInMenuButton
+						worktreePath={activeWorkspace.worktreePath}
+						branch={activeWorkspace.worktree?.branch}
+					/>
 				)}
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
