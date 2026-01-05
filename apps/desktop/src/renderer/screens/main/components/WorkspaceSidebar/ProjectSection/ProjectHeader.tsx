@@ -1,14 +1,19 @@
 import { cn } from "@superset/ui/utils";
+import { ProjectThumbnail } from "./ProjectThumbnail";
 
 interface ProjectHeaderProps {
+	projectId: string;
 	projectName: string;
+	githubOwner: string | null;
 	isCollapsed: boolean;
 	onToggleCollapse: () => void;
 	workspaceCount: number;
 }
 
 export function ProjectHeader({
+	projectId,
 	projectName,
+	githubOwner,
 	isCollapsed,
 	onToggleCollapse,
 	workspaceCount,
@@ -24,6 +29,11 @@ export function ProjectHeader({
 				"text-left cursor-pointer",
 			)}
 		>
+			<ProjectThumbnail
+				projectId={projectId}
+				projectName={projectName}
+				githubOwner={githubOwner}
+			/>
 			<span className="truncate flex-1">{projectName}</span>
 			<span className="text-xs text-muted-foreground">{workspaceCount}</span>
 		</button>

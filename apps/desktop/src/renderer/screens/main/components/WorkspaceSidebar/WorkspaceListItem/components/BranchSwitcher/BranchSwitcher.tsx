@@ -9,7 +9,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
-import { HiCheck, HiChevronDown } from "react-icons/hi2";
+import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
@@ -117,12 +117,13 @@ export function BranchSwitcher({
 				<button
 					type="button"
 					className={cn(
-						"flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors",
+						"flex items-center gap-0.5 px-1 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors",
+						isOpen && "bg-muted/50 text-foreground",
 						className,
 					)}
 					onClick={(e) => e.stopPropagation()}
 				>
-					<HiChevronDown className="size-3" />
+					<HiChevronUpDown className="size-3.5" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent

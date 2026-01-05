@@ -28,6 +28,7 @@ interface Workspace {
 interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
+	githubOwner: string | null;
 	workspaces: Workspace[];
 	activeWorkspaceId: string | null;
 	/** Base index for keyboard shortcuts (0-based) */
@@ -37,6 +38,7 @@ interface ProjectSectionProps {
 export function ProjectSection({
 	projectId,
 	projectName,
+	githubOwner,
 	workspaces,
 	activeWorkspaceId,
 	shortcutBaseIndex,
@@ -67,7 +69,9 @@ export function ProjectSection({
 	return (
 		<div className="border-b border-border last:border-b-0">
 			<ProjectHeader
+				projectId={projectId}
 				projectName={projectName}
+				githubOwner={githubOwner}
 				isCollapsed={isCollapsed}
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 				workspaceCount={workspaces.length}
