@@ -1,10 +1,12 @@
 .mosaic-container {
 	background: transparent;
-	padding: 0;
 }
 
 .mosaic-theme-dark .mosaic-root {
-	padding: 0;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 }
 
 .mosaic-theme-dark .mosaic-tile {
