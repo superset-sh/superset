@@ -422,12 +422,12 @@ export const HOTKEYS = {
 
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({
-		keys: "meta+b",
-		label: "Toggle Files Sidebar",
+		keys: "meta+l",
+		label: "Toggle Changes Tab",
 		category: "Layout",
 	}),
 	TOGGLE_WORKSPACE_SIDEBAR: defineHotkey({
-		keys: "meta+shift+b",
+		keys: "meta+b",
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	}),
