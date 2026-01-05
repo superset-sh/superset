@@ -3,14 +3,13 @@ import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { LuLoader } from "react-icons/lu";
 import {
+	MONACO_EDITOR_OPTIONS,
+	registerSaveAction,
 	SUPERSET_THEME,
 	useMonacoReady,
 } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-import {
-	registerCopyPathLineAction,
-	registerSaveAction,
-} from "./editor-actions";
+import { registerCopyPathLineAction } from "./editor-actions";
 
 interface DiffViewerProps {
 	contents: FileContents;
@@ -115,23 +114,12 @@ export function DiffViewer({
 					</div>
 				}
 				options={{
+					...MONACO_EDITOR_OPTIONS,
 					renderSideBySide: viewMode === "side-by-side",
 					readOnly: !editable,
 					originalEditable: false,
-					minimap: { enabled: false },
-					scrollBeyondLastLine: false,
 					renderOverviewRuler: false,
-					wordWrap: "on",
 					diffWordWrap: "on",
-					fontSize: 13,
-					lineHeight: 20,
-					fontFamily:
-						"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
-					padding: { top: 8, bottom: 8 },
-					scrollbar: {
-						verticalScrollbarSize: 8,
-						horizontalScrollbarSize: 8,
-					},
 				}}
 			/>
 		</div>

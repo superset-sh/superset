@@ -1,73 +1,16 @@
-import Editor, { type OnMount } from "@monaco-editor/react";
-import { Badge } from "@superset/ui/badge";
-import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiMiniLockClosed,
-	HiMiniLockOpen,
-	HiMiniPencil,
-	HiMiniXMark,
-} from "react-icons/hi2";
-import { LuLoader } from "react-icons/lu";
-import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
-import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
-import {
-	monaco,
-	SUPERSET_THEME,
-	useMonacoReady,
-} from "renderer/contexts/MonacoProvider";
-import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Pane } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
-import { DiffViewer } from "../../../ChangesContent/components/DiffViewer";
+import { FileViewerContent } from "./components/FileViewerContent";
+import { FileViewerToolbar } from "./components/FileViewerToolbar";
+import { useFileContent } from "./hooks/useFileContent";
+import { useFileSave } from "./hooks/useFileSave";
+import { useSplitOrientation } from "./hooks/useSplitOrientation";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
-
-type SplitOrientation = "vertical" | "horizontal";
-
-/** Client-side language detection for Monaco editor */
-function detectLanguage(filePath: string): string {
-	const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
-	const languageMap: Record<string, string> = {
-		ts: "typescript",
-		tsx: "typescript",
-		js: "javascript",
-		jsx: "javascript",
-		mjs: "javascript",
-		cjs: "javascript",
-		json: "json",
-		md: "markdown",
-		mdx: "markdown",
-		css: "css",
-		scss: "scss",
-		less: "less",
-		html: "html",
-		xml: "xml",
-		yaml: "yaml",
-		yml: "yaml",
-		py: "python",
-		rs: "rust",
-		go: "go",
-		java: "java",
-		kt: "kotlin",
-		swift: "swift",
-		c: "c",
-		cpp: "cpp",
-		h: "c",
-		hpp: "cpp",
-		sh: "shell",
-		bash: "shell",
-		zsh: "shell",
-		sql: "sql",
-		graphql: "graphql",
-		gql: "graphql",
-	};
-	return languageMap[ext] ?? "plaintext";
-}
 
 interface FileViewerPaneProps {
 	paneId: string;
@@ -98,176 +41,55 @@ export function FileViewerPane({
 	setFocusedPane,
 }: FileViewerPaneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const [splitOrientation, setSplitOrientation] =
-		useState<SplitOrientation>("vertical");
-	const isMonacoReady = useMonacoReady();
+	const splitOrientation = useSplitOrientation(containerRef);
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
-	// Store draft content to preserve edits across view mode switches
 	const draftContentRef = useRef<string | null>(null);
-	// Track original diff modified content for dirty comparison
 	const originalDiffContentRef = useRef<string>("");
-	// Track current diff content for save & switch
 	const currentDiffContentRef = useRef<string>("");
-	// Dialog state for unsaved changes prompt
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
 	const pendingModeRef = useRef<FileViewerMode | null>(null);
-	const utils = trpc.useUtils();
-
-	// Track container dimensions for auto-split orientation
-	useEffect(() => {
-		const container = containerRef.current;
-		if (!container) return;
-
-		const updateOrientation = () => {
-			const { width, height } = container.getBoundingClientRect();
-			setSplitOrientation(width >= height ? "vertical" : "horizontal");
-		};
-
-		updateOrientation();
-
-		const resizeObserver = new ResizeObserver(updateOrientation);
-		resizeObserver.observe(container);
-
-		return () => {
-			resizeObserver.disconnect();
-		};
-	}, []);
 
 	const fileViewer = pane.fileViewer;
-
-	// Extract values with defaults for hooks (hooks must be called unconditionally)
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
 	const isLocked = fileViewer?.isLocked ?? false;
 	const diffCategory = fileViewer?.diffCategory;
 	const commitHash = fileViewer?.commitHash;
 	const oldPath = fileViewer?.oldPath;
-	// Line/column for initial scroll position (raw mode only, applied once)
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
 
-	// Fetch branch info for against-base diffs (P1-1)
-	const { data: branchData } = trpc.changes.getBranches.useQuery(
-		{ worktreePath },
-		{ enabled: !!worktreePath && diffCategory === "against-base" },
-	);
-	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
-
-	// Track if we're saving from raw mode to know when to clear draft
-	const savingFromRawRef = useRef(false);
-	// Track content being saved from diff mode for updating originalDiffContentRef
-	const savingDiffContentRef = useRef<string | null>(null);
-
-	// Track if we've applied initial line/column navigation (reset on file change)
-	const hasAppliedInitialLocationRef = useRef(false);
-
-	// Save mutation
-	const saveFileMutation = trpc.changes.saveFile.useMutation({
-		onSuccess: () => {
-			setIsDirty(false);
-			// Update original content to current content after save
-			if (editorRef.current) {
-				originalContentRef.current = editorRef.current.getValue();
-			}
-			// Update diff baseline if we saved from Diff mode
-			if (savingDiffContentRef.current !== null) {
-				originalDiffContentRef.current = savingDiffContentRef.current;
-				savingDiffContentRef.current = null;
-			}
-			// P1: Only clear draft if we saved from Raw mode (we saved the draft content)
-			// Don't clear if saving from Diff mode as that would discard Raw edits
-			if (savingFromRawRef.current) {
-				draftContentRef.current = null;
-			}
-			savingFromRawRef.current = false;
-			// Invalidate queries to refresh data
-			utils.changes.readWorkingFile.invalidate();
-			utils.changes.getFileContents.invalidate();
-			utils.changes.getStatus.invalidate();
-
-			// P1-2: Switch to unstaged view if saving from staged (edits become unstaged changes)
-			if (diffCategory === "staged") {
-				const panes = useTabsStore.getState().panes;
-				const currentPane = panes[paneId];
-				if (currentPane?.fileViewer) {
-					useTabsStore.setState({
-						panes: {
-							...panes,
-							[paneId]: {
-								...currentPane,
-								fileViewer: {
-									...currentPane.fileViewer,
-									diffCategory: "unstaged",
-								},
-							},
-						},
-					});
-				}
-			}
-		},
+	const { handleSaveRaw, handleSaveDiff, isSaving } = useFileSave({
+		worktreePath,
+		filePath,
+		paneId,
+		diffCategory,
+		editorRef,
+		originalContentRef,
+		originalDiffContentRef,
+		draftContentRef,
+		setIsDirty,
 	});
 
-	// Save handler for raw mode editor - returns promise for async save & switch
-	const handleSaveRaw = useCallback(async () => {
-		if (!editorRef.current || !filePath || !worktreePath) return;
-		// Mark that we're saving from Raw mode so onSuccess knows to clear draft
-		savingFromRawRef.current = true;
-		await saveFileMutation.mutateAsync({
+	const { rawFileData, isLoadingRaw, diffData, isLoadingDiff } = useFileContent(
+		{
 			worktreePath,
 			filePath,
-			content: editorRef.current.getValue(),
-		});
-	}, [worktreePath, filePath, saveFileMutation]);
-
-	// Save handler for diff mode - returns promise for async save & switch
-	const handleSaveDiff = useCallback(
-		async (content: string) => {
-			if (!filePath || !worktreePath) return;
-			// Not saving from Raw mode - don't clear draft
-			savingFromRawRef.current = false;
-			// Track content for updating diff baseline on success
-			savingDiffContentRef.current = content;
-			await saveFileMutation.mutateAsync({
-				worktreePath,
-				filePath,
-				content,
-			});
+			viewMode,
+			diffCategory,
+			commitHash,
+			oldPath,
+			isDirty,
+			originalContentRef,
+			originalDiffContentRef,
 		},
-		[worktreePath, filePath, saveFileMutation],
 	);
 
-	// Editor mount handler - set up Cmd+S keybinding
-	const handleEditorMount: OnMount = useCallback(
-		(editor) => {
-			editorRef.current = editor;
-			// Store original content for dirty tracking (only if not restoring draft)
-			// If we have draft content, originalContentRef is already set to the file content
-			if (!draftContentRef.current) {
-				originalContentRef.current = editor.getValue();
-			}
-			// P1: Update dirty state based on restored draft content
-			setIsDirty(editor.getValue() !== originalContentRef.current);
-
-			// Register save action with Cmd+S / Ctrl+S
-			editor.addAction({
-				id: "save-file",
-				label: "Save File",
-				keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-				run: () => {
-					handleSaveRaw();
-				},
-			});
-		},
-		[handleSaveRaw],
-	);
-
-	// Track content changes for dirty state
 	const handleEditorChange = useCallback((value: string | undefined) => {
 		if (value === undefined) return;
-		// If baseline is empty, this is initial load after a mode switch - set baseline
 		if (originalContentRef.current === "") {
 			originalContentRef.current = value;
 			return;
@@ -275,74 +97,15 @@ export function FileViewerPane({
 		setIsDirty(value !== originalContentRef.current);
 	}, []);
 
-	// Reset dirty state, draft, and initial location tracking when file changes
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
 		setIsDirty(false);
 		originalContentRef.current = "";
 		draftContentRef.current = null;
-		hasAppliedInitialLocationRef.current = false;
 	}, [filePath]);
 
-	// P1: Reset navigation flag when line/column changes (e.g., clicking same file from terminal with different line)
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only reset when coordinates change
-	useEffect(() => {
-		hasAppliedInitialLocationRef.current = false;
-	}, [initialLine, initialColumn]);
-
-	// Fetch raw file content - always call hook, use enabled to control fetching
-	const { data: rawFileData, isLoading: isLoadingRaw } =
-		trpc.changes.readWorkingFile.useQuery(
-			{ worktreePath, filePath },
-			{
-				enabled:
-					!!fileViewer && viewMode !== "diff" && !!filePath && !!worktreePath,
-			},
-		);
-
-	// Fetch diff content - always call hook, use enabled to control fetching
-	const { data: diffData, isLoading: isLoadingDiff } =
-		trpc.changes.getFileContents.useQuery(
-			{
-				worktreePath,
-				filePath,
-				oldPath,
-				category: diffCategory ?? "unstaged",
-				commitHash,
-				// P1-1: Pass defaultBranch for against-base diffs
-				defaultBranch:
-					diffCategory === "against-base" ? effectiveBaseBranch : undefined,
-			},
-			{
-				enabled:
-					!!fileViewer &&
-					viewMode === "diff" &&
-					!!diffCategory &&
-					!!filePath &&
-					!!worktreePath,
-			},
-		);
-
-	// P1-1: Update originalContentRef when raw content loads (dirty tracking fix)
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
-	useEffect(() => {
-		if (rawFileData?.ok === true && !isDirty) {
-			originalContentRef.current = rawFileData.content;
-		}
-	}, [rawFileData]);
-
-	// Update originalDiffContentRef when diff data loads
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when diff loads
-	useEffect(() => {
-		if (diffData?.modified && !isDirty) {
-			originalDiffContentRef.current = diffData.modified;
-		}
-	}, [diffData]);
-
-	// Handler for diff editor content changes
 	const handleDiffChange = useCallback((content: string) => {
 		currentDiffContentRef.current = content;
-		// If baseline is empty, this is initial mount after a mode switch - set baseline
 		if (originalDiffContentRef.current === "") {
 			originalDiffContentRef.current = content;
 			return;
@@ -350,40 +113,6 @@ export function FileViewerPane({
 		setIsDirty(content !== originalDiffContentRef.current);
 	}, []);
 
-	// Apply initial line/column navigation when raw content is ready
-	// NOTE: Line/column navigation only supported in raw mode.
-	// Diff mode has different line numbers between sides; rendered mode has no line concept.
-	useEffect(() => {
-		if (
-			viewMode !== "raw" ||
-			!editorRef.current ||
-			!initialLine ||
-			hasAppliedInitialLocationRef.current ||
-			isLoadingRaw ||
-			!rawFileData?.ok
-		) {
-			return;
-		}
-
-		const editor = editorRef.current;
-		const model = editor.getModel();
-		if (!model) return;
-
-		// Clamp to valid range to handle lines that exceed file length
-		const lineCount = model.getLineCount();
-		const safeLine = Math.max(1, Math.min(initialLine, lineCount));
-		const maxColumn = model.getLineMaxColumn(safeLine);
-		const safeColumn = Math.max(1, Math.min(initialColumn ?? 1, maxColumn));
-
-		const position = { lineNumber: safeLine, column: safeColumn };
-		editor.setPosition(position);
-		editor.revealPositionInCenter(position);
-		editor.focus();
-
-		hasAppliedInitialLocationRef.current = true;
-	}, [viewMode, initialLine, initialColumn, isLoadingRaw, rawFileData]);
-
-	// Early return AFTER hooks
 	if (!fileViewer) {
 		return (
 			<MosaicWindow<string> path={path} title="">
@@ -413,7 +142,6 @@ export function FileViewerPane({
 	};
 
 	const handleToggleLock = () => {
-		// Update the pane's lock state in the store
 		const panes = useTabsStore.getState().panes;
 		const currentPane = panes[paneId];
 		if (currentPane?.fileViewer) {
@@ -432,7 +160,6 @@ export function FileViewerPane({
 		}
 	};
 
-	// Helper to switch view mode
 	const switchToMode = (newMode: FileViewerMode) => {
 		const panes = useTabsStore.getState().panes;
 		const currentPane = panes[paneId];
@@ -456,8 +183,6 @@ export function FileViewerPane({
 		if (!value) return;
 		const newMode = value as FileViewerMode;
 
-		// If switching away from an editable mode with unsaved changes, show dialog
-		// This covers both Raw → Diff/Rendered and Diff → Raw/Rendered
 		if (isDirty && newMode !== viewMode) {
 			pendingModeRef.current = newMode;
 			setShowUnsavedDialog(true);
@@ -472,14 +197,10 @@ export function FileViewerPane({
 
 		setIsSavingAndSwitching(true);
 		try {
-			// Save based on current view mode
-			// Note: use !== undefined to allow saving empty files (empty string is valid)
 			if (viewMode === "raw" && editorRef.current) {
 				const savedContent = editorRef.current.getValue();
 				await handleSaveRaw();
-				// Update baseline to saved content so dirty state resets
 				originalContentRef.current = savedContent;
-				// Reset diff baseline so useEffect sets fresh baseline when diff loads
 				originalDiffContentRef.current = "";
 			} else if (
 				viewMode === "diff" &&
@@ -487,23 +208,18 @@ export function FileViewerPane({
 			) {
 				const savedContent = currentDiffContentRef.current;
 				await handleSaveDiff(savedContent);
-				// Update baseline to saved content so dirty state resets
 				originalDiffContentRef.current = savedContent;
-				// Reset raw baseline so useEffect sets fresh baseline when raw loads
 				originalContentRef.current = "";
 			}
 
-			// Reset dirty state after successful save
 			setIsDirty(false);
 			draftContentRef.current = null;
 			currentDiffContentRef.current = "";
 
-			// Only switch after save succeeds
 			switchToMode(pendingModeRef.current);
 			pendingModeRef.current = null;
 			setShowUnsavedDialog(false);
 		} catch (error) {
-			// Save failed - stay in current mode, dialog stays open
 			console.error("[FileViewerPane] Save failed:", error);
 		} finally {
 			setIsSavingAndSwitching(false);
@@ -513,259 +229,51 @@ export function FileViewerPane({
 	const handleDiscardAndSwitch = () => {
 		if (!pendingModeRef.current) return;
 
-		// Reset based on current view mode
 		if (viewMode === "raw" && editorRef.current) {
 			editorRef.current.setValue(originalContentRef.current);
 		}
-		// For diff mode, we just need to reset the dirty state
-		// The diff viewer will reload from the file when we switch back
 
 		setIsDirty(false);
 		draftContentRef.current = null;
 		currentDiffContentRef.current = "";
 
-		// Switch to the pending mode
 		switchToMode(pendingModeRef.current);
 		pendingModeRef.current = null;
 	};
 
 	const fileName = filePath.split("/").pop() || filePath;
-
-	// P1-3: Only allow editing for staged/unstaged diffs (not committed/against-main)
-	// P1: Also disable Diff editing when a Raw draft exists to prevent silent data loss
-	// User must go back to Raw mode to save their unsaved edits first
-	const hasDraft = draftContentRef.current !== null;
-	const isDiffEditable =
-		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
-
-	// Render content based on view mode
-	const renderContent = () => {
-		if (viewMode === "diff") {
-			if (isLoadingDiff) {
-				return (
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						Loading diff...
-					</div>
-				);
-			}
-			if (!diffData) {
-				return (
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						No diff available
-					</div>
-				);
-			}
-			return (
-				<DiffViewer
-					key={filePath}
-					contents={{
-						original: diffData.original,
-						modified: diffData.modified,
-						language: diffData.language,
-					}}
-					viewMode="inline"
-					filePath={filePath}
-					editable={isDiffEditable}
-					onSave={isDiffEditable ? handleSaveDiff : undefined}
-					onChange={isDiffEditable ? handleDiffChange : undefined}
-				/>
-			);
-		}
-
-		if (isLoadingRaw) {
-			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
-					Loading...
-				</div>
-			);
-		}
-
-		if (!rawFileData?.ok) {
-			const errorMessage =
-				rawFileData?.reason === "too-large"
-					? "File is too large to preview"
-					: rawFileData?.reason === "binary"
-						? "Binary file preview not supported"
-						: rawFileData?.reason === "outside-worktree"
-							? "File is outside worktree"
-							: rawFileData?.reason === "symlink-escape"
-								? "File is a symlink pointing outside worktree"
-								: "File not found";
-			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
-					{errorMessage}
-				</div>
-			);
-		}
-
-		if (viewMode === "rendered") {
-			return (
-				<div className="p-4 overflow-auto h-full">
-					<MarkdownRenderer content={rawFileData.content} />
-				</div>
-			);
-		}
-
-		// Raw mode - editable Monaco editor
-		if (!isMonacoReady) {
-			return (
-				<div className="flex items-center justify-center h-full text-muted-foreground">
-					<LuLoader className="w-4 h-4 animate-spin mr-2" />
-					<span>Loading editor...</span>
-				</div>
-			);
-		}
-
-		// P0-2: Key by filePath to force remount and fresh action registration
-		// P1: Use draft content if available (preserves edits across view mode switches)
-		return (
-			<Editor
-				key={filePath}
-				height="100%"
-				language={detectLanguage(filePath)}
-				value={draftContentRef.current ?? rawFileData.content}
-				theme={SUPERSET_THEME}
-				onMount={handleEditorMount}
-				onChange={handleEditorChange}
-				loading={
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						<LuLoader className="w-4 h-4 animate-spin mr-2" />
-						<span>Loading editor...</span>
-					</div>
-				}
-				options={{
-					minimap: { enabled: false },
-					scrollBeyondLastLine: false,
-					wordWrap: "on",
-					fontSize: 13,
-					lineHeight: 20,
-					fontFamily:
-						"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
-					padding: { top: 8, bottom: 8 },
-					scrollbar: {
-						verticalScrollbarSize: 8,
-						horizontalScrollbarSize: 8,
-					},
-				}}
-			/>
-		);
-	};
-
-	// Determine which view modes are available
-	// P1-2: Include .mdx for consistency with default view mode logic
 	const isMarkdown =
 		filePath.endsWith(".md") ||
 		filePath.endsWith(".markdown") ||
 		filePath.endsWith(".mdx");
 	const hasDiff = !!diffCategory;
-
-	const splitIcon =
-		splitOrientation === "vertical" ? (
-			<TbLayoutColumns className="size-4" />
-		) : (
-			<TbLayoutRows className="size-4" />
-		);
-
-	// Show editable badge only for editable modes
+	const hasDraft = draftContentRef.current !== null;
+	const isDiffEditable =
+		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
 	const showEditableBadge =
 		viewMode === "raw" || (viewMode === "diff" && isDiffEditable);
-	const isSaving = saveFileMutation.isPending;
 
 	return (
 		<MosaicWindow<string>
 			path={path}
 			title=""
 			renderToolbar={() => (
-				<div className="flex h-full w-full items-center justify-between px-2">
-					<div className="flex min-w-0 items-center gap-2">
-						<span className="truncate text-xs font-medium">
-							{isDirty && <span className="text-amber-500 mr-1">●</span>}
-							{fileName}
-						</span>
-						{showEditableBadge && (
-							<Badge variant="secondary" className="gap-1 text-[10px] h-4 px-1">
-								<HiMiniPencil className="w-2.5 h-2.5" />
-								{isSaving ? "Saving..." : "⌘S"}
-							</Badge>
-						)}
-					</div>
-					<div className="flex items-center gap-1">
-						<ToggleGroup
-							type="single"
-							value={viewMode}
-							onValueChange={handleViewModeChange}
-							size="sm"
-							className="h-5"
-						>
-							{isMarkdown && (
-								<ToggleGroupItem
-									value="rendered"
-									className="h-5 px-1.5 text-[10px]"
-								>
-									Rendered
-								</ToggleGroupItem>
-							)}
-							<ToggleGroupItem value="raw" className="h-5 px-1.5 text-[10px]">
-								Raw
-							</ToggleGroupItem>
-							{hasDiff && (
-								<ToggleGroupItem
-									value="diff"
-									className="h-5 px-1.5 text-[10px]"
-								>
-									Diff
-								</ToggleGroupItem>
-							)}
-						</ToggleGroup>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={handleSplitPane}
-									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-								>
-									{splitIcon}
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Split pane
-							</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={handleToggleLock}
-									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-								>
-									{isLocked ? (
-										<HiMiniLockClosed className="size-3" />
-									) : (
-										<HiMiniLockOpen className="size-3" />
-									)}
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								{isLocked
-									? "Unlock (allow file replacement)"
-									: "Lock (prevent file replacement)"}
-							</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={handleClosePane}
-									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-								>
-									<HiMiniXMark className="size-4" />
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Close
-							</TooltipContent>
-						</Tooltip>
-					</div>
+				<div className="flex h-full w-full">
+					<FileViewerToolbar
+						fileName={fileName}
+						isDirty={isDirty}
+						isSaving={isSaving}
+						viewMode={viewMode}
+						isLocked={isLocked}
+						isMarkdown={isMarkdown}
+						hasDiff={hasDiff}
+						showEditableBadge={showEditableBadge}
+						splitOrientation={splitOrientation}
+						onViewModeChange={handleViewModeChange}
+						onSplitPane={handleSplitPane}
+						onToggleLock={handleToggleLock}
+						onClosePane={handleClosePane}
+					/>
 				</div>
 			)}
 			className={isActive ? "mosaic-window-focused" : ""}
@@ -776,7 +284,25 @@ export function FileViewerPane({
 				className="w-full h-full overflow-hidden bg-background"
 				onClick={handleFocus}
 			>
-				{renderContent()}
+				<FileViewerContent
+					viewMode={viewMode}
+					filePath={filePath}
+					isLoadingRaw={isLoadingRaw}
+					isLoadingDiff={isLoadingDiff}
+					rawFileData={rawFileData}
+					diffData={diffData}
+					isDiffEditable={isDiffEditable}
+					editorRef={editorRef}
+					originalContentRef={originalContentRef}
+					draftContentRef={draftContentRef}
+					initialLine={initialLine}
+					initialColumn={initialColumn}
+					onSaveRaw={handleSaveRaw}
+					onSaveDiff={isDiffEditable ? handleSaveDiff : undefined}
+					onEditorChange={handleEditorChange}
+					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
+					setIsDirty={setIsDirty}
+				/>
 			</div>
 			<UnsavedChangesDialog
 				open={showUnsavedDialog}
