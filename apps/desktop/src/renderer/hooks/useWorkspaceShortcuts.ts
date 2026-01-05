@@ -8,9 +8,7 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
 
 /**
  * Shared hook for workspace keyboard shortcuts and auto-creation logic.
- * This hook should be used in both:
- * - WorkspacesTabs (top-bar mode)
- * - WorkspaceSidebar (sidebar mode)
+ * Used by WorkspaceSidebar for navigation between workspaces.
  *
  * It handles:
  * - ⌘1-9 workspace switching shortcuts

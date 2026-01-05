@@ -25,12 +25,14 @@ import {
 	useSetActiveWorkspace,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
-import { BranchSwitcher } from "renderer/screens/main/components/TopBar/WorkspaceTabs/BranchSwitcher";
-import { DeleteWorkspaceDialog } from "renderer/screens/main/components/TopBar/WorkspaceTabs/DeleteWorkspaceDialog";
-import { useWorkspaceRename } from "renderer/screens/main/components/TopBar/WorkspaceTabs/useWorkspaceRename";
-import { WorkspaceHoverCardContent } from "renderer/screens/main/components/TopBar/WorkspaceTabs/WorkspaceHoverCard";
+import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import {
+	BranchSwitcher,
+	DeleteWorkspaceDialog,
+	WorkspaceHoverCardContent,
+} from "./components";
 import {
 	GITHUB_STATUS_STALE_TIME,
 	HOVER_CARD_CLOSE_DELAY,
