@@ -1,9 +1,28 @@
+import type { TerminalPreset } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useMemo } from "react";
-import { HiMiniPlus } from "react-icons/hi2";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+	HiMiniChevronDown,
+	HiMiniCommandLine,
+	HiMiniCog6Tooth,
+	HiMiniPlus,
+} from "react-icons/hi2";
+import {
+	getPresetIcon,
+	useIsDarkTheme,
+} from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { trpc } from "renderer/lib/trpc";
+import { usePresets } from "renderer/react-query/presets";
+import { useOpenSettings } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { GroupItem } from "./GroupItem";
 
@@ -15,8 +34,33 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const addTab = useTabsStore((s) => s.addTab);
+	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+
+	const { presets } = usePresets();
+	const isDark = useIsDarkTheme();
+	const openSettings = useOpenSettings();
+	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const handleDropdownMouseEnter = useCallback(() => {
+		if (hoverTimeoutRef.current) {
+			clearTimeout(hoverTimeoutRef.current);
+		}
+		hoverTimeoutRef.current = setTimeout(() => {
+			setDropdownOpen(true);
+		}, 150);
+	}, []);
+
+	const handleDropdownMouseLeave = useCallback(() => {
+		if (hoverTimeoutRef.current) {
+			clearTimeout(hoverTimeoutRef.current);
+		}
+		hoverTimeoutRef.current = setTimeout(() => {
+			setDropdownOpen(false);
+		}, 150);
+	}, []);
 
 	const tabs = useMemo(
 		() =>
@@ -45,6 +89,26 @@ export function GroupStrip() {
 		if (activeWorkspaceId) {
 			addTab(activeWorkspaceId);
 		}
+	};
+
+	const handleSelectPreset = (preset: TerminalPreset) => {
+		if (!activeWorkspaceId) return;
+
+		const { tabId } = addTab(activeWorkspaceId, {
+			initialCommands: preset.commands,
+			initialCwd: preset.cwd || undefined,
+		});
+
+		if (preset.name) {
+			renameTab(tabId, preset.name);
+		}
+
+		setDropdownOpen(false);
+	};
+
+	const handleOpenPresetsSettings = () => {
+		openSettings("presets");
+		setDropdownOpen(false);
 	};
 
 	const handleSelectGroup = (tabId: string) => {
@@ -78,21 +142,76 @@ export function GroupStrip() {
 					))}
 				</div>
 			)}
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="shrink-0 size-7 mb-1"
-						onClick={handleAddGroup}
+			<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+				<div className="flex items-center shrink-0 mb-1">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-7 rounded-r-none"
+								onClick={handleAddGroup}
+							>
+								<HiMiniPlus className="size-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" sideOffset={4}>
+							<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+						</TooltipContent>
+					</Tooltip>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7 rounded-l-none px-1"
+							onMouseEnter={handleDropdownMouseEnter}
+							onMouseLeave={handleDropdownMouseLeave}
+						>
+							<HiMiniChevronDown className="size-3" />
+						</Button>
+					</DropdownMenuTrigger>
+				</div>
+				<DropdownMenuContent
+					align="end"
+					className="w-56"
+					onMouseEnter={handleDropdownMouseEnter}
+					onMouseLeave={handleDropdownMouseLeave}
+				>
+					{presets.length > 0 && (
+						<>
+							{presets.map((preset) => {
+								const presetIcon = getPresetIcon(preset.name, isDark);
+								return (
+									<DropdownMenuItem
+										key={preset.id}
+										onClick={() => handleSelectPreset(preset)}
+										className="gap-2"
+									>
+										{presetIcon ? (
+											<img
+												src={presetIcon}
+												alt=""
+												className="size-4 object-contain"
+											/>
+										) : (
+											<HiMiniCommandLine className="size-4" />
+										)}
+										<span className="truncate">{preset.name || "default"}</span>
+									</DropdownMenuItem>
+								);
+							})}
+							<DropdownMenuSeparator />
+						</>
+					)}
+					<DropdownMenuItem
+						onClick={handleOpenPresetsSettings}
+						className="gap-2"
 					>
-						<HiMiniPlus className="size-4" />
-					</Button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={4}>
-					<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
-				</TooltipContent>
-			</Tooltip>
+						<HiMiniCog6Tooth className="size-4" />
+						<span>Configure Presets</span>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
 		</div>
 	);
 }
