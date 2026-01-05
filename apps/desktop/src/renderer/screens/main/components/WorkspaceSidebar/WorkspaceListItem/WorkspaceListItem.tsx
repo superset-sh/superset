@@ -221,7 +221,7 @@ export function WorkspaceListItem({
 									isActive && "text-foreground font-medium",
 								)}
 							>
-								{name}
+								{name || branch}
 							</span>
 							{pr && (
 								<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} />
@@ -233,8 +233,13 @@ export function WorkspaceListItem({
 								</span>
 							)}
 						</div>
-						{name !== branch && !isBranchWorkspace && (
-							<div className="text-xs text-muted-foreground truncate font-mono">
+						{!isBranchWorkspace && (
+							<div
+								className={cn(
+									"text-xs text-muted-foreground truncate font-mono h-4",
+									(!name || name === branch) && "invisible",
+								)}
+							>
 								{branch}
 							</div>
 						)}

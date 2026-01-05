@@ -1,5 +1,4 @@
 import { cn } from "@superset/ui/utils";
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 
 interface ProjectHeaderProps {
 	projectName: string;
@@ -25,11 +24,6 @@ export function ProjectHeader({
 				"text-left cursor-pointer",
 			)}
 		>
-			{isCollapsed ? (
-				<LuChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-			) : (
-				<LuChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-			)}
 			<span className="truncate flex-1">{projectName}</span>
 			<span className="text-xs text-muted-foreground">{workspaceCount}</span>
 		</button>
