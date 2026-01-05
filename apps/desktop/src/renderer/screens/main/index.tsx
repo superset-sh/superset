@@ -30,6 +30,7 @@ import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
 import { ResizableWorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { WorkspacesListView } from "./components/WorkspacesListView";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 function LoadingSpinner() {
@@ -294,6 +295,9 @@ export function MainScreen() {
 		}
 		if (currentView === "tasks" && hasTasksAccess) {
 			return <TasksView />;
+		}
+		if (currentView === "workspaces-list") {
+			return <WorkspacesListView />;
 		}
 		return <WorkspaceView />;
 	};

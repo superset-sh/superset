@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type AppView = "workspace" | "settings" | "tasks";
+export type AppView = "workspace" | "settings" | "tasks" | "workspaces-list";
 export type SettingsSection =
 	| "account"
 	| "project"
@@ -16,6 +16,7 @@ interface AppState {
 	currentView: AppView;
 	isSettingsTabOpen: boolean;
 	isTasksTabOpen: boolean;
+	isWorkspacesListOpen: boolean;
 	settingsSection: SettingsSection;
 	setView: (view: AppView) => void;
 	openSettings: (section?: SettingsSection) => void;
@@ -24,6 +25,8 @@ interface AppState {
 	setSettingsSection: (section: SettingsSection) => void;
 	openTasks: () => void;
 	closeTasks: () => void;
+	openWorkspacesList: () => void;
+	closeWorkspacesList: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -32,6 +35,7 @@ export const useAppStore = create<AppState>()(
 			currentView: "workspace",
 			isSettingsTabOpen: false,
 			isTasksTabOpen: false,
+			isWorkspacesListOpen: false,
 			settingsSection: "project",
 
 			setView: (view) => {
@@ -65,6 +69,14 @@ export const useAppStore = create<AppState>()(
 			closeTasks: () => {
 				set({ currentView: "workspace", isTasksTabOpen: false });
 			},
+
+			openWorkspacesList: () => {
+				set({ currentView: "workspaces-list", isWorkspacesListOpen: true });
+			},
+
+			closeWorkspacesList: () => {
+				set({ currentView: "workspace", isWorkspacesListOpen: false });
+			},
 		}),
 		{ name: "AppStore" },
 	),
@@ -76,6 +88,8 @@ export const useIsSettingsTabOpen = () =>
 	useAppStore((state) => state.isSettingsTabOpen);
 export const useIsTasksTabOpen = () =>
 	useAppStore((state) => state.isTasksTabOpen);
+export const useIsWorkspacesListOpen = () =>
+	useAppStore((state) => state.isWorkspacesListOpen);
 export const useSettingsSection = () =>
 	useAppStore((state) => state.settingsSection);
 export const useSetSettingsSection = () =>
@@ -87,3 +101,7 @@ export const useCloseSettingsTab = () =>
 	useAppStore((state) => state.closeSettingsTab);
 export const useOpenTasks = () => useAppStore((state) => state.openTasks);
 export const useCloseTasks = () => useAppStore((state) => state.closeTasks);
+export const useOpenWorkspacesList = () =>
+	useAppStore((state) => state.openWorkspacesList);
+export const useCloseWorkspacesList = () =>
+	useAppStore((state) => state.closeWorkspacesList);

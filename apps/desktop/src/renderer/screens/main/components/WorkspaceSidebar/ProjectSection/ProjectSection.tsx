@@ -67,6 +67,7 @@ export function ProjectSection({
 	return (
 		<div className="border-b border-border last:border-b-0">
 			<ProjectHeader
+				projectId={projectId}
 				projectName={projectName}
 				isCollapsed={isCollapsed}
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
