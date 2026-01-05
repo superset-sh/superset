@@ -21,7 +21,7 @@
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
-	background: var(--color-tertiary);
+	background: var(--color-secondary);
 	height: 28px;
 	padding: 0 8px;
 	display: flex;
@@ -54,7 +54,7 @@
 	opacity: 1;
 }
 .mosaic-theme-dark .mosaic-window-focused .mosaic-window-toolbar {
-	background: var(--color-tertiary-active);
+	background: var(--color-tertiary);
 }
 .mosaic-theme-dark .mosaic-window .mosaic-window-title {
 	color: var(--color-muted-foreground);
