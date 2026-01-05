@@ -5,7 +5,7 @@ interface ContentHeaderProps {
 	leadingAction?: ReactNode;
 	/** Mode-specific header content (e.g., GroupStrip or file info) */
 	children: ReactNode;
-	/** Optional trailing action (e.g., WorkspaceControls) */
+	/** Optional trailing action (e.g., SidebarControl) */
 	trailingAction?: ReactNode;
 }
 

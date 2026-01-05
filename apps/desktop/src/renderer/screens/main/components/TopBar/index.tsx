@@ -1,7 +1,7 @@
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
+import { OpenInMenuButton } from "./OpenInMenuButton";
 import { WindowControls } from "./WindowControls";
-import { OpenInMenuButton } from "./WorkspaceControls/OpenInMenuButton";
 import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 
 export function TopBar() {
