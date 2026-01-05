@@ -18,7 +18,7 @@ import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import { LuEye, LuEyeOff, LuGitBranch } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuFolderGit2 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useReorderWorkspaces,
@@ -197,12 +197,16 @@ export function WorkspaceListItem({
 				<div className="absolute left-0 top-1 bottom-1 w-0.5 bg-primary rounded-r" />
 			)}
 
-			{/* Branch icon for branch type workspaces */}
-			{isBranchWorkspace && (
-				<div className="flex items-center justify-center size-5 rounded bg-primary/10 shrink-0">
-					<LuGitBranch className="size-3 text-primary" />
-				</div>
-			)}
+			{/* Icon with notification dot */}
+			<div className="relative shrink-0 size-5 flex items-center justify-center">
+				<LuFolderGit2 className="size-[17px] text-muted-foreground" />
+				{needsAttention && (
+					<span className="absolute -top-0.5 -right-0.5 flex size-2">
+						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+						<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+					</span>
+				)}
+			</div>
 
 			{/* Workspace name and branch */}
 			<div className="flex-1 min-w-0">
@@ -231,12 +235,6 @@ export function WorkspaceListItem({
 							</span>
 							{pr && (
 								<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} />
-							)}
-							{needsAttention && (
-								<span className="relative flex size-2 shrink-0">
-									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-									<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-								</span>
 							)}
 						</div>
 						{!isBranchWorkspace && (
