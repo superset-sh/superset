@@ -27,7 +27,7 @@
 	display: flex;
 	align-items: center;
 	transition: background-color 0.15s ease;
-	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	border-radius: 0;
 }
 .mosaic-theme-dark
 	.mosaic-window
@@ -70,7 +70,7 @@
 	background: transparent;
 	border: none;
 	box-shadow: none;
-	border-radius: 0 0 var(--radius-md) var(--radius-md);
+	border-radius: 0;
 	overflow: hidden;
 }
 
@@ -87,16 +87,22 @@
 	transition: background-color 0.15s ease;
 }
 
-.mosaic-theme-dark .mosaic-split:hover,
-.mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
+.mosaic-theme-dark .mosaic-split.-column:hover,
+.mosaic-theme-dark .mosaic-split.-column.mosaic-split-dragging {
+	background: transparent;
+	cursor: row-resize;
+}
+
+.mosaic-theme-dark .mosaic-split.-row:hover,
+.mosaic-theme-dark .mosaic-split.-row.mosaic-split-dragging {
 	background: transparent;
 	cursor: col-resize;
 }
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
-	background: rgba(59, 130, 246, 0.15);
-	border: 2px solid rgba(59, 130, 246, 0.4);
-	border-radius: var(--radius-lg);
+	background: rgba(59, 130, 246, 0.1);
+	border: 1px solid rgba(59, 130, 246, 0.3);
+	border-radius: 4px;
 	opacity: 1;
 }
