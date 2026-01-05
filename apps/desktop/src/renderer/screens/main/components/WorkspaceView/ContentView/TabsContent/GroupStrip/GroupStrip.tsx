@@ -11,8 +11,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	HiMiniChevronDown,
-	HiMiniCommandLine,
 	HiMiniCog6Tooth,
+	HiMiniCommandLine,
 	HiMiniPlus,
 } from "react-icons/hi2";
 import {
