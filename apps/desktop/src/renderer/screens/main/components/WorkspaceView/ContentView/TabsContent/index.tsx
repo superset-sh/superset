@@ -20,14 +20,14 @@ export function TabsContent() {
 		return allTabs.find((tab) => tab.id === activeTabId) || null;
 	}, [activeWorkspaceId, activeTabIds, allTabs]);
 
-	if (!tabToRender) {
-		return <EmptyTabView />;
-	}
-
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
 			<div className="flex-1 min-w-0 overflow-hidden">
-				<TabView tab={tabToRender} panes={panes} />
+				{tabToRender ? (
+					<TabView tab={tabToRender} panes={panes} />
+				) : (
+					<EmptyTabView />
+				)}
 			</div>
 			<ResizableSidebar />
 		</div>

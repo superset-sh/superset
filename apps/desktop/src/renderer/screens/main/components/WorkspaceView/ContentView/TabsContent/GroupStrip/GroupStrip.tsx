@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useMemo } from "react";
 import { HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -89,7 +90,7 @@ export function GroupStrip() {
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					New Group
+					<HotkeyTooltipContent label="New Group" hotkeyId="NEW_GROUP" />
 				</TooltipContent>
 			</Tooltip>
 		</div>
