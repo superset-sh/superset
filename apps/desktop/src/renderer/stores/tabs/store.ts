@@ -4,11 +4,17 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
-import type { AddFileViewerPaneOptions, TabsState, TabsStore } from "./types";
+import type {
+	AddFileViewerPaneOptions,
+	AddPlanViewerPaneOptions,
+	TabsState,
+	TabsStore,
+} from "./types";
 import {
 	type CreatePaneOptions,
 	createFileViewerPane,
 	createPane,
+	createPlanViewerPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
 	getFirstPaneId,
@@ -454,6 +460,82 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
+				addPlanViewerPane: (
+					workspaceId: string,
+					options: AddPlanViewerPaneOptions,
+				) => {
+					const state = get();
+					const activeTabId = state.activeTabIds[workspaceId];
+					const activeTab = state.tabs.find((t) => t.id === activeTabId);
+
+					// If no active tab, create a new one first
+					if (!activeTab) {
+						const { tabId, paneId } = get().addTab(workspaceId);
+						// Replace the pane with a plan-viewer pane
+						const planPane = createPlanViewerPane(tabId, options);
+						set((s) => ({
+							panes: {
+								...s.panes,
+								[paneId]: {
+									...planPane,
+									id: paneId, // Keep the original ID
+								},
+							},
+						}));
+						return paneId;
+					}
+
+					// Look for an existing unlocked plan-viewer pane to reuse
+					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
+					const planViewerPanes = tabPaneIds
+						.map((id) => state.panes[id])
+						.filter(
+							(p) =>
+								p?.type === "plan-viewer" &&
+								p.planViewer &&
+								!p.planViewer.isLocked,
+						);
+
+					// If we found an unlocked plan-viewer pane, reuse it
+					if (planViewerPanes.length > 0) {
+						const paneToReuse = planViewerPanes[0];
+						const newPlanPane = createPlanViewerPane(activeTab.id, options);
+
+						set({
+							panes: {
+								...state.panes,
+								[paneToReuse.id]: {
+									...newPlanPane,
+									id: paneToReuse.id, // Keep the original ID
+								},
+							},
+							// Do NOT update focusedPaneIds - don't steal focus
+						});
+
+						return paneToReuse.id;
+					}
+
+					// No reusable pane found, create a new one (without focus change!)
+					const newPane = createPlanViewerPane(activeTab.id, options);
+
+					const newLayout: MosaicNode<string> = {
+						direction: "row",
+						first: activeTab.layout,
+						second: newPane.id,
+						splitPercentage: 50,
+					};
+
+					set({
+						tabs: state.tabs.map((t) =>
+							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
+						),
+						panes: { ...state.panes, [newPane.id]: newPane },
+						// NOTE: Do NOT update focusedPaneIds - pane appears without stealing focus
+					});
+
+					return newPane.id;
+				},
+
 				removePane: (paneId) => {
 					const state = get();
 					const pane = state.panes[paneId];
@@ -777,6 +859,55 @@ export const useTabsStore = create<TabsStore>()(
 			{
 				name: "tabs-storage",
 				storage: trpcTabsStorage,
+				partialize: (state) => {
+					// Find all plan-viewer pane IDs
+					const planPaneIds = new Set(
+						Object.entries(state.panes)
+							.filter(([, pane]) => pane.type === "plan-viewer")
+							.map(([id]) => id),
+					);
+
+					// Filter panes - exclude plan-viewer panes
+					const filteredPanes = Object.fromEntries(
+						Object.entries(state.panes).filter(
+							([, pane]) => pane.type !== "plan-viewer",
+						),
+					);
+
+					// Filter layouts to remove dangling plan-viewer references
+					const filterLayout = (
+						layout: MosaicNode<string>,
+					): MosaicNode<string> | null => {
+						if (typeof layout === "string") {
+							return planPaneIds.has(layout) ? null : layout;
+						}
+						const newFirst = filterLayout(layout.first);
+						const newSecond = filterLayout(layout.second);
+						if (!newFirst && !newSecond) return null;
+						if (!newFirst) return newSecond;
+						if (!newSecond) return newFirst;
+						return { ...layout, first: newFirst, second: newSecond };
+					};
+
+					const filteredTabs = state.tabs.map((tab) => ({
+						...tab,
+						layout: filterLayout(tab.layout) || tab.layout,
+					}));
+
+					// Filter focusedPaneIds to remove plan-viewer references
+					const filteredFocusedPaneIds = Object.fromEntries(
+						Object.entries(state.focusedPaneIds).filter(
+							([, paneId]) => !planPaneIds.has(paneId),
+						),
+					);
+
+					return {
+						...state,
+						tabs: filteredTabs,
+						panes: filteredPanes,
+						focusedPaneIds: filteredFocusedPaneIds,
+					};
+				},
 			},
 		),
 		{ name: "TabsStore" },

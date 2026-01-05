@@ -13,6 +13,7 @@ import { initAppState } from "./lib/app-state";
 import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { cleanupOldPlanFiles } from "./lib/plans";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
@@ -222,6 +223,9 @@ if (!gotTheLock) {
 
 		await initAppState();
 		await authService.initialize();
+
+		// Best-effort cleanup of old plan files (non-blocking)
+		cleanupOldPlanFiles();
 
 		try {
 			setupAgentHooks();

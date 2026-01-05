@@ -17,6 +17,7 @@ import {
 	getPaneIdsForTab,
 } from "renderer/stores/tabs/utils";
 import { FileViewerPane } from "./FileViewerPane";
+import { PlanViewerPane } from "./PlanViewerPane";
 import { TabPane } from "./TabPane";
 
 interface TabViewProps {
@@ -114,6 +115,21 @@ export function TabView({ tab, panes }: TabViewProps) {
 						tabId={tab.id}
 						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Route plan-viewer panes to PlanViewerPane component
+			if (pane.type === "plan-viewer") {
+				return (
+					<PlanViewerPane
+						paneId={paneId}
+						path={path}
+						pane={pane}
+						isActive={isActive}
+						tabId={tab.id}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
 					/>

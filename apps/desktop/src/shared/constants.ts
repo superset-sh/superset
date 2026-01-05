@@ -42,6 +42,7 @@ export const CONFIG_TEMPLATE = `{
 export const NOTIFICATION_EVENTS = {
 	AGENT_COMPLETE: "agent-complete",
 	FOCUS_TAB: "focus-tab",
+	PLAN_SUBMITTED: "plan-submitted",
 } as const;
 
 // Default user preference values

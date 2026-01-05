@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { PORTS } from "shared/constants";
+import { PLANS_TMP_DIR } from "../plans";
 import { getNotifyScriptPath } from "./notify-hook";
 import {
 	BIN_DIR,
@@ -11,8 +13,9 @@ import {
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
+export const CLAUDE_PLAN_HOOK_FILE = "plan-hook.sh";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
-export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v3";
+export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v4";
 
 const REAL_BINARY_RESOLVER = `find_real_binary() {
   local name="$1"
@@ -52,6 +55,10 @@ export function getClaudeSettingsPath(): string {
 	return path.join(HOOKS_DIR, CLAUDE_SETTINGS_FILE);
 }
 
+export function getClaudePlanHookPath(): string {
+	return path.join(HOOKS_DIR, CLAUDE_PLAN_HOOK_FILE);
+}
+
 export function getOpenCodePluginPath(): string {
 	return path.join(OPENCODE_PLUGIN_DIR, OPENCODE_PLUGIN_FILE);
 }
@@ -69,17 +76,80 @@ export function getOpenCodeGlobalPluginPath(): string {
 	return path.join(configHome, "opencode", "plugin", OPENCODE_PLUGIN_FILE);
 }
 
-export function getClaudeSettingsContent(notifyPath: string): string {
+export function getClaudeSettingsContent(
+	notifyPath: string,
+	planHookPath: string,
+): string {
 	const settings = {
 		hooks: {
 			Stop: [{ hooks: [{ type: "command", command: notifyPath }] }],
 			PermissionRequest: [
+				// ExitPlanMode hook - captures plan content and displays in Superset
+				{
+					matcher: "ExitPlanMode",
+					hooks: [{ type: "command", command: planHookPath }],
+				},
+				// All other permission requests - just notify for attention
 				{ matcher: "*", hooks: [{ type: "command", command: notifyPath }] },
 			],
 		},
 	};
 
 	return JSON.stringify(settings);
+}
+
+export function getClaudePlanHookContent(
+	plansTmpDir: string,
+	notificationPort: number,
+): string {
+	return `#!/bin/bash
+# Superset plan hook for Claude Code
+# Called when ExitPlanMode permission is requested
+# Extracts plan content from stdin, writes to temp file, notifies main process
+
+# Only run if inside a Superset terminal
+[ -z "$SUPERSET_TAB_ID" ] && { echo '{"behavior":"allow"}'; exit 0; }
+
+# Read input from stdin
+INPUT=$(cat)
+
+# Extract the plan content from tool_input.plan using jq if available, otherwise grep/sed
+if command -v jq &>/dev/null; then
+  PLAN=$(echo "$INPUT" | jq -r '.tool_input.plan // empty')
+else
+  # Fallback: basic extraction (may not work for complex plans)
+  PLAN=""
+fi
+
+# If we got a plan, submit it to Superset
+if [ -n "$PLAN" ] && [ "$PLAN" != "null" ]; then
+  # Generate plan ID
+  PLAN_ID="plan-$(date +%s)-$RANDOM"
+
+  # Ensure plans directory exists
+  PLANS_DIR="${plansTmpDir}"
+  mkdir -p "$PLANS_DIR"
+
+  # Write plan to temp file
+  PLAN_PATH="$PLANS_DIR/$PLAN_ID.md"
+  echo "$PLAN" > "$PLAN_PATH"
+
+  # Notify Superset main process (best-effort)
+  curl -sX POST "http://127.0.0.1:\${SUPERSET_PORT:-${notificationPort}}/hook/plan" \\
+    -H "Content-Type: application/json" \\
+    --connect-timeout 1 --max-time 2 \\
+    -d "{
+      \\"planId\\": \\"$PLAN_ID\\",
+      \\"planPath\\": \\"$PLAN_PATH\\",
+      \\"originPaneId\\": \\"$SUPERSET_PANE_ID\\",
+      \\"workspaceId\\": \\"$SUPERSET_WORKSPACE_ID\\",
+      \\"agentType\\": \\"claude\\"
+    }" > /dev/null 2>&1 || true
+fi
+
+# Always allow ExitPlanMode to proceed
+echo '{"behavior":"allow"}'
+`;
 }
 
 export function buildClaudeWrapperScript(settingsPath: string): string {
@@ -136,8 +206,12 @@ exec "$REAL_BIN" "$@"
 
 export function getOpenCodePluginContent(notifyPath: string): string {
 	// Build "${" via char codes to avoid JS template literal interpolation in generated code
-	const templateOpen = String.fromCharCode(36, 123);
+	const templateOpen = String.fromCharCode(36, 123); // ${
 	const shellLine = `      await $\`bash ${templateOpen}notifyPath} ${templateOpen}payload}\`;`;
+	// Build the template literals for generated code to avoid lint warnings
+	const planIdLine = `    const planId = \`plan-${templateOpen}Date.now()}-${templateOpen}Math.random().toString(36).slice(2, 9)}\`;`;
+	const planPathLine = `    const planPath = path.join(plansTmpDir, \`${templateOpen}planId}.md\`);`;
+	const fetchUrlLine = `      const response = await fetch(\`http://127.0.0.1:${templateOpen}notificationPort}/hook/plan\`, {`;
 	return [
 		OPENCODE_PLUGIN_MARKER,
 		"/**",
@@ -145,6 +219,7 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" *",
 		" * This plugin sends desktop notifications when OpenCode sessions need attention.",
 		" * It hooks into session.idle, session.error, and permission.ask events.",
+		" * It also provides a submit_plan tool for displaying plans in Superset.",
 		" *",
 		" * IMPORTANT: Subagent/Background Task Filtering",
 		" * --------------------------------------------",
@@ -163,14 +238,19 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" *",
 		" * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx",
 		" */",
+		"import fs from 'node:fs/promises';",
+		"import path from 'node:path';",
+		"",
 		"export const SupersetNotifyPlugin = async ({ $, client }) => {",
-		"  if (globalThis.__supersetOpencodeNotifyPluginV3) return {};",
-		"  globalThis.__supersetOpencodeNotifyPluginV3 = true;",
+		"  if (globalThis.__supersetOpencodeNotifyPluginV4) return {};",
+		"  globalThis.__supersetOpencodeNotifyPluginV4 = true;",
 		"",
 		"  // Only run inside a Superset terminal session",
 		"  if (!process?.env?.SUPERSET_TAB_ID) return {};",
 		"",
 		`  const notifyPath = "${notifyPath}";`,
+		`  const plansTmpDir = "${PLANS_TMP_DIR}";`,
+		`  const notificationPort = ${PORTS.NOTIFICATIONS};`,
 		"",
 		"  /**",
 		"   * Sends a notification to Superset's notification server.",
@@ -182,6 +262,39 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		shellLine,
 		"    } catch {",
 		"      // Best-effort only; do not break the agent if notification fails",
+		"    }",
+		"  };",
+		"",
+		"  /**",
+		"   * Submits a plan to Superset for visual display.",
+		"   */",
+		"  const submitPlan = async (plan, summary) => {",
+		planIdLine,
+		"",
+		"    // Ensure plans directory exists",
+		"    await fs.mkdir(plansTmpDir, { recursive: true });",
+		"",
+		"    // Write plan to temp file",
+		planPathLine,
+		"    await fs.writeFile(planPath, plan, 'utf-8');",
+		"",
+		"    // Notify Superset main process",
+		"    try {",
+		fetchUrlLine,
+		"        method: 'POST',",
+		"        headers: { 'Content-Type': 'application/json' },",
+		"        body: JSON.stringify({",
+		"          planId,",
+		"          planPath,",
+		"          summary,",
+		"          originPaneId: process.env.SUPERSET_PANE_ID || '',",
+		"          workspaceId: process.env.SUPERSET_WORKSPACE_ID || '',",
+		"          agentType: 'opencode',",
+		"        }),",
+		"      });",
+		"      return response.ok;",
+		"    } catch {",
+		"      return false;",
 		"    }",
 		"  };",
 		"",
@@ -215,6 +328,29 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		"  };",
 		"",
 		"  return {",
+		"    // Tool definitions for the agent",
+		"    tools: {",
+		"      submit_plan: {",
+		"        description: 'Submit an implementation plan for visual review in Superset. Use this when you have created a plan that the user should review before implementation.',",
+		"        parameters: {",
+		"          type: 'object',",
+		"          properties: {",
+		"            plan: { type: 'string', description: 'The full markdown content of the plan' },",
+		"            summary: { type: 'string', description: 'A brief one-line summary of the plan' },",
+		"          },",
+		"          required: ['plan'],",
+		"        },",
+		"        async execute({ plan, summary }) {",
+		"          const success = await submitPlan(plan, summary);",
+		"          if (success) {",
+		"            return 'Plan submitted successfully. It is now displayed in Superset for review.';",
+		"          } else {",
+		"            return 'Plan saved but failed to notify Superset. The plan file was created.';",
+		"          }",
+		"        },",
+		"      },",
+		"    },",
+		"",
 		"    event: async ({ event }) => {",
 		"      // Handle session completion events",
 		'      if (event.type === "session.idle" || event.type === "session.error") {',
@@ -241,12 +377,23 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 }
 
 /**
+ * Creates the Claude Code plan hook script
+ */
+function createClaudePlanHook(): string {
+	const hookPath = getClaudePlanHookPath();
+	const content = getClaudePlanHookContent(PLANS_TMP_DIR, PORTS.NOTIFICATIONS);
+	fs.writeFileSync(hookPath, content, { mode: 0o755 });
+	return hookPath;
+}
+
+/**
  * Creates the Claude Code settings JSON file with notification hooks
  */
 function createClaudeSettings(): string {
 	const settingsPath = getClaudeSettingsPath();
 	const notifyPath = getNotifyScriptPath();
-	const settings = getClaudeSettingsContent(notifyPath);
+	const planHookPath = createClaudePlanHook();
+	const settings = getClaudeSettingsContent(notifyPath, planHookPath);
 
 	fs.writeFileSync(settingsPath, settings, { mode: 0o644 });
 	return settingsPath;

@@ -4,6 +4,7 @@ import type {
 	DiffLayout,
 	FileViewerMode,
 	FileViewerState,
+	PlanViewerState,
 } from "shared/tabs-types";
 import type { Pane, PaneType, Tab } from "./types";
 
@@ -392,4 +393,49 @@ export const updateHistoryStack = (
 	}
 
 	return newStack;
+};
+
+/**
+ * Options for creating a plan-viewer pane
+ */
+export interface CreatePlanViewerPaneOptions {
+	content: string;
+	planId: string;
+	originPaneId: string;
+	summary?: string;
+	agentType?: "opencode" | "claude";
+}
+
+/**
+ * Creates a new plan-viewer pane with the given properties
+ */
+export const createPlanViewerPane = (
+	tabId: string,
+	options: CreatePlanViewerPaneOptions,
+): Pane => {
+	const id = generateId("pane");
+
+	// Extract title from first heading or use summary
+	const titleMatch = options.content.match(/^#\s+(.+)$/m);
+	const title =
+		titleMatch?.[1]?.slice(0, 40) || options.summary?.slice(0, 30) || "Plan";
+
+	const planViewer: PlanViewerState = {
+		content: options.content,
+		planId: options.planId,
+		originPaneId: options.originPaneId,
+		status: "pending",
+		summary: options.summary,
+		submittedAt: Date.now(),
+		agentType: options.agentType,
+	};
+
+	return {
+		id,
+		tabId,
+		type: "plan-viewer",
+		name: title,
+		needsAttention: true, // Highlight that plan needs review
+		planViewer,
+	};
 };

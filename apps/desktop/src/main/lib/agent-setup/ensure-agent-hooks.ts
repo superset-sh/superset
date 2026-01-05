@@ -1,9 +1,13 @@
 import { promises as fs, constants as fsConstants } from "node:fs";
 import path from "node:path";
+import { PORTS } from "shared/constants";
+import { PLANS_TMP_DIR } from "../plans";
 import {
 	buildClaudeWrapperScript,
 	buildCodexWrapperScript,
 	buildOpenCodeWrapperScript,
+	getClaudePlanHookContent,
+	getClaudePlanHookPath,
 	getClaudeSettingsContent,
 	getClaudeSettingsPath,
 	getClaudeWrapperPath,
@@ -74,13 +78,34 @@ async function ensureScriptFile(params: {
 	}
 }
 
+async function ensureClaudePlanHook(): Promise<string> {
+	const hookPath = getClaudePlanHookPath();
+	const content = getClaudePlanHookContent(PLANS_TMP_DIR, PORTS.NOTIFICATIONS);
+	const existing = await readFileIfExists(hookPath);
+
+	// Always rewrite to ensure it's up-to-date with current paths/ports
+	if (!existing || !existing.includes("# Superset plan hook")) {
+		await fs.writeFile(hookPath, content, { mode: 0o755 });
+		await fs.chmod(hookPath, 0o755);
+		console.log("[agent-setup] Rewrote Claude plan hook");
+	}
+
+	return hookPath;
+}
+
 async function ensureClaudeSettings(): Promise<void> {
 	const settingsPath = getClaudeSettingsPath();
 	const notifyPath = getNotifyScriptPath();
+	const planHookPath = await ensureClaudePlanHook();
 	const existing = await readFileIfExists(settingsPath);
 
-	if (!existing || !existing.includes('"hooks"')) {
-		const content = getClaudeSettingsContent(notifyPath);
+	// Check for ExitPlanMode hook to ensure settings are up-to-date
+	if (
+		!existing ||
+		!existing.includes('"hooks"') ||
+		!existing.includes("ExitPlanMode")
+	) {
+		const content = getClaudeSettingsContent(notifyPath, planHookPath);
 		await fs.writeFile(settingsPath, content, { mode: 0o644 });
 		console.log("[agent-setup] Rewrote Claude settings");
 	}

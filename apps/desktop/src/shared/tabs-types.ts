@@ -8,7 +8,7 @@ import type { ChangeCategory } from "./changes-types";
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview" | "file-viewer";
+export type PaneType = "terminal" | "webview" | "file-viewer" | "plan-viewer";
 
 /**
  * File viewer display modes
@@ -19,6 +19,28 @@ export type FileViewerMode = "rendered" | "raw" | "diff";
  * Diff layout options for file viewer
  */
 export type DiffLayout = "inline" | "side-by-side";
+
+/**
+ * Plan viewer pane-specific properties
+ */
+export interface PlanViewerState {
+	/** The full markdown content of the plan */
+	content: string;
+	/** Unique identifier for this plan */
+	planId: string;
+	/** Terminal pane that submitted the plan (for future response channel) */
+	originPaneId: string;
+	/** Plan review status (future: 'approved' | 'rejected') */
+	status: "pending";
+	/** Brief one-line summary of the plan */
+	summary?: string;
+	/** When the plan was submitted */
+	submittedAt: number;
+	/** Which agent submitted the plan */
+	agentType?: "opencode" | "claude";
+	/** If true, this pane won't be reused for new plans */
+	isLocked?: boolean;
+}
 
 /**
  * File viewer pane-specific properties
@@ -60,6 +82,7 @@ export interface Pane {
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
 	fileViewer?: FileViewerState; // For file-viewer panes
+	planViewer?: PlanViewerState; // For plan-viewer panes
 }
 
 /**
