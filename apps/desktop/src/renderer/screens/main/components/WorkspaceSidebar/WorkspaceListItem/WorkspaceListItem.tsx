@@ -26,6 +26,7 @@ import {
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
+import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import {
@@ -72,6 +73,7 @@ export function WorkspaceListItem({
 	const isBranchWorkspace = type === "branch";
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const reorderWorkspaces = useReorderWorkspaces();
+	const closeWorkspacesList = useCloseWorkspacesList();
 	const [hasHovered, setHasHovered] = useState(false);
 	const rename = useWorkspaceRename(id, name);
 	const tabs = useTabsStore((s) => s.tabs);
@@ -120,6 +122,8 @@ export function WorkspaceListItem({
 		if (!rename.isRenaming) {
 			setActiveWorkspace.mutate({ id });
 			clearWorkspaceAttention(id);
+			// Close workspaces list view if open, to show the workspace's terminal view
+			closeWorkspacesList();
 		}
 	};
 
