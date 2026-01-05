@@ -1,11 +1,10 @@
+import { trpc } from "renderer/lib/trpc";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 
-interface WorkspaceControlsProps {
-	worktreePath: string | undefined;
-}
+export function WorkspaceControls() {
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const worktreePath = activeWorkspace?.worktreePath;
 
-export function WorkspaceControls({ worktreePath }: WorkspaceControlsProps) {
-	// Don't render if no active workspace with a worktree path
 	if (!worktreePath) return null;
 
 	return (
