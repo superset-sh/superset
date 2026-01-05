@@ -7,7 +7,7 @@ export function EmptyTabView() {
 	const openInAppDisplay = useHotkeyDisplay("OPEN_IN_APP");
 
 	const shortcuts = [
-		{ label: "New Group", display: newGroupDisplay },
+		{ label: "New Tab", display: newGroupDisplay },
 		{ label: "Open in App", display: openInAppDisplay },
 	];
 

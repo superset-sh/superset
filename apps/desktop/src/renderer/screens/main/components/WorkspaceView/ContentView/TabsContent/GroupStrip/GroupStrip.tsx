@@ -90,7 +90,7 @@ export function GroupStrip() {
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
-					<HotkeyTooltipContent label="New Group" hotkeyId="NEW_GROUP" />
+					<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
 				</TooltipContent>
 			</Tooltip>
 		</div>

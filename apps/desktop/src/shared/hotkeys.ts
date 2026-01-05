@@ -465,7 +465,7 @@ export const HOTKEYS = {
 	}),
 	NEW_GROUP: defineHotkey({
 		keys: "meta+t",
-		label: "New Group",
+		label: "New Tab",
 		category: "Terminal",
 	}),
 	CLOSE_TERMINAL: defineHotkey({
