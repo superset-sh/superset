@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { LuFolderPlus } from "react-icons/lu";
+import { LuFolderOpen } from "react-icons/lu";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 
@@ -54,8 +54,8 @@ export function WorkspaceSidebarFooter() {
 				onClick={handleOpenNewProject}
 				disabled={openNew.isPending || createBranchWorkspace.isPending}
 			>
-				<LuFolderPlus className="w-4 h-4" />
-				<span>Add project</span>
+				<LuFolderOpen className="w-4 h-4" />
+				<span>Add repository</span>
 			</Button>
 		</div>
 	);
