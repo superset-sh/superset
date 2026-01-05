@@ -449,6 +449,12 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	}),
+	CLOSE_PANE: defineHotkey({
+		keys: "meta+w",
+		label: "Close Pane",
+		category: "Layout",
+		description: "Close the current pane",
+	}),
 
 	// Terminal
 	FIND_IN_TERMINAL: defineHotkey({

@@ -1,3 +1,4 @@
+import type { HotkeyId } from "shared/hotkeys";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
@@ -9,6 +10,8 @@ interface PaneToolbarActionsProps {
 	onSplitPane: (e: React.MouseEvent) => void;
 	onClosePane: (e: React.MouseEvent) => void;
 	leadingActions?: React.ReactNode;
+	/** Hotkey ID to display for the close action. Defaults to CLOSE_PANE. */
+	closeHotkeyId?: HotkeyId;
 }
 
 export function PaneToolbarActions({
@@ -16,6 +19,7 @@ export function PaneToolbarActions({
 	onSplitPane,
 	onClosePane,
 	leadingActions,
+	closeHotkeyId = "CLOSE_PANE",
 }: PaneToolbarActionsProps) {
 	const splitIcon =
 		splitOrientation === "vertical" ? (
@@ -52,7 +56,7 @@ export function PaneToolbarActions({
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
-					<HotkeyTooltipContent label="Close pane" hotkeyId="CLOSE_TERMINAL" />
+					<HotkeyTooltipContent label="Close pane" hotkeyId={closeHotkeyId} />
 				</TooltipContent>
 			</Tooltip>
 		</div>
