@@ -14,6 +14,12 @@ export function useSetActiveWorkspace(
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 		},
+		onError: (error) => {
+			console.error("[workspace/setUnread] Failed to update unread status:", {
+				error: error.message,
+			});
+			toast.error(`Failed to undo: ${error.message}`);
+		},
 	});
 
 	return trpc.workspaces.setActive.useMutation({
