@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useHotkeys } from "react-hotkeys-hook";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useCreateBranchWorkspace,
 	useSetActiveWorkspace,
 } from "renderer/react-query/workspaces";
-import { HOTKEYS } from "shared/hotkeys";
+import { useAppHotkey } from "renderer/stores/hotkeys";
 
 /**
  * Shared hook for workspace keyboard shortcuts and auto-creation logic.
- * This hook should be used in both:
- * - WorkspacesTabs (top-bar mode)
- * - WorkspaceSidebar (sidebar mode)
+ * Used by WorkspaceSidebar for navigation between workspaces.
  *
  * It handles:
  * - ⌘1-9 workspace switching shortcuts
@@ -65,48 +62,73 @@ export function useWorkspaceShortcuts() {
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);
 
-	// Workspace switching shortcuts (⌘+1-9)
-	const workspaceKeys = Array.from(
-		{ length: 9 },
-		(_, i) => `meta+${i + 1}`,
-	).join(", ");
-
-	const handleWorkspaceSwitch = useCallback(
-		(event: KeyboardEvent) => {
-			const num = Number(event.key);
-			if (num >= 1 && num <= 9) {
-				const workspace = allWorkspaces[num - 1];
-				if (workspace) {
-					setActiveWorkspace.mutate({ id: workspace.id });
-				}
+	const switchToWorkspace = useCallback(
+		(index: number) => {
+			const workspace = allWorkspaces[index];
+			if (workspace) {
+				setActiveWorkspace.mutate({ id: workspace.id });
 			}
 		},
 		[allWorkspaces, setActiveWorkspace],
 	);
 
-	const handlePrevWorkspace = useCallback(() => {
-		if (!activeWorkspaceId) return;
-		const currentIndex = allWorkspaces.findIndex(
-			(w) => w.id === activeWorkspaceId,
-		);
-		if (currentIndex > 0) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex - 1].id });
-		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+	useAppHotkey("JUMP_TO_WORKSPACE_1", () => switchToWorkspace(0), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_2", () => switchToWorkspace(1), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_3", () => switchToWorkspace(2), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_4", () => switchToWorkspace(3), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_5", () => switchToWorkspace(4), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_6", () => switchToWorkspace(5), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_7", () => switchToWorkspace(6), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_8", () => switchToWorkspace(7), undefined, [
+		switchToWorkspace,
+	]);
+	useAppHotkey("JUMP_TO_WORKSPACE_9", () => switchToWorkspace(8), undefined, [
+		switchToWorkspace,
+	]);
 
-	const handleNextWorkspace = useCallback(() => {
-		if (!activeWorkspaceId) return;
-		const currentIndex = allWorkspaces.findIndex(
-			(w) => w.id === activeWorkspaceId,
-		);
-		if (currentIndex < allWorkspaces.length - 1) {
-			setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
-		}
-	}, [activeWorkspaceId, allWorkspaces, setActiveWorkspace]);
+	useAppHotkey(
+		"PREV_WORKSPACE",
+		() => {
+			if (!activeWorkspaceId) return;
+			const currentIndex = allWorkspaces.findIndex(
+				(w) => w.id === activeWorkspaceId,
+			);
+			if (currentIndex > 0) {
+				setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex - 1].id });
+			}
+		},
+		undefined,
+		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
+	);
 
-	useHotkeys(workspaceKeys, handleWorkspaceSwitch);
-	useHotkeys(HOTKEYS.PREV_WORKSPACE.keys, handlePrevWorkspace);
-	useHotkeys(HOTKEYS.NEXT_WORKSPACE.keys, handleNextWorkspace);
+	useAppHotkey(
+		"NEXT_WORKSPACE",
+		() => {
+			if (!activeWorkspaceId) return;
+			const currentIndex = allWorkspaces.findIndex(
+				(w) => w.id === activeWorkspaceId,
+			);
+			if (currentIndex < allWorkspaces.length - 1) {
+				setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
+			}
+		},
+		undefined,
+		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
+	);
 
 	return {
 		groups,

@@ -90,6 +90,14 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 			{
 				name: "workspace-sidebar-store",
 				version: 1,
+				// Exclude ephemeral state from persistence
+				partialize: (state) => ({
+					isOpen: state.isOpen,
+					width: state.width,
+					lastOpenWidth: state.lastOpenWidth,
+					collapsedProjectIds: state.collapsedProjectIds,
+					// isResizing intentionally excluded - ephemeral UI state
+				}),
 			},
 		),
 		{ name: "WorkspaceSidebarStore" },
