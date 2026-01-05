@@ -1,8 +1,15 @@
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
-import { LuArrowRight, LuGitBranch, LuGitFork, LuSearch } from "react-icons/lu";
+import {
+	LuArrowRight,
+	LuGitBranch,
+	LuGitFork,
+	LuSearch,
+	LuX,
+} from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
@@ -226,19 +233,27 @@ export function WorkspacesListView() {
 	};
 
 	return (
-		<div className="flex-1 flex flex-col bg-background overflow-hidden">
-			{/* Search header */}
-			<div className="p-4 border-b border-border">
-				<div className="relative">
-					<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+		<div className="flex-1 flex flex-col bg-card overflow-hidden">
+			{/* Header with search */}
+			<div className="flex items-center gap-3 px-4 py-2 border-b border-border/50">
+				<div className="relative flex-1">
+					<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50" />
 					<Input
 						type="text"
 						placeholder="Filter workspaces..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9"
+						className="pl-9 bg-background/50"
 					/>
 				</div>
+				<Button
+					variant="ghost"
+					size="icon"
+					onClick={closeWorkspacesList}
+					className="size-7 text-foreground/60 hover:text-foreground shrink-0"
+				>
+					<LuX className="size-4" />
+				</Button>
 			</div>
 
 			{/* Workspaces list */}
@@ -246,11 +261,11 @@ export function WorkspacesListView() {
 				{timeGroups.map((group) => (
 					<div key={group.label}>
 						{/* Time group header */}
-						<div className="sticky top-0 bg-background/95 backdrop-blur-sm px-4 py-2 border-b border-border">
-							<span className="text-xs font-medium text-muted-foreground">
+						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border/50">
+							<span className="text-xs font-medium text-foreground/70">
 								{group.label}
 							</span>
-							<span className="text-xs text-muted-foreground/60 ml-2">
+							<span className="text-xs text-foreground/40 ml-2">
 								{group.count}
 							</span>
 						</div>
@@ -272,7 +287,7 @@ export function WorkspacesListView() {
 				))}
 
 				{filteredWorkspaces.length === 0 && (
-					<div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+					<div className="flex items-center justify-center h-32 text-foreground/50 text-sm">
 						{searchQuery
 							? "No workspaces match your search"
 							: "No workspaces yet"}
@@ -320,9 +335,9 @@ function WorkspaceRow({
 			onMouseEnter={() => !hasHovered && setHasHovered(true)}
 			className={cn(
 				"flex items-center gap-3 w-full px-4 py-2.5 text-left",
-				"hover:bg-muted/50 transition-colors group",
-				isActive && "bg-muted",
-				!workspace.isOpen && "opacity-60",
+				"hover:bg-background/50 transition-colors group",
+				isActive && "bg-background/70",
+				!workspace.isOpen && "opacity-50",
 				isOpening && "opacity-50 cursor-wait",
 			)}
 		>
@@ -332,37 +347,37 @@ function WorkspaceRow({
 				<div
 					className={cn(
 						"flex items-center justify-center size-6 rounded",
-						isBranch ? "bg-primary/10" : "bg-muted",
+						isBranch ? "bg-primary/20" : "bg-background/80",
 					)}
 				>
 					{isBranch ? (
 						<LuGitBranch className="size-3.5 text-primary" />
 					) : (
-						<LuGitFork className="size-3.5 text-muted-foreground" />
+						<LuGitFork className="size-3.5 text-foreground/60" />
 					)}
 				</div>
 				{/* Open/Closed indicator dot */}
 				<div
 					className={cn(
-						"absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-background",
-						workspace.isOpen ? "bg-emerald-500" : "bg-muted-foreground/40",
+						"absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card",
+						workspace.isOpen ? "bg-emerald-500" : "bg-foreground/30",
 					)}
 				/>
 			</div>
 
 			{/* Project name */}
-			<span className="text-sm text-muted-foreground shrink-0">
+			<span className="text-sm text-foreground/60 shrink-0">
 				{workspace.projectName}
 			</span>
 
 			{/* Chevron separator */}
-			<span className="text-muted-foreground/50 shrink-0">{">"}</span>
+			<span className="text-foreground/30 shrink-0">{">"}</span>
 
 			{/* Workspace/branch name */}
 			<span
 				className={cn(
 					"text-sm flex-1 truncate",
-					isActive ? "text-foreground font-medium" : "text-muted-foreground",
+					isActive ? "text-foreground font-medium" : "text-foreground/80",
 				)}
 			>
 				{workspace.name}
@@ -395,12 +410,12 @@ function WorkspaceRow({
 			)}
 
 			{/* Date */}
-			<span className="text-xs text-muted-foreground/60 shrink-0">
+			<span className="text-xs text-foreground/40 shrink-0">
 				{formatDate(workspace.lastOpenedAt)}
 			</span>
 
 			{/* Action button - visible on hover */}
-			<div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+			<div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-foreground/60 shrink-0">
 				{isOpening ? (
 					<span>Opening...</span>
 				) : workspace.isOpen ? (
