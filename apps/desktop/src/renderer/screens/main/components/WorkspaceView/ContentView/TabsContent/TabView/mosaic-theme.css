@@ -11,16 +11,13 @@
 }
 
 .mosaic-theme-dark .mosaic-window {
-	border: 1px solid var(--color-tertiary-active);
-	border-radius: var(--radius-lg);
+	border: 0.5px solid var(--color-border);
+	border-radius: var(--radius-sm);
 	overflow: hidden;
 	box-shadow: none;
-	transition:
-		border-color 0.15s ease,
-		box-shadow 0.15s ease;
 }
 .mosaic-theme-dark .mosaic-window-focused {
-	border-color: var(--color-tertiary-active);
+	border-color: var(--color-border);
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
