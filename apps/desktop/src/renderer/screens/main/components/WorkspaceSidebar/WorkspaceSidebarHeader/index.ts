@@ -1,0 +1,1 @@
+export { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
