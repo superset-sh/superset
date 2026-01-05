@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
@@ -7,13 +8,18 @@ import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 export function WorkspaceSidebar() {
 	const { groups, activeWorkspaceId } = useWorkspaceShortcuts();
 
-	// Calculate shortcut base indices for each project group
-	let shortcutIndex = 0;
-	const projectShortcutIndices = groups.map((group) => {
-		const baseIndex = shortcutIndex;
-		shortcutIndex += group.workspaces.length;
-		return baseIndex;
-	});
+	// Calculate shortcut base indices for each project group using cumulative offsets
+	const projectShortcutIndices = useMemo(
+		() =>
+			groups.reduce<{ indices: number[]; cumulative: number }>(
+				(acc, group) => ({
+					indices: [...acc.indices, acc.cumulative],
+					cumulative: acc.cumulative + group.workspaces.length,
+				}),
+				{ indices: [], cumulative: 0 },
+			).indices,
+		[groups],
+	);
 
 	return (
 		<div className="flex flex-col h-full bg-background">

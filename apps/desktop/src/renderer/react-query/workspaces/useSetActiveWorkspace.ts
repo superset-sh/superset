@@ -18,6 +18,14 @@ export function useSetActiveWorkspace(
 
 	return trpc.workspaces.setActive.useMutation({
 		...options,
+		onError: (error, variables, context) => {
+			console.error("[workspace/setActive] Failed to set active workspace:", {
+				workspaceId: variables.id,
+				error: error.message,
+			});
+			toast.error(`Failed to switch workspace: ${error.message}`);
+			options?.onError?.(error, variables, context);
+		},
 		onSuccess: async (data, variables, ...rest) => {
 			// Auto-invalidate active workspace and all workspaces queries
 			await Promise.all([
