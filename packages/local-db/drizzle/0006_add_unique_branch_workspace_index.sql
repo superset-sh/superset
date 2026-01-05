@@ -22,6 +22,7 @@ WHERE last_active_workspace_id IN (
             w2.last_opened_at > w1.last_opened_at
             OR (w2.last_opened_at = w1.last_opened_at AND w2.id < w1.id)
             OR (w2.last_opened_at IS NOT NULL AND w1.last_opened_at IS NULL)
+            OR (w1.last_opened_at IS NULL AND w2.last_opened_at IS NULL AND w2.id < w1.id)
         )
     )
 );
