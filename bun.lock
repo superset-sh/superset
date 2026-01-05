@@ -17,7 +17,6 @@
         "@clerk/nextjs": "^6.36.2",
         "@sentry/nextjs": "^10.32.1",
         "@superset/db": "workspace:*",
-        "@superset/queries": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@superset/ui": "workspace:*",
@@ -330,7 +329,6 @@
         "@clerk/nextjs": "^6.36.2",
         "@sentry/nextjs": "^10.32.1",
         "@superset/db": "workspace:*",
-        "@superset/queries": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@superset/ui": "workspace:*",
@@ -399,24 +397,6 @@
         "@types/uuid": "^11.0.0",
         "drizzle-kit": "0.31.8",
         "typescript": "^5.9.3",
-      },
-    },
-    "packages/queries": {
-      "name": "@superset/queries",
-      "version": "0.1.0",
-      "dependencies": {
-        "@superset/trpc": "workspace:*",
-        "@tanstack/react-query": "^5.90.10",
-        "@trpc/tanstack-react-query": "^11.7.1",
-      },
-      "devDependencies": {
-        "@superset/typescript": "workspace:*",
-        "@types/react": "^19.2.7",
-        "react": "^19.2.3",
-        "typescript": "^5.9.3",
-      },
-      "peerDependencies": {
-        "react": "^19.2.3",
       },
     },
     "packages/shared": {
@@ -1264,8 +1244,6 @@
     "@superset/local-db": ["@superset/local-db@workspace:packages/local-db"],
 
     "@superset/marketing": ["@superset/marketing@workspace:apps/marketing"],
-
-    "@superset/queries": ["@superset/queries@workspace:packages/queries"],
 
     "@superset/shared": ["@superset/shared@workspace:packages/shared"],
 

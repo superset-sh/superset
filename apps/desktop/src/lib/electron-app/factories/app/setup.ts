@@ -58,9 +58,7 @@ export async function makeAppSetup(
 			// Always prevent in-app navigation for external URLs
 			if (url.startsWith("http://") || url.startsWith("https://")) {
 				event.preventDefault();
-				shell.openExternal(url).catch((error) => {
-					console.error("[app] Failed to open external URL:", url, error);
-				});
+				shell.openExternal(url);
 			}
 		}),
 	);
