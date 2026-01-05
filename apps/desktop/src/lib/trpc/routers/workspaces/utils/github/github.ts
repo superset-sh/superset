@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
 import { branchExistsOnRemote } from "../git";
+import { execWithShellEnv } from "../shell-env";
 import {
 	type GHPRResponse,
 	GHPRResponseSchema,
@@ -44,10 +45,14 @@ export async function fetchGitHubPRStatus(
 		const branchName = branchOutput.trim();
 
 		// Check if branch exists on remote and get PR info in parallel
-		const [existsOnRemote, prInfo] = await Promise.all([
+		const [branchCheck, prInfo] = await Promise.all([
 			branchExistsOnRemote(worktreePath, branchName),
 			getPRForBranch(worktreePath, branchName),
 		]);
+
+		// Convert result to boolean - only "exists" is true
+		// "not_found" and "error" both mean we can't confirm it exists
+		const existsOnRemote = branchCheck.status === "exists";
 
 		const result: GitHubStatus = {
 			pr: prInfo,
@@ -68,12 +73,10 @@ export async function fetchGitHubPRStatus(
 
 async function getRepoUrl(worktreePath: string): Promise<string | null> {
 	try {
-		const { stdout } = await execFileAsync(
+		const { stdout } = await execWithShellEnv(
 			"gh",
 			["repo", "view", "--json", "url"],
-			{
-				cwd: worktreePath,
-			},
+			{ cwd: worktreePath },
 		);
 		const raw = JSON.parse(stdout);
 		const result = GHRepoResponseSchema.safeParse(raw);
@@ -93,8 +96,8 @@ async function getPRForBranch(
 	branch: string,
 ): Promise<GitHubStatus["pr"]> {
 	try {
-		// Use execFile with args array to prevent command injection
-		const { stdout } = await execFileAsync(
+		// Use execWithShellEnv to handle macOS GUI app PATH issues
+		const { stdout } = await execWithShellEnv(
 			"gh",
 			[
 				"pr",

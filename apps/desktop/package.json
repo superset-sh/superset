@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "0.0.42",
+	"version": "0.0.43",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {

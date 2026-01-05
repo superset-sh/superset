@@ -3,13 +3,35 @@ import { trpc } from "renderer/lib/trpc";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
+import {
+	useHasWorkspaceFailed,
+	useIsWorkspaceInitializing,
+} from "renderer/stores/workspace-init";
 import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
 import { ContentView } from "./ContentView";
 import { ResizableSidebar } from "./ResizableSidebar";
+import { WorkspaceInitializingView } from "./WorkspaceInitializingView";
 
 export function WorkspaceView() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
+
+	// Check if active workspace is initializing or failed
+	const isInitializing = useIsWorkspaceInitializing(activeWorkspaceId ?? "");
+	const hasFailed = useHasWorkspaceFailed(activeWorkspaceId ?? "");
+
+	// Also check for incomplete init after app restart:
+	// - worktree type workspace with null/undefined gitStatus means init never completed
+	// - This handles the case where app restarts during init (in-memory progress lost)
+	// - Uses explicit check instead of == null to avoid lint issues
+	const gitStatus = activeWorkspace?.worktree?.gitStatus;
+	const hasIncompleteInit =
+		activeWorkspace?.type === "worktree" &&
+		(gitStatus === null || gitStatus === undefined);
+
+	const showInitView =
+		activeWorkspaceId && (isInitializing || hasFailed || hasIncompleteInit);
+
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
@@ -169,7 +191,15 @@ export function WorkspaceView() {
 				<ResizableSidebar />
 				<div className="flex-1 min-w-0 h-full bg-background flex flex-col overflow-hidden">
 					<div className="flex-1 min-h-0 overflow-hidden">
-						<ContentView />
+						{showInitView && activeWorkspaceId ? (
+							<WorkspaceInitializingView
+								workspaceId={activeWorkspaceId}
+								workspaceName={activeWorkspace?.name ?? "Workspace"}
+								isInterrupted={hasIncompleteInit && !isInitializing}
+							/>
+						) : (
+							<ContentView />
+						)}
 					</div>
 				</div>
 			</div>

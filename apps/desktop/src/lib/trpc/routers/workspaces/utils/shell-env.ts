@@ -1,4 +1,7 @@
-import { execFile } from "node:child_process";
+import {
+	type ExecFileOptionsWithStringEncoding,
+	execFile,
+} from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
 
@@ -10,6 +13,10 @@ let cacheTime = 0;
 let isFallbackCache = false;
 const CACHE_TTL_MS = 60_000; // 1 minute cache
 const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry sooner)
+
+// Track PATH fix state for macOS GUI app PATH fix
+let pathFixAttempted = false;
+let pathFixSucceeded = false;
 
 /**
  * Gets the full shell environment by spawning a login shell.
@@ -29,7 +36,9 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		return { ...cachedEnv };
 	}
 
-	const shell = process.env.SHELL || "/bin/bash";
+	const shell =
+		process.env.SHELL ||
+		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 
 	try {
 		// Use -lc flags (not -ilc):
@@ -102,4 +111,63 @@ export function clearShellEnvCache(): void {
 	cachedEnv = null;
 	cacheTime = 0;
 	isFallbackCache = false;
+}
+
+/**
+ * Execute a command, retrying once with shell environment if it fails with ENOENT.
+ * On macOS, GUI apps launched from Finder/Dock get minimal PATH that excludes
+ * homebrew and other user-installed tools. This lazily derives the user's
+ * shell environment only when needed, then persists the fix to process.env.PATH.
+ */
+export async function execWithShellEnv(
+	cmd: string,
+	args: string[],
+	options?: Omit<ExecFileOptionsWithStringEncoding, "encoding">,
+): Promise<{ stdout: string; stderr: string }> {
+	try {
+		return await execFileAsync(cmd, args, { ...options, encoding: "utf8" });
+	} catch (error) {
+		// Only retry on ENOENT (command not found), only on macOS
+		// Skip if we've already successfully fixed PATH, or if a fix attempt is in progress
+		if (
+			process.platform !== "darwin" ||
+			pathFixSucceeded ||
+			pathFixAttempted ||
+			!(error instanceof Error) ||
+			!("code" in error) ||
+			error.code !== "ENOENT"
+		) {
+			throw error;
+		}
+
+		pathFixAttempted = true;
+		console.log("[shell-env] Command not found, deriving shell environment");
+
+		try {
+			const shellEnv = await getShellEnvironment();
+
+			// Persist the fix to process.env so all subsequent calls benefit
+			if (shellEnv.PATH) {
+				process.env.PATH = shellEnv.PATH;
+				pathFixSucceeded = true;
+				console.log("[shell-env] Fixed process.env.PATH for GUI app");
+			}
+
+			// Retry with fixed env (respect caller's other env vars, force PATH if present)
+			const retryEnv = shellEnv.PATH
+				? { ...shellEnv, ...options?.env, PATH: shellEnv.PATH }
+				: { ...shellEnv, ...options?.env };
+
+			return await execFileAsync(cmd, args, {
+				...options,
+				encoding: "utf8",
+				env: retryEnv,
+			});
+		} catch (retryError) {
+			// Shell env derivation or retry failed - allow future retries
+			pathFixAttempted = false;
+			console.error("[shell-env] Retry failed:", retryError);
+			throw retryError;
+		}
+	}
 }

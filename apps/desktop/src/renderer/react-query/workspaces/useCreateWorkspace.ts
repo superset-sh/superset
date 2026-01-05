@@ -1,23 +1,27 @@
-import { toast } from "@superset/ui/sonner";
 import { trpc } from "renderer/lib/trpc";
-import { useOpenConfigModal } from "renderer/stores/config-modal";
-import { useTabsStore } from "renderer/stores/tabs/store";
+import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 
 /**
  * Mutation hook for creating a new workspace
  * Automatically invalidates all workspace queries on success
- * Creates a terminal tab with setup commands if present
- * Shows config toast if no setup commands are configured
+ *
+ * For worktree workspaces with async initialization:
+ * - Returns immediately after workspace record is created
+ * - Terminal tab is created by WorkspaceInitEffects when initialization completes
+ *
+ * For branch workspaces (no async init):
+ * - Terminal setup is triggered immediately via WorkspaceInitEffects
+ *
+ * Note: Terminal creation is handled by WorkspaceInitEffects (always mounted in MainScreen)
+ * to survive dialog unmounts. This hook just adds to the global pending store.
  */
 export function useCreateWorkspace(
 	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
 ) {
 	const utils = trpc.useUtils();
-	const addTab = useTabsStore((state) => state.addTab);
-	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
-	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
+	const addPendingTerminalSetup = useWorkspaceInitStore(
+		(s) => s.addPendingTerminalSetup,
+	);
 
 	return trpc.workspaces.create.useMutation({
 		...options,
@@ -25,34 +29,17 @@ export function useCreateWorkspace(
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 
-			// Create terminal tab with setup commands if present
-			if (
-				Array.isArray(data.initialCommands) &&
-				data.initialCommands.length > 0
-			) {
-				const { tabId, paneId } = addTab(data.workspace.id);
-				setTabAutoTitle(tabId, "Workspace Setup");
-				// Pre-create terminal session with initial commands
-				// Terminal component will attach to this session when it mounts
-				createOrAttach.mutate({
-					paneId,
-					tabId,
-					workspaceId: data.workspace.id,
-					initialCommands: data.initialCommands,
-				});
-			} else {
-				// Show config toast if no setup commands
-				toast.info("No setup script configured", {
-					description: "Automate workspace setup with a config.json file",
-					action: {
-						label: "Configure",
-						onClick: () => openConfigModal(data.projectId),
-					},
-					onDismiss: () => {
-						dismissConfigToast.mutate({ projectId: data.projectId });
-					},
-				});
-			}
+			// Add to global pending store (WorkspaceInitEffects will handle terminal creation)
+			// This survives dialog unmounts since it's stored in Zustand, not a hook-local ref
+			addPendingTerminalSetup({
+				workspaceId: data.workspace.id,
+				projectId: data.projectId,
+				initialCommands: data.initialCommands,
+			});
+
+			// Handle race condition: if init already completed before we added to pending,
+			// WorkspaceInitEffects will process it on next render when it sees the progress
+			// is already "ready" and there's a matching pending setup.
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);
