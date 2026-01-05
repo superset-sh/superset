@@ -8,4 +8,3 @@ export * from "./tabs";
 export * from "./theme";
 export * from "./workspace-init";
 export * from "./workspace-sidebar-state";
-export * from "./workspace-view-mode";

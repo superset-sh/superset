@@ -1,15 +1,14 @@
 import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
-import { MosaicWindow } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Pane } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
+import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
 import { FileViewerToolbar } from "./components/FileViewerToolbar";
 import { useFileContent } from "./hooks/useFileContent";
 import { useFileSave } from "./hooks/useFileSave";
-import { useSplitOrientation } from "./hooks/useSplitOrientation";
 import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 
 interface FileViewerPaneProps {
@@ -40,8 +39,6 @@ export function FileViewerPane({
 	removePane,
 	setFocusedPane,
 }: FileViewerPaneProps) {
-	const containerRef = useRef<HTMLDivElement>(null);
-	const splitOrientation = useSplitOrientation(containerRef);
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
@@ -115,31 +112,22 @@ export function FileViewerPane({
 
 	if (!fileViewer) {
 		return (
-			<MosaicWindow<string> path={path} title="">
+			<BasePaneWindow
+				paneId={paneId}
+				path={path}
+				tabId={tabId}
+				isActive={isActive}
+				splitPaneAuto={splitPaneAuto}
+				removePane={removePane}
+				setFocusedPane={setFocusedPane}
+				renderToolbar={() => <div className="h-full w-full" />}
+			>
 				<div className="flex items-center justify-center h-full text-muted-foreground">
 					No file viewer state
 				</div>
-			</MosaicWindow>
+			</BasePaneWindow>
 		);
 	}
-
-	const handleFocus = () => {
-		setFocusedPane(tabId, paneId);
-	};
-
-	const handleClosePane = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		removePane(paneId);
-	};
-
-	const handleSplitPane = (e: React.MouseEvent) => {
-		e.stopPropagation();
-		const container = containerRef.current;
-		if (!container) return;
-
-		const { width, height } = container.getBoundingClientRect();
-		splitPaneAuto(tabId, paneId, { width, height }, path);
-	};
 
 	const handleToggleLock = () => {
 		const panes = useTabsStore.getState().panes;
@@ -254,35 +242,35 @@ export function FileViewerPane({
 		viewMode === "raw" || (viewMode === "diff" && isDiffEditable);
 
 	return (
-		<MosaicWindow<string>
-			path={path}
-			title=""
-			renderToolbar={() => (
-				<div className="flex h-full w-full">
-					<FileViewerToolbar
-						fileName={fileName}
-						isDirty={isDirty}
-						isSaving={isSaving}
-						viewMode={viewMode}
-						isLocked={isLocked}
-						isMarkdown={isMarkdown}
-						hasDiff={hasDiff}
-						showEditableBadge={showEditableBadge}
-						splitOrientation={splitOrientation}
-						onViewModeChange={handleViewModeChange}
-						onSplitPane={handleSplitPane}
-						onToggleLock={handleToggleLock}
-						onClosePane={handleClosePane}
-					/>
-				</div>
-			)}
-			className={isActive ? "mosaic-window-focused" : ""}
-		>
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Focus handler */}
-			<div
-				ref={containerRef}
-				className="w-full h-full overflow-hidden bg-background"
-				onClick={handleFocus}
+		<>
+			<BasePaneWindow
+				paneId={paneId}
+				path={path}
+				tabId={tabId}
+				isActive={isActive}
+				splitPaneAuto={splitPaneAuto}
+				removePane={removePane}
+				setFocusedPane={setFocusedPane}
+				contentClassName="w-full h-full overflow-hidden bg-background"
+				renderToolbar={(handlers) => (
+					<div className="flex h-full w-full">
+						<FileViewerToolbar
+							fileName={fileName}
+							isDirty={isDirty}
+							isSaving={isSaving}
+							viewMode={viewMode}
+							isLocked={isLocked}
+							isMarkdown={isMarkdown}
+							hasDiff={hasDiff}
+							showEditableBadge={showEditableBadge}
+							splitOrientation={handlers.splitOrientation}
+							onViewModeChange={handleViewModeChange}
+							onSplitPane={handlers.onSplitPane}
+							onToggleLock={handleToggleLock}
+							onClosePane={handlers.onClosePane}
+						/>
+					</div>
+				)}
 			>
 				<FileViewerContent
 					viewMode={viewMode}
@@ -303,7 +291,7 @@ export function FileViewerPane({
 					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
 					setIsDirty={setIsDirty}
 				/>
-			</div>
+			</BasePaneWindow>
 			<UnsavedChangesDialog
 				open={showUnsavedDialog}
 				onOpenChange={setShowUnsavedDialog}
@@ -311,6 +299,6 @@ export function FileViewerPane({
 				onDiscardAndSwitch={handleDiscardAndSwitch}
 				isSaving={isSavingAndSwitching}
 			/>
-		</MosaicWindow>
+		</>
 	);
 }

@@ -7,12 +7,12 @@ export function EmptyTabView() {
 	const openInAppDisplay = useHotkeyDisplay("OPEN_IN_APP");
 
 	const shortcuts = [
-		{ label: "New Group", display: newGroupDisplay },
+		{ label: "New Tab", display: newGroupDisplay },
 		{ label: "Open in App", display: openInAppDisplay },
 	];
 
 	return (
-		<div className="flex-1 flex flex-col items-center justify-center gap-6">
+		<div className="flex-1 flex flex-col items-center justify-center gap-6 h-full">
 			<div className="p-4 rounded-lg bg-muted border border-border">
 				<HiMiniCommandLine className="size-8 text-muted-foreground" />
 			</div>

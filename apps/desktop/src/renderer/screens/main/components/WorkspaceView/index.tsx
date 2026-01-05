@@ -7,9 +7,7 @@ import {
 	useHasWorkspaceFailed,
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
-import { useWorkspaceViewModeStore } from "renderer/stores/workspace-view-mode";
 import { ContentView } from "./ContentView";
-import { ResizableSidebar } from "./ResizableSidebar";
 import { WorkspaceInitializingView } from "./WorkspaceInitializingView";
 
 export function WorkspaceView() {
@@ -61,31 +59,16 @@ export function WorkspaceView() {
 	// Get focused pane ID for the active tab
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// View mode for terminal creation - subscribe to actual data for reactivity
-	const viewModeByWorkspaceId = useWorkspaceViewModeStore(
-		(s) => s.viewModeByWorkspaceId,
-	);
-	const setWorkspaceViewMode = useWorkspaceViewModeStore(
-		(s) => s.setWorkspaceViewMode,
-	);
-	const viewMode = activeWorkspaceId
-		? (viewModeByWorkspaceId[activeWorkspaceId] ?? "workbench")
-		: "workbench";
-
 	// Tab management shortcuts
 	useAppHotkey(
 		"NEW_GROUP",
 		() => {
 			if (activeWorkspaceId) {
-				// If in Review mode, switch to Workbench first
-				if (viewMode === "review") {
-					setWorkspaceViewMode(activeWorkspaceId, "workbench");
-				}
 				addTab(activeWorkspaceId);
 			}
 		},
 		undefined,
-		[activeWorkspaceId, addTab, viewMode, setWorkspaceViewMode],
+		[activeWorkspaceId, addTab],
 	);
 
 	useAppHotkey(
@@ -187,21 +170,16 @@ export function WorkspaceView() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
-			<div className="flex-1 flex bg-tertiary overflow-hidden">
-				<ResizableSidebar />
-				<div className="flex-1 min-w-0 h-full bg-background flex flex-col overflow-hidden">
-					<div className="flex-1 min-h-0 overflow-hidden">
-						{showInitView && activeWorkspaceId ? (
-							<WorkspaceInitializingView
-								workspaceId={activeWorkspaceId}
-								workspaceName={activeWorkspace?.name ?? "Workspace"}
-								isInterrupted={hasIncompleteInit && !isInitializing}
-							/>
-						) : (
-							<ContentView />
-						)}
-					</div>
-				</div>
+			<div className="flex-1 min-h-0 overflow-hidden">
+				{showInitView && activeWorkspaceId ? (
+					<WorkspaceInitializingView
+						workspaceId={activeWorkspaceId}
+						workspaceName={activeWorkspace?.name ?? "Workspace"}
+						isInterrupted={hasIncompleteInit && !isInitializing}
+					/>
+				) : (
+					<ContentView />
+				)}
 			</div>
 		</div>
 	);
