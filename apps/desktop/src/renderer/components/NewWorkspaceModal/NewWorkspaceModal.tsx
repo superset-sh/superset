@@ -217,11 +217,13 @@ export function NewWorkspaceModal() {
 							<SelectValue placeholder="Select project" />
 						</SelectTrigger>
 						<SelectContent>
-							{recentProjects.map((project) => (
-								<SelectItem key={project.id} value={project.id}>
-									{project.name}
-								</SelectItem>
-							))}
+							{recentProjects
+								.filter((project) => project.id)
+								.map((project) => (
+									<SelectItem key={project.id} value={project.id}>
+										{project.name}
+									</SelectItem>
+								))}
 						</SelectContent>
 					</Select>
 				</div>
