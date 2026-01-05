@@ -1,5 +1,6 @@
 .mosaic-container {
 	background: transparent;
+	padding: 0;
 }
 
 .mosaic-theme-dark .mosaic-root {
@@ -7,12 +8,12 @@
 }
 
 .mosaic-theme-dark .mosaic-tile {
-	margin: 1px;
+	margin: 0;
 }
 
 .mosaic-theme-dark .mosaic-window {
 	border: 0.5px solid var(--color-border);
-	border-radius: var(--radius-sm);
+	border-radius: 0;
 	overflow: hidden;
 	box-shadow: none;
 }
@@ -87,15 +88,11 @@
 	transition: background-color 0.15s ease;
 }
 
-.mosaic-theme-dark .mosaic-split.-column:hover,
-.mosaic-theme-dark .mosaic-split.-column.mosaic-split-dragging {
-	background: transparent;
+.mosaic-theme-dark .mosaic-split.-column {
 	cursor: row-resize;
 }
 
-.mosaic-theme-dark .mosaic-split.-row:hover,
-.mosaic-theme-dark .mosaic-split.-row.mosaic-split-dragging {
-	background: transparent;
+.mosaic-theme-dark .mosaic-split.-row {
 	cursor: col-resize;
 }
 
