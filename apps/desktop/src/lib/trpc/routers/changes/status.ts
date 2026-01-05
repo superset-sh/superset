@@ -147,21 +147,12 @@ async function getBranchComparison(
 /** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
 const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
-/**
- * Apply line counts to untracked files.
- *
- * Uses secureFs which:
- * - Validates paths don't escape worktree
- * - Uses stat (follows symlinks) for accurate size checks
- * - Checks for symlink escapes
- */
 async function applyUntrackedLineCount(
 	worktreePath: string,
 	untracked: ChangedFile[],
 ): Promise<void> {
 	for (const file of untracked) {
 		try {
-			// secureFs.stat uses stat (follows symlinks) for accurate size
 			const stats = await secureFs.stat(worktreePath, file.path);
 			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 

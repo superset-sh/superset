@@ -66,10 +66,7 @@ export const createBranchesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// Get worktree record for updating branch info
 				const worktree = getRegisteredWorktree(input.worktreePath);
-
-				// Use gitSwitchBranch which uses `git switch` (correct branch syntax)
 				await gitSwitchBranch(input.worktreePath, input.branch);
 
 				// Update the branch in the worktree record

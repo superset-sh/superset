@@ -69,7 +69,6 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// secureFs.delete validates worktree registration and path traversal
 				await secureFs.delete(input.worktreePath, input.filePath);
 				return { success: true };
 			}),

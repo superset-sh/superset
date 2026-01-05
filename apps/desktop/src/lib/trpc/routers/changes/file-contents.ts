@@ -89,7 +89,6 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// secureFs.writeFile validates worktree registration and path traversal
 				await secureFs.writeFile(
 					input.worktreePath,
 					input.filePath,
@@ -111,19 +110,16 @@ export const createFileContentsRouter = () => {
 			)
 			.query(async ({ input }): Promise<ReadWorkingFileResult> => {
 				try {
-					// Check file size first (uses stat which follows symlinks)
 					const stats = await secureFs.stat(input.worktreePath, input.filePath);
 					if (stats.size > MAX_FILE_SIZE) {
 						return { ok: false, reason: "too-large" };
 					}
 
-					// Read file content as buffer for binary detection
 					const buffer = await secureFs.readFileBuffer(
 						input.worktreePath,
 						input.filePath,
 					);
 
-					// Check for binary content
 					if (isBinaryContent(buffer)) {
 						return { ok: false, reason: "binary" };
 					}
@@ -136,13 +132,11 @@ export const createFileContentsRouter = () => {
 					};
 				} catch (error) {
 					if (error instanceof PathValidationError) {
-						// Map specific error codes to distinct reasons
 						if (error.code === "SYMLINK_ESCAPE") {
 							return { ok: false, reason: "symlink-escape" };
 						}
 						return { ok: false, reason: "outside-worktree" };
 					}
-					// File not found or other read error
 					return { ok: false, reason: "not-found" };
 				}
 			}),
@@ -263,7 +257,6 @@ async function getUnstagedVersions(
 
 	let modified = "";
 	try {
-		// Check file size before reading (uses stat which follows symlinks)
 		const stats = await secureFs.stat(worktreePath, filePath);
 		if (stats.size <= MAX_FILE_SIZE) {
 			modified = await secureFs.readFile(worktreePath, filePath);

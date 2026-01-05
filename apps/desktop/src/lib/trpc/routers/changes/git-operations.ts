@@ -32,7 +32,6 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; hash: string }> => {
-					// SECURITY: Validate worktreePath exists in localDb
 					assertRegisteredWorktree(input.worktreePath);
 
 					const git = simpleGit(input.worktreePath);
@@ -49,7 +48,6 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
 				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
@@ -72,7 +70,6 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
 				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
@@ -98,7 +95,6 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				// SECURITY: Validate worktreePath exists in localDb
 				assertRegisteredWorktree(input.worktreePath);
 
 				const git = simpleGit(input.worktreePath);
@@ -128,7 +124,6 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; url: string }> => {
-					// SECURITY: Validate worktreePath exists in localDb
 					assertRegisteredWorktree(input.worktreePath);
 
 					const git = simpleGit(input.worktreePath);
