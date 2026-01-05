@@ -207,7 +207,8 @@ export function WorkspacesListView() {
 			.sort((a, b) => {
 				const aTime = a.workspaces[0]?.lastOpenedAt ?? 0;
 				const bTime = b.workspaces[0]?.lastOpenedAt ?? 0;
-				return getTimeSortKey(bTime) - getTimeSortKey(aTime);
+				// Lower sort key = more recent, so ascending order puts recent first
+				return getTimeSortKey(aTime) - getTimeSortKey(bTime);
 			});
 
 		return sortedGroups;
@@ -225,60 +226,58 @@ export function WorkspacesListView() {
 	};
 
 	return (
-		<div className="flex flex-1 bg-tertiary">
-			<div className="flex-1 flex flex-col bg-background m-3 rounded overflow-hidden">
-				{/* Search header */}
-				<div className="p-4 border-b border-border">
-					<div className="relative">
-						<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-						<Input
-							type="text"
-							placeholder="Filter workspaces..."
-							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
-							className="pl-9"
-						/>
+		<div className="flex-1 flex flex-col bg-background overflow-hidden">
+			{/* Search header */}
+			<div className="p-4 border-b border-border">
+				<div className="relative">
+					<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+					<Input
+						type="text"
+						placeholder="Filter workspaces..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
+						className="pl-9"
+					/>
+				</div>
+			</div>
+
+			{/* Workspaces list */}
+			<div className="flex-1 overflow-y-auto">
+				{timeGroups.map((group) => (
+					<div key={group.label}>
+						{/* Time group header */}
+						<div className="sticky top-0 bg-background/95 backdrop-blur-sm px-4 py-2 border-b border-border">
+							<span className="text-xs font-medium text-muted-foreground">
+								{group.label}
+							</span>
+							<span className="text-xs text-muted-foreground/60 ml-2">
+								{group.count}
+							</span>
+						</div>
+
+						{/* Workspaces in this group */}
+						{group.workspaces.map((ws) => (
+							<WorkspaceRow
+								key={ws.uniqueId}
+								workspace={ws}
+								isActive={activeWorkspace?.id === ws.workspaceId}
+								onClick={() => handleItemClick(ws)}
+								isOpening={
+									openWorktree.isPending &&
+									openWorktree.variables?.worktreeId === ws.worktreeId
+								}
+							/>
+						))}
 					</div>
-				</div>
+				))}
 
-				{/* Workspaces list */}
-				<div className="flex-1 overflow-y-auto">
-					{timeGroups.map((group) => (
-						<div key={group.label}>
-							{/* Time group header */}
-							<div className="sticky top-0 bg-background/95 backdrop-blur-sm px-4 py-2 border-b border-border">
-								<span className="text-xs font-medium text-muted-foreground">
-									{group.label}
-								</span>
-								<span className="text-xs text-muted-foreground/60 ml-2">
-									{group.count}
-								</span>
-							</div>
-
-							{/* Workspaces in this group */}
-							{group.workspaces.map((ws) => (
-								<WorkspaceRow
-									key={ws.uniqueId}
-									workspace={ws}
-									isActive={activeWorkspace?.id === ws.workspaceId}
-									onClick={() => handleItemClick(ws)}
-									isOpening={
-										openWorktree.isPending &&
-										openWorktree.variables?.worktreeId === ws.worktreeId
-									}
-								/>
-							))}
-						</div>
-					))}
-
-					{filteredWorkspaces.length === 0 && (
-						<div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
-							{searchQuery
-								? "No workspaces match your search"
-								: "No workspaces yet"}
-						</div>
-					)}
-				</div>
+				{filteredWorkspaces.length === 0 && (
+					<div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+						{searchQuery
+							? "No workspaces match your search"
+							: "No workspaces yet"}
+					</div>
+				)}
 			</div>
 		</div>
 	);
