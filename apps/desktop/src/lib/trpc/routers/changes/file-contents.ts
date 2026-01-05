@@ -1,4 +1,5 @@
 import type { FileContents } from "shared/changes-types";
+import { detectLanguage } from "shared/detect-language";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -7,7 +8,6 @@ import {
 	PathValidationError,
 	secureFs,
 } from "./security";
-import { detectLanguage } from "./utils/parse-status";
 
 /** Maximum file size for reading (2 MiB) */
 const MAX_FILE_SIZE = 2 * 1024 * 1024;

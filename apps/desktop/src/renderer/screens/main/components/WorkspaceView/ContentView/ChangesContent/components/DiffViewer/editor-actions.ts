@@ -27,16 +27,3 @@ export function registerCopyPathLineAction(
 		},
 	});
 }
-
-export function registerSaveAction(
-	editor: Monaco.editor.IStandaloneCodeEditor,
-	onSave: () => void,
-) {
-	// Using addAction with an ID allows replacing the action on subsequent calls
-	editor.addAction({
-		id: "save-file",
-		label: "Save File",
-		keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
-		run: onSave,
-	});
-}
