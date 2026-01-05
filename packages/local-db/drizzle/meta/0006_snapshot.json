@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bb9f9f85-bcbb-4003-b20f-4c172a1c6fc8",
-  "prevId": "d5a52ac9-bc1e-4529-89bf-5748d4df5006",
+  "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+  "prevId": "ac200b80-657f-4cd7-b338-2d6adeb925e7",
   "tables": {
     "organization_members": {
       "name": "organization_members",
@@ -336,6 +336,13 @@
         },
         "terminal_link_behavior": {
           "name": "terminal_link_behavior",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "navigation_style": {
+          "name": "navigation_style",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

@@ -33,8 +33,29 @@
     {
       "idx": 4,
       "version": "6",
-      "when": 1767370047298,
-      "tag": "0004_settings_workspace_improvements",
+      "when": 1767166138761,
+      "tag": "0004_add_terminal_link_behavior_setting",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1767166547886,
+      "tag": "0005_add_navigation_style",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1767230000000,
+      "tag": "0006_add_unique_branch_workspace_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1767350000000,
+      "tag": "0007_add_workspace_is_unread",
       "breakpoints": true
     },
     {
@@ -42,6 +63,13 @@
       "version": "6",
       "when": 1767548339097,
       "tag": "0008_add_group_tabs_position",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1767600000000,
+      "tag": "0009_add_terminal_persistence",
       "breakpoints": true
     }
   ]
