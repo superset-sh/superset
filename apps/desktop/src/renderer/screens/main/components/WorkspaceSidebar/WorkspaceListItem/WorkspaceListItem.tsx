@@ -155,11 +155,17 @@ export function WorkspaceListItem({
 		accept: WORKSPACE_TYPE,
 		hover: (item: { id: string; projectId: string; index: number }) => {
 			if (item.projectId === projectId && item.index !== index) {
-				reorderWorkspaces.mutate({
-					projectId,
-					fromIndex: item.index,
-					toIndex: index,
-				});
+				reorderWorkspaces.mutate(
+					{
+						projectId,
+						fromIndex: item.index,
+						toIndex: index,
+					},
+					{
+						onError: (error) =>
+							toast.error(`Failed to reorder workspace: ${error.message}`),
+					},
+				);
 				item.index = index;
 			}
 		},

@@ -7,6 +7,8 @@ import type {
 } from "shared/tabs-types";
 import type { Pane, PaneType, Tab } from "./types";
 
+const MARKDOWN_EXTENSIONS = [".md", ".markdown", ".mdx"] as const;
+
 /**
  * Generates a unique ID with the given prefix
  */
@@ -119,9 +121,7 @@ export const createFileViewerPane = (
 	if (options.diffCategory) {
 		defaultViewMode = "diff";
 	} else if (
-		options.filePath.endsWith(".md") ||
-		options.filePath.endsWith(".markdown") ||
-		options.filePath.endsWith(".mdx")
+		MARKDOWN_EXTENSIONS.some((ext) => options.filePath.endsWith(ext))
 	) {
 		defaultViewMode = "rendered";
 	}
