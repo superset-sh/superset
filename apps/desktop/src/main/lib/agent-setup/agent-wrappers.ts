@@ -12,7 +12,7 @@ import {
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
-export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v5";
+export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v6";
 
 const REAL_BINARY_RESOLVER = `find_real_binary() {
   local name="$1"
@@ -145,7 +145,7 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" * Superset Notification Plugin for OpenCode",
 		" *",
 		" * This plugin sends desktop notifications when OpenCode sessions need attention.",
-		" * It hooks into session.busy, session.idle, session.error, and permission.ask events.",
+		" * It hooks into session.status (busy/idle), session.idle, session.error, and permission.ask events.",
 		" *",
 		" * IMPORTANT: Subagent/Background Task Filtering",
 		" * --------------------------------------------",
@@ -165,8 +165,8 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		" * @see https://github.com/sst/opencode/blob/dev/packages/app/src/context/notification.tsx",
 		" */",
 		"export const SupersetNotifyPlugin = async ({ $, client }) => {",
-		"  if (globalThis.__supersetOpencodeNotifyPluginV5) return {};",
-		"  globalThis.__supersetOpencodeNotifyPluginV5 = true;",
+		"  if (globalThis.__supersetOpencodeNotifyPluginV6) return {};",
+		"  globalThis.__supersetOpencodeNotifyPluginV6 = true;",
 		"",
 		"  // Only run inside a Superset terminal session",
 		"  if (!process?.env?.SUPERSET_TAB_ID) return {};",
@@ -224,12 +224,18 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		"        return;",
 		"      }",
 		"",
-		"      // Handle session busy (agent started working)",
-		'      if (event.type === "session.busy") {',
-		'        await notify("Start");',
+		"      // Handle session status changes (busy/idle/retry)",
+		"      // This is the primary event for status transitions",
+		'      if (event.type === "session.status") {',
+		"        const status = event.properties?.status;",
+		'        if (status?.type === "busy") {',
+		'          await notify("Start");',
+		'        } else if (status?.type === "idle") {',
+		'          await notify("Stop");',
+		"        }",
 		"      }",
 		"",
-		"      // Handle session idle (agent finished)",
+		"      // Handle deprecated session.idle event (backwards compatibility)",
 		'      if (event.type === "session.idle") {',
 		'        await notify("Stop");',
 		"      }",
