@@ -12,7 +12,10 @@ import {
 export const WRAPPER_MARKER = "# Superset agent-wrapper v1";
 export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
-export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v8";
+
+const OPENCODE_PLUGIN_SIGNATURE = "// Superset opencode plugin";
+const OPENCODE_PLUGIN_VERSION = "v8";
+export const OPENCODE_PLUGIN_MARKER = `${OPENCODE_PLUGIN_SIGNATURE} ${OPENCODE_PLUGIN_VERSION}`;
 
 const OPENCODE_PLUGIN_TEMPLATE_PATH = path.join(
 	__dirname,
@@ -62,11 +65,7 @@ export function getOpenCodePluginPath(): string {
 	return path.join(OPENCODE_PLUGIN_DIR, OPENCODE_PLUGIN_FILE);
 }
 
-/**
- * OpenCode auto-loads plugins from ~/.config/opencode/plugin/
- * See: https://opencode.ai/docs/plugins
- * The plugin checks SUPERSET_TAB_ID env var so it only activates in Superset terminals.
- */
+/** @see https://opencode.ai/docs/plugins */
 export function getOpenCodeGlobalPluginPath(): string {
 	const xdgConfigHome = process.env.XDG_CONFIG_HOME?.trim();
 	const configHome = xdgConfigHome?.length
@@ -141,10 +140,6 @@ exec "$REAL_BIN" "$@"
 `;
 }
 
-/**
- * Generates the OpenCode plugin content by reading from a template file
- * and replacing placeholders.
- */
 export function getOpenCodePluginContent(notifyPath: string): string {
 	const template = fs.readFileSync(OPENCODE_PLUGIN_TEMPLATE_PATH, "utf-8");
 	return template
@@ -152,9 +147,6 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 		.replace("{{NOTIFY_PATH}}", notifyPath);
 }
 
-/**
- * Creates the Claude Code settings JSON file with notification hooks
- */
 function createClaudeSettings(): string {
 	const settingsPath = getClaudeSettingsPath();
 	const notifyPath = getNotifyScriptPath();
@@ -164,9 +156,6 @@ function createClaudeSettings(): string {
 	return settingsPath;
 }
 
-/**
- * Creates wrapper script for Claude Code
- */
 export function createClaudeWrapper(): void {
 	const wrapperPath = getClaudeWrapperPath();
 	const settingsPath = createClaudeSettings();
@@ -175,9 +164,6 @@ export function createClaudeWrapper(): void {
 	console.log("[agent-setup] Created Claude wrapper");
 }
 
-/**
- * Creates wrapper script for Codex
- */
 export function createCodexWrapper(): void {
 	const wrapperPath = getCodexWrapperPath();
 	const notifyPath = getNotifyScriptPath();
@@ -187,8 +173,7 @@ export function createCodexWrapper(): void {
 }
 
 /**
- * Creates OpenCode plugin file with notification hooks.
- * Only writes to environment-specific path - NOT the global path.
+ * Writes to environment-specific path only, NOT the global path.
  * Global path causes dev/prod conflicts when both are running.
  */
 export function createOpenCodePlugin(): void {
@@ -200,9 +185,8 @@ export function createOpenCodePlugin(): void {
 }
 
 /**
- * Cleans up stale global OpenCode plugin that may have been written by older versions.
- * Only removes if the file contains our marker to avoid deleting user-installed plugins.
- * This prevents dev/prod cross-talk when both environments are running.
+ * Removes stale global plugin written by older versions.
+ * Only removes if the file contains our signature to avoid deleting user plugins.
  */
 export function cleanupGlobalOpenCodePlugin(): void {
 	try {
@@ -210,15 +194,13 @@ export function cleanupGlobalOpenCodePlugin(): void {
 		if (!fs.existsSync(globalPluginPath)) return;
 
 		const content = fs.readFileSync(globalPluginPath, "utf-8");
-		// Check for any version of our marker (v1, v2, v3, v4, etc.)
-		if (content.includes("// Superset opencode plugin")) {
+		if (content.includes(OPENCODE_PLUGIN_SIGNATURE)) {
 			fs.unlinkSync(globalPluginPath);
 			console.log(
 				"[agent-setup] Removed stale global OpenCode plugin to prevent dev/prod conflicts",
 			);
 		}
 	} catch (error) {
-		// Ignore errors - this is best-effort cleanup
 		console.warn(
 			"[agent-setup] Failed to cleanup global OpenCode plugin:",
 			error,
@@ -226,9 +208,6 @@ export function cleanupGlobalOpenCodePlugin(): void {
 	}
 }
 
-/**
- * Creates wrapper script for OpenCode
- */
 export function createOpenCodeWrapper(): void {
 	const wrapperPath = getOpenCodeWrapperPath();
 	const script = buildOpenCodeWrapperScript(OPENCODE_CONFIG_DIR);
