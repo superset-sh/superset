@@ -61,6 +61,22 @@ function copyResourcesPlugin(): Plugin {
 				mkdirSync(migrationsDest, { recursive: true });
 				cpSync(migrationsSrc, migrationsDest, { recursive: true });
 			}
+
+			// Copy agent-setup templates to dist/main/templates
+			// These are external files read at runtime via __dirname
+			const templatesSrc = resolve(
+				__dirname,
+				"src/main/lib/agent-setup/templates",
+			);
+			const templatesDest = resolve(devPath, "main/templates");
+
+			if (existsSync(templatesSrc)) {
+				if (existsSync(templatesDest)) {
+					rmSync(templatesDest, { recursive: true });
+				}
+				mkdirSync(templatesDest, { recursive: true });
+				cpSync(templatesSrc, templatesDest, { recursive: true });
+			}
 		},
 	};
 }
