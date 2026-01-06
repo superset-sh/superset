@@ -21,7 +21,13 @@ export const getTabDisplayName = (tab: Tab): string => {
 	if (userTitle) {
 		return userTitle;
 	}
-	return tab.name || "Terminal";
+	const name = tab.name || "Terminal";
+	// If name looks like a path, extract just the last directory name
+	if (name.includes("/")) {
+		const parts = name.split("/").filter(Boolean);
+		return parts[parts.length - 1] || name;
+	}
+	return name;
 };
 
 /**

@@ -1,6 +1,7 @@
 import type { CheckItem } from "@superset/local-db";
 import { useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import { STROKE_WIDTH } from "../../../../../constants";
 import { CheckItemRow } from "./components/CheckItemRow";
 
 interface ChecksListProps {
@@ -25,9 +26,9 @@ export function ChecksList({ checks }: ChecksListProps) {
 				className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
 			>
 				{expanded ? (
-					<LuChevronDown className="size-3" />
+					<LuChevronDown className="size-3" strokeWidth={STROKE_WIDTH} />
 				) : (
-					<LuChevronRight className="size-3" />
+					<LuChevronRight className="size-3" strokeWidth={STROKE_WIDTH} />
 				)}
 				<span>{expanded ? "Hide checks" : "Show checks"}</span>
 			</button>

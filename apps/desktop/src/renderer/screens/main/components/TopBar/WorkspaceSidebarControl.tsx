@@ -10,7 +10,20 @@ import {
 } from "shared/hotkeys";
 
 export function WorkspaceSidebarControl() {
-	const { isOpen, toggleOpen } = useWorkspaceSidebarStore();
+	const { isOpen, isCollapsed, toggleCollapsed, setOpen } =
+		useWorkspaceSidebarStore();
+
+	const handleToggle = () => {
+		if (!isOpen) {
+			// If sidebar is closed, open it to collapsed state
+			setOpen(true);
+		} else {
+			// If sidebar is open, toggle between collapsed and expanded
+			toggleCollapsed();
+		}
+	};
+
+	const sidebarCollapsed = isCollapsed();
 
 	return (
 		<Tooltip>
@@ -18,11 +31,11 @@ export function WorkspaceSidebarControl() {
 				<Button
 					variant="ghost"
 					size="icon"
-					onClick={toggleOpen}
+					onClick={handleToggle}
 					aria-label="Toggle workspace sidebar"
 					className="no-drag"
 				>
-					{isOpen ? (
+					{isOpen && !sidebarCollapsed ? (
 						<LuPanelLeftClose className="size-4" />
 					) : (
 						<LuPanelLeft className="size-4" />
@@ -31,7 +44,7 @@ export function WorkspaceSidebarControl() {
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<span className="flex items-center gap-2">
-					Toggle Workspaces
+					{sidebarCollapsed ? "Expand" : "Collapse"} Workspaces
 					<KbdGroup>
 						{formatHotkeyDisplay(
 							getHotkey("TOGGLE_WORKSPACE_SIDEBAR"),

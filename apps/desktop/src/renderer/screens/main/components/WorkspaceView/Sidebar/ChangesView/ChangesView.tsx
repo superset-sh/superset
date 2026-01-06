@@ -36,7 +36,6 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	const {
 		data: status,
 		isLoading,
-		isFetching,
 		refetch,
 	} = trpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
@@ -160,7 +159,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 
 	if (!worktreePath) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				No workspace selected
 			</div>
 		);
@@ -168,7 +167,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 
 	if (isLoading) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Loading changes...
 			</div>
 		);
@@ -183,7 +182,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-2">
+			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
 			</div>
 		);
@@ -208,11 +207,8 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	const prUrl = githubStatus?.pr?.url;
 
 	return (
-		<div className="flex flex-col h-full p-2">
+		<div className="flex flex-col h-full">
 			<ChangesHeader
-				ahead={status.ahead}
-				behind={status.behind}
-				isRefreshing={isFetching}
 				onRefresh={handleRefresh}
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}

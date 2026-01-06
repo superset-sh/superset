@@ -23,6 +23,7 @@ import {
 	refreshDefaultBranch,
 } from "../workspaces/utils/git";
 import { assignRandomColor } from "./utils/colors";
+import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
 
@@ -709,6 +710,59 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				track("project_closed", { project_id: input.id });
 
 				return { success: true, terminalWarning };
+			}),
+
+		getGitHubAvatar: publicProcedure
+			.input(z.object({ id: z.string() }))
+			.query(async ({ input }) => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					console.log("[getGitHubAvatar] Project not found:", input.id);
+					return null;
+				}
+
+				// If we already have the github owner cached, return the avatar URL
+				if (project.githubOwner) {
+					console.log(
+						"[getGitHubAvatar] Using cached owner:",
+						project.githubOwner,
+					);
+					return {
+						owner: project.githubOwner,
+						avatarUrl: getGitHubAvatarUrl(project.githubOwner),
+					};
+				}
+
+				// Fetch the owner from GitHub
+				console.log(
+					"[getGitHubAvatar] Fetching owner for:",
+					project.mainRepoPath,
+				);
+				const owner = await fetchGitHubOwner(project.mainRepoPath);
+
+				if (!owner) {
+					console.log("[getGitHubAvatar] Failed to fetch owner");
+					return null;
+				}
+
+				console.log("[getGitHubAvatar] Fetched owner:", owner);
+
+				// Cache the owner
+				localDb
+					.update(projects)
+					.set({ githubOwner: owner })
+					.where(eq(projects.id, input.id))
+					.run();
+
+				return {
+					owner,
+					avatarUrl: getGitHubAvatarUrl(owner),
+				};
 			}),
 	});
 };

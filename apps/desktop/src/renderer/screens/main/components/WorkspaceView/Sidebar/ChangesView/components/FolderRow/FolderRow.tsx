@@ -5,7 +5,7 @@ import {
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
+import { HiChevronRight } from "react-icons/hi2";
 
 interface FolderRowProps {
 	name: string;
@@ -27,7 +27,7 @@ function LevelIndicators({ level }: { level: number }) {
 		<div className="flex self-stretch shrink-0">
 			{Array.from({ length: level }).map((_, i) => (
 				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
-				<div key={i} className="w-3 self-stretch border-r border-border" />
+				<div key={i} className="w-3 self-stretch border-r border-border/50" />
 			))}
 		</div>
 	);
@@ -52,18 +52,20 @@ export function FolderRow({
 		>
 			<CollapsibleTrigger
 				className={cn(
-					"text-xs w-full flex items-stretch gap-1.5 px-2 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden",
+					"text-xs w-full flex items-stretch gap-1 px-1.5 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden transition-colors",
 					isGrouped && "text-muted-foreground",
 				)}
 			>
 				{!isGrouped && <LevelIndicators level={level} />}
-				<div className="flex items-center gap-1.5 flex-1 min-w-0 py-1">
-					{!isGrouped &&
-						(isExpanded ? (
-							<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
-						) : (
-							<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-						))}
+				<div className="flex items-center gap-1 flex-1 min-w-0 py-0.5">
+					{!isGrouped && (
+						<HiChevronRight
+							className={cn(
+								"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
+								isExpanded && "rotate-90",
+							)}
+						/>
+					)}
 					<span
 						className={cn(
 							"truncate",
@@ -76,14 +78,16 @@ export function FolderRow({
 						{name}
 					</span>
 					{fileCount !== undefined && (
-						<span className="text-xs opacity-60 shrink-0">{fileCount}</span>
+						<span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
+							{fileCount}
+						</span>
 					)}
 				</div>
 			</CollapsibleTrigger>
 			<CollapsibleContent
 				className={cn(
 					"min-w-0",
-					isGrouped && "ml-2 border-l border-border pl-1",
+					isGrouped && "ml-1.5 border-l border-border pl-0.5",
 				)}
 			>
 				{children}

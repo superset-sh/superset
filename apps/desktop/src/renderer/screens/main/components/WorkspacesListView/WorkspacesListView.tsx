@@ -198,7 +198,7 @@ export function WorkspacesListView() {
 								type="button"
 								onClick={() => setFilterMode(option.value)}
 								className={cn(
-									"px-2 py-1 text-xs rounded transition-colors",
+									"px-2 py-1 text-xs rounded-md transition-colors",
 									filterMode === option.value
 										? "bg-accent text-foreground"
 										: "text-foreground/60 hover:text-foreground",

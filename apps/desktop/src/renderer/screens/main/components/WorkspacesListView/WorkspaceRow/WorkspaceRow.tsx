@@ -1,12 +1,14 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import {
 	LuArrowRight,
-	LuGitBranch,
-	LuGitFork,
+	LuFolder,
+	LuFolderGit2,
 	LuRotateCw,
 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
 
@@ -69,19 +71,45 @@ export function WorkspaceRow({
 			)}
 		>
 			{/* Icon */}
-			<div
-				className={cn(
-					"flex items-center justify-center size-6 rounded shrink-0",
-					isBranch ? "bg-primary/20" : "bg-background/80",
-					!workspace.isOpen && "opacity-50",
-				)}
-			>
-				{isBranch ? (
-					<LuGitBranch className="size-3.5 text-primary" />
-				) : (
-					<LuGitFork className="size-3.5 text-foreground/60" />
-				)}
-			</div>
+			<Tooltip delayDuration={500}>
+				<TooltipTrigger asChild>
+					<div
+						className={cn(
+							"flex items-center justify-center size-6 rounded shrink-0",
+							!workspace.isOpen && "opacity-50",
+						)}
+					>
+						{isBranch ? (
+							<LuFolder
+								className="size-4 text-muted-foreground"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						) : (
+							<LuFolderGit2
+								className="size-4 text-muted-foreground"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						)}
+					</div>
+				</TooltipTrigger>
+				<TooltipContent side="top" sideOffset={4}>
+					{isBranch ? (
+						<>
+							<p className="text-xs font-medium">Local workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Changes are made directly in the main repository
+							</p>
+						</>
+					) : (
+						<>
+							<p className="text-xs font-medium">Worktree workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Isolated copy for parallel development
+							</p>
+						</>
+					)}
+				</TooltipContent>
+			</Tooltip>
 
 			{/* Workspace/branch name */}
 			<span

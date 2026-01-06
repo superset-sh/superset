@@ -18,7 +18,7 @@ import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
-import { LuEye, LuEyeOff, LuGitBranch } from "react-icons/lu";
+import { LuEye, LuEyeOff, LuFolder, LuFolderGit2 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useReorderWorkspaces,
@@ -29,6 +29,7 @@ import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRena
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { STROKE_WIDTH } from "../constants";
 import {
 	BranchSwitcher,
 	DeleteWorkspaceDialog,
@@ -56,6 +57,8 @@ interface WorkspaceListItemProps {
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
+	/** Whether the sidebar is in collapsed mode (icon-only view) */
+	isCollapsed?: boolean;
 }
 
 export function WorkspaceListItem({
@@ -69,6 +72,7 @@ export function WorkspaceListItem({
 	isUnread = false,
 	index,
 	shortcutIndex,
+	isCollapsed = false,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const setActiveWorkspace = useSetActiveWorkspace();
@@ -178,6 +182,97 @@ export function WorkspaceListItem({
 	const pr = githubStatus?.pr;
 	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
 
+	// Determine if we should show the branch subtitle
+	const showBranchSubtitle =
+		!isBranchWorkspace && name && name !== branch && !rename.isRenaming;
+
+	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
+	if (isCollapsed) {
+		const collapsedButton = (
+			<button
+				type="button"
+				onClick={handleClick}
+				onMouseEnter={handleMouseEnter}
+				className={cn(
+					"relative flex items-center justify-center size-8 rounded-md",
+					"hover:bg-muted/50 transition-colors",
+					isActive && "bg-muted",
+				)}
+			>
+				{isBranchWorkspace ? (
+					<LuFolder
+						className={cn(
+							"size-4",
+							isActive ? "text-foreground" : "text-muted-foreground",
+						)}
+						strokeWidth={STROKE_WIDTH}
+					/>
+				) : (
+					<LuFolderGit2
+						className={cn(
+							"size-4",
+							isActive ? "text-foreground" : "text-muted-foreground",
+						)}
+						strokeWidth={STROKE_WIDTH}
+					/>
+				)}
+				{/* Notification dot */}
+				{needsAttention && (
+					<span className="absolute top-1 right-1 flex size-2">
+						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+						<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+					</span>
+				)}
+			</button>
+		);
+
+		// Branch workspaces get a simple tooltip
+		if (isBranchWorkspace) {
+			return (
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
+					<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<span className="font-medium">{name || branch}</span>
+						<span className="text-xs text-muted-foreground">
+							Local workspace
+						</span>
+					</TooltipContent>
+				</Tooltip>
+			);
+		}
+
+		// Worktree workspaces get the full hover card with context menu
+		return (
+			<>
+				<HoverCard
+					openDelay={HOVER_CARD_OPEN_DELAY}
+					closeDelay={HOVER_CARD_CLOSE_DELAY}
+				>
+					<ContextMenu>
+						<HoverCardTrigger asChild>
+							<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
+						</HoverCardTrigger>
+						<ContextMenuContent>
+							<ContextMenuItem onSelect={() => handleDeleteClick()}>
+								Close Worktree
+							</ContextMenuItem>
+						</ContextMenuContent>
+					</ContextMenu>
+					<HoverCardContent side="right" align="start" className="w-72">
+						<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+					</HoverCardContent>
+				</HoverCard>
+				<DeleteWorkspaceDialog
+					workspaceId={id}
+					workspaceName={name}
+					workspaceType={type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			</>
+		);
+	}
+
 	const content = (
 		<button
 			type="button"
@@ -188,9 +283,10 @@ export function WorkspaceListItem({
 			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
-				"flex items-center gap-2 w-full px-3 py-1.5 text-sm",
+				"flex items-center w-full pl-3 pr-2 text-sm",
 				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
 				"group relative",
+				showBranchSubtitle ? "py-1.5" : "py-2",
 				isActive && "bg-muted",
 				isDragging && "opacity-30",
 			)}
@@ -198,18 +294,53 @@ export function WorkspaceListItem({
 		>
 			{/* Active indicator - left border */}
 			{isActive && (
-				<div className="absolute left-0 top-1 bottom-1 w-0.5 bg-primary rounded-r" />
+				<div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-primary rounded-r" />
 			)}
 
-			{/* Branch icon for branch type workspaces */}
-			{isBranchWorkspace && (
-				<div className="flex items-center justify-center size-5 rounded bg-primary/10 shrink-0">
-					<LuGitBranch className="size-3 text-primary" />
-				</div>
-			)}
+			{/* Icon with notification dot */}
+			<Tooltip delayDuration={500}>
+				<TooltipTrigger asChild>
+					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
+						{isBranchWorkspace ? (
+							<LuFolder
+								className="size-4 text-muted-foreground"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						) : (
+							<LuFolderGit2
+								className="size-4 text-muted-foreground"
+								strokeWidth={STROKE_WIDTH}
+							/>
+						)}
+						{needsAttention && (
+							<span className="absolute -top-0.5 -right-0.5 flex size-2">
+								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+								<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+							</span>
+						)}
+					</div>
+				</TooltipTrigger>
+				<TooltipContent side="right" sideOffset={8}>
+					{isBranchWorkspace ? (
+						<>
+							<p className="text-xs font-medium">Local workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Changes are made directly in the main repository
+							</p>
+						</>
+					) : (
+						<>
+							<p className="text-xs font-medium">Worktree workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Isolated copy for parallel development
+							</p>
+						</>
+					)}
+				</TooltipContent>
+			</Tooltip>
 
-			{/* Workspace name and branch */}
-			<div className="flex-1 min-w-0">
+			{/* Workspace name and optional branch */}
+			<div className="flex-1 min-w-0 mr-2">
 				{rename.isRenaming ? (
 					<Input
 						ref={rename.inputRef}
@@ -220,15 +351,17 @@ export function WorkspaceListItem({
 						onKeyDown={rename.handleKeyDown}
 						onClick={(e) => e.stopPropagation()}
 						onMouseDown={(e) => e.stopPropagation()}
-						className="h-6 px-1 py-0 text-sm"
+						className="h-6 px-1 py-0 text-sm -ml-1"
 					/>
 				) : (
-					<>
-						<div className="flex items-center gap-2">
+					<div className="flex flex-col justify-center">
+						<div className="flex items-center gap-1.5">
 							<span
 								className={cn(
-									"truncate text-muted-foreground",
-									isActive && "text-foreground font-medium",
+									"truncate text-[13px] leading-tight",
+									isActive
+										? "text-foreground font-medium"
+										: "text-muted-foreground",
 								)}
 							>
 								{name || branch}
@@ -236,68 +369,57 @@ export function WorkspaceListItem({
 							{pr && (
 								<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} />
 							)}
-							{needsAttention && (
-								<span className="relative flex size-2 shrink-0">
-									<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-									<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-								</span>
-							)}
 						</div>
-						{!isBranchWorkspace && (
-							<div
-								className={cn(
-									"text-xs text-muted-foreground truncate font-mono h-4",
-									(!name || name === branch) && "invisible",
-								)}
-							>
+						{showBranchSubtitle && (
+							<span className="text-[11px] text-muted-foreground/70 truncate font-mono leading-tight mt-0.5">
 								{branch}
-							</div>
+							</span>
 						)}
-					</>
+					</div>
 				)}
 			</div>
 
-			{/* Branch switcher for branch workspaces */}
-			{isBranchWorkspace && (
-				<BranchSwitcher projectId={projectId} currentBranch={branch} />
-			)}
-
-			{/* Diff stats */}
-			{showDiffStats && (
-				<WorkspaceDiffStats additions={pr.additions} deletions={pr.deletions} />
-			)}
-
-			{/* Keyboard shortcut indicator */}
-			{shortcutIndex !== undefined &&
-				shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-					<span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity font-mono shrink-0">
-						⌘{shortcutIndex + 1}
-					</span>
+			{/* Right side actions */}
+			<div className="flex items-center gap-1 shrink-0">
+				{/* Diff stats - always visible when available */}
+				{showDiffStats && (
+					<WorkspaceDiffStats
+						additions={pr.additions}
+						deletions={pr.deletions}
+					/>
 				)}
 
-			{/* Close button for worktree workspaces */}
-			{!isBranchWorkspace && (
-				<Tooltip delayDuration={500}>
-					<TooltipTrigger asChild>
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon"
-							onClick={handleDeleteClick}
-							className={cn(
-								"size-5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity",
-								isActive && "opacity-70",
-							)}
-							aria-label="Close or delete workspace"
-						>
-							<HiMiniXMark className="size-3.5" />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="right" sideOffset={4}>
-						Close or delete
-					</TooltipContent>
-				</Tooltip>
-			)}
+				{/* Keyboard shortcut - visible on hover */}
+				{shortcutIndex !== undefined &&
+					shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
+						<span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity font-mono px-1">
+							⌘{shortcutIndex + 1}
+						</span>
+					)}
+
+				{/* Branch switcher for branch workspaces - at the end */}
+				{isBranchWorkspace && (
+					<BranchSwitcher projectId={projectId} currentBranch={branch} />
+				)}
+
+				{/* Close button for worktree workspaces */}
+				{!isBranchWorkspace && (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						onClick={handleDeleteClick}
+						className={cn(
+							"size-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm",
+							"hover:bg-muted-foreground/10",
+							isActive && "opacity-60",
+						)}
+						aria-label="Close or delete workspace"
+					>
+						<HiMiniXMark className="size-3.5 text-muted-foreground" />
+					</Button>
+				)}
+			</div>
 		</button>
 	);
 
@@ -305,12 +427,12 @@ export function WorkspaceListItem({
 		<ContextMenuItem onSelect={handleToggleUnread}>
 			{isUnread ? (
 				<>
-					<LuEye className="size-4 mr-2" />
+					<LuEye className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Mark as Read
 				</>
 			) : (
 				<>
-					<LuEyeOff className="size-4 mr-2" />
+					<LuEyeOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Mark as Unread
 				</>
 			)}

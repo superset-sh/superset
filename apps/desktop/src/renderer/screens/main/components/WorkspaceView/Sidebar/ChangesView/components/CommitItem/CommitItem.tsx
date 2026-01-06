@@ -4,7 +4,7 @@ import {
 	CollapsibleTrigger,
 } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
+import { HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { FileList } from "../FileList";
@@ -54,29 +54,30 @@ export function CommitItem({
 		<Collapsible open={isExpanded} onOpenChange={onToggle}>
 			<CollapsibleTrigger
 				className={cn(
-					"w-full flex items-center gap-2 px-2 py-1.5 text-left rounded-sm",
+					"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded-sm mx-0.5",
 					"hover:bg-accent/50 cursor-pointer transition-colors",
 				)}
 			>
-				{isExpanded ? (
-					<HiChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
-				) : (
-					<HiChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-				)}
+				<HiChevronRight
+					className={cn(
+						"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
+						isExpanded && "rotate-90",
+					)}
+				/>
 
-				<span className="text-xs font-mono text-muted-foreground shrink-0">
+				<span className="text-[10px] font-mono text-muted-foreground shrink-0">
 					{commit.shortHash}
 				</span>
 
 				<span className="text-xs flex-1 truncate">{commit.message}</span>
 
-				<span className="text-xs text-muted-foreground shrink-0">
+				<span className="text-[10px] text-muted-foreground shrink-0">
 					{formatRelativeDate(commit.date)}
 				</span>
 			</CollapsibleTrigger>
 
 			{hasFiles && (
-				<CollapsibleContent className="ml-4 pl-2 border-l border-border">
+				<CollapsibleContent className="ml-4 pl-1.5 border-l border-border mt-0.5 mb-0.5">
 					<FileList
 						files={commit.files}
 						viewMode={viewMode}

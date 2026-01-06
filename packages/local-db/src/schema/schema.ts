@@ -33,6 +33,7 @@ export const projects = sqliteTable(
 			mode: "boolean",
 		}),
 		defaultBranch: text("default_branch"),
+		githubOwner: text("github_owner"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),

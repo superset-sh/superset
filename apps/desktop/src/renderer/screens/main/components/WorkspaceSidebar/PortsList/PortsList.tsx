@@ -4,6 +4,7 @@ import { LuChevronRight, LuExternalLink, LuRadioTower } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { type DetectedPort, usePortsStore } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { STROKE_WIDTH } from "../constants";
 
 interface WorkspaceGroup {
 	workspaceId: string;
@@ -104,8 +105,9 @@ export function PortsList() {
 			>
 				<LuChevronRight
 					className={`size-3 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+					strokeWidth={STROKE_WIDTH}
 				/>
-				<LuRadioTower className="size-3" />
+				<LuRadioTower className="size-3" strokeWidth={STROKE_WIDTH} />
 				Ports
 				<span className="text-[10px] ml-auto font-normal">{ports.length}</span>
 			</button>
@@ -218,7 +220,7 @@ function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 						aria-label={`Open port ${port.port} in browser`}
 						className="opacity-0 group-hover:opacity-100 pr-1.5 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none"
 					>
-						<LuExternalLink className="size-3" />
+						<LuExternalLink className="size-3" strokeWidth={STROKE_WIDTH} />
 					</button>
 				</div>
 			</TooltipTrigger>

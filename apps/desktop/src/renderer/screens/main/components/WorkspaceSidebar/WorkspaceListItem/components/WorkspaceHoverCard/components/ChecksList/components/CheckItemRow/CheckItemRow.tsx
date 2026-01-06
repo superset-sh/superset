@@ -1,5 +1,6 @@
 import type { CheckItem } from "@superset/local-db";
 import { LuCheck, LuLoaderCircle, LuMinus, LuX } from "react-icons/lu";
+import { STROKE_WIDTH } from "../../../../../../../constants";
 
 interface CheckItemRowProps {
 	check: CheckItem;
@@ -20,6 +21,7 @@ export function CheckItemRow({ check }: CheckItemRowProps) {
 		<span className="flex items-center gap-1.5 py-0.5">
 			<Icon
 				className={`size-3 shrink-0 ${className} ${check.status === "pending" ? "animate-spin" : ""}`}
+				strokeWidth={STROKE_WIDTH}
 			/>
 			<span className="truncate">{check.name}</span>
 		</span>

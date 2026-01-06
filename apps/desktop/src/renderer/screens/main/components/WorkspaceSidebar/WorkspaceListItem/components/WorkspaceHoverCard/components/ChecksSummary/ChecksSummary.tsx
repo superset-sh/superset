@@ -1,5 +1,6 @@
 import type { CheckItem } from "@superset/local-db";
 import { LuCheck, LuLoaderCircle, LuX } from "react-icons/lu";
+import { STROKE_WIDTH } from "../../../../../constants";
 
 interface ChecksSummaryProps {
 	checks: CheckItem[];
@@ -36,6 +37,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 		<span className={`flex items-center gap-1 ${className}`}>
 			<Icon
 				className={`size-3 ${status === "pending" ? "animate-spin" : ""}`}
+				strokeWidth={STROKE_WIDTH}
 			/>
 			<span>{label}</span>
 		</span>

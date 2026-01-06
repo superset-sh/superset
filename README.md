@@ -22,33 +22,33 @@ https://github.com/user-attachments/assets/d85ec84f-34de-4e17-9d44-5ccbd225566f
 ## Getting Started
 
 Prerequisites:
-
 1. Install [Bun](https://bun.sh/) (package manager and Node runtime)
-
 2. Clone the repo from GitHub
 ```
 git clone https://github.com/superset-sh/superset.git
 ```
+3. Set up environment variables (choose one):
 
-3. Set up environment variables
-```bash
-cp .env.example .env
-```
-Then edit `.env` and fill in the required values:
-- **Neon Database**: `DATABASE_URL`, `DATABASE_URL_UNPOOLED` (required for database features)
-- **Clerk Auth**: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` (required for authentication)
-- **Optional**: Neon org credentials, PostHog analytics, Blob storage
+   **Option A: Full setup**
+   ```bash
+   cp .env.example .env
+   ```
+   Then edit `.env` and fill in the values
+
+   **Option B: Skip env validation**
+   ```bash
+   export SKIP_ENV_VALIDATION=1
+   ```
+   This skips environment validation, useful for quickly running the app without external services.
 
 Install dependencies:
 ```bash
 bun install
 ```
-
 Run in dev mode:
 ```bash
 bun run dev
 ```
-
 Build desktop app:
 ```bash
 bun run build
