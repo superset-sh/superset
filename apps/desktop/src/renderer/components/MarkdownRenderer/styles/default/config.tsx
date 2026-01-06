@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { CodeBlock, SafeImage } from "../../components";
+import { CodeBlock } from "../../components";
 import type { MarkdownStyleConfig } from "../types";
 import "./default.css";
 
@@ -41,11 +41,7 @@ export const defaultConfig: MarkdownStyleConfig = {
 			</a>
 		),
 		img: ({ src, alt }) => (
-			<SafeImage
-				src={src}
-				alt={alt}
-				className="max-w-full h-auto rounded-md my-4"
-			/>
+			<img src={src} alt={alt} className="max-w-full h-auto rounded-md my-4" />
 		),
 		hr: () => <hr className="my-8 border-border" />,
 		li: ({ children, className }) => {

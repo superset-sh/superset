@@ -5,19 +5,41 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { useLiveQuery } from "@tanstack/react-db";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
-import { useActiveOrganization, useOrganizations } from "renderer/contexts";
+import { useCollections } from "renderer/contexts/CollectionsProvider";
+import { trpc } from "renderer/lib/trpc";
 
 export function OrganizationSwitcher() {
-	const organizations = useOrganizations();
-	const { activeOrganization, switchOrganization } = useActiveOrganization();
+	const collections = useCollections();
+	const { data: session } = trpc.auth.onSessionChange.useSubscription();
+	const setActiveOrg = trpc.auth.setActiveOrganization.useMutation();
+
+	const activeOrganizationId = session?.session.activeOrganizationId;
+
+	const { data: organizations } = useLiveQuery(
+		(q) => q.from({ organizations: collections.organizations }),
+		[collections],
+	);
+
+	const activeOrganization = organizations?.find(
+		(o) => o.id === activeOrganizationId,
+	);
+
+	if (!activeOrganization) {
+		return null;
+	}
 
 	const initials = activeOrganization.name
 		?.split(" ")
-		.map((n) => n[0])
+		.map((n: string) => n[0])
 		.join("")
 		.toUpperCase()
 		.slice(0, 2);
+
+	const switchOrganization = async (newOrgId: string) => {
+		await setActiveOrg.mutateAsync({ organizationId: newOrgId });
+	};
 
 	return (
 		<DropdownMenu>
@@ -27,7 +49,7 @@ export function OrganizationSwitcher() {
 					className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-muted transition-colors text-left"
 				>
 					<Avatar className="h-6 w-6 rounded-md">
-						<AvatarImage src={activeOrganization.avatarUrl ?? undefined} />
+						<AvatarImage src={activeOrganization.logo ?? undefined} />
 						<AvatarFallback className="text-xs rounded-md">
 							{initials || "?"}
 						</AvatarFallback>
@@ -39,14 +61,14 @@ export function OrganizationSwitcher() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-56">
-				{organizations.map((organization) => (
+				{organizations?.map((organization) => (
 					<DropdownMenuItem
 						key={organization.id}
 						onSelect={() => switchOrganization(organization.id)}
 						className="gap-2"
 					>
 						<Avatar className="h-5 w-5 rounded-md">
-							<AvatarImage src={organization.avatarUrl ?? undefined} />
+							<AvatarImage src={organization.logo ?? undefined} />
 							<AvatarFallback className="text-xs rounded-md">
 								{organization.name?.[0]?.toUpperCase() || "?"}
 							</AvatarFallback>

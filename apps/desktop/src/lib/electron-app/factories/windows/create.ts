@@ -9,7 +9,9 @@ export function createWindow({ id, ...settings }: WindowProps) {
 	// Open external URLs in the system browser instead of Electron
 	window.webContents.setWindowOpenHandler(({ url }) => {
 		if (url.startsWith("http://") || url.startsWith("https://")) {
-			shell.openExternal(url);
+			shell.openExternal(url).catch((error) => {
+				console.error("[window] Failed to open external URL:", url, error);
+			});
 			return { action: "deny" };
 		}
 		return { action: "deny" };

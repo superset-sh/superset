@@ -213,6 +213,7 @@ export default defineConfig({
 
 		optimizeDeps: {
 			include: ["monaco-editor"],
+			exclude: ["@electric-sql/pglite"],
 		},
 
 		publicDir: resolve(resources, "public"),

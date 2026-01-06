@@ -5,5 +5,4 @@ export * from "./mosaic";
 export * from "./ports";
 export * from "./tab";
 export * from "./workspace";
-export * from "./workspace-init";
 export * from "./worktree";

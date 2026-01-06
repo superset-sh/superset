@@ -36,7 +36,6 @@ import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
-	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { ExistingWorktreesList } from "./components/ExistingWorktreesList";
 
@@ -58,7 +57,6 @@ type Mode = "existing" | "new";
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
-	const preSelectedProjectId = usePreSelectedProjectId();
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
@@ -96,15 +94,12 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	// Auto-select project when modal opens (prioritize pre-selected, then current)
+	// Auto-select current project when modal opens
 	useEffect(() => {
-		if (isOpen && !selectedProjectId) {
-			const projectToSelect = preSelectedProjectId ?? currentProjectId;
-			if (projectToSelect) {
-				setSelectedProjectId(projectToSelect);
-			}
+		if (isOpen && currentProjectId && !selectedProjectId) {
+			setSelectedProjectId(currentProjectId);
 		}
-	}, [isOpen, currentProjectId, selectedProjectId, preSelectedProjectId]);
+	}, [isOpen, currentProjectId, selectedProjectId]);
 
 	// Effective base branch - use explicit selection or fall back to default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
@@ -172,30 +167,23 @@ export function NewWorkspaceModal() {
 		const workspaceName = title.trim() || undefined;
 		const customBranchName = branchName.trim() || undefined;
 
-		try {
-			const result = await createWorkspace.mutateAsync({
+		toast.promise(
+			createWorkspace.mutateAsync({
 				projectId: selectedProjectId,
 				name: workspaceName,
 				branchName: customBranchName,
 				baseBranch: effectiveBaseBranch || undefined,
-			});
-
-			// Close modal immediately - workspace appears in sidebar
-			handleClose();
-
-			// Show appropriate toast based on initialization state
-			if (result.isInitializing) {
-				toast.success("Workspace created", {
-					description: "Setting up in the background...",
-				});
-			} else {
-				toast.success("Workspace created");
-			}
-		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to create workspace",
-			);
-		}
+			}),
+			{
+				loading: "Creating workspace...",
+				success: () => {
+					handleClose();
+					return "Workspace created";
+				},
+				error: (err) =>
+					err instanceof Error ? err.message : "Failed to create workspace",
+			},
+		);
 	};
 
 	return (
@@ -217,13 +205,11 @@ export function NewWorkspaceModal() {
 							<SelectValue placeholder="Select project" />
 						</SelectTrigger>
 						<SelectContent>
-							{recentProjects
-								.filter((project) => project.id)
-								.map((project) => (
-									<SelectItem key={project.id} value={project.id}>
-										{project.name}
-									</SelectItem>
-								))}
+							{recentProjects.map((project) => (
+								<SelectItem key={project.id} value={project.id}>
+									{project.name}
+								</SelectItem>
+							))}
 						</SelectContent>
 					</Select>
 				</div>

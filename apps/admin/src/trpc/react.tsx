@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import type { AppRouter } from "@superset/trpc";
 import type { QueryClient } from "@tanstack/react-query";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -33,7 +32,6 @@ export type UseTRPC = typeof useTRPC;
 
 export function TRPCReactProvider(props: { children: React.ReactNode }) {
 	const queryClient = getQueryClient();
-	const { getToken } = useAuth();
 
 	const [trpcClient] = useState(() =>
 		createTRPCClient<AppRouter>({
@@ -46,12 +44,16 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
 				httpBatchStreamLink({
 					transformer: SuperJSON,
 					url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-					async headers() {
-						const token = await getToken();
+					headers() {
 						return {
 							"x-trpc-source": "nextjs-react",
-							...(token ? { Authorization: `Bearer ${token}` } : {}),
 						};
+					},
+					fetch(url, options) {
+						return fetch(url, {
+							...options,
+							credentials: "include",
+						});
 					},
 				}),
 			],

@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { detectLanguage } from "shared/detect-language";
-import { parseDiffNumstat, parseGitLog, parseNameStatus } from "./parse-status";
+import {
+	detectLanguage,
+	parseDiffNumstat,
+	parseGitLog,
+	parseNameStatus,
+} from "./parse-status";
 
 describe("parseGitLog", () => {
 	test("parses basic log output", () => {

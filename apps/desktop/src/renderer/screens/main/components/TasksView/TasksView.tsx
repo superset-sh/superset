@@ -33,12 +33,10 @@ import {
 	HiUser,
 } from "react-icons/hi2";
 import {
-	ActiveOrganizationProvider,
 	CollectionsProvider,
-	OrganizationsProvider,
-	useActiveOrganization,
 	useCollections,
-} from "renderer/contexts";
+} from "renderer/contexts/CollectionsProvider";
+import { OrganizationsProvider } from "renderer/contexts/OrganizationsProvider";
 import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
 
 interface TaskEditDialogProps {
@@ -48,18 +46,16 @@ interface TaskEditDialogProps {
 }
 
 function TaskEditDialog({ task, open, onOpenChange }: TaskEditDialogProps) {
+	const collections = useCollections();
 	const [title, setTitle] = useState(task.title);
 	const [description, setDescription] = useState(task.description || "");
 	const [priority, setPriority] = useState(task.priority);
 	const [isSaving, setIsSaving] = useState(false);
-	const { tasks: tasksCollection } = useCollections();
 
 	const handleSave = async () => {
 		setIsSaving(true);
 		try {
-			// Use collection's update method - this triggers onUpdate handler
-			// which sends the mutation to the API
-			await tasksCollection.update(task.id, (draft) => {
+			await collections.tasks.update(task.id, (draft: SelectTask) => {
 				draft.title = title;
 				draft.description = description || null;
 				draft.priority = priority as
@@ -264,15 +260,12 @@ function TaskCard({
 }
 
 function TasksList() {
+	const collections = useCollections();
 	const [editingTask, setEditingTask] = useState<SelectTask | null>(null);
-	const { tasks: tasksCollection } = useCollections();
-	const { activeOrganizationId } = useActiveOrganization();
 
-	// Query all task objects from collection
-	// Include tasksCollection and activeOrganizationId in deps to force re-query when they change
 	const { data: allTasks, isLoading } = useLiveQuery(
-		(q) => q.from({ tasks: tasksCollection }),
-		[tasksCollection, activeOrganizationId],
+		(q) => q.from({ tasks: collections.tasks }),
+		[collections],
 	);
 
 	// Filter out deleted tasks in JavaScript
@@ -354,11 +347,9 @@ function TasksViewContent() {
 export function TasksView() {
 	return (
 		<OrganizationsProvider>
-			<ActiveOrganizationProvider>
-				<CollectionsProvider>
-					<TasksViewContent />
-				</CollectionsProvider>
-			</ActiveOrganizationProvider>
+			<CollectionsProvider>
+				<TasksViewContent />
+			</CollectionsProvider>
 		</OrganizationsProvider>
 	);
 }

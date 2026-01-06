@@ -7,7 +7,6 @@ import { localDb } from "main/lib/local-db";
 import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
 
@@ -59,14 +58,6 @@ export const createTerminalRouter = () => {
 				const workspacePath = workspace
 					? (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
-
-				// Guard: For worktree workspaces, ensure the workspace is ready
-				// (not still initializing or failed). Branch workspaces use the main
-				// repo path which always exists, so no guard needed.
-				if (workspace?.type === "worktree") {
-					assertWorkspaceUsable(workspaceId, workspacePath);
-				}
-
 				const cwd = resolveCwd(cwdOverride, workspacePath);
 
 				// Get project info for environment variables
@@ -191,11 +182,11 @@ export const createTerminalRouter = () => {
 					.where(eq(workspaces.id, workspaceId))
 					.get();
 				if (!workspace) {
-					return undefined;
+					return null;
 				}
 
 				if (!workspace.worktreeId) {
-					return undefined;
+					return null;
 				}
 
 				const worktree = localDb
@@ -203,7 +194,7 @@ export const createTerminalRouter = () => {
 					.from(worktrees)
 					.where(eq(worktrees.id, workspace.worktreeId))
 					.get();
-				return worktree?.path;
+				return worktree?.path ?? null;
 			}),
 
 		/**

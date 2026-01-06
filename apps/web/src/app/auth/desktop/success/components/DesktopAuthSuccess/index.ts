@@ -1,1 +1,0 @@
-export { DesktopAuthSuccess } from "./DesktopAuthSuccess";

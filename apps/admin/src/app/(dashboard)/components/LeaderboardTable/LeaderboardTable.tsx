@@ -23,7 +23,7 @@ interface LeaderboardEntry {
 	userId: string;
 	name: string;
 	email: string;
-	avatarUrl: string | null;
+	image: string | null;
 	count: number;
 }
 
@@ -97,7 +97,7 @@ export function LeaderboardTable({
 									<TableCell>
 										<div className="flex items-center gap-3">
 											<Avatar className="h-8 w-8">
-												<AvatarImage src={entry.avatarUrl ?? undefined} />
+												<AvatarImage src={entry.image ?? undefined} />
 												<AvatarFallback>
 													{entry.name
 														.split(" ")

@@ -1,27 +1,14 @@
-import { db } from "@superset/db/client";
-import { users } from "@superset/db/schema";
+import type { Session } from "@superset/auth";
 import { COMPANY } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-/**
- * tRPC Context
- *
- * Simple auth context with just userId. Supports both:
- * - Clerk sessions (web/admin via cookies)
- * - Desktop auth (custom JWT tokens)
- */
 export type TRPCContext = {
-	userId: string | null;
+	session: Session | null;
 };
 
-export const createTRPCContext = (opts: {
-	userId: string | null;
-}): TRPCContext => {
-	return { userId: opts.userId };
-};
+export const createTRPCContext = (opts: TRPCContext): TRPCContext => opts;
 
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,
@@ -44,42 +31,23 @@ export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = t.procedure;
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.userId) {
+	if (!ctx.session) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",
 			message: "Not authenticated. Please sign in.",
 		});
 	}
 
-	return next({
-		ctx: {
-			userId: ctx.userId,
-		},
-	});
+	return next({ ctx: { session: ctx.session } });
 });
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-	const user = await db.query.users.findFirst({
-		where: eq(users.clerkId, ctx.userId),
-	});
-
-	if (!user) {
-		throw new TRPCError({
-			code: "UNAUTHORIZED",
-			message: "User not found in database.",
-		});
-	}
-
-	if (!user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
+	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
 		throw new TRPCError({
 			code: "FORBIDDEN",
 			message: `Admin access requires ${COMPANY.EMAIL_DOMAIN} email.`,
 		});
 	}
 
-	return next({
-		ctx: {
-			user,
-		},
-	});
+	return next({ ctx });
 });

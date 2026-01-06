@@ -1,13 +1,14 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@superset/auth";
 import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Download } from "lucide-react";
+import { headers } from "next/headers";
 
 import { env } from "@/env";
 
 export async function CTAButtons() {
-	const { userId } = await auth();
+	const session = await auth.api.getSession({ headers: await headers() });
 
-	if (userId) {
+	if (session) {
 		return (
 			<>
 				<a

@@ -19,8 +19,6 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
-import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
-import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
@@ -28,9 +26,6 @@ import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
-import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
-import { ResizableWorkspaceSidebar } from "./components/WorkspaceSidebar";
-import { WorkspacesListView } from "./components/WorkspacesListView";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 function LoadingSpinner() {
@@ -59,27 +54,12 @@ export function MainScreen() {
 		onData: () => utils.auth.getState.invalidate(),
 	});
 
-	// Subscribe to workspace initialization progress
-	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	trpc.workspaces.onInitProgress.useSubscription(undefined, {
-		onData: (progress) => {
-			updateInitProgress(progress);
-			// Invalidate workspace queries when initialization completes or fails
-			if (progress.step === "ready" || progress.step === "failed") {
-				utils.workspaces.getActive.invalidate();
-				utils.workspaces.getAllGrouped.invalidate();
-			}
-		},
-	});
-
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
-	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
-	const toggleWorkspaceSidebar = useWorkspaceSidebarStore((s) => s.toggleOpen);
+	const { toggleSidebar } = useSidebarStore();
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
-
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,
@@ -129,15 +109,6 @@ export function MainScreen() {
 		},
 		undefined,
 		[toggleSidebar, isWorkspaceView],
-	);
-
-	useAppHotkey(
-		"TOGGLE_WORKSPACE_SIDEBAR",
-		() => {
-			toggleWorkspaceSidebar();
-		},
-		undefined,
-		[toggleWorkspaceSidebar],
 	);
 
 	/**
@@ -296,9 +267,6 @@ export function MainScreen() {
 		if (currentView === "tasks" && hasTasksAccess) {
 			return <TasksView />;
 		}
-		if (currentView === "workspaces-list") {
-			return <WorkspacesListView />;
-		}
 		return <WorkspaceView />;
 	};
 
@@ -369,16 +337,12 @@ export function MainScreen() {
 				) : (
 					<div className="flex flex-col h-full w-full">
 						<TopBar />
-						<div className="flex flex-1 overflow-hidden">
-							<ResizableWorkspaceSidebar />
-							{renderContent()}
-						</div>
+						<div className="flex flex-1 overflow-hidden">{renderContent()}</div>
 					</div>
 				)}
 			</AppFrame>
 			<SetupConfigModal />
 			<NewWorkspaceModal />
-			<WorkspaceInitEffects />
 		</DndProvider>
 	);
 }

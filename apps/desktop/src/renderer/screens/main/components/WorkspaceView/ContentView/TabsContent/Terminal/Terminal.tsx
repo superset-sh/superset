@@ -1,4 +1,3 @@
-import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
@@ -6,7 +5,6 @@ import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { trpcClient } from "renderer/lib/trpc-client";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
@@ -49,7 +47,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const terminalTheme = useTerminalTheme();
 
 	// Ref for initial theme to avoid recreating terminal on theme change
@@ -70,76 +67,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 	const { data: workspaceCwd } =
 		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
-
-	// Query terminal link behavior setting
-	const { data: terminalLinkBehavior } =
-		trpc.settings.getTerminalLinkBehavior.useQuery();
-
-	// Handler for file link clicks - uses current setting value
-	const handleFileLinkClick = useCallback(
-		(path: string, line?: number, column?: number) => {
-			const behavior = terminalLinkBehavior ?? "external-editor";
-
-			// Helper to open in external editor
-			const openInExternalEditor = () => {
-				trpcClient.external.openFileInEditor
-					.mutate({
-						path,
-						line,
-						column,
-						cwd: workspaceCwd ?? undefined,
-					})
-					.catch((error) => {
-						console.error(
-							"[Terminal] Failed to open file in editor:",
-							path,
-							error,
-						);
-						toast.error("Failed to open file in editor", {
-							description: path,
-						});
-					});
-			};
-
-			if (behavior === "file-viewer") {
-				// If workspaceCwd is not loaded yet, fall back to external editor
-				// This prevents confusing errors when the workspace is still initializing
-				if (!workspaceCwd) {
-					console.warn(
-						"[Terminal] workspaceCwd not loaded, falling back to external editor",
-					);
-					openInExternalEditor();
-					return;
-				}
-
-				// Normalize absolute paths to worktree-relative paths for file viewer
-				// File viewer expects relative paths, but terminal links can be absolute
-				let filePath = path;
-				// Use path boundary check to avoid incorrect prefix stripping
-				// e.g., /repo vs /repo-other should not match
-				if (path === workspaceCwd) {
-					filePath = ".";
-				} else if (path.startsWith(`${workspaceCwd}/`)) {
-					filePath = path.slice(workspaceCwd.length + 1);
-				} else if (path.startsWith("/")) {
-					// Absolute path outside workspace - show warning and don't attempt to open
-					toast.warning("File is outside the workspace", {
-						description:
-							"Switch to 'External editor' in Settings to open this file",
-					});
-					return;
-				}
-				addFileViewerPane(workspaceId, { filePath, line, column });
-			} else {
-				openInExternalEditor();
-			}
-		},
-		[terminalLinkBehavior, workspaceId, workspaceCwd, addFileViewerPane],
-	);
-
-	// Ref to avoid terminal recreation when callback changes
-	const handleFileLinkClickRef = useRef(handleFileLinkClick);
-	handleFileLinkClickRef.current = handleFileLinkClick;
 
 	// Seed cwd from initialCwd or workspace path (shell spawns there)
 	// OSC-7 will override if/when the shell reports directory changes
@@ -270,12 +197,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm,
 			fitAddon,
 			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
-			cwd: workspaceCwd,
-			initialTheme: initialThemeRef.current,
-			onFileLinkClick: (path, line, column) =>
-				handleFileLinkClickRef.current(path, line, column),
-		});
+		} = createTerminalInstance(
+			container,
+			workspaceCwd ?? undefined,
+			initialThemeRef.current,
+		);
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;

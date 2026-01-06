@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `terminal_link_behavior` text;

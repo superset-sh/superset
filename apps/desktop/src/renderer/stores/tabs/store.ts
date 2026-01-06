@@ -4,10 +4,9 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
-import type { AddFileViewerPaneOptions, TabsState, TabsStore } from "./types";
+import type { TabsState, TabsStore } from "./types";
 import {
 	type CreatePaneOptions,
-	createFileViewerPane,
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
@@ -126,11 +125,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const paneIds = getPaneIdsForTab(state.panes, tabId);
 					for (const paneId of paneIds) {
-						// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
-						const pane = state.panes[paneId];
-						if (pane?.type === "terminal") {
-							killTerminalForPane(paneId);
-						}
+						killTerminalForPane(paneId);
 					}
 
 					const newPanes = { ...state.panes };
@@ -290,10 +285,7 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = { ...state.panes };
 					for (const paneId of removedPaneIds) {
-						// P2: Only kill terminal for actual terminal panes (avoid unnecessary IPC)
-						if (state.panes[paneId]?.type === "terminal") {
-							killTerminalForPane(paneId);
-						}
+						killTerminalForPane(paneId);
 						delete newPanes[paneId];
 					}
 
@@ -348,112 +340,6 @@ export const useTabsStore = create<TabsStore>()(
 					return newPane.id;
 				},
 
-				addFileViewerPane: (
-					workspaceId: string,
-					options: AddFileViewerPaneOptions,
-				) => {
-					const state = get();
-					const activeTabId = state.activeTabIds[workspaceId];
-					const activeTab = state.tabs.find((t) => t.id === activeTabId);
-
-					// If no active tab, create a new one (this shouldn't normally happen)
-					if (!activeTab) {
-						const { tabId, paneId } = get().addTab(workspaceId);
-						// Update the pane to be a file-viewer (must use set() to get fresh state after addTab)
-						const fileViewerPane = createFileViewerPane(tabId, options);
-						set((s) => ({
-							panes: {
-								...s.panes,
-								[paneId]: {
-									...fileViewerPane,
-									id: paneId, // Keep the original ID
-								},
-							},
-						}));
-						return paneId;
-					}
-
-					// Look for an existing unlocked file-viewer pane in the active tab
-					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
-					const fileViewerPanes = tabPaneIds
-						.map((id) => state.panes[id])
-						.filter(
-							(p) =>
-								p?.type === "file-viewer" &&
-								p.fileViewer &&
-								!p.fileViewer.isLocked,
-						);
-
-					// If we found an unlocked file-viewer pane, reuse it
-					if (fileViewerPanes.length > 0) {
-						const paneToReuse = fileViewerPanes[0];
-						const fileName =
-							options.filePath.split("/").pop() || options.filePath;
-
-						// Determine default view mode
-						let viewMode: "raw" | "rendered" | "diff" = "raw";
-						if (options.diffCategory) {
-							viewMode = "diff";
-						} else if (
-							options.filePath.endsWith(".md") ||
-							options.filePath.endsWith(".markdown") ||
-							options.filePath.endsWith(".mdx")
-						) {
-							viewMode = "rendered";
-						}
-
-						set({
-							panes: {
-								...state.panes,
-								[paneToReuse.id]: {
-									...paneToReuse,
-									name: fileName,
-									fileViewer: {
-										filePath: options.filePath,
-										viewMode,
-										isLocked: false,
-										diffLayout: "inline",
-										diffCategory: options.diffCategory,
-										commitHash: options.commitHash,
-										oldPath: options.oldPath,
-										initialLine: options.line,
-										initialColumn: options.column,
-									},
-								},
-							},
-							focusedPaneIds: {
-								...state.focusedPaneIds,
-								[activeTab.id]: paneToReuse.id,
-							},
-						});
-
-						return paneToReuse.id;
-					}
-
-					// No reusable pane found, create a new one
-					const newPane = createFileViewerPane(activeTab.id, options);
-
-					const newLayout: MosaicNode<string> = {
-						direction: "row",
-						first: activeTab.layout,
-						second: newPane.id,
-						splitPercentage: 50,
-					};
-
-					set({
-						tabs: state.tabs.map((t) =>
-							t.id === activeTab.id ? { ...t, layout: newLayout } : t,
-						),
-						panes: { ...state.panes, [newPane.id]: newPane },
-						focusedPaneIds: {
-							...state.focusedPaneIds,
-							[activeTab.id]: newPane.id,
-						},
-					});
-
-					return newPane.id;
-				},
-
 				removePane: (paneId) => {
 					const state = get();
 					const pane = state.panes[paneId];
@@ -468,10 +354,7 @@ export const useTabsStore = create<TabsStore>()(
 						return;
 					}
 
-					// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
-					if (pane.type === "terminal") {
-						killTerminalForPane(paneId);
-					}
+					killTerminalForPane(paneId);
 
 					const newLayout = removePaneFromLayout(tab.layout, paneId);
 					if (!newLayout) {
@@ -545,33 +428,6 @@ export const useTabsStore = create<TabsStore>()(
 					}));
 				},
 
-				clearWorkspaceAttention: (workspaceId) => {
-					const state = get();
-					const workspaceTabs = state.tabs.filter(
-						(t) => t.workspaceId === workspaceId,
-					);
-					const workspacePaneIds = workspaceTabs.flatMap((t) =>
-						extractPaneIdsFromLayout(t.layout),
-					);
-
-					if (workspacePaneIds.length === 0) {
-						return;
-					}
-
-					const newPanes = { ...state.panes };
-					let hasChanges = false;
-					for (const paneId of workspacePaneIds) {
-						if (newPanes[paneId]?.needsAttention) {
-							newPanes[paneId] = { ...newPanes[paneId], needsAttention: false };
-							hasChanges = true;
-						}
-					}
-
-					if (hasChanges) {
-						set({ panes: newPanes });
-					}
-				},
-
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => ({
 						panes: {
@@ -607,19 +463,7 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Clone file-viewer panes instead of creating a terminal
-					const newPane =
-						sourcePane.type === "file-viewer" && sourcePane.fileViewer
-							? createFileViewerPane(tabId, {
-									filePath: sourcePane.fileViewer.filePath,
-									viewMode: sourcePane.fileViewer.viewMode,
-									isLocked: true, // Lock the cloned pane
-									diffLayout: sourcePane.fileViewer.diffLayout,
-									diffCategory: sourcePane.fileViewer.diffCategory,
-									commitHash: sourcePane.fileViewer.commitHash,
-									oldPath: sourcePane.fileViewer.oldPath,
-								})
-							: createPane(tabId);
+					const newPane = createPane(tabId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -667,19 +511,7 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Clone file-viewer panes instead of creating a terminal
-					const newPane =
-						sourcePane.type === "file-viewer" && sourcePane.fileViewer
-							? createFileViewerPane(tabId, {
-									filePath: sourcePane.fileViewer.filePath,
-									viewMode: sourcePane.fileViewer.viewMode,
-									isLocked: true, // Lock the cloned pane
-									diffLayout: sourcePane.fileViewer.diffLayout,
-									diffCategory: sourcePane.fileViewer.diffCategory,
-									commitHash: sourcePane.fileViewer.commitHash,
-									oldPath: sourcePane.fileViewer.oldPath,
-								})
-							: createPane(tabId);
+					const newPane = createPane(tabId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {

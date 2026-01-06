@@ -27,3 +27,10 @@ export function registerCopyPathLineAction(
 		},
 	});
 }
+
+export function registerSaveCommand(
+	editor: Monaco.editor.IStandaloneCodeEditor,
+	onSave: () => void,
+) {
+	editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, onSave);
+}

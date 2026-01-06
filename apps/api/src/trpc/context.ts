@@ -1,5 +1,5 @@
+import { auth } from "@superset/auth";
 import { createTRPCContext } from "@superset/trpc";
-import { authenticateRequest } from "@/lib/auth";
 
 export const createContext = async ({
 	req,
@@ -7,6 +7,8 @@ export const createContext = async ({
 	req: Request;
 	resHeaders: Headers;
 }) => {
-	const userId = await authenticateRequest(req);
-	return createTRPCContext({ userId });
+	const session = await auth.api.getSession({
+		headers: req.headers,
+	});
+	return createTRPCContext({ session });
 };

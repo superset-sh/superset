@@ -44,7 +44,7 @@ export function AccountSettings() {
 						) : user ? (
 							<>
 								<Avatar className="h-16 w-16">
-									<AvatarImage src={user.avatarUrl ?? undefined} />
+									<AvatarImage src={user.image ?? undefined} />
 									<AvatarFallback className="text-lg">
 										{initials || "?"}
 									</AvatarFallback>

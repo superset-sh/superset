@@ -1,13 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@superset/auth";
 import { db } from "@superset/db/client";
-import { organizationMembers, users } from "@superset/db/schema";
+import { members } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
 
 export async function GET(request: Request) {
-	const { userId: clerkUserId } = await auth();
+	const session = await auth.api.getSession({
+		headers: request.headers,
+	});
 
-	if (!clerkUserId) {
+	if (!session?.user) {
 		return Response.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
@@ -21,18 +23,10 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const user = await db.query.users.findFirst({
-		where: eq(users.clerkId, clerkUserId),
-	});
-
-	if (!user) {
-		return Response.json({ error: "User not found" }, { status: 404 });
-	}
-
-	const membership = await db.query.organizationMembers.findFirst({
+	const membership = await db.query.members.findFirst({
 		where: and(
-			eq(organizationMembers.organizationId, organizationId),
-			eq(organizationMembers.userId, user.id),
+			eq(members.organizationId, organizationId),
+			eq(members.userId, session.user.id),
 		),
 	});
 
@@ -44,7 +38,7 @@ export async function GET(request: Request) {
 	}
 
 	const state = Buffer.from(
-		JSON.stringify({ organizationId, userId: user.id }),
+		JSON.stringify({ organizationId, userId: session.user.id }),
 	).toString("base64url");
 
 	const linearAuthUrl = new URL("https://linear.app/oauth/authorize");

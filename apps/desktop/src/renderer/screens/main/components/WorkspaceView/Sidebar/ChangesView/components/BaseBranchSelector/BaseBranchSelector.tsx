@@ -49,16 +49,14 @@ export function BaseBranchSelector({ worktreePath }: BaseBranchSelectorProps) {
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent align="start">
-					{availableBranches
-						.filter((branch) => branch)
-						.map((branch) => (
-							<SelectItem key={branch} value={branch} className="text-xs">
-								{branch}
-								{branch === branchData.defaultBranch && (
-									<span className="ml-1 text-muted-foreground">(default)</span>
-								)}
-							</SelectItem>
-						))}
+					{availableBranches.map((branch) => (
+						<SelectItem key={branch} value={branch} className="text-xs">
+							{branch}
+							{branch === branchData.defaultBranch && (
+								<span className="ml-1 text-muted-foreground">(default)</span>
+							)}
+						</SelectItem>
+					))}
 				</SelectContent>
 			</Select>
 		</div>

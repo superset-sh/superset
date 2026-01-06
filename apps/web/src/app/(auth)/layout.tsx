@@ -1,4 +1,5 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@superset/auth";
+import { headers } from "next/headers";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 
@@ -9,10 +10,11 @@ export default async function AuthLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const { userId } = await auth();
+	const session = await auth.api.getSession({
+		headers: await headers(),
+	});
 
-	// Redirect authenticated users to home
-	if (userId) {
+	if (session) {
 		redirect("/");
 	}
 

@@ -1,28 +1,29 @@
-import { trpc } from "renderer/lib/trpc";
-import { useTabsStore } from "renderer/stores/tabs/store";
-import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { useSidebarStore } from "renderer/stores";
+import { SidebarMode } from "renderer/stores/sidebar-state";
 import { ChangesView } from "./ChangesView";
+import { ModeCarousel } from "./ModeCarousel";
+import { TabsView } from "./TabsView";
 
 export function Sidebar() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const workspaceId = activeWorkspace?.id;
+	const { currentMode, setMode } = useSidebarStore();
 
-	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-
-	const handleFileOpen = workspaceId
-		? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-				addFileViewerPane(workspaceId, {
-					filePath: file.path,
-					diffCategory: category,
-					commitHash,
-					oldPath: file.oldPath,
-				});
-			}
-		: undefined;
+	const modes: SidebarMode[] = [SidebarMode.Tabs, SidebarMode.Changes];
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<ChangesView onFileOpen={handleFileOpen} />
+			<ModeCarousel
+				modes={modes}
+				currentMode={currentMode}
+				onModeSelect={setMode}
+			>
+				{(mode) => {
+					if (mode === SidebarMode.Changes) {
+						return <ChangesView />;
+					}
+
+					return <TabsView />;
+				}}
+			</ModeCarousel>
 		</aside>
 	);
 }
