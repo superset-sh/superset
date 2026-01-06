@@ -32,7 +32,7 @@ export function CategorySection({
 		<Collapsible
 			open={isExpanded}
 			onOpenChange={onToggle}
-			className="border-b-2 border-border last:border-b-0 min-w-0 overflow-hidden"
+			className="border-b border-border last:border-b-0 min-w-0 overflow-hidden"
 		>
 			{/* Section header */}
 			<div className="flex items-center min-w-0">

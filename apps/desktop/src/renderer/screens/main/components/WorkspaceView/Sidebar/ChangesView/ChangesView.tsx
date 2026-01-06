@@ -208,7 +208,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	const prUrl = githubStatus?.pr?.url;
 
 	return (
-		<div className="flex flex-col h-full p-2">
+		<div className="flex flex-col h-full">
 			<ChangesHeader
 				ahead={status.ahead}
 				behind={status.behind}
