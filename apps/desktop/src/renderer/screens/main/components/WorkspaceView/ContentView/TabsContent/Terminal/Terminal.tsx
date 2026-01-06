@@ -228,7 +228,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Clear transient pane status on terminal exit
 			// "working" and "permission" should clear (agent no longer active)
 			// "review" should persist (user needs to see completed work)
-			if (pane?.status === "working" || pane?.status === "permission") {
+			// Use store getter to get fresh pane status at event time (not stale closure)
+			const currentPane = useTabsStore.getState().panes[paneId];
+			if (
+				currentPane?.status === "working" ||
+				currentPane?.status === "permission"
+			) {
 				setPaneStatus(paneId, "idle");
 			}
 		}
