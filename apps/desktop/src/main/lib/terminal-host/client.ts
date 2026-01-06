@@ -277,8 +277,6 @@ export class TerminalHostClient extends EventEmitter {
 	 * Handles protocol mismatch by shutting down a legacy daemon and retrying once.
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
-		const token = this.readAuthToken();
-
 		for (let attempt = 0; attempt < 2; attempt++) {
 			// Control socket (RPC)
 			let controlConnected = await this.tryConnectControl();
@@ -288,6 +286,29 @@ export class TerminalHostClient extends EventEmitter {
 				if (!controlConnected) {
 					throw new Error("Failed to connect control socket after spawn");
 				}
+			}
+
+			// Token is created by the daemon at startup, so we must read it after we’ve
+			// ensured a daemon exists (fresh installs / cleaned ~/.superset).
+			let token: string;
+			try {
+				token = this.readAuthToken();
+			} catch (error) {
+				// If a socket exists but the token is missing, we can’t authenticate; force
+				// a daemon restart to re-create a coherent socket+token pair.
+				if (attempt === 0) {
+					if (DEBUG_CLIENT) {
+						console.log(
+							"[TerminalHostClient] Auth token missing, restarting daemon...",
+						);
+					}
+					this.resetConnectionState({ emitDisconnected: false });
+					this.killDaemonFromPidFile();
+					await this.waitForDaemonShutdown();
+					await this.spawnDaemon();
+					continue;
+				}
+				throw error;
 			}
 
 			try {
@@ -320,6 +341,24 @@ export class TerminalHostClient extends EventEmitter {
 		}
 
 		throw new Error("Failed to connect after protocol upgrade");
+	}
+
+	private killDaemonFromPidFile(): void {
+		if (!existsSync(PID_PATH)) return;
+
+		try {
+			const raw = readFileSync(PID_PATH, "utf-8").trim();
+			const pid = Number.parseInt(raw, 10);
+			if (!Number.isNaN(pid)) {
+				try {
+					process.kill(pid, "SIGTERM");
+				} catch {
+					// Best-effort; PID may be stale or process already exited.
+				}
+			}
+		} catch {
+			// Best-effort.
+		}
 	}
 
 	private async tryConnectControl(): Promise<boolean> {
