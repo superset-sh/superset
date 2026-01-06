@@ -1,90 +1,24 @@
-import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
-import {
-	LuArrowRight,
-	LuGitBranch,
-	LuGitFork,
-	LuSearch,
-	LuX,
-} from "react-icons/lu";
+import { LuSearch, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
+import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
+import { WorkspaceRow } from "./WorkspaceRow";
 
-const GITHUB_STATUS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
-
-interface WorkspaceItem {
-	// Unique identifier - either workspace id or worktree id for closed ones
-	uniqueId: string;
-	// If open, this is the workspace id
-	workspaceId: string | null;
-	// For closed worktrees, this is the worktree id
-	worktreeId: string | null;
-	projectId: string;
-	projectName: string;
-	projectColor: string;
-	worktreePath: string;
-	type: "worktree" | "branch";
-	branch: string;
-	name: string;
-	lastOpenedAt: number;
-	createdAt: number;
-	isUnread: boolean;
-	isOpen: boolean;
-}
-
-interface TimeGroup {
-	label: string;
-	count: number;
-	workspaces: WorkspaceItem[];
-}
-
-function getTimeGroupLabel(timestamp: number): string {
-	const now = Date.now();
-	const diff = now - timestamp;
-	const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-	if (days === 0) return "Today";
-	if (days === 1) return "Yesterday";
-	if (days < 7) return `${days} days ago`;
-	if (days < 14) return "1 week ago";
-	if (days < 21) return "2 weeks ago";
-	if (days < 28) return "3 weeks ago";
-	if (days < 60) return "1 month ago";
-	if (days < 90) return "2 months ago";
-	if (days < 180) return "3 months ago";
-	if (days < 365) return "6 months ago";
-	return "Over a year ago";
-}
-
-function getTimeSortKey(timestamp: number): number {
-	const now = Date.now();
-	const diff = now - timestamp;
-	const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-	if (days === 0) return 0;
-	if (days === 1) return 1;
-	if (days < 7) return days;
-	if (days < 14) return 7;
-	if (days < 21) return 14;
-	if (days < 28) return 21;
-	if (days < 60) return 30;
-	if (days < 90) return 60;
-	if (days < 180) return 90;
-	if (days < 365) return 180;
-	return 365;
-}
-
-function formatDate(timestamp: number): string {
-	const date = new Date(timestamp);
-	return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
+const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
+	{ value: "all", label: "All" },
+	{ value: "active", label: "Active" },
+	{ value: "closed", label: "Closed" },
+];
 
 export function WorkspacesListView() {
 	const [searchQuery, setSearchQuery] = useState("");
+	const [filterMode, setFilterMode] = useState<FilterMode>("all");
 	const utils = trpc.useUtils();
 
 	// Fetch all data
@@ -100,19 +34,22 @@ export function WorkspacesListView() {
 	);
 
 	const setActiveWorkspace = useSetActiveWorkspace();
+	const closeWorkspacesList = useCloseWorkspacesList();
+
 	const openWorktree = trpc.workspaces.openWorktree.useMutation({
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.workspaces.getActive.invalidate();
 			closeWorkspacesList();
 		},
+		onError: (error) => {
+			toast.error(`Failed to open workspace: ${error.message}`);
+		},
 	});
-	const closeWorkspacesList = useCloseWorkspacesList();
 
 	// Combine open workspaces and closed worktrees into a single list
 	const allItems = useMemo<WorkspaceItem[]>(() => {
 		const items: WorkspaceItem[] = [];
-		const seenWorktreeIds = new Set<string>();
 
 		// First, add all open workspaces from groups
 		for (const group of groups) {
@@ -123,7 +60,6 @@ export function WorkspacesListView() {
 					worktreeId: null,
 					projectId: ws.projectId,
 					projectName: group.project.name,
-					projectColor: group.project.color,
 					worktreePath: ws.worktreePath,
 					type: ws.type,
 					branch: ws.branch,
@@ -133,17 +69,6 @@ export function WorkspacesListView() {
 					isUnread: ws.isUnread,
 					isOpen: true,
 				});
-			}
-		}
-
-		// Track which worktrees are already open
-		for (const query of worktreeQueries) {
-			if (query.data) {
-				for (const wt of query.data) {
-					if (wt.hasActiveWorkspace) {
-						seenWorktreeIds.add(wt.id);
-					}
-				}
 			}
 		}
 
@@ -164,12 +89,11 @@ export function WorkspacesListView() {
 					worktreeId: wt.id,
 					projectId: project.id,
 					projectName: project.name,
-					projectColor: project.color,
 					worktreePath: wt.path,
 					type: "worktree",
 					branch: wt.branch,
-					name: wt.branch, // Use branch name for closed worktrees
-					lastOpenedAt: wt.createdAt, // Use createdAt for closed worktrees
+					name: wt.branch,
+					lastOpenedAt: wt.createdAt,
 					createdAt: wt.createdAt,
 					isUnread: false,
 					isOpen: false,
@@ -180,72 +104,126 @@ export function WorkspacesListView() {
 		return items;
 	}, [groups, allProjects, worktreeQueries]);
 
-	// Filter workspaces by search query
-	const filteredWorkspaces = useMemo(() => {
-		if (!searchQuery.trim()) return allItems;
-		const query = searchQuery.toLowerCase();
-		return allItems.filter(
-			(ws) =>
-				ws.name.toLowerCase().includes(query) ||
-				ws.projectName.toLowerCase().includes(query) ||
-				ws.branch.toLowerCase().includes(query),
-		);
-	}, [allItems, searchQuery]);
+	// Filter by search query and filter mode
+	const filteredItems = useMemo(() => {
+		let items = allItems;
 
-	// Group workspaces by time period
-	const timeGroups = useMemo<TimeGroup[]>(() => {
-		const groupsMap = new Map<string, WorkspaceItem[]>();
-
-		for (const ws of filteredWorkspaces) {
-			const label = getTimeGroupLabel(ws.lastOpenedAt);
-			if (!groupsMap.has(label)) {
-				groupsMap.set(label, []);
-			}
-			groupsMap.get(label)?.push(ws);
+		// Apply filter mode
+		if (filterMode === "active") {
+			items = items.filter((ws) => ws.isOpen);
+		} else if (filterMode === "closed") {
+			items = items.filter((ws) => !ws.isOpen);
 		}
 
-		// Sort groups by time (most recent first)
-		const sortedGroups = Array.from(groupsMap.entries())
-			.map(([label, workspaces]) => ({
-				label,
-				count: workspaces.length,
-				workspaces: workspaces.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt),
-			}))
-			.sort((a, b) => {
-				const aTime = a.workspaces[0]?.lastOpenedAt ?? 0;
-				const bTime = b.workspaces[0]?.lastOpenedAt ?? 0;
-				// Lower sort key = more recent, so ascending order puts recent first
-				return getTimeSortKey(aTime) - getTimeSortKey(bTime);
+		// Apply search filter
+		if (searchQuery.trim()) {
+			const query = searchQuery.toLowerCase();
+			items = items.filter(
+				(ws) =>
+					ws.name.toLowerCase().includes(query) ||
+					ws.projectName.toLowerCase().includes(query) ||
+					ws.branch.toLowerCase().includes(query),
+			);
+		}
+
+		return items;
+	}, [allItems, searchQuery, filterMode]);
+
+	// Group by project
+	const projectGroups = useMemo<ProjectGroup[]>(() => {
+		const groupsMap = new Map<string, ProjectGroup>();
+
+		for (const item of filteredItems) {
+			if (!groupsMap.has(item.projectId)) {
+				groupsMap.set(item.projectId, {
+					projectId: item.projectId,
+					projectName: item.projectName,
+					workspaces: [],
+				});
+			}
+			groupsMap.get(item.projectId)?.workspaces.push(item);
+		}
+
+		// Sort workspaces within each group: active first, then by lastOpenedAt
+		for (const group of groupsMap.values()) {
+			group.workspaces.sort((a, b) => {
+				// Active workspaces first
+				if (a.isOpen !== b.isOpen) return a.isOpen ? -1 : 1;
+				// Then by most recently opened/created
+				return b.lastOpenedAt - a.lastOpenedAt;
 			});
+		}
 
-		return sortedGroups;
-	}, [filteredWorkspaces]);
+		// Sort groups by most recent activity
+		return Array.from(groupsMap.values()).sort((a, b) => {
+			const aRecent = Math.max(...a.workspaces.map((w) => w.lastOpenedAt));
+			const bRecent = Math.max(...b.workspaces.map((w) => w.lastOpenedAt));
+			return bRecent - aRecent;
+		});
+	}, [filteredItems]);
 
-	const handleItemClick = (item: WorkspaceItem) => {
-		if (item.isOpen && item.workspaceId) {
-			// Open workspace - just switch to it
+	const handleSwitch = (item: WorkspaceItem) => {
+		if (item.workspaceId) {
 			setActiveWorkspace.mutate({ id: item.workspaceId });
 			closeWorkspacesList();
-		} else if (!item.isOpen && item.worktreeId) {
-			// Closed worktree - open it
+		}
+	};
+
+	const handleReopen = (item: WorkspaceItem) => {
+		if (item.worktreeId) {
 			openWorktree.mutate({ worktreeId: item.worktreeId });
 		}
 	};
 
+	// Count stats for filter badges
+	const activeCount = allItems.filter((w) => w.isOpen).length;
+	const closedCount = allItems.filter((w) => !w.isOpen).length;
+
 	return (
 		<div className="flex-1 flex flex-col bg-card overflow-hidden">
-			{/* Header with search */}
+			{/* Header */}
 			<div className="flex items-center gap-3 px-4 py-2 border-b border-border/50">
+				{/* Filter toggle */}
+				<div className="flex items-center gap-1 bg-background/50 rounded-md p-0.5">
+					{FILTER_OPTIONS.map((option) => {
+						const count =
+							option.value === "all"
+								? allItems.length
+								: option.value === "active"
+									? activeCount
+									: closedCount;
+						return (
+							<button
+								key={option.value}
+								type="button"
+								onClick={() => setFilterMode(option.value)}
+								className={cn(
+									"px-2 py-1 text-xs rounded transition-colors",
+									filterMode === option.value
+										? "bg-accent text-foreground"
+										: "text-foreground/60 hover:text-foreground",
+								)}
+							>
+								{option.label}
+								<span className="ml-1 text-foreground/40">{count}</span>
+							</button>
+						);
+					})}
+				</div>
+
+				{/* Search */}
 				<div className="relative flex-1">
 					<LuSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50" />
 					<Input
 						type="text"
-						placeholder="Filter workspaces..."
+						placeholder="Search..."
 						value={searchQuery}
 						onChange={(e) => setSearchQuery(e.target.value)}
-						className="pl-9 bg-background/50"
+						className="pl-9 h-8 bg-background/50"
 					/>
 				</div>
+
+				{/* Close button */}
 				<Button
 					variant="ghost"
 					size="icon"
@@ -256,27 +234,28 @@ export function WorkspacesListView() {
 				</Button>
 			</div>
 
-			{/* Workspaces list */}
+			{/* Workspaces list grouped by project */}
 			<div className="flex-1 overflow-y-auto">
-				{timeGroups.map((group) => (
-					<div key={group.label}>
-						{/* Time group header */}
+				{projectGroups.map((group) => (
+					<div key={group.projectId}>
+						{/* Project header */}
 						<div className="sticky top-0 bg-card/95 backdrop-blur-sm px-4 py-2 border-b border-border/50">
 							<span className="text-xs font-medium text-foreground/70">
-								{group.label}
+								{group.projectName}
 							</span>
 							<span className="text-xs text-foreground/40 ml-2">
-								{group.count}
+								{group.workspaces.length}
 							</span>
 						</div>
 
-						{/* Workspaces in this group */}
+						{/* Workspaces in this project */}
 						{group.workspaces.map((ws) => (
 							<WorkspaceRow
 								key={ws.uniqueId}
 								workspace={ws}
 								isActive={activeWorkspace?.id === ws.workspaceId}
-								onClick={() => handleItemClick(ws)}
+								onSwitch={() => handleSwitch(ws)}
+								onReopen={() => handleReopen(ws)}
 								isOpening={
 									openWorktree.isPending &&
 									openWorktree.variables?.worktreeId === ws.worktreeId
@@ -286,150 +265,18 @@ export function WorkspacesListView() {
 					</div>
 				))}
 
-				{filteredWorkspaces.length === 0 && (
+				{filteredItems.length === 0 && (
 					<div className="flex items-center justify-center h-32 text-foreground/50 text-sm">
 						{searchQuery
 							? "No workspaces match your search"
-							: "No workspaces yet"}
+							: filterMode === "active"
+								? "No active workspaces"
+								: filterMode === "closed"
+									? "No closed workspaces"
+									: "No workspaces yet"}
 					</div>
 				)}
 			</div>
 		</div>
-	);
-}
-
-interface WorkspaceRowProps {
-	workspace: WorkspaceItem;
-	isActive: boolean;
-	onClick: () => void;
-	isOpening?: boolean;
-}
-
-function WorkspaceRow({
-	workspace,
-	isActive,
-	onClick,
-	isOpening,
-}: WorkspaceRowProps) {
-	const isBranch = workspace.type === "branch";
-	const [hasHovered, setHasHovered] = useState(false);
-
-	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } = trpc.workspaces.getGitHubStatus.useQuery(
-		{ workspaceId: workspace.workspaceId ?? "" },
-		{
-			enabled:
-				hasHovered && workspace.type === "worktree" && !!workspace.workspaceId,
-			staleTime: GITHUB_STATUS_STALE_TIME,
-		},
-	);
-
-	const pr = githubStatus?.pr;
-	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
-
-	return (
-		<button
-			type="button"
-			onClick={onClick}
-			disabled={isOpening}
-			onMouseEnter={() => !hasHovered && setHasHovered(true)}
-			className={cn(
-				"flex items-center gap-3 w-full px-4 py-2.5 text-left",
-				"hover:bg-background/50 transition-colors group",
-				isActive && "bg-background/70",
-				!workspace.isOpen && "opacity-50",
-				isOpening && "opacity-50 cursor-wait",
-			)}
-		>
-			{/* Status indicator */}
-			<div className="relative shrink-0">
-				{/* Icon */}
-				<div
-					className={cn(
-						"flex items-center justify-center size-6 rounded",
-						isBranch ? "bg-primary/20" : "bg-background/80",
-					)}
-				>
-					{isBranch ? (
-						<LuGitBranch className="size-3.5 text-primary" />
-					) : (
-						<LuGitFork className="size-3.5 text-foreground/60" />
-					)}
-				</div>
-				{/* Open/Closed indicator dot */}
-				<div
-					className={cn(
-						"absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card",
-						workspace.isOpen ? "bg-emerald-500" : "bg-foreground/30",
-					)}
-				/>
-			</div>
-
-			{/* Project name */}
-			<span className="text-sm text-foreground/60 shrink-0">
-				{workspace.projectName}
-			</span>
-
-			{/* Chevron separator */}
-			<span className="text-foreground/30 shrink-0">{">"}</span>
-
-			{/* Workspace/branch name */}
-			<span
-				className={cn(
-					"text-sm flex-1 truncate",
-					isActive ? "text-foreground font-medium" : "text-foreground/80",
-				)}
-			>
-				{workspace.name}
-			</span>
-
-			{/* Closed badge */}
-			{!workspace.isOpen && (
-				<Badge
-					variant="secondary"
-					className="text-[10px] px-1.5 py-0 h-4 shrink-0"
-				>
-					Closed
-				</Badge>
-			)}
-
-			{/* Diff stats */}
-			{showDiffStats && (
-				<div className="flex items-center gap-1 text-[10px] font-mono shrink-0">
-					<span className="text-emerald-500">+{pr.additions}</span>
-					<span className="text-destructive-foreground">-{pr.deletions}</span>
-				</div>
-			)}
-
-			{/* Unread indicator */}
-			{workspace.isUnread && (
-				<span className="relative flex size-2 shrink-0">
-					<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-					<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-				</span>
-			)}
-
-			{/* Date */}
-			<span className="text-xs text-foreground/40 shrink-0">
-				{formatDate(workspace.lastOpenedAt)}
-			</span>
-
-			{/* Action button - visible on hover */}
-			<div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-xs text-foreground/60 shrink-0">
-				{isOpening ? (
-					<span>Opening...</span>
-				) : workspace.isOpen ? (
-					<>
-						<span>Go to</span>
-						<LuArrowRight className="size-3" />
-					</>
-				) : (
-					<>
-						<span>Open</span>
-						<LuArrowRight className="size-3" />
-					</>
-				)}
-			</div>
-		</button>
 	);
 }

@@ -37,9 +37,7 @@ export function WorkspaceSidebarHeader() {
 				<div className="flex items-center justify-center size-5">
 					<LuLayers className="size-4" />
 				</div>
-				<span className="text-sm font-medium flex-1 text-left">
-					Workspaces
-				</span>
+				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>
 			<NewWorkspaceButton />
 		</div>

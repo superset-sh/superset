@@ -88,8 +88,6 @@ export const useIsSettingsTabOpen = () =>
 	useAppStore((state) => state.isSettingsTabOpen);
 export const useIsTasksTabOpen = () =>
 	useAppStore((state) => state.isTasksTabOpen);
-export const useIsWorkspacesListOpen = () =>
-	useAppStore((state) => state.isWorkspacesListOpen);
 export const useSettingsSection = () =>
 	useAppStore((state) => state.settingsSection);
 export const useSetSettingsSection = () =>

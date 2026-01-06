@@ -14,6 +14,7 @@ import { useOpenSettings } from "renderer/stores/app-state";
 interface ProjectHeaderProps {
 	projectId: string;
 	projectName: string;
+	mainRepoPath: string;
 	isCollapsed: boolean;
 	onToggleCollapse: () => void;
 	workspaceCount: number;
@@ -22,6 +23,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({
 	projectId,
 	projectName,
+	mainRepoPath,
 	isCollapsed,
 	onToggleCollapse,
 	workspaceCount,
@@ -47,16 +49,12 @@ export function ProjectHeader({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 
-	const { data: project } = trpc.projects.get.useQuery({ id: projectId });
-
 	const handleCloseProject = () => {
 		closeProject.mutate({ id: projectId });
 	};
 
 	const handleOpenInFinder = () => {
-		if (project?.mainRepoPath) {
-			openInFinder.mutate(project.mainRepoPath);
-		}
+		openInFinder.mutate(mainRepoPath);
 	};
 
 	const handleOpenSettings = () => {

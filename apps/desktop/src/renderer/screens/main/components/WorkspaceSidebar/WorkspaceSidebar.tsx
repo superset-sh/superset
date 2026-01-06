@@ -31,6 +31,7 @@ export function WorkspaceSidebar() {
 						key={group.project.id}
 						projectId={group.project.id}
 						projectName={group.project.name}
+						mainRepoPath={group.project.mainRepoPath}
 						workspaces={group.workspaces}
 						activeWorkspaceId={activeWorkspaceId}
 						shortcutBaseIndex={projectShortcutIndices[index]}
