@@ -46,12 +46,14 @@ export function getListeningPortsForPids(pids: number[]): PortInfo[] {
 function getListeningPortsLsof(pids: number[]): PortInfo[] {
 	try {
 		const pidArg = pids.join(",");
+		const pidSet = new Set(pids);
 		// -p: filter by PIDs
 		// -iTCP: only TCP connections
 		// -sTCP:LISTEN: only listening sockets
 		// -P: don't convert port numbers to names
 		// -n: don't resolve hostnames
-		// -F: output in parseable format (pid, command, name fields)
+		// Note: lsof may ignore -p filter if PIDs don't exist or have no matches,
+		// so we must validate PIDs in the output against our requested set
 		const output = execSync(
 			`lsof -p ${pidArg} -iTCP -sTCP:LISTEN -P -n 2>/dev/null || true`,
 			{ encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 },
@@ -60,7 +62,7 @@ function getListeningPortsLsof(pids: number[]): PortInfo[] {
 		if (!output.trim()) return [];
 
 		const ports: PortInfo[] = [];
-		const lines = output.trim().split("\n").slice(1); // Skip header
+		const lines = output.trim().split("\n").slice(1);
 
 		for (const line of lines) {
 			if (!line.trim()) continue;
@@ -68,11 +70,16 @@ function getListeningPortsLsof(pids: number[]): PortInfo[] {
 			// Format: COMMAND PID USER FD TYPE DEVICE SIZE/OFF NODE NAME
 			// Example: node 12345 user 23u IPv4 0x1234 0t0 TCP *:3000 (LISTEN)
 			const columns = line.split(/\s+/);
-			if (columns.length < 9) continue;
+			if (columns.length < 10) continue;
 
 			const processName = columns[0];
 			const pid = Number.parseInt(columns[1], 10);
-			const name = columns[columns.length - 1]; // Last column before (LISTEN)
+
+			// CRITICAL: Verify the PID is in our requested set
+			// lsof ignores -p filter when PIDs don't exist, returning all TCP listeners
+			if (!pidSet.has(pid)) continue;
+
+			const name = columns[columns.length - 2]; // NAME column (e.g., *:3000), before (LISTEN)
 
 			// Parse address:port from NAME column
 			// Formats: *:3000, 127.0.0.1:3000, [::1]:3000, [::]:3000
@@ -81,7 +88,6 @@ function getListeningPortsLsof(pids: number[]): PortInfo[] {
 				const address = match[1] || match[2] || "*";
 				const port = Number.parseInt(match[3], 10);
 
-				// Skip invalid ports
 				if (port < 1 || port > 65535) continue;
 
 				ports.push({
@@ -104,7 +110,6 @@ function getListeningPortsLsof(pids: number[]): PortInfo[] {
  */
 function getListeningPortsWindows(pids: number[]): PortInfo[] {
 	try {
-		// netstat -ano shows all connections with PIDs
 		const output = execSync("netstat -ano", {
 			encoding: "utf-8",
 			maxBuffer: 10 * 1024 * 1024,
@@ -133,10 +138,8 @@ function getListeningPortsWindows(pids: number[]): PortInfo[] {
 				const address = match[1] || match[2] || "0.0.0.0";
 				const port = Number.parseInt(match[3], 10);
 
-				// Skip invalid ports
 				if (port < 1 || port > 65535) continue;
 
-				// Get process name (cached to avoid repeated calls)
 				if (!processNames.has(pid)) {
 					processNames.set(pid, getProcessNameWindows(pid));
 				}
@@ -168,20 +171,17 @@ function getProcessNameWindows(pid: number): string {
 		const lines = output.trim().split("\n");
 		if (lines.length >= 2) {
 			const name = lines[1].trim();
-			// Remove .exe extension if present
 			return name.replace(/\.exe$/i, "") || "unknown";
 		}
 	} catch {
-		// Try PowerShell as fallback (wmic is deprecated)
+		// wmic is deprecated, try PowerShell as fallback
 		try {
 			const output = execSync(
 				`powershell -Command "(Get-Process -Id ${pid}).ProcessName"`,
 				{ encoding: "utf-8" },
 			);
 			return output.trim() || "unknown";
-		} catch {
-			// Ignore
-		}
+		} catch {}
 	}
 	return "unknown";
 }

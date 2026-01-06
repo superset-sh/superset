@@ -60,7 +60,6 @@ class PortManager extends EventEmitter {
 	checkOutputForHint(data: string, paneId: string): void {
 		if (!containsPortHint(data)) return;
 
-		// Debounce: cancel any pending scan and schedule a new one
 		const existing = this.pendingHintScans.get(paneId);
 		if (existing) {
 			clearTimeout(existing);
@@ -99,7 +98,6 @@ class PortManager extends EventEmitter {
 			this.scanInterval = null;
 		}
 
-		// Clear all pending hint scans
 		for (const timeout of this.pendingHintScans.values()) {
 			clearTimeout(timeout);
 		}
@@ -132,12 +130,10 @@ class PortManager extends EventEmitter {
 	 * Scan all registered sessions for ports
 	 */
 	private async scanAllSessions(): Promise<void> {
-		// Prevent concurrent scans
 		if (this.isScanning) return;
 		this.isScanning = true;
 
 		try {
-			// Collect all PIDs from all sessions, grouped by pane
 			const panePortMap = new Map<
 				string,
 				{ workspaceId: string; pids: number[] }
@@ -157,13 +153,11 @@ class PortManager extends EventEmitter {
 				}
 			}
 
-			// Scan ports for each pane
 			for (const [paneId, { workspaceId, pids }] of panePortMap) {
 				const portInfos = getListeningPortsForPids(pids);
 				this.updatePortsForPane(paneId, workspaceId, portInfos);
 			}
 
-			// Clean up ports for sessions that no longer exist
 			for (const [key, port] of this.ports) {
 				if (!this.sessions.has(port.paneId)) {
 					this.ports.delete(key);
@@ -190,12 +184,10 @@ class PortManager extends EventEmitter {
 	): void {
 		const now = Date.now();
 
-		// Filter out ignored ports
 		const validPortInfos = portInfos.filter(
 			(info) => !IGNORED_PORTS.has(info.port),
 		);
 
-		// Track which ports we've seen for this pane
 		const seenKeys = new Set<string>();
 
 		for (const info of validPortInfos) {
@@ -204,7 +196,6 @@ class PortManager extends EventEmitter {
 
 			const existing = this.ports.get(key);
 			if (!existing) {
-				// New port detected
 				const detectedPort: DetectedPort = {
 					port: info.port,
 					pid: info.pid,
@@ -220,7 +211,6 @@ class PortManager extends EventEmitter {
 				existing.pid !== info.pid ||
 				existing.processName !== info.processName
 			) {
-				// Port still exists but process changed - update it
 				const updatedPort: DetectedPort = {
 					...existing,
 					pid: info.pid,
@@ -228,13 +218,11 @@ class PortManager extends EventEmitter {
 					address: info.address,
 				};
 				this.ports.set(key, updatedPort);
-				// Emit remove then add to notify of the change
 				this.emit("port:remove", existing);
 				this.emit("port:add", updatedPort);
 			}
 		}
 
-		// Remove ports that are no longer listening for this pane
 		for (const [key, port] of this.ports) {
 			if (port.paneId === paneId && !seenKeys.has(key)) {
 				this.ports.delete(key);

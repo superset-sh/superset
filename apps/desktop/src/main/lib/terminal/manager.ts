@@ -92,7 +92,6 @@ export class TerminalManager extends EventEmitter {
 
 		this.sessions.set(paneId, session);
 
-		// Register session with port manager for process-based port detection
 		portManager.registerSession(session, workspaceId);
 
 		// Track terminal opened (only fires once per session creation)
