@@ -29,6 +29,7 @@ import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRena
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { STROKE_WIDTH } from "../constants";
 import {
 	BranchSwitcher,
 	DeleteWorkspaceDialog,
@@ -204,7 +205,7 @@ export function WorkspaceListItem({
 							"size-4",
 							isActive ? "text-foreground" : "text-muted-foreground",
 						)}
-						strokeWidth={1.5}
+						strokeWidth={STROKE_WIDTH}
 					/>
 				) : (
 					<LuFolderGit2
@@ -212,7 +213,7 @@ export function WorkspaceListItem({
 							"size-4",
 							isActive ? "text-foreground" : "text-muted-foreground",
 						)}
-						strokeWidth={1.5}
+						strokeWidth={STROKE_WIDTH}
 					/>
 				)}
 				{/* Notification dot */}
@@ -303,12 +304,12 @@ export function WorkspaceListItem({
 						{isBranchWorkspace ? (
 							<LuFolder
 								className="size-4 text-muted-foreground"
-								strokeWidth={1.5}
+								strokeWidth={STROKE_WIDTH}
 							/>
 						) : (
 							<LuFolderGit2
 								className="size-4 text-muted-foreground"
-								strokeWidth={1.5}
+								strokeWidth={STROKE_WIDTH}
 							/>
 						)}
 						{needsAttention && (
@@ -426,12 +427,12 @@ export function WorkspaceListItem({
 		<ContextMenuItem onSelect={handleToggleUnread}>
 			{isUnread ? (
 				<>
-					<LuEye className="size-4 mr-2" strokeWidth={1.5} />
+					<LuEye className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Mark as Read
 				</>
 			) : (
 				<>
-					<LuEyeOff className="size-4 mr-2" strokeWidth={1.5} />
+					<LuEyeOff className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Mark as Unread
 				</>
 			)}

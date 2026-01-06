@@ -13,6 +13,7 @@ import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { STROKE_WIDTH } from "../../../constants";
 
 interface BranchSwitcherProps {
 	projectId: string;
@@ -148,7 +149,7 @@ export function BranchSwitcher({
 						<div className="flex items-center justify-center py-4">
 							<LuLoader
 								className="size-4 animate-spin text-muted-foreground"
-								strokeWidth={1.5}
+								strokeWidth={STROKE_WIDTH}
 							/>
 						</div>
 					) : filteredBranches.length === 0 ? (
@@ -174,12 +175,12 @@ export function BranchSwitcher({
 										{isInUse ? (
 											<LuGitFork
 												className="size-3.5 shrink-0 text-amber-500"
-												strokeWidth={1.5}
+												strokeWidth={STROKE_WIDTH}
 											/>
 										) : (
 											<LuGitBranch
 												className="size-3.5 shrink-0 text-muted-foreground"
-												strokeWidth={1.5}
+												strokeWidth={STROKE_WIDTH}
 											/>
 										)}
 										<span className="flex-1 truncate text-xs">{branch}</span>

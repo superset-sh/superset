@@ -4,6 +4,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuFolderOpen } from "react-icons/lu";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
 	isCollapsed?: boolean;
@@ -64,7 +65,7 @@ export function WorkspaceSidebarFooter({
 							onClick={handleOpenNewProject}
 							disabled={openNew.isPending || createBranchWorkspace.isPending}
 						>
-							<LuFolderOpen className="size-4" strokeWidth={1.5} />
+							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Add repository</TooltipContent>
@@ -82,7 +83,7 @@ export function WorkspaceSidebarFooter({
 				onClick={handleOpenNewProject}
 				disabled={openNew.isPending || createBranchWorkspace.isPending}
 			>
-				<LuFolderOpen className="w-4 h-4" strokeWidth={1.5} />
+				<LuFolderOpen className="w-4 h-4" strokeWidth={STROKE_WIDTH} />
 				<span>Add repository</span>
 			</Button>
 		</div>

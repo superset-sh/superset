@@ -1,5 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { LuCircleDot, LuGitMerge, LuGitPullRequest } from "react-icons/lu";
+import { STROKE_WIDTH } from "../constants";
 
 type PRState = "open" | "merged" | "closed" | "draft";
 
@@ -19,7 +20,7 @@ export function WorkspaceStatusBadge({
 			icon: (
 				<LuGitPullRequest
 					className={cn(iconClass, "text-emerald-500")}
-					strokeWidth={1.5}
+					strokeWidth={STROKE_WIDTH}
 				/>
 			),
 			bgColor: "bg-emerald-500/10",
@@ -28,7 +29,7 @@ export function WorkspaceStatusBadge({
 			icon: (
 				<LuGitMerge
 					className={cn(iconClass, "text-purple-500")}
-					strokeWidth={1.5}
+					strokeWidth={STROKE_WIDTH}
 				/>
 			),
 			bgColor: "bg-purple-500/10",
@@ -37,7 +38,7 @@ export function WorkspaceStatusBadge({
 			icon: (
 				<LuCircleDot
 					className={cn(iconClass, "text-destructive")}
-					strokeWidth={1.5}
+					strokeWidth={STROKE_WIDTH}
 				/>
 			),
 			bgColor: "bg-destructive/10",
@@ -46,7 +47,7 @@ export function WorkspaceStatusBadge({
 			icon: (
 				<LuGitPullRequest
 					className={cn(iconClass, "text-muted-foreground")}
-					strokeWidth={1.5}
+					strokeWidth={STROKE_WIDTH}
 				/>
 			),
 			bgColor: "bg-muted",

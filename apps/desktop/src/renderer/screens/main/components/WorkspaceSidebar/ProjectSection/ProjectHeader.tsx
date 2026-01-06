@@ -18,6 +18,7 @@ import { HiChevronRight, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
 import { LuFolderOpen, LuSettings, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenSettings } from "renderer/stores/app-state";
+import { STROKE_WIDTH } from "../constants";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
 interface ProjectHeaderProps {
@@ -118,11 +119,11 @@ export function ProjectHeader({
 				</Tooltip>
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={handleOpenInFinder}>
-						<LuFolderOpen className="size-4 mr-2" strokeWidth={1.5} />
+						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleOpenSettings}>
-						<LuSettings className="size-4 mr-2" strokeWidth={1.5} />
+						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Project Settings
 					</ContextMenuItem>
 					<ContextMenuSeparator />
@@ -131,7 +132,7 @@ export function ProjectHeader({
 						disabled={closeProject.isPending}
 						className="text-destructive focus:text-destructive"
 					>
-						<LuX className="size-4 mr-2" strokeWidth={1.5} />
+						<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						{closeProject.isPending ? "Closing..." : "Close Project"}
 					</ContextMenuItem>
 				</ContextMenuContent>
@@ -236,11 +237,11 @@ export function ProjectHeader({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={handleOpenInFinder}>
-					<LuFolderOpen className="size-4 mr-2" strokeWidth={1.5} />
+					<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Open in Finder
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleOpenSettings}>
-					<LuSettings className="size-4 mr-2" strokeWidth={1.5} />
+					<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Project Settings
 				</ContextMenuItem>
 				<ContextMenuSeparator />
@@ -249,7 +250,7 @@ export function ProjectHeader({
 					disabled={closeProject.isPending}
 					className="text-destructive focus:text-destructive"
 				>
-					<LuX className="size-4 mr-2" strokeWidth={1.5} />
+					<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					{closeProject.isPending ? "Closing..." : "Close Project"}
 				</ContextMenuItem>
 			</ContextMenuContent>

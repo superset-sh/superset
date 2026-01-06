@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { STROKE_WIDTH_THICK } from "../constants";
 
 interface NewWorkspaceButtonProps {
 	isCollapsed?: boolean;
@@ -32,7 +33,7 @@ export function NewWorkspaceButton({
 						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						<div className="flex items-center justify-center size-5 rounded bg-accent">
-							<LuPlus className="size-3" strokeWidth={2} />
+							<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
 						</div>
 					</button>
 				</TooltipTrigger>
@@ -49,7 +50,7 @@ export function NewWorkspaceButton({
 			className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 		>
 			<div className="flex items-center justify-center size-5 rounded bg-accent">
-				<LuPlus className="size-3" strokeWidth={2} />
+				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
 			</div>
 			<span>New Workspace</span>
 		</button>

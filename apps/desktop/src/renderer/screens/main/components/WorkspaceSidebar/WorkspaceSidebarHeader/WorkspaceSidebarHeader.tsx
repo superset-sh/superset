@@ -13,6 +13,7 @@ import {
 	useCurrentView,
 	useOpenWorkspacesList,
 } from "renderer/stores/app-state";
+import { STROKE_WIDTH, STROKE_WIDTH_THIN } from "../constants";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 
 interface WorkspaceSidebarHeaderProps {
@@ -47,16 +48,16 @@ export function WorkspaceSidebarHeader({
 		if (isCollapsed) {
 			// Collapsed: show panel-left normally, panel-left-open on hover
 			return isHovering ? (
-				<LuPanelLeftOpen className="size-4" strokeWidth={1} />
+				<LuPanelLeftOpen className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 			) : (
-				<LuPanelLeft className="size-4" strokeWidth={1} />
+				<LuPanelLeft className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 			);
 		}
 		// Open: show panel-left normally, panel-left-close on hover
 		return isHovering ? (
-			<LuPanelLeftClose className="size-4" strokeWidth={1} />
+			<LuPanelLeftClose className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 		) : (
-			<LuPanelLeft className="size-4" strokeWidth={1} />
+			<LuPanelLeft className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 		);
 	};
 
@@ -92,7 +93,7 @@ export function WorkspaceSidebarHeader({
 									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
 							)}
 						>
-							<LuLayers className="size-4" strokeWidth={1.5} />
+							<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Workspaces</TooltipContent>
@@ -140,7 +141,7 @@ export function WorkspaceSidebarHeader({
 				)}
 			>
 				<div className="flex items-center justify-center size-5">
-					<LuLayers className="size-4" strokeWidth={1.5} />
+					<LuLayers className="size-4" strokeWidth={STROKE_WIDTH} />
 				</div>
 				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>
