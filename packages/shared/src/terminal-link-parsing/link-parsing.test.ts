@@ -16,7 +16,7 @@ import {
 	OperatingSystem,
 	removeLinkQueryString,
 	removeLinkSuffix,
-} from "./link-parsing";
+} from "./index";
 
 interface ITestLink {
 	link: string;
@@ -33,12 +33,12 @@ const operatingSystems: ReadonlyArray<OperatingSystem> = [
 	OperatingSystem.Macintosh,
 	OperatingSystem.Windows,
 ];
-const osTestPath: { [key: number]: string } = {
+const osTestPath: Record<OperatingSystem, string> = {
 	[OperatingSystem.Linux]: "/test/path/linux",
 	[OperatingSystem.Macintosh]: "/test/path/macintosh",
 	[OperatingSystem.Windows]: "C:\\test\\path\\windows",
 };
-const osLabel: { [key: number]: string } = {
+const osLabel: Record<OperatingSystem, string> = {
 	[OperatingSystem.Linux]: "[Linux]",
 	[OperatingSystem.Macintosh]: "[macOS]",
 	[OperatingSystem.Windows]: "[Windows]",
@@ -1291,9 +1291,12 @@ describe("TerminalLinkParsing", () => {
 
 		describe("should detect 3 suffix links on a single line", () => {
 			for (let i = 0; i < testLinksWithSuffix.length - 2; i++) {
-				const link1 = testLinksWithSuffix[i];
-				const link2 = testLinksWithSuffix[i + 1];
-				const link3 = testLinksWithSuffix[i + 2];
+				// biome-ignore lint/style/noNonNullAssertion: we know these indices are valid in the loop
+				const link1 = testLinksWithSuffix[i]!;
+				// biome-ignore lint/style/noNonNullAssertion: we know these indices are valid in the loop
+				const link2 = testLinksWithSuffix[i + 1]!;
+				// biome-ignore lint/style/noNonNullAssertion: we know these indices are valid in the loop
+				const link3 = testLinksWithSuffix[i + 2]!;
 				const line = ` ${link1.link} ${link2.link} ${link3.link} `;
 				it(`\`${line.replaceAll("\u00A0", "<nbsp>")}\``, () => {
 					expect(detectLinks(line, OperatingSystem.Linux).length).toBe(3);

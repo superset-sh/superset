@@ -1,11 +1,10 @@
-import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
-
 import {
 	detectLinks,
 	getCurrentOS,
 	type IParsedLink,
 	removeLinkSuffix,
-} from "../lib/link-parsing";
+} from "@superset/shared/terminal-link-parsing";
+import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
 
 /**
  * A link provider that detects file paths in terminal output using VSCode's

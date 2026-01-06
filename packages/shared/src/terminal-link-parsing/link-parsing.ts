@@ -212,6 +212,25 @@ export function getLinkSuffix(link: string): ILinkSuffix | null {
 	return toLinkSuffix(linkSuffixRegexEol.value.exec(link));
 }
 
+/**
+ * Get the current operating system.
+ * Works in browser environments (uses navigator.platform) or defaults to Linux.
+ * For Node.js environments, you should pass the OS directly to detectLinks.
+ */
+export function getCurrentOS(): OperatingSystem {
+	if (typeof navigator !== "undefined" && navigator.platform) {
+		const platform = navigator.platform.toLowerCase();
+		if (platform.includes("win")) {
+			return OperatingSystem.Windows;
+		}
+		if (platform.includes("mac")) {
+			return OperatingSystem.Macintosh;
+		}
+	}
+	// Default to Linux for server environments
+	return OperatingSystem.Linux;
+}
+
 export function toLinkSuffix(
 	match: RegExpExecArray | null,
 ): ILinkSuffix | null {
@@ -282,24 +301,30 @@ function binaryInsert(
 	}
 	// Find the index where the newItem would be inserted
 	const mid = Math.floor((low + high) / 2);
+	const midItem = list[mid];
+	const prevItem = mid > 0 ? list[mid - 1] : undefined;
+
 	if (
 		mid >= list.length ||
-		(newItem.path.index < list[mid].path.index &&
-			(mid === 0 || newItem.path.index > list[mid - 1].path.index))
+		(midItem &&
+			newItem.path.index < midItem.path.index &&
+			(mid === 0 || (prevItem && newItem.path.index > prevItem.path.index)))
 	) {
 		// Check if it conflicts with an existing link before adding
 		if (
 			mid >= list.length ||
-			(newItem.path.index + newItem.path.text.length < list[mid].path.index &&
+			(midItem &&
+				newItem.path.index + newItem.path.text.length < midItem.path.index &&
 				(mid === 0 ||
-					newItem.path.index >
-						list[mid - 1].path.index + list[mid - 1].path.text.length))
+					(prevItem &&
+						newItem.path.index >
+							prevItem.path.index + prevItem.path.text.length)))
 		) {
 			list.splice(mid, 0, newItem);
 		}
 		return;
 	}
-	if (newItem.path.index > list[mid].path.index) {
+	if (midItem && newItem.path.index > midItem.path.index) {
 		binaryInsert(list, newItem, mid + 1, high);
 	} else {
 		binaryInsert(list, newItem, low, mid - 1);
@@ -347,15 +372,18 @@ function detectLinksViaSuffix(line: string): IParsedLink[] {
 				//
 				// If this fails on a multi-character prefix, just keep the original.
 				if (prefixMatch.groups.prefix.length > 1) {
+					const suffixFirstChar = suffix.suffix.text[0];
+					const prefixLastChar =
+						prefixMatch.groups.prefix[prefixMatch.groups.prefix.length - 1];
 					if (
-						suffix.suffix.text[0].match(/['"]/) &&
-						prefixMatch.groups.prefix[prefixMatch.groups.prefix.length - 1] ===
-							suffix.suffix.text[0]
+						suffixFirstChar &&
+						prefixLastChar &&
+						suffixFirstChar.match(/['"]/) &&
+						prefixLastChar === suffixFirstChar
 					) {
 						const trimPrefixAmount = prefixMatch.groups.prefix.length - 1;
 						prefix.index += trimPrefixAmount;
-						prefix.text =
-							prefixMatch.groups.prefix[prefixMatch.groups.prefix.length - 1];
+						prefix.text = prefixLastChar;
 						linkStartIndex += trimPrefixAmount;
 					}
 				}
@@ -468,19 +496,4 @@ function detectPathsNoSuffix(line: string, os: OperatingSystem): IParsedLink[] {
 	}
 
 	return results;
-}
-
-/**
- * Get the current operating system.
- * Since we're in the renderer process, we detect based on navigator.platform.
- */
-export function getCurrentOS(): OperatingSystem {
-	const platform = navigator.platform.toLowerCase();
-	if (platform.includes("win")) {
-		return OperatingSystem.Windows;
-	}
-	if (platform.includes("mac")) {
-		return OperatingSystem.Macintosh;
-	}
-	return OperatingSystem.Linux;
 }

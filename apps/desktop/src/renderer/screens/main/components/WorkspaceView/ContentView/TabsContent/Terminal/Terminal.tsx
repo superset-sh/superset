@@ -96,8 +96,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 							path,
 							error,
 						);
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
 						toast.error("Failed to open file in editor", {
-							description: path,
+							description: errorMessage,
 						});
 					});
 			};
