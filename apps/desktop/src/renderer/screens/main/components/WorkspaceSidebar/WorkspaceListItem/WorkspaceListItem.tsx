@@ -198,14 +198,20 @@ export function WorkspaceListItem({
 					isActive && "bg-muted",
 				)}
 			>
-				{/* Active indicator */}
-				{isActive && (
-					<div className="absolute left-0 top-1 bottom-1 w-0.5 bg-primary rounded-r" />
-				)}
 				{isBranchWorkspace ? (
-					<LuFolder className="size-4 text-muted-foreground" />
+					<LuFolder
+						className={cn(
+							"size-4",
+							isActive ? "text-foreground" : "text-muted-foreground",
+						)}
+					/>
 				) : (
-					<LuFolderGit2 className="size-4 text-muted-foreground" />
+					<LuFolderGit2
+						className={cn(
+							"size-4",
+							isActive ? "text-foreground" : "text-muted-foreground",
+						)}
+					/>
 				)}
 				{/* Notification dot */}
 				{needsAttention && (
@@ -232,17 +238,35 @@ export function WorkspaceListItem({
 			);
 		}
 
-		// Worktree workspaces get the full hover card
+		// Worktree workspaces get the full hover card with context menu
 		return (
-			<HoverCard
-				openDelay={HOVER_CARD_OPEN_DELAY}
-				closeDelay={HOVER_CARD_CLOSE_DELAY}
-			>
-				<HoverCardTrigger asChild>{collapsedButton}</HoverCardTrigger>
-				<HoverCardContent side="right" align="start" className="w-72">
-					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
-				</HoverCardContent>
-			</HoverCard>
+			<>
+				<HoverCard
+					openDelay={HOVER_CARD_OPEN_DELAY}
+					closeDelay={HOVER_CARD_CLOSE_DELAY}
+				>
+					<ContextMenu>
+						<HoverCardTrigger asChild>
+							<ContextMenuTrigger asChild>{collapsedButton}</ContextMenuTrigger>
+						</HoverCardTrigger>
+						<ContextMenuContent>
+							<ContextMenuItem onSelect={() => handleDeleteClick()}>
+								Close Worktree
+							</ContextMenuItem>
+						</ContextMenuContent>
+					</ContextMenu>
+					<HoverCardContent side="right" align="start" className="w-72">
+						<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+					</HoverCardContent>
+				</HoverCard>
+				<DeleteWorkspaceDialog
+					workspaceId={id}
+					workspaceName={name}
+					workspaceType={type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			</>
 		);
 	}
 

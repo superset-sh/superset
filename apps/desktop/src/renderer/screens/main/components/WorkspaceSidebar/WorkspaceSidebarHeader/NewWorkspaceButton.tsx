@@ -29,10 +29,10 @@ export function NewWorkspaceButton({
 						type="button"
 						onClick={handleClick}
 						disabled={isLoading}
-						className="flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<div className="flex items-center justify-center size-5 rounded bg-accent">
-							<LuPlus className="size-3" />
+						<div className="flex items-center justify-center size-5 rounded bg-muted group-hover:bg-accent transition-colors">
+							<LuPlus className="size-3 text-muted-foreground group-hover:text-foreground transition-colors" />
 						</div>
 					</button>
 				</TooltipTrigger>
