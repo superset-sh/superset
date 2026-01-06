@@ -2,6 +2,7 @@ import { useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
 import { NOTIFICATION_EVENTS } from "shared/constants";
+import { debugLog } from "shared/debug";
 import { useAppStore } from "../app-state";
 import { useTabsStore } from "./store";
 import { resolveNotificationTarget } from "./utils/resolve-notification-target";
@@ -50,8 +51,7 @@ export function useAgentHookListener() {
 			const { paneId, workspaceId } = target;
 
 			if (event.type === NOTIFICATION_EVENTS.AGENT_LIFECYCLE) {
-				// DEBUG: Log incoming lifecycle events
-				console.log("[useAgentHookListener] Received:", {
+				debugLog("agent-hooks", "Received:", {
 					eventType: event.data?.eventType,
 					paneId,
 					workspaceId,
@@ -80,8 +80,7 @@ export function useAgentHookListener() {
 						activeWorkspaceRef.current?.id === workspaceId &&
 						focusedPaneId === paneId;
 
-					// DEBUG: Log Stop handling
-					console.log("[useAgentHookListener] Stop event:", {
+					debugLog("agent-hooks", "Stop event:", {
 						isAlreadyActive,
 						activeTabId,
 						focusedPaneId,

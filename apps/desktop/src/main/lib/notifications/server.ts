@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import express from "express";
 import { NOTIFICATION_EVENTS } from "shared/constants";
+import { debugLog } from "shared/debug";
 import { env } from "shared/env.shared";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
@@ -147,8 +148,7 @@ app.get("/hook/complete", (req, res) => {
 
 	const mappedEventType = mapEventType(eventType as string | undefined);
 
-	// DEBUG: Log all incoming hook requests
-	console.log("[notifications] Received hook:", {
+	debugLog("notifications", "Received hook:", {
 		eventType,
 		mappedEventType,
 		paneId,
