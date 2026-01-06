@@ -2,7 +2,6 @@ import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { WindowControls } from "./WindowControls";
-import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 
 export function TopBar() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
@@ -17,9 +16,7 @@ export function TopBar() {
 				style={{
 					paddingLeft: isMac ? "88px" : "16px",
 				}}
-			>
-				<WorkspaceSidebarControl />
-			</div>
+			/>
 
 			<div className="flex-1" />
 

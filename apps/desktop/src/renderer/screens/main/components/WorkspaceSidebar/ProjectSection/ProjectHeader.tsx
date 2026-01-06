@@ -86,33 +86,56 @@ export function ProjectHeader({
 		openSettings("project");
 	};
 
-	// Collapsed sidebar: show just the thumbnail with tooltip
+	// Collapsed sidebar: show just the thumbnail with tooltip and context menu
 	if (isSidebarCollapsed) {
 		return (
-			<Tooltip delayDuration={300}>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						className={cn(
-							"flex items-center justify-center size-8 rounded-md",
-							"hover:bg-muted/50 transition-colors",
-						)}
+			<ContextMenu>
+				<Tooltip delayDuration={300}>
+					<ContextMenuTrigger asChild>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={onToggleCollapse}
+								className={cn(
+									"flex items-center justify-center size-8 rounded-md",
+									"hover:bg-muted/50 transition-colors",
+								)}
+							>
+								<ProjectThumbnail
+									projectId={projectId}
+									projectName={projectName}
+									githubOwner={githubOwner}
+								/>
+							</button>
+						</TooltipTrigger>
+					</ContextMenuTrigger>
+					<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<span className="font-medium">{projectName}</span>
+						<span className="text-xs text-muted-foreground">
+							{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
+						</span>
+					</TooltipContent>
+				</Tooltip>
+				<ContextMenuContent>
+					<ContextMenuItem onSelect={handleOpenInFinder}>
+						<LuFolderOpen className="size-4 mr-2" />
+						Open in Finder
+					</ContextMenuItem>
+					<ContextMenuItem onSelect={handleOpenSettings}>
+						<LuSettings className="size-4 mr-2" />
+						Project Settings
+					</ContextMenuItem>
+					<ContextMenuSeparator />
+					<ContextMenuItem
+						onSelect={handleCloseProject}
+						disabled={closeProject.isPending}
+						className="text-destructive focus:text-destructive"
 					>
-						<ProjectThumbnail
-							projectId={projectId}
-							projectName={projectName}
-							githubOwner={githubOwner}
-						/>
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="right" className="flex flex-col gap-0.5">
-					<span className="font-medium">{projectName}</span>
-					<span className="text-xs text-muted-foreground">
-						{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
-					</span>
-				</TooltipContent>
-			</Tooltip>
+						<LuX className="size-4 mr-2" />
+						{closeProject.isPending ? "Closing..." : "Close Project"}
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
 		);
 	}
 

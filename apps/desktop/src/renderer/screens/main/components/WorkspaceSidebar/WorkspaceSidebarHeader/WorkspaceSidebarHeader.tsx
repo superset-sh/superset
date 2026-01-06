@@ -1,11 +1,18 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { LuLayers } from "react-icons/lu";
+import { useState } from "react";
+import {
+	LuLayers,
+	LuPanelLeft,
+	LuPanelLeftClose,
+	LuPanelLeftOpen,
+} from "react-icons/lu";
 import {
 	useCloseWorkspacesList,
 	useCurrentView,
 	useOpenWorkspacesList,
 } from "renderer/stores/app-state";
+import { useWorkspaceSidebarStore } from "renderer/stores";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 
 interface WorkspaceSidebarHeaderProps {
@@ -18,6 +25,8 @@ export function WorkspaceSidebarHeader({
 	const currentView = useCurrentView();
 	const openWorkspacesList = useOpenWorkspacesList();
 	const closeWorkspacesList = useCloseWorkspacesList();
+	const { toggleCollapsed } = useWorkspaceSidebarStore();
+	const [isHovering, setIsHovering] = useState(false);
 
 	const isWorkspacesListOpen = currentView === "workspaces-list";
 
@@ -29,9 +38,48 @@ export function WorkspaceSidebarHeader({
 		}
 	};
 
+	const handleToggleSidebar = () => {
+		toggleCollapsed();
+	};
+
+	// Determine which icon to show based on collapsed state and hover
+	const getToggleIcon = () => {
+		if (isCollapsed) {
+			// Collapsed: show panel-left normally, panel-left-open on hover
+			return isHovering ? (
+				<LuPanelLeftOpen className="size-4" />
+			) : (
+				<LuPanelLeft className="size-4" />
+			);
+		}
+		// Open: show panel-left normally, panel-left-close on hover
+		return isHovering ? (
+			<LuPanelLeftClose className="size-4" />
+		) : (
+			<LuPanelLeft className="size-4" />
+		);
+	};
+
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col items-center border-b border-border py-2 gap-2">
+				{/* Toggle sidebar button */}
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleToggleSidebar}
+							onMouseEnter={() => setIsHovering(true)}
+							onMouseLeave={() => setIsHovering(false)}
+							className="flex items-center justify-center size-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+						>
+							{getToggleIcon()}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Toggle sidebar</TooltipContent>
+				</Tooltip>
+
+				{/* Workspaces button */}
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
@@ -49,13 +97,37 @@ export function WorkspaceSidebarHeader({
 					</TooltipTrigger>
 					<TooltipContent side="right">Workspaces</TooltipContent>
 				</Tooltip>
+
 				<NewWorkspaceButton isCollapsed />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex flex-col border-b border-border px-2 pt-2 pb-2">
+		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+			{/* Toggle sidebar button */}
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={handleToggleSidebar}
+						onMouseEnter={() => setIsHovering(true)}
+						onMouseLeave={() => setIsHovering(false)}
+						className="flex items-center gap-2 px-2 py-1.5 w-full rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+					>
+						<div className="flex items-center justify-center size-5">
+							{getToggleIcon()}
+						</div>
+						{isHovering && (
+							<span className="text-sm font-medium flex-1 text-left">
+								Toggle sidebar
+							</span>
+						)}
+					</button>
+				</TooltipTrigger>
+			</Tooltip>
+
+			{/* Workspaces button */}
 			<button
 				type="button"
 				onClick={handleClick}
@@ -71,6 +143,7 @@ export function WorkspaceSidebarHeader({
 				</div>
 				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>
+
 			<NewWorkspaceButton />
 		</div>
 	);
