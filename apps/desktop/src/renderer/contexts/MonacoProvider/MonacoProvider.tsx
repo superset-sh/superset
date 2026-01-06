@@ -104,4 +104,31 @@ export function MonacoProvider({ children }: MonacoProviderProps) {
 	);
 }
 
+export const MONACO_EDITOR_OPTIONS = {
+	minimap: { enabled: false },
+	scrollBeyondLastLine: false,
+	wordWrap: "on" as const,
+	fontSize: 13,
+	lineHeight: 20,
+	fontFamily:
+		"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
+	padding: { top: 8, bottom: 8 },
+	scrollbar: {
+		verticalScrollbarSize: 8,
+		horizontalScrollbarSize: 8,
+	},
+};
+
+export function registerSaveAction(
+	editor: monaco.editor.IStandaloneCodeEditor,
+	onSave: () => void,
+) {
+	editor.addAction({
+		id: "save-file",
+		label: "Save File",
+		keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS],
+		run: onSave,
+	});
+}
+
 export { monaco, SUPERSET_THEME };
