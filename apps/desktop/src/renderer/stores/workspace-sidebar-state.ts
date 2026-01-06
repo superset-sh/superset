@@ -58,8 +58,8 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 				},
 
 				setWidth: (width) => {
-					// Snap to collapsed if below threshold
-					if (width < COLLAPSE_THRESHOLD && width > 0) {
+					// Snap to collapsed if below threshold (never allow closing completely via drag)
+					if (width < COLLAPSE_THRESHOLD) {
 						set({
 							width: COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 							isOpen: true,
@@ -73,18 +73,11 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 						Math.min(MAX_WORKSPACE_SIDEBAR_WIDTH, width),
 					);
 
-					if (width > 0) {
-						set({
-							width: clampedWidth,
-							lastExpandedWidth: clampedWidth,
-							isOpen: true,
-						});
-					} else {
-						set({
-							width: 0,
-							isOpen: false,
-						});
-					}
+					set({
+						width: clampedWidth,
+						lastExpandedWidth: clampedWidth,
+						isOpen: true,
+					});
 				},
 
 				setIsResizing: (isResizing) => {
