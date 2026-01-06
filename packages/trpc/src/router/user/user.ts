@@ -1,38 +1,16 @@
 import { db } from "@superset/db/client";
-import { organizationMembers, users } from "@superset/db/schema";
-import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import { members } from "@superset/db/schema";
+import type { TRPCRouterRecord } from "@trpc/server";
 import { eq } from "drizzle-orm";
 
 import { protectedProcedure } from "../../trpc";
-import { syncUserFromClerk } from "./utils/sync-user-from-clerk";
 
 export const userRouter = {
-	me: protectedProcedure.query(async ({ ctx }) => {
-		const existingUser = await db.query.users.findFirst({
-			where: eq(users.clerkId, ctx.userId),
-		});
-
-		if (existingUser) {
-			return existingUser;
-		}
-
-		return syncUserFromClerk(ctx.userId);
-	}),
+	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {
-		const user = await db.query.users.findFirst({
-			where: eq(users.clerkId, ctx.userId),
-		});
-
-		if (!user) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "User record not found",
-			});
-		}
-
-		const membership = await db.query.organizationMembers.findFirst({
-			where: eq(organizationMembers.userId, user.id),
+		const membership = await db.query.members.findFirst({
+			where: eq(members.userId, ctx.session.user.id),
 			with: {
 				organization: true,
 			},
@@ -42,19 +20,8 @@ export const userRouter = {
 	}),
 
 	myOrganizations: protectedProcedure.query(async ({ ctx }) => {
-		const user = await db.query.users.findFirst({
-			where: eq(users.clerkId, ctx.userId),
-		});
-
-		if (!user) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "User record not found",
-			});
-		}
-
-		const memberships = await db.query.organizationMembers.findMany({
-			where: eq(organizationMembers.userId, user.id),
+		const memberships = await db.query.members.findMany({
+			where: eq(members.userId, ctx.session.user.id),
 			with: {
 				organization: true,
 			},
