@@ -7,6 +7,7 @@ import {
 	LuTriangleAlert,
 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { ChecksList } from "./components/ChecksList";
 import { ChecksSummary } from "./components/ChecksSummary";
 import { PRStatusBadge } from "./components/PRStatusBadge";
@@ -26,13 +27,13 @@ export function WorkspaceHoverCardContent({
 		{ enabled: !!workspaceId },
 	);
 
-	const { data: githubStatus, isLoading: isLoadingGithub } =
-		trpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId },
-			{ enabled: !!workspaceId },
-		);
+	const {
+		pr,
+		repoUrl,
+		branchExistsOnRemote,
+		isLoading: isLoadingGithub,
+	} = usePRStatus({ workspaceId });
 
-	const pr = githubStatus?.pr;
 	const needsRebase = worktreeInfo?.gitStatus?.needsRebase;
 
 	const worktreeName = worktreeInfo?.worktreeName;
@@ -51,9 +52,9 @@ export function WorkspaceHoverCardContent({
 						<span className="text-[10px] uppercase tracking-wide text-muted-foreground">
 							Branch
 						</span>
-						{githubStatus?.repoUrl && githubStatus.branchExistsOnRemote ? (
+						{repoUrl && branchExistsOnRemote ? (
 							<a
-								href={`${githubStatus.repoUrl}/tree/${worktreeName}`}
+								href={`${repoUrl}/tree/${worktreeName}`}
 								target="_blank"
 								rel="noopener noreferrer"
 								className={`flex items-center gap-1 font-mono break-all hover:underline ${hasCustomAlias ? "text-xs" : "text-sm"}`}
@@ -137,7 +138,7 @@ export function WorkspaceHoverCardContent({
 						</a>
 					</Button>
 				</div>
-			) : githubStatus ? (
+			) : repoUrl ? (
 				<div className="text-xs text-muted-foreground pt-2 border-t border-border">
 					No PR for this branch
 				</div>

@@ -217,6 +217,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
+				workspaceId={activeWorkspace?.id}
 			/>
 
 			<CommitInput
