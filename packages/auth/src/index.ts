@@ -53,13 +53,23 @@ export const auth = betterAuth({
 		user: {
 			create: {
 				after: async (user) => {
-					await auth.api.createOrganization({
+					// Create organization for new user
+					const org = await auth.api.createOrganization({
 						body: {
 							name: `${user.name}'s Workspace`,
 							slug: `${user.id.slice(0, 8)}-workspace`,
 							userId: user.id,
 						},
 					});
+
+					// Update all sessions for this user to set the active organization
+					// This handles sessions created during signup before the org existed
+					if (org?.id) {
+						await db
+							.update(authSchema.sessions)
+							.set({ activeOrganizationId: org.id })
+							.where(eq(authSchema.sessions.userId, user.id));
+					}
 				},
 			},
 		},
@@ -67,6 +77,7 @@ export const auth = betterAuth({
 			create: {
 				before: async (session) => {
 					// Set initial active organization when session is created
+					// This handles existing users who already have organizations
 					const membership = await db.query.members.findFirst({
 						where: eq(members.userId, session.userId),
 					});
