@@ -216,7 +216,7 @@ export function CommitInput({
 				placeholder="Message"
 				value={commitMessage}
 				onChange={(e) => setCommitMessage(e.target.value)}
-				className="min-h-[52px] resize-none text-xs bg-background"
+				className="min-h-[52px] resize-none text-[10px] bg-background"
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
 						e.preventDefault();
