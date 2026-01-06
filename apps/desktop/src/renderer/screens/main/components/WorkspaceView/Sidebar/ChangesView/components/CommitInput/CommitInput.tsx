@@ -213,10 +213,10 @@ export function CommitInput({
 	return (
 		<div className="flex flex-col gap-2 p-3">
 			<Textarea
-				placeholder="Message"
+				placeholder="Commit message"
 				value={commitMessage}
 				onChange={(e) => setCommitMessage(e.target.value)}
-				className="min-h-[52px] resize-none text-sm border-0 bg-muted/50 shadow-none focus-visible:ring-1"
+				className="min-h-[52px] rounded-sm resize-none text-sm shadow-none focus-visible:ring-0 focus-visible:border-border"
 				onKeyDown={(e) => {
 					if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && canCommit) {
 						e.preventDefault();
@@ -224,7 +224,6 @@ export function CommitInput({
 					}
 				}}
 			/>
-
 			<ButtonGroup className="w-full">
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -246,7 +245,6 @@ export function CommitInput({
 					</TooltipTrigger>
 					<TooltipContent side="bottom">{primary.tooltip}</TooltipContent>
 				</Tooltip>
-
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
 						<Button
