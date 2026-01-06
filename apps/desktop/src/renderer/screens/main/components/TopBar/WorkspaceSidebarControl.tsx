@@ -24,6 +24,10 @@ export function WorkspaceSidebarControl() {
 	};
 
 	const sidebarCollapsed = isCollapsed();
+	const hotkeyDisplay = formatHotkeyDisplay(
+		getHotkey("TOGGLE_WORKSPACE_SIDEBAR"),
+		getCurrentPlatform(),
+	);
 
 	return (
 		<Tooltip>
@@ -46,10 +50,7 @@ export function WorkspaceSidebarControl() {
 				<span className="flex items-center gap-2">
 					{sidebarCollapsed ? "Expand" : "Collapse"} Workspaces
 					<KbdGroup>
-						{formatHotkeyDisplay(
-							getHotkey("TOGGLE_WORKSPACE_SIDEBAR"),
-							getCurrentPlatform(),
-						).map((key) => (
+						{hotkeyDisplay.map((key) => (
 							<Kbd key={key}>{key}</Kbd>
 						))}
 					</KbdGroup>

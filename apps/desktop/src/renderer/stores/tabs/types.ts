@@ -1,9 +1,15 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
 import type { ChangeCategory } from "shared/changes-types";
-import type { BaseTab, BaseTabsState, Pane, PaneType } from "shared/tabs-types";
+import type {
+	BaseTab,
+	BaseTabsState,
+	Pane,
+	PaneStatus,
+	PaneType,
+} from "shared/tabs-types";
 
 // Re-export shared types
-export type { Pane, PaneType };
+export type { Pane, PaneStatus, PaneType };
 
 /**
  * A Tab is a container that holds one or more Panes in a Mosaic layout.
@@ -73,8 +79,8 @@ export interface TabsStore extends TabsState {
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
-	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
-	clearWorkspaceAttention: (workspaceId: string) => void;
+	setPaneStatus: (paneId: string, status: PaneStatus) => void;
+	clearWorkspaceAttentionStatus: (workspaceId: string) => void;
 	updatePaneCwd: (
 		paneId: string,
 		cwd: string | null,

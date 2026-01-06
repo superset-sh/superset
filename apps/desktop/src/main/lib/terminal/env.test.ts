@@ -665,5 +665,17 @@ describe("env", () => {
 				expect(typeof result.SUPERSET_PORT).toBe("string");
 			});
 		});
+
+		it("should include SUPERSET_ENV for dev/prod separation", () => {
+			const result = buildTerminalEnv(baseParams);
+			expect(result.SUPERSET_ENV).toBeDefined();
+			expect(["development", "production"]).toContain(result.SUPERSET_ENV);
+		});
+
+		it("should include SUPERSET_HOOK_VERSION for protocol versioning", () => {
+			const result = buildTerminalEnv(baseParams);
+			expect(result.SUPERSET_HOOK_VERSION).toBeDefined();
+			expect(result.SUPERSET_HOOK_VERSION).toBe("2");
+		});
 	});
 });

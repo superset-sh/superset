@@ -24,6 +24,7 @@ import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
 export function GroupStrip() {
@@ -74,12 +75,14 @@ export function GroupStrip() {
 		? activeTabIds[activeWorkspaceId]
 		: null;
 
-	// Check which tabs have panes that need attention
-	const tabsWithAttention = useMemo(() => {
-		const result = new Set<string>();
+	// Compute aggregate status per tab using shared priority logic
+	const tabStatusMap = useMemo(() => {
+		const result = new Map<string, ActivePaneStatus>();
 		for (const pane of Object.values(panes)) {
-			if (pane.needsAttention) {
-				result.add(pane.tabId);
+			if (!pane.status || pane.status === "idle") continue;
+			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
+			if (higher !== "idle") {
+				result.set(pane.tabId, higher);
 			}
 		}
 		return result;
@@ -137,7 +140,7 @@ export function GroupStrip() {
 							<GroupItem
 								tab={tab}
 								isActive={tab.id === activeTabId}
-								needsAttention={tabsWithAttention.has(tab.id)}
+								status={tabStatusMap.get(tab.id) ?? null}
 								onSelect={() => handleSelectGroup(tab.id)}
 								onClose={() => handleCloseGroup(tab.id)}
 							/>

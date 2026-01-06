@@ -92,6 +92,8 @@ export class TerminalManager extends EventEmitter {
 
 		this.sessions.set(paneId, session);
 
+		portManager.registerSession(session, workspaceId);
+
 		// Track terminal opened (only fires once per session creation)
 		track("terminal_opened", { workspace_id: workspaceId, pane_id: paneId });
 
@@ -142,8 +144,8 @@ export class TerminalManager extends EventEmitter {
 
 			await closeSessionHistory(session, exitCode);
 
-			// Clean up detected ports for this pane
-			portManager.removePortsForPane(paneId);
+			// Unregister from port manager (also removes detected ports)
+			portManager.unregisterSession(paneId);
 
 			this.emit(`exit:${paneId}`, exitCode, signal);
 

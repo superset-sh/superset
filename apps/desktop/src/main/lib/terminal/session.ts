@@ -96,10 +96,8 @@ export async function createSession(
 	const { scrollback: recoveredScrollback, wasRecovered } =
 		await recoverScrollback(existingScrollback, workspaceId, paneId);
 
-	// Scan recovered scrollback for ports (verification will check if still listening)
-	if (wasRecovered && recoveredScrollback) {
-		portManager.scanOutput(recoveredScrollback, paneId, workspaceId);
-	}
+	// Note: Port detection is now process-based (via PortManager periodic scanning),
+	// so we don't need to scan recovered scrollback for port patterns.
 
 	const ptyProcess = spawnPty({
 		shell,
@@ -166,8 +164,8 @@ export function setupDataHandler(
 		session.scrollback += dataToStore;
 		session.historyWriter?.write(dataToStore);
 
-		// Scan for port patterns in terminal output
-		portManager.scanOutput(dataToStore, session.paneId, session.workspaceId);
+		// Check for hints that a port may have been opened (triggers immediate scan)
+		portManager.checkOutputForHint(dataToStore, session.paneId);
 
 		session.dataBatcher.write(data);
 

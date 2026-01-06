@@ -25,6 +25,26 @@ step_skipped() {
   SKIPPED_STEPS+=("$1")
 }
 
+# Validate JSON output before parsing
+validate_json() {
+  local output="$1"
+  local error_context="${2:-JSON validation}"
+
+  if [ -z "$output" ]; then
+    error "$error_context: Empty output"
+    return 1
+  fi
+
+  if ! echo "$output" | jq empty 2>/dev/null; then
+    error "$error_context: Invalid JSON output"
+    echo "Raw output:" >&2
+    echo "$output" >&2
+    return 1
+  fi
+
+  return 0
+}
+
 # Print summary at the end
 print_summary() {
   echo ""
@@ -148,12 +168,19 @@ step_setup_neon_branch() {
 
   # Check if branch already exists
   local branches_output
-  if ! branches_output=$(neonctl branches list --project-id "$NEON_PROJECT_ID" --output json 2>&1); then
-    error "Failed to list Neon branches: $branches_output"
+  # NO 2>&1 - keep stdout (JSON) and stderr (errors) separate
+  if ! branches_output=$(neonctl branches list --project-id "$NEON_PROJECT_ID" --output json); then
+    error "Failed to list Neon branches (check output above)"
     return 1
   fi
 
-  EXISTING_BRANCH=$(echo "$branches_output" | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id")
+  # Validate JSON before parsing
+  if ! validate_json "$branches_output" "Neon branches list"; then
+    return 1
+  fi
+
+  # Now safe to parse with jq - use // empty for fallback
+  EXISTING_BRANCH=$(echo "$branches_output" | jq -r ".[] | select(.name == \"$WORKSPACE_NAME\") | .id // empty" 2>/dev/null)
 
   if [ -n "$EXISTING_BRANCH" ]; then
     echo "  Using existing Neon branch..."
@@ -161,24 +188,40 @@ step_setup_neon_branch() {
   else
     echo "  Creating new Neon branch..."
     local neon_output
+    # NO 2>&1 - keep stdout (JSON) and stderr (errors) separate
     if ! neon_output=$(neonctl branches create \
         --project-id "$NEON_PROJECT_ID" \
         --name "$WORKSPACE_NAME" \
-        --output json 2>&1); then
-      error "Failed to create Neon branch: $neon_output"
+        --output json); then
+      error "Failed to create Neon branch (check output above)"
       return 1
     fi
-    BRANCH_ID=$(echo "$neon_output" | jq -r '.branch.id')
+
+    # Validate JSON before parsing
+    if ! validate_json "$neon_output" "Neon branch creation"; then
+      return 1
+    fi
+
+    # Parse with fallback - if .branch.id doesn't exist, try .id
+    BRANCH_ID=$(echo "$neon_output" | jq -r '.branch.id // .id // empty' 2>/dev/null)
+
+    # Verify we got a branch ID
+    if [ -z "$BRANCH_ID" ]; then
+      error "Branch ID not found in neonctl response"
+      echo "Response structure:" >&2
+      echo "$neon_output" | jq '.' >&2 2>/dev/null || echo "$neon_output" >&2
+      return 1
+    fi
   fi
 
   # Get connection strings
-  if ! DIRECT_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner 2>&1); then
-    error "Failed to get direct connection string: $DIRECT_URL"
+  if ! DIRECT_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner); then
+    error "Failed to get direct connection string (check output above)"
     return 1
   fi
 
-  if ! POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner --pooled 2>&1); then
-    error "Failed to get pooled connection string: $POOLED_URL"
+  if ! POOLED_URL=$(neonctl connection-string "$BRANCH_ID" --project-id "$NEON_PROJECT_ID" --role-name neondb_owner --pooled); then
+    error "Failed to get pooled connection string (check output above)"
     return 1
   fi
 

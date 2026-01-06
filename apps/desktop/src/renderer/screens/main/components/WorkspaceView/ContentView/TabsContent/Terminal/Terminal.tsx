@@ -50,6 +50,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const terminalTheme = useTerminalTheme();
 
 	// Ref for initial theme to avoid recreating terminal on theme change
@@ -223,6 +224,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
 			xtermRef.current.writeln("[Press any key to restart]");
+
+			// Clear transient pane status on terminal exit
+			// "working" and "permission" should clear (agent no longer active)
+			// "review" should persist (user needs to see completed work)
+			// Use store getter to get fresh pane status at event time (not stale closure)
+			const currentPane = useTabsStore.getState().panes[paneId];
+			if (
+				currentPane?.status === "working" ||
+				currentPane?.status === "permission"
+			) {
+				setPaneStatus(paneId, "idle");
+			}
 		}
 	};
 
@@ -306,6 +319,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					setSubscriptionEnabled(false);
 					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
 					xterm.writeln("[Press any key to restart]");
+
+					// Clear transient pane status (direct store access since we're in effect)
+					const currentPane = useTabsStore.getState().panes[paneId];
+					if (
+						currentPane?.status === "working" ||
+						currentPane?.status === "permission"
+					) {
+						useTabsStore.getState().setPaneStatus(paneId, "idle");
+					}
 				}
 			}
 		};
@@ -367,6 +389,23 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
 			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
 				commandBufferRef.current = "";
+				// Ctrl+C interrupts agent - clear working/permission status
+				const currentPane = useTabsStore.getState().panes[paneId];
+				if (
+					currentPane?.status === "working" ||
+					currentPane?.status === "permission"
+				) {
+					useTabsStore.getState().setPaneStatus(paneId, "idle");
+				}
+			} else if (domEvent.key === "Escape") {
+				// ESC interrupts agent (e.g., Claude Code "stop generating") - clear status
+				const currentPane = useTabsStore.getState().panes[paneId];
+				if (
+					currentPane?.status === "working" ||
+					currentPane?.status === "permission"
+				) {
+					useTabsStore.getState().setPaneStatus(paneId, "idle");
+				}
 			} else if (
 				domEvent.key.length === 1 &&
 				!domEvent.ctrlKey &&

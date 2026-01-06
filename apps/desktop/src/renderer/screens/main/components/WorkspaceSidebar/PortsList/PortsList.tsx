@@ -201,7 +201,7 @@ function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<div
-					className={`group relative inline-flex items-center gap-1 rounded-md text-xs font-mono transition-colors ${
+					className={`group relative inline-flex items-center gap-1 rounded-md text-xs font-mono transition-colors mb-2 ${
 						isCurrentWorkspace
 							? "bg-primary/10 text-primary hover:bg-primary/20"
 							: "bg-muted/50 text-muted-foreground hover:bg-muted"
@@ -227,8 +227,8 @@ function PortBadge({ port, isCurrentWorkspace }: PortBadgeProps) {
 			<TooltipContent side="top" showArrow={false}>
 				<div className="text-xs space-y-1">
 					<div className="font-medium">localhost:{port.port}</div>
-					<div className="text-muted-foreground max-w-[200px] truncate">
-						{port.contextLine}
+					<div className="text-muted-foreground">
+						{port.processName} (pid {port.pid})
 					</div>
 					<div className="text-muted-foreground/70 text-[10px]">
 						Click to jump to terminal

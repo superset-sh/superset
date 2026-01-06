@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import {
+	cleanupGlobalOpenCodePlugin,
 	createClaudeWrapper,
 	createCodexWrapper,
 	createOpenCodePlugin,
@@ -33,6 +34,9 @@ export function setupAgentHooks(): void {
 	fs.mkdirSync(ZSH_DIR, { recursive: true });
 	fs.mkdirSync(BASH_DIR, { recursive: true });
 	fs.mkdirSync(OPENCODE_PLUGIN_DIR, { recursive: true });
+
+	// Clean up stale global plugins that may cause dev/prod conflicts
+	cleanupGlobalOpenCodePlugin();
 
 	// Create scripts
 	createNotifyScript();

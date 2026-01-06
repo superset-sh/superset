@@ -2,13 +2,14 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { HiMiniXMark } from "react-icons/hi2";
-import type { Tab } from "renderer/stores/tabs/types";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
 import { getTabDisplayName } from "renderer/stores/tabs/utils";
 
 interface GroupItemProps {
 	tab: Tab;
 	isActive: boolean;
-	needsAttention: boolean;
+	status: PaneStatus | null;
 	onSelect: () => void;
 	onClose: () => void;
 }
@@ -16,7 +17,7 @@ interface GroupItemProps {
 export function GroupItem({
 	tab,
 	isActive,
-	needsAttention,
+	status,
 	onSelect,
 	onClose,
 }: GroupItemProps) {
@@ -39,12 +40,7 @@ export function GroupItem({
 						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
 							{displayName}
 						</span>
-						{needsAttention && (
-							<span className="relative flex size-2 shrink-0">
-								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-								<span className="relative inline-flex size-2 rounded-full bg-red-500" />
-							</span>
-						)}
+						{status && status !== "idle" && <StatusIndicator status={status} />}
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" sideOffset={4}>
