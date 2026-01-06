@@ -92,6 +92,7 @@
 		"node-addon-api": "^7.1.0",
 		"node-pty": "1.1.0-beta30",
 		"os-locale": "^6.0.2",
+		"pidtree": "^0.6.0",
 		"posthog-js": "1.310.1",
 		"posthog-node": "^5.18.0",
 		"react": "^19.2.3",
