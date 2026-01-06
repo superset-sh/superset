@@ -124,18 +124,21 @@ export function WorkspaceRow({
 			</span>
 
 			{/* Action indicator - visible on hover */}
-			<div className="hidden group-hover:flex items-center gap-1 text-xs text-foreground/60 shrink-0">
+			<div className="hidden group-hover:flex items-center gap-1.5 text-xs shrink-0">
 				{isOpening ? (
 					<>
-						<LuRotateCw className="size-3 animate-spin" />
-						<span>Opening...</span>
+						<LuRotateCw className="size-3 animate-spin text-foreground/60" />
+						<span className="text-foreground/60">Opening...</span>
 					</>
 				) : workspace.isOpen ? (
-					<LuArrowRight className="size-3.5" />
+					<>
+						<span className="font-medium text-foreground/80">Switch to</span>
+						<LuArrowRight className="size-3 text-foreground/80" />
+					</>
 				) : (
 					<>
-						<span>Reopen</span>
-						<LuArrowRight className="size-3" />
+						<span className="font-medium text-foreground/80">Reopen</span>
+						<LuArrowRight className="size-3 text-foreground/80" />
 					</>
 				)}
 			</div>
