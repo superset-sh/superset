@@ -36,6 +36,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 		<span className={`flex items-center gap-1 ${className}`}>
 			<Icon
 				className={`size-3 ${status === "pending" ? "animate-spin" : ""}`}
+				strokeWidth={1.5}
 			/>
 			<span>{label}</span>
 		</span>

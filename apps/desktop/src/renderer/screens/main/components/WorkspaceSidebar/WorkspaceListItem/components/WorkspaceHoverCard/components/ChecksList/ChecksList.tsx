@@ -25,9 +25,9 @@ export function ChecksList({ checks }: ChecksListProps) {
 				className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
 			>
 				{expanded ? (
-					<LuChevronDown className="size-3" />
+					<LuChevronDown className="size-3" strokeWidth={1.5} />
 				) : (
-					<LuChevronRight className="size-3" />
+					<LuChevronRight className="size-3" strokeWidth={1.5} />
 				)}
 				<span>{expanded ? "Hide checks" : "Show checks"}</span>
 			</button>

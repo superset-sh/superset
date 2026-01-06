@@ -118,11 +118,11 @@ export function ProjectHeader({
 				</Tooltip>
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={handleOpenInFinder}>
-						<LuFolderOpen className="size-4 mr-2" />
+						<LuFolderOpen className="size-4 mr-2" strokeWidth={1.5} />
 						Open in Finder
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleOpenSettings}>
-						<LuSettings className="size-4 mr-2" />
+						<LuSettings className="size-4 mr-2" strokeWidth={1.5} />
 						Project Settings
 					</ContextMenuItem>
 					<ContextMenuSeparator />
@@ -131,7 +131,7 @@ export function ProjectHeader({
 						disabled={closeProject.isPending}
 						className="text-destructive focus:text-destructive"
 					>
-						<LuX className="size-4 mr-2" />
+						<LuX className="size-4 mr-2" strokeWidth={1.5} />
 						{closeProject.isPending ? "Closing..." : "Close Project"}
 					</ContextMenuItem>
 				</ContextMenuContent>
@@ -236,11 +236,11 @@ export function ProjectHeader({
 			</ContextMenuTrigger>
 			<ContextMenuContent>
 				<ContextMenuItem onSelect={handleOpenInFinder}>
-					<LuFolderOpen className="size-4 mr-2" />
+					<LuFolderOpen className="size-4 mr-2" strokeWidth={1.5} />
 					Open in Finder
 				</ContextMenuItem>
 				<ContextMenuItem onSelect={handleOpenSettings}>
-					<LuSettings className="size-4 mr-2" />
+					<LuSettings className="size-4 mr-2" strokeWidth={1.5} />
 					Project Settings
 				</ContextMenuItem>
 				<ContextMenuSeparator />
@@ -249,7 +249,7 @@ export function ProjectHeader({
 					disabled={closeProject.isPending}
 					className="text-destructive focus:text-destructive"
 				>
-					<LuX className="size-4 mr-2" />
+					<LuX className="size-4 mr-2" strokeWidth={1.5} />
 					{closeProject.isPending ? "Closing..." : "Close Project"}
 				</ContextMenuItem>
 			</ContextMenuContent>

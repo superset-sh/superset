@@ -146,7 +146,10 @@ export function BranchSwitcher({
 				<div className="overflow-y-auto flex-1 py-1">
 					{isLoading ? (
 						<div className="flex items-center justify-center py-4">
-							<LuLoader className="size-4 animate-spin text-muted-foreground" />
+							<LuLoader
+								className="size-4 animate-spin text-muted-foreground"
+								strokeWidth={1.5}
+							/>
 						</div>
 					) : filteredBranches.length === 0 ? (
 						<div className="text-center py-4 text-xs text-muted-foreground">
@@ -169,9 +172,15 @@ export function BranchSwitcher({
 										className="flex items-center gap-2 px-2 py-1.5"
 									>
 										{isInUse ? (
-											<LuGitFork className="size-3.5 shrink-0 text-amber-500" />
+											<LuGitFork
+												className="size-3.5 shrink-0 text-amber-500"
+												strokeWidth={1.5}
+											/>
 										) : (
-											<LuGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+											<LuGitBranch
+												className="size-3.5 shrink-0 text-muted-foreground"
+												strokeWidth={1.5}
+											/>
 										)}
 										<span className="flex-1 truncate text-xs">{branch}</span>
 										{isInUse && (

@@ -16,20 +16,38 @@ export function WorkspaceStatusBadge({
 
 	const config = {
 		open: {
-			icon: <LuGitPullRequest className={cn(iconClass, "text-emerald-500")} />,
+			icon: (
+				<LuGitPullRequest
+					className={cn(iconClass, "text-emerald-500")}
+					strokeWidth={1.5}
+				/>
+			),
 			bgColor: "bg-emerald-500/10",
 		},
 		merged: {
-			icon: <LuGitMerge className={cn(iconClass, "text-purple-500")} />,
+			icon: (
+				<LuGitMerge
+					className={cn(iconClass, "text-purple-500")}
+					strokeWidth={1.5}
+				/>
+			),
 			bgColor: "bg-purple-500/10",
 		},
 		closed: {
-			icon: <LuCircleDot className={cn(iconClass, "text-destructive")} />,
+			icon: (
+				<LuCircleDot
+					className={cn(iconClass, "text-destructive")}
+					strokeWidth={1.5}
+				/>
+			),
 			bgColor: "bg-destructive/10",
 		},
 		draft: {
 			icon: (
-				<LuGitPullRequest className={cn(iconClass, "text-muted-foreground")} />
+				<LuGitPullRequest
+					className={cn(iconClass, "text-muted-foreground")}
+					strokeWidth={1.5}
+				/>
 			),
 			bgColor: "bg-muted",
 		},

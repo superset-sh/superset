@@ -31,8 +31,8 @@ export function NewWorkspaceButton({
 						disabled={isLoading}
 						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 					>
-						<div className="flex items-center justify-center size-5 rounded bg-muted group-hover:bg-accent transition-colors">
-							<LuPlus className="size-3 text-muted-foreground group-hover:text-foreground transition-colors" />
+						<div className="flex items-center justify-center size-5 rounded bg-accent">
+							<LuPlus className="size-3" strokeWidth={2} />
 						</div>
 					</button>
 				</TooltipTrigger>
@@ -49,7 +49,7 @@ export function NewWorkspaceButton({
 			className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 		>
 			<div className="flex items-center justify-center size-5 rounded bg-accent">
-				<LuPlus className="size-3" />
+				<LuPlus className="size-3" strokeWidth={2} />
 			</div>
 			<span>New Workspace</span>
 		</button>

@@ -47,16 +47,16 @@ export function WorkspaceSidebarHeader({
 		if (isCollapsed) {
 			// Collapsed: show panel-left normally, panel-left-open on hover
 			return isHovering ? (
-				<LuPanelLeftOpen className="size-4" />
+				<LuPanelLeftOpen className="size-4" strokeWidth={1} />
 			) : (
-				<LuPanelLeft className="size-4" />
+				<LuPanelLeft className="size-4" strokeWidth={1} />
 			);
 		}
 		// Open: show panel-left normally, panel-left-close on hover
 		return isHovering ? (
-			<LuPanelLeftClose className="size-4" />
+			<LuPanelLeftClose className="size-4" strokeWidth={1} />
 		) : (
-			<LuPanelLeft className="size-4" />
+			<LuPanelLeft className="size-4" strokeWidth={1} />
 		);
 	};
 
@@ -92,7 +92,7 @@ export function WorkspaceSidebarHeader({
 									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
 							)}
 						>
-							<LuLayers className="size-4" />
+							<LuLayers className="size-4" strokeWidth={1.5} />
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Workspaces</TooltipContent>
@@ -140,7 +140,7 @@ export function WorkspaceSidebarHeader({
 				)}
 			>
 				<div className="flex items-center justify-center size-5">
-					<LuLayers className="size-4" />
+					<LuLayers className="size-4" strokeWidth={1.5} />
 				</div>
 				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>

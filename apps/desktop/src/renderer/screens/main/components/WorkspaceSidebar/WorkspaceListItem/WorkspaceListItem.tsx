@@ -204,6 +204,7 @@ export function WorkspaceListItem({
 							"size-4",
 							isActive ? "text-foreground" : "text-muted-foreground",
 						)}
+						strokeWidth={1.5}
 					/>
 				) : (
 					<LuFolderGit2
@@ -211,6 +212,7 @@ export function WorkspaceListItem({
 							"size-4",
 							isActive ? "text-foreground" : "text-muted-foreground",
 						)}
+						strokeWidth={1.5}
 					/>
 				)}
 				{/* Notification dot */}
@@ -299,9 +301,15 @@ export function WorkspaceListItem({
 				<TooltipTrigger asChild>
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
 						{isBranchWorkspace ? (
-							<LuFolder className="size-4 text-muted-foreground" />
+							<LuFolder
+								className="size-4 text-muted-foreground"
+								strokeWidth={1.5}
+							/>
 						) : (
-							<LuFolderGit2 className="size-4 text-muted-foreground" />
+							<LuFolderGit2
+								className="size-4 text-muted-foreground"
+								strokeWidth={1.5}
+							/>
 						)}
 						{needsAttention && (
 							<span className="absolute -top-0.5 -right-0.5 flex size-2">
@@ -418,12 +426,12 @@ export function WorkspaceListItem({
 		<ContextMenuItem onSelect={handleToggleUnread}>
 			{isUnread ? (
 				<>
-					<LuEye className="size-4 mr-2" />
+					<LuEye className="size-4 mr-2" strokeWidth={1.5} />
 					Mark as Read
 				</>
 			) : (
 				<>
-					<LuEyeOff className="size-4 mr-2" />
+					<LuEyeOff className="size-4 mr-2" strokeWidth={1.5} />
 					Mark as Unread
 				</>
 			)}
