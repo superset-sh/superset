@@ -14,6 +14,12 @@ export const CLAUDE_SETTINGS_FILE = "claude-settings.json";
 export const OPENCODE_PLUGIN_FILE = "superset-notify.js";
 export const OPENCODE_PLUGIN_MARKER = "// Superset opencode plugin v8";
 
+const OPENCODE_PLUGIN_TEMPLATE_PATH = path.join(
+	__dirname,
+	"templates",
+	"opencode-plugin.template.js",
+);
+
 const REAL_BINARY_RESOLVER = `find_real_binary() {
   local name="$1"
   local IFS=:
@@ -137,16 +143,13 @@ exec "$REAL_BIN" "$@"
 
 /**
  * Generates the OpenCode plugin content by reading from a template file
- * and replacing the notify path placeholder.
+ * and replacing placeholders.
  */
 export function getOpenCodePluginContent(notifyPath: string): string {
-	const templatePath = path.join(
-		__dirname,
-		"templates",
-		"opencode-plugin.template.js",
-	);
-	const template = fs.readFileSync(templatePath, "utf-8");
-	return template.replace("{{NOTIFY_PATH}}", notifyPath);
+	const template = fs.readFileSync(OPENCODE_PLUGIN_TEMPLATE_PATH, "utf-8");
+	return template
+		.replace("{{MARKER}}", OPENCODE_PLUGIN_MARKER)
+		.replace("{{NOTIFY_PATH}}", notifyPath);
 }
 
 /**

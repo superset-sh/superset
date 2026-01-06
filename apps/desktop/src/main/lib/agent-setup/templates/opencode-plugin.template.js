@@ -1,4 +1,4 @@
-// Superset opencode plugin v8
+{{MARKER}}
 /**
  * Superset Notification Plugin for OpenCode
  *
