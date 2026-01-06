@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { VscSourceControl } from "react-icons/vsc";
+import { LuGitBranch } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { useSidebarStore } from "renderer/stores";
 
@@ -26,7 +26,7 @@ export function SidebarControl() {
 							: "text-muted-foreground hover:text-foreground",
 					)}
 				>
-					<VscSourceControl className="size-4" />
+					<LuGitBranch className="size-4" />
 					<span className="text-xs">Changes</span>
 				</Button>
 			</TooltipTrigger>
