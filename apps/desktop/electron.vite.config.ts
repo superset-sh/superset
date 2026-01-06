@@ -24,58 +24,74 @@ const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
 /**
- * Plugin to copy resources (like sounds) to the dist folder for preview mode.
+ * Copies a directory from src to dest, cleaning the destination first.
+ * No-op if source doesn't exist.
+ */
+function copyDir({ src, dest }: { src: string; dest: string }): void {
+	if (!existsSync(src)) return;
+
+	if (existsSync(dest)) {
+		rmSync(dest, { recursive: true });
+	}
+	mkdirSync(dest, { recursive: true });
+	cpSync(src, dest, { recursive: true });
+}
+
+/**
+ * Stringifies a value for use in Vite's define config.
+ */
+function defineEnv(value: string | undefined, fallback?: string): string {
+	return JSON.stringify(value ?? fallback);
+}
+
+// ============================================================================
+// Resource Definitions
+// ============================================================================
+
+/**
+ * Resources to copy to dist folder during build.
+ * Each entry specifies a source path and destination path.
+ */
+const RESOURCES_TO_COPY = [
+	// Notification sounds
+	{
+		src: resolve(resources, "sounds"),
+		dest: resolve(devPath, "resources/sounds"),
+	},
+	// Database migrations from local-db package
+	{
+		src: resolve(__dirname, "../../packages/local-db/drizzle"),
+		dest: resolve(devPath, "resources/migrations"),
+	},
+	// Agent-setup templates (read at runtime via __dirname)
+	{
+		src: resolve(__dirname, "src/main/lib/agent-setup/templates"),
+		dest: resolve(devPath, "main/templates"),
+	},
+];
+
+// ============================================================================
+// Plugins
+// ============================================================================
+
+/**
+ * Plugin to copy resources to the dist folder for preview/production mode.
  * In preview mode, __dirname resolves relative to dist/main, so resources
- * need to be at dist/resources/sounds for the main process to access them.
+ * need to be copied to dist/ for the main process to access them.
  *
- * Cleans the destination first to avoid stale files from previous builds.
+ * Cleans each destination first to avoid stale files from previous builds.
  */
 function copyResourcesPlugin(): Plugin {
 	return {
 		name: "copy-resources",
 		writeBundle() {
-			// Copy sounds
-			const soundsSrc = resolve(resources, "sounds");
-			const soundsDest = resolve(devPath, "resources/sounds");
-
-			if (existsSync(soundsSrc)) {
-				if (existsSync(soundsDest)) {
-					rmSync(soundsDest, { recursive: true });
-				}
-				mkdirSync(soundsDest, { recursive: true });
-				cpSync(soundsSrc, soundsDest, { recursive: true });
-			}
-
-			// Copy database migrations from local-db package
-			const migrationsSrc = resolve(
-				__dirname,
-				"../../packages/local-db/drizzle",
-			);
-			const migrationsDest = resolve(devPath, "resources/migrations");
-
-			if (existsSync(migrationsSrc)) {
-				if (existsSync(migrationsDest)) {
-					rmSync(migrationsDest, { recursive: true });
-				}
-				mkdirSync(migrationsDest, { recursive: true });
-				cpSync(migrationsSrc, migrationsDest, { recursive: true });
-			}
-
-			// Copy agent-setup templates to dist/main/templates
-			// These are external files read at runtime via __dirname
-			const templatesSrc = resolve(
-				__dirname,
-				"src/main/lib/agent-setup/templates",
-			);
-			const templatesDest = resolve(devPath, "main/templates");
-
-			if (existsSync(templatesSrc)) {
-				if (existsSync(templatesDest)) {
-					rmSync(templatesDest, { recursive: true });
-				}
-				mkdirSync(templatesDest, { recursive: true });
-				cpSync(templatesSrc, templatesDest, { recursive: true });
+			for (const resource of RESOURCES_TO_COPY) {
+				copyDir(resource);
 			}
 		},
 	};
@@ -86,32 +102,31 @@ export default defineConfig({
 		plugins: [tsconfigPaths, copyResourcesPlugin()],
 
 		define: {
-			"process.env.NODE_ENV": JSON.stringify(
-				process.env.NODE_ENV || "production",
-			),
-			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
-				process.env.SKIP_ENV_VALIDATION || "",
+			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),
+			"process.env.SKIP_ENV_VALIDATION": defineEnv(
+				process.env.SKIP_ENV_VALIDATION,
+				"",
 			),
 			// API URLs - baked in at build time for main process
-			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
-				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
+				process.env.NEXT_PUBLIC_API_URL,
+				"https://api.superset.sh",
 			),
-			"process.env.NEXT_PUBLIC_WEB_URL": JSON.stringify(
-				process.env.NEXT_PUBLIC_WEB_URL || "https://app.superset.sh",
+			"process.env.NEXT_PUBLIC_WEB_URL": defineEnv(
+				process.env.NEXT_PUBLIC_WEB_URL,
+				"https://app.superset.sh",
 			),
 			// OAuth client IDs - baked in at build time for main process
-			"process.env.GOOGLE_CLIENT_ID": JSON.stringify(
-				process.env.GOOGLE_CLIENT_ID,
-			),
-			"process.env.GH_CLIENT_ID": JSON.stringify(process.env.GH_CLIENT_ID),
-			"process.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+			"process.env.GOOGLE_CLIENT_ID": defineEnv(process.env.GOOGLE_CLIENT_ID),
+			"process.env.GH_CLIENT_ID": defineEnv(process.env.GH_CLIENT_ID),
+			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
 			// PostHog - must match renderer for analytics in main process
-			"process.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
 			),
-			"process.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+			"process.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
 		},
@@ -147,13 +162,12 @@ export default defineConfig({
 		],
 
 		define: {
-			"process.env.NODE_ENV": JSON.stringify(
-				process.env.NODE_ENV || "production",
+			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV, "production"),
+			"process.env.SKIP_ENV_VALIDATION": defineEnv(
+				process.env.SKIP_ENV_VALIDATION,
+				"",
 			),
-			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
-				process.env.SKIP_ENV_VALIDATION || "",
-			),
-			__APP_VERSION__: JSON.stringify(version),
+			__APP_VERSION__: defineEnv(version),
 		},
 
 		build: {
@@ -169,27 +183,30 @@ export default defineConfig({
 	renderer: {
 		define: {
 			// Core env vars - Vite replaces these at build time
-			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
-			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
-				process.env.SKIP_ENV_VALIDATION || "",
+			"process.env.NODE_ENV": defineEnv(process.env.NODE_ENV),
+			"process.env.SKIP_ENV_VALIDATION": defineEnv(
+				process.env.SKIP_ENV_VALIDATION,
+				"",
 			),
-			"process.platform": JSON.stringify(process.platform),
+			"process.platform": defineEnv(process.platform),
 			// API URLs - available in renderer if needed
-			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
-				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
+			"process.env.NEXT_PUBLIC_API_URL": defineEnv(
+				process.env.NEXT_PUBLIC_API_URL,
+				"https://api.superset.sh",
 			),
-			"process.env.NEXT_PUBLIC_WEB_URL": JSON.stringify(
-				process.env.NEXT_PUBLIC_WEB_URL || "https://app.superset.sh",
+			"process.env.NEXT_PUBLIC_WEB_URL": defineEnv(
+				process.env.NEXT_PUBLIC_WEB_URL,
+				"https://app.superset.sh",
 			),
 			// Custom env vars
-			"import.meta.env.DEV_SERVER_PORT": JSON.stringify(DEV_SERVER_PORT),
-			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": JSON.stringify(
+			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_KEY,
 			),
-			"import.meta.env.NEXT_PUBLIC_POSTHOG_HOST": JSON.stringify(
+			"import.meta.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
-			"import.meta.env.SENTRY_DSN_DESKTOP": JSON.stringify(
+			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
 		},
