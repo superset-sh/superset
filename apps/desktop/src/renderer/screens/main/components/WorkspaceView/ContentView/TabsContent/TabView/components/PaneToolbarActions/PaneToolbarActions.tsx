@@ -23,9 +23,9 @@ export function PaneToolbarActions({
 }: PaneToolbarActionsProps) {
 	const splitIcon =
 		splitOrientation === "vertical" ? (
-			<TbLayoutColumns className="size-4" />
+			<TbLayoutColumns className="size-3.5" />
 		) : (
-			<TbLayoutRows className="size-4" />
+			<TbLayoutRows className="size-3.5" />
 		);
 
 	return (
@@ -36,7 +36,7 @@ export function PaneToolbarActions({
 					<button
 						type="button"
 						onClick={onSplitPane}
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
 						{splitIcon}
 					</button>
@@ -50,9 +50,9 @@ export function PaneToolbarActions({
 					<button
 						type="button"
 						onClick={onClosePane}
-						className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
 					>
-						<HiMiniXMark className="size-4" />
+						<HiMiniXMark className="size-3.5" />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>

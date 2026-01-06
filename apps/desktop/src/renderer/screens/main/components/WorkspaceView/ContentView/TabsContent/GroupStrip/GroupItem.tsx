@@ -23,17 +23,17 @@ export function GroupItem({
 	const displayName = getTabDisplayName(tab);
 
 	return (
-		<div className="group relative flex items-end shrink-0 h-full">
+		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={onSelect}
 						className={cn(
-							"flex items-center gap-1.5 rounded-t-md transition-all w-full shrink-0 pl-3 pr-6 h-[80%]",
+							"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
 							isActive
-								? "text-foreground border-t border-l border-r border-border"
-								: "text-muted-foreground hover:text-foreground hover:bg-tertiary/30",
+								? "text-foreground bg-border/30"
+								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
 						)}
 					>
 						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
@@ -62,12 +62,12 @@ export function GroupItem({
 							onClose();
 						}}
 						className={cn(
-							"mt-1 absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
+							"absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer size-5 group-hover:opacity-100",
 							isActive ? "opacity-90" : "opacity-0",
 						)}
 						aria-label="Close group"
 					>
-						<HiMiniXMark />
+						<HiMiniXMark className="size-3.5" />
 					</Button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
