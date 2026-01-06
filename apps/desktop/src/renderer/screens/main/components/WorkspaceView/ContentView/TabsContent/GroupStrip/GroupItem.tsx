@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
@@ -12,6 +13,7 @@ interface GroupItemProps {
 	status: PaneStatus | null;
 	onSelect: () => void;
 	onClose: () => void;
+	onRename: (newName: string) => void;
 }
 
 export function GroupItem({
@@ -20,8 +22,47 @@ export function GroupItem({
 	status,
 	onSelect,
 	onClose,
+	onRename,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
+	const [isEditing, setIsEditing] = useState(false);
+	const [editValue, setEditValue] = useState(displayName);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (isEditing && inputRef.current) {
+			inputRef.current.focus();
+			inputRef.current.select();
+		}
+	}, [isEditing]);
+
+	const handleDoubleClick = () => {
+		setEditValue(displayName);
+		setIsEditing(true);
+	};
+
+	const handleSave = () => {
+		const trimmedValue = editValue.trim();
+		if (trimmedValue && trimmedValue !== displayName) {
+			onRename(trimmedValue);
+		}
+		setIsEditing(false);
+	};
+
+	const handleCancel = () => {
+		setEditValue(displayName);
+		setIsEditing(false);
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			handleSave();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			handleCancel();
+		}
+	};
 
 	return (
 		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
@@ -30,6 +71,7 @@ export function GroupItem({
 					<button
 						type="button"
 						onClick={onSelect}
+						onDoubleClick={handleDoubleClick}
 						className={cn(
 							"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
 							isActive
@@ -37,9 +79,22 @@ export function GroupItem({
 								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
 						)}
 					>
-						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
-							{displayName}
-						</span>
+						{isEditing ? (
+							<input
+								ref={inputRef}
+								type="text"
+								value={editValue}
+								onChange={(e) => setEditValue(e.target.value)}
+								onBlur={handleSave}
+								onKeyDown={handleKeyDown}
+								onClick={(e) => e.stopPropagation()}
+								className="text-sm bg-transparent border-none outline-none flex-1 text-left min-w-0"
+							/>
+						) : (
+							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+								{displayName}
+							</span>
+						)}
 						{status && status !== "idle" && <StatusIndicator status={status} />}
 					</button>
 				</TooltipTrigger>
