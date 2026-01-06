@@ -1,14 +1,14 @@
 import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef } from "react";
 import {
+	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
-	MIN_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 
 export function ResizableWorkspaceSidebar() {
-	const { isOpen, width, setWidth, isResizing, setIsResizing } =
+	const { isOpen, width, setWidth, isResizing, setIsResizing, isCollapsed } =
 		useWorkspaceSidebarStore();
 
 	const startXRef = useRef(0);
@@ -30,11 +30,8 @@ export function ResizableWorkspaceSidebar() {
 
 			const delta = e.clientX - startXRef.current;
 			const newWidth = startWidthRef.current + delta;
-			const clampedWidth = Math.max(
-				MIN_WORKSPACE_SIDEBAR_WIDTH,
-				Math.min(MAX_WORKSPACE_SIDEBAR_WIDTH, newWidth),
-			);
-			setWidth(clampedWidth);
+			// Let setWidth handle the snapping logic
+			setWidth(newWidth);
 		},
 		[isResizing, setWidth],
 	);
@@ -65,12 +62,14 @@ export function ResizableWorkspaceSidebar() {
 		return null;
 	}
 
+	const sidebarCollapsed = isCollapsed();
+
 	return (
 		<div
 			className="relative h-full flex-shrink-0 overflow-hidden border-r border-border"
 			style={{ width }}
 		>
-			<WorkspaceSidebar />
+			<WorkspaceSidebar isCollapsed={sidebarCollapsed} />
 
 			{/* Resize handle */}
 			{/* biome-ignore lint/a11y/useSemanticElements: <hr> is not appropriate for interactive resize handles */}
@@ -78,7 +77,7 @@ export function ResizableWorkspaceSidebar() {
 				role="separator"
 				aria-orientation="vertical"
 				aria-valuenow={width}
-				aria-valuemin={MIN_WORKSPACE_SIDEBAR_WIDTH}
+				aria-valuemin={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
 				aria-valuemax={MAX_WORKSPACE_SIDEBAR_WIDTH}
 				tabIndex={0}
 				onMouseDown={handleMouseDown}

@@ -1,10 +1,17 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuFolderOpen } from "react-icons/lu";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 
-export function WorkspaceSidebarFooter() {
+interface WorkspaceSidebarFooterProps {
+	isCollapsed?: boolean;
+}
+
+export function WorkspaceSidebarFooter({
+	isCollapsed = false,
+}: WorkspaceSidebarFooterProps) {
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();
 
@@ -44,6 +51,27 @@ export function WorkspaceSidebarFooter() {
 			});
 		}
 	};
+
+	if (isCollapsed) {
+		return (
+			<div className="border-t border-border p-2 flex justify-center">
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8 text-muted-foreground hover:text-foreground"
+							onClick={handleOpenNewProject}
+							disabled={openNew.isPending || createBranchWorkspace.isPending}
+						>
+							<LuFolderOpen className="size-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Add repository</TooltipContent>
+				</Tooltip>
+			</div>
+		);
+	}
 
 	return (
 		<div className="border-t border-border p-2">

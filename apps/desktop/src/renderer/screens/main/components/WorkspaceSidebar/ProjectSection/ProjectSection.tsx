@@ -1,13 +1,6 @@
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -33,6 +26,8 @@ interface ProjectSectionProps {
 	activeWorkspaceId: string | null;
 	/** Base index for keyboard shortcuts (0-based) */
 	shortcutBaseIndex: number;
+	/** Whether the sidebar is in collapsed mode */
+	isCollapsed?: boolean;
 }
 
 export function ProjectSection({
@@ -42,6 +37,7 @@ export function ProjectSection({
 	workspaces,
 	activeWorkspaceId,
 	shortcutBaseIndex,
+	isCollapsed: isSidebarCollapsed = false,
 }: ProjectSectionProps) {
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const { isProjectCollapsed, toggleProjectCollapsed } =
@@ -66,6 +62,58 @@ export function ProjectSection({
 		openModal(projectId);
 	};
 
+	// When sidebar is collapsed, show compact view with just thumbnail and workspace icons
+	if (isSidebarCollapsed) {
+		return (
+			<div className="flex flex-col items-center py-2 border-b border-border last:border-b-0">
+				<ProjectHeader
+					projectId={projectId}
+					projectName={projectName}
+					githubOwner={githubOwner}
+					isCollapsed={isCollapsed}
+					isSidebarCollapsed={isSidebarCollapsed}
+					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
+					workspaceCount={workspaces.length}
+					onNewWorkspace={handleNewWorkspace}
+					onQuickCreate={handleQuickCreate}
+					isCreating={createWorkspace.isPending}
+					dropdownOpen={dropdownOpen}
+					onDropdownOpenChange={setDropdownOpen}
+				/>
+				<AnimatePresence initial={false}>
+					{!isCollapsed && (
+						<motion.div
+							initial={{ height: 0, opacity: 0 }}
+							animate={{ height: "auto", opacity: 1 }}
+							exit={{ height: 0, opacity: 0 }}
+							transition={{ duration: 0.15, ease: "easeOut" }}
+							className="overflow-hidden w-full"
+						>
+							<div className="flex flex-col items-center gap-1 pt-1">
+								{workspaces.map((workspace, index) => (
+									<WorkspaceListItem
+										key={workspace.id}
+										id={workspace.id}
+										projectId={workspace.projectId}
+										worktreePath={workspace.worktreePath}
+										name={workspace.name}
+										branch={workspace.branch}
+										type={workspace.type}
+										isActive={workspace.id === activeWorkspaceId}
+										isUnread={workspace.isUnread}
+										index={index}
+										shortcutIndex={shortcutBaseIndex + index}
+										isCollapsed={isSidebarCollapsed}
+									/>
+								))}
+							</div>
+						</motion.div>
+					)}
+				</AnimatePresence>
+			</div>
+		);
+	}
+
 	return (
 		<div className="border-b border-border last:border-b-0">
 			<ProjectHeader
@@ -73,8 +121,14 @@ export function ProjectSection({
 				projectName={projectName}
 				githubOwner={githubOwner}
 				isCollapsed={isCollapsed}
+				isSidebarCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 				workspaceCount={workspaces.length}
+				onNewWorkspace={handleNewWorkspace}
+				onQuickCreate={handleQuickCreate}
+				isCreating={createWorkspace.isPending}
+				dropdownOpen={dropdownOpen}
+				onDropdownOpenChange={setDropdownOpen}
 			/>
 
 			<AnimatePresence initial={false}>
@@ -102,39 +156,6 @@ export function ProjectSection({
 									shortcutIndex={shortcutBaseIndex + index}
 								/>
 							))}
-							<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-								<DropdownMenuTrigger asChild>
-									<button
-										type="button"
-										disabled={createWorkspace.isPending}
-										className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-50"
-									>
-										<HiMiniPlus className="size-3.5" />
-										<span>Add workspace</span>
-									</button>
-								</DropdownMenuTrigger>
-								<DropdownMenuContent
-									align="start"
-									sideOffset={4}
-									className="w-44 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
-								>
-									<DropdownMenuItem
-										onClick={handleNewWorkspace}
-										className="rounded-md text-[13px]"
-									>
-										<HiMiniPlus className="size-[14px] opacity-60" />
-										New Workspace
-									</DropdownMenuItem>
-									<DropdownMenuItem
-										onClick={handleQuickCreate}
-										disabled={createWorkspace.isPending}
-										className="rounded-md text-[13px]"
-									>
-										<HiOutlineBolt className="size-[14px] opacity-60" />
-										Quick Create
-									</DropdownMenuItem>
-								</DropdownMenuContent>
-							</DropdownMenu>
 						</div>
 					</motion.div>
 				)}

@@ -74,7 +74,11 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
-	const toggleWorkspaceSidebar = useWorkspaceSidebarStore((s) => s.toggleOpen);
+	const {
+		isOpen: isWorkspaceSidebarOpen,
+		toggleCollapsed: toggleWorkspaceSidebarCollapsed,
+		setOpen: setWorkspaceSidebarOpen,
+	} = useWorkspaceSidebarStore();
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
@@ -133,10 +137,20 @@ export function MainScreen() {
 	useAppHotkey(
 		"TOGGLE_WORKSPACE_SIDEBAR",
 		() => {
-			toggleWorkspaceSidebar();
+			if (!isWorkspaceSidebarOpen) {
+				// If sidebar is closed, open it to collapsed state
+				setWorkspaceSidebarOpen(true);
+			} else {
+				// If sidebar is open, toggle between collapsed and expanded
+				toggleWorkspaceSidebarCollapsed();
+			}
 		},
 		undefined,
-		[toggleWorkspaceSidebar],
+		[
+			isWorkspaceSidebarOpen,
+			setWorkspaceSidebarOpen,
+			toggleWorkspaceSidebarCollapsed,
+		],
 	);
 
 	/**

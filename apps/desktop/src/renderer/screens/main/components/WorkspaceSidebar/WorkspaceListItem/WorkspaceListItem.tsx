@@ -55,6 +55,8 @@ interface WorkspaceListItemProps {
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
+	/** Whether the sidebar is in collapsed mode (icon-only view) */
+	isCollapsed?: boolean;
 }
 
 export function WorkspaceListItem({
@@ -68,6 +70,7 @@ export function WorkspaceListItem({
 	isUnread = false,
 	index,
 	shortcutIndex,
+	isCollapsed = false,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
 	const setActiveWorkspace = useSetActiveWorkspace();
@@ -177,6 +180,67 @@ export function WorkspaceListItem({
 	// Determine if we should show the branch subtitle
 	const showBranchSubtitle =
 		!isBranchWorkspace && name && name !== branch && !rename.isRenaming;
+
+	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
+	if (isCollapsed) {
+		const collapsedButton = (
+			<button
+				type="button"
+				onClick={handleClick}
+				onMouseEnter={handleMouseEnter}
+				className={cn(
+					"relative flex items-center justify-center size-8 rounded-md",
+					"hover:bg-muted/50 transition-colors",
+					isActive && "bg-muted",
+				)}
+			>
+				{/* Active indicator */}
+				{isActive && (
+					<div className="absolute left-0 top-1 bottom-1 w-0.5 bg-primary rounded-r" />
+				)}
+				{isBranchWorkspace ? (
+					<LuFolder className="size-4 text-muted-foreground" />
+				) : (
+					<LuFolderGit2 className="size-4 text-muted-foreground" />
+				)}
+				{/* Notification dot */}
+				{needsAttention && (
+					<span className="absolute top-1 right-1 flex size-2">
+						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+						<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+					</span>
+				)}
+			</button>
+		);
+
+		// Branch workspaces get a simple tooltip
+		if (isBranchWorkspace) {
+			return (
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
+					<TooltipContent side="right" className="flex flex-col gap-0.5">
+						<span className="font-medium">{name || branch}</span>
+						<span className="text-xs text-muted-foreground">
+							Local workspace
+						</span>
+					</TooltipContent>
+				</Tooltip>
+			);
+		}
+
+		// Worktree workspaces get the full hover card
+		return (
+			<HoverCard
+				openDelay={HOVER_CARD_OPEN_DELAY}
+				closeDelay={HOVER_CARD_CLOSE_DELAY}
+			>
+				<HoverCardTrigger asChild>{collapsedButton}</HoverCardTrigger>
+				<HoverCardContent side="right" align="start" className="w-72">
+					<WorkspaceHoverCardContent workspaceId={id} workspaceAlias={name} />
+				</HoverCardContent>
+			</HoverCard>
+		);
+	}
 
 	const content = (
 		<button
@@ -288,11 +352,6 @@ export function WorkspaceListItem({
 					/>
 				)}
 
-				{/* Branch switcher for branch workspaces */}
-				{isBranchWorkspace && (
-					<BranchSwitcher projectId={projectId} currentBranch={branch} />
-				)}
-
 				{/* Keyboard shortcut - visible on hover */}
 				{shortcutIndex !== undefined &&
 					shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
@@ -300,6 +359,11 @@ export function WorkspaceListItem({
 							⌘{shortcutIndex + 1}
 						</span>
 					)}
+
+				{/* Branch switcher for branch workspaces - at the end */}
+				{isBranchWorkspace && (
+					<BranchSwitcher projectId={projectId} currentBranch={branch} />
+				)}
 
 				{/* Close button for worktree workspaces */}
 				{!isBranchWorkspace && (

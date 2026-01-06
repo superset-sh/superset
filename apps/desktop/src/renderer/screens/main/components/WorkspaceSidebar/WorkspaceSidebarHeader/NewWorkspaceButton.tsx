@@ -1,8 +1,15 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
-export function NewWorkspaceButton() {
+interface NewWorkspaceButtonProps {
+	isCollapsed?: boolean;
+}
+
+export function NewWorkspaceButton({
+	isCollapsed = false,
+}: NewWorkspaceButtonProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const { data: activeWorkspace, isLoading } =
 		trpc.workspaces.getActive.useQuery();
@@ -13,6 +20,26 @@ export function NewWorkspaceButton() {
 		const projectId = activeWorkspace?.projectId;
 		openModal(projectId);
 	};
+
+	if (isCollapsed) {
+		return (
+			<Tooltip delayDuration={300}>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={handleClick}
+						disabled={isLoading}
+						className="flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+					>
+						<div className="flex items-center justify-center size-5 rounded bg-accent">
+							<LuPlus className="size-3" />
+						</div>
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="right">New Workspace</TooltipContent>
+			</Tooltip>
+		);
+	}
 
 	return (
 		<button
