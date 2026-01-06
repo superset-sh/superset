@@ -9,7 +9,10 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
+import { LuLoaderCircle } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
@@ -19,6 +22,7 @@ interface ChangesHeaderProps {
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
 	worktreePath: string;
+	workspaceId?: string;
 }
 
 export function ChangesHeader({
@@ -26,6 +30,7 @@ export function ChangesHeader({
 	viewMode,
 	onViewModeChange,
 	worktreePath,
+	workspaceId,
 }: ChangesHeaderProps) {
 	const [isManualRefresh, setIsManualRefresh] = useState(false);
 	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,6 +64,11 @@ export function ChangesHeader({
 		{ worktreePath },
 		{ enabled: !!worktreePath },
 	);
+
+	const { pr, isLoading: isPRLoading } = usePRStatus({
+		workspaceId,
+		refetchInterval: 10000,
+	});
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const availableBranches = branchData?.remote ?? [];
@@ -141,6 +151,30 @@ export function ChangesHeader({
 						Refresh changes
 					</TooltipContent>
 				</Tooltip>
+
+				{/* PR Status Icon */}
+				{isPRLoading ? (
+					<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+				) : pr ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<a
+								href={pr.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
+							>
+								<PRIcon state={pr.state} className="w-4 h-4" />
+								<span className="text-xs text-muted-foreground font-mono">
+									#{pr.number}
+								</span>
+							</a>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							View PR on GitHub
+						</TooltipContent>
+					</Tooltip>
+				) : null}
 			</div>
 		</div>
 	);
