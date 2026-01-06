@@ -1,1 +1,1 @@
-export { formatPathWithProject, shortenHomePath } from "./formatPath";
+export { formatPathWithProject } from "./formatPath";

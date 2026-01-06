@@ -2,10 +2,7 @@ function normalizeSeparators(path: string): string {
 	return path.replace(/\\/g, "/");
 }
 
-export function shortenHomePath(
-	path: string,
-	homeDir: string | undefined,
-): string {
+function shortenHomePath(path: string, homeDir: string | undefined): string {
 	const normalizedPath = normalizeSeparators(path);
 	const normalizedHome = homeDir ? normalizeSeparators(homeDir) : null;
 

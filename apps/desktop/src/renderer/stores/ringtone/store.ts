@@ -93,11 +93,3 @@ export const useSelectedRingtoneId = () =>
 	useRingtoneStore((state) => state.selectedRingtoneId);
 export const useSetRingtone = () =>
 	useRingtoneStore((state) => state.setRingtone);
-export const useSelectedRingtone = () =>
-	useRingtoneStore((state) => {
-		const ringtone = AVAILABLE_RINGTONES.find(
-			(r) => r.id === state.selectedRingtoneId,
-		);
-		// Fall back to default if ID is invalid
-		return ringtone ?? getDefaultRingtone();
-	});

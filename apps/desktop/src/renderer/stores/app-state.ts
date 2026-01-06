@@ -86,8 +86,6 @@ export const useAppStore = create<AppState>()(
 export const useCurrentView = () => useAppStore((state) => state.currentView);
 export const useIsSettingsTabOpen = () =>
 	useAppStore((state) => state.isSettingsTabOpen);
-export const useIsTasksTabOpen = () =>
-	useAppStore((state) => state.isTasksTabOpen);
 export const useSettingsSection = () =>
 	useAppStore((state) => state.settingsSection);
 export const useSetSettingsSection = () =>
@@ -95,10 +93,7 @@ export const useSetSettingsSection = () =>
 export const useOpenSettings = () => useAppStore((state) => state.openSettings);
 export const useCloseSettings = () =>
 	useAppStore((state) => state.closeSettings);
-export const useCloseSettingsTab = () =>
-	useAppStore((state) => state.closeSettingsTab);
 export const useOpenTasks = () => useAppStore((state) => state.openTasks);
-export const useCloseTasks = () => useAppStore((state) => state.closeTasks);
 export const useOpenWorkspacesList = () =>
 	useAppStore((state) => state.openWorkspacesList);
 export const useCloseWorkspacesList = () =>
