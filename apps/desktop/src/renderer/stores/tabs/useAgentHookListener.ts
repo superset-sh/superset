@@ -50,6 +50,14 @@ export function useAgentHookListener() {
 			const { paneId, workspaceId } = target;
 
 			if (event.type === NOTIFICATION_EVENTS.AGENT_LIFECYCLE) {
+				// DEBUG: Log incoming lifecycle events
+				console.log("[useAgentHookListener] Received:", {
+					eventType: event.data?.eventType,
+					paneId,
+					workspaceId,
+					activeWorkspace: activeWorkspaceRef.current?.id,
+				});
+
 				if (!paneId) return;
 
 				const lifecycleEvent = event.data;
@@ -71,6 +79,15 @@ export function useAgentHookListener() {
 					const isAlreadyActive =
 						activeWorkspaceRef.current?.id === workspaceId &&
 						focusedPaneId === paneId;
+
+					// DEBUG: Log Stop handling
+					console.log("[useAgentHookListener] Stop event:", {
+						isAlreadyActive,
+						activeTabId,
+						focusedPaneId,
+						paneId,
+						willSetTo: isAlreadyActive ? "idle" : "review",
+					});
 
 					if (isAlreadyActive) {
 						// User is watching - go straight to idle

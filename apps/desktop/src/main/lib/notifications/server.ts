@@ -147,6 +147,15 @@ app.get("/hook/complete", (req, res) => {
 
 	const mappedEventType = mapEventType(eventType as string | undefined);
 
+	// DEBUG: Log all incoming hook requests
+	console.log("[notifications] Received hook:", {
+		eventType,
+		mappedEventType,
+		paneId,
+		tabId,
+		workspaceId,
+	});
+
 	// Unknown or missing eventType: return success but don't process
 	// This ensures forward compatibility and doesn't block the agent
 	if (!mappedEventType) {
