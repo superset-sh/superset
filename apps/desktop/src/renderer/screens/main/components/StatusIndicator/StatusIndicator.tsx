@@ -1,5 +1,8 @@
 import { cn } from "@superset/ui/utils";
-import type { PaneStatus } from "shared/tabs-types";
+import type { ActivePaneStatus } from "shared/tabs-types";
+
+// Re-export for consumers
+export type { ActivePaneStatus } from "shared/tabs-types";
 
 /** Lookup object for status indicator styling - avoids if/else chains */
 const STATUS_CONFIG = {
@@ -22,11 +25,9 @@ const STATUS_CONFIG = {
 		tooltip: "Ready for review",
 	},
 } as const satisfies Record<
-	Exclude<PaneStatus, "idle" | undefined>,
+	ActivePaneStatus,
 	{ pingColor: string; dotColor: string; pulse: boolean; tooltip: string }
 >;
-
-export type ActivePaneStatus = keyof typeof STATUS_CONFIG;
 
 interface StatusIndicatorProps {
 	status: ActivePaneStatus;

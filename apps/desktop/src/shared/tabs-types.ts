@@ -19,6 +19,55 @@ export type PaneType = "terminal" | "webview" | "file-viewer";
  */
 export type PaneStatus = "idle" | "working" | "permission" | "review";
 
+/** Non-idle status for UI indicators */
+export type ActivePaneStatus = Exclude<PaneStatus, "idle">;
+
+/**
+ * Status priority order (higher = more urgent).
+ * Single source of truth for aggregation logic.
+ */
+export const STATUS_PRIORITY = {
+	idle: 0,
+	review: 1,
+	working: 2,
+	permission: 3,
+} as const satisfies Record<PaneStatus, number>;
+
+/**
+ * Compare two statuses and return the higher priority one.
+ * Useful for reducing/folding over pane statuses.
+ */
+export function pickHigherStatus(
+	a: PaneStatus | undefined,
+	b: PaneStatus | undefined,
+): PaneStatus {
+	const aPriority = a ? STATUS_PRIORITY[a] : 0;
+	const bPriority = b ? STATUS_PRIORITY[b] : 0;
+	if (aPriority >= bPriority) return a ?? "idle";
+	return b ?? "idle";
+}
+
+/**
+ * Get the highest priority status from an iterable of statuses.
+ * Returns null if all statuses are idle/undefined (no indicator needed).
+ */
+export function getHighestPriorityStatus(
+	statuses: Iterable<PaneStatus | undefined>,
+): ActivePaneStatus | null {
+	let highest: PaneStatus = "idle";
+
+	for (const status of statuses) {
+		if (!status) continue;
+		if (STATUS_PRIORITY[status] > STATUS_PRIORITY[highest]) {
+			highest = status;
+			// Early exit for max priority
+			if (highest === "permission") break;
+		}
+	}
+
+	return highest === "idle" ? null : highest;
+}
+
 /**
  * File viewer display modes
  */

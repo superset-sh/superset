@@ -24,7 +24,10 @@ import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { PaneStatus } from "renderer/stores/tabs/types";
+import {
+	pickHigherStatus,
+	type ActivePaneStatus,
+} from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
 export function GroupStrip() {
@@ -75,24 +78,14 @@ export function GroupStrip() {
 		? activeTabIds[activeWorkspaceId]
 		: null;
 
-	// Compute aggregate status per tab (priority: permission > working > review)
+	// Compute aggregate status per tab using shared priority logic
 	const tabStatusMap = useMemo(() => {
-		const result = new Map<string, PaneStatus>();
+		const result = new Map<string, ActivePaneStatus>();
 		for (const pane of Object.values(panes)) {
 			if (!pane.status || pane.status === "idle") continue;
-
-			const currentStatus = result.get(pane.tabId);
-			// Priority: permission > working > review
-			if (pane.status === "permission") {
-				result.set(pane.tabId, "permission");
-			} else if (pane.status === "working" && currentStatus !== "permission") {
-				result.set(pane.tabId, "working");
-			} else if (
-				pane.status === "review" &&
-				currentStatus !== "permission" &&
-				currentStatus !== "working"
-			) {
-				result.set(pane.tabId, "review");
+			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
+			if (higher !== "idle") {
+				result.set(pane.tabId, higher);
 			}
 		}
 		return result;

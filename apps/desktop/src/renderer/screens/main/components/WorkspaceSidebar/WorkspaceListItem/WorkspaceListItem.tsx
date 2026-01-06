@@ -30,7 +30,7 @@ import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRena
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
-import type { PaneStatus } from "shared/tabs-types";
+import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import {
 	BranchSwitcher,
@@ -120,29 +120,15 @@ export function WorkspaceListItem({
 		);
 	}, [tabs, id]);
 
-	// Compute aggregate status for workspace (priority: permission > working > review)
-	// Uses direct pane lookup by ID for O(workspacePanes) instead of O(totalPanes)
-	const workspaceStatus = useMemo((): Exclude<PaneStatus, "idle"> | null => {
-		let hasWorking = false;
-		let hasReview = false;
-
-		for (const paneId of workspacePaneIds) {
-			const pane = panes[paneId];
-			if (!pane?.status || pane.status === "idle") continue;
-
-			if (pane.status === "permission") {
-				return "permission"; // Highest priority, return immediately
-			}
-			if (pane.status === "working") {
-				hasWorking = true;
-			} else if (pane.status === "review") {
-				hasReview = true;
+	// Compute aggregate status for workspace using shared priority logic
+	const workspaceStatus = useMemo(() => {
+		// Generator avoids array allocation
+		function* paneStatuses() {
+			for (const paneId of workspacePaneIds) {
+				yield panes[paneId]?.status;
 			}
 		}
-
-		if (hasWorking) return "working";
-		if (hasReview) return "review";
-		return null;
+		return getHighestPriorityStatus(paneStatuses());
 	}, [panes, workspacePaneIds]);
 
 	const handleClick = () => {
