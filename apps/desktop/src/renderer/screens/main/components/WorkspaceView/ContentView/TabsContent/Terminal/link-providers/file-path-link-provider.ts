@@ -1,9 +1,9 @@
 import type { ILink, ILinkProvider, Terminal } from "@xterm/xterm";
 
 import {
-	type IParsedLink,
 	detectLinks,
 	getCurrentOS,
+	type IParsedLink,
 	removeLinkSuffix,
 } from "../lib/link-parsing";
 

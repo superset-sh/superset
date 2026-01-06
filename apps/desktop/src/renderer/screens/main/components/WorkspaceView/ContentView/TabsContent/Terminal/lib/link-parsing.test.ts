@@ -8,12 +8,12 @@
 
 import { describe, expect, it } from "bun:test";
 import {
-	type ILinkSuffix,
-	type IParsedLink,
-	OperatingSystem,
 	detectLinkSuffixes,
 	detectLinks,
 	getLinkSuffix,
+	type ILinkSuffix,
+	type IParsedLink,
+	OperatingSystem,
 	removeLinkQueryString,
 	removeLinkSuffix,
 } from "./link-parsing";
@@ -1300,6 +1300,12 @@ describe("TerminalLinkParsing", () => {
 					expect(link1.suffix).toBeTruthy();
 					expect(link2.suffix).toBeTruthy();
 					expect(link3.suffix).toBeTruthy();
+					// biome-ignore lint/style/noNonNullAssertion: suffix is checked with toBeTruthy above
+					const link1Suffix = link1.suffix!;
+					// biome-ignore lint/style/noNonNullAssertion: suffix is checked with toBeTruthy above
+					const link2Suffix = link2.suffix!;
+					// biome-ignore lint/style/noNonNullAssertion: suffix is checked with toBeTruthy above
+					const link3Suffix = link3.suffix!;
 					const detectedLink1: IParsedLink = {
 						prefix: link1.prefix
 							? {
@@ -1310,7 +1316,7 @@ describe("TerminalLinkParsing", () => {
 						path: {
 							index: 1 + (link1.prefix?.length ?? 0),
 							text: link1.link
-								.replace(link1.suffix!, "")
+								.replace(link1Suffix, "")
 								.replace(link1.prefix || "", ""),
 						},
 						suffix: {
@@ -1319,8 +1325,8 @@ describe("TerminalLinkParsing", () => {
 							rowEnd: link1.hasRowEnd ? testRowEnd : undefined,
 							colEnd: link1.hasColEnd ? testColEnd : undefined,
 							suffix: {
-								index: 1 + (link1.link.length - link1.suffix!.length),
-								text: link1.suffix!,
+								index: 1 + (link1.link.length - link1Suffix.length),
+								text: link1Suffix,
 							},
 						},
 					};
@@ -1341,7 +1347,7 @@ describe("TerminalLinkParsing", () => {
 								1 +
 								(link2.prefix ?? "").length,
 							text: link2.link
-								.replace(link2.suffix!, "")
+								.replace(link2Suffix, "")
 								.replace(link2.prefix ?? "", ""),
 						},
 						suffix: {
@@ -1354,8 +1360,8 @@ describe("TerminalLinkParsing", () => {
 									(detectedLink1.prefix?.index ?? detectedLink1.path.index) +
 									link1.link.length +
 									1 +
-									(link2.link.length - link2.suffix!.length),
-								text: link2.suffix!,
+									(link2.link.length - link2Suffix.length),
+								text: link2Suffix,
 							},
 						},
 					};
@@ -1376,7 +1382,7 @@ describe("TerminalLinkParsing", () => {
 								1 +
 								(link3.prefix ?? "").length,
 							text: link3.link
-								.replace(link3.suffix!, "")
+								.replace(link3Suffix, "")
 								.replace(link3.prefix ?? "", ""),
 						},
 						suffix: {
@@ -1389,8 +1395,8 @@ describe("TerminalLinkParsing", () => {
 									(detectedLink2.prefix?.index ?? detectedLink2.path.index) +
 									link2.link.length +
 									1 +
-									(link3.link.length - link3.suffix!.length),
-								text: link3.suffix!,
+									(link3.link.length - link3Suffix.length),
+								text: link3Suffix,
 							},
 						},
 					};
