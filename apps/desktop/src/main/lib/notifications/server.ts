@@ -3,8 +3,15 @@ import express from "express";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { env } from "shared/env.shared";
+import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
+
+// Re-export types for backwards compatibility
+export type {
+	AgentLifecycleEvent,
+	NotificationIds,
+} from "shared/notification-types";
 
 /**
  * The environment this server is running in.
@@ -12,16 +19,6 @@ import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
  */
 const SERVER_ENV =
 	env.NODE_ENV === "development" ? "development" : "production";
-
-export interface NotificationIds {
-	paneId?: string;
-	tabId?: string;
-	workspaceId?: string;
-}
-
-export interface AgentLifecycleEvent extends NotificationIds {
-	eventType: "Start" | "Stop" | "PermissionRequest";
-}
 
 export const notificationsEmitter = new EventEmitter();
 

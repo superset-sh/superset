@@ -112,23 +112,23 @@ export function WorkspaceListItem({
 		},
 	);
 
-	// Check if any pane in tabs belonging to this workspace needs attention (agent notifications)
-	const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
-	const workspacePaneIds = new Set(
-		workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
-	);
+	// Memoize workspace pane IDs to avoid recalculating on every render
+	const workspacePaneIds = useMemo(() => {
+		const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
+		return new Set(
+			workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
+		);
+	}, [tabs, id]);
 
 	// Compute aggregate status for workspace (priority: permission > working > review)
+	// Uses direct pane lookup by ID for O(workspacePanes) instead of O(totalPanes)
 	const workspaceStatus = useMemo((): Exclude<PaneStatus, "idle"> | null => {
-		const workspacePanes = Object.values(panes).filter(
-			(p) => p != null && workspacePaneIds.has(p.id),
-		);
-
 		let hasWorking = false;
 		let hasReview = false;
 
-		for (const pane of workspacePanes) {
-			if (!pane.status || pane.status === "idle") continue;
+		for (const paneId of workspacePaneIds) {
+			const pane = panes[paneId];
+			if (!pane?.status || pane.status === "idle") continue;
 
 			if (pane.status === "permission") {
 				return "permission"; // Highest priority, return immediately
