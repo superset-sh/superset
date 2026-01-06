@@ -72,11 +72,10 @@ export function ResizableSidebar() {
 
 	return (
 		<div
-			className="relative h-full flex-shrink-0 overflow-hidden"
+			className="relative h-full shrink-0 overflow-hidden"
 			style={{ width: sidebarWidth }}
 		>
 			<Sidebar />
-
 			{/* biome-ignore lint/a11y/useSemanticElements: <hr> is not appropriate for interactive resize handles */}
 			<div
 				role="separator"

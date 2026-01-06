@@ -213,7 +213,7 @@ export function CommitInput({
 	return (
 		<div className="flex flex-col gap-1.5 px-2 py-2 border-b border-border">
 			<Textarea
-				placeholder="Message"
+				placeholder="Commit message"
 				value={commitMessage}
 				onChange={(e) => setCommitMessage(e.target.value)}
 				className="min-h-[52px] resize-none text-[10px] bg-background"
@@ -224,12 +224,11 @@ export function CommitInput({
 					}
 				}}
 			/>
-
 			<ButtonGroup className="w-full">
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
-							variant="default"
+							variant="secondary"
 							size="sm"
 							className="flex-1 gap-1.5 h-7 text-xs"
 							onClick={primary.handler}
@@ -244,7 +243,6 @@ export function CommitInput({
 					</TooltipTrigger>
 					<TooltipContent side="bottom">{primary.tooltip}</TooltipContent>
 				</Tooltip>
-
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
 						<Button
@@ -287,7 +285,6 @@ export function CommitInput({
 
 						<DropdownMenuSeparator />
 
-						{/* Sync actions */}
 						<DropdownMenuItem
 							onClick={handlePush}
 							disabled={pushCount === 0 && hasUpstream}
@@ -327,7 +324,6 @@ export function CommitInput({
 
 						<DropdownMenuSeparator />
 
-						{/* PR actions */}
 						{hasExistingPR ? (
 							<DropdownMenuItem onClick={handleOpenPR} className="text-xs">
 								<HiArrowTopRightOnSquare className="size-3.5" />
