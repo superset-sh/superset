@@ -7,12 +7,12 @@ import {
 	LuPanelLeftClose,
 	LuPanelLeftOpen,
 } from "react-icons/lu";
+import { useWorkspaceSidebarStore } from "renderer/stores";
 import {
 	useCloseWorkspacesList,
 	useCurrentView,
 	useOpenWorkspacesList,
 } from "renderer/stores/app-state";
-import { useWorkspaceSidebarStore } from "renderer/stores";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 
 interface WorkspaceSidebarHeaderProps {

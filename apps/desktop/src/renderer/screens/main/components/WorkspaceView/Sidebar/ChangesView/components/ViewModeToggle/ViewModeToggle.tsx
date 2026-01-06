@@ -23,13 +23,13 @@ export function ViewModeToggle({
 					variant="ghost"
 					size="icon"
 					onClick={handleToggle}
-					className="h-7 w-7 p-0"
+					className="size-6 p-0"
 					aria-label={viewMode === "grouped" ? "Grouped view" : "Tree view"}
 				>
 					{viewMode === "grouped" ? (
-						<LuFolder className="w-4 h-4" />
+						<LuFolder className="size-3.5" />
 					) : (
-						<LuFolderTree className="w-4 h-4" />
+						<LuFolderTree className="size-3.5" />
 					)}
 				</Button>
 			</TooltipTrigger>

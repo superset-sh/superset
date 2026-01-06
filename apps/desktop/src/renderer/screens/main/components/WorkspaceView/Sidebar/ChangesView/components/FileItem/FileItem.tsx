@@ -58,7 +58,7 @@ export function FileItem({
 	return (
 		<div
 			className={cn(
-				"group w-full flex items-stretch gap-1.5 px-1 text-left rounded-sm",
+				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
 				isSelected && "bg-accent",
 			)}
@@ -69,10 +69,12 @@ export function FileItem({
 				onClick={onClick}
 				className={cn(
 					"flex items-center gap-1.5 flex-1 min-w-0",
-					hasIndent ? "py-1" : "py-1.5",
+					hasIndent ? "py-0.5" : "py-1",
 				)}
 			>
-				<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
+				<span
+					className={cn("shrink-0 flex items-center text-xs", statusBadgeColor)}
+				>
 					{statusIndicator}
 				</span>
 				<span className="flex-1 min-w-0 flex items-center gap-1">
@@ -85,7 +87,7 @@ export function FileItem({
 						<TooltipContent side="right">{file.path}</TooltipContent>
 					</Tooltip>
 					{showStatsDisplay && (
-						<span className="flex items-center gap-0.5 text-xs font-mono shrink-0 whitespace-nowrap">
+						<span className="flex items-center gap-0.5 text-[10px] font-mono shrink-0 whitespace-nowrap opacity-60">
 							{file.additions > 0 && (
 								<span className="text-green-600 dark:text-green-500">
 									+{file.additions}
@@ -109,14 +111,14 @@ export function FileItem({
 								<Button
 									variant="ghost"
 									size="icon"
-									className="h-5 w-5"
+									className="size-5 hover:bg-accent"
 									onClick={(e) => {
 										e.stopPropagation();
 										onStage();
 									}}
 									disabled={isActioning}
 								>
-									<HiMiniPlus className="w-3.5 h-3.5" />
+									<HiMiniPlus className="size-3" />
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="right">Stage</TooltipContent>
@@ -128,14 +130,14 @@ export function FileItem({
 								<Button
 									variant="ghost"
 									size="icon"
-									className="h-5 w-5"
+									className="size-5 hover:bg-accent"
 									onClick={(e) => {
 										e.stopPropagation();
 										onUnstage();
 									}}
 									disabled={isActioning}
 								>
-									<HiMiniMinus className="w-3.5 h-3.5" />
+									<HiMiniMinus className="size-3" />
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="right">Unstage</TooltipContent>
