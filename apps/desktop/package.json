@@ -123,7 +123,6 @@
 		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.3.8",
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",
 		"@types/better-sqlite3": "^7.6.13",
