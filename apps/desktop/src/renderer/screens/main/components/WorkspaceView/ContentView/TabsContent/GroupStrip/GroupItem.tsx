@@ -66,9 +66,9 @@ export function GroupItem({
 			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
 	);
 
-	if (isEditing) {
-		return (
-			<div className="group relative flex items-center shrink-0 h-full border-r border-border">
+	return (
+		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
+			{isEditing ? (
 				<div className={tabStyles}>
 					<input
 						ref={inputRef}
@@ -77,33 +77,35 @@ export function GroupItem({
 						onChange={(e) => setEditValue(e.target.value)}
 						onBlur={handleSave}
 						onKeyDown={handleKeyDown}
+						maxLength={64}
 						className="text-sm bg-transparent border-none outline-none flex-1 text-left min-w-0"
 					/>
 				</div>
-			</div>
-		);
-	}
-
-	return (
-		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={onSelect}
-						onDoubleClick={startEditing}
-						className={tabStyles}
-					>
-						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
-							{displayName}
+			) : (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onSelect}
+							onDoubleClick={startEditing}
+							className={tabStyles}
+						>
+							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+								{displayName}
+							</span>
+							{status && status !== "idle" && (
+								<StatusIndicator status={status} />
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={4}>
+						<span>{displayName}</span>
+						<span className="text-muted-foreground ml-1.5">
+							Double-click to rename
 						</span>
-						{status && status !== "idle" && <StatusIndicator status={status} />}
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={4}>
-					{displayName}
-				</TooltipContent>
-			</Tooltip>
+					</TooltipContent>
+				</Tooltip>
+			)}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<Button
