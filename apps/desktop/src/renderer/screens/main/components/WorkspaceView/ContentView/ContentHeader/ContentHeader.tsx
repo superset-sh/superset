@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
 
 interface ContentHeaderProps {
-	/** Optional leading action (e.g., SidebarControl) */
+	/** Optional leading action */
 	leadingAction?: ReactNode;
 	/** Mode-specific header content (e.g., GroupStrip or file info) */
 	children: ReactNode;
-	/** Optional trailing action (e.g., WorkspaceControls) */
+	/** Optional trailing action (e.g., SidebarControl) */
 	trailingAction?: ReactNode;
 }
 

@@ -422,12 +422,12 @@ export const HOTKEYS = {
 
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({
-		keys: "meta+b",
-		label: "Toggle Files Sidebar",
+		keys: "meta+l",
+		label: "Toggle Changes Tab",
 		category: "Layout",
 	}),
 	TOGGLE_WORKSPACE_SIDEBAR: defineHotkey({
-		keys: "meta+shift+b",
+		keys: "meta+b",
 		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	}),
@@ -449,6 +449,12 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	}),
+	CLOSE_PANE: defineHotkey({
+		keys: "meta+w",
+		label: "Close Pane",
+		category: "Layout",
+		description: "Close the current pane",
+	}),
 
 	// Terminal
 	FIND_IN_TERMINAL: defineHotkey({
@@ -459,7 +465,7 @@ export const HOTKEYS = {
 	}),
 	NEW_GROUP: defineHotkey({
 		keys: "meta+t",
-		label: "New Group",
+		label: "New Tab",
 		category: "Terminal",
 	}),
 	CLOSE_TERMINAL: defineHotkey({

@@ -5,11 +5,10 @@ import {
 	HiMiniLockClosed,
 	HiMiniLockOpen,
 	HiMiniPencil,
-	HiMiniXMark,
 } from "react-icons/hi2";
-import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
 import type { FileViewerMode } from "shared/tabs-types";
-import type { SplitOrientation } from "../../hooks/useSplitOrientation";
+import { PaneToolbarActions } from "../../../components";
+import type { SplitOrientation } from "../../../hooks";
 
 interface FileViewerToolbarProps {
 	fileName: string;
@@ -42,13 +41,6 @@ export function FileViewerToolbar({
 	onToggleLock,
 	onClosePane,
 }: FileViewerToolbarProps) {
-	const splitIcon =
-		splitOrientation === "vertical" ? (
-			<TbLayoutColumns className="size-4" />
-		) : (
-			<TbLayoutRows className="size-4" />
-		);
-
 	return (
 		<div className="flex h-full w-full items-center justify-between px-2">
 			<div className="flex min-w-0 items-center gap-2">
@@ -88,54 +80,33 @@ export function FileViewerToolbar({
 						</ToggleGroupItem>
 					)}
 				</ToggleGroup>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onSplitPane}
-							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-						>
-							{splitIcon}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Split pane
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onToggleLock}
-							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-						>
-							{isLocked ? (
-								<HiMiniLockClosed className="size-3" />
-							) : (
-								<HiMiniLockOpen className="size-3" />
-							)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{isLocked
-							? "Unlock (allow file replacement)"
-							: "Lock (prevent file replacement)"}
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onClosePane}
-							className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
-						>
-							<HiMiniXMark className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Close
-					</TooltipContent>
-				</Tooltip>
+				<PaneToolbarActions
+					splitOrientation={splitOrientation}
+					onSplitPane={onSplitPane}
+					onClosePane={onClosePane}
+					leadingActions={
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={onToggleLock}
+									className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted-foreground/20 hover:text-foreground"
+								>
+									{isLocked ? (
+										<HiMiniLockClosed className="size-3" />
+									) : (
+										<HiMiniLockOpen className="size-3" />
+									)}
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								{isLocked
+									? "Unlock (allow file replacement)"
+									: "Lock (prevent file replacement)"}
+							</TooltipContent>
+						</Tooltip>
+					}
+				/>
 			</div>
 		</div>
 	);
