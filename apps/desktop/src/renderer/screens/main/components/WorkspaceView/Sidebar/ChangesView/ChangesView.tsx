@@ -36,7 +36,6 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	const {
 		data: status,
 		isLoading,
-		isFetching,
 		refetch,
 	} = trpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
