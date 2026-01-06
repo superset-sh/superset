@@ -1,9 +1,5 @@
 import { db } from "@superset/db/client";
-import {
-	integrationConnections,
-	organizationMembers,
-	users,
-} from "@superset/db/schema";
+import { integrationConnections, members } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -14,19 +10,12 @@ export const integrationRouter = {
 	linear: linearRouter,
 
 	list: protectedProcedure
-		.input(z.object({ organizationId: z.string().uuid() }))
+		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
-			const user = await db.query.users.findFirst({
-				where: eq(users.clerkId, ctx.userId),
-			});
-			if (!user) {
-				throw new Error("User not found");
-			}
-
-			const membership = await db.query.organizationMembers.findFirst({
+			const membership = await db.query.members.findFirst({
 				where: and(
-					eq(organizationMembers.organizationId, input.organizationId),
-					eq(organizationMembers.userId, user.id),
+					eq(members.organizationId, input.organizationId),
+					eq(members.userId, ctx.session.user.id),
 				),
 			});
 			if (!membership) {

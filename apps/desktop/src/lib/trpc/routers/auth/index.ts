@@ -1,7 +1,6 @@
+import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
-import type { BrowserWindow } from "electron";
 import { authService } from "main/lib/auth";
-import { AUTH_PROVIDERS } from "shared/auth";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -9,18 +8,16 @@ import { publicProcedure, router } from "../..";
  * Authentication router for desktop app
  * Handles sign in/out and state management
  */
-export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
+export const createAuthRouter = () => {
 	return router({
-		/**
-		 * Get current authentication state
-		 */
 		getState: publicProcedure.query(() => {
 			return authService.getState();
 		}),
 
-		/**
-		 * Subscribe to auth state changes
-		 */
+		getAccessToken: publicProcedure.query(() => {
+			return authService.getAccessToken();
+		}),
+
 		onStateChange: publicProcedure.subscription(() => {
 			return observable<{ isSignedIn: boolean }>((emit) => {
 				const handler = (state: { isSignedIn: boolean }) => {
@@ -41,7 +38,7 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 
 		/**
 		 * Subscribe to access token (for Electric sync in renderer)
-		 * Emits current token on subscribe and again when tokens refresh
+		 * Emits current token on subscribe and when auth state changes
 		 */
 		onAccessToken: publicProcedure.subscription(() => {
 			return observable<{ accessToken: string | null }>((emit) => {
@@ -50,6 +47,7 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 						const accessToken = await authService.getAccessToken();
 						emit.next({ accessToken });
 					} catch (err) {
+						console.error("[auth/onAccessToken] Error getting token:", err);
 						emit.error(err instanceof Error ? err : new Error(String(err)));
 					}
 				};
@@ -60,28 +58,45 @@ export const createAuthRouter = (getWindow: () => BrowserWindow | null) => {
 
 				void emitToken();
 
-				authService.on("tokens-refreshed", handler);
 				authService.on("state-changed", handler);
 
 				return () => {
-					authService.off("tokens-refreshed", handler);
 					authService.off("state-changed", handler);
 				};
 			});
 		}),
 
-		/**
-		 * Sign in with OAuth provider
-		 */
+		onSessionChange: publicProcedure.subscription(() => {
+			return observable<ReturnType<typeof authService.getSession>>((emit) => {
+				const handler = (
+					session: ReturnType<typeof authService.getSession>,
+				) => {
+					emit.next(session);
+				};
+
+				emit.next(authService.getSession());
+
+				authService.on("session-changed", handler);
+
+				return () => {
+					authService.off("session-changed", handler);
+				};
+			});
+		}),
+
+		setActiveOrganization: publicProcedure
+			.input(z.object({ organizationId: z.string() }))
+			.mutation(async ({ input }) => {
+				await authService.setActiveOrganization(input.organizationId);
+				return { success: true };
+			}),
+
 		signIn: publicProcedure
 			.input(z.object({ provider: z.enum(AUTH_PROVIDERS) }))
 			.mutation(async ({ input }) => {
-				return authService.signIn(input.provider, getWindow);
+				return authService.signIn(input.provider);
 			}),
 
-		/**
-		 * Sign out
-		 */
 		signOut: publicProcedure.mutation(async () => {
 			await authService.signOut();
 			return { success: true };

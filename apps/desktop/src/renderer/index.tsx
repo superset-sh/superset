@@ -2,17 +2,20 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
+import React from "react";
 import ReactDom from "react-dom/client";
 
 import { ThemedToaster } from "./components/ThemedToaster";
-import { AppProviders } from "./contexts";
+import { AppProviders } from "./contexts/AppProviders";
 import { AppRoutes } from "./routes";
 
 import "./globals.css";
 
 ReactDom.createRoot(document.querySelector("app") as HTMLElement).render(
-	<AppProviders>
-		<AppRoutes />
-		<ThemedToaster />
-	</AppProviders>,
+	<React.StrictMode>
+		<AppProviders>
+			<AppRoutes />
+			<ThemedToaster />
+		</AppProviders>
+	</React.StrictMode>,
 );

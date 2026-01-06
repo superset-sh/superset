@@ -58,6 +58,9 @@ export async function MainWindow() {
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
+			// Isolate Electron session from system browser cookies
+			// This ensures desktop uses bearer token auth, not web cookies
+			partition: "persist:superset",
 		},
 	});
 
