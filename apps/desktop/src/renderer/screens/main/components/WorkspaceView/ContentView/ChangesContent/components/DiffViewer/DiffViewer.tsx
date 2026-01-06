@@ -11,6 +11,24 @@ import {
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 import { registerCopyPathLineAction } from "./editor-actions";
 
+function scrollToFirstDiff(
+	editor: Monaco.editor.IStandaloneDiffEditor,
+	modifiedEditor: Monaco.editor.IStandaloneCodeEditor,
+) {
+	const lineChanges = editor.getLineChanges();
+	if (!lineChanges || lineChanges.length === 0) return;
+
+	const firstChange = lineChanges[0];
+	const targetLine =
+		firstChange.modifiedStartLineNumber > 0
+			? firstChange.modifiedStartLineNumber
+			: firstChange.originalStartLineNumber;
+
+	if (targetLine > 0) {
+		modifiedEditor.revealLineInCenter(targetLine);
+	}
+}
+
 interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
@@ -29,22 +47,31 @@ export function DiffViewer({
 	onChange,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
+	const diffEditorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(
+		null,
+	);
 	const modifiedEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
 		null,
 	);
-	// Track when editor is mounted to trigger effects at the right time
 	const [isEditorMounted, setIsEditorMounted] = useState(false);
+	const hasScrolledToFirstDiffRef = useRef(false);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
+	useEffect(() => {
+		hasScrolledToFirstDiffRef.current = false;
+	}, [filePath]);
 
 	const handleSave = useCallback(() => {
 		if (!editable || !onSave || !modifiedEditorRef.current) return;
 		onSave(modifiedEditorRef.current.getValue());
 	}, [editable, onSave]);
 
-	// Store disposable for content change listener cleanup
 	const changeListenerRef = useRef<Monaco.IDisposable | null>(null);
+	const diffUpdateListenerRef = useRef<Monaco.IDisposable | null>(null);
 
 	const handleMount: DiffOnMount = useCallback(
 		(editor) => {
+			diffEditorRef.current = editor;
 			const originalEditor = editor.getOriginalEditor();
 			const modifiedEditor = editor.getModifiedEditor();
 			modifiedEditorRef.current = modifiedEditor;
@@ -52,10 +79,25 @@ export function DiffViewer({
 			registerCopyPathLineAction(originalEditor, filePath);
 			registerCopyPathLineAction(modifiedEditor, filePath);
 
+			diffUpdateListenerRef.current?.dispose();
+			diffUpdateListenerRef.current = editor.onDidUpdateDiff(() => {
+				if (hasScrolledToFirstDiffRef.current) return;
+				scrollToFirstDiff(editor, modifiedEditor);
+				hasScrolledToFirstDiffRef.current = true;
+			});
+
 			setIsEditorMounted(true);
 		},
 		[filePath],
 	);
+
+	// Cleanup diff update listener on unmount
+	useEffect(() => {
+		return () => {
+			diffUpdateListenerRef.current?.dispose();
+			diffUpdateListenerRef.current = null;
+		};
+	}, []);
 
 	// Update readOnly and register save action when editable changes or editor mounts
 	// Using addAction with an ID allows replacing the action on subsequent calls
