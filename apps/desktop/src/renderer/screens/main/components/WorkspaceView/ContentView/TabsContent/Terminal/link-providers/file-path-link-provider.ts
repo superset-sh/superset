@@ -1,4 +1,5 @@
 import {
+	decodeUrlEncodedPath,
 	detectLinks,
 	getCurrentOS,
 	type IParsedLink,
@@ -246,7 +247,7 @@ export class FilePathLinkProvider implements ILinkProvider {
 		}
 
 		// Decode URL-encoded characters (e.g., %3A -> :, %20 -> space)
-		cleanPath = this.decodeUrlEncodedPath(cleanPath);
+		cleanPath = decodeUrlEncodedPath(cleanPath);
 
 		// Extract line/column info from suffix, or try to parse from URL-encoded path
 		let line = parsedLink.suffix?.row;
@@ -267,23 +268,6 @@ export class FilePathLinkProvider implements ILinkProvider {
 		}
 
 		this.onOpen(event, cleanPath, line, column, lineEnd, columnEnd);
-	}
-
-	/**
-	 * Decode URL-encoded characters in a path.
-	 * Common encodings: %3A -> :, %20 -> space, %2F -> /
-	 */
-	private decodeUrlEncodedPath(path: string): string {
-		try {
-			// Only decode if there are percent-encoded characters
-			if (path.includes("%")) {
-				return decodeURIComponent(path);
-			}
-			return path;
-		} catch {
-			// If decoding fails (malformed %), return original path
-			return path;
-		}
 	}
 
 	private calculateLinkRange(

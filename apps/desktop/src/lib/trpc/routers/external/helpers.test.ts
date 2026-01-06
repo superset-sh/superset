@@ -184,4 +184,31 @@ describe("resolvePath", () => {
 			expect(result).toBe(path.join(homedir, "file.ts"));
 		});
 	});
+
+	describe("file:// URL handling", () => {
+		test("converts file:// URL to regular path", () => {
+			const result = resolvePath("file:///Users/test/Documents/file.ts");
+			expect(result).toBe("/Users/test/Documents/file.ts");
+		});
+
+		test("decodes URL-encoded characters in file:// URL", () => {
+			const result = resolvePath("file:///Users/test/My%20Documents/file.ts");
+			expect(result).toBe("/Users/test/My Documents/file.ts");
+		});
+
+		test("handles file:// URL with special characters", () => {
+			const result = resolvePath(
+				"file:///Users/test/path%20with%20spaces/file%2B1.ts",
+			);
+			expect(result).toBe("/Users/test/path with spaces/file+1.ts");
+		});
+
+		test("handles file:// URL unchanged when already absolute", () => {
+			const result = resolvePath(
+				"file:///absolute/path/file.ts",
+				"/ignored/cwd",
+			);
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+	});
 });
