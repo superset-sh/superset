@@ -13,6 +13,26 @@ import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
 
+/**
+ * Error thrown by execFile when the command fails.
+ * `code` can be a number (exit code) or string (spawn error like "ENOENT").
+ */
+interface ExecFileException extends Error {
+	code?: number | string;
+	killed?: boolean;
+	signal?: NodeJS.Signals;
+	cmd?: string;
+	stdout?: string;
+	stderr?: string;
+}
+
+function isExecFileException(error: unknown): error is ExecFileException {
+	return (
+		error instanceof Error &&
+		("code" in error || "signal" in error || "killed" in error)
+	);
+}
+
 async function getGitEnv(): Promise<Record<string, string>> {
 	const shellEnv = await getShellEnvironment();
 	const result: Record<string, string> = {};
@@ -413,25 +433,158 @@ export async function hasUnpushedCommits(
 	}
 }
 
+export type BranchExistsResult =
+	| { status: "exists" }
+	| { status: "not_found" }
+	| { status: "error"; message: string };
+
+/**
+ * Git exit codes for ls-remote --exit-code:
+ * - 0: Refs found (branch exists)
+ * - 2: No matching refs (branch doesn't exist)
+ * - 128: Fatal error (auth, network, invalid repo, etc.)
+ */
+const GIT_EXIT_CODES = {
+	SUCCESS: 0,
+	NO_MATCHING_REFS: 2,
+	FATAL_ERROR: 128,
+} as const;
+
+/**
+ * Patterns for categorizing git fatal errors (exit code 128).
+ * These are checked against lowercase error messages/stderr.
+ */
+const GIT_ERROR_PATTERNS = {
+	network: [
+		"could not resolve host",
+		"unable to access",
+		"connection refused",
+		"network is unreachable",
+		"timed out",
+		"ssl",
+		"could not read from remote",
+	],
+	auth: [
+		"authentication",
+		"permission denied",
+		"403",
+		"401",
+		// SSH-specific auth failures
+		"permission denied (publickey)",
+		"host key verification failed",
+	],
+	remoteNotConfigured: [
+		"does not appear to be a git repository",
+		"no such remote",
+		"repository not found",
+		"remote origin not found",
+	],
+} as const;
+
+function categorizeGitError(errorMessage: string): BranchExistsResult {
+	const lowerMessage = errorMessage.toLowerCase();
+
+	if (GIT_ERROR_PATTERNS.network.some((p) => lowerMessage.includes(p))) {
+		return {
+			status: "error",
+			message: "Cannot connect to remote. Check your network connection.",
+		};
+	}
+
+	if (GIT_ERROR_PATTERNS.auth.some((p) => lowerMessage.includes(p))) {
+		return {
+			status: "error",
+			message: "Authentication failed. Check your Git credentials.",
+		};
+	}
+
+	if (
+		GIT_ERROR_PATTERNS.remoteNotConfigured.some((p) => lowerMessage.includes(p))
+	) {
+		return {
+			status: "error",
+			message:
+				"Remote 'origin' is not configured or the repository was not found.",
+		};
+	}
+
+	return {
+		status: "error",
+		message: `Failed to verify branch: ${errorMessage}`,
+	};
+}
+
 export async function branchExistsOnRemote(
 	worktreePath: string,
 	branchName: string,
-): Promise<boolean> {
-	const git = simpleGit(worktreePath);
+): Promise<BranchExistsResult> {
+	const env = await getGitEnv();
+
 	try {
-		// Use ls-remote to check actual remote state (not just local refs)
-		const result = await git.raw([
-			"ls-remote",
-			"--exit-code",
-			"--heads",
-			"origin",
-			branchName,
-		]);
-		// If we get output, the branch exists
-		return result.trim().length > 0;
-	} catch {
-		// --exit-code makes git return non-zero if no matching refs found
-		return false;
+		// Use execFileAsync directly to get reliable exit codes
+		// simple-git doesn't expose exit codes in a predictable way
+		await execFileAsync(
+			"git",
+			[
+				"-C",
+				worktreePath,
+				"ls-remote",
+				"--exit-code",
+				"--heads",
+				"origin",
+				branchName,
+			],
+			{ env, timeout: 30_000 },
+		);
+		// Exit code 0 = branch exists (--exit-code flag ensures this)
+		return { status: "exists" };
+	} catch (error) {
+		// Use type guard to safely access ExecFileException properties
+		if (!isExecFileException(error)) {
+			return {
+				status: "error",
+				message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+			};
+		}
+
+		// Handle spawn/system errors first (code is a string like "ENOENT")
+		if (typeof error.code === "string") {
+			if (error.code === "ENOENT") {
+				return {
+					status: "error",
+					message: "Git is not installed or not found in PATH.",
+				};
+			}
+			if (error.code === "ETIMEDOUT") {
+				return {
+					status: "error",
+					message: "Git command timed out. Check your network connection.",
+				};
+			}
+			// Other system errors
+			return {
+				status: "error",
+				message: `System error: ${error.code}`,
+			};
+		}
+
+		// Handle killed/timed out processes (timeout option triggers this)
+		if (error.killed || error.signal) {
+			return {
+				status: "error",
+				message: "Git command timed out. Check your network connection.",
+			};
+		}
+
+		// Now code is numeric - it's a git exit code
+		if (error.code === GIT_EXIT_CODES.NO_MATCHING_REFS) {
+			return { status: "not_found" };
+		}
+
+		// For fatal errors (128) or other codes, categorize using stderr (preferred) or message
+		// stderr contains the actual git error; message may include wrapper text
+		const errorText = error.stderr || error.message || "";
+		return categorizeGitError(errorText);
 	}
 }
 
@@ -656,6 +809,42 @@ export async function checkoutBranch(
  * @param branch - Branch to checkout
  * @throws Error if safety checks fail or checkout fails
  */
+/**
+ * Checks if a git ref exists locally (without network access).
+ * Uses --verify --quiet to only check exit code without output.
+ * @param repoPath - Path to the repository
+ * @param ref - The ref to check (e.g., "main", "origin/main")
+ * @returns true if the ref exists locally, false otherwise
+ */
+export async function refExistsLocally(
+	repoPath: string,
+	ref: string,
+): Promise<boolean> {
+	const git = simpleGit(repoPath);
+	try {
+		// Use --verify --quiet to check if ref exists without output
+		// Append ^{commit} to ensure it resolves to a commit-ish
+		await git.raw(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Sanitizes git error messages for user display.
+ * Strips "fatal:" prefixes, excessive newlines, and other git plumbing text.
+ * @param message - Raw git error message
+ * @returns Cleaned message suitable for UI display
+ */
+export function sanitizeGitError(message: string): string {
+	return message
+		.replace(/^fatal:\s*/i, "")
+		.replace(/^error:\s*/i, "")
+		.replace(/\n+/g, " ")
+		.trim();
+}
+
 export async function safeCheckoutBranch(
 	repoPath: string,
 	branch: string,

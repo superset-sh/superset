@@ -11,7 +11,6 @@ import {
 	uuid,
 } from "drizzle-orm/pg-core";
 
-import { organizations, users } from "./auth";
 import {
 	integrationProviderValues,
 	taskPriorityValues,
@@ -25,6 +24,81 @@ export const integrationProvider = pgEnum(
 	"integration_provider",
 	integrationProviderValues,
 );
+
+export const users = pgTable(
+	"users",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		clerkId: text("clerk_id").notNull().unique(),
+		name: text().notNull(),
+		email: text().notNull().unique(),
+		avatarUrl: text("avatar_url"),
+		deletedAt: timestamp("deleted_at"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("users_email_idx").on(table.email),
+		index("users_clerk_id_idx").on(table.clerkId),
+		index("users_deleted_at_idx").on(table.deletedAt),
+	],
+);
+
+export type InsertUser = typeof users.$inferInsert;
+export type SelectUser = typeof users.$inferSelect;
+
+export const organizations = pgTable(
+	"organizations",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		clerkOrgId: text("clerk_org_id").unique(), // Clerk org ID - null until synced to Clerk
+		name: text().notNull(),
+		slug: text().notNull().unique(),
+		githubOrg: text("github_org"),
+		avatarUrl: text("avatar_url"),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("organizations_slug_idx").on(table.slug),
+		index("organizations_clerk_org_id_idx").on(table.clerkOrgId),
+	],
+);
+
+export type InsertOrganization = typeof organizations.$inferInsert;
+export type SelectOrganization = typeof organizations.$inferSelect;
+
+export const organizationMembers = pgTable(
+	"organization_members",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		role: text().notNull().default("member"), // "admin" | "member" | custom roles
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("organization_members_organization_id_idx").on(table.organizationId),
+		index("organization_members_user_id_idx").on(table.userId),
+		unique("organization_members_unique").on(
+			table.organizationId,
+			table.userId,
+		),
+	],
+);
+
+export type InsertOrganizationMember = typeof organizationMembers.$inferInsert;
+export type SelectOrganizationMember = typeof organizationMembers.$inferSelect;
 
 export const repositories = pgTable(
 	"repositories",
@@ -76,7 +150,7 @@ export const tasks = pgTable(
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		repositoryId: uuid("repository_id").references(() => repositories.id, {
 			onDelete: "cascade",
-		}),
+		}), // Optional - Linear tasks won't have this
 		assigneeId: uuid("assignee_id").references(() => users.id, {
 			onDelete: "set null",
 		}),

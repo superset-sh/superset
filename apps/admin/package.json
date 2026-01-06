@@ -11,8 +11,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clerk/nextjs": "^6.36.2",
 		"@sentry/nextjs": "^10.32.1",
-		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
@@ -23,7 +23,6 @@
 		"@trpc/client": "^11.7.1",
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
-		"better-auth": "^1.4.9",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",

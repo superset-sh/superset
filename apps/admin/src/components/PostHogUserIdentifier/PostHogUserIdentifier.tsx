@@ -1,27 +1,27 @@
 "use client";
 
-import { authClient } from "@superset/auth/client";
+import { useUser } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
 import posthog from "posthog-js";
 import { useEffect } from "react";
-import { useTRPC } from "@/trpc/react";
+import { useTRPC } from "../../trpc/react";
 
 export function PostHogUserIdentifier() {
-	const { data: session } = authClient.useSession();
+	const { isSignedIn } = useUser();
 	const trpc = useTRPC();
 
 	const { data: user } = useQuery({
 		...trpc.user.me.queryOptions(),
-		enabled: !!session?.user,
+		enabled: isSignedIn,
 	});
 
 	useEffect(() => {
 		if (user) {
 			posthog.identify(user.id, { email: user.email, name: user.name });
-		} else if (!session?.user) {
+		} else if (isSignedIn === false) {
 			posthog.reset();
 		}
-	}, [user, session?.user]);
+	}, [user, isSignedIn]);
 
 	return null;
 }

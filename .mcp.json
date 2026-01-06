@@ -6,6 +6,14 @@
 			"env": {
 				"NEON_API_KEY": "${NEON_API_KEY}"
 			}
+		},
+		"morph-warp-grep": {
+			"command": "npx",
+			"args": ["-y", "@morphllm/morphmcp"],
+			"env": {
+				"MORPH_API_KEY": "${MORPH_API_KEY}",
+				"ENABLED_TOOLS": "warpgrep_codebase_search"
+			}
 		}
 	}
 }

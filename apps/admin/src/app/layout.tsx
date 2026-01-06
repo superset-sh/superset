@@ -1,7 +1,10 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Inter } from "next/font/google";
+
+import { env } from "@/env";
 
 import "./globals.css";
 
@@ -37,19 +40,21 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body
-				className={cn(
-					"bg-background text-foreground min-h-screen font-sans antialiased",
-					inter.variable,
-					ibmPlexMono.variable,
-				)}
-			>
-				<Providers>
-					{children}
-					<Toaster />
-				</Providers>
-			</body>
-		</html>
+		<ClerkProvider domain={env.NEXT_PUBLIC_COOKIE_DOMAIN} isSatellite={false}>
+			<html lang="en" suppressHydrationWarning>
+				<body
+					className={cn(
+						"bg-background text-foreground min-h-screen font-sans antialiased",
+						inter.variable,
+						ibmPlexMono.variable,
+					)}
+				>
+					<Providers>
+						{children}
+						<Toaster />
+					</Providers>
+				</body>
+			</html>
+		</ClerkProvider>
 	);
 }

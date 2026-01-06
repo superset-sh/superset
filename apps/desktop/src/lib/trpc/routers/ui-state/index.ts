@@ -11,18 +11,38 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
 /**
+ * Zod schema for FileViewerState persistence.
+ * Note: initialLine/initialColumn from shared/tabs-types.ts are intentionally
+ * omitted as they are transient (applied once on open, not persisted).
+ */
+const fileViewerStateSchema = z.object({
+	filePath: z.string(),
+	viewMode: z.enum(["rendered", "raw", "diff"]),
+	isLocked: z.boolean(),
+	diffLayout: z.enum(["inline", "side-by-side"]),
+	diffCategory: z
+		.enum(["against-base", "committed", "staged", "unstaged"])
+		.optional(),
+	commitHash: z.string().optional(),
+	oldPath: z.string().optional(),
+});
+
+/**
  * Zod schema for Pane
  */
 const paneSchema = z.object({
 	id: z.string(),
 	tabId: z.string(),
-	type: z.enum(["terminal", "webview"]),
+	type: z.enum(["terminal", "webview", "file-viewer"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
 	needsAttention: z.boolean().optional(),
 	initialCommands: z.array(z.string()).optional(),
 	initialCwd: z.string().optional(),
 	url: z.string().optional(),
+	cwd: z.string().nullable().optional(),
+	cwdConfirmed: z.boolean().optional(),
+	fileViewer: fileViewerStateSchema.optional(),
 });
 
 /**

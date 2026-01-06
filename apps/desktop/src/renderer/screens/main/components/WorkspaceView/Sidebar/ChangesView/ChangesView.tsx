@@ -6,13 +6,22 @@ import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
 
-export function ChangesView() {
+interface ChangesViewProps {
+	onFileOpen?: (
+		file: ChangedFile,
+		category: ChangeCategory,
+		commitHash?: string,
+	) => void;
+}
+
+export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
@@ -128,11 +137,13 @@ export function ChangesView() {
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, category, null);
+		onFileOpen?.(file, category);
 	};
 
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, "committed", commitHash);
+		onFileOpen?.(file, "committed", commitHash);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -206,6 +217,7 @@ export function ChangesView() {
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
+				workspaceId={activeWorkspace?.id}
 			/>
 
 			<CommitInput

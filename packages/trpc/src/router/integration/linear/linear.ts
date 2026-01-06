@@ -10,7 +10,7 @@ export const linearRouter = {
 	getConnection: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const connection = await db.query.integrationConnections.findFirst({
 				where: and(
 					eq(integrationConnections.organizationId, input.organizationId),
@@ -25,7 +25,7 @@ export const linearRouter = {
 	disconnect: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
 
 			const result = await db
 				.delete(integrationConnections)
@@ -47,7 +47,7 @@ export const linearRouter = {
 	getTeams: protectedProcedure
 		.input(z.object({ organizationId: z.uuid() }))
 		.query(async ({ ctx, input }) => {
-			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			await verifyOrgMembership(ctx.userId, input.organizationId);
 			const client = await getLinearClient(input.organizationId);
 			if (!client) return [];
 			const teams = await client.teams();
@@ -62,7 +62,7 @@ export const linearRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
+			await verifyOrgAdmin(ctx.userId, input.organizationId);
 
 			const config: LinearConfig = {
 				provider: "linear",

@@ -1,9 +1,8 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { assertRegisteredWorktree, secureFs } from "./security";
 import { applyNumstatToFiles } from "./utils/apply-numstat";
 import {
 	parseGitLog,
@@ -21,6 +20,8 @@ export const createStatusRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<GitChangesStatus> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 
@@ -64,6 +65,8 @@ export const createStatusRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<ChangedFile[]> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const git = simpleGit(input.worktreePath);
 
 				const nameStatus = await git.raw([
@@ -141,18 +144,25 @@ async function getBranchComparison(
 	return { commits, againstBase, ahead, behind };
 }
 
+/** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
+const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
+
 async function applyUntrackedLineCount(
 	worktreePath: string,
 	untracked: ChangedFile[],
 ): Promise<void> {
 	for (const file of untracked) {
 		try {
-			const fullPath = join(worktreePath, file.path);
-			const content = await readFile(fullPath, "utf-8");
+			const stats = await secureFs.stat(worktreePath, file.path);
+			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
+
+			const content = await secureFs.readFile(worktreePath, file.path);
 			const lineCount = content.split("\n").length;
 			file.additions = lineCount;
 			file.deletions = 0;
-		} catch {}
+		} catch {
+			// Skip files that fail validation or reading
+		}
 	}
 }
 

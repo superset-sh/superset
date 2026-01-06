@@ -25,7 +25,7 @@ export interface LeaderboardEntry {
 	userId: string;
 	name: string;
 	email: string;
-	image: string | null;
+	avatarUrl: string | null;
 	count: number;
 }
 
@@ -255,7 +255,7 @@ export const analyticsRouter = {
 						userId: user.id,
 						name: user.name,
 						email: user.email,
-						image: user.image,
+						avatarUrl: user.avatarUrl,
 						count,
 					};
 				})

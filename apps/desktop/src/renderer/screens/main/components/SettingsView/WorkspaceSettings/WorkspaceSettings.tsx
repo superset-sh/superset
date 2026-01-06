@@ -2,7 +2,7 @@ import { Input } from "@superset/ui/input";
 import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
-import { useWorkspaceRename } from "renderer/screens/main/components/TopBar/WorkspaceTabs/useWorkspaceRename";
+import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 
 export function WorkspaceSettings() {
 	const { data: activeWorkspace, isLoading } =

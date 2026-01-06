@@ -1,18 +1,26 @@
 .mosaic-container {
-	background: var(--color-tertiary);
+	background: transparent;
+}
+
+.mosaic-theme-dark .mosaic-root {
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.mosaic-theme-dark .mosaic-tile {
+	margin: 0;
 }
 
 .mosaic-theme-dark .mosaic-window {
-	border: 1px solid var(--color-tertiary-active);
-	border-radius: var(--radius-lg);
+	border: 0.5px solid var(--color-border);
+	border-radius: 0;
 	overflow: hidden;
 	box-shadow: none;
-	transition:
-		border-color 0.15s ease,
-		box-shadow 0.15s ease;
 }
 .mosaic-theme-dark .mosaic-window-focused {
-	border-color: var(--color-tertiary-active);
+	border-color: var(--color-border);
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
@@ -22,7 +30,7 @@
 	display: flex;
 	align-items: center;
 	transition: background-color 0.15s ease;
-	border-radius: var(--radius-md) var(--radius-md) 0 0;
+	border-radius: 0;
 }
 .mosaic-theme-dark
 	.mosaic-window
@@ -49,7 +57,7 @@
 	opacity: 1;
 }
 .mosaic-theme-dark .mosaic-window-focused .mosaic-window-toolbar {
-	background: var(--color-tertiary-active);
+	background: var(--color-secondary);
 }
 .mosaic-theme-dark .mosaic-window .mosaic-window-title {
 	color: var(--color-muted-foreground);
@@ -65,7 +73,7 @@
 	background: transparent;
 	border: none;
 	box-shadow: none;
-	border-radius: 0 0 var(--radius-md) var(--radius-md);
+	border-radius: 0;
 	overflow: hidden;
 }
 
@@ -82,16 +90,17 @@
 	transition: background-color 0.15s ease;
 }
 
-.mosaic-theme-dark .mosaic-split:hover,
-.mosaic-theme-dark .mosaic-split.mosaic-split-dragging {
-	background: transparent;
+.mosaic-theme-dark .mosaic-split.-column {
+	cursor: row-resize;
+}
+
+.mosaic-theme-dark .mosaic-split.-row {
 	cursor: col-resize;
 }
 
 /* Drop target when hovering - shows the split preview */
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
-	background: rgba(59, 130, 246, 0.15);
-	border: 2px solid rgba(59, 130, 246, 0.4);
-	border-radius: var(--radius-lg);
+	background: rgba(59, 130, 246, 0.1);
+	border: 1px solid rgba(59, 130, 246, 0.3);
 	opacity: 1;
 }

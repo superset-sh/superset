@@ -23,7 +23,7 @@ import { createWorkspacesRouter } from "./workspaces";
 export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		analytics: createAnalyticsRouter(),
-		auth: createAuthRouter(),
+		auth: createAuthRouter(getWindow),
 		autoUpdate: createAutoUpdateRouter(),
 		user: createUserRouter(),
 		window: createWindowRouter(getWindow),

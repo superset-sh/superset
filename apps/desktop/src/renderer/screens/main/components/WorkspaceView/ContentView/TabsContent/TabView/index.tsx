@@ -8,6 +8,7 @@ import {
 	type MosaicNode,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
+import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Pane, Tab } from "renderer/stores/tabs/types";
 import {
@@ -15,6 +16,7 @@ import {
 	extractPaneIdsFromLayout,
 	getPaneIdsForTab,
 } from "renderer/stores/tabs/utils";
+import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
 interface TabViewProps {
@@ -34,6 +36,10 @@ export function TabView({ tab, panes }: TabViewProps) {
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const allTabs = useTabsStore((s) => s.tabs);
+
+	// Get worktree path for file viewer panes
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const worktreePath = activeWorkspace?.worktreePath ?? "";
 
 	// Get tabs in the same workspace for move targets
 	const workspaceTabs = allTabs.filter(
@@ -90,6 +96,31 @@ export function TabView({ tab, panes }: TabViewProps) {
 				);
 			}
 
+			// Route file-viewer panes to FileViewerPane component
+			if (pane.type === "file-viewer") {
+				if (!worktreePath) {
+					return (
+						<div className="w-full h-full flex items-center justify-center text-muted-foreground">
+							Workspace path unavailable
+						</div>
+					);
+				}
+				return (
+					<FileViewerPane
+						paneId={paneId}
+						path={path}
+						pane={pane}
+						isActive={isActive}
+						tabId={tab.id}
+						worktreePath={worktreePath}
+						splitPaneAuto={splitPaneAuto}
+						removePane={removePane}
+						setFocusedPane={setFocusedPane}
+					/>
+				);
+			}
+
+			// Default: terminal panes
 			return (
 				<TabPane
 					paneId={paneId}
@@ -114,6 +145,7 @@ export function TabView({ tab, panes }: TabViewProps) {
 			focusedPaneId,
 			tab.id,
 			tab.workspaceId,
+			worktreePath,
 			splitPaneAuto,
 			splitPaneHorizontal,
 			splitPaneVertical,

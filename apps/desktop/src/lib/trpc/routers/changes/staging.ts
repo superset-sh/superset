@@ -1,8 +1,13 @@
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	gitCheckoutFile,
+	gitStageAll,
+	gitStageFile,
+	gitUnstageAll,
+	gitUnstageFile,
+	secureFs,
+} from "./security";
 
 export const createStagingRouter = () => {
 	return router({
@@ -14,8 +19,7 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const git = simpleGit(input.worktreePath);
-				await git.add(input.filePath);
+				await gitStageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -27,8 +31,7 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const git = simpleGit(input.worktreePath);
-				await git.reset(["HEAD", "--", input.filePath]);
+				await gitUnstageFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
@@ -40,24 +43,21 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const git = simpleGit(input.worktreePath);
-				await git.checkout(["--", input.filePath]);
+				await gitCheckoutFile(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 
 		stageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const git = simpleGit(input.worktreePath);
-				await git.add("-A");
+				await gitStageAll(input.worktreePath);
 				return { success: true };
 			}),
 
 		unstageAll: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const git = simpleGit(input.worktreePath);
-				await git.reset(["HEAD"]);
+				await gitUnstageAll(input.worktreePath);
 				return { success: true };
 			}),
 
@@ -69,8 +69,7 @@ export const createStagingRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const fullPath = join(input.worktreePath, input.filePath);
-				await rm(fullPath, { recursive: true, force: true });
+				await secureFs.delete(input.worktreePath, input.filePath);
 				return { success: true };
 			}),
 	});

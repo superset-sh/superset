@@ -1,68 +1,41 @@
 import { relations } from "drizzle-orm";
 
 import {
-	accounts,
-	invitations,
-	members,
+	integrationConnections,
+	organizationMembers,
 	organizations,
-	sessions,
+	repositories,
+	tasks,
 	users,
-} from "./auth";
-import { integrationConnections, repositories, tasks } from "./schema";
+} from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
-	sessions: many(sessions),
-	accounts: many(accounts),
-	members: many(members),
-	invitations: many(invitations),
+	organizationMembers: many(organizationMembers),
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
 }));
 
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-	user: one(users, {
-		fields: [sessions.userId],
-		references: [users.id],
-	}),
-}));
-
-export const accountsRelations = relations(accounts, ({ one }) => ({
-	user: one(users, {
-		fields: [accounts.userId],
-		references: [users.id],
-	}),
-}));
-
 export const organizationsRelations = relations(organizations, ({ many }) => ({
-	members: many(members),
-	invitations: many(invitations),
+	members: many(organizationMembers),
 	repositories: many(repositories),
 	tasks: many(tasks),
 	integrations: many(integrationConnections),
 }));
 
-export const membersRelations = relations(members, ({ one }) => ({
-	organization: one(organizations, {
-		fields: [members.organizationId],
-		references: [organizations.id],
+export const organizationMembersRelations = relations(
+	organizationMembers,
+	({ one }) => ({
+		organization: one(organizations, {
+			fields: [organizationMembers.organizationId],
+			references: [organizations.id],
+		}),
+		user: one(users, {
+			fields: [organizationMembers.userId],
+			references: [users.id],
+		}),
 	}),
-	user: one(users, {
-		fields: [members.userId],
-		references: [users.id],
-	}),
-}));
-
-export const invitationsRelations = relations(invitations, ({ one }) => ({
-	organization: one(organizations, {
-		fields: [invitations.organizationId],
-		references: [organizations.id],
-	}),
-	inviter: one(users, {
-		fields: [invitations.inviterId],
-		references: [users.id],
-	}),
-}));
+);
 
 export const repositoriesRelations = relations(
 	repositories,

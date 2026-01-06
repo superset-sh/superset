@@ -1,6 +1,10 @@
 import { LinearClient } from "@linear/sdk";
 import { db } from "@superset/db/client";
-import { integrationConnections, members } from "@superset/db/schema";
+import {
+	integrationConnections,
+	organizationMembers,
+	users,
+} from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
 type Priority = "urgent" | "high" | "medium" | "low" | "none";
@@ -53,13 +57,21 @@ export async function getLinearClient(
 }
 
 export async function verifyOrgMembership(
-	userId: string,
+	clerkUserId: string,
 	organizationId: string,
 ) {
-	const membership = await db.query.members.findFirst({
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkUserId),
+	});
+
+	if (!user) {
+		throw new Error("User not found");
+	}
+
+	const membership = await db.query.organizationMembers.findFirst({
 		where: and(
-			eq(members.organizationId, organizationId),
-			eq(members.userId, userId),
+			eq(organizationMembers.organizationId, organizationId),
+			eq(organizationMembers.userId, user.id),
 		),
 	});
 
@@ -67,15 +79,21 @@ export async function verifyOrgMembership(
 		throw new Error("Not a member of this organization");
 	}
 
-	return { membership };
+	return { user, membership };
 }
 
-export async function verifyOrgAdmin(userId: string, organizationId: string) {
-	const { membership } = await verifyOrgMembership(userId, organizationId);
+export async function verifyOrgAdmin(
+	clerkUserId: string,
+	organizationId: string,
+) {
+	const { user, membership } = await verifyOrgMembership(
+		clerkUserId,
+		organizationId,
+	);
 
-	if (membership.role !== "admin" && membership.role !== "owner") {
+	if (membership.role !== "admin") {
 		throw new Error("Admin access required");
 	}
 
-	return { membership };
+	return { user, membership };
 }

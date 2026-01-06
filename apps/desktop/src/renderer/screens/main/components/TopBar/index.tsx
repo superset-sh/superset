@@ -1,26 +1,35 @@
 import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
-import { SidebarControl } from "./SidebarControl";
+import { OpenInMenuButton } from "./OpenInMenuButton";
 import { WindowControls } from "./WindowControls";
-import { WorkspacesTabs } from "./WorkspaceTabs";
+import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 
 export function TopBar() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
-	const isMac = platform === "darwin";
+	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	// Default to Mac layout while loading to avoid overlap with traffic lights
+	const isMac = platform === undefined || platform === "darwin";
+
 	return (
-		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background">
+		<div className="drag gap-2 h-12 w-full flex items-center justify-between bg-background border-b border-border">
 			<div
-				className="flex items-center gap-1 h-full"
+				className="flex items-center gap-2 h-full"
 				style={{
-					paddingLeft: isMac ? "80px" : "16px",
+					paddingLeft: isMac ? "88px" : "16px",
 				}}
 			>
-				<SidebarControl />
+				<WorkspaceSidebarControl />
 			</div>
-			<div className="flex items-center gap-2 flex-1 overflow-hidden h-full">
-				<WorkspacesTabs />
-			</div>
-			<div className="flex items-center h-full pr-4">
+
+			<div className="flex-1" />
+
+			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				{activeWorkspace?.worktreePath && (
+					<OpenInMenuButton
+						worktreePath={activeWorkspace.worktreePath}
+						branch={activeWorkspace.worktree?.branch}
+					/>
+				)}
 				<AvatarDropdown />
 				{!isMac && <WindowControls />}
 			</div>

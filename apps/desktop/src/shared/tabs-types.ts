@@ -3,10 +3,46 @@
  * Renderer extends these with MosaicNode layout specifics.
  */
 
+import type { ChangeCategory } from "./changes-types";
+
 /**
  * Pane types that can be displayed within a tab
  */
-export type PaneType = "terminal" | "webview";
+export type PaneType = "terminal" | "webview" | "file-viewer";
+
+/**
+ * File viewer display modes
+ */
+export type FileViewerMode = "rendered" | "raw" | "diff";
+
+/**
+ * Diff layout options for file viewer
+ */
+export type DiffLayout = "inline" | "side-by-side";
+
+/**
+ * File viewer pane-specific properties
+ */
+export interface FileViewerState {
+	/** Worktree-relative file path */
+	filePath: string;
+	/** Display mode: rendered (markdown), raw (source), or diff */
+	viewMode: FileViewerMode;
+	/** If true, this pane won't be reused for new file clicks */
+	isLocked: boolean;
+	/** Diff display layout */
+	diffLayout: DiffLayout;
+	/** Category for diff source (against-main, committed, staged, unstaged) */
+	diffCategory?: ChangeCategory;
+	/** Commit hash for committed category diffs */
+	commitHash?: string;
+	/** Original path for renamed files */
+	oldPath?: string;
+	/** Initial line to scroll to (raw mode only, transient - applied once) */
+	initialLine?: number;
+	/** Initial column to scroll to (raw mode only, transient - applied once) */
+	initialColumn?: number;
+}
 
 /**
  * Base Pane interface - shared between main and renderer
@@ -23,6 +59,7 @@ export interface Pane {
 	url?: string; // For webview panes
 	cwd?: string | null; // Current working directory
 	cwdConfirmed?: boolean; // True if cwd confirmed via OSC-7, false if seeded
+	fileViewer?: FileViewerState; // For file-viewer panes
 }
 
 /**

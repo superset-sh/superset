@@ -1,4 +1,4 @@
-const MINIMUM_DESKTOP_VERSION = "0.0.44";
+const MINIMUM_DESKTOP_VERSION = "0.0.39";
 
 /**
  * Used to force the desktop app to update, in cases where we can't support
@@ -7,7 +7,6 @@ const MINIMUM_DESKTOP_VERSION = "0.0.44";
 export async function GET() {
 	return Response.json({
 		minimumVersion: MINIMUM_DESKTOP_VERSION,
-		message:
-			"We've upgraded our authentication system. Please update to continue.",
+		message: "Please update to the latest version to continue.",
 	});
 }

@@ -16,6 +16,8 @@ const AUTH_TAG_LENGTH = 16;
 
 /**
  * Gets a stable machine identifier for key derivation.
+ * This provides "good enough" protection for local credential storage
+ * without requiring OS keychain access.
  */
 function getMachineId(): string {
 	try {

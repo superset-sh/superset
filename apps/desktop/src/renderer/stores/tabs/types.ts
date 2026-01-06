@@ -1,4 +1,5 @@
 import type { MosaicBranch, MosaicNode } from "react-mosaic-component";
+import type { ChangeCategory } from "shared/changes-types";
 import type { BaseTab, BaseTabsState, Pane, PaneType } from "shared/tabs-types";
 
 // Re-export shared types
@@ -29,6 +30,20 @@ export interface AddTabOptions {
 }
 
 /**
+ * Options for opening a file in a file-viewer pane
+ */
+export interface AddFileViewerPaneOptions {
+	filePath: string;
+	diffCategory?: ChangeCategory;
+	commitHash?: string;
+	oldPath?: string;
+	/** Line to scroll to (raw mode only) */
+	line?: number;
+	/** Column to scroll to (raw mode only) */
+	column?: number;
+}
+
+/**
  * Actions available on the tabs store
  */
 export interface TabsStore extends TabsState {
@@ -51,10 +66,15 @@ export interface TabsStore extends TabsState {
 
 	// Pane operations
 	addPane: (tabId: string, options?: AddTabOptions) => string;
+	addFileViewerPane: (
+		workspaceId: string,
+		options: AddFileViewerPaneOptions,
+	) => string;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
 	markPaneAsUsed: (paneId: string) => void;
 	setNeedsAttention: (paneId: string, needsAttention: boolean) => void;
+	clearWorkspaceAttention: (workspaceId: string) => void;
 	updatePaneCwd: (
 		paneId: string,
 		cwd: string | null,

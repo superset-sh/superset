@@ -6,3 +6,4 @@ export { useOpenWorktree } from "./useOpenWorktree";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";
 export { useSetActiveWorkspace } from "./useSetActiveWorkspace";
 export { useUpdateWorkspace } from "./useUpdateWorkspace";
+export { useWorkspaceDeleteHandler } from "./useWorkspaceDeleteHandler";

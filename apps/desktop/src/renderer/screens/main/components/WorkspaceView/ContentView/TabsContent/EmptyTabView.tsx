@@ -3,16 +3,16 @@ import { HiMiniCommandLine } from "react-icons/hi2";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 
 export function EmptyTabView() {
-	const newTerminalDisplay = useHotkeyDisplay("NEW_TERMINAL");
+	const newGroupDisplay = useHotkeyDisplay("NEW_GROUP");
 	const openInAppDisplay = useHotkeyDisplay("OPEN_IN_APP");
 
 	const shortcuts = [
-		{ label: "New Terminal", display: newTerminalDisplay },
+		{ label: "New Tab", display: newGroupDisplay },
 		{ label: "Open in App", display: openInAppDisplay },
 	];
 
 	return (
-		<div className="flex-1 h-full flex flex-col items-center justify-center gap-6">
+		<div className="flex-1 flex flex-col items-center justify-center gap-6 h-full">
 			<div className="p-4 rounded-lg bg-muted border border-border">
 				<HiMiniCommandLine className="size-8 text-muted-foreground" />
 			</div>

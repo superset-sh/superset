@@ -20,7 +20,7 @@ import {
 	SidebarRail,
 } from "@superset/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { LuChevronRight, LuHouse, LuUsers } from "react-icons/lu";
+import { LuChevronRight, LuHouse, LuUsers, LuUserX } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";
@@ -42,6 +42,11 @@ const sections = [
 				title: "All Users",
 				url: "/users",
 				icon: LuUsers,
+			},
+			{
+				title: "Deleted Users",
+				url: "/users/deleted",
+				icon: LuUserX,
 			},
 		],
 	},

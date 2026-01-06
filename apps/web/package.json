@@ -11,8 +11,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@clerk/nextjs": "^6.36.2",
 		"@sentry/nextjs": "^10.32.1",
-		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
@@ -24,7 +24,6 @@
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
 		"@uiw/react-md-editor": "^4.0.11",
-		"better-auth": "^1.4.9",
 		"framer-motion": "^12.23.26",
 		"geist": "^1.5.1",
 		"import-in-the-middle": "2.0.1",

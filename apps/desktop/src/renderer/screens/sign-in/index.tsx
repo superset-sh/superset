@@ -1,10 +1,11 @@
-import { type AuthProvider, COMPANY } from "@superset/shared/constants";
+import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { posthog } from "renderer/lib/posthog";
 import { trpc } from "renderer/lib/trpc";
+import type { AuthProvider } from "shared/auth";
 import { SupersetLogo } from "./components/SupersetLogo";
 
 export function SignInScreen() {

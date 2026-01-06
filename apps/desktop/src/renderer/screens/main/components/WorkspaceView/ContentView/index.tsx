@@ -1,19 +1,15 @@
-import { SidebarMode, useSidebarStore } from "renderer/stores";
-import { ChangesContent } from "./ChangesContent";
+import { SidebarControl } from "../../SidebarControl";
+import { ContentHeader } from "./ContentHeader";
 import { TabsContent } from "./TabsContent";
+import { GroupStrip } from "./TabsContent/GroupStrip";
 
 export function ContentView() {
-	const { currentMode } = useSidebarStore();
-
-	if (currentMode === SidebarMode.Changes) {
-		return (
-			<div className="h-full overflow-hidden bg-tertiary p-1">
-				<div className="h-full bg-background rounded-lg overflow-hidden border border-border">
-					<ChangesContent />
-				</div>
-			</div>
-		);
-	}
-
-	return <TabsContent />;
+	return (
+		<div className="h-full flex flex-col overflow-hidden">
+			<ContentHeader trailingAction={<SidebarControl />}>
+				<GroupStrip />
+			</ContentHeader>
+			<TabsContent />
+		</div>
+	);
 }

@@ -93,19 +93,26 @@ function loadRenderer(xterm: XTerm): { dispose: () => void } {
 	};
 }
 
+export interface CreateTerminalOptions {
+	cwd?: string;
+	initialTheme?: ITheme | null;
+	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
+}
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
-	cwd?: string,
-	initialTheme?: ITheme | null,
+	options: CreateTerminalOptions = {},
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
 	cleanup: () => void;
 } {
+	const { cwd, initialTheme, onFileLinkClick } = options;
+
 	// Use provided theme, or fall back to localStorage-based default to prevent flash
 	const theme = initialTheme ?? getDefaultTerminalTheme();
-	const options = { ...TERMINAL_OPTIONS, theme };
-	const xterm = new XTerm(options);
+	const terminalOptions = { ...TERMINAL_OPTIONS, theme };
+	const xterm = new XTerm(terminalOptions);
 	const fitAddon = new FitAddon();
 
 	const clipboardAddon = new ClipboardAddon();
@@ -149,20 +156,25 @@ export function createTerminalInstance(
 	const filePathLinkProvider = new FilePathLinkProvider(
 		xterm,
 		(_event, path, line, column) => {
-			trpcClient.external.openFileInEditor
-				.mutate({
-					path,
-					line,
-					column,
-					cwd,
-				})
-				.catch((error) => {
-					console.error(
-						"[Terminal] Failed to open file in editor:",
+			if (onFileLinkClick) {
+				onFileLinkClick(path, line, column);
+			} else {
+				// Fallback to default behavior (external editor)
+				trpcClient.external.openFileInEditor
+					.mutate({
 						path,
-						error,
-					);
-				});
+						line,
+						column,
+						cwd,
+					})
+					.catch((error) => {
+						console.error(
+							"[Terminal] Failed to open file in editor:",
+							path,
+							error,
+						);
+					});
+			}
 		},
 	);
 	xterm.registerLinkProvider(filePathLinkProvider);
@@ -233,7 +245,7 @@ export function setupPasteHandler(
 
 /**
  * Setup keyboard handling for xterm including:
- * - Shortcut forwarding: App hotkeys are re-dispatched to document for react-hotkeys-hook
+ * - Shortcut forwarding: App hotkeys bubble to document where useAppHotkey listens
  * - Shift+Enter: Sends ESC+CR sequence (to avoid \ appearing in Claude Code while keeping line continuation behavior)
  * - Clear terminal: Uses the configured clear shortcut
  *

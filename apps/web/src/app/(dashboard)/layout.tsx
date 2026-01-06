@@ -1,7 +1,3 @@
-import { auth } from "@superset/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-
 import { api } from "@/trpc/server";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
@@ -12,14 +8,6 @@ export default async function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session) {
-		redirect("/sign-in");
-	}
-
 	const trpc = await api();
 	const organization = await trpc.user.myOrganization.query();
 	const displayName = organization?.name ?? "Superset";

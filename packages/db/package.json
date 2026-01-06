@@ -20,10 +20,6 @@
 			"types": "./src/schema/index.ts",
 			"default": "./src/schema/index.ts"
 		},
-		"./schema/auth": {
-			"types": "./src/schema/auth.ts",
-			"default": "./src/schema/auth.ts"
-		},
 		"./utils": {
 			"types": "./src/utils/index.ts",
 			"default": "./src/utils/index.ts"

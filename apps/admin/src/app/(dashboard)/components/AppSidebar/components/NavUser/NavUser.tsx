@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@superset/auth/client";
+import { useClerk } from "@clerk/nextjs";
 import type { RouterOutputs } from "@superset/trpc";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
@@ -25,6 +25,7 @@ import {
 	LuLogOut,
 	LuSettings,
 } from "react-icons/lu";
+
 import { env } from "@/env";
 
 export interface NavUserProps {
@@ -33,21 +34,12 @@ export interface NavUserProps {
 
 export function NavUser({ user }: NavUserProps) {
 	const { isMobile } = useSidebar();
+	const { signOut } = useClerk();
 
 	const userInitials = user.name
 		.split(" ")
 		.map((name) => name[0])
 		.join("");
-
-	const handleSignOut = async () => {
-		await authClient.signOut({
-			fetchOptions: {
-				onSuccess: () => {
-					window.location.href = env.NEXT_PUBLIC_WEB_URL;
-				},
-			},
-		});
-	};
 
 	return (
 		<SidebarMenu>
@@ -59,7 +51,10 @@ export function NavUser({ user }: NavUserProps) {
 							className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
 						>
 							<Avatar className="h-8 w-8 rounded-lg">
-								<AvatarImage src={user.image ?? undefined} alt={user.name} />
+								<AvatarImage
+									src={user.avatarUrl ?? undefined}
+									alt={user.name}
+								/>
 								<AvatarFallback className="rounded-lg">
 									{userInitials}
 								</AvatarFallback>
@@ -80,7 +75,10 @@ export function NavUser({ user }: NavUserProps) {
 						<DropdownMenuLabel className="p-0 font-normal">
 							<div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
 								<Avatar className="h-8 w-8 rounded-lg">
-									<AvatarImage src={user.image ?? undefined} alt={user.name} />
+									<AvatarImage
+										src={user.avatarUrl ?? undefined}
+										alt={user.name}
+									/>
 									<AvatarFallback className="rounded-lg">
 										{userInitials}
 									</AvatarFallback>
@@ -107,7 +105,9 @@ export function NavUser({ user }: NavUserProps) {
 							</DropdownMenuItem>
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={handleSignOut}>
+						<DropdownMenuItem
+							onClick={() => signOut({ redirectUrl: env.NEXT_PUBLIC_WEB_URL })}
+						>
 							<LuLogOut />
 							Log out
 						</DropdownMenuItem>

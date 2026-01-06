@@ -87,7 +87,7 @@ export function AvatarDropdown() {
 					aria-label="User menu"
 				>
 					<Avatar className="h-7 w-7 cursor-pointer hover:opacity-80 transition-opacity border border-border">
-						<AvatarImage src={user?.image ?? undefined} />
+						<AvatarImage src={user?.avatarUrl ?? undefined} />
 						<AvatarFallback className="text-xs">
 							{initials || "?"}
 						</AvatarFallback>

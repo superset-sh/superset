@@ -1,22 +1,46 @@
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
-import { auth } from "@superset/auth";
+import { db } from "@superset/db/client";
+import { organizationMembers, users } from "@superset/db/schema";
+import { and, eq } from "drizzle-orm";
 import { env } from "@/env";
+import { authenticateRequest } from "@/lib/auth";
 import { buildWhereClause } from "./utils";
 
+/**
+ * Electric SQL Proxy
+ *
+ * Forwards shape requests to Electric with organization-based filtering.
+ * @see https://electric-sql.com/docs/guides/auth#proxy-auth
+ */
 export async function GET(request: Request): Promise<Response> {
-	const sessionData = await auth.api.getSession({
-		headers: request.headers,
-	});
-	if (!sessionData?.user) {
+	const clerkUserId = await authenticateRequest(request);
+	if (!clerkUserId) {
 		return new Response("Unauthorized", { status: 401 });
 	}
 
-	const organizationId = sessionData.session.activeOrganizationId;
-	if (!organizationId) {
-		return new Response("No active organization", { status: 400 });
+	const user = await db.query.users.findFirst({
+		where: eq(users.clerkId, clerkUserId),
+	});
+	if (!user) {
+		return new Response("User not found", { status: 401 });
 	}
 
 	const url = new URL(request.url);
+	const organizationId = url.searchParams.get("organizationId");
+	if (!organizationId) {
+		return new Response("Missing organizationId parameter", { status: 400 });
+	}
+
+	const membership = await db.query.organizationMembers.findFirst({
+		where: and(
+			eq(organizationMembers.userId, user.id),
+			eq(organizationMembers.organizationId, organizationId),
+		),
+	});
+	if (!membership) {
+		return new Response("Not a member of this organization", { status: 403 });
+	}
+
 	const originUrl = new URL(env.ELECTRIC_URL);
 	originUrl.searchParams.set("secret", env.ELECTRIC_SECRET);
 
@@ -44,6 +68,8 @@ export async function GET(request: Request): Promise<Response> {
 
 	const response = await fetch(originUrl.toString());
 
+	// Forward headers, but remove content-encoding/length per Electric docs
+	// (these can cause issues when proxying compressed responses)
 	const headers = new Headers();
 	response.headers.forEach((value, key) => {
 		const lower = key.toLowerCase();

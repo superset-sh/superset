@@ -1,4 +1,5 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 import { env } from "./env";
 
@@ -7,6 +8,7 @@ const allowedOrigins = [
 	env.NEXT_PUBLIC_ADMIN_URL,
 	env.NODE_ENV === "development" && "http://localhost:5927",
 ].filter(Boolean);
+const isPublicRoute = createRouteMatcher(["/ingest(.*)", "/monitoring(.*)"]);
 
 function getCorsHeaders(origin: string | null) {
 	const isAllowed = origin && allowedOrigins.includes(origin);
@@ -19,7 +21,12 @@ function getCorsHeaders(origin: string | null) {
 	};
 }
 
-export default function proxy(req: NextRequest) {
+export default clerkMiddleware(async (_auth, req) => {
+	// Allow Sentry and PostHog routes without CORS processing
+	if (isPublicRoute(req)) {
+		return NextResponse.next();
+	}
+
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin);
 
@@ -34,11 +41,13 @@ export default function proxy(req: NextRequest) {
 		response.headers.set(key, value);
 	}
 	return response;
-}
+});
 
 export const config = {
 	matcher: [
-		"/((?!_next|ingest|monitoring|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+		// Skip Next.js internals and static files
+		"/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+		// Always run for API routes
 		"/(api|trpc)(.*)",
 	],
 };

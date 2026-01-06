@@ -1,46 +1,56 @@
 "use client";
 
-import { authClient } from "@superset/auth/client";
+import { useSignIn } from "@clerk/nextjs";
 import { Button } from "@superset/ui/button";
 import Link from "next/link";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+
 import { env } from "@/env";
 
 export default function SignInPage() {
+	const { signIn, isLoaded } = useSignIn();
 	const [isLoadingGoogle, setIsLoadingGoogle] = useState(false);
 	const [isLoadingGithub, setIsLoadingGithub] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	const signInWithGoogle = async () => {
+		if (!isLoaded) return;
+
 		setIsLoadingGoogle(true);
 		setError(null);
 
 		try {
-			await authClient.signIn.social({
-				provider: "google",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+			await signIn.authenticateWithRedirect({
+				strategy: "oauth_google",
+				redirectUrl: "/sso-callback",
+				redirectUrlComplete: "/",
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
 			setError("Failed to sign in. Please try again.");
+		} finally {
 			setIsLoadingGoogle(false);
 		}
 	};
 
 	const signInWithGithub = async () => {
+		if (!isLoaded) return;
+
 		setIsLoadingGithub(true);
 		setError(null);
 
 		try {
-			await authClient.signIn.social({
-				provider: "github",
-				callbackURL: env.NEXT_PUBLIC_WEB_URL,
+			await signIn.authenticateWithRedirect({
+				strategy: "oauth_github",
+				redirectUrl: "/sso-callback",
+				redirectUrlComplete: "/",
 			});
 		} catch (err) {
 			console.error("Sign in failed:", err);
 			setError("Failed to sign in. Please try again.");
+		} finally {
 			setIsLoadingGithub(false);
 		}
 	};
@@ -61,7 +71,7 @@ export default function SignInPage() {
 				)}
 				<Button
 					variant="outline"
-					disabled={isLoading}
+					disabled={!isLoaded || isLoading}
 					onClick={signInWithGithub}
 					className="w-full"
 				>
@@ -70,7 +80,7 @@ export default function SignInPage() {
 				</Button>
 				<Button
 					variant="outline"
-					disabled={isLoading}
+					disabled={!isLoaded || isLoading}
 					onClick={signInWithGoogle}
 					className="w-full"
 				>

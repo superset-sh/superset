@@ -1,8 +1,7 @@
 import { db } from "@superset/db/client";
 import {
-	members,
+	organizationMembers,
 	organizations,
-	repositories,
 	tasks,
 	users,
 } from "@superset/db/schema";
@@ -12,10 +11,9 @@ import { QueryBuilder } from "drizzle-orm/pg-core";
 
 export type AllowedTable =
 	| "tasks"
-	| "repositories"
-	| "auth.members"
-	| "auth.organizations"
-	| "auth.users";
+	| "organization_members"
+	| "organizations"
+	| "users";
 
 interface WhereClause {
 	fragment: string;
@@ -42,62 +40,25 @@ export async function buildWhereClause(
 		case "tasks":
 			return build(tasks, tasks.organizationId, organizationId);
 
-		case "repositories":
-			return build(repositories, repositories.organizationId, organizationId);
-
-		case "auth.members":
-			return build(members, members.organizationId, organizationId);
-
-		case "auth.organizations": {
-			const userMemberships = await db.query.members.findMany({
-				where: eq(members.organizationId, organizationId),
-				columns: { userId: true },
-			});
-
-			if (userMemberships.length === 0) {
-				return { fragment: "1 = 0", params: [] };
-			}
-
-			const userId = userMemberships[0]?.userId;
-			if (!userId) {
-				return { fragment: "1 = 0", params: [] };
-			}
-
-			const allUserMemberships = await db.query.members.findMany({
-				where: eq(members.userId, userId),
-				columns: { organizationId: true },
-			});
-
-			if (allUserMemberships.length === 0) {
-				return { fragment: "1 = 0", params: [] };
-			}
-
-			const orgIds = [
-				...new Set(allUserMemberships.map((m) => m.organizationId)),
-			];
-			const whereExpr = inArray(
-				sql`${sql.identifier(organizations.id.name)}`,
-				orgIds,
+		case "organization_members":
+			return build(
+				organizationMembers,
+				organizationMembers.organizationId,
+				organizationId,
 			);
-			const qb = new QueryBuilder();
-			const { sql: query, params } = qb
-				.select()
-				.from(organizations)
-				.where(whereExpr)
-				.toSQL();
-			const fragment = query.replace(/^select .* from .* where\s+/i, "");
-			return { fragment, params };
-		}
 
-		case "auth.users": {
-			const orgMembers = await db.query.members.findMany({
-				where: eq(members.organizationId, organizationId),
+		case "organizations":
+			return build(organizations, organizations.id, organizationId);
+
+		case "users": {
+			const members = await db.query.organizationMembers.findMany({
+				where: eq(organizationMembers.organizationId, organizationId),
 				columns: { userId: true },
 			});
-			if (orgMembers.length === 0) {
+			if (members.length === 0) {
 				return { fragment: "1 = 0", params: [] };
 			}
-			const userIds = [...new Set(orgMembers.map((m) => m.userId))];
+			const userIds = [...new Set(members.map((m) => m.userId))];
 			const whereExpr = inArray(sql`${sql.identifier(users.id.name)}`, userIds);
 			const qb = new QueryBuilder();
 			const { sql: query, params } = qb

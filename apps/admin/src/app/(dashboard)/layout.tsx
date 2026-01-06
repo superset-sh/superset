@@ -1,5 +1,3 @@
-import { auth } from "@superset/auth";
-import { COMPANY } from "@superset/shared/constants";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -14,10 +12,7 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "@superset/ui/sidebar";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 
-import { env } from "@/env";
 import { api } from "@/trpc/server";
 
 import { AppSidebar } from "./components/AppSidebar";
@@ -27,23 +22,11 @@ export default async function DashboardLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session?.user) {
-		redirect(env.NEXT_PUBLIC_WEB_URL);
-	}
-
-	if (!session.user.email?.endsWith(COMPANY.EMAIL_DOMAIN)) {
-		redirect(env.NEXT_PUBLIC_WEB_URL);
-	}
-
 	const trpc = await api();
 	const user = await trpc.user.me.query();
 
 	if (!user) {
-		redirect(env.NEXT_PUBLIC_WEB_URL);
+		throw new Error("User not found");
 	}
 
 	return (

@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
-import { Notification, screen } from "electron";
+import { Notification } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
@@ -18,6 +18,11 @@ import {
 	notificationsEmitter,
 } from "../lib/notifications/server";
 import { terminalManager } from "../lib/terminal";
+import {
+	getInitialWindowBounds,
+	loadWindowState,
+	saveWindowState,
+} from "../lib/window-state";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
@@ -29,17 +34,20 @@ let currentWindow: BrowserWindow | null = null;
 const getWindow = () => currentWindow;
 
 export async function MainWindow() {
-	const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+	const savedWindowState = loadWindowState();
+	const initialBounds = getInitialWindowBounds(savedWindowState);
 
 	const window = createWindow({
 		id: "main",
 		title: productName,
-		width,
-		height,
+		width: initialBounds.width,
+		height: initialBounds.height,
+		x: initialBounds.x,
+		y: initialBounds.y,
 		minWidth: 400,
 		minHeight: 400,
 		show: false,
-		center: true,
+		center: initialBounds.center,
 		movable: true,
 		resizable: true,
 		alwaysOnTop: false,
@@ -50,9 +58,6 @@ export async function MainWindow() {
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
-			// Isolate Electron session from system browser cookies
-			// This ensures desktop uses bearer token auth, not web cookies
-			partition: "persist:superset",
 		},
 	});
 
@@ -160,10 +165,25 @@ export async function MainWindow() {
 	);
 
 	window.webContents.on("did-finish-load", async () => {
+		// Restore maximized state if it was saved
+		if (initialBounds.isMaximized) {
+			window.maximize();
+		}
 		window.show();
 	});
 
 	window.on("close", () => {
+		// Save window state first, before any cleanup
+		const isMaximized = window.isMaximized();
+		const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
+		saveWindowState({
+			x: bounds.x,
+			y: bounds.y,
+			width: bounds.width,
+			height: bounds.height,
+			isMaximized,
+		});
+
 		server.close();
 		notificationsEmitter.removeAllListeners();
 		// Remove terminal listeners to prevent duplicates when window reopens on macOS

@@ -1,10 +1,9 @@
-import { writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import { shell } from "electron";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { isUpstreamMissingError } from "./git-utils";
+import { assertRegisteredWorktree } from "./security";
 
 export { isUpstreamMissingError };
 
@@ -21,25 +20,8 @@ async function hasUpstreamBranch(
 
 export const createGitOperationsRouter = () => {
 	return router({
-		saveFile: publicProcedure
-			.input(
-				z.object({
-					worktreePath: z.string(),
-					filePath: z.string(),
-					content: z.string(),
-				}),
-			)
-			.mutation(async ({ input }): Promise<{ success: boolean }> => {
-				const resolvedWorktree = resolve(input.worktreePath);
-				const fullPath = resolve(resolvedWorktree, input.filePath);
-
-				if (!fullPath.startsWith(`${resolvedWorktree}/`)) {
-					throw new Error("Invalid file path: path traversal detected");
-				}
-
-				await writeFile(fullPath, input.content, "utf-8");
-				return { success: true };
-			}),
+		// NOTE: saveFile is defined in file-contents.ts with hardened path validation
+		// Do NOT add saveFile here - it would overwrite the secure version
 
 		commit: publicProcedure
 			.input(
@@ -50,6 +32,8 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; hash: string }> => {
+					assertRegisteredWorktree(input.worktreePath);
+
 					const git = simpleGit(input.worktreePath);
 					const result = await git.commit(input.message);
 					return { success: true, hash: result.commit };
@@ -64,6 +48,8 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const git = simpleGit(input.worktreePath);
 				const hasUpstream = await hasUpstreamBranch(git);
 
@@ -84,6 +70,8 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const git = simpleGit(input.worktreePath);
 				try {
 					await git.pull(["--rebase"]);
@@ -107,6 +95,8 @@ export const createGitOperationsRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
+				assertRegisteredWorktree(input.worktreePath);
+
 				const git = simpleGit(input.worktreePath);
 				try {
 					await git.pull(["--rebase"]);
@@ -134,6 +124,8 @@ export const createGitOperationsRouter = () => {
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; url: string }> => {
+					assertRegisteredWorktree(input.worktreePath);
+
 					const git = simpleGit(input.worktreePath);
 					const branch = (await git.revparse(["--abbrev-ref", "HEAD"])).trim();
 					const hasUpstream = await hasUpstreamBranch(git);

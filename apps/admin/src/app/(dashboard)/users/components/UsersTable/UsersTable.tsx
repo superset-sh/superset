@@ -45,7 +45,7 @@ export function UsersTable() {
 	const trpc = useTRPC();
 	const queryClient = useQueryClient();
 	const { data, isLoading, error } = useQuery(
-		trpc.admin.listUsers.queryOptions(),
+		trpc.admin.listActiveUsers.queryOptions(),
 	);
 
 	const [userToDelete, setUserToDelete] = useState<{
@@ -55,12 +55,12 @@ export function UsersTable() {
 	} | null>(null);
 
 	const deleteMutation = useMutation(
-		trpc.admin.deleteUser.mutationOptions({
+		trpc.admin.permanentlyDeleteUser.mutationOptions({
 			onSuccess: () => {
 				queryClient.invalidateQueries({
-					queryKey: trpc.admin.listUsers.queryKey(),
+					queryKey: trpc.admin.listActiveUsers.queryKey(),
 				});
-				toast.success(`${userToDelete?.name} has been deleted`);
+				toast.success(`${userToDelete?.name} has been permanently deleted`);
 				setUserToDelete(null);
 			},
 			onError: (error) => {
@@ -152,7 +152,7 @@ export function UsersTable() {
 									<TableCell>
 										<div className="flex items-center gap-3">
 											<Avatar className="h-8 w-8">
-												<AvatarImage src={user.image ?? undefined} />
+												<AvatarImage src={user.avatarUrl ?? undefined} />
 												<AvatarFallback>
 													{user.name
 														.split(" ")

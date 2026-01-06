@@ -1,16 +1,15 @@
 import { DiffEditor, type DiffOnMount } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LuLoader } from "react-icons/lu";
 import {
+	MONACO_EDITOR_OPTIONS,
+	registerSaveAction,
 	SUPERSET_THEME,
 	useMonacoReady,
 } from "renderer/contexts/MonacoProvider";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-import {
-	registerCopyPathLineAction,
-	registerSaveCommand,
-} from "./editor-actions";
+import { registerCopyPathLineAction } from "./editor-actions";
 
 interface DiffViewerProps {
 	contents: FileContents;
@@ -18,6 +17,7 @@ interface DiffViewerProps {
 	filePath: string;
 	editable?: boolean;
 	onSave?: (content: string) => void;
+	onChange?: (content: string) => void;
 }
 
 export function DiffViewer({
@@ -26,16 +26,22 @@ export function DiffViewer({
 	filePath,
 	editable = false,
 	onSave,
+	onChange,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
 	const modifiedEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
 		null,
 	);
+	// Track when editor is mounted to trigger effects at the right time
+	const [isEditorMounted, setIsEditorMounted] = useState(false);
 
 	const handleSave = useCallback(() => {
 		if (!editable || !onSave || !modifiedEditorRef.current) return;
 		onSave(modifiedEditorRef.current.getValue());
 	}, [editable, onSave]);
+
+	// Store disposable for content change listener cleanup
+	const changeListenerRef = useRef<Monaco.IDisposable | null>(null);
 
 	const handleMount: DiffOnMount = useCallback(
 		(editor) => {
@@ -46,12 +52,42 @@ export function DiffViewer({
 			registerCopyPathLineAction(originalEditor, filePath);
 			registerCopyPathLineAction(modifiedEditor, filePath);
 
-			if (editable) {
-				registerSaveCommand(modifiedEditor, handleSave);
-			}
+			setIsEditorMounted(true);
 		},
-		[editable, handleSave, filePath],
+		[filePath],
 	);
+
+	// Update readOnly and register save action when editable changes or editor mounts
+	// Using addAction with an ID allows replacing the action on subsequent calls
+	useEffect(() => {
+		if (!isEditorMounted || !modifiedEditorRef.current) return;
+
+		modifiedEditorRef.current.updateOptions({ readOnly: !editable });
+
+		if (editable) {
+			registerSaveAction(modifiedEditorRef.current, handleSave);
+		}
+	}, [isEditorMounted, editable, handleSave]);
+
+	// Set up content change listener for dirty tracking
+	useEffect(() => {
+		if (!isEditorMounted || !modifiedEditorRef.current || !onChange) return;
+
+		// Clean up previous listener
+		changeListenerRef.current?.dispose();
+
+		changeListenerRef.current =
+			modifiedEditorRef.current.onDidChangeModelContent(() => {
+				if (modifiedEditorRef.current) {
+					onChange(modifiedEditorRef.current.getValue());
+				}
+			});
+
+		return () => {
+			changeListenerRef.current?.dispose();
+			changeListenerRef.current = null;
+		};
+	}, [isEditorMounted, onChange]);
 
 	if (!isMonacoReady) {
 		return (
@@ -78,23 +114,12 @@ export function DiffViewer({
 					</div>
 				}
 				options={{
+					...MONACO_EDITOR_OPTIONS,
 					renderSideBySide: viewMode === "side-by-side",
 					readOnly: !editable,
 					originalEditable: false,
-					minimap: { enabled: false },
-					scrollBeyondLastLine: false,
 					renderOverviewRuler: false,
-					wordWrap: "on",
 					diffWordWrap: "on",
-					fontSize: 13,
-					lineHeight: 20,
-					fontFamily:
-						"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
-					padding: { top: 8, bottom: 8 },
-					scrollbar: {
-						verticalScrollbarSize: 8,
-						horizontalScrollbarSize: 8,
-					},
 				}}
 			/>
 		</div>

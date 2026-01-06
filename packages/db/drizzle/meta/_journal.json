@@ -36,27 +36,6 @@
       "when": 1766710371092,
       "tag": "0004_webhook_events_idempotency",
       "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1766942895219,
-      "tag": "0005_back_up_user_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1766991848204,
-      "tag": "0006_add_better_auth_tables",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1767049518603,
-      "tag": "0007_add_created_at_default",
-      "breakpoints": true
     }
   ]
 }

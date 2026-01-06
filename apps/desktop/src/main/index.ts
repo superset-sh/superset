@@ -10,7 +10,7 @@ import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
-import { authService, parseAuthDeepLink } from "./lib/auth";
+import { authService, handleAuthDeepLink, isAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
@@ -36,15 +36,31 @@ if (process.defaultApp) {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
+/**
+ * Process a deep link URL for auth
+ */
 async function processDeepLink(url: string): Promise<void> {
-	const authParams = parseAuthDeepLink(url);
-	if (!authParams) return;
-
-	const result = await authService.handleAuthCallback(authParams);
-	if (result.success) {
-		focusMainWindow();
-	} else {
-		console.error("[main] Auth deep link failed:", result.error);
+	if (isAuthDeepLink(url)) {
+		const result = await handleAuthDeepLink(url);
+		if (
+			result.success &&
+			result.accessToken &&
+			result.accessTokenExpiresAt &&
+			result.refreshToken &&
+			result.refreshTokenExpiresAt &&
+			result.state
+		) {
+			await authService.handleAuthCallback({
+				accessToken: result.accessToken,
+				accessTokenExpiresAt: result.accessTokenExpiresAt,
+				refreshToken: result.refreshToken,
+				refreshTokenExpiresAt: result.refreshTokenExpiresAt,
+				state: result.state,
+			});
+			focusMainWindow();
+		} else {
+			console.error("[main] Auth deep link failed:", result.error);
+		}
 	}
 }
 

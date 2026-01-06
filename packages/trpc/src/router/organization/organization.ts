@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { members, organizations } from "@superset/db/schema";
+import { organizationMembers, organizations, users } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -52,24 +52,24 @@ export const organizationRouter = {
 			z.object({
 				name: z.string().min(1),
 				slug: z.string().min(1),
-				logo: z.string().url().optional(),
+				githubOrg: z.string().optional(),
+				avatarUrl: z.string().url().optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.clerkId, ctx.userId),
+			});
+
 			const [organization] = await db
 				.insert(organizations)
-				.values({
-					name: input.name,
-					slug: input.slug,
-					logo: input.logo,
-				})
+				.values(input)
 				.returning();
 
-			if (organization) {
-				await db.insert(members).values({
+			if (user && organization) {
+				await db.insert(organizationMembers).values({
 					organizationId: organization.id,
-					userId: ctx.session.user.id,
-					role: "owner",
+					userId: user.id,
 				});
 			}
 
@@ -79,9 +79,10 @@ export const organizationRouter = {
 	update: protectedProcedure
 		.input(
 			z.object({
-				id: z.string(),
+				id: z.string().uuid(),
 				name: z.string().min(1).optional(),
-				logo: z.string().url().optional(),
+				githubOrg: z.string().optional(),
+				avatarUrl: z.string().url().optional(),
 			}),
 		)
 		.mutation(async ({ input }) => {
@@ -110,12 +111,8 @@ export const organizationRouter = {
 		)
 		.mutation(async ({ input }) => {
 			const [member] = await db
-				.insert(members)
-				.values({
-					organizationId: input.organizationId,
-					userId: input.userId,
-					role: "member",
-				})
+				.insert(organizationMembers)
+				.values(input)
 				.returning();
 			return member;
 		}),
@@ -129,11 +126,11 @@ export const organizationRouter = {
 		)
 		.mutation(async ({ input }) => {
 			await db
-				.delete(members)
+				.delete(organizationMembers)
 				.where(
 					and(
-						eq(members.organizationId, input.organizationId),
-						eq(members.userId, input.userId),
+						eq(organizationMembers.organizationId, input.organizationId),
+						eq(organizationMembers.userId, input.userId),
 					),
 				);
 			return { success: true };

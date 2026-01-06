@@ -1,6 +1,6 @@
 "use client";
 
-import { authClient } from "@superset/auth/client";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
@@ -12,19 +12,14 @@ import {
 import { LogOut } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 export function Header() {
-	const { data: session } = authClient.useSession();
-	const router = useRouter();
+	const { user } = useUser();
 
-	const user = session?.user;
-	const initials = getInitials(user?.name, user?.email);
-
-	const handleSignOut = async () => {
-		await authClient.signOut();
-		router.push("/sign-in");
-	};
+	const initials = getInitials(
+		user?.fullName,
+		user?.primaryEmailAddress?.emailAddress,
+	);
 
 	return (
 		<header className="sticky left-0 top-0 z-40 w-full border-b border-border/50 bg-background py-4">
@@ -45,22 +40,18 @@ export function Header() {
 							className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							<Avatar className="size-8">
-								<AvatarImage
-									src={user?.image ?? undefined}
-									alt={user?.name ?? ""}
-								/>
+								<AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ""} />
 								<AvatarFallback className="text-xs">{initials}</AvatarFallback>
 							</Avatar>
 						</button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuItem
-							className="cursor-pointer"
-							onClick={handleSignOut}
-						>
-							<LogOut className="mr-2 size-4" />
-							Logout
-						</DropdownMenuItem>
+						<SignOutButton>
+							<DropdownMenuItem className="cursor-pointer">
+								<LogOut className="mr-2 size-4" />
+								Logout
+							</DropdownMenuItem>
+						</SignOutButton>
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>

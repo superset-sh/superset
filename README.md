@@ -69,7 +69,7 @@ Superset monitors your running agents, notify you when changes are ready, and he
 
 <img width="600" height="447" alt="Screenshot 2025-12-24 at 9 33 51 PM" src="https://github.com/user-attachments/assets/ff890049-67a8-432b-8edd-bf9ff846ae16" />
 
-Superet is designed to be a superset of your existing tools. It works for any CLI agents that runs in the terminal. You can open your superset workspace in any apps like IDE, filesystem, terminal, etc. 
+Superset is designed to be a superset of your existing tools. It works for any CLI agents that runs in the terminal. You can open your superset workspace in any apps like IDE, filesystem, terminal, etc. 
 
 <img width="602" height="445" alt="Screenshot 2025-12-24 at 9 34 04 PM" src="https://github.com/user-attachments/assets/1eb3fa42-db30-4a62-9a8f-22cb757b4866" />
 

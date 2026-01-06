@@ -6,6 +6,7 @@ export const env = createEnv({
 		NODE_ENV: z
 			.enum(["development", "production", "test"])
 			.default("development"),
+		CLERK_SECRET_KEY: z.string().min(1),
 		BLOB_READ_WRITE_TOKEN: z.string().min(1),
 		POSTHOG_API_KEY: z.string(),
 		POSTHOG_API_HOST: z.string().url().default("https://us.posthog.com"),

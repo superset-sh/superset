@@ -20,12 +20,12 @@ export const taskRouter = {
 				assignee: {
 					id: assignee.id,
 					name: assignee.name,
-					image: assignee.image,
+					avatarUrl: assignee.avatarUrl,
 				},
 				creator: {
 					id: creator.id,
 					name: creator.name,
-					image: creator.image,
+					avatarUrl: creator.avatarUrl,
 				},
 			})
 			.from(tasks)
@@ -74,12 +74,19 @@ export const taskRouter = {
 	create: protectedProcedure
 		.input(createTaskSchema)
 		.mutation(async ({ ctx, input }) => {
+			const [user] = await dbWs
+				.select()
+				.from(users)
+				.where(eq(users.clerkId, ctx.userId))
+				.limit(1);
+			if (!user) throw new Error("User not found");
+
 			const result = await dbWs.transaction(async (tx) => {
 				const [task] = await tx
 					.insert(tasks)
 					.values({
 						...input,
-						creatorId: ctx.session.user.id,
+						creatorId: user.id,
 						labels: input.labels ?? [],
 					})
 					.returning();

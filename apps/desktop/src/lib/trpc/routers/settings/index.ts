@@ -1,6 +1,13 @@
-import { settings, type TerminalPreset } from "@superset/local-db";
+import {
+	settings,
+	TERMINAL_LINK_BEHAVIORS,
+	type TerminalPreset,
+} from "@superset/local-db";
 import { localDb } from "main/lib/local-db";
-import { DEFAULT_CONFIRM_ON_QUIT } from "shared/constants";
+import {
+	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_TERMINAL_LINK_BEHAVIOR,
+} from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -175,6 +182,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { confirmOnQuit: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalLinkBehavior: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.terminalLinkBehavior ?? DEFAULT_TERMINAL_LINK_BEHAVIOR;
+		}),
+
+		setTerminalLinkBehavior: publicProcedure
+			.input(z.object({ behavior: z.enum(TERMINAL_LINK_BEHAVIORS) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalLinkBehavior: input.behavior })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalLinkBehavior: input.behavior },
 					})
 					.run();
 
