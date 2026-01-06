@@ -210,9 +210,6 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 	return (
 		<div className="flex flex-col h-full">
 			<ChangesHeader
-				ahead={status.ahead}
-				behind={status.behind}
-				isRefreshing={isFetching}
 				onRefresh={handleRefresh}
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}

@@ -7,7 +7,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
 import { useChangesStore } from "renderer/stores/changes";
@@ -15,9 +15,6 @@ import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 
 interface ChangesHeaderProps {
-	ahead: number;
-	behind: number;
-	isRefreshing: boolean;
 	onRefresh: () => void;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
@@ -25,9 +22,6 @@ interface ChangesHeaderProps {
 }
 
 export function ChangesHeader({
-	ahead: _ahead,
-	behind: _behind,
-	isRefreshing: _isRefreshing,
 	onRefresh,
 	viewMode,
 	onViewModeChange,
@@ -48,6 +42,17 @@ export function ChangesHeader({
 			setIsManualRefresh(false);
 		}, 600);
 	};
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+				timeoutRef.current = null;
+			}
+		};
+	}, []);
+
 	const { baseBranch, setBaseBranch } = useChangesStore();
 
 	const { data: branchData, isLoading } = trpc.changes.getBranches.useQuery(

@@ -125,6 +125,7 @@ export function WorkspaceSidebarHeader({
 						)}
 					</button>
 				</TooltipTrigger>
+				<TooltipContent side="right">Toggle sidebar</TooltipContent>
 			</Tooltip>
 
 			{/* Workspaces button */}
