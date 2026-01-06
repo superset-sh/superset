@@ -827,6 +827,7 @@ export const createWorkspacesRouter = () => {
 						color: string;
 						tabOrder: number;
 						githubOwner: string | null;
+						mainRepoPath: string;
 					};
 					workspaces: Array<{
 						id: string;
@@ -854,6 +855,7 @@ export const createWorkspacesRouter = () => {
 						// biome-ignore lint/style/noNonNullAssertion: filter guarantees tabOrder is not null
 						tabOrder: project.tabOrder!,
 						githubOwner: project.githubOwner ?? null,
+						mainRepoPath: project.mainRepoPath,
 					},
 					workspaces: [],
 				});

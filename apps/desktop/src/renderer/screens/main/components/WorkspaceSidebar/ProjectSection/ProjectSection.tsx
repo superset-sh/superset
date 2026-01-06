@@ -22,6 +22,7 @@ interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
 	githubOwner: string | null;
+	mainRepoPath: string;
 	workspaces: Workspace[];
 	activeWorkspaceId: string | null;
 	/** Base index for keyboard shortcuts (0-based) */
@@ -34,6 +35,7 @@ export function ProjectSection({
 	projectId,
 	projectName,
 	githubOwner,
+	mainRepoPath,
 	workspaces,
 	activeWorkspaceId,
 	shortcutBaseIndex,
@@ -70,6 +72,7 @@ export function ProjectSection({
 					projectId={projectId}
 					projectName={projectName}
 					githubOwner={githubOwner}
+					mainRepoPath={mainRepoPath}
 					isCollapsed={isCollapsed}
 					isSidebarCollapsed={isSidebarCollapsed}
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
@@ -120,6 +123,7 @@ export function ProjectSection({
 				projectId={projectId}
 				projectName={projectName}
 				githubOwner={githubOwner}
+				mainRepoPath={mainRepoPath}
 				isCollapsed={isCollapsed}
 				isSidebarCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}

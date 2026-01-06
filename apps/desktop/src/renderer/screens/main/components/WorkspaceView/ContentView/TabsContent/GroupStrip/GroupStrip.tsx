@@ -122,14 +122,17 @@ export function GroupStrip() {
 	};
 
 	return (
-		<div className="flex items-end gap-1 px-2 h-10 flex-1 min-w-0">
+		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
-				<div className="flex items-end gap-0.5 h-full overflow-x-auto scrollbar-none">
+				<div
+					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border pr-8 [mask-image:linear-gradient(to_right,black_calc(100%-24px),transparent)]"
+					style={{ scrollbarWidth: "none" }}
+				>
 					{tabs.map((tab) => (
 						<div
 							key={tab.id}
 							className="h-full shrink-0"
-							style={{ width: "120px" }}
+							style={{ width: "160px" }}
 						>
 							<GroupItem
 								tab={tab}
@@ -143,7 +146,7 @@ export function GroupStrip() {
 				</div>
 			)}
 			<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-				<div className="flex items-center shrink-0 mb-1">
+				<div className="flex items-center shrink-0 ml-2">
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button

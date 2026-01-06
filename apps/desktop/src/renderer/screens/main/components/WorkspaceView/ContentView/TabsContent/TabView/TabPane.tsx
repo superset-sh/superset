@@ -84,7 +84,7 @@ export function TabPane({
 			removePane={removePane}
 			setFocusedPane={setFocusedPane}
 			renderToolbar={(handlers) => (
-				<div className="flex h-full w-full items-center justify-between px-2">
+				<div className="flex h-full w-full items-center justify-between px-3">
 					<div className="flex min-w-0 items-center gap-2">
 						<DirectoryNavigator
 							paneId={paneId}
