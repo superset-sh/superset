@@ -7,6 +7,7 @@ const MINIMUM_DESKTOP_VERSION = "0.0.44";
 export async function GET() {
 	return Response.json({
 		minimumVersion: MINIMUM_DESKTOP_VERSION,
-		message: "We've upgraded our authentication system. Please update to continue.",
+		message:
+			"We've upgraded our authentication system. Please update to continue.",
 	});
 }
