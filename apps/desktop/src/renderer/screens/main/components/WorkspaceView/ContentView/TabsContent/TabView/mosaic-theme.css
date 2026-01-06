@@ -24,7 +24,7 @@
 }
 
 .mosaic-theme-dark .mosaic-window .mosaic-window-toolbar {
-	background: var(--color-secondary);
+	background: var(--color-tertiary);
 	height: 28px;
 	padding: 0 8px;
 	display: flex;
@@ -57,7 +57,7 @@
 	opacity: 1;
 }
 .mosaic-theme-dark .mosaic-window-focused .mosaic-window-toolbar {
-	background: var(--color-tertiary);
+	background: var(--color-secondary);
 }
 .mosaic-theme-dark .mosaic-window .mosaic-window-title {
 	color: var(--color-muted-foreground);
@@ -102,6 +102,5 @@
 .mosaic-drop-target .drop-target-container .drop-target.drop-target-hover {
 	background: rgba(59, 130, 246, 0.1);
 	border: 1px solid rgba(59, 130, 246, 0.3);
-	border-radius: 4px;
 	opacity: 1;
 }
