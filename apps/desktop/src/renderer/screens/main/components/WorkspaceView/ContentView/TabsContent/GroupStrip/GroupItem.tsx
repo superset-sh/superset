@@ -26,7 +26,7 @@ export function GroupItem({
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
-	const [editValue, setEditValue] = useState(displayName);
+	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
@@ -36,7 +36,7 @@ export function GroupItem({
 		}
 	}, [isEditing]);
 
-	const handleDoubleClick = () => {
+	const startEditing = () => {
 		setEditValue(displayName);
 		setIsEditing(true);
 	};
@@ -49,20 +49,40 @@ export function GroupItem({
 		setIsEditing(false);
 	};
 
-	const handleCancel = () => {
-		setEditValue(displayName);
-		setIsEditing(false);
-	};
-
 	const handleKeyDown = (e: React.KeyboardEvent) => {
 		if (e.key === "Enter") {
 			e.preventDefault();
 			handleSave();
 		} else if (e.key === "Escape") {
 			e.preventDefault();
-			handleCancel();
+			setIsEditing(false);
 		}
 	};
+
+	const tabStyles = cn(
+		"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
+		isActive
+			? "text-foreground bg-border/30"
+			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
+	);
+
+	if (isEditing) {
+		return (
+			<div className="group relative flex items-center shrink-0 h-full border-r border-border">
+				<div className={tabStyles}>
+					<input
+						ref={inputRef}
+						type="text"
+						value={editValue}
+						onChange={(e) => setEditValue(e.target.value)}
+						onBlur={handleSave}
+						onKeyDown={handleKeyDown}
+						className="text-sm bg-transparent border-none outline-none flex-1 text-left min-w-0"
+					/>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
@@ -71,30 +91,12 @@ export function GroupItem({
 					<button
 						type="button"
 						onClick={onSelect}
-						onDoubleClick={handleDoubleClick}
-						className={cn(
-							"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
-							isActive
-								? "text-foreground bg-border/30"
-								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-						)}
+						onDoubleClick={startEditing}
+						className={tabStyles}
 					>
-						{isEditing ? (
-							<input
-								ref={inputRef}
-								type="text"
-								value={editValue}
-								onChange={(e) => setEditValue(e.target.value)}
-								onBlur={handleSave}
-								onKeyDown={handleKeyDown}
-								onClick={(e) => e.stopPropagation()}
-								className="text-sm bg-transparent border-none outline-none flex-1 text-left min-w-0"
-							/>
-						) : (
-							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
-								{displayName}
-							</span>
-						)}
+						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+							{displayName}
+						</span>
 						{status && status !== "idle" && <StatusIndicator status={status} />}
 					</button>
 				</TooltipTrigger>
