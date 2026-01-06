@@ -14,5 +14,11 @@
 		"electron-builder.ts",
 		"index.d.ts"
 	],
-	"exclude": ["node_modules", "dist", "dist-electron", "release"]
+	"exclude": [
+		"node_modules",
+		"dist",
+		"dist-electron",
+		"release",
+		"src/**/templates/**"
+	]
 }
