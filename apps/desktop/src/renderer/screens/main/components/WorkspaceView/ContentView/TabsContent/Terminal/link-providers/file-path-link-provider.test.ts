@@ -563,6 +563,77 @@ describe("FilePathLinkProvider", () => {
 		});
 	});
 
+	describe("URL-encoded paths", () => {
+		it("should decode URL-encoded path with line number on activation", async () => {
+			const terminal = createMockTerminal([
+				{ text: "apps/desktop/src/main/lib/workspace-manager.ts%3A50" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe(
+				"apps/desktop/src/main/lib/workspace-manager.ts",
+			);
+			expect(onOpen.mock.calls[0][2]).toBe(50);
+		});
+
+		it("should decode URL-encoded path with line and column on activation", async () => {
+			const terminal = createMockTerminal([{ text: "src/file.ts%3A42%3A10" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe("src/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+			expect(onOpen.mock.calls[0][3]).toBe(10);
+		});
+
+		it("should decode URL-encoded spaces in path", async () => {
+			const terminal = createMockTerminal([
+				{ text: "./path/to%20file/name.ts" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe("./path/to file/name.ts");
+		});
+	});
+
 	describe("punctuation handling", () => {
 		it("should handle path followed by period at end of sentence", async () => {
 			const terminal = createMockTerminal([

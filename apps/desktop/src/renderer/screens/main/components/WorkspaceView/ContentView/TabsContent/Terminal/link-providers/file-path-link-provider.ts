@@ -240,19 +240,51 @@ export class FilePathLinkProvider implements ILinkProvider {
 
 		// Clean up the path - remove any remaining suffix patterns that might have been
 		// included (defensive, since detectLinks should handle this)
-		const cleanPath = removeLinkSuffix(pathText);
+		let cleanPath = removeLinkSuffix(pathText);
 
 		if (!cleanPath) {
 			return;
 		}
 
-		// Extract line/column info from suffix
-		const line = parsedLink.suffix?.row;
-		const column = parsedLink.suffix?.col;
+		// Decode URL-encoded characters (e.g., %3A -> :, %20 -> space)
+		cleanPath = this.decodeUrlEncodedPath(cleanPath);
+
+		// Extract line/column info from suffix, or try to parse from URL-encoded path
+		let line = parsedLink.suffix?.row;
+		let column = parsedLink.suffix?.col;
 		const lineEnd = parsedLink.suffix?.rowEnd;
 		const columnEnd = parsedLink.suffix?.colEnd;
 
+		// If no suffix was detected, check if the decoded path contains line:col info
+		if (line === undefined) {
+			const lineColMatch = cleanPath.match(/:(\d+)(?::(\d+))?$/);
+			if (lineColMatch) {
+				cleanPath = cleanPath.replace(/:(\d+)(?::(\d+))?$/, "");
+				line = Number.parseInt(lineColMatch[1], 10);
+				if (lineColMatch[2]) {
+					column = Number.parseInt(lineColMatch[2], 10);
+				}
+			}
+		}
+
 		this.onOpen(event, cleanPath, line, column, lineEnd, columnEnd);
+	}
+
+	/**
+	 * Decode URL-encoded characters in a path.
+	 * Common encodings: %3A -> :, %20 -> space, %2F -> /
+	 */
+	private decodeUrlEncodedPath(path: string): string {
+		try {
+			// Only decode if there are percent-encoded characters
+			if (path.includes("%")) {
+				return decodeURIComponent(path);
+			}
+			return path;
+		} catch {
+			// If decoding fails (malformed %), return original path
+			return path;
+		}
 	}
 
 	private calculateLinkRange(
