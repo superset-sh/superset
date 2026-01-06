@@ -7,7 +7,7 @@ import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import injectProcessEnvPlugin from "rollup-plugin-inject-process-env";
 import tsconfigPathsPlugin from "vite-tsconfig-paths";
 
-import { version } from "./package.json";
+import { resources, version } from "./package.json";
 import {
 	copyResourcesPlugin,
 	DEV_SERVER_PORT,
@@ -155,6 +155,8 @@ export default defineConfig({
 		optimizeDeps: {
 			include: ["monaco-editor"],
 		},
+
+		publicDir: resolve(resources, "public"),
 
 		build: {
 			outDir: resolve(devPath, "renderer"),
