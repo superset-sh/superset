@@ -21,7 +21,13 @@ export async function getCurrentTxid(
 	tx: PgTransaction<any, any, any>,
 ): Promise<number> {
 	const result = await tx.execute<{ txid: string }>(
-		sql`SELECT txid_current()::text as txid`,
+		sql`SELECT pg_current_xact_id()::text as txid`,
 	);
-	return Number.parseInt(result.rows[0]?.txid ?? "", 10);
+
+	const txid = result.rows[0]?.txid;
+	if (!txid) {
+		throw new Error("Failed to get current transaction ID");
+	}
+
+	return Number.parseInt(txid, 10);
 }
