@@ -83,6 +83,21 @@ export function useCloseWorkspace(
 					);
 
 					if (projectGroup && workspaceFromGrouped) {
+						// For worktree-type workspaces, provide minimal worktree data to prevent
+						// hasIncompleteInit from triggering the initialization view
+						const worktreeData =
+							workspaceFromGrouped.type === "worktree"
+								? {
+										branch: nextWorkspace.branch,
+										baseBranch: null,
+										gitStatus: {
+											branch: nextWorkspace.branch,
+											needsRebase: false,
+											lastRefreshed: Date.now(),
+										},
+									}
+								: null;
+
 						utils.workspaces.getActive.setData(undefined, {
 							...nextWorkspace,
 							type: workspaceFromGrouped.type,
@@ -92,7 +107,7 @@ export function useCloseWorkspace(
 								name: projectGroup.project.name,
 								mainRepoPath: projectGroup.project.mainRepoPath,
 							},
-							worktree: null, // Will be populated on invalidate
+							worktree: worktreeData,
 						});
 					} else {
 						// Fallback: just clear it and let invalidate handle it
