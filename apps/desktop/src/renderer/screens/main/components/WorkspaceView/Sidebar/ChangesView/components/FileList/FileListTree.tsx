@@ -7,7 +7,10 @@ interface FileListTreeProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
+	/** Double click - opens pinned (permanent) */
+	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -81,6 +84,7 @@ interface TreeNodeComponentProps {
 	selectedPath: string | null;
 	selectedCommitHash: string | null;
 	onFileSelect: (file: ChangedFile) => void;
+	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -93,6 +97,7 @@ function TreeNodeComponent({
 	selectedPath,
 	selectedCommitHash,
 	onFileSelect,
+	onFileDoubleClick,
 	showStats,
 	onStage,
 	onUnstage,
@@ -120,6 +125,7 @@ function TreeNodeComponent({
 						selectedPath={selectedPath}
 						selectedCommitHash={selectedCommitHash}
 						onFileSelect={onFileSelect}
+						onFileDoubleClick={onFileDoubleClick}
 						showStats={showStats}
 						onStage={onStage}
 						onUnstage={onUnstage}
@@ -137,6 +143,9 @@ function TreeNodeComponent({
 				file={file}
 				isSelected={isSelected}
 				onClick={() => onFileSelect(file)}
+				onDoubleClick={
+					onFileDoubleClick ? () => onFileDoubleClick(file) : undefined
+				}
 				showStats={showStats}
 				level={level}
 				onStage={onStage ? () => onStage(file) : undefined}
@@ -154,6 +163,7 @@ export function FileListTree({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
+	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
@@ -170,6 +180,7 @@ export function FileListTree({
 					selectedPath={selectedFile?.path ?? null}
 					selectedCommitHash={selectedCommitHash}
 					onFileSelect={onFileSelect}
+					onFileDoubleClick={onFileDoubleClick}
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}

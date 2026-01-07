@@ -7,7 +7,10 @@ interface FileListGroupedProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
+	/** Double click - opens pinned (permanent) */
+	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -57,6 +60,7 @@ interface FolderGroupItemProps {
 	group: FolderGroup;
 	selectedFile: ChangedFile | null;
 	onFileSelect: (file: ChangedFile) => void;
+	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
@@ -67,6 +71,7 @@ function FolderGroupItem({
 	group,
 	selectedFile,
 	onFileSelect,
+	onFileDoubleClick,
 	showStats,
 	onStage,
 	onUnstage,
@@ -90,6 +95,9 @@ function FolderGroupItem({
 					file={file}
 					isSelected={selectedFile?.path === file.path}
 					onClick={() => onFileSelect(file)}
+					onDoubleClick={
+						onFileDoubleClick ? () => onFileDoubleClick(file) : undefined
+					}
 					showStats={showStats}
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
@@ -104,6 +112,7 @@ export function FileListGrouped({
 	files,
 	selectedFile,
 	onFileSelect,
+	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
@@ -119,6 +128,7 @@ export function FileListGrouped({
 					group={group}
 					selectedFile={selectedFile}
 					onFileSelect={onFileSelect}
+					onFileDoubleClick={onFileDoubleClick}
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}

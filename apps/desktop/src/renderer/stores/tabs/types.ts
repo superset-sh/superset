@@ -47,6 +47,8 @@ export interface AddFileViewerPaneOptions {
 	line?: number;
 	/** Column to scroll to (raw mode only) */
 	column?: number;
+	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
+	isPinned?: boolean;
 }
 
 /**
@@ -87,6 +89,8 @@ export interface TabsStore extends TabsState {
 		confirmed: boolean,
 	) => void;
 	clearPaneInitialData: (paneId: string) => void;
+	/** Pin a file-viewer pane so it won't be replaced by new file clicks */
+	pinPane: (paneId: string) => void;
 
 	// Split operations
 	splitPaneVertical: (

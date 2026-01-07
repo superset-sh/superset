@@ -14,14 +14,24 @@ import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
 
 interface ChangesViewProps {
+	/** Single click - opens in preview mode */
 	onFileOpen?: (
+		file: ChangedFile,
+		category: ChangeCategory,
+		commitHash?: string,
+	) => void;
+	/** Double click - opens pinned (permanent) */
+	onFileOpenPinned?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
 }
 
-export function ChangesView({ onFileOpen }: ChangesViewProps) {
+export function ChangesView({
+	onFileOpen,
+	onFileOpenPinned,
+}: ChangesViewProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
@@ -133,16 +143,36 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 		}
 	});
 
+	// Single click - opens in preview mode
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, category, null);
 		onFileOpen?.(file, category);
 	};
 
+	// Double click - opens pinned (permanent)
+	const handleFileDoubleClick = (
+		file: ChangedFile,
+		category: ChangeCategory,
+	) => {
+		if (!worktreePath) return;
+		selectFile(worktreePath, file, category, null);
+		onFileOpenPinned?.(file, category);
+	};
+
 	const handleCommitFileSelect = (file: ChangedFile, commitHash: string) => {
 		if (!worktreePath) return;
 		selectFile(worktreePath, file, "committed", commitHash);
 		onFileOpen?.(file, "committed", commitHash);
+	};
+
+	const handleCommitFileDoubleClick = (
+		file: ChangedFile,
+		commitHash: string,
+	) => {
+		if (!worktreePath) return;
+		selectFile(worktreePath, file, "committed", commitHash);
+		onFileOpenPinned?.(file, "committed", commitHash);
 	};
 
 	const handleCommitToggle = (hash: string) => {
@@ -246,6 +276,9 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "against-base")}
+							onFileDoubleClick={(file) =>
+								handleFileDoubleClick(file, "against-base")
+							}
 						/>
 					</CategorySection>
 
@@ -265,6 +298,7 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 								selectedFile={selectedFile}
 								selectedCommitHash={selectedCommitHash}
 								onFileSelect={handleCommitFileSelect}
+								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
 							/>
 						))}
@@ -303,6 +337,9 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "staged")}
+							onFileDoubleClick={(file) =>
+								handleFileDoubleClick(file, "staged")
+							}
 							onUnstage={(file) =>
 								unstageFileMutation.mutate({
 									worktreePath: worktreePath || "",
@@ -346,6 +383,9 @@ export function ChangesView({ onFileOpen }: ChangesViewProps) {
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
 							onFileSelect={(file) => handleFileSelect(file, "unstaged")}
+							onFileDoubleClick={(file) =>
+								handleFileDoubleClick(file, "unstaged")
+							}
 							onStage={(file) =>
 								stageFileMutation.mutate({
 									worktreePath: worktreePath || "",

@@ -1,11 +1,9 @@
 import { Badge } from "@superset/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import {
-	HiMiniLockClosed,
-	HiMiniLockOpen,
-	HiMiniPencil,
-} from "react-icons/hi2";
+import { cn } from "@superset/ui/utils";
+import { HiMiniPencil } from "react-icons/hi2";
+import { TbPinFilled } from "react-icons/tb";
 import type { FileViewerMode } from "shared/tabs-types";
 import { PaneToolbarActions } from "../../../components";
 import type { SplitOrientation } from "../../../hooks";
@@ -15,14 +13,16 @@ interface FileViewerToolbarProps {
 	isDirty: boolean;
 	isSaving: boolean;
 	viewMode: FileViewerMode;
-	isLocked: boolean;
+	/** If false, this is a preview pane (italic name, can be replaced) */
+	isPinned: boolean;
 	isMarkdown: boolean;
 	hasDiff: boolean;
 	showEditableBadge: boolean;
 	splitOrientation: SplitOrientation;
 	onViewModeChange: (value: string) => void;
 	onSplitPane: (e: React.MouseEvent) => void;
-	onToggleLock: () => void;
+	/** Pin this pane (convert from preview to permanent) */
+	onPin: () => void;
 	onClosePane: (e: React.MouseEvent) => void;
 }
 
@@ -31,20 +31,25 @@ export function FileViewerToolbar({
 	isDirty,
 	isSaving,
 	viewMode,
-	isLocked,
+	isPinned,
 	isMarkdown,
 	hasDiff,
 	showEditableBadge,
 	splitOrientation,
 	onViewModeChange,
 	onSplitPane,
-	onToggleLock,
+	onPin,
 	onClosePane,
 }: FileViewerToolbarProps) {
 	return (
 		<div className="flex h-full w-full items-center justify-between px-3">
 			<div className="flex min-w-0 items-center gap-2">
-				<span className="truncate text-xs text-muted-foreground">
+				<span
+					className={cn(
+						"truncate text-xs text-muted-foreground",
+						!isPinned && "italic",
+					)}
+				>
 					{isDirty && <span className="text-amber-500 mr-1">●</span>}
 					{fileName}
 				</span>
@@ -85,26 +90,22 @@ export function FileViewerToolbar({
 					onSplitPane={onSplitPane}
 					onClosePane={onClosePane}
 					leadingActions={
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={onToggleLock}
-									className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-								>
-									{isLocked ? (
-										<HiMiniLockClosed className="size-3" />
-									) : (
-										<HiMiniLockOpen className="size-3" />
-									)}
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								{isLocked
-									? "Unlock (allow file replacement)"
-									: "Lock (prevent file replacement)"}
-							</TooltipContent>
-						</Tooltip>
+						!isPinned ? (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<button
+										type="button"
+										onClick={onPin}
+										className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+									>
+										<TbPinFilled className="size-3" />
+									</button>
+								</TooltipTrigger>
+								<TooltipContent side="bottom" showArrow={false}>
+									Pin (keep open)
+								</TooltipContent>
+							</Tooltip>
+						) : null
 					}
 				/>
 			</div>

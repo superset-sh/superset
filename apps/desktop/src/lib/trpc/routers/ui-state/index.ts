@@ -18,7 +18,7 @@ import { publicProcedure, router } from "../..";
 const fileViewerStateSchema = z.object({
 	filePath: z.string(),
 	viewMode: z.enum(["rendered", "raw", "diff"]),
-	isLocked: z.boolean(),
+	isPinned: z.boolean(),
 	diffLayout: z.enum(["inline", "side-by-side"]),
 	diffCategory: z
 		.enum(["against-base", "committed", "staged", "unstaged"])

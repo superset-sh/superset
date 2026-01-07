@@ -52,12 +52,14 @@ export function FileViewerPane({
 	const fileViewer = pane.fileViewer;
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
-	const isLocked = fileViewer?.isLocked ?? false;
+	const isPinned = fileViewer?.isPinned ?? false;
 	const diffCategory = fileViewer?.diffCategory;
 	const commitHash = fileViewer?.commitHash;
 	const oldPath = fileViewer?.oldPath;
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
+
+	const pinPane = useTabsStore((s) => s.pinPane);
 
 	const { handleSaveRaw, handleSaveDiff, isSaving } = useFileSave({
 		worktreePath,
@@ -101,6 +103,13 @@ export function FileViewerPane({
 		draftContentRef.current = null;
 	}, [filePath]);
 
+	// Auto-pin when user makes edits (converts preview to pinned)
+	useEffect(() => {
+		if (isDirty && !isPinned) {
+			pinPane(paneId);
+		}
+	}, [isDirty, isPinned, paneId, pinPane]);
+
 	const handleDiffChange = useCallback((content: string) => {
 		currentDiffContentRef.current = content;
 		if (originalDiffContentRef.current === "") {
@@ -129,23 +138,8 @@ export function FileViewerPane({
 		);
 	}
 
-	const handleToggleLock = () => {
-		const panes = useTabsStore.getState().panes;
-		const currentPane = panes[paneId];
-		if (currentPane?.fileViewer) {
-			useTabsStore.setState({
-				panes: {
-					...panes,
-					[paneId]: {
-						...currentPane,
-						fileViewer: {
-							...currentPane.fileViewer,
-							isLocked: !currentPane.fileViewer.isLocked,
-						},
-					},
-				},
-			});
-		}
+	const handlePin = () => {
+		pinPane(paneId);
 	};
 
 	const switchToMode = (newMode: FileViewerMode) => {
@@ -259,14 +253,14 @@ export function FileViewerPane({
 							isDirty={isDirty}
 							isSaving={isSaving}
 							viewMode={viewMode}
-							isLocked={isLocked}
+							isPinned={isPinned}
 							isMarkdown={isMarkdown}
 							hasDiff={hasDiff}
 							showEditableBadge={showEditableBadge}
 							splitOrientation={handlers.splitOrientation}
 							onViewModeChange={handleViewModeChange}
 							onSplitPane={handlers.onSplitPane}
-							onToggleLock={handleToggleLock}
+							onPin={handlePin}
 							onClosePane={handlers.onClosePane}
 						/>
 					</div>

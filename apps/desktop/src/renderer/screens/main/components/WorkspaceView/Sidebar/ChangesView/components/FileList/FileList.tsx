@@ -8,7 +8,10 @@ interface FileListProps {
 	viewMode: ChangesViewMode;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
+	/** Double click - opens pinned (permanent) */
+	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	/** Callback for staging a file */
 	onStage?: (file: ChangedFile) => void;
@@ -24,6 +27,7 @@ export function FileList({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
+	onFileDoubleClick,
 	showStats = true,
 	onStage,
 	onUnstage,
@@ -40,6 +44,7 @@ export function FileList({
 				selectedFile={selectedFile}
 				selectedCommitHash={selectedCommitHash}
 				onFileSelect={onFileSelect}
+				onFileDoubleClick={onFileDoubleClick}
 				showStats={showStats}
 				onStage={onStage}
 				onUnstage={onUnstage}
@@ -55,6 +60,7 @@ export function FileList({
 			selectedFile={selectedFile}
 			selectedCommitHash={selectedCommitHash}
 			onFileSelect={onFileSelect}
+			onFileDoubleClick={onFileDoubleClick}
 			showStats={showStats}
 			onStage={onStage}
 			onUnstage={onUnstage}

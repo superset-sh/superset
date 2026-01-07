@@ -15,7 +15,10 @@ interface CommitItemProps {
 	onToggle: () => void;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
+	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
+	/** Double click - opens pinned (permanent) */
+	onFileDoubleClick?: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
 }
 
@@ -40,12 +43,17 @@ export function CommitItem({
 	selectedFile,
 	selectedCommitHash,
 	onFileSelect,
+	onFileDoubleClick,
 	viewMode,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
 	const handleFileSelect = (file: ChangedFile) => {
 		onFileSelect(file, commit.hash);
+	};
+
+	const handleFileDoubleClick = (file: ChangedFile) => {
+		onFileDoubleClick?.(file, commit.hash);
 	};
 
 	const isCommitSelected = selectedCommitHash === commit.hash;
@@ -84,6 +92,7 @@ export function CommitItem({
 						selectedFile={isCommitSelected ? selectedFile : null}
 						selectedCommitHash={selectedCommitHash}
 						onFileSelect={handleFileSelect}
+						onFileDoubleClick={handleFileDoubleClick}
 						showStats={false}
 					/>
 				</CollapsibleContent>

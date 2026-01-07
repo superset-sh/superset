@@ -9,6 +9,7 @@ export function Sidebar() {
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 
+	// Single click - opens in preview mode (can be replaced by next single click)
 	const handleFileOpen = workspaceId
 		? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 				addFileViewerPane(workspaceId, {
@@ -16,13 +17,30 @@ export function Sidebar() {
 					diffCategory: category,
 					commitHash,
 					oldPath: file.oldPath,
+					isPinned: false,
+				});
+			}
+		: undefined;
+
+	// Double click - opens pinned (permanent, won't be replaced)
+	const handleFileOpenPinned = workspaceId
+		? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+				addFileViewerPane(workspaceId, {
+					filePath: file.path,
+					diffCategory: category,
+					commitHash,
+					oldPath: file.oldPath,
+					isPinned: true,
 				});
 			}
 		: undefined;
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
-			<ChangesView onFileOpen={handleFileOpen} />
+			<ChangesView
+				onFileOpen={handleFileOpen}
+				onFileOpenPinned={handleFileOpenPinned}
+			/>
 		</aside>
 	);
 }

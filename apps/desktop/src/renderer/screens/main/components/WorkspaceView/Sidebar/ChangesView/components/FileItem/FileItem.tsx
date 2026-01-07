@@ -8,7 +8,10 @@ import { getStatusColor, getStatusIndicator } from "../../utils";
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
+	/** Single click - opens in preview mode */
 	onClick: () => void;
+	/** Double click - opens pinned (permanent) */
+	onDoubleClick?: () => void;
 	showStats?: boolean;
 	/** Number of level indentations (for tree view) */
 	level?: number;
@@ -41,6 +44,7 @@ export function FileItem({
 	file,
 	isSelected,
 	onClick,
+	onDoubleClick,
 	showStats = true,
 	level = 0,
 	onStage,
@@ -67,6 +71,7 @@ export function FileItem({
 			<button
 				type="button"
 				onClick={onClick}
+				onDoubleClick={onDoubleClick}
 				className={cn(
 					"flex items-center gap-1.5 flex-1 min-w-0",
 					hasIndent ? "py-0.5" : "py-1",

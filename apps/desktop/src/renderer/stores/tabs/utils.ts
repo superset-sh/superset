@@ -102,7 +102,8 @@ export const createPane = (
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
 	viewMode?: FileViewerMode;
-	isLocked?: boolean;
+	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
+	isPinned?: boolean;
 	diffLayout?: DiffLayout;
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
@@ -135,7 +136,7 @@ export const createFileViewerPane = (
 	const fileViewer: FileViewerState = {
 		filePath: options.filePath,
 		viewMode: options.viewMode ?? defaultViewMode,
-		isLocked: options.isLocked ?? false,
+		isPinned: options.isPinned ?? false,
 		diffLayout: options.diffLayout ?? "inline",
 		diffCategory: options.diffCategory,
 		commitHash: options.commitHash,

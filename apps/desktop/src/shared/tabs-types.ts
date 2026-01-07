@@ -86,8 +86,8 @@ export interface FileViewerState {
 	filePath: string;
 	/** Display mode: rendered (markdown), raw (source), or diff */
 	viewMode: FileViewerMode;
-	/** If true, this pane won't be reused for new file clicks */
-	isLocked: boolean;
+	/** If true, this pane won't be reused for new file clicks (preview mode = false, pinned = true) */
+	isPinned: boolean;
 	/** Diff display layout */
 	diffLayout: DiffLayout;
 	/** Category for diff source (against-main, committed, staged, unstaged) */

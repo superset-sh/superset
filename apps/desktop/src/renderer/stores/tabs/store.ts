@@ -381,7 +381,7 @@ export const useTabsStore = create<TabsStore>()(
 						return paneId;
 					}
 
-					// Look for an existing unlocked file-viewer pane in the active tab
+					// Look for an existing unpinned (preview) file-viewer pane in the active tab
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
 					const fileViewerPanes = tabPaneIds
 						.map((id) => state.panes[id])
@@ -389,10 +389,10 @@ export const useTabsStore = create<TabsStore>()(
 							(p) =>
 								p?.type === "file-viewer" &&
 								p.fileViewer &&
-								!p.fileViewer.isLocked,
+								!p.fileViewer.isPinned,
 						);
 
-					// If we found an unlocked file-viewer pane, reuse it
+					// If we found an unpinned (preview) file-viewer pane, reuse it
 					if (fileViewerPanes.length > 0) {
 						const paneToReuse = fileViewerPanes[0];
 						const fileName =
@@ -419,7 +419,7 @@ export const useTabsStore = create<TabsStore>()(
 									fileViewer: {
 										filePath: options.filePath,
 										viewMode,
-										isLocked: false,
+										isPinned: options.isPinned ?? false,
 										diffLayout: "inline",
 										diffCategory: options.diffCategory,
 										commitHash: options.commitHash,
@@ -616,6 +616,28 @@ export const useTabsStore = create<TabsStore>()(
 					});
 				},
 
+				pinPane: (paneId) => {
+					set((state) => {
+						const pane = state.panes[paneId];
+						// Guard: no-op for unknown panes or non-file-viewer panes
+						if (!pane?.fileViewer) return state;
+						// Already pinned, no-op
+						if (pane.fileViewer.isPinned) return state;
+						return {
+							panes: {
+								...state.panes,
+								[paneId]: {
+									...pane,
+									fileViewer: {
+										...pane.fileViewer,
+										isPinned: true,
+									},
+								},
+							},
+						};
+					});
+				},
+
 				// Split operations
 				splitPaneVertical: (tabId, sourcePaneId, path) => {
 					const state = get();
@@ -772,7 +794,7 @@ export const useTabsStore = create<TabsStore>()(
 			}),
 			{
 				name: "tabs-storage",
-				version: 2,
+				version: 3,
 				storage: trpcTabsStorage,
 				migrate: (persistedState, version) => {
 					const state = persistedState as TabsState;
@@ -785,6 +807,18 @@ export const useTabsStore = create<TabsStore>()(
 								pane.status = "review";
 							}
 							delete legacyPane.needsAttention;
+						}
+					}
+					if (version < 3 && state.panes) {
+						// Migrate isLocked → isPinned
+						for (const pane of Object.values(state.panes)) {
+							if (pane.fileViewer) {
+								// biome-ignore lint/suspicious/noExplicitAny: migration from old schema
+								const legacyFileViewer = pane.fileViewer as any;
+								// Default old panes to pinned (they were explicitly opened)
+								pane.fileViewer.isPinned = legacyFileViewer.isLocked ?? true;
+								delete legacyFileViewer.isLocked;
+							}
 						}
 					}
 					return state;
