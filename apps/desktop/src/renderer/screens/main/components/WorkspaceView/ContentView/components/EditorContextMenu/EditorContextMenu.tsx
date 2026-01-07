@@ -25,6 +25,7 @@ import {
 	LuSearch,
 	LuX,
 } from "react-icons/lu";
+import { trpc } from "renderer/lib/trpc";
 import type { Tab } from "renderer/stores/tabs/types";
 
 export interface EditorActions {
@@ -63,9 +64,8 @@ export function EditorContextMenu({
 		(t) => t.id !== paneActions.currentTabId,
 	);
 
-	const isMac =
-		typeof navigator !== "undefined" &&
-		navigator.platform.toLowerCase().includes("mac");
+	const { data: platform } = trpc.window.getPlatform.useQuery();
+	const isMac = platform === "darwin";
 	const cmdKey = isMac ? "Cmd" : "Ctrl";
 
 	const {
