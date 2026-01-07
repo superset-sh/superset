@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
+import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
@@ -38,10 +39,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
+	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
-	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
-	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -210,9 +210,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
-		// Queue events until terminal is ready to prevent data loss
-		if (!xtermRef.current || !subscriptionEnabled) {
-			pendingEventsRef.current.push(event);
+		// With Tabby-style serialize/restore, we no longer need to queue events
+		// The terminal subscription is enabled immediately after xterm is ready
+		if (!xtermRef.current) {
 			return;
 		}
 
@@ -221,7 +221,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
-			setSubscriptionEnabled(false);
 			xtermRef.current.writeln(
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
@@ -284,6 +283,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const {
 			xterm,
 			fitAddon,
+			serializeAddon,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, {
 			cwd: workspaceCwd,
@@ -293,6 +293,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		});
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
+		serializeAddonRef.current = serializeAddon;
 		isExitedRef.current = false;
 
 		if (isFocusedRef.current) {
@@ -306,46 +307,16 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			searchAddonRef.current = searchAddon;
 		});
 
-		const flushPendingEvents = () => {
-			if (pendingEventsRef.current.length === 0) return;
-			const events = pendingEventsRef.current.splice(
-				0,
-				pendingEventsRef.current.length,
-			);
-			for (const event of events) {
-				if (event.type === "data") {
-					xterm.write(event.data);
-					updateCwdRef.current(event.data);
-				} else {
-					isExitedRef.current = true;
-					setSubscriptionEnabled(false);
-					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
-					xterm.writeln("[Press any key to restart]");
-
-					// Clear transient pane status (direct store access since we're in effect)
-					const currentPane = useTabsStore.getState().panes[paneId];
-					if (
-						currentPane?.status === "working" ||
-						currentPane?.status === "permission"
-					) {
-						useTabsStore.getState().setPaneStatus(paneId, "idle");
-					}
-				}
+		// Apply serialized state from previous session (Tabby-style)
+		// This writes parsed terminal content, avoiding escape sequence issues
+		const applySerializedState = (serializedState: string) => {
+			if (serializedState) {
+				xterm.write(serializedState);
 			}
-		};
-
-		const applyInitialState = (result: {
-			wasRecovered: boolean;
-			isNew: boolean;
-			scrollback: string;
-		}) => {
-			xterm.write(result.scrollback);
-			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
-			setSubscriptionEnabled(false);
 			xterm.clear();
 			createOrAttachRef.current(
 				{
@@ -357,12 +328,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				},
 				{
 					onSuccess: (result) => {
-						applyInitialState(result);
-						setSubscriptionEnabled(true);
-						flushPendingEvents();
-					},
-					onError: () => {
-						setSubscriptionEnabled(true);
+						applySerializedState(result.serializedState);
 					},
 				},
 			);
@@ -436,14 +402,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
-					// Always apply initial state (scrollback) first, then flush pending events
-					// This ensures we don't lose terminal history when reattaching
-					applyInitialState(result);
-					setSubscriptionEnabled(true);
-					flushPendingEvents();
-				},
-				onError: () => {
-					setSubscriptionEnabled(true);
+					// Apply serialized state (parsed terminal content) for clean reattachment
+					applySerializedState(result.serializedState);
 				},
 			},
 		);
@@ -511,12 +471,21 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
+
+			// Serialize terminal state before detaching (Tabby-style)
+			// This captures parsed terminal content, avoiding escape sequence issues on reattach
+			const serializedState = serializeAddon.serialize({
+				excludeAltBuffer: true, // Don't serialize vim/less alternate buffer
+				excludeModes: true, // Don't serialize terminal modes
+				scrollback: 1000, // Limit scrollback to avoid huge states
+			});
+
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId });
-			setSubscriptionEnabled(false);
+			detachRef.current({ paneId, serializedState });
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
+			serializeAddonRef.current = null;
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 
