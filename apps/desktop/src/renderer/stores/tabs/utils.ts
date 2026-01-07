@@ -335,6 +335,27 @@ export const getPreviousPaneId = (
 };
 
 /**
+ * Gets the adjacent pane ID for focus fallback when a pane is closed.
+ * Prefers the next pane in visual order, falls back to previous if at the end.
+ * Returns null only if the pane is the only one in the layout.
+ */
+export const getAdjacentPaneId = (
+	layout: MosaicNode<string>,
+	closingPaneId: string,
+): string | null => {
+	const paneIds = getPaneIdsInVisualOrder(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(closingPaneId);
+	if (currentIndex === -1) return paneIds[0];
+
+	if (currentIndex < paneIds.length - 1) {
+		return paneIds[currentIndex + 1];
+	}
+	return paneIds[currentIndex - 1];
+};
+
+/**
  * Finds the path to a specific pane ID in a mosaic layout
  * Returns the path as an array of MosaicBranch ("first" | "second"), or null if not found
  */

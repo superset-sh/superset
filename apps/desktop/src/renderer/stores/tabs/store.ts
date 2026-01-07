@@ -11,6 +11,7 @@ import {
 	createPane,
 	createTabWithPane,
 	extractPaneIdsFromLayout,
+	getAdjacentPaneId,
 	getFirstPaneId,
 	getPaneIdsForTab,
 	isLastPaneInTab,
@@ -509,6 +510,9 @@ export const useTabsStore = create<TabsStore>()(
 						return;
 					}
 
+					// Must get adjacent pane BEFORE removing from layout
+					const adjacentPaneId = getAdjacentPaneId(tab.layout, paneId);
+
 					// Only kill terminal sessions for terminal panes (avoids unnecessary IPC for file-viewers)
 					if (pane.type === "terminal") {
 						killTerminalForPane(paneId);
@@ -524,12 +528,11 @@ export const useTabsStore = create<TabsStore>()(
 					const newPanes = { ...state.panes };
 					delete newPanes[paneId];
 
-					// Update focused pane if needed
 					let newFocusedPaneIds = state.focusedPaneIds;
 					if (state.focusedPaneIds[tab.id] === paneId) {
 						newFocusedPaneIds = {
 							...state.focusedPaneIds,
-							[tab.id]: getFirstPaneId(newLayout),
+							[tab.id]: adjacentPaneId ?? getFirstPaneId(newLayout),
 						};
 					}
 
