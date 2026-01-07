@@ -11,7 +11,7 @@ import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
 import { CommitItem } from "./components/CommitItem";
-import { FileList } from "./components/FileList";
+import { type FileContextMenuProps, FileList } from "./components/FileList";
 
 interface ChangesViewProps {
 	/** Single click - opens in preview mode */
@@ -26,11 +26,14 @@ interface ChangesViewProps {
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
+	/** Context menu props - if provided, enables right-click menu (without discard - that's added per category) */
+	contextMenuProps?: Omit<FileContextMenuProps, "onDiscardChanges">;
 }
 
 export function ChangesView({
 	onFileOpen,
 	onFileOpenPinned,
+	contextMenuProps,
 }: ChangesViewProps) {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
@@ -99,6 +102,25 @@ export function ChangesView({
 		onError: (error, variables) => {
 			console.error(`Failed to unstage file ${variables.filePath}:`, error);
 			toast.error(`Failed to unstage ${variables.filePath}: ${error.message}`);
+		},
+	});
+
+	const discardChangesMutation = trpc.changes.discardChanges.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to discard changes for ${variables.filePath}:`,
+				error,
+			);
+			toast.error(`Failed to discard changes: ${error.message}`);
+		},
+	});
+
+	const deleteUntrackedMutation = trpc.changes.deleteUntracked.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to delete ${variables.filePath}:`, error);
+			toast.error(`Failed to delete file: ${error.message}`);
 		},
 	});
 
@@ -185,6 +207,34 @@ export function ChangesView({
 			}
 			return next;
 		});
+	};
+
+	// Handle discard changes for unstaged files
+	const handleDiscardChanges = (file: ChangedFile) => {
+		if (!worktreePath) return;
+		// Untracked files need to be deleted, modified files use git checkout
+		if (file.status === "untracked") {
+			deleteUntrackedMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		} else {
+			discardChangesMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		}
+	};
+
+	// Create context menu props, optionally including discard for unstaged files
+	const getContextMenuProps = (
+		includeDiscard = false,
+	): FileContextMenuProps | undefined => {
+		if (!contextMenuProps) return undefined;
+		return {
+			...contextMenuProps,
+			onDiscardChanges: includeDiscard ? handleDiscardChanges : undefined,
+		};
 	};
 
 	if (!worktreePath) {
@@ -279,6 +329,7 @@ export function ChangesView({
 							onFileDoubleClick={(file) =>
 								handleFileDoubleClick(file, "against-base")
 							}
+							contextMenuProps={getContextMenuProps()}
 						/>
 					</CategorySection>
 
@@ -300,6 +351,7 @@ export function ChangesView({
 								onFileSelect={handleCommitFileSelect}
 								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
+								contextMenuProps={getContextMenuProps()}
 							/>
 						))}
 					</CategorySection>
@@ -347,6 +399,7 @@ export function ChangesView({
 								})
 							}
 							isActioning={unstageFileMutation.isPending}
+							contextMenuProps={getContextMenuProps()}
 						/>
 					</CategorySection>
 
@@ -393,6 +446,7 @@ export function ChangesView({
 								})
 							}
 							isActioning={stageFileMutation.isPending}
+							contextMenuProps={getContextMenuProps(true)}
 						/>
 					</CategorySection>
 				</div>

@@ -1,9 +1,26 @@
 import { Button } from "@superset/ui/button";
+import { ContextMenuTrigger } from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
+import type { Tab } from "renderer/stores/tabs/types";
 import type { ChangedFile } from "shared/changes-types";
 import { getStatusColor, getStatusIndicator } from "../../utils";
+import {
+	FileItemContextMenu,
+	type FileItemContextMenuActions,
+} from "./FileItemContextMenu";
+
+export interface FileItemContextMenuProps {
+	currentTabId: string;
+	availableTabs: Tab[];
+	onOpenInSplitHorizontal: () => void;
+	onOpenInSplitVertical: () => void;
+	onOpenInApp: () => void;
+	onOpenInNewTab: () => void;
+	onMoveToTab: (tabId: string) => void;
+	onDiscardChanges?: () => void;
+}
 
 interface FileItemProps {
 	file: ChangedFile;
@@ -21,6 +38,8 @@ interface FileItemProps {
 	onUnstage?: () => void;
 	/** Whether the action is currently pending */
 	isActioning?: boolean;
+	/** Context menu props - if provided, enables right-click menu */
+	contextMenuProps?: FileItemContextMenuProps;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -50,6 +69,7 @@ export function FileItem({
 	onStage,
 	onUnstage,
 	isActioning = false,
+	contextMenuProps,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
@@ -59,7 +79,7 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	return (
+	const content = (
 		<div
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
@@ -152,4 +172,27 @@ export function FileItem({
 			)}
 		</div>
 	);
+
+	if (contextMenuProps) {
+		const actions: FileItemContextMenuActions = {
+			onOpenInSplitHorizontal: contextMenuProps.onOpenInSplitHorizontal,
+			onOpenInSplitVertical: contextMenuProps.onOpenInSplitVertical,
+			onOpenInApp: contextMenuProps.onOpenInApp,
+			onOpenInNewTab: contextMenuProps.onOpenInNewTab,
+			onMoveToTab: contextMenuProps.onMoveToTab,
+			onDiscardChanges: contextMenuProps.onDiscardChanges,
+		};
+
+		return (
+			<FileItemContextMenu
+				actions={actions}
+				currentTabId={contextMenuProps.currentTabId}
+				availableTabs={contextMenuProps.availableTabs}
+			>
+				<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
+			</FileItemContextMenu>
+		);
+	}
+
+	return content;
 }

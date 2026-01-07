@@ -1,1 +1,2 @@
-export { FileItem } from "./FileItem";
+export { FileItem, type FileItemContextMenuProps } from "./FileItem";
+export { FileItemContextMenu } from "./FileItemContextMenu";

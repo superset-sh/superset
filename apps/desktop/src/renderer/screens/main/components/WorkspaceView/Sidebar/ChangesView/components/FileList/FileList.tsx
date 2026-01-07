@@ -1,7 +1,23 @@
+import type { Tab } from "renderer/stores/tabs/types";
 import type { ChangedFile } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { FileListGrouped } from "./FileListGrouped";
 import { FileListTree } from "./FileListTree";
+
+/**
+ * Shared context menu props for file items.
+ * All callbacks receive the file so they can be passed down without per-file binding.
+ */
+export interface FileContextMenuProps {
+	currentTabId: string;
+	availableTabs: Tab[];
+	onOpenInSplitHorizontal: (file: ChangedFile) => void;
+	onOpenInSplitVertical: (file: ChangedFile) => void;
+	onOpenInApp: (file: ChangedFile) => void;
+	onOpenInNewTab: (file: ChangedFile) => void;
+	onMoveToTab: (file: ChangedFile, tabId: string) => void;
+	onDiscardChanges?: (file: ChangedFile) => void;
+}
 
 interface FileListProps {
 	files: ChangedFile[];
@@ -19,6 +35,8 @@ interface FileListProps {
 	onUnstage?: (file: ChangedFile) => void;
 	/** Whether an action is currently pending */
 	isActioning?: boolean;
+	/** Context menu props - if provided, enables right-click menu */
+	contextMenuProps?: FileContextMenuProps;
 }
 
 export function FileList({
@@ -32,6 +50,7 @@ export function FileList({
 	onStage,
 	onUnstage,
 	isActioning,
+	contextMenuProps,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -49,6 +68,7 @@ export function FileList({
 				onStage={onStage}
 				onUnstage={onUnstage}
 				isActioning={isActioning}
+				contextMenuProps={contextMenuProps}
 			/>
 		);
 	}
@@ -65,6 +85,7 @@ export function FileList({
 			onStage={onStage}
 			onUnstage={onUnstage}
 			isActioning={isActioning}
+			contextMenuProps={contextMenuProps}
 		/>
 	);
 }

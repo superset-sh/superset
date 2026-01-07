@@ -7,7 +7,7 @@ import { cn } from "@superset/ui/utils";
 import { HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
-import { FileList } from "../FileList";
+import { type FileContextMenuProps, FileList } from "../FileList";
 
 interface CommitItemProps {
 	commit: CommitInfo;
@@ -20,6 +20,8 @@ interface CommitItemProps {
 	/** Double click - opens pinned (permanent) */
 	onFileDoubleClick?: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
+	/** Context menu props - if provided, enables right-click menu */
+	contextMenuProps?: FileContextMenuProps;
 }
 
 function formatRelativeDate(date: Date): string {
@@ -45,6 +47,7 @@ export function CommitItem({
 	onFileSelect,
 	onFileDoubleClick,
 	viewMode,
+	contextMenuProps,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
@@ -94,6 +97,7 @@ export function CommitItem({
 						onFileSelect={handleFileSelect}
 						onFileDoubleClick={handleFileDoubleClick}
 						showStats={false}
+						contextMenuProps={contextMenuProps}
 					/>
 				</CollapsibleContent>
 			)}

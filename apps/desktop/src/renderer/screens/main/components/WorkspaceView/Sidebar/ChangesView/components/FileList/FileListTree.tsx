@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
+import type { FileContextMenuProps } from "./FileList";
 
 interface FileListTreeProps {
 	files: ChangedFile[];
@@ -15,6 +16,8 @@ interface FileListTreeProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	/** Context menu props - if provided, enables right-click menu */
+	contextMenuProps?: FileContextMenuProps;
 }
 
 interface FileTreeNode {
@@ -89,6 +92,7 @@ interface TreeNodeComponentProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	contextMenuProps?: FileContextMenuProps;
 }
 
 function TreeNodeComponent({
@@ -102,6 +106,7 @@ function TreeNodeComponent({
 	onStage,
 	onUnstage,
 	isActioning,
+	contextMenuProps,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -130,6 +135,7 @@ function TreeNodeComponent({
 						onStage={onStage}
 						onUnstage={onUnstage}
 						isActioning={isActioning}
+						contextMenuProps={contextMenuProps}
 					/>
 				))}
 			</FolderRow>
@@ -151,6 +157,25 @@ function TreeNodeComponent({
 				onStage={onStage ? () => onStage(file) : undefined}
 				onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 				isActioning={isActioning}
+				contextMenuProps={
+					contextMenuProps
+						? {
+								currentTabId: contextMenuProps.currentTabId,
+								availableTabs: contextMenuProps.availableTabs,
+								onOpenInSplitHorizontal: () =>
+									contextMenuProps.onOpenInSplitHorizontal(file),
+								onOpenInSplitVertical: () =>
+									contextMenuProps.onOpenInSplitVertical(file),
+								onOpenInApp: () => contextMenuProps.onOpenInApp(file),
+								onOpenInNewTab: () => contextMenuProps.onOpenInNewTab(file),
+								onMoveToTab: (tabId) =>
+									contextMenuProps.onMoveToTab(file, tabId),
+								onDiscardChanges: contextMenuProps.onDiscardChanges
+									? () => contextMenuProps.onDiscardChanges?.(file)
+									: undefined,
+							}
+						: undefined
+				}
 			/>
 		);
 	}
@@ -168,6 +193,7 @@ export function FileListTree({
 	onStage,
 	onUnstage,
 	isActioning,
+	contextMenuProps,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -185,6 +211,7 @@ export function FileListTree({
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
+					contextMenuProps={contextMenuProps}
 				/>
 			))}
 		</div>

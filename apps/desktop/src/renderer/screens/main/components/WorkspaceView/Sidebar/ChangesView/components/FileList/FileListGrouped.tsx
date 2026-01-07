@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
+import type { FileContextMenuProps } from "./FileList";
 
 interface FileListGroupedProps {
 	files: ChangedFile[];
@@ -15,6 +16,8 @@ interface FileListGroupedProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	/** Context menu props - if provided, enables right-click menu */
+	contextMenuProps?: FileContextMenuProps;
 }
 
 interface FolderGroup {
@@ -65,6 +68,7 @@ interface FolderGroupItemProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	contextMenuProps?: FileContextMenuProps;
 }
 
 function FolderGroupItem({
@@ -76,6 +80,7 @@ function FolderGroupItem({
 	onStage,
 	onUnstage,
 	isActioning,
+	contextMenuProps,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
@@ -102,6 +107,25 @@ function FolderGroupItem({
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 					isActioning={isActioning}
+					contextMenuProps={
+						contextMenuProps
+							? {
+									currentTabId: contextMenuProps.currentTabId,
+									availableTabs: contextMenuProps.availableTabs,
+									onOpenInSplitHorizontal: () =>
+										contextMenuProps.onOpenInSplitHorizontal(file),
+									onOpenInSplitVertical: () =>
+										contextMenuProps.onOpenInSplitVertical(file),
+									onOpenInApp: () => contextMenuProps.onOpenInApp(file),
+									onOpenInNewTab: () => contextMenuProps.onOpenInNewTab(file),
+									onMoveToTab: (tabId) =>
+										contextMenuProps.onMoveToTab(file, tabId),
+									onDiscardChanges: contextMenuProps.onDiscardChanges
+										? () => contextMenuProps.onDiscardChanges?.(file)
+										: undefined,
+								}
+							: undefined
+					}
 				/>
 			))}
 		</FolderRow>
@@ -117,6 +141,7 @@ export function FileListGrouped({
 	onStage,
 	onUnstage,
 	isActioning,
+	contextMenuProps,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -133,6 +158,7 @@ export function FileListGrouped({
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
+					contextMenuProps={contextMenuProps}
 				/>
 			))}
 		</div>
