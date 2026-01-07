@@ -28,8 +28,8 @@ import { shellEscapePaths } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
-	const panes = useTabsStore((s) => s.panes);
-	const pane = panes[paneId];
+	// Use granular selectors to avoid re-renders when other panes change
+	const pane = useTabsStore((s) => s.panes[paneId]);
 	const paneInitialCommands = pane?.initialCommands;
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
@@ -48,7 +48,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const updatePaneCwd = useTabsStore((s) => s.updatePaneCwd);
-	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	// Use granular selector - only subscribe to this tab's focused pane
+	const focusedPaneId = useTabsStore(
+		(s) => s.focusedPaneIds[pane?.tabId ?? ""],
+	);
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 	const terminalTheme = useTerminalTheme();
@@ -56,7 +59,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	// Ref for initial theme to avoid recreating terminal on theme change
 	const initialThemeRef = useRef(terminalTheme);
 
-	const isFocused = pane?.tabId ? focusedPaneIds[pane.tabId] === paneId : false;
+	const isFocused = focusedPaneId === paneId;
 
 	// Refs avoid effect re-runs when these values change
 	const isFocusedRef = useRef(isFocused);
@@ -155,10 +158,29 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [paneInitialCwd, workspaceCwd, terminalCwd]);
 
-	// Sync terminal cwd to store for DirectoryNavigator
+	// Debounced CWD update to reduce store updates during rapid directory changes
+	const debouncedUpdatePaneCwdRef = useRef(
+		debounce((id: string, cwd: string | null, confirmed: boolean) => {
+			updatePaneCwd(id, cwd, confirmed);
+		}, 150),
+	);
+
+	// Sync terminal cwd to store for DirectoryNavigator (debounced)
 	useEffect(() => {
-		updatePaneCwd(paneId, terminalCwd, cwdConfirmed);
-	}, [terminalCwd, cwdConfirmed, paneId, updatePaneCwd]);
+		debouncedUpdatePaneCwdRef.current(
+			paneId,
+			terminalCwd,
+			cwdConfirmed ?? false,
+		);
+	}, [terminalCwd, cwdConfirmed, paneId]);
+
+	// Cleanup debounced function on unmount
+	useEffect(() => {
+		const debouncedFn = debouncedUpdatePaneCwdRef.current;
+		return () => {
+			debouncedFn.cancel();
+		};
+	}, []);
 
 	// Parse terminal data for cwd (OSC 7 sequences)
 	const updateCwdFromData = useCallback((data: string) => {

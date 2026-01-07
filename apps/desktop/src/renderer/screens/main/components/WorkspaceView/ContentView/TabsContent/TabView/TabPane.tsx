@@ -4,8 +4,9 @@ import {
 	registerPaneRef,
 	unregisterPaneRef,
 } from "renderer/stores/tabs/pane-refs";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
-import type { Pane, Tab } from "renderer/stores/tabs/types";
+import type { Tab } from "renderer/stores/tabs/types";
 import { TabContentContextMenu } from "../TabContentContextMenu";
 import { Terminal } from "../Terminal";
 import { DirectoryNavigator } from "../Terminal/DirectoryNavigator";
@@ -14,7 +15,6 @@ import { BasePaneWindow, PaneToolbarActions } from "./components";
 interface TabPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	pane: Pane;
 	isActive: boolean;
 	tabId: string;
 	workspaceId: string;
@@ -44,7 +44,6 @@ interface TabPaneProps {
 export function TabPane({
 	paneId,
 	path,
-	pane,
 	isActive,
 	tabId,
 	workspaceId,
@@ -57,6 +56,10 @@ export function TabPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: TabPaneProps) {
+	// Use granular selector to only get this pane's cwd data
+	const paneCwd = useTabsStore((s) => s.panes[paneId]?.cwd);
+	const paneCwdConfirmed = useTabsStore((s) => s.panes[paneId]?.cwdConfirmed);
+
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
 	const getScrollToBottomCallback = useTerminalCallbacksStore(
@@ -95,8 +98,8 @@ export function TabPane({
 					<div className="flex min-w-0 items-center gap-2">
 						<DirectoryNavigator
 							paneId={paneId}
-							currentCwd={pane.cwd}
-							cwdConfirmed={pane.cwdConfirmed}
+							currentCwd={paneCwd}
+							cwdConfirmed={paneCwdConfirmed}
 						/>
 					</div>
 					<PaneToolbarActions

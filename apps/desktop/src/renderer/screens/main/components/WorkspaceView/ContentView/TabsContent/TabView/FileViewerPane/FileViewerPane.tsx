@@ -2,7 +2,7 @@ import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Pane, Tab } from "renderer/stores/tabs/types";
+import type { Tab } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
@@ -14,7 +14,6 @@ import { UnsavedChangesDialog } from "./UnsavedChangesDialog";
 interface FileViewerPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
-	pane: Pane;
 	isActive: boolean;
 	tabId: string;
 	worktreePath: string;
@@ -44,7 +43,6 @@ interface FileViewerPaneProps {
 export function FileViewerPane({
 	paneId,
 	path,
-	pane,
 	isActive,
 	tabId,
 	worktreePath,
@@ -57,6 +55,9 @@ export function FileViewerPane({
 	onMoveToTab,
 	onMoveToNewTab,
 }: FileViewerPaneProps) {
+	// Use granular selector to only get this pane's fileViewer data
+	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
+
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
 	const originalContentRef = useRef<string>("");
@@ -66,8 +67,6 @@ export function FileViewerPane({
 	const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 	const [isSavingAndSwitching, setIsSavingAndSwitching] = useState(false);
 	const pendingModeRef = useRef<FileViewerMode | null>(null);
-
-	const fileViewer = pane.fileViewer;
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
 	const isPinned = fileViewer?.isPinned ?? false;

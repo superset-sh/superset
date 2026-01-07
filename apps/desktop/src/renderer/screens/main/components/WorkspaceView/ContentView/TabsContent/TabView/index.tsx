@@ -1,7 +1,7 @@
 import "react-mosaic-component/react-mosaic-component.css";
 import "./mosaic-theme.css";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
 	Mosaic,
 	type MosaicBranch,
@@ -10,32 +10,31 @@ import {
 import { dragDropManager } from "renderer/lib/dnd";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Pane, Tab } from "renderer/stores/tabs/types";
+import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
-	getPaneIdsForTab,
 } from "renderer/stores/tabs/utils";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
 interface TabViewProps {
 	tab: Tab;
-	panes: Record<string, Pane>;
 }
 
-export function TabView({ tab, panes }: TabViewProps) {
+export function TabView({ tab }: TabViewProps) {
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
 		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
+	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tab.id]);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 	const allTabs = useTabsStore((s) => s.tabs);
+	const allPanes = useTabsStore((s) => s.panes);
 
 	// Get worktree path for file viewer panes
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
@@ -46,9 +45,25 @@ export function TabView({ tab, panes }: TabViewProps) {
 		(t) => t.workspaceId === tab.workspaceId,
 	);
 
-	const focusedPaneId = focusedPaneIds[tab.id];
+	// Extract pane IDs from layout
+	const layoutPaneIds = useMemo(
+		() => extractPaneIdsFromLayout(tab.layout),
+		[tab.layout],
+	);
 
-	const validPaneIds = new Set(getPaneIdsForTab(panes, tab.id));
+	// Memoize the filtered panes to avoid creating new objects on every render
+	const tabPanes = useMemo(() => {
+		const result: Record<string, { tabId: string; type: string }> = {};
+		for (const paneId of layoutPaneIds) {
+			const pane = allPanes[paneId];
+			if (pane?.tabId === tab.id) {
+				result[paneId] = { tabId: pane.tabId, type: pane.type };
+			}
+		}
+		return result;
+	}, [layoutPaneIds, allPanes, tab.id]);
+
+	const validPaneIds = new Set(Object.keys(tabPanes));
 	const cleanedLayout = cleanLayout(tab.layout, validPaneIds);
 
 	// Auto-remove tab when all panes are gone
@@ -85,10 +100,10 @@ export function TabView({ tab, panes }: TabViewProps) {
 
 	const renderPane = useCallback(
 		(paneId: string, path: MosaicBranch[]) => {
-			const pane = panes[paneId];
+			const paneInfo = tabPanes[paneId];
 			const isActive = paneId === focusedPaneId;
 
-			if (!pane) {
+			if (!paneInfo) {
 				return (
 					<div className="w-full h-full flex items-center justify-center text-muted-foreground">
 						Pane not found: {paneId}
@@ -97,7 +112,7 @@ export function TabView({ tab, panes }: TabViewProps) {
 			}
 
 			// Route file-viewer panes to FileViewerPane component
-			if (pane.type === "file-viewer") {
+			if (paneInfo.type === "file-viewer") {
 				if (!worktreePath) {
 					return (
 						<div className="w-full h-full flex items-center justify-center text-muted-foreground">
@@ -109,7 +124,6 @@ export function TabView({ tab, panes }: TabViewProps) {
 					<FileViewerPane
 						paneId={paneId}
 						path={path}
-						pane={pane}
 						isActive={isActive}
 						tabId={tab.id}
 						worktreePath={worktreePath}
@@ -130,7 +144,6 @@ export function TabView({ tab, panes }: TabViewProps) {
 				<TabPane
 					paneId={paneId}
 					path={path}
-					pane={pane}
 					isActive={isActive}
 					tabId={tab.id}
 					workspaceId={tab.workspaceId}
@@ -146,7 +159,7 @@ export function TabView({ tab, panes }: TabViewProps) {
 			);
 		},
 		[
-			panes,
+			tabPanes,
 			focusedPaneId,
 			tab.id,
 			tab.workspaceId,
