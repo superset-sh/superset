@@ -210,8 +210,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
-		// With Tabby-style serialize/restore, we no longer need to queue events
-		// The terminal subscription is enabled immediately after xterm is ready
 		if (!xtermRef.current) {
 			return;
 		}
@@ -307,8 +305,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			searchAddonRef.current = searchAddon;
 		});
 
-		// Apply serialized state from previous session (Tabby-style)
-		// This writes parsed terminal content, avoiding escape sequence issues
 		const applySerializedState = (serializedState: string) => {
 			if (serializedState) {
 				xterm.write(serializedState);
@@ -402,7 +398,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
-					// Apply serialized state (parsed terminal content) for clean reattachment
 					applySerializedState(result.serializedState);
 				},
 			},
@@ -472,12 +467,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
-			// Serialize terminal state before detaching (Tabby-style)
-			// This captures parsed terminal content, avoiding escape sequence issues on reattach
 			const serializedState = serializeAddon.serialize({
-				excludeAltBuffer: true, // Don't serialize vim/less alternate buffer
-				excludeModes: true, // Don't serialize terminal modes
-				scrollback: 1000, // Limit scrollback to avoid huge states
+				excludeAltBuffer: true,
+				excludeModes: true,
+				scrollback: 1000,
 			});
 
 			// Detach instead of kill to keep PTY running for reattachment

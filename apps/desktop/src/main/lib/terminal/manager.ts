@@ -32,7 +32,6 @@ export class TerminalManager extends EventEmitter {
 			}
 			return {
 				isNew: false,
-				// Return serialized state (parsed terminal content) for clean reattachment
 				serializedState: existing.serializedState || "",
 			};
 		}
@@ -87,7 +86,6 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			// New session has no serialized state to restore
 			serializedState: "",
 		};
 	}
@@ -230,7 +228,6 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Store serialized state from renderer for clean reattachment
 		if (serializedState) {
 			session.serializedState = serializedState;
 		}
@@ -248,8 +245,6 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Clear in-memory scrollback and serialized state
-		session.scrollback = "";
 		session.serializedState = "";
 		session.lastActive = Date.now();
 	}

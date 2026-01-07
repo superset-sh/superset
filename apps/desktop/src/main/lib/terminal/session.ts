@@ -2,7 +2,6 @@ import os from "node:os";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
-import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -77,20 +76,13 @@ export async function createSession(
 		cols: terminalCols,
 		rows: terminalRows,
 		lastActive: Date.now(),
-		scrollback: "",
 		isAlive: true,
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
 	};
 
-	// Set up data handler with direct emission (no batching)
-	// xterm.js handles rendering efficiently, so batching is unnecessary
 	ptyProcess.onData((data) => {
-		session.scrollback += data;
-		// Check for hints that a port may have been opened (triggers immediate scan)
-		portManager.checkOutputForHint(data, session.paneId);
-		// Direct emission to renderer
 		onData(paneId, data);
 	});
 
@@ -112,9 +104,8 @@ export function setupInitialCommands(
 
 	const initialCommandString = `${initialCommands.join(" && ")}\n`;
 
-	// Wait for first data (shell prompt ready), then send commands
 	const dataHandler = session.pty.onData(() => {
-		dataHandler.dispose(); // Only trigger once
+		dataHandler.dispose();
 
 		setTimeout(() => {
 			if (session.isAlive) {

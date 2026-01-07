@@ -8,9 +8,6 @@ export interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	/** Raw scrollback accumulated from PTY output (used for port detection hints) */
-	scrollback: string;
-	/** Serialized terminal state from renderer's SerializeAddon (parsed, safe to replay) */
 	serializedState?: string;
 	isAlive: boolean;
 	shell: string;
