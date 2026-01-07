@@ -2,6 +2,7 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
+import { LuRotateCcw, LuTrash2 } from "react-icons/lu";
 import type { ChangedFile } from "shared/changes-types";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
@@ -19,6 +20,10 @@ interface FileItemProps {
 	onStage?: () => void;
 	/** Callback for unstaging the file (shown on hover for staged files) */
 	onUnstage?: () => void;
+	/** Callback for discarding changes to tracked files */
+	onDiscard?: () => void;
+	/** Callback for deleting untracked files */
+	onDelete?: () => void;
 	/** Whether the action is currently pending */
 	isActioning?: boolean;
 }
@@ -49,6 +54,8 @@ export function FileItem({
 	level = 0,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning = false,
 }: FileItemProps) {
 	const fileName = getFileName(file.path);
@@ -57,7 +64,13 @@ export function FileItem({
 	const showStatsDisplay =
 		showStats && (file.additions > 0 || file.deletions > 0);
 	const hasIndent = level > 0;
-	const hasAction = onStage || onUnstage;
+
+	// Only show discard for tracked files (not untracked)
+	const showDiscard = onDiscard && file.status !== "untracked";
+	// Only show delete for untracked files
+	const showDelete = onDelete && file.status === "untracked";
+
+	const hasAction = onStage || onUnstage || showDiscard || showDelete;
 
 	return (
 		<div
@@ -146,6 +159,44 @@ export function FileItem({
 								</Button>
 							</TooltipTrigger>
 							<TooltipContent side="right">Unstage</TooltipContent>
+						</Tooltip>
+					)}
+					{showDiscard && onDiscard && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-5 hover:bg-accent"
+									onClick={(e) => {
+										e.stopPropagation();
+										onDiscard();
+									}}
+									disabled={isActioning}
+								>
+									<LuRotateCcw className="size-3" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Discard changes</TooltipContent>
+						</Tooltip>
+					)}
+					{showDelete && onDelete && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-5 hover:bg-accent hover:text-destructive"
+									onClick={(e) => {
+										e.stopPropagation();
+										onDelete();
+									}}
+									disabled={isActioning}
+								>
+									<LuTrash2 className="size-3" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="right">Delete from disk</TooltipContent>
 						</Tooltip>
 					)}
 				</div>

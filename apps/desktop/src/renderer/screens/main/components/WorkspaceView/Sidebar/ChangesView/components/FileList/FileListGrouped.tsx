@@ -14,6 +14,8 @@ interface FileListGroupedProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onDiscard?: (file: ChangedFile) => void;
+	onDelete?: (file: ChangedFile) => void;
 	isActioning?: boolean;
 }
 
@@ -64,6 +66,8 @@ interface FolderGroupItemProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onDiscard?: (file: ChangedFile) => void;
+	onDelete?: (file: ChangedFile) => void;
 	isActioning?: boolean;
 }
 
@@ -75,6 +79,8 @@ function FolderGroupItem({
 	showStats,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
@@ -101,6 +107,8 @@ function FolderGroupItem({
 					showStats={showStats}
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
+					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+					onDelete={onDelete ? () => onDelete(file) : undefined}
 					isActioning={isActioning}
 				/>
 			))}
@@ -116,6 +124,8 @@ export function FileListGrouped({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
@@ -132,6 +142,8 @@ export function FileListGrouped({
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
+					onDiscard={onDiscard}
+					onDelete={onDelete}
 					isActioning={isActioning}
 				/>
 			))}

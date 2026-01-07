@@ -17,6 +17,10 @@ interface FileListProps {
 	onStage?: (file: ChangedFile) => void;
 	/** Callback for unstaging a file */
 	onUnstage?: (file: ChangedFile) => void;
+	/** Callback for discarding changes to tracked files */
+	onDiscard?: (file: ChangedFile) => void;
+	/** Callback for deleting untracked files */
+	onDelete?: (file: ChangedFile) => void;
 	/** Whether an action is currently pending */
 	isActioning?: boolean;
 }
@@ -31,6 +35,8 @@ export function FileList({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning,
 }: FileListProps) {
 	if (files.length === 0) {
@@ -48,6 +54,8 @@ export function FileList({
 				showStats={showStats}
 				onStage={onStage}
 				onUnstage={onUnstage}
+				onDiscard={onDiscard}
+				onDelete={onDelete}
 				isActioning={isActioning}
 			/>
 		);
@@ -64,6 +72,8 @@ export function FileList({
 			showStats={showStats}
 			onStage={onStage}
 			onUnstage={onUnstage}
+			onDiscard={onDiscard}
+			onDelete={onDelete}
 			isActioning={isActioning}
 		/>
 	);

@@ -102,6 +102,31 @@ export function ChangesView({
 		},
 	});
 
+	const discardChangesMutation = trpc.changes.discardChanges.useMutation({
+		onSuccess: () => {
+			refetch();
+			toast.success("Changes discarded");
+		},
+		onError: (error, variables) => {
+			console.error(
+				`Failed to discard changes for ${variables.filePath}:`,
+				error,
+			);
+			toast.error(`Failed to discard ${variables.filePath}: ${error.message}`);
+		},
+	});
+
+	const deleteUntrackedMutation = trpc.changes.deleteUntracked.useMutation({
+		onSuccess: () => {
+			refetch();
+			toast.success("File deleted");
+		},
+		onError: (error, variables) => {
+			console.error(`Failed to delete file ${variables.filePath}:`, error);
+			toast.error(`Failed to delete ${variables.filePath}: ${error.message}`);
+		},
+	});
+
 	const {
 		expandedSections,
 		fileListViewMode,
@@ -185,6 +210,34 @@ export function ChangesView({
 			}
 			return next;
 		});
+	};
+
+	const handleDiscardChanges = (file: ChangedFile) => {
+		const fileName = file.path.split("/").pop() || file.path;
+		const confirmed = window.confirm(
+			`Discard all changes to "${fileName}"?\n\nThis will restore the file to its last committed state. This action cannot be undone.`,
+		);
+
+		if (confirmed && worktreePath) {
+			discardChangesMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		}
+	};
+
+	const handleDeleteUntracked = (file: ChangedFile) => {
+		const fileName = file.path.split("/").pop() || file.path;
+		const confirmed = window.confirm(
+			`Delete "${fileName}" from disk?\n\nThis file will be permanently deleted. This action cannot be undone.`,
+		);
+
+		if (confirmed && worktreePath) {
+			deleteUntrackedMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		}
 	};
 
 	if (!worktreePath) {
@@ -392,7 +445,13 @@ export function ChangesView({
 									filePath: file.path,
 								})
 							}
-							isActioning={stageFileMutation.isPending}
+							onDiscard={handleDiscardChanges}
+							onDelete={handleDeleteUntracked}
+							isActioning={
+								stageFileMutation.isPending ||
+								discardChangesMutation.isPending ||
+								deleteUntrackedMutation.isPending
+							}
 						/>
 					</CategorySection>
 				</div>

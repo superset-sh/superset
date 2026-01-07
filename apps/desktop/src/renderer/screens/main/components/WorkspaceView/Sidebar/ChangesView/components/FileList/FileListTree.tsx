@@ -14,6 +14,8 @@ interface FileListTreeProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onDiscard?: (file: ChangedFile) => void;
+	onDelete?: (file: ChangedFile) => void;
 	isActioning?: boolean;
 }
 
@@ -88,6 +90,8 @@ interface TreeNodeComponentProps {
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
+	onDiscard?: (file: ChangedFile) => void;
+	onDelete?: (file: ChangedFile) => void;
 	isActioning?: boolean;
 }
 
@@ -101,6 +105,8 @@ function TreeNodeComponent({
 	showStats,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
@@ -129,6 +135,8 @@ function TreeNodeComponent({
 						showStats={showStats}
 						onStage={onStage}
 						onUnstage={onUnstage}
+						onDiscard={onDiscard}
+						onDelete={onDelete}
 						isActioning={isActioning}
 					/>
 				))}
@@ -150,6 +158,8 @@ function TreeNodeComponent({
 				level={level}
 				onStage={onStage ? () => onStage(file) : undefined}
 				onUnstage={onUnstage ? () => onUnstage(file) : undefined}
+				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+				onDelete={onDelete ? () => onDelete(file) : undefined}
 				isActioning={isActioning}
 			/>
 		);
@@ -167,6 +177,8 @@ export function FileListTree({
 	showStats = true,
 	onStage,
 	onUnstage,
+	onDiscard,
+	onDelete,
 	isActioning,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
@@ -184,6 +196,8 @@ export function FileListTree({
 					showStats={showStats}
 					onStage={onStage}
 					onUnstage={onUnstage}
+					onDiscard={onDiscard}
+					onDelete={onDelete}
 					isActioning={isActioning}
 				/>
 			))}
