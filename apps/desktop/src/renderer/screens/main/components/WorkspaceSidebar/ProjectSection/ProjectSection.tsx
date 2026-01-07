@@ -1,7 +1,4 @@
-import { toast } from "@superset/ui/sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
-import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { WorkspaceListItem } from "../WorkspaceListItem";
@@ -43,26 +40,13 @@ export function ProjectSection({
 	shortcutBaseIndex,
 	isCollapsed: isSidebarCollapsed = false,
 }: ProjectSectionProps) {
-	const [dropdownOpen, setDropdownOpen] = useState(false);
 	const { isProjectCollapsed, toggleProjectCollapsed } =
 		useWorkspaceSidebarStore();
-	const createWorkspace = useCreateWorkspace();
 	const openModal = useOpenNewWorkspaceModal();
 
 	const isCollapsed = isProjectCollapsed(projectId);
 
-	const handleQuickCreate = () => {
-		setDropdownOpen(false);
-		toast.promise(createWorkspace.mutateAsync({ projectId }), {
-			loading: "Creating workspace...",
-			success: "Workspace created",
-			error: (err) =>
-				err instanceof Error ? err.message : "Failed to create workspace",
-		});
-	};
-
 	const handleNewWorkspace = () => {
-		setDropdownOpen(false);
 		openModal(projectId);
 	};
 
@@ -81,10 +65,6 @@ export function ProjectSection({
 					onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 					workspaceCount={workspaces.length}
 					onNewWorkspace={handleNewWorkspace}
-					onQuickCreate={handleQuickCreate}
-					isCreating={createWorkspace.isPending}
-					dropdownOpen={dropdownOpen}
-					onDropdownOpenChange={setDropdownOpen}
 				/>
 				<AnimatePresence initial={false}>
 					{!isCollapsed && (
@@ -133,10 +113,6 @@ export function ProjectSection({
 				onToggleCollapse={() => toggleProjectCollapsed(projectId)}
 				workspaceCount={workspaces.length}
 				onNewWorkspace={handleNewWorkspace}
-				onQuickCreate={handleQuickCreate}
-				isCreating={createWorkspace.isPending}
-				dropdownOpen={dropdownOpen}
-				onDropdownOpenChange={setDropdownOpen}
 			/>
 
 			<AnimatePresence initial={false}>
