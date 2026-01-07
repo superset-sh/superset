@@ -1,7 +1,9 @@
 import {
 	decodeUrlEncodedPath,
+	detectFallbackLinks,
 	detectLinks,
 	getCurrentOS,
+	type IFallbackLink,
 	type IParsedLink,
 	removeLinkSuffix,
 } from "@superset/shared/terminal-link-parsing";
@@ -139,6 +141,42 @@ export class FilePathLinkProvider implements ILinkProvider {
 			});
 		}
 
+		// If no links found via primary detection, try fallback matchers
+		// These catch special formats like Python errors, Rust errors, etc.
+		if (links.length === 0) {
+			const fallbackLinks = detectFallbackLinks(combinedText);
+			for (const fallback of fallbackLinks) {
+				const linkStart = fallback.index;
+				const linkEnd = fallback.index + fallback.link.length;
+
+				// Check if this link overlaps with the current line
+				const fbCurrentLineStart = currentLineOffset;
+				const fbCurrentLineEnd = currentLineOffset + lineLength;
+				if (linkEnd <= fbCurrentLineStart || linkStart >= fbCurrentLineEnd) {
+					continue;
+				}
+
+				// Calculate the range for highlighting
+				const range = this.calculateLinkRange(
+					linkStart,
+					linkEnd,
+					prevLineLength,
+					lineLength,
+					bufferLineNumber,
+					isCurrentLineWrapped,
+					nextLineIsWrapped,
+				);
+
+				links.push({
+					range,
+					text: fallback.link,
+					activate: (event: MouseEvent) => {
+						this.handleFallbackActivation(event, fallback);
+					},
+				});
+			}
+		}
+
 		callback(links.length > 0 ? links : undefined);
 	}
 
@@ -268,6 +306,25 @@ export class FilePathLinkProvider implements ILinkProvider {
 		}
 
 		this.onOpen(event, cleanPath, line, column, lineEnd, columnEnd);
+	}
+
+	private handleFallbackActivation(
+		event: MouseEvent,
+		fallback: IFallbackLink,
+	): void {
+		if (!event.metaKey && !event.ctrlKey) {
+			return;
+		}
+
+		event.preventDefault();
+
+		const cleanPath = decodeUrlEncodedPath(fallback.path);
+
+		if (!cleanPath) {
+			return;
+		}
+
+		this.onOpen(event, cleanPath, fallback.line, fallback.col);
 	}
 
 	private calculateLinkRange(

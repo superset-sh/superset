@@ -213,6 +213,22 @@ export function getLinkSuffix(link: string): ILinkSuffix | null {
 }
 
 /**
+ * Decode URL-encoded characters in a path.
+ * Common encodings: %3A -> :, %20 -> space, %2F -> /
+ */
+export function decodeUrlEncodedPath(path: string): string {
+	try {
+		if (path.includes("%")) {
+			return decodeURIComponent(path);
+		}
+		return path;
+	} catch {
+		// If decoding fails (malformed %), return original path
+		return path;
+	}
+}
+
+/**
  * Get the current operating system.
  * Works in browser environments (uses navigator.platform) or defaults to Linux.
  * For Node.js environments, you should pass the OS directly to detectLinks.

@@ -8,4 +8,3 @@
 
 export * from "./fallback-matchers";
 export * from "./link-parsing";
-export * from "./link-resolver";
