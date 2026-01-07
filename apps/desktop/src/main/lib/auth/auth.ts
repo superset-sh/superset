@@ -2,13 +2,16 @@ import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import { join } from "node:path";
-import { auth } from "@superset/auth";
+import { createAuthApiClient } from "@superset/auth/client";
 import type { AuthProvider } from "@superset/shared/constants";
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { shell } from "electron";
 import { env } from "main/env.main";
 import { SUPERSET_HOME_DIR } from "../app-environment";
 import { decrypt, encrypt } from "./crypto-storage";
+
+// Create auth API client that doesn't require database connection
+const auth = createAuthApiClient(env.NEXT_PUBLIC_API_URL);
 
 export interface SignInResult {
 	success: boolean;
