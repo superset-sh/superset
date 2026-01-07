@@ -1,7 +1,7 @@
 import { App } from "@octokit/app";
 import { Octokit } from "@octokit/rest";
 
-import { env } from "../../../env";
+import { env } from "@/env";
 
 export const githubApp = new App({
 	appId: env.GITHUB_APP_ID,

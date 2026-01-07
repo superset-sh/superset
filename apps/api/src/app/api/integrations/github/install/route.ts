@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";

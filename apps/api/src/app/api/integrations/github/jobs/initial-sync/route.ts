@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 					ref: pr.head.sha,
 				});
 
-				const checks = checksData.check_runs.map((c) => ({
+				const checks = checksData.check_runs.map((c: (typeof checksData.check_runs)[number]) => ({
 					name: c.name,
 					status: c.status,
 					conclusion: c.conclusion,
@@ -140,9 +140,13 @@ export async function POST(request: Request) {
 				let checksStatus = "none";
 				if (checks.length > 0) {
 					const hasFailure = checks.some(
-						(c) => c.conclusion === "failure" || c.conclusion === "timed_out",
+						(c: { name: string; status: string; conclusion: string | null; detailsUrl?: string }) =>
+							c.conclusion === "failure" || c.conclusion === "timed_out",
 					);
-					const hasPending = checks.some((c) => c.status !== "completed");
+					const hasPending = checks.some(
+						(c: { name: string; status: string; conclusion: string | null; detailsUrl?: string }) =>
+							c.status !== "completed",
+					);
 
 					checksStatus = hasFailure
 						? "failure"
@@ -166,9 +170,9 @@ export async function POST(request: Request) {
 						authorAvatarUrl: pr.user?.avatar_url ?? null,
 						state: pr.state,
 						isDraft: pr.draft ?? false,
-						additions: pr.additions ?? 0,
-						deletions: pr.deletions ?? 0,
-						changedFiles: pr.changed_files ?? 0,
+						additions: 0, // Not available in list response
+						deletions: 0, // Not available in list response
+						changedFiles: 0, // Not available in list response
 						reviewDecision: null, // Will be updated by webhooks
 						checksStatus,
 						checks,
@@ -185,9 +189,8 @@ export async function POST(request: Request) {
 							title: pr.title,
 							state: pr.state,
 							isDraft: pr.draft ?? false,
-							additions: pr.additions ?? 0,
-							deletions: pr.deletions ?? 0,
-							changedFiles: pr.changed_files ?? 0,
+							// Note: additions, deletions, changedFiles not updated here
+							// as they're not available in list response
 							checksStatus,
 							checks,
 							mergedAt: pr.merged_at ? new Date(pr.merged_at) : null,

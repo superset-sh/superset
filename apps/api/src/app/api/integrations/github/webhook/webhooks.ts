@@ -1,3 +1,4 @@
+import type { EmitterWebhookEvent } from "@octokit/webhooks";
 import { Webhooks } from "@octokit/webhooks";
 import { db } from "@superset/db/client";
 import {
@@ -12,14 +13,14 @@ import { env } from "@/env";
 export const webhooks = new Webhooks({ secret: env.GITHUB_WEBHOOK_SECRET });
 
 // Installation events
-webhooks.on("installation.deleted", async ({ payload }) => {
+webhooks.on("installation.deleted", async ({ payload }: EmitterWebhookEvent<"installation.deleted">) => {
 	console.log("[github/webhook] Installation deleted:", payload.installation.id);
 	await db
 		.delete(githubInstallations)
 		.where(eq(githubInstallations.installationId, String(payload.installation.id)));
 });
 
-webhooks.on("installation.suspend", async ({ payload }) => {
+webhooks.on("installation.suspend", async ({ payload }: EmitterWebhookEvent<"installation.suspend">) => {
 	console.log("[github/webhook] Installation suspended:", payload.installation.id);
 	await db
 		.update(githubInstallations)
@@ -27,7 +28,7 @@ webhooks.on("installation.suspend", async ({ payload }) => {
 		.where(eq(githubInstallations.installationId, String(payload.installation.id)));
 });
 
-webhooks.on("installation.unsuspend", async ({ payload }) => {
+webhooks.on("installation.unsuspend", async ({ payload }: EmitterWebhookEvent<"installation.unsuspend">) => {
 	console.log("[github/webhook] Installation unsuspended:", payload.installation.id);
 	await db
 		.update(githubInstallations)
@@ -36,7 +37,7 @@ webhooks.on("installation.unsuspend", async ({ payload }) => {
 });
 
 // Repository events
-webhooks.on("installation_repositories.added", async ({ payload }) => {
+webhooks.on("installation_repositories.added", async ({ payload }: EmitterWebhookEvent<"installation_repositories.added">) => {
 	const [installation] = await db
 		.select()
 		.from(githubInstallations)
@@ -67,7 +68,7 @@ webhooks.on("installation_repositories.added", async ({ payload }) => {
 	}
 });
 
-webhooks.on("installation_repositories.removed", async ({ payload }) => {
+webhooks.on("installation_repositories.removed", async ({ payload }: EmitterWebhookEvent<"installation_repositories.removed">) => {
 	for (const repo of payload.repositories_removed) {
 		console.log("[github/webhook] Repository removed:", repo.full_name);
 		await db
@@ -86,7 +87,7 @@ webhooks.on(
 		"pull_request.ready_for_review",
 		"pull_request.converted_to_draft",
 	],
-	async ({ payload }) => {
+	async ({ payload }: EmitterWebhookEvent<"pull_request.opened" | "pull_request.synchronize" | "pull_request.edited" | "pull_request.reopened" | "pull_request.ready_for_review" | "pull_request.converted_to_draft">) => {
 		const { pull_request: pr, repository } = payload;
 
 		const [repo] = await db
@@ -146,7 +147,7 @@ webhooks.on(
 	},
 );
 
-webhooks.on("pull_request.closed", async ({ payload }) => {
+webhooks.on("pull_request.closed", async ({ payload }: EmitterWebhookEvent<"pull_request.closed">) => {
 	const { pull_request: pr, repository } = payload;
 
 	const [repo] = await db
@@ -183,7 +184,7 @@ webhooks.on("pull_request.closed", async ({ payload }) => {
 });
 
 // Review events
-webhooks.on("pull_request_review.submitted", async ({ payload }) => {
+webhooks.on("pull_request_review.submitted", async ({ payload }: EmitterWebhookEvent<"pull_request_review.submitted">) => {
 	const { review, pull_request: pr, repository } = payload;
 
 	const [repo] = await db
@@ -229,7 +230,7 @@ webhooks.on("pull_request_review.submitted", async ({ payload }) => {
 // Check run events
 webhooks.on(
 	["check_run.created", "check_run.completed", "check_run.rerequested"],
-	async ({ payload }) => {
+	async ({ payload }: EmitterWebhookEvent<"check_run.created" | "check_run.completed" | "check_run.rerequested">) => {
 		const { check_run: checkRun, repository } = payload;
 
 		const [repo] = await db
