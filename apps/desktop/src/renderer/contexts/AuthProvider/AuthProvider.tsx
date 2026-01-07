@@ -9,16 +9,10 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/**
- * Provides auth state (token and session) to the component tree.
- * Single subscription to onAuthState - CollectionsProvider uses this to recreate collections.
- */
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const { data: authState } = trpc.auth.onAuthState.useSubscription();
 
 	const token = authState?.token ?? null;
-	// Pass the whole authState (which includes session + user) as "session"
-	// This way session.user.email, session.session.activeOrganizationId work
 	const session = authState ?? null;
 
 	const value: AuthContextValue = {

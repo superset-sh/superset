@@ -53,17 +53,14 @@ export function WorkspaceSidebarHeader({
 		toggleCollapsed();
 	};
 
-	// Determine which icon to show based on collapsed state and hover
 	const getToggleIcon = () => {
 		if (isCollapsed) {
-			// Collapsed: show panel-left normally, panel-left-open on hover
 			return isHovering ? (
 				<LuPanelLeftOpen className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 			) : (
 				<LuPanelLeft className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 			);
 		}
-		// Open: show panel-left normally, panel-left-close on hover
 		return isHovering ? (
 			<LuPanelLeftClose className="size-4" strokeWidth={STROKE_WIDTH_THIN} />
 		) : (
@@ -74,7 +71,6 @@ export function WorkspaceSidebarHeader({
 	if (isCollapsed) {
 		return (
 			<div className="flex flex-col items-center border-b border-border py-2 gap-2">
-				{/* Toggle sidebar button */}
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
@@ -90,10 +86,8 @@ export function WorkspaceSidebarHeader({
 					<TooltipContent side="right">Toggle sidebar</TooltipContent>
 				</Tooltip>
 
-				{/* Organization dropdown */}
 				<OrganizationDropdown isCollapsed />
 
-				{/* Workspaces button */}
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
@@ -112,7 +106,6 @@ export function WorkspaceSidebarHeader({
 					<TooltipContent side="right">Workspaces</TooltipContent>
 				</Tooltip>
 
-				{/* Tasks button - gated behind feature flag */}
 				{hasTasksAccess && (
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
@@ -143,7 +136,6 @@ export function WorkspaceSidebarHeader({
 
 	return (
 		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
-			{/* Toggle sidebar button */}
 			<Tooltip delayDuration={300}>
 				<TooltipTrigger asChild>
 					<button
@@ -166,10 +158,8 @@ export function WorkspaceSidebarHeader({
 				<TooltipContent side="right">Toggle sidebar</TooltipContent>
 			</Tooltip>
 
-			{/* Organization dropdown */}
 			<OrganizationDropdown />
 
-			{/* Workspaces button */}
 			<button
 				type="button"
 				onClick={handleClick}
@@ -186,7 +176,6 @@ export function WorkspaceSidebarHeader({
 				<span className="text-sm font-medium flex-1 text-left">Workspaces</span>
 			</button>
 
-			{/* Tasks button - gated behind feature flag */}
 			{hasTasksAccess && (
 				<button
 					type="button"

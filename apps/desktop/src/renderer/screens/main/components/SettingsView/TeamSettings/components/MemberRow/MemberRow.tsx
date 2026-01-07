@@ -1,4 +1,5 @@
 import { authClient } from "@superset/auth/client";
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -12,17 +13,7 @@ import {
 } from "@superset/ui/dialog";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
-
-interface MemberDetails {
-	memberId: string;
-	userId: string;
-	name: string | null;
-	email: string;
-	image: string | null;
-	role: string;
-	joinedAt: string;
-	organizationId: string;
-}
+import type { MemberDetails } from "../MemberActions";
 
 interface MemberRowProps {
 	member: MemberDetails;
@@ -57,12 +48,7 @@ export function MemberRow({
 		}
 	};
 
-	const initials = member.name
-		?.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
+	const initials = getInitials(member.name, member.email);
 
 	const isOwner = member.role === "owner";
 

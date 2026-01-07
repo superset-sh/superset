@@ -8,6 +8,7 @@ import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { useAuth } from "renderer/contexts/AuthProvider";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
@@ -49,29 +50,19 @@ function LoadingSpinner() {
 export function MainScreen() {
 	const utils = trpc.useUtils();
 
-	// Version check - blocks app if outdated
 	const {
 		isLoading: isVersionLoading,
 		isBlocked: isVersionBlocked,
 		requirements: versionRequirements,
 	} = useVersionCheck();
 
-	const { data: authState } = trpc.auth.getState.useQuery();
-	const isSignedIn =
-		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
-	const isAuthLoading = !process.env.SKIP_ENV_VALIDATION && !authState;
+	const { session } = useAuth();
+	const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || !!session?.user;
 
-	// Subscribe to auth state changes
-	trpc.auth.onStateChange.useSubscription(undefined, {
-		onData: () => utils.auth.getState.invalidate(),
-	});
-
-	// Subscribe to workspace initialization progress
 	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
 	trpc.workspaces.onInitProgress.useSubscription(undefined, {
 		onData: (progress) => {
 			updateInitProgress(progress);
-			// Invalidate workspace queries when initialization completes or fails
 			if (progress.step === "ready" || progress.step === "failed") {
 				utils.workspaces.getActive.invalidate();
 				utils.workspaces.getAllGrouped.invalidate();
@@ -151,10 +142,8 @@ export function MainScreen() {
 		"TOGGLE_WORKSPACE_SIDEBAR",
 		() => {
 			if (!isWorkspaceSidebarOpen) {
-				// If sidebar is closed, open it to collapsed state
 				setWorkspaceSidebarOpen(true);
 			} else {
-				// If sidebar is open, toggle between collapsed and expanded
 				toggleWorkspaceSidebarCollapsed();
 			}
 		},
@@ -180,7 +169,6 @@ export function MainScreen() {
 			const path = findPanePath(targetTab.layout, paneId);
 			if (path !== null) return { path, paneId };
 
-			// Focused pane not in layout - correct focus and use first pane
 			const firstPaneId = getFirstPaneId(targetTab.layout);
 			const firstPanePath = findPanePath(targetTab.layout, firstPaneId);
 			setFocusedPane(tabId, firstPaneId);
@@ -268,7 +256,6 @@ export function MainScreen() {
 	const showStartView =
 		!isLoading && !activeWorkspace && currentView !== "settings";
 
-	// Show loading while version check is in progress
 	if (isVersionLoading) {
 		return (
 			<>
@@ -282,7 +269,6 @@ export function MainScreen() {
 		);
 	}
 
-	// Block app if version is outdated
 	if (isVersionBlocked && versionRequirements) {
 		return (
 			<UpdateRequiredPage
@@ -293,21 +279,6 @@ export function MainScreen() {
 		);
 	}
 
-	// Show loading while auth state is being determined
-	if (isAuthLoading) {
-		return (
-			<>
-				<Background />
-				<AppFrame>
-					<div className="flex h-full w-full items-center justify-center bg-background">
-						<LoadingSpinner />
-					</div>
-				</AppFrame>
-			</>
-		);
-	}
-
-	// Show sign-in screen if user is not signed in
 	if (!isSignedIn) {
 		return (
 			<>

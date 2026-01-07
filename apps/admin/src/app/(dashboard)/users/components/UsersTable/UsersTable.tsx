@@ -1,5 +1,6 @@
 "use client";
 
+import { getInitials } from "@superset/shared/names";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -154,12 +155,7 @@ export function UsersTable() {
 											<Avatar className="h-8 w-8">
 												<AvatarImage src={user.image ?? undefined} />
 												<AvatarFallback>
-													{user.name
-														.split(" ")
-														.map((n) => n[0])
-														.join("")
-														.toUpperCase()
-														.slice(0, 2)}
+													{getInitials(user.name, user.email)}
 												</AvatarFallback>
 											</Avatar>
 											<span className="font-medium">{user.name}</span>

@@ -1,5 +1,6 @@
 "use client";
 
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	Card,
@@ -99,12 +100,7 @@ export function LeaderboardTable({
 											<Avatar className="h-8 w-8">
 												<AvatarImage src={entry.image ?? undefined} />
 												<AvatarFallback>
-													{entry.name
-														.split(" ")
-														.map((n) => n[0])
-														.join("")
-														.toUpperCase()
-														.slice(0, 2)}
+													{getInitials(entry.name, entry.email)}
 												</AvatarFallback>
 											</Avatar>
 											<div>

@@ -1,3 +1,4 @@
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	DropdownMenu,
@@ -48,12 +49,7 @@ export function OrganizationDropdown({
 
 	// Always render dropdown to prevent trapping users without orgs
 	const orgName = activeOrganization?.name ?? "No Organization";
-	const initials = activeOrganization?.name
-		?.split(" ")
-		.map((n: string) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
+	const initials = getInitials(activeOrganization?.name);
 
 	const switchOrganization = async (newOrgId: string) => {
 		await setActiveOrg.mutateAsync({ organizationId: newOrgId });

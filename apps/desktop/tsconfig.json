@@ -10,7 +10,7 @@
 	},
 	"include": [
 		"./src",
-		"electron.vite.config.*",
+		"electron.vite.config.ts",
 		"electron-builder.ts",
 		"index.d.ts"
 	],
@@ -19,7 +19,6 @@
 		"dist",
 		"dist-electron",
 		"release",
-		"src/**/templates/**",
-		"**/*.mjs"
+		"src/**/templates/**"
 	]
 }

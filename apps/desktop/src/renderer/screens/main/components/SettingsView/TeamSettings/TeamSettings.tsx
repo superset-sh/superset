@@ -1,23 +1,7 @@
-import { authClient } from "@superset/auth/client";
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Badge } from "@superset/ui/badge";
-import { Button } from "@superset/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@superset/ui/dialog";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { Skeleton } from "@superset/ui/skeleton";
-import { toast } from "@superset/ui/sonner";
 import {
 	Table,
 	TableBody,
@@ -27,143 +11,10 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { useLiveQuery } from "@tanstack/react-db";
-import { useState } from "react";
-import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
 import { useAuth } from "renderer/contexts/AuthProvider";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { InviteMemberButton } from "./components/InviteMemberButton";
-
-interface MemberDetails {
-	memberId: string;
-	userId: string;
-	name: string | null;
-	email: string;
-	image: string | null;
-	role: string;
-	joinedAt: string;
-	organizationId: string;
-}
-
-interface MemberActionsProps {
-	member: MemberDetails;
-	isCurrentUser: boolean;
-	canRemove: boolean;
-}
-
-function MemberActions({
-	member,
-	isCurrentUser,
-	canRemove,
-}: MemberActionsProps) {
-	const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-	const [isRemoving, setIsRemoving] = useState(false);
-
-	const handleRemove = async () => {
-		setIsRemoving(true);
-		try {
-			if (isCurrentUser) {
-				// User is leaving their own organization
-				await authClient.organization.leave({
-					organizationId: member.organizationId,
-				});
-				toast.success("Left organization");
-			} else {
-				// Admin is removing another member
-				await authClient.organization.removeMember({
-					organizationId: member.organizationId,
-					memberIdOrEmail: member.userId,
-				});
-				toast.success("Member removed");
-			}
-			setShowRemoveDialog(false);
-		} catch (error) {
-			toast.error(
-				error instanceof Error
-					? error.message
-					: `Failed to ${isCurrentUser ? "leave" : "remove member from"} organization`,
-			);
-		} finally {
-			setIsRemoving(false);
-		}
-	};
-
-	return (
-		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="h-8 w-8">
-						<HiEllipsisVertical className="h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					{isCurrentUser ? (
-						<DropdownMenuItem
-							className="text-destructive gap-2"
-							onSelect={() => setShowRemoveDialog(true)}
-						>
-							<HiOutlineTrash className="h-4 w-4" />
-							<span>Leave organization...</span>
-						</DropdownMenuItem>
-					) : canRemove ? (
-						<DropdownMenuItem
-							className="text-destructive gap-2"
-							onSelect={() => setShowRemoveDialog(true)}
-						>
-							<HiOutlineTrash className="h-4 w-4" />
-							<span>Remove member</span>
-						</DropdownMenuItem>
-					) : null}
-				</DropdownMenuContent>
-			</DropdownMenu>
-
-			<Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>
-							{isCurrentUser ? "Leave organization?" : "Remove team member?"}
-						</DialogTitle>
-						<DialogDescription>
-							{isCurrentUser ? (
-								<>
-									Are you sure you want to leave this organization? You will
-									lose access immediately.
-								</>
-							) : (
-								<>
-									Are you sure you want to remove <strong>{member.name}</strong>{" "}
-									({member.email}) from the organization? They will lose access
-									immediately.
-								</>
-							)}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setShowRemoveDialog(false)}
-							disabled={isRemoving}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={handleRemove}
-							disabled={isRemoving}
-						>
-							{isRemoving
-								? isCurrentUser
-									? "Leaving..."
-									: "Removing..."
-								: isCurrentUser
-									? "Leave Organization"
-									: "Remove Member"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</>
-	);
-}
+import { MemberActions } from "./components/MemberActions";
 
 export function TeamSettings() {
 	const { session } = useAuth();
@@ -273,12 +124,7 @@ export function TeamSettings() {
 									</TableHeader>
 									<TableBody>
 										{members.map((member) => {
-											const initials = member.name
-												?.split(" ")
-												.map((n) => n[0])
-												.join("")
-												.toUpperCase()
-												.slice(0, 2);
+											const initials = getInitials(member.name, member.email);
 											const isCurrentUserRow = member.userId === currentUserId;
 
 											return (

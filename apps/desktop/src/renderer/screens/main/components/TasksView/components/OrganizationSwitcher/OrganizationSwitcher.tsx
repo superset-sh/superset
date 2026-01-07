@@ -1,3 +1,4 @@
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import {
 	DropdownMenu,
@@ -7,15 +8,16 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
+import { useAuth } from "renderer/contexts/AuthProvider";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { trpc } from "renderer/lib/trpc";
 
 export function OrganizationSwitcher() {
 	const collections = useCollections();
-	const { data: session } = trpc.auth.onSessionChange.useSubscription();
+	const { session } = useAuth();
 	const setActiveOrg = trpc.auth.setActiveOrganization.useMutation();
 
-	const activeOrganizationId = session?.session.activeOrganizationId;
+	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const { data: organizations } = useLiveQuery(
 		(q) => q.from({ organizations: collections.organizations }),
@@ -30,12 +32,7 @@ export function OrganizationSwitcher() {
 		return null;
 	}
 
-	const initials = activeOrganization.name
-		?.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
+	const initials = getInitials(activeOrganization.name);
 
 	const switchOrganization = async (newOrgId: string) => {
 		await setActiveOrg.mutateAsync({ organizationId: newOrgId });
@@ -70,7 +67,7 @@ export function OrganizationSwitcher() {
 						<Avatar className="h-5 w-5 rounded-md">
 							<AvatarImage src={organization.logo ?? undefined} />
 							<AvatarFallback className="text-xs rounded-md">
-								{organization.name?.[0]?.toUpperCase() || "?"}
+								{getInitials(organization.name) || "?"}
 							</AvatarFallback>
 						</Avatar>
 						<span className="flex-1 truncate">{organization.name}</span>

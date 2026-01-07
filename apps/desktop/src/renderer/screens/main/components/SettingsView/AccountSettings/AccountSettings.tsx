@@ -1,3 +1,4 @@
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -12,12 +13,7 @@ export function AccountSettings() {
 
 	const signOut = () => signOutMutation.mutate();
 
-	const initials = user?.name
-		?.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
+	const initials = getInitials(user?.name, user?.email);
 
 	return (
 		<div className="p-6 max-w-4xl">
