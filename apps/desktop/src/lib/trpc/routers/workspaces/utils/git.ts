@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import simpleGit from "simple-git";
@@ -229,6 +229,80 @@ export async function removeWorktree(
 		console.error(`Failed to remove worktree: ${errorMessage}`);
 		throw new Error(`Failed to remove worktree: ${errorMessage}`);
 	}
+}
+
+/**
+ * Fast worktree removal using rename-then-delete pattern.
+ * Renames the worktree directory to make it "invisible" immediately,
+ * then cleans up git metadata and deletes files asynchronously.
+ *
+ * This provides near-instant perceived deletion while actual file
+ * removal happens in the background.
+ *
+ * @param mainRepoPath - Path to the main repository
+ * @param worktreePath - Path to the worktree to remove
+ * @returns Promise that resolves when rename and git prune complete (file deletion continues in background)
+ */
+export async function quickRemoveWorktree(
+	mainRepoPath: string,
+	worktreePath: string,
+): Promise<void> {
+	const tombstonePath = `${worktreePath}.superset-deleting-${Date.now()}`;
+
+	try {
+		// Fast rename - usually instant on same filesystem
+		await rename(worktreePath, tombstonePath);
+		console.log(`[cleanup] Renamed worktree to tombstone: ${tombstonePath}`);
+	} catch (renameError) {
+		// If rename fails (cross-device, permissions, doesn't exist), fall back to normal delete
+		const isEnoent =
+			renameError instanceof Error &&
+			"code" in renameError &&
+			(renameError as NodeJS.ErrnoException).code === "ENOENT";
+
+		if (isEnoent) {
+			// Worktree doesn't exist - just clean up git metadata
+			console.log(
+				`[cleanup] Worktree not found at ${worktreePath}, cleaning up git metadata only`,
+			);
+		} else {
+			console.warn(
+				`[cleanup] Rename failed, falling back to synchronous delete:`,
+				renameError,
+			);
+			await removeWorktree(mainRepoPath, worktreePath);
+			return;
+		}
+	}
+
+	// Clean up git worktree metadata with prune
+	// This removes the entry from .git/worktrees since the path no longer exists
+	try {
+		const env = await getGitEnv();
+		await execFileAsync("git", ["-C", mainRepoPath, "worktree", "prune"], {
+			env,
+			timeout: 30_000,
+		});
+		console.log(`[cleanup] Pruned stale worktree entries`);
+	} catch (pruneError) {
+		// Non-fatal - git will eventually clean this up
+		console.warn(`[cleanup] Git worktree prune failed:`, pruneError);
+	}
+
+	// Background delete of renamed directory - don't await
+	// Use setImmediate to not block the current execution
+	setImmediate(async () => {
+		try {
+			await rm(tombstonePath, { recursive: true, force: true });
+			console.log(`[cleanup] Deleted tombstone directory: ${tombstonePath}`);
+		} catch (rmError) {
+			// Log but don't throw - the tombstone will be cleaned up on app restart
+			console.error(
+				`[cleanup] Failed to delete tombstone ${tombstonePath}:`,
+				rmError,
+			);
+		}
+	});
 }
 
 export async function getGitRoot(path: string): Promise<string> {

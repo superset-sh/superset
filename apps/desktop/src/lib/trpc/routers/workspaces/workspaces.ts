@@ -30,6 +30,7 @@ import {
 	hasUncommittedChanges,
 	hasUnpushedCommits,
 	listBranches,
+	quickRemoveWorktree,
 	refExistsLocally,
 	refreshDefaultBranch,
 	removeWorktree,
@@ -1190,35 +1191,25 @@ export const createWorkspacesRouter = () => {
 						await workspaceInitManager.acquireProjectLock(project.id);
 
 						try {
-							// Run teardown scripts before removing worktree
-							const exists = await worktreeExists(
+							// Run teardown scripts before removing worktree (must complete before rename)
+							// Don't check worktreeExists - quickRemoveWorktree handles non-existent dirs
+							const teardownResult = await runTeardown(
 								project.mainRepoPath,
 								worktree.path,
+								workspace.name,
 							);
-
-							if (exists) {
-								runTeardown(
-									project.mainRepoPath,
-									worktree.path,
-									workspace.name,
-								).then((result) => {
-									if (!result.success) {
-										console.error(
-											`Teardown failed for workspace ${workspace.name}:`,
-											result.error,
-										);
-									}
-								});
+							if (!teardownResult.success) {
+								console.warn(
+									`[workspace/delete] Teardown failed for ${workspace.name}:`,
+									teardownResult.error,
+								);
+								// Continue with deletion even if teardown fails
 							}
 
 							try {
-								if (exists) {
-									await removeWorktree(project.mainRepoPath, worktree.path);
-								} else {
-									console.warn(
-										`Worktree ${worktree.path} not found in git, skipping removal`,
-									);
-								}
+								// Use quickRemoveWorktree for fast deletion via rename-then-delete pattern
+								// This renames the directory immediately, then deletes files in background
+								await quickRemoveWorktree(project.mainRepoPath, worktree.path);
 							} catch (error) {
 								const errorMessage =
 									error instanceof Error ? error.message : String(error);

@@ -138,10 +138,15 @@ export function useCloseWorkspace(
 			}
 		},
 		onSuccess: async (...args) => {
-			// Invalidate to ensure consistency with backend state
-			await utils.workspaces.invalidate();
-			// Invalidate project queries since close updates project metadata
-			await utils.projects.getRecents.invalidate();
+			// Selective invalidation: only invalidate list queries, not getActive
+			// This preserves our optimistic update for the active workspace and prevents
+			// the "hasIncompleteInit" flash when switching to a workspace with null gitStatus
+			await Promise.all([
+				utils.workspaces.getAllGrouped.invalidate(),
+				utils.workspaces.getAll.invalidate(),
+				// Invalidate project queries since close updates project metadata
+				utils.projects.getRecents.invalidate(),
+			]);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(...args);

@@ -138,8 +138,13 @@ export function useDeleteWorkspace(
 			}
 		},
 		onSuccess: async (...args) => {
-			// Invalidate to ensure consistency with backend state
-			await utils.workspaces.invalidate();
+			// Selective invalidation: only invalidate list queries, not getActive
+			// This preserves our optimistic update for the active workspace and prevents
+			// the "hasIncompleteInit" flash when switching to a workspace with null gitStatus
+			await Promise.all([
+				utils.workspaces.getAllGrouped.invalidate(),
+				utils.workspaces.getAll.invalidate(),
+			]);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(...args);
