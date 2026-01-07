@@ -395,7 +395,11 @@ export const useTabsStore = create<TabsStore>()(
 					// If we found an unpinned (preview) file-viewer pane, check if it's the same file
 					if (fileViewerPanes.length > 0) {
 						const paneToReuse = fileViewerPanes[0];
-						const existingFileViewer = paneToReuse.fileViewer!;
+						const existingFileViewer = paneToReuse.fileViewer;
+						if (!existingFileViewer) {
+							// Should not happen due to filter above, but satisfy type checker
+							return "";
+						}
 
 						// If clicking the same file that's already in preview, pin it
 						const isSameFile =
