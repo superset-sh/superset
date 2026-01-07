@@ -382,8 +382,32 @@ export const useTabsStore = create<TabsStore>()(
 						return paneId;
 					}
 
-					// Look for an existing unpinned (preview) file-viewer pane in the active tab
 					const tabPaneIds = extractPaneIdsFromLayout(activeTab.layout);
+
+					// First, check if the file is already open in a pinned pane - if so, just focus it
+					const existingPinnedPane = tabPaneIds
+						.map((id) => state.panes[id])
+						.find(
+							(p) =>
+								p?.type === "file-viewer" &&
+								p.fileViewer?.isPinned &&
+								p.fileViewer.filePath === options.filePath &&
+								p.fileViewer.diffCategory === options.diffCategory &&
+								p.fileViewer.commitHash === options.commitHash,
+						);
+
+					if (existingPinnedPane) {
+						// File is already open in a pinned pane, just focus it
+						set({
+							focusedPaneIds: {
+								...state.focusedPaneIds,
+								[activeTab.id]: existingPinnedPane.id,
+							},
+						});
+						return existingPinnedPane.id;
+					}
+
+					// Look for an existing unpinned (preview) file-viewer pane in the active tab
 					const fileViewerPanes = tabPaneIds
 						.map((id) => state.panes[id])
 						.filter(
