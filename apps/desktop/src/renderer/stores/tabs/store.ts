@@ -625,19 +625,8 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Clone file-viewer panes instead of creating a terminal
-					const newPane =
-						sourcePane.type === "file-viewer" && sourcePane.fileViewer
-							? createFileViewerPane(tabId, {
-									filePath: sourcePane.fileViewer.filePath,
-									viewMode: sourcePane.fileViewer.viewMode,
-									isLocked: true, // Lock the cloned pane
-									diffLayout: sourcePane.fileViewer.diffLayout,
-									diffCategory: sourcePane.fileViewer.diffCategory,
-									commitHash: sourcePane.fileViewer.commitHash,
-									oldPath: sourcePane.fileViewer.oldPath,
-								})
-							: createPane(tabId);
+					// Always create a new terminal when splitting
+					const newPane = createPane(tabId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -685,19 +674,8 @@ export const useTabsStore = create<TabsStore>()(
 					const sourcePane = state.panes[sourcePaneId];
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
-					// Clone file-viewer panes instead of creating a terminal
-					const newPane =
-						sourcePane.type === "file-viewer" && sourcePane.fileViewer
-							? createFileViewerPane(tabId, {
-									filePath: sourcePane.fileViewer.filePath,
-									viewMode: sourcePane.fileViewer.viewMode,
-									isLocked: true, // Lock the cloned pane
-									diffLayout: sourcePane.fileViewer.diffLayout,
-									diffCategory: sourcePane.fileViewer.diffCategory,
-									commitHash: sourcePane.fileViewer.commitHash,
-									oldPath: sourcePane.fileViewer.oldPath,
-								})
-							: createPane(tabId);
+					// Always create a new terminal when splitting
+					const newPane = createPane(tabId);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {

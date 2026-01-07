@@ -149,7 +149,8 @@ export function NewWorkspaceModal() {
 			e.key === "Enter" &&
 			!e.shiftKey &&
 			mode === "new" &&
-			selectedProjectId
+			selectedProjectId &&
+			!createWorkspace.isPending
 		) {
 			e.preventDefault();
 			handleCreateWorkspace();

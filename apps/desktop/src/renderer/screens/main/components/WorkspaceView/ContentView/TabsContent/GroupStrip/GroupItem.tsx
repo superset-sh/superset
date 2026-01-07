@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useEffect, useRef, useState } from "react";
 import { HiMiniXMark } from "react-icons/hi2";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
@@ -12,6 +13,7 @@ interface GroupItemProps {
 	status: PaneStatus | null;
 	onSelect: () => void;
 	onClose: () => void;
+	onRename: (newName: string) => void;
 }
 
 export function GroupItem({
@@ -20,33 +22,90 @@ export function GroupItem({
 	status,
 	onSelect,
 	onClose,
+	onRename,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
+	const [isEditing, setIsEditing] = useState(false);
+	const [editValue, setEditValue] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	useEffect(() => {
+		if (isEditing && inputRef.current) {
+			inputRef.current.focus();
+			inputRef.current.select();
+		}
+	}, [isEditing]);
+
+	const startEditing = () => {
+		setEditValue(displayName);
+		setIsEditing(true);
+	};
+
+	const handleSave = () => {
+		const trimmedValue = editValue.trim();
+		if (trimmedValue && trimmedValue !== displayName) {
+			onRename(trimmedValue);
+		}
+		setIsEditing(false);
+	};
+
+	const handleKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === "Enter") {
+			e.preventDefault();
+			handleSave();
+		} else if (e.key === "Escape") {
+			e.preventDefault();
+			setIsEditing(false);
+		}
+	};
+
+	const tabStyles = cn(
+		"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
+		isActive
+			? "text-foreground bg-border/30"
+			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
+	);
 
 	return (
 		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={onSelect}
-						className={cn(
-							"flex items-center gap-2 transition-all w-full shrink-0 px-3 h-full",
-							isActive
-								? "text-foreground bg-border/30"
-								: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
-						)}
-					>
-						<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
-							{displayName}
+			{isEditing ? (
+				<div className={tabStyles}>
+					<input
+						ref={inputRef}
+						type="text"
+						value={editValue}
+						onChange={(e) => setEditValue(e.target.value)}
+						onBlur={handleSave}
+						onKeyDown={handleKeyDown}
+						maxLength={64}
+						className="text-sm bg-transparent border-none outline-none flex-1 text-left min-w-0"
+					/>
+				</div>
+			) : (
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={onSelect}
+							onDoubleClick={startEditing}
+							className={tabStyles}
+						>
+							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">
+								{displayName}
+							</span>
+							{status && status !== "idle" && (
+								<StatusIndicator status={status} />
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" sideOffset={4}>
+						<span>{displayName}</span>
+						<span className="text-muted-foreground ml-1.5">
+							Double-click to rename
 						</span>
-						{status && status !== "idle" && <StatusIndicator status={status} />}
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={4}>
-					{displayName}
-				</TooltipContent>
-			</Tooltip>
+					</TooltipContent>
+				</Tooltip>
+			)}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<Button

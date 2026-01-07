@@ -22,7 +22,7 @@ import {
 	getGitRoot,
 	refreshDefaultBranch,
 } from "../workspaces/utils/git";
-import { assignRandomColor } from "./utils/colors";
+import { getDefaultProjectColor } from "./utils/colors";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
@@ -70,7 +70,7 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		.values({
 			mainRepoPath,
 			name,
-			color: assignRandomColor(),
+			color: getDefaultProjectColor(),
 			defaultBranch,
 		})
 		.returning()
@@ -481,7 +481,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.values({
 							mainRepoPath: clonePath,
 							name,
-							color: assignRandomColor(),
+							color: getDefaultProjectColor(),
 							defaultBranch,
 						})
 						.returning()

@@ -124,6 +124,10 @@ export function GroupStrip() {
 		removeTab(tabId);
 	};
 
+	const handleRenameGroup = (tabId: string, newName: string) => {
+		renameTab(tabId, newName);
+	};
+
 	return (
 		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
@@ -143,6 +147,7 @@ export function GroupStrip() {
 								status={tabStatusMap.get(tab.id) ?? null}
 								onSelect={() => handleSelectGroup(tab.id)}
 								onClose={() => handleCloseGroup(tab.id)}
+								onRename={(newName) => handleRenameGroup(tab.id, newName)}
 							/>
 						</div>
 					))}
