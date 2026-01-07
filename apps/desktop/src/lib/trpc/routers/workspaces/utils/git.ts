@@ -248,24 +248,27 @@ export async function quickRemoveWorktree(
 	worktreePath: string,
 ): Promise<void> {
 	const tombstonePath = `${worktreePath}.superset-deleting-${Date.now()}`;
+	let renameSucceeded = false;
 
 	try {
 		// Fast rename - usually instant on same filesystem
 		await rename(worktreePath, tombstonePath);
+		renameSucceeded = true;
 		console.log(`[cleanup] Renamed worktree to tombstone: ${tombstonePath}`);
 	} catch (renameError) {
-		// If rename fails (cross-device, permissions, doesn't exist), fall back to normal delete
+		// If rename fails (cross-device, permissions, doesn't exist), handle appropriately
 		const isEnoent =
 			renameError instanceof Error &&
 			"code" in renameError &&
 			(renameError as NodeJS.ErrnoException).code === "ENOENT";
 
 		if (isEnoent) {
-			// Worktree doesn't exist - just clean up git metadata
+			// Worktree doesn't exist - just clean up git metadata (no tombstone to delete)
 			console.log(
 				`[cleanup] Worktree not found at ${worktreePath}, cleaning up git metadata only`,
 			);
 		} else {
+			// Other error (permissions, cross-device) - fall back to synchronous delete
 			console.warn(
 				`[cleanup] Rename failed, falling back to synchronous delete:`,
 				renameError,
@@ -289,20 +292,21 @@ export async function quickRemoveWorktree(
 		console.warn(`[cleanup] Git worktree prune failed:`, pruneError);
 	}
 
-	// Background delete of renamed directory - don't await
-	// Use setImmediate to not block the current execution
-	setImmediate(async () => {
-		try {
-			await rm(tombstonePath, { recursive: true, force: true });
-			console.log(`[cleanup] Deleted tombstone directory: ${tombstonePath}`);
-		} catch (rmError) {
-			// Log but don't throw - the tombstone will be cleaned up on app restart
-			console.error(
-				`[cleanup] Failed to delete tombstone ${tombstonePath}:`,
-				rmError,
-			);
-		}
-	});
+	// Background delete of renamed directory - only if rename succeeded
+	if (renameSucceeded) {
+		setImmediate(async () => {
+			try {
+				await rm(tombstonePath, { recursive: true, force: true });
+				console.log(`[cleanup] Deleted tombstone directory: ${tombstonePath}`);
+			} catch (rmError) {
+				// Log but don't throw - the tombstone will be cleaned up on app restart
+				console.error(
+					`[cleanup] Failed to delete tombstone ${tombstonePath}:`,
+					rmError,
+				);
+			}
+		});
+	}
 }
 
 export async function getGitRoot(path: string): Promise<string> {

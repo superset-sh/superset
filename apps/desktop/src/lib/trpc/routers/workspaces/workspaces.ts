@@ -1191,19 +1191,29 @@ export const createWorkspacesRouter = () => {
 						await workspaceInitManager.acquireProjectLock(project.id);
 
 						try {
-							// Run teardown scripts before removing worktree (must complete before rename)
-							// Don't check worktreeExists - quickRemoveWorktree handles non-existent dirs
-							const teardownResult = await runTeardown(
+							// Check if worktree exists before running teardown
+							// Teardown needs the directory to exist since it runs scripts with cwd
+							const exists = await worktreeExists(
 								project.mainRepoPath,
 								worktree.path,
-								workspace.name,
 							);
-							if (!teardownResult.success) {
-								console.warn(
-									`[workspace/delete] Teardown failed for ${workspace.name}:`,
-									teardownResult.error,
+
+							if (exists) {
+								// Run teardown scripts before removing worktree
+								// Must await because quickRemoveWorktree renames instantly -
+								// if we don't wait, teardown's cwd will be moved before execSync starts
+								const teardownResult = await runTeardown(
+									project.mainRepoPath,
+									worktree.path,
+									workspace.name,
 								);
-								// Continue with deletion even if teardown fails
+								if (!teardownResult.success) {
+									console.warn(
+										`[workspace/delete] Teardown failed for ${workspace.name}:`,
+										teardownResult.error,
+									);
+									// Continue with deletion even if teardown fails
+								}
 							}
 
 							try {
