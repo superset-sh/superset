@@ -53,6 +53,18 @@ export function FileViewerToolbar({
 					{isDirty && <span className="text-amber-500 mr-1">●</span>}
 					{fileName}
 				</span>
+				{!isPinned && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<span className="text-[10px] text-muted-foreground/50 cursor-default">
+								preview
+							</span>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Click again or double-click to pin
+						</TooltipContent>
+					</Tooltip>
+				)}
 				{showEditableBadge && (
 					<Badge variant="secondary" className="gap-1 text-[10px] h-4 px-1">
 						<HiMiniPencil className="w-2.5 h-2.5" />

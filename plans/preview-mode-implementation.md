@@ -17,15 +17,19 @@ The current implementation uses an explicit lock mechanism:
 | Action | Result |
 |--------|--------|
 | Single-click file in sidebar | Opens in preview mode (italicized name, can be replaced) |
+| Single-click same file again | **Pins** the preview (converts to permanent) |
 | Double-click file in sidebar | Opens pinned (normal name, permanent) |
 | Edit a preview file | Auto-pins the file |
 | Close preview file | Just closes normally |
 | Click another file with preview open | Replaces the preview pane content |
 | Click another file with NO preview open (all pinned) | Opens new pane in preview mode |
 
-**Key behavior**: Pinned panes are NEVER replaced. Single-click only reuses an existing unpinned (preview) pane. If no preview pane exists, a new pane is created.
+**Key behavior**: Pinned panes are NEVER replaced. Single-click only reuses an existing unpinned (preview) pane. If no preview pane exists, a new pane is created. Clicking the same file twice pins it.
 
-**Visual indicator**: Preview tabs show filename in *italics*, pinned tabs show normal text.
+**Visual indicators**:
+- Preview tabs show filename in *italics*
+- Preview tabs show "preview" label with tooltip "Click again or double-click to pin"
+- Pinned tabs show normal text (no label)
 
 ## Implementation Steps
 
@@ -196,8 +200,9 @@ Don't forget to bump the version number.
 
 ## Testing Checklist
 
-- [ ] Single-click opens file in preview mode (italic name)
+- [ ] Single-click opens file in preview mode (italic name + "preview" label)
 - [ ] Single-click another file replaces preview pane
+- [ ] **Single-click same file again pins it** (italic → normal, "preview" label disappears)
 - [ ] Double-click opens file pinned (normal name)
 - [ ] Double-click another file opens in new pane (doesn't replace pinned)
 - [ ] Editing a preview file auto-pins it
@@ -205,7 +210,8 @@ Don't forget to bump the version number.
 - [ ] Multiple pinned files can coexist
 - [ ] **Single-click when all panes are pinned creates a NEW preview pane** (doesn't replace any pinned pane)
 - [ ] Persisted state migrates correctly from old `isLocked` format
-- [ ] Preview indicator (italics) renders correctly in toolbar
+- [ ] Preview indicator (italics + "preview" label) renders correctly in toolbar
+- [ ] Tooltip on "preview" label shows "Click again or double-click to pin"
 
 ## Open Questions / Decisions
 
