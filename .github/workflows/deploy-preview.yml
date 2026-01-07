@@ -287,6 +287,7 @@ jobs:
           NEXT_PUBLIC_API_URL: https://${{ env.API_ALIAS }}
           NEXT_PUBLIC_WEB_URL: https://${{ env.WEB_ALIAS }}
           NEXT_PUBLIC_MARKETING_URL: https://${{ env.MARKETING_ALIAS }}
+          NEXT_PUBLIC_ADMIN_URL: https://${{ env.ADMIN_ALIAS }}
           NEXT_PUBLIC_DOCS_URL: https://${{ env.DOCS_ALIAS }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           NEXT_PUBLIC_COOKIE_DOMAIN: ${{ secrets.NEXT_PUBLIC_COOKIE_DOMAIN }}
@@ -305,6 +306,7 @@ jobs:
             --env NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
             --env NEXT_PUBLIC_WEB_URL=$NEXT_PUBLIC_WEB_URL \
             --env NEXT_PUBLIC_MARKETING_URL=$NEXT_PUBLIC_MARKETING_URL \
+            --env NEXT_PUBLIC_ADMIN_URL=$NEXT_PUBLIC_ADMIN_URL \
             --env NEXT_PUBLIC_DOCS_URL=$NEXT_PUBLIC_DOCS_URL \
             --env NEXT_PUBLIC_COOKIE_DOMAIN=$NEXT_PUBLIC_COOKIE_DOMAIN \
             --env NEXT_PUBLIC_POSTHOG_KEY=$NEXT_PUBLIC_POSTHOG_KEY \
