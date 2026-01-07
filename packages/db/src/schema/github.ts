@@ -32,18 +32,12 @@ export const githubInstallations = pgTable(
 		// Permissions granted to the app
 		permissions: jsonb().$type<Record<string, string>>().notNull(),
 
-		// Access token from GitHub App OAuth
-		accessToken: text("access_token").notNull(),
-		tokenExpiresAt: timestamp("token_expires_at"),
-		refreshToken: text("refresh_token"),
-
-		// Webhook configuration
-		webhookId: text("webhook_id"),
-		webhookSecret: text("webhook_secret"),
-
 		// Suspension status
 		suspended: boolean().notNull().default(false),
 		suspendedAt: timestamp("suspended_at"),
+
+		// Sync tracking
+		lastSyncedAt: timestamp("last_synced_at"),
 
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")

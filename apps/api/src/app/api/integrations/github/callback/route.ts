@@ -52,33 +52,22 @@ export async function GET(request: Request) {
 			Number(installationId),
 		);
 
-		const [installationResult, tokenResult] = await Promise.all([
-			octokit
-				.request("GET /app/installations/{installation_id}", {
-					installation_id: Number(installationId),
-				})
-				.catch((error: Error) => {
-					console.error("[github/callback] Failed to fetch installation:", error);
-					return null;
-				}),
-			octokit
-				.request("POST /app/installations/{installation_id}/access_tokens", {
-					installation_id: Number(installationId),
-				})
-				.catch((error: Error) => {
-					console.error("[github/callback] Failed to fetch access token:", error);
-					return null;
-				}),
-		]);
+		const installationResult = await octokit
+			.request("GET /app/installations/{installation_id}", {
+				installation_id: Number(installationId),
+			})
+			.catch((error: Error) => {
+				console.error("[github/callback] Failed to fetch installation:", error);
+				return null;
+			});
 
-		if (!installationResult || !tokenResult) {
+		if (!installationResult) {
 			return Response.redirect(
 				`${env.NEXT_PUBLIC_WEB_URL}/settings/integrations?error=installation_fetch_failed`,
 			);
 		}
 
 		const installation = installationResult.data;
-		const token = tokenResult.data;
 
 		// Extract account info - account can be User or Enterprise
 		const account = installation.account;
@@ -97,11 +86,6 @@ export async function GET(request: Request) {
 				accountLogin,
 				accountType,
 				permissions: installation.permissions as Record<string, string>,
-				accessToken: token.token,
-				tokenExpiresAt: token.expires_at
-					? new Date(token.expires_at)
-					: null,
-				refreshToken: null, // GitHub App tokens don't use refresh tokens
 			})
 			.onConflictDoUpdate({
 				target: [githubInstallations.organizationId],
@@ -111,10 +95,6 @@ export async function GET(request: Request) {
 					accountLogin,
 					accountType,
 					permissions: installation.permissions as Record<string, string>,
-					accessToken: token.token,
-					tokenExpiresAt: token.expires_at
-						? new Date(token.expires_at)
-						: null,
 					suspended: false,
 					suspendedAt: null, // Clear suspension if reinstalling
 					updatedAt: new Date(),

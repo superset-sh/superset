@@ -202,6 +202,12 @@ export async function POST(request: Request) {
 			}
 		}
 
+		// Update installation lastSyncedAt
+		await db
+			.update(githubInstallations)
+			.set({ lastSyncedAt: new Date() })
+			.where(eq(githubInstallations.id, installationDbId));
+
 		console.log("[github/initial-sync] Sync completed successfully");
 		return Response.json({ success: true });
 	} catch (error) {
