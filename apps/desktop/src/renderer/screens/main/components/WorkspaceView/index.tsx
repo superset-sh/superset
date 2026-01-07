@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import { getNextPaneId, getPreviousPaneId } from "renderer/stores/tabs/utils";
 import {
 	useHasWorkspaceFailed,
@@ -33,7 +34,7 @@ export function WorkspaceView() {
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
-	const addTab = useTabsStore((s) => s.addTab);
+	const { addTab } = useTabsWithPresets();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);

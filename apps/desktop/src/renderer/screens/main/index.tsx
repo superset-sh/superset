@@ -18,6 +18,7 @@ import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
@@ -94,9 +95,8 @@ export function MainScreen() {
 		enabled: isSignedIn,
 	});
 	const [isRetrying, setIsRetrying] = useState(false);
-	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
-	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
-	const splitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
+	const { splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
+		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);

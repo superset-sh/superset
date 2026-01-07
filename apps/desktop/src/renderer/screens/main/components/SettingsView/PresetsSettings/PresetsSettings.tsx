@@ -81,6 +81,7 @@ export function PresetsSettings() {
 		createPreset,
 		updatePreset,
 		deletePreset,
+		setDefaultPreset,
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
@@ -159,6 +160,10 @@ export function PresetsSettings() {
 		if (!preset) return;
 
 		deletePreset.mutate({ id: preset.id });
+	};
+
+	const handleSetDefault = (presetId: string | null) => {
+		setDefaultPreset.mutate({ id: presetId });
 	};
 
 	if (isLoading) {
@@ -241,7 +246,7 @@ export function PresetsSettings() {
 							{column.label}
 						</div>
 					))}
-					<div className="w-12 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
+					<div className="w-20 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 						Actions
 					</div>
 				</div>
@@ -259,6 +264,7 @@ export function PresetsSettings() {
 								onCommandsChange={handleCommandsChange}
 								onCommandsBlur={handleCommandsBlur}
 								onDelete={handleDeleteRow}
+								onSetDefault={handleSetDefault}
 							/>
 						))
 					) : (

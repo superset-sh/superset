@@ -122,6 +122,36 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		setDefaultPreset: publicProcedure
+			.input(z.object({ id: z.string().nullable() }))
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				// Clear existing default and set new one (if id is provided)
+				const updatedPresets = presets.map((p) => ({
+					...p,
+					isDefault: input.id === p.id ? true : undefined,
+				}));
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: updatedPresets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: updatedPresets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getDefaultPreset: publicProcedure.query(() => {
+			const row = getSettings();
+			const presets = row.terminalPresets ?? [];
+			return presets.find((p) => p.isDefault) ?? null;
+		}),
+
 		getSelectedRingtoneId: publicProcedure.query(() => {
 			const row = getSettings();
 			const storedId = row.selectedRingtoneId;

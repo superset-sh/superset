@@ -11,6 +11,7 @@ import { dragDropManager } from "renderer/lib/dnd";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Pane, Tab } from "renderer/stores/tabs/types";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import {
 	cleanLayout,
 	extractPaneIdsFromLayout,
@@ -28,9 +29,8 @@ export function TabView({ tab, panes }: TabViewProps) {
 	const updateTabLayout = useTabsStore((s) => s.updateTabLayout);
 	const removePane = useTabsStore((s) => s.removePane);
 	const removeTab = useTabsStore((s) => s.removeTab);
-	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
-	const splitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
-	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
+	const { splitPaneAuto, splitPaneHorizontal, splitPaneVertical } =
+		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);

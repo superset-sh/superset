@@ -617,7 +617,7 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Split operations
-				splitPaneVertical: (tabId, sourcePaneId, path) => {
+				splitPaneVertical: (tabId, sourcePaneId, path, options) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
@@ -626,7 +626,7 @@ export const useTabsStore = create<TabsStore>()(
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
 					// Always create a new terminal when splitting
-					const newPane = createPane(tabId);
+					const newPane = createPane(tabId, "terminal", options);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -666,7 +666,7 @@ export const useTabsStore = create<TabsStore>()(
 					});
 				},
 
-				splitPaneHorizontal: (tabId, sourcePaneId, path) => {
+				splitPaneHorizontal: (tabId, sourcePaneId, path, options) => {
 					const state = get();
 					const tab = state.tabs.find((t) => t.id === tabId);
 					if (!tab) return;
@@ -675,7 +675,7 @@ export const useTabsStore = create<TabsStore>()(
 					if (!sourcePane || sourcePane.tabId !== tabId) return;
 
 					// Always create a new terminal when splitting
-					const newPane = createPane(tabId);
+					const newPane = createPane(tabId, "terminal", options);
 
 					let newLayout: MosaicNode<string>;
 					if (path && path.length > 0) {
@@ -715,11 +715,11 @@ export const useTabsStore = create<TabsStore>()(
 					});
 				},
 
-				splitPaneAuto: (tabId, sourcePaneId, dimensions, path) => {
+				splitPaneAuto: (tabId, sourcePaneId, dimensions, path, options) => {
 					if (dimensions.width >= dimensions.height) {
-						get().splitPaneVertical(tabId, sourcePaneId, path);
+						get().splitPaneVertical(tabId, sourcePaneId, path, options);
 					} else {
-						get().splitPaneHorizontal(tabId, sourcePaneId, path);
+						get().splitPaneHorizontal(tabId, sourcePaneId, path, options);
 					}
 				},
 

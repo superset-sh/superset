@@ -56,6 +56,7 @@ export const terminalPresetSchema = z.object({
 	description: z.string().optional(),
 	cwd: z.string(),
 	commands: z.array(z.string()),
+	isDefault: z.boolean().optional(),
 });
 
 export type TerminalPreset = z.infer<typeof terminalPresetSchema>;

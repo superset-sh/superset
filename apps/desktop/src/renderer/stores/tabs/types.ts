@@ -93,17 +93,20 @@ export interface TabsStore extends TabsState {
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: AddTabOptions,
 	) => void;
 	splitPaneHorizontal: (
 		tabId: string,
 		sourcePaneId: string,
 		path?: MosaicBranch[],
+		options?: AddTabOptions,
 	) => void;
 	splitPaneAuto: (
 		tabId: string,
 		sourcePaneId: string,
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
+		options?: AddTabOptions,
 	) => void;
 
 	// Move operations

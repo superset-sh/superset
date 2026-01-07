@@ -1,5 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { HiOutlineStar, HiStar } from "react-icons/hi2";
 import { LuTrash } from "react-icons/lu";
 import { CommandsEditor } from "../CommandsEditor";
 import {
@@ -62,6 +64,7 @@ interface PresetRowProps {
 	onCommandsChange: (rowIndex: number, commands: string[]) => void;
 	onCommandsBlur: (rowIndex: number) => void;
 	onDelete: (rowIndex: number) => void;
+	onSetDefault: (presetId: string | null) => void;
 }
 
 export function PresetRow({
@@ -73,7 +76,13 @@ export function PresetRow({
 	onCommandsChange,
 	onCommandsBlur,
 	onDelete,
+	onSetDefault,
 }: PresetRowProps) {
+	const handleToggleDefault = () => {
+		// If already default, clear it; otherwise set this preset as default
+		onSetDefault(preset.isDefault ? null : preset.id);
+	};
+
 	return (
 		<div
 			className={`flex items-start gap-4 py-3 px-4 ${
@@ -93,7 +102,31 @@ export function PresetRow({
 					/>
 				</div>
 			))}
-			<div className="w-12 flex justify-center shrink-0 pt-1">
+			<div className="w-20 flex justify-center gap-1 shrink-0 pt-1">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={handleToggleDefault}
+							className={`h-8 w-8 p-0 ${preset.isDefault ? "text-yellow-500 hover:text-yellow-600" : "text-muted-foreground hover:text-foreground"}`}
+							aria-label={
+								preset.isDefault ? "Remove default" : "Set as default"
+							}
+						>
+							{preset.isDefault ? (
+								<HiStar className="h-4 w-4" />
+							) : (
+								<HiOutlineStar className="h-4 w-4" />
+							)}
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="top">
+						{preset.isDefault
+							? "Remove as default"
+							: "Set as default for new terminals"}
+					</TooltipContent>
+				</Tooltip>
 				<Button
 					variant="ghost"
 					size="sm"

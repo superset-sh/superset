@@ -14,6 +14,7 @@ import {
 	HiMiniCog6Tooth,
 	HiMiniCommandLine,
 	HiMiniPlus,
+	HiStar,
 } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -24,6 +25,7 @@ import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useOpenSettings } from "renderer/stores";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
@@ -34,7 +36,7 @@ export function GroupStrip() {
 	const allTabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
-	const addTab = useTabsStore((s) => s.addTab);
+	const { addTab } = useTabsWithPresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -89,9 +91,8 @@ export function GroupStrip() {
 	}, [panes]);
 
 	const handleAddGroup = () => {
-		if (activeWorkspaceId) {
-			addTab(activeWorkspaceId);
-		}
+		if (!activeWorkspaceId) return;
+		addTab(activeWorkspaceId);
 	};
 
 	const handleSelectPreset = (preset: TerminalPreset) => {
@@ -208,6 +209,9 @@ export function GroupStrip() {
 											<HiMiniCommandLine className="size-4" />
 										)}
 										<span className="truncate">{preset.name || "default"}</span>
+										{preset.isDefault && (
+											<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
+										)}
 									</DropdownMenuItem>
 								);
 							})}
