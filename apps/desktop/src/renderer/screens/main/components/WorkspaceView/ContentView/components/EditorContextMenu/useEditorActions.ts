@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import type * as Monaco from "monaco-editor";
 import { useCallback } from "react";
 import type { EditorActions } from "./EditorContextMenu";
@@ -54,20 +55,56 @@ export function useEditorActions({
 		}
 	}, [getEditor]);
 
-	const handleCopyPath = useCallback(() => {
-		navigator.clipboard.writeText(filePath);
+	const handleCopyPath = useCallback(async () => {
+		try {
+			await navigator.clipboard.writeText(filePath);
+		} catch (error) {
+			console.error("[handleCopyPath] Failed to copy path to clipboard:", {
+				error,
+				filePath,
+			});
+			toast.error("Failed to copy path to clipboard", {
+				description: String(error),
+			});
+		}
 	}, [filePath]);
 
-	const handleCopyPathWithLine = useCallback(() => {
+	const handleCopyPathWithLine = useCallback(async () => {
 		const editor = getEditor();
 		if (!editor) {
-			navigator.clipboard.writeText(filePath);
+			console.error(
+				"[handleCopyPathWithLine] Editor is missing, falling back to filePath only",
+			);
+			try {
+				await navigator.clipboard.writeText(filePath);
+			} catch (error) {
+				console.error(
+					"[handleCopyPathWithLine] Failed to copy path to clipboard:",
+					{ error, filePath },
+				);
+				toast.error("Failed to copy path to clipboard", {
+					description: String(error),
+				});
+			}
 			return;
 		}
 
 		const selection = editor.getSelection();
 		if (!selection) {
-			navigator.clipboard.writeText(filePath);
+			console.error(
+				"[handleCopyPathWithLine] Selection is missing, falling back to filePath only",
+			);
+			try {
+				await navigator.clipboard.writeText(filePath);
+			} catch (error) {
+				console.error(
+					"[handleCopyPathWithLine] Failed to copy path to clipboard:",
+					{ error, filePath },
+				);
+				toast.error("Failed to copy path to clipboard", {
+					description: String(error),
+				});
+			}
 			return;
 		}
 
@@ -77,7 +114,17 @@ export function useEditorActions({
 				? `${filePath}:${startLineNumber}`
 				: `${filePath}:${startLineNumber}-${endLineNumber}`;
 
-		navigator.clipboard.writeText(pathWithLine);
+		try {
+			await navigator.clipboard.writeText(pathWithLine);
+		} catch (error) {
+			console.error(
+				"[handleCopyPathWithLine] Failed to copy path with line to clipboard:",
+				{ error, pathWithLine },
+			);
+			toast.error("Failed to copy path to clipboard", {
+				description: String(error),
+			});
+		}
 	}, [filePath, getEditor]);
 
 	const handleFind = useCallback(() => {
