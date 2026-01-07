@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { useSidebarStore } from "renderer/stores";
+import {
+	MAX_SIDEBAR_WIDTH,
+	MIN_SIDEBAR_WIDTH,
+} from "renderer/stores/sidebar-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import { ResizableSidebar } from "../../../WorkspaceView/ResizableSidebar";
+import { ResizablePanel } from "../../../ResizablePanel";
+import { Sidebar } from "../../Sidebar";
 import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
@@ -11,6 +17,14 @@ export function TabsContent() {
 	const allTabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+
+	const {
+		isSidebarOpen,
+		sidebarWidth,
+		setSidebarWidth,
+		isResizing,
+		setIsResizing,
+	} = useSidebarStore();
 
 	const tabToRender = useMemo(() => {
 		if (!activeWorkspaceId) return null;
@@ -29,7 +43,19 @@ export function TabsContent() {
 					<EmptyTabView />
 				)}
 			</div>
-			<ResizableSidebar />
+			{isSidebarOpen && (
+				<ResizablePanel
+					width={sidebarWidth}
+					onWidthChange={setSidebarWidth}
+					isResizing={isResizing}
+					onResizingChange={setIsResizing}
+					minWidth={MIN_SIDEBAR_WIDTH}
+					maxWidth={MAX_SIDEBAR_WIDTH}
+					handleSide="left"
+				>
+					<Sidebar />
+				</ResizablePanel>
+			)}
 		</div>
 	);
 }

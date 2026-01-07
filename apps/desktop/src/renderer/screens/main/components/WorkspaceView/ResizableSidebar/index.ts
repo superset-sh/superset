@@ -1,1 +1,0 @@
-export { ResizableSidebar } from "./ResizableSidebar";
