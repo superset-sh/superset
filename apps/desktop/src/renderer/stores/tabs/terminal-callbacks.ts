@@ -6,7 +6,10 @@ interface TerminalCallbacksState {
 	registerClearCallback: (paneId: string, callback: () => void) => void;
 	unregisterClearCallback: (paneId: string) => void;
 	getClearCallback: (paneId: string) => (() => void) | undefined;
-	registerScrollToBottomCallback: (paneId: string, callback: () => void) => void;
+	registerScrollToBottomCallback: (
+		paneId: string,
+		callback: () => void,
+	) => void;
 	unregisterScrollToBottomCallback: (paneId: string) => void;
 	getScrollToBottomCallback: (paneId: string) => (() => void) | undefined;
 }
