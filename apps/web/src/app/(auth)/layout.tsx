@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { headers } from "next/headers";
 import Image from "next/image";
 import { redirect } from "next/navigation";

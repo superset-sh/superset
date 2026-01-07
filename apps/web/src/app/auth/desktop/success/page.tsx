@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { sessions } from "@superset/db/schema/auth";
 import { headers } from "next/headers";

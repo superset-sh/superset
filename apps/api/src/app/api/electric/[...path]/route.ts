@@ -1,5 +1,5 @@
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from "@electric-sql/client";
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { env } from "@/env";
 import { buildWhereClause } from "./utils";
 

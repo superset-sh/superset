@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { COMPANY } from "@superset/shared/constants";
 import {
 	Breadcrumb,

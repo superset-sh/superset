@@ -1,4 +1,4 @@
-import type { Session } from "@superset/auth";
+import type { Session } from "@superset/auth/server";
 import { COMPANY } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";

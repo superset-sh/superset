@@ -2,16 +2,13 @@ import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import { join } from "node:path";
-import { createAuthApiClient } from "@superset/auth/client";
+import { authClient } from "@superset/auth/client";
 import type { AuthProvider } from "@superset/shared/constants";
 import { PROTOCOL_SCHEMES } from "@superset/shared/constants";
 import { shell } from "electron";
 import { env } from "main/env.main";
 import { SUPERSET_HOME_DIR } from "../app-environment";
 import { decrypt, encrypt } from "./crypto-storage";
-
-// Create auth API client that doesn't require database connection
-const auth = createAuthApiClient(env.NEXT_PUBLIC_API_URL);
 
 export interface SignInResult {
 	success: boolean;
@@ -48,7 +45,7 @@ interface StoredAuth {
 	expiresAt: string;
 }
 
-type Session = Awaited<ReturnType<typeof auth.api.getSession>>;
+type Session = Awaited<ReturnType<typeof authClient.getSession>>;
 
 class AuthService extends EventEmitter {
 	private token: string | null = null;
@@ -119,11 +116,19 @@ class AuthService extends EventEmitter {
 		}
 
 		try {
-			const session = await auth.api.getSession({
-				headers: new Headers({
-					Authorization: `Bearer ${token}`,
-				}),
+			const { data: session, error } = await authClient.getSession({
+				fetchOptions: {
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				},
 			});
+
+			if (error) {
+				console.error("[auth] Failed to refresh session:", error);
+				this.session = null;
+				return;
+			}
 
 			this.session = session;
 			this.emit("session-changed", this.session);
@@ -137,12 +142,18 @@ class AuthService extends EventEmitter {
 		const token = this.getAccessToken();
 		if (!token) throw new Error("Not authenticated");
 
-		await auth.api.setActiveOrganization({
-			headers: new Headers({
-				Authorization: `Bearer ${token}`,
-			}),
-			body: { organizationId },
+		const { error } = await authClient.organization.setActive({
+			organizationId,
+			fetchOptions: {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			},
 		});
+
+		if (error) {
+			throw new Error(`Failed to set active organization: ${error.message}`);
+		}
 
 		// Refresh session to get updated activeOrganizationId
 		await this.refreshSession();

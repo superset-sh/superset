@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
 import { Download } from "lucide-react";
 import { headers } from "next/headers";

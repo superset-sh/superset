@@ -1,4 +1,4 @@
-import { auth } from "@superset/auth";
+import { auth } from "@superset/auth/server";
 import { createTRPCContext } from "@superset/trpc";
 
 export const createContext = async ({
