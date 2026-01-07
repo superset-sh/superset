@@ -1,5 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { LuChevronRight, LuExternalLink, LuRadioTower } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { type DetectedPort, usePortsStore } from "renderer/stores";
@@ -20,6 +20,8 @@ export function PortsList() {
 	const setPorts = usePortsStore((s) => s.setPorts);
 	const addPort = usePortsStore((s) => s.addPort);
 	const removePort = usePortsStore((s) => s.removePort);
+	const isCollapsed = usePortsStore((s) => s.isListCollapsed);
+	const toggleCollapsed = usePortsStore((s) => s.toggleListCollapsed);
 
 	// Fetch initial ports
 	const { data: initialPorts } = trpc.ports.getAll.useQuery();
@@ -89,8 +91,6 @@ export function PortsList() {
 		return result;
 	}, [ports, activeWorkspace?.id, workspaceNames]);
 
-	const [isCollapsed, setIsCollapsed] = useState(false);
-
 	if (ports.length === 0) {
 		return null;
 	}
@@ -100,7 +100,7 @@ export function PortsList() {
 			<button
 				type="button"
 				aria-expanded={!isCollapsed}
-				onClick={() => setIsCollapsed(!isCollapsed)}
+				onClick={toggleCollapsed}
 				className="text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground focus-visible:text-muted-foreground focus-visible:outline-none transition-colors"
 			>
 				<LuChevronRight
