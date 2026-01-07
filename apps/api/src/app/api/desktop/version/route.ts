@@ -1,4 +1,4 @@
-const MINIMUM_DESKTOP_VERSION = "0.0.39";
+const MINIMUM_DESKTOP_VERSION = "0.0.48";
 
 /**
  * Used to force the desktop app to update, in cases where we can't support

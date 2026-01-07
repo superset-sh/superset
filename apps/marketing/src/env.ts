@@ -10,6 +10,7 @@ export const env = createEnv({
 			.default("development"),
 	},
 	server: {
+		BETTER_AUTH_SECRET: z.string(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 	client: {

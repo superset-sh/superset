@@ -13,6 +13,7 @@ export const env = createEnv({
 	server: {
 		DATABASE_URL: z.string().url(),
 		DATABASE_URL_UNPOOLED: z.string().url(),
+		BETTER_AUTH_SECRET: z.string(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 
