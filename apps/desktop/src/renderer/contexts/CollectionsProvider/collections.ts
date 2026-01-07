@@ -1,5 +1,7 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	SelectGithubPullRequest,
+	SelectGithubRepository,
 	SelectMember,
 	SelectOrganization,
 	SelectRepository,
@@ -139,5 +141,45 @@ export function createCollections({
 		}),
 	);
 
-	return { tasks, repositories, members, users, organizations };
+	const githubRepositories = createCollection(
+		electricCollectionOptions<SelectGithubRepository>({
+			id: `github-repositories-${activeOrgId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_repositories",
+					org: activeOrgId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	const githubPullRequests = createCollection(
+		electricCollectionOptions<SelectGithubPullRequest>({
+			id: `github-pull-requests-${activeOrgId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "github_pull_requests",
+					org: activeOrgId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	return {
+		tasks,
+		repositories,
+		members,
+		users,
+		organizations,
+		githubRepositories,
+		githubPullRequests,
+	};
 }
