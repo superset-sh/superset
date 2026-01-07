@@ -114,8 +114,13 @@ export function TabView({ tab, panes }: TabViewProps) {
 						tabId={tab.id}
 						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}
+						splitPaneHorizontal={splitPaneHorizontal}
+						splitPaneVertical={splitPaneVertical}
 						removePane={removePane}
 						setFocusedPane={setFocusedPane}
+						availableTabs={workspaceTabs}
+						onMoveToTab={(targetTabId) => movePaneToTab(paneId, targetTabId)}
+						onMoveToNewTab={() => movePaneToNewTab(paneId)}
 					/>
 				);
 			}

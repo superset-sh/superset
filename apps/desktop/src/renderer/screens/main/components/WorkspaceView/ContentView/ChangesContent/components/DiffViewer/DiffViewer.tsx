@@ -8,8 +8,14 @@ import {
 	SUPERSET_THEME,
 	useMonacoReady,
 } from "renderer/contexts/MonacoProvider";
+import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
-import { registerCopyPathLineAction } from "./editor-actions";
+import {
+	EditorContextMenu,
+	type PaneActions,
+	registerCopyPathLineAction,
+	useEditorActions,
+} from "../../../components/EditorContextMenu";
 
 function scrollToFirstDiff(
 	editor: Monaco.editor.IStandaloneDiffEditor,
@@ -29,6 +35,16 @@ function scrollToFirstDiff(
 	}
 }
 
+export interface DiffViewerContextMenuProps {
+	onSplitHorizontal: () => void;
+	onSplitVertical: () => void;
+	onClosePane: () => void;
+	currentTabId: string;
+	availableTabs: Tab[];
+	onMoveToTab: (tabId: string) => void;
+	onMoveToNewTab: () => void;
+}
+
 interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
@@ -36,6 +52,8 @@ interface DiffViewerProps {
 	editable?: boolean;
 	onSave?: (content: string) => void;
 	onChange?: (content: string) => void;
+	// Optional context menu props - when provided, wraps editor with context menu
+	contextMenuProps?: DiffViewerContextMenuProps;
 }
 
 export function DiffViewer({
@@ -45,6 +63,7 @@ export function DiffViewer({
 	editable = false,
 	onSave,
 	onChange,
+	contextMenuProps,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
 	const diffEditorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(
@@ -131,6 +150,20 @@ export function DiffViewer({
 		};
 	}, [isEditorMounted, onChange]);
 
+	// Get the active editor (modified or original)
+	const getEditor = useCallback(() => {
+		return (
+			modifiedEditorRef.current || diffEditorRef.current?.getOriginalEditor()
+		);
+	}, []);
+
+	// Use shared editor actions hook - diff viewer is read-only (no cut/paste)
+	const editorActions = useEditorActions({
+		getEditor,
+		filePath,
+		editable: false,
+	});
+
 	if (!isMonacoReady) {
 		return (
 			<div className="flex items-center justify-center h-full text-muted-foreground">
@@ -140,30 +173,51 @@ export function DiffViewer({
 		);
 	}
 
+	const diffEditor = (
+		<DiffEditor
+			height="100%"
+			original={contents.original}
+			modified={contents.modified}
+			language={contents.language}
+			theme={SUPERSET_THEME}
+			onMount={handleMount}
+			loading={
+				<div className="flex items-center justify-center h-full text-muted-foreground">
+					<LuLoader className="w-4 h-4 animate-spin mr-2" />
+					<span>Loading editor...</span>
+				</div>
+			}
+			options={{
+				...MONACO_EDITOR_OPTIONS,
+				renderSideBySide: viewMode === "side-by-side",
+				readOnly: !editable,
+				originalEditable: false,
+				renderOverviewRuler: false,
+				diffWordWrap: "on",
+				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
+			}}
+		/>
+	);
+
+	// If no context menu props, return plain editor
+	if (!contextMenuProps) {
+		return <div className="h-full w-full">{diffEditor}</div>;
+	}
+
+	// Wrap with custom context menu
+	const paneActions: PaneActions = {
+		onSplitHorizontal: contextMenuProps.onSplitHorizontal,
+		onSplitVertical: contextMenuProps.onSplitVertical,
+		onClosePane: contextMenuProps.onClosePane,
+		currentTabId: contextMenuProps.currentTabId,
+		availableTabs: contextMenuProps.availableTabs,
+		onMoveToTab: contextMenuProps.onMoveToTab,
+		onMoveToNewTab: contextMenuProps.onMoveToNewTab,
+	};
+
 	return (
-		<div className="h-full w-full">
-			<DiffEditor
-				height="100%"
-				original={contents.original}
-				modified={contents.modified}
-				language={contents.language}
-				theme={SUPERSET_THEME}
-				onMount={handleMount}
-				loading={
-					<div className="flex items-center justify-center h-full text-muted-foreground">
-						<LuLoader className="w-4 h-4 animate-spin mr-2" />
-						<span>Loading editor...</span>
-					</div>
-				}
-				options={{
-					...MONACO_EDITOR_OPTIONS,
-					renderSideBySide: viewMode === "side-by-side",
-					readOnly: !editable,
-					originalEditable: false,
-					renderOverviewRuler: false,
-					diffWordWrap: "on",
-				}}
-			/>
-		</div>
+		<EditorContextMenu editorActions={editorActions} paneActions={paneActions}>
+			<div className="h-full w-full">{diffEditor}</div>
+		</EditorContextMenu>
 	);
 }

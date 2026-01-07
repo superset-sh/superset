@@ -9,9 +9,12 @@ import {
 	SUPERSET_THEME,
 	useMonacoReady,
 } from "renderer/contexts/MonacoProvider";
+import type { Tab } from "renderer/stores/tabs/types";
 import { detectLanguage } from "shared/detect-language";
 import type { FileViewerMode } from "shared/tabs-types";
 import { DiffViewer } from "../../../../../ChangesContent/components/DiffViewer";
+import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
+import { FileEditorContextMenu } from "../FileEditorContextMenu";
 
 interface RawFileData {
 	ok: true;
@@ -54,6 +57,14 @@ interface FileViewerContentProps {
 	onEditorChange: (value: string | undefined) => void;
 	onDiffChange?: (content: string) => void;
 	setIsDirty: (dirty: boolean) => void;
+	// Context menu props
+	onSplitHorizontal: () => void;
+	onSplitVertical: () => void;
+	onClosePane: () => void;
+	currentTabId: string;
+	availableTabs: Tab[];
+	onMoveToTab: (tabId: string) => void;
+	onMoveToNewTab: () => void;
 }
 
 export function FileViewerContent({
@@ -74,6 +85,14 @@ export function FileViewerContent({
 	onEditorChange,
 	onDiffChange,
 	setIsDirty,
+	// Context menu props
+	onSplitHorizontal,
+	onSplitVertical,
+	onClosePane,
+	currentTabId,
+	availableTabs,
+	onMoveToTab,
+	onMoveToNewTab,
 }: FileViewerContentProps) {
 	const isMonacoReady = useMonacoReady();
 	const hasAppliedInitialLocationRef = useRef(false);
@@ -96,8 +115,16 @@ export function FileViewerContent({
 			}
 			setIsDirty(editor.getValue() !== originalContentRef.current);
 			registerSaveAction(editor, onSaveRaw);
+			registerCopyPathLineAction(editor, filePath);
 		},
-		[onSaveRaw, editorRef, originalContentRef, draftContentRef, setIsDirty],
+		[
+			onSaveRaw,
+			editorRef,
+			originalContentRef,
+			draftContentRef,
+			setIsDirty,
+			filePath,
+		],
 	);
 
 	useEffect(() => {
@@ -164,6 +191,15 @@ export function FileViewerContent({
 				editable={isDiffEditable}
 				onSave={isDiffEditable ? onSaveDiff : undefined}
 				onChange={isDiffEditable ? onDiffChange : undefined}
+				contextMenuProps={{
+					onSplitHorizontal,
+					onSplitVertical,
+					onClosePane,
+					currentTabId,
+					availableTabs,
+					onMoveToTab,
+					onMoveToNewTab,
+				}}
 			/>
 		);
 	}
@@ -212,21 +248,38 @@ export function FileViewerContent({
 	}
 
 	return (
-		<Editor
-			key={filePath}
-			height="100%"
-			language={detectLanguage(filePath)}
-			value={draftContentRef.current ?? rawFileData.content}
-			theme={SUPERSET_THEME}
-			onMount={handleEditorMount}
-			onChange={onEditorChange}
-			loading={
-				<div className="flex items-center justify-center h-full text-muted-foreground">
-					<LuLoader className="w-4 h-4 animate-spin mr-2" />
-					<span>Loading editor...</span>
-				</div>
-			}
-			options={MONACO_EDITOR_OPTIONS}
-		/>
+		<FileEditorContextMenu
+			editorRef={editorRef}
+			filePath={filePath}
+			onSplitHorizontal={onSplitHorizontal}
+			onSplitVertical={onSplitVertical}
+			onClosePane={onClosePane}
+			currentTabId={currentTabId}
+			availableTabs={availableTabs}
+			onMoveToTab={onMoveToTab}
+			onMoveToNewTab={onMoveToNewTab}
+		>
+			<div className="w-full h-full">
+				<Editor
+					key={filePath}
+					height="100%"
+					language={detectLanguage(filePath)}
+					value={draftContentRef.current ?? rawFileData.content}
+					theme={SUPERSET_THEME}
+					onMount={handleEditorMount}
+					onChange={onEditorChange}
+					loading={
+						<div className="flex items-center justify-center h-full text-muted-foreground">
+							<LuLoader className="w-4 h-4 animate-spin mr-2" />
+							<span>Loading editor...</span>
+						</div>
+					}
+					options={{
+						...MONACO_EDITOR_OPTIONS,
+						contextmenu: false, // Disable Monaco's native context menu to use our custom one
+					}}
+				/>
+			</div>
+		</FileEditorContextMenu>
 	);
 }

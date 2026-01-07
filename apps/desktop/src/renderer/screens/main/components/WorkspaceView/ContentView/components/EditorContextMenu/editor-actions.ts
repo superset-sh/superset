@@ -1,6 +1,12 @@
 import type * as Monaco from "monaco-editor";
 import { monaco } from "renderer/contexts/MonacoProvider";
 
+/**
+ * Registers a keyboard shortcut (Cmd+Shift+C / Ctrl+Shift+C) to copy
+ * the file path with the current line number(s) to the clipboard.
+ *
+ * Format: `path/to/file.ts:42` or `path/to/file.ts:42-50` for multi-line selections
+ */
 export function registerCopyPathLineAction(
 	editor: Monaco.editor.IStandaloneCodeEditor,
 	filePath: string,
@@ -11,8 +17,6 @@ export function registerCopyPathLineAction(
 		keybindings: [
 			monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyC,
 		],
-		contextMenuGroupId: "9_cutcopypaste",
-		contextMenuOrder: 4,
 		run: (ed) => {
 			const selection = ed.getSelection();
 			if (!selection) return;

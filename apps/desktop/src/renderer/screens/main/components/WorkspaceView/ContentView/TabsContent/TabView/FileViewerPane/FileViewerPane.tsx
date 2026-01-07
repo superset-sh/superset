@@ -2,7 +2,7 @@ import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Pane } from "renderer/stores/tabs/types";
+import type { Pane, Tab } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
@@ -24,8 +24,21 @@ interface FileViewerPaneProps {
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
+	splitPaneHorizontal: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
+	splitPaneVertical: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
+	availableTabs: Tab[];
+	onMoveToTab: (targetTabId: string) => void;
+	onMoveToNewTab: () => void;
 }
 
 export function FileViewerPane({
@@ -36,8 +49,13 @@ export function FileViewerPane({
 	tabId,
 	worktreePath,
 	splitPaneAuto,
+	splitPaneHorizontal,
+	splitPaneVertical,
 	removePane,
 	setFocusedPane,
+	availableTabs,
+	onMoveToTab,
+	onMoveToNewTab,
 }: FileViewerPaneProps) {
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
@@ -290,6 +308,14 @@ export function FileViewerPane({
 					onEditorChange={handleEditorChange}
 					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
 					setIsDirty={setIsDirty}
+					// Context menu props
+					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
+					onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+					onClosePane={() => removePane(paneId)}
+					currentTabId={tabId}
+					availableTabs={availableTabs}
+					onMoveToTab={onMoveToTab}
+					onMoveToNewTab={onMoveToNewTab}
 				/>
 			</BasePaneWindow>
 			<UnsavedChangesDialog
