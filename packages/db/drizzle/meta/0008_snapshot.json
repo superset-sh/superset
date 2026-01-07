@@ -1,5 +1,5 @@
 {
-  "id": "409a2dd8-1aad-4733-a95a-28b94bb21b56",
+  "id": "c8d82f70-d52d-4460-9ae3-9d62a748fc76",
   "prevId": "fa87a301-b667-4c9c-9e1f-15b9d9130bb0",
   "version": "7",
   "dialect": "postgresql",
@@ -723,36 +723,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "access_token": {
-          "name": "access_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_expires_at": {
-          "name": "token_expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "refresh_token": {
-          "name": "refresh_token",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "webhook_id": {
-          "name": "webhook_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "webhook_secret": {
-          "name": "webhook_secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "suspended": {
           "name": "suspended",
           "type": "boolean",
@@ -762,6 +732,12 @@
         },
         "suspended_at": {
           "name": "suspended_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_synced_at": {
+          "name": "last_synced_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": false
