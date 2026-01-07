@@ -30,7 +30,7 @@ export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
 
 export interface SessionResult {
 	isNew: boolean;
-	/** Serialized terminal state (parsed content safe to replay in xterm) */
+	/** Serialized terminal state from xterm's SerializeAddon */
 	serializedState: string;
 }
 
