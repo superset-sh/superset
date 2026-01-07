@@ -72,7 +72,7 @@ export function ResizableSidebar() {
 
 	return (
 		<div
-			className="relative h-full shrink-0 overflow-hidden"
+			className="relative h-full shrink-0 overflow-hidden border-l"
 			style={{ width: sidebarWidth }}
 		>
 			<Sidebar />
