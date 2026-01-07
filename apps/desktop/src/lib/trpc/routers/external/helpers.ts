@@ -42,9 +42,20 @@ export function getAppCommand(
 
 /**
  * Resolve a path by expanding ~ and converting relative paths to absolute.
+ * Also handles file:// URLs by converting them to regular file paths.
  */
 export function resolvePath(filePath: string, cwd?: string): string {
 	let resolved = filePath;
+
+	if (resolved.startsWith("file://")) {
+		try {
+			const url = new URL(resolved);
+			resolved = decodeURIComponent(url.pathname);
+		} catch {
+			// If URL parsing fails, try simple prefix removal
+			resolved = decodeURIComponent(resolved.replace(/^file:\/\//, ""));
+		}
+	}
 
 	if (resolved.startsWith("~")) {
 		const home = process.env.HOME || process.env.USERPROFILE;

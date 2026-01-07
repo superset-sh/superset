@@ -1,1 +1,1 @@
-export { assignRandomColor } from "./colors";
+export { getDefaultProjectColor } from "./colors";

@@ -22,7 +22,7 @@ import {
 	getGitRoot,
 	refreshDefaultBranch,
 } from "../workspaces/utils/git";
-import { assignRandomColor } from "./utils/colors";
+import { getDefaultProjectColor } from "./utils/colors";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
 
 type Project = SelectProject;
@@ -70,7 +70,7 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		.values({
 			mainRepoPath,
 			name,
-			color: assignRandomColor(),
+			color: getDefaultProjectColor(),
 			defaultBranch,
 		})
 		.returning()
@@ -481,7 +481,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.values({
 							mainRepoPath: clonePath,
 							name,
-							color: assignRandomColor(),
+							color: getDefaultProjectColor(),
 							defaultBranch,
 						})
 						.returning()
@@ -726,7 +726,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					return null;
 				}
 
-				// If we already have the github owner cached, return the avatar URL
 				if (project.githubOwner) {
 					console.log(
 						"[getGitHubAvatar] Using cached owner:",
@@ -738,7 +737,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 					};
 				}
 
-				// Fetch the owner from GitHub
 				console.log(
 					"[getGitHubAvatar] Fetching owner for:",
 					project.mainRepoPath,
@@ -752,7 +750,6 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 
 				console.log("[getGitHubAvatar] Fetched owner:", owner);
 
-				// Cache the owner
 				localDb
 					.update(projects)
 					.set({ githubOwner: owner })

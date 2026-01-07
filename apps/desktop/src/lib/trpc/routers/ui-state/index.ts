@@ -36,7 +36,7 @@ const paneSchema = z.object({
 	type: z.enum(["terminal", "webview", "file-viewer"]),
 	name: z.string(),
 	isNew: z.boolean().optional(),
-	needsAttention: z.boolean().optional(),
+	status: z.enum(["idle", "working", "permission", "review"]).optional(),
 	initialCommands: z.array(z.string()).optional(),
 	initialCwd: z.string().optional(),
 	url: z.string().optional(),

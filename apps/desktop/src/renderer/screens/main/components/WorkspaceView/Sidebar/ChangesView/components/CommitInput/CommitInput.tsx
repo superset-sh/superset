@@ -246,7 +246,7 @@ export function CommitInput({
 				<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
 					<DropdownMenuTrigger asChild>
 						<Button
-							variant="default"
+							variant="secondary"
 							size="sm"
 							disabled={isPending}
 							className="h-7 px-1.5"

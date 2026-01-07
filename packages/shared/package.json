@@ -11,6 +11,10 @@
 		"./names": {
 			"types": "./src/names/index.ts",
 			"default": "./src/names/index.ts"
+		},
+		"./terminal-link-parsing": {
+			"types": "./src/terminal-link-parsing/index.ts",
+			"default": "./src/terminal-link-parsing/index.ts"
 		}
 	},
 	"scripts": {

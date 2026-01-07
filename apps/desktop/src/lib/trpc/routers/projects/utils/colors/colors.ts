@@ -1,7 +1,9 @@
-import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 
-export function assignRandomColor(): string {
-	return PROJECT_COLOR_VALUES[
-		Math.floor(Math.random() * PROJECT_COLOR_VALUES.length)
-	];
+/**
+ * Returns the default color for new projects.
+ * Projects start with no custom color (gray border).
+ */
+export function getDefaultProjectColor(): string {
+	return PROJECT_COLOR_DEFAULT;
 }

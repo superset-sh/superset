@@ -22,8 +22,6 @@ import {
 	type HotkeysState,
 	hasPrimaryModifier,
 	hotkeyFromKeyboardEvent,
-	isOsReservedHotkey,
-	isTerminalReservedHotkey,
 	matchesHotkeyEvent,
 } from "shared/hotkeys";
 import { create } from "zustand";
@@ -257,19 +255,6 @@ export function isAppHotkeyEvent(event: KeyboardEvent): boolean {
 		if (!keys) return false;
 		return matchesHotkeyEvent(event, keys);
 	});
-}
-
-export function isReservedHotkey(
-	keys: string,
-	platform: HotkeyPlatform,
-): {
-	isTerminalReserved: boolean;
-	isOsReserved: boolean;
-} {
-	return {
-		isTerminalReserved: isTerminalReservedHotkey(keys),
-		isOsReserved: isOsReservedHotkey(keys, platform),
-	};
 }
 
 export function getHotkeyConflict(

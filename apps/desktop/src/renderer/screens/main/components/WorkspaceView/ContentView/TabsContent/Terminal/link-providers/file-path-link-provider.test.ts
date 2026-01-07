@@ -167,14 +167,22 @@ describe("FilePathLinkProvider", () => {
 			expect(links.length).toBe(0);
 		});
 
-		it("should skip pure numbers", async () => {
-			const terminal = createMockTerminal([{ text: "Line 123:456" }]);
+		it("should skip pure numbers like 123:456", async () => {
+			// Note: "Line 123:456" is detected as a link to "Line" with row 123, col 456
+			// because VSCode supports verbose formats like "foo line 339"
+			// We only skip patterns that are purely numeric with colons
+			const terminal = createMockTerminal([
+				{ text: "at position 123:456:789" },
+			]);
 			const onOpen = mock();
 			const provider = new FilePathLinkProvider(terminal, onOpen);
 
 			const links = await getLinks(provider, 1);
 
-			expect(links.length).toBe(0);
+			// "position" will be detected with line 123, col 456
+			// but pure "123:456:789" alone would not be detected as a path
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("position 123:456");
 		});
 	});
 
@@ -365,6 +373,293 @@ describe("FilePathLinkProvider", () => {
 			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
 			expect(onOpen.mock.calls[0][2]).toBe(42);
 			expect(onOpen.mock.calls[0][3]).toBe(10);
+		});
+	});
+
+	describe("VSCode-style link formats", () => {
+		it("should detect parenthesis format: file.ts(42)", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Error in /path/file.ts(42)" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/path/file.ts(42)");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+		});
+
+		it("should detect parenthesis format with column: file.ts(42, 10)", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Error in /path/file.ts(42, 10)" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/path/file.ts(42, 10)");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+			expect(onOpen.mock.calls[0][3]).toBe(10);
+		});
+
+		it("should detect square bracket format: file.ts[42]", async () => {
+			const terminal = createMockTerminal([
+				{ text: "Error in /path/file.ts[42]" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/path/file.ts[42]");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+		});
+
+		it('should detect verbose format: "file.ts", line 42', async () => {
+			const terminal = createMockTerminal([
+				{ text: 'Error in "/path/file.ts", line 42' },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe('"/path/file.ts", line 42');
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+		});
+
+		it('should detect verbose format with column: "file.ts", line 42, col 10', async () => {
+			const terminal = createMockTerminal([
+				{ text: 'Error in "/path/file.ts", line 42, col 10' },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe('"/path/file.ts", line 42, col 10');
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+			expect(onOpen.mock.calls[0][3]).toBe(10);
+		});
+
+		it("should detect line ranges: file.ts:42-50", async () => {
+			const terminal = createMockTerminal([
+				{ text: "See /path/file.ts:42:10-50" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/path/file.ts:42:10-50");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+			expect(onOpen.mock.calls[0][3]).toBe(10);
+			expect(onOpen.mock.calls[0][5]).toBe(50); // columnEnd
+		});
+
+		it("should detect hash format: file.ts#42", async () => {
+			const terminal = createMockTerminal([{ text: "See /path/file.ts#42" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("/path/file.ts#42");
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen.mock.calls[0][1]).toBe("/path/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+		});
+
+		it("should detect git diff paths: --- a/path/file.ts", async () => {
+			const terminal = createMockTerminal([{ text: "--- a/path/to/file.ts" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("path/to/file.ts");
+		});
+
+		it("should detect git diff paths: +++ b/path/file.ts", async () => {
+			const terminal = createMockTerminal([{ text: "+++ b/path/to/file.ts" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("path/to/file.ts");
+		});
+	});
+
+	describe("URL-encoded paths", () => {
+		it("should decode URL-encoded path with line number on activation", async () => {
+			const terminal = createMockTerminal([
+				{ text: "apps/desktop/src/main/lib/workspace-manager.ts%3A50" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe(
+				"apps/desktop/src/main/lib/workspace-manager.ts",
+			);
+			expect(onOpen.mock.calls[0][2]).toBe(50);
+		});
+
+		it("should decode URL-encoded path with line and column on activation", async () => {
+			const terminal = createMockTerminal([{ text: "src/file.ts%3A42%3A10" }]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe("src/file.ts");
+			expect(onOpen.mock.calls[0][2]).toBe(42);
+			expect(onOpen.mock.calls[0][3]).toBe(10);
+		});
+
+		it("should decode URL-encoded spaces in path", async () => {
+			const terminal = createMockTerminal([
+				{ text: "./path/to%20file/name.ts" },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+
+			const mockEvent = {
+				metaKey: true,
+				ctrlKey: false,
+				preventDefault: mock(),
+			} as unknown as MouseEvent;
+			links[0].activate(mockEvent, links[0].text);
+
+			expect(onOpen).toHaveBeenCalled();
+			expect(onOpen.mock.calls[0][1]).toBe("./path/to file/name.ts");
+		});
+	});
+
+	describe("punctuation handling", () => {
+		it("should handle path followed by period at end of sentence", async () => {
+			const terminal = createMockTerminal([
+				{ text: "See the file at ./path/something." },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			// The path should be detected without the trailing period
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("./path/something");
+		});
+
+		it("should handle path in quotes", async () => {
+			const terminal = createMockTerminal([
+				{ text: 'Error in "./path/file.ts"' },
+			]);
+			const onOpen = mock();
+			const provider = new FilePathLinkProvider(terminal, onOpen);
+
+			const links = await getLinks(provider, 1);
+
+			expect(links.length).toBe(1);
+			expect(links[0].text).toBe("./path/file.ts");
 		});
 	});
 

@@ -15,7 +15,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuEye, LuEyeOff, LuFolder, LuFolderGit2 } from "react-icons/lu";
@@ -25,10 +25,12 @@ import {
 	useSetActiveWorkspace,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
+import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
+import { getHighestPriorityStatus } from "shared/tabs-types";
 import { STROKE_WIDTH } from "../constants";
 import {
 	BranchSwitcher,
@@ -82,8 +84,8 @@ export function WorkspaceListItem({
 	const rename = useWorkspaceRename(id, name);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
-	const clearWorkspaceAttention = useTabsStore(
-		(s) => s.clearWorkspaceAttention,
+	const clearWorkspaceAttentionStatus = useTabsStore(
+		(s) => s.clearWorkspaceAttentionStatus,
 	);
 	const utils = trpc.useUtils();
 	const openInFinder = trpc.external.openInFinder.useMutation({
@@ -110,22 +112,29 @@ export function WorkspaceListItem({
 		},
 	);
 
-	// Check if any pane in tabs belonging to this workspace needs attention (agent notifications)
-	const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
-	const workspacePaneIds = new Set(
-		workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
-	);
-	const hasPaneAttention = Object.values(panes)
-		.filter((p) => p != null && workspacePaneIds.has(p.id))
-		.some((p) => p.needsAttention);
+	// Memoize workspace pane IDs to avoid recalculating on every render
+	const workspacePaneIds = useMemo(() => {
+		const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
+		return new Set(
+			workspaceTabs.flatMap((t) => extractPaneIdsFromLayout(t.layout)),
+		);
+	}, [tabs, id]);
 
-	// Show indicator if workspace is manually marked as unread OR has pane-level attention
-	const needsAttention = isUnread || hasPaneAttention;
+	// Compute aggregate status for workspace using shared priority logic
+	const workspaceStatus = useMemo(() => {
+		// Generator avoids array allocation
+		function* paneStatuses() {
+			for (const paneId of workspacePaneIds) {
+				yield panes[paneId]?.status;
+			}
+		}
+		return getHighestPriorityStatus(paneStatuses());
+	}, [panes, workspacePaneIds]);
 
 	const handleClick = () => {
 		if (!rename.isRenaming) {
 			setActiveWorkspace.mutate({ id });
-			clearWorkspaceAttention(id);
+			clearWorkspaceAttentionStatus(id);
 			// Close workspaces list view if open, to show the workspace's terminal view
 			closeWorkspacesList();
 		}
@@ -216,11 +225,16 @@ export function WorkspaceListItem({
 						strokeWidth={STROKE_WIDTH}
 					/>
 				)}
-				{/* Notification dot */}
-				{needsAttention && (
+				{/* Status indicator */}
+				{workspaceStatus && (
+					<span className="absolute top-1 right-1">
+						<StatusIndicator status={workspaceStatus} />
+					</span>
+				)}
+				{/* Unread dot (only when no status) */}
+				{isUnread && !workspaceStatus && (
 					<span className="absolute top-1 right-1 flex size-2">
-						<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-						<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+						<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
 					</span>
 				)}
 			</button>
@@ -297,7 +311,7 @@ export function WorkspaceListItem({
 				<div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-primary rounded-r" />
 			)}
 
-			{/* Icon with notification dot */}
+			{/* Icon with status indicator */}
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
@@ -312,10 +326,14 @@ export function WorkspaceListItem({
 								strokeWidth={STROKE_WIDTH}
 							/>
 						)}
-						{needsAttention && (
+						{workspaceStatus && (
+							<span className="absolute -top-0.5 -right-0.5">
+								<StatusIndicator status={workspaceStatus} />
+							</span>
+						)}
+						{isUnread && !workspaceStatus && (
 							<span className="absolute -top-0.5 -right-0.5 flex size-2">
-								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-								<span className="relative inline-flex size-2 rounded-full bg-red-500" />
+								<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
 							</span>
 						)}
 					</div>

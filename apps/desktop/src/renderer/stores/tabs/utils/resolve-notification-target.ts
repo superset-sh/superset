@@ -1,4 +1,4 @@
-import type { NotificationIds } from "main/lib/notifications/server";
+import type { NotificationIds } from "shared/notification-types";
 import type { Pane, Tab } from "../types";
 
 interface TabsState {

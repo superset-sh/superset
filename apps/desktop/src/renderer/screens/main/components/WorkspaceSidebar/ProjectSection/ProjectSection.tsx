@@ -21,6 +21,7 @@ interface Workspace {
 interface ProjectSectionProps {
 	projectId: string;
 	projectName: string;
+	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
 	workspaces: Workspace[];
@@ -34,6 +35,7 @@ interface ProjectSectionProps {
 export function ProjectSection({
 	projectId,
 	projectName,
+	projectColor,
 	githubOwner,
 	mainRepoPath,
 	workspaces,
@@ -71,6 +73,7 @@ export function ProjectSection({
 				<ProjectHeader
 					projectId={projectId}
 					projectName={projectName}
+					projectColor={projectColor}
 					githubOwner={githubOwner}
 					mainRepoPath={mainRepoPath}
 					isCollapsed={isCollapsed}
@@ -122,6 +125,7 @@ export function ProjectSection({
 			<ProjectHeader
 				projectId={projectId}
 				projectName={projectName}
+				projectColor={projectColor}
 				githubOwner={githubOwner}
 				mainRepoPath={mainRepoPath}
 				isCollapsed={isCollapsed}
