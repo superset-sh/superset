@@ -6,6 +6,7 @@ export type SettingsSection =
 	| "account"
 	| "project"
 	| "workspace"
+	| "team"
 	| "appearance"
 	| "keyboard"
 	| "presets"

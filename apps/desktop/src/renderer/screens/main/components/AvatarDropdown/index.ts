@@ -1,1 +1,0 @@
-export { AvatarDropdown } from "./AvatarDropdown";

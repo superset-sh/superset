@@ -1,6 +1,9 @@
 import type React from "react";
 import { PostHogUserIdentifier } from "renderer/components/PostHogUserIdentifier";
+import { AuthProvider, useAuth } from "../AuthProvider";
+import { CollectionsProvider } from "../CollectionsProvider";
 import { MonacoProvider } from "../MonacoProvider";
+import { OrganizationsProvider } from "../OrganizationsProvider";
 import { PostHogProvider } from "../PostHogProvider";
 import { TRPCProvider } from "../TRPCProvider";
 
@@ -13,8 +16,33 @@ export function AppProviders({ children }: AppProvidersProps) {
 		<PostHogProvider>
 			<TRPCProvider>
 				<PostHogUserIdentifier />
-				<MonacoProvider>{children}</MonacoProvider>
+				<AuthProvider>
+					<ConditionalProviders>{children}</ConditionalProviders>
+				</AuthProvider>
 			</TRPCProvider>
 		</PostHogProvider>
+	);
+}
+
+/**
+ * Conditionally renders CollectionsProvider and OrganizationsProvider
+ * only when user is authenticated. This prevents blocking the sign-in screen.
+ */
+function ConditionalProviders({ children }: AppProvidersProps) {
+	const { session, token } = useAuth();
+
+	// If no auth, skip collections/orgs providers and render children directly
+	// session is the whole authState, so check if it has user data
+	if (!token || !session?.user) {
+		return <MonacoProvider>{children}</MonacoProvider>;
+	}
+
+	// User is authenticated, wrap with collections/orgs providers
+	return (
+		<CollectionsProvider>
+			<OrganizationsProvider>
+				<MonacoProvider>{children}</MonacoProvider>
+			</OrganizationsProvider>
+		</CollectionsProvider>
 	);
 }

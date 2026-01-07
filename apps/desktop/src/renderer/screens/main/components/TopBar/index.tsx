@@ -1,6 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
-import { AvatarDropdown } from "../AvatarDropdown";
 import { OpenInMenuButton } from "./OpenInMenuButton";
+import { SupportMenu } from "./SupportMenu";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
@@ -27,7 +27,7 @@ export function TopBar() {
 						branch={activeWorkspace.worktree?.branch}
 					/>
 				)}
-				<AvatarDropdown />
+				<SupportMenu />
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

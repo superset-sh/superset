@@ -13,12 +13,11 @@ type Collections = ReturnType<typeof createCollections>;
 const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: session } = trpc.auth.onSessionChange.useSubscription();
-	const { data: tokenData } = trpc.auth.onAccessToken.useSubscription();
+	const { data: authState } = trpc.auth.onAuthState.useSubscription();
 	const [error, setError] = useState<Error | null>(null);
 
-	const activeOrgId = session?.session.activeOrganizationId;
-	const token = tokenData?.accessToken;
+	const activeOrgId = authState?.session?.activeOrganizationId;
+	const token = authState?.token;
 
 	const collections = useMemo(() => {
 		console.log("[CollectionsProvider] Creating collections with:", {

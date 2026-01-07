@@ -63,6 +63,48 @@ export const createAuthRouter = () => {
 			});
 		}),
 
+		/**
+		 * Combined subscription for session + token
+		 * Returns both in a single object to avoid race conditions
+		 */
+		onAuthState: publicProcedure.subscription(() => {
+			return observable<
+				| (ReturnType<typeof authService.getSession> & { token: string | null })
+				| null
+			>((emit) => {
+				const emitCurrent = () => {
+					const sessionData = authService.getSession();
+					const token = authService.getAccessToken();
+
+					if (!sessionData) {
+						emit.next(null);
+						return;
+					}
+
+					emit.next({ ...sessionData, token });
+				};
+
+				// Emit initial state
+				emitCurrent();
+
+				// Listen for changes to both session and auth state
+				const sessionHandler = () => {
+					emitCurrent();
+				};
+				const stateHandler = () => {
+					emitCurrent();
+				};
+
+				authService.on("session-changed", sessionHandler);
+				authService.on("state-changed", stateHandler);
+
+				return () => {
+					authService.off("session-changed", sessionHandler);
+					authService.off("state-changed", stateHandler);
+				};
+			});
+		}),
+
 		onSessionChange: publicProcedure.subscription(() => {
 			return observable<ReturnType<typeof authService.getSession>>((emit) => {
 				const handler = (
