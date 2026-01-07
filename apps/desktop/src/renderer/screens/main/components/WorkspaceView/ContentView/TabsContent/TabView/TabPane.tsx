@@ -59,6 +59,9 @@ export function TabPane({
 }: TabPaneProps) {
 	const terminalContainerRef = useRef<HTMLDivElement>(null);
 	const getClearCallback = useTerminalCallbacksStore((s) => s.getClearCallback);
+	const getScrollToBottomCallback = useTerminalCallbacksStore(
+		(s) => s.getScrollToBottomCallback,
+	);
 
 	useEffect(() => {
 		const container = terminalContainerRef.current;
@@ -72,6 +75,10 @@ export function TabPane({
 
 	const handleClearTerminal = () => {
 		getClearCallback(paneId)?.();
+	};
+
+	const handleScrollToBottom = () => {
+		getScrollToBottomCallback(paneId)?.();
 	};
 
 	return (
@@ -106,6 +113,7 @@ export function TabPane({
 				onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
 				onClosePane={() => removePane(paneId)}
 				onClearTerminal={handleClearTerminal}
+				onScrollToBottom={handleScrollToBottom}
 				currentTabId={tabId}
 				availableTabs={availableTabs}
 				onMoveToTab={onMoveToTab}

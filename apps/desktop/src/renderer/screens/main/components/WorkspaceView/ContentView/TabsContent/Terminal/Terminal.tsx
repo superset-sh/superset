@@ -196,6 +196,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const unregisterClearCallbackRef = useRef(
 		useTerminalCallbacksStore.getState().unregisterClearCallback,
 	);
+	const registerScrollToBottomCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().registerScrollToBottomCallback,
+	);
+	const unregisterScrollToBottomCallbackRef = useRef(
+		useTerminalCallbacksStore.getState().unregisterScrollToBottomCallback,
+	);
 
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
@@ -270,6 +276,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		"FIND_IN_TERMINAL",
 		() => {
 			setIsSearchOpen((prev) => !prev);
+		},
+		{ enabled: isFocused, preventDefault: true },
+		[isFocused],
+	);
+
+	useAppHotkey(
+		"SCROLL_TO_BOTTOM",
+		() => {
+			xtermRef.current?.scrollToBottom();
 		},
 		{ enabled: isFocused, preventDefault: true },
 		[isFocused],
@@ -462,6 +477,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			clearScrollbackRef.current({ paneId });
 		};
 
+		const handleScrollToBottom = () => {
+			xterm.scrollToBottom();
+		};
+
 		const handleWrite = (data: string) => {
 			if (!isExitedRef.current) {
 				writeRef.current({ paneId, data });
@@ -480,6 +499,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Register clear callback for context menu access
 		registerClearCallbackRef.current(paneId, handleClear);
+
+		// Register scroll to bottom callback for context menu access
+		registerScrollToBottomCallbackRef.current(paneId, handleScrollToBottom);
 
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
@@ -510,6 +532,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupPaste();
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
+			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId });
