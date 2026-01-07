@@ -1,11 +1,21 @@
 import { auth } from "@clerk/nextjs/server";
-import { DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
-import { Download } from "lucide-react";
+import {
+	DOWNLOAD_URL_MAC_ARM64,
+	WAITLIST_URL,
+} from "@superset/shared/constants";
+import { Clock, Download } from "lucide-react";
+import { headers } from "next/headers";
 
 import { env } from "@/env";
+import { isMacOSUserAgent } from "@/lib/platform";
 
 export async function CTAButtons() {
 	const { userId } = await auth();
+	const requestHeaders = await headers();
+	const isMac = isMacOSUserAgent(requestHeaders.get("user-agent") ?? "");
+	const primaryCtaHref = isMac ? DOWNLOAD_URL_MAC_ARM64 : WAITLIST_URL;
+	const primaryCtaLabel = isMac ? "Download for macOS" : "Join waitlist";
+	const PrimaryCtaIcon = isMac ? Download : Clock;
 
 	if (userId) {
 		return (
@@ -17,11 +27,13 @@ export async function CTAButtons() {
 					Dashboard
 				</a>
 				<a
-					href={DOWNLOAD_URL_MAC_ARM64}
+					href={primaryCtaHref}
 					className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+					target={isMac ? undefined : "_blank"}
+					rel={isMac ? undefined : "noopener noreferrer"}
 				>
-					Download for macOS
-					<Download className="size-4" aria-hidden="true" />
+					{primaryCtaLabel}
+					<PrimaryCtaIcon className="size-4" aria-hidden="true" />
 				</a>
 			</>
 		);
@@ -36,11 +48,13 @@ export async function CTAButtons() {
 				Sign In
 			</a>
 			<a
-				href={DOWNLOAD_URL_MAC_ARM64}
+				href={primaryCtaHref}
 				className="px-4 py-2 text-sm font-normal bg-foreground text-background hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2"
+				target={isMac ? undefined : "_blank"}
+				rel={isMac ? undefined : "noopener noreferrer"}
 			>
-				Download for macOS
-				<Download className="size-4" aria-hidden="true" />
+				{primaryCtaLabel}
+				<PrimaryCtaIcon className="size-4" aria-hidden="true" />
 			</a>
 		</>
 	);

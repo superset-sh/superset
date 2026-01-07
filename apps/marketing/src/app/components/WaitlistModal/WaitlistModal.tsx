@@ -1,5 +1,6 @@
 "use client";
 
+import { WAITLIST_URL } from "@superset/shared/constants";
 import { useEffect } from "react";
 
 interface WaitlistModalProps {
@@ -61,7 +62,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
 
 					{/* Iframe container with fixed height to cut off branding */}
 					<iframe
-						src="https://tally.so/r/wv7Q0A"
+						src={WAITLIST_URL}
 						width="100%"
 						height="750px"
 						frameBorder="0"

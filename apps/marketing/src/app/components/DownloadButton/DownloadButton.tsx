@@ -1,8 +1,14 @@
 "use client";
 
-import { COMPANY, DOWNLOAD_URL_MAC_ARM64 } from "@superset/shared/constants";
+import {
+	COMPANY,
+	DOWNLOAD_URL_MAC_ARM64,
+	WAITLIST_URL,
+} from "@superset/shared/constants";
 import posthog from "posthog-js";
+import { useEffect, useState } from "react";
 import { HiMiniArrowDownTray, HiMiniClock } from "react-icons/hi2";
+import { isMacOSUserAgent } from "@/lib/platform";
 import { type DropdownSection, PlatformDropdown } from "../PlatformDropdown";
 
 interface DownloadButtonProps {
@@ -16,6 +22,14 @@ export function DownloadButton({
 	className = "",
 	onJoinWaitlist,
 }: DownloadButtonProps) {
+	const [platform, setPlatform] = useState<"unknown" | "mac" | "other">(
+		"unknown",
+	);
+
+	useEffect(() => {
+		setPlatform(isMacOSUserAgent(navigator.userAgent) ? "mac" : "other");
+	}, []);
+
 	const sizeClasses =
 		size === "sm"
 			? "px-2 sm:px-4 py-2 text-sm"
@@ -28,6 +42,16 @@ export function DownloadButton({
 
 	const handleBuildFromSource = () => {
 		window.open(COMPANY.GITHUB_URL, "_blank");
+	};
+
+	const handleJoinWaitlist = () => {
+		posthog.capture("waitlist_clicked");
+		if (onJoinWaitlist) {
+			onJoinWaitlist();
+			return;
+		}
+
+		window.open(WAITLIST_URL, "_blank", "noopener,noreferrer");
 	};
 
 	const appleIcon = (
@@ -78,10 +102,7 @@ export function DownloadButton({
 					id: "waitlist",
 					label: "Join waitlist for Windows & Linux",
 					icon: <HiMiniClock className="size-4" />,
-					onClick: () => {
-						posthog.capture("waitlist_clicked");
-						onJoinWaitlist?.();
-					},
+					onClick: handleJoinWaitlist,
 				},
 				{
 					id: "build-from-source",
@@ -93,11 +114,38 @@ export function DownloadButton({
 		},
 	];
 
+	const commonButtonClassName = `bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`;
+
+	if (platform === "mac") {
+		return (
+			<button
+				type="button"
+				className={commonButtonClassName}
+				onClick={handleAppleSiliconDownload}
+			>
+				<span className="hidden sm:inline">Download for Mac</span>
+				<span className="sm:hidden">Download</span>
+				<HiMiniArrowDownTray className="size-4" />
+			</button>
+		);
+	}
+
+	if (platform === "other") {
+		return (
+			<button
+				type="button"
+				className={commonButtonClassName}
+				onClick={handleJoinWaitlist}
+			>
+				<span className="hidden sm:inline">Join waitlist</span>
+				<span className="sm:hidden">Waitlist</span>
+				<HiMiniClock className="size-4" />
+			</button>
+		);
+	}
+
 	const trigger = (
-		<button
-			type="button"
-			className={`bg-foreground text-background ${sizeClasses} font-normal hover:bg-foreground/80 transition-colors flex items-center gap-2 ${className}`}
-		>
+		<button type="button" className={commonButtonClassName}>
 			<span className="hidden sm:inline">Download for macOS</span>
 			<span className="sm:hidden">Download</span>
 			<HiMiniArrowDownTray className="size-4" />

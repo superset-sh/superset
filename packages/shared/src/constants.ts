@@ -29,6 +29,9 @@ export const THEME_STORAGE_KEY = "superset-theme";
 // Download URLs
 export const DOWNLOAD_URL_MAC_ARM64 = `${COMPANY.GITHUB_URL}/releases/latest/download/Superset-arm64.dmg`;
 
+// Waitlist
+export const WAITLIST_URL = "https://tally.so/r/wv7Q0A";
+
 // Auth token configuration
 export const TOKEN_CONFIG = {
 	/** Access token lifetime in seconds (1 hour) */
