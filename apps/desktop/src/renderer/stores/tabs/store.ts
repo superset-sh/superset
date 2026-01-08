@@ -397,8 +397,22 @@ export const useTabsStore = create<TabsStore>()(
 						);
 
 					if (existingPinnedPane) {
-						// File is already open in a pinned pane, just focus it
+						// File is already open in a pinned pane, focus it and trigger content refetch
+						const existingFileViewer = existingPinnedPane.fileViewer;
 						set({
+							panes: {
+								...state.panes,
+								[existingPinnedPane.id]: {
+									...existingPinnedPane,
+									fileViewer: existingFileViewer
+										? {
+												...existingFileViewer,
+												contentVersion:
+													(existingFileViewer.contentVersion ?? 0) + 1,
+											}
+										: undefined,
+								},
+							},
 							focusedPaneIds: {
 								...state.focusedPaneIds,
 								[activeTab.id]: existingPinnedPane.id,
@@ -433,6 +447,7 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
+							// Pin it and trigger content refetch
 							set({
 								panes: {
 									...state.panes,
@@ -441,6 +456,8 @@ export const useTabsStore = create<TabsStore>()(
 										fileViewer: {
 											...existingFileViewer,
 											isPinned: true,
+											contentVersion:
+												(existingFileViewer.contentVersion ?? 0) + 1,
 										},
 									},
 								},

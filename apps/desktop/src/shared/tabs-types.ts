@@ -100,6 +100,8 @@ export interface FileViewerState {
 	initialLine?: number;
 	/** Initial column to scroll to (raw mode only, transient - applied once) */
 	initialColumn?: number;
+	/** Version counter - incremented to trigger content refetch when clicking on already-open file */
+	contentVersion?: number;
 }
 
 /**
