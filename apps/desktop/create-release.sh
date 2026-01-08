@@ -109,7 +109,17 @@ if [ -z "$VERSION" ]; then
         error "Please run this script from the monorepo root directory"
     fi
 
-    CURRENT_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+    # Fetch the latest desktop release version from GitHub
+    # Desktop releases use tags like "desktop-v0.0.1"
+    LATEST_TAG=$(gh release list --json tagName --jq '[.[] | select(.tagName | startswith("desktop-v"))] | .[0].tagName' 2>/dev/null || echo "")
+    if [ -n "$LATEST_TAG" ]; then
+        # Extract version from tag (e.g., "desktop-v0.0.1" -> "0.0.1")
+        CURRENT_VERSION="${LATEST_TAG#desktop-v}"
+    else
+        # Fallback to local package.json if no releases exist yet
+        warn "No existing desktop releases found. Using local package.json version."
+        CURRENT_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+    fi
     PATCH_VERSION=$(increment_patch "$CURRENT_VERSION")
     MINOR_VERSION=$(increment_minor "$CURRENT_VERSION")
     MAJOR_VERSION=$(increment_major "$CURRENT_VERSION")
