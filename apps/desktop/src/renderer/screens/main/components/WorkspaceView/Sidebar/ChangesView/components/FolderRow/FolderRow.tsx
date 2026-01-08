@@ -1,11 +1,6 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { HiChevronRight } from "react-icons/hi2";
+import { CollapsibleRow } from "../CollapsibleRow";
 
 interface FolderRowProps {
 	name: string;
@@ -33,6 +28,42 @@ function LevelIndicators({ level }: { level: number }) {
 	);
 }
 
+function FolderRowHeader({
+	name,
+	level,
+	fileCount,
+	isGrouped,
+}: {
+	name: string;
+	level: number;
+	fileCount?: number;
+	isGrouped: boolean;
+}) {
+	return (
+		<>
+			{!isGrouped && <LevelIndicators level={level} />}
+			<div className="flex items-center gap-1 flex-1 min-w-0">
+				<span
+					className={cn(
+						"truncate",
+						isGrouped
+							? "w-0 grow text-left"
+							: "flex-1 min-w-0 text-xs text-foreground",
+					)}
+					dir={isGrouped ? "rtl" : undefined}
+				>
+					{name}
+				</span>
+				{fileCount !== undefined && (
+					<span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
+						{fileCount}
+					</span>
+				)}
+			</div>
+		</>
+	);
+}
+
 export function FolderRow({
 	name,
 	isExpanded,
@@ -45,53 +76,26 @@ export function FolderRow({
 	const isGrouped = variant === "grouped";
 
 	return (
-		<Collapsible
-			open={isExpanded}
-			onOpenChange={onToggle}
-			className={cn("min-w-0", isGrouped && "overflow-hidden")}
+		<CollapsibleRow
+			isExpanded={isExpanded}
+			onToggle={onToggle}
+			showChevron={!isGrouped}
+			className={cn(isGrouped && "overflow-hidden")}
+			triggerClassName={cn(
+				"text-xs items-stretch py-0.5",
+				isGrouped && "text-muted-foreground",
+			)}
+			contentClassName={cn(isGrouped && "ml-1.5 border-l border-border pl-0.5")}
+			header={
+				<FolderRowHeader
+					name={name}
+					level={level}
+					fileCount={fileCount}
+					isGrouped={isGrouped}
+				/>
+			}
 		>
-			<CollapsibleTrigger
-				className={cn(
-					"text-xs w-full flex items-stretch gap-1 px-1.5 hover:bg-accent/50 cursor-pointer rounded-sm text-left overflow-hidden transition-colors",
-					isGrouped && "text-muted-foreground",
-				)}
-			>
-				{!isGrouped && <LevelIndicators level={level} />}
-				<div className="flex items-center gap-1 flex-1 min-w-0 py-0.5">
-					{!isGrouped && (
-						<HiChevronRight
-							className={cn(
-								"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
-								isExpanded && "rotate-90",
-							)}
-						/>
-					)}
-					<span
-						className={cn(
-							"truncate",
-							isGrouped
-								? "w-0 grow text-left"
-								: "flex-1 min-w-0 text-xs text-foreground",
-						)}
-						dir={isGrouped ? "rtl" : undefined}
-					>
-						{name}
-					</span>
-					{fileCount !== undefined && (
-						<span className="text-[10px] text-muted-foreground shrink-0 tabular-nums">
-							{fileCount}
-						</span>
-					)}
-				</div>
-			</CollapsibleTrigger>
-			<CollapsibleContent
-				className={cn(
-					"min-w-0",
-					isGrouped && "ml-1.5 border-l border-border pl-0.5",
-				)}
-			>
-				{children}
-			</CollapsibleContent>
-		</Collapsible>
+			{children}
+		</CollapsibleRow>
 	);
 }

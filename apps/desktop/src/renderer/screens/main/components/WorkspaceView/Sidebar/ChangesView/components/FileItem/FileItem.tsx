@@ -1,7 +1,33 @@
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuSeparator,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
+import {
+	LuClipboard,
+	LuExternalLink,
+	LuFolderOpen,
+	LuMinus,
+	LuPlus,
+	LuTrash2,
+	LuUndo2,
+} from "react-icons/lu";
+import { trpc } from "renderer/lib/trpc";
 import type { ChangedFile } from "shared/changes-types";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
@@ -21,6 +47,10 @@ interface FileItemProps {
 	onUnstage?: () => void;
 	/** Whether the action is currently pending */
 	isActioning?: boolean;
+	/** Worktree path for constructing absolute paths */
+	worktreePath?: string;
+	/** Callback for discarding changes */
+	onDiscard?: () => void;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -50,7 +80,11 @@ export function FileItem({
 	onStage,
 	onUnstage,
 	isActioning = false,
+	worktreePath,
+	onDiscard,
 }: FileItemProps) {
+	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+
 	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
@@ -59,7 +93,53 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	return (
+	const openInFinderMutation = trpc.external.openInFinder.useMutation();
+	const openInEditorMutation = trpc.external.openFileInEditor.useMutation();
+
+	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
+
+	const handleCopyPath = async () => {
+		if (absolutePath) {
+			await navigator.clipboard.writeText(absolutePath);
+		}
+	};
+
+	const handleCopyRelativePath = async () => {
+		await navigator.clipboard.writeText(file.path);
+	};
+
+	const handleRevealInFinder = () => {
+		if (absolutePath) {
+			openInFinderMutation.mutate(absolutePath);
+		}
+	};
+
+	const handleOpenInEditor = () => {
+		if (absolutePath && worktreePath) {
+			openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
+		}
+	};
+
+	const handleDiscardClick = () => {
+		setShowDiscardDialog(true);
+	};
+
+	const handleConfirmDiscard = () => {
+		setShowDiscardDialog(false);
+		onDiscard?.();
+	};
+
+	// Determine if this is a discard (modified) or delete (untracked/added) action
+	const isDeleteAction = file.status === "untracked" || file.status === "added";
+	const discardLabel = isDeleteAction ? "Delete" : "Discard Changes";
+	const discardDialogTitle = isDeleteAction
+		? `Delete "${fileName}"?`
+		: `Discard changes to "${fileName}"?`;
+	const discardDialogDescription = isDeleteAction
+		? "This will permanently delete this file. This action cannot be undone."
+		: "This will revert all changes to this file. This action cannot be undone.";
+
+	const fileContent = (
 		<div
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
@@ -151,5 +231,99 @@ export function FileItem({
 				</div>
 			)}
 		</div>
+	);
+
+	// If no worktreePath, render without context menu
+	if (!worktreePath) {
+		return fileContent;
+	}
+
+	return (
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>{fileContent}</ContextMenuTrigger>
+				<ContextMenuContent className="w-48">
+					<ContextMenuItem onClick={handleCopyPath}>
+						<LuClipboard className="mr-2 size-4" />
+						Copy Path
+					</ContextMenuItem>
+					<ContextMenuItem onClick={handleCopyRelativePath}>
+						<LuClipboard className="mr-2 size-4" />
+						Copy Relative Path
+					</ContextMenuItem>
+					<ContextMenuSeparator />
+					<ContextMenuItem onClick={handleRevealInFinder}>
+						<LuFolderOpen className="mr-2 size-4" />
+						Reveal in Finder
+					</ContextMenuItem>
+					<ContextMenuItem onClick={handleOpenInEditor}>
+						<LuExternalLink className="mr-2 size-4" />
+						Open in Editor
+					</ContextMenuItem>
+
+					{(onStage || onUnstage || onDiscard) && <ContextMenuSeparator />}
+
+					{onStage && (
+						<ContextMenuItem onClick={onStage} disabled={isActioning}>
+							<LuPlus className="mr-2 size-4" />
+							Stage
+						</ContextMenuItem>
+					)}
+
+					{onUnstage && (
+						<ContextMenuItem onClick={onUnstage} disabled={isActioning}>
+							<LuMinus className="mr-2 size-4" />
+							Unstage
+						</ContextMenuItem>
+					)}
+
+					{onDiscard && (
+						<ContextMenuItem
+							onClick={handleDiscardClick}
+							disabled={isActioning}
+							className="text-destructive focus:text-destructive"
+						>
+							{isDeleteAction ? (
+								<LuTrash2 className="mr-2 size-4" />
+							) : (
+								<LuUndo2 className="mr-2 size-4" />
+							)}
+							{discardLabel}
+						</ContextMenuItem>
+					)}
+				</ContextMenuContent>
+			</ContextMenu>
+
+			<AlertDialog open={showDiscardDialog} onOpenChange={setShowDiscardDialog}>
+				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							{discardDialogTitle}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{discardDialogDescription}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => setShowDiscardDialog(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={handleConfirmDiscard}
+						>
+							{isDeleteAction ? "Delete" : "Discard"}
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+		</>
 	);
 }

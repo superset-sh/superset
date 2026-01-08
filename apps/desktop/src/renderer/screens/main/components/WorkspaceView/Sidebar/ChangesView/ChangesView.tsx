@@ -102,6 +102,41 @@ export function ChangesView({
 		},
 	});
 
+	const discardChangesMutation = trpc.changes.discardChanges.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(
+				`Failed to discard changes for ${variables.filePath}:`,
+				error,
+			);
+			toast.error(`Failed to discard changes: ${error.message}`);
+		},
+	});
+
+	const deleteUntrackedMutation = trpc.changes.deleteUntracked.useMutation({
+		onSuccess: () => refetch(),
+		onError: (error, variables) => {
+			console.error(`Failed to delete ${variables.filePath}:`, error);
+			toast.error(`Failed to delete file: ${error.message}`);
+		},
+	});
+
+	const handleDiscard = (file: ChangedFile) => {
+		if (!worktreePath) return;
+		// Use delete for untracked/added files, discard for modified files
+		if (file.status === "untracked" || file.status === "added") {
+			deleteUntrackedMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		} else {
+			discardChangesMutation.mutate({
+				worktreePath,
+				filePath: file.path,
+			});
+		}
+	};
+
 	const {
 		expandedSections,
 		fileListViewMode,
@@ -279,6 +314,7 @@ export function ChangesView({
 							onFileDoubleClick={(file) =>
 								handleFileDoubleClick(file, "against-base")
 							}
+							worktreePath={worktreePath}
 						/>
 					</CategorySection>
 
@@ -300,6 +336,7 @@ export function ChangesView({
 								onFileSelect={handleCommitFileSelect}
 								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
+								worktreePath={worktreePath}
 							/>
 						))}
 					</CategorySection>
@@ -347,6 +384,7 @@ export function ChangesView({
 								})
 							}
 							isActioning={unstageFileMutation.isPending}
+							worktreePath={worktreePath}
 						/>
 					</CategorySection>
 
@@ -392,7 +430,13 @@ export function ChangesView({
 									filePath: file.path,
 								})
 							}
-							isActioning={stageFileMutation.isPending}
+							isActioning={
+								stageFileMutation.isPending ||
+								discardChangesMutation.isPending ||
+								deleteUntrackedMutation.isPending
+							}
+							worktreePath={worktreePath}
+							onDiscard={handleDiscard}
 						/>
 					</CategorySection>
 				</div>
