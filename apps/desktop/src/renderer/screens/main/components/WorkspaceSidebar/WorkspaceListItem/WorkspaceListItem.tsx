@@ -291,12 +291,19 @@ export function WorkspaceListItem({
 	}
 
 	const content = (
-		<button
-			type="button"
+		<div
+			role="button"
+			tabIndex={0}
 			ref={(node) => {
 				drag(drop(node));
 			}}
 			onClick={handleClick}
+			onKeyDown={(e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					handleClick();
+				}
+			}}
 			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
@@ -443,7 +450,7 @@ export function WorkspaceListItem({
 					</Button>
 				)}
 			</div>
-		</button>
+		</div>
 	);
 
 	const unreadMenuItem = (
