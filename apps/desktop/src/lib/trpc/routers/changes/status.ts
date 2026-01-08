@@ -33,7 +33,6 @@ export const createStatusRouter = () => {
 				const [branchComparison, trackingStatus] = await Promise.all([
 					getBranchComparison(git, defaultBranch),
 					getTrackingBranchStatus(git),
-					// Run numstat operations in parallel too
 					applyNumstatToFiles(git, parsed.staged, [
 						"diff",
 						"--cached",
