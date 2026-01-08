@@ -97,12 +97,10 @@ export function FileViewerContent({
 	const isMonacoReady = useMonacoReady();
 	const hasAppliedInitialLocationRef = useRef(false);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
 	}, [filePath]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only reset when coordinates change
 	useEffect(() => {
 		hasAppliedInitialLocationRef.current = false;
 	}, [initialLine, initialColumn]);

@@ -121,7 +121,6 @@ export function ChangesView({
 
 	// Reset expanded commits when workspace changes to avoid querying
 	// old commit hashes against the new worktree
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally resets on worktreePath change
 	useEffect(() => {
 		setExpandedCommits(new Set());
 	}, [worktreePath]);

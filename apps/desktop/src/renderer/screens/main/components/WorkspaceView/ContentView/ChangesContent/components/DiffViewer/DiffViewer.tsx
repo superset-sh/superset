@@ -75,7 +75,6 @@ export function DiffViewer({
 	const [isEditorMounted, setIsEditorMounted] = useState(false);
 	const hasScrolledToFirstDiffRef = useRef(false);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
 		hasScrolledToFirstDiffRef.current = false;
 	}, [filePath]);

@@ -56,14 +56,12 @@ export function useFileContent({
 			},
 		);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
 	useEffect(() => {
 		if (rawFileData?.ok === true && !isDirty) {
 			originalContentRef.current = rawFileData.content;
 		}
 	}, [rawFileData]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when diff loads
 	useEffect(() => {
 		if (diffData?.modified && !isDirty) {
 			originalDiffContentRef.current = diffData.modified;

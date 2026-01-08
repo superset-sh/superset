@@ -110,7 +110,6 @@ export function NewWorkspaceModal() {
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;
 
 	// Reset base branch when project changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset when project changes
 	useEffect(() => {
 		setBaseBranch(null);
 	}, [selectedProjectId]);

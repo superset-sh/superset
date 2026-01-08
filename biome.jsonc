@@ -19,7 +19,10 @@
 	},
 	"linter": {
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"correctness": {
+				"useExhaustiveDependencies": "warn"
+			}
 		}
 	}
 }

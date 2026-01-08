@@ -114,7 +114,6 @@ export function FileViewerPane({
 		setIsDirty(value !== originalContentRef.current);
 	}, []);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {
 		setIsDirty(false);
 		originalContentRef.current = "";
