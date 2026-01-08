@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
-import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
@@ -40,7 +39,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
-	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const commandBufferRef = useRef("");
 	const disposableListenersRef = useRef<IDisposable[]>([]);
@@ -201,18 +199,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
 	const writeMutation = trpc.terminal.write.useMutation();
 	const resizeMutation = trpc.terminal.resize.useMutation();
-	const detachMutation = trpc.terminal.detach.useMutation();
 	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
 	const resizeRef = useRef(resizeMutation.mutate);
-	const detachRef = useRef(detachMutation.mutate);
 	const clearScrollbackRef = useRef(clearScrollbackMutation.mutate);
 	createOrAttachRef.current = createOrAttachMutation.mutate;
 	writeRef.current = writeMutation.mutate;
 	resizeRef.current = resizeMutation.mutate;
-	detachRef.current = detachMutation.mutate;
 	clearScrollbackRef.current = clearScrollbackMutation.mutate;
 
 	const registerClearCallbackRef = useRef(
@@ -321,18 +316,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const cached = getCachedTerminal(paneId);
 		let xterm: XTerm;
 		let fitAddon: FitAddon;
-		let serializeAddon: SerializeAddon;
 		let terminalElement: HTMLDivElement;
-		let cleanupQuerySuppression: () => void;
 		let isNewTerminal = false;
 
 		if (cached) {
 			// Reuse existing terminal - just reattach the DOM element
 			xterm = cached.xterm;
 			fitAddon = cached.fitAddon;
-			serializeAddon = cached.serializeAddon;
 			terminalElement = cached.terminalElement;
-			cleanupQuerySuppression = cached.cleanup;
 
 			// Reattach the terminal element to our wrapper
 			wrapper.appendChild(terminalElement);
@@ -340,7 +331,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			// Restore refs
 			xtermRef.current = xterm;
 			fitAddonRef.current = fitAddon;
-			serializeAddonRef.current = serializeAddon;
 			searchAddonRef.current = cached.searchAddon;
 
 			// Fit to potentially new container size
@@ -362,15 +352,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 			xterm = result.xterm;
 			fitAddon = result.fitAddon;
-			serializeAddon = result.serializeAddon;
-			cleanupQuerySuppression = result.cleanup;
 
 			// Attach to DOM
 			wrapper.appendChild(terminalElement);
 
 			xtermRef.current = xterm;
 			fitAddonRef.current = fitAddon;
-			serializeAddonRef.current = serializeAddon;
 			isExitedRef.current = false;
 
 			// Load search addon asynchronously
@@ -390,10 +377,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			setCachedTerminal(paneId, {
 				xterm,
 				fitAddon,
-				serializeAddon,
 				searchAddon: null,
 				terminalElement,
-				cleanup: cleanupQuerySuppression,
+				cleanup: result.cleanup,
 			});
 		}
 
@@ -598,7 +584,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			fitAddonRef.current = null;
 			searchAddonRef.current = null;
-			serializeAddonRef.current = null;
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 

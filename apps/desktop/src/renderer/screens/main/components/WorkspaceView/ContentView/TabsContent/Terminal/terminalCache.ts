@@ -1,12 +1,10 @@
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
-import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Terminal as XTerm } from "@xterm/xterm";
 
 export interface CachedTerminal {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	serializeAddon: SerializeAddon;
 	searchAddon: SearchAddon | null;
 	/** The container div that holds the terminal - preserved across mounts */
 	terminalElement: HTMLDivElement;
