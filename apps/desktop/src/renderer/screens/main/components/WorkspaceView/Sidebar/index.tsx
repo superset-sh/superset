@@ -14,13 +14,21 @@ export function Sidebar() {
 	// Invalidate file content queries to ensure fresh data when clicking a file
 	const invalidateFileContent = (filePath: string) => {
 		if (!worktreePath) return;
-		void trpcUtils.changes.readWorkingFile.invalidate({
-			worktreePath,
-			filePath,
-		});
-		void trpcUtils.changes.getFileContents.invalidate({
-			worktreePath,
-			filePath,
+
+		Promise.all([
+			trpcUtils.changes.readWorkingFile.invalidate({
+				worktreePath,
+				filePath,
+			}),
+			trpcUtils.changes.getFileContents.invalidate({
+				worktreePath,
+				filePath,
+			}),
+		]).catch((error) => {
+			console.error(
+				"[Sidebar/invalidateFileContent] Failed to invalidate file content queries:",
+				{ worktreePath, filePath, error },
+			);
 		});
 	};
 
