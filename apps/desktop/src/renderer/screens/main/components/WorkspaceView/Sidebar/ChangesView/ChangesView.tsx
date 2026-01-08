@@ -123,7 +123,6 @@ export function ChangesView({
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
-		// Use delete for untracked/added files, discard for modified files
 		if (file.status === "untracked" || file.status === "added") {
 			deleteUntrackedMutation.mutate({
 				worktreePath,

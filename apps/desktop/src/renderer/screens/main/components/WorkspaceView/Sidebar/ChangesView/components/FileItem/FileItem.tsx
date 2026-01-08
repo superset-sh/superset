@@ -129,7 +129,6 @@ export function FileItem({
 		onDiscard?.();
 	};
 
-	// Determine if this is a discard (modified) or delete (untracked/added) action
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 	const discardLabel = isDeleteAction ? "Delete" : "Discard Changes";
 	const discardDialogTitle = isDeleteAction
@@ -233,7 +232,6 @@ export function FileItem({
 		</div>
 	);
 
-	// If no worktreePath, render without context menu
 	if (!worktreePath) {
 		return fileContent;
 	}

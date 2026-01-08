@@ -8,21 +8,13 @@ import type { ReactNode } from "react";
 import { HiChevronRight } from "react-icons/hi2";
 
 interface CollapsibleRowProps {
-	/** Whether the row is expanded */
 	isExpanded: boolean;
-	/** Called when the row is toggled */
 	onToggle: (expanded: boolean) => void;
-	/** The content to render in the trigger/header area */
 	header: ReactNode;
-	/** The content to render when expanded */
 	children: ReactNode;
-	/** Whether to show the chevron icon */
 	showChevron?: boolean;
-	/** Additional classes for the container */
 	className?: string;
-	/** Additional classes for the trigger */
 	triggerClassName?: string;
-	/** Additional classes for the content */
 	contentClassName?: string;
 }
 
