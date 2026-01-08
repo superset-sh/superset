@@ -53,10 +53,6 @@ export function ChangesView({
 			enabled: !!worktreePath,
 			refetchInterval: 2500,
 			refetchOnWindowFocus: true,
-			// Keep previous data while refetching to prevent UI flicker
-			staleTime: 2000,
-			// Ensure we don't overlap requests - cancel in-flight when new one starts
-			refetchIntervalInBackground: false,
 		},
 	);
 

@@ -146,38 +146,25 @@ async function getBranchComparison(
 	return { commits, againstBase, ahead, behind };
 }
 
-/** Max file size for line counting (100 KiB) - skip larger files for performance */
-const MAX_LINE_COUNT_SIZE = 100 * 1024;
-/** Max files to count lines for - skip the rest for performance */
-const MAX_FILES_TO_COUNT = 50;
-/** Concurrency limit for parallel file reads */
-const FILE_READ_CONCURRENCY = 10;
+/** Max file size for line counting (1 MiB) - skip larger files to avoid OOM */
+const MAX_LINE_COUNT_SIZE = 1 * 1024 * 1024;
 
 async function applyUntrackedLineCount(
 	worktreePath: string,
 	untracked: ChangedFile[],
 ): Promise<void> {
-	// Limit files to process for performance
-	const filesToProcess = untracked.slice(0, MAX_FILES_TO_COUNT);
+	for (const file of untracked) {
+		try {
+			const stats = await secureFs.stat(worktreePath, file.path);
+			if (stats.size > MAX_LINE_COUNT_SIZE) continue;
 
-	// Process files in parallel batches
-	for (let i = 0; i < filesToProcess.length; i += FILE_READ_CONCURRENCY) {
-		const batch = filesToProcess.slice(i, i + FILE_READ_CONCURRENCY);
-		await Promise.all(
-			batch.map(async (file) => {
-				try {
-					const stats = await secureFs.stat(worktreePath, file.path);
-					if (stats.size > MAX_LINE_COUNT_SIZE) return;
-
-					const content = await secureFs.readFile(worktreePath, file.path);
-					const lineCount = content.split("\n").length;
-					file.additions = lineCount;
-					file.deletions = 0;
-				} catch {
-					// Skip files that fail validation or reading
-				}
-			}),
-		);
+			const content = await secureFs.readFile(worktreePath, file.path);
+			const lineCount = content.split("\n").length;
+			file.additions = lineCount;
+			file.deletions = 0;
+		} catch {
+			// Skip files that fail validation or reading
+		}
 	}
 }
 
