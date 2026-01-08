@@ -291,6 +291,7 @@ export function WorkspaceListItem({
 	}
 
 	const content = (
+		// biome-ignore lint/a11y/useSemanticElements: Can't use <button> because this contains nested buttons (BranchSwitcher, close button)
 		<div
 			role="button"
 			tabIndex={0}
