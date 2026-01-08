@@ -2,7 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { SerializeAddon } from "@xterm/addon-serialize";
-import type { Terminal as XTerm } from "@xterm/xterm";
+import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +24,7 @@ import {
 } from "./helpers";
 import { parseCwd } from "./parseCwd";
 import { TerminalSearch } from "./TerminalSearch";
+import { getCachedTerminal, setCachedTerminal } from "./terminalCache";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
 
@@ -35,13 +36,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneInitialCwd = pane?.initialCwd;
 	const clearPaneInitialData = useTabsStore((s) => s.clearPaneInitialData);
 	const parentTabId = pane?.tabId;
-	const terminalRef = useRef<HTMLDivElement>(null);
+	const terminalWrapperRef = useRef<HTMLDivElement>(null);
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const commandBufferRef = useRef("");
+	const disposableListenersRef = useRef<IDisposable[]>([]);
+	const cleanupFunctionsRef = useRef<(() => void)[]>([]);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -309,38 +312,94 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		[isFocused],
 	);
 
+	// Main terminal setup effect - follows Hyper's pattern of preserving terminal instances
 	useEffect(() => {
-		const container = terminalRef.current;
-		if (!container) return;
+		const wrapper = terminalWrapperRef.current;
+		if (!wrapper) return;
 
-		let isUnmounted = false;
+		// Check if we have a cached terminal instance (Hyper pattern)
+		const cached = getCachedTerminal(paneId);
+		let xterm: XTerm;
+		let fitAddon: FitAddon;
+		let serializeAddon: SerializeAddon;
+		let terminalElement: HTMLDivElement;
+		let cleanupQuerySuppression: () => void;
+		let isNewTerminal = false;
 
-		const {
-			xterm,
-			fitAddon,
-			serializeAddon,
-			cleanup: cleanupQuerySuppression,
-		} = createTerminalInstance(container, {
-			cwd: workspaceCwd,
-			initialTheme: initialThemeRef.current,
-			onFileLinkClick: (path, line, column) =>
-				handleFileLinkClickRef.current(path, line, column),
-		});
-		xtermRef.current = xterm;
-		fitAddonRef.current = fitAddon;
-		serializeAddonRef.current = serializeAddon;
-		isExitedRef.current = false;
+		if (cached) {
+			// Reuse existing terminal - just reattach the DOM element
+			xterm = cached.xterm;
+			fitAddon = cached.fitAddon;
+			serializeAddon = cached.serializeAddon;
+			terminalElement = cached.terminalElement;
+			cleanupQuerySuppression = cached.cleanup;
+
+			// Reattach the terminal element to our wrapper
+			wrapper.appendChild(terminalElement);
+
+			// Restore refs
+			xtermRef.current = xterm;
+			fitAddonRef.current = fitAddon;
+			serializeAddonRef.current = serializeAddon;
+			searchAddonRef.current = cached.searchAddon;
+
+			// Fit to potentially new container size
+			fitAddon.fit();
+		} else {
+			// Create new terminal instance
+			isNewTerminal = true;
+
+			// Create the terminal element that will persist across mounts
+			terminalElement = document.createElement("div");
+			terminalElement.className = "h-full w-full";
+
+			const result = createTerminalInstance(terminalElement, {
+				cwd: workspaceCwd,
+				initialTheme: initialThemeRef.current,
+				onFileLinkClick: (path, line, column) =>
+					handleFileLinkClickRef.current(path, line, column),
+			});
+
+			xterm = result.xterm;
+			fitAddon = result.fitAddon;
+			serializeAddon = result.serializeAddon;
+			cleanupQuerySuppression = result.cleanup;
+
+			// Attach to DOM
+			wrapper.appendChild(terminalElement);
+
+			xtermRef.current = xterm;
+			fitAddonRef.current = fitAddon;
+			serializeAddonRef.current = serializeAddon;
+			isExitedRef.current = false;
+
+			// Load search addon asynchronously
+			import("@xterm/addon-search").then(({ SearchAddon }) => {
+				const searchAddon = new SearchAddon();
+				xterm.loadAddon(searchAddon);
+				searchAddonRef.current = searchAddon;
+
+				// Update cache with search addon
+				const currentCached = getCachedTerminal(paneId);
+				if (currentCached) {
+					currentCached.searchAddon = searchAddon;
+				}
+			});
+
+			// Cache the terminal instance
+			setCachedTerminal(paneId, {
+				xterm,
+				fitAddon,
+				serializeAddon,
+				searchAddon: null,
+				terminalElement,
+				cleanup: cleanupQuerySuppression,
+			});
+		}
 
 		if (isFocusedRef.current) {
 			xterm.focus();
 		}
-
-		import("@xterm/addon-search").then(({ SearchAddon }) => {
-			if (isUnmounted) return;
-			const searchAddon = new SearchAddon();
-			xterm.loadAddon(searchAddon);
-			searchAddonRef.current = searchAddon;
-		});
 
 		const applySerializedState = (serializedState: string) => {
 			if (serializedState) {
@@ -416,38 +475,47 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			}
 		};
 
-		const initialCommands = paneInitialCommandsRef.current;
-		const initialCwd = paneInitialCwdRef.current;
+		// Only create/attach PTY for new terminals
+		if (isNewTerminal) {
+			const initialCommands = paneInitialCommandsRef.current;
+			const initialCwd = paneInitialCwdRef.current;
 
-		createOrAttachRef.current(
-			{
-				paneId,
-				tabId: parentTabIdRef.current || paneId,
-				workspaceId,
-				cols: xterm.cols,
-				rows: xterm.rows,
-				initialCommands,
-				cwd: initialCwd,
-			},
-			{
-				onSuccess: (result) => {
-					// Clear after successful creation to prevent re-running on future reattach
-					if (initialCommands || initialCwd) {
-						clearPaneInitialDataRef.current(paneId);
-					}
-					applySerializedState(result.serializedState);
+			createOrAttachRef.current(
+				{
+					paneId,
+					tabId: parentTabIdRef.current || paneId,
+					workspaceId,
+					cols: xterm.cols,
+					rows: xterm.rows,
+					initialCommands,
+					cwd: initialCwd,
 				},
-			},
-		);
+				{
+					onSuccess: (result) => {
+						// Clear after successful creation to prevent re-running on future reattach
+						if (initialCommands || initialCwd) {
+							clearPaneInitialDataRef.current(paneId);
+						}
+						applySerializedState(result.serializedState);
+					},
+				},
+			);
+		}
 
+		// Setup event listeners
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
-
 		const titleDisposable = xterm.onTitleChange((title) => {
 			if (title && parentTabIdRef.current) {
 				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
 			}
 		});
+
+		disposableListenersRef.current = [
+			inputDisposable,
+			keyDisposable,
+			titleDisposable,
+		];
 
 		const handleClear = () => {
 			xterm.clear();
@@ -465,26 +533,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
-			onShiftEnter: () => handleWrite("\x1b\r"), // ESC + CR for line continuation without '\'
+			onShiftEnter: () => handleWrite("\x1b\r"),
 			onClear: handleClear,
 		});
 
-		// Setup click-to-move cursor (click on prompt line to move cursor)
 		const cleanupClickToMove = setupClickToMoveCursor(xterm, {
 			onWrite: handleWrite,
 		});
 
-		// Register clear callback for context menu access
 		registerClearCallbackRef.current(paneId, handleClear);
-
-		// Register scroll to bottom callback for context menu access
 		registerScrollToBottomCallbackRef.current(paneId, handleScrollToBottom);
 
 		const cleanupFocus = setupFocusListener(xterm, () =>
 			handleTerminalFocusRef.current(),
 		);
 		const cleanupResize = setupResizeHandlers(
-			container,
+			wrapper,
 			xterm,
 			fitAddon,
 			(cols, rows) => {
@@ -497,31 +561,42 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			},
 		});
 
+		cleanupFunctionsRef.current = [
+			cleanupKeyboard,
+			cleanupClickToMove,
+			cleanupFocus ?? (() => {}),
+			cleanupResize,
+			cleanupPaste,
+		];
+
+		// Cleanup on unmount - following Hyper's pattern:
+		// Only dispose listeners, NOT the terminal itself
 		return () => {
-			isUnmounted = true;
-			inputDisposable.dispose();
-			keyDisposable.dispose();
-			titleDisposable.dispose();
-			cleanupKeyboard();
-			cleanupClickToMove();
-			cleanupFocus?.();
-			cleanupResize();
-			cleanupPaste();
-			cleanupQuerySuppression();
+			// Dispose event listeners (but NOT the terminal)
+			for (const disposable of disposableListenersRef.current) {
+				disposable.dispose();
+			}
+			disposableListenersRef.current = [];
+
+			// Run cleanup functions
+			for (const cleanup of cleanupFunctionsRef.current) {
+				cleanup();
+			}
+			cleanupFunctionsRef.current = [];
+
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
-			const serializedState = serializeAddon.serialize({
-				excludeAltBuffer: true,
-				excludeModes: true,
-				scrollback: 1000,
-			});
+			// Detach the terminal element from the wrapper (but don't destroy it)
+			// The terminal instance stays in the cache
+			if (terminalElement.parentNode === wrapper) {
+				wrapper.removeChild(terminalElement);
+			}
 
-			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId, serializedState });
-			xterm.dispose();
+			// Clear refs (terminal stays in cache)
 			xtermRef.current = null;
+			fitAddonRef.current = null;
 			searchAddonRef.current = null;
 			serializeAddonRef.current = null;
 		};
@@ -568,7 +643,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
-			<div ref={terminalRef} className="h-full w-full" />
+			<div ref={terminalWrapperRef} className="h-full w-full" />
 		</div>
 	);
 };
