@@ -513,8 +513,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
 			const serializedState = serializeAddon.serialize({
-				excludeAltBuffer: true,
-				excludeModes: true,
+				excludeAltBuffer: false, // Include alt buffer for TUI apps (vim, htop, opencode)
+				excludeModes: false, // Preserve terminal modes (alt screen, cursor, mouse)
 				scrollback: 1000,
 			});
 
