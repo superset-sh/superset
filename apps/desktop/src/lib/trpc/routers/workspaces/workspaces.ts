@@ -8,7 +8,7 @@ import {
 	worktrees,
 } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
-import { and, desc, eq, isNotNull, not } from "drizzle-orm";
+import { and, eq, isNotNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { terminalManager } from "main/lib/terminal";
@@ -17,6 +17,22 @@ import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import {
+	activateProject,
+	deleteWorkspace,
+	deleteWorktreeRecord,
+	getBranchWorkspace,
+	getMaxWorkspaceTabOrder,
+	getProject,
+	getWorkspace,
+	getWorkspaceWithRelations,
+	getWorktree,
+	hideProjectIfNoWorkspaces,
+	setLastActiveWorkspace,
+	touchWorkspace,
+	updateActiveWorkspaceIfRemoved,
+	updateProjectDefaultBranch,
+} from "./utils/db-helpers";
 import {
 	branchExistsOnRemote,
 	checkNeedsRebase,
@@ -387,15 +403,7 @@ export const createWorkspacesRouter = () => {
 					.get();
 
 				// Get max tab order for this project's workspaces
-				const projectWorkspaces = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.projectId, input.projectId))
-					.all();
-				const maxTabOrder =
-					projectWorkspaces.length > 0
-						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
-						: -1;
+				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
 
 				const workspace = localDb
 					.insert(workspaces)
@@ -410,36 +418,8 @@ export const createWorkspacesRouter = () => {
 					.returning()
 					.get();
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastActiveWorkspaceId: workspace.id },
-					})
-					.run();
-
-				const activeProjects = localDb
-					.select()
-					.from(projects)
-					.where(isNotNull(projects.tabOrder))
-					.all();
-				const maxProjectTabOrder =
-					activeProjects.length > 0
-						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
-						: -1;
-
-				localDb
-					.update(projects)
-					.set({
-						lastOpenedAt: Date.now(),
-						tabOrder:
-							project.tabOrder === null
-								? maxProjectTabOrder + 1
-								: project.tabOrder,
-					})
-					.where(eq(projects.id, input.projectId))
-					.run();
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
 
 				// Track workspace creation (not initialization - that's tracked when it completes)
 				track("workspace_created", {
@@ -502,16 +482,7 @@ export const createWorkspacesRouter = () => {
 
 				// If a specific branch was requested, check for conflict before checkout
 				if (input.branch) {
-					const existingBranchWorkspace = localDb
-						.select()
-						.from(workspaces)
-						.where(
-							and(
-								eq(workspaces.projectId, input.projectId),
-								eq(workspaces.type, "branch"),
-							),
-						)
-						.get();
+					const existingBranchWorkspace = getBranchWorkspace(input.projectId);
 					if (
 						existingBranchWorkspace &&
 						existingBranchWorkspace.branch !== branch
@@ -525,32 +496,12 @@ export const createWorkspacesRouter = () => {
 				}
 
 				// Check if branch workspace already exists
-				const existing = localDb
-					.select()
-					.from(workspaces)
-					.where(
-						and(
-							eq(workspaces.projectId, input.projectId),
-							eq(workspaces.type, "branch"),
-						),
-					)
-					.get();
+				const existing = getBranchWorkspace(input.projectId);
 
 				if (existing) {
 					// Activate existing
-					localDb
-						.update(workspaces)
-						.set({ lastOpenedAt: Date.now() })
-						.where(eq(workspaces.id, existing.id))
-						.run();
-					localDb
-						.insert(settings)
-						.values({ id: 1, lastActiveWorkspaceId: existing.id })
-						.onConflictDoUpdate({
-							target: settings.id,
-							set: { lastActiveWorkspaceId: existing.id },
-						})
-						.run();
+					touchWorkspace(existing.id);
+					setLastActiveWorkspace(existing.id);
 					return {
 						workspace: { ...existing, lastOpenedAt: Date.now() },
 						worktreePath: project.mainRepoPath,
@@ -605,55 +556,18 @@ export const createWorkspacesRouter = () => {
 				// If insert returned nothing, another concurrent call won the race
 				// Fetch the existing workspace instead
 				const workspace =
-					insertResult[0] ??
-					localDb
-						.select()
-						.from(workspaces)
-						.where(
-							and(
-								eq(workspaces.projectId, input.projectId),
-								eq(workspaces.type, "branch"),
-							),
-						)
-						.get();
+					insertResult[0] ?? getBranchWorkspace(input.projectId);
 
 				if (!workspace) {
 					throw new Error("Failed to create or find branch workspace");
 				}
 
 				// Update settings
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastActiveWorkspaceId: workspace.id },
-					})
-					.run();
+				setLastActiveWorkspace(workspace.id);
 
 				// Update project (only if we actually inserted a new workspace)
 				if (!wasExisting) {
-					const activeProjects = localDb
-						.select()
-						.from(projects)
-						.where(isNotNull(projects.tabOrder))
-						.all();
-					const maxProjectTabOrder =
-						activeProjects.length > 0
-							? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
-							: -1;
-
-					localDb
-						.update(projects)
-						.set({
-							lastOpenedAt: Date.now(),
-							tabOrder:
-								project.tabOrder === null
-									? maxProjectTabOrder + 1
-									: project.tabOrder,
-						})
-						.where(eq(projects.id, input.projectId))
-						.run();
+					activateProject(project);
 
 					track("workspace_opened", {
 						workspace_id: workspace.id,
@@ -730,16 +644,7 @@ export const createWorkspacesRouter = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(
-						and(
-							eq(workspaces.projectId, input.projectId),
-							eq(workspaces.type, "branch"),
-						),
-					)
-					.get();
+				const workspace = getBranchWorkspace(input.projectId);
 				if (!workspace) {
 					throw new Error("No branch workspace found for this project");
 				}
@@ -751,32 +656,13 @@ export const createWorkspacesRouter = () => {
 				terminalManager.refreshPromptsForWorkspace(workspace.id);
 
 				// Update the workspace - name is always the branch for branch workspaces
-				const now = Date.now();
-				localDb
-					.update(workspaces)
-					.set({
-						branch: input.branch,
-						name: input.branch,
-						updatedAt: now,
-						lastOpenedAt: now,
-					})
-					.where(eq(workspaces.id, workspace.id))
-					.run();
+				touchWorkspace(workspace.id, {
+					branch: input.branch,
+					name: input.branch,
+				});
+				setLastActiveWorkspace(workspace.id);
 
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastActiveWorkspaceId: workspace.id },
-					})
-					.run();
-
-				const updatedWorkspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, workspace.id))
-					.get();
+				const updatedWorkspace = getWorkspace(workspace.id);
 				if (!updatedWorkspace) {
 					throw new Error(`Workspace ${workspace.id} not found after update`);
 				}
@@ -790,11 +676,7 @@ export const createWorkspacesRouter = () => {
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
@@ -986,25 +868,14 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
 
-				const now = Date.now();
-				localDb
-					.update(workspaces)
-					.set({
-						...(input.patch.name !== undefined && { name: input.patch.name }),
-						updatedAt: now,
-						lastOpenedAt: now,
-					})
-					.where(eq(workspaces.id, input.id))
-					.run();
+				touchWorkspace(input.id, {
+					...(input.patch.name !== undefined && { name: input.patch.name }),
+				});
 
 				return { success: true };
 			}),
@@ -1018,11 +889,7 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.query(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 
 				if (!workspace) {
 					return {
@@ -1066,17 +933,9 @@ export const createWorkspacesRouter = () => {
 				}
 
 				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
+					? getWorktree(workspace.worktreeId)
 					: null;
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
+				const project = getProject(workspace.projectId);
 
 				if (worktree && project) {
 					try {
@@ -1139,11 +998,7 @@ export const createWorkspacesRouter = () => {
 		delete: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 
 				if (!workspace) {
 					return { success: false, error: "Workspace not found" };
@@ -1165,22 +1020,13 @@ export const createWorkspacesRouter = () => {
 					input.id,
 				);
 
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
+				const project = getProject(workspace.projectId);
 
 				let worktree: SelectWorktree | undefined;
 
 				// Branch workspaces don't have worktrees - skip worktree operations
 				if (workspace.type === "worktree" && workspace.worktreeId) {
-					worktree =
-						localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get() ?? undefined;
+					worktree = getWorktree(workspace.worktreeId);
 
 					if (worktree && project) {
 						// Acquire project lock before any git operations
@@ -1233,44 +1079,17 @@ export const createWorkspacesRouter = () => {
 				}
 
 				// Proceed with DB cleanup
-				localDb.delete(workspaces).where(eq(workspaces.id, input.id)).run();
+				deleteWorkspace(input.id);
 
 				if (worktree) {
-					localDb.delete(worktrees).where(eq(worktrees.id, worktree.id)).run();
+					deleteWorktreeRecord(worktree.id);
 				}
 
 				if (project) {
-					const remainingWorkspaces = localDb
-						.select()
-						.from(workspaces)
-						.where(eq(workspaces.projectId, workspace.projectId))
-						.all();
-					if (remainingWorkspaces.length === 0) {
-						localDb
-							.update(projects)
-							.set({ tabOrder: null })
-							.where(eq(projects.id, workspace.projectId))
-							.run();
-					}
+					hideProjectIfNoWorkspaces(workspace.projectId);
 				}
 
-				const settingsRow = localDb.select().from(settings).get();
-				if (settingsRow?.lastActiveWorkspaceId === input.id) {
-					const sorted = localDb
-						.select()
-						.from(workspaces)
-						.orderBy(desc(workspaces.lastOpenedAt))
-						.all();
-					const newActiveId = sorted[0]?.id ?? null;
-					localDb
-						.insert(settings)
-						.values({ id: 1, lastActiveWorkspaceId: newActiveId })
-						.onConflictDoUpdate({
-							target: settings.id,
-							set: { lastActiveWorkspaceId: newActiveId },
-						})
-						.run();
-				}
+				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
 					terminalResult.failed > 0
@@ -1289,11 +1108,7 @@ export const createWorkspacesRouter = () => {
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
@@ -1301,26 +1116,9 @@ export const createWorkspacesRouter = () => {
 				// Track if workspace was unread before clearing
 				const wasUnread = workspace.isUnread ?? false;
 
-				const now = Date.now();
-				localDb
-					.update(workspaces)
-					.set({
-						lastOpenedAt: now,
-						updatedAt: now,
-						// Auto-clear unread state when switching to workspace
-						isUnread: false,
-					})
-					.where(eq(workspaces.id, input.id))
-					.run();
-
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastActiveWorkspaceId: input.id })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastActiveWorkspaceId: input.id },
-					})
-					.run();
+				// Auto-clear unread state when switching to workspace
+				touchWorkspace(input.id, { isUnread: false });
+				setLastActiveWorkspace(input.id);
 
 				return { success: true, wasUnread };
 			}),
@@ -1369,21 +1167,13 @@ export const createWorkspacesRouter = () => {
 		refreshGitStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
+				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.workspaceId} not found`);
 				}
 
 				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
+					? getWorktree(workspace.worktreeId)
 					: null;
 				if (!worktree) {
 					throw new Error(
@@ -1391,11 +1181,7 @@ export const createWorkspacesRouter = () => {
 					);
 				}
 
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
+				const project = getProject(workspace.projectId);
 				if (!project) {
 					throw new Error(`Project ${workspace.projectId} not found`);
 				}
@@ -1414,11 +1200,7 @@ export const createWorkspacesRouter = () => {
 				}
 
 				if (defaultBranch !== project.defaultBranch) {
-					localDb
-						.update(projects)
-						.set({ defaultBranch })
-						.where(eq(projects.id, project.id))
-						.run();
+					updateProjectDefaultBranch(project.id, defaultBranch);
 				}
 
 				// Fetch default branch to get latest
@@ -1449,21 +1231,13 @@ export const createWorkspacesRouter = () => {
 		getGitHubStatus: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
+				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					return null;
 				}
 
 				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
+					? getWorktree(workspace.worktreeId)
 					: null;
 				if (!worktree) {
 					return null;
@@ -1487,21 +1261,13 @@ export const createWorkspacesRouter = () => {
 		getWorktreeInfo: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
+				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
 					return null;
 				}
 
 				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
+					? getWorktree(workspace.worktreeId)
 					: null;
 				if (!worktree) {
 					return null;
@@ -1549,11 +1315,7 @@ export const createWorkspacesRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				const worktree = localDb
-					.select()
-					.from(worktrees)
-					.where(eq(worktrees.id, input.worktreeId))
-					.get();
+				const worktree = getWorktree(input.worktreeId);
 				if (!worktree) {
 					throw new Error(`Worktree ${input.worktreeId} not found`);
 				}
@@ -1568,11 +1330,7 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Worktree already has an active workspace");
 				}
 
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, worktree.projectId))
-					.get();
+				const project = getProject(worktree.projectId);
 				if (!project) {
 					throw new Error(`Project ${worktree.projectId} not found`);
 				}
@@ -1586,15 +1344,7 @@ export const createWorkspacesRouter = () => {
 					throw new Error("Worktree no longer exists on disk");
 				}
 
-				const projectWorkspaces = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.projectId, worktree.projectId))
-					.all();
-				const maxTabOrder =
-					projectWorkspaces.length > 0
-						? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
-						: -1;
+				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
 
 				// Insert workspace
 				const workspace = localDb
@@ -1610,38 +1360,8 @@ export const createWorkspacesRouter = () => {
 					.returning()
 					.get();
 
-				// Update settings
-				localDb
-					.insert(settings)
-					.values({ id: 1, lastActiveWorkspaceId: workspace.id })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { lastActiveWorkspaceId: workspace.id },
-					})
-					.run();
-
-				// Update project
-				const activeProjects = localDb
-					.select()
-					.from(projects)
-					.where(isNotNull(projects.tabOrder))
-					.all();
-				const maxProjectTabOrder =
-					activeProjects.length > 0
-						? Math.max(...activeProjects.map((p) => p.tabOrder ?? 0))
-						: -1;
-
-				localDb
-					.update(projects)
-					.set({
-						lastOpenedAt: Date.now(),
-						tabOrder:
-							project.tabOrder === null
-								? maxProjectTabOrder + 1
-								: project.tabOrder,
-					})
-					.where(eq(projects.id, worktree.projectId))
-					.run();
+				setLastActiveWorkspace(workspace.id);
+				activateProject(project);
 
 				// Load setup configuration from the main repo
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
@@ -1663,11 +1383,7 @@ export const createWorkspacesRouter = () => {
 		setUnread: publicProcedure
 			.input(z.object({ id: z.string(), isUnread: z.boolean() }))
 			.mutation(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
@@ -1684,11 +1400,7 @@ export const createWorkspacesRouter = () => {
 		close: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.id))
-					.get();
+				const workspace = getWorkspace(input.id);
 
 				if (!workspace) {
 					throw new Error("Workspace not found");
@@ -1699,40 +1411,13 @@ export const createWorkspacesRouter = () => {
 				);
 
 				// Delete workspace record ONLY, keep worktree
-				localDb.delete(workspaces).where(eq(workspaces.id, input.id)).run();
+				deleteWorkspace(input.id);
 
 				// Check if project should be hidden (no more open workspaces)
-				const remainingWorkspaces = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.projectId, workspace.projectId))
-					.all();
-				if (remainingWorkspaces.length === 0) {
-					localDb
-						.update(projects)
-						.set({ tabOrder: null })
-						.where(eq(projects.id, workspace.projectId))
-						.run();
-				}
+				hideProjectIfNoWorkspaces(workspace.projectId);
 
 				// Update active workspace if this was the active one
-				const settingsRow = localDb.select().from(settings).get();
-				if (settingsRow?.lastActiveWorkspaceId === input.id) {
-					const sorted = localDb
-						.select()
-						.from(workspaces)
-						.orderBy(desc(workspaces.lastOpenedAt))
-						.all();
-					const newActiveId = sorted[0]?.id ?? null;
-					localDb
-						.insert(settings)
-						.values({ id: 1, lastActiveWorkspaceId: newActiveId })
-						.onConflictDoUpdate({
-							target: settings.id,
-							set: { lastActiveWorkspaceId: newActiveId },
-						})
-						.run();
-				}
+				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
 					terminalResult.failed > 0
@@ -1790,33 +1475,17 @@ export const createWorkspacesRouter = () => {
 		retryInit: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
+				const relations = getWorkspaceWithRelations(input.workspaceId);
 
-				if (!workspace) {
+				if (!relations) {
 					throw new Error("Workspace not found");
 				}
 
-				const worktree = workspace.worktreeId
-					? localDb
-							.select()
-							.from(worktrees)
-							.where(eq(worktrees.id, workspace.worktreeId))
-							.get()
-					: null;
+				const { workspace, worktree, project } = relations;
 
 				if (!worktree) {
 					throw new Error("Worktree not found");
 				}
-
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
 
 				if (!project) {
 					throw new Error("Project not found");
@@ -1863,21 +1532,13 @@ export const createWorkspacesRouter = () => {
 		getSetupCommands: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }) => {
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, input.workspaceId))
-					.get();
+				const workspace = getWorkspace(input.workspaceId);
 
 				if (!workspace) {
 					return null;
 				}
 
-				const project = localDb
-					.select()
-					.from(projects)
-					.where(eq(projects.id, workspace.projectId))
-					.get();
+				const project = getProject(workspace.projectId);
 
 				if (!project) {
 					return null;
