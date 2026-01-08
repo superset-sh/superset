@@ -122,7 +122,16 @@ const config: Configuration = {
 		icon: join(pkg.resources, "build/icons"),
 		category: "Utility",
 		synopsis: pkg.description,
-		target: ["AppImage", "deb"],
+		target: [
+			{
+				target: "AppImage",
+				arch: ["x64", "arm64"],
+			},
+			{
+				target: "deb",
+				arch: ["x64", "arm64"],
+			},
+		],
 		artifactName: `superset-\${version}-\${arch}.\${ext}`,
 	},
 
