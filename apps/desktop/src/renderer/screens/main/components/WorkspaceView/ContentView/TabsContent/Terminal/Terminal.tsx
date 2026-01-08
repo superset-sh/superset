@@ -512,11 +512,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
-			const serializedState = serializeAddon.serialize({
-				excludeAltBuffer: false, // Include alt buffer for TUI apps (vim, htop, opencode)
-				excludeModes: false, // Preserve terminal modes (alt screen, cursor, mouse)
-				scrollback: 1000,
-			});
+			const serializedState = serializeAddon.serialize();
 
 			// Detach instead of kill to keep PTY running for reattachment
 			detachRef.current({ paneId, serializedState });
