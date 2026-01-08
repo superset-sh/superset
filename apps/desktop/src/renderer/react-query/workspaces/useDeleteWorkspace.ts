@@ -1,6 +1,8 @@
+import { toast } from "@superset/ui/sonner";
 import { trpc } from "renderer/lib/trpc";
 
 type DeleteContext = {
+	toastId: string | number;
 	previousGrouped: ReturnType<
 		typeof trpc.useUtils
 	>["workspaces"]["getAllGrouped"]["getData"] extends () => infer R
@@ -31,6 +33,9 @@ export function useDeleteWorkspace(
 	return trpc.workspaces.delete.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
+			// Show loading toast - will be updated on success/error
+			const toastId = toast.loading("Deleting workspace...");
+
 			// Cancel outgoing refetches to avoid overwriting optimistic update
 			await Promise.all([
 				utils.workspaces.getAll.cancel(),
@@ -119,10 +124,23 @@ export function useDeleteWorkspace(
 				}
 			}
 
-			// Return context for rollback
-			return { previousGrouped, previousAll, previousActive } as DeleteContext;
+			// Return context for rollback and toast updates
+			return {
+				toastId,
+				previousGrouped,
+				previousAll,
+				previousActive,
+			} as DeleteContext;
 		},
-		onError: (_err, _variables, context) => {
+		onError: (err, _variables, context) => {
+			// Update toast to show error
+			if (context?.toastId) {
+				toast.error("Failed to delete workspace", {
+					id: context.toastId,
+					description: err.message,
+				});
+			}
+
 			// Rollback to previous state on error
 			if (context?.previousGrouped !== undefined) {
 				utils.workspaces.getAllGrouped.setData(
@@ -137,7 +155,12 @@ export function useDeleteWorkspace(
 				utils.workspaces.getActive.setData(undefined, context.previousActive);
 			}
 		},
-		onSuccess: async (...args) => {
+		onSuccess: async (_data, _variables, context) => {
+			// Update toast to show success
+			if (context?.toastId) {
+				toast.success("Workspace deleted", { id: context.toastId });
+			}
+
 			// Selective invalidation: only invalidate list queries, not getActive
 			// This preserves our optimistic update for the active workspace and prevents
 			// the "hasIncompleteInit" flash when switching to a workspace with null gitStatus
@@ -146,8 +169,8 @@ export function useDeleteWorkspace(
 				utils.workspaces.getAll.invalidate(),
 			]);
 
-			// Call user's onSuccess if provided
-			await options?.onSuccess?.(...args);
+			// Note: Not calling options?.onSuccess here because our context type differs
+			// from the original mutation context type. Callers should use onSettled instead.
 		},
 	});
 }

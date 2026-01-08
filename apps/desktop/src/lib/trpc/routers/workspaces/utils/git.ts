@@ -357,7 +357,10 @@ export async function cleanupTombstones(worktreesDir: string): Promise<void> {
 			(error as NodeJS.ErrnoException).code === "ENOENT";
 
 		if (!isEnoent) {
-			console.warn(`[cleanup] Failed to scan for tombstones in ${worktreesDir}:`, error);
+			console.warn(
+				`[cleanup] Failed to scan for tombstones in ${worktreesDir}:`,
+				error,
+			);
 		}
 	}
 }
