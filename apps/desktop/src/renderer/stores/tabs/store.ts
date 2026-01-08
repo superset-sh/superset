@@ -433,6 +433,7 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
+							// Pin the preview pane
 							set({
 								panes: {
 									...state.panes,
