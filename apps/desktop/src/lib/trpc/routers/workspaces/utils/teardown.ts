@@ -1,8 +1,11 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import type { SetupConfig } from "shared/types";
 import { getShellEnvironment } from "./shell-env";
+
+const execAsync = promisify(exec);
 
 const TEARDOWN_TIMEOUT_MS = 60_000; // 60 seconds
 
@@ -52,7 +55,7 @@ export async function runTeardown(
 	try {
 		const shellEnv = await getShellEnvironment();
 
-		execSync(command, {
+		await execAsync(command, {
 			cwd: worktreePath,
 			timeout: TEARDOWN_TIMEOUT_MS,
 			env: {
@@ -60,7 +63,6 @@ export async function runTeardown(
 				SUPERSET_WORKSPACE_NAME: workspaceName,
 				SUPERSET_ROOT_PATH: mainRepoPath,
 			},
-			stdio: "pipe",
 		});
 
 		return { success: true };
