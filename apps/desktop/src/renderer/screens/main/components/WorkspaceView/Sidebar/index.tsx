@@ -6,34 +6,61 @@ import { ChangesView } from "./ChangesView";
 export function Sidebar() {
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const workspaceId = activeWorkspace?.id;
+	const worktreePath = activeWorkspace?.worktreePath;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const trpcUtils = trpc.useUtils();
+
+	// Invalidate file content queries to ensure fresh data when clicking a file
+	const invalidateFileContent = (filePath: string) => {
+		if (!worktreePath) return;
+
+		Promise.all([
+			trpcUtils.changes.readWorkingFile.invalidate({
+				worktreePath,
+				filePath,
+			}),
+			trpcUtils.changes.getFileContents.invalidate({
+				worktreePath,
+				filePath,
+			}),
+		]).catch((error) => {
+			console.error(
+				"[Sidebar/invalidateFileContent] Failed to invalidate file content queries:",
+				{ worktreePath, filePath, error },
+			);
+		});
+	};
 
 	// Single click - opens in preview mode (can be replaced by next single click)
-	const handleFileOpen = workspaceId
-		? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-				addFileViewerPane(workspaceId, {
-					filePath: file.path,
-					diffCategory: category,
-					commitHash,
-					oldPath: file.oldPath,
-					isPinned: false,
-				});
-			}
-		: undefined;
+	const handleFileOpen =
+		workspaceId && worktreePath
+			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+					addFileViewerPane(workspaceId, {
+						filePath: file.path,
+						diffCategory: category,
+						commitHash,
+						oldPath: file.oldPath,
+						isPinned: false,
+					});
+					invalidateFileContent(file.path);
+				}
+			: undefined;
 
 	// Double click - opens pinned (permanent, won't be replaced)
-	const handleFileOpenPinned = workspaceId
-		? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
-				addFileViewerPane(workspaceId, {
-					filePath: file.path,
-					diffCategory: category,
-					commitHash,
-					oldPath: file.oldPath,
-					isPinned: true,
-				});
-			}
-		: undefined;
+	const handleFileOpenPinned =
+		workspaceId && worktreePath
+			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
+					addFileViewerPane(workspaceId, {
+						filePath: file.path,
+						diffCategory: category,
+						commitHash,
+						oldPath: file.oldPath,
+						isPinned: true,
+					});
+					invalidateFileContent(file.path);
+				}
+			: undefined;
 
 	return (
 		<aside className="h-full flex flex-col overflow-hidden">
