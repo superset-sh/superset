@@ -76,7 +76,6 @@ export function FileViewerPane({
 	const oldPath = fileViewer?.oldPath;
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
-	const contentVersion = fileViewer?.contentVersion;
 
 	const pinPane = useTabsStore((s) => s.pinPane);
 
@@ -103,7 +102,6 @@ export function FileViewerPane({
 			isDirty,
 			originalContentRef,
 			originalDiffContentRef,
-			contentVersion,
 		},
 	);
 

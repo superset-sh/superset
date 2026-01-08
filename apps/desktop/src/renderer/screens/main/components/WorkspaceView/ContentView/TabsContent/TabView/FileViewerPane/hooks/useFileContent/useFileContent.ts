@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { trpc } from "renderer/lib/trpc";
 import type { ChangeCategory } from "shared/changes-types";
 
@@ -12,8 +12,6 @@ interface UseFileContentParams {
 	isDirty: boolean;
 	originalContentRef: React.MutableRefObject<string>;
 	originalDiffContentRef: React.MutableRefObject<string>;
-	/** Version counter - when incremented, triggers content refetch */
-	contentVersion?: number;
 }
 
 export function useFileContent({
@@ -26,7 +24,6 @@ export function useFileContent({
 	isDirty,
 	originalContentRef,
 	originalDiffContentRef,
-	contentVersion,
 }: UseFileContentParams) {
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
 		{ worktreePath },
@@ -34,55 +31,30 @@ export function useFileContent({
 	);
 	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
 
-	const {
-		data: rawFileData,
-		isLoading: isLoadingRaw,
-		refetch: refetchRaw,
-	} = trpc.changes.readWorkingFile.useQuery(
-		{ worktreePath, filePath },
-		{
-			enabled: viewMode !== "diff" && !!filePath && !!worktreePath,
-		},
-	);
+	const { data: rawFileData, isLoading: isLoadingRaw } =
+		trpc.changes.readWorkingFile.useQuery(
+			{ worktreePath, filePath },
+			{
+				enabled: viewMode !== "diff" && !!filePath && !!worktreePath,
+			},
+		);
 
-	const {
-		data: diffData,
-		isLoading: isLoadingDiff,
-		refetch: refetchDiff,
-	} = trpc.changes.getFileContents.useQuery(
-		{
-			worktreePath,
-			filePath,
-			oldPath,
-			category: diffCategory ?? "unstaged",
-			commitHash,
-			defaultBranch:
-				diffCategory === "against-base" ? effectiveBaseBranch : undefined,
-		},
-		{
-			enabled:
-				viewMode === "diff" && !!diffCategory && !!filePath && !!worktreePath,
-		},
-	);
-
-	// Track previous contentVersion to detect changes
-	const prevContentVersionRef = useRef(contentVersion);
-
-	// Refetch content when contentVersion changes (user clicked on already-open file)
-	useEffect(() => {
-		if (
-			contentVersion !== undefined &&
-			prevContentVersionRef.current !== undefined &&
-			contentVersion !== prevContentVersionRef.current
-		) {
-			if (viewMode === "diff") {
-				refetchDiff();
-			} else {
-				refetchRaw();
-			}
-		}
-		prevContentVersionRef.current = contentVersion;
-	}, [contentVersion, viewMode, refetchRaw, refetchDiff]);
+	const { data: diffData, isLoading: isLoadingDiff } =
+		trpc.changes.getFileContents.useQuery(
+			{
+				worktreePath,
+				filePath,
+				oldPath,
+				category: diffCategory ?? "unstaged",
+				commitHash,
+				defaultBranch:
+					diffCategory === "against-base" ? effectiveBaseBranch : undefined,
+			},
+			{
+				enabled:
+					viewMode === "diff" && !!diffCategory && !!filePath && !!worktreePath,
+			},
+		);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only update baseline when content loads
 	useEffect(() => {

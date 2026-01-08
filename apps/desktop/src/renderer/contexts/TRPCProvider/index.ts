@@ -1,1 +1,1 @@
-export { TRPCProvider } from "./TRPCProvider";
+export { TRPCProvider, queryClient, trpcClient } from "./TRPCProvider";

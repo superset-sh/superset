@@ -1,5 +1,6 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
+import { queryClient } from "renderer/contexts/TRPCProvider";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcTabsStorage } from "../../lib/trpc-storage";
@@ -397,22 +398,20 @@ export const useTabsStore = create<TabsStore>()(
 						);
 
 					if (existingPinnedPane) {
-						// File is already open in a pinned pane, focus it and trigger content refetch
-						const existingFileViewer = existingPinnedPane.fileViewer;
+						// File is already open in a pinned pane, focus it and invalidate queries to refetch content
+						void queryClient.invalidateQueries({
+							queryKey: [
+								["changes", "readWorkingFile"],
+								{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
+							],
+						});
+						void queryClient.invalidateQueries({
+							queryKey: [
+								["changes", "getFileContents"],
+								{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
+							],
+						});
 						set({
-							panes: {
-								...state.panes,
-								[existingPinnedPane.id]: {
-									...existingPinnedPane,
-									fileViewer: existingFileViewer
-										? {
-												...existingFileViewer,
-												contentVersion:
-													(existingFileViewer.contentVersion ?? 0) + 1,
-											}
-										: undefined,
-								},
-							},
 							focusedPaneIds: {
 								...state.focusedPaneIds,
 								[activeTab.id]: existingPinnedPane.id,
@@ -447,7 +446,19 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							// Pin it and trigger content refetch
+							// Pin it and invalidate queries to refetch content
+							void queryClient.invalidateQueries({
+								queryKey: [
+									["changes", "readWorkingFile"],
+									{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
+								],
+							});
+							void queryClient.invalidateQueries({
+								queryKey: [
+									["changes", "getFileContents"],
+									{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
+								],
+							});
 							set({
 								panes: {
 									...state.panes,
@@ -456,8 +467,6 @@ export const useTabsStore = create<TabsStore>()(
 										fileViewer: {
 											...existingFileViewer,
 											isPinned: true,
-											contentVersion:
-												(existingFileViewer.contentVersion ?? 0) + 1,
 										},
 									},
 								},
