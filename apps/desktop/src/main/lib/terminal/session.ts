@@ -95,9 +95,6 @@ export async function createSession(
 	const { scrollback: recoveredScrollback, wasRecovered } =
 		await recoverScrollback(existingScrollback, workspaceId, paneId);
 
-	// Note: Port detection is now process-based (via PortManager periodic scanning),
-	// so we don't need to scan recovered scrollback for port patterns.
-
 	const ptyProcess = spawnPty({
 		shell,
 		cols: terminalCols,
