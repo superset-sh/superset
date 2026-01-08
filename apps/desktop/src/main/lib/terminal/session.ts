@@ -8,7 +8,6 @@ import {
 } from "../terminal-escape-filter";
 import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
-import { portManager } from "./port-manager";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -163,9 +162,6 @@ export function setupDataHandler(
 
 		session.scrollback += dataToStore;
 		session.historyWriter?.write(dataToStore);
-
-		// Check for hints that a port may have been opened (triggers immediate scan)
-		portManager.checkOutputForHint(dataToStore, session.paneId);
 
 		session.dataBatcher.write(data);
 
