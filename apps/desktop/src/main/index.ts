@@ -13,6 +13,7 @@ import { initAppState } from "./lib/app-state";
 import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { runStartupCleanup } from "./lib/startup-cleanup";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
@@ -213,6 +214,11 @@ if (!gotTheLock) {
 			console.error("[main] Failed to set up agent hooks:", error);
 			// App can continue without agent hooks, but log the failure
 		}
+
+		// Run cleanup in background - don't await to avoid blocking app startup
+		runStartupCleanup().catch((error) => {
+			console.error("[main] Startup cleanup failed:", error);
+		});
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();

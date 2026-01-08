@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import simpleGit from "simple-git";
@@ -306,6 +306,59 @@ export async function quickRemoveWorktree(
 				);
 			}
 		});
+	}
+}
+
+/** Pattern for tombstone directories created by quickRemoveWorktree */
+const TOMBSTONE_PATTERN = /\.superset-deleting-\d+$/;
+
+/**
+ * Cleans up orphaned tombstone directories from failed deletions.
+ * Should be called on app startup to clean up any tombstones left behind
+ * from crashed or interrupted deletion operations.
+ *
+ * @param worktreesDir - Path to the worktrees directory (e.g., /path/to/repo/.superset/worktrees)
+ */
+export async function cleanupTombstones(worktreesDir: string): Promise<void> {
+	try {
+		const entries = await readdir(worktreesDir, { withFileTypes: true });
+
+		const tombstones = entries.filter(
+			(entry) => entry.isDirectory() && TOMBSTONE_PATTERN.test(entry.name),
+		);
+
+		if (tombstones.length === 0) {
+			return;
+		}
+
+		console.log(
+			`[cleanup] Found ${tombstones.length} orphaned tombstone(s) in ${worktreesDir}`,
+		);
+
+		// Delete tombstones in background, sequentially to avoid overwhelming I/O
+		for (const tombstone of tombstones) {
+			const tombstonePath = join(worktreesDir, tombstone.name);
+			try {
+				await rm(tombstonePath, { recursive: true, force: true });
+				console.log(`[cleanup] Deleted orphaned tombstone: ${tombstonePath}`);
+			} catch (error) {
+				console.error(
+					`[cleanup] Failed to delete orphaned tombstone ${tombstonePath}:`,
+					error,
+				);
+				// Continue with other tombstones
+			}
+		}
+	} catch (error) {
+		// If we can't read the directory (doesn't exist, permissions), just log and continue
+		const isEnoent =
+			error instanceof Error &&
+			"code" in error &&
+			(error as NodeJS.ErrnoException).code === "ENOENT";
+
+		if (!isEnoent) {
+			console.warn(`[cleanup] Failed to scan for tombstones in ${worktreesDir}:`, error);
+		}
 	}
 }
 
