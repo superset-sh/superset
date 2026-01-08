@@ -9,19 +9,33 @@ export function Sidebar() {
 	const worktreePath = activeWorkspace?.worktreePath;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
+	const trpcUtils = trpc.useUtils();
+
+	// Invalidate file content queries to ensure fresh data when clicking a file
+	const invalidateFileContent = (filePath: string) => {
+		if (!worktreePath) return;
+		void trpcUtils.changes.readWorkingFile.invalidate({
+			worktreePath,
+			filePath,
+		});
+		void trpcUtils.changes.getFileContents.invalidate({
+			worktreePath,
+			filePath,
+		});
+	};
 
 	// Single click - opens in preview mode (can be replaced by next single click)
 	const handleFileOpen =
 		workspaceId && worktreePath
 			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 					addFileViewerPane(workspaceId, {
-						worktreePath,
 						filePath: file.path,
 						diffCategory: category,
 						commitHash,
 						oldPath: file.oldPath,
 						isPinned: false,
 					});
+					invalidateFileContent(file.path);
 				}
 			: undefined;
 
@@ -30,13 +44,13 @@ export function Sidebar() {
 		workspaceId && worktreePath
 			? (file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 					addFileViewerPane(workspaceId, {
-						worktreePath,
 						filePath: file.path,
 						diffCategory: category,
 						commitHash,
 						oldPath: file.oldPath,
 						isPinned: true,
 					});
+					invalidateFileContent(file.path);
 				}
 			: undefined;
 

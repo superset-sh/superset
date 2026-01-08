@@ -132,12 +132,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					});
 					return;
 				}
-				addFileViewerPane(workspaceId, {
-					worktreePath: workspaceCwd,
-					filePath,
-					line,
-					column,
-				});
+				addFileViewerPane(workspaceId, { filePath, line, column });
 			} else {
 				openInExternalEditor();
 			}

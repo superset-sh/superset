@@ -1,6 +1,5 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
-import { queryClient } from "renderer/contexts/TRPCProvider";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcTabsStorage } from "../../lib/trpc-storage";
@@ -398,19 +397,7 @@ export const useTabsStore = create<TabsStore>()(
 						);
 
 					if (existingPinnedPane) {
-						// File is already open in a pinned pane, focus it and invalidate queries to refetch content
-						void queryClient.invalidateQueries({
-							queryKey: [
-								["changes", "readWorkingFile"],
-								{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
-							],
-						});
-						void queryClient.invalidateQueries({
-							queryKey: [
-								["changes", "getFileContents"],
-								{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
-							],
-						});
+						// File is already open in a pinned pane, just focus it
 						set({
 							focusedPaneIds: {
 								...state.focusedPaneIds,
@@ -446,19 +433,7 @@ export const useTabsStore = create<TabsStore>()(
 							existingFileViewer.commitHash === options.commitHash;
 
 						if (isSameFile) {
-							// Pin it and invalidate queries to refetch content
-							void queryClient.invalidateQueries({
-								queryKey: [
-									["changes", "readWorkingFile"],
-									{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
-								],
-							});
-							void queryClient.invalidateQueries({
-								queryKey: [
-									["changes", "getFileContents"],
-									{ input: { worktreePath: options.worktreePath, filePath: options.filePath } },
-								],
-							});
+							// Pin the preview pane
 							set({
 								panes: {
 									...state.panes,

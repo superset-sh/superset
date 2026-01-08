@@ -39,8 +39,6 @@ export interface AddTabOptions {
  * Options for opening a file in a file-viewer pane
  */
 export interface AddFileViewerPaneOptions {
-	/** Worktree path for the file (used for query invalidation) */
-	worktreePath: string;
 	filePath: string;
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
