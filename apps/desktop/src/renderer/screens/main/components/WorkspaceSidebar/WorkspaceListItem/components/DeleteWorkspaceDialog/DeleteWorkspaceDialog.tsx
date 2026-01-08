@@ -85,7 +85,7 @@ export function DeleteWorkspaceDialog({
 		onOpenChange(false);
 
 		toast.promise(deleteWorkspace.mutateAsync({ id: workspaceId }), {
-			loading: "Deleting...",
+			loading: `Deleting "${workspaceName}"...`,
 			success: (result) => {
 				if (result.terminalWarning) {
 					setTimeout(() => {
@@ -94,7 +94,7 @@ export function DeleteWorkspaceDialog({
 						});
 					}, 100);
 				}
-				return "Workspace deleted";
+				return `Deleted "${workspaceName}"`;
 			},
 			error: (error) =>
 				error instanceof Error ? error.message : "Failed to delete",

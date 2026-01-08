@@ -75,8 +75,11 @@ async function initializeWorkspaceWorktree({
 		await manager.acquireProjectLock(projectId);
 
 		// Check cancellation before starting (use durable cancellation check)
+		// Note: We don't emit "failed" progress for cancellations because the workspace
+		// is being deleted. Emitting would trigger a refetch race condition where the
+		// workspace temporarily reappears. finalizeJob() in the finally block will
+		// still unblock waitForInit() callers.
 		if (manager.isCancellationRequested(workspaceId)) {
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
@@ -118,7 +121,6 @@ async function initializeWorkspaceWorktree({
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
@@ -212,7 +214,6 @@ async function initializeWorkspaceWorktree({
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
@@ -231,7 +232,6 @@ async function initializeWorkspaceWorktree({
 		}
 
 		if (manager.isCancellationRequested(workspaceId)) {
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
@@ -254,7 +254,6 @@ async function initializeWorkspaceWorktree({
 					e,
 				);
 			}
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
@@ -275,7 +274,6 @@ async function initializeWorkspaceWorktree({
 					e,
 				);
 			}
-			manager.updateProgress(workspaceId, "failed", "Cancelled");
 			return;
 		}
 
