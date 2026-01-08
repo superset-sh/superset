@@ -27,6 +27,7 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { toast } from "@superset/ui/sonner";
+import debounce from "lodash/debounce";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
@@ -62,6 +63,8 @@ export function NewWorkspaceModal() {
 	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
 		null,
 	);
+	// Use local title for immediate input feedback, debounce updates to derived state
+	const [localTitle, setLocalTitle] = useState("");
 	const [title, setTitle] = useState("");
 	const [branchName, setBranchName] = useState("");
 	const [branchNameEdited, setBranchNameEdited] = useState(false);
@@ -71,6 +74,25 @@ export function NewWorkspaceModal() {
 	const [branchSearch, setBranchSearch] = useState("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const titleInputRef = useRef<HTMLInputElement>(null);
+
+	// Debounced title update to reduce re-renders from derived state calculations
+	const debouncedSetTitle = useMemo(
+		() => debounce((value: string) => setTitle(value), 150),
+		[],
+	);
+
+	// Cleanup debounced function on unmount
+	useEffect(() => {
+		return () => {
+			debouncedSetTitle.cancel();
+		};
+	}, [debouncedSetTitle]);
+
+	const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const value = e.target.value;
+		setLocalTitle(value); // Immediate update for responsive typing
+		debouncedSetTitle(value); // Debounced update for derived state
+	};
 
 	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
@@ -124,6 +146,7 @@ export function NewWorkspaceModal() {
 
 	const resetForm = () => {
 		setSelectedProjectId(null);
+		setLocalTitle("");
 		setTitle("");
 		setBranchName("");
 		setBranchNameEdited(false);
@@ -170,7 +193,8 @@ export function NewWorkspaceModal() {
 	const handleCreateWorkspace = async () => {
 		if (!selectedProjectId) return;
 
-		const workspaceName = title.trim() || undefined;
+		// Use localTitle for the actual value (in case debounce hasn't fired yet)
+		const workspaceName = localTitle.trim() || undefined;
 		const customBranchName = branchName.trim() || undefined;
 
 		try {
@@ -266,15 +290,15 @@ export function NewWorkspaceModal() {
 										id="title"
 										className="h-9 text-sm"
 										placeholder="Feature name (press Enter to create)"
-										value={title}
-										onChange={(e) => setTitle(e.target.value)}
+										value={localTitle}
+										onChange={handleTitleChange}
 									/>
 
-									{title && !showAdvanced && (
+									{localTitle && !showAdvanced && (
 										<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 											<GoGitBranch className="size-3" />
 											<span className="font-mono">
-												{branchName || generateBranchFromTitle(title)}
+												{branchName || generateBranchFromTitle(localTitle)}
 											</span>
 											<span className="text-muted-foreground/60">
 												from {effectiveBaseBranch}
@@ -304,8 +328,8 @@ export function NewWorkspaceModal() {
 													id="branch"
 													className="h-8 text-sm font-mono"
 													placeholder={
-														title
-															? generateBranchFromTitle(title)
+														localTitle
+															? generateBranchFromTitle(localTitle)
 															: "auto-generated"
 													}
 													value={branchName}

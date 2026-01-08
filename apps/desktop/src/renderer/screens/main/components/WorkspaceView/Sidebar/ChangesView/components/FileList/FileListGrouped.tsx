@@ -15,6 +15,8 @@ interface FileListGroupedProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	worktreePath?: string;
+	onDiscard?: (file: ChangedFile) => void;
 }
 
 interface FolderGroup {
@@ -65,6 +67,8 @@ interface FolderGroupItemProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	worktreePath?: string;
+	onDiscard?: (file: ChangedFile) => void;
 }
 
 function FolderGroupItem({
@@ -76,6 +80,8 @@ function FolderGroupItem({
 	onStage,
 	onUnstage,
 	isActioning,
+	worktreePath,
+	onDiscard,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
@@ -102,6 +108,8 @@ function FolderGroupItem({
 					onStage={onStage ? () => onStage(file) : undefined}
 					onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 					isActioning={isActioning}
+					worktreePath={worktreePath}
+					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 				/>
 			))}
 		</FolderRow>
@@ -117,6 +125,8 @@ export function FileListGrouped({
 	onStage,
 	onUnstage,
 	isActioning,
+	worktreePath,
+	onDiscard,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -133,6 +143,8 @@ export function FileListGrouped({
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
+					worktreePath={worktreePath}
+					onDiscard={onDiscard}
 				/>
 			))}
 		</div>

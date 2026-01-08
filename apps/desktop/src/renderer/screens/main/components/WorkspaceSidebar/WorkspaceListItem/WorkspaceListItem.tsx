@@ -25,6 +25,7 @@ import {
 	useSetActiveWorkspace,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
+import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
@@ -208,7 +209,9 @@ export function WorkspaceListItem({
 					isActive && "bg-muted",
 				)}
 			>
-				{isBranchWorkspace ? (
+				{workspaceStatus === "working" ? (
+					<AsciiSpinner className="text-base" />
+				) : isBranchWorkspace ? (
 					<LuFolder
 						className={cn(
 							"size-4",
@@ -225,8 +228,8 @@ export function WorkspaceListItem({
 						strokeWidth={STROKE_WIDTH}
 					/>
 				)}
-				{/* Status indicator */}
-				{workspaceStatus && (
+				{/* Status indicator - only show for non-working statuses */}
+				{workspaceStatus && workspaceStatus !== "working" && (
 					<span className="absolute top-1 right-1">
 						<StatusIndicator status={workspaceStatus} />
 					</span>
@@ -315,7 +318,9 @@ export function WorkspaceListItem({
 			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
-						{isBranchWorkspace ? (
+						{workspaceStatus === "working" ? (
+							<AsciiSpinner className="text-base" />
+						) : isBranchWorkspace ? (
 							<LuFolder
 								className="size-4 text-muted-foreground"
 								strokeWidth={STROKE_WIDTH}
@@ -326,7 +331,7 @@ export function WorkspaceListItem({
 								strokeWidth={STROKE_WIDTH}
 							/>
 						)}
-						{workspaceStatus && (
+						{workspaceStatus && workspaceStatus !== "working" && (
 							<span className="absolute -top-0.5 -right-0.5">
 								<StatusIndicator status={workspaceStatus} />
 							</span>

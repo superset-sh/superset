@@ -478,6 +478,12 @@ export const HOTKEYS = {
 		label: "Clear Terminal",
 		category: "Terminal",
 	}),
+	SCROLL_TO_BOTTOM: defineHotkey({
+		keys: "meta+shift+down",
+		label: "Scroll to Bottom",
+		category: "Terminal",
+		description: "Scroll the active terminal to the bottom",
+	}),
 	PREV_TERMINAL: defineHotkey({
 		keys: "meta+left",
 		label: "Previous Terminal",

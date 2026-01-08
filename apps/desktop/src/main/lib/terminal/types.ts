@@ -1,6 +1,4 @@
 import type * as pty from "node-pty";
-import type { DataBatcher } from "../data-batcher";
-import type { HistoryWriter } from "../terminal-history";
 
 export interface TerminalSession {
 	pty: pty.IPty;
@@ -10,12 +8,8 @@ export interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	scrollback: string;
+	serializedState?: string;
 	isAlive: boolean;
-	deleteHistoryOnExit?: boolean;
-	wasRecovered: boolean;
-	historyWriter?: HistoryWriter;
-	dataBatcher: DataBatcher;
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
@@ -36,8 +30,8 @@ export type TerminalEvent = TerminalDataEvent | TerminalExitEvent;
 
 export interface SessionResult {
 	isNew: boolean;
-	scrollback: string;
-	wasRecovered: boolean;
+	/** Serialized terminal state from xterm's SerializeAddon */
+	serializedState: string;
 }
 
 export interface CreateSessionParams {
@@ -54,6 +48,5 @@ export interface CreateSessionParams {
 }
 
 export interface InternalCreateSessionParams extends CreateSessionParams {
-	existingScrollback: string | null;
 	useFallbackShell?: boolean;
 }

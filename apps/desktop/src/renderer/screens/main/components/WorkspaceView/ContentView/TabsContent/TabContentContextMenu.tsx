@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/context-menu";
 import type { ReactNode } from "react";
 import {
+	LuArrowDownToLine,
 	LuColumns2,
 	LuEraser,
 	LuMoveRight,
@@ -27,6 +28,7 @@ interface TabContentContextMenuProps {
 	onSplitVertical: () => void;
 	onClosePane: () => void;
 	onClearTerminal: () => void;
+	onScrollToBottom: () => void;
 	currentTabId: string;
 	availableTabs: Tab[];
 	onMoveToTab: (tabId: string) => void;
@@ -39,6 +41,7 @@ export function TabContentContextMenu({
 	onSplitVertical,
 	onClosePane,
 	onClearTerminal,
+	onScrollToBottom,
 	currentTabId,
 	availableTabs,
 	onMoveToTab,
@@ -48,6 +51,8 @@ export function TabContentContextMenu({
 	const targetTabs = availableTabs.filter((t) => t.id !== currentTabId);
 	const clearShortcut = useHotkeyText("CLEAR_TERMINAL");
 	const showClearShortcut = clearShortcut !== "Unassigned";
+	const scrollToBottomShortcut = useHotkeyText("SCROLL_TO_BOTTOM");
+	const showScrollToBottomShortcut = scrollToBottomShortcut !== "Unassigned";
 
 	return (
 		<ContextMenu>
@@ -66,6 +71,13 @@ export function TabContentContextMenu({
 					Clear Terminal
 					{showClearShortcut && (
 						<ContextMenuShortcut>{clearShortcut}</ContextMenuShortcut>
+					)}
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={onScrollToBottom}>
+					<LuArrowDownToLine className="size-4" />
+					Scroll to Bottom
+					{showScrollToBottomShortcut && (
+						<ContextMenuShortcut>{scrollToBottomShortcut}</ContextMenuShortcut>
 					)}
 				</ContextMenuItem>
 				<ContextMenuSeparator />

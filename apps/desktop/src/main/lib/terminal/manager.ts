@@ -3,16 +3,9 @@ import { track } from "main/lib/analytics";
 import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
-import {
-	closeSessionHistory,
-	createSession,
-	flushSession,
-	reinitializeHistory,
-	setupDataHandler,
-} from "./session";
+import { createSession, setupInitialCommands } from "./session";
 import type {
 	CreateSessionParams,
-	InternalCreateSessionParams,
 	SessionResult,
 	TerminalSession,
 } from "./types";
@@ -39,16 +32,12 @@ export class TerminalManager extends EventEmitter {
 			}
 			return {
 				isNew: false,
-				scrollback: existing.scrollback,
-				wasRecovered: existing.wasRecovered,
+				serializedState: existing.serializedState || "",
 			};
 		}
 
 		// Create new session
-		const creationPromise = this.doCreateSession({
-			...params,
-			existingScrollback: existing?.scrollback || null,
-		});
+		const creationPromise = this.doCreateSession(params);
 		this.pendingSessions.set(paneId, creationPromise);
 
 		try {
@@ -59,7 +48,7 @@ export class TerminalManager extends EventEmitter {
 	}
 
 	private async doCreateSession(
-		params: InternalCreateSessionParams,
+		params: CreateSessionParams & { useFallbackShell?: boolean },
 	): Promise<SessionResult> {
 		const { paneId, workspaceId, initialCommands } = params;
 
@@ -78,12 +67,10 @@ export class TerminalManager extends EventEmitter {
 			initialCommands?.some((command) => agentCommandPattern.test(command)) ??
 			false;
 
-		// Set up data handler
-		setupDataHandler(
+		// Set up initial commands (only for new sessions)
+		setupInitialCommands(
 			session,
 			initialCommands,
-			session.wasRecovered,
-			() => reinitializeHistory(session),
 			shouldAwaitAgentHooks ? agentHooksReady : undefined,
 		);
 
@@ -99,20 +86,18 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			scrollback: session.scrollback,
-			wasRecovered: session.wasRecovered,
+			serializedState: "",
 		};
 	}
 
 	private setupExitHandler(
 		session: TerminalSession,
-		params: InternalCreateSessionParams,
+		params: CreateSessionParams & { useFallbackShell?: boolean },
 	): void {
 		const { paneId } = params;
 
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
-			flushSession(session);
 
 			// Check if shell crashed quickly - try fallback
 			const sessionDuration = Date.now() - session.startTime;
@@ -124,13 +109,11 @@ export class TerminalManager extends EventEmitter {
 					`[TerminalManager] Shell "${session.shell}" exited with code ${exitCode} after ${sessionDuration}ms, retrying with fallback shell "${FALLBACK_SHELL}"`,
 				);
 
-				await closeSessionHistory(session, exitCode);
 				this.sessions.delete(paneId);
 
 				try {
 					await this.doCreateSession({
 						...params,
-						existingScrollback: session.scrollback || null,
 						useFallbackShell: true,
 					});
 					return; // Recovered - don't emit exit
@@ -141,8 +124,6 @@ export class TerminalManager extends EventEmitter {
 					);
 				}
 			}
-
-			await closeSessionHistory(session, exitCode);
 
 			// Unregister from port manager (also removes detected ports)
 			portManager.unregisterSession(paneId);
@@ -222,11 +203,8 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async kill(params: {
-		paneId: string;
-		deleteHistory?: boolean;
-	}): Promise<void> {
-		const { paneId, deleteHistory = false } = params;
+	async kill(params: { paneId: string }): Promise<void> {
+		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 
 		if (!session) {
@@ -234,20 +212,15 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		if (deleteHistory) {
-			session.deleteHistoryOnExit = true;
-		}
-
 		if (session.isAlive) {
 			session.pty.kill();
 		} else {
-			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
 		}
 	}
 
-	detach(params: { paneId: string }): void {
-		const { paneId } = params;
+	detach(params: { paneId: string; serializedState?: string }): void {
+		const { paneId, serializedState } = params;
 		const session = this.sessions.get(paneId);
 
 		if (!session) {
@@ -255,10 +228,13 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
+		if (serializedState) {
+			session.serializedState = serializedState;
+		}
 		session.lastActive = Date.now();
 	}
 
-	async clearScrollback(params: { paneId: string }): Promise<void> {
+	clearScrollback(params: { paneId: string }): void {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 
@@ -269,8 +245,7 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		session.scrollback = "";
-		await reinitializeHistory(session);
+		session.serializedState = "";
 		session.lastActive = Date.now();
 	}
 
@@ -315,13 +290,9 @@ export class TerminalManager extends EventEmitter {
 		session: TerminalSession,
 	): Promise<boolean> {
 		if (!session.isAlive) {
-			session.deleteHistoryOnExit = true;
-			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
 			return true;
 		}
-
-		session.deleteHistoryOnExit = true;
 
 		return new Promise<boolean>((resolve) => {
 			let resolved = false;
@@ -359,7 +330,6 @@ export class TerminalManager extends EventEmitter {
 						);
 						session.isAlive = false;
 						this.sessions.delete(paneId);
-						closeSessionHistory(session).catch(() => {});
 					}
 					cleanup(false);
 				}, 500);
@@ -374,7 +344,6 @@ export class TerminalManager extends EventEmitter {
 				console.error(`Failed to send SIGTERM to terminal ${paneId}:`, error);
 				session.isAlive = false;
 				this.sessions.delete(paneId);
-				closeSessionHistory(session).catch(() => {});
 				cleanup(false);
 			}
 		});
@@ -439,8 +408,6 @@ export class TerminalManager extends EventEmitter {
 
 				exitPromises.push(exitPromise);
 				session.pty.kill();
-			} else {
-				await closeSessionHistory(session);
 			}
 		}
 
