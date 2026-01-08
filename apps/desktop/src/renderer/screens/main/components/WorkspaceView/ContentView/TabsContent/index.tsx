@@ -25,18 +25,39 @@ export function TabsContent() {
 		setIsResizing,
 	} = useSidebarStore();
 
-	const tabToRender = useMemo(() => {
-		if (!activeWorkspaceId) return null;
-		const activeTabId = activeTabIds[activeWorkspaceId];
-		if (!activeTabId) return null;
+	// Get all tabs for the current workspace (not just active)
+	// We render all tabs but only show the active one via CSS.
+	// This keeps terminal subscriptions alive so no data is lost when switching tabs.
+	const workspaceTabs = useMemo(() => {
+		if (!activeWorkspaceId) return [];
+		return allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId);
+	}, [activeWorkspaceId, allTabs]);
 
-		return allTabs.find((tab) => tab.id === activeTabId) || null;
-	}, [activeWorkspaceId, activeTabIds, allTabs]);
+	const activeTabId = activeWorkspaceId
+		? activeTabIds[activeWorkspaceId]
+		: null;
 
 	return (
 		<div className="flex-1 min-h-0 flex overflow-hidden">
-			<div className="flex-1 min-w-0 overflow-hidden">
-				{tabToRender ? <TabView tab={tabToRender} /> : <EmptyTabView />}
+			<div className="flex-1 min-w-0 overflow-hidden relative">
+				{workspaceTabs.length > 0 ? (
+					workspaceTabs.map((tab) => (
+						<div
+							key={tab.id}
+							className="absolute inset-0"
+							style={{
+								visibility: tab.id === activeTabId ? "visible" : "hidden",
+								// Use visibility instead of display:none to keep terminals mounted
+								// but avoid layout calculations for hidden tabs
+								pointerEvents: tab.id === activeTabId ? "auto" : "none",
+							}}
+						>
+							<TabView tab={tab} />
+						</div>
+					))
+				) : (
+					<EmptyTabView />
+				)}
 			</div>
 			{isSidebarOpen && (
 				<ResizablePanel

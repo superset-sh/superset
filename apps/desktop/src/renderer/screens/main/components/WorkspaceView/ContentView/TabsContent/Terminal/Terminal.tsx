@@ -42,6 +42,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
 	const commandBufferRef = useRef("");
+	const pendingDataRef = useRef<string[]>([]);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -238,14 +239,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
-		if (!xtermRef.current) {
-			return;
-		}
-
 		if (event.type === "data") {
+			if (!xtermRef.current) {
+				// Buffer data until xterm is ready to prevent data loss during initialization
+				pendingDataRef.current.push(event.data);
+				return;
+			}
 			xtermRef.current.write(event.data);
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
+			if (!xtermRef.current) {
+				return;
+			}
 			isExitedRef.current = true;
 			xtermRef.current.writeln(
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
@@ -330,6 +335,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		fitAddonRef.current = fitAddon;
 		serializeAddonRef.current = serializeAddon;
 		isExitedRef.current = false;
+
+		// Flush any data that arrived before xterm was ready
+		if (pendingDataRef.current.length > 0) {
+			for (const data of pendingDataRef.current) {
+				xterm.write(data);
+				updateCwdRef.current(data);
+			}
+			pendingDataRef.current = [];
+		}
 
 		if (isFocusedRef.current) {
 			xterm.focus();
@@ -520,6 +534,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xtermRef.current = null;
 			searchAddonRef.current = null;
 			serializeAddonRef.current = null;
+			pendingDataRef.current = [];
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 
