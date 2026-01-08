@@ -12,6 +12,13 @@ interface PortsConfig {
 	ports: unknown;
 }
 
+/**
+ * Validate a single port entry from the ports.json configuration.
+ *
+ * @param entry - The port entry object to validate
+ * @param index - The index of the entry in the ports array (for error messages)
+ * @returns Validation result with either the validated port/label or an error message
+ */
 function validatePortEntry(
 	entry: PortEntry,
 	index: number,
