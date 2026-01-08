@@ -323,21 +323,25 @@ export class DaemonTerminalManager extends EventEmitter {
 			}
 		}
 
-		try {
-			const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows);
-			await writer.init(safeScrollback);
-			this.historyWriters.set(paneId, writer);
+			try {
+				const writer = new HistoryWriter(workspaceId, paneId, cwd, cols, rows);
+				await writer.init(safeScrollback);
+				this.historyWriters.set(paneId, writer);
 
-			// Flush any buffered data
-			const buffered = this.pendingHistoryData.get(paneId) || [];
-			for (const data of buffered) {
-				this.writeToHistory(paneId, data);
-			}
-		} catch (error) {
-			console.error(
-				`[DaemonTerminalManager] Failed to init history writer for ${paneId}:`,
-				error,
-			);
+				// Flush any buffered data. Important: mark init as complete BEFORE replaying,
+				// otherwise writeToHistory() would re-buffer into the same array we're
+				// iterating (infinite loop / RangeError: Invalid array length).
+				const buffered = this.pendingHistoryData.get(paneId) || [];
+				this.historyInitializing.delete(paneId);
+				this.pendingHistoryData.delete(paneId);
+				for (const data of buffered) {
+					writer.write(data);
+				}
+			} catch (error) {
+				console.error(
+					`[DaemonTerminalManager] Failed to init history writer for ${paneId}:`,
+					error,
+				);
 		} finally {
 			this.historyInitializing.delete(paneId);
 			this.pendingHistoryData.delete(paneId);
