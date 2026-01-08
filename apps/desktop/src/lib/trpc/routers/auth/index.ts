@@ -24,10 +24,7 @@ export const createAuthRouter = () => {
 					emit.next(state);
 				};
 
-				// Send initial state
 				emit.next(authService.getState());
-
-				// Listen for changes
 				authService.on("state-changed", handler);
 
 				return () => {
