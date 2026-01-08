@@ -1,12 +1,7 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
-import { cn } from "@superset/ui/utils";
-import { HiChevronRight } from "react-icons/hi2";
 import type { ChangedFile, CommitInfo } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
+import { formatRelativeDate } from "../../utils";
+import { CollapsibleRow } from "../CollapsibleRow";
 import { FileList } from "../FileList";
 
 interface CommitItemProps {
@@ -20,20 +15,30 @@ interface CommitItemProps {
 	/** Double click - opens pinned (permanent) */
 	onFileDoubleClick?: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
+	/** Worktree path for constructing absolute paths */
+	worktreePath?: string;
 }
 
-function formatRelativeDate(date: Date): string {
-	const now = new Date();
-	const diffMs = now.getTime() - date.getTime();
-	const diffMinutes = Math.floor(diffMs / 60000);
-	const diffHours = Math.floor(diffMinutes / 60);
-	const diffDays = Math.floor(diffHours / 24);
-
-	if (diffMinutes < 1) return "just now";
-	if (diffMinutes < 60) return `${diffMinutes}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
-	return date.toLocaleDateString();
+function CommitHeader({
+	shortHash,
+	message,
+	date,
+}: {
+	shortHash: string;
+	message: string;
+	date: Date;
+}) {
+	return (
+		<>
+			<span className="text-[10px] font-mono text-muted-foreground shrink-0">
+				{shortHash}
+			</span>
+			<span className="text-xs flex-1 truncate">{message}</span>
+			<span className="text-[10px] text-muted-foreground shrink-0">
+				{formatRelativeDate(date)}
+			</span>
+		</>
+	);
 }
 
 export function CommitItem({
@@ -45,6 +50,7 @@ export function CommitItem({
 	onFileSelect,
 	onFileDoubleClick,
 	viewMode,
+	worktreePath,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
@@ -59,44 +65,30 @@ export function CommitItem({
 	const isCommitSelected = selectedCommitHash === commit.hash;
 
 	return (
-		<Collapsible open={isExpanded} onOpenChange={onToggle}>
-			<CollapsibleTrigger
-				className={cn(
-					"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded-sm mx-0.5",
-					"hover:bg-accent/50 cursor-pointer transition-colors",
-				)}
-			>
-				<HiChevronRight
-					className={cn(
-						"size-2.5 text-muted-foreground shrink-0 transition-transform duration-150",
-						isExpanded && "rotate-90",
-					)}
+		<CollapsibleRow
+			isExpanded={isExpanded}
+			onToggle={() => onToggle()}
+			triggerClassName="mx-0.5"
+			contentClassName="ml-4 pl-1.5 border-l border-border mt-0.5 mb-0.5"
+			header={
+				<CommitHeader
+					shortHash={commit.shortHash}
+					message={commit.message}
+					date={commit.date}
 				/>
-
-				<span className="text-[10px] font-mono text-muted-foreground shrink-0">
-					{commit.shortHash}
-				</span>
-
-				<span className="text-xs flex-1 truncate">{commit.message}</span>
-
-				<span className="text-[10px] text-muted-foreground shrink-0">
-					{formatRelativeDate(commit.date)}
-				</span>
-			</CollapsibleTrigger>
-
+			}
+		>
 			{hasFiles && (
-				<CollapsibleContent className="ml-4 pl-1.5 border-l border-border mt-0.5 mb-0.5">
-					<FileList
-						files={commit.files}
-						viewMode={viewMode}
-						selectedFile={isCommitSelected ? selectedFile : null}
-						selectedCommitHash={selectedCommitHash}
-						onFileSelect={handleFileSelect}
-						onFileDoubleClick={handleFileDoubleClick}
-						showStats={false}
-					/>
-				</CollapsibleContent>
+				<FileList
+					files={commit.files}
+					viewMode={viewMode}
+					selectedFile={isCommitSelected ? selectedFile : null}
+					selectedCommitHash={selectedCommitHash}
+					onFileSelect={handleFileSelect}
+					onFileDoubleClick={handleFileDoubleClick}
+					worktreePath={worktreePath}
+				/>
 			)}
-		</Collapsible>
+		</CollapsibleRow>
 	);
 }

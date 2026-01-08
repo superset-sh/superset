@@ -15,6 +15,8 @@ interface FileListTreeProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	worktreePath?: string;
+	onDiscard?: (file: ChangedFile) => void;
 }
 
 interface FileTreeNode {
@@ -89,6 +91,8 @@ interface TreeNodeComponentProps {
 	onStage?: (file: ChangedFile) => void;
 	onUnstage?: (file: ChangedFile) => void;
 	isActioning?: boolean;
+	worktreePath?: string;
+	onDiscard?: (file: ChangedFile) => void;
 }
 
 function TreeNodeComponent({
@@ -102,6 +106,8 @@ function TreeNodeComponent({
 	onStage,
 	onUnstage,
 	isActioning,
+	worktreePath,
+	onDiscard,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -130,6 +136,8 @@ function TreeNodeComponent({
 						onStage={onStage}
 						onUnstage={onUnstage}
 						isActioning={isActioning}
+						worktreePath={worktreePath}
+						onDiscard={onDiscard}
 					/>
 				))}
 			</FolderRow>
@@ -151,6 +159,8 @@ function TreeNodeComponent({
 				onStage={onStage ? () => onStage(file) : undefined}
 				onUnstage={onUnstage ? () => onUnstage(file) : undefined}
 				isActioning={isActioning}
+				worktreePath={worktreePath}
+				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 			/>
 		);
 	}
@@ -168,6 +178,8 @@ export function FileListTree({
 	onStage,
 	onUnstage,
 	isActioning,
+	worktreePath,
+	onDiscard,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -185,6 +197,8 @@ export function FileListTree({
 					onStage={onStage}
 					onUnstage={onUnstage}
 					isActioning={isActioning}
+					worktreePath={worktreePath}
+					onDiscard={onDiscard}
 				/>
 			))}
 		</div>

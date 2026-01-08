@@ -19,6 +19,10 @@ interface FileListProps {
 	onUnstage?: (file: ChangedFile) => void;
 	/** Whether an action is currently pending */
 	isActioning?: boolean;
+	/** Worktree path for constructing absolute paths */
+	worktreePath?: string;
+	/** Callback for discarding changes */
+	onDiscard?: (file: ChangedFile) => void;
 }
 
 export function FileList({
@@ -32,6 +36,8 @@ export function FileList({
 	onStage,
 	onUnstage,
 	isActioning,
+	worktreePath,
+	onDiscard,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -49,6 +55,8 @@ export function FileList({
 				onStage={onStage}
 				onUnstage={onUnstage}
 				isActioning={isActioning}
+				worktreePath={worktreePath}
+				onDiscard={onDiscard}
 			/>
 		);
 	}
@@ -65,6 +73,8 @@ export function FileList({
 			onStage={onStage}
 			onUnstage={onUnstage}
 			isActioning={isActioning}
+			worktreePath={worktreePath}
+			onDiscard={onDiscard}
 		/>
 	);
 }
