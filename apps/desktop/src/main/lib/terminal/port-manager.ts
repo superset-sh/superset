@@ -107,7 +107,7 @@ class PortManager extends EventEmitter {
 			}
 
 			for (const [paneId, { workspaceId, pids }] of panePortMap) {
-				const portInfos = getListeningPortsForPids(pids);
+				const portInfos = await getListeningPortsForPids(pids);
 				this.updatePortsForPane(paneId, workspaceId, portInfos);
 			}
 
