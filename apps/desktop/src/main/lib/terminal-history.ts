@@ -22,6 +22,30 @@ import { SUPERSET_DIR_NAME } from "shared/constants";
 const MAX_HISTORY_BYTES = 5 * 1024 * 1024; // 5MB per session
 const MAX_PENDING_WRITE_BYTES = 256 * 1024; // cap in-memory backlog when disk is slow
 const DRAIN_TIMEOUT_MS = 1000;
+const HISTORY_DIR_MODE = 0o700;
+const HISTORY_FILE_MODE = 0o600;
+
+function isUtf8ContinuationByte(value: number): boolean {
+	// Continuation bytes are 10xxxxxx.
+	return (value & 0b1100_0000) === 0b1000_0000;
+}
+
+export function truncateUtf8ToLastBytes(
+	input: string,
+	maxBytes: number,
+): string {
+	if (maxBytes <= 0) return "";
+
+	const buffer = Buffer.from(input, "utf8");
+	if (buffer.length <= maxBytes) return input;
+
+	let start = buffer.length - maxBytes;
+	while (start < buffer.length && isUtf8ContinuationByte(buffer[start] ?? 0)) {
+		start++;
+	}
+
+	return buffer.subarray(start).toString("utf8");
+}
 
 // =============================================================================
 // Types
@@ -109,7 +133,7 @@ export class HistoryWriter {
 	 * Creates the directory, writes initial scrollback, and opens append stream.
 	 */
 	async init(initialScrollback?: string): Promise<void> {
-		await fs.mkdir(this.dir, { recursive: true });
+		await fs.mkdir(this.dir, { recursive: true, mode: HISTORY_DIR_MODE });
 
 		// Write initial scrollback or create empty file
 		// node-pty produces UTF-8 strings, so we store as UTF-8
@@ -117,24 +141,38 @@ export class HistoryWriter {
 			// Ensure initial scrollback doesn't exceed our per-session cap.
 			const initialBytes = Buffer.byteLength(initialScrollback, "utf8");
 			if (initialBytes > MAX_HISTORY_BYTES) {
-				const truncated = initialScrollback.slice(-MAX_HISTORY_BYTES);
-				await fs.writeFile(this.scrollbackPath, truncated, "utf8");
+				const truncated = truncateUtf8ToLastBytes(
+					initialScrollback,
+					MAX_HISTORY_BYTES,
+				);
+				await fs.writeFile(this.scrollbackPath, truncated, {
+					encoding: "utf8",
+					mode: HISTORY_FILE_MODE,
+				});
 				this.bytesWritten = Buffer.byteLength(truncated, "utf8");
 				this.warnedCapReached = true;
 				console.warn(
 					`[HistoryWriter] Initial scrollback truncated for ${this.paneId} (${initialBytes} bytes > ${MAX_HISTORY_BYTES})`,
 				);
 			} else {
-				await fs.writeFile(this.scrollbackPath, initialScrollback, "utf8");
+				await fs.writeFile(this.scrollbackPath, initialScrollback, {
+					encoding: "utf8",
+					mode: HISTORY_FILE_MODE,
+				});
 				this.bytesWritten = initialBytes;
 			}
 		} else {
-			await fs.writeFile(this.scrollbackPath, Buffer.alloc(0));
+			await fs.writeFile(this.scrollbackPath, Buffer.alloc(0), {
+				mode: HISTORY_FILE_MODE,
+			});
 			this.bytesWritten = 0;
 		}
 
 		// Open stream in append mode for subsequent writes
-		this.stream = createWriteStream(this.scrollbackPath, { flags: "a" });
+		this.stream = createWriteStream(this.scrollbackPath, {
+			flags: "a",
+			mode: HISTORY_FILE_MODE,
+		});
 		this.stream.on("error", (error) => {
 			console.error(
 				`[HistoryWriter] Stream error for ${this.paneId}:`,
@@ -149,6 +187,9 @@ export class HistoryWriter {
 			this.isBackpressured = false;
 			this.flushPendingWrites();
 		});
+
+		// Best-effort permission hardening (mode isn't updated on existing files).
+		await fs.chmod(this.scrollbackPath, HISTORY_FILE_MODE).catch(() => {});
 
 		// Write meta.json immediately (without endedAt)
 		// This enables cold restore detection - if app crashes,
@@ -379,7 +420,14 @@ export class HistoryWriter {
 
 	private async writeMetadata(): Promise<void> {
 		try {
-			await fs.writeFile(this.metaPath, JSON.stringify(this.metadata, null, 2));
+			await fs.writeFile(
+				this.metaPath,
+				JSON.stringify(this.metadata, null, 2),
+				{
+					mode: HISTORY_FILE_MODE,
+				},
+			);
+			await fs.chmod(this.metaPath, HISTORY_FILE_MODE).catch(() => {});
 		} catch (error) {
 			console.warn(
 				`[HistoryWriter] Failed to write metadata for ${this.paneId}:`,

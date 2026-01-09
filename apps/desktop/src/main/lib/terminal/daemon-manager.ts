@@ -18,7 +18,11 @@ import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
 } from "../terminal-escape-filter";
-import { HistoryReader, HistoryWriter } from "../terminal-history";
+import {
+	HistoryReader,
+	HistoryWriter,
+	truncateUtf8ToLastBytes,
+} from "../terminal-history";
 import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
@@ -341,12 +345,21 @@ export class DaemonTerminalManager extends EventEmitter {
 					`[DaemonTerminalManager] initialScrollback for ${paneId} is not a string, ignoring`,
 				);
 				safeScrollback = undefined;
-			} else if (initialScrollback.length > MAX_SCROLLBACK_BYTES) {
-				console.warn(
-					`[DaemonTerminalManager] initialScrollback for ${paneId} too large (${initialScrollback.length} bytes), truncating to ${MAX_SCROLLBACK_BYTES}`,
+			} else {
+				const initialScrollbackBytes = Buffer.byteLength(
+					initialScrollback,
+					"utf8",
 				);
-				// Keep the most recent content (end of scrollback)
-				safeScrollback = initialScrollback.slice(-MAX_SCROLLBACK_BYTES);
+				if (initialScrollbackBytes > MAX_SCROLLBACK_BYTES) {
+					console.warn(
+						`[DaemonTerminalManager] initialScrollback for ${paneId} too large (${initialScrollbackBytes} bytes), truncating to ${MAX_SCROLLBACK_BYTES}`,
+					);
+					// Keep the most recent content (end of scrollback)
+					safeScrollback = truncateUtf8ToLastBytes(
+						initialScrollback,
+						MAX_SCROLLBACK_BYTES,
+					);
+				}
 			}
 		}
 
@@ -522,7 +535,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			skipColdRestore,
 		} = params;
 
-		const MAX_SCROLLBACK_CHARS = 500_000;
+		const MAX_SCROLLBACK_BYTES = 500_000;
 
 		try {
 			// Sticky cold restore info (survives React StrictMode remounts).
@@ -571,10 +584,12 @@ export class DaemonTerminalManager extends EventEmitter {
 						await historyReader.cleanup();
 						// Fall through to create new session
 					} else {
+						const rawScrollbackBytes = Buffer.byteLength(rawScrollback, "utf8");
 						const scrollback =
-							rawScrollback.length > MAX_SCROLLBACK_CHARS
-								? rawScrollback.slice(-MAX_SCROLLBACK_CHARS)
+							rawScrollbackBytes > MAX_SCROLLBACK_BYTES
+								? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
 								: rawScrollback;
+						const scrollbackBytes = Buffer.byteLength(scrollback, "utf8");
 
 						// Store sticky info so StrictMode remounts still show cold restore.
 						this.coldRestoreInfo.set(paneId, {
@@ -588,7 +603,7 @@ export class DaemonTerminalManager extends EventEmitter {
 						track("terminal_cold_restored", {
 							workspace_id: workspaceId,
 							pane_id: paneId,
-							scrollback_bytes: scrollback.length,
+							scrollback_bytes: scrollbackBytes,
 						});
 
 						return {
@@ -682,9 +697,10 @@ export class DaemonTerminalManager extends EventEmitter {
 
 			// Initialize history writer for reboot persistence.
 			const snapshotAnsi = response.snapshot.snapshotAnsi || "";
+			const snapshotAnsiBytes = Buffer.byteLength(snapshotAnsi, "utf8");
 			const initialScrollback =
-				snapshotAnsi.length > MAX_SCROLLBACK_CHARS
-					? snapshotAnsi.slice(-MAX_SCROLLBACK_CHARS)
+				snapshotAnsiBytes > MAX_SCROLLBACK_BYTES
+					? truncateUtf8ToLastBytes(snapshotAnsi, MAX_SCROLLBACK_BYTES)
 					: snapshotAnsi;
 
 			if (effectiveCols >= 1 && effectiveRows >= 1) {
@@ -718,7 +734,9 @@ export class DaemonTerminalManager extends EventEmitter {
 				track("terminal_warm_attached", {
 					workspace_id: workspaceId,
 					pane_id: paneId,
-					snapshot_bytes: response.snapshot.snapshotAnsi?.length ?? 0,
+					snapshot_bytes: response.snapshot.snapshotAnsi
+						? Buffer.byteLength(response.snapshot.snapshotAnsi, "utf8")
+						: 0,
 				});
 			}
 
