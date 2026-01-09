@@ -3,13 +3,7 @@ import { track } from "main/lib/analytics";
 import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
-import {
-	closeSessionHistory,
-	createSession,
-	flushSession,
-	reinitializeHistory,
-	setupDataHandler,
-} from "./session";
+import { createSession, flushSession, setupDataHandler } from "./session";
 import type {
 	CreateSessionParams,
 	InternalCreateSessionParams,
@@ -83,7 +77,6 @@ export class TerminalManager extends EventEmitter {
 			session,
 			initialCommands,
 			session.wasRecovered,
-			() => reinitializeHistory(session),
 			shouldAwaitAgentHooks ? agentHooksReady : undefined,
 		);
 
@@ -124,7 +117,6 @@ export class TerminalManager extends EventEmitter {
 					`[TerminalManager] Shell "${session.shell}" exited with code ${exitCode} after ${sessionDuration}ms, retrying with fallback shell "${FALLBACK_SHELL}"`,
 				);
 
-				await closeSessionHistory(session, exitCode);
 				this.sessions.delete(paneId);
 
 				try {
@@ -141,8 +133,6 @@ export class TerminalManager extends EventEmitter {
 					);
 				}
 			}
-
-			await closeSessionHistory(session, exitCode);
 
 			// Unregister from port manager (also removes detected ports)
 			portManager.unregisterSession(paneId);
@@ -222,11 +212,8 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async kill(params: {
-		paneId: string;
-		deleteHistory?: boolean;
-	}): Promise<void> {
-		const { paneId, deleteHistory = false } = params;
+	async kill(params: { paneId: string }): Promise<void> {
+		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 
 		if (!session) {
@@ -234,14 +221,9 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		if (deleteHistory) {
-			session.deleteHistoryOnExit = true;
-		}
-
 		if (session.isAlive) {
 			session.pty.kill();
 		} else {
-			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
 		}
 	}
@@ -258,7 +240,7 @@ export class TerminalManager extends EventEmitter {
 		session.lastActive = Date.now();
 	}
 
-	async clearScrollback(params: { paneId: string }): Promise<void> {
+	clearScrollback(params: { paneId: string }): void {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 
@@ -270,7 +252,6 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.scrollback = "";
-		await reinitializeHistory(session);
 		session.lastActive = Date.now();
 	}
 
@@ -310,18 +291,14 @@ export class TerminalManager extends EventEmitter {
 		return { killed, failed: results.length - killed };
 	}
 
-	private async killSessionWithTimeout(
+	private killSessionWithTimeout(
 		paneId: string,
 		session: TerminalSession,
 	): Promise<boolean> {
 		if (!session.isAlive) {
-			session.deleteHistoryOnExit = true;
-			await closeSessionHistory(session);
 			this.sessions.delete(paneId);
-			return true;
+			return Promise.resolve(true);
 		}
-
-		session.deleteHistoryOnExit = true;
 
 		return new Promise<boolean>((resolve) => {
 			let resolved = false;
@@ -359,7 +336,6 @@ export class TerminalManager extends EventEmitter {
 						);
 						session.isAlive = false;
 						this.sessions.delete(paneId);
-						closeSessionHistory(session).catch(() => {});
 					}
 					cleanup(false);
 				}, 500);
@@ -374,7 +350,6 @@ export class TerminalManager extends EventEmitter {
 				console.error(`Failed to send SIGTERM to terminal ${paneId}:`, error);
 				session.isAlive = false;
 				this.sessions.delete(paneId);
-				closeSessionHistory(session).catch(() => {});
 				cleanup(false);
 			}
 		});
@@ -439,8 +414,6 @@ export class TerminalManager extends EventEmitter {
 
 				exitPromises.push(exitPromise);
 				session.pty.kill();
-			} else {
-				await closeSessionHistory(session);
 			}
 		}
 

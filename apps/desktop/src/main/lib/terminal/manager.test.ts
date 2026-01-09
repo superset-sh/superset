@@ -1,7 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { promises as fs } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import * as pty from "node-pty";
 
 // Mock node-pty
@@ -17,9 +14,6 @@ mock.module("main/lib/analytics", () => ({
 // Import manager after mocks are set up
 const { TerminalManager } = await import("./manager");
 
-// Use real history implementation - it will write to tmpdir thanks to NODE_ENV=test
-const testTmpDir = join(tmpdir(), "superset-test");
-
 describe("TerminalManager", () => {
 	let manager: InstanceType<typeof TerminalManager>;
 	let mockPty: {
@@ -30,17 +24,7 @@ describe("TerminalManager", () => {
 		onExit: ReturnType<typeof mock>;
 	};
 
-	beforeEach(async () => {
-		// Clean up test history directory before each test
-		try {
-			await fs.rm(join(testTmpDir, ".superset/terminal-history"), {
-				recursive: true,
-				force: true,
-			});
-		} catch {
-			// Ignore if doesn't exist
-		}
-
+	beforeEach(() => {
 		manager = new TerminalManager();
 
 		// Setup mock pty
@@ -251,19 +235,12 @@ describe("TerminalManager", () => {
 	});
 
 	describe("kill", () => {
-		it("should kill and preserve history by default", async () => {
+		it("should kill the terminal session", async () => {
 			await manager.createOrAttach({
 				paneId: "pane-1",
 				tabId: "tab-1",
 				workspaceId: "workspace-1",
 			});
-
-			// Trigger some data to create history
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("test output\n");
-			}
 
 			const exitPromise = new Promise<void>((resolve) => {
 				manager.once("exit:pane-1", () => resolve());
@@ -280,98 +257,6 @@ describe("TerminalManager", () => {
 			}
 
 			await exitPromise;
-
-			// Verify history directory still exists (preserved)
-			const historyDir = join(
-				testTmpDir,
-				".superset/terminal-history/workspace-1/pane-1",
-			);
-			const stats = await fs.stat(historyDir);
-			expect(stats.isDirectory()).toBe(true);
-		});
-
-		it("should delete history when deleteHistory flag is true", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-delete-history",
-				tabId: "tab-delete-history",
-				workspaceId: "workspace-1",
-			});
-
-			// Trigger some data to create history
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("test output\n");
-			}
-
-			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:pane-delete-history", () => resolve());
-			});
-
-			await manager.kill({
-				paneId: "pane-delete-history",
-				deleteHistory: true,
-			});
-
-			expect(mockPty.kill).toHaveBeenCalled();
-
-			const onExitCallback =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback) {
-				await onExitCallback({ exitCode: 0, signal: undefined });
-			}
-
-			await exitPromise;
-
-			// Verify history directory was deleted
-			const historyDir = join(
-				testTmpDir,
-				".superset/terminal-history/workspace-1/pane-delete-history",
-			);
-			const exists = await fs
-				.stat(historyDir)
-				.then(() => true)
-				.catch(() => false);
-			expect(exists).toBe(false);
-		});
-
-		it("should preserve history for recovery after kill without deleteHistory", async () => {
-			// Create and write some data
-			await manager.createOrAttach({
-				paneId: "pane-preserve",
-				tabId: "tab-preserve",
-				workspaceId: "workspace-1",
-			});
-
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("Preserved output\n");
-			}
-
-			const exitPromise = new Promise<void>((resolve) => {
-				manager.once("exit:pane-preserve", () => resolve());
-			});
-
-			await manager.kill({ paneId: "pane-preserve" });
-
-			const onExitCallback =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback) {
-				await onExitCallback({ exitCode: 0, signal: undefined });
-			}
-
-			await exitPromise;
-
-			// Recreate session - should recover history from filesystem
-			const result = await manager.createOrAttach({
-				paneId: "pane-preserve",
-				tabId: "tab-preserve",
-				workspaceId: "workspace-1",
-			});
-
-			expect(result.wasRecovered).toBe(true);
-			expect(result.scrollback).toContain("Preserved output");
 		});
 	});
 
@@ -444,38 +329,6 @@ describe("TerminalManager", () => {
 			await cleanupPromise;
 
 			expect(mockPty.kill).toHaveBeenCalledTimes(2);
-		});
-
-		it("should preserve history during cleanup", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-cleanup",
-				tabId: "tab-cleanup",
-				workspaceId: "workspace-1",
-			});
-
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("Test output during cleanup\n");
-			}
-
-			const cleanupPromise = manager.cleanup();
-
-			const onExitCallback =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback) {
-				await onExitCallback({ exitCode: 0, signal: undefined });
-			}
-
-			await cleanupPromise;
-
-			// Verify history was preserved (directory still exists)
-			const historyDir = join(
-				testTmpDir,
-				".superset/terminal-history/workspace-1/pane-cleanup",
-			);
-			const stats = await fs.stat(historyDir);
-			expect(stats.isDirectory()).toBe(true);
 		});
 	});
 
@@ -589,37 +442,6 @@ describe("TerminalManager", () => {
 			expect(result.failed).toBe(0);
 		});
 
-		it("should delete history for killed sessions", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-kill-history",
-				tabId: "tab-kill-history",
-				workspaceId: "workspace-kill",
-			});
-
-			// Trigger some data to create history
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("test output\n");
-			}
-
-			await manager.killByWorkspaceId("workspace-kill");
-
-			// Wait a bit for cleanup to complete
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
-			// Verify history directory was deleted
-			const historyDir = join(
-				testTmpDir,
-				".superset/terminal-history/workspace-kill/pane-kill-history",
-			);
-			const exists = await fs
-				.stat(historyDir)
-				.then(() => true)
-				.catch(() => false);
-			expect(exists).toBe(false);
-		});
-
 		it("should clean up already-dead sessions", async () => {
 			await manager.createOrAttach({
 				paneId: "pane-dead",
@@ -713,7 +535,7 @@ describe("TerminalManager", () => {
 				onDataCallback("some output\n");
 			}
 
-			await manager.clearScrollback({ paneId: "pane-clear" });
+			manager.clearScrollback({ paneId: "pane-clear" });
 
 			const result = await manager.createOrAttach({
 				paneId: "pane-clear",
@@ -724,47 +546,14 @@ describe("TerminalManager", () => {
 			expect(result.scrollback).toBe("");
 		});
 
-		it("should reinitialize history file", async () => {
-			await manager.createOrAttach({
-				paneId: "pane-clear-history",
-				tabId: "tab-clear-history",
-				workspaceId: "workspace-clear",
-			});
-
-			const onDataCallback =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback) {
-				onDataCallback("output before clear\n");
-			}
-
-			await manager.clearScrollback({ paneId: "pane-clear-history" });
-
-			const onExitCallback =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback) {
-				await onExitCallback({ exitCode: 0, signal: undefined });
-			}
-
-			await manager.cleanup();
-
-			const result = await manager.createOrAttach({
-				paneId: "pane-clear-history",
-				tabId: "tab-clear-history",
-				workspaceId: "workspace-clear",
-			});
-
-			expect(result.scrollback).toBe("");
-			expect(result.wasRecovered).toBe(false);
-		});
-
-		it("should handle non-existent session gracefully", async () => {
+		it("should handle non-existent session gracefully", () => {
 			const warnSpy = mock(() => {});
 			const originalWarn = console.warn;
 			console.warn = warnSpy;
 
-			await expect(
+			expect(() =>
 				manager.clearScrollback({ paneId: "non-existent" }),
-			).resolves.toBeUndefined();
+			).not.toThrow();
 
 			expect(warnSpy).toHaveBeenCalledWith(
 				"Cannot clear scrollback for terminal non-existent: session not found",
@@ -825,81 +614,6 @@ describe("TerminalManager", () => {
 			expect(result.scrollback).not.toContain("old content");
 			expect(result.scrollback).toContain("new content");
 			expect(result.scrollback).not.toContain("\x1b[3J");
-		});
-	});
-
-	describe("multi-session history persistence", () => {
-		it("should persist history across multiple sessions", async () => {
-			// Session 1: Create and write data
-			const result1 = await manager.createOrAttach({
-				paneId: "pane-multi",
-				tabId: "tab-multi",
-				workspaceId: "workspace-1",
-			});
-
-			expect(result1.isNew).toBe(true);
-			expect(result1.wasRecovered).toBe(false);
-
-			const onDataCallback1 =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback1) {
-				onDataCallback1("Session 1 output\n");
-			}
-
-			const exitPromise1 = new Promise<void>((resolve) => {
-				manager.once("exit:pane-multi", () => resolve());
-			});
-
-			const onExitCallback1 =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback1) {
-				await onExitCallback1({ exitCode: 0, signal: undefined });
-			}
-
-			await exitPromise1;
-			await manager.cleanup();
-
-			// Session 2: Should recover Session 1 data
-			const result2 = await manager.createOrAttach({
-				paneId: "pane-multi",
-				tabId: "tab-multi",
-				workspaceId: "workspace-1",
-			});
-
-			expect(result2.isNew).toBe(true);
-			expect(result2.wasRecovered).toBe(true);
-			expect(result2.scrollback).toContain("Session 1 output");
-
-			const onDataCallback2 =
-				mockPty.onData.mock.calls[mockPty.onData.mock.calls.length - 1]?.[0];
-			if (onDataCallback2) {
-				onDataCallback2("Session 2 output\n");
-			}
-
-			const exitPromise2 = new Promise<void>((resolve) => {
-				manager.once("exit:pane-multi", () => resolve());
-			});
-
-			const onExitCallback2 =
-				mockPty.onExit.mock.calls[mockPty.onExit.mock.calls.length - 1]?.[0];
-			if (onExitCallback2) {
-				await onExitCallback2({ exitCode: 0, signal: undefined });
-			}
-
-			await exitPromise2;
-			await manager.cleanup();
-
-			// Session 3: Should recover both Session 1 and Session 2 data
-			const result3 = await manager.createOrAttach({
-				paneId: "pane-multi",
-				tabId: "tab-multi",
-				workspaceId: "workspace-1",
-			});
-
-			expect(result3.isNew).toBe(true);
-			expect(result3.wasRecovered).toBe(true);
-			expect(result3.scrollback).toContain("Session 1 output");
-			expect(result3.scrollback).toContain("Session 2 output");
 		});
 	});
 });

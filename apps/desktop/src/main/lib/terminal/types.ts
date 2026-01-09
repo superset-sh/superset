@@ -1,6 +1,5 @@
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
-import type { HistoryWriter } from "../terminal-history";
 
 export interface TerminalSession {
 	pty: pty.IPty;
@@ -12,9 +11,7 @@ export interface TerminalSession {
 	lastActive: number;
 	scrollback: string;
 	isAlive: boolean;
-	deleteHistoryOnExit?: boolean;
 	wasRecovered: boolean;
-	historyWriter?: HistoryWriter;
 	dataBatcher: DataBatcher;
 	shell: string;
 	startTime: number;

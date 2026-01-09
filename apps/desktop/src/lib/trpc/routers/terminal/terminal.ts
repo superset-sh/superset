@@ -138,7 +138,6 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
-					deleteHistory: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {

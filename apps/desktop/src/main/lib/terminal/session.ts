@@ -6,7 +6,6 @@ import {
 	containsClearScrollbackSequence,
 	extractContentAfterClear,
 } from "../terminal-escape-filter";
-import { HistoryReader, HistoryWriter } from "../terminal-history";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
@@ -15,28 +14,13 @@ const DEFAULT_ROWS = 24;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
 
-export async function recoverScrollback(
-	existingScrollback: string | null,
-	workspaceId: string,
-	paneId: string,
-): Promise<{ scrollback: string; wasRecovered: boolean }> {
+export function recoverScrollback(existingScrollback: string | null): {
+	scrollback: string;
+	wasRecovered: boolean;
+} {
 	if (existingScrollback) {
 		return { scrollback: existingScrollback, wasRecovered: true };
 	}
-
-	const historyReader = new HistoryReader(workspaceId, paneId);
-	const history = await historyReader.read();
-
-	if (history.scrollback) {
-		// Keep only a reasonable amount of scrollback history
-		const MAX_SCROLLBACK_CHARS = 500_000;
-		const scrollback =
-			history.scrollback.length > MAX_SCROLLBACK_CHARS
-				? history.scrollback.slice(-MAX_SCROLLBACK_CHARS)
-				: history.scrollback;
-		return { scrollback, wasRecovered: true };
-	}
-
 	return { scrollback: "", wasRecovered: false };
 }
 
@@ -93,7 +77,7 @@ export async function createSession(
 	});
 
 	const { scrollback: recoveredScrollback, wasRecovered } =
-		await recoverScrollback(existingScrollback, workspaceId, paneId);
+		recoverScrollback(existingScrollback);
 
 	const ptyProcess = spawnPty({
 		shell,
@@ -102,15 +86,6 @@ export async function createSession(
 		cwd: workingDir,
 		env,
 	});
-
-	const historyWriter = new HistoryWriter(
-		workspaceId,
-		paneId,
-		workingDir,
-		terminalCols,
-		terminalRows,
-	);
-	await historyWriter.init(recoveredScrollback || undefined);
 
 	const dataBatcher = new DataBatcher((batchedData) => {
 		onData(paneId, batchedData);
@@ -127,7 +102,6 @@ export async function createSession(
 		scrollback: recoveredScrollback,
 		isAlive: true,
 		wasRecovered,
-		historyWriter,
 		dataBatcher,
 		shell,
 		startTime: Date.now(),
@@ -139,7 +113,6 @@ export function setupDataHandler(
 	session: TerminalSession,
 	initialCommands: string[] | undefined,
 	wasRecovered: boolean,
-	onHistoryReinit: () => Promise<void>,
 	beforeInitialCommands?: Promise<void>,
 ): void {
 	const initialCommandString =
@@ -153,12 +126,10 @@ export function setupDataHandler(
 
 		if (containsClearScrollbackSequence(data)) {
 			session.scrollback = "";
-			onHistoryReinit().catch(() => {});
 			dataToStore = extractContentAfterClear(data);
 		}
 
 		session.scrollback += dataToStore;
-		session.historyWriter?.write(dataToStore);
 
 		session.dataBatcher.write(data);
 
@@ -184,45 +155,6 @@ export function setupDataHandler(
 			}, 100);
 		}
 	});
-}
-
-export async function closeSessionHistory(
-	session: TerminalSession,
-	exitCode?: number,
-): Promise<void> {
-	if (session.deleteHistoryOnExit) {
-		if (session.historyWriter) {
-			await session.historyWriter.close();
-			session.historyWriter = undefined;
-		}
-		const historyReader = new HistoryReader(
-			session.workspaceId,
-			session.paneId,
-		);
-		await historyReader.cleanup();
-		return;
-	}
-
-	if (session.historyWriter) {
-		await session.historyWriter.close(exitCode);
-		session.historyWriter = undefined;
-	}
-}
-
-export async function reinitializeHistory(
-	session: TerminalSession,
-): Promise<void> {
-	if (session.historyWriter) {
-		await session.historyWriter.close();
-		session.historyWriter = new HistoryWriter(
-			session.workspaceId,
-			session.paneId,
-			session.cwd,
-			session.cols,
-			session.rows,
-		);
-		await session.historyWriter.init();
-	}
 }
 
 export function flushSession(session: TerminalSession): void {
