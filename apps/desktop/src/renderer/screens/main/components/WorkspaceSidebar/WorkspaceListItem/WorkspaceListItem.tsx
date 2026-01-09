@@ -379,7 +379,10 @@ export function WorkspaceListItem({
 						value={rename.renameValue}
 						onChange={(e) => rename.setRenameValue(e.target.value)}
 						onBlur={rename.submitRename}
-						onKeyDown={rename.handleKeyDown}
+						onKeyDown={(e) => {
+							e.stopPropagation();
+							rename.handleKeyDown(e);
+						}}
 						onClick={(e) => e.stopPropagation()}
 						onMouseDown={(e) => e.stopPropagation()}
 						className="h-6 px-1 py-0 text-sm -ml-1"
