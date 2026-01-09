@@ -9,6 +9,7 @@ import { createExternalRouter } from "./external";
 import { createHotkeysRouter } from "./hotkeys";
 import { createMenuRouter } from "./menu";
 import { createNotificationsRouter } from "./notifications";
+import { createPlanRouter } from "./plan";
 import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
@@ -41,6 +42,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
 		tasks: createTasksRouter(),
+		plan: createPlanRouter(),
 	});
 };
 

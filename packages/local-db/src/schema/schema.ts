@@ -275,3 +275,188 @@ export const tasks = sqliteTable(
 
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
+
+// =============================================================================
+// Plan View tables - local-only tables for task orchestration
+// =============================================================================
+
+export type PlanStatus = "draft" | "running" | "paused" | "completed";
+export type PlanTaskStatus = "backlog" | "queued" | "running" | "completed" | "failed";
+export type ExecutionStatus =
+	| "pending"
+	| "initializing"
+	| "running"
+	| "paused"
+	| "completed"
+	| "failed";
+export type ExecutionLogType = "output" | "tool_use" | "error" | "progress";
+export type ChatRole = "user" | "assistant" | "system";
+
+/**
+ * Plans table - represents a plan (collection of tasks to orchestrate)
+ */
+export const plans = sqliteTable(
+	"plans",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		name: text("name").notNull().default("Plan"),
+		status: text("status").$type<PlanStatus>().default("draft"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("plans_project_id_idx").on(table.projectId),
+		index("plans_status_idx").on(table.status),
+	],
+);
+
+export type InsertPlan = typeof plans.$inferInsert;
+export type SelectPlan = typeof plans.$inferSelect;
+
+/**
+ * Plan Tasks table - individual tasks within a plan
+ */
+export const planTasks = sqliteTable(
+	"plan_tasks",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		planId: text("plan_id")
+			.notNull()
+			.references(() => plans.id, { onDelete: "cascade" }),
+		title: text("title").notNull(),
+		description: text("description"),
+		status: text("status").$type<PlanTaskStatus>().notNull().default("backlog"),
+		priority: text("priority").$type<TaskPriority>().default("medium"),
+		columnOrder: integer("column_order").notNull().default(0),
+
+		// Execution tracking
+		workspaceId: text("workspace_id").references(() => workspaces.id, {
+			onDelete: "set null",
+		}),
+		worktreeId: text("worktree_id").references(() => worktrees.id, {
+			onDelete: "set null",
+		}),
+		executionStatus: text("execution_status").$type<ExecutionStatus>(),
+		executionStartedAt: integer("execution_started_at"),
+		executionCompletedAt: integer("execution_completed_at"),
+		executionError: text("execution_error"),
+
+		// External sync (Linear)
+		externalProvider: text("external_provider").$type<IntegrationProvider>(),
+		externalId: text("external_id"),
+		externalUrl: text("external_url"),
+
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("plan_tasks_plan_id_idx").on(table.planId),
+		index("plan_tasks_status_idx").on(table.status),
+		index("plan_tasks_workspace_id_idx").on(table.workspaceId),
+		index("plan_tasks_external_id_idx").on(table.externalId),
+	],
+);
+
+export type InsertPlanTask = typeof planTasks.$inferInsert;
+export type SelectPlanTask = typeof planTasks.$inferSelect;
+
+/**
+ * Execution Logs table - streaming output from task execution
+ */
+export const executionLogs = sqliteTable(
+	"execution_logs",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		taskId: text("task_id")
+			.notNull()
+			.references(() => planTasks.id, { onDelete: "cascade" }),
+		type: text("type").$type<ExecutionLogType>().notNull(),
+		content: text("content").notNull(),
+		metadata: text("metadata", { mode: "json" }),
+		timestamp: integer("timestamp")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("execution_logs_task_id_idx").on(table.taskId),
+		index("execution_logs_timestamp_idx").on(table.timestamp),
+	],
+);
+
+export type InsertExecutionLog = typeof executionLogs.$inferInsert;
+export type SelectExecutionLog = typeof executionLogs.$inferSelect;
+
+/**
+ * Agent Memory table - shared context between agents for a project
+ */
+export const agentMemory = sqliteTable(
+	"agent_memory",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		key: text("key").notNull(),
+		value: text("value").notNull(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("agent_memory_project_id_idx").on(table.projectId),
+		index("agent_memory_key_idx").on(table.key),
+	],
+);
+
+export type InsertAgentMemory = typeof agentMemory.$inferInsert;
+export type SelectAgentMemory = typeof agentMemory.$inferSelect;
+
+/**
+ * Orchestration Messages table - chat history for orchestration
+ */
+export const orchestrationMessages = sqliteTable(
+	"orchestration_messages",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		role: text("role").$type<ChatRole>().notNull(),
+		content: text("content").notNull(),
+		toolCalls: text("tool_calls", { mode: "json" }),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		index("orchestration_messages_project_id_idx").on(table.projectId),
+		index("orchestration_messages_created_at_idx").on(table.createdAt),
+	],
+);
+
+export type InsertOrchestrationMessage = typeof orchestrationMessages.$inferInsert;
+export type SelectOrchestrationMessage = typeof orchestrationMessages.$inferSelect;

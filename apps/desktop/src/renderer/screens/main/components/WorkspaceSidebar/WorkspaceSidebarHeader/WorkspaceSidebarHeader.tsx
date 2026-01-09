@@ -2,6 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import {
+	LuClipboardList,
 	LuLayers,
 	LuPanelLeft,
 	LuPanelLeftClose,
@@ -11,6 +12,7 @@ import { useWorkspaceSidebarStore } from "renderer/stores";
 import {
 	useCloseWorkspacesList,
 	useCurrentView,
+	useOpenPlan,
 	useOpenWorkspacesList,
 } from "renderer/stores/app-state";
 import { STROKE_WIDTH, STROKE_WIDTH_THIN } from "../constants";
@@ -26,10 +28,12 @@ export function WorkspaceSidebarHeader({
 	const currentView = useCurrentView();
 	const openWorkspacesList = useOpenWorkspacesList();
 	const closeWorkspacesList = useCloseWorkspacesList();
+	const openPlan = useOpenPlan();
 	const { toggleCollapsed } = useWorkspaceSidebarStore();
 	const [isHovering, setIsHovering] = useState(false);
 
 	const isWorkspacesListOpen = currentView === "workspaces-list";
+	const isPlanOpen = currentView === "plan";
 
 	const handleClick = () => {
 		if (isWorkspacesListOpen) {
@@ -80,6 +84,25 @@ export function WorkspaceSidebarHeader({
 					<TooltipContent side="right">Toggle sidebar</TooltipContent>
 				</Tooltip>
 
+				{/* Plan button */}
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={openPlan}
+							className={cn(
+								"flex items-center justify-center size-8 rounded-md transition-colors",
+								isPlanOpen
+									? "text-foreground bg-accent"
+									: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+							)}
+						>
+							<LuClipboardList className="size-4" strokeWidth={STROKE_WIDTH} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Plan</TooltipContent>
+				</Tooltip>
+
 				{/* Workspaces button */}
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -128,6 +151,23 @@ export function WorkspaceSidebarHeader({
 				</TooltipTrigger>
 				<TooltipContent side="right">Toggle sidebar</TooltipContent>
 			</Tooltip>
+
+			{/* Plan button */}
+			<button
+				type="button"
+				onClick={openPlan}
+				className={cn(
+					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
+					isPlanOpen
+						? "text-foreground bg-accent"
+						: "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+				)}
+			>
+				<div className="flex items-center justify-center size-5">
+					<LuClipboardList className="size-4" strokeWidth={STROKE_WIDTH} />
+				</div>
+				<span className="text-sm font-medium flex-1 text-left">Plan</span>
+			</button>
 
 			{/* Workspaces button */}
 			<button
