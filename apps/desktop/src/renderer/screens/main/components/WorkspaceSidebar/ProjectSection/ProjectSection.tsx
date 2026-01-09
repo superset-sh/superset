@@ -124,7 +124,7 @@ export function ProjectSection({
 						transition={{ duration: 0.15, ease: "easeOut" }}
 						className="overflow-hidden"
 					>
-						<div className="pb-1">
+						<div className="pb-1.5 pt-0.5">
 							{workspaces.map((workspace, index) => (
 								<WorkspaceListItem
 									key={workspace.id}
