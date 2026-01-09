@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -113,6 +112,29 @@ export function WorkspaceListItem({
 		},
 	);
 
+	// Lazy-load local git changes on hover
+	const { data: localChanges } = trpc.changes.getStatus.useQuery(
+		{ worktreePath },
+		{
+			enabled: hasHovered && type === "worktree" && !!worktreePath,
+			staleTime: GITHUB_STATUS_STALE_TIME,
+		},
+	);
+
+	// Calculate total local changes (staged + unstaged + untracked)
+	const localDiffStats = useMemo(() => {
+		if (!localChanges) return null;
+		const allFiles = [
+			...localChanges.staged,
+			...localChanges.unstaged,
+			...localChanges.untracked,
+		];
+		const additions = allFiles.reduce((sum, f) => sum + (f.additions || 0), 0);
+		const deletions = allFiles.reduce((sum, f) => sum + (f.deletions || 0), 0);
+		if (additions === 0 && deletions === 0) return null;
+		return { additions, deletions };
+	}, [localChanges]);
+
 	// Memoize workspace pane IDs to avoid recalculating on every render
 	const workspacePaneIds = useMemo(() => {
 		const workspaceTabs = tabs.filter((t) => t.workspaceId === id);
@@ -190,7 +212,9 @@ export function WorkspaceListItem({
 	});
 
 	const pr = githubStatus?.pr;
-	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);
+	// Show diff stats from PR if available, otherwise from local changes
+	const diffStats = localDiffStats || (pr && (pr.additions > 0 || pr.deletions > 0) ? { additions: pr.additions, deletions: pr.deletions } : null);
+	const showDiffStats = !!diffStats;
 
 	// Determine if we should show the branch subtitle
 	const showBranchSubtitle =
@@ -291,165 +315,185 @@ export function WorkspaceListItem({
 	}
 
 	const content = (
-		// biome-ignore lint/a11y/useSemanticElements: Can't use <button> because this contains nested buttons (BranchSwitcher, close button)
-		<div
-			role="button"
-			tabIndex={0}
-			ref={(node) => {
-				drag(drop(node));
-			}}
-			onClick={handleClick}
-			onKeyDown={(e) => {
-				if (e.key === "Enter" || e.key === " ") {
-					e.preventDefault();
-					handleClick();
-				}
-			}}
-			onMouseEnter={handleMouseEnter}
-			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
-			className={cn(
-				"flex items-center w-full pl-3 pr-2 text-sm",
-				"hover:bg-muted/50 transition-colors text-left cursor-pointer",
-				"group relative",
-				showBranchSubtitle ? "py-1.5" : "py-2",
-				isActive && "bg-muted",
-				isDragging && "opacity-30",
-			)}
-			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
-		>
-			{/* Active indicator - left border */}
-			{isActive && (
-				<div className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-primary rounded-r" />
-			)}
+		<div className="px-2 py-0.5">
+			{/* biome-ignore lint/a11y/useSemanticElements: Can't use <button> because this contains nested buttons (BranchSwitcher, close button) */}
+			<div
+				role="button"
+				tabIndex={0}
+				ref={(node) => {
+					drag(drop(node));
+				}}
+				onClick={handleClick}
+				onKeyDown={(e) => {
+					if (e.key === "Enter" || e.key === " ") {
+						e.preventDefault();
+						handleClick();
+					}
+				}}
+				onMouseEnter={handleMouseEnter}
+				onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
+				className={cn(
+					"flex items-start w-full px-2.5 text-sm rounded-lg",
+					"transition-all duration-150 text-left cursor-pointer",
+					"group relative",
+					showBranchSubtitle ? "py-2" : "py-2.5",
+					isActive ? "bg-muted" : "hover:bg-muted/60",
+					isDragging && "opacity-30",
+				)}
+				style={{ cursor: isDragging ? "grabbing" : "pointer" }}
+			>
+				{/* Active indicator - left accent */}
+				{isActive && (
+					<div className="absolute left-0 top-2 bottom-2 w-[3px] bg-primary rounded-full" />
+				)}
 
-			{/* Icon with status indicator */}
-			<Tooltip delayDuration={500}>
-				<TooltipTrigger asChild>
-					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
-						{workspaceStatus === "working" ? (
-							<AsciiSpinner className="text-base" />
-						) : isBranchWorkspace ? (
-							<LuFolder
-								className="size-4 text-muted-foreground"
-								strokeWidth={STROKE_WIDTH}
-							/>
-						) : (
-							<LuFolderGit2
-								className="size-4 text-muted-foreground"
-								strokeWidth={STROKE_WIDTH}
-							/>
-						)}
-						{workspaceStatus && workspaceStatus !== "working" && (
-							<span className="absolute -top-0.5 -right-0.5">
-								<StatusIndicator status={workspaceStatus} />
-							</span>
-						)}
-						{isUnread && !workspaceStatus && (
-							<span className="absolute -top-0.5 -right-0.5 flex size-2">
-								<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
-							</span>
-						)}
-					</div>
-				</TooltipTrigger>
-				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
-						<>
-							<p className="text-xs font-medium">Local workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Changes are made directly in the main repository
-							</p>
-						</>
-					) : (
-						<>
-							<p className="text-xs font-medium">Worktree workspace</p>
-							<p className="text-xs text-muted-foreground">
-								Isolated copy for parallel development
-							</p>
-						</>
-					)}
-				</TooltipContent>
-			</Tooltip>
-
-			{/* Workspace name and optional branch */}
-			<div className="flex-1 min-w-0 mr-2">
-				{rename.isRenaming ? (
-					<Input
-						ref={rename.inputRef}
-						variant="ghost"
-						value={rename.renameValue}
-						onChange={(e) => rename.setRenameValue(e.target.value)}
-						onBlur={rename.submitRename}
-						onKeyDown={rename.handleKeyDown}
-						onClick={(e) => e.stopPropagation()}
-						onMouseDown={(e) => e.stopPropagation()}
-						className="h-6 px-1 py-0 text-sm -ml-1"
-					/>
-				) : (
-					<div className="flex flex-col justify-center">
-						<div className="flex items-center gap-1.5">
-							<span
-								className={cn(
-									"truncate text-[13px] leading-tight",
-									isActive
-										? "text-foreground font-medium"
-										: "text-muted-foreground",
-								)}
-							>
-								{name || branch}
-							</span>
-							{pr && (
-								<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} />
+				{/* Icon with status indicator */}
+				<Tooltip delayDuration={500}>
+					<TooltipTrigger asChild>
+						<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5 mt-0.5">
+							{workspaceStatus === "working" ? (
+								<AsciiSpinner className="text-base" />
+							) : isBranchWorkspace ? (
+								<LuFolder
+									className={cn(
+										"size-4 transition-colors",
+										isActive ? "text-foreground" : "text-muted-foreground",
+									)}
+									strokeWidth={STROKE_WIDTH}
+								/>
+							) : (
+								<LuFolderGit2
+									className={cn(
+										"size-4 transition-colors",
+										isActive ? "text-foreground" : "text-muted-foreground",
+									)}
+									strokeWidth={STROKE_WIDTH}
+								/>
+							)}
+							{workspaceStatus && workspaceStatus !== "working" && (
+								<span className="absolute -top-0.5 -right-0.5">
+									<StatusIndicator status={workspaceStatus} />
+								</span>
+							)}
+							{isUnread && !workspaceStatus && (
+								<span className="absolute -top-0.5 -right-0.5 flex size-2">
+									<span className="relative inline-flex size-2 rounded-full bg-blue-500" />
+								</span>
 							)}
 						</div>
-						{showBranchSubtitle && (
-							<span className="text-[11px] text-muted-foreground/70 truncate font-mono leading-tight mt-0.5">
-								{branch}
-							</span>
+					</TooltipTrigger>
+					<TooltipContent side="right" sideOffset={8}>
+						{isBranchWorkspace ? (
+							<>
+								<p className="text-xs font-medium">Local workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Changes are made directly in the main repository
+								</p>
+							</>
+						) : (
+							<>
+								<p className="text-xs font-medium">Worktree workspace</p>
+								<p className="text-xs text-muted-foreground">
+									Isolated copy for parallel development
+								</p>
+							</>
 						)}
-					</div>
-				)}
-			</div>
+					</TooltipContent>
+				</Tooltip>
 
-			{/* Right side actions */}
-			<div className="flex items-center gap-1 shrink-0">
-				{/* Diff stats - always visible when available */}
-				{showDiffStats && (
-					<WorkspaceDiffStats
-						additions={pr.additions}
-						deletions={pr.deletions}
-					/>
-				)}
+				{/* Content area */}
+				<div className="flex-1 min-w-0">
+					{rename.isRenaming ? (
+						<Input
+							ref={rename.inputRef}
+							variant="ghost"
+							value={rename.renameValue}
+							onChange={(e) => rename.setRenameValue(e.target.value)}
+							onBlur={rename.submitRename}
+							onKeyDown={rename.handleKeyDown}
+							onClick={(e) => e.stopPropagation()}
+							onMouseDown={(e) => e.stopPropagation()}
+							className="h-6 px-1 py-0 text-sm -ml-1"
+						/>
+					) : (
+						<div className="flex flex-col gap-0.5">
+							{/* Row 1: Title + actions */}
+							<div className="flex items-center gap-1.5">
+								<span
+									className={cn(
+										"truncate text-[13px] leading-tight transition-colors flex-1",
+										isActive
+											? "text-foreground font-medium"
+											: "text-foreground/80",
+									)}
+								>
+									{name || branch}
+								</span>
 
-				{/* Keyboard shortcut - visible on hover */}
-				{shortcutIndex !== undefined &&
-					shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
-						<span className="text-[10px] text-muted-foreground/60 opacity-0 group-hover:opacity-100 transition-opacity font-mono px-1">
-							⌘{shortcutIndex + 1}
-						</span>
+								{/* Keyboard shortcut */}
+								{shortcutIndex !== undefined &&
+									shortcutIndex < MAX_KEYBOARD_SHORTCUT_INDEX && (
+										<span className="text-[10px] text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity font-mono tabular-nums shrink-0">
+											⌘{shortcutIndex + 1}
+										</span>
+									)}
+
+								{/* Branch switcher for branch workspaces */}
+								{isBranchWorkspace && (
+									<BranchSwitcher projectId={projectId} currentBranch={branch} />
+								)}
+
+								{/* Diff stats (transforms to X on hover) or close button for worktree workspaces */}
+								{!isBranchWorkspace && (
+									showDiffStats && diffStats ? (
+										<WorkspaceDiffStats
+											additions={diffStats.additions}
+											deletions={diffStats.deletions}
+											isActive={isActive}
+											onClose={(e) => {
+												e.stopPropagation();
+												handleDeleteClick();
+											}}
+										/>
+									) : (
+										<Tooltip delayDuration={300}>
+											<TooltipTrigger asChild>
+												<button
+													type="button"
+													onClick={(e) => {
+														e.stopPropagation();
+														handleDeleteClick();
+													}}
+													className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-muted-foreground hover:text-foreground"
+													aria-label="Close workspace"
+												>
+													<HiMiniXMark className="size-3.5" />
+												</button>
+											</TooltipTrigger>
+											<TooltipContent side="top" sideOffset={4}>
+												Close workspace
+											</TooltipContent>
+										</Tooltip>
+									)
+								)}
+							</div>
+
+							{/* Row 2: Git info (branch + PR badge) */}
+							{(showBranchSubtitle || pr) && (
+								<div className="flex items-center gap-2 text-[11px]">
+									{showBranchSubtitle && (
+										<span className="text-muted-foreground/60 truncate font-mono leading-tight">
+											{branch}
+										</span>
+									)}
+									{pr && (
+										<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} />
+									)}
+								</div>
+							)}
+						</div>
 					)}
-
-				{/* Branch switcher for branch workspaces - at the end */}
-				{isBranchWorkspace && (
-					<BranchSwitcher projectId={projectId} currentBranch={branch} />
-				)}
-
-				{/* Close button for worktree workspaces */}
-				{!isBranchWorkspace && (
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon"
-						onClick={handleDeleteClick}
-						className={cn(
-							"size-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-sm",
-							"hover:bg-muted-foreground/10",
-							isActive && "opacity-60",
-						)}
-						aria-label="Close or delete workspace"
-					>
-						<HiMiniXMark className="size-3.5 text-muted-foreground" />
-					</Button>
-				)}
+				</div>
 			</div>
 		</div>
 	);
