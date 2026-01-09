@@ -238,7 +238,7 @@ export function ProjectHeader({
 						<HiChevronRight
 							className={cn(
 								"size-3.5 text-muted-foreground transition-transform duration-150",
-								isCollapsed ? "rotate-180" : "rotate-90",
+								!isCollapsed && "rotate-90",
 							)}
 						/>
 					</button>
