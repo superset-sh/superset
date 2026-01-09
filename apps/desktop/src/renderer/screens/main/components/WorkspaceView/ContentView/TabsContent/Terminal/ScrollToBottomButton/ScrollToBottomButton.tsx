@@ -1,0 +1,75 @@
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
+import type { Terminal } from "@xterm/xterm";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { HiChevronDown } from "react-icons/hi2";
+import { useHotkeyText } from "renderer/stores/hotkeys";
+
+interface ScrollToBottomButtonProps {
+	terminal: Terminal | null;
+}
+
+export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
+	const [isVisible, setIsVisible] = useState(false);
+	const shortcutText = useHotkeyText("SCROLL_TO_BOTTOM");
+	const showShortcut = shortcutText !== "Unassigned";
+	const viewportRef = useRef<Element | null>(null);
+
+	const checkScrollPosition = useCallback(() => {
+		if (!terminal) return;
+		const buffer = terminal.buffer.active;
+		const isAtBottom = buffer.viewportY >= buffer.baseY;
+		setIsVisible(!isAtBottom);
+	}, [terminal]);
+
+	useEffect(() => {
+		if (!terminal) return;
+
+		checkScrollPosition();
+
+		const writeDisposable = terminal.onWriteParsed(checkScrollPosition);
+		const viewport = terminal.element?.querySelector(".xterm-viewport");
+		viewportRef.current = viewport ?? null;
+
+		if (viewport) {
+			viewport.addEventListener("scroll", checkScrollPosition);
+		}
+
+		return () => {
+			writeDisposable.dispose();
+			if (viewportRef.current) {
+				viewportRef.current.removeEventListener("scroll", checkScrollPosition);
+			}
+		};
+	}, [terminal, checkScrollPosition]);
+
+	const handleClick = () => {
+		terminal?.scrollToBottom();
+	};
+
+	return (
+		<div
+			className={cn(
+				"absolute bottom-4 right-4 z-10 transition-all duration-200",
+				isVisible
+					? "translate-y-0 opacity-100"
+					: "pointer-events-none translate-y-2 opacity-0",
+			)}
+		>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<button
+						type="button"
+						onClick={handleClick}
+						className="flex size-8 items-center justify-center rounded-full bg-popover/90 text-muted-foreground shadow-lg ring-1 ring-border/40 backdrop-blur transition-colors hover:bg-popover hover:text-foreground"
+					>
+						<HiChevronDown className="size-4" />
+					</button>
+				</TooltipTrigger>
+				<TooltipContent side="left">
+					Scroll to bottom{showShortcut && ` (${shortcutText})`}
+				</TooltipContent>
+			</Tooltip>
+		</div>
+	);
+}

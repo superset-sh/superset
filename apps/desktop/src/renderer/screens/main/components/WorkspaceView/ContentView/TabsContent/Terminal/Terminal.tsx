@@ -22,6 +22,7 @@ import {
 	setupResizeHandlers,
 } from "./helpers";
 import { parseCwd } from "./parseCwd";
+import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import { shellEscapePaths } from "./utils";
@@ -43,6 +44,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -331,6 +333,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+		setXtermInstance(xterm);
 
 		if (isFocusedRef.current) {
 			xterm.focus();
@@ -562,6 +565,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
+			setXtermInstance(null);
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 
@@ -606,6 +610,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
+			<ScrollToBottomButton terminal={xtermInstance} />
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);
