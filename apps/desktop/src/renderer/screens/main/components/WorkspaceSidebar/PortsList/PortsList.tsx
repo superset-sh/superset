@@ -157,44 +157,39 @@ export function PortsList() {
 
 	return (
 		<div className="mt-3 pt-3 border-t border-border/40">
-			<button
-				type="button"
-				aria-expanded={!isCollapsed}
-				onClick={toggleCollapsed}
-				className="group text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground focus-visible:text-muted-foreground focus-visible:outline-none transition-colors"
-			>
-				<LuChevronRight
-					className={`size-3 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
-					strokeWidth={STROKE_WIDTH}
-				/>
-				<LuRadioTower className="size-3" strokeWidth={STROKE_WIDTH} />
-				Ports
-				<span className="text-[10px] ml-auto font-normal">
-					{totalPortCount}
-				</span>
+			<div className="group text-[11px] uppercase tracking-wider text-muted-foreground/70 px-3 pb-2 font-medium flex items-center gap-1.5 w-full hover:text-muted-foreground transition-colors">
+				<button
+					type="button"
+					aria-expanded={!isCollapsed}
+					onClick={toggleCollapsed}
+					className="flex items-center gap-1.5 focus-visible:text-muted-foreground focus-visible:outline-none"
+				>
+					<LuChevronRight
+						className={`size-3 transition-transform ${isCollapsed ? "" : "rotate-90"}`}
+						strokeWidth={STROKE_WIDTH}
+					/>
+					<LuRadioTower className="size-3" strokeWidth={STROKE_WIDTH} />
+					Ports
+				</button>
+
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
-						<span
-							role="button"
-							tabIndex={0}
+						<button
+							type="button"
 							onClick={handleOpenPortsDocs}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									handleOpenPortsDocs(e as unknown as React.MouseEvent);
-								}
-							}}
-							className="p-0.5 rounded hover:bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity"
+							className="ml-auto p-0.5 rounded hover:bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity"
 						>
 							<LuCircleHelp className="size-3" strokeWidth={STROKE_WIDTH} />
-						</span>
+						</button>
 					</TooltipTrigger>
 					<TooltipContent side="top" sideOffset={4}>
 						<p className="text-xs">Learn about static port configuration</p>
 					</TooltipContent>
 				</Tooltip>
-			</button>
+				<span className="text-[10px] font-normal">{totalPortCount}</span>
+			</div>
 			{!isCollapsed && (
-				<div className="space-y-2 max-h-72 overflow-y-auto">
+				<div className="space-y-2 max-h-72 overflow-y-auto pb-1 hide-scrollbar">
 					{workspacePortGroups.map((group) => (
 						<MergedWorkspacePortGroup key={group.workspaceId} group={group} />
 					))}
