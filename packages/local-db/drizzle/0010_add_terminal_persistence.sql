@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `terminal_persistence` integer;

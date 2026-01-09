@@ -4,12 +4,18 @@ import { projects, workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import { terminalManager } from "main/lib/terminal";
+import {
+	DaemonTerminalManager,
+	getActiveTerminalManager,
+} from "main/lib/terminal";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 import { resolveCwd } from "./utils";
+
+const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
+let createOrAttachCallCounter = 0;
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -26,6 +32,15 @@ import { resolveCwd } from "./utils";
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
+	// Get the active terminal manager (in-process or daemon-based)
+	const terminalManager = getActiveTerminalManager();
+	if (DEBUG_TERMINAL) {
+		console.log(
+			"[Terminal Router] Using terminal manager:",
+			terminalManager.constructor.name,
+		);
+	}
+
 	return router({
 		createOrAttach: publicProcedure
 			.input(
@@ -37,9 +52,12 @@ export const createTerminalRouter = () => {
 					rows: z.number().optional(),
 					cwd: z.string().optional(),
 					initialCommands: z.array(z.string()).optional(),
+					skipColdRestore: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const callId = ++createOrAttachCallCounter;
+				const startedAt = Date.now();
 				const {
 					paneId,
 					tabId,
@@ -48,6 +66,7 @@ export const createTerminalRouter = () => {
 					rows,
 					cwd: cwdOverride,
 					initialCommands,
+					skipColdRestore,
 				} = input;
 
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
@@ -59,15 +78,22 @@ export const createTerminalRouter = () => {
 				const workspacePath = workspace
 					? (getWorkspacePath(workspace) ?? undefined)
 					: undefined;
-
-				// Guard: For worktree workspaces, ensure the workspace is ready
-				// (not still initializing or failed). Branch workspaces use the main
-				// repo path which always exists, so no guard needed.
 				if (workspace?.type === "worktree") {
 					assertWorkspaceUsable(workspaceId, workspacePath);
 				}
-
 				const cwd = resolveCwd(cwdOverride, workspacePath);
+
+				if (DEBUG_TERMINAL) {
+					console.log("[Terminal Router] createOrAttach called:", {
+						paneId,
+						workspaceId,
+						workspacePath,
+						cwdOverride,
+						resolvedCwd: cwd,
+						cols,
+						rows,
+					});
+				}
 
 				// Get project info for environment variables
 				const project = workspace
@@ -78,25 +104,54 @@ export const createTerminalRouter = () => {
 							.get()
 					: undefined;
 
-				const result = await terminalManager.createOrAttach({
-					paneId,
-					tabId,
-					workspaceId,
-					workspaceName: workspace?.name,
-					workspacePath,
-					rootPath: project?.mainRepoPath,
-					cwd,
-					cols,
-					rows,
-					initialCommands,
-				});
+				try {
+					const result = await terminalManager.createOrAttach({
+						paneId,
+						tabId,
+						workspaceId,
+						workspaceName: workspace?.name,
+						workspacePath,
+						rootPath: project?.mainRepoPath,
+						cwd,
+						cols,
+						rows,
+						initialCommands,
+						skipColdRestore,
+					});
 
-				return {
-					paneId,
-					isNew: result.isNew,
-					scrollback: result.scrollback,
-					wasRecovered: result.wasRecovered,
-				};
+					if (DEBUG_TERMINAL) {
+						console.log("[Terminal Router] createOrAttach result:", {
+							callId,
+							paneId,
+							isNew: result.isNew,
+							wasRecovered: result.wasRecovered,
+							durationMs: Date.now() - startedAt,
+						});
+					}
+
+					return {
+						paneId,
+						isNew: result.isNew,
+						scrollback: result.scrollback,
+						wasRecovered: result.wasRecovered,
+						// Cold restore fields (for reboot recovery)
+						isColdRestore: result.isColdRestore,
+						previousCwd: result.previousCwd,
+						// Include snapshot for daemon mode (renderer can use for rehydration)
+						snapshot: result.snapshot,
+					};
+				} catch (error) {
+					if (DEBUG_TERMINAL) {
+						console.warn("[Terminal Router] createOrAttach failed:", {
+							callId,
+							paneId,
+							durationMs: Date.now() - startedAt,
+							error: error instanceof Error ? error.message : String(error),
+						});
+					}
+					console.error("[Terminal Router] createOrAttach ERROR:", error);
+					throw error;
+				}
 			}),
 
 		write: publicProcedure
@@ -107,7 +162,35 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.write(input);
+				try {
+					terminalManager.write(input);
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Write failed";
+
+					// If session is gone, emit exit instead of error.
+					// This prevents error toast floods when workspaces with terminals are deleted.
+					if (message.includes("not found or not alive")) {
+						// SIGTERM (15) - synthetic signal for consistent event typing.
+						terminalManager.emit(`exit:${input.paneId}`, 0, 15);
+						return;
+					}
+
+					terminalManager.emit(`error:${input.paneId}`, {
+						error: message,
+						code: "WRITE_FAILED",
+					});
+				}
+			}),
+
+		/**
+		 * Acknowledge cold restore - clears the sticky cold restore info.
+		 * Call this after displaying the cold restore UI and starting a new shell.
+		 */
+		ackColdRestore: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.mutation(({ input }) => {
+				terminalManager.ackColdRestore(input.paneId);
 			}),
 
 		resize: publicProcedure
@@ -171,6 +254,54 @@ export const createTerminalRouter = () => {
 				await terminalManager.clearScrollback(input);
 			}),
 
+		listDaemonSessions: publicProcedure.query(async () => {
+			if (!(terminalManager instanceof DaemonTerminalManager)) {
+				return { daemonModeEnabled: false, sessions: [] };
+			}
+
+			const response = await terminalManager.listDaemonSessions();
+			return { daemonModeEnabled: true, sessions: response.sessions };
+		}),
+
+		killAllDaemonSessions: publicProcedure.mutation(async () => {
+			if (!(terminalManager instanceof DaemonTerminalManager)) {
+				return { daemonModeEnabled: false, killedCount: 0 };
+			}
+
+			const { sessions } = await terminalManager.listDaemonSessions();
+			await terminalManager.forceKillAll();
+			return { daemonModeEnabled: true, killedCount: sessions.length };
+		}),
+
+		killDaemonSessionsForWorkspace: publicProcedure
+			.input(z.object({ workspaceId: z.string() }))
+			.mutation(async ({ input }) => {
+				if (!(terminalManager instanceof DaemonTerminalManager)) {
+					return { daemonModeEnabled: false, killedCount: 0 };
+				}
+
+				const { sessions } = await terminalManager.listDaemonSessions();
+				const toKill = sessions.filter(
+					(session) => session.workspaceId === input.workspaceId,
+				);
+
+				for (const session of toKill) {
+					await terminalManager.kill({ paneId: session.sessionId });
+				}
+
+				return { daemonModeEnabled: true, killedCount: toKill.length };
+			}),
+
+		clearTerminalHistory: publicProcedure.mutation(async () => {
+			// Note: Disk-based terminal history was removed. This is now a no-op
+			// for non-daemon mode. In daemon mode, it resets the history persistence.
+			if (terminalManager instanceof DaemonTerminalManager) {
+				await terminalManager.resetHistoryPersistence();
+			}
+
+			return { success: true };
+		}),
+
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: paneId }) => {
@@ -190,11 +321,11 @@ export const createTerminalRouter = () => {
 					.where(eq(workspaces.id, workspaceId))
 					.get();
 				if (!workspace) {
-					return undefined;
+					return null;
 				}
 
 				if (!workspace.worktreeId) {
-					return undefined;
+					return null;
 				}
 
 				const worktree = localDb
@@ -202,7 +333,7 @@ export const createTerminalRouter = () => {
 					.from(worktrees)
 					.where(eq(worktrees.id, workspace.worktreeId))
 					.get();
-				return worktree?.path;
+				return worktree?.path ?? null;
 			}),
 
 		/**
@@ -260,23 +391,60 @@ export const createTerminalRouter = () => {
 				return observable<
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
+					| { type: "disconnect"; reason: string }
+					| { type: "error"; error: string; code?: string }
 				>((emit) => {
+					if (DEBUG_TERMINAL) {
+						console.log(`[Terminal Stream] Subscribe: ${paneId}`);
+					}
+
+					let firstDataReceived = false;
+
 					const onData = (data: string) => {
+						if (DEBUG_TERMINAL && !firstDataReceived) {
+							firstDataReceived = true;
+							console.log(
+								`[Terminal Stream] First data for ${paneId}: ${data.length} bytes`,
+							);
+						}
 						emit.next({ type: "data", data });
 					};
 
 					const onExit = (exitCode: number, signal?: number) => {
+						// IMPORTANT: Do not `emit.complete()` on exit.
+						// The renderer uses a stable `paneId` input and `@trpc/react-query`
+						// won't auto-resubscribe after completion unless the subscription key changes.
+						// We reuse the same paneId across restarts/cold restore, so completing here
+						// would strand the pane with no listeners (terminal output never renders again).
 						emit.next({ type: "exit", exitCode, signal });
-						emit.complete();
+					};
+
+					const onDisconnect = (reason: string) => {
+						emit.next({ type: "disconnect", reason });
+					};
+
+					const onError = (payload: { error: string; code?: string }) => {
+						emit.next({
+							type: "error",
+							error: payload.error,
+							code: payload.code,
+						});
 					};
 
 					terminalManager.on(`data:${paneId}`, onData);
 					terminalManager.on(`exit:${paneId}`, onExit);
+					terminalManager.on(`disconnect:${paneId}`, onDisconnect);
+					terminalManager.on(`error:${paneId}`, onError);
 
 					// Cleanup on unsubscribe
 					return () => {
+						if (DEBUG_TERMINAL) {
+							console.log(`[Terminal Stream] Unsubscribe: ${paneId}`);
+						}
 						terminalManager.off(`data:${paneId}`, onData);
 						terminalManager.off(`exit:${paneId}`, onExit);
+						terminalManager.off(`disconnect:${paneId}`, onDisconnect);
+						terminalManager.off(`error:${paneId}`, onError);
 					};
 				});
 			}),

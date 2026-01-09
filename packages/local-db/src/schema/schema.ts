@@ -120,6 +120,16 @@ export const workspaces = sqliteTable(
 export type InsertWorkspace = typeof workspaces.$inferInsert;
 export type SelectWorkspace = typeof workspaces.$inferSelect;
 
+/**
+ * Navigation style for workspace display
+ */
+export type NavigationStyle = "top-bar" | "sidebar";
+
+/**
+ * Position for group tabs display
+ */
+export type GroupTabsPosition = "sidebar" | "content-header";
+
 export const settings = sqliteTable("settings", {
 	id: integer("id").primaryKey().default(1),
 	lastActiveWorkspaceId: text("last_active_workspace_id"),
@@ -136,6 +146,9 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	navigationStyle: text("navigation_style").$type<NavigationStyle>(),
+	groupTabsPosition: text("group_tabs_position").$type<GroupTabsPosition>(),
+	terminalPersistence: integer("terminal_persistence", { mode: "boolean" }),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

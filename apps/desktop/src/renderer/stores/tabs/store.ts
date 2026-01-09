@@ -1,8 +1,8 @@
 import type { MosaicNode } from "react-mosaic-component";
 import { updateTree } from "react-mosaic-component";
+import { trpcTabsStorage } from "renderer/lib/trpc-storage";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { trpcTabsStorage } from "../../lib/trpc-storage";
 import { movePaneToNewTab, movePaneToTab } from "./actions/move-pane";
 import type { AddFileViewerPaneOptions, TabsState, TabsStore } from "./types";
 import {

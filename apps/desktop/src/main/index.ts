@@ -13,7 +13,11 @@ import { initAppState } from "./lib/app-state";
 import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { terminalManager } from "./lib/terminal";
+import {
+	getActiveTerminalManager,
+	reconcileDaemonSessions,
+	shutdownOrphanedDaemon,
+} from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -168,7 +172,10 @@ app.on("before-quit", async (event) => {
 	quitState = "cleaning";
 
 	try {
-		await Promise.all([terminalManager.cleanup(), posthog?.shutdown()]);
+		await Promise.all([
+			getActiveTerminalManager().cleanup(),
+			posthog?.shutdown(),
+		]);
 	} finally {
 		quitState = "ready-to-quit";
 		app.quit();
@@ -205,6 +212,15 @@ if (!gotTheLock) {
 		await app.whenReady();
 
 		await initAppState();
+
+		// Clean up stale daemon sessions from previous app runs
+		// Must happen BEFORE renderer restore runs
+		await reconcileDaemonSessions();
+
+		// Shutdown orphaned daemon if persistence is disabled
+		// (cleans up daemon left from previous session with persistence enabled)
+		await shutdownOrphanedDaemon();
+
 		await authService.initialize();
 
 		try {

@@ -283,6 +283,13 @@ export function useHotkeysSync() {
 			trpcClient.uiState.hotkeys.get
 				.query()
 				.then((state: HotkeysState) => {
+					// Guard against null/undefined state from storage
+					if (!state) {
+						console.warn(
+							"[hotkeys] Storage returned null/undefined state, skipping sync",
+						);
+						return;
+					}
 					const current = useHotkeysStore.getState().hotkeysState;
 					// Use structural comparison that's order-independent
 					const currentStr = JSON.stringify(

@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { chmodSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
 
@@ -7,14 +7,15 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { app } from "electron";
 import { env } from "../../env.main";
-import { SUPERSET_HOME_DIR } from "../app-environment";
+import {
+	ensureSupersetHomeDirExists,
+	SUPERSET_HOME_DIR,
+	SUPERSET_SENSITIVE_FILE_MODE,
+} from "../app-environment";
 
 const DB_PATH = join(SUPERSET_HOME_DIR, "local.db");
 
-function ensureAppHomeDirExists() {
-	mkdirSync(SUPERSET_HOME_DIR, { recursive: true });
-}
-ensureAppHomeDirExists();
+ensureSupersetHomeDirExists();
 
 /**
  * Gets the migrations directory path.
@@ -73,6 +74,11 @@ function getMigrationsDirectory(): string {
 const migrationsFolder = getMigrationsDirectory();
 
 const sqlite = new Database(DB_PATH);
+try {
+	chmodSync(DB_PATH, SUPERSET_SENSITIVE_FILE_MODE);
+} catch {
+	// Best-effort; directory permissions should still protect the DB.
+}
 sqlite.pragma("journal_mode = WAL");
 sqlite.pragma("foreign_keys = OFF");
 

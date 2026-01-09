@@ -59,6 +59,10 @@ export default defineConfig({
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
+					// Terminal host daemon process - runs separately for terminal persistence
+					"terminal-host": resolve("src/main/terminal-host/index.ts"),
+					// PTY subprocess - spawned by terminal-host for each terminal
+					"pty-subprocess": resolve("src/main/terminal-host/pty-subprocess.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),

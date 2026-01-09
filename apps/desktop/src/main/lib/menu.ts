@@ -1,8 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
-import { app, Menu, shell } from "electron";
+import { app, BrowserWindow, Menu, shell } from "electron";
 import { env } from "main/env.main";
 import { appState } from "main/lib/app-state";
 import { hotkeysEmitter } from "main/lib/hotkeys-events";
+import { resetTerminalStateDev } from "main/lib/terminal/dev-reset";
 import {
 	getCurrentPlatform,
 	getEffectiveHotkey,
@@ -113,6 +114,21 @@ export function createApplicationMenu() {
 		template.push({
 			label: "Dev",
 			submenu: [
+				{
+					label: "Reset Terminal State",
+					click: () => {
+						resetTerminalStateDev()
+							.then(() => {
+								for (const window of BrowserWindow.getAllWindows()) {
+									window.reload();
+								}
+							})
+							.catch((error) => {
+								console.error("[menu] Failed to reset terminal state:", error);
+							});
+					},
+				},
+				{ type: "separator" },
 				{
 					label: "Simulate Update Downloading",
 					click: () => simulateDownloading(),

@@ -15,7 +15,7 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  * - Start → "working" (amber pulsing indicator)
  * - Stop → "review" (green static) if pane not active, "idle" if active
  * - PermissionRequest → "permission" (red pulsing indicator)
- * - Terminal Exit → "idle" (handled in Terminal.tsx, clears stuck indicators)
+ * - Terminal Exit → "idle" (handled in Terminal.tsx when mounted; also forwarded via notifications for unmounted panes)
  *
  * KNOWN LIMITATIONS (External - Claude Code / OpenCode hook systems):
  *
@@ -95,6 +95,17 @@ export function useAgentHookListener() {
 						// User not watching - mark for review
 						state.setPaneStatus(paneId, "review");
 					}
+				}
+			} else if (event.type === NOTIFICATION_EVENTS.TERMINAL_EXIT) {
+				// Correctness-only: clear transient status if the underlying process exited
+				// while the terminal pane was not mounted (no per-pane stream subscription).
+				if (!paneId) return;
+				const currentPane = state.panes[paneId];
+				if (
+					currentPane?.status === "working" ||
+					currentPane?.status === "permission"
+				) {
+					state.setPaneStatus(paneId, "idle");
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
 				const appState = useAppStore.getState();

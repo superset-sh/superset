@@ -61,35 +61,87 @@ export function getDefaultTerminalBg(): string {
  * Load GPU-accelerated renderer with automatic fallback.
  * Tries WebGL first, falls back to Canvas if WebGL fails.
  */
-function loadRenderer(xterm: XTerm): { dispose: () => void } {
+export type TerminalRenderer = {
+	kind: "webgl" | "canvas" | "dom";
+	dispose: () => void;
+	clearTextureAtlas?: () => void;
+};
+
+type PreferredRenderer = TerminalRenderer["kind"] | "auto";
+
+function getPreferredRenderer(): PreferredRenderer {
+	try {
+		const stored = localStorage.getItem("terminal-renderer");
+		if (stored === "webgl" || stored === "canvas" || stored === "dom") {
+			return stored;
+		}
+	} catch {
+		// ignore
+	}
+
+	// Default: avoid xterm-webgl on macOS. We've seen repeated corruption/glitching
+	// when terminals are hidden/shown or switched between panes.
+	return navigator.userAgent.includes("Macintosh") ? "canvas" : "webgl";
+}
+
+function loadRenderer(xterm: XTerm): TerminalRenderer {
 	let renderer: WebglAddon | CanvasAddon | null = null;
+	let webglAddon: WebglAddon | null = null;
+	let kind: TerminalRenderer["kind"] = "dom";
+
+	const preferred = getPreferredRenderer();
+
+	if (preferred === "dom") {
+		return { kind: "dom", dispose: () => {}, clearTextureAtlas: undefined };
+	}
+
+	const tryLoadCanvas = () => {
+		try {
+			renderer = new CanvasAddon();
+			xterm.loadAddon(renderer);
+			kind = "canvas";
+		} catch {
+			// Canvas fallback failed, use default renderer
+		}
+	};
+
+	if (preferred === "canvas") {
+		tryLoadCanvas();
+		return {
+			kind,
+			dispose: () => renderer?.dispose(),
+			clearTextureAtlas: undefined,
+		};
+	}
 
 	try {
-		const webglAddon = new WebglAddon();
+		webglAddon = new WebglAddon();
 
 		webglAddon.onContextLoss(() => {
-			webglAddon.dispose();
-			try {
-				renderer = new CanvasAddon();
-				xterm.loadAddon(renderer);
-			} catch {
-				// Canvas fallback failed, use default renderer
-			}
+			webglAddon?.dispose();
+			webglAddon = null;
+			tryLoadCanvas();
 		});
 
 		xterm.loadAddon(webglAddon);
 		renderer = webglAddon;
+		kind = "webgl";
 	} catch {
-		try {
-			renderer = new CanvasAddon();
-			xterm.loadAddon(renderer);
-		} catch {
-			// Both renderers failed, use default
-		}
+		tryLoadCanvas();
 	}
 
 	return {
+		kind,
 		dispose: () => renderer?.dispose(),
+		clearTextureAtlas: webglAddon
+			? () => {
+					try {
+						webglAddon?.clearTextureAtlas();
+					} catch (error) {
+						console.warn("[Terminal] WebGL clearTextureAtlas() failed:", error);
+					}
+				}
+			: undefined,
 	};
 }
 
@@ -99,12 +151,21 @@ export interface CreateTerminalOptions {
 	onFileLinkClick?: (path: string, line?: number, column?: number) => void;
 }
 
+/**
+ * Mutable reference to the terminal renderer.
+ * Used because the GPU renderer is loaded asynchronously after the terminal is created.
+ */
+export interface TerminalRendererRef {
+	current: TerminalRenderer;
+}
+
 export function createTerminalInstance(
 	container: HTMLDivElement,
 	options: CreateTerminalOptions = {},
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	renderer: TerminalRendererRef;
 	cleanup: () => void;
 } {
 	const { cwd, initialTheme, onFileLinkClick } = options;
@@ -119,17 +180,44 @@ export function createTerminalInstance(
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
+	// Track cleanup state to prevent operations on disposed terminal
+	let isDisposed = false;
+	let rafId: number | null = null;
+
+	// Use a ref pattern so the renderer can be updated after rAF.
+	// Start with a no-op DOM renderer - the actual GPU renderer is loaded async.
+	const rendererRef: TerminalRendererRef = {
+		current: {
+			kind: "dom",
+			dispose: () => {},
+			clearTextureAtlas: undefined,
+		},
+	};
+
 	xterm.open(container);
 
+	// Load non-renderer addons synchronously - these are safe and needed immediately
 	xterm.loadAddon(fitAddon);
-	const renderer = loadRenderer(xterm);
-
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
 
+	// Defer GPU renderer loading to next animation frame.
+	// xterm.open() schedules a setTimeout for Viewport.syncScrollArea which expects
+	// the renderer to be ready. Loading WebGL/Canvas immediately after open() can
+	// cause a race condition where the setTimeout fires during addon initialization,
+	// when _renderer is temporarily undefined (old renderer disposed, new not yet set).
+	// Deferring to rAF ensures xterm's internal setTimeout completes first with the
+	// default DOM renderer, then we safely swap to WebGL/Canvas.
+	rafId = requestAnimationFrame(() => {
+		rafId = null;
+		if (isDisposed) return;
+		rendererRef.current = loadRenderer(xterm);
+	});
+
 	import("@xterm/addon-ligatures")
 		.then(({ LigaturesAddon }) => {
+			if (isDisposed) return;
 			try {
 				xterm.loadAddon(new LigaturesAddon());
 			} catch {
@@ -185,9 +273,14 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
+		renderer: rendererRef,
 		cleanup: () => {
+			isDisposed = true;
+			if (rafId !== null) {
+				cancelAnimationFrame(rafId);
+			}
 			cleanupQuerySuppression();
-			renderer.dispose();
+			rendererRef.current.dispose();
 		},
 	};
 }
@@ -202,6 +295,10 @@ export interface KeyboardHandlerOptions {
 export interface PasteHandlerOptions {
 	/** Callback when text is pasted, receives the pasted text */
 	onPaste?: (text: string) => void;
+	/** Optional direct write callback to bypass xterm's paste burst */
+	onWrite?: (data: string) => void;
+	/** Whether bracketed paste mode is enabled for the current terminal */
+	isBracketedPasteEnabled?: () => boolean;
 }
 
 /**
@@ -225,6 +322,8 @@ export function setupPasteHandler(
 	const textarea = xterm.textarea;
 	if (!textarea) return () => {};
 
+	let cancelActivePaste: (() => void) | null = null;
+
 	const handlePaste = (event: ClipboardEvent) => {
 		const text = event.clipboardData?.getData("text/plain");
 		if (!text) return;
@@ -233,12 +332,100 @@ export function setupPasteHandler(
 		event.stopImmediatePropagation();
 
 		options.onPaste?.(text);
-		xterm.paste(text);
+
+		// Cancel any in-flight chunked paste to avoid overlapping writes.
+		cancelActivePaste?.();
+		cancelActivePaste = null;
+
+		// Chunk large pastes to avoid sending a single massive input burst that can
+		// overwhelm the PTY pipeline (especially when the app is repainting heavily).
+		const MAX_SYNC_PASTE_CHARS = 16_384;
+
+		// If no direct write callback is provided, fall back to xterm's paste()
+		// (it handles newline normalization and bracketed paste mode internally).
+		if (!options.onWrite) {
+			const CHUNK_CHARS = 4096;
+			const CHUNK_DELAY_MS = 5;
+
+			if (text.length <= MAX_SYNC_PASTE_CHARS) {
+				xterm.paste(text);
+				return;
+			}
+
+			let cancelled = false;
+			let offset = 0;
+
+			const pasteNext = () => {
+				if (cancelled) return;
+
+				const chunk = text.slice(offset, offset + CHUNK_CHARS);
+				offset += CHUNK_CHARS;
+				xterm.paste(chunk);
+
+				if (offset < text.length) {
+					setTimeout(pasteNext, CHUNK_DELAY_MS);
+				}
+			};
+
+			cancelActivePaste = () => {
+				cancelled = true;
+			};
+
+			pasteNext();
+			return;
+		}
+
+		// Direct write path: replicate xterm's paste normalization, but stream in
+		// controlled chunks while preserving bracketed-paste semantics.
+		const preparedText = text.replace(/\r?\n/g, "\r");
+		const bracketedPasteEnabled = options.isBracketedPasteEnabled?.() ?? false;
+		const shouldBracket = bracketedPasteEnabled;
+
+		// For small/medium pastes, preserve the fast path and avoid timers.
+		if (preparedText.length <= MAX_SYNC_PASTE_CHARS) {
+			options.onWrite(
+				shouldBracket ? `\x1b[200~${preparedText}\x1b[201~` : preparedText,
+			);
+			return;
+		}
+
+		let cancelled = false;
+		let offset = 0;
+		const CHUNK_CHARS = 16_384;
+		const CHUNK_DELAY_MS = 0;
+
+		const pasteNext = () => {
+			if (cancelled) return;
+
+			const chunk = preparedText.slice(offset, offset + CHUNK_CHARS);
+			offset += CHUNK_CHARS;
+
+			if (shouldBracket) {
+				// Wrap each chunk to avoid long-running "open" bracketed paste blocks,
+				// which some TUIs may defer repainting until the closing sequence arrives.
+				options.onWrite?.(`\x1b[200~${chunk}\x1b[201~`);
+			} else {
+				options.onWrite?.(chunk);
+			}
+
+			if (offset < preparedText.length) {
+				setTimeout(pasteNext, CHUNK_DELAY_MS);
+				return;
+			}
+		};
+
+		cancelActivePaste = () => {
+			cancelled = true;
+		};
+
+		pasteNext();
 	};
 
 	textarea.addEventListener("paste", handlePaste, { capture: true });
 
 	return () => {
+		cancelActivePaste?.();
+		cancelActivePaste = null;
 		textarea.removeEventListener("paste", handlePaste, { capture: true });
 	};
 }

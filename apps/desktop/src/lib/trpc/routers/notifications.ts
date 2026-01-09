@@ -7,12 +7,21 @@ import {
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { publicProcedure, router } from "..";
 
+type TerminalExitNotification = NotificationIds & {
+	exitCode: number;
+	signal?: number;
+};
+
 type NotificationEvent =
 	| {
 			type: typeof NOTIFICATION_EVENTS.AGENT_LIFECYCLE;
 			data?: AgentLifecycleEvent;
 	  }
-	| { type: typeof NOTIFICATION_EVENTS.FOCUS_TAB; data?: NotificationIds };
+	| { type: typeof NOTIFICATION_EVENTS.FOCUS_TAB; data?: NotificationIds }
+	| {
+			type: typeof NOTIFICATION_EVENTS.TERMINAL_EXIT;
+			data?: TerminalExitNotification;
+	  };
 
 export const createNotificationsRouter = () => {
 	return router({
@@ -26,11 +35,19 @@ export const createNotificationsRouter = () => {
 					emit.next({ type: NOTIFICATION_EVENTS.FOCUS_TAB, data });
 				};
 
+				const onTerminalExit = (data: TerminalExitNotification) => {
+					emit.next({ type: NOTIFICATION_EVENTS.TERMINAL_EXIT, data });
+				};
+
 				notificationsEmitter.on(
 					NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
 					onLifecycle,
 				);
 				notificationsEmitter.on(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
+				notificationsEmitter.on(
+					NOTIFICATION_EVENTS.TERMINAL_EXIT,
+					onTerminalExit,
+				);
 
 				return () => {
 					notificationsEmitter.off(
@@ -38,6 +55,10 @@ export const createNotificationsRouter = () => {
 						onLifecycle,
 					);
 					notificationsEmitter.off(NOTIFICATION_EVENTS.FOCUS_TAB, onFocusTab);
+					notificationsEmitter.off(
+						NOTIFICATION_EVENTS.TERMINAL_EXIT,
+						onTerminalExit,
+					);
 				};
 			});
 		}),

@@ -3,10 +3,12 @@ import {
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
 } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
+	DEFAULT_TERMINAL_PERSISTENCE,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
 import { z } from "zod";
@@ -81,7 +83,10 @@ export const createSettingsRouter = () => {
 				const preset = presets.find((p) => p.id === input.id);
 
 				if (!preset) {
-					throw new Error(`Preset ${input.id} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Terminal preset ${input.id} not found`,
+					});
 				}
 
 				if (input.patch.name !== undefined) preset.name = input.patch.name;
@@ -182,7 +187,10 @@ export const createSettingsRouter = () => {
 			.input(z.object({ ringtoneId: z.string() }))
 			.mutation(({ input }) => {
 				if (!VALID_RINGTONE_IDS.includes(input.ringtoneId)) {
-					throw new Error(`Invalid ringtone ID: ${input.ringtoneId}`);
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: `Invalid ringtone ID: ${input.ringtoneId}`,
+					});
 				}
 
 				localDb
@@ -232,6 +240,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalPersistence: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
+		}),
+
+		setTerminalPersistence: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPersistence: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPersistence: input.enabled },
 					})
 					.run();
 
