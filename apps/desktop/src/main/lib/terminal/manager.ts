@@ -110,6 +110,9 @@ export class TerminalManager extends EventEmitter {
 
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
+
+			// Capture scrollback before disposing (needed for crash recovery)
+			const existingScrollback = getSerializedScrollback(session);
 			flushSession(session);
 
 			// Check if shell crashed quickly - try fallback
@@ -127,7 +130,7 @@ export class TerminalManager extends EventEmitter {
 				try {
 					await this.doCreateSession({
 						...params,
-						existingScrollback: getSerializedScrollback(session),
+						existingScrollback,
 						useFallbackShell: true,
 					});
 					return; // Recovered - don't emit exit
