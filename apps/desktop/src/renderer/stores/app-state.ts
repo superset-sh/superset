@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type AppView = "workspace" | "settings" | "tasks" | "workspaces-list";
+export type AppView =
+	| "workspace"
+	| "settings"
+	| "tasks"
+	| "workspaces-list"
+	| "plan";
 export type SettingsSection =
 	| "account"
 	| "project"
@@ -17,6 +22,7 @@ interface AppState {
 	isSettingsTabOpen: boolean;
 	isTasksTabOpen: boolean;
 	isWorkspacesListOpen: boolean;
+	isPlanViewOpen: boolean;
 	settingsSection: SettingsSection;
 	setView: (view: AppView) => void;
 	openSettings: (section?: SettingsSection) => void;
@@ -27,6 +33,8 @@ interface AppState {
 	closeTasks: () => void;
 	openWorkspacesList: () => void;
 	closeWorkspacesList: () => void;
+	openPlan: () => void;
+	closePlan: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -36,6 +44,7 @@ export const useAppStore = create<AppState>()(
 			isSettingsTabOpen: false,
 			isTasksTabOpen: false,
 			isWorkspacesListOpen: false,
+			isPlanViewOpen: false,
 			settingsSection: "project",
 
 			setView: (view) => {
@@ -77,6 +86,14 @@ export const useAppStore = create<AppState>()(
 			closeWorkspacesList: () => {
 				set({ currentView: "workspace", isWorkspacesListOpen: false });
 			},
+
+			openPlan: () => {
+				set({ currentView: "plan", isPlanViewOpen: true });
+			},
+
+			closePlan: () => {
+				set({ currentView: "workspace", isPlanViewOpen: false });
+			},
 		}),
 		{ name: "AppStore" },
 	),
@@ -98,3 +115,7 @@ export const useOpenWorkspacesList = () =>
 	useAppStore((state) => state.openWorkspacesList);
 export const useCloseWorkspacesList = () =>
 	useAppStore((state) => state.closeWorkspacesList);
+export const useOpenPlan = () => useAppStore((state) => state.openPlan);
+export const useClosePlan = () => useAppStore((state) => state.closePlan);
+export const useIsPlanViewOpen = () =>
+	useAppStore((state) => state.isPlanViewOpen);
