@@ -184,18 +184,17 @@ export const createDeleteProcedures = () => {
 							);
 
 							if (exists) {
-								runTeardown(
+								const teardownResult = await runTeardown(
 									project.mainRepoPath,
 									worktree.path,
 									workspace.name,
-								).then((result) => {
-									if (!result.success) {
-										console.error(
-											`Teardown failed for workspace ${workspace.name}:`,
-											result.error,
-										);
-									}
-								});
+								);
+								if (!teardownResult.success) {
+									console.error(
+										`Teardown failed for workspace ${workspace.name}:`,
+										teardownResult.error,
+									);
+								}
 							}
 
 							try {
