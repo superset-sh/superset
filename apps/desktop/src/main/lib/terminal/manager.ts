@@ -4,6 +4,7 @@ import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
 import {
+	createHeadlessTerminal,
 	createSession,
 	flushSession,
 	getSerializedScrollback,
@@ -261,8 +262,15 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Clear the headless terminal's scrollback buffer
-		session.headless.clear();
+		// Recreate headless terminal for reliable clear
+		// (xterm's write queue is async, so clear() alone may not work reliably)
+		session.headless.dispose();
+		const { headless, serializer } = createHeadlessTerminal({
+			cols: session.cols,
+			rows: session.rows,
+		});
+		session.headless = headless;
+		session.serializer = serializer;
 		session.lastActive = Date.now();
 	}
 

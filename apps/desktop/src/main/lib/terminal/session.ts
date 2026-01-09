@@ -22,7 +22,7 @@ const AGENT_HOOKS_TIMEOUT_MS = 2000;
  * Creates a headless xterm instance with serialize addon.
  * This handles escape sequence processing properly, producing clean serialized output.
  */
-function createHeadlessTerminal(params: {
+export function createHeadlessTerminal(params: {
 	cols: number;
 	rows: number;
 	scrollback?: number;
