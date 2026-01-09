@@ -1,41 +1,115 @@
 import { describe, expect, it } from "bun:test";
-import { flushSession, recoverScrollback } from "./session";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { Terminal as HeadlessTerminal } from "@xterm/headless";
+import {
+	flushSession,
+	getSerializedScrollback,
+	recoverScrollback,
+} from "./session";
 import type { TerminalSession } from "./types";
+
+function createTestHeadless(): {
+	headless: HeadlessTerminal;
+	serializer: SerializeAddon;
+} {
+	const headless = new HeadlessTerminal({
+		cols: 80,
+		rows: 24,
+		scrollback: 1000,
+		allowProposedApi: true,
+	});
+	const serializer = new SerializeAddon();
+	headless.loadAddon(
+		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
+	);
+	return { headless, serializer };
+}
 
 describe("session", () => {
 	describe("recoverScrollback", () => {
-		it("should return existing scrollback if provided", () => {
-			const result = recoverScrollback("existing content");
+		it("should write existing scrollback to headless and return true", async () => {
+			const { headless, serializer } = createTestHeadless();
 
-			expect(result.scrollback).toBe("existing content");
-			expect(result.wasRecovered).toBe(true);
+			const wasRecovered = recoverScrollback({
+				existingScrollback: "existing content",
+				headless,
+			});
+
+			expect(wasRecovered).toBe(true);
+
+			// Wait for write to complete (xterm write is async)
+			await new Promise<void>((resolve) => {
+				headless.write("", resolve);
+			});
+
+			// The headless terminal should have the content
+			const serialized = serializer.serialize();
+			expect(serialized).toContain("existing content");
+
+			headless.dispose();
 		});
 
-		it("should return empty scrollback when no existing scrollback", () => {
-			const result = recoverScrollback(null);
+		it("should return false when no existing scrollback", () => {
+			const { headless } = createTestHeadless();
 
-			expect(result.scrollback).toBe("");
-			expect(result.wasRecovered).toBe(false);
+			const wasRecovered = recoverScrollback({
+				existingScrollback: null,
+				headless,
+			});
+
+			expect(wasRecovered).toBe(false);
+
+			headless.dispose();
+		});
+	});
+
+	describe("getSerializedScrollback", () => {
+		it("should return serialized content from headless terminal", async () => {
+			const { headless, serializer } = createTestHeadless();
+
+			// Wait for write to complete (xterm write is async)
+			await new Promise<void>((resolve) => {
+				headless.write("test output", resolve);
+			});
+
+			const mockSession = {
+				headless,
+				serializer,
+			} as unknown as TerminalSession;
+
+			const result = getSerializedScrollback(mockSession);
+			expect(result).toContain("test output");
+
+			headless.dispose();
 		});
 	});
 
 	describe("flushSession", () => {
-		it("should dispose data batcher", () => {
-			let disposed = false;
+		it("should dispose data batcher and headless terminal", () => {
+			let batcherDisposed = false;
+			let headlessDisposed = false;
+
 			const mockDataBatcher = {
 				dispose: () => {
-					disposed = true;
+					batcherDisposed = true;
+				},
+			};
+
+			const mockHeadless = {
+				dispose: () => {
+					headlessDisposed = true;
 				},
 			};
 
 			const mockSession = {
 				dataBatcher: mockDataBatcher,
-				scrollback: "initial",
+				headless: mockHeadless,
 			} as unknown as TerminalSession;
 
 			flushSession(mockSession);
 
-			expect(disposed).toBe(true);
+			expect(batcherDisposed).toBe(true);
+			expect(headlessDisposed).toBe(true);
 		});
 	});
 });

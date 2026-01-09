@@ -577,6 +577,9 @@ describe("TerminalManager", () => {
 				onDataCallback("\x1b[3Jnew content after clear");
 			}
 
+			// Wait for headless terminal to process async writes
+			await new Promise((resolve) => setTimeout(resolve, 50));
+
 			const result = await manager.createOrAttach({
 				paneId: "pane-shell-clear",
 				tabId: "tab-shell-clear",
@@ -603,6 +606,9 @@ describe("TerminalManager", () => {
 				// Content before and after clear in same chunk
 				onDataCallback("old content\x1b[3Jnew content");
 			}
+
+			// Wait for headless terminal to process async writes
+			await new Promise((resolve) => setTimeout(resolve, 50));
 
 			const result = await manager.createOrAttach({
 				paneId: "pane-clear-before",

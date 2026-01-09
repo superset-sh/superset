@@ -3,7 +3,13 @@ import { track } from "main/lib/analytics";
 import { ensureAgentHooks } from "../agent-setup/ensure-agent-hooks";
 import { FALLBACK_SHELL, SHELL_CRASH_THRESHOLD_MS } from "./env";
 import { portManager } from "./port-manager";
-import { createSession, flushSession, setupDataHandler } from "./session";
+import {
+	createHeadlessTerminal,
+	createSession,
+	flushSession,
+	getSerializedScrollback,
+	setupDataHandler,
+} from "./session";
 import type {
 	CreateSessionParams,
 	InternalCreateSessionParams,
@@ -33,7 +39,7 @@ export class TerminalManager extends EventEmitter {
 			}
 			return {
 				isNew: false,
-				scrollback: existing.scrollback,
+				scrollback: getSerializedScrollback(existing),
 				wasRecovered: existing.wasRecovered,
 			};
 		}
@@ -41,7 +47,7 @@ export class TerminalManager extends EventEmitter {
 		// Create new session
 		const creationPromise = this.doCreateSession({
 			...params,
-			existingScrollback: existing?.scrollback || null,
+			existingScrollback: existing ? getSerializedScrollback(existing) : null,
 		});
 		this.pendingSessions.set(paneId, creationPromise);
 
@@ -92,7 +98,7 @@ export class TerminalManager extends EventEmitter {
 
 		return {
 			isNew: true,
-			scrollback: session.scrollback,
+			scrollback: getSerializedScrollback(session),
 			wasRecovered: session.wasRecovered,
 		};
 	}
@@ -105,6 +111,9 @@ export class TerminalManager extends EventEmitter {
 
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
+
+			// Must capture before flush (flush disposes headless terminal)
+			const existingScrollback = getSerializedScrollback(session);
 			flushSession(session);
 
 			// Check if shell crashed quickly - try fallback
@@ -122,7 +131,7 @@ export class TerminalManager extends EventEmitter {
 				try {
 					await this.doCreateSession({
 						...params,
-						existingScrollback: session.scrollback || null,
+						existingScrollback,
 						useFallbackShell: true,
 					});
 					return; // Recovered - don't emit exit
@@ -186,6 +195,7 @@ export class TerminalManager extends EventEmitter {
 
 		try {
 			session.pty.resize(cols, rows);
+			session.headless.resize(cols, rows);
 			session.cols = cols;
 			session.rows = rows;
 			session.lastActive = Date.now();
@@ -251,7 +261,14 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		session.scrollback = "";
+		// Recreate headless (xterm writes are async, so clear() alone is unreliable)
+		session.headless.dispose();
+		const { headless, serializer } = createHeadlessTerminal({
+			cols: session.cols,
+			rows: session.rows,
+		});
+		session.headless = headless;
+		session.serializer = serializer;
 		session.lastActive = Date.now();
 	}
 

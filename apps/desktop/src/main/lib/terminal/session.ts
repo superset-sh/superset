@@ -1,4 +1,6 @@
 import os from "node:os";
+import { SerializeAddon } from "@xterm/addon-serialize";
+import { Terminal as HeadlessTerminal } from "@xterm/headless";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
 import { DataBatcher } from "../data-batcher";
@@ -11,17 +13,47 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
+const DEFAULT_SCROLLBACK = 10000;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
 
-export function recoverScrollback(existingScrollback: string | null): {
-	scrollback: string;
-	wasRecovered: boolean;
-} {
+export function createHeadlessTerminal(params: {
+	cols: number;
+	rows: number;
+	scrollback?: number;
+}): { headless: HeadlessTerminal; serializer: SerializeAddon } {
+	const { cols, rows, scrollback = DEFAULT_SCROLLBACK } = params;
+
+	const headless = new HeadlessTerminal({
+		cols,
+		rows,
+		scrollback,
+		allowProposedApi: true,
+	});
+
+	const serializer = new SerializeAddon();
+	// SerializeAddon types expect browser Terminal, but works with headless at runtime
+	headless.loadAddon(
+		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
+	);
+
+	return { headless, serializer };
+}
+
+export function getSerializedScrollback(session: TerminalSession): string {
+	return session.serializer.serialize();
+}
+
+export function recoverScrollback(params: {
+	existingScrollback: string | null;
+	headless: HeadlessTerminal;
+}): boolean {
+	const { existingScrollback, headless } = params;
 	if (existingScrollback) {
-		return { scrollback: existingScrollback, wasRecovered: true };
+		headless.write(existingScrollback);
+		return true;
 	}
-	return { scrollback: "", wasRecovered: false };
+	return false;
 }
 
 function spawnPty(params: {
@@ -76,8 +108,15 @@ export async function createSession(
 		rootPath,
 	});
 
-	const { scrollback: recoveredScrollback, wasRecovered } =
-		recoverScrollback(existingScrollback);
+	const { headless, serializer } = createHeadlessTerminal({
+		cols: terminalCols,
+		rows: terminalRows,
+	});
+
+	const wasRecovered = recoverScrollback({
+		existingScrollback,
+		headless,
+	});
 
 	const ptyProcess = spawnPty({
 		shell,
@@ -99,7 +138,8 @@ export async function createSession(
 		cols: terminalCols,
 		rows: terminalRows,
 		lastActive: Date.now(),
-		scrollback: recoveredScrollback,
+		headless,
+		serializer,
 		isAlive: true,
 		wasRecovered,
 		dataBatcher,
@@ -122,14 +162,22 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		let dataToStore = data;
-
+		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
 		if (containsClearScrollbackSequence(data)) {
-			session.scrollback = "";
-			dataToStore = extractContentAfterClear(data);
+			session.headless.dispose();
+			const { headless, serializer } = createHeadlessTerminal({
+				cols: session.cols,
+				rows: session.rows,
+			});
+			session.headless = headless;
+			session.serializer = serializer;
+			const contentAfterClear = extractContentAfterClear(data);
+			if (contentAfterClear) {
+				session.headless.write(contentAfterClear);
+			}
+		} else {
+			session.headless.write(data);
 		}
-
-		session.scrollback += dataToStore;
 
 		session.dataBatcher.write(data);
 
@@ -159,4 +207,5 @@ export function setupDataHandler(
 
 export function flushSession(session: TerminalSession): void {
 	session.dataBatcher.dispose();
+	session.headless.dispose();
 }
