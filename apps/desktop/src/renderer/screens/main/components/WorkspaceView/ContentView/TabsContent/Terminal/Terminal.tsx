@@ -380,9 +380,20 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
+			viewportY?: number;
 		}) => {
-			xterm.write(result.scrollback);
-			updateCwdRef.current(result.scrollback);
+			// Use write callback to restore scroll position after content is rendered
+			xterm.write(result.scrollback, () => {
+				updateCwdRef.current(result.scrollback);
+				// Restore scroll position after writing scrollback (for reattached terminals)
+				if (result.viewportY !== undefined) {
+					console.log(
+						"[Terminal] Restoring scroll position:",
+						result.viewportY,
+					);
+					xterm.scrollToLine(result.viewportY);
+				}
+			});
 		};
 
 		const restartTerminal = () => {
@@ -561,8 +572,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
+			// Capture scroll position before detaching for restoration on reattach
+			const viewportY = xterm.buffer.active.viewportY;
+			console.log("[Terminal] Saving scroll position on detach:", viewportY);
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId });
+			detachRef.current({ paneId, viewportY });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
