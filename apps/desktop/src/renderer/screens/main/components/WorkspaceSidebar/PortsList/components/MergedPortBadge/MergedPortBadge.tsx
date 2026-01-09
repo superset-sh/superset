@@ -93,9 +93,12 @@ export function MergedPortBadge({
 					</div>
 					{port.isActive && (
 						<>
-							<div className="text-muted-foreground">
-								{port.processName} (pid {port.pid})
-							</div>
+							{(port.processName || port.pid != null) && (
+								<div className="text-muted-foreground">
+									{port.processName}
+									{port.pid != null && ` (pid ${port.pid})`}
+								</div>
+							)}
 							{canJumpToTerminal && (
 								<div className="text-muted-foreground/70 text-[10px]">
 									Click to open workspace
