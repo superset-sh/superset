@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, mock, type mock as MockType } from "bun:test";
+import {
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type mock as MockType,
+	mock,
+} from "bun:test";
 
 // Mock electron with screen API before importing anything that uses it
 const mockScreen = {
@@ -181,7 +188,9 @@ describe("isVisibleOnAnyDisplay", () => {
 
 	describe("edge cases", () => {
 		it("should return false when no displays connected", () => {
-			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([]);
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue(
+				[],
+			);
 			expect(
 				isVisibleOnAnyDisplay({ x: 100, y: 100, width: 800, height: 600 }),
 			).toBe(false);
@@ -338,9 +347,11 @@ describe("getInitialWindowBounds", () => {
 
 	describe("DPI/resolution changes", () => {
 		it("should handle resolution decrease gracefully", () => {
-			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue({
-				workAreaSize: { width: 1280, height: 720 },
-			});
+			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue(
+				{
+					workAreaSize: { width: 1280, height: 720 },
+				},
+			);
 
 			const result = getInitialWindowBounds({
 				x: 0,
@@ -355,9 +366,11 @@ describe("getInitialWindowBounds", () => {
 		});
 
 		it("should clamp to work area even if smaller than MIN_WINDOW_SIZE", () => {
-			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue({
-				workAreaSize: { width: 300, height: 200 },
-			});
+			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue(
+				{
+					workAreaSize: { width: 300, height: 200 },
+				},
+			);
 
 			const result = getInitialWindowBounds({
 				x: 0,
