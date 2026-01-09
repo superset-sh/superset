@@ -183,18 +183,12 @@ export function setupDataHandler(
 			// Dispose old headless terminal
 			session.headless.dispose();
 			// Create new headless terminal with same dimensions
-			const newHeadless = new HeadlessTerminal({
+			const { headless, serializer } = createHeadlessTerminal({
 				cols: session.cols,
 				rows: session.rows,
-				scrollback: DEFAULT_SCROLLBACK,
-				allowProposedApi: true,
 			});
-			const newSerializer = new SerializeAddon();
-			newHeadless.loadAddon(
-				newSerializer as unknown as Parameters<typeof newHeadless.loadAddon>[0],
-			);
-			session.headless = newHeadless;
-			session.serializer = newSerializer;
+			session.headless = headless;
+			session.serializer = serializer;
 			// Only write content after the clear sequence
 			const contentAfterClear = extractContentAfterClear(data);
 			if (contentAfterClear) {
