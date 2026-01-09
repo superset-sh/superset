@@ -1,7 +1,7 @@
 import { trpcClient } from "../../../lib/trpc-client";
 
 /**
- * Kills the terminal session
+ * Uses standalone tRPC client to avoid React hook dependencies
  */
 export const killTerminalForPane = (paneId: string): void => {
 	trpcClient.terminal.kill.mutate({ paneId }).catch((error) => {

@@ -1,7 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
-import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
@@ -39,9 +38,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const xtermRef = useRef<XTerm | null>(null);
 	const fitAddonRef = useRef<FitAddon | null>(null);
 	const searchAddonRef = useRef<SearchAddon | null>(null);
-	const serializeAddonRef = useRef<SerializeAddon | null>(null);
 	const isExitedRef = useRef(false);
+	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
+	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -238,7 +238,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 
 	const handleStreamData = (event: TerminalStreamEvent) => {
-		if (!xtermRef.current) {
+		// Queue events until terminal is ready to prevent data loss
+		if (!xtermRef.current || !subscriptionEnabled) {
+			pendingEventsRef.current.push(event);
 			return;
 		}
 
@@ -247,6 +249,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
 			isExitedRef.current = true;
+			setSubscriptionEnabled(false);
 			xtermRef.current.writeln(
 				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
 			);
@@ -318,7 +321,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const {
 			xterm,
 			fitAddon,
-			serializeAddon,
 			cleanup: cleanupQuerySuppression,
 		} = createTerminalInstance(container, {
 			cwd: workspaceCwd,
@@ -328,7 +330,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		});
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
-		serializeAddonRef.current = serializeAddon;
 		isExitedRef.current = false;
 
 		if (isFocusedRef.current) {
@@ -342,14 +343,46 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			searchAddonRef.current = searchAddon;
 		});
 
-		const applySerializedState = (serializedState: string) => {
-			if (serializedState) {
-				xterm.write(serializedState);
+		const flushPendingEvents = () => {
+			if (pendingEventsRef.current.length === 0) return;
+			const events = pendingEventsRef.current.splice(
+				0,
+				pendingEventsRef.current.length,
+			);
+			for (const event of events) {
+				if (event.type === "data") {
+					xterm.write(event.data);
+					updateCwdRef.current(event.data);
+				} else {
+					isExitedRef.current = true;
+					setSubscriptionEnabled(false);
+					xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
+					xterm.writeln("[Press any key to restart]");
+
+					// Clear transient pane status (direct store access since we're in effect)
+					const currentPane = useTabsStore.getState().panes[paneId];
+					if (
+						currentPane?.status === "working" ||
+						currentPane?.status === "permission"
+					) {
+						useTabsStore.getState().setPaneStatus(paneId, "idle");
+					}
+				}
 			}
+		};
+
+		const applyInitialState = (result: {
+			wasRecovered: boolean;
+			isNew: boolean;
+			scrollback: string;
+		}) => {
+			xterm.write(result.scrollback);
+			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {
 			isExitedRef.current = false;
+			setSubscriptionEnabled(false);
 			xterm.clear();
 			createOrAttachRef.current(
 				{
@@ -361,7 +394,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				},
 				{
 					onSuccess: (result) => {
-						applySerializedState(result.serializedState);
+						applyInitialState(result);
+						setSubscriptionEnabled(true);
+						flushPendingEvents();
+					},
+					onError: () => {
+						setSubscriptionEnabled(true);
 					},
 				},
 			);
@@ -435,7 +473,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					if (initialCommands || initialCwd) {
 						clearPaneInitialDataRef.current(paneId);
 					}
-					applySerializedState(result.serializedState);
+					// Always apply initial state (scrollback) first, then flush pending events
+					// This ensures we don't lose terminal history when reattaching
+					applyInitialState(result);
+					setSubscriptionEnabled(true);
+					flushPendingEvents();
+				},
+				onError: () => {
+					setSubscriptionEnabled(true);
 				},
 			},
 		);
@@ -511,19 +556,12 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-
-			const serializedState = serializeAddon.serialize({
-				excludeAltBuffer: true,
-				excludeModes: true,
-				scrollback: 1000,
-			});
-
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId, serializedState });
+			detachRef.current({ paneId });
+			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
-			serializeAddonRef.current = null;
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 

@@ -4,20 +4,24 @@
 # Based on apps/desktop/RELEASE.md
 #
 # Usage:
-#   ./create-release.sh <version> [--publish]
-#   Example: ./create-release.sh 0.0.1
+#   ./create-release.sh [version] [--publish]
+#   Example: ./create-release.sh              # Interactive version selection
+#   Example: ./create-release.sh 0.0.1        # Explicit version
 #   Example: ./create-release.sh 0.0.1 --publish
+#   Example: ./create-release.sh --publish    # Interactive + auto-publish
 #
 # This script will:
-# 1. Verify prerequisites (clean git, GitHub CLI authenticated)
-# 2. Delete existing release/tag if republishing same version
-# 3. Update package.json version
-# 4. Push changes and create a PR if not on main branch
-# 5. Create and push a git tag to trigger the release workflow
-# 6. Monitor the GitHub Actions workflow in real-time
-# 7. Leave release as draft (default) or auto-publish with --publish flag
+# 1. Prompt for version if not provided (patch/minor/major/custom)
+# 2. Verify prerequisites (clean git, GitHub CLI authenticated)
+# 3. Delete existing release/tag if republishing same version
+# 4. Update package.json version
+# 5. Push changes and create a PR if not on main branch
+# 6. Create and push a git tag to trigger the release workflow
+# 7. Monitor the GitHub Actions workflow in real-time
+# 8. Leave release as draft (default) or auto-publish with --publish flag
 #
 # Features:
+# - Interactive version selection with patch/minor/major options
 # - Supports republishing: Running with same version will clean up and rebuild
 # - Draft by default for review before publishing
 # - Use --publish flag to auto-publish when build completes
@@ -54,6 +58,28 @@ error() {
     exit 1
 }
 
+# Semver increment functions
+increment_patch() {
+    local version="$1"
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    echo "${major}.${minor}.$((patch + 1))"
+}
+
+increment_minor() {
+    local version="$1"
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    echo "${major}.$((minor + 1)).0"
+}
+
+increment_major() {
+    local version="$1"
+    local major minor patch
+    IFS='.' read -r major minor patch <<< "$version"
+    echo "$((major + 1)).0.0"
+}
+
 # Parse arguments
 VERSION=""
 AUTO_PUBLISH=false
@@ -64,20 +90,78 @@ for arg in "$@"; do
             AUTO_PUBLISH=true
             ;;
         -*)
-            error "Unknown option: $arg\nUsage: $0 <version> [--publish]"
+            error "Unknown option: $arg\nUsage: $0 [version] [--publish]"
             ;;
         *)
             if [ -z "$VERSION" ]; then
                 VERSION="$arg"
             else
-                error "Unexpected argument: $arg\nUsage: $0 <version> [--publish]"
+                error "Unexpected argument: $arg\nUsage: $0 [version] [--publish]"
             fi
             ;;
     esac
 done
 
+# If no version provided, prompt user to select
 if [ -z "$VERSION" ]; then
-    error "Usage: $0 <version> [--publish]\nExample: $0 0.0.1"
+    # Check if we're in the monorepo root first
+    if [ ! -f "package.json" ] || [ ! -d "apps/desktop" ]; then
+        error "Please run this script from the monorepo root directory"
+    fi
+
+    # Fetch the latest desktop release version from GitHub
+    # Desktop releases use tags like "desktop-v0.0.1"
+    LATEST_TAG=$(gh release list --json tagName --jq '[.[] | select(.tagName | startswith("desktop-v"))] | .[0].tagName' 2>/dev/null || echo "")
+    if [ -n "$LATEST_TAG" ]; then
+        # Extract version from tag (e.g., "desktop-v0.0.1" -> "0.0.1")
+        CURRENT_VERSION="${LATEST_TAG#desktop-v}"
+    else
+        # Fallback to local package.json if no releases exist yet
+        warn "No existing desktop releases found. Using local package.json version."
+        CURRENT_VERSION=$(node -p "require('./apps/desktop/package.json').version")
+    fi
+    PATCH_VERSION=$(increment_patch "$CURRENT_VERSION")
+    MINOR_VERSION=$(increment_minor "$CURRENT_VERSION")
+    MAJOR_VERSION=$(increment_major "$CURRENT_VERSION")
+
+    echo ""
+    echo -e "${BLUE}Current version:${NC} ${CURRENT_VERSION}"
+    echo ""
+    echo "Select the new version:"
+    echo -e "  1) Patch  ${GREEN}${PATCH_VERSION}${NC} (bug fixes)"
+    echo -e "  2) Minor  ${GREEN}${MINOR_VERSION}${NC} (new features, backward compatible)"
+    echo -e "  3) Major  ${GREEN}${MAJOR_VERSION}${NC} (breaking changes)"
+    echo "  4) Custom (enter manually)"
+    echo ""
+    read -p "Enter choice [1-4]: " version_choice
+
+    case $version_choice in
+        1)
+            VERSION="$PATCH_VERSION"
+            ;;
+        2)
+            VERSION="$MINOR_VERSION"
+            ;;
+        3)
+            VERSION="$MAJOR_VERSION"
+            ;;
+        4)
+            read -p "Enter version (e.g., 1.2.3): " VERSION
+            if [ -z "$VERSION" ]; then
+                error "Version cannot be empty"
+            fi
+            # Validate semver format
+            if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                error "Invalid version format. Expected: MAJOR.MINOR.PATCH (e.g., 1.2.3)"
+            fi
+            ;;
+        *)
+            error "Invalid choice. Please enter 1, 2, 3, or 4."
+            ;;
+    esac
+
+    echo ""
+    info "Selected version: ${VERSION}"
 fi
 
 TAG_NAME="desktop-v${VERSION}"

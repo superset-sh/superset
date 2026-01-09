@@ -175,11 +175,16 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				setTabAutoTitle: (tabId, title) => {
-					set((state) => ({
-						tabs: state.tabs.map((t) =>
-							t.id === tabId ? { ...t, name: title } : t,
-						),
-					}));
+					set((state) => {
+						const tab = state.tabs.find((t) => t.id === tabId);
+						// Guard: no-op if title hasn't changed
+						if (!tab || tab.name === title) return state;
+						return {
+							tabs: state.tabs.map((t) =>
+								t.id === tabId ? { ...t, name: title } : t,
+							),
+						};
+					});
 				},
 
 				setActiveTab: (workspaceId, tabId) => {
@@ -585,12 +590,13 @@ export const useTabsStore = create<TabsStore>()(
 
 				markPaneAsUsed: (paneId) => {
 					set((state) => {
-						// Guard: no-op for unknown panes to avoid corrupting panes map
-						if (!state.panes[paneId]) return state;
+						const pane = state.panes[paneId];
+						// Guard: no-op for unknown panes or already marked as used
+						if (!pane || pane.isNew === false) return state;
 						return {
 							panes: {
 								...state.panes,
-								[paneId]: { ...state.panes[paneId], isNew: false },
+								[paneId]: { ...pane, isNew: false },
 							},
 						};
 					});
@@ -598,13 +604,14 @@ export const useTabsStore = create<TabsStore>()(
 
 				setPaneStatus: (paneId, status) => {
 					const state = get();
-					// Guard: no-op for unknown panes to avoid corrupting panes map with undefined
-					if (!state.panes[paneId]) return;
+					const pane = state.panes[paneId];
+					// No-op if pane unknown or status unchanged
+					if (!pane || pane.status === status) return;
 
 					set({
 						panes: {
 							...state.panes,
-							[paneId]: { ...state.panes[paneId], status },
+							[paneId]: { ...pane, status },
 						},
 					});
 				},
@@ -645,13 +652,17 @@ export const useTabsStore = create<TabsStore>()(
 
 				updatePaneCwd: (paneId, cwd, confirmed) => {
 					set((state) => {
-						// Guard: no-op for unknown panes to avoid corrupting panes map
-						if (!state.panes[paneId]) return state;
+						const pane = state.panes[paneId];
+						// No-op if pane unknown or cwd unchanged
+						if (!pane) return state;
+						if (pane.cwd === cwd && pane.cwdConfirmed === confirmed) {
+							return state;
+						}
 						return {
 							panes: {
 								...state.panes,
 								[paneId]: {
-									...state.panes[paneId],
+									...pane,
 									cwd,
 									cwdConfirmed: confirmed,
 								},
@@ -662,13 +673,20 @@ export const useTabsStore = create<TabsStore>()(
 
 				clearPaneInitialData: (paneId) => {
 					set((state) => {
-						// Guard: no-op for unknown panes to avoid corrupting panes map
-						if (!state.panes[paneId]) return state;
+						const pane = state.panes[paneId];
+						// Guard: no-op for unknown panes or already cleared
+						if (!pane) return state;
+						if (
+							pane.initialCommands === undefined &&
+							pane.initialCwd === undefined
+						) {
+							return state;
+						}
 						return {
 							panes: {
 								...state.panes,
 								[paneId]: {
-									...state.panes[paneId],
+									...pane,
 									initialCommands: undefined,
 									initialCwd: undefined,
 								},

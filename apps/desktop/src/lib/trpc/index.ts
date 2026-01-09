@@ -45,5 +45,6 @@ const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
 });
 
 export const router = t.router;
+export const mergeRouters = t.mergeRouters;
 export const publicProcedure = t.procedure.use(sentryMiddleware);
 export const trpc = createTRPCReact<AppRouter>();
