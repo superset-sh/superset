@@ -7,6 +7,8 @@ import { getWorkspace } from "../utils/db-helpers";
 import { detectBaseBranch, hasOriginRemote } from "../utils/git";
 import { getWorkspacePath } from "../utils/worktree";
 
+type WorktreePathMap = Map<string, string>;
+
 export const createQueryProcedures = () => {
 	return router({
 		get: publicProcedure
@@ -33,6 +35,12 @@ export const createQueryProcedures = () => {
 				.from(projects)
 				.where(isNotNull(projects.tabOrder))
 				.all();
+
+			// Preload all worktrees once to avoid N+1 queries in the loop below
+			const allWorktrees = localDb.select().from(worktrees).all();
+			const worktreePathMap: WorktreePathMap = new Map(
+				allWorktrees.map((wt) => [wt.id, wt.path]),
+			);
 
 			const groupsMap = new Map<
 				string,
@@ -84,11 +92,20 @@ export const createQueryProcedures = () => {
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 
 			for (const workspace of allWorkspaces) {
-				if (groupsMap.has(workspace.projectId)) {
-					groupsMap.get(workspace.projectId)?.workspaces.push({
+				const group = groupsMap.get(workspace.projectId);
+				if (group) {
+					// Resolve path from preloaded data instead of per-workspace DB queries
+					let worktreePath = "";
+					if (workspace.type === "worktree" && workspace.worktreeId) {
+						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
+					} else if (workspace.type === "branch") {
+						worktreePath = group.project.mainRepoPath;
+					}
+
+					group.workspaces.push({
 						...workspace,
 						type: workspace.type as "worktree" | "branch",
-						worktreePath: getWorkspacePath(workspace) ?? "",
+						worktreePath,
 						isUnread: workspace.isUnread ?? false,
 					});
 				}
