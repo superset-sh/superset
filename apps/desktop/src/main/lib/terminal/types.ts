@@ -11,9 +11,7 @@ export interface TerminalSession {
 	cols: number;
 	rows: number;
 	lastActive: number;
-	/** Headless xterm instance for proper escape sequence processing */
 	headless: HeadlessTerminal;
-	/** Serialize addon for clean scrollback output */
 	serializer: SerializeAddon;
 	isAlive: boolean;
 	wasRecovered: boolean;

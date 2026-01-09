@@ -112,7 +112,7 @@ export class TerminalManager extends EventEmitter {
 		session.pty.onExit(async ({ exitCode, signal }) => {
 			session.isAlive = false;
 
-			// Capture scrollback before disposing (needed for crash recovery)
+			// Must capture before flush (flush disposes headless terminal)
 			const existingScrollback = getSerializedScrollback(session);
 			flushSession(session);
 
@@ -195,7 +195,6 @@ export class TerminalManager extends EventEmitter {
 
 		try {
 			session.pty.resize(cols, rows);
-			// Keep headless terminal in sync for accurate scrollback serialization
 			session.headless.resize(cols, rows);
 			session.cols = cols;
 			session.rows = rows;
@@ -262,8 +261,7 @@ export class TerminalManager extends EventEmitter {
 			return;
 		}
 
-		// Recreate headless terminal for reliable clear
-		// (xterm's write queue is async, so clear() alone may not work reliably)
+		// Recreate headless (xterm writes are async, so clear() alone is unreliable)
 		session.headless.dispose();
 		const { headless, serializer } = createHeadlessTerminal({
 			cols: session.cols,

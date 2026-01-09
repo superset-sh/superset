@@ -13,15 +13,10 @@ import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
-/** Default scrollback buffer size for headless terminal */
 const DEFAULT_SCROLLBACK = 10000;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
 
-/**
- * Creates a headless xterm instance with serialize addon.
- * This handles escape sequence processing properly, producing clean serialized output.
- */
 export function createHeadlessTerminal(params: {
 	cols: number;
 	rows: number;
@@ -37,8 +32,7 @@ export function createHeadlessTerminal(params: {
 	});
 
 	const serializer = new SerializeAddon();
-	// SerializeAddon types expect browser Terminal, but it works with headless at runtime
-	// since it only accesses the buffer API which both terminals share
+	// SerializeAddon types expect browser Terminal, but works with headless at runtime
 	headless.loadAddon(
 		serializer as unknown as Parameters<typeof headless.loadAddon>[0],
 	);
@@ -46,16 +40,10 @@ export function createHeadlessTerminal(params: {
 	return { headless, serializer };
 }
 
-/**
- * Gets the serialized scrollback from a session's headless terminal.
- */
 export function getSerializedScrollback(session: TerminalSession): string {
 	return session.serializer.serialize();
 }
 
-/**
- * Recovers scrollback by writing existing data to the headless terminal.
- */
 export function recoverScrollback(params: {
 	existingScrollback: string | null;
 	headless: HeadlessTerminal;
@@ -120,13 +108,11 @@ export async function createSession(
 		rootPath,
 	});
 
-	// Create headless terminal for proper escape sequence processing
 	const { headless, serializer } = createHeadlessTerminal({
 		cols: terminalCols,
 		rows: terminalRows,
 	});
 
-	// Recover existing scrollback into headless terminal
 	const wasRecovered = recoverScrollback({
 		existingScrollback,
 		headless,
@@ -176,30 +162,23 @@ export function setupDataHandler(
 	let commandsSent = false;
 
 	session.pty.onData((data) => {
-		// Check for clear scrollback sequences (ED3: ESC[3J)
-		// When detected, recreate the headless terminal to ensure a fresh state
-		// (xterm's write queue is async, so clear/reset alone may not work reliably)
+		// Recreate headless on clear (xterm writes are async, so clear() alone is unreliable)
 		if (containsClearScrollbackSequence(data)) {
-			// Dispose old headless terminal
 			session.headless.dispose();
-			// Create new headless terminal with same dimensions
 			const { headless, serializer } = createHeadlessTerminal({
 				cols: session.cols,
 				rows: session.rows,
 			});
 			session.headless = headless;
 			session.serializer = serializer;
-			// Only write content after the clear sequence
 			const contentAfterClear = extractContentAfterClear(data);
 			if (contentAfterClear) {
 				session.headless.write(contentAfterClear);
 			}
 		} else {
-			// Feed data to headless terminal for proper escape sequence processing
 			session.headless.write(data);
 		}
 
-		// Send to renderer
 		session.dataBatcher.write(data);
 
 		if (initialCommandString && !commandsSent) {
