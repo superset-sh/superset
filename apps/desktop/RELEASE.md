@@ -5,26 +5,34 @@
 From the monorepo root:
 
 ```bash
-./apps/desktop/create-release.sh <version>
-# Example: ./apps/desktop/create-release.sh desktop-v0.0.1
+./apps/desktop/create-release.sh
 ```
 
 The script will:
-1. Update `package.json` version
-2. Create and push a `desktop-v<version>` tag
-3. Monitor the GitHub Actions build
-4. Create a **draft release** for review
+1. Show current version and prompt for new version (patch/minor/major/custom)
+2. Update `package.json` version
+3. Create and push a `desktop-v<version>` tag
+4. Monitor the GitHub Actions build
+5. Create a **draft release** for review
 
-To auto-publish instead of creating a draft:
+### Options
 
 ```bash
-./apps/desktop/create-release.sh desktop-v0.0.1 --publish
+# Interactive version selection (recommended)
+./apps/desktop/create-release.sh
+
+# Explicit version
+./apps/desktop/create-release.sh 0.0.50
+
+# Auto-publish (skip draft)
+./apps/desktop/create-release.sh --publish
+./apps/desktop/create-release.sh 0.0.50 --publish
 ```
 
 To publish a draft:
 
 ```bash
-gh release edit desktop-v0.0.1 --draft=false
+gh release edit desktop-v0.0.50 --draft=false
 ```
 
 ### Requirements

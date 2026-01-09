@@ -25,21 +25,22 @@ export const createStatusRouter = () => {
 				const git = simpleGit(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 
+				// First, get status (needed for subsequent operations)
 				const status = await git.status();
 				const parsed = parseGitStatus(status);
 
-				const branchComparison = await getBranchComparison(git, defaultBranch);
-				const trackingStatus = await getTrackingBranchStatus(git);
-
-				await applyNumstatToFiles(git, parsed.staged, [
-					"diff",
-					"--cached",
-					"--numstat",
+				// Run independent operations in parallel
+				const [branchComparison, trackingStatus] = await Promise.all([
+					getBranchComparison(git, defaultBranch),
+					getTrackingBranchStatus(git),
+					applyNumstatToFiles(git, parsed.staged, [
+						"diff",
+						"--cached",
+						"--numstat",
+					]),
+					applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
+					applyUntrackedLineCount(input.worktreePath, parsed.untracked),
 				]);
-
-				await applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]);
-
-				await applyUntrackedLineCount(input.worktreePath, parsed.untracked);
 
 				return {
 					branch: parsed.branch,

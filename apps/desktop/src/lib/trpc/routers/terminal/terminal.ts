@@ -94,7 +94,8 @@ export const createTerminalRouter = () => {
 				return {
 					paneId,
 					isNew: result.isNew,
-					serializedState: result.serializedState,
+					scrollback: result.scrollback,
+					wasRecovered: result.wasRecovered,
 				};
 			}),
 
@@ -145,14 +146,11 @@ export const createTerminalRouter = () => {
 
 		/**
 		 * Detach from terminal (keep session alive)
-		 * Accepts serialized terminal state from renderer's SerializeAddon
-		 * to enable clean reattachment without escape sequence issues
 		 */
 		detach: publicProcedure
 			.input(
 				z.object({
 					paneId: z.string(),
-					serializedState: z.string().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -161,7 +159,7 @@ export const createTerminalRouter = () => {
 
 		/**
 		 * Clear scrollback buffer for terminal (used by Cmd+K / clear command)
-		 * This clears in-memory scrollback and serialized state
+		 * This clears both in-memory scrollback and persistent history file
 		 */
 		clearScrollback: publicProcedure
 			.input(
@@ -169,8 +167,8 @@ export const createTerminalRouter = () => {
 					paneId: z.string(),
 				}),
 			)
-			.mutation(({ input }) => {
-				terminalManager.clearScrollback(input);
+			.mutation(async ({ input }) => {
+				await terminalManager.clearScrollback(input);
 			}),
 
 		getSession: publicProcedure

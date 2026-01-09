@@ -3,7 +3,6 @@ import { CanvasAddon } from "@xterm/addon-canvas";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { ImageAddon } from "@xterm/addon-image";
-import { SerializeAddon } from "@xterm/addon-serialize";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
@@ -106,7 +105,6 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
-	serializeAddon: SerializeAddon;
 	cleanup: () => void;
 } {
 	const { cwd, initialTheme, onFileLinkClick } = options;
@@ -120,7 +118,6 @@ export function createTerminalInstance(
 	const clipboardAddon = new ClipboardAddon();
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
-	const serializeAddon = new SerializeAddon();
 
 	xterm.open(container);
 
@@ -130,7 +127,6 @@ export function createTerminalInstance(
 	xterm.loadAddon(clipboardAddon);
 	xterm.loadAddon(unicode11Addon);
 	xterm.loadAddon(imageAddon);
-	xterm.loadAddon(serializeAddon);
 
 	import("@xterm/addon-ligatures")
 		.then(({ LigaturesAddon }) => {
@@ -189,7 +185,6 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
-		serializeAddon,
 		cleanup: () => {
 			cleanupQuerySuppression();
 			renderer.dispose();

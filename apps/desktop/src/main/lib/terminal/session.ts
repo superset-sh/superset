@@ -1,6 +1,11 @@
 import os from "node:os";
 import * as pty from "node-pty";
 import { getShellArgs } from "../agent-setup";
+import { DataBatcher } from "../data-batcher";
+import {
+	containsClearScrollbackSequence,
+	extractContentAfterClear,
+} from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
@@ -8,6 +13,16 @@ const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
 /** Max time to wait for agent hooks before running initial commands */
 const AGENT_HOOKS_TIMEOUT_MS = 2000;
+
+export function recoverScrollback(existingScrollback: string | null): {
+	scrollback: string;
+	wasRecovered: boolean;
+} {
+	if (existingScrollback) {
+		return { scrollback: existingScrollback, wasRecovered: true };
+	}
+	return { scrollback: "", wasRecovered: false };
+}
 
 function spawnPty(params: {
 	shell: string;
@@ -42,6 +57,7 @@ export async function createSession(
 		cwd,
 		cols,
 		rows,
+		existingScrollback,
 		useFallbackShell = false,
 	} = params;
 
@@ -60,6 +76,9 @@ export async function createSession(
 		rootPath,
 	});
 
+	const { scrollback: recoveredScrollback, wasRecovered } =
+		recoverScrollback(existingScrollback);
+
 	const ptyProcess = spawnPty({
 		shell,
 		cols: terminalCols,
@@ -68,7 +87,11 @@ export async function createSession(
 		env,
 	});
 
-	const session: TerminalSession = {
+	const dataBatcher = new DataBatcher((batchedData) => {
+		onData(paneId, batchedData);
+	});
+
+	return {
 		pty: ptyProcess,
 		paneId,
 		workspaceId,
@@ -76,54 +99,64 @@ export async function createSession(
 		cols: terminalCols,
 		rows: terminalRows,
 		lastActive: Date.now(),
+		scrollback: recoveredScrollback,
 		isAlive: true,
+		wasRecovered,
+		dataBatcher,
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
 	};
-
-	ptyProcess.onData((data) => {
-		onData(paneId, data);
-	});
-
-	return session;
 }
 
-/**
- * Set up initial commands to run after shell prompt is ready.
- * Commands are only sent for new sessions (not reattachments).
- */
-export function setupInitialCommands(
+export function setupDataHandler(
 	session: TerminalSession,
 	initialCommands: string[] | undefined,
+	wasRecovered: boolean,
 	beforeInitialCommands?: Promise<void>,
 ): void {
-	if (!initialCommands || initialCommands.length === 0) {
-		return;
-	}
+	const initialCommandString =
+		!wasRecovered && initialCommands && initialCommands.length > 0
+			? `${initialCommands.join(" && ")}\n`
+			: null;
+	let commandsSent = false;
 
-	const initialCommandString = `${initialCommands.join(" && ")}\n`;
+	session.pty.onData((data) => {
+		let dataToStore = data;
 
-	const dataHandler = session.pty.onData(() => {
-		dataHandler.dispose();
+		if (containsClearScrollbackSequence(data)) {
+			session.scrollback = "";
+			dataToStore = extractContentAfterClear(data);
+		}
 
-		setTimeout(() => {
-			if (session.isAlive) {
-				void (async () => {
-					if (beforeInitialCommands) {
-						const timeout = new Promise<void>((resolve) =>
-							setTimeout(resolve, AGENT_HOOKS_TIMEOUT_MS),
-						);
-						await Promise.race([beforeInitialCommands, timeout]).catch(
-							() => {},
-						);
-					}
+		session.scrollback += dataToStore;
 
-					if (session.isAlive) {
-						session.pty.write(initialCommandString);
-					}
-				})();
-			}
-		}, 100);
+		session.dataBatcher.write(data);
+
+		if (initialCommandString && !commandsSent) {
+			commandsSent = true;
+			setTimeout(() => {
+				if (session.isAlive) {
+					void (async () => {
+						if (beforeInitialCommands) {
+							const timeout = new Promise<void>((resolve) =>
+								setTimeout(resolve, AGENT_HOOKS_TIMEOUT_MS),
+							);
+							await Promise.race([beforeInitialCommands, timeout]).catch(
+								() => {},
+							);
+						}
+
+						if (session.isAlive) {
+							session.pty.write(initialCommandString);
+						}
+					})();
+				}
+			}, 100);
+		}
 	});
+}
+
+export function flushSession(session: TerminalSession): void {
+	session.dataBatcher.dispose();
 }
