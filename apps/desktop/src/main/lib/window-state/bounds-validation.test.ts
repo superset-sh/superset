@@ -1,9 +1,28 @@
-import { beforeEach, describe, expect, it, type mock } from "bun:test";
-import { screen } from "electron";
-import {
-	getInitialWindowBounds,
-	isVisibleOnAnyDisplay,
-} from "./bounds-validation";
+import { beforeEach, describe, expect, it, mock, type mock as MockType } from "bun:test";
+
+// Mock electron with screen API before importing anything that uses it
+const mockScreen = {
+	getPrimaryDisplay: mock(() => ({
+		workAreaSize: { width: 1920, height: 1080 },
+		bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+	})),
+	getAllDisplays: mock(() => [
+		{
+			bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+			workAreaSize: { width: 1920, height: 1080 },
+		},
+	]),
+};
+
+mock.module("electron", () => ({
+	screen: mockScreen,
+}));
+
+// Import module after mocks are set up
+const { getInitialWindowBounds, isVisibleOnAnyDisplay } = await import(
+	"./bounds-validation"
+);
+const screen = mockScreen;
 
 const MIN_VISIBLE_OVERLAP = 50;
 const MIN_WINDOW_SIZE = 400;
@@ -11,7 +30,7 @@ const MIN_WINDOW_SIZE = 400;
 describe("isVisibleOnAnyDisplay", () => {
 	describe("single display setup", () => {
 		beforeEach(() => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 			]);
 		});
@@ -99,7 +118,7 @@ describe("isVisibleOnAnyDisplay", () => {
 
 	describe("multi-display setup", () => {
 		beforeEach(() => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 				{ bounds: { x: 1920, y: 0, width: 1920, height: 1080 } },
 			]);
@@ -126,7 +145,7 @@ describe("isVisibleOnAnyDisplay", () => {
 
 	describe("secondary display with offset", () => {
 		beforeEach(() => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 				{ bounds: { x: 960, y: 1080, width: 1920, height: 1080 } },
 			]);
@@ -147,7 +166,7 @@ describe("isVisibleOnAnyDisplay", () => {
 
 	describe("display to the left (negative coordinates)", () => {
 		beforeEach(() => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 				{ bounds: { x: -1920, y: 0, width: 1920, height: 1080 } },
 			]);
@@ -162,14 +181,14 @@ describe("isVisibleOnAnyDisplay", () => {
 
 	describe("edge cases", () => {
 		it("should return false when no displays connected", () => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([]);
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([]);
 			expect(
 				isVisibleOnAnyDisplay({ x: 100, y: 100, width: 800, height: 600 }),
 			).toBe(false);
 		});
 
 		it("should return true for zero-size window if position is valid (size validation is separate)", () => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 			]);
 			expect(
@@ -181,10 +200,10 @@ describe("isVisibleOnAnyDisplay", () => {
 
 describe("getInitialWindowBounds", () => {
 	beforeEach(() => {
-		(screen.getPrimaryDisplay as ReturnType<typeof mock>).mockReturnValue({
+		(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue({
 			workAreaSize: { width: 1920, height: 1080 },
 		});
-		(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+		(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 			{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 		]);
 	});
@@ -319,7 +338,7 @@ describe("getInitialWindowBounds", () => {
 
 	describe("DPI/resolution changes", () => {
 		it("should handle resolution decrease gracefully", () => {
-			(screen.getPrimaryDisplay as ReturnType<typeof mock>).mockReturnValue({
+			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue({
 				workAreaSize: { width: 1280, height: 720 },
 			});
 
@@ -336,7 +355,7 @@ describe("getInitialWindowBounds", () => {
 		});
 
 		it("should clamp to work area even if smaller than MIN_WINDOW_SIZE", () => {
-			(screen.getPrimaryDisplay as ReturnType<typeof mock>).mockReturnValue({
+			(screen.getPrimaryDisplay as ReturnType<typeof MockType>).mockReturnValue({
 				workAreaSize: { width: 300, height: 200 },
 			});
 
@@ -355,7 +374,7 @@ describe("getInitialWindowBounds", () => {
 
 	describe("multi-monitor scenarios", () => {
 		beforeEach(() => {
-			(screen.getAllDisplays as ReturnType<typeof mock>).mockReturnValue([
+			(screen.getAllDisplays as ReturnType<typeof MockType>).mockReturnValue([
 				{ bounds: { x: 0, y: 0, width: 1920, height: 1080 } },
 				{ bounds: { x: 1920, y: 0, width: 1920, height: 1080 } },
 			]);
