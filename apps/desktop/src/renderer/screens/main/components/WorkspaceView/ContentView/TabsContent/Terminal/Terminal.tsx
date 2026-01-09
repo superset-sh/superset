@@ -778,6 +778,12 @@ export const Terminal = ({
 				onSuccess: (result) => {
 					pendingInitialStateRef.current = result;
 					maybeApplyInitialState();
+
+					// Focus terminal after starting new shell
+					const currentXterm = xtermRef.current;
+					if (currentXterm && isFocusedRef.current) {
+						currentXterm.focus();
+					}
 				},
 				onError: (error) => {
 					console.error("[Terminal] Failed to start shell:", error);
