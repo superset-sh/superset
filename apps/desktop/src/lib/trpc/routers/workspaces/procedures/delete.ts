@@ -47,7 +47,6 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				// Workspace is already being deleted
 				if (workspace.deletingAt) {
 					return {
 						canDelete: false,
@@ -75,8 +74,7 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
-				// If skipping git checks, return early with just terminal count
-				// This is used during polling to avoid expensive git operations
+				// Polling uses skipGitChecks to avoid expensive git operations
 				if (input.skipGitChecks) {
 					return {
 						canDelete: true,
@@ -114,7 +112,6 @@ export const createDeleteProcedures = () => {
 							};
 						}
 
-						// Check for uncommitted changes and unpushed commits in parallel
 						const [hasChanges, unpushedCommits] = await Promise.all([
 							hasUncommittedChanges(worktree.path),
 							hasUnpushedCommits(worktree.path),
@@ -161,23 +158,19 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				// Mark workspace as deleting IMMEDIATELY so it's hidden from UI.
-				// This prevents the workspace from reappearing if a refetch occurs
-				// during the slow git operations below.
+				// Hide from UI immediately to prevent reappearing during slow git operations
 				markWorkspaceAsDeleting(input.id);
 
-				// Cancel any ongoing initialization and wait for it to complete
-				// This ensures we don't race with init's git operations
+				// Wait for any ongoing init to complete to avoid racing git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
 					console.log(
 						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
 					);
 					workspaceInitManager.cancel(input.id);
 					try {
-						// Wait for init to finish (up to 30s) - it will see cancellation and exit
 						await workspaceInitManager.waitForInit(input.id, 30000);
 					} catch (error) {
-						// If wait times out or fails, clear deleting status so workspace reappears
+						// Clear deleting status so workspace reappears in UI
 						console.error(
 							`[workspace/delete] Failed to wait for init cancellation:`,
 							error,
@@ -191,7 +184,6 @@ export const createDeleteProcedures = () => {
 					}
 				}
 
-				// Kill all terminal processes in this workspace first
 				const terminalResult = await terminalManager.killByWorkspaceId(
 					input.id,
 				);
@@ -200,17 +192,14 @@ export const createDeleteProcedures = () => {
 
 				let worktree: SelectWorktree | undefined;
 
-				// Branch workspaces don't have worktrees - skip worktree operations
 				if (workspace.type === "worktree" && workspace.worktreeId) {
 					worktree = getWorktree(workspace.worktreeId);
 
 					if (worktree && project) {
-						// Acquire project lock before any git operations
-						// This prevents racing with any concurrent init operations
+						// Prevents racing with concurrent init operations
 						await workspaceInitManager.acquireProjectLock(project.id);
 
 						try {
-							// Run teardown scripts before removing worktree
 							const exists = await worktreeExists(
 								project.mainRepoPath,
 								worktree.path,
@@ -242,7 +231,6 @@ export const createDeleteProcedures = () => {
 								const errorMessage =
 									error instanceof Error ? error.message : String(error);
 								console.error("Failed to remove worktree:", errorMessage);
-								// Clear deleting status so workspace reappears in UI
 								clearWorkspaceDeletingStatus(input.id);
 								return {
 									success: false,
@@ -255,7 +243,6 @@ export const createDeleteProcedures = () => {
 					}
 				}
 
-				// Proceed with DB cleanup
 				deleteWorkspace(input.id);
 
 				if (worktree) {
@@ -275,8 +262,7 @@ export const createDeleteProcedures = () => {
 
 				track("workspace_deleted", { workspace_id: input.id });
 
-				// Clear init job state only after all cleanup is complete
-				// This ensures cancellation signals remain visible during cleanup
+				// Clear after cleanup so cancellation signals remain visible during deletion
 				workspaceInitManager.clearJob(input.id);
 
 				return { success: true, terminalWarning };
@@ -295,13 +281,8 @@ export const createDeleteProcedures = () => {
 					input.id,
 				);
 
-				// Delete workspace record ONLY, keep worktree
-				deleteWorkspace(input.id);
-
-				// Check if project should be hidden (no more open workspaces)
+				deleteWorkspace(input.id); // keeps worktree on disk
 				hideProjectIfNoWorkspaces(workspace.projectId);
-
-				// Update active workspace if this was the active one
 				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
