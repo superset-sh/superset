@@ -27,17 +27,11 @@ import { useState } from "react";
 import {
 	HiCalendar,
 	HiCheckCircle,
-	HiInbox,
 	HiLink,
 	HiPencil,
 	HiUser,
 } from "react-icons/hi2";
-import {
-	CollectionsProvider,
-	useCollections,
-} from "renderer/contexts/CollectionsProvider";
-import { OrganizationsProvider } from "renderer/contexts/OrganizationsProvider";
-import { OrganizationSwitcher } from "./components/OrganizationSwitcher";
+import { useCollections } from "renderer/contexts/CollectionsProvider";
 
 interface TaskEditDialogProps {
 	task: SelectTask;
@@ -309,47 +303,12 @@ function TasksList() {
 	);
 }
 
-function Sidebar() {
-	return (
-		<div className="w-56 border-r bg-muted/30 flex flex-col">
-			<div className="p-2 border-b">
-				<OrganizationSwitcher />
-			</div>
-			<nav className="flex-1 p-2">
-				<button
-					type="button"
-					className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md bg-muted text-sm font-medium"
-				>
-					<HiInbox className="h-4 w-4" />
-					All Tasks
-				</button>
-			</nav>
-		</div>
-	);
-}
-
-function TasksViewContent() {
-	return (
-		<div className="flex flex-1 min-h-0 bg-background">
-			<Sidebar />
-			<div className="flex-1 flex flex-col min-h-0">
-				<div className="border-b px-4 py-3 shrink-0">
-					<h1 className="text-lg font-semibold">Tasks</h1>
-				</div>
-				<ScrollArea className="flex-1 min-h-0">
-					<TasksList />
-				</ScrollArea>
-			</div>
-		</div>
-	);
-}
-
 export function TasksView() {
 	return (
-		<OrganizationsProvider>
-			<CollectionsProvider>
-				<TasksViewContent />
-			</CollectionsProvider>
-		</OrganizationsProvider>
+		<div className="flex-1 flex flex-col min-h-0">
+			<ScrollArea className="flex-1 min-h-0">
+				<TasksList />
+			</ScrollArea>
+		</div>
 	);
 }
