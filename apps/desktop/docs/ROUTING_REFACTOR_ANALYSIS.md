@@ -2,9 +2,9 @@
 
 **Date:** 2026-01-09
 **Status:** Analysis Complete
-**Related:** routing-refactor.md
+**Related:** ROUTING_REFACTOR_PLAN.md
 
-This document analyzes the concrete, specific benefits and tradeoffs of migrating from the current view-switching pattern to React Router, based on the actual codebase.
+This document analyzes the concrete, specific benefits and tradeoffs of migrating from the current view-switching pattern to **TanStack Router with Next.js conventions**, based on the actual codebase.
 
 ---
 
@@ -49,13 +49,16 @@ const renderContent = () => {
 ### 4. **97 component files all loaded upfront, no code splitting**
 **Current mess:** All components in `screens/main/components/` load immediately. SettingsView, TasksView, WorkspacesListView, WorkspaceView all loaded even if you only use workspace.
 
-**What changes:** Each route can lazy load. User who never opens settings doesn't load SettingsView bundle.
+**What changes:** TanStack Router plugin handles code splitting automatically. Just enable `autoCodeSplitting: true` in the Vite config.
 
-```tsx
-const SettingsView = lazy(() => import("./app/(authenticated)/settings/page"));
+```typescript
+// electron.vite.config.ts
+TanStackRouterVite({
+  autoCodeSplitting: true, // That's it!
+})
 ```
 
-**Impact:** Faster initial load. Pay-as-you-go bundle loading.
+**Impact:** Faster initial load. Pay-as-you-go bundle loading. Zero manual `React.lazy()` calls needed.
 
 ---
 
@@ -100,9 +103,13 @@ trpc.menu.subscribe.useSubscription(undefined, {
 });
 ```
 
-**What changes:** Becomes `navigate(\`/settings/${event.data.section}\`)`.
+**What changes:** Becomes type-safe navigation with TanStack Router.
 
-**Impact:** Standard navigation API. No custom abstractions.
+```tsx
+navigate({ to: "/settings/$section", params: { section: event.data.section } });
+```
+
+**Impact:** Standard navigation API. Type-checked params. No custom abstractions.
 
 ---
 
@@ -279,12 +286,21 @@ The only real loss is **#3 (back behavior)** - may need a `navigateBackToWorkspa
 
 ## Recommendation
 
-**Proceed with migration.** The refactor:
-- Deletes ~80 lines of custom routing logic
-- Enables code splitting for faster startup
+**Proceed with migration using TanStack Router.** The refactor:
+- Deletes ~80 lines of custom routing logic (entire app-state.ts)
+- Enables **automatic** code splitting for faster startup
 - Fixes provider scoping issues
-- Follows standard React Router patterns
-- Aligns with repo co-location conventions (AGENTS.md)
+- Uses **exact Next.js conventions** (`page.tsx`, `layout.tsx`, file-based routing)
+- **Type-safe navigation** with generated route tree
+- Aligns perfectly with repo co-location conventions (AGENTS.md)
+- Zero manual route registration - folder structure = routes
 
-Estimated effort: 8-12 hours (per routing-refactor.md)
+**Why TanStack Router over React Router:**
+- File-based routing (folder structure defines routes)
+- Auto code splitting via Vite plugin
+- Type-safe params and navigation
+- Next.js-style conventions via `indexToken` and `routeToken`
+- Better DX, more modern
+
+Estimated effort: 8-13 hours (per ROUTING_REFACTOR_PLAN.md)
 Risk: Low - incremental migration possible, comprehensive testing at each phase

@@ -19,20 +19,25 @@ The desktop app currently uses a view-switching pattern with global state (`curr
 
 **Current usage:** `app-state.ts` navigation helpers used in **121 locations across 25 files**.
 
-## Solution: React Router with Next.js App Router Patterns
+## Solution: TanStack Router with Next.js App Router Conventions
 
-Migrate to **React Router v7** (already installed) using **Next.js app router conventions**:
-- Route groups `(authenticated)` for layout co-location
-- `page.tsx` for route components
-- `layout.tsx` for nested layouts with `<Outlet />`
+Migrate to **TanStack Router** with file-based routing using **Next.js app router conventions**:
+- Route groups `_authenticated/` for layout co-location (underscore prefix = no URL segment)
+- `page.tsx` for route components (via `indexToken: 'page'`)
+- `layout.tsx` for nested layouts (via `routeToken: 'layout'`)
+- Auto code splitting via Vite plugin
+- Generated route tree with full TypeScript safety
 - Co-located components following repo rules
 
 ## Proposed Folder Structure (Following Strict Co-location)
 
 ```
 src/renderer/
-├── app/                                    # All routes co-located here
-│   ├── page.tsx                            # "/" - root redirect
+├── routes/                                 # TanStack Router file-based routes
+│   ├── __root.tsx                          # Root layout (required by TanStack)
+│   │
+│   ├── index/
+│   │   └── page.tsx                        # "/" - root redirect
 │   │
 │   ├── sign-in/
 │   │   ├── page.tsx                        # "/sign-in" route
@@ -41,7 +46,7 @@ src/renderer/
 │   │           ├── SignInForm.tsx
 │   │           └── index.ts
 │   │
-│   └── (authenticated)/                    # Route group (NOT in URL path)
+│   └── _authenticated/                     # Route group (underscore = NOT in URL path)
 │       ├── layout.tsx                      # AuthenticatedLayout wraps ALL children
 │       │
 │       ├── components/                     # Shared by 2+ authenticated routes
@@ -65,7 +70,7 @@ src/renderer/
 │       │       └── stores/
 │       │           └── new-workspace-modal.ts
 │       │
-│       ├── providers/                      # Used ONLY in (authenticated)/layout.tsx
+│       ├── providers/                      # Used ONLY in _authenticated/layout.tsx
 │       │   ├── CollectionsProvider/
 │       │   │   ├── CollectionsProvider.tsx
 │       │   │   ├── collections.ts
@@ -88,7 +93,7 @@ src/renderer/
 │       │   │           ├── CloneRepoDialog/
 │       │   │           └── InitGitDialog/
 │       │   │
-│       │   └── [workspaceId]/              # "/workspace/:workspaceId" - specific workspace
+│       │   └── $id/                        # "/workspace/:id" - specific workspace ($ = dynamic)
 │       │       ├── page.tsx
 │       │       │
 │       │       ├── components/             # Used ONLY by this workspace page
@@ -151,25 +156,17 @@ src/renderer/
 │           │       └── index.ts
 │           │
 │           ├── account/
-│           │   ├── page.tsx                # "/settings/account"
-│           │   └── components/             # Used ONLY in account settings
-│           │       └── AccountForm/
+│           │   └── page.tsx                # "/settings/account"
 │           ├── workspace/
-│           │   ├── page.tsx                # "/settings/workspace"
-│           │   └── components/
+│           │   └── page.tsx                # "/settings/workspace"
 │           ├── keyboard/
-│           │   ├── page.tsx                # "/settings/keyboard"
-│           │   └── components/
-│           │       └── HotkeyEditor/
+│           │   └── page.tsx                # "/settings/keyboard"
 │           ├── appearance/
-│           │   ├── page.tsx                # "/settings/appearance"
-│           │   └── components/
+│           │   └── page.tsx                # "/settings/appearance"
 │           ├── behavior/
-│           │   ├── page.tsx                # "/settings/behavior"
-│           │   └── components/
+│           │   └── page.tsx                # "/settings/behavior"
 │           └── presets/
-│               ├── page.tsx                # "/settings/presets"
-│               └── components/
+│               └── page.tsx                # "/settings/presets"
 
 ├── components/                             # TRULY global (used at root level)
 │   ├── PostHogUserIdentifier/              # Used in index.tsx
@@ -202,14 +199,14 @@ src/renderer/
 ### Key Co-location Changes
 
 **What Moved:**
-1. ✅ **CollectionsProvider & OrganizationsProvider** → `app/(authenticated)/providers/` (used ONLY in authenticated layout)
-2. ✅ **SetupConfigModal & NewWorkspaceModal** → `app/(authenticated)/components/` (rendered ONLY in authenticated layout)
+1. ✅ **CollectionsProvider & OrganizationsProvider** → `routes/_authenticated/providers/` (used ONLY in authenticated layout)
+2. ✅ **SetupConfigModal & NewWorkspaceModal** → `routes/_authenticated/components/` (rendered ONLY in authenticated layout)
 3. ✅ **Modal stores** → Next to their respective modal components in `components/*/stores/`
-4. ✅ **StartView** → `app/(authenticated)/workspace/components/` (used ONLY by `/workspace` selector page)
-5. ✅ **TopBar, WorkspaceSidebar, WorkspaceContent, etc** → `app/(authenticated)/workspace/[workspaceId]/components/` (used ONLY by specific workspace page)
-6. ✅ **TabsStore** → `app/(authenticated)/workspace/[workspaceId]/stores/tabs/` (used ONLY in workspace page)
-7. ✅ **sidebar-state.ts, workspace-sidebar-state.ts, chat-panel-state.ts** → `app/(authenticated)/workspace/[workspaceId]/stores/` (workspace page specific)
-8. ✅ **workspace-init.ts** → `app/(authenticated)/stores/` (shared by layout + workspace, not workspace-only)
+4. ✅ **StartView** → `routes/_authenticated/workspace/components/` (used ONLY by `/workspace` selector page)
+5. ✅ **TopBar, WorkspaceSidebar, WorkspaceContent, etc** → `routes/_authenticated/workspace/$id/components/` (used ONLY by specific workspace page)
+6. ✅ **TabsStore** → `routes/_authenticated/workspace/$id/stores/tabs/` (used ONLY in workspace page)
+7. ✅ **sidebar-state.ts, workspace-sidebar-state.ts, chat-panel-state.ts** → `routes/_authenticated/workspace/$id/stores/` (workspace page specific)
+8. ✅ **workspace-init.ts** → `routes/_authenticated/stores/` (shared by layout + workspace, not workspace-only)
 
 **What Stayed Global:**
 - ✅ **stores/hotkeys/** - Used in 27+ places across all routes
@@ -221,88 +218,122 @@ src/renderer/
 **What Got Deleted:**
 - ❌ **contexts/AppProviders/** - No longer needed, compose providers directly in index.tsx instead
 
-## Route Groups Explained
+## Route Groups & File-Based Routing
 
-**`(authenticated)`** is a **route group**:
-- ✅ **Not in URL path** - `/workspace` not `/(authenticated)/workspace`
+**`_authenticated/`** is a **route group** (underscore prefix):
+- ✅ **Not in URL path** - `/workspace` not `/_authenticated/workspace`
 - ✅ **Co-locates layout** - `layout.tsx` wraps all children
 - ✅ **Shares components** - `components/` folder shared by all routes in group
 - ✅ **Clear boundaries** - Everything inside needs auth
 
-This is a Next.js app router convention that React Router supports via nested routes.
+**Dynamic routes** use `$` prefix:
+- `$id/page.tsx` → `/workspace/:id` route with `params.id` available
+
+**File naming via plugin config:**
+- `indexToken: 'page'` → Use `page.tsx` instead of `index.tsx`
+- `routeToken: 'layout'` → Use `layout.tsx` instead of `route.tsx`
+- This matches Next.js conventions exactly!
 
 ## Layout Hierarchy
 
 ```
-index.tsx (root composition)
+index.tsx (root entry)
   └─ PostHogProvider
       └─ TRPCProvider
           └─ MonacoProvider
-              └─ <AppRoutes>
+              └─ <RouterProvider router={router}>
                   │
-                  ├─ "/" → app/page.tsx (redirect)
-                  │
-                  ├─ "/sign-in" → app/sign-in/page.tsx
-                  │
-                  └─ app/(authenticated)/layout.tsx
-                      └─ CollectionsProvider
-                          └─ OrganizationsProvider
-                              └─ DndProvider
-                                  └─ Background + AppFrame
-                                      │
-                                      ├─ "/workspace" → workspace/page.tsx (selector)
-                                      │
-                                      ├─ "/workspace/:workspaceId" → workspace/[workspaceId]/page.tsx
-                                      │
-                                      ├─ "/tasks" → tasks/page.tsx
-                                      │
-                                      ├─ "/workspaces" → workspaces/page.tsx
-                                      │
-                                      └─ settings/layout.tsx
-                                          └─ SettingsSidebar wrapper
-                                              │
-                                              ├─ "/settings/account" → account/page.tsx
-                                              ├─ "/settings/workspace" → workspace/page.tsx
-                                              ├─ "/settings/keyboard" → keyboard/page.tsx
-                                              ├─ "/settings/appearance" → appearance/page.tsx
-                                              ├─ "/settings/behavior" → behavior/page.tsx
-                                              └─ "/settings/presets" → presets/page.tsx
+                  └─ routes/__root.tsx (app shell)
+                      │
+                      ├─ "/" → routes/index/page.tsx (redirect)
+                      │
+                      ├─ "/sign-in" → routes/sign-in/page.tsx
+                      │
+                      └─ routes/_authenticated/layout.tsx
+                          └─ CollectionsProvider
+                              └─ OrganizationsProvider
+                                  └─ DndProvider
+                                      └─ Background + AppFrame
+                                          │
+                                          ├─ "/workspace" → workspace/page.tsx (selector)
+                                          │
+                                          ├─ "/workspace/:id" → workspace/$id/page.tsx
+                                          │
+                                          ├─ "/tasks" → tasks/page.tsx
+                                          │
+                                          ├─ "/workspaces" → workspaces/page.tsx
+                                          │
+                                          └─ settings/layout.tsx
+                                              └─ SettingsSidebar wrapper
+                                                  │
+                                                  ├─ "/settings/account" → account/page.tsx
+                                                  ├─ "/settings/workspace" → workspace/page.tsx
+                                                  ├─ "/settings/keyboard" → keyboard/page.tsx
+                                                  ├─ "/settings/appearance" → appearance/page.tsx
+                                                  ├─ "/settings/behavior" → behavior/page.tsx
+                                                  └─ "/settings/presets" → presets/page.tsx
 ```
 
 ## Example Implementation
 
-### index.tsx (Root Composition)
+### index.tsx (Root Entry)
 
 ```tsx
 import { initSentry } from "./lib/sentry";
 initSentry();
 
 import ReactDom from "react-dom/client";
+import { StrictMode } from "react";
+import { RouterProvider, createHashHistory, createRouter } from "@tanstack/react-router";
 import { PostHogProvider } from "./contexts/PostHogProvider";
 import { TRPCProvider } from "./contexts/TRPCProvider";
 import { MonacoProvider } from "./contexts/MonacoProvider";
 import { PostHogUserIdentifier } from "./components/PostHogUserIdentifier";
 import { ThemedToaster } from "./components/ThemedToaster";
-import { AppRoutes } from "./routes";
+import { routeTree } from "./routeTree.gen"; // Auto-generated by Vite plugin
 import "./globals.css";
 
-ReactDom.createRoot(document.querySelector("app") as HTMLElement).render(
-  <PostHogProvider>
-    <TRPCProvider>
-      <PostHogUserIdentifier />
-      <MonacoProvider>
-        <AppRoutes />
-        <ThemedToaster />
-      </MonacoProvider>
-    </TRPCProvider>
-  </PostHogProvider>
+// Create hash history for Electron file:// protocol compatibility
+const hashHistory = createHashHistory();
+const router = createRouter({ routeTree, history: hashHistory });
+
+// Register router for type safety
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+const rootElement = document.querySelector("app")!;
+ReactDom.createRoot(rootElement).render(
+  <StrictMode>
+    <PostHogProvider>
+      <TRPCProvider>
+        <PostHogUserIdentifier />
+        <MonacoProvider>
+          <RouterProvider router={router} />
+          <ThemedToaster />
+        </MonacoProvider>
+      </TRPCProvider>
+    </PostHogProvider>
+  </StrictMode>
 );
 ```
 
-### app/(authenticated)/layout.tsx
+### routes/__root.tsx (Required Root Layout)
 
 ```tsx
-import { Outlet, Navigate } from "react-router-dom";
+import { createRootRoute, Outlet } from "@tanstack/react-router";
+
+export const Route = createRootRoute({
+  component: () => <Outlet />, // All routes render through here
+});
+```
+
+### routes/_authenticated/layout.tsx
+
+```tsx
+import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
 import { trpc } from "renderer/lib/trpc";
 import { dragDropManager } from "renderer/lib/dnd";
@@ -314,7 +345,11 @@ import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
 import { SetupConfigModal } from "./components/SetupConfigModal";
 import { NewWorkspaceModal } from "./components/NewWorkspaceModal";
 
-export default function AuthenticatedLayout() {
+export const Route = createFileRoute("/_authenticated")({
+  component: AuthenticatedLayout,
+});
+
+function AuthenticatedLayout() {
   const { data: authState } = trpc.auth.getState.useQuery();
   const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
 
@@ -340,35 +375,50 @@ export default function AuthenticatedLayout() {
 }
 ```
 
-### app/(authenticated)/workspace/page.tsx (Selector)
+### routes/_authenticated/workspace/page.tsx (Selector)
 
 ```tsx
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { trpc } from "renderer/lib/trpc";
 import { StartView } from "./components/StartView";
 
-// Auto-navigates to last active workspace, or shows StartView if none
-export default function WorkspaceSelectorPage() {
+export const Route = createFileRoute("/_authenticated/workspace/")({
+  component: WorkspaceSelectorPage,
+});
+
+function WorkspaceSelectorPage() {
+  const navigate = useNavigate();
   const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+
   useEffect(() => {
-    if (activeWorkspace?.id) navigate(`/workspace/${activeWorkspace.id}`, { replace: true });
-  }, [activeWorkspace?.id]);
+    if (activeWorkspace?.id) {
+      navigate({ to: "/workspace/$id", params: { id: activeWorkspace.id }, replace: true });
+    }
+  }, [activeWorkspace?.id, navigate]);
 
   return activeWorkspace ? <LoadingSpinner /> : <StartView />;
 }
 ```
 
-### app/(authenticated)/workspace/[workspaceId]/page.tsx
+### routes/_authenticated/workspace/$id/page.tsx
 
 ```tsx
+import { createFileRoute, Navigate, useParams } from "@tanstack/react-router";
+import { trpc } from "renderer/lib/trpc";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { WorkspaceContent } from "./components/WorkspaceContent";
 import { ResizablePanel } from "./components/ResizablePanel";
 import { useWorkspaceSidebarStore } from "./stores/workspace-sidebar-state";
 
-// Main workspace view - fetches workspace by ID from URL
-export default function WorkspacePage() {
-  const { workspaceId } = useParams();
-  const { data: workspace } = trpc.workspaces.getById.useQuery({ id: workspaceId! });
+export const Route = createFileRoute("/_authenticated/workspace/$id")({
+  component: WorkspacePage,
+});
+
+function WorkspacePage() {
+  const { id } = Route.useParams(); // Type-safe params!
+  const { data: workspace } = trpc.workspaces.getById.useQuery({ id });
   const { isOpen, width, setWidth } = useWorkspaceSidebarStore();
 
   if (!workspace) return <Navigate to="/workspace" replace />;
@@ -383,13 +433,17 @@ export default function WorkspacePage() {
 }
 ```
 
-### app/(authenticated)/settings/layout.tsx
+### routes/_authenticated/settings/layout.tsx
 
 ```tsx
-import { Outlet } from "react-router-dom";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 
-export default function SettingsLayout() {
+export const Route = createFileRoute("/_authenticated/settings")({
+  component: SettingsLayout,
+});
+
+function SettingsLayout() {
   return (
     <div className="flex h-full">
       <SettingsSidebar />
@@ -474,11 +528,11 @@ export function AppRoutes() {
 
 1. **`/workspace`** (Workspace Selector Page)
    - Queries for last active workspace
-   - If workspace exists → auto-navigates to `/workspace/:workspaceId`
+   - If workspace exists → auto-navigates to `/workspace/:id`
    - If no workspace → shows StartView (create/clone UI)
    - This is where users land when opening app without deep link
 
-2. **`/workspace/:workspaceId`** (Specific Workspace Page)
+2. **`/workspace/:id`** (Specific Workspace Page)
    - Shows the full workspace UI (TopBar, Sidebar, Content)
    - If workspace ID invalid → redirects back to `/workspace`
    - This is the main workspace view
@@ -490,8 +544,8 @@ Clicking a workspace in sidebar:
 // Before: Updates global state
 setActiveWorkspace(workspaceId);
 
-// After: Navigate to new workspace
-navigate(`/workspace/${workspaceId}`);
+// After: Type-safe navigation
+navigate({ to: "/workspace/$id", params: { id: workspaceId } });
 ```
 
 Browser back/forward now works to switch between workspaces!
@@ -510,15 +564,22 @@ const openTasks = useOpenTasks();
 openTasks();
 ```
 
-### After (React Router)
+### After (TanStack Router - Type-Safe!)
 
 ```tsx
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@tanstack/react-router";
 
 const navigate = useNavigate();
-navigate("/settings/keyboard");
-navigate("/tasks");
-navigate(`/workspace/${workspaceId}`);  // Switch workspaces
+
+// Navigate to routes (type-checked!)
+navigate({ to: "/settings/keyboard" });
+navigate({ to: "/tasks" });
+
+// Navigate with params (also type-checked!)
+navigate({ to: "/workspace/$id", params: { id: workspaceId } });
+
+// Or use the simpler string syntax for parameterless routes
+navigate({ to: "/settings/keyboard" });
 ```
 
 ## State Changes
@@ -542,22 +603,22 @@ navigate(`/workspace/${workspaceId}`);  // Switch workspaces
 
 ### What Gets Co-located (No Longer Global)
 
-**Moved to `app/(authenticated)/workspace/[workspaceId]/stores/`:**
+**Moved to `routes/_authenticated/workspace/$id/stores/`:**
 - ❌ `stores/tabs/` → Workspace page only (tab/pane management)
 - ❌ `stores/sidebar-state.ts` → Workspace page only (left sidebar UI)
 - ❌ `stores/workspace-sidebar-state.ts` → Workspace page only (right sidebar UI)
 - ❌ `stores/chat-panel-state.ts` → Workspace page only
 
-**Moved to `app/(authenticated)/stores/`:**
+**Moved to `routes/_authenticated/stores/`:**
 - ❌ `stores/workspace-init.ts` → Shared by authenticated layout + workspace
 
-**Moved to `app/(authenticated)/components/SetupConfigModal/stores/`:**
+**Moved to `routes/_authenticated/components/SetupConfigModal/stores/`:**
 - ❌ `stores/config-modal.ts` → Used only by SetupConfigModal
 
-**Moved to `app/(authenticated)/components/NewWorkspaceModal/stores/`:**
+**Moved to `routes/_authenticated/components/NewWorkspaceModal/stores/`:**
 - ❌ `stores/new-workspace-modal.ts` → Used only by NewWorkspaceModal
 
-**Moved to `app/(authenticated)/providers/`:**
+**Moved to `routes/_authenticated/providers/`:**
 - ❌ `contexts/CollectionsProvider/` → Used only in authenticated layout
 - ❌ `contexts/OrganizationsProvider/` → Used only in authenticated layout
 
@@ -573,74 +634,148 @@ navigate(`/workspace/${workspaceId}`);  // Switch workspaces
 
 **Deleted:**
 - ❌ `contexts/AppProviders/` - No longer needed, compose providers directly in index.tsx
+- ❌ `routes.tsx` - No longer needed, TanStack Router auto-generates route tree
+- ❌ `lib/electron-router-dom.ts` - No longer needed, using TanStack Router directly
 
 ## Migration Steps
 
-### Phase 1: Create Structure (1-2 hours)
-1. Create `app/` folder structure
-2. Create route group `app/(authenticated)/`
-3. Create `page.tsx` files (empty shells)
-4. Create `layout.tsx` files
+### Phase 0: Install Dependencies (15 min)
+1. Install TanStack Router: `bun add @tanstack/react-router`
+2. Install Vite plugin: `bun add -D @tanstack/router-plugin`
+3. Remove old deps: `bun remove electron-router-dom react-router-dom`
+4. Configure Vite plugin in `electron.vite.config.ts`:
+   ```ts
+   import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+
+   renderer: {
+     plugins: [
+       TanStackRouterVite({
+         routesDirectory: "./src/renderer/routes",
+         generatedRouteTree: "./src/renderer/routeTree.gen.ts",
+         indexToken: "page",      // Use page.tsx
+         routeToken: "layout",    // Use layout.tsx
+         autoCodeSplitting: true, // Auto lazy load routes
+       }),
+       react(),
+     ]
+   }
+   ```
+
+### Phase 1: Create Route Structure (1-2 hours)
+1. Create `routes/` folder
+2. Create `routes/__root.tsx` (required)
+3. Create route group `routes/_authenticated/`
+4. Create `page.tsx` and `layout.tsx` files (empty shells)
+5. Run dev server to generate `routeTree.gen.ts`
 
 ### Phase 2: Extract Components (2-3 hours)
-1. Move `screens/main/components/` to appropriate `app/` locations
+1. Move `screens/main/components/` to appropriate `routes/` locations
 2. Update imports within moved components
 3. Co-locate components following repo rules
 
-### Phase 3: Wire Routes (1 hour)
-1. Update `routes.tsx` to register all routes
-2. Test navigation between routes
+### Phase 3: Update Route Files (1-2 hours)
+1. Add `createFileRoute()` exports to all `page.tsx` files
+2. Add `createFileRoute()` exports to all `layout.tsx` files
+3. Test that route tree generates correctly
 
 ### Phase 4: Replace Navigation (2-3 hours)
 1. Find all `useOpenSettings`, `useSetView`, etc. calls (~121 usages)
-2. Replace with `useNavigate()` calls
+2. Replace with `useNavigate()` from `@tanstack/react-router`
 3. Update hotkey handlers to navigate
 4. Update menu handlers to navigate
 
-### Phase 5: Cleanup (1 hour)
-1. Delete `screens/main/`
-2. Delete or heavily reduce `stores/app-state.ts`
-3. Remove unused imports
-4. Update tests
+### Phase 5: Update Root Entry (30 min)
+1. Update `index.tsx` to use `RouterProvider`
+2. Create hash router for Electron compatibility
+3. Delete old `routes.tsx` file
+4. Delete `lib/electron-router-dom.ts`
 
-### Phase 6: Testing (1-2 hours)
+### Phase 6: Cleanup (1 hour)
+1. Delete `screens/main/`
+2. Delete `stores/app-state.ts` entirely
+3. Remove unused imports
+4. Add `routeTree.gen.ts` to `.gitignore`
+
+### Phase 7: Testing (1-2 hours)
 1. Test all route navigation
-2. Test deep linking (open app to `/settings/keyboard`)
+2. Test deep linking (open app to `#/settings/keyboard`)
 3. Test browser back/forward
 4. Test auth redirects
 5. Test provider hierarchy (CollectionsProvider working correctly)
+6. Test dynamic routes (`/workspace/:id`)
 
-**Total estimated time: 8-12 hours**
+**Total estimated time: 8-13 hours**
 
 ## Benefits
 
 1. ✅ **Perfect co-location** - `layout.tsx` lives exactly where it's used
-2. ✅ **Route groups** - `(authenticated)` wraps routes without affecting URL
-3. ✅ **Clear hierarchy** - Folder structure = component nesting
-4. ✅ **Shared components** - `(authenticated)/components/` for Background, AppFrame
+2. ✅ **Route groups** - `_authenticated/` wraps routes without affecting URL
+3. ✅ **Clear hierarchy** - Folder structure = component nesting = route tree
+4. ✅ **Shared components** - `_authenticated/components/` for Background, AppFrame
 5. ✅ **Nested layouts** - Settings layout inside authenticated layout
-6. ✅ **Standard Next.js patterns** - Anyone familiar with Next.js understands this
-7. ✅ **Code splitting** - Can lazy load routes for faster startup
-8. ✅ **URL-based navigation** - Deep linking, sharable URLs
-9. ✅ **Provider scoping** - CollectionsProvider only wraps authenticated routes
-10. ✅ **Follows repo conventions** - Co-location rules from AGENTS.md
+6. ✅ **Exact Next.js conventions** - `page.tsx`, `layout.tsx`, `$id/` dynamic params
+7. ✅ **Auto code splitting** - Built into TanStack Router plugin, no manual `React.lazy()`
+8. ✅ **Type-safe navigation** - Generated route tree with full TypeScript autocomplete
+9. ✅ **URL-based navigation** - Deep linking, sharable URLs, browser back/forward
+10. ✅ **Provider scoping** - CollectionsProvider only wraps authenticated routes
+11. ✅ **Follows repo conventions** - Co-location rules from AGENTS.md
+12. ✅ **File-based routing** - No manual `<Route>` components, folder structure defines routes
+13. ✅ **Hash routing** - Works with Electron's `file://` protocol out of the box
 
 ## Risks & Mitigations
 
 | Risk                         | Mitigation                                                     |
 | ---------------------------- | -------------------------------------------------------------- |
-| Breaking existing navigation | Incremental migration, feature flag if needed                  |
-| Missing navigation calls     | Grep for all `app-state` usages, comprehensive testing         |
+| Breaking existing navigation | Incremental migration, comprehensive testing at each phase     |
+| Missing navigation calls     | Grep for all `app-state` usages, update systematically         |
 | Provider hierarchy issues    | Test auth flows thoroughly, verify CollectionsProvider scoping |
 | Hotkeys breaking             | Update all hotkey handlers to use navigate()                   |
-| Deep refactor takes too long | Can pause after Phase 3, test incrementally                    |
+| Route generation issues      | Run dev server frequently, check `routeTree.gen.ts` for errors |
+| Learning curve for team      | TanStack Router docs are excellent, syntax similar to Next.js  |
 
-## Open Questions
+## Configuration Reference
 
-1. Should we lazy load routes with `React.lazy()`?
-2. Do we need URL params for settings sections or just routes? Routes is fine
-3. Should we delete `app-state.ts` entirely or keep minimal state?
-4. Do we want a feature flag to toggle between old/new navigation during migration? No
+### Vite Plugin Config
+
+```typescript
+// electron.vite.config.ts
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
+
+export default defineConfig({
+  renderer: {
+    plugins: [
+      TanStackRouterVite({
+        routesDirectory: "./src/renderer/routes",
+        generatedRouteTree: "./src/renderer/routeTree.gen.ts",
+        indexToken: "page",      // Use page.tsx instead of index.tsx
+        routeToken: "layout",    // Use layout.tsx instead of route.tsx
+        autoCodeSplitting: true, // Enable automatic code splitting
+      }),
+      react(),
+    ],
+  },
+});
+```
+
+### Route File Patterns
+
+| File Pattern | Route | Description |
+|-------------|-------|-------------|
+| `routes/__root.tsx` | - | Required root layout |
+| `routes/index/page.tsx` | `/` | Home page |
+| `routes/sign-in/page.tsx` | `/sign-in` | Sign-in page |
+| `routes/_authenticated/layout.tsx` | - | Layout wrapper (no URL segment) |
+| `routes/_authenticated/workspace/page.tsx` | `/workspace` | Workspace selector |
+| `routes/_authenticated/workspace/$id/page.tsx` | `/workspace/:id` | Dynamic workspace route |
+| `routes/_authenticated/settings/layout.tsx` | `/settings` | Settings layout |
+| `routes/_authenticated/settings/keyboard/page.tsx` | `/settings/keyboard` | Settings page |
+
+### .gitignore
+
+```
+# TanStack Router generated file
+routeTree.gen.ts
+```
 
 ## Decision: Approved / Needs Discussion
 
