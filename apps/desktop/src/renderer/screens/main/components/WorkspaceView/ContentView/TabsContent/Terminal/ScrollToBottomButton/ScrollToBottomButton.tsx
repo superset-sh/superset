@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import type { Terminal } from "@xterm/xterm";
 import { useCallback, useEffect, useState } from "react";
-import { HiChevronDown } from "react-icons/hi2";
+import { HiArrowDown } from "react-icons/hi2";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 import { smoothScrollToBottom } from "../utils";
 
@@ -62,7 +62,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 						onClick={handleClick}
 						className="flex size-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					>
-						<HiChevronDown className="size-4" />
+						<HiArrowDown className="size-4" />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="left">
