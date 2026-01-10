@@ -44,7 +44,14 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 	}, [terminal, checkScrollPosition]);
 
 	const handleClick = () => {
-		terminal?.scrollToBottom();
+		if (viewportRef.current) {
+			viewportRef.current.scrollTo({
+				top: viewportRef.current.scrollHeight,
+				behavior: "smooth",
+			});
+		} else {
+			terminal?.scrollToBottom();
+		}
 	};
 
 	return (
