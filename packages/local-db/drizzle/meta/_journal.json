@@ -71,6 +71,13 @@
       "when": 1767652257969,
       "tag": "0009_add_github_owner_to_projects",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1768004449114,
+      "tag": "0010_add_workspace_deleting_at",
+      "breakpoints": true
     }
   ]
 }

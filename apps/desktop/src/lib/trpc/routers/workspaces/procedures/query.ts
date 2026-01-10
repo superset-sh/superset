@@ -1,5 +1,5 @@
 import { projects, settings, workspaces, worktrees } from "@superset/local-db";
-import { eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -25,6 +25,7 @@ export const createQueryProcedures = () => {
 			return localDb
 				.select()
 				.from(workspaces)
+				.where(isNull(workspaces.deletingAt))
 				.all()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 		}),
@@ -88,13 +89,13 @@ export const createQueryProcedures = () => {
 			const allWorkspaces = localDb
 				.select()
 				.from(workspaces)
+				.where(isNull(workspaces.deletingAt))
 				.all()
 				.sort((a, b) => a.tabOrder - b.tabOrder);
 
 			for (const workspace of allWorkspaces) {
 				const group = groupsMap.get(workspace.projectId);
 				if (group) {
-					// Resolve path from preloaded data instead of per-workspace DB queries
 					let worktreePath = "";
 					if (workspace.type === "worktree" && workspace.worktreeId) {
 						worktreePath = worktreePathMap.get(workspace.worktreeId) ?? "";
@@ -127,12 +128,15 @@ export const createQueryProcedures = () => {
 			const workspace = localDb
 				.select()
 				.from(workspaces)
-				.where(eq(workspaces.id, lastActiveWorkspaceId))
+				.where(
+					and(
+						eq(workspaces.id, lastActiveWorkspaceId),
+						isNull(workspaces.deletingAt),
+					),
+				)
 				.get();
 			if (!workspace) {
-				throw new Error(
-					`Active workspace ${lastActiveWorkspaceId} not found in database`,
-				);
+				return null;
 			}
 
 			const project = localDb
@@ -165,7 +169,6 @@ export const createQueryProcedures = () => {
 						if (detected) {
 							baseBranch = detected;
 						}
-						// Persist the result (detected branch or null sentinel)
 						localDb
 							.update(worktrees)
 							.set({ baseBranch: detected ?? null })

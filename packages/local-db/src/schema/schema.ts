@@ -103,6 +103,7 @@ export const workspaces = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		deletingAt: integer("deleting_at"), // Set when deletion starts; filtered out from queries
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
