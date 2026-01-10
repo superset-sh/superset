@@ -47,6 +47,18 @@ export const createDeleteProcedures = () => {
 					};
 				}
 
+				// Workspace is already being deleted
+				if (workspace.deletingAt) {
+					return {
+						canDelete: false,
+						reason: "Deletion already in progress",
+						workspace: null,
+						activeTerminalCount: 0,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
 				const activeTerminalCount =
 					terminalManager.getSessionCountByWorkspaceId(input.id);
 
@@ -161,8 +173,22 @@ export const createDeleteProcedures = () => {
 						`[workspace/delete] Cancelling init for ${input.id}, waiting for completion...`,
 					);
 					workspaceInitManager.cancel(input.id);
-					// Wait for init to finish (up to 30s) - it will see cancellation and exit
-					await workspaceInitManager.waitForInit(input.id, 30000);
+					try {
+						// Wait for init to finish (up to 30s) - it will see cancellation and exit
+						await workspaceInitManager.waitForInit(input.id, 30000);
+					} catch (error) {
+						// If wait times out or fails, clear deleting status so workspace reappears
+						console.error(
+							`[workspace/delete] Failed to wait for init cancellation:`,
+							error,
+						);
+						clearWorkspaceDeletingStatus(input.id);
+						return {
+							success: false,
+							error:
+								"Failed to cancel workspace initialization. Please try again.",
+						};
+					}
 				}
 
 				// Kill all terminal processes in this workspace first

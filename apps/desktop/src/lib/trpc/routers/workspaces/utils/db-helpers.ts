@@ -88,16 +88,18 @@ export function hideProject(projectId: string): void {
 }
 
 /**
- * Check if a project has any remaining workspaces (excluding those being deleted).
+ * Check if a project has any remaining workspaces.
  * If not, hide it from the sidebar.
+ *
+ * Note: We check for ANY workspaces (including those being deleted) to avoid
+ * prematurely hiding the project when multiple workspaces are being deleted
+ * concurrently. The project should only be hidden when all deletions complete.
  */
 export function hideProjectIfNoWorkspaces(projectId: string): void {
 	const remainingWorkspaces = localDb
 		.select()
 		.from(workspaces)
-		.where(
-			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
-		)
+		.where(eq(workspaces.projectId, projectId))
 		.all();
 	if (remainingWorkspaces.length === 0) {
 		hideProject(projectId);
