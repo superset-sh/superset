@@ -249,7 +249,6 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
-		// Store viewport scroll position for restoration on reattach
 		if (viewportY !== undefined) {
 			session.viewportY = viewportY;
 		}
