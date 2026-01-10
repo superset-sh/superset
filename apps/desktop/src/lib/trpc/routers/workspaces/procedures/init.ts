@@ -63,6 +63,12 @@ export const createInitProcedures = () => {
 
 				const { workspace, worktree, project } = relations;
 
+				if (workspace.deletingAt) {
+					throw new Error(
+						"Cannot retry initialization on a workspace being deleted",
+					);
+				}
+
 				if (!worktree) {
 					throw new Error("Worktree not found");
 				}
