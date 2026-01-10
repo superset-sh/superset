@@ -1,0 +1,11 @@
+services:
+  ssh-server:
+    build: .
+    container_name: superset-ssh-test
+    ports:
+      - "2222:22"
+    volumes:
+      # Uncomment to mount your public key for key-based auth
+      # - ~/.ssh/id_rsa.pub:/home/testuser/.ssh/authorized_keys:ro
+      - ./workspace:/home/testuser/workspace
+    restart: unless-stopped
