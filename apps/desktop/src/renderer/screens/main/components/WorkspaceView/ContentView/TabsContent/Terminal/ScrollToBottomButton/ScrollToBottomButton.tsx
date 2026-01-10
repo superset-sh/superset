@@ -55,7 +55,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 					: "pointer-events-none translate-y-2 opacity-0",
 			)}
 		>
-			<Tooltip>
+			<Tooltip delayDuration={500}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
