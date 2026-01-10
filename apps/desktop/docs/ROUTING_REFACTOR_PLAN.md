@@ -187,13 +187,10 @@ src/renderer/
 │   ├── useVersionCheck/                    # Used in root routes check
 │   └── useUpdateListener/                  # Used at root level
 
-├── lib/                                    # Shared utilities
-│   ├── trpc.ts                             # Used everywhere
-│   ├── dnd.ts                              # Used in (authenticated)/layout.tsx
-│   ├── electron-router-dom.ts              # Used in routes.tsx
-│   └── sentry.ts                           # Used in index.tsx
-
-└── routes.tsx                              # Route registration (reads from app/)
+└── lib/                                    # Shared utilities
+    ├── trpc.ts                             # Used everywhere
+    ├── dnd.ts                              # DragDropManager (used in root index.tsx)
+    └── sentry.ts                           # Used in index.tsx
 ```
 
 ### Key Co-location Changes
@@ -212,11 +209,13 @@ src/renderer/
 - ✅ **stores/hotkeys/** - Used in 27+ places across all routes
 - ✅ **hooks/useVersionCheck** - Used at root level for version blocking
 - ✅ **hooks/useUpdateListener** - Used at root level
-- ✅ **PostHogProvider, TRPCProvider, MonacoProvider** - Root-level providers (composed in index.tsx)
-- ✅ **lib/** utilities - Shared infrastructure
+- ✅ **PostHogProvider, TRPCProvider, MonacoProvider, DndProvider** - Root-level providers (composed in index.tsx)
+- ✅ **lib/** utilities - Shared infrastructure (trpc, dnd, sentry)
 
 **What Got Deleted:**
 - ❌ **contexts/AppProviders/** - No longer needed, compose providers directly in index.tsx instead
+- ❌ **routes.tsx** - No longer needed, TanStack Router auto-generates route tree
+- ❌ **lib/electron-router-dom.ts** - No longer needed, using TanStack Router directly
 
 ## Route Groups & File-Based Routing
 
@@ -241,18 +240,18 @@ index.tsx (root entry)
   └─ PostHogProvider
       └─ TRPCProvider
           └─ MonacoProvider
-              └─ <RouterProvider router={router}>
-                  │
-                  └─ routes/__root.tsx (app shell)
+              └─ DndProvider
+                  └─ <RouterProvider router={router}>
                       │
-                      ├─ "/" → routes/index/page.tsx (redirect)
-                      │
-                      ├─ "/sign-in" → routes/sign-in/page.tsx
-                      │
-                      └─ routes/_authenticated/layout.tsx
-                          └─ CollectionsProvider
-                              └─ OrganizationsProvider
-                                  └─ DndProvider
+                      └─ routes/__root.tsx (app shell)
+                          │
+                          ├─ "/" → routes/index/page.tsx (redirect)
+                          │
+                          ├─ "/sign-in" → routes/sign-in/page.tsx
+                          │
+                          └─ routes/_authenticated/layout.tsx
+                              └─ CollectionsProvider
+                                  └─ OrganizationsProvider
                                       └─ Background + AppFrame
                                           │
                                           ├─ "/workspace" → workspace/page.tsx (selector)
@@ -285,6 +284,8 @@ initSentry();
 import ReactDom from "react-dom/client";
 import { StrictMode } from "react";
 import { RouterProvider, createHashHistory, createRouter } from "@tanstack/react-router";
+import { DndProvider } from "react-dnd";
+import { dragDropManager } from "./lib/dnd";
 import { PostHogProvider } from "./contexts/PostHogProvider";
 import { TRPCProvider } from "./contexts/TRPCProvider";
 import { MonacoProvider } from "./contexts/MonacoProvider";
@@ -311,8 +312,10 @@ ReactDom.createRoot(rootElement).render(
       <TRPCProvider>
         <PostHogUserIdentifier />
         <MonacoProvider>
-          <RouterProvider router={router} />
-          <ThemedToaster />
+          <DndProvider manager={dragDropManager}>
+            <RouterProvider router={router} />
+            <ThemedToaster />
+          </DndProvider>
         </MonacoProvider>
       </TRPCProvider>
     </PostHogProvider>
@@ -334,9 +337,7 @@ export const Route = createRootRoute({
 
 ```tsx
 import { createFileRoute, Outlet, Navigate } from "@tanstack/react-router";
-import { DndProvider } from "react-dnd";
 import { trpc } from "renderer/lib/trpc";
-import { dragDropManager } from "renderer/lib/dnd";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { OrganizationsProvider } from "./providers/OrganizationsProvider";
 import { Background } from "./components/Background";
@@ -360,15 +361,13 @@ function AuthenticatedLayout() {
   return (
     <CollectionsProvider>
       <OrganizationsProvider>
-        <DndProvider manager={dragDropManager}>
-          <Background />
-          <AppFrame>
-            <Outlet /> {/* workspace, tasks, workspaces, settings render here */}
-          </AppFrame>
-          <SetupConfigModal />
-          <NewWorkspaceModal />
-          <WorkspaceInitEffects />
-        </DndProvider>
+        <Background />
+        <AppFrame>
+          <Outlet /> {/* workspace, tasks, workspaces, settings render here */}
+        </AppFrame>
+        <SetupConfigModal />
+        <NewWorkspaceModal />
+        <WorkspaceInitEffects />
       </OrganizationsProvider>
     </CollectionsProvider>
   );
@@ -455,72 +454,48 @@ function SettingsLayout() {
 }
 ```
 
-### routes.tsx
+## Route Tree Generation
 
-```tsx
-import { Route } from "react-router-dom";
-import { Router } from "lib/electron-router-dom";
+**No manual route file needed!** TanStack Router's Vite plugin auto-generates `routeTree.gen.ts` from your `routes/` folder structure.
 
-// Root level
-import RootPage from "./app/page";
-import SignInPage from "./app/sign-in/page";
-
-// Authenticated routes
-import AuthenticatedLayout from "./app/(authenticated)/layout";
-import WorkspaceSelectorPage from "./app/(authenticated)/workspace/page";
-import WorkspacePage from "./app/(authenticated)/workspace/[workspaceId]/page";
-import TasksPage from "./app/(authenticated)/tasks/page";
-import WorkspacesPage from "./app/(authenticated)/workspaces/page";
-
-// Settings (nested)
-import SettingsLayout from "./app/(authenticated)/settings/layout";
-import SettingsPage from "./app/(authenticated)/settings/page";
-import AccountSettingsPage from "./app/(authenticated)/settings/account/page";
-import WorkspaceSettingsPage from "./app/(authenticated)/settings/workspace/page";
-import KeyboardSettingsPage from "./app/(authenticated)/settings/keyboard/page";
-import AppearanceSettingsPage from "./app/(authenticated)/settings/appearance/page";
-import BehaviorSettingsPage from "./app/(authenticated)/settings/behavior/page";
-import PresetsSettingsPage from "./app/(authenticated)/settings/presets/page";
-
-function ErrorPage() {
-  const error = useRouteError() as Error;
-  // ... existing error page implementation
-}
-
-export function AppRoutes() {
-  return (
-    <Router
-      main={
-        <>
-          {/* Root */}
-          <Route path="/" element={<RootPage />} />
-          <Route path="/sign-in" element={<SignInPage />} />
-
-          {/* Authenticated routes (route group - no path) */}
-          <Route element={<AuthenticatedLayout />}>
-            <Route path="/workspace" element={<WorkspaceSelectorPage />} />
-            <Route path="/workspace/:workspaceId" element={<WorkspacePage />} />
-            <Route path="/tasks" element={<TasksPage />} />
-            <Route path="/workspaces" element={<WorkspacesPage />} />
-
-            {/* Settings (nested layout) */}
-            <Route path="/settings" element={<SettingsLayout />}>
-              <Route index element={<SettingsPage />} />
-              <Route path="account" element={<AccountSettingsPage />} />
-              <Route path="workspace" element={<WorkspaceSettingsPage />} />
-              <Route path="keyboard" element={<KeyboardSettingsPage />} />
-              <Route path="appearance" element={<AppearanceSettingsPage />} />
-              <Route path="behavior" element={<BehaviorSettingsPage />} />
-              <Route path="presets" element={<PresetsSettingsPage />} />
-            </Route>
-          </Route>
-        </>
-      }
-      errorElement={<ErrorPage />}
-    />
-  );
-}
+The plugin watches your file structure:
 ```
+routes/
+├── __root.tsx              → Root route
+├── index/page.tsx          → "/" route
+├── sign-in/page.tsx        → "/sign-in" route
+└── _authenticated/
+    ├── layout.tsx          → Layout wrapper (no URL segment)
+    ├── workspace/
+    │   ├── page.tsx        → "/workspace" route
+    │   └── $id/page.tsx    → "/workspace/:id" route
+    └── settings/
+        ├── layout.tsx      → Nested layout
+        └── account/page.tsx → "/settings/account" route
+```
+
+And generates a fully typed route tree in `routeTree.gen.ts`:
+```typescript
+// Auto-generated - DO NOT EDIT
+export const routeTree = rootRoute.addChildren([
+  indexRoute,
+  signInRoute,
+  authenticatedRoute.addChildren([
+    workspaceRoute,
+    workspaceIdRoute,
+    settingsRoute.addChildren([
+      settingsAccountRoute,
+      // ...
+    ])
+  ])
+])
+```
+
+**Benefits:**
+- ✅ Full TypeScript autocomplete for routes
+- ✅ Type-safe params extraction (`Route.useParams()`)
+- ✅ Automatic code splitting per route
+- ✅ No manual route registration needed
 
 ## Workspace Routing Behavior
 
@@ -632,10 +607,90 @@ navigate({ to: "/settings/keyboard" });
 - ✅ `contexts/MonacoProvider/` - Root-level editor engine (composed in index.tsx)
 - ✅ `lib/` - Shared utilities (trpc, dnd, electron-router-dom)
 
+### Important: Store Lifecycle
+
+**All stores moved to route folders remain global Zustand singletons.**
+
+Moving stores like `tabs/`, `sidebar-state.ts`, etc. to `routes/_authenticated/workspace/$id/stores/` is **purely for co-location** - it doesn't change their behavior:
+
+- ✅ Stores persist across route changes (combined with zustand persist middleware)
+- ✅ Tabs for workspace A remain in memory when navigating to workspace B
+- ✅ Store imports work from any route (not route-scoped)
+- ✅ State survives component unmounting
+
+The file movement is about organizing code near its primary usage location, not functional scoping.
+
 **Deleted:**
 - ❌ `contexts/AppProviders/` - No longer needed, compose providers directly in index.tsx
 - ❌ `routes.tsx` - No longer needed, TanStack Router auto-generates route tree
 - ❌ `lib/electron-router-dom.ts` - No longer needed, using TanStack Router directly
+
+## Critical Migration Items
+
+### 1. Agent Hook Listener Navigation
+
+**File:** `stores/tabs/useAgentHookListener.ts`
+
+**What it does:** Listens for agent lifecycle events (start/stop/permission) and notification clicks. When you click a notification toast to focus a tab, it navigates you to that workspace and focuses the correct tab/pane.
+
+**Migration required (lines 101-103):**
+
+```typescript
+// Before:
+if (appState.currentView !== "workspace") {
+  appState.setView("workspace");
+}
+setActiveWorkspace.mutate({ id: workspaceId }, { /* ... */ });
+
+// After:
+import { useNavigate } from "@tanstack/react-router";
+
+const navigate = useNavigate();
+// Navigate to workspace, setActiveWorkspace.mutate handles the rest
+navigate({ to: "/workspace/$id", params: { id: workspaceId } });
+setActiveWorkspace.mutate({ id: workspaceId }, { /* ... */ });
+```
+
+**Where to call:** Move hook call from `screens/main/index.tsx` to `routes/_authenticated/layout.tsx` (needs to listen regardless of which route you're on).
+
+### 2. Workspace Hotkeys
+
+**File:** `screens/main/index.tsx` (lines 128-253)
+
+**What they do:** 5 workspace-specific hotkeys for splitting panes and toggling sidebars:
+- `TOGGLE_SIDEBAR` - Toggle changes panel (left sidebar)
+- `TOGGLE_WORKSPACE_SIDEBAR` - Toggle workspace sidebar (right)
+- `SPLIT_AUTO` - Smart split based on pane dimensions
+- `SPLIT_RIGHT` - Split pane vertically
+- `SPLIT_DOWN` - Split pane horizontally
+
+**Migration:** Extract to `routes/_authenticated/workspace/$id/hooks/useWorkspaceHotkeys.ts` and call from `WorkspacePage` component. Hotkeys automatically become scoped to workspace route (only active when route is mounted).
+
+```typescript
+// routes/_authenticated/workspace/$id/hooks/useWorkspaceHotkeys.ts
+export function useWorkspaceHotkeys() {
+  const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+  const { isOpen, setOpen, toggleCollapsed } = useWorkspaceSidebarStore();
+  // ... get state from stores
+
+  const resolveSplitTarget = useCallback(/* ... helper for split ops */);
+
+  useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar());
+  useAppHotkey("TOGGLE_WORKSPACE_SIDEBAR", () => {
+    if (!isOpen) setOpen(true);
+    else toggleCollapsed();
+  });
+  useAppHotkey("SPLIT_AUTO", () => { /* uses resolveSplitTarget */ });
+  useAppHotkey("SPLIT_RIGHT", () => { /* ... */ });
+  useAppHotkey("SPLIT_DOWN", () => { /* ... */ });
+}
+
+// routes/_authenticated/workspace/$id/page.tsx
+function WorkspacePage() {
+  useWorkspaceHotkeys(); // ← Automatically scoped to this route
+  // ... rest of page
+}
+```
 
 ## Migration Steps
 
@@ -726,11 +781,11 @@ navigate({ to: "/settings/keyboard" });
 
 | Risk                         | Mitigation                                                     |
 | ---------------------------- | -------------------------------------------------------------- |
-| Breaking existing navigation | Incremental migration, comprehensive testing at each phase     |
-| Missing navigation calls     | Grep for all `app-state` usages, update systematically         |
+| Breaking existing navigation | See "Critical Migration Items" above - only 2 items require updates (agent hook listener, workspace hotkeys) |
+| Missing navigation calls     | Grep for all `app-state` usages (~121 locations), update systematically |
 | Provider hierarchy issues    | Test auth flows thoroughly, verify CollectionsProvider scoping |
-| Hotkeys breaking             | Update all hotkey handlers to use navigate()                   |
 | Route generation issues      | Run dev server frequently, check `routeTree.gen.ts` for errors |
+| Store lifecycle confusion    | Documented: stores remain global singletons despite folder moves |
 | Learning curve for team      | TanStack Router docs are excellent, syntax similar to Next.js  |
 
 ## Configuration Reference
