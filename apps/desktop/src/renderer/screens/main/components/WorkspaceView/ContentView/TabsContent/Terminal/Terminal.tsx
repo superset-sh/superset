@@ -22,9 +22,10 @@ import {
 	setupResizeHandlers,
 } from "./helpers";
 import { parseCwd } from "./parseCwd";
+import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
-import { shellEscapePaths } from "./utils";
+import { shellEscapePaths, smoothScrollToBottom } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
@@ -43,6 +44,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
@@ -306,7 +308,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	useAppHotkey(
 		"SCROLL_TO_BOTTOM",
 		() => {
-			xtermRef.current?.scrollToBottom();
+			if (xtermRef.current) {
+				smoothScrollToBottom(xtermRef.current);
+			}
 		},
 		{ enabled: isFocused, preventDefault: true },
 		[isFocused],
@@ -331,6 +335,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		isExitedRef.current = false;
+		setXtermInstance(xterm);
 
 		if (isFocusedRef.current) {
 			xterm.focus();
@@ -375,9 +380,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
+			viewportY?: number;
 		}) => {
-			xterm.write(result.scrollback);
-			updateCwdRef.current(result.scrollback);
+			// Callback ensures scroll restoration happens after content is rendered
+			xterm.write(result.scrollback, () => {
+				updateCwdRef.current(result.scrollback);
+				if (result.viewportY !== undefined) {
+					xterm.scrollToLine(result.viewportY);
+				}
+			});
 		};
 
 		const restartTerminal = () => {
@@ -500,7 +511,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const handleScrollToBottom = () => {
-			xterm.scrollToBottom();
+			smoothScrollToBottom(xterm);
 		};
 
 		const handleWrite = (data: string) => {
@@ -556,12 +567,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
+			const viewportY = xterm.buffer.active.viewportY;
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId });
+			detachRef.current({ paneId, viewportY });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
 			searchAddonRef.current = null;
+			setXtermInstance(null);
 		};
 	}, [paneId, workspaceId, workspaceCwd]);
 
@@ -606,6 +619,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
+			<ScrollToBottomButton terminal={xtermInstance} />
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

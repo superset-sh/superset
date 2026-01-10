@@ -13,6 +13,7 @@ import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -80,6 +81,7 @@ export function MainScreen() {
 
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -163,6 +165,10 @@ export function MainScreen() {
 			toggleWorkspaceSidebarCollapsed,
 		],
 	);
+
+	useAppHotkey("NEW_WORKSPACE", () => openNewWorkspaceModal(), undefined, [
+		openNewWorkspaceModal,
+	]);
 
 	/**
 	 * Resolves the target pane for split operations.

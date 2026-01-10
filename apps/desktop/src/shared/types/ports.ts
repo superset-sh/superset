@@ -7,3 +7,27 @@ export interface DetectedPort {
 	detectedAt: number;
 	address: string;
 }
+
+export interface StaticPort {
+	port: number;
+	label: string;
+	workspaceId: string;
+}
+
+export interface StaticPortsResult {
+	exists: boolean;
+	ports: Omit<StaticPort, "workspaceId">[] | null;
+	error: string | null;
+}
+
+export interface MergedPort {
+	port: number;
+	workspaceId: string;
+	label: string | null;
+	isActive: boolean;
+	pid: number | null;
+	processName: string | null;
+	paneId: string | null;
+	address: string | null;
+	detectedAt: number | null;
+}

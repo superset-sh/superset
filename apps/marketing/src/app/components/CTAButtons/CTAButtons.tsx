@@ -6,7 +6,13 @@ import { headers } from "next/headers";
 import { env } from "@/env";
 
 export async function CTAButtons() {
-	const session = await auth.api.getSession({ headers: await headers() });
+	let session = null;
+	try {
+		session = await auth.api.getSession({ headers: await headers() });
+	} catch (error) {
+		// Handle errors from invalid/stale cookies (e.g., old Clerk cookies after migration to Better Auth)
+		console.error("[marketing/CTAButtons] Failed to get session:", error);
+	}
 
 	if (session) {
 		return (

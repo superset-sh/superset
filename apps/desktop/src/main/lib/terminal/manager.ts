@@ -41,6 +41,7 @@ export class TerminalManager extends EventEmitter {
 				isNew: false,
 				scrollback: getSerializedScrollback(existing),
 				wasRecovered: existing.wasRecovered,
+				viewportY: existing.viewportY,
 			};
 		}
 
@@ -238,8 +239,8 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
-	detach(params: { paneId: string }): void {
-		const { paneId } = params;
+	detach(params: { paneId: string; viewportY?: number }): void {
+		const { paneId, viewportY } = params;
 		const session = this.sessions.get(paneId);
 
 		if (!session) {
@@ -248,6 +249,9 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
+		if (viewportY !== undefined) {
+			session.viewportY = viewportY;
+		}
 	}
 
 	clearScrollback(params: { paneId: string }): void {

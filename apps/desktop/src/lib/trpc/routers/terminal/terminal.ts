@@ -96,6 +96,7 @@ export const createTerminalRouter = () => {
 					isNew: result.isNew,
 					scrollback: result.scrollback,
 					wasRecovered: result.wasRecovered,
+					viewportY: result.viewportY,
 				};
 			}),
 
@@ -151,6 +152,7 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
+					viewportY: z.number().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {

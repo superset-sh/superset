@@ -33,6 +33,7 @@ export const PROTOCOL_SCHEME =
 export const PROJECT_SUPERSET_DIR_NAME = ".superset";
 export const WORKTREES_DIR_NAME = "worktrees";
 export const CONFIG_FILE_NAME = "config.json";
+export const PORTS_FILE_NAME = "ports.json";
 
 export const CONFIG_TEMPLATE = `{
   "setup": [],
