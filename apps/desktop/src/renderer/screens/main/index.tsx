@@ -32,6 +32,7 @@ import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { ResizablePanel } from "./components/ResizablePanel";
+import { ComponentsShowcase } from "./components/ComponentsShowcase";
 import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
@@ -299,6 +300,9 @@ export function MainScreen() {
 		}
 		if (currentView === "workspaces-list") {
 			return <WorkspacesListView />;
+		}
+		if (currentView === "components") {
+			return <ComponentsShowcase />;
 		}
 		return <WorkspaceView />;
 	};
