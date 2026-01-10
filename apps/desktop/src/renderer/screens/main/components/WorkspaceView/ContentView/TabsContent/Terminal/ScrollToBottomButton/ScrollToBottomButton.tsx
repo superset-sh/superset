@@ -61,7 +61,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 					<button
 						type="button"
 						onClick={handleClick}
-						className="flex size-8 items-center justify-center rounded-full bg-popover/90 text-muted-foreground shadow-lg ring-1 ring-border/40 backdrop-blur transition-colors hover:bg-popover hover:text-foreground"
+						className="flex size-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 					>
 						<HiChevronDown className="size-4" />
 					</button>
