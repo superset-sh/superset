@@ -1,57 +1,27 @@
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useMemo,
-	useState,
-} from "react";
+import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { trpc } from "../../lib/trpc";
-import { createCollections } from "./collections";
+import { getCollections } from "./collections";
 
-type Collections = ReturnType<typeof createCollections>;
+type Collections = ReturnType<typeof getCollections>;
 
 const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: authState } = trpc.auth.onAuthState.useSubscription();
-	const [error, setError] = useState<Error | null>(null);
 
-	const activeOrgId = authState?.session?.activeOrganizationId;
+	const activeOrganizationId = authState?.session?.activeOrganizationId;
 	const token = authState?.token;
 
 	const collections = useMemo(() => {
-		console.log("[CollectionsProvider] Creating collections with:", {
-			hasToken: !!token,
-			activeOrgId,
-		});
-
-		if (!token || !activeOrgId) {
-			console.log(
-				"[CollectionsProvider] Missing token or activeOrgId, returning null",
-			);
+		if (!token || !activeOrganizationId) {
 			return null;
 		}
 
-		try {
-			return createCollections({ token, activeOrgId });
-		} catch (err) {
-			console.error("[CollectionsProvider] Failed to create collections:", err);
-			setError(err instanceof Error ? err : new Error(String(err)));
-			return null;
-		}
-	}, [token, activeOrgId]);
+		// Get cached collections for this org (or create if first time)
+		return getCollections(activeOrganizationId, token);
+	}, [token, activeOrganizationId]);
 
-	if (error) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<div className="flex flex-col items-center gap-2 text-destructive">
-					<span className="text-sm">Failed to initialize collections</span>
-					<span className="text-xs text-muted-foreground">{error.message}</span>
-				</div>
-			</div>
-		);
-	}
-
+	// Show loading only on initial mount
 	if (!collections) {
 		return (
 			<div className="flex items-center justify-center h-screen">

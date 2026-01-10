@@ -8,6 +8,7 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
+import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
@@ -16,35 +17,46 @@ import { env } from "../../env.renderer";
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
 
-interface CreateCollectionsParams {
-	token: string;
-	activeOrgId: string;
+interface OrgCollections {
+	tasks: Collection<SelectTask>;
+	repositories: Collection<SelectRepository>;
+	members: Collection<SelectMember>;
+	users: Collection<SelectUser>;
 }
 
-export function createCollections({
-	token,
-	activeOrgId,
-}: CreateCollectionsParams) {
-	const headers = { Authorization: `Bearer ${token}` };
+// Per-org collections cache
+const collectionsCache = new Map<string, OrgCollections>();
 
-	const apiClient = createTRPCProxyClient<AppRouter>({
+// Shared organizations collection (same for all orgs)
+let organizationsCollection: Collection<SelectOrganization> | null = null;
+
+function createApiClient(token: string) {
+	return createTRPCProxyClient<AppRouter>({
 		links: [
 			httpBatchLink({
 				url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-				headers,
+				headers: { Authorization: `Bearer ${token}` },
 				transformer: superjson,
 			}),
 		],
 	});
+}
+
+function createOrgCollections(
+	organizationId: string,
+	token: string,
+): OrgCollections {
+	const headers = { Authorization: `Bearer ${token}` };
+	const apiClient = createApiClient(token);
 
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
-			id: `tasks-${activeOrgId}`,
+			id: `tasks-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
 				params: {
 					table: "tasks",
-					org: activeOrgId,
+					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -70,12 +82,12 @@ export function createCollections({
 
 	const repositories = createCollection(
 		electricCollectionOptions<SelectRepository>({
-			id: `repositories-${activeOrgId}`,
+			id: `repositories-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
 				params: {
 					table: "repositories",
-					org: activeOrgId,
+					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -96,12 +108,12 @@ export function createCollections({
 
 	const members = createCollection(
 		electricCollectionOptions<SelectMember>({
-			id: `members-${activeOrgId}`,
+			id: `members-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
 				params: {
 					table: "auth.members",
-					org: activeOrgId,
+					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -112,12 +124,12 @@ export function createCollections({
 
 	const users = createCollection(
 		electricCollectionOptions<SelectUser>({
-			id: `users-${activeOrgId}`,
+			id: `users-${organizationId}`,
 			shapeOptions: {
 				url: electricUrl,
 				params: {
 					table: "auth.users",
-					org: activeOrgId,
+					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -126,18 +138,55 @@ export function createCollections({
 		}),
 	);
 
-	const organizations = createCollection(
-		electricCollectionOptions<SelectOrganization>({
-			id: "organizations",
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "auth.organizations" },
-				headers,
-				columnMapper,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
+	return { tasks, repositories, members, users };
+}
 
-	return { tasks, repositories, members, users, organizations };
+function getOrCreateOrganizationsCollection(
+	token: string,
+): Collection<SelectOrganization> {
+	if (!organizationsCollection) {
+		organizationsCollection = createCollection(
+			electricCollectionOptions<SelectOrganization>({
+				id: "organizations",
+				shapeOptions: {
+					url: electricUrl,
+					params: { table: "auth.organizations" },
+					headers: { Authorization: `Bearer ${token}` },
+					columnMapper,
+				},
+				getKey: (item) => item.id,
+			}),
+		);
+	}
+	return organizationsCollection;
+}
+
+/**
+ * Get collections for an organization, creating them if needed.
+ * Collections are cached per org for instant switching.
+ */
+export function getCollections(organizationId: string, token: string) {
+	// Get or create org-specific collections
+	if (!collectionsCache.has(organizationId)) {
+		console.log(
+			"[collections] Creating new collections for org:",
+			organizationId,
+		);
+		collectionsCache.set(
+			organizationId,
+			createOrgCollections(organizationId, token),
+		);
+	}
+
+	const orgCollections = collectionsCache.get(organizationId);
+	if (!orgCollections) {
+		throw new Error(`Collections not found for org: ${organizationId}`);
+	}
+
+	const organizations = getOrCreateOrganizationsCollection(token);
+
+	return {
+		...orgCollections,
+		organizations,
+	};
 }
