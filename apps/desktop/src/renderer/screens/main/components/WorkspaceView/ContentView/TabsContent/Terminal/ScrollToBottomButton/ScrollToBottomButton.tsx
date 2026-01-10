@@ -1,9 +1,10 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import type { Terminal } from "@xterm/xterm";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { HiChevronDown } from "react-icons/hi2";
 import { useHotkeyText } from "renderer/stores/hotkeys";
+import { smoothScrollToBottom } from "../utils";
 
 interface ScrollToBottomButtonProps {
 	terminal: Terminal | null;
@@ -13,7 +14,6 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 	const [isVisible, setIsVisible] = useState(false);
 	const shortcutText = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showShortcut = shortcutText !== "Unassigned";
-	const viewportRef = useRef<Element | null>(null);
 
 	const checkScrollPosition = useCallback(() => {
 		if (!terminal) return;
@@ -29,7 +29,6 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 		const writeDisposable = terminal.onWriteParsed(checkScrollPosition);
 		const viewport = terminal.element?.querySelector(".xterm-viewport");
-		viewportRef.current = viewport ?? null;
 
 		if (viewport) {
 			viewport.addEventListener("scroll", checkScrollPosition);
@@ -37,20 +36,13 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 		return () => {
 			writeDisposable.dispose();
-			if (viewportRef.current) {
-				viewportRef.current.removeEventListener("scroll", checkScrollPosition);
-			}
+			viewport?.removeEventListener("scroll", checkScrollPosition);
 		};
 	}, [terminal, checkScrollPosition]);
 
 	const handleClick = () => {
-		if (viewportRef.current) {
-			viewportRef.current.scrollTo({
-				top: viewportRef.current.scrollHeight,
-				behavior: "smooth",
-			});
-		} else {
-			terminal?.scrollToBottom();
+		if (terminal) {
+			smoothScrollToBottom(terminal);
 		}
 	};
 

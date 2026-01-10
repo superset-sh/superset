@@ -25,7 +25,7 @@ import { parseCwd } from "./parseCwd";
 import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
-import { shellEscapePaths } from "./utils";
+import { shellEscapePaths, smoothScrollToBottom } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
@@ -308,7 +308,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	useAppHotkey(
 		"SCROLL_TO_BOTTOM",
 		() => {
-			xtermRef.current?.scrollToBottom();
+			if (xtermRef.current) {
+				smoothScrollToBottom(xtermRef.current);
+			}
 		},
 		{ enabled: isFocused, preventDefault: true },
 		[isFocused],
@@ -503,7 +505,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const handleScrollToBottom = () => {
-			xterm.scrollToBottom();
+			smoothScrollToBottom(xterm);
 		};
 
 		const handleWrite = (data: string) => {
