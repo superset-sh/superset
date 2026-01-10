@@ -31,7 +31,7 @@ export function WorkspaceSidebar({
 		<div className="flex flex-col h-full bg-background">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
-			<div className="flex-1 overflow-y-auto">
+			<div className="flex-1 overflow-y-auto hide-scrollbar">
 				{groups.map((group, index) => (
 					<ProjectSection
 						key={group.project.id}
