@@ -1,10 +1,10 @@
 import { workspaces } from "@superset/local-db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
-	getWorkspace,
+	getWorkspaceNotDeleting,
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../utils/db-helpers";
@@ -14,9 +14,11 @@ export const createStatusProcedures = () => {
 		setActive: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = getWorkspaceNotDeleting(input.id);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.id} not found`);
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
 				}
 
 				// Track if workspace was unread before clearing
@@ -43,7 +45,12 @@ export const createStatusProcedures = () => {
 				const projectWorkspaces = localDb
 					.select()
 					.from(workspaces)
-					.where(eq(workspaces.projectId, projectId))
+					.where(
+						and(
+							eq(workspaces.projectId, projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
 					.all()
 					.sort((a, b) => a.tabOrder - b.tabOrder);
 
@@ -80,9 +87,11 @@ export const createStatusProcedures = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = getWorkspaceNotDeleting(input.id);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.id} not found`);
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
 				}
 
 				touchWorkspace(input.id, {
@@ -95,9 +104,11 @@ export const createStatusProcedures = () => {
 		setUnread: publicProcedure
 			.input(z.object({ id: z.string(), isUnread: z.boolean() }))
 			.mutation(({ input }) => {
-				const workspace = getWorkspace(input.id);
+				const workspace = getWorkspaceNotDeleting(input.id);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.id} not found`);
+					throw new Error(
+						`Workspace ${input.id} not found or is being deleted`,
+					);
 				}
 
 				localDb

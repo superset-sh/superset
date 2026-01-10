@@ -1,5 +1,5 @@
 import { workspaces, worktrees } from "@superset/local-db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -152,7 +152,12 @@ export const createGitStatusProcedures = () => {
 					const workspace = localDb
 						.select()
 						.from(workspaces)
-						.where(eq(workspaces.worktreeId, wt.id))
+						.where(
+							and(
+								eq(workspaces.worktreeId, wt.id),
+								isNull(workspaces.deletingAt),
+							),
+						)
 						.get();
 					return {
 						...wt,

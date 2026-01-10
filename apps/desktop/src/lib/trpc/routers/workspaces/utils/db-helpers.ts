@@ -7,7 +7,7 @@ import {
 	workspaces,
 	worktrees,
 } from "@superset/local-db";
-import { and, desc, eq, isNotNull } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 
 /**
@@ -26,14 +26,16 @@ export function setLastActiveWorkspace(workspaceId: string | null): void {
 }
 
 /**
- * Get the maximum tab order for workspaces in a project.
+ * Get the maximum tab order for workspaces in a project (excluding those being deleted).
  * Returns -1 if no workspaces exist.
  */
 export function getMaxWorkspaceTabOrder(projectId: string): number {
 	const projectWorkspaces = localDb
 		.select()
 		.from(workspaces)
-		.where(eq(workspaces.projectId, projectId))
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
 		.all();
 	return projectWorkspaces.length > 0
 		? Math.max(...projectWorkspaces.map((w) => w.tabOrder))
@@ -86,14 +88,16 @@ export function hideProject(projectId: string): void {
 }
 
 /**
- * Check if a project has any remaining workspaces.
+ * Check if a project has any remaining workspaces (excluding those being deleted).
  * If not, hide it from the sidebar.
  */
 export function hideProjectIfNoWorkspaces(projectId: string): void {
 	const remainingWorkspaces = localDb
 		.select()
 		.from(workspaces)
-		.where(eq(workspaces.projectId, projectId))
+		.where(
+			and(eq(workspaces.projectId, projectId), isNull(workspaces.deletingAt)),
+		)
 		.all();
 	if (remainingWorkspaces.length === 0) {
 		hideProject(projectId);
@@ -103,12 +107,13 @@ export function hideProjectIfNoWorkspaces(projectId: string): void {
 /**
  * Select the next active workspace after the current one is removed.
  * Returns the ID of the next workspace to activate, or null if none.
- * Selects the most recently opened workspace.
+ * Selects the most recently opened workspace (excluding those being deleted).
  */
 export function selectNextActiveWorkspace(): string | null {
 	const sorted = localDb
 		.select()
 		.from(workspaces)
+		.where(isNull(workspaces.deletingAt))
 		.orderBy(desc(workspaces.lastOpenedAt))
 		.all();
 	return sorted[0]?.id ?? null;
@@ -136,6 +141,21 @@ export function getWorkspace(workspaceId: string): SelectWorkspace | undefined {
 		.select()
 		.from(workspaces)
 		.where(eq(workspaces.id, workspaceId))
+		.get();
+}
+
+/**
+ * Fetch a workspace by ID, excluding workspaces that are being deleted.
+ * Use this for operations that shouldn't operate on deleting workspaces
+ * (e.g., setActive, update, setUnread).
+ */
+export function getWorkspaceNotDeleting(
+	workspaceId: string,
+): SelectWorkspace | undefined {
+	return localDb
+		.select()
+		.from(workspaces)
+		.where(and(eq(workspaces.id, workspaceId), isNull(workspaces.deletingAt)))
 		.get();
 }
 
@@ -206,6 +226,24 @@ export function touchWorkspace(
 		.run();
 }
 
+/** Hides workspace from queries immediately, before slow deletion operations. */
+export function markWorkspaceAsDeleting(workspaceId: string): void {
+	localDb
+		.update(workspaces)
+		.set({ deletingAt: Date.now() })
+		.where(eq(workspaces.id, workspaceId))
+		.run();
+}
+
+/** Restores workspace visibility after a failed deletion. */
+export function clearWorkspaceDeletingStatus(workspaceId: string): void {
+	localDb
+		.update(workspaces)
+		.set({ deletingAt: null })
+		.where(eq(workspaces.id, workspaceId))
+		.run();
+}
+
 /**
  * Delete a workspace record from the database.
  */
@@ -221,7 +259,7 @@ export function deleteWorktreeRecord(worktreeId: string): void {
 }
 
 /**
- * Get the branch workspace for a project.
+ * Get the branch workspace for a project (excluding those being deleted).
  * Each project can only have one branch workspace (type='branch').
  * Returns undefined if no branch workspace exists.
  */
@@ -232,7 +270,11 @@ export function getBranchWorkspace(
 		.select()
 		.from(workspaces)
 		.where(
-			and(eq(workspaces.projectId, projectId), eq(workspaces.type, "branch")),
+			and(
+				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "branch"),
+				isNull(workspaces.deletingAt),
+			),
 		)
 		.get();
 }

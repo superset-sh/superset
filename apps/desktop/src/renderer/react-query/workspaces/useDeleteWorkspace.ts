@@ -19,9 +19,8 @@ type DeleteContext = {
 };
 
 /**
- * Mutation hook for deleting a workspace
- * Uses optimistic updates to immediately remove workspace from UI,
- * then performs actual deletion in background.
+ * Mutation hook for deleting a workspace with optimistic updates.
+ * Server marks `deletingAt` immediately so refetches stay correct during slow git operations.
  */
 export function useDeleteWorkspace(
 	options?: Parameters<typeof trpc.workspaces.delete.useMutation>[0],
@@ -31,19 +30,16 @@ export function useDeleteWorkspace(
 	return trpc.workspaces.delete.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
-			// Cancel outgoing refetches to avoid overwriting optimistic update
 			await Promise.all([
 				utils.workspaces.getAll.cancel(),
 				utils.workspaces.getAllGrouped.cancel(),
 				utils.workspaces.getActive.cancel(),
 			]);
 
-			// Snapshot previous values for rollback
 			const previousGrouped = utils.workspaces.getAllGrouped.getData();
 			const previousAll = utils.workspaces.getAll.getData();
 			const previousActive = utils.workspaces.getActive.getData();
 
-			// Optimistically remove workspace from getAllGrouped cache
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
@@ -56,7 +52,6 @@ export function useDeleteWorkspace(
 				);
 			}
 
-			// Optimistically remove workspace from getAll cache
 			if (previousAll) {
 				utils.workspaces.getAll.setData(
 					undefined,
@@ -64,17 +59,14 @@ export function useDeleteWorkspace(
 				);
 			}
 
-			// If deleting the active workspace, switch to another workspace optimistically
-			// This prevents a flash of "no workspace" state while the backend processes
+			// Switch to next workspace to prevent "no workspace" flash
 			if (previousActive?.id === id) {
-				// Find the next workspace to switch to (matches backend logic: most recently opened)
 				const remainingWorkspaces = previousAll
 					?.filter((w) => w.id !== id)
 					.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 
 				if (remainingWorkspaces && remainingWorkspaces.length > 0) {
 					const nextWorkspace = remainingWorkspaces[0];
-					// Find the project info for the next workspace from grouped data
 					const projectGroup = previousGrouped?.find((g) =>
 						g.workspaces.some((w) => w.id === nextWorkspace.id),
 					);
@@ -83,8 +75,6 @@ export function useDeleteWorkspace(
 					);
 
 					if (projectGroup && workspaceFromGrouped) {
-						// For worktree-type workspaces, provide minimal worktree data to prevent
-						// hasIncompleteInit from triggering the initialization view
 						const worktreeData =
 							workspaceFromGrouped.type === "worktree"
 								? {
@@ -110,20 +100,23 @@ export function useDeleteWorkspace(
 							worktree: worktreeData,
 						});
 					} else {
-						// Fallback: just clear it and let invalidate handle it
 						utils.workspaces.getActive.setData(undefined, null);
 					}
 				} else {
-					// No remaining workspaces
 					utils.workspaces.getActive.setData(undefined, null);
 				}
 			}
 
-			// Return context for rollback
 			return { previousGrouped, previousAll, previousActive } as DeleteContext;
 		},
-		onError: (_err, _variables, context) => {
-			// Rollback to previous state on error
+		onSettled: async (...args) => {
+			await utils.workspaces.invalidate();
+			await options?.onSettled?.(...args);
+		},
+		onSuccess: async (...args) => {
+			await options?.onSuccess?.(...args);
+		},
+		onError: async (_err, _variables, context, ...rest) => {
 			if (context?.previousGrouped !== undefined) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
@@ -136,13 +129,8 @@ export function useDeleteWorkspace(
 			if (context?.previousActive !== undefined) {
 				utils.workspaces.getActive.setData(undefined, context.previousActive);
 			}
-		},
-		onSuccess: async (...args) => {
-			// Invalidate to ensure consistency with backend state
-			await utils.workspaces.invalidate();
 
-			// Call user's onSuccess if provided
-			await options?.onSuccess?.(...args);
+			await options?.onError?.(_err, _variables, context, ...rest);
 		},
 	});
 }

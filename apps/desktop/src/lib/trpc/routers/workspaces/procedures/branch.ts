@@ -1,5 +1,5 @@
 import { projects, workspaces } from "@superset/local-db";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { terminalManager } from "main/lib/terminal";
 import { z } from "zod";
@@ -39,7 +39,12 @@ export const createBranchProcedures = () => {
 				const projectWorkspaces = localDb
 					.select()
 					.from(workspaces)
-					.where(eq(workspaces.projectId, input.projectId))
+					.where(
+						and(
+							eq(workspaces.projectId, input.projectId),
+							isNull(workspaces.deletingAt),
+						),
+					)
 					.all();
 				const worktreeBranchMap: Record<string, string> = {};
 				for (const ws of projectWorkspaces) {

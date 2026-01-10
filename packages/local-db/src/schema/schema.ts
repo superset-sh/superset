@@ -103,6 +103,9 @@ export const workspaces = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		// Timestamp when deletion was initiated. Non-null means deletion in progress.
+		// Workspaces with deletingAt set should be filtered out from queries.
+		deletingAt: integer("deleting_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

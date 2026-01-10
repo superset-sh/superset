@@ -5,12 +5,14 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
+	clearWorkspaceDeletingStatus,
 	deleteWorkspace,
 	deleteWorktreeRecord,
 	getProject,
 	getWorkspace,
 	getWorktree,
 	hideProjectIfNoWorkspaces,
+	markWorkspaceAsDeleting,
 	updateActiveWorkspaceIfRemoved,
 } from "../utils/db-helpers";
 import {
@@ -147,6 +149,11 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
+				// Mark workspace as deleting IMMEDIATELY so it's hidden from UI.
+				// This prevents the workspace from reappearing if a refetch occurs
+				// during the slow git operations below.
+				markWorkspaceAsDeleting(input.id);
+
 				// Cancel any ongoing initialization and wait for it to complete
 				// This ensures we don't race with init's git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
@@ -209,6 +216,8 @@ export const createDeleteProcedures = () => {
 								const errorMessage =
 									error instanceof Error ? error.message : String(error);
 								console.error("Failed to remove worktree:", errorMessage);
+								// Clear deleting status so workspace reappears in UI
+								clearWorkspaceDeletingStatus(input.id);
 								return {
 									success: false,
 									error: `Failed to remove worktree: ${errorMessage}`,

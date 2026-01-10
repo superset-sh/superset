@@ -1,7 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { projects, workspaces, worktrees } from "@superset/local-db";
-import { and, eq, not } from "drizzle-orm";
+import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
 import { workspaceInitManager } from "main/lib/workspace-init-manager";
@@ -215,6 +215,7 @@ export const createCreateProcedures = () => {
 								eq(workspaces.projectId, input.projectId),
 								// Exclude the workspace we just inserted
 								not(eq(workspaces.id, newWorkspaceId)),
+								isNull(workspaces.deletingAt),
 							),
 						)
 						.all();
@@ -272,11 +273,16 @@ export const createCreateProcedures = () => {
 					throw new Error(`Worktree ${input.worktreeId} not found`);
 				}
 
-				// Check if worktree already has an active workspace
+				// Check if worktree already has an active workspace (excluding deleting ones)
 				const existingWorkspace = localDb
 					.select()
 					.from(workspaces)
-					.where(eq(workspaces.worktreeId, input.worktreeId))
+					.where(
+						and(
+							eq(workspaces.worktreeId, input.worktreeId),
+							isNull(workspaces.deletingAt),
+						),
+					)
 					.get();
 				if (existingWorkspace) {
 					throw new Error("Worktree already has an active workspace");
