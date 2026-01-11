@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import type { CellContext } from "@tanstack/react-table";
 import type { SelectTask } from "@superset/db/schema";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
 	DropdownMenu,
@@ -23,19 +24,25 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	const task = info.row.original;
 	const assigneeId = info.getValue();
 
-	// Load all users
+	// All users for dropdown
 	const { data: allUsers } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
 	);
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	// Current assignee (filtered query)
+	const { data: assigneeData } = useLiveQuery(
+		(q) =>
+			assigneeId
+				? q
+						.from({ users: collections.users })
+						.where(({ users }) => eq(users.id, assigneeId))
+				: null,
+		[collections, assigneeId],
+	);
 
-	// Find current assignee
-	const currentAssignee = useMemo(() => {
-		if (!assigneeId) return null;
-		return users.find((u) => u.id === assigneeId);
-	}, [assigneeId, users]);
+	const users = useMemo(() => allUsers || [], [allUsers]);
+	const currentAssignee = assigneeData?.[0] ?? null;
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === assigneeId) {

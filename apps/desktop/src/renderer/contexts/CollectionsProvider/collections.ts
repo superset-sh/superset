@@ -58,7 +58,6 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "tasks",
-					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -92,7 +91,6 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "task_statuses",
-					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -108,7 +106,6 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "repositories",
-					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -134,7 +131,6 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "auth.members",
-					organization: organizationId,
 				},
 				headers,
 				columnMapper,
@@ -150,7 +146,6 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "auth.users",
-					organization: organizationId,
 				},
 				headers,
 				columnMapper,

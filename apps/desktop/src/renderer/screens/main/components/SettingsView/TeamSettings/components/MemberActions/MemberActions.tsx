@@ -25,7 +25,7 @@ export interface MemberDetails {
 	email: string;
 	image: string | null;
 	role: string;
-	joinedAt: string;
+	joinedAt: Date;
 	organizationId: string;
 }
 
