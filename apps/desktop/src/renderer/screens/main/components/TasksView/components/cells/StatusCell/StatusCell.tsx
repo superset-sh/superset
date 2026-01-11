@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import type { CellContext } from "@tanstack/react-table";
-import type { SelectTask } from "@superset/db/schema";
-import { taskStatusEnumValues, type TaskStatus } from "@superset/db/enums";
+import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
+import { useLiveQuery } from "@tanstack/react-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -11,37 +10,48 @@ import {
 import { Input } from "@superset/ui/input";
 import { Button } from "@superset/ui/button";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { StatusIcon, STATUS_COLORS } from "../../StatusIcon";
+import { StatusIcon } from "../../StatusIcon";
+
+// Task with joined status data
+type TaskWithStatus = SelectTask & {
+	status: SelectTaskStatus;
+};
 
 interface StatusCellProps {
-	info: CellContext<SelectTask, string>;
+	taskWithStatus: TaskWithStatus;
 }
 
-export function StatusCell({ info }: StatusCellProps) {
+export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 
-	const task = info.row.original;
-	const currentStatus = info.getValue();
+	// Lazy load statuses only when dropdown opens
+	const { data: allStatuses } = useLiveQuery(
+		(q) => (open ? q.from({ taskStatuses: collections.taskStatuses }) : null),
+		[collections, open],
+	);
+
+	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
+	const currentStatus = taskWithStatus.status;
 
 	// Filter statuses based on search query
 	const filteredStatuses = useMemo(() => {
 		const query = searchQuery.toLowerCase();
-		return taskStatusEnumValues.filter((status: TaskStatus) =>
-			status.replace("-", " ").toLowerCase().includes(query),
+		return statuses.filter((status) =>
+			status.name.toLowerCase().includes(query),
 		);
-	}, [searchQuery]);
+	}, [searchQuery, statuses]);
 
-	const handleSelectStatus = async (newStatus: TaskStatus) => {
-		if (newStatus === currentStatus) {
+	const handleSelectStatus = async (newStatus: SelectTaskStatus) => {
+		if (newStatus.id === currentStatus.id) {
 			setOpen(false);
 			return;
 		}
 
 		try {
-			await collections.tasks.update(task.id, (draft) => {
-				draft.status = newStatus;
+			await collections.tasks.update(taskWithStatus.id, (draft) => {
+				draft.statusId = newStatus.id;
 			});
 			setOpen(false);
 			setSearchQuery("");
@@ -59,8 +69,9 @@ export function StatusCell({ info }: StatusCellProps) {
 					className="h-6 w-6 p-0 hover:bg-accent"
 				>
 					<StatusIcon
-						type={currentStatus as any}
-						color={STATUS_COLORS[currentStatus] || "#8B5CF6"}
+						type={currentStatus.type as any}
+						color={currentStatus.color}
+						progress={currentStatus.progressPercent ?? undefined}
 					/>
 				</Button>
 			</DropdownMenuTrigger>
@@ -75,20 +86,19 @@ export function StatusCell({ info }: StatusCellProps) {
 					/>
 				</div>
 				<div className="max-h-64 overflow-y-auto">
-					{filteredStatuses.map((status: TaskStatus) => (
+					{filteredStatuses.map((status) => (
 						<DropdownMenuItem
-							key={status}
+							key={status.id}
 							onSelect={() => handleSelectStatus(status)}
 							className="flex items-center gap-2"
 						>
 							<StatusIcon
-								type={status as any}
-								color={STATUS_COLORS[status] || "#8B5CF6"}
+								type={status.type as any}
+								color={status.color}
+								progress={status.progressPercent ?? undefined}
 							/>
-							<span className="text-sm capitalize">
-								{status.replace("-", " ")}
-							</span>
-							{status === currentStatus && (
+							<span className="text-sm">{status.name}</span>
+							{status.id === currentStatus.id && (
 								<span className="ml-auto text-xs text-muted-foreground">✓</span>
 							)}
 						</DropdownMenuItem>

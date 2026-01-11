@@ -13,7 +13,7 @@ export interface LinearIssue {
 	startedAt: string | null;
 	completedAt: string | null;
 	assignee: { id: string; email: string } | null;
-	state: { id: string; name: string; color: string; type: string };
+	state: { id: string; name: string; color: string; type: string; position: number };
 	labels: { nodes: Array<{ id: string; name: string }> };
 }
 
@@ -22,6 +22,51 @@ interface IssuesQueryResponse {
 		pageInfo: { hasNextPage: boolean; endCursor: string | null };
 		nodes: LinearIssue[];
 	};
+}
+
+interface WorkflowStateWithPosition {
+	name: string;
+	position: number;
+}
+
+/**
+ * Calculates progress percentage for "started" type workflow states
+ * using Linear's rendering formula:
+ * - 1 state: 50%
+ * - 2 states: [50%, 75%]
+ * - 3+ states: evenly spaced using (index + 1) / (total + 1)
+ */
+export function calculateProgressForStates(
+	states: WorkflowStateWithPosition[],
+): Map<string, number> {
+	const progressMap = new Map<string, number>();
+
+	if (states.length === 0) {
+		return progressMap;
+	}
+
+	// Sort by position to get Linear's intended order
+	const sorted = [...states].sort((a, b) => a.position - b.position);
+
+	const total = sorted.length;
+
+	for (let i = 0; i < total; i++) {
+		const state = sorted[i];
+		let progress: number;
+
+		if (total === 1) {
+			progress = 50; // 50%
+		} else if (total === 2) {
+			progress = i === 0 ? 50 : 75; // [50%, 75%]
+		} else {
+			// 3+ states: evenly spaced (index + 1) / (total + 1)
+			progress = ((i + 1) / (total + 1)) * 100;
+		}
+
+		progressMap.set(state.name, Math.round(progress));
+	}
+
+	return progressMap;
 }
 
 const ISSUES_QUERY = `
@@ -51,6 +96,7 @@ const ISSUES_QUERY = `
           name
           color
           type
+          position
         }
         labels {
           nodes {
@@ -69,6 +115,10 @@ export async function fetchAllIssues(
 	const allIssues: LinearIssue[] = [];
 	let cursor: string | undefined;
 
+	// Fetch tasks updated in the last 3 months
+	const threeMonthsAgo = new Date();
+	threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
 	do {
 		const response = await client.client.request<
 			IssuesQueryResponse,
@@ -76,7 +126,7 @@ export async function fetchAllIssues(
 		>(ISSUES_QUERY, {
 			first: 100,
 			after: cursor,
-			filter: { state: { type: { nin: ["canceled", "completed"] } } },
+			filter: { updatedAt: { gte: threeMonthsAgo.toISOString() } },
 		});
 		allIssues.push(...response.issues.nodes);
 		cursor =
@@ -93,10 +143,17 @@ export function mapIssueToTask(
 	organizationId: string,
 	creatorId: string,
 	userByEmail: Map<string, string>,
+	statusByExternalId: Map<string, string>,
 ) {
 	const assigneeId = issue.assignee?.email
 		? (userByEmail.get(issue.assignee.email) ?? null)
 		: null;
+
+	// Look up statusId from pre-loaded map (no DB query)
+	const statusId = statusByExternalId.get(issue.state.id);
+	if (!statusId) {
+		throw new Error(`Status not found for state ${issue.state.id}`);
+	}
 
 	return {
 		organizationId,
@@ -104,9 +161,7 @@ export function mapIssueToTask(
 		slug: issue.identifier,
 		title: issue.title,
 		description: issue.description,
-		status: issue.state.name,
-		statusColor: issue.state.color,
-		statusType: issue.state.type,
+		statusId, // FK to task_statuses
 		priority: mapPriorityFromLinear(issue.priority),
 		assigneeId,
 		estimate: issue.estimate,

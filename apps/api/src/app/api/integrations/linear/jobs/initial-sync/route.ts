@@ -1,11 +1,17 @@
 import { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
-import { integrationConnections, tasks, users } from "@superset/db/schema";
+import {
+	integrationConnections,
+	tasks,
+	taskStatuses,
+	users,
+} from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
+import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
 const BATCH_SIZE = 100;
@@ -28,7 +34,8 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+	// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
+	const qstashBaseUrl = "https://b02ef5887783.ngrok-free.app";
 	const isValid = await receiver.verify({
 		body,
 		signature,
@@ -68,6 +75,25 @@ async function performInitialSync(
 	organizationId: string,
 	creatorUserId: string,
 ) {
+	// STEP 1: Sync workflow states FIRST
+	console.log("[initial-sync] Syncing workflow states");
+	await syncWorkflowStates({ client, organizationId });
+
+	// STEP 2: Load all statuses into a lookup map (avoid N+1)
+	console.log("[initial-sync] Loading status lookup map");
+	const statusByExternalId = new Map<string, string>(); // externalId -> statusId
+	const statuses = await db.query.taskStatuses.findMany({
+		where: and(
+			eq(taskStatuses.organizationId, organizationId),
+			eq(taskStatuses.externalProvider, "linear"),
+		),
+	});
+	for (const status of statuses) {
+		statusByExternalId.set(status.externalId!, status.id);
+	}
+
+	// STEP 3: Sync issues
+	console.log("[initial-sync] Syncing issues");
 	const issues = await fetchAllIssues(client);
 
 	if (issues.length === 0) {
@@ -90,7 +116,13 @@ async function performInitialSync(
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
 	const taskValues = issues.map((issue) =>
-		mapIssueToTask(issue, organizationId, creatorUserId, userByEmail),
+		mapIssueToTask(
+			issue,
+			organizationId,
+			creatorUserId,
+			userByEmail,
+			statusByExternalId,
+		),
 	);
 
 	const batches = chunk(taskValues, BATCH_SIZE);
@@ -106,9 +138,7 @@ async function performInitialSync(
 						"slug",
 						"title",
 						"description",
-						"status",
-						"statusColor",
-						"statusType",
+						"statusId",
 						"priority",
 						"assigneeId",
 						"estimate",

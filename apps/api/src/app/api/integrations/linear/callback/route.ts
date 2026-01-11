@@ -49,7 +49,8 @@ export async function GET(request: Request) {
 			grant_type: "authorization_code",
 			client_id: env.LINEAR_CLIENT_ID,
 			client_secret: env.LINEAR_CLIENT_SECRET,
-			redirect_uri: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/callback`,
+			// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
+			redirect_uri: "https://b02ef5887783.ngrok-free.app/api/integrations/linear/callback",
 			code,
 		}),
 	});
@@ -99,7 +100,8 @@ export async function GET(request: Request) {
 			},
 		});
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+	// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
+	const qstashBaseUrl = "https://b02ef5887783.ngrok-free.app";
 	try {
 		await qstash.publishJSON({
 			url: `${qstashBaseUrl}/api/integrations/linear/jobs/initial-sync`,

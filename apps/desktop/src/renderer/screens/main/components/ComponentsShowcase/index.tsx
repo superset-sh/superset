@@ -200,6 +200,39 @@ export function ComponentsShowcase() {
 									Hover over any icon to see the brightness effect
 								</p>
 							</div>
+
+							{/* Progress Variants for Started Type */}
+							<div>
+								<h3 className="text-sm font-medium mb-3">Started Progress Variants</h3>
+								<p className="text-xs text-muted-foreground mb-3">
+									Visual progress indication for "started" type statuses
+								</p>
+								<div className="grid grid-cols-5 gap-4 p-4 rounded-lg border border-border bg-card">
+									<div className="flex flex-col items-center gap-2">
+										<StatusIcon type="started" color="#F59E0B" progress={25} />
+										<span className="text-xs text-muted-foreground">25%</span>
+									</div>
+									<div className="flex flex-col items-center gap-2">
+										<StatusIcon type="started" color="#F59E0B" progress={50} />
+										<span className="text-xs text-muted-foreground">50%</span>
+									</div>
+									<div className="flex flex-col items-center gap-2">
+										<StatusIcon type="started" color="#10B981" progress={75} />
+										<span className="text-xs text-muted-foreground">75%</span>
+									</div>
+									<div className="flex flex-col items-center gap-2">
+										<StatusIcon type="started" color="#8B5CF6" progress={83} />
+										<span className="text-xs text-muted-foreground">83%</span>
+									</div>
+									<div className="flex flex-col items-center gap-2">
+										<StatusIcon type="started" color="#8B5CF6" progress={100} />
+										<span className="text-xs text-muted-foreground">100%</span>
+									</div>
+								</div>
+								<p className="text-xs text-muted-foreground mt-2 ml-2">
+									Progress is calculated from Linear workflow state positions during sync
+								</p>
+							</div>
 						</div>
 					</section>
 				</div>

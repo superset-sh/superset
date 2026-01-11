@@ -8,6 +8,7 @@ import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
 	tasks,
+	taskStatuses,
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
@@ -92,6 +93,23 @@ async function processIssueEvent(
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
+		// Look up statusId from task_statuses
+		const taskStatus = await db.query.taskStatuses.findFirst({
+			where: and(
+				eq(taskStatuses.organizationId, connection.organizationId),
+				eq(taskStatuses.externalProvider, "linear"),
+				eq(taskStatuses.externalId, issue.state.id),
+			),
+		});
+
+		if (!taskStatus) {
+			// Status doesn't exist yet - need to sync workflow states
+			console.warn(
+				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
+			);
+			return;
+		}
+
 		let assigneeId: string | null = null;
 		if (issue.assignee?.email) {
 			const matchedUser = await db.query.users.findFirst({
@@ -104,9 +122,7 @@ async function processIssueEvent(
 			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
-			status: issue.state.name,
-			statusColor: issue.state.color,
-			statusType: issue.state.type,
+			statusId: taskStatus.id, // FK reference
 			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
 			estimate: issue.estimate ?? null,

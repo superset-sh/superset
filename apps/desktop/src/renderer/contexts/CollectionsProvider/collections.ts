@@ -4,6 +4,7 @@ import type {
 	SelectOrganization,
 	SelectRepository,
 	SelectTask,
+	SelectTaskStatus,
 	SelectUser,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
@@ -19,6 +20,7 @@ const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
+	taskStatuses: Collection<SelectTaskStatus>;
 	repositories: Collection<SelectRepository>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
@@ -80,6 +82,22 @@ function createOrgCollections(
 		}),
 	);
 
+	const taskStatuses = createCollection(
+		electricCollectionOptions<SelectTaskStatus>({
+			id: `task_statuses-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "task_statuses",
+					organization: organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	const repositories = createCollection(
 		electricCollectionOptions<SelectRepository>({
 			id: `repositories-${organizationId}`,
@@ -138,7 +156,7 @@ function createOrgCollections(
 		}),
 	);
 
-	return { tasks, repositories, members, users };
+	return { tasks, taskStatuses, repositories, members, users };
 }
 
 function getOrCreateOrganizationsCollection(

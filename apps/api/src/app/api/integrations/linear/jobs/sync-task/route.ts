@@ -1,7 +1,7 @@
 import type { LinearClient, WorkflowState } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import type { LinearConfig, SelectTask } from "@superset/db/schema";
-import { integrationConnections, tasks } from "@superset/db/schema";
+import { integrationConnections, tasks, taskStatuses } from "@superset/db/schema";
 import {
 	getLinearClient,
 	mapPriorityToLinear,
@@ -69,7 +69,16 @@ async function syncTaskToLinear(
 	}
 
 	try {
-		const stateId = await findLinearState(client, teamId, task.status);
+		// Look up the status from task_statuses table
+		const taskStatus = await db.query.taskStatuses.findFirst({
+			where: eq(taskStatuses.id, task.statusId),
+		});
+
+		if (!taskStatus) {
+			return { success: false, error: "Task status not found" };
+		}
+
+		const stateId = await findLinearState(client, teamId, taskStatus.name);
 
 		if (task.externalProvider === "linear" && task.externalId) {
 			const result = await client.updateIssue(task.externalId, {
@@ -164,7 +173,8 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
+	// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
+	const qstashBaseUrl = "https://b02ef5887783.ngrok-free.app";
 	const isValid = await receiver.verify({
 		body,
 		signature,

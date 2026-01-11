@@ -12,6 +12,7 @@ interface StatusIconProps {
 	color: string;
 	showHover?: boolean;
 	className?: string;
+	progress?: number;
 }
 
 export function StatusIcon({
@@ -19,6 +20,7 @@ export function StatusIcon({
 	color,
 	showHover = false,
 	className,
+	progress,
 }: StatusIconProps) {
 	const sizeClass = "w-3.5 h-3.5";
 
@@ -68,6 +70,15 @@ export function StatusIcon({
 	}
 
 	if (type === "started") {
+		// Progress fills counter-clockwise starting from 12 o'clock
+		const centerRadius = 2;
+		const centerCircumference = 2 * Math.PI * centerRadius;
+		const progressPercent = progress ?? 100;
+
+		// Dash length is the visible portion (progress%)
+		const dashLength = (progressPercent / 100) * centerCircumference;
+		const gapLength = centerCircumference - dashLength;
+
 		return (
 			<div className={containerClasses}>
 				<svg
@@ -76,6 +87,7 @@ export function StatusIcon({
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
+					{/* Outer circle - full */}
 					<circle
 						cx="7"
 						cy="7"
@@ -85,7 +97,16 @@ export function StatusIcon({
 						strokeDasharray="3.14 0"
 						strokeDashoffset="-0.7"
 					/>
-					<circle cx="7" cy="7" r="2" stroke={color} strokeWidth="4" />
+					{/* Center circle - radial progress, counter-clockwise from top */}
+					<circle
+						cx="7"
+						cy="7"
+						r={centerRadius}
+						stroke={color}
+						strokeWidth="4"
+						strokeDasharray={`${dashLength} ${gapLength}`}
+						transform="rotate(90 7 7) scale(-1, 1) translate(-14, 0)"
+					/>
 				</svg>
 			</div>
 		);
@@ -121,6 +142,10 @@ export function StatusIcon({
 	}
 
 	if (type === "cancelled") {
+		// Middle ring is 50% filled (matches Linear)
+		const middleRadius = 3;
+		const middleCircumference = 2 * Math.PI * middleRadius;
+
 		return (
 			<div className={containerClasses}>
 				<svg
@@ -129,6 +154,7 @@ export function StatusIcon({
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
+					{/* Outer circle - full */}
 					<circle
 						cx="7"
 						cy="7"
@@ -138,7 +164,18 @@ export function StatusIcon({
 						strokeDasharray="3.14 0"
 						strokeDashoffset="-0.7"
 					/>
-					<circle cx="7" cy="7" r="3" stroke={color} strokeWidth="6" />
+					{/* Middle ring - 50% filled */}
+					<circle
+						cx="7"
+						cy="7"
+						r={middleRadius}
+						stroke={color}
+						strokeWidth="6"
+						strokeDasharray={`${middleCircumference} ${middleCircumference * 2}`}
+						strokeDashoffset="0"
+						transform="rotate(-90 7 7)"
+					/>
+					{/* X icon */}
 					<path
 						className="fill-background"
 						stroke="none"
