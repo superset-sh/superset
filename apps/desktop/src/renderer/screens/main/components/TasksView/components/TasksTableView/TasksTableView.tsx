@@ -3,9 +3,10 @@ import type { SelectTask } from "@superset/db/schema";
 
 interface TasksTableViewProps {
 	table: Table<SelectTask>;
+	slugColumnWidth: string;
 }
 
-export function TasksTableView({ table }: TasksTableViewProps) {
+export function TasksTableView({ table, slugColumnWidth }: TasksTableViewProps) {
 	return (
 		<div className="flex flex-col">
 			{table.getRowModel().rows.map((row) => {
@@ -26,29 +27,26 @@ export function TasksTableView({ table }: TasksTableViewProps) {
 					);
 				}
 
-				// Leaf row - render all cells horizontally
-				// Layout: [ID] [Status Icon + Title .............. | Priority Assignee Labels Due]
+				// Leaf row - render all cells horizontally with grid for consistent column widths
+				// Layout: [Priority] [ID] [Title] ... [Labels] [Assignee] [Due] [gap]
 				// Note: Status column (index 0) returns null for leaf rows, so we skip it
 				const cells = row.getVisibleCells();
 				return (
 					<div
 						key={row.id}
-						className="flex items-center gap-2 px-4 py-2 hover:bg-accent/50 cursor-pointer border-b border-border/50"
+						className="grid items-center gap-2 px-4 py-2 hover:bg-accent/50 cursor-pointer border-b border-border/50"
+						style={{
+							gridTemplateColumns: `auto ${slugColumnWidth} 1fr minmax(0,auto) auto auto 3rem`,
+						}}
 					>
-						{/* Left side: ID + Title (with inline status) - skip null status column */}
-						{cells.slice(1, 3).map((cell) => (
-							<div key={cell.id}>
+						{/* Skip status column (index 0), render priority, id, title, labels, assignee, due */}
+						{cells.slice(1).map((cell) => (
+							<div key={cell.id} className="flex items-center">
 								{flexRender(cell.column.columnDef.cell, cell.getContext())}
 							</div>
 						))}
-						{/* Right side metadata: Priority, Assignee, Labels, Due */}
-						<div className="flex items-center gap-2 flex-shrink-0">
-							{cells.slice(3).map((cell) => (
-								<div key={cell.id}>
-									{flexRender(cell.column.columnDef.cell, cell.getContext())}
-								</div>
-							))}
-						</div>
+						{/* Empty cell for right padding/growth space */}
+						<div />
 					</div>
 				);
 			})}

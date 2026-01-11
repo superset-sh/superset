@@ -31,6 +31,7 @@ const columnHelper = createColumnHelper<TaskWithStatus>();
 export function useTasksTable(): {
 	table: Table<TaskWithStatus>;
 	isLoading: boolean;
+	slugColumnWidth: string;
 } {
 	const collections = useCollections();
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
@@ -75,6 +76,23 @@ export function useTasksTable(): {
 				return { ...task, status };
 			});
 	}, [allTasks, allStatuses]);
+
+	// Calculate optimal slug column width based on longest slug
+	const slugColumnWidth = useMemo(() => {
+		if (!data || data.length === 0) return "5rem"; // Default fallback
+
+		const longestSlug = data.reduce((longest, task) => {
+			return task.slug.length > longest.length ? task.slug : longest;
+		}, "");
+
+		// Monospace font-mono at text-xs (0.75rem = 12px)
+		// Each character is ~0.5em of the font size = 0.5 * 0.75rem = 0.375rem per char
+		const remPerChar = 0.5 * 0.75; // 0.375rem per character
+		const padding = 0.5; // rem for horizontal padding
+		const width = longestSlug.length * remPerChar + padding;
+
+		return `${Math.ceil(width * 10) / 10}rem`; // Round to 1 decimal
+	}, [data]);
 
 	const isLoading = tasksLoading || statusesLoading;
 
@@ -127,13 +145,22 @@ export function useTasksTable(): {
 				getGroupingValue: (row) => row.status.name,
 			}),
 
+			// Priority - clickable dropdown (FIRST COLUMN)
+			columnHelper.accessor("priority", {
+				header: "Priority",
+				cell: (info) => {
+					if (info.cell.getIsPlaceholder()) return null;
+					return <PriorityCell info={info} />;
+				},
+			}),
+
 			// Task ID - simple inline rendering
 			columnHelper.accessor("slug", {
 				header: "ID",
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
-						<span className="text-xs text-muted-foreground font-mono w-20 flex-shrink-0">
+						<span className="text-xs text-muted-foreground font-mono flex-shrink-0">
 							{info.getValue()}
 						</span>
 					);
@@ -157,12 +184,12 @@ export function useTasksTable(): {
 				},
 			}),
 
-			// Priority - clickable dropdown
-			columnHelper.accessor("priority", {
-				header: "Priority",
+			// Labels - multi-select dropdown
+			columnHelper.accessor("labels", {
+				header: "Labels",
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
-					return <PriorityCell info={info} />;
+					return <LabelsCell info={info} />;
 				},
 			}),
 
@@ -172,15 +199,6 @@ export function useTasksTable(): {
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return <AssigneeCell info={info} />;
-				},
-			}),
-
-			// Labels - multi-select dropdown
-			columnHelper.accessor("labels", {
-				header: "Labels",
-				cell: (info) => {
-					if (info.cell.getIsPlaceholder()) return null;
-					return <LabelsCell info={info} />;
 				},
 			}),
 
@@ -215,5 +233,5 @@ export function useTasksTable(): {
 		autoResetExpanded: false,
 	});
 
-	return { table, isLoading };
+	return { table, isLoading, slugColumnWidth };
 }

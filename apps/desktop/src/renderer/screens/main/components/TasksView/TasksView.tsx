@@ -4,7 +4,7 @@ import { TasksTableView } from "./components/TasksTableView";
 import { useTasksTable } from "./hooks/useTasksTable";
 
 export function TasksView() {
-	const { table, isLoading } = useTasksTable();
+	const { table, isLoading, slugColumnWidth } = useTasksTable();
 
 	if (isLoading) {
 		return (
@@ -28,7 +28,7 @@ export function TasksView() {
 	return (
 		<div className="flex-1 flex flex-col min-h-0">
 			<ScrollArea className="flex-1 min-h-0">
-				<TasksTableView table={table} />
+				<TasksTableView table={table} slugColumnWidth={slugColumnWidth} />
 			</ScrollArea>
 		</div>
 	);
