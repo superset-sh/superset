@@ -6,6 +6,7 @@ interface PriorityIconProps {
 	statusType?: string;
 	className?: string;
 	showHover?: boolean;
+	color?: string;
 }
 
 export function PriorityIcon({
@@ -13,10 +14,11 @@ export function PriorityIcon({
 	statusType,
 	className = "",
 	showHover = false,
+	color,
 }: PriorityIconProps) {
 	const sizeClass = className || "h-4 w-4";
 	const hoverClass = showHover ? "group-hover:brightness-150" : "";
-	const defaultColor = colors.neutral[500];
+	const defaultColor = color || colors.neutral[500];
 
 	// None: Three horizontal dashes with opacity
 	if (priority === "none") {
@@ -51,11 +53,13 @@ export function PriorityIcon({
 			statusType === "unstarted" ||
 			statusType === "backlog";
 
+		const fillColor = color || (isActive ? "#F97316" : colors.neutral[500]);
+
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
 					viewBox="0 0 16 16"
-					fill={isActive ? "#F97316" : defaultColor}
+					fill={fillColor}
 					xmlns="http://www.w3.org/2000/svg"
 					className={`${sizeClass} ${hoverClass} transition-all`}
 				>

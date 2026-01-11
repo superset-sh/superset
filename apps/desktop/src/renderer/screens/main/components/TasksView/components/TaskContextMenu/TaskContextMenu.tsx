@@ -15,14 +15,10 @@ import type { TaskWithStatus } from "../../hooks/useTasksTable";
 import { StatusMenuItems } from "../shared/StatusMenuItems";
 import { AssigneeMenuItems } from "../shared/AssigneeMenuItems";
 import { PriorityMenuItems } from "../shared/PriorityMenuItems";
+import { ActiveIcon } from "../icons/ActiveIcon";
 import { compareStatusesForDropdown } from "../../utils/taskSorting";
-import {
-	HiCheckCircle,
-	HiOutlineDocumentDuplicate,
-	HiOutlineTrash,
-	HiOutlineUserCircle,
-} from "react-icons/hi2";
-import { TbFlag3 } from "react-icons/tb";
+import { HiOutlineDocumentDuplicate, HiOutlineTrash, HiOutlineUserCircle } from "react-icons/hi2";
+import { PriorityMenuIcon } from "../icons/PriorityMenuIcon";
 
 interface TaskContextMenuProps {
 	children: ReactNode;
@@ -56,7 +52,7 @@ export function TaskContextMenu({
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
 
-	const handleStatusChange = (status: typeof allStatuses[0]) => {
+	const handleStatusChange = (status: (typeof allStatuses)[0]) => {
 		try {
 			collections.tasks.update(task.id, (draft) => {
 				draft.statusId = status.id;
@@ -101,7 +97,7 @@ export function TaskContextMenu({
 				{/* Status submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
-						<HiCheckCircle className="mr-2 h-4 w-4" />
+						<ActiveIcon className="mr-2" />
 						<span>Status</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
@@ -119,7 +115,7 @@ export function TaskContextMenu({
 				{/* Assignee submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
-						<HiOutlineUserCircle className="mr-2 h-4 w-4" />
+						<HiOutlineUserCircle className="mr-2 size-4" />
 						<span>Assignee</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-56">
@@ -137,7 +133,7 @@ export function TaskContextMenu({
 				{/* Priority submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
-						<TbFlag3 className="mr-2 h-4 w-4" />
+						<PriorityMenuIcon className="mr-1" />
 						<span>Priority</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-52">
@@ -155,7 +151,7 @@ export function TaskContextMenu({
 				{/* Copy submenu */}
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>
-						<HiOutlineDocumentDuplicate className="mr-2 h-4 w-4" />
+						<HiOutlineDocumentDuplicate className="mr-2 size-4" />
 						<span>Copy</span>
 					</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-48">
@@ -170,12 +166,11 @@ export function TaskContextMenu({
 
 				<ContextMenuSeparator />
 
-				{/* Delete */}
 				<ContextMenuItem
 					onClick={onDelete}
 					className="text-destructive focus:text-destructive"
 				>
-					<HiOutlineTrash className="mr-2 h-4 w-4" />
+					<HiOutlineTrash className="text-destructive size-4" />
 					<span>Delete</span>
 				</ContextMenuItem>
 			</ContextMenuContent>

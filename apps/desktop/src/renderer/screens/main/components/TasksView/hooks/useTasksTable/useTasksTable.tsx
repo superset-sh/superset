@@ -1,11 +1,13 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
 	type ExpandedState,
 	type Table,
+	type ColumnFiltersState,
 	createColumnHelper,
 	getCoreRowModel,
 	getExpandedRowModel,
 	getGroupedRowModel,
+	getFilteredRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
 import type {
@@ -24,6 +26,7 @@ import { StatusCell } from "../../components/cells/StatusCell";
 import { PriorityCell } from "../../components/cells/PriorityCell";
 import { AssigneeCell } from "../../components/cells/AssigneeCell";
 import { compareTasks } from "../../utils/taskSorting";
+import type { TabValue } from "../../components/TasksTopBar";
 
 // Task with joined status and assignee data
 export type TaskWithStatus = SelectTask & {
@@ -33,7 +36,15 @@ export type TaskWithStatus = SelectTask & {
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
 
-export function useTasksTable(): {
+interface UseTasksTableParams {
+	filterTab: TabValue;
+	searchQuery: string;
+}
+
+export function useTasksTable({
+	filterTab,
+	searchQuery,
+}: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
 	isLoading: boolean;
 	slugColumnWidth: string;
@@ -41,6 +52,8 @@ export function useTasksTable(): {
 	const collections = useCollections();
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
+	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+	const [globalFilter, setGlobalFilter] = useState("");
 
 	// Join tasks with statuses and assignees
 	const { data: allData, isLoading } = useLiveQuery(
@@ -70,6 +83,22 @@ export function useTasksTable(): {
 		return [...allData].sort(compareTasks);
 	}, [allData]);
 
+	// Update filters based on tab and search
+	useEffect(() => {
+		// Update column filter for tab
+		const newColumnFilters: ColumnFiltersState = [];
+		if (filterTab !== "all") {
+			newColumnFilters.push({
+				id: "status",
+				value: filterTab,
+			});
+		}
+		setColumnFilters(newColumnFilters);
+
+		// Update global filter for search
+		setGlobalFilter(searchQuery);
+	}, [filterTab, searchQuery]);
+
 	// Calculate optimal slug column width based on longest slug
 	const slugColumnWidth = useMemo(() => {
 		if (!data || data.length === 0) return "5rem"; // Default fallback
@@ -96,6 +125,17 @@ export function useTasksTable(): {
 			columnHelper.accessor((row) => row.status, {
 				id: "status",
 				header: "Status",
+				filterFn: (row, _columnId, filterValue: TabValue) => {
+					// Filter by tab value: "active" | "backlog" | "all"
+					const statusType = row.original.status.type;
+					if (filterValue === "active") {
+						return statusType === "started" || statusType === "unstarted";
+					}
+					if (filterValue === "backlog") {
+						return statusType === "backlog";
+					}
+					return true; // "all" shows everything
+				},
 				cell: (info) => {
 					const { row, cell } = info;
 					const status = info.getValue();
@@ -238,10 +278,25 @@ export function useTasksTable(): {
 	const table = useReactTable({
 		data,
 		columns,
-		state: { grouping, expanded },
+		state: {
+			grouping,
+			expanded,
+			columnFilters,
+			globalFilter,
+		},
 		onGroupingChange: setGrouping,
 		onExpandedChange: setExpanded,
+		onColumnFiltersChange: setColumnFilters,
+		onGlobalFilterChange: setGlobalFilter,
+		globalFilterFn: (row, _columnId, filterValue: string) => {
+			// Search across title and slug
+			const query = filterValue.toLowerCase();
+			const title = row.original.title.toLowerCase();
+			const slug = row.original.slug.toLowerCase();
+			return title.includes(query) || slug.includes(query);
+		},
 		getCoreRowModel: getCoreRowModel(),
+		getFilteredRowModel: getFilteredRowModel(),
 		getGroupedRowModel: getGroupedRowModel(),
 		getExpandedRowModel: getExpandedRowModel(),
 		autoResetExpanded: false,
