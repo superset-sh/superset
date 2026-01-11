@@ -1,4 +1,5 @@
 import type { LinearClient } from "@linear/sdk";
+import { subMonths } from "date-fns";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 
 export interface LinearIssue {
@@ -9,6 +10,7 @@ export interface LinearIssue {
 	priority: number;
 	estimate: number | null;
 	dueDate: string | null;
+	createdAt: string;
 	url: string;
 	startedAt: string | null;
 	completedAt: string | null;
@@ -84,6 +86,7 @@ const ISSUES_QUERY = `
         priority
         estimate
         dueDate
+        createdAt
         url
         startedAt
         completedAt
@@ -114,10 +117,7 @@ export async function fetchAllIssues(
 ): Promise<LinearIssue[]> {
 	const allIssues: LinearIssue[] = [];
 	let cursor: string | undefined;
-
-	// Fetch tasks updated in the last 3 months
-	const threeMonthsAgo = new Date();
-	threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+	const threeMonthsAgo = subMonths(new Date(), 3);
 
 	do {
 		const response = await client.client.request<
@@ -169,6 +169,7 @@ export function mapIssueToTask(
 		labels: issue.labels.nodes.map((l) => l.name),
 		startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 		completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
+		createdAt: new Date(issue.createdAt),
 		externalProvider: "linear" as const,
 		externalId: issue.id,
 		externalKey: issue.identifier,

@@ -23,6 +23,7 @@
 		"@upstash/qstash": "^2.8.4",
 		"@vercel/blob": "^2.0.0",
 		"better-auth": "^1.4.9",
+		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",
 		"jose": "^6.1.3",

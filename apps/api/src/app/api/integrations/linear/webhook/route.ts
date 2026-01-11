@@ -143,6 +143,7 @@ async function processIssueEvent(
 				...taskData,
 				organizationId: connection.organizationId,
 				creatorId: connection.connectedByUserId,
+				createdAt: new Date(issue.createdAt),
 			})
 			.onConflictDoUpdate({
 				target: [tasks.externalProvider, tasks.externalId],

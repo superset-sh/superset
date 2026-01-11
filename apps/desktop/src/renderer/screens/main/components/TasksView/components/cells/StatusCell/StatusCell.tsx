@@ -7,14 +7,21 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { Input } from "@superset/ui/input";
-import { Button } from "@superset/ui/button";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { StatusIcon } from "../../StatusIcon";
 
 // Task with joined status data
 type TaskWithStatus = SelectTask & {
 	status: SelectTaskStatus;
+};
+
+// Status type ordering (Linear style: in progress → todo → backlog → done → cancelled)
+const STATUS_TYPE_ORDER: Record<string, number> = {
+	started: 0,
+	unstarted: 1,
+	backlog: 2,
+	completed: 3,
+	cancelled: 4,
 };
 
 interface StatusCellProps {
@@ -24,7 +31,6 @@ interface StatusCellProps {
 export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
-	const [searchQuery, setSearchQuery] = useState("");
 
 	// Lazy load statuses only when dropdown opens
 	const { data: allStatuses } = useLiveQuery(
@@ -35,26 +41,31 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
 	const currentStatus = taskWithStatus.status;
 
-	// Filter statuses based on search query
-	const filteredStatuses = useMemo(() => {
-		const query = searchQuery.toLowerCase();
-		return statuses.filter((status) =>
-			status.name.toLowerCase().includes(query),
-		);
-	}, [searchQuery, statuses]);
+	// Sort statuses by type order and position
+	const sortedStatuses = useMemo(() => {
+		return statuses.sort((a, b) => {
+			// Sort by status type first (started → unstarted → backlog → completed → cancelled)
+			const typeOrderA = STATUS_TYPE_ORDER[a.type] ?? 999;
+			const typeOrderB = STATUS_TYPE_ORDER[b.type] ?? 999;
+			if (typeOrderA !== typeOrderB) {
+				return typeOrderA - typeOrderB;
+			}
+			// Within same type, sort by position
+			return a.position - b.position;
+		});
+	}, [statuses]);
 
-	const handleSelectStatus = async (newStatus: SelectTaskStatus) => {
+	const handleSelectStatus = (newStatus: SelectTaskStatus) => {
 		if (newStatus.id === currentStatus.id) {
 			setOpen(false);
 			return;
 		}
 
 		try {
-			await collections.tasks.update(taskWithStatus.id, (draft) => {
+			collections.tasks.update(taskWithStatus.id, (draft) => {
 				draft.statusId = newStatus.id;
 			});
 			setOpen(false);
-			setSearchQuery("");
 		} catch (error) {
 			console.error("[StatusCell] Failed to update status:", error);
 		}
@@ -63,51 +74,34 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<Button
-					variant="ghost"
-					size="sm"
-					className="h-6 w-6 p-0 hover:bg-accent"
-				>
+				<button className="p-0 cursor-pointer border-0">
 					<StatusIcon
 						type={currentStatus.type as any}
 						color={currentStatus.color}
 						progress={currentStatus.progressPercent ?? undefined}
+						showHover={true}
 					/>
-				</Button>
+				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-48">
-				<div className="p-2">
-					<Input
-						placeholder="Search status..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						className="h-8"
-						autoFocus
-					/>
-				</div>
+			<DropdownMenuContent align="start" className="w-48 p-1">
 				<div className="max-h-64 overflow-y-auto">
-					{filteredStatuses.map((status) => (
+					{sortedStatuses.map((status) => (
 						<DropdownMenuItem
 							key={status.id}
 							onSelect={() => handleSelectStatus(status)}
-							className="flex items-center gap-2"
+							className="flex items-center gap-3 px-3 py-2"
 						>
 							<StatusIcon
 								type={status.type as any}
 								color={status.color}
 								progress={status.progressPercent ?? undefined}
 							/>
-							<span className="text-sm">{status.name}</span>
+							<span className="text-sm flex-1">{status.name}</span>
 							{status.id === currentStatus.id && (
-								<span className="ml-auto text-xs text-muted-foreground">✓</span>
+								<span className="text-sm">✓</span>
 							)}
 						</DropdownMenuItem>
 					))}
-					{filteredStatuses.length === 0 && (
-						<div className="p-2 text-sm text-muted-foreground text-center">
-							No status found
-						</div>
-					)}
 				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>

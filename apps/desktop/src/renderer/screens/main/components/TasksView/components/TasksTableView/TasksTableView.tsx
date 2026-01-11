@@ -16,11 +16,13 @@ export function TasksTableView({ table, slugColumnWidth }: TasksTableViewProps) 
 				if (isGroupHeader) {
 					// Group header - only render the status column (first cell)
 					// All other cells return null because they're placeholders
+					// DOM order handles stacking - later headers naturally overlap earlier ones
 					const firstCell = row.getVisibleCells()[0];
+
 					return (
 						<div
 							key={row.id}
-							className="sticky top-0 z-10 bg-background border-b border-border"
+							className="sticky top-0 bg-background z-10 border-b border-border/50"
 						>
 							{flexRender(firstCell.column.columnDef.cell, firstCell.getContext())}
 						</div>
@@ -28,25 +30,23 @@ export function TasksTableView({ table, slugColumnWidth }: TasksTableViewProps) 
 				}
 
 				// Leaf row - render all cells horizontally with grid for consistent column widths
-				// Layout: [Priority] [ID] [Title] ... [Labels] [Assignee] [Due] [gap]
+				// Layout: [Checkbox] [Priority] [ID] [Title] ... [Labels] [Assignee] [Due] [gap]
 				// Note: Status column (index 0) returns null for leaf rows, so we skip it
 				const cells = row.getVisibleCells();
 				return (
 					<div
 						key={row.id}
-						className="grid items-center gap-2 px-4 py-2 hover:bg-accent/50 cursor-pointer border-b border-border/50"
+						className="grid items-center gap-3 px-4 h-9 hover:bg-accent/50 cursor-pointer border-b border-border/50"
 						style={{
-							gridTemplateColumns: `auto ${slugColumnWidth} 1fr minmax(0,auto) auto auto 3rem`,
+							gridTemplateColumns: `auto auto ${slugColumnWidth} 1fr auto auto`,
 						}}
 					>
-						{/* Skip status column (index 0), render priority, id, title, labels, assignee, due */}
+						{/* Skip status column (index 0), render checkbox, priority, id, title+labels, assignee, created */}
 						{cells.slice(1).map((cell) => (
 							<div key={cell.id} className="flex items-center">
 								{flexRender(cell.column.columnDef.cell, cell.getContext())}
 							</div>
 						))}
-						{/* Empty cell for right padding/growth space */}
-						<div />
 					</div>
 				);
 			})}

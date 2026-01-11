@@ -70,7 +70,7 @@ export function StatusIcon({
 	}
 
 	if (type === "started") {
-		// Progress fills counter-clockwise starting from 12 o'clock
+		// Progress fills clockwise starting from 12 o'clock
 		const centerRadius = 2;
 		const centerCircumference = 2 * Math.PI * centerRadius;
 		const progressPercent = progress ?? 100;
@@ -97,7 +97,7 @@ export function StatusIcon({
 						strokeDasharray="3.14 0"
 						strokeDashoffset="-0.7"
 					/>
-					{/* Center circle - radial progress, counter-clockwise from top */}
+					{/* Center circle - radial progress, clockwise from top */}
 					<circle
 						cx="7"
 						cy="7"
@@ -105,7 +105,7 @@ export function StatusIcon({
 						stroke={color}
 						strokeWidth="4"
 						strokeDasharray={`${dashLength} ${gapLength}`}
-						transform="rotate(90 7 7) scale(-1, 1) translate(-14, 0)"
+						transform="rotate(-90 7 7)"
 					/>
 				</svg>
 			</div>
