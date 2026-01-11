@@ -1,1 +1,1 @@
-export { useTasksTable } from "./useTasksTable";
+export { useTasksTable, type TaskWithStatus } from "./useTasksTable";

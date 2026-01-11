@@ -10,6 +10,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { PriorityIcon } from "../../PriorityIcon";
+import { ALL_PRIORITIES } from "../../../utils/taskSorting";
 
 interface PriorityCellProps {
 	info: CellContext<SelectTask, TaskPriority>;
@@ -23,14 +24,6 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 	low: "Low",
 };
 
-const PRIORITY_DISPLAY_ORDER: TaskPriority[] = [
-	"none",
-	"urgent",
-	"high",
-	"medium",
-	"low",
-];
-
 export function PriorityCell({ info }: PriorityCellProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
@@ -39,14 +32,14 @@ export function PriorityCell({ info }: PriorityCellProps) {
 	const currentPriority = info.getValue();
 	const statusType = (task as any).status?.type;
 
-	const handleSelectPriority = async (newPriority: TaskPriority) => {
+	const handleSelectPriority = (newPriority: TaskPriority) => {
 		if (newPriority === currentPriority) {
 			setOpen(false);
 			return;
 		}
 
 		try {
-			await collections.tasks.update(task.id, (draft) => {
+			collections.tasks.update(task.id, (draft) => {
 				draft.priority = newPriority;
 			});
 			setOpen(false);
@@ -70,7 +63,7 @@ export function PriorityCell({ info }: PriorityCellProps) {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-52 p-1">
-				{PRIORITY_DISPLAY_ORDER.map((priority: TaskPriority) => (
+				{ALL_PRIORITIES.map((priority) => (
 					<DropdownMenuItem
 						key={priority}
 						onSelect={() => handleSelectPriority(priority)}

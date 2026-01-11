@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import {
-	type ColumnDef,
 	type ExpandedState,
 	type Table,
 	createColumnHelper,
@@ -9,8 +8,13 @@ import {
 	getGroupedRowModel,
 	useReactTable,
 } from "@tanstack/react-table";
-import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
+import type {
+	SelectTask,
+	SelectTaskStatus,
+	SelectUser,
+} from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
+import { eq, isNull } from "@tanstack/db";
 import { format } from "date-fns";
 import { HiChevronRight } from "react-icons/hi2";
 import { Badge } from "@superset/ui/badge";
@@ -19,19 +23,12 @@ import { StatusIcon } from "../../components/StatusIcon";
 import { StatusCell } from "../../components/cells/StatusCell";
 import { PriorityCell } from "../../components/cells/PriorityCell";
 import { AssigneeCell } from "../../components/cells/AssigneeCell";
+import { compareTasks } from "../../utils/taskSorting";
 
-// Task with joined status data
-type TaskWithStatus = SelectTask & {
+// Task with joined status and assignee data
+export type TaskWithStatus = SelectTask & {
 	status: SelectTaskStatus;
-};
-
-// Status type ordering (Linear style: in progress → todo → backlog → done → cancelled)
-const STATUS_TYPE_ORDER: Record<string, number> = {
-	started: 0,
-	unstarted: 1,
-	backlog: 2,
-	completed: 3,
-	cancelled: 4,
+	assignee: SelectUser | null;
 };
 
 const columnHelper = createColumnHelper<TaskWithStatus>();
@@ -45,55 +42,33 @@ export function useTasksTable(): {
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
 
-	// Load tasks and statuses separately
-	const { data: allTasks, isLoading: tasksLoading } = useLiveQuery(
-		(q) => q.from({ tasks: collections.tasks }),
+	// Join tasks with statuses and assignees
+	const { data: allData, isLoading } = useLiveQuery(
+		(q) =>
+			q
+				.from({ tasks: collections.tasks })
+				.innerJoin(
+					{ status: collections.taskStatuses },
+					({ tasks, status }) => eq(tasks.statusId, status.id),
+				)
+				.leftJoin(
+					{ assignee: collections.users },
+					({ tasks, assignee }) => eq(tasks.assigneeId, assignee.id),
+				)
+				.select(({ tasks, status, assignee }) => ({
+					...tasks,
+					status,
+					assignee: assignee ?? null,
+				}))
+				.where(({ tasks }) => isNull(tasks.deletedAt)),
 		[collections],
 	);
 
-	const { data: allStatuses, isLoading: statusesLoading } = useLiveQuery(
-		(q) => q.from({ taskStatuses: collections.taskStatuses }),
-		[collections],
-	);
-
-	// Client-side join: merge tasks with their status and sort
+	// Sort tasks by status type, priority, and position
 	const data = useMemo(() => {
-		if (!allTasks || !allStatuses) return [];
-
-		const statusMap = new Map(allStatuses.map((s) => [s.id, s]));
-
-		return allTasks
-			.filter((task) => task.deletedAt === null)
-			.map((task) => {
-				const status = statusMap.get(task.statusId);
-				if (!status) {
-					console.warn(`[useTasksTable] Status not found for task ${task.id}`);
-					// Provide a fallback status to prevent crashes
-					return {
-						...task,
-						status: {
-							id: task.statusId,
-							name: "Unknown",
-							color: "#8B5CF6",
-							type: "unstarted",
-							position: 0,
-							progressPercent: null,
-						} as SelectTaskStatus,
-					};
-				}
-				return { ...task, status };
-			})
-			.sort((a, b) => {
-				// Sort by status type first (started → unstarted → backlog → completed → cancelled)
-				const typeOrderA = STATUS_TYPE_ORDER[a.status.type] ?? 999;
-				const typeOrderB = STATUS_TYPE_ORDER[b.status.type] ?? 999;
-				if (typeOrderA !== typeOrderB) {
-					return typeOrderA - typeOrderB;
-				}
-				// Within same type, sort by position
-				return a.status.position - b.status.position;
-			});
-	}, [allTasks, allStatuses]);
+		if (!allData) return [];
+		return [...allData].sort(compareTasks);
+	}, [allData]);
 
 	// Calculate optimal slug column width based on longest slug
 	const slugColumnWidth = useMemo(() => {
@@ -112,12 +87,10 @@ export function useTasksTable(): {
 		return `${Math.ceil(width * 10) / 10}rem`; // Round to 1 decimal
 	}, [data]);
 
-	const isLoading = tasksLoading || statusesLoading;
-
 	// TODO: Add localStorage persistence for collapsed groups
 
 	// Define columns with useMemo (following official docs pattern)
-	const columns = useMemo<ColumnDef<TaskWithStatus>[]>(
+	const columns = useMemo(
 		() => [
 			// Status column (grouped) - only shows for group headers
 			columnHelper.accessor((row) => row.status, {

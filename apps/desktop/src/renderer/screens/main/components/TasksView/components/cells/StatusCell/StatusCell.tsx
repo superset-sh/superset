@@ -9,19 +9,11 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { StatusIcon } from "../../StatusIcon";
+import { compareStatusesForDropdown } from "../../../utils/taskSorting";
 
 // Task with joined status data
 type TaskWithStatus = SelectTask & {
 	status: SelectTaskStatus;
-};
-
-// Status type ordering (Linear style: in progress → todo → backlog → done → cancelled)
-const STATUS_TYPE_ORDER: Record<string, number> = {
-	started: 0,
-	unstarted: 1,
-	backlog: 2,
-	completed: 3,
-	cancelled: 4,
 };
 
 interface StatusCellProps {
@@ -41,18 +33,9 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
 	const currentStatus = taskWithStatus.status;
 
-	// Sort statuses by type order and position
+	// Sort statuses by workflow order (backlog → unstarted → started → completed → cancelled)
 	const sortedStatuses = useMemo(() => {
-		return statuses.sort((a, b) => {
-			// Sort by status type first (started → unstarted → backlog → completed → cancelled)
-			const typeOrderA = STATUS_TYPE_ORDER[a.type] ?? 999;
-			const typeOrderB = STATUS_TYPE_ORDER[b.type] ?? 999;
-			if (typeOrderA !== typeOrderB) {
-				return typeOrderA - typeOrderB;
-			}
-			// Within same type, sort by position
-			return a.position - b.position;
-		});
+		return statuses.sort(compareStatusesForDropdown);
 	}, [statuses]);
 
 	const handleSelectStatus = (newStatus: SelectTaskStatus) => {

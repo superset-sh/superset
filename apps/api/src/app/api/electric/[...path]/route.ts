@@ -42,19 +42,21 @@ export async function GET(request: Request): Promise<Response> {
 		originUrl.searchParams.set(`params[${index + 1}]`, String(value));
 	});
 
-	const response = await fetch(originUrl.toString());
+	let response = await fetch(originUrl.toString());
 
-	const headers = new Headers();
-	response.headers.forEach((value, key) => {
-		const lower = key.toLowerCase();
-		if (lower !== "content-encoding" && lower !== "content-length") {
-			headers.set(key, value);
-		}
-	});
+	// When proxying long-polling requests, content-encoding & content-length are added
+	// erroneously (saying the body is gzipped when it's not) so we'll just remove
+	// them to avoid content decoding errors in the browser.
+	if (response.headers.get("content-encoding")) {
+		const headers = new Headers(response.headers);
+		headers.delete("content-encoding");
+		headers.delete("content-length");
+		response = new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		});
+	}
 
-	return new Response(response.body, {
-		status: response.status,
-		statusText: response.statusText,
-		headers,
-	});
+	return response;
 }

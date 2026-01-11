@@ -1,7 +1,5 @@
 import { useState, useMemo } from "react";
 import type { CellContext } from "@tanstack/react-table";
-import type { SelectTask } from "@superset/db/schema";
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
 	DropdownMenu,
@@ -12,9 +10,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
+import type { TaskWithStatus } from "../../hooks/useTasksTable";
 
 interface AssigneeCellProps {
-	info: CellContext<SelectTask, string | null>;
+	info: CellContext<TaskWithStatus, string | null>;
 }
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
@@ -30,19 +29,9 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 		[collections],
 	);
 
-	// Current assignee (filtered query)
-	const { data: assigneeData } = useLiveQuery(
-		(q) =>
-			assigneeId
-				? q
-						.from({ users: collections.users })
-						.where(({ users }) => eq(users.id, assigneeId))
-				: null,
-		[collections, assigneeId],
-	);
-
 	const users = useMemo(() => allUsers || [], [allUsers]);
-	const currentAssignee = assigneeData?.[0] ?? null;
+	// Use pre-loaded assignee from joined query (eliminates delay)
+	const currentAssignee = task.assignee;
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === assigneeId) {
