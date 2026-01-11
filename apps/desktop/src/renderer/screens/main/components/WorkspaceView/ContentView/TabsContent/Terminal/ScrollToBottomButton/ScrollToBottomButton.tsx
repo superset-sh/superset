@@ -8,10 +8,14 @@ import { smoothScrollToBottom } from "../utils";
 
 interface ScrollToBottomButtonProps {
 	terminal: Terminal | null;
+	isHovered: boolean;
 }
 
-export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
-	const [isVisible, setIsVisible] = useState(false);
+export function ScrollToBottomButton({
+	terminal,
+	isHovered,
+}: ScrollToBottomButtonProps) {
+	const [isNotAtBottom, setIsNotAtBottom] = useState(false);
 	const shortcutText = useHotkeyText("SCROLL_TO_BOTTOM");
 	const showShortcut = shortcutText !== "Unassigned";
 
@@ -19,7 +23,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 		if (!terminal) return;
 		const buffer = terminal.buffer.active;
 		const isAtBottom = buffer.viewportY >= buffer.baseY;
-		setIsVisible(!isAtBottom);
+		setIsNotAtBottom(!isAtBottom);
 	}, [terminal]);
 
 	useEffect(() => {
@@ -46,21 +50,25 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 		}
 	};
 
+	const isVisible = isNotAtBottom && isHovered;
+
 	return (
 		<div
 			className={cn(
-				"absolute bottom-4 left-1/2 z-10 -translate-x-1/2 transition-all duration-200",
+				"absolute bottom-4 right-4 z-10 transition-all duration-200",
 				isVisible
 					? "translate-y-0 opacity-100"
 					: "pointer-events-none translate-y-2 opacity-0",
 			)}
+			aria-hidden={!isVisible}
 		>
-			<Tooltip delayDuration={500}>
+			<Tooltip delayDuration={300}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={handleClick}
-						className="flex size-8 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+						tabIndex={isVisible ? 0 : -1}
+						className="flex size-8 items-center justify-center rounded-full border border-border/50 bg-background/80 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-muted/90 hover:text-foreground"
 					>
 						<HiArrowDown className="size-4" />
 					</button>

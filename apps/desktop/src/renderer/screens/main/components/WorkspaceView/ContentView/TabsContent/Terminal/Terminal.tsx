@@ -44,6 +44,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const commandBufferRef = useRef("");
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(false);
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
+	const [isHovered, setIsHovered] = useState(false);
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const [terminalCwd, setTerminalCwd] = useState<string | null>(null);
 	const [cwdConfirmed, setCwdConfirmed] = useState(false);
@@ -613,13 +614,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			style={{ backgroundColor: terminalBg }}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
+			onMouseEnter={() => setIsHovered(true)}
+			onMouseLeave={() => setIsHovered(false)}
 		>
 			<TerminalSearch
 				searchAddon={searchAddonRef.current}
 				isOpen={isSearchOpen}
 				onClose={() => setIsSearchOpen(false)}
 			/>
-			<ScrollToBottomButton terminal={xtermInstance} />
+			<ScrollToBottomButton terminal={xtermInstance} isHovered={isHovered} />
 			<div ref={terminalRef} className="h-full w-full" />
 		</div>
 	);

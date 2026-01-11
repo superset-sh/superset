@@ -5,6 +5,7 @@ import { LuFolderOpen } from "react-icons/lu";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { STROKE_WIDTH } from "./constants";
+import { OrganizationDropdown } from "./WorkspaceSidebarHeader/OrganizationDropdown";
 
 interface WorkspaceSidebarFooterProps {
 	isCollapsed?: boolean;
@@ -55,7 +56,7 @@ export function WorkspaceSidebarFooter({
 
 	if (isCollapsed) {
 		return (
-			<div className="border-t border-border p-2 flex justify-center">
+			<div className="border-t border-border p-2 flex flex-col items-center gap-2">
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<Button
@@ -70,12 +71,13 @@ export function WorkspaceSidebarFooter({
 					</TooltipTrigger>
 					<TooltipContent side="right">Add repository</TooltipContent>
 				</Tooltip>
+				<OrganizationDropdown isCollapsed />
 			</div>
 		);
 	}
 
 	return (
-		<div className="border-t border-border p-2">
+		<div className="border-t border-border p-2 flex flex-col gap-1">
 			<Button
 				variant="ghost"
 				size="sm"
@@ -86,6 +88,7 @@ export function WorkspaceSidebarFooter({
 				<LuFolderOpen className="w-4 h-4" strokeWidth={STROKE_WIDTH} />
 				<span>Add repository</span>
 			</Button>
+			<OrganizationDropdown />
 		</div>
 	);
 }
