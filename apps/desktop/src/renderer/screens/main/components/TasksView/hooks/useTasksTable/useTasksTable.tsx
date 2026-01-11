@@ -251,7 +251,7 @@ export function useTasksTable(): {
 					const date = info.getValue();
 					if (!date) return null;
 					return (
-						<span className="text-xs text-muted-foreground flex-shrink-0">
+						<span className="text-xs text-muted-foreground flex-shrink-0 w-11">
 							{format(new Date(date), "MMM d")}
 						</span>
 					);

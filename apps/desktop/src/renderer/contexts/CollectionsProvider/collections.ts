@@ -70,8 +70,11 @@ function createOrgCollections(
 				return { txid: result.txid };
 			},
 			onUpdate: async ({ transaction }) => {
-				const { modified } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate(modified);
+				const { original, changes } = transaction.mutations[0];
+				const result = await apiClient.task.update.mutate({
+					...changes,
+					id: original.id,
+				});
 				return { txid: result.txid };
 			},
 			onDelete: async ({ transaction }) => {

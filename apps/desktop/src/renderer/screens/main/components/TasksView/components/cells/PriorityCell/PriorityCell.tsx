@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { CellContext } from "@tanstack/react-table";
 import type { SelectTask } from "@superset/db/schema";
-import { taskPriorityValues, type TaskPriority } from "@superset/db/enums";
+import { type TaskPriority } from "@superset/db/enums";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -23,13 +23,13 @@ const PRIORITY_LABELS: Record<TaskPriority, string> = {
 	low: "Low",
 };
 
-const PRIORITY_NUMBERS: Record<TaskPriority, number> = {
-	none: 0,
-	urgent: 1,
-	high: 2,
-	medium: 3,
-	low: 4,
-};
+const PRIORITY_DISPLAY_ORDER: TaskPriority[] = [
+	"none",
+	"urgent",
+	"high",
+	"medium",
+	"low",
+];
 
 export function PriorityCell({ info }: PriorityCellProps) {
 	const collections = useCollections();
@@ -59,14 +59,18 @@ export function PriorityCell({ info }: PriorityCellProps) {
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
 				<button
-					className="p-0 cursor-pointer border-0 hover:brightness-110 transition-all"
+					className="group p-0 cursor-pointer border-0 transition-all"
 					title={PRIORITY_LABELS[currentPriority]}
 				>
-					<PriorityIcon priority={currentPriority} statusType={statusType} />
+					<PriorityIcon
+						priority={currentPriority}
+						statusType={statusType}
+						showHover={true}
+					/>
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-52 p-1">
-				{taskPriorityValues.map((priority: TaskPriority) => (
+				{PRIORITY_DISPLAY_ORDER.map((priority: TaskPriority) => (
 					<DropdownMenuItem
 						key={priority}
 						onSelect={() => handleSelectPriority(priority)}
@@ -74,12 +78,7 @@ export function PriorityCell({ info }: PriorityCellProps) {
 					>
 						<PriorityIcon priority={priority} statusType={statusType} />
 						<span className="text-sm flex-1">{PRIORITY_LABELS[priority]}</span>
-						{priority === currentPriority && (
-							<span className="text-sm">✓</span>
-						)}
-						<span className="text-xs text-muted-foreground tabular-nums">
-							{PRIORITY_NUMBERS[priority]}
-						</span>
+						{priority === currentPriority && <span className="text-sm">✓</span>}
 					</DropdownMenuItem>
 				))}
 			</DropdownMenuContent>
