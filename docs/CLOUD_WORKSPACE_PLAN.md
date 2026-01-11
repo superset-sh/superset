@@ -2,7 +2,7 @@
 
 > **Status**: Planning
 > **Created**: 2026-01-10
-> **Last Updated**: 2026-01-10
+> **Last Updated**: 2026-01-10 (Technical Decisions Added)
 
 ---
 
@@ -13,7 +13,14 @@
    - [Architecture](#architecture)
    - [User Flows](#user-flows)
    - [Key Decisions](#key-decisions)
-2. [Low-Level Implementation](#low-level-implementation)
+2. [Technical Decisions](#technical-decisions)
+   - [Entity Models](#entity-models)
+   - [State Machine](#state-machine)
+   - [Authentication](#authentication)
+   - [Real-Time Updates](#real-time-updates)
+   - [Error Handling](#error-handling)
+   - [Concurrency Model](#concurrency-model)
+3. [Low-Level Implementation](#low-level-implementation)
    - [Database Schema](#database-schema)
    - [API Routes](#api-routes)
    - [File Structure](#file-structure)
@@ -33,8 +40,8 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 | Capability | Description |
 |------------|-------------|
 | **Remote Development** | Full development environment on cloud VMs (Freestyle.dev) |
-| **Multi-Device Access** | Access from desktop, web, or mobile simultaneously |
-| **Persistent Sessions** | Terminal sessions survive disconnections (tmux) |
+| **Multi-Device Access** | Access from desktop and web simultaneously |
+| **Persistent Sessions** | Freestyle handles session persistence |
 | **Seamless Handoff** | Switch between devices without losing work |
 | **Optional Local Sync** | Desktop users can sync files locally for IDE editing |
 
@@ -57,27 +64,29 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 │  ┌───────────────────────────────────────────────────────────────────┐  │
 │  │                       Freestyle VM                                 │  │
 │  │                                                                     │  │
-│  │   /workspace                    tmux session                        │  │
-│  │   ├── .git                      ├── window 0: shell                │  │
-│  │   ├── src/                      └── window 1: dev server           │  │
-│  │   └── ...                                                           │  │
+│  │   /workspace                                                        │  │
+│  │   ├── .git                                                         │  │
+│  │   ├── src/                                                         │  │
+│  │   └── ...                                                          │  │
 │  │                                                                     │  │
 │  │   SOURCE OF TRUTH for active development                           │  │
+│  │   (Freestyle handles session persistence)                          │  │
 │  └───────────────────────────────────────────────────────────────────┘  │
 │                                    │                                     │
 │                               SSH Access                                 │
 │                                    │                                     │
 └────────────────────────────────────┼─────────────────────────────────────┘
                                      │
-            ┌────────────────────────┼────────────────────────┐
-            │                        │                        │
-       ┌────┴────┐              ┌────┴────┐              ┌────┴────┐
-       │ Desktop │              │   Web   │              │  Phone  │
-       │         │              │         │              │         │
-       │ SSH term│              │ xterm.js│              │ Command │
-       │ +local  │              │ via WS  │              │   API   │
-       │  sync?  │              │         │              │         │
-       └─────────┘              └─────────┘              └─────────┘
+                    ┌────────────────┴────────────────┐
+                    │                                 │
+               ┌────┴────┐                       ┌────┴────┐
+               │ Desktop │                       │   Web   │
+               │         │                       │         │
+               │ SSH via │                       │ xterm.js│
+               │ node-pty│                       │ via WS  │
+               │ +local  │                       │ proxy   │
+               │  sync?  │                       │         │
+               └─────────┘                       └─────────┘
 ```
 
 ### Cloud is Source of Truth
@@ -90,10 +99,8 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 
 | Client | Terminal | File Edit | Sync |
 |--------|----------|-----------|------|
-| **Desktop** | SSH (node-pty) | Cloud or Local+Sync | Optional |
-| **Web** | xterm.js → WebSocket → SSH | Cloud (vim/nano) | N/A |
-| **Phone** | View-only | None | N/A |
-| **API** | Send commands | None | N/A |
+| **Desktop** | SSH via node-pty | Cloud or Local+Sync | Optional |
+| **Web** | xterm.js → WebSocket → SSH proxy | Cloud (vim/nano) | N/A |
 
 ---
 
@@ -120,17 +127,7 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 5. User has full terminal access in browser
 ```
 
-### Flow 3: Send Command from Phone
-
-```
-1. User opens mobile app (or uses API/chat)
-2. Sees list of running cloud workspaces
-3. Sends command: "npm test"
-4. API executes on VM, returns output
-5. User sees test results
-```
-
-### Flow 4: Handoff (Laptop → Phone → Web)
+### Flow 3: Handoff (Laptop → Web)
 
 ```
 [Laptop]
@@ -138,20 +135,14 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 2. Close laptop, walk away
 3. Cloud workspace continues running (or pauses after timeout)
 
-[Phone]
-4. Open app, see workspace status
-5. Send command: /run "git status"
-6. Chat with AI: "Fix the failing test"
-7. AI edits files on cloud, pushes to GitHub
-
 [Web - later]
-8. Open web app on another computer
-9. Connect to same cloud workspace
-10. See all changes made via phone/AI
-11. Continue working
+4. Open web app on another computer
+5. Connect to same cloud workspace
+6. See workspace state preserved
+7. Continue working with full terminal access
 ```
 
-### Flow 5: Desktop with Local Sync (for IDE users)
+### Flow 4: Desktop with Local Sync (for IDE users)
 
 ```
 1. Create cloud workspace
@@ -170,13 +161,16 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
 | **Cloud Provider** | Freestyle.dev | Sub-second VM startup, built-in Git, SSH support |
+| **Clients** | Desktop + Web | Simplified to two clients (mobile = web) |
 | **Source of Truth** | Cloud VM | Simplifies multi-device access, no sync conflicts |
 | **Persistent Storage** | GitHub | Standard git workflow, PRs, code review |
 | **Sync Mechanism** | Git push/pull | No new tools, familiar workflow |
 | **Desktop Local Sync** | Optional | For IDE users who prefer local editing |
 | **Multi-device Model** | Shared access | Multiple clients can connect simultaneously |
-| **Terminal Persistence** | tmux | Sessions survive disconnections |
-| **Web Terminal** | xterm.js + WebSocket | Standard, well-supported |
+| **Terminal Persistence** | Freestyle handles | Let provider manage session persistence |
+| **Web Terminal** | xterm.js + WS proxy | Our proxy bridges browser to Freestyle SSH |
+| **Real-time Updates** | Electric SQL | Sync workspace state to clients |
+| **Access Control** | Any org member | Simple authorization model |
 
 ### Rejected Alternatives
 
@@ -186,6 +180,336 @@ Cloud Workspaces enable developers to create and interact with remote developmen
 | **CRDT collaboration** | Overkill for file-based editing, complex integration |
 | **Freestyle Git** | GitHub already serves as source of truth |
 | **Handoff model (one writer)** | Shared access is more flexible |
+| **tmux management** | Let Freestyle handle persistence instead |
+| **tRPC subscriptions** | Electric SQL simpler for state sync |
+
+---
+
+# Technical Decisions
+
+Detailed technical decisions made during planning.
+
+## Entity Models
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        ENTITY RELATIONSHIPS                       │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                   │
+│  Organization                                                     │
+│       │                                                           │
+│       ├──────────────▶ Repository (1:many)                       │
+│       │                     │                                     │
+│       │                     └──────────────▶ CloudWorkspace (1:n) │
+│       │                                            │              │
+│       │                                            └──▶ Sessions  │
+│       │                                                           │
+│       └──────────────▶ Members (1:many)                          │
+│                            │                                      │
+│                            └──▶ User                             │
+│                                                                   │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### CloudWorkspace
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | uuid | Primary key |
+| organizationId | uuid | FK to organization |
+| repositoryId | uuid | FK to repository |
+| name | string | User-defined name |
+| branch | string | Git branch |
+| freestyleVmId | string | Freestyle VM identifier |
+| status | enum | provisioning, running, paused, stopped, error |
+| statusMessage | string | Error details if status=error |
+| creatorId | uuid | FK to user who created |
+| autoStopMinutes | int | Idle timeout (default 30) |
+| createdAt | timestamp | |
+| updatedAt | timestamp | |
+| lastActiveAt | timestamp | Last client activity |
+
+### CloudWorkspaceSession
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | uuid | Primary key |
+| workspaceId | uuid | FK to workspace |
+| userId | uuid | FK to user |
+| clientType | enum | 'desktop' or 'web' |
+| localWorktreePath | string | Desktop only: path to local sync |
+| localSyncEnabled | boolean | Whether syncing locally |
+| connectedAt | timestamp | When connected |
+| lastHeartbeatAt | timestamp | Last heartbeat |
+
+### Design Notes
+
+- **No CloudTerminal table** - Freestyle handles terminal state on VM
+- **Sessions track presence** - Who is connected, from where
+- **Activity tracking** - For auto-pause decisions
+
+---
+
+## State Machine
+
+```
+                              create()
+                                  │
+                                  ▼
+                         ┌──────────────┐
+                         │ PROVISIONING │
+                         │              │
+                         │ • Clone repo │
+                         │ • Start VM   │
+                         └──────┬───────┘
+                                │
+              ┌─────────────────┼─────────────────┐
+              │ success         │                 │ failure
+              ▼                 │                 ▼
+       ┌──────────┐             │          ┌──────────┐
+       │ RUNNING  │◀────────────┘          │  ERROR   │
+       │          │                        │          │
+       │ • Active │     resume()           │ • Retry? │
+       │ • SSH OK │◀───────────────┐       └────┬─────┘
+       └────┬─────┘                │            │
+            │                      │            │ retry()
+   pause()  │              ┌──────────┐         │
+   timeout  │              │  PAUSED  │◀────────┘
+            └─────────────▶│          │
+                           │ • ~100ms │
+                           │   resume │
+                           └─────┬────┘
+                                 │
+                          stop() │
+                                 ▼
+                          ┌──────────┐
+                          │ STOPPED  │
+                          │          │
+                          │ • VM off │
+                          └────┬─────┘
+                               │
+                        delete()
+                               ▼
+                          (removed)
+```
+
+### State Transitions
+
+| From | To | Trigger | Notes |
+|------|-----|---------|-------|
+| - | PROVISIONING | `create()` | User initiates |
+| PROVISIONING | RUNNING | VM ready | Automatic |
+| PROVISIONING | ERROR | VM fails | Automatic |
+| RUNNING | PAUSED | `pause()` or 30min idle | User or auto |
+| PAUSED | RUNNING | `connect()` | **Auto-resume on connect** |
+| PAUSED | STOPPED | 24h paused | Auto cleanup |
+| STOPPED | RUNNING | `start()` | User initiates |
+| ERROR | PROVISIONING | `retry()` | User initiates |
+| Any | (deleted) | `delete()` | User initiates |
+
+### Key Behaviors
+
+- **Auto-resume**: Connecting to paused workspace resumes it automatically
+- **Keep indefinitely**: Stopped workspaces persist until user deletes
+- **Idle timeout**: Running → Paused after 30min no activity
+
+---
+
+## Authentication
+
+### Three-Layer Auth Model
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Layer 1: User Authentication (existing Better Auth)                    │
+│  ─────────────────────────────────────────────────────                  │
+│  • OAuth (GitHub/Google) → session cookie/token                         │
+│  • Works for both Desktop and Web                                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Layer 2: Workspace Authorization                                       │
+│  ────────────────────────────────                                       │
+│  • Check: user ∈ workspace.organization.members                        │
+│  • Any org member can access any workspace in that org                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Layer 3: VM Access (Freestyle)                                         │
+│  ──────────────────────────────                                         │
+│  • Request short-lived token from Freestyle API                         │
+│  • Token scoped to specific VM                                          │
+│  • Passed to client for SSH connection                                  │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Connection Flow
+
+```
+Client                     API                      Freestyle
+   │                        │                           │
+   │ 1. Connect request     │                           │
+   │   (session cookie)     │                           │
+   │───────────────────────▶│                           │
+   │                        │                           │
+   │                        │ 2. Verify user            │
+   │                        │ 3. Check org membership   │
+   │                        │ 4. Get workspace (vmId)   │
+   │                        │                           │
+   │                        │ 5. Get SSH token          │
+   │                        │──────────────────────────▶│
+   │                        │◀──────────────────────────│
+   │                        │                           │
+   │ 6. Return {host, token}│                           │
+   │◀───────────────────────│                           │
+   │                        │                           │
+   │ 7. SSH connect         │                           │
+   │─────────────────────────────────────────────────▶ │
+```
+
+### Desktop vs Web
+
+| Aspect | Desktop | Web |
+|--------|---------|-----|
+| User auth | OAuth → token in Electron | OAuth → session cookie |
+| API calls | tRPC via electron | tRPC via HTTP |
+| Terminal | node-pty spawns SSH | WebSocket → SSH proxy |
+
+### Web Terminal Proxy
+
+```
+Browser (xterm.js) ◀═══▶ API (WS→SSH proxy) ◀═══▶ Freestyle VM (SSH)
+```
+
+The proxy:
+1. Accepts WebSocket from browser
+2. Authenticates user (session check)
+3. Gets SSH credentials from Freestyle
+4. Establishes SSH connection
+5. Pipes data between WebSocket and SSH
+
+---
+
+## Real-Time Updates
+
+Using **Electric SQL** for all state synchronization.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                     REAL-TIME VIA ELECTRIC SQL                          │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  PostgreSQL (cloudWorkspaces, cloudWorkspaceSessions)                   │
+│       │                                                                  │
+│       │ Electric replication                                            │
+│       ▼                                                                  │
+│  Electric Server                                                        │
+│       │                                                                  │
+│       ├──────────────────┬──────────────────┐                           │
+│       ▼                  ▼                  ▼                           │
+│   Desktop             Web App           Other                           │
+│   (SQLite)            (memory)          Clients                         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### What Gets Synced
+
+| Data | Sync Method |
+|------|-------------|
+| Workspace status | Electric (cloudWorkspaces table) |
+| Workspace lastActiveAt | Electric |
+| Session presence | Electric (cloudWorkspaceSessions table) |
+| Error messages | Electric (statusMessage field) |
+
+### Benefits
+
+- No custom pub/sub infrastructure
+- Automatic offline support
+- Already using Electric for other sync
+- Clients react to local DB changes
+
+---
+
+## Error Handling
+
+### Error Categories
+
+| Category | Examples | Strategy |
+|----------|----------|----------|
+| **Provisioning** | Freestyle API down, GitHub clone fails, timeout | Retry with backoff → ERROR state |
+| **Connection** | SSH refused, WebSocket disconnect, auth expired | Auto-reconnect 3x → show error |
+| **Runtime** | VM crash, disk full, OOM | Detect via heartbeat → offer restart |
+| **Sync** | Git conflict on push/pull | Show conflict → let user resolve |
+
+### ERROR State Handling
+
+When workspace enters ERROR:
+1. Store error details: `{ code, message, timestamp }`
+2. Update status to 'error' (syncs via Electric)
+3. UI shows:
+   - Error message (user-friendly)
+   - "View Details" for technical info
+   - "Retry" button
+   - "Delete" if unrecoverable
+
+### Connection Resilience
+
+```
+Terminal disconnect:
+1. Immediate reconnect attempt
+2. Fail → wait 1s, retry
+3. Fail → wait 3s, retry
+4. Fail → wait 10s, retry
+5. Fail → show "Connection lost. Click to reconnect."
+
+User clicks reconnect:
+1. Check workspace status
+2. If paused → auto-resume, then connect
+3. If running → connect
+4. If error → show error state
+```
+
+---
+
+## Concurrency Model
+
+### Shared Access
+
+Multiple clients can connect simultaneously:
+
+```
+                    Cloud Workspace (VM)
+                           │
+              ┌────────────┼────────────┐
+              │            │            │
+              ▼            ▼            ▼
+         ┌────────┐   ┌────────┐   ┌────────┐
+         │Desktop │   │  Web   │   │Desktop │
+         │ User A │   │ User A │   │ User B │
+         └────────┘   └────────┘   └────────┘
+
+         Same user,   Same user,   Different user,
+         different    different    same org
+         device       device
+```
+
+### Conflict Scenarios
+
+| Scenario | What Happens | Resolution |
+|----------|--------------|------------|
+| Two users type in terminal | Interleaved input | Last input wins (expected) |
+| Two users edit same file (on cloud) | Last save wins | Standard filesystem behavior |
+| One on cloud, one local | Git conflict on push | Pull, resolve, push |
+
+### Session Tracking
+
+- Sessions stored in `cloudWorkspaceSessions` table
+- Heartbeat every 30s
+- Stale after 2min no heartbeat
+- Presence synced via Electric SQL
+
+### Presence UI
+
+- Show avatars of connected users
+- "2 users connected" badge
+- Real-time via Electric sync
 
 ---
 
@@ -223,9 +547,7 @@ export const cloudWorkspaceStatusEnum = pgEnum('cloud_workspace_status', [
 
 export const clientTypeEnum = pgEnum('client_type', [
   'desktop',
-  'web',
-  'mobile',
-  'api'
+  'web'
 ]);
 
 // Main cloud workspace table
@@ -591,12 +913,12 @@ apps/
 | # | Task | Files |
 |---|------|-------|
 | 6.1 | Implement heartbeat system | Background job |
-| 6.2 | Add presence subscription | tRPC subscription |
+| 6.2 | Configure Electric SQL for sessions | Electric config |
 | 6.3 | Implement auto-pause on inactivity | Cron job |
-| 6.4 | Handle tmux session reconnection | Terminal logic |
+| 6.4 | Handle reconnection logic | Terminal/connection logic |
 | 6.5 | Add presence UI indicators | UI components |
 
-**Verification:** Multiple devices see each other, workspace auto-pauses, sessions survive disconnects
+**Verification:** Multiple devices see each other, workspace auto-pauses, reconnection works
 
 ---
 
@@ -705,9 +1027,7 @@ export const freestyleService = {
       git: { url: repoUrl, branch },
     });
 
-    // Initialize tmux for persistent sessions
-    await vm.exec('tmux new-session -d -s main');
-
+    // Freestyle handles session persistence
     return { vmId: vm.id };
   },
 
@@ -772,8 +1092,8 @@ FREESTYLE_API_KEY=fs_...
 1. **VM Templates**: Should we create Freestyle VM templates for common setups (Node, Python, etc.)?
 2. **Cost Tracking**: How to track/display VM usage per workspace?
 3. **Limits**: Max concurrent cloud workspaces per org?
-4. **Cleanup**: How long to keep stopped VMs before deleting?
-5. **Secrets**: How to handle environment variables/secrets in cloud workspaces?
+4. **Secrets**: How to handle environment variables/secrets in cloud workspaces?
+5. **Electric SQL Shape**: What's the optimal shape definition for cloud workspace sync?
 
 ---
 
