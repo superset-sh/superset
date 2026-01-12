@@ -1,16 +1,16 @@
 import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
-import { authService } from "main/lib/auth";
+import { type AuthSession, authService } from "main/lib/auth";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+
+/** Auth state emitted by onAuthState subscription */
+export type AuthState = (AuthSession & { token: string | null }) | null;
 
 export const createAuthRouter = () => {
 	return router({
 		onAuthState: publicProcedure.subscription(() => {
-			return observable<
-				| (ReturnType<typeof authService.getSession> & { token: string | null })
-				| null
-			>((emit) => {
+			return observable<AuthState>((emit) => {
 				const emitCurrent = () => {
 					const sessionData = authService.getSession();
 					const token = authService.getAccessToken();
