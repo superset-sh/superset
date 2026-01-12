@@ -17,9 +17,9 @@ import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
-import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
+import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
 
 const GITHUB_STATUS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 

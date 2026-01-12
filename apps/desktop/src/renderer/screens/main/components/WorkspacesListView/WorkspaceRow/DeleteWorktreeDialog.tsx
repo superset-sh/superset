@@ -10,6 +10,7 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { trpc } from "renderer/lib/trpc";
+import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
@@ -24,13 +25,7 @@ export function DeleteWorktreeDialog({
 	open,
 	onOpenChange,
 }: DeleteWorktreeDialogProps) {
-	const utils = trpc.useUtils();
-
-	const deleteWorktree = trpc.workspaces.deleteWorktree.useMutation({
-		onSuccess: () => {
-			utils.workspaces.getWorktreesByProject.invalidate();
-		},
-	});
+	const deleteWorktree = useDeleteWorktree();
 
 	const { data: canDeleteData, isLoading } =
 		trpc.workspaces.canDeleteWorktree.useQuery(

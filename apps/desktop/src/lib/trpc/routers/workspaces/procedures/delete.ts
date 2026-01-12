@@ -340,14 +340,18 @@ export const createDeleteProcedures = () => {
 				}
 
 				try {
-					const exists = await worktreeExists(project.mainRepoPath, worktree.path);
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
 
 					if (!exists) {
 						return {
 							canDelete: true,
 							reason: null,
 							worktree,
-							warning: "Worktree not found in git (may have been manually removed)",
+							warning:
+								"Worktree not found in git (may have been manually removed)",
 							hasChanges: false,
 							hasUnpushedCommits: false,
 						};
@@ -397,7 +401,10 @@ export const createDeleteProcedures = () => {
 				await workspaceInitManager.acquireProjectLock(project.id);
 
 				try {
-					const exists = await worktreeExists(project.mainRepoPath, worktree.path);
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
 
 					if (exists) {
 						const teardownResult = await runTeardown(
