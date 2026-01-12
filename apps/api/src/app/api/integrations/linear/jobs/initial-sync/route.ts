@@ -2,8 +2,8 @@ import { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
 import {
 	integrationConnections,
-	tasks,
 	taskStatuses,
+	tasks,
 	users,
 } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
@@ -89,7 +89,9 @@ async function performInitialSync(
 		),
 	});
 	for (const status of statuses) {
-		statusByExternalId.set(status.externalId!, status.id);
+		if (status.externalId) {
+			statusByExternalId.set(status.externalId, status.id);
+		}
 	}
 
 	// STEP 3: Sync issues

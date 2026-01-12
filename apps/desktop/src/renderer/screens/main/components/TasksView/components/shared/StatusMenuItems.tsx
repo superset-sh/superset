@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
 import type { SelectTaskStatus } from "@superset/db/schema";
+import type { ReactNode } from "react";
 import { StatusIcon } from "../StatusIcon";
 
 interface MenuItemProps {

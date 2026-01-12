@@ -1,16 +1,16 @@
-import { useState } from "react";
-import type { CellContext } from "@tanstack/react-table";
-import { type TaskPriority } from "@superset/db/enums";
+import type { TaskPriority } from "@superset/db/enums";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import type { CellContext } from "@tanstack/react-table";
+import { useState } from "react";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { PriorityIcon } from "../../PriorityIcon";
-import { ALL_PRIORITIES } from "../../../utils/taskSorting";
 import type { TaskWithStatus } from "../../../hooks/useTasksTable";
+import { ALL_PRIORITIES } from "../../../utils/taskSorting";
+import { PriorityIcon } from "../../PriorityIcon";
 
 interface PriorityCellProps {
 	info: CellContext<TaskWithStatus, TaskPriority>;

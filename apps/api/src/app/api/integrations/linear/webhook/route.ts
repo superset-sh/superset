@@ -7,8 +7,8 @@ import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
-	tasks,
 	taskStatuses,
+	tasks,
 	users,
 	webhookEvents,
 } from "@superset/db/schema";

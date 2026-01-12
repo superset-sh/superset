@@ -1,33 +1,33 @@
-import { useMemo, useState, useEffect } from "react";
-import {
-	type ExpandedState,
-	type Table,
-	type ColumnFiltersState,
-	createColumnHelper,
-	getCoreRowModel,
-	getExpandedRowModel,
-	getGroupedRowModel,
-	getFilteredRowModel,
-	useReactTable,
-} from "@tanstack/react-table";
 import type {
 	SelectTask,
 	SelectTaskStatus,
 	SelectUser,
 } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
-import { eq, isNull } from "@tanstack/db";
-import { format } from "date-fns";
-import { HiChevronRight } from "react-icons/hi2";
 import { Badge } from "@superset/ui/badge";
+import { eq, isNull } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
+import {
+	type ColumnFiltersState,
+	createColumnHelper,
+	type ExpandedState,
+	getCoreRowModel,
+	getExpandedRowModel,
+	getFilteredRowModel,
+	getGroupedRowModel,
+	type Table,
+	useReactTable,
+} from "@tanstack/react-table";
+import { format } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
+import { HiChevronRight } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { StatusIcon } from "../../components/StatusIcon";
-import { StatusCell } from "../../components/cells/StatusCell";
-import { PriorityCell } from "../../components/cells/PriorityCell";
-import { AssigneeCell } from "../../components/cells/AssigneeCell";
-import { compareTasks } from "../../utils/taskSorting";
-import type { TabValue } from "../../components/TasksTopBar";
 import { useHybridSearch } from "renderer/hooks/useHybridSearch";
+import { AssigneeCell } from "../../components/cells/AssigneeCell";
+import { PriorityCell } from "../../components/cells/PriorityCell";
+import { StatusCell } from "../../components/cells/StatusCell";
+import { StatusIcon } from "../../components/StatusIcon";
+import type { TabValue } from "../../components/TasksTopBar";
+import { compareTasks } from "../../utils/taskSorting";
 
 // Task with joined status and assignee data
 export type TaskWithStatus = SelectTask & {
@@ -59,13 +59,11 @@ export function useTasksTable({
 		(q) =>
 			q
 				.from({ tasks: collections.tasks })
-				.innerJoin(
-					{ status: collections.taskStatuses },
-					({ tasks, status }) => eq(tasks.statusId, status.id),
+				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
+					eq(tasks.statusId, status.id),
 				)
-				.leftJoin(
-					{ assignee: collections.users },
-					({ tasks, assignee }) => eq(tasks.assigneeId, assignee.id),
+				.leftJoin({ assignee: collections.users }, ({ tasks, assignee }) =>
+					eq(tasks.assigneeId, assignee.id),
 				)
 				.select(({ tasks, status, assignee }) => ({
 					...tasks,

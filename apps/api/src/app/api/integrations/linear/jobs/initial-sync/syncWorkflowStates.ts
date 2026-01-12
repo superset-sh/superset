@@ -1,8 +1,7 @@
 import type { LinearClient } from "@linear/sdk";
-import { and, eq } from "drizzle-orm";
+import { buildConflictUpdateColumns } from "@superset/db";
 import { db } from "@superset/db/client";
 import { taskStatuses } from "@superset/db/schema";
-import { buildConflictUpdateColumns } from "@superset/db";
 import { calculateProgressForStates } from "./utils";
 
 /**
@@ -37,7 +36,7 @@ export async function syncWorkflowStates({
 			if (!statesByType.has(state.type)) {
 				statesByType.set(state.type, []);
 			}
-			statesByType.get(state.type)!.push(state);
+			statesByType.get(state.type)?.push(state);
 		}
 
 		// Calculate progress for "started" type
@@ -54,7 +53,7 @@ export async function syncWorkflowStates({
 			type: normalizeStateType(state.type),
 			position: state.position,
 			progressPercent:
-				state.type === "started" ? progressMap.get(state.name) ?? null : null,
+				state.type === "started" ? (progressMap.get(state.name) ?? null) : null,
 			externalProvider: "linear" as const,
 			externalId: state.id,
 		}));

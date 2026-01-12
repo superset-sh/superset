@@ -5,6 +5,9 @@ interface AssigneeMenuIconProps {
 	className?: string;
 }
 
-export function AssigneeMenuIcon({ color = "currentColor", className }: AssigneeMenuIconProps) {
+export function AssigneeMenuIcon({
+	color = "currentColor",
+	className,
+}: AssigneeMenuIconProps) {
 	return <HiOutlineUserCircle className={className} style={{ color }} />;
 }

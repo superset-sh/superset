@@ -1,6 +1,6 @@
 import type { LinearClient } from "@linear/sdk";
-import { subMonths } from "date-fns";
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
+import { subMonths } from "date-fns";
 
 export interface LinearIssue {
 	id: string;
@@ -15,7 +15,13 @@ export interface LinearIssue {
 	startedAt: string | null;
 	completedAt: string | null;
 	assignee: { id: string; email: string } | null;
-	state: { id: string; name: string; color: string; type: string; position: number };
+	state: {
+		id: string;
+		name: string;
+		color: string;
+		type: string;
+		position: number;
+	};
 	labels: { nodes: Array<{ id: string; name: string }> };
 }
 
@@ -47,21 +53,21 @@ export function calculateProgressForStates(
 		return progressMap;
 	}
 
-	// Sort by position to get Linear's intended order
 	const sorted = [...states].sort((a, b) => a.position - b.position);
 
 	const total = sorted.length;
 
 	for (let i = 0; i < total; i++) {
 		const state = sorted[i];
+		if (!state) continue;
+
 		let progress: number;
 
 		if (total === 1) {
-			progress = 50; // 50%
+			progress = 50;
 		} else if (total === 2) {
-			progress = i === 0 ? 50 : 75; // [50%, 75%]
+			progress = i === 0 ? 50 : 75;
 		} else {
-			// 3+ states: evenly spaced (index + 1) / (total + 1)
 			progress = ((i + 1) / (total + 1)) * 100;
 		}
 
@@ -149,7 +155,6 @@ export function mapIssueToTask(
 		? (userByEmail.get(issue.assignee.email) ?? null)
 		: null;
 
-	// Look up statusId from pre-loaded map (no DB query)
 	const statusId = statusByExternalId.get(issue.state.id);
 	if (!statusId) {
 		throw new Error(`Status not found for state ${issue.state.id}`);

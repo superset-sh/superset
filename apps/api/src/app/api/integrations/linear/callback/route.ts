@@ -50,7 +50,8 @@ export async function GET(request: Request) {
 			client_id: env.LINEAR_CLIENT_ID,
 			client_secret: env.LINEAR_CLIENT_SECRET,
 			// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
-			redirect_uri: "https://b02ef5887783.ngrok-free.app/api/integrations/linear/callback",
+			redirect_uri:
+				"https://b02ef5887783.ngrok-free.app/api/integrations/linear/callback",
 			code,
 		}),
 	});

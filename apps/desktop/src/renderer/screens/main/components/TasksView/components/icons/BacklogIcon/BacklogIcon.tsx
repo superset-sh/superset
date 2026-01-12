@@ -5,6 +5,9 @@ interface BacklogIconProps {
 	className?: string;
 }
 
-export function BacklogIcon({ color = "currentColor", className }: BacklogIconProps) {
+export function BacklogIcon({
+	color = "currentColor",
+	className,
+}: BacklogIconProps) {
 	return <StatusIcon type="backlog" color={color} className={className} />;
 }

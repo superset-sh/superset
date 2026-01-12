@@ -1,5 +1,8 @@
 import { ScrollArea } from "@superset/ui/scroll-area";
-import { StatusIcon, type StatusType } from "../TasksView/components/StatusIcon";
+import {
+	StatusIcon,
+	type StatusType,
+} from "../TasksView/components/StatusIcon";
 
 const STATUS_VARIANTS: Array<{
 	type: StatusType;
@@ -50,10 +53,7 @@ export function ComponentsShowcase() {
 											key={index}
 											className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card"
 										>
-											<StatusIcon
-												type={variant.type}
-												color={variant.color}
-											/>
+											<StatusIcon type={variant.type} color={variant.color} />
 											<div className="flex-1 min-w-0">
 												<p className="text-sm font-medium">{variant.label}</p>
 												<p className="text-xs text-muted-foreground">
@@ -72,10 +72,7 @@ export function ComponentsShowcase() {
 									{/* Backlog */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon
-												type="backlog"
-												color="#6B7280"
-											/>
+											<StatusIcon type="backlog" color="#6B7280" />
 											<span className="font-medium">Backlog Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
@@ -86,10 +83,7 @@ export function ComponentsShowcase() {
 									{/* Unstarted */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon
-												type="unstarted"
-												color="#3B82F6"
-											/>
+											<StatusIcon type="unstarted" color="#3B82F6" />
 											<span className="font-medium">Unstarted Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
@@ -100,10 +94,7 @@ export function ComponentsShowcase() {
 									{/* Started */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon
-												type="started"
-												color="#F59E0B"
-											/>
+											<StatusIcon type="started" color="#F59E0B" />
 											<span className="font-medium">Started Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
@@ -114,10 +105,7 @@ export function ComponentsShowcase() {
 									{/* Completed */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon
-												type="completed"
-												color="#8B5CF6"
-											/>
+											<StatusIcon type="completed" color="#8B5CF6" />
 											<span className="font-medium">Completed Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
@@ -128,10 +116,7 @@ export function ComponentsShowcase() {
 									{/* Cancelled */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon
-												type="cancelled"
-												color="#6B7280"
-											/>
+											<StatusIcon type="cancelled" color="#6B7280" />
 											<span className="font-medium">Cancelled Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
@@ -203,7 +188,9 @@ export function ComponentsShowcase() {
 
 							{/* Progress Variants for Started Type */}
 							<div>
-								<h3 className="text-sm font-medium mb-3">Started Progress Variants</h3>
+								<h3 className="text-sm font-medium mb-3">
+									Started Progress Variants
+								</h3>
 								<p className="text-xs text-muted-foreground mb-3">
 									Visual progress indication for "started" type statuses
 								</p>
@@ -230,7 +217,8 @@ export function ComponentsShowcase() {
 									</div>
 								</div>
 								<p className="text-xs text-muted-foreground mt-2 ml-2">
-									Progress is calculated from Linear workflow state positions during sync
+									Progress is calculated from Linear workflow state positions
+									during sync
 								</p>
 							</div>
 						</div>

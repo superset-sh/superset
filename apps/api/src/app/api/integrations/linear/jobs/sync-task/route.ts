@@ -1,7 +1,11 @@
 import type { LinearClient, WorkflowState } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import type { LinearConfig, SelectTask } from "@superset/db/schema";
-import { integrationConnections, tasks, taskStatuses } from "@superset/db/schema";
+import {
+	integrationConnections,
+	taskStatuses,
+	tasks,
+} from "@superset/db/schema";
 import {
 	getLinearClient,
 	mapPriorityToLinear,

@@ -1,8 +1,8 @@
-import { useState } from "react";
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { TasksTableView } from "./components/TasksTableView";
-import { TasksTopBar, type TabValue } from "./components/TasksTopBar";
+import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
 import { useTasksTable } from "./hooks/useTasksTable";
 
 export function TasksView() {

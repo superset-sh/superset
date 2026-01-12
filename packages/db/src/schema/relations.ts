@@ -11,8 +11,8 @@ import {
 import {
 	integrationConnections,
 	repositories,
-	tasks,
 	taskStatuses,
+	tasks,
 } from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({

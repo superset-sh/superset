@@ -1,5 +1,5 @@
-import type React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import type React from "react";
 import {
 	Avatar as AvatarBase,
 	AvatarFallback as AvatarFallbackBase,
@@ -58,11 +58,7 @@ function AvatarImage(props: React.ComponentProps<typeof AvatarImageBase>) {
 	return <AvatarImageBase {...props} />;
 }
 
-function AvatarFallback({
-	className,
-	size,
-	...props
-}: AvatarFallbackProps) {
+function AvatarFallback({ className, size, ...props }: AvatarFallbackProps) {
 	return (
 		<AvatarFallbackBase
 			className={cn(avatarFallbackVariants({ size }), className)}

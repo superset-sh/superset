@@ -1,13 +1,16 @@
 import { flexRender, type Table } from "@tanstack/react-table";
-import { TaskContextMenu } from "../TaskContextMenu";
 import type { TaskWithStatus } from "../../hooks/useTasksTable";
+import { TaskContextMenu } from "../TaskContextMenu";
 
 interface TasksTableViewProps {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
 }
 
-export function TasksTableView({ table, slugColumnWidth }: TasksTableViewProps) {
+export function TasksTableView({
+	table,
+	slugColumnWidth,
+}: TasksTableViewProps) {
 	return (
 		<div className="flex flex-col">
 			{table.getRowModel().rows.map((row) => {
@@ -25,7 +28,10 @@ export function TasksTableView({ table, slugColumnWidth }: TasksTableViewProps) 
 							key={row.id}
 							className="sticky top-0 bg-background z-10 border-b border-border/50"
 						>
-							{flexRender(firstCell.column.columnDef.cell, firstCell.getContext())}
+							{flexRender(
+								firstCell.column.columnDef.cell,
+								firstCell.getContext(),
+							)}
 						</div>
 					);
 				}

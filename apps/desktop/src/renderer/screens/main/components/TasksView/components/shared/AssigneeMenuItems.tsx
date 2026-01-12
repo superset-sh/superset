@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
 import type { SelectUser } from "@superset/db/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
+import type { ReactNode } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 
 interface MenuItemProps {
@@ -56,11 +56,15 @@ export function AssigneeMenuItems({
 					>
 						<Avatar size="xs">
 							{user.image && <AvatarImage src={user.image} />}
-							<AvatarFallback size="xs">{getInitials(user.name)}</AvatarFallback>
+							<AvatarFallback size="xs">
+								{getInitials(user.name)}
+							</AvatarFallback>
 						</Avatar>
 						<div className="flex flex-col">
 							<span className="text-sm">{user.name}</span>
-							<span className="text-xs text-muted-foreground">{user.email}</span>
+							<span className="text-xs text-muted-foreground">
+								{user.email}
+							</span>
 						</div>
 						{isSelected && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>

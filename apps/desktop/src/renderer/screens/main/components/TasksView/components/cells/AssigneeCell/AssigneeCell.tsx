@@ -1,13 +1,13 @@
-import { useState, useMemo } from "react";
-import type { CellContext } from "@tanstack/react-table";
-import { useLiveQuery } from "@tanstack/react-db";
+import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
+import { useLiveQuery } from "@tanstack/react-db";
+import type { CellContext } from "@tanstack/react-table";
+import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import type { TaskWithStatus } from "../../../hooks/useTasksTable";

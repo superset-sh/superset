@@ -1,6 +1,6 @@
-import type { CellContext } from "@tanstack/react-table";
 import type { SelectTask } from "@superset/db/schema";
 import { Badge } from "@superset/ui/badge";
+import type { CellContext } from "@tanstack/react-table";
 
 interface LabelsCellProps {
 	info: CellContext<SelectTask, string[] | null>;

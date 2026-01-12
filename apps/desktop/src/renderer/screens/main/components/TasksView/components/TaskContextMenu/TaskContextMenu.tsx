@@ -1,4 +1,3 @@
-import { type ReactNode, useMemo } from "react";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -10,15 +9,20 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { useLiveQuery } from "@tanstack/react-db";
+import { type ReactNode, useMemo } from "react";
+import {
+	HiOutlineDocumentDuplicate,
+	HiOutlineTrash,
+	HiOutlineUserCircle,
+} from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import type { TaskWithStatus } from "../../hooks/useTasksTable";
-import { StatusMenuItems } from "../shared/StatusMenuItems";
+import { compareStatusesForDropdown } from "../../utils/taskSorting";
+import { ActiveIcon } from "../icons/ActiveIcon";
+import { PriorityMenuIcon } from "../icons/PriorityMenuIcon";
 import { AssigneeMenuItems } from "../shared/AssigneeMenuItems";
 import { PriorityMenuItems } from "../shared/PriorityMenuItems";
-import { ActiveIcon } from "../icons/ActiveIcon";
-import { compareStatusesForDropdown } from "../../utils/taskSorting";
-import { HiOutlineDocumentDuplicate, HiOutlineTrash, HiOutlineUserCircle } from "react-icons/hi2";
-import { PriorityMenuIcon } from "../icons/PriorityMenuIcon";
+import { StatusMenuItems } from "../shared/StatusMenuItems";
 
 interface TaskContextMenuProps {
 	children: ReactNode;

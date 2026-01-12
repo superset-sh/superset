@@ -1,15 +1,15 @@
-import { useState, useMemo } from "react";
 import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo, useState } from "react";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { StatusIcon } from "../../StatusIcon";
 import { compareStatusesForDropdown } from "../../../utils/taskSorting";
+import { StatusIcon } from "../../StatusIcon";
 
 // Task with joined status data
 type TaskWithStatus = SelectTask & {

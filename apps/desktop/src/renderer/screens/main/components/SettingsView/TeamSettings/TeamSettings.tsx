@@ -25,9 +25,8 @@ export function TeamSettings() {
 		(q) =>
 			q
 				.from({ members: collections.members })
-				.leftJoin(
-					{ users: collections.users },
-					({ members, users }) => eq(members.userId, users.id),
+				.leftJoin({ users: collections.users }, ({ members, users }) =>
+					eq(members.userId, users.id),
 				)
 				.select(({ members, users }) => ({
 					memberId: members.id,

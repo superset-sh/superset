@@ -1,5 +1,5 @@
-import { useMemo, useCallback } from "react";
 import Fuse from "fuse.js";
+import { useCallback, useMemo } from "react";
 
 interface SearchableTask {
 	id: string;

@@ -5,11 +5,9 @@ interface AllIssuesIconProps {
 	className?: string;
 }
 
-export function AllIssuesIcon({ color = "currentColor", className }: AllIssuesIconProps) {
-	return (
-		<HiOutlineRectangleStack
-			className={className}
-			style={{ color }}
-		/>
-	);
+export function AllIssuesIcon({
+	color = "currentColor",
+	className,
+}: AllIssuesIconProps) {
+	return <HiOutlineRectangleStack className={className} style={{ color }} />;
 }
