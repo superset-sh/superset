@@ -1,6 +1,6 @@
 import type { SelectTaskStatus } from "@superset/db/schema";
 import type { ReactNode } from "react";
-import { StatusIcon } from "../StatusIcon";
+import { StatusIcon, type StatusType } from "../StatusIcon";
 
 interface MenuItemProps {
 	children: ReactNode;
@@ -32,7 +32,7 @@ export function StatusMenuItems({
 						className="flex items-center gap-3 px-3 py-2"
 					>
 						<StatusIcon
-							type={status.type as any}
+							type={status.type as StatusType}
 							color={status.color}
 							progress={status.progressPercent ?? undefined}
 						/>

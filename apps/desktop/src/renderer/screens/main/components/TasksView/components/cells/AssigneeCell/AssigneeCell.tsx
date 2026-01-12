@@ -58,7 +58,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<button className="cursor-pointer">
+				<button type="button" className="cursor-pointer">
 					{currentAssignee ? (
 						<Avatar size="xs">
 							{currentAssignee.image && (

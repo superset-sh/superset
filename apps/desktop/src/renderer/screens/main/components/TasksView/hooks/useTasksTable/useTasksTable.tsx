@@ -25,7 +25,7 @@ import { useHybridSearch } from "renderer/hooks/useHybridSearch";
 import { AssigneeCell } from "../../components/cells/AssigneeCell";
 import { PriorityCell } from "../../components/cells/PriorityCell";
 import { StatusCell } from "../../components/cells/StatusCell";
-import { StatusIcon } from "../../components/StatusIcon";
+import { StatusIcon, type StatusType } from "../../components/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
 import { compareTasks } from "../../utils/taskSorting";
 
@@ -151,6 +151,7 @@ export function useTasksTable({
 								}}
 							>
 								<button
+									type="button"
 									className="group w-full justify-start px-4 py-2 h-auto relative rounded-none bg-transparent flex items-center cursor-pointer border-0"
 									onClick={row.getToggleExpandedHandler()}
 								>
@@ -161,7 +162,7 @@ export function useTasksTable({
 									/>
 									<div className="flex items-center gap-2 pl-4">
 										<StatusIcon
-											type={status.type as any}
+											type={status.type as StatusType}
 											color={status.color}
 											progress={status.progressPercent ?? undefined}
 										/>

@@ -52,6 +52,7 @@ export function PriorityCell({ info }: PriorityCellProps) {
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
 				<button
+					type="button"
 					className="group p-0 cursor-pointer border-0 transition-all"
 					title={PRIORITY_LABELS[currentPriority]}
 				>

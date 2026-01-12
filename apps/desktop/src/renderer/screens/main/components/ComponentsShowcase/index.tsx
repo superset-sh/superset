@@ -48,9 +48,9 @@ export function ComponentsShowcase() {
 							<div>
 								<h3 className="text-sm font-medium mb-3">All Variants</h3>
 								<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-									{STATUS_VARIANTS.map((variant, index) => (
+									{STATUS_VARIANTS.map((variant) => (
 										<div
-											key={index}
+											key={`${variant.type}-${variant.color}`}
 											className="flex items-center gap-3 p-4 rounded-lg border border-border bg-card"
 										>
 											<StatusIcon type={variant.type} color={variant.color} />

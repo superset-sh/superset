@@ -126,7 +126,11 @@ async function performInitialSync(
 			.insert(tasks)
 			.values(batch)
 			.onConflictDoUpdate({
-				target: [tasks.organizationId, tasks.externalProvider, tasks.externalId],
+				target: [
+					tasks.organizationId,
+					tasks.externalProvider,
+					tasks.externalId,
+				],
 				set: {
 					...buildConflictUpdateColumns(tasks, [
 						"slug",

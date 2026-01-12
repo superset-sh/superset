@@ -1,3 +1,4 @@
+// biome-ignore lint/a11y/noSvgWithoutTitle: These are decorative icons within labeled interactive elements
 import { cn } from "@superset/ui/utils";
 
 export type StatusType =
@@ -35,6 +36,7 @@ export function StatusIcon({
 		return (
 			<div className={containerClasses}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 14 14"
 					className={sizeClass}
 					fill="none"
@@ -58,6 +60,7 @@ export function StatusIcon({
 		return (
 			<div className={containerClasses}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 14 14"
 					className={sizeClass}
 					fill="none"
@@ -82,6 +85,7 @@ export function StatusIcon({
 		return (
 			<div className={containerClasses}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 14 14"
 					className={sizeClass}
 					fill="none"
@@ -114,6 +118,7 @@ export function StatusIcon({
 		return (
 			<div className={containerClasses}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 14 14"
 					className={sizeClass}
 					fill="none"
@@ -143,6 +148,7 @@ export function StatusIcon({
 		return (
 			<div className={containerClasses}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 14 14"
 					className={sizeClass}
 					fill="none"
@@ -171,6 +177,7 @@ export function StatusIcon({
 	return (
 		<div className={containerClasses}>
 			<svg
+				aria-hidden="true"
 				viewBox="0 0 14 14"
 				className={sizeClass}
 				fill="none"

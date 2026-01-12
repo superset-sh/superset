@@ -148,7 +148,11 @@ async function processIssueEvent(
 				createdAt: new Date(issue.createdAt),
 			})
 			.onConflictDoUpdate({
-				target: [tasks.organizationId, tasks.externalProvider, tasks.externalId],
+				target: [
+					tasks.organizationId,
+					tasks.externalProvider,
+					tasks.externalId,
+				],
 				set: { ...taskData, syncError: null },
 			});
 	} else if (payload.action === "remove") {

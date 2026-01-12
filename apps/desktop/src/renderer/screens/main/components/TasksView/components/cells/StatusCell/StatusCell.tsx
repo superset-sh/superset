@@ -9,7 +9,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { compareStatusesForDropdown } from "../../../utils/taskSorting";
-import { StatusIcon } from "../../StatusIcon";
+import { StatusIcon, type StatusType } from "../../StatusIcon";
 
 // Task with joined status data
 type TaskWithStatus = SelectTask & {
@@ -57,9 +57,9 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
-				<button className="p-0 cursor-pointer border-0">
+				<button type="button" className="p-0 cursor-pointer border-0">
 					<StatusIcon
-						type={currentStatus.type as any}
+						type={currentStatus.type as StatusType}
 						color={currentStatus.color}
 						progress={currentStatus.progressPercent ?? undefined}
 						showHover={true}
@@ -75,7 +75,7 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 							className="flex items-center gap-3 px-3 py-2"
 						>
 							<StatusIcon
-								type={status.type as any}
+								type={status.type as StatusType}
 								color={status.color}
 								progress={status.progressPercent ?? undefined}
 							/>

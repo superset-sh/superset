@@ -1,3 +1,4 @@
+// biome-ignore lint/a11y/noSvgWithoutTitle: These are decorative icons within labeled interactive elements
 import type { TaskPriority } from "@superset/db/enums";
 import colors from "tailwindcss/colors";
 
@@ -25,6 +26,7 @@ export function PriorityIcon({
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 16 16"
 					fill={defaultColor}
 					xmlns="http://www.w3.org/2000/svg"
@@ -72,6 +74,7 @@ export function PriorityIcon({
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 16 16"
 					fill={fillColor}
 					xmlns="http://www.w3.org/2000/svg"
@@ -88,6 +91,7 @@ export function PriorityIcon({
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 16 16"
 					fill={defaultColor}
 					xmlns="http://www.w3.org/2000/svg"
@@ -106,6 +110,7 @@ export function PriorityIcon({
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 16 16"
 					fill={defaultColor}
 					xmlns="http://www.w3.org/2000/svg"
@@ -124,6 +129,7 @@ export function PriorityIcon({
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
 				<svg
+					aria-hidden="true"
 					viewBox="0 0 16 16"
 					fill={defaultColor}
 					xmlns="http://www.w3.org/2000/svg"
