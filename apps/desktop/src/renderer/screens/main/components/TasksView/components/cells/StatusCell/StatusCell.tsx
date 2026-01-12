@@ -33,7 +33,7 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
 	const currentStatus = taskWithStatus.status;
 
-	// Sort statuses by workflow order (backlog → unstarted → started → completed → cancelled)
+	// Sort statuses by workflow order (backlog → unstarted → started → completed → canceled)
 	const sortedStatuses = useMemo(() => {
 		return statuses.sort(compareStatusesForDropdown);
 	}, [statuses]);

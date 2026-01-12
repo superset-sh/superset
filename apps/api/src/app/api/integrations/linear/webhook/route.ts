@@ -103,7 +103,9 @@ async function processIssueEvent(
 		});
 
 		if (!taskStatus) {
-			// Status doesn't exist yet - need to sync workflow states
+			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
+			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
+			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
 			console.warn(
 				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
 			);
@@ -146,7 +148,7 @@ async function processIssueEvent(
 				createdAt: new Date(issue.createdAt),
 			})
 			.onConflictDoUpdate({
-				target: [tasks.externalProvider, tasks.externalId],
+				target: [tasks.organizationId, tasks.externalProvider, tasks.externalId],
 				set: { ...taskData, syncError: null },
 			});
 	} else if (payload.action === "remove") {

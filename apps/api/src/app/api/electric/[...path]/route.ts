@@ -44,9 +44,6 @@ export async function GET(request: Request): Promise<Response> {
 
 	let response = await fetch(originUrl.toString());
 
-	// When proxying long-polling requests, content-encoding & content-length are added
-	// erroneously (saying the body is gzipped when it's not) so we'll just remove
-	// them to avoid content decoding errors in the browser.
 	if (response.headers.get("content-encoding")) {
 		const headers = new Headers(response.headers);
 		headers.delete("content-encoding");

@@ -15,8 +15,8 @@ const STATUS_VARIANTS: Array<{
 	{ type: "started", color: "#F59E0B", label: "In Progress (Orange)" },
 	{ type: "started", color: "#10B981", label: "In Review (Green)" },
 	{ type: "completed", color: "#8B5CF6", label: "Done (Purple)" },
-	{ type: "cancelled", color: "#6B7280", label: "Canceled (Gray)" },
-	{ type: "cancelled", color: "#EF4444", label: "Duplicate (Red)" },
+	{ type: "canceled", color: "#6B7280", label: "Canceled (Gray)" },
+	{ type: "canceled", color: "#EF4444", label: "Duplicate (Red)" },
 ];
 
 export function ComponentsShowcase() {
@@ -113,11 +113,11 @@ export function ComponentsShowcase() {
 										</p>
 									</div>
 
-									{/* Cancelled */}
+									{/* Canceled */}
 									<div className="p-4 rounded-lg border border-border bg-card">
 										<div className="flex items-center gap-3 mb-2">
-											<StatusIcon type="cancelled" color="#6B7280" />
-											<span className="font-medium">Cancelled Type</span>
+											<StatusIcon type="canceled" color="#6B7280" />
+											<span className="font-medium">Canceled Type</span>
 										</div>
 										<p className="text-sm text-muted-foreground ml-9">
 											Filled circle with hollow X icon
@@ -172,12 +172,12 @@ export function ComponentsShowcase() {
 									</div>
 									<div className="flex flex-col items-center gap-2">
 										<StatusIcon
-											type="cancelled"
+											type="canceled"
 											color="#6B7280"
 											showHover={true}
 										/>
 										<span className="text-xs text-muted-foreground">
-											Cancelled
+											Canceled
 										</span>
 									</div>
 								</div>

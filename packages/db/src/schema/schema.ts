@@ -163,6 +163,7 @@ export const tasks = pgTable(
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
 		unique("tasks_external_unique").on(
+			table.organizationId,
 			table.externalProvider,
 			table.externalId,
 		),

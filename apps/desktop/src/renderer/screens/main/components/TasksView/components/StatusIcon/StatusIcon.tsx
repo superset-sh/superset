@@ -5,7 +5,7 @@ export type StatusType =
 	| "unstarted"
 	| "started"
 	| "completed"
-	| "cancelled";
+	| "canceled";
 
 interface StatusIconProps {
 	type: StatusType;
@@ -87,7 +87,6 @@ export function StatusIcon({
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
-					{/* Outer circle - full */}
 					<circle
 						cx="7"
 						cy="7"
@@ -97,7 +96,6 @@ export function StatusIcon({
 						strokeDasharray="3.14 0"
 						strokeDashoffset="-0.7"
 					/>
-					{/* Center circle - radial progress, clockwise from top */}
 					<circle
 						cx="7"
 						cy="7"
@@ -141,11 +139,7 @@ export function StatusIcon({
 		);
 	}
 
-	if (type === "cancelled") {
-		// Middle ring is 50% filled (matches Linear)
-		const middleRadius = 3;
-		const middleCircumference = 2 * Math.PI * middleRadius;
-
+	if (type === "canceled") {
 		return (
 			<div className={containerClasses}>
 				<svg
@@ -154,7 +148,6 @@ export function StatusIcon({
 					fill="none"
 					xmlns="http://www.w3.org/2000/svg"
 				>
-					{/* Outer circle - full */}
 					<circle
 						cx="7"
 						cy="7"
@@ -164,18 +157,7 @@ export function StatusIcon({
 						strokeDasharray="3.14 0"
 						strokeDashoffset="-0.7"
 					/>
-					{/* Middle ring - 50% filled */}
-					<circle
-						cx="7"
-						cy="7"
-						r={middleRadius}
-						stroke={color}
-						strokeWidth="6"
-						strokeDasharray={`${middleCircumference} ${middleCircumference * 2}`}
-						strokeDashoffset="0"
-						transform="rotate(-90 7 7)"
-					/>
-					{/* X icon */}
+
 					<path
 						className="fill-background"
 						stroke="none"

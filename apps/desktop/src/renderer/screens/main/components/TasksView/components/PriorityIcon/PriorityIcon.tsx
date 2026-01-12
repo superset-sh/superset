@@ -60,7 +60,7 @@ export function PriorityIcon({
 	}
 
 	// Urgent: Filled square with exclamation mark
-	// Orange for backlog/todo/in-progress, gray for completed/cancelled
+	// Orange for backlog/todo/in-progress, gray for completed/canceled
 	if (priority === "urgent") {
 		const isActive =
 			statusType === "started" ||

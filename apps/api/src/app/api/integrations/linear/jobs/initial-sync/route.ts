@@ -34,12 +34,10 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	// TODO: Revert to env.NEXT_PUBLIC_API_URL after testing
-	const qstashBaseUrl = "https://b02ef5887783.ngrok-free.app";
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${qstashBaseUrl}/api/integrations/linear/jobs/initial-sync`,
+		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
 	});
 
 	if (!isValid) {
@@ -75,13 +73,9 @@ async function performInitialSync(
 	organizationId: string,
 	creatorUserId: string,
 ) {
-	// STEP 1: Sync workflow states FIRST
-	console.log("[initial-sync] Syncing workflow states");
 	await syncWorkflowStates({ client, organizationId });
 
-	// STEP 2: Load all statuses into a lookup map (avoid N+1)
-	console.log("[initial-sync] Loading status lookup map");
-	const statusByExternalId = new Map<string, string>(); // externalId -> statusId
+	const statusByExternalId = new Map<string, string>();
 	const statuses = await db.query.taskStatuses.findMany({
 		where: and(
 			eq(taskStatuses.organizationId, organizationId),
@@ -94,8 +88,6 @@ async function performInitialSync(
 		}
 	}
 
-	// STEP 3: Sync issues
-	console.log("[initial-sync] Syncing issues");
 	const issues = await fetchAllIssues(client);
 
 	if (issues.length === 0) {
@@ -134,7 +126,7 @@ async function performInitialSync(
 			.insert(tasks)
 			.values(batch)
 			.onConflictDoUpdate({
-				target: [tasks.externalProvider, tasks.externalId],
+				target: [tasks.organizationId, tasks.externalProvider, tasks.externalId],
 				set: {
 					...buildConflictUpdateColumns(tasks, [
 						"slug",

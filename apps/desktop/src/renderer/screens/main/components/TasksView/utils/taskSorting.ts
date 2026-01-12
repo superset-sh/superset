@@ -1,21 +1,21 @@
 import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
 
-// Status type ordering for table groups (Linear style: in progress → todo → backlog → done → cancelled)
+// Status type ordering for table groups (Linear style: in progress → todo → backlog → done → canceled)
 const STATUS_TYPE_ORDER: Record<string, number> = {
 	started: 0,
 	unstarted: 1,
 	backlog: 2,
 	completed: 3,
-	cancelled: 4,
+	canceled: 4,
 };
 
-// Status type ordering for dropdowns (workflow order: backlog → todo → in progress → done → cancelled)
+// Status type ordering for dropdowns (workflow order: backlog → todo → in progress → done → canceled)
 const STATUS_TYPE_DROPDOWN_ORDER: Record<string, number> = {
 	backlog: 0,
 	unstarted: 1,
 	started: 2,
 	completed: 3,
-	cancelled: 4,
+	canceled: 4,
 };
 
 // Priority ordering for task sorting (urgent at top, none at bottom)
@@ -96,7 +96,7 @@ export function compareStatusesForDropdown(
 	a: SelectTaskStatus,
 	b: SelectTaskStatus,
 ): number {
-	// 1. Sort by status type in workflow order (backlog → unstarted → started → completed → cancelled)
+	// 1. Sort by status type in workflow order (backlog → unstarted → started → completed → canceled)
 	const typeOrderA = getStatusTypeDropdownOrder(a.type);
 	const typeOrderB = getStatusTypeDropdownOrder(b.type);
 	if (typeOrderA !== typeOrderB) {
