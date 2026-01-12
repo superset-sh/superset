@@ -1,6 +1,6 @@
-import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
+import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
 /**
  * Mutation hook for creating a new workspace
