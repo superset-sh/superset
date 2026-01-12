@@ -1,8 +1,28 @@
 # Desktop App Routing Refactor
 
-**Status:** Planning
-**Date:** 2026-01-09
+**Status:** In Progress (Implementation Started)
+**Date:** 2026-01-09 (updated 2026-01-12)
 **Author:** Team Discussion
+**Last Update:** Added expanded TasksView structure (40+ files added since initial plan)
+
+## Reference Point
+
+**Original Repo State (Pre-Refactor):**
+- **Git Tag:** `pre-router-refactor-20260112`
+- **Commit Hash:** `7eb652e6ee54f6f79d570de97ff6dc3c93f773ba`
+- **Physical Copy:** `/tmp/superset-desktop-pre-refactor` (cloned at pre-refactor state for easy cross-reference)
+- **Original Structure:** `/tmp/superset-desktop-pre-refactor/apps/desktop/src/renderer/screens/main/`
+- **Compare Command:** `git diff pre-router-refactor-20260112 HEAD`
+- **Checkout Original:** `git checkout pre-router-refactor-20260112` (or reference `/tmp/superset-desktop-pre-refactor`)
+
+## Acceptance Criteria
+
+✅ **Functionality Parity:** All features from original repo work identically (or are improved using the new router)
+✅ **Router-Based Navigation:** Uses TanStack Router for all navigation (no view switching)
+✅ **File-Based Routing:** Routes defined by folder structure in `routes/`
+✅ **Proper Co-location:** All components follow AGENTS.md co-location rules
+✅ **No Breaking Changes:** Existing workflows, hotkeys, and user flows unchanged
+✅ **Test Coverage:** All routes navigable, deep linking works, back/forward buttons work
 
 ## Problem Statement
 
@@ -134,9 +154,72 @@ src/renderer/
 │       │           └── useWorkspaceHotkeys/
 │       │
 │       ├── tasks/
-│       │   ├── page.tsx                    # "/tasks" route
-│       │   └── components/                 # Used ONLY in tasks
-│       │       └── OrganizationSwitcher/
+│       │   ├── page.tsx                    # "/tasks" route (TasksView.tsx)
+│       │   │
+│       │   ├── components/                 # Used ONLY in tasks
+│       │   │   ├── TasksTableView/
+│       │   │   │   ├── TasksTableView.tsx
+│       │   │   │   ├── index.ts
+│       │   │   │   └── components/
+│       │   │   │       └── TaskContextMenu/
+│       │   │   │           ├── TaskContextMenu.tsx
+│       │   │   │           └── index.ts
+│       │   │   ├── TasksTopBar/
+│       │   │   │   ├── TasksTopBar.tsx
+│       │   │   │   └── index.ts
+│       │   │   └── shared/                 # Shared by TasksTableView components
+│       │   │       ├── AssigneeMenuItems.tsx
+│       │   │       ├── PriorityMenuItems.tsx
+│       │   │       ├── StatusMenuItems.tsx
+│       │   │       ├── PriorityIcon/
+│       │   │       │   ├── PriorityIcon.tsx
+│       │   │       │   └── index.ts
+│       │   │       ├── StatusIcon/
+│       │   │       │   ├── StatusIcon.tsx
+│       │   │       │   ├── constants.ts
+│       │   │       │   └── index.ts
+│       │   │       └── icons/
+│       │   │           ├── ActiveIcon/
+│       │   │           │   ├── ActiveIcon.tsx
+│       │   │           │   └── index.ts
+│       │   │           ├── AllIssuesIcon/
+│       │   │           │   ├── AllIssuesIcon.tsx
+│       │   │           │   └── index.ts
+│       │   │           ├── AssigneeMenuIcon/
+│       │   │           │   ├── AssigneeMenuIcon.tsx
+│       │   │           │   └── index.ts
+│       │   │           ├── BacklogIcon/
+│       │   │           │   ├── BacklogIcon.tsx
+│       │   │           │   └── index.ts
+│       │   │           └── PriorityMenuIcon/
+│       │   │               ├── PriorityMenuIcon.tsx
+│       │   │               └── index.ts
+│       │   │
+│       │   ├── hooks/                      # Used ONLY in tasks
+│       │   │   ├── useHybridSearch/
+│       │   │   │   ├── useHybridSearch.ts
+│       │   │   │   └── index.ts
+│       │   │   └── useTasksTable/
+│       │   │       ├── useTasksTable.tsx
+│       │   │       ├── index.ts
+│       │   │       └── components/         # Table cell components
+│       │   │           ├── AssigneeCell/
+│       │   │           │   ├── AssigneeCell.tsx
+│       │   │           │   └── index.ts
+│       │   │           ├── LabelsCell/
+│       │   │           │   ├── LabelsCell.tsx
+│       │   │           │   └── index.ts
+│       │   │           ├── PriorityCell/
+│       │   │           │   ├── PriorityCell.tsx
+│       │   │           │   └── index.ts
+│       │   │           └── StatusCell/
+│       │   │               ├── StatusCell.tsx
+│       │   │               └── index.ts
+│       │   │
+│       │   └── utils/                      # Used ONLY in tasks
+│       │       └── sorting/
+│       │           ├── sorting.ts
+│       │           └── index.ts
 │       │
 │       ├── workspaces/
 │       │   ├── page.tsx                    # "/workspaces" route (list view)
@@ -723,10 +806,14 @@ function WorkspacePage() {
 4. Create `page.tsx` and `layout.tsx` files (empty shells)
 5. Run dev server to generate `routeTree.gen.ts`
 
-### Phase 2: Extract Components (2-3 hours)
+### Phase 2: Extract Components (3-4 hours)
 1. Move `screens/main/components/` to appropriate `routes/` locations
-2. Update imports within moved components
-3. Co-locate components following repo rules
+2. Special attention to TasksView (40+ files):
+   - Preserve the existing folder structure (components/, hooks/, utils/)
+   - Move entire tree to `routes/_authenticated/tasks/`
+   - Update all 40+ import statements within TasksView files
+3. Update imports within other moved components
+4. Co-locate components following repo rules
 
 ### Phase 3: Update Route Files (1-2 hours)
 1. Add `createFileRoute()` exports to all `page.tsx` files
@@ -759,7 +846,7 @@ function WorkspacePage() {
 5. Test provider hierarchy (CollectionsProvider working correctly)
 6. Test dynamic routes (`/workspace/:id`)
 
-**Total estimated time: 8-13 hours**
+**Total estimated time: 9-15 hours** (updated to account for expanded TasksView with 40+ files)
 
 ## Benefits
 
@@ -779,14 +866,14 @@ function WorkspacePage() {
 
 ## Risks & Mitigations
 
-| Risk                         | Mitigation                                                     |
-| ---------------------------- | -------------------------------------------------------------- |
+| Risk                         | Mitigation                                                                                                   |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Breaking existing navigation | See "Critical Migration Items" above - only 2 items require updates (agent hook listener, workspace hotkeys) |
-| Missing navigation calls     | Grep for all `app-state` usages (~121 locations), update systematically |
-| Provider hierarchy issues    | Test auth flows thoroughly, verify CollectionsProvider scoping |
-| Route generation issues      | Run dev server frequently, check `routeTree.gen.ts` for errors |
-| Store lifecycle confusion    | Documented: stores remain global singletons despite folder moves |
-| Learning curve for team      | TanStack Router docs are excellent, syntax similar to Next.js  |
+| Missing navigation calls     | Grep for all `app-state` usages (~121 locations), update systematically                                      |
+| Provider hierarchy issues    | Test auth flows thoroughly, verify CollectionsProvider scoping                                               |
+| Route generation issues      | Run dev server frequently, check `routeTree.gen.ts` for errors                                               |
+| Store lifecycle confusion    | Documented: stores remain global singletons despite folder moves                                             |
+| Learning curve for team      | TanStack Router docs are excellent, syntax similar to Next.js                                                |
 
 ## Configuration Reference
 
@@ -814,16 +901,16 @@ export default defineConfig({
 
 ### Route File Patterns
 
-| File Pattern | Route | Description |
-|-------------|-------|-------------|
-| `routes/__root.tsx` | - | Required root layout |
-| `routes/index/page.tsx` | `/` | Home page |
-| `routes/sign-in/page.tsx` | `/sign-in` | Sign-in page |
-| `routes/_authenticated/layout.tsx` | - | Layout wrapper (no URL segment) |
-| `routes/_authenticated/workspace/page.tsx` | `/workspace` | Workspace selector |
-| `routes/_authenticated/workspace/$id/page.tsx` | `/workspace/:id` | Dynamic workspace route |
-| `routes/_authenticated/settings/layout.tsx` | `/settings` | Settings layout |
-| `routes/_authenticated/settings/keyboard/page.tsx` | `/settings/keyboard` | Settings page |
+| File Pattern                                       | Route                | Description                     |
+| -------------------------------------------------- | -------------------- | ------------------------------- |
+| `routes/__root.tsx`                                | -                    | Required root layout            |
+| `routes/index/page.tsx`                            | `/`                  | Home page                       |
+| `routes/sign-in/page.tsx`                          | `/sign-in`           | Sign-in page                    |
+| `routes/_authenticated/layout.tsx`                 | -                    | Layout wrapper (no URL segment) |
+| `routes/_authenticated/workspace/page.tsx`         | `/workspace`         | Workspace selector              |
+| `routes/_authenticated/workspace/$id/page.tsx`     | `/workspace/:id`     | Dynamic workspace route         |
+| `routes/_authenticated/settings/layout.tsx`        | `/settings`          | Settings layout                 |
+| `routes/_authenticated/settings/keyboard/page.tsx` | `/settings/keyboard` | Settings page                   |
 
 ### .gitignore
 
