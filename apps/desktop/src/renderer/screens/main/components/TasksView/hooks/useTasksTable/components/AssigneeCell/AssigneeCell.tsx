@@ -1,5 +1,4 @@
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -49,12 +48,11 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 			<DropdownMenuTrigger asChild>
 				<button type="button" className="cursor-pointer">
 					{task.assignee ? (
-						<Avatar size="xs">
-							{task.assignee.image && <AvatarImage src={task.assignee.image} />}
-							<AvatarFallback size="xs">
-								{getInitials(task.assignee.name)}
-							</AvatarFallback>
-						</Avatar>
+						<Avatar
+							size="xs"
+							fullName={task.assignee.name}
+							image={task.assignee.image}
+						/>
 					) : (
 						<HiOutlineUserCircle className="size-5 text-muted-foreground" />
 					)}
@@ -78,12 +76,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							onSelect={() => handleSelectUser(user.id)}
 							className="flex items-center gap-2"
 						>
-							<Avatar size="xs">
-								{user.image && <AvatarImage src={user.image} />}
-								<AvatarFallback size="xs">
-									{getInitials(user.name)}
-								</AvatarFallback>
-							</Avatar>
+							<Avatar size="xs" fullName={user.name} image={user.image} />
 							<div className="flex flex-col">
 								<span className="text-sm">{user.name}</span>
 								<span className="text-xs text-muted-foreground">

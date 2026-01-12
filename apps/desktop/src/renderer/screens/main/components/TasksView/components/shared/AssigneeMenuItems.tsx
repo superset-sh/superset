@@ -1,6 +1,5 @@
 import type { SelectUser } from "@superset/db/schema";
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import type { ReactNode } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 
@@ -44,12 +43,7 @@ export function AssigneeMenuItems({
 						onSelect={() => onSelect(user.id)}
 						className="flex items-center gap-2"
 					>
-						<Avatar size="xs">
-							{user.image && <AvatarImage src={user.image} />}
-							<AvatarFallback size="xs">
-								{getInitials(user.name)}
-							</AvatarFallback>
-						</Avatar>
+						<Avatar size="xs" fullName={user.name} image={user.image} />
 						<div className="flex flex-col">
 							<span className="text-sm">{user.name}</span>
 							<span className="text-xs text-muted-foreground">

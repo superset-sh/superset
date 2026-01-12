@@ -1,5 +1,4 @@
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -107,19 +106,17 @@ export function TeamSettings() {
 									</TableHeader>
 									<TableBody>
 										{members.map((member) => {
-											const initials = getInitials(member.name, member.email);
 											const isCurrentUserRow = member.userId === currentUserId;
 
 											return (
 												<TableRow key={member.memberId}>
 													<TableCell>
 														<div className="flex items-center gap-3">
-															<Avatar className="h-8 w-8">
-																<AvatarImage src={member.image ?? undefined} />
-																<AvatarFallback className="text-xs">
-																	{initials || "?"}
-																</AvatarFallback>
-															</Avatar>
+															<Avatar
+																size="md"
+																fullName={member.name}
+																image={member.image}
+															/>
 															<div className="flex items-center gap-2">
 																<span className="font-medium">
 																	{member.name || "Unknown"}

@@ -1,5 +1,5 @@
+import { getInitials } from "@superset/shared/names";
 import { cva, type VariantProps } from "class-variance-authority";
-import type React from "react";
 import {
 	Avatar as AvatarBase,
 	AvatarFallback as AvatarFallbackBase,
@@ -37,35 +37,24 @@ const avatarFallbackVariants = cva("", {
 	},
 });
 
-interface AvatarProps
-	extends React.ComponentProps<typeof AvatarBase>,
-		VariantProps<typeof avatarVariants> {}
+interface AvatarProps extends VariantProps<typeof avatarVariants> {
+	fullName?: string | null;
+	image?: string | null;
+	className?: string;
+}
 
-interface AvatarFallbackProps
-	extends React.ComponentProps<typeof AvatarFallbackBase>,
-		VariantProps<typeof avatarFallbackVariants> {}
+function Avatar({ className, size = "md", fullName, image }: AvatarProps) {
+	const fallbackText = fullName ? getInitials(fullName) : "A";
 
-function Avatar({ className, size, ...props }: AvatarProps) {
 	return (
-		<AvatarBase
-			className={cn(avatarVariants({ size }), className)}
-			{...props}
-		/>
+		<AvatarBase className={cn(avatarVariants({ size }), className)}>
+			{image && <AvatarImageBase src={image} />}
+			<AvatarFallbackBase className={cn(avatarFallbackVariants({ size }))}>
+				{fallbackText}
+			</AvatarFallbackBase>
+		</AvatarBase>
 	);
 }
 
-function AvatarImage(props: React.ComponentProps<typeof AvatarImageBase>) {
-	return <AvatarImageBase {...props} />;
-}
-
-function AvatarFallback({ className, size, ...props }: AvatarFallbackProps) {
-	return (
-		<AvatarFallbackBase
-			className={cn(avatarFallbackVariants({ size }), className)}
-			{...props}
-		/>
-	);
-}
-
-export { Avatar, AvatarImage, AvatarFallback };
-export type { AvatarProps, AvatarFallbackProps };
+export { Avatar };
+export type { AvatarProps };
