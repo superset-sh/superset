@@ -158,8 +158,8 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				// Hide from UI immediately to prevent reappearing during slow git operations
 				markWorkspaceAsDeleting(input.id);
+				updateActiveWorkspaceIfRemoved(input.id);
 
 				// Wait for any ongoing init to complete to avoid racing git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
@@ -252,8 +252,6 @@ export const createDeleteProcedures = () => {
 				if (project) {
 					hideProjectIfNoWorkspaces(workspace.projectId);
 				}
-
-				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
 					terminalResult.failed > 0
