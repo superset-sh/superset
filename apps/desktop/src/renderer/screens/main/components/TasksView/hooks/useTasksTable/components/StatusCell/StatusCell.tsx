@@ -1,4 +1,4 @@
-import type { SelectTask, SelectTaskStatus } from "@superset/db/schema";
+import type { SelectTaskStatus } from "@superset/db/schema";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -12,12 +12,9 @@ import {
 	StatusIcon,
 	type StatusType,
 } from "../../../../components/shared/StatusIcon";
+import { StatusMenuItems } from "../../../../components/shared/StatusMenuItems";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
-
-// Task with joined status data
-type TaskWithStatus = SelectTask & {
-	status: SelectTaskStatus;
-};
+import type { TaskWithStatus } from "../../useTasksTable";
 
 interface StatusCellProps {
 	taskWithStatus: TaskWithStatus;
@@ -27,7 +24,6 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 
-	// Lazy load statuses only when dropdown opens
 	const { data: allStatuses } = useLiveQuery(
 		(q) => (open ? q.from({ taskStatuses: collections.taskStatuses }) : null),
 		[collections, open],
@@ -36,7 +32,6 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 	const statuses = useMemo(() => allStatuses || [], [allStatuses]);
 	const currentStatus = taskWithStatus.status;
 
-	// Sort statuses by workflow order (backlog → unstarted → started → completed → canceled)
 	const sortedStatuses = useMemo(() => {
 		return statuses.sort(compareStatusesForDropdown);
 	}, [statuses]);
@@ -71,23 +66,12 @@ export function StatusCell({ taskWithStatus }: StatusCellProps) {
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start" className="w-48 p-1">
 				<div className="max-h-64 overflow-y-auto">
-					{sortedStatuses.map((status) => (
-						<DropdownMenuItem
-							key={status.id}
-							onSelect={() => handleSelectStatus(status)}
-							className="flex items-center gap-3 px-3 py-2"
-						>
-							<StatusIcon
-								type={status.type as StatusType}
-								color={status.color}
-								progress={status.progressPercent ?? undefined}
-							/>
-							<span className="text-sm flex-1">{status.name}</span>
-							{status.id === currentStatus.id && (
-								<span className="text-sm">✓</span>
-							)}
-						</DropdownMenuItem>
-					))}
+					<StatusMenuItems
+						statuses={sortedStatuses}
+						currentStatusId={currentStatus.id}
+						onSelect={handleSelectStatus}
+						MenuItem={DropdownMenuItem}
+					/>
 				</div>
 			</DropdownMenuContent>
 		</DropdownMenu>

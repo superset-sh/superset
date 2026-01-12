@@ -21,13 +21,13 @@ import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { useHybridSearch } from "renderer/hooks/useHybridSearch";
 import {
 	StatusIcon,
 	type StatusType,
 } from "../../components/shared/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
 import { compareTasks } from "../../utils/sorting";
+import { useHybridSearch } from "../useHybridSearch";
 import { AssigneeCell } from "./components/AssigneeCell";
 import { PriorityCell } from "./components/PriorityCell";
 import { StatusCell } from "./components/StatusCell";
