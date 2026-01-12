@@ -10,7 +10,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import type { TaskWithStatus } from "../../hooks/useTasksTable";
+import type { TaskWithStatus } from "../../../hooks/useTasksTable";
 
 interface AssigneeCellProps {
 	info: CellContext<TaskWithStatus, string | null>;

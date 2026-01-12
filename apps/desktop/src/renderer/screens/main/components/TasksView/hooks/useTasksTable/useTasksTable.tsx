@@ -27,6 +27,7 @@ import { PriorityCell } from "../../components/cells/PriorityCell";
 import { AssigneeCell } from "../../components/cells/AssigneeCell";
 import { compareTasks } from "../../utils/taskSorting";
 import type { TabValue } from "../../components/TasksTopBar";
+import { useHybridSearch } from "renderer/hooks/useHybridSearch";
 
 // Task with joined status and assignee data
 export type TaskWithStatus = SelectTask & {
@@ -53,9 +54,7 @@ export function useTasksTable({
 	const [grouping, setGrouping] = useState<string[]>(["status"]);
 	const [expanded, setExpanded] = useState<ExpandedState>(true);
 	const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-	const [globalFilter, setGlobalFilter] = useState("");
 
-	// Join tasks with statuses and assignees
 	const { data: allData, isLoading } = useLiveQuery(
 		(q) =>
 			q
@@ -77,15 +76,22 @@ export function useTasksTable({
 		[collections],
 	);
 
-	// Sort tasks by status type, priority, and position
-	const data = useMemo(() => {
+	const sortedData = useMemo(() => {
 		if (!allData) return [];
 		return [...allData].sort(compareTasks);
 	}, [allData]);
 
-	// Update filters based on tab and search
+	const { search } = useHybridSearch<TaskWithStatus>(sortedData);
+
+	const data = useMemo(() => {
+		if (!searchQuery.trim()) {
+			return sortedData;
+		}
+		const results = search(searchQuery);
+		return results.map((r) => r.item);
+	}, [sortedData, searchQuery, search]);
+
 	useEffect(() => {
-		// Update column filter for tab
 		const newColumnFilters: ColumnFiltersState = [];
 		if (filterTab !== "all") {
 			newColumnFilters.push({
@@ -94,10 +100,7 @@ export function useTasksTable({
 			});
 		}
 		setColumnFilters(newColumnFilters);
-
-		// Update global filter for search
-		setGlobalFilter(searchQuery);
-	}, [filterTab, searchQuery]);
+	}, [filterTab]);
 
 	// Calculate optimal slug column width based on longest slug
 	const slugColumnWidth = useMemo(() => {
@@ -282,19 +285,10 @@ export function useTasksTable({
 			grouping,
 			expanded,
 			columnFilters,
-			globalFilter,
 		},
 		onGroupingChange: setGrouping,
 		onExpandedChange: setExpanded,
 		onColumnFiltersChange: setColumnFilters,
-		onGlobalFilterChange: setGlobalFilter,
-		globalFilterFn: (row, _columnId, filterValue: string) => {
-			// Search across title and slug
-			const query = filterValue.toLowerCase();
-			const title = row.original.title.toLowerCase();
-			const slug = row.original.slug.toLowerCase();
-			return title.includes(query) || slug.includes(query);
-		},
 		getCoreRowModel: getCoreRowModel(),
 		getFilteredRowModel: getFilteredRowModel(),
 		getGroupedRowModel: getGroupedRowModel(),

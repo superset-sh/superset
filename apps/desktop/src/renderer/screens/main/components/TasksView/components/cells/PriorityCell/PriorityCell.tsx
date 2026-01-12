@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { CellContext } from "@tanstack/react-table";
-import type { SelectTask } from "@superset/db/schema";
 import { type TaskPriority } from "@superset/db/enums";
 import {
 	DropdownMenu,
@@ -11,9 +10,10 @@ import {
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { PriorityIcon } from "../../PriorityIcon";
 import { ALL_PRIORITIES } from "../../../utils/taskSorting";
+import type { TaskWithStatus } from "../../../hooks/useTasksTable";
 
 interface PriorityCellProps {
-	info: CellContext<SelectTask, TaskPriority>;
+	info: CellContext<TaskWithStatus, TaskPriority>;
 }
 
 const PRIORITY_LABELS: Record<TaskPriority, string> = {
@@ -30,7 +30,7 @@ export function PriorityCell({ info }: PriorityCellProps) {
 
 	const task = info.row.original;
 	const currentPriority = info.getValue();
-	const statusType = (task as any).status?.type;
+	const statusType = task.status.type;
 
 	const handleSelectPriority = (newPriority: TaskPriority) => {
 		if (newPriority === currentPriority) {

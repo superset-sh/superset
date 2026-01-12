@@ -83,6 +83,7 @@
 		"fast-glob": "^3.3.3",
 		"file-uri-to-path": "^1.0.0",
 		"framer-motion": "^12.23.26",
+		"fuse.js": "^7.1.0",
 		"http-proxy": "^1.18.1",
 		"idb": "^8.0.3",
 		"idb-keyval": "^6.2.2",
