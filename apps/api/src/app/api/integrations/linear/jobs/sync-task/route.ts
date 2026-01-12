@@ -73,7 +73,6 @@ async function syncTaskToLinear(
 	}
 
 	try {
-		// Look up the status from task_statuses table
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: eq(taskStatuses.id, task.statusId),
 		});

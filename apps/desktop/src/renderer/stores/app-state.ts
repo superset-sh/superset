@@ -1,12 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
-export type AppView =
-	| "workspace"
-	| "settings"
-	| "tasks"
-	| "workspaces-list"
-	| "components";
+export type AppView = "workspace" | "settings" | "tasks" | "workspaces-list";
 export type SettingsSection =
 	| "account"
 	| "project"
@@ -23,7 +18,6 @@ interface AppState {
 	isSettingsTabOpen: boolean;
 	isTasksTabOpen: boolean;
 	isWorkspacesListOpen: boolean;
-	isComponentsOpen: boolean;
 	settingsSection: SettingsSection;
 	setView: (view: AppView) => void;
 	openSettings: (section?: SettingsSection) => void;
@@ -34,8 +28,6 @@ interface AppState {
 	closeTasks: () => void;
 	openWorkspacesList: () => void;
 	closeWorkspacesList: () => void;
-	openComponents: () => void;
-	closeComponents: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -45,7 +37,6 @@ export const useAppStore = create<AppState>()(
 			isSettingsTabOpen: false,
 			isTasksTabOpen: false,
 			isWorkspacesListOpen: false,
-			isComponentsOpen: false,
 			settingsSection: "project",
 
 			setView: (view) => {
@@ -87,14 +78,6 @@ export const useAppStore = create<AppState>()(
 			closeWorkspacesList: () => {
 				set({ currentView: "workspace", isWorkspacesListOpen: false });
 			},
-
-			openComponents: () => {
-				set({ currentView: "components", isComponentsOpen: true });
-			},
-
-			closeComponents: () => {
-				set({ currentView: "workspace", isComponentsOpen: false });
-			},
 		}),
 		{ name: "AppStore" },
 	),
@@ -116,7 +99,3 @@ export const useOpenWorkspacesList = () =>
 	useAppStore((state) => state.openWorkspacesList);
 export const useCloseWorkspacesList = () =>
 	useAppStore((state) => state.closeWorkspacesList);
-export const useOpenComponents = () =>
-	useAppStore((state) => state.openComponents);
-export const useCloseComponents = () =>
-	useAppStore((state) => state.closeComponents);

@@ -166,7 +166,7 @@ export function mapIssueToTask(
 		slug: issue.identifier,
 		title: issue.title,
 		description: issue.description,
-		statusId, // FK to task_statuses
+		statusId,
 		priority: mapPriorityFromLinear(issue.priority),
 		assigneeId,
 		estimate: issue.estimate,

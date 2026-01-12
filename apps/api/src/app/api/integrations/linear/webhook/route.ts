@@ -59,8 +59,10 @@ export async function POST(request: Request) {
 	}
 
 	try {
+		let status: "processed" | "skipped" = "processed";
+
 		if (payload.type === "Issue") {
-			await processIssueEvent(
+			status = await processIssueEvent(
 				payload as EntityWebhookPayloadWithIssueData,
 				connection,
 			);
@@ -68,7 +70,10 @@ export async function POST(request: Request) {
 
 		await db
 			.update(webhookEvents)
-			.set({ status: "processed", processedAt: new Date() })
+			.set({
+				status,
+				processedAt: new Date(),
+			})
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
 		return Response.json({ success: true });
@@ -89,11 +94,10 @@ export async function POST(request: Request) {
 async function processIssueEvent(
 	payload: EntityWebhookPayloadWithIssueData,
 	connection: SelectIntegrationConnection,
-) {
+): Promise<"processed" | "skipped"> {
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
-		// Look up statusId from task_statuses
 		const taskStatus = await db.query.taskStatuses.findFirst({
 			where: and(
 				eq(taskStatuses.organizationId, connection.organizationId),
@@ -109,7 +113,7 @@ async function processIssueEvent(
 			console.warn(
 				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
 			);
-			return;
+			return "skipped";
 		}
 
 		let assigneeId: string | null = null;
@@ -124,7 +128,7 @@ async function processIssueEvent(
 			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
-			statusId: taskStatus.id, // FK reference
+			statusId: taskStatus.id,
 			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
 			estimate: issue.estimate ?? null,
@@ -166,4 +170,6 @@ async function processIssueEvent(
 				),
 			);
 	}
+
+	return "processed";
 }
