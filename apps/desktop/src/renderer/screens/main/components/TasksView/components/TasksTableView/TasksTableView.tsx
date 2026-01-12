@@ -1,6 +1,6 @@
 import { flexRender, type Table } from "@tanstack/react-table";
 import type { TaskWithStatus } from "../../hooks/useTasksTable";
-import { TaskContextMenu } from "../TaskContextMenu";
+import { TaskContextMenu } from "./components/TaskContextMenu";
 
 interface TasksTableViewProps {
 	table: Table<TaskWithStatus>;

@@ -22,14 +22,16 @@ import { useEffect, useMemo, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
 import { useHybridSearch } from "renderer/hooks/useHybridSearch";
-import { AssigneeCell } from "../../components/cells/AssigneeCell";
-import { PriorityCell } from "../../components/cells/PriorityCell";
-import { StatusCell } from "../../components/cells/StatusCell";
-import { StatusIcon, type StatusType } from "../../components/StatusIcon";
+import {
+	StatusIcon,
+	type StatusType,
+} from "../../components/shared/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
-import { compareTasks } from "../../utils/taskSorting";
+import { compareTasks } from "../../utils/sorting";
+import { AssigneeCell } from "./components/AssigneeCell";
+import { PriorityCell } from "./components/PriorityCell";
+import { StatusCell } from "./components/StatusCell";
 
-// Task with joined status and assignee data
 export type TaskWithStatus = SelectTask & {
 	status: SelectTaskStatus;
 	assignee: SelectUser | null;
@@ -102,7 +104,7 @@ export function useTasksTable({
 
 	// Calculate optimal slug column width based on longest slug
 	const slugColumnWidth = useMemo(() => {
-		if (!data || data.length === 0) return "5rem"; // Default fallback
+		if (!data || data.length === 0) return "5rem";
 
 		const longestSlug = data.reduce((longest, task) => {
 			return task.slug.length > longest.length ? task.slug : longest;
@@ -122,12 +124,10 @@ export function useTasksTable({
 	// Define columns with useMemo (following official docs pattern)
 	const columns = useMemo(
 		() => [
-			// Status column (grouped) - only shows for group headers
 			columnHelper.accessor((row) => row.status, {
 				id: "status",
 				header: "Status",
 				filterFn: (row, _columnId, filterValue: TabValue) => {
-					// Filter by tab value: "active" | "backlog" | "all"
 					const statusType = row.original.status.type;
 					if (filterValue === "active") {
 						return statusType === "started" || statusType === "unstarted";
@@ -135,14 +135,13 @@ export function useTasksTable({
 					if (filterValue === "backlog") {
 						return statusType === "backlog";
 					}
-					return true; // "all" shows everything
+					return true;
 				},
 				cell: (info) => {
 					const { row, cell } = info;
 					const status = info.getValue();
 
 					if (cell.getIsGrouped()) {
-						// Group header row with subtle gradient (Linear style, 8% opacity)
 						return (
 							<div
 								className="w-full"
@@ -178,7 +177,6 @@ export function useTasksTable({
 						);
 					}
 
-					// For leaf rows, return null - status icon is shown in title column
 					return null;
 				},
 				getGroupingValue: (row) => row.status.name,
@@ -193,7 +191,6 @@ export function useTasksTable({
 				},
 			}),
 
-			// Priority - clickable dropdown
 			columnHelper.accessor("priority", {
 				header: "Priority",
 				cell: (info) => {
@@ -202,20 +199,18 @@ export function useTasksTable({
 				},
 			}),
 
-			// Task ID - simple inline rendering
 			columnHelper.accessor("slug", {
 				header: "ID",
 				cell: (info) => {
 					if (info.cell.getIsPlaceholder()) return null;
 					return (
-						<span className="text-xs text-muted-foreground flex-shrink-0">
+						<span className="text-xs text-muted-foreground shrink-0">
 							{info.getValue()}
 						</span>
 					);
 				},
 			}),
 
-			// Title + Labels - combined to handle overflow better
 			columnHelper.accessor("title", {
 				header: "Title",
 				cell: (info) => {
@@ -226,11 +221,11 @@ export function useTasksTable({
 						<div className="flex items-center gap-1.5 flex-1 min-w-0">
 							<StatusCell taskWithStatus={taskWithStatus} />
 							<div className="flex items-center justify-between gap-2 flex-1 min-w-0">
-								<span className="text-sm font-medium line-clamp-1 flex-shrink">
+								<span className="text-sm font-medium line-clamp-1 shrink">
 									{info.getValue()}
 								</span>
 								{labels.length > 0 && (
-									<div className="flex gap-1 flex-shrink-0">
+									<div className="flex gap-1 shrink-0">
 										{labels.slice(0, 2).map((label) => (
 											<Badge key={label} variant="outline" className="text-xs">
 												{label}
@@ -249,7 +244,6 @@ export function useTasksTable({
 				},
 			}),
 
-			// Assignee - clickable dropdown
 			columnHelper.accessor("assigneeId", {
 				header: "Assignee",
 				cell: (info) => {
@@ -258,7 +252,6 @@ export function useTasksTable({
 				},
 			}),
 
-			// Created date - simple inline rendering
 			columnHelper.accessor("createdAt", {
 				header: "Created",
 				cell: (info) => {
@@ -266,7 +259,7 @@ export function useTasksTable({
 					const date = info.getValue();
 					if (!date) return null;
 					return (
-						<span className="text-xs text-muted-foreground flex-shrink-0 w-11">
+						<span className="text-xs text-muted-foreground shrink-0 w-11">
 							{format(new Date(date), "MMM d")}
 						</span>
 					);
@@ -276,7 +269,6 @@ export function useTasksTable({
 		[],
 	);
 
-	// Create table instance
 	const table = useReactTable({
 		data,
 		columns,

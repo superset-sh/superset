@@ -1,7 +1,7 @@
 import type { TaskPriority } from "@superset/db/enums";
 import type { ReactNode } from "react";
-import { ALL_PRIORITIES } from "../../utils/taskSorting";
-import { PriorityIcon } from "../PriorityIcon";
+import { ALL_PRIORITIES } from "../../utils/sorting";
+import { PriorityIcon } from "./PriorityIcon";
 
 interface MenuItemProps {
 	children: ReactNode;

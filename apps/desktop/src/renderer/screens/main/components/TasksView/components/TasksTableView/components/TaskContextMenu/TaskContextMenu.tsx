@@ -16,13 +16,13 @@ import {
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import type { TaskWithStatus } from "../../hooks/useTasksTable";
-import { compareStatusesForDropdown } from "../../utils/taskSorting";
-import { ActiveIcon } from "../icons/ActiveIcon";
-import { PriorityMenuIcon } from "../icons/PriorityMenuIcon";
-import { AssigneeMenuItems } from "../shared/AssigneeMenuItems";
-import { PriorityMenuItems } from "../shared/PriorityMenuItems";
-import { StatusMenuItems } from "../shared/StatusMenuItems";
+import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
+import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";
+import { ActiveIcon } from "../../../shared/icons/ActiveIcon";
+import { PriorityMenuIcon } from "../../../shared/icons/PriorityMenuIcon";
+import { PriorityMenuItems } from "../../../shared/PriorityMenuItems";
+import { StatusMenuItems } from "../../../shared/StatusMenuItems";
 
 interface TaskContextMenuProps {
 	children: ReactNode;

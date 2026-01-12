@@ -8,8 +8,11 @@ import {
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import { compareStatusesForDropdown } from "../../../utils/taskSorting";
-import { StatusIcon, type StatusType } from "../../StatusIcon";
+import {
+	StatusIcon,
+	type StatusType,
+} from "../../../../components/shared/StatusIcon";
+import { compareStatusesForDropdown } from "../../../../utils/sorting";
 
 // Task with joined status data
 type TaskWithStatus = SelectTask & {

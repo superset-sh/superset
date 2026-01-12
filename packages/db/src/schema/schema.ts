@@ -63,20 +63,16 @@ export const taskStatuses = pgTable(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 
-		// Core fields from Linear WorkflowState
 		name: text().notNull(),
 		color: text().notNull(),
 		type: text().notNull(), // "backlog" | "unstarted" | "started" | "completed" | "canceled"
 		position: real().notNull(),
-
-		// Calculated progress for "started" type
-		progressPercent: real("progress_percent"), // 0-100, only for "started" type
+		progressPercent: real("progress_percent"),
 
 		// External sync
 		externalProvider: integrationProvider("external_provider"),
 		externalId: text("external_id"),
 
-		// Timestamps
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 		updatedAt: timestamp("updated_at")
 			.notNull()

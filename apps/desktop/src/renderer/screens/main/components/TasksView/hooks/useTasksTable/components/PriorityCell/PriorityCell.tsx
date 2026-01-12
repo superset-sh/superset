@@ -8,9 +8,9 @@ import {
 import type { CellContext } from "@tanstack/react-table";
 import { useState } from "react";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import type { TaskWithStatus } from "../../../hooks/useTasksTable";
-import { ALL_PRIORITIES } from "../../../utils/taskSorting";
-import { PriorityIcon } from "../../PriorityIcon";
+import { PriorityIcon } from "../../../../components/shared/PriorityIcon";
+import { ALL_PRIORITIES } from "../../../../utils/sorting";
+import type { TaskWithStatus } from "../../useTasksTable";
 
 interface PriorityCellProps {
 	info: CellContext<TaskWithStatus, TaskPriority>;

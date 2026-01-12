@@ -1,9 +1,9 @@
 import { Input } from "@superset/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { HiOutlineMagnifyingGlass } from "react-icons/hi2";
-import { ActiveIcon } from "../icons/ActiveIcon";
-import { AllIssuesIcon } from "../icons/AllIssuesIcon";
-import { BacklogIcon } from "../icons/BacklogIcon";
+import { ActiveIcon } from "../shared/icons/ActiveIcon";
+import { AllIssuesIcon } from "../shared/icons/AllIssuesIcon";
+import { BacklogIcon } from "../shared/icons/BacklogIcon";
 
 export type TabValue = "all" | "active" | "backlog";
 

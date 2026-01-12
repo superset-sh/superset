@@ -11,7 +11,7 @@ import type { CellContext } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
-import type { TaskWithStatus } from "../../../hooks/useTasksTable";
+import type { TaskWithStatus } from "../../useTasksTable";
 
 interface AssigneeCellProps {
 	info: CellContext<TaskWithStatus, string | null>;
