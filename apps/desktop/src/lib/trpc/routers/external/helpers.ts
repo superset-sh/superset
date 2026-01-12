@@ -80,8 +80,13 @@ export function resolvePath(filePath: string, cwd?: string): string {
 export function spawnAsync(command: string, args: string[]): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const child = spawn(command, args, {
-			stdio: "ignore",
+			stdio: ["ignore", "ignore", "pipe"],
 			detached: false,
+		});
+
+		let stderr = "";
+		child.stderr?.on("data", (data) => {
+			stderr += data.toString();
 		});
 
 		child.on("error", (error) => {
@@ -96,9 +101,10 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 			if (code === 0) {
 				resolve();
 			} else {
+				const stderrMessage = stderr.trim();
 				reject(
 					new Error(
-						`'${command}' exited with code ${code}. The application may not be installed.`,
+						stderrMessage || `'${command}' exited with code ${code}`,
 					),
 				);
 			}
