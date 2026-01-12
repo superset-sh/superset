@@ -1,3 +1,4 @@
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -23,15 +24,12 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 	const task = info.row.original;
 	const assigneeId = info.getValue();
 
-	// All users for dropdown
 	const { data: allUsers } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
 	);
 
 	const users = useMemo(() => allUsers || [], [allUsers]);
-	// Use pre-loaded assignee from joined query (eliminates delay)
-	const currentAssignee = task.assignee;
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === assigneeId) {
@@ -46,26 +44,15 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 		});
 	};
 
-	const getInitials = (name: string) => {
-		return name
-			.split(" ")
-			.map((n) => n[0])
-			.join("")
-			.toUpperCase()
-			.slice(0, 2);
-	};
-
 	return (
 		<DropdownMenu open={open} onOpenChange={setOpen}>
 			<DropdownMenuTrigger asChild>
 				<button type="button" className="cursor-pointer">
-					{currentAssignee ? (
+					{task.assignee ? (
 						<Avatar size="xs">
-							{currentAssignee.image && (
-								<AvatarImage src={currentAssignee.image} />
-							)}
+							{task.assignee.image && <AvatarImage src={task.assignee.image} />}
 							<AvatarFallback size="xs">
-								{getInitials(currentAssignee.name)}
+								{getInitials(task.assignee.name)}
 							</AvatarFallback>
 						</Avatar>
 					) : (
@@ -79,7 +66,7 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 						onSelect={() => handleSelectUser(null)}
 						className="flex items-center gap-2"
 					>
-						<HiOutlineUserCircle className="size-5 text-muted-foreground flex-shrink-0" />
+						<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 						<span className="text-sm">No assignee</span>
 						{!assigneeId && (
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>

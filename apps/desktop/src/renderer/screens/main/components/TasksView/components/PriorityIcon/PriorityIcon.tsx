@@ -20,7 +20,6 @@ export function PriorityIcon({
 	const hoverClass = showHover ? "group-hover:brightness-150" : "";
 	const defaultColor = color || colors.neutral[500];
 
-	// None: Three horizontal dashes with opacity
 	if (priority === "none") {
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
@@ -60,14 +59,13 @@ export function PriorityIcon({
 		);
 	}
 
-	// Urgent: Filled square with exclamation mark
-	// Orange for backlog/todo/in-progress, gray for completed/canceled
 	if (priority === "urgent") {
 		const isActive =
 			statusType === "started" ||
 			statusType === "unstarted" ||
 			statusType === "backlog";
 
+		// For urgent statuses that are also active, we use orange as a small stylistic touch
 		const fillColor = color || (isActive ? "#F97316" : colors.neutral[500]);
 
 		return (
@@ -85,7 +83,6 @@ export function PriorityIcon({
 		);
 	}
 
-	// High: 3 bars staircase pattern (all solid)
 	if (priority === "high") {
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
@@ -104,7 +101,6 @@ export function PriorityIcon({
 		);
 	}
 
-	// Medium: 3 bars staircase (last bar 40% opacity)
 	if (priority === "medium") {
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>
@@ -123,7 +119,6 @@ export function PriorityIcon({
 		);
 	}
 
-	// Low: 3 bars staircase (middle and last bars 40% opacity)
 	if (priority === "low") {
 		return (
 			<div className={`flex items-center justify-center ${sizeClass}`}>

@@ -1,4 +1,5 @@
 import type { SelectUser } from "@superset/db/schema";
+import { getInitials } from "@superset/shared/names";
 import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/atoms/Avatar";
 import type { ReactNode } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
@@ -16,15 +17,6 @@ interface AssigneeMenuItemsProps {
 	MenuItem: React.ComponentType<MenuItemProps>;
 }
 
-function getInitials(name: string) {
-	return name
-		.split(" ")
-		.map((n) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
-}
-
 export function AssigneeMenuItems({
 	users,
 	currentAssigneeId,
@@ -33,19 +25,17 @@ export function AssigneeMenuItems({
 }: AssigneeMenuItemsProps) {
 	return (
 		<>
-			{/* No assignee option */}
 			<MenuItem
 				onSelect={() => onSelect(null)}
 				className="flex items-center gap-2"
 			>
-				<HiOutlineUserCircle className="size-5 text-muted-foreground flex-shrink-0" />
+				<HiOutlineUserCircle className="size-5 text-muted-foreground shrink-0" />
 				<span className="text-sm">No assignee</span>
 				{!currentAssigneeId && (
 					<span className="ml-auto text-xs text-muted-foreground">✓</span>
 				)}
 			</MenuItem>
 
-			{/* Users */}
 			{users.map((user) => {
 				const isSelected = user.id === currentAssigneeId;
 				return (
