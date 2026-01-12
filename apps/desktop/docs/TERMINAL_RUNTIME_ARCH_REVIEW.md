@@ -150,10 +150,14 @@ Below is a curated set of files you can paste into Slack for context. If you onl
 
 ### “Changes” + agent lifecycle (related UX primitives to preserve)
 
-10. `apps/desktop/src/lib/trpc/routers/changes/*`
-    - Git/status/diff-related IPC endpoints (local worktree-centric today).
+10. `apps/desktop/src/lib/trpc/routers/changes/index.ts`
+    - Git/status/diff-related IPC endpoints (local worktree-centric today). Key related files:
+      - `apps/desktop/src/lib/trpc/routers/changes/status.ts`
+      - `apps/desktop/src/lib/trpc/routers/changes/staging.ts`
+      - `apps/desktop/src/lib/trpc/routers/changes/git-operations.ts`
+      - `apps/desktop/src/lib/trpc/routers/changes/file-contents.ts`
+      - `apps/desktop/src/lib/trpc/routers/changes/security/path-validation.ts`
 11. `apps/desktop/src/main/lib/notifications/server.ts`
     - Main-process notifications server that feeds agent lifecycle events.
 12. `apps/desktop/src/renderer/stores/tabs/useAgentHookListener.ts`
     - Renderer listener that consumes agent lifecycle notifications to drive UI state.
-
