@@ -1,4 +1,3 @@
-// biome-ignore lint/a11y/noSvgWithoutTitle: These are decorative icons within labeled interactive elements
 import { cn } from "@superset/ui/utils";
 
 export type StatusType =
