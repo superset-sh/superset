@@ -161,6 +161,11 @@ export const createDeleteProcedures = () => {
 				// Hide from UI immediately to prevent reappearing during slow git operations
 				markWorkspaceAsDeleting(input.id);
 
+				// Update active workspace IMMEDIATELY after marking as deleting.
+				// This prevents a race where getActive refetches during cleanup and returns null
+				// (because getActive filters out workspaces with deletingAt, but settings still pointed to old one)
+				updateActiveWorkspaceIfRemoved(input.id);
+
 				// Wait for any ongoing init to complete to avoid racing git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
 					console.log(
@@ -253,8 +258,6 @@ export const createDeleteProcedures = () => {
 					hideProjectIfNoWorkspaces(workspace.projectId);
 				}
 
-				updateActiveWorkspaceIfRemoved(input.id);
-
 				const terminalWarning =
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
@@ -281,9 +284,12 @@ export const createDeleteProcedures = () => {
 					input.id,
 				);
 
+				// Update active workspace BEFORE deleting to prevent race condition
+				// where getActive refetches and finds the workspace gone, returning null
+				updateActiveWorkspaceIfRemoved(input.id);
+
 				deleteWorkspace(input.id); // keeps worktree on disk
 				hideProjectIfNoWorkspaces(workspace.projectId);
-				updateActiveWorkspaceIfRemoved(input.id);
 
 				const terminalWarning =
 					terminalResult.failed > 0
