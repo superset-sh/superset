@@ -249,8 +249,9 @@ export class TerminalManager extends EventEmitter {
 		}
 
 		session.lastActive = Date.now();
-		// Only store positive scroll positions (0 or undefined = at bottom)
-		session.viewportY = viewportY && viewportY > 0 ? viewportY : undefined;
+		if (viewportY !== undefined) {
+			session.viewportY = viewportY;
+		}
 	}
 
 	clearScrollback(params: { paneId: string }): void {
