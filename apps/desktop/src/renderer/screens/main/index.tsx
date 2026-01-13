@@ -13,6 +13,7 @@ import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
+import { useChatPanelStore } from "renderer/stores/chat-panel-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -136,6 +137,16 @@ export function MainScreen() {
 		},
 		undefined,
 		[toggleSidebar, isWorkspaceView],
+	);
+
+	const toggleChatPanel = useChatPanelStore((s) => s.togglePanel);
+	useAppHotkey(
+		"TOGGLE_CHAT_PANEL",
+		() => {
+			if (isWorkspaceView) toggleChatPanel();
+		},
+		undefined,
+		[toggleChatPanel, isWorkspaceView],
 	);
 
 	useAppHotkey(

@@ -1,4 +1,5 @@
 import { trpc } from "renderer/lib/trpc";
+import { ChatPanelControl } from "./ChatPanelControl";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { SupportMenu } from "./SupportMenu";
 import { WindowControls } from "./WindowControls";
@@ -21,6 +22,7 @@ export function TopBar() {
 			<div className="flex-1" />
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
+				<ChatPanelControl />
 				{activeWorkspace?.worktreePath && (
 					<OpenInMenuButton
 						worktreePath={activeWorkspace.worktreePath}
