@@ -45,12 +45,12 @@ export function getAppCommand(
  * These are pairs of [open, close] characters.
  */
 const PATH_WRAPPERS: [string, string][] = [
-	['"', '"'], // double quotes
-	["'", "'"], // single quotes
-	["`", "`"], // backticks
-	["(", ")"], // parentheses
-	["[", "]"], // square brackets
-	["<", ">"], // angle brackets
+	['"', '"'],
+	["'", "'"],
+	["`", "`"],
+	["(", ")"],
+	["[", "]"],
+	["<", ">"],
 ];
 
 /**
@@ -73,28 +73,22 @@ function stripTrailingPunctuation(path: string): string {
 	const beforePunct = path.slice(0, -punct.length);
 
 	// Don't strip if it looks like a file extension (e.g., "file.ts")
-	// Extension: period followed by 1-10 alphanumeric chars at the end
 	if (punct === "." || punct.startsWith(".")) {
-		// Check if what's before looks like it ends with a valid extension
 		const extMatch = beforePunct.match(/\.[a-zA-Z0-9]{1,10}$/);
 		if (extMatch) {
-			// This trailing period is after an extension, strip just the trailing punct
 			return beforePunct;
 		}
-		// Check if the punct itself could be part of an extension
 		// e.g., path ends with ".ts." - strip just the final "."
 		if (/^\.[a-zA-Z0-9]{1,10}\.$/.test(punct)) {
 			return path.slice(0, -1);
 		}
 	}
 
-	// Don't strip colons that are followed by digits (line numbers)
-	// But do strip trailing colons with no digits
+	// Don't strip colons followed by digits (line numbers like :42)
 	if (punct === ":") {
 		return beforePunct;
 	}
 	if (punct.startsWith(":") && /^:\d/.test(punct)) {
-		// This is a line number suffix, keep it
 		return path;
 	}
 
@@ -115,12 +109,10 @@ function stripTrailingPunctuation(path: string): string {
 export function stripPathWrappers(filePath: string): string {
 	let result = filePath.trim();
 
-	// Keep stripping wrappers and trailing punctuation until no more changes
 	let changed = true;
 	while (changed && result.length > 0) {
 		changed = false;
 
-		// First, try to strip trailing punctuation
 		const withoutPunct = stripTrailingPunctuation(result);
 		if (withoutPunct !== result) {
 			result = withoutPunct;
@@ -128,7 +120,6 @@ export function stripPathWrappers(filePath: string): string {
 			continue;
 		}
 
-		// Then, try to strip wrappers
 		for (const [open, close] of PATH_WRAPPERS) {
 			if (result.startsWith(open) && result.endsWith(close)) {
 				result = result.slice(1, -1);
@@ -147,7 +138,6 @@ export function stripPathWrappers(filePath: string): string {
  * Strips wrapping characters like quotes, parentheses, brackets, etc.
  */
 export function resolvePath(filePath: string, cwd?: string): string {
-	// First strip any wrapping characters (quotes, parentheses, etc.)
 	let resolved = stripPathWrappers(filePath);
 
 	if (resolved.startsWith("file://")) {

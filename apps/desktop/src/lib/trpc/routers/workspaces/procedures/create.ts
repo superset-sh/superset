@@ -76,7 +76,6 @@ export const createCreateProcedures = () => {
 					.returning()
 					.get();
 
-				// Get max tab order for this project's workspaces
 				const maxTabOrder = getMaxWorkspaceTabOrder(input.projectId);
 
 				const workspace = localDb
@@ -133,7 +132,7 @@ export const createCreateProcedures = () => {
 			.input(
 				z.object({
 					projectId: z.string(),
-					branch: z.string().optional(), // If not provided, uses current branch
+					branch: z.string().optional(),
 					name: z.string().optional(),
 				}),
 			)
@@ -147,7 +146,6 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Determine the branch - use provided or get current
 				const branch =
 					input.branch || (await getCurrentBranch(project.mainRepoPath));
 				if (!branch) {
@@ -169,11 +167,9 @@ export const createCreateProcedures = () => {
 					await safeCheckoutBranch(project.mainRepoPath, input.branch);
 				}
 
-				// Check if branch workspace already exists
 				const existing = getBranchWorkspace(input.projectId);
 
 				if (existing) {
-					// Activate existing
 					touchWorkspace(existing.id);
 					setLastActiveWorkspace(existing.id);
 					return {
@@ -237,7 +233,6 @@ export const createCreateProcedures = () => {
 					throw new Error("Failed to create or find branch workspace");
 				}
 
-				// Update settings
 				setLastActiveWorkspace(workspace.id);
 
 				// Update project (only if we actually inserted a new workspace)
@@ -273,7 +268,6 @@ export const createCreateProcedures = () => {
 					throw new Error(`Worktree ${input.worktreeId} not found`);
 				}
 
-				// Check if worktree already has an active workspace (excluding deleting ones)
 				const existingWorkspace = localDb
 					.select()
 					.from(workspaces)
@@ -293,7 +287,6 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${worktree.projectId} not found`);
 				}
 
-				// Verify worktree still exists on disk
 				const exists = await worktreeExists(
 					project.mainRepoPath,
 					worktree.path,
@@ -304,7 +297,6 @@ export const createCreateProcedures = () => {
 
 				const maxTabOrder = getMaxWorkspaceTabOrder(worktree.projectId);
 
-				// Insert workspace
 				const workspace = localDb
 					.insert(workspaces)
 					.values({
@@ -321,7 +313,6 @@ export const createCreateProcedures = () => {
 				setLastActiveWorkspace(workspace.id);
 				activateProject(project);
 
-				// Load setup configuration from the main repo
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				track("workspace_opened", {
