@@ -33,6 +33,9 @@ const config: Configuration = {
 	mac: {
 		...baseConfig.mac,
 		icon: join(pkg.resources, "build/icons/icon-canary.icns"),
+		// Explicit artifactName to ensure filename matches latest-mac.yml URLs
+		// (productName with space causes dot in filename but hyphen in yml)
+		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
