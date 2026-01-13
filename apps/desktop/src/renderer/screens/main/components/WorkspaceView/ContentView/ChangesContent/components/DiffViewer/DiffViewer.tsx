@@ -7,7 +7,7 @@ import {
 	registerSaveAction,
 	SUPERSET_THEME,
 	useMonacoReady,
-} from "renderer/contexts/MonacoProvider";
+} from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 import {

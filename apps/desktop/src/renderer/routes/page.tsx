@@ -1,11 +1,9 @@
 import { Navigate, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
-	component: IndexPage,
+	component: RootIndexPage,
 });
 
-function IndexPage() {
-	console.log("[Router] Index page loaded, redirecting to /workspace");
-	// Redirect to workspace by default
+function RootIndexPage() {
 	return <Navigate to="/workspace" replace />;
 }

@@ -17,7 +17,7 @@ import {
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
 } from "react-icons/hi2";
-import { useAuth } from "renderer/contexts/AuthProvider";
+import { useAuth } from "renderer/providers/AuthProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenSettings } from "renderer/stores/app-state";

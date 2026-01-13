@@ -1,15 +1,12 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { Navigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
-import { DndProvider } from "react-dnd";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
-import { useAuth } from "renderer/contexts/AuthProvider";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
@@ -28,7 +25,6 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
-import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { ResizablePanel } from "./components/ResizablePanel";
@@ -55,9 +51,6 @@ export function MainScreen() {
 		isBlocked: isVersionBlocked,
 		requirements: versionRequirements,
 	} = useVersionCheck();
-
-	const { session } = useAuth();
-	const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || !!session?.user;
 
 	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
 	trpc.workspaces.onInitProgress.useSubscription(undefined, {
@@ -94,9 +87,7 @@ export function MainScreen() {
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery(undefined, {
-		enabled: isSignedIn,
-	});
+	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
 	const { splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
 		useTabsWithPresets();
@@ -279,10 +270,6 @@ export function MainScreen() {
 		);
 	}
 
-	if (!isSignedIn) {
-		return <Navigate to="/sign-in" replace />;
-	}
-
 	const renderContent = () => {
 		if (currentView === "settings") {
 			return <SettingsView />;
@@ -298,14 +285,14 @@ export function MainScreen() {
 
 	if (isLoading) {
 		return (
-			<DndProvider manager={dragDropManager}>
+			<>
 				<Background />
 				<AppFrame>
 					<div className="flex h-full w-full items-center justify-center bg-background">
 						<LoadingSpinner />
 					</div>
 				</AppFrame>
-			</DndProvider>
+			</>
 		);
 	}
 
@@ -319,7 +306,7 @@ export function MainScreen() {
 		};
 
 		return (
-			<DndProvider manager={dragDropManager}>
+			<>
 				<Background />
 				<AppFrame>
 					<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-background">
@@ -350,12 +337,12 @@ export function MainScreen() {
 						</Button>
 					</div>
 				</AppFrame>
-			</DndProvider>
+			</>
 		);
 	}
 
 	return (
-		<DndProvider manager={dragDropManager}>
+		<>
 			<Background />
 			<AppFrame>
 				{showStartView ? (
@@ -388,6 +375,6 @@ export function MainScreen() {
 			<SetupConfigModal />
 			<NewWorkspaceModal />
 			<WorkspaceInitEffects />
-		</DndProvider>
+		</>
 	);
 }
