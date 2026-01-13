@@ -41,11 +41,114 @@ export function getAppCommand(
 }
 
 /**
+ * Wrapper characters that can surround paths.
+ * These are pairs of [open, close] characters.
+ */
+const PATH_WRAPPERS: [string, string][] = [
+	['"', '"'], // double quotes
+	["'", "'"], // single quotes
+	["`", "`"], // backticks
+	["(", ")"], // parentheses
+	["[", "]"], // square brackets
+	["<", ">"], // angle brackets
+];
+
+/**
+ * Trailing punctuation that can appear after paths in sentences.
+ * These are stripped unless they're part of a valid suffix (extension, line:col).
+ */
+const TRAILING_PUNCTUATION = /[.,;:!?]+$/;
+
+/**
+ * Strip trailing punctuation from a path, but preserve valid suffixes.
+ * - Preserves file extensions like .ts, .json
+ * - Preserves line:col suffixes like :42 or :42:10
+ * - Strips sentence punctuation like trailing period, comma, etc.
+ */
+function stripTrailingPunctuation(path: string): string {
+	const match = path.match(TRAILING_PUNCTUATION);
+	if (!match) return path;
+
+	const punct = match[0];
+	const beforePunct = path.slice(0, -punct.length);
+
+	// Don't strip if it looks like a file extension (e.g., "file.ts")
+	// Extension: period followed by 1-10 alphanumeric chars at the end
+	if (punct === "." || punct.startsWith(".")) {
+		// Check if what's before looks like it ends with a valid extension
+		const extMatch = beforePunct.match(/\.[a-zA-Z0-9]{1,10}$/);
+		if (extMatch) {
+			// This trailing period is after an extension, strip just the trailing punct
+			return beforePunct;
+		}
+		// Check if the punct itself could be part of an extension
+		// e.g., path ends with ".ts." - strip just the final "."
+		if (/^\.[a-zA-Z0-9]{1,10}\.$/.test(punct)) {
+			return path.slice(0, -1);
+		}
+	}
+
+	// Don't strip colons that are followed by digits (line numbers)
+	// But do strip trailing colons with no digits
+	if (punct === ":") {
+		return beforePunct;
+	}
+	if (punct.startsWith(":") && /^:\d/.test(punct)) {
+		// This is a line number suffix, keep it
+		return path;
+	}
+
+	return beforePunct;
+}
+
+/**
+ * Strip matching wrapper characters and trailing punctuation from a path.
+ * Handles nested wrappers and multiple layers of wrapping.
+ * Examples:
+ *   "(path/to/file)" -> "path/to/file"
+ *   '"path/to/file"' -> "path/to/file"
+ *   "'(path/to/file)'" -> "path/to/file"
+ *   "./path/file.ts." -> "./path/file.ts"
+ *   '"./path/file.ts",' -> "./path/file.ts"
+ *   "path/to/file" -> "path/to/file" (unchanged)
+ */
+export function stripPathWrappers(filePath: string): string {
+	let result = filePath.trim();
+
+	// Keep stripping wrappers and trailing punctuation until no more changes
+	let changed = true;
+	while (changed && result.length > 0) {
+		changed = false;
+
+		// First, try to strip trailing punctuation
+		const withoutPunct = stripTrailingPunctuation(result);
+		if (withoutPunct !== result) {
+			result = withoutPunct;
+			changed = true;
+			continue;
+		}
+
+		// Then, try to strip wrappers
+		for (const [open, close] of PATH_WRAPPERS) {
+			if (result.startsWith(open) && result.endsWith(close)) {
+				result = result.slice(1, -1);
+				changed = true;
+				break;
+			}
+		}
+	}
+
+	return result;
+}
+
+/**
  * Resolve a path by expanding ~ and converting relative paths to absolute.
  * Also handles file:// URLs by converting them to regular file paths.
+ * Strips wrapping characters like quotes, parentheses, brackets, etc.
  */
 export function resolvePath(filePath: string, cwd?: string): string {
-	let resolved = filePath;
+	// First strip any wrapping characters (quotes, parentheses, etc.)
+	let resolved = stripPathWrappers(filePath);
 
 	if (resolved.startsWith("file://")) {
 		try {
@@ -103,9 +206,7 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 			} else {
 				const stderrMessage = stderr.trim();
 				reject(
-					new Error(
-						stderrMessage || `'${command}' exited with code ${code}`,
-					),
+					new Error(stderrMessage || `'${command}' exited with code ${code}`),
 				);
 			}
 		});
