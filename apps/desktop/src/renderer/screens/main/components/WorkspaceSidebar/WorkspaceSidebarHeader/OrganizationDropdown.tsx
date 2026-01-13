@@ -12,6 +12,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	HiCheck,
 	HiChevronUpDown,
@@ -20,7 +21,6 @@ import {
 import { trpc } from "renderer/lib/trpc";
 import { useAuth } from "renderer/providers/AuthProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useOpenSettings } from "renderer/stores/app-state";
 
 interface OrganizationDropdownProps {
 	isCollapsed?: boolean;
@@ -33,7 +33,7 @@ export function OrganizationDropdown({
 	const collections = useCollections();
 	const setActiveOrg = trpc.auth.setActiveOrganization.useMutation();
 	const signOut = trpc.auth.signOut.useMutation();
-	const openSettings = useOpenSettings();
+	const navigate = useNavigate();
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -100,12 +100,16 @@ export function OrganizationDropdown({
 				{activeOrganization && (
 					<>
 						{/* Settings */}
-						<DropdownMenuItem onSelect={() => openSettings()}>
+						<DropdownMenuItem
+							onSelect={() => navigate({ to: "/settings/account" })}
+						>
 							<span>Settings</span>
 						</DropdownMenuItem>
 
 						{/* Team management */}
-						<DropdownMenuItem onSelect={() => openSettings("team")}>
+						<DropdownMenuItem
+							onSelect={() => navigate({ to: "/settings/team" })}
+						>
 							<span>Invite and manage members</span>
 						</DropdownMenuItem>
 

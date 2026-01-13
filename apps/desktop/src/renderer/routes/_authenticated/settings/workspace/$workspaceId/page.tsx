@@ -1,16 +1,26 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute(
+	"/_authenticated/settings/workspace/$workspaceId/",
+)({
+	component: WorkspaceSettingsPage,
+});
+
 import { Input } from "@superset/ui/input";
 import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 
-export function WorkspaceSettings() {
-	const { data: activeWorkspace, isLoading } =
-		trpc.workspaces.getActive.useQuery();
+function WorkspaceSettingsPage() {
+	const { workspaceId } = Route.useParams();
+	const { data: workspace, isLoading } = trpc.workspaces.get.useQuery({
+		id: workspaceId,
+	});
 
 	const rename = useWorkspaceRename(
-		activeWorkspace?.id ?? "",
-		activeWorkspace?.name ?? "",
+		workspace?.id ?? "",
+		workspace?.name ?? "",
 	);
 
 	if (isLoading) {
@@ -24,13 +34,13 @@ export function WorkspaceSettings() {
 		);
 	}
 
-	if (!activeWorkspace) {
+	if (!workspace) {
 		return (
 			<div className="p-6 max-w-4xl">
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Workspace</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						No active workspace selected
+						Workspace not found
 					</p>
 				</div>
 			</div>
@@ -75,21 +85,21 @@ export function WorkspaceSettings() {
 							className="group flex items-center gap-2 cursor-pointer hover:text-foreground/80 transition-colors text-left"
 							onClick={rename.startRename}
 						>
-							<span>{activeWorkspace.name}</span>
+							<span>{workspace.name}</span>
 							<HiOutlinePencilSquare className="h-4 w-4 opacity-0 group-hover:opacity-70 transition-opacity shrink-0" />
 						</button>
 					)}
 				</div>
 
-				{activeWorkspace.worktree && (
+				{workspace.worktree && (
 					<div className="space-y-2">
 						<h3 className="font-semibold text-foreground flex items-center gap-2">
 							<LuGitBranch className="h-4 w-4" />
 							Branch
 						</h3>
 						<div className="flex items-center gap-3">
-							<p>{activeWorkspace.worktree.branch}</p>
-							{activeWorkspace.worktree.gitStatus?.needsRebase && (
+							<p>{workspace.worktree.branch}</p>
+							{workspace.worktree.gitStatus?.needsRebase && (
 								<span className="px-2 py-0.5 text-xs bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 rounded-full">
 									Needs Rebase
 								</span>
@@ -104,7 +114,7 @@ export function WorkspaceSettings() {
 						Path
 					</h3>
 					<p className="text-sm font-mono break-all">
-						{activeWorkspace.worktreePath}
+						{workspace.worktreePath}
 					</p>
 				</div>
 			</div>

@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiBellSlash, HiCheck, HiPlay, HiStop } from "react-icons/hi2";
 import { trpcClient } from "renderer/lib/trpc-client";
@@ -149,7 +150,11 @@ function RingtoneCard({
 	);
 }
 
-export function RingtonesSettings() {
+export const Route = createFileRoute("/_authenticated/settings/ringtones/")({
+	component: RingtonesSettingsPage,
+});
+
+function RingtonesSettingsPage() {
 	const selectedRingtoneId = useSelectedRingtoneId();
 	const setRingtone = useSetRingtone();
 	const [playingId, setPlayingId] = useState<string | null>(null);

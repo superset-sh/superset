@@ -9,7 +9,7 @@ import {
 	type PresetColumnConfig,
 	type PresetColumnKey,
 	type TerminalPreset,
-} from "../types";
+} from "../../types";
 
 interface PresetCellProps {
 	column: PresetColumnConfig;

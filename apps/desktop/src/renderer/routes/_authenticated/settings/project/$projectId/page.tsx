@@ -1,14 +1,24 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+export const Route = createFileRoute(
+	"/_authenticated/settings/project/$projectId/",
+)({
+	component: ProjectSettingsPage,
+});
+
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
 import { trpc } from "renderer/lib/trpc";
 
-export function ProjectSettings() {
-	const { data: activeWorkspace, isLoading } =
-		trpc.workspaces.getActive.useQuery();
+function ProjectSettingsPage() {
+	const { projectId } = Route.useParams();
+	const { data: project, isLoading } = trpc.projects.get.useQuery({
+		id: projectId,
+	});
 
 	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
-		{ projectId: activeWorkspace?.projectId ?? "" },
-		{ enabled: !!activeWorkspace?.projectId },
+		{ projectId },
+		{ enabled: !!projectId },
 	);
 
 	if (isLoading) {
@@ -22,20 +32,18 @@ export function ProjectSettings() {
 		);
 	}
 
-	if (!activeWorkspace?.project) {
+	if (!project) {
 		return (
 			<div className="p-6 max-w-4xl">
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Project</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						No active project selected
+						Project not found
 					</p>
 				</div>
 			</div>
 		);
 	}
-
-	const { project } = activeWorkspace;
 
 	return (
 		<div className="p-6 max-w-4xl w-full select-text">

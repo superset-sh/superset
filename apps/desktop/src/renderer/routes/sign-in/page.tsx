@@ -21,7 +21,6 @@ function SignInPage() {
 		posthog.capture("desktop_opened");
 	}, []);
 
-	// Redirect to workspace if already authenticated
 	const isSignedIn = !!token && !!session?.user;
 	if (isSignedIn) {
 		return <Navigate to="/workspace" replace />;

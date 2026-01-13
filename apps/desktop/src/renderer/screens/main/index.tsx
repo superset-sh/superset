@@ -1,5 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
@@ -9,7 +10,7 @@ import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
-import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
+import { useCurrentView } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -28,7 +29,6 @@ import {
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { ResizablePanel } from "./components/ResizablePanel";
-import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
@@ -64,7 +64,7 @@ export function MainScreen() {
 	});
 
 	const currentView = useCurrentView();
-	const openSettings = useOpenSettings();
+	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const {
@@ -103,7 +103,8 @@ export function MainScreen() {
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
-				openSettings(event.data.section);
+				const section = event.data.section || "account";
+				navigate({ to: `/settings/${section}` as "/settings/account" });
 			}
 		},
 	});
@@ -116,9 +117,12 @@ export function MainScreen() {
 	const activeTab = tabs.find((t) => t.id === activeTabId);
 	const isWorkspaceView = currentView === "workspace";
 
-	useAppHotkey("SHOW_HOTKEYS", () => openSettings("keyboard"), undefined, [
-		openSettings,
-	]);
+	useAppHotkey(
+		"SHOW_HOTKEYS",
+		() => navigate({ to: "/settings/keyboard" }),
+		undefined,
+		[navigate],
+	);
 
 	useAppHotkey(
 		"TOGGLE_SIDEBAR",
@@ -244,8 +248,7 @@ export function MainScreen() {
 	);
 
 	const isLoading = isWorkspaceLoading;
-	const showStartView =
-		!isLoading && !activeWorkspace && currentView !== "settings";
+	const showStartView = !isLoading && !activeWorkspace;
 
 	if (isVersionLoading) {
 		return (
@@ -271,9 +274,6 @@ export function MainScreen() {
 	}
 
 	const renderContent = () => {
-		if (currentView === "settings") {
-			return <SettingsView />;
-		}
 		if (currentView === "tasks" && hasTasksAccess) {
 			return <TasksView />;
 		}
