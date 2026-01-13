@@ -1,7 +1,8 @@
-# Cloud Workspace Implementation Plan
+# Cloud Workspace Plan
 
-> **Status**: Planning
+> **Status**: Ready for Implementation
 > **Last Updated**: 2026-01-13
+> **Implementation Details**: See [CLOUD_WORKSPACE_IMPLEMENTATION.md](./CLOUD_WORKSPACE_IMPLEMENTATION.md)
 
 ---
 
@@ -245,8 +246,13 @@ Items deferred from V1:
 
 ---
 
+## Resolved Decisions
+
+| Question | Decision |
+|----------|----------|
+| What triggers auto-pull on cloud VM? | **Polling** - VM polls GitHub periodically (webhooks deferred to V2) |
+| Default VM specs? | Use Freestyle defaults (configurable via `idleTimeoutSeconds`) |
+
 ## Open Questions
 
-1. How to handle environment variables/secrets in cloud workspaces?
-2. What triggers auto-pull on cloud VM? (GitHub webhook vs polling)
-3. Default VM specs (CPU, memory, disk)?
+1. How to handle environment variables/secrets in cloud workspaces? (Deferred to V2)
