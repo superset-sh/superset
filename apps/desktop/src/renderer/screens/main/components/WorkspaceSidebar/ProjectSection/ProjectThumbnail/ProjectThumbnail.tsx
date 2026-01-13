@@ -1,6 +1,7 @@
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { DEFAULT_PROJECT_THUMBNAIL_SOURCE } from "shared/constants";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 
 interface ProjectThumbnailProps {
@@ -41,17 +42,24 @@ export function ProjectThumbnail({
 }: ProjectThumbnailProps) {
 	const [imageError, setImageError] = useState(false);
 
+	const { data: thumbnailSource } =
+		trpc.settings.getProjectThumbnailSource.useQuery(undefined, {
+			staleTime: Number.POSITIVE_INFINITY,
+		});
+
 	const { data: avatarData } = trpc.projects.getGitHubAvatar.useQuery(
 		{ id: projectId },
 		{
 			staleTime: 1000 * 60 * 5,
 			refetchOnWindowFocus: false,
+			enabled: (thumbnailSource ?? DEFAULT_PROJECT_THUMBNAIL_SOURCE) === "github",
 		},
 	);
 
 	const owner = avatarData?.owner ?? githubOwner;
 	const firstLetter = projectName.charAt(0).toUpperCase();
 	const hasCustomColor = isCustomColor(projectColor);
+	const source = thumbnailSource ?? DEFAULT_PROJECT_THUMBNAIL_SOURCE;
 
 	// Border: gray by default, custom color with slight transparency when set
 	const borderClasses = cn(
@@ -62,8 +70,8 @@ export function ProjectThumbnail({
 		? { borderColor: hexToRgba(projectColor, 0.6) }
 		: undefined;
 
-	// Show GitHub avatar if available
-	if (owner && !imageError) {
+	// Show GitHub avatar only if source is "github" and we have an owner
+	if (source === "github" && owner && !imageError) {
 		return (
 			<div
 				className={cn(
@@ -83,7 +91,7 @@ export function ProjectThumbnail({
 		);
 	}
 
-	// Fallback: show first letter
+	// Default: show first letter (text thumbnail)
 	return (
 		<div
 			className={cn(
