@@ -17,6 +17,7 @@ jobs:
       should_build: ${{ steps.check.outputs.should_build }}
       short_sha: ${{ steps.check.outputs.short_sha }}
       build_time: ${{ steps.check.outputs.build_time }}
+      version_timestamp: ${{ steps.check.outputs.version_timestamp }}
 
     steps:
       - name: Checkout code
@@ -31,7 +32,13 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
 
           # Capture build timestamp (works for both scheduled and manual runs)
-          echo "build_time=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          BUILD_TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+
+          # Version timestamp for unique canary versions (YYYYMMDDHHMMSS format)
+          # This ensures each canary build has a unique, incrementing version
+          VERSION_TIMESTAMP=$(date -u +'%Y%m%d%H%M%S')
+          echo "version_timestamp=$VERSION_TIMESTAMP" >> $GITHUB_OUTPUT
 
           # Get the commit SHA of the last canary release
           LAST_CANARY_SHA=$(git rev-parse desktop-canary 2>/dev/null || echo "")
@@ -53,7 +60,7 @@ jobs:
     uses: ./.github/workflows/build-desktop.yml
     with:
       channel: canary
-      version_suffix: "-canary"
+      version_suffix: "-canary.${{ needs.check-changes.outputs.version_timestamp }}"
       electron_builder_config: electron-builder.canary.ts
       artifact_prefix: desktop-canary
       artifact_retention_days: 7
