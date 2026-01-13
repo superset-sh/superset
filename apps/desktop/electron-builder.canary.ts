@@ -19,9 +19,6 @@ const config: Configuration = {
 	appId: "com.superset.desktop.canary",
 	productName,
 
-	// Use GitHub provider for prerelease
-	// Note: We override with setFeedURL in auto-updater.ts using generic provider,
-	// so the actual update URL is determined at runtime based on version suffix
 	publish: {
 		provider: "github",
 		owner: "superset-sh",
@@ -29,17 +26,16 @@ const config: Configuration = {
 		releaseType: "prerelease",
 	},
 
-	// macOS overrides
 	mac: {
 		...baseConfig.mac,
 		icon: join(pkg.resources, "build/icons/icon-canary.icns"),
+		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
 		},
 	},
 
-	// Linux overrides
 	linux: {
 		...baseConfig.linux,
 		icon: join(pkg.resources, "build/icons/icon-canary.png"),
@@ -47,11 +43,10 @@ const config: Configuration = {
 		artifactName: `superset-canary-\${version}-\${arch}.\${ext}`,
 	},
 
-	// Windows overrides
 	win: {
 		...baseConfig.win,
 		icon: join(pkg.resources, "build/icons/icon-canary.ico"),
-		artifactName: `${productName}-${pkg.version}-\${arch}.\${ext}`,
+		artifactName: `Superset-Canary-\${version}-\${arch}.\${ext}`,
 	},
 };
 
