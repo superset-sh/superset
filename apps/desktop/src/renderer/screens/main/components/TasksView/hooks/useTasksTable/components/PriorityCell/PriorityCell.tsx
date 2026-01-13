@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import type { CellContext } from "@tanstack/react-table";
 import { useState } from "react";
-import { useCollections } from "renderer/contexts/CollectionsProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { PriorityIcon } from "../../../../components/shared/PriorityIcon";
 import { ALL_PRIORITIES } from "../../../../utils/sorting";
 import type { TaskWithStatus } from "../../useTasksTable";

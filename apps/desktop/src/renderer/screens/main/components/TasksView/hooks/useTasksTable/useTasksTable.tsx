@@ -20,7 +20,7 @@ import {
 import { format } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import { HiChevronRight } from "react-icons/hi2";
-import { useCollections } from "renderer/contexts/CollectionsProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	StatusIcon,
 	type StatusType,

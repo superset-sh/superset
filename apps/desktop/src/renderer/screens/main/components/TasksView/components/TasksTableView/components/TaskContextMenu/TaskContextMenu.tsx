@@ -15,7 +15,7 @@ import {
 	HiOutlineTrash,
 	HiOutlineUserCircle,
 } from "react-icons/hi2";
-import { useCollections } from "renderer/contexts/CollectionsProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";

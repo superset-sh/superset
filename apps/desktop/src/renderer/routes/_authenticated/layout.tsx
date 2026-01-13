@@ -1,9 +1,9 @@
 import { DndProvider } from "react-dnd";
 import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "renderer/contexts/AuthProvider";
-import { CollectionsProvider } from "renderer/contexts/CollectionsProvider";
-import { OrganizationsProvider } from "renderer/contexts/OrganizationsProvider";
+import { useAuth } from "renderer/providers/AuthProvider";
 import { dragDropManager } from "renderer/lib/dnd";
+import { CollectionsProvider } from "./providers/CollectionsProvider";
+import { OrganizationsProvider } from "./providers/OrganizationsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,

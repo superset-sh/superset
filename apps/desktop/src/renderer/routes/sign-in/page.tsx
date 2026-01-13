@@ -4,7 +4,7 @@ import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { useAuth } from "renderer/contexts/AuthProvider";
+import { useAuth } from "renderer/providers/AuthProvider";
 import { posthog } from "renderer/lib/posthog";
 import { trpc } from "renderer/lib/trpc";
 import { SupersetLogo } from "./components/SupersetLogo";

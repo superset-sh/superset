@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
-import { useCollections } from "renderer/contexts/CollectionsProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	StatusIcon,
 	type StatusType,

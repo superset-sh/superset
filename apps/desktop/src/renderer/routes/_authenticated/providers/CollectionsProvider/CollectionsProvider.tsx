@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { trpc } from "../../lib/trpc";
+import { trpc } from "renderer/lib/trpc";
 import { getCollections } from "./collections";
 
 type Collections = ReturnType<typeof getCollections>;
