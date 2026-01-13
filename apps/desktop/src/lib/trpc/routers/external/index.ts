@@ -8,7 +8,7 @@ import {
 	EXTERNAL_APPS,
 	type ExternalApp,
 	getAppCommand,
-	resolvePathWithFallback,
+	resolvePath,
 	spawnAsync,
 } from "./helpers";
 
