@@ -59,33 +59,58 @@ async function getGitEnv(): Promise<Record<string, string>> {
 export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 	const env = await getGitEnv();
 
-	// Run git status with --no-optional-locks to avoid holding locks
-	// Use porcelain=v1 for machine-parseable output, -b for branch info
-	const { stdout } = await execFileAsync(
-		"git",
-		["--no-optional-locks", "-C", repoPath, "status", "--porcelain=v1", "-b"],
-		{ env, timeout: 30_000 },
-	);
+	try {
+		// Run git status with --no-optional-locks to avoid holding locks
+		// Use porcelain=v1 for machine-parseable output, -b for branch info
+		// Use -z for NUL-terminated output (handles filenames with special chars)
+		// Use -M for rename detection (otherwise renames show as delete + add)
+		const { stdout } = await execFileAsync(
+			"git",
+			[
+				"--no-optional-locks",
+				"-C",
+				repoPath,
+				"status",
+				"--porcelain=v1",
+				"-b",
+				"-z",
+				"-M",
+			],
+			{ env, timeout: 30_000 },
+		);
 
-	const lines = stdout.split("\n");
+		return parsePortelainStatus(stdout);
+	} catch (error) {
+		// Provide more descriptive error messages
+		if (isExecFileException(error)) {
+			if (error.code === "ENOENT") {
+				throw new Error("Git is not installed or not found in PATH");
+			}
+			const stderr = error.stderr || error.message || "";
+			if (stderr.includes("not a git repository")) {
+				throw new Error(`Not a git repository: ${repoPath}`);
+			}
+		}
+		throw new Error(
+			`Failed to get git status: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+/**
+ * Parses git status --porcelain=v1 -z output into a StatusResult-compatible object.
+ * The -z format uses NUL characters to separate entries, which safely handles
+ * filenames containing spaces, newlines, or other special characters.
+ */
+function parsePortelainStatus(stdout: string): StatusResult {
+	// Split by NUL character - the -z format separates entries with NUL
+	const entries = stdout.split("\0").filter(Boolean);
+
 	let current: string | null = null;
 	let tracking: string | null = null;
+	let isDetached = false;
 
-	// Parse branch line: ## branch...tracking or ## branch
-	const branchLine = lines[0];
-	if (branchLine?.startsWith("## ")) {
-		const branchInfo = branchLine.slice(3);
-		const trackingMatch = branchInfo.match(/^(.+?)\.\.\.(.+?)(?:\s|$)/);
-		if (trackingMatch) {
-			current = trackingMatch[1];
-			tracking = trackingMatch[2].split(" ")[0] || null;
-		} else {
-			// No tracking branch, just get branch name (before any space for detached HEAD info)
-			current = branchInfo.split(" ")[0] || null;
-		}
-	}
-
-	// Parse file status lines (skip the branch line)
+	// Parse file status entries
 	const files: StatusResult["files"] = [];
 	const staged: string[] = [];
 	const modified: string[] = [];
@@ -95,23 +120,62 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 	const conflicted: string[] = [];
 	const not_added: string[] = [];
 
-	for (let i = 1; i < lines.length; i++) {
-		const line = lines[i];
-		if (!line || line.length < 3) continue;
+	let i = 0;
+	while (i < entries.length) {
+		const entry = entries[i];
+		if (!entry) {
+			i++;
+			continue;
+		}
 
-		const indexStatus = line[0];
-		const workingStatus = line[1];
-		let path = line.slice(3);
+		// Parse branch line: ## branch...tracking or ## branch
+		if (entry.startsWith("## ")) {
+			const branchInfo = entry.slice(3);
+
+			// Check for detached HEAD states
+			if (branchInfo.startsWith("HEAD (no branch)") || branchInfo === "HEAD") {
+				isDetached = true;
+				current = "HEAD";
+			} else if (
+				// Handle empty repo: "No commits yet on BRANCH" or "Initial commit on BRANCH"
+				branchInfo.startsWith("No commits yet on ") ||
+				branchInfo.startsWith("Initial commit on ")
+			) {
+				// Extract branch name from the end
+				const parts = branchInfo.split(" ");
+				current = parts[parts.length - 1] || null;
+			} else {
+				// Check for tracking info: "branch...origin/branch [ahead 1, behind 2]"
+				const trackingMatch = branchInfo.match(/^(.+?)\.\.\.(.+?)(?:\s|$)/);
+				if (trackingMatch) {
+					current = trackingMatch[1];
+					tracking = trackingMatch[2].split(" ")[0] || null;
+				} else {
+					// No tracking branch, just get branch name (before any space)
+					current = branchInfo.split(" ")[0] || null;
+				}
+			}
+			i++;
+			continue;
+		}
+
+		// Parse file status: "XY path" where X=index, Y=working tree
+		if (entry.length < 3) {
+			i++;
+			continue;
+		}
+
+		const indexStatus = entry[0];
+		const workingStatus = entry[1];
+		// entry[2] is a space separator
+		const path = entry.slice(3);
 		let from: string | undefined;
 
-		// Handle renames: "R  old -> new" format
-		if (indexStatus === "R" || workingStatus === "R") {
-			const renameMatch = path.match(/^(.+) -> (.+)$/);
-			if (renameMatch) {
-				from = renameMatch[1];
-				path = renameMatch[2];
-				renamed.push({ from, to: path });
-			}
+		// For renames/copies, the next entry is the original path
+		if (indexStatus === "R" || indexStatus === "C") {
+			i++;
+			from = entries[i];
+			renamed.push({ from: from || path, to: path });
 		}
 
 		files.push({
@@ -125,7 +189,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		if (indexStatus === "?" && workingStatus === "?") {
 			not_added.push(path);
 		} else {
-			// Index status
+			// Index status (staged changes)
 			if (indexStatus === "A") created.push(path);
 			else if (indexStatus === "M") {
 				staged.push(path);
@@ -133,15 +197,17 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 			} else if (indexStatus === "D") {
 				staged.push(path);
 				deleted.push(path);
-			} else if (indexStatus === "R") staged.push(path);
+			} else if (indexStatus === "R" || indexStatus === "C") staged.push(path);
 			else if (indexStatus === "U") conflicted.push(path);
 			else if (indexStatus !== " " && indexStatus !== "?") staged.push(path);
 
-			// Working tree status
+			// Working tree status (unstaged changes)
 			if (workingStatus === "M") modified.push(path);
 			else if (workingStatus === "D") deleted.push(path);
 			else if (workingStatus === "U") conflicted.push(path);
 		}
+
+		i++;
 	}
 
 	return {
@@ -158,7 +224,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		behind: 0,
 		current,
 		tracking,
-		detached: current === "HEAD",
+		detached: isDetached,
 		isClean: () =>
 			files.length === 0 ||
 			files.every((f) => f.index === "?" && f.working_dir === "?"),
