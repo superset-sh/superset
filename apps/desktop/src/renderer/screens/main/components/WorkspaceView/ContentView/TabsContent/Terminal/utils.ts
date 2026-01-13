@@ -20,8 +20,12 @@ export function smoothScrollToBottom(terminal: Terminal): void {
 /** Get scroll position to save (undefined = at bottom, number = absolute line) */
 export function getScrollPosition(terminal: Terminal): number | undefined {
 	const { baseY, viewportY } = terminal.buffer.active;
-	// Only save position if scrolled up from bottom
-	return viewportY < baseY ? viewportY : undefined;
+	// Only save if scrolled up from bottom and not at line 0
+	// (line 0 likely means content just loaded or race condition)
+	if (viewportY === 0 || viewportY >= baseY) {
+		return undefined;
+	}
+	return viewportY;
 }
 
 /** Restore scroll position (undefined = bottom, number = absolute line) */
