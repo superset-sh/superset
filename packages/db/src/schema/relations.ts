@@ -9,7 +9,12 @@ import {
 	users,
 } from "./auth";
 import { cloudWorkspaces, cloudWorkspaceSessions } from "./cloud-workspace";
-import { integrationConnections, repositories, tasks } from "./schema";
+import {
+	integrationConnections,
+	repositories,
+	taskStatuses,
+	tasks,
+} from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
@@ -42,6 +47,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	invitations: many(invitations),
 	repositories: many(repositories),
 	tasks: many(tasks),
+	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
 	cloudWorkspaces: many(cloudWorkspaces),
 }));
@@ -89,6 +95,10 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		fields: [tasks.organizationId],
 		references: [organizations.id],
 	}),
+	status: one(taskStatuses, {
+		fields: [tasks.statusId],
+		references: [taskStatuses.id],
+	}),
 	assignee: one(users, {
 		fields: [tasks.assigneeId],
 		references: [users.id],
@@ -100,6 +110,17 @@ export const tasksRelations = relations(tasks, ({ one }) => ({
 		relationName: "creator",
 	}),
 }));
+
+export const taskStatusesRelations = relations(
+	taskStatuses,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [taskStatuses.organizationId],
+			references: [organizations.id],
+		}),
+		tasks: many(tasks),
+	}),
+);
 
 export const integrationConnectionsRelations = relations(
 	integrationConnections,

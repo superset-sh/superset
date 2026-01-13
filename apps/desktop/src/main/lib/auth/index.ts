@@ -1,2 +1,2 @@
-export type { SignInResult } from "./auth";
+export type { AuthSession, SignInResult } from "./auth";
 export { authService, parseAuthDeepLink } from "./auth";

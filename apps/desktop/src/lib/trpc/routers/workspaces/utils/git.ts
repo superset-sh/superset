@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import simpleGit from "simple-git";
+import simpleGit, { type StatusResult } from "simple-git";
 import {
 	adjectives,
 	animals,
@@ -49,6 +49,188 @@ async function getGitEnv(): Promise<Record<string, string>> {
 	}
 
 	return result;
+}
+
+/**
+ * Runs `git status` with --no-optional-locks to avoid holding locks on the repository.
+ * This prevents blocking other git operations that may need to acquire locks.
+ * Returns a StatusResult-compatible object that can be used with parseGitStatus.
+ */
+export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
+	const env = await getGitEnv();
+
+	try {
+		// Run git status with --no-optional-locks to avoid holding locks
+		// Use porcelain=v1 for machine-parseable output, -b for branch info
+		// Use -z for NUL-terminated output (handles filenames with special chars)
+		// Use -M for rename detection (otherwise renames show as delete + add)
+		const { stdout } = await execFileAsync(
+			"git",
+			[
+				"--no-optional-locks",
+				"-C",
+				repoPath,
+				"status",
+				"--porcelain=v1",
+				"-b",
+				"-z",
+				"-M",
+			],
+			{ env, timeout: 30_000 },
+		);
+
+		return parsePortelainStatus(stdout);
+	} catch (error) {
+		// Provide more descriptive error messages
+		if (isExecFileException(error)) {
+			if (error.code === "ENOENT") {
+				throw new Error("Git is not installed or not found in PATH");
+			}
+			const stderr = error.stderr || error.message || "";
+			if (stderr.includes("not a git repository")) {
+				throw new Error(`Not a git repository: ${repoPath}`);
+			}
+		}
+		throw new Error(
+			`Failed to get git status: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+/**
+ * Parses git status --porcelain=v1 -z output into a StatusResult-compatible object.
+ * The -z format uses NUL characters to separate entries, which safely handles
+ * filenames containing spaces, newlines, or other special characters.
+ */
+function parsePortelainStatus(stdout: string): StatusResult {
+	// Split by NUL character - the -z format separates entries with NUL
+	const entries = stdout.split("\0").filter(Boolean);
+
+	let current: string | null = null;
+	let tracking: string | null = null;
+	let isDetached = false;
+
+	// Parse file status entries
+	const files: StatusResult["files"] = [];
+	// Use Sets to avoid duplicates (e.g., MM status would otherwise add to modified twice)
+	const stagedSet = new Set<string>();
+	const modifiedSet = new Set<string>();
+	const deletedSet = new Set<string>();
+	const createdSet = new Set<string>();
+	const renamed: Array<{ from: string; to: string }> = [];
+	const conflictedSet = new Set<string>();
+	const notAddedSet = new Set<string>();
+
+	let i = 0;
+	while (i < entries.length) {
+		const entry = entries[i];
+		if (!entry) {
+			i++;
+			continue;
+		}
+
+		// Parse branch line: ## branch...tracking or ## branch
+		if (entry.startsWith("## ")) {
+			const branchInfo = entry.slice(3);
+
+			// Check for detached HEAD states
+			if (branchInfo.startsWith("HEAD (no branch)") || branchInfo === "HEAD") {
+				isDetached = true;
+				current = "HEAD";
+			} else if (
+				// Handle empty repo: "No commits yet on BRANCH" or "Initial commit on BRANCH"
+				branchInfo.startsWith("No commits yet on ") ||
+				branchInfo.startsWith("Initial commit on ")
+			) {
+				// Extract branch name from the end
+				const parts = branchInfo.split(" ");
+				current = parts[parts.length - 1] || null;
+			} else {
+				// Check for tracking info: "branch...origin/branch [ahead 1, behind 2]"
+				const trackingMatch = branchInfo.match(/^(.+?)\.\.\.(.+?)(?:\s|$)/);
+				if (trackingMatch) {
+					current = trackingMatch[1];
+					tracking = trackingMatch[2].split(" ")[0] || null;
+				} else {
+					// No tracking branch, just get branch name (before any space)
+					current = branchInfo.split(" ")[0] || null;
+				}
+			}
+			i++;
+			continue;
+		}
+
+		// Parse file status: "XY path" where X=index, Y=working tree
+		if (entry.length < 3) {
+			i++;
+			continue;
+		}
+
+		const indexStatus = entry[0];
+		const workingStatus = entry[1];
+		// entry[2] is a space separator
+		const path = entry.slice(3);
+		let from: string | undefined;
+
+		// For renames/copies, the next entry is the original path
+		if (indexStatus === "R" || indexStatus === "C") {
+			i++;
+			from = entries[i];
+			renamed.push({ from: from || path, to: path });
+		}
+
+		files.push({
+			path,
+			from: from ?? path,
+			index: indexStatus,
+			working_dir: workingStatus,
+		});
+
+		// Populate convenience arrays for checkBranchCheckoutSafety compatibility
+		if (indexStatus === "?" && workingStatus === "?") {
+			notAddedSet.add(path);
+		} else {
+			// Index status (staged changes)
+			if (indexStatus === "A") createdSet.add(path);
+			else if (indexStatus === "M") {
+				stagedSet.add(path);
+				modifiedSet.add(path);
+			} else if (indexStatus === "D") {
+				stagedSet.add(path);
+				deletedSet.add(path);
+			} else if (indexStatus === "R" || indexStatus === "C")
+				stagedSet.add(path);
+			else if (indexStatus === "U") conflictedSet.add(path);
+			else if (indexStatus !== " " && indexStatus !== "?") stagedSet.add(path);
+
+			// Working tree status (unstaged changes)
+			if (workingStatus === "M") modifiedSet.add(path);
+			else if (workingStatus === "D") deletedSet.add(path);
+			else if (workingStatus === "U") conflictedSet.add(path);
+		}
+
+		i++;
+	}
+
+	return {
+		not_added: [...notAddedSet],
+		conflicted: [...conflictedSet],
+		created: [...createdSet],
+		deleted: [...deletedSet],
+		ignored: undefined,
+		modified: [...modifiedSet],
+		renamed,
+		files,
+		staged: [...stagedSet],
+		ahead: 0,
+		behind: 0,
+		current,
+		tracking,
+		detached: isDetached,
+		isClean: () =>
+			files.length === 0 ||
+			files.every((f) => f.index === "?" && f.working_dir === "?"),
+	};
 }
 
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
@@ -401,8 +583,7 @@ export async function checkNeedsRebase(
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
-	const status = await git.status();
+	const status = await getStatusNoLock(worktreePath);
 	return !status.isClean();
 }
 
@@ -714,10 +895,8 @@ export interface CheckoutSafetyResult {
 export async function checkBranchCheckoutSafety(
 	repoPath: string,
 ): Promise<CheckoutSafetyResult> {
-	const git = simpleGit(repoPath);
-
 	try {
-		const status = await git.status();
+		const status = await getStatusNoLock(repoPath);
 
 		const hasUncommittedChanges =
 			status.staged.length > 0 ||
@@ -752,6 +931,7 @@ export async function checkBranchCheckoutSafety(
 
 		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
+			const git = simpleGit(repoPath);
 			await git.fetch(["--prune"]);
 		} catch {
 			// Ignore fetch errors

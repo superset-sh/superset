@@ -1,18 +1,16 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
-import { DndProvider } from "react-dnd";
 import { HiArrowPath } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
-import { useAuth } from "renderer/contexts/AuthProvider";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
-import { SignInScreen } from "renderer/screens/sign-in";
-import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
+import { useCurrentView } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
@@ -28,11 +26,9 @@ import {
 	MAX_WORKSPACE_SIDEBAR_WIDTH,
 	useWorkspaceSidebarStore,
 } from "renderer/stores/workspace-sidebar-state";
-import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
 import { ResizablePanel } from "./components/ResizablePanel";
-import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
@@ -56,9 +52,6 @@ export function MainScreen() {
 		requirements: versionRequirements,
 	} = useVersionCheck();
 
-	const { session } = useAuth();
-	const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || !!session?.user;
-
 	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
 	trpc.workspaces.onInitProgress.useSubscription(undefined, {
 		onData: (progress) => {
@@ -71,7 +64,7 @@ export function MainScreen() {
 	});
 
 	const currentView = useCurrentView();
-	const openSettings = useOpenSettings();
+	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
 	const {
@@ -94,9 +87,7 @@ export function MainScreen() {
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery(undefined, {
-		enabled: isSignedIn,
-	});
+	} = trpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
 	const { splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
 		useTabsWithPresets();
@@ -112,7 +103,8 @@ export function MainScreen() {
 	trpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
-				openSettings(event.data.section);
+				const section = event.data.section || "account";
+				navigate({ to: `/settings/${section}` as "/settings/account" });
 			}
 		},
 	});
@@ -125,9 +117,12 @@ export function MainScreen() {
 	const activeTab = tabs.find((t) => t.id === activeTabId);
 	const isWorkspaceView = currentView === "workspace";
 
-	useAppHotkey("SHOW_HOTKEYS", () => openSettings("keyboard"), undefined, [
-		openSettings,
-	]);
+	useAppHotkey(
+		"SHOW_HOTKEYS",
+		() => navigate({ to: "/settings/keyboard" }),
+		undefined,
+		[navigate],
+	);
 
 	useAppHotkey(
 		"TOGGLE_SIDEBAR",
@@ -253,8 +248,7 @@ export function MainScreen() {
 	);
 
 	const isLoading = isWorkspaceLoading;
-	const showStartView =
-		!isLoading && !activeWorkspace && currentView !== "settings";
+	const showStartView = !isLoading && !activeWorkspace;
 
 	if (isVersionLoading) {
 		return (
@@ -279,21 +273,7 @@ export function MainScreen() {
 		);
 	}
 
-	if (!isSignedIn) {
-		return (
-			<>
-				<Background />
-				<AppFrame>
-					<SignInScreen />
-				</AppFrame>
-			</>
-		);
-	}
-
 	const renderContent = () => {
-		if (currentView === "settings") {
-			return <SettingsView />;
-		}
 		if (currentView === "tasks" && hasTasksAccess) {
 			return <TasksView />;
 		}
@@ -305,14 +285,14 @@ export function MainScreen() {
 
 	if (isLoading) {
 		return (
-			<DndProvider manager={dragDropManager}>
+			<>
 				<Background />
 				<AppFrame>
 					<div className="flex h-full w-full items-center justify-center bg-background">
 						<LoadingSpinner />
 					</div>
 				</AppFrame>
-			</DndProvider>
+			</>
 		);
 	}
 
@@ -326,7 +306,7 @@ export function MainScreen() {
 		};
 
 		return (
-			<DndProvider manager={dragDropManager}>
+			<>
 				<Background />
 				<AppFrame>
 					<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-background">
@@ -357,12 +337,12 @@ export function MainScreen() {
 						</Button>
 					</div>
 				</AppFrame>
-			</DndProvider>
+			</>
 		);
 	}
 
 	return (
-		<DndProvider manager={dragDropManager}>
+		<>
 			<Background />
 			<AppFrame>
 				{showStartView ? (
@@ -395,6 +375,6 @@ export function MainScreen() {
 			<SetupConfigModal />
 			<NewWorkspaceModal />
 			<WorkspaceInitEffects />
-		</DndProvider>
+		</>
 	);
 }

@@ -2,6 +2,7 @@ export { useCloseWorkspace } from "./useCloseWorkspace";
 export { useCreateBranchWorkspace } from "./useCreateBranchWorkspace";
 export { useCreateWorkspace } from "./useCreateWorkspace";
 export { useDeleteWorkspace } from "./useDeleteWorkspace";
+export { useDeleteWorktree } from "./useDeleteWorktree";
 export { useOpenWorktree } from "./useOpenWorktree";
 export { useReorderWorkspaces } from "./useReorderWorkspaces";
 export { useSetActiveWorkspace } from "./useSetActiveWorkspace";

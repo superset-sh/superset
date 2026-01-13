@@ -55,6 +55,44 @@ export const repositories = pgTable(
 export type InsertRepository = typeof repositories.$inferInsert;
 export type SelectRepository = typeof repositories.$inferSelect;
 
+export const taskStatuses = pgTable(
+	"task_statuses",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		name: text().notNull(),
+		color: text().notNull(),
+		type: text().notNull(), // "backlog" | "unstarted" | "started" | "completed" | "canceled"
+		position: real().notNull(),
+		progressPercent: real("progress_percent"),
+
+		// External sync
+		externalProvider: integrationProvider("external_provider"),
+		externalId: text("external_id"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("task_statuses_organization_id_idx").on(table.organizationId),
+		index("task_statuses_type_idx").on(table.type),
+		unique("task_statuses_org_external_unique").on(
+			table.organizationId,
+			table.externalProvider,
+			table.externalId,
+		),
+	],
+);
+
+export type InsertTaskStatus = typeof taskStatuses.$inferInsert;
+export type SelectTaskStatus = typeof taskStatuses.$inferSelect;
+
 export const tasks = pgTable(
 	"tasks",
 	{
@@ -64,10 +102,9 @@ export const tasks = pgTable(
 		slug: text().notNull().unique(),
 		title: text().notNull(),
 		description: text(),
-		status: text().notNull(), // Flexible text - stores any status name
-		statusColor: text("status_color"),
-		statusType: text("status_type"),
-		statusPosition: real("status_position"),
+		statusId: uuid("status_id")
+			.notNull()
+			.references(() => taskStatuses.id),
 		priority: taskPriority().notNull().default("none"),
 
 		// Ownership
@@ -118,10 +155,11 @@ export const tasks = pgTable(
 		index("tasks_repository_id_idx").on(table.repositoryId),
 		index("tasks_assignee_id_idx").on(table.assigneeId),
 		index("tasks_creator_id_idx").on(table.creatorId),
-		index("tasks_status_idx").on(table.status),
+		index("tasks_status_id_idx").on(table.statusId),
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
 		unique("tasks_external_unique").on(
+			table.organizationId,
 			table.externalProvider,
 			table.externalId,
 		),

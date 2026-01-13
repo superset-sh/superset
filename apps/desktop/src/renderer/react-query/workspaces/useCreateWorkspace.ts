@@ -1,5 +1,6 @@
 import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
+import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
 /**
  * Mutation hook for creating a new workspace
@@ -22,10 +23,24 @@ export function useCreateWorkspace(
 	const addPendingTerminalSetup = useWorkspaceInitStore(
 		(s) => s.addPendingTerminalSetup,
 	);
+	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
 
 	return trpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
+			// Optimistically set init progress BEFORE query invalidation to prevent
+			// the "interrupted" state flash. The subscription will update with real
+			// progress, but this ensures isInitializing is true immediately.
+			if (data.isInitializing) {
+				const optimisticProgress: WorkspaceInitProgress = {
+					workspaceId: data.workspace.id,
+					projectId: data.projectId,
+					step: "pending",
+					message: "Preparing...",
+				};
+				updateProgress(optimisticProgress);
+			}
+
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();
 

@@ -1,7 +1,11 @@
 import type { LinearClient, WorkflowState } from "@linear/sdk";
 import { db } from "@superset/db/client";
 import type { LinearConfig, SelectTask } from "@superset/db/schema";
-import { integrationConnections, tasks } from "@superset/db/schema";
+import {
+	integrationConnections,
+	taskStatuses,
+	tasks,
+} from "@superset/db/schema";
 import {
 	getLinearClient,
 	mapPriorityToLinear,
@@ -69,7 +73,15 @@ async function syncTaskToLinear(
 	}
 
 	try {
-		const stateId = await findLinearState(client, teamId, task.status);
+		const taskStatus = await db.query.taskStatuses.findFirst({
+			where: eq(taskStatuses.id, task.statusId),
+		});
+
+		if (!taskStatus) {
+			return { success: false, error: "Task status not found" };
+		}
+
+		const stateId = await findLinearState(client, teamId, taskStatus.name);
 
 		if (task.externalProvider === "linear" && task.externalId) {
 			const result = await client.updateIssue(task.externalId, {
@@ -164,11 +176,10 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${qstashBaseUrl}/api/integrations/linear/jobs/sync-task`,
+		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/sync-task`,
 	});
 
 	if (!isValid) {

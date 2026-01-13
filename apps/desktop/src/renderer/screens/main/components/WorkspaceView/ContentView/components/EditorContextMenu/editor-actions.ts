@@ -1,5 +1,5 @@
 import type * as Monaco from "monaco-editor";
-import { monaco } from "renderer/contexts/MonacoProvider";
+import { monaco } from "renderer/providers/MonacoProvider";
 
 /**
  * Registers a keyboard shortcut (Cmd+Shift+C / Ctrl+Shift+C) to copy

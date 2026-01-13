@@ -109,13 +109,21 @@ export function hideProjectIfNoWorkspaces(projectId: string): void {
 /**
  * Select the next active workspace after the current one is removed.
  * Returns the ID of the next workspace to activate, or null if none.
- * Selects the most recently opened workspace (excluding those being deleted).
+ * Selects the most recently opened workspace from VISIBLE projects only
+ * (projects with tabOrder != null). This ensures the selected workspace
+ * will appear in the sidebar and can be properly displayed by the frontend.
  */
 export function selectNextActiveWorkspace(): string | null {
 	const sorted = localDb
-		.select()
+		.select({ id: workspaces.id, lastOpenedAt: workspaces.lastOpenedAt })
 		.from(workspaces)
-		.where(isNull(workspaces.deletingAt))
+		.innerJoin(projects, eq(workspaces.projectId, projects.id))
+		.where(
+			and(
+				isNull(workspaces.deletingAt),
+				isNotNull(projects.tabOrder), // Only visible projects
+			),
+		)
 		.orderBy(desc(workspaces.lastOpenedAt))
 		.all();
 	return sorted[0]?.id ?? null;

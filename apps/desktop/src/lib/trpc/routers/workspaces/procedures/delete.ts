@@ -158,8 +158,8 @@ export const createDeleteProcedures = () => {
 					return { success: false, error: "Workspace not found" };
 				}
 
-				// Hide from UI immediately to prevent reappearing during slow git operations
 				markWorkspaceAsDeleting(input.id);
+				updateActiveWorkspaceIfRemoved(input.id);
 
 				// Wait for any ongoing init to complete to avoid racing git operations
 				if (workspaceInitManager.isInitializing(input.id)) {
@@ -253,8 +253,6 @@ export const createDeleteProcedures = () => {
 					hideProjectIfNoWorkspaces(workspace.projectId);
 				}
 
-				updateActiveWorkspaceIfRemoved(input.id);
-
 				const terminalWarning =
 					terminalResult.failed > 0
 						? `${terminalResult.failed} terminal process(es) may still be running`
@@ -293,6 +291,160 @@ export const createDeleteProcedures = () => {
 				track("workspace_closed", { workspace_id: input.id });
 
 				return { success: true, terminalWarning };
+			}),
+
+		// Check if a closed worktree (no active workspace) can be deleted
+		canDeleteWorktree: publicProcedure
+			.input(
+				z.object({
+					worktreeId: z.string(),
+					skipGitChecks: z.boolean().optional(),
+				}),
+			)
+			.query(async ({ input }) => {
+				const worktree = getWorktree(input.worktreeId);
+
+				if (!worktree) {
+					return {
+						canDelete: false,
+						reason: "Worktree not found",
+						worktree: null,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
+				const project = getProject(worktree.projectId);
+
+				if (!project) {
+					return {
+						canDelete: false,
+						reason: "Project not found",
+						worktree,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
+				if (input.skipGitChecks) {
+					return {
+						canDelete: true,
+						reason: null,
+						worktree,
+						warning: null,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+
+				try {
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
+
+					if (!exists) {
+						return {
+							canDelete: true,
+							reason: null,
+							worktree,
+							warning:
+								"Worktree not found in git (may have been manually removed)",
+							hasChanges: false,
+							hasUnpushedCommits: false,
+						};
+					}
+
+					const [hasChanges, unpushedCommits] = await Promise.all([
+						hasUncommittedChanges(worktree.path),
+						hasUnpushedCommits(worktree.path),
+					]);
+
+					return {
+						canDelete: true,
+						reason: null,
+						worktree,
+						warning: null,
+						hasChanges,
+						hasUnpushedCommits: unpushedCommits,
+					};
+				} catch (error) {
+					return {
+						canDelete: false,
+						reason: `Failed to check worktree status: ${error instanceof Error ? error.message : String(error)}`,
+						worktree,
+						hasChanges: false,
+						hasUnpushedCommits: false,
+					};
+				}
+			}),
+
+		// Delete a closed worktree (no active workspace) by worktree ID
+		deleteWorktree: publicProcedure
+			.input(z.object({ worktreeId: z.string() }))
+			.mutation(async ({ input }) => {
+				const worktree = getWorktree(input.worktreeId);
+
+				if (!worktree) {
+					return { success: false, error: "Worktree not found" };
+				}
+
+				const project = getProject(worktree.projectId);
+
+				if (!project) {
+					return { success: false, error: "Project not found" };
+				}
+
+				// Acquire project lock to prevent racing with concurrent operations
+				await workspaceInitManager.acquireProjectLock(project.id);
+
+				try {
+					const exists = await worktreeExists(
+						project.mainRepoPath,
+						worktree.path,
+					);
+
+					if (exists) {
+						const teardownResult = await runTeardown(
+							project.mainRepoPath,
+							worktree.path,
+							worktree.branch,
+						);
+						if (!teardownResult.success) {
+							console.error(
+								`Teardown failed for worktree ${worktree.branch}:`,
+								teardownResult.error,
+							);
+						}
+					}
+
+					try {
+						if (exists) {
+							await removeWorktree(project.mainRepoPath, worktree.path);
+						} else {
+							console.warn(
+								`Worktree ${worktree.path} not found in git, skipping removal`,
+							);
+						}
+					} catch (error) {
+						const errorMessage =
+							error instanceof Error ? error.message : String(error);
+						console.error("Failed to remove worktree:", errorMessage);
+						return {
+							success: false,
+							error: `Failed to remove worktree: ${errorMessage}`,
+						};
+					}
+				} finally {
+					workspaceInitManager.releaseProjectLock(project.id);
+				}
+
+				deleteWorktreeRecord(input.worktreeId);
+				hideProjectIfNoWorkspaces(worktree.projectId);
+
+				track("worktree_deleted", { worktree_id: input.worktreeId });
+
+				return { success: true };
 			}),
 	});
 };

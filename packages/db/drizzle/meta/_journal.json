@@ -57,6 +57,20 @@
       "when": 1767049518603,
       "tag": "0007_add_created_at_default",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768087327155,
+      "tag": "0008_add_full_task_status_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768250000970,
+      "tag": "0009_add_organization_id_to_tasks_external_unique",
+      "breakpoints": true
     }
   ]
 }

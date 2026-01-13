@@ -64,34 +64,40 @@ export function useCloseWorkspace(
 				);
 			}
 
-			// If closing the active workspace, switch to another workspace optimistically
-			// This prevents a flash of "no workspace" state while the backend processes
+			// Switch to next workspace to prevent "no workspace" flash
 			if (previousActive?.id === id) {
-				// Find the next workspace to switch to (matches backend logic: most recently opened)
 				const remainingWorkspaces = previousAll
 					?.filter((w) => w.id !== id)
 					.sort((a, b) => b.lastOpenedAt - a.lastOpenedAt);
 
 				if (remainingWorkspaces && remainingWorkspaces.length > 0) {
-					const nextWorkspace = remainingWorkspaces[0];
-					// Find the project info for the next workspace from grouped data
-					const projectGroup = previousGrouped?.find((g) =>
-						g.workspaces.some((w) => w.id === nextWorkspace.id),
-					);
-					const workspaceFromGrouped = projectGroup?.workspaces.find(
-						(w) => w.id === nextWorkspace.id,
-					);
+					// Find a workspace with full data available in previousGrouped
+					let selectedWorkspace = null;
+					let projectGroup = null;
+					let workspaceFromGrouped = null;
 
-					if (projectGroup && workspaceFromGrouped) {
-						// For worktree-type workspaces, provide minimal worktree data to prevent
-						// hasIncompleteInit from triggering the initialization view
+					for (const candidate of remainingWorkspaces) {
+						const group = previousGrouped?.find((g) =>
+							g.workspaces.some((w) => w.id === candidate.id),
+						);
+						if (group) {
+							selectedWorkspace = candidate;
+							projectGroup = group;
+							workspaceFromGrouped = group.workspaces.find(
+								(w) => w.id === candidate.id,
+							);
+							break;
+						}
+					}
+
+					if (selectedWorkspace && projectGroup && workspaceFromGrouped) {
 						const worktreeData =
 							workspaceFromGrouped.type === "worktree"
 								? {
-										branch: nextWorkspace.branch,
+										branch: selectedWorkspace.branch,
 										baseBranch: null,
 										gitStatus: {
-											branch: nextWorkspace.branch,
+											branch: selectedWorkspace.branch,
 											needsRebase: false,
 											lastRefreshed: Date.now(),
 										},
@@ -99,7 +105,7 @@ export function useCloseWorkspace(
 								: null;
 
 						utils.workspaces.getActive.setData(undefined, {
-							...nextWorkspace,
+							...selectedWorkspace,
 							type: workspaceFromGrouped.type,
 							worktreePath: workspaceFromGrouped.worktreePath,
 							project: {
@@ -110,11 +116,17 @@ export function useCloseWorkspace(
 							worktree: worktreeData,
 						});
 					} else {
-						// Fallback: just clear it and let invalidate handle it
-						utils.workspaces.getActive.setData(undefined, null);
+						// Fallback: set minimal data to prevent StartView flash (refetch will populate full data)
+						const fallback = remainingWorkspaces[0];
+						utils.workspaces.getActive.setData(undefined, {
+							...fallback,
+							type: fallback.type === "branch" ? "branch" : "worktree",
+							worktreePath: "",
+							project: null,
+							worktree: null,
+						});
 					}
 				} else {
-					// No remaining workspaces
 					utils.workspaces.getActive.setData(undefined, null);
 				}
 			}

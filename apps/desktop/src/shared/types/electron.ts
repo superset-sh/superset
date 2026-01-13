@@ -1,4 +1,4 @@
-import type { registerRoute } from "lib/electron-router-dom";
+import type { registerRoute } from "lib/window-loader";
 
 type Route = Parameters<typeof registerRoute>[0];
 

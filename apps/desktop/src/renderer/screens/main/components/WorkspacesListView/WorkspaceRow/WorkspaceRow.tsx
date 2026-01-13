@@ -1,3 +1,9 @@
+import {
+	ContextMenu,
+	ContextMenuContent,
+	ContextMenuItem,
+	ContextMenuTrigger,
+} from "@superset/ui/context-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
@@ -8,9 +14,12 @@ import {
 	LuRotateCw,
 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
+import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
 import type { WorkspaceItem } from "../types";
 import { getRelativeTime } from "../utils";
+import { DeleteWorktreeDialog } from "./DeleteWorktreeDialog";
 
 const GITHUB_STATUS_STALE_TIME = 5 * 60 * 1000; // 5 minutes
 
@@ -31,6 +40,8 @@ export function WorkspaceRow({
 }: WorkspaceRowProps) {
 	const isBranch = workspace.type === "branch";
 	const [hasHovered, setHasHovered] = useState(false);
+	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
+		useWorkspaceDeleteHandler();
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
 	const { data: githubStatus } = trpc.workspaces.getGitHubStatus.useQuery(
@@ -57,7 +68,7 @@ export function WorkspaceRow({
 		}
 	};
 
-	return (
+	const button = (
 		<button
 			type="button"
 			onClick={handleClick}
@@ -171,5 +182,55 @@ export function WorkspaceRow({
 				)}
 			</div>
 		</button>
+	);
+
+	// Determine the delete/close action label based on workspace type and state
+	const isOpenWorkspace = workspace.workspaceId !== null;
+	const isClosedWorktree = !isOpenWorkspace && workspace.worktreeId !== null;
+	const actionLabel = isBranch
+		? "Close workspace"
+		: isClosedWorktree
+			? "Delete worktree"
+			: "Delete workspace";
+
+	// Can delete open workspaces or closed worktrees
+	const canDelete = isOpenWorkspace || isClosedWorktree;
+
+	return (
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>{button}</ContextMenuTrigger>
+				<ContextMenuContent>
+					<ContextMenuItem
+						onSelect={() => handleDeleteClick()}
+						className="text-destructive focus:text-destructive"
+						disabled={!canDelete}
+					>
+						{actionLabel}
+					</ContextMenuItem>
+				</ContextMenuContent>
+			</ContextMenu>
+
+			{/* Dialog for open workspaces */}
+			{workspace.workspaceId && (
+				<DeleteWorkspaceDialog
+					workspaceId={workspace.workspaceId}
+					workspaceName={workspace.name}
+					workspaceType={workspace.type}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			)}
+
+			{/* Dialog for closed worktrees */}
+			{isClosedWorktree && workspace.worktreeId && (
+				<DeleteWorktreeDialog
+					worktreeId={workspace.worktreeId}
+					worktreeName={workspace.name}
+					open={showDeleteDialog}
+					onOpenChange={setShowDeleteDialog}
+				/>
+			)}
+		</>
 	);
 }

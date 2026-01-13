@@ -1,0 +1,1 @@
+export { AllIssuesIcon } from "./AllIssuesIcon";

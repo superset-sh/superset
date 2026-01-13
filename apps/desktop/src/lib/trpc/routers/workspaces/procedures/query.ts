@@ -13,12 +13,86 @@ export const createQueryProcedures = () => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
-			.query(({ input }) => {
+			.query(async ({ input }) => {
 				const workspace = getWorkspace(input.id);
 				if (!workspace) {
 					throw new Error(`Workspace ${input.id} not found`);
 				}
-				return workspace;
+
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, workspace.projectId))
+					.get();
+				const worktree = workspace.worktreeId
+					? localDb
+							.select()
+							.from(worktrees)
+							.where(eq(worktrees.id, workspace.worktreeId))
+							.get()
+					: null;
+
+				// Detect and persist base branch for existing worktrees that don't have it
+				// We use undefined to mean "not yet attempted" and null to mean "attempted but not found"
+				let baseBranch = worktree?.baseBranch;
+				if (worktree && baseBranch === undefined && project) {
+					// Only attempt detection if there's a remote origin
+					const hasRemote = await hasOriginRemote(project.mainRepoPath);
+					if (hasRemote) {
+						try {
+							const defaultBranch = project.defaultBranch || "main";
+							const detected = await detectBaseBranch(
+								worktree.path,
+								worktree.branch,
+								defaultBranch,
+							);
+							if (detected) {
+								baseBranch = detected;
+							}
+							// Persist the result (detected branch or null sentinel)
+							localDb
+								.update(worktrees)
+								.set({ baseBranch: detected ?? null })
+								.where(eq(worktrees.id, worktree.id))
+								.run();
+						} catch {
+							// Detection failed, persist null to avoid retrying
+							localDb
+								.update(worktrees)
+								.set({ baseBranch: null })
+								.where(eq(worktrees.id, worktree.id))
+								.run();
+						}
+					} else {
+						// No remote - persist null to avoid retrying
+						localDb
+							.update(worktrees)
+							.set({ baseBranch: null })
+							.where(eq(worktrees.id, worktree.id))
+							.run();
+					}
+				}
+
+				return {
+					...workspace,
+					type: workspace.type as "worktree" | "branch",
+					worktreePath: getWorkspacePath(workspace) ?? "",
+					project: project
+						? {
+								id: project.id,
+								name: project.name,
+								mainRepoPath: project.mainRepoPath,
+							}
+						: null,
+					worktree: worktree
+						? {
+								branch: worktree.branch,
+								baseBranch,
+								// Normalize to null to ensure consistent "incomplete init" detection in UI
+								gitStatus: worktree.gitStatus ?? null,
+							}
+						: null,
+				};
 			}),
 
 		getAll: publicProcedure.query(() => {

@@ -7,6 +7,7 @@ import { db } from "@superset/db/client";
 import type { SelectIntegrationConnection } from "@superset/db/schema";
 import {
 	integrationConnections,
+	taskStatuses,
 	tasks,
 	users,
 	webhookEvents,
@@ -58,8 +59,10 @@ export async function POST(request: Request) {
 	}
 
 	try {
+		let status: "processed" | "skipped" = "processed";
+
 		if (payload.type === "Issue") {
-			await processIssueEvent(
+			status = await processIssueEvent(
 				payload as EntityWebhookPayloadWithIssueData,
 				connection,
 			);
@@ -67,7 +70,10 @@ export async function POST(request: Request) {
 
 		await db
 			.update(webhookEvents)
-			.set({ status: "processed", processedAt: new Date() })
+			.set({
+				status,
+				processedAt: new Date(),
+			})
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
 		return Response.json({ success: true });
@@ -88,10 +94,28 @@ export async function POST(request: Request) {
 async function processIssueEvent(
 	payload: EntityWebhookPayloadWithIssueData,
 	connection: SelectIntegrationConnection,
-) {
+): Promise<"processed" | "skipped"> {
 	const issue = payload.data;
 
 	if (payload.action === "create" || payload.action === "update") {
+		const taskStatus = await db.query.taskStatuses.findFirst({
+			where: and(
+				eq(taskStatuses.organizationId, connection.organizationId),
+				eq(taskStatuses.externalProvider, "linear"),
+				eq(taskStatuses.externalId, issue.state.id),
+			),
+		});
+
+		if (!taskStatus) {
+			// TODO(SUPER-237): Handle new workflow states in webhooks by triggering syncWorkflowStates
+			// Currently webhooks silently fail when Linear has new statuses that aren't synced yet.
+			// Should either: (1) trigger workflow state sync and retry, (2) queue for retry, or (3) keep periodic sync only
+			console.warn(
+				`[webhook] Status not found for state ${issue.state.id}, skipping update`,
+			);
+			return "skipped";
+		}
+
 		let assigneeId: string | null = null;
 		if (issue.assignee?.email) {
 			const matchedUser = await db.query.users.findFirst({
@@ -104,9 +128,7 @@ async function processIssueEvent(
 			slug: issue.identifier,
 			title: issue.title,
 			description: issue.description ?? null,
-			status: issue.state.name,
-			statusColor: issue.state.color,
-			statusType: issue.state.type,
+			statusId: taskStatus.id,
 			priority: mapPriorityFromLinear(issue.priority),
 			assigneeId,
 			estimate: issue.estimate ?? null,
@@ -127,9 +149,14 @@ async function processIssueEvent(
 				...taskData,
 				organizationId: connection.organizationId,
 				creatorId: connection.connectedByUserId,
+				createdAt: new Date(issue.createdAt),
 			})
 			.onConflictDoUpdate({
-				target: [tasks.externalProvider, tasks.externalId],
+				target: [
+					tasks.organizationId,
+					tasks.externalProvider,
+					tasks.externalId,
+				],
 				set: { ...taskData, syncError: null },
 			});
 	} else if (payload.action === "remove") {
@@ -143,4 +170,6 @@ async function processIssueEvent(
 				),
 			);
 	}
+
+	return "processed";
 }

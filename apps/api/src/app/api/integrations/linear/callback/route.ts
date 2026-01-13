@@ -99,10 +99,9 @@ export async function GET(request: Request) {
 			},
 		});
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
 	try {
 		await qstash.publishJSON({
-			url: `${qstashBaseUrl}/api/integrations/linear/jobs/initial-sync`,
+			url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
 			body: { organizationId, creatorUserId: userId },
 			retries: 3,
 		});

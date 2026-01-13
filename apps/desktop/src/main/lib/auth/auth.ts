@@ -45,7 +45,10 @@ interface StoredAuth {
 	expiresAt: string;
 }
 
-type Session = Awaited<ReturnType<typeof authClient.getSession>>;
+type SessionResponse = Awaited<ReturnType<typeof authClient.getSession>>;
+/** Session data from the auth API */
+export type AuthSession = NonNullable<SessionResponse["data"]>;
+type Session = AuthSession;
 
 class AuthService extends EventEmitter {
 	private token: string | null = null;

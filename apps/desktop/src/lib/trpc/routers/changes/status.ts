@@ -2,6 +2,7 @@ import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { getStatusNoLock } from "../workspaces/utils/git";
 import { assertRegisteredWorktree, secureFs } from "./security";
 import { applyNumstatToFiles } from "./utils/apply-numstat";
 import {
@@ -26,7 +27,8 @@ export const createStatusRouter = () => {
 				const defaultBranch = input.defaultBranch || "main";
 
 				// First, get status (needed for subsequent operations)
-				const status = await git.status();
+				// Use --no-optional-locks to avoid holding locks on the repository
+				const status = await getStatusNoLock(input.worktreePath);
 				const parsed = parseGitStatus(status);
 
 				// Run independent operations in parallel

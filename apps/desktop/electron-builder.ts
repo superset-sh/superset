@@ -17,6 +17,10 @@ const config: Configuration = {
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
 
+	// Generate update manifests for all channels (latest.yml, canary.yml, etc.)
+	// This enables proper channel-based auto-updates following electron-builder conventions
+	generateUpdatesFilesForAllChannels: true,
+
 	// Generate latest-mac.yml for auto-update (workflow handles actual upload)
 	publish: {
 		provider: "github",
@@ -108,6 +112,11 @@ const config: Configuration = {
 		extendInfo: {
 			CFBundleName: productName,
 			CFBundleDisplayName: productName,
+			// Required for macOS local network permission prompt
+			NSLocalNetworkUsageDescription:
+				"Superset needs access to your local network to discover and connect to development servers running on your network.",
+			// Bonjour service types to browse for (triggers the permission prompt)
+			NSBonjourServices: ["_http._tcp", "_https._tcp"],
 		},
 	},
 

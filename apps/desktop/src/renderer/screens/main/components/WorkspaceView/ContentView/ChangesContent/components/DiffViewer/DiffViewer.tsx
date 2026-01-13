@@ -7,7 +7,7 @@ import {
 	registerSaveAction,
 	SUPERSET_THEME,
 	useMonacoReady,
-} from "renderer/contexts/MonacoProvider";
+} from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode, FileContents } from "shared/changes-types";
 import {
@@ -192,7 +192,7 @@ export function DiffViewer({
 				renderSideBySide: viewMode === "side-by-side",
 				readOnly: !editable,
 				originalEditable: false,
-				renderOverviewRuler: false,
+				renderOverviewRuler: true,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
 			}}

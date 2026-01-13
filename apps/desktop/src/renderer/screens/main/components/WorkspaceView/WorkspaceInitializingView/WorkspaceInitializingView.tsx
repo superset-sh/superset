@@ -8,7 +8,7 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
@@ -44,6 +44,17 @@ export function WorkspaceInitializingView({
 	const hasFailed = useHasWorkspaceFailed(workspaceId);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+	// Delay showing the interrupted UI to avoid flash during normal creation.
+	// If progress arrives within 500ms, we never show the interrupted state.
+	const [showInterruptedUI, setShowInterruptedUI] = useState(false);
+	useEffect(() => {
+		if (isInterrupted && !progress) {
+			const timer = setTimeout(() => setShowInterruptedUI(true), 500);
+			return () => clearTimeout(timer);
+		}
+		setShowInterruptedUI(false);
+	}, [isInterrupted, progress]);
+
 	const retryMutation = trpc.workspaces.retryInit.useMutation();
 	const deleteMutation = trpc.workspaces.delete.useMutation();
 	const utils = trpc.useUtils();
@@ -74,25 +85,25 @@ export function WorkspaceInitializingView({
 	const currentStep = progress?.step ?? "pending";
 
 	// Interrupted state (app restart during init - no in-memory progress)
-	if (isInterrupted && !progress) {
+	// Only show after delay to avoid flash during normal creation
+	if (isInterrupted && !progress && showInterruptedUI) {
 		return (
 			<>
 				<div className="flex flex-col items-center justify-center h-full px-8">
 					<div className="flex flex-col items-center max-w-sm text-center space-y-6">
-						{/* Warning icon */}
-						<div className="flex items-center justify-center size-16 rounded-full bg-yellow-500/10">
-							<HiExclamationTriangle className="size-8 text-yellow-500" />
+						{/* Icon */}
+						<div className="flex items-center justify-center size-16 rounded-full bg-muted">
+							<LuGitBranch className="size-8 text-muted-foreground" />
 						</div>
 
 						{/* Title and description */}
 						<div className="space-y-2">
 							<h2 className="text-lg font-medium text-foreground">
-								Setup was interrupted
+								Setup incomplete
 							</h2>
 							<p className="text-sm text-muted-foreground">{workspaceName}</p>
 							<p className="text-xs text-muted-foreground/80 mt-2">
-								The app was closed before workspace setup completed. You can
-								retry the setup or delete this workspace.
+								Workspace setup didn't finish. You can retry or remove it.
 							</p>
 						</div>
 
