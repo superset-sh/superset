@@ -4,6 +4,7 @@ import type {
 	SelectOrganization,
 	SelectRepository,
 	SelectTask,
+	SelectTaskStatus,
 	SelectUser,
 } from "@superset/db/schema";
 import type { AppRouter } from "@superset/trpc";
@@ -19,6 +20,7 @@ const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
 
 interface OrgCollections {
 	tasks: Collection<SelectTask>;
+	taskStatuses: Collection<SelectTaskStatus>;
 	repositories: Collection<SelectRepository>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
@@ -56,7 +58,7 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "tasks",
-					organization: organizationId,
+					organizationId,
 				},
 				headers,
 				columnMapper,
@@ -68,8 +70,11 @@ function createOrgCollections(
 				return { txid: result.txid };
 			},
 			onUpdate: async ({ transaction }) => {
-				const { modified } = transaction.mutations[0];
-				const result = await apiClient.task.update.mutate(modified);
+				const { original, changes } = transaction.mutations[0];
+				const result = await apiClient.task.update.mutate({
+					...changes,
+					id: original.id,
+				});
 				return { txid: result.txid };
 			},
 			onDelete: async ({ transaction }) => {
@@ -80,6 +85,22 @@ function createOrgCollections(
 		}),
 	);
 
+	const taskStatuses = createCollection(
+		electricCollectionOptions<SelectTaskStatus>({
+			id: `task_statuses-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "task_statuses",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
 	const repositories = createCollection(
 		electricCollectionOptions<SelectRepository>({
 			id: `repositories-${organizationId}`,
@@ -87,7 +108,7 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "repositories",
-					organization: organizationId,
+					organizationId,
 				},
 				headers,
 				columnMapper,
@@ -113,7 +134,7 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "auth.members",
-					organization: organizationId,
+					organizationId,
 				},
 				headers,
 				columnMapper,
@@ -129,7 +150,7 @@ function createOrgCollections(
 				url: electricUrl,
 				params: {
 					table: "auth.users",
-					organization: organizationId,
+					organizationId,
 				},
 				headers,
 				columnMapper,
@@ -138,7 +159,7 @@ function createOrgCollections(
 		}),
 	);
 
-	return { tasks, repositories, members, users };
+	return { tasks, taskStatuses, repositories, members, users };
 }
 
 function getOrCreateOrganizationsCollection(

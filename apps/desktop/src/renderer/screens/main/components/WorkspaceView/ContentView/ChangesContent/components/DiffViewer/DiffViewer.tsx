@@ -192,7 +192,7 @@ export function DiffViewer({
 				renderSideBySide: viewMode === "side-by-side",
 				readOnly: !editable,
 				originalEditable: false,
-				renderOverviewRuler: false,
+				renderOverviewRuler: true,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
 			}}

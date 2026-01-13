@@ -1,5 +1,4 @@
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -10,6 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useAuth } from "renderer/contexts/AuthProvider";
 import { useCollections } from "renderer/contexts/CollectionsProvider";
@@ -20,55 +20,37 @@ export function TeamSettings() {
 	const { session } = useAuth();
 	const collections = useCollections();
 
-	const { data: membersData, isLoading: isLoadingMembers } = useLiveQuery(
-		(q) => q.from({ members: collections.members }),
+	const { data: membersData, isLoading } = useLiveQuery(
+		(q) =>
+			q
+				.from({ members: collections.members })
+				.leftJoin({ users: collections.users }, ({ members, users }) =>
+					eq(members.userId, users.id),
+				)
+				.select(({ members, users }) => ({
+					memberId: members.id,
+					userId: members.userId,
+					name: users?.name ?? null,
+					email: users?.email ?? "",
+					image: users?.image ?? null,
+					role: members.role,
+					joinedAt: members.createdAt,
+					organizationId: members.organizationId,
+				}))
+				.orderBy(({ members }) => members.role, "asc")
+				.orderBy(({ members }) => members.createdAt, "asc"),
 		[collections],
 	);
 
-	const { data: usersData, isLoading: isLoadingUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
-
-	const isLoading = isLoadingMembers || isLoadingUsers;
-
-	// Join members with users and create member details
-	const memberDetails =
-		membersData && usersData
-			? membersData.map((member) => {
-					const user = usersData.find((u) => u.id === member.userId);
-					return {
-						memberId: member.id,
-						userId: member.userId,
-						name: user?.name ?? null,
-						email: user?.email ?? "",
-						image: user?.image ?? null,
-						role: member.role,
-						joinedAt:
-							member.createdAt instanceof Date
-								? member.createdAt.toISOString()
-								: member.createdAt,
-						organizationId: member.organizationId,
-					};
-				})
-			: [];
-
-	// Sort by role (owner first) then by joinedAt
-	const members = memberDetails.slice().sort((a, b) => {
-		// Owners first
-		if (a.role === "owner" && b.role !== "owner") return -1;
-		if (a.role !== "owner" && b.role === "owner") return 1;
-		// Then by join date
-		return new Date(a.joinedAt).getTime() - new Date(b.joinedAt).getTime();
-	});
+	const members = membersData ?? [];
 
 	const currentUserId = session?.user?.id;
 	const currentMember = members.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 
-	const formatDate = (dateString: string) => {
-		const date = new Date(dateString);
-		return date.toLocaleDateString("en-US", {
+	const formatDate = (date: Date | string) => {
+		const d = date instanceof Date ? date : new Date(date);
+		return d.toLocaleDateString("en-US", {
 			month: "short",
 			day: "numeric",
 		});
@@ -124,19 +106,17 @@ export function TeamSettings() {
 									</TableHeader>
 									<TableBody>
 										{members.map((member) => {
-											const initials = getInitials(member.name, member.email);
 											const isCurrentUserRow = member.userId === currentUserId;
 
 											return (
 												<TableRow key={member.memberId}>
 													<TableCell>
 														<div className="flex items-center gap-3">
-															<Avatar className="h-8 w-8">
-																<AvatarImage src={member.image ?? undefined} />
-																<AvatarFallback className="text-xs">
-																	{initials || "?"}
-																</AvatarFallback>
-															</Avatar>
+															<Avatar
+																size="md"
+																fullName={member.name}
+																image={member.image}
+															/>
 															<div className="flex items-center gap-2">
 																<span className="font-medium">
 																	{member.name || "Unknown"}

@@ -1,5 +1,4 @@
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
@@ -12,8 +11,6 @@ export function AccountSettings() {
 	});
 
 	const signOut = () => signOutMutation.mutate();
-
-	const initials = getInitials(user?.name, user?.email);
 
 	return (
 		<div className="p-6 max-w-4xl">
@@ -39,12 +36,7 @@ export function AccountSettings() {
 							</>
 						) : user ? (
 							<>
-								<Avatar className="h-16 w-16">
-									<AvatarImage src={user.image ?? undefined} />
-									<AvatarFallback className="text-lg">
-										{initials || "?"}
-									</AvatarFallback>
-								</Avatar>
+								<Avatar size="xl" fullName={user.name} image={user.image} />
 								<div>
 									<p className="font-medium text-lg">{user.name}</p>
 									<p className="text-sm text-muted-foreground">{user.email}</p>

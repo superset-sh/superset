@@ -42,19 +42,18 @@ export async function GET(request: Request): Promise<Response> {
 		originUrl.searchParams.set(`params[${index + 1}]`, String(value));
 	});
 
-	const response = await fetch(originUrl.toString());
+	let response = await fetch(originUrl.toString());
 
-	const headers = new Headers();
-	response.headers.forEach((value, key) => {
-		const lower = key.toLowerCase();
-		if (lower !== "content-encoding" && lower !== "content-length") {
-			headers.set(key, value);
-		}
-	});
+	if (response.headers.get("content-encoding")) {
+		const headers = new Headers(response.headers);
+		headers.delete("content-encoding");
+		headers.delete("content-length");
+		response = new Response(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		});
+	}
 
-	return new Response(response.body, {
-		status: response.status,
-		statusText: response.statusText,
-		headers,
-	});
+	return response;
 }

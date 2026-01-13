@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import os from "node:os";
 import path from "node:path";
-import { getAppCommand, resolvePath } from "./helpers";
+import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
 
 describe("getAppCommand", () => {
 	test("returns null for finder (handled specially)", () => {
@@ -209,6 +209,272 @@ describe("resolvePath", () => {
 				"/ignored/cwd",
 			);
 			expect(result).toBe("/absolute/path/file.ts");
+		});
+	});
+
+	describe("wrapper character stripping", () => {
+		test("strips double quotes from path", () => {
+			const result = resolvePath('"/absolute/path/file.ts"');
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips single quotes from path", () => {
+			const result = resolvePath("'/absolute/path/file.ts'");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips backticks from path", () => {
+			const result = resolvePath("`/absolute/path/file.ts`");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips parentheses from path", () => {
+			const result = resolvePath("(/absolute/path/file.ts)");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips square brackets from path", () => {
+			const result = resolvePath("[/absolute/path/file.ts]");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips angle brackets from path", () => {
+			const result = resolvePath("</absolute/path/file.ts>");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips nested wrappers", () => {
+			const result = resolvePath("\"'/absolute/path/file.ts'\"");
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("strips wrappers with leading/trailing whitespace", () => {
+			const result = resolvePath('  "/absolute/path/file.ts"  ');
+			expect(result).toBe("/absolute/path/file.ts");
+		});
+
+		test("handles wrappers combined with ~ expansion", () => {
+			const result = resolvePath('"~/Documents/file.ts"');
+			expect(result).toBe(path.join(homedir, "Documents/file.ts"));
+		});
+
+		test("handles wrappers combined with relative paths", () => {
+			const result = resolvePath("(src/file.ts)", "/project");
+			expect(result).toBe("/project/src/file.ts");
+		});
+	});
+});
+
+describe("stripPathWrappers", () => {
+	describe("single wrapper types", () => {
+		test("strips double quotes", () => {
+			expect(stripPathWrappers('"/path/to/file"')).toBe("/path/to/file");
+		});
+
+		test("strips single quotes", () => {
+			expect(stripPathWrappers("'/path/to/file'")).toBe("/path/to/file");
+		});
+
+		test("strips backticks", () => {
+			expect(stripPathWrappers("`/path/to/file`")).toBe("/path/to/file");
+		});
+
+		test("strips parentheses", () => {
+			expect(stripPathWrappers("(/path/to/file)")).toBe("/path/to/file");
+		});
+
+		test("strips square brackets", () => {
+			expect(stripPathWrappers("[/path/to/file]")).toBe("/path/to/file");
+		});
+
+		test("strips angle brackets", () => {
+			expect(stripPathWrappers("</path/to/file>")).toBe("/path/to/file");
+		});
+	});
+
+	describe("nested wrappers", () => {
+		test("strips multiple layers of same wrapper", () => {
+			expect(stripPathWrappers('"""/path/to/file"""')).toBe("/path/to/file");
+		});
+
+		test("strips mixed nested wrappers", () => {
+			expect(stripPathWrappers("\"'/path/to/file'\"")).toBe("/path/to/file");
+		});
+
+		test("strips deeply nested mixed wrappers", () => {
+			expect(stripPathWrappers("\"('[/path/to/file]')\"")).toBe(
+				"/path/to/file",
+			);
+		});
+	});
+
+	describe("edge cases", () => {
+		test("returns empty string for empty input", () => {
+			expect(stripPathWrappers("")).toBe("");
+		});
+
+		test("returns trimmed string for whitespace only", () => {
+			expect(stripPathWrappers("   ")).toBe("");
+		});
+
+		test("trims surrounding whitespace", () => {
+			expect(stripPathWrappers('  "/path/to/file"  ')).toBe("/path/to/file");
+		});
+
+		test("does not strip mismatched wrappers", () => {
+			expect(stripPathWrappers('"/path/to/file)')).toBe('"/path/to/file)');
+		});
+
+		test("does not strip opening wrapper only", () => {
+			expect(stripPathWrappers('"/path/to/file')).toBe('"/path/to/file');
+		});
+
+		test("does not strip closing wrapper only", () => {
+			expect(stripPathWrappers('/path/to/file"')).toBe('/path/to/file"');
+		});
+
+		test("preserves path with internal wrappers", () => {
+			expect(stripPathWrappers("/path/to/(file)")).toBe("/path/to/(file)");
+		});
+
+		test("preserves path with no wrappers", () => {
+			expect(stripPathWrappers("/path/to/file")).toBe("/path/to/file");
+		});
+
+		test("handles single character inside wrappers", () => {
+			expect(stripPathWrappers('"a"')).toBe("a");
+		});
+
+		test("handles wrappers with only whitespace inside", () => {
+			expect(stripPathWrappers('"  "')).toBe("  ");
+		});
+	});
+
+	describe("trailing punctuation", () => {
+		test("strips trailing period", () => {
+			expect(stripPathWrappers("./path/file.ts.")).toBe("./path/file.ts");
+		});
+
+		test("strips trailing comma", () => {
+			expect(stripPathWrappers("./path/file.ts,")).toBe("./path/file.ts");
+		});
+
+		test("strips trailing colon", () => {
+			expect(stripPathWrappers("./path/file.ts:")).toBe("./path/file.ts");
+		});
+
+		test("strips trailing semicolon", () => {
+			expect(stripPathWrappers("./path/file.ts;")).toBe("./path/file.ts");
+		});
+
+		test("strips trailing question mark", () => {
+			expect(stripPathWrappers("./path/file.ts?")).toBe("./path/file.ts");
+		});
+
+		test("strips trailing exclamation", () => {
+			expect(stripPathWrappers("./path/file.ts!")).toBe("./path/file.ts");
+		});
+
+		test("strips multiple trailing punctuation", () => {
+			expect(stripPathWrappers("./path/file.ts..")).toBe("./path/file.ts");
+		});
+
+		test("strips mixed trailing punctuation", () => {
+			expect(stripPathWrappers("./path/file.ts.,")).toBe("./path/file.ts");
+		});
+
+		test("preserves file extension", () => {
+			expect(stripPathWrappers("./path/file.ts")).toBe("./path/file.ts");
+		});
+
+		test("preserves .json extension", () => {
+			expect(stripPathWrappers("./path/file.json")).toBe("./path/file.json");
+		});
+
+		test("preserves multi-dot extensions like .test.ts", () => {
+			expect(stripPathWrappers("./path/file.test.ts")).toBe(
+				"./path/file.test.ts",
+			);
+		});
+
+		test("preserves line number suffix :42", () => {
+			expect(stripPathWrappers("./path/file.ts:42")).toBe("./path/file.ts:42");
+		});
+
+		test("preserves line:col suffix :42:10", () => {
+			expect(stripPathWrappers("./path/file.ts:42:10")).toBe(
+				"./path/file.ts:42:10",
+			);
+		});
+	});
+
+	describe("wrappers with trailing punctuation", () => {
+		test("quoted path with trailing period", () => {
+			expect(stripPathWrappers('"./path/file.ts".')).toBe("./path/file.ts");
+		});
+
+		test("quoted path with trailing comma", () => {
+			expect(stripPathWrappers('"./path/file.ts",')).toBe("./path/file.ts");
+		});
+
+		test("parenthesized path with trailing period", () => {
+			expect(stripPathWrappers("(./path/file.ts).")).toBe("./path/file.ts");
+		});
+
+		test("complex nested with trailing punctuation", () => {
+			expect(stripPathWrappers('"(./path/file.ts)".')).toBe("./path/file.ts");
+		});
+	});
+
+	describe("line numbers with trailing punctuation", () => {
+		test("strips trailing period after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42.")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing comma after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42,")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing colon after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42:")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing period after line:col", () => {
+			expect(stripPathWrappers("./path/file.ts:42:10.")).toBe(
+				"./path/file.ts:42:10",
+			);
+		});
+
+		test("strips trailing comma after line:col", () => {
+			expect(stripPathWrappers("./path/file.ts:42:10,")).toBe(
+				"./path/file.ts:42:10",
+			);
+		});
+	});
+
+	describe("various extension types", () => {
+		test("preserves numeric extensions like .mp3", () => {
+			expect(stripPathWrappers("./path/file.mp3")).toBe("./path/file.mp3");
+		});
+
+		test("preserves single character extensions like .c", () => {
+			expect(stripPathWrappers("./path/file.c")).toBe("./path/file.c");
+		});
+
+		test("preserves uppercase extensions like .TSX", () => {
+			expect(stripPathWrappers("./path/file.TSX")).toBe("./path/file.TSX");
+		});
+
+		test("preserves dotfiles", () => {
+			expect(stripPathWrappers(".gitignore")).toBe(".gitignore");
+		});
+
+		test("preserves dotfiles with extension", () => {
+			expect(stripPathWrappers(".eslintrc.json")).toBe(".eslintrc.json");
+		});
+
+		test("strips trailing period from dotfile with extension", () => {
+			expect(stripPathWrappers(".eslintrc.json.")).toBe(".eslintrc.json");
 		});
 	});
 });

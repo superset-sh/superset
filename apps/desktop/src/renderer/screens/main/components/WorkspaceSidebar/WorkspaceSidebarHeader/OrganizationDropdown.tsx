@@ -1,5 +1,4 @@
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -49,7 +48,6 @@ export function OrganizationDropdown({
 
 	// Always render dropdown to prevent trapping users without orgs
 	const orgName = activeOrganization?.name ?? "No Organization";
-	const initials = getInitials(activeOrganization?.name);
 
 	const switchOrganization = async (newOrgId: string) => {
 		await setActiveOrg.mutateAsync({ organizationId: newOrgId });
@@ -66,12 +64,12 @@ export function OrganizationDropdown({
 					type="button"
 					className="flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors"
 				>
-					<Avatar className="h-6 w-6 rounded-md">
-						<AvatarImage src={activeOrganization?.logo ?? undefined} />
-						<AvatarFallback className="text-xs rounded-md">
-							{initials || "?"}
-						</AvatarFallback>
-					</Avatar>
+					<Avatar
+						size="sm"
+						fullName={activeOrganization?.name}
+						image={activeOrganization?.logo}
+						className="rounded-md"
+					/>
 				</button>
 			</TooltipTrigger>
 			<TooltipContent side="right">{orgName}</TooltipContent>
@@ -81,12 +79,12 @@ export function OrganizationDropdown({
 			type="button"
 			className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-accent/50 transition-colors text-left"
 		>
-			<Avatar className="h-6 w-6 rounded-md">
-				<AvatarImage src={activeOrganization?.logo ?? undefined} />
-				<AvatarFallback className="text-xs rounded-md">
-					{initials || "?"}
-				</AvatarFallback>
-			</Avatar>
+			<Avatar
+				size="sm"
+				fullName={activeOrganization?.name}
+				image={activeOrganization?.logo}
+				className="rounded-md"
+			/>
 			<span className="flex-1 text-sm font-medium truncate">{orgName}</span>
 			<HiChevronUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
 		</button>
@@ -135,12 +133,12 @@ export function OrganizationDropdown({
 										onSelect={() => switchOrganization(organization.id)}
 										className="gap-2"
 									>
-										<Avatar className="h-5 w-5 rounded-md">
-											<AvatarImage src={organization.logo ?? undefined} />
-											<AvatarFallback className="text-xs rounded-md">
-												{organization.name?.[0]?.toUpperCase() || "?"}
-											</AvatarFallback>
-										</Avatar>
+										<Avatar
+											size="xs"
+											fullName={organization.name}
+											image={organization.logo}
+											className="rounded-md"
+										/>
 										<span className="flex-1 truncate">{organization.name}</span>
 										{organization.id === activeOrganization?.id && (
 											<HiCheck className="h-4 w-4 text-primary" />

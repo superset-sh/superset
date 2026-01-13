@@ -1,6 +1,5 @@
 import { authClient } from "@superset/auth/client";
-import { getInitials } from "@superset/shared/names";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
+import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import {
@@ -48,17 +47,12 @@ export function MemberRow({
 		}
 	};
 
-	const initials = getInitials(member.name, member.email);
-
 	const isOwner = member.role === "owner";
 
 	return (
 		<>
 			<div className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-				<Avatar className="h-10 w-10">
-					<AvatarImage src={member.image ?? undefined} />
-					<AvatarFallback>{initials || "?"}</AvatarFallback>
-				</Avatar>
+				<Avatar size="lg" fullName={member.name} image={member.image} />
 
 				<div className="flex-1 min-w-0">
 					<div className="flex items-center gap-2">

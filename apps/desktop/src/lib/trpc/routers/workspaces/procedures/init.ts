@@ -20,7 +20,6 @@ export const createInitProcedures = () => {
 			.subscription(({ input }) => {
 				return observable<WorkspaceInitProgress>((emit) => {
 					const handler = (progress: WorkspaceInitProgress) => {
-						// If specific workspaces requested, filter
 						if (
 							input?.workspaceIds &&
 							!input.workspaceIds.includes(progress.workspaceId)
@@ -77,10 +76,7 @@ export const createInitProcedures = () => {
 					throw new Error("Project not found");
 				}
 
-				// Clear the failed state
 				workspaceInitManager.clearJob(input.workspaceId);
-
-				// Start fresh initialization
 				workspaceInitManager.startJob(input.workspaceId, workspace.projectId);
 
 				// Run initialization in background (DO NOT await)
@@ -130,7 +126,6 @@ export const createInitProcedures = () => {
 					return null;
 				}
 
-				// Re-read config from project to get fresh commands
 				const setupConfig = loadSetupConfig(project.mainRepoPath);
 
 				return {
