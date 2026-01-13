@@ -2,13 +2,13 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
-import ReactDom from "react-dom/client";
 import {
-	type RouterHistory,
-	RouterProvider,
 	createHashHistory,
 	createRouter,
+	type RouterHistory,
+	RouterProvider,
 } from "@tanstack/react-router";
+import ReactDom from "react-dom/client";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";

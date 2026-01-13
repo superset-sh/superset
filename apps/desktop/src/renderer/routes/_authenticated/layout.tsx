@@ -1,7 +1,7 @@
+import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
-import { Navigate, Outlet, createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { dragDropManager } from "renderer/lib/dnd";
+import { useAuth } from "renderer/providers/AuthProvider";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { OrganizationsProvider } from "./providers/OrganizationsProvider";
 

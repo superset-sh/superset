@@ -10,5 +10,5 @@ function WorkspaceSettingsPage() {
 			<h2>Workspace Settings</h2>
 			<p>Workspace settings placeholder</p>
 		</div>
-	)
+	);
 }

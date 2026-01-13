@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";

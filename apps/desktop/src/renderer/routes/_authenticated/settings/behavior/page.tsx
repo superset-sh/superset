@@ -10,5 +10,5 @@ function BehaviorSettingsPage() {
 			<h2>Behavior Settings</h2>
 			<p>Behavior settings placeholder</p>
 		</div>
-	)
+	);
 }

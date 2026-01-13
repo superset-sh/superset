@@ -10,5 +10,5 @@ function TasksPage() {
 			<h1>Tasks</h1>
 			<p>Tasks page placeholder</p>
 		</div>
-	)
+	);
 }

@@ -10,5 +10,5 @@ function PresetsSettingsPage() {
 			<h2>Presets Settings</h2>
 			<p>Presets settings placeholder</p>
 		</div>
-	)
+	);
 }

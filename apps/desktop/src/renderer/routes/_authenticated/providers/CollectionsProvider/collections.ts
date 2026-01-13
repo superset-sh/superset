@@ -12,8 +12,8 @@ import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
-import superjson from "superjson";
 import { env } from "renderer/env.renderer";
+import superjson from "superjson";
 
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;

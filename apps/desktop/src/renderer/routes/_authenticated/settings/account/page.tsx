@@ -10,5 +10,5 @@ function AccountSettingsPage() {
 			<h2>Account Settings</h2>
 			<p>Account settings placeholder</p>
 		</div>
-	)
+	);
 }

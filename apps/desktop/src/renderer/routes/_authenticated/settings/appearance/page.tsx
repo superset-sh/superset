@@ -10,5 +10,5 @@ function AppearanceSettingsPage() {
 			<h2>Appearance Settings</h2>
 			<p>Appearance settings placeholder</p>
 		</div>
-	)
+	);
 }

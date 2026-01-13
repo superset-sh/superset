@@ -10,5 +10,5 @@ function KeyboardSettingsPage() {
 			<h2>Keyboard Settings</h2>
 			<p>Keyboard settings placeholder</p>
 		</div>
-	)
+	);
 }

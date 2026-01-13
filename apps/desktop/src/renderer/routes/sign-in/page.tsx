@@ -1,12 +1,12 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { Navigate, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { posthog } from "renderer/lib/posthog";
 import { trpc } from "renderer/lib/trpc";
+import { useAuth } from "renderer/providers/AuthProvider";
 import { SupersetLogo } from "./components/SupersetLogo";
 
 export const Route = createFileRoute("/sign-in/")({
