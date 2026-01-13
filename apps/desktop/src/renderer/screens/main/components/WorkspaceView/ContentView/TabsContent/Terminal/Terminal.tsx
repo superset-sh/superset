@@ -26,7 +26,7 @@ import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import {
-	getScrollPosition,
+	getScrollOffsetFromBottom,
 	restoreScrollPosition,
 	shellEscapePaths,
 	smoothScrollToBottom,
@@ -569,7 +569,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			detachRef.current({ paneId, viewportY: getScrollPosition(xterm) });
+			detachRef.current({
+				paneId,
+				viewportY: getScrollOffsetFromBottom(xterm),
+			});
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
