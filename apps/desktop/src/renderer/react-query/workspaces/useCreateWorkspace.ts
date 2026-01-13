@@ -1,4 +1,4 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
@@ -17,15 +17,15 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
  * to survive dialog unmounts. This hook just adds to the global pending store.
  */
 export function useCreateWorkspace(
-	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.create.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const addPendingTerminalSetup = useWorkspaceInitStore(
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
 
-	return trpc.workspaces.create.useMutation({
+	return electronTrpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			// Optimistically set init progress BEFORE query invalidation to prevent

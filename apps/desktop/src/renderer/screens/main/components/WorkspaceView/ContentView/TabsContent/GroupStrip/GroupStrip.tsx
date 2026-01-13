@@ -22,7 +22,7 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -30,7 +30,7 @@ import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
 export function GroupStrip() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 
 	const allTabs = useTabsStore((s) => s.tabs);

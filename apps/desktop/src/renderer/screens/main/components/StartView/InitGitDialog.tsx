@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 function getBasename(path: string): string {
@@ -30,8 +30,8 @@ export function InitGitDialog({
 	onClose,
 	onError,
 }: InitGitDialogProps) {
-	const utils = trpc.useUtils();
-	const initGitAndOpen = trpc.projects.initGitAndOpen.useMutation();
+	const utils = electronTrpc.useUtils();
+	const initGitAndOpen = electronTrpc.projects.initGitAndOpen.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
 	// Track the entire async sequence to keep modal locked

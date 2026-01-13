@@ -1,11 +1,11 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { SupportMenu } from "./SupportMenu";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
-	const { data: platform } = trpc.window.getPlatform.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 

@@ -1,15 +1,15 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { ChangesView } from "./ChangesView";
 
 export function Sidebar() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 	const workspaceId = activeWorkspace?.id;
 	const worktreePath = activeWorkspace?.worktreePath;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const trpcUtils = trpc.useUtils();
+	const trpcUtils = electronTrpc.useUtils();
 
 	// Invalidate file content queries to ensure fresh data when clicking a file
 	const invalidateFileContent = (filePath: string) => {

@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
@@ -34,13 +34,13 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  */
 export function useAgentHookListener() {
 	const setActiveWorkspace = useSetActiveWorkspace();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 
 	// Use ref to avoid stale closure in subscription callback
 	const activeWorkspaceRef = useRef(activeWorkspace);
 	activeWorkspaceRef.current = activeWorkspace;
 
-	trpc.notifications.subscribe.useSubscription(undefined, {
+	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
 

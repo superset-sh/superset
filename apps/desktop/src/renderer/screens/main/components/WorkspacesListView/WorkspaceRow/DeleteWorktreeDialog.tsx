@@ -9,7 +9,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 
 interface DeleteWorktreeDialogProps {
@@ -28,7 +28,7 @@ export function DeleteWorktreeDialog({
 	const deleteWorktree = useDeleteWorktree();
 
 	const { data: canDeleteData, isLoading } =
-		trpc.workspaces.canDeleteWorktree.useQuery(
+		electronTrpc.workspaces.canDeleteWorktree.useQuery(
 			{ worktreeId },
 			{
 				enabled: open,

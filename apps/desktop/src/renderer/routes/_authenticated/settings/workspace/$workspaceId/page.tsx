@@ -9,12 +9,12 @@ export const Route = createFileRoute(
 import { Input } from "@superset/ui/input";
 import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 
 function WorkspaceSettingsPage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace, isLoading } = trpc.workspaces.get.useQuery({
+	const { data: workspace, isLoading } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
 

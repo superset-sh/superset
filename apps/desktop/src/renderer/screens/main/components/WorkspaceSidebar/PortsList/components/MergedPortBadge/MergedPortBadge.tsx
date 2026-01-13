@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuExternalLink } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { MergedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
@@ -16,8 +16,8 @@ export function MergedPortBadge({
 }: MergedPortBadgeProps) {
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const setActiveMutation = trpc.workspaces.setActive.useMutation();
-	const utils = trpc.useUtils();
+	const setActiveMutation = electronTrpc.workspaces.setActive.useMutation();
+	const utils = electronTrpc.useUtils();
 
 	const portNumberColor = port.isActive
 		? "text-muted-foreground"

@@ -1,5 +1,6 @@
+import { authClient } from "renderer/lib/auth-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { useAuthToken } from "renderer/providers/AuthProvider";
 import { getCollections } from "./collections";
 
 type Collections = ReturnType<typeof getCollections>;
@@ -7,17 +8,15 @@ type Collections = ReturnType<typeof getCollections>;
 const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
-	const { data: authState } = trpc.auth.onAuthState.useSubscription();
-
-	const activeOrganizationId = authState?.session?.activeOrganizationId;
-	const token = authState?.token;
+	const { data: session } = authClient.useSession();
+	const token = useAuthToken();
+	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const collections = useMemo(() => {
 		if (!token || !activeOrganizationId) {
 			return null;
 		}
 
-		// Get cached collections for this org (or create if first time)
 		return getCollections(activeOrganizationId, token);
 	}, [token, activeOrganizationId]);
 

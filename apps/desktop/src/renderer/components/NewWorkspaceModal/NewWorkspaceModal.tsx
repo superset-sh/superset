@@ -32,7 +32,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
@@ -94,13 +94,13 @@ export function NewWorkspaceModal() {
 		debouncedSetTitle(value); // Debounced update for derived state
 	};
 
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: recentProjects = [] } = electronTrpc.projects.getRecents.useQuery();
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,
 		isError: isBranchesError,
-	} = trpc.projects.getBranches.useQuery(
+	} = electronTrpc.projects.getBranches.useQuery(
 		{ projectId: selectedProjectId ?? "" },
 		{ enabled: !!selectedProjectId },
 	);

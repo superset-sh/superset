@@ -10,7 +10,10 @@ import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
-import { authService, parseAuthDeepLink } from "./lib/auth";
+import {
+	handleAuthCallback,
+	parseAuthDeepLink,
+} from "lib/trpc/routers/auth/utils/auth-functions";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { ensureShellEnvVars } from "./lib/shell-env";
@@ -41,7 +44,7 @@ async function processDeepLink(url: string): Promise<void> {
 	const authParams = parseAuthDeepLink(url);
 	if (!authParams) return;
 
-	const result = await authService.handleAuthCallback(authParams);
+	const result = await handleAuthCallback(authParams);
 	if (result.success) {
 		focusMainWindow();
 	} else {
@@ -206,7 +209,6 @@ if (!gotTheLock) {
 		await app.whenReady();
 
 		await initAppState();
-		await authService.initialize();
 
 		// Resolve shell environment before setting up agent hooks
 		// This ensures ZDOTDIR and PATH are available for terminal initialization

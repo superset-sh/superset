@@ -11,6 +11,10 @@
 		"./client": {
 			"types": "./src/client.ts",
 			"default": "./src/client.ts"
+		},
+		"./electron-client": {
+			"types": "./src/electron-client.ts",
+			"default": "./src/electron-client.ts"
 		}
 	},
 	"scripts": {

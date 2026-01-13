@@ -1,3 +1,4 @@
+import { authClient } from "renderer/lib/auth-client";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -12,7 +13,6 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { InviteMemberButton } from "./components/InviteMemberButton";
 import { MemberActions } from "./components/MemberActions";
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/settings/team/")({
 });
 
 function TeamSettingsPage() {
-	const { session } = useAuth();
+	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 
 	const { data: membersData, isLoading } = useLiveQuery(

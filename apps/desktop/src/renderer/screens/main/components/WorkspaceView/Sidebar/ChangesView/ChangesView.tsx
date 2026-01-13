@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 
@@ -32,11 +32,11 @@ export function ChangesView({
 	onFileOpen,
 	onFileOpenPinned,
 }: ChangesViewProps) {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath;
 
 	const { baseBranch } = useChangesStore();
-	const { data: branchData } = trpc.changes.getBranches.useQuery(
+	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath },
 	);
@@ -47,7 +47,7 @@ export function ChangesView({
 		data: status,
 		isLoading,
 		refetch,
-	} = trpc.changes.getStatus.useQuery(
+	} = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{
 			enabled: !!worktreePath,
@@ -57,7 +57,7 @@ export function ChangesView({
 	);
 
 	const { data: githubStatus, refetch: refetchGithubStatus } =
-		trpc.workspaces.getGitHubStatus.useQuery(
+		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: activeWorkspace?.id ?? "" },
 			{
 				enabled: !!activeWorkspace?.id,
@@ -70,7 +70,7 @@ export function ChangesView({
 		refetchGithubStatus();
 	};
 
-	const stageAllMutation = trpc.changes.stageAll.useMutation({
+	const stageAllMutation = electronTrpc.changes.stageAll.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error) => {
 			console.error("Failed to stage all files:", error);
@@ -78,7 +78,7 @@ export function ChangesView({
 		},
 	});
 
-	const unstageAllMutation = trpc.changes.unstageAll.useMutation({
+	const unstageAllMutation = electronTrpc.changes.unstageAll.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error) => {
 			console.error("Failed to unstage all files:", error);
@@ -86,7 +86,7 @@ export function ChangesView({
 		},
 	});
 
-	const stageFileMutation = trpc.changes.stageFile.useMutation({
+	const stageFileMutation = electronTrpc.changes.stageFile.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
 			console.error(`Failed to stage file ${variables.filePath}:`, error);
@@ -94,7 +94,7 @@ export function ChangesView({
 		},
 	});
 
-	const unstageFileMutation = trpc.changes.unstageFile.useMutation({
+	const unstageFileMutation = electronTrpc.changes.unstageFile.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
 			console.error(`Failed to unstage file ${variables.filePath}:`, error);
@@ -102,7 +102,7 @@ export function ChangesView({
 		},
 	});
 
-	const discardChangesMutation = trpc.changes.discardChanges.useMutation({
+	const discardChangesMutation = electronTrpc.changes.discardChanges.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
 			console.error(
@@ -113,7 +113,7 @@ export function ChangesView({
 		},
 	});
 
-	const deleteUntrackedMutation = trpc.changes.deleteUntracked.useMutation({
+	const deleteUntrackedMutation = electronTrpc.changes.deleteUntracked.useMutation({
 		onSuccess: () => refetch(),
 		onError: (error, variables) => {
 			console.error(`Failed to delete ${variables.filePath}:`, error);
@@ -160,7 +160,7 @@ export function ChangesView({
 		setExpandedCommits(new Set());
 	}, [worktreePath]);
 
-	const commitFilesQueries = trpc.useQueries((t) =>
+	const commitFilesQueries = electronTrpc.useQueries((t) =>
 		Array.from(expandedCommits).map((hash) =>
 			t.changes.getCommitFiles({
 				worktreePath: worktreePath || "",

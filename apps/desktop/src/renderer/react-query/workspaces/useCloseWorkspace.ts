@@ -1,18 +1,18 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 type CloseContext = {
 	previousGrouped: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAllGrouped"]["getData"] extends () => infer R
 		? R
 		: never;
 	previousAll: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAll"]["getData"] extends () => infer R
 		? R
 		: never;
 	previousActive: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getActive"]["getData"] extends () => infer R
 		? R
 		: never;
@@ -24,11 +24,11 @@ type CloseContext = {
  * then performs actual close in background.
  */
 export function useCloseWorkspace(
-	options?: Parameters<typeof trpc.workspaces.close.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.close.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.workspaces.close.useMutation({
+	return electronTrpc.workspaces.close.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
 			// Cancel outgoing refetches to avoid overwriting optimistic update

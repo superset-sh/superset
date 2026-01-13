@@ -8,7 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";
@@ -141,7 +141,7 @@ export function createTerminalInstance(
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
 
 	const urlLinkProvider = new UrlLinkProvider(xterm, (_event, uri) => {
-		trpcClient.external.openUrl.mutate(uri).catch((error) => {
+		electronTrpcClient.external.openUrl.mutate(uri).catch((error) => {
 			console.error("[Terminal] Failed to open URL:", uri, error);
 			toast.error("Failed to open URL", {
 				description:
@@ -160,7 +160,7 @@ export function createTerminalInstance(
 				onFileLinkClick(path, line, column);
 			} else {
 				// Fallback to default behavior (external editor)
-				trpcClient.external.openFileInEditor
+				electronTrpcClient.external.openFileInEditor
 					.mutate({
 						path,
 						line,

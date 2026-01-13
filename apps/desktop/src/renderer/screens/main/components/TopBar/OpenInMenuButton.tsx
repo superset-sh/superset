@@ -24,7 +24,7 @@ import {
 	JETBRAINS_OPTIONS,
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInButton";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface OpenInMenuButtonProps {
@@ -36,16 +36,16 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	worktreePath,
 	branch,
 }: OpenInMenuButtonProps) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const { data: lastUsedApp = "cursor" } =
-		trpc.settings.getLastUsedApp.useQuery(undefined, {
+		electronTrpc.settings.getLastUsedApp.useQuery(undefined, {
 			staleTime: 30000,
 		});
-	const openInApp = trpc.external.openInApp.useMutation({
+	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
-	const copyPath = trpc.external.copyPath.useMutation({
+	const copyPath = electronTrpc.external.copyPath.useMutation({
 		onSuccess: () => toast.success("Path copied to clipboard"),
 		onError: (error) => toast.error(`Failed to copy path: ${error.message}`),
 	});

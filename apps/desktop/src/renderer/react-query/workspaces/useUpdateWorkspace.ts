@@ -1,15 +1,15 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
  * Mutation hook for updating a workspace
  * Automatically invalidates all workspace queries on success
  */
 export function useUpdateWorkspace(
-	options?: Parameters<typeof trpc.workspaces.update.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.update.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.workspaces.update.useMutation({
+	return electronTrpc.workspaces.update.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			// Auto-invalidate all workspace queries

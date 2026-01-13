@@ -1,6 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { STROKE_WIDTH_THICK } from "../constants";
 
@@ -13,7 +13,7 @@ export function NewWorkspaceButton({
 }: NewWorkspaceButtonProps) {
 	const openModal = useOpenNewWorkspaceModal();
 	const { data: activeWorkspace, isLoading } =
-		trpc.workspaces.getActive.useQuery();
+		electronTrpc.workspaces.getActive.useQuery();
 
 	const handleClick = () => {
 		// projectId may be undefined if no workspace is active or query failed

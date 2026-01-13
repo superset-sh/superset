@@ -8,15 +8,15 @@ export const Route = createFileRoute(
 
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 function ProjectSettingsPage() {
 	const { projectId } = Route.useParams();
-	const { data: project, isLoading } = trpc.projects.get.useQuery({
+	const { data: project, isLoading } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
 
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
+	const { data: configFilePath } = electronTrpc.config.getConfigFilePath.useQuery(
 		{ projectId },
 		{ enabled: !!projectId },
 	);

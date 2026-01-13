@@ -1,5 +1,5 @@
 import { toast } from "@superset/ui/sonner";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
  * Mutation hook for setting the active workspace
@@ -7,10 +7,10 @@ import { trpc } from "renderer/lib/trpc";
  * Shows undo toast if workspace was marked as unread (auto-cleared on switch)
  */
 export function useSetActiveWorkspace(
-	options?: Parameters<typeof trpc.workspaces.setActive.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.setActive.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
-	const setUnread = trpc.workspaces.setUnread.useMutation({
+	const utils = electronTrpc.useUtils();
+	const setUnread = electronTrpc.workspaces.setUnread.useMutation({
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 		},
@@ -22,7 +22,7 @@ export function useSetActiveWorkspace(
 		},
 	});
 
-	return trpc.workspaces.setActive.useMutation({
+	return electronTrpc.workspaces.setActive.useMutation({
 		...options,
 		onError: (error, variables, context, meta) => {
 			console.error("[workspace/setActive] Failed to set active workspace:", {

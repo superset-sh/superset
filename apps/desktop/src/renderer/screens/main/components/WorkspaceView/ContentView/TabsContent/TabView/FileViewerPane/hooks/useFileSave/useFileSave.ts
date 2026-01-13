@@ -1,6 +1,6 @@
 import type * as Monaco from "monaco-editor";
 import { type MutableRefObject, useCallback, useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory } from "shared/changes-types";
 
@@ -29,9 +29,9 @@ export function useFileSave({
 }: UseFileSaveParams) {
 	const savingFromRawRef = useRef(false);
 	const savingDiffContentRef = useRef<string | null>(null);
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	const saveFileMutation = trpc.changes.saveFile.useMutation({
+	const saveFileMutation = electronTrpc.changes.saveFile.useMutation({
 		onSuccess: () => {
 			setIsDirty(false);
 			if (editorRef.current) {

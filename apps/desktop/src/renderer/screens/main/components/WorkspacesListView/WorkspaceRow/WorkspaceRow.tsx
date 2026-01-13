@@ -13,7 +13,7 @@ import {
 	LuFolderGit2,
 	LuRotateCw,
 } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceDeleteHandler } from "renderer/react-query/workspaces/useWorkspaceDeleteHandler";
 import { STROKE_WIDTH } from "../../WorkspaceSidebar/constants";
 import { DeleteWorkspaceDialog } from "../../WorkspaceSidebar/WorkspaceListItem/components/DeleteWorkspaceDialog/DeleteWorkspaceDialog";
@@ -44,7 +44,7 @@ export function WorkspaceRow({
 		useWorkspaceDeleteHandler();
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } = trpc.workspaces.getGitHubStatus.useQuery(
+	const { data: githubStatus } = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspace.workspaceId ?? "" },
 		{
 			enabled:

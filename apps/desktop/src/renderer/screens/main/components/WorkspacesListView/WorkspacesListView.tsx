@@ -4,7 +4,7 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
@@ -19,15 +19,15 @@ const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
 export function WorkspacesListView() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filterMode, setFilterMode] = useState<FilterMode>("all");
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	// Fetch all data
-	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
-	const { data: allProjects = [] } = trpc.projects.getRecents.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: groups = [] } = electronTrpc.workspaces.getAllGrouped.useQuery();
+	const { data: allProjects = [] } = electronTrpc.projects.getRecents.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 
 	// Fetch worktrees for all projects
-	const worktreeQueries = trpc.useQueries((t) =>
+	const worktreeQueries = electronTrpc.useQueries((t) =>
 		allProjects.map((project) =>
 			t.workspaces.getWorktreesByProject({ projectId: project.id }),
 		),
@@ -36,7 +36,7 @@ export function WorkspacesListView() {
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const closeWorkspacesList = useCloseWorkspacesList();
 
-	const openWorktree = trpc.workspaces.openWorktree.useMutation({
+	const openWorktree = electronTrpc.workspaces.openWorktree.useMutation({
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.workspaces.getActive.invalidate();

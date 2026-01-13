@@ -14,7 +14,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import {
 	PROJECT_COLOR_DEFAULT,
@@ -50,10 +50,10 @@ export function ProjectHeader({
 	workspaceCount,
 	onNewWorkspace,
 }: ProjectHeaderProps) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 
-	const closeProject = trpc.projects.close.useMutation({
+	const closeProject = electronTrpc.projects.close.useMutation({
 		onSuccess: (data) => {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.workspaces.getActive.invalidate();
@@ -67,7 +67,7 @@ export function ProjectHeader({
 		},
 	});
 
-	const openInFinder = trpc.external.openInFinder.useMutation({
+	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 

@@ -11,7 +11,7 @@ import { cn } from "@superset/ui/utils";
 import { useMemo, useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
 import { STROKE_WIDTH } from "../../../constants";
 
@@ -29,17 +29,17 @@ export function BranchSwitcher({
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const setActiveWorkspace = useSetActiveWorkspace();
 
 	// Fetch branches when dropdown opens
 	const { data: branchesData, isLoading } =
-		trpc.workspaces.getBranches.useQuery(
+		electronTrpc.workspaces.getBranches.useQuery(
 			{ projectId, fetch: false },
 			{ enabled: isOpen },
 		);
 
-	const switchBranch = trpc.workspaces.switchBranchWorkspace.useMutation({
+	const switchBranch = electronTrpc.workspaces.switchBranchWorkspace.useMutation({
 		onSuccess: () => {
 			utils.workspaces.invalidate();
 		},

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -12,7 +12,7 @@ import { ContentView } from "./ContentView";
 import { WorkspaceInitializingView } from "./WorkspaceInitializingView";
 
 export function WorkspaceView() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 
 	// Check if active workspace is initializing or failed
@@ -140,8 +140,8 @@ export function WorkspaceView() {
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =
-		trpc.settings.getLastUsedApp.useQuery();
-	const openInApp = trpc.external.openInApp.useMutation();
+		electronTrpc.settings.getLastUsedApp.useQuery();
+	const openInApp = electronTrpc.external.openInApp.useMutation();
 	useAppHotkey(
 		"OPEN_IN_APP",
 		() => {
@@ -157,7 +157,7 @@ export function WorkspaceView() {
 	);
 
 	// Copy path shortcut
-	const copyPath = trpc.external.copyPath.useMutation();
+	const copyPath = electronTrpc.external.copyPath.useMutation();
 	useAppHotkey(
 		"COPY_PATH",
 		() => {

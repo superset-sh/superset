@@ -1,15 +1,15 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
  * Mutation hook for updating a project (name, color, etc.)
  * Automatically invalidates project + workspace queries on success
  */
 export function useUpdateProject(
-	options?: Parameters<typeof trpc.projects.update.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.projects.update.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.projects.update.useMutation({
+	return electronTrpc.projects.update.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await Promise.all([

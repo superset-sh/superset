@@ -1,12 +1,12 @@
+import { authClient } from "renderer/lib/auth-client";
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
-import { trpc } from "renderer/lib/trpc";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { SupersetLogo } from "./components/SupersetLogo";
 
 export const Route = createFileRoute("/sign-in/")({
@@ -14,14 +14,14 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 function SignInPage() {
-	const { session, token } = useAuth();
-	const signInMutation = trpc.auth.signIn.useMutation();
+	const { data: session } = authClient.useSession();
+	const signInMutation = electronTrpc.auth.signIn.useMutation();
 
 	useEffect(() => {
 		posthog.capture("desktop_opened");
 	}, []);
 
-	const isSignedIn = !!token && !!session?.user;
+	const isSignedIn = !!session?.user;
 	if (isSignedIn) {
 		return <Navigate to="/workspace" replace />;
 	}

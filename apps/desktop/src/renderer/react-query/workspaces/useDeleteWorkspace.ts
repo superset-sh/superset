@@ -1,18 +1,18 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 type DeleteContext = {
 	previousGrouped: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAllGrouped"]["getData"] extends () => infer R
 		? R
 		: never;
 	previousAll: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAll"]["getData"] extends () => infer R
 		? R
 		: never;
 	previousActive: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getActive"]["getData"] extends () => infer R
 		? R
 		: never;
@@ -23,11 +23,11 @@ type DeleteContext = {
  * Server marks `deletingAt` immediately so refetches stay correct during slow git operations.
  */
 export function useDeleteWorkspace(
-	options?: Parameters<typeof trpc.workspaces.delete.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.delete.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.workspaces.delete.useMutation({
+	return electronTrpc.workspaces.delete.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
 			await Promise.all([

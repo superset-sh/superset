@@ -9,7 +9,7 @@ import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCurrentView } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -44,7 +44,7 @@ function LoadingSpinner() {
 }
 
 export function MainScreen() {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	const {
 		isLoading: isVersionLoading,
@@ -53,7 +53,7 @@ export function MainScreen() {
 	} = useVersionCheck();
 
 	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	trpc.workspaces.onInitProgress.useSubscription(undefined, {
+	electronTrpc.workspaces.onInitProgress.useSubscription(undefined, {
 		onData: (progress) => {
 			updateInitProgress(progress);
 			if (progress.step === "ready" || progress.step === "failed") {
@@ -87,7 +87,7 @@ export function MainScreen() {
 		isError,
 		failureCount,
 		refetch,
-	} = trpc.workspaces.getActive.useQuery();
+	} = electronTrpc.workspaces.getActive.useQuery();
 	const [isRetrying, setIsRetrying] = useState(false);
 	const { splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
 		useTabsWithPresets();
@@ -100,7 +100,7 @@ export function MainScreen() {
 	useUpdateListener();
 	useHotkeysSync();
 
-	trpc.menu.subscribe.useSubscription(undefined, {
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
 				const section = event.data.section || "account";

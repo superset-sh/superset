@@ -2,7 +2,7 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { formatDistanceToNow } from "date-fns";
 import { LuGitBranch } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenWorktree } from "renderer/react-query/workspaces";
 
 interface ExistingWorktreesListProps {
@@ -15,7 +15,7 @@ export function ExistingWorktreesList({
 	onOpenSuccess,
 }: ExistingWorktreesListProps) {
 	const { data: worktrees = [], isLoading } =
-		trpc.workspaces.getWorktreesByProject.useQuery({ projectId });
+		electronTrpc.workspaces.getWorktreesByProject.useQuery({ projectId });
 	const openWorktree = useOpenWorktree();
 
 	const closedWorktrees = worktrees

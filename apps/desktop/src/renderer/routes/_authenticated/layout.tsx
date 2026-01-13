@@ -1,7 +1,7 @@
+import { authClient } from "renderer/lib/auth-client";
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
 import { dragDropManager } from "renderer/lib/dnd";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { OrganizationsProvider } from "./providers/OrganizationsProvider";
 
@@ -10,8 +10,8 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { session, token } = useAuth();
-	const isSignedIn = !!token && !!session?.user;
+	const { data: session } = authClient.useSession();
+	const isSignedIn = !!session?.user;
 
 	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;

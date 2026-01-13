@@ -3,6 +3,7 @@ import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { trpc } from "renderer/lib/trpc";
 
 export const Route = createFileRoute("/_authenticated/settings/account/")({
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/_authenticated/settings/account/")({
 
 function AccountSettingsPage() {
 	const { data: user, isLoading } = trpc.user.me.useQuery();
-	const signOutMutation = trpc.auth.signOut.useMutation({
+	const signOutMutation = electronTrpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
 

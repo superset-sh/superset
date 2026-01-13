@@ -1,4 +1,4 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { MergedWorkspaceGroup } from "../../hooks/usePortsData";
 import { MergedPortBadge } from "../MergedPortBadge";
 
@@ -7,8 +7,8 @@ interface WorkspacePortGroupProps {
 }
 
 export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
-	const setActiveMutation = trpc.workspaces.setActive.useMutation();
-	const utils = trpc.useUtils();
+	const setActiveMutation = electronTrpc.workspaces.setActive.useMutation();
+	const utils = electronTrpc.useUtils();
 
 	const handleWorkspaceClick = async () => {
 		if (group.isCurrentWorkspace) return;

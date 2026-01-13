@@ -1,4 +1,4 @@
-import { authClient } from "@superset/auth/client";
+import { authClient } from "renderer/lib/auth-client";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
