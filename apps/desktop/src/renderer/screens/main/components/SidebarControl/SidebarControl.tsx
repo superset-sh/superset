@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { LuGitCompareArrows } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
@@ -25,9 +26,12 @@ export function SidebarControl() {
 	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
 
 	// Get active workspace for file opening
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const workspaceId = activeWorkspace?.id;
-	const worktreePath = activeWorkspace?.worktreePath;
+	const { workspaceId } = useParams({ strict: false });
+	const { data: workspace } = trpc.workspaces.get.useQuery(
+		{ id: workspaceId ?? "" },
+		{ enabled: !!workspaceId },
+	);
+	const worktreePath = workspace?.worktreePath;
 
 	// Get base branch for changes query
 	const { baseBranch, selectFile } = useChangesStore();

@@ -2,11 +2,10 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
-import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
 import { WorkspaceRow } from "./WorkspaceRow";
 
@@ -19,12 +18,12 @@ const FILTER_OPTIONS: { value: FilterMode; label: string }[] = [
 export function WorkspacesListView() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filterMode, setFilterMode] = useState<FilterMode>("all");
+	const navigate = useNavigate();
 	const utils = trpc.useUtils();
 
 	// Fetch all data
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const { data: allProjects = [] } = trpc.projects.getRecents.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 
 	// Fetch worktrees for all projects
 	const worktreeQueries = trpc.useQueries((t) =>
@@ -33,14 +32,17 @@ export function WorkspacesListView() {
 		),
 	);
 
-	const setActiveWorkspace = useSetActiveWorkspace();
-	const closeWorkspacesList = useCloseWorkspacesList();
-
 	const openWorktree = trpc.workspaces.openWorktree.useMutation({
-		onSuccess: () => {
+		onSuccess: (data) => {
 			utils.workspaces.getAllGrouped.invalidate();
-			utils.workspaces.getActive.invalidate();
-			closeWorkspacesList();
+			// Navigate to the newly opened workspace
+			if (data.workspace?.id) {
+				localStorage.setItem("lastViewedWorkspaceId", data.workspace.id);
+				navigate({
+					to: "/workspace/$workspaceId",
+					params: { workspaceId: data.workspace.id },
+				});
+			}
 		},
 		onError: (error) => {
 			toast.error(`Failed to open workspace: ${error.message}`);
@@ -164,8 +166,11 @@ export function WorkspacesListView() {
 
 	const handleSwitch = (item: WorkspaceItem) => {
 		if (item.workspaceId) {
-			setActiveWorkspace.mutate({ id: item.workspaceId });
-			closeWorkspacesList();
+			localStorage.setItem("lastViewedWorkspaceId", item.workspaceId);
+			navigate({
+				to: "/workspace/$workspaceId",
+				params: { workspaceId: item.workspaceId },
+			});
 		}
 	};
 
@@ -227,7 +232,7 @@ export function WorkspacesListView() {
 				<Button
 					variant="ghost"
 					size="icon"
-					onClick={closeWorkspacesList}
+					onClick={() => navigate({ to: "/workspace" })}
 					className="size-7 text-foreground/60 hover:text-foreground shrink-0"
 				>
 					<LuX className="size-4" />
@@ -253,7 +258,6 @@ export function WorkspacesListView() {
 							<WorkspaceRow
 								key={ws.uniqueId}
 								workspace={ws}
-								isActive={activeWorkspace?.id === ws.workspaceId}
 								onSwitch={() => handleSwitch(ws)}
 								onReopen={() => handleReopen(ws)}
 								isOpening={

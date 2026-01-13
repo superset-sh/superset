@@ -3,34 +3,10 @@ import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
-import {
-	getWorkspaceNotDeleting,
-	setLastActiveWorkspace,
-	touchWorkspace,
-} from "../utils/db-helpers";
+import { getWorkspaceNotDeleting, touchWorkspace } from "../utils/db-helpers";
 
 export const createStatusProcedures = () => {
 	return router({
-		setActive: publicProcedure
-			.input(z.object({ id: z.string() }))
-			.mutation(({ input }) => {
-				const workspace = getWorkspaceNotDeleting(input.id);
-				if (!workspace) {
-					throw new Error(
-						`Workspace ${input.id} not found or is being deleted`,
-					);
-				}
-
-				// Track if workspace was unread before clearing
-				const wasUnread = workspace.isUnread ?? false;
-
-				// Auto-clear unread state when switching to workspace
-				touchWorkspace(input.id, { isUnread: false });
-				setLastActiveWorkspace(input.id);
-
-				return { success: true, wasUnread };
-			}),
-
 		reorder: publicProcedure
 			.input(
 				z.object({

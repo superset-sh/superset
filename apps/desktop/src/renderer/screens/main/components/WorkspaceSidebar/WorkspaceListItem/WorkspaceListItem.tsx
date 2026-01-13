@@ -15,6 +15,7 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
@@ -22,13 +23,11 @@ import { LuEye, LuEyeOff, LuFolder, LuFolderGit2 } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import {
 	useReorderWorkspaces,
-	useSetActiveWorkspace,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
-import { useCloseWorkspacesList } from "renderer/stores/app-state";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { getHighestPriorityStatus } from "shared/tabs-types";
@@ -56,7 +55,6 @@ interface WorkspaceListItemProps {
 	name: string;
 	branch: string;
 	type: "worktree" | "branch";
-	isActive: boolean;
 	isUnread?: boolean;
 	index: number;
 	shortcutIndex?: number;
@@ -71,16 +69,15 @@ export function WorkspaceListItem({
 	name,
 	branch,
 	type,
-	isActive,
 	isUnread = false,
 	index,
 	shortcutIndex,
 	isCollapsed = false,
 }: WorkspaceListItemProps) {
 	const isBranchWorkspace = type === "branch";
-	const setActiveWorkspace = useSetActiveWorkspace();
+	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
-	const closeWorkspacesList = useCloseWorkspacesList();
 	const [hasHovered, setHasHovered] = useState(false);
 	const rename = useWorkspaceRename(id, name);
 	const tabs = useTabsStore((s) => s.tabs);
@@ -89,6 +86,12 @@ export function WorkspaceListItem({
 		(s) => s.clearWorkspaceAttentionStatus,
 	);
 	const utils = trpc.useUtils();
+
+	// Derive isActive from route
+	const isActive = !!matchRoute({
+		to: "/workspace/$workspaceId",
+		params: { workspaceId: id },
+	});
 	const openInFinder = trpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
@@ -134,10 +137,12 @@ export function WorkspaceListItem({
 
 	const handleClick = () => {
 		if (!rename.isRenaming) {
-			setActiveWorkspace.mutate({ id });
 			clearWorkspaceAttentionStatus(id);
-			// Close workspaces list view if open, to show the workspace's terminal view
-			closeWorkspacesList();
+			localStorage.setItem("lastViewedWorkspaceId", id);
+			navigate({
+				to: "/workspace/$workspaceId",
+				params: { workspaceId: id },
+			});
 		}
 	};
 

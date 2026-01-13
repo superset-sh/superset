@@ -12,7 +12,7 @@ interface WorkspaceSidebarProps {
 export function WorkspaceSidebar({
 	isCollapsed = false,
 }: WorkspaceSidebarProps) {
-	const { groups, activeWorkspaceId } = useWorkspaceShortcuts();
+	const { groups } = useWorkspaceShortcuts();
 
 	// Calculate shortcut base indices for each project group using cumulative offsets
 	const projectShortcutIndices = useMemo(
@@ -41,7 +41,6 @@ export function WorkspaceSidebar({
 						githubOwner={group.project.githubOwner}
 						mainRepoPath={group.project.mainRepoPath}
 						workspaces={group.workspaces}
-						activeWorkspaceId={activeWorkspaceId}
 						shortcutBaseIndex={projectShortcutIndices[index]}
 						isCollapsed={isCollapsed}
 					/>

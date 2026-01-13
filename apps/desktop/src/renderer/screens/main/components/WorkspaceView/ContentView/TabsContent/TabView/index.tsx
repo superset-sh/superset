@@ -1,6 +1,7 @@
 import "react-mosaic-component/react-mosaic-component.css";
 import "./mosaic-theme.css";
 
+import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo } from "react";
 import {
 	Mosaic,
@@ -36,9 +37,13 @@ export function TabView({ tab }: TabViewProps) {
 	const allTabs = useTabsStore((s) => s.tabs);
 	const allPanes = useTabsStore((s) => s.panes);
 
-	// Get worktree path for file viewer panes
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const worktreePath = activeWorkspace?.worktreePath ?? "";
+	// Get workspace path for file viewer panes
+	const { workspaceId } = useParams({ strict: false });
+	const { data: workspace } = trpc.workspaces.get.useQuery(
+		{ id: workspaceId ?? "" },
+		{ enabled: !!workspaceId },
+	);
+	const worktreePath = workspace?.worktreePath ?? "";
 
 	// Get tabs in the same workspace for move targets
 	const workspaceTabs = allTabs.filter(

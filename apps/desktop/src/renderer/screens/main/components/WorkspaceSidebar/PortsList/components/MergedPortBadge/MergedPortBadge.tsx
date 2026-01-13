@@ -1,23 +1,18 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useNavigate } from "@tanstack/react-router";
 import { LuExternalLink } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { MergedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
 
 interface MergedPortBadgeProps {
 	port: MergedPort;
-	isCurrentWorkspace: boolean;
 }
 
-export function MergedPortBadge({
-	port,
-	isCurrentWorkspace,
-}: MergedPortBadgeProps) {
+export function MergedPortBadge({ port }: MergedPortBadgeProps) {
+	const navigate = useNavigate();
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const setActiveMutation = trpc.workspaces.setActive.useMutation();
-	const utils = trpc.useUtils();
 
 	const portNumberColor = port.isActive
 		? "text-muted-foreground"
@@ -36,17 +31,18 @@ export function MergedPortBadge({
 
 	const canJumpToTerminal = port.isActive && port.paneId;
 
-	const handleClick = async () => {
+	const handleClick = () => {
 		if (!canJumpToTerminal || !port.paneId) return;
-
-		if (!isCurrentWorkspace) {
-			await setActiveMutation.mutateAsync({ id: port.workspaceId });
-			await utils.workspaces.getActive.invalidate();
-		}
 
 		const pane = useTabsStore.getState().panes[port.paneId];
 		if (!pane) return;
 
+		// Navigate to workspace, then focus the pane
+		localStorage.setItem("lastViewedWorkspaceId", port.workspaceId);
+		navigate({
+			to: "/workspace/$workspaceId",
+			params: { workspaceId: port.workspaceId },
+		});
 		setActiveTab(port.workspaceId, pane.tabId);
 		setFocusedPane(pane.tabId, port.paneId);
 	};
@@ -55,16 +51,10 @@ export function MergedPortBadge({
 		window.open(`http://localhost:${port.port}`, "_blank");
 	};
 
-	const badgeClasses = isCurrentWorkspace
-		? "bg-primary/10 text-primary hover:bg-primary/20"
-		: "bg-muted/50 text-muted-foreground hover:bg-muted";
-
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<div
-					className={`group relative inline-flex items-center gap-1 rounded-md text-xs transition-colors mb-1 ${badgeClasses}`}
-				>
+				<div className="group relative inline-flex items-center gap-1 rounded-md text-xs transition-colors mb-1 bg-primary/10 text-primary hover:bg-primary/20">
 					<button
 						type="button"
 						onClick={handleClick}

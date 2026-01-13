@@ -1,5 +1,5 @@
+import { useParams } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
 import {
 	MAX_SIDEBAR_WIDTH,
@@ -12,8 +12,7 @@ import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
 export function TabsContent() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id;
+	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 

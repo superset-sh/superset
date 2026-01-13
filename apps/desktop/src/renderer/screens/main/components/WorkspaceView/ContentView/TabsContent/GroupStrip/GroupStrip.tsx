@@ -8,7 +8,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
 	HiMiniChevronDown,
@@ -22,7 +22,6 @@ import {
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { trpc } from "renderer/lib/trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -30,8 +29,7 @@ import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
 export function GroupStrip() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id;
+	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 
 	const allTabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);

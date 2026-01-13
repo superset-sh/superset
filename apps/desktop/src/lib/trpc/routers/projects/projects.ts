@@ -7,6 +7,7 @@ import {
 	settings,
 	workspaces,
 } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { desc, eq, inArray } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
@@ -144,14 +145,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
-			.query(({ input }): Project | null => {
-				return (
-					localDb
-						.select()
-						.from(projects)
-						.where(eq(projects.id, input.id))
-						.get() ?? null
-				);
+			.query(({ input }): Project => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				return project;
 			}),
 
 		getRecents: publicProcedure.query((): Project[] => {

@@ -22,7 +22,6 @@ interface ProjectSectionProps {
 	githubOwner: string | null;
 	mainRepoPath: string;
 	workspaces: Workspace[];
-	activeWorkspaceId: string | null;
 	/** Base index for keyboard shortcuts (0-based) */
 	shortcutBaseIndex: number;
 	/** Whether the sidebar is in collapsed mode */
@@ -36,7 +35,6 @@ export function ProjectSection({
 	githubOwner,
 	mainRepoPath,
 	workspaces,
-	activeWorkspaceId,
 	shortcutBaseIndex,
 	isCollapsed: isSidebarCollapsed = false,
 }: ProjectSectionProps) {
@@ -85,7 +83,6 @@ export function ProjectSection({
 										name={workspace.name}
 										branch={workspace.branch}
 										type={workspace.type}
-										isActive={workspace.id === activeWorkspaceId}
 										isUnread={workspace.isUnread}
 										index={index}
 										shortcutIndex={shortcutBaseIndex + index}
@@ -134,7 +131,6 @@ export function ProjectSection({
 									name={workspace.name}
 									branch={workspace.branch}
 									type={workspace.type}
-									isActive={workspace.id === activeWorkspaceId}
 									isUnread={workspace.isUnread}
 									index={index}
 									shortcutIndex={shortcutBaseIndex + index}

@@ -1,9 +1,7 @@
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import {
-	useCreateBranchWorkspace,
-	useSetActiveWorkspace,
-} from "renderer/react-query/workspaces";
+import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
 /**
@@ -11,15 +9,16 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
  * Used by WorkspaceSidebar for navigation between workspaces.
  *
  * It handles:
- * - ⌘1-9 workspace switching shortcuts
- * - Previous/next workspace shortcuts
+ * - ⌘1-9 workspace switching shortcuts (global)
  * - Auto-create main workspace for new projects
+ *
+ * Note: PREV/NEXT workspace shortcuts (⌘↑/⌘↓) are handled in the workspace
+ * page itself to avoid conflicts with terminal/editor shortcuts.
  */
 export function useWorkspaceShortcuts() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id || null;
-	const setActiveWorkspace = useSetActiveWorkspace();
+	const navigate = useNavigate();
+
 	const createBranchWorkspace = useCreateBranchWorkspace();
 
 	// Track projects we've attempted to create workspaces for (persists across renders)
@@ -66,10 +65,14 @@ export function useWorkspaceShortcuts() {
 		(index: number) => {
 			const workspace = allWorkspaces[index];
 			if (workspace) {
-				setActiveWorkspace.mutate({ id: workspace.id });
+				localStorage.setItem("lastViewedWorkspaceId", workspace.id);
+				navigate({
+					to: "/workspace/$workspaceId",
+					params: { workspaceId: workspace.id },
+				});
 			}
 		},
-		[allWorkspaces, setActiveWorkspace],
+		[allWorkspaces, navigate],
 	);
 
 	useAppHotkey("JUMP_TO_WORKSPACE_1", () => switchToWorkspace(0), undefined, [
@@ -100,40 +103,8 @@ export function useWorkspaceShortcuts() {
 		switchToWorkspace,
 	]);
 
-	useAppHotkey(
-		"PREV_WORKSPACE",
-		() => {
-			if (!activeWorkspaceId) return;
-			const currentIndex = allWorkspaces.findIndex(
-				(w) => w.id === activeWorkspaceId,
-			);
-			if (currentIndex > 0) {
-				setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex - 1].id });
-			}
-		},
-		undefined,
-		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
-	);
-
-	useAppHotkey(
-		"NEXT_WORKSPACE",
-		() => {
-			if (!activeWorkspaceId) return;
-			const currentIndex = allWorkspaces.findIndex(
-				(w) => w.id === activeWorkspaceId,
-			);
-			if (currentIndex < allWorkspaces.length - 1) {
-				setActiveWorkspace.mutate({ id: allWorkspaces[currentIndex + 1].id });
-			}
-		},
-		undefined,
-		[activeWorkspaceId, allWorkspaces, setActiveWorkspace],
-	);
-
 	return {
 		groups,
 		allWorkspaces,
-		activeWorkspaceId,
-		setActiveWorkspace,
 	};
 }

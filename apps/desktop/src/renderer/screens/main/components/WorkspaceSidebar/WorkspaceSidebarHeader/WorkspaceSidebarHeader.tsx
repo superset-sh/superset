@@ -1,6 +1,7 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useState } from "react";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
@@ -11,12 +12,6 @@ import {
 	LuPanelLeftOpen,
 } from "react-icons/lu";
 import { useWorkspaceSidebarStore } from "renderer/stores";
-import {
-	useCloseWorkspacesList,
-	useCurrentView,
-	useOpenTasks,
-	useOpenWorkspacesList,
-} from "renderer/stores/app-state";
 import { STROKE_WIDTH, STROKE_WIDTH_THIN } from "../constants";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
 import { OrganizationDropdown } from "./OrganizationDropdown";
@@ -28,25 +23,29 @@ interface WorkspaceSidebarHeaderProps {
 export function WorkspaceSidebarHeader({
 	isCollapsed = false,
 }: WorkspaceSidebarHeaderProps) {
-	const currentView = useCurrentView();
-	const openWorkspacesList = useOpenWorkspacesList();
-	const closeWorkspacesList = useCloseWorkspacesList();
-	const openTasks = useOpenTasks();
+	const navigate = useNavigate();
+	const matchRoute = useMatchRoute();
 	const { toggleCollapsed } = useWorkspaceSidebarStore();
 	const [isHovering, setIsHovering] = useState(false);
 	const hasTasksAccess = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
 
-	const isWorkspacesListOpen = currentView === "workspaces-list";
-	const isTasksOpen = currentView === "tasks";
+	// Derive active state from route
+	const isWorkspacesListOpen = !!matchRoute({ to: "/workspaces" });
+	const isTasksOpen = !!matchRoute({ to: "/tasks" });
 
-	const handleClick = () => {
+	const handleWorkspacesClick = () => {
 		if (isWorkspacesListOpen) {
-			closeWorkspacesList();
+			// Navigate back to workspace view
+			navigate({ to: "/workspace" });
 		} else {
-			openWorkspacesList();
+			navigate({ to: "/workspaces" });
 		}
+	};
+
+	const handleTasksClick = () => {
+		navigate({ to: "/tasks" });
 	};
 
 	const handleToggleSidebar = () => {
@@ -92,7 +91,7 @@ export function WorkspaceSidebarHeader({
 					<TooltipTrigger asChild>
 						<button
 							type="button"
-							onClick={handleClick}
+							onClick={handleWorkspacesClick}
 							className={cn(
 								"flex items-center justify-center size-8 rounded-md transition-colors",
 								isWorkspacesListOpen
@@ -111,7 +110,7 @@ export function WorkspaceSidebarHeader({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								onClick={() => openTasks()}
+								onClick={handleTasksClick}
 								className={cn(
 									"flex items-center justify-center size-8 rounded-md transition-colors",
 									isTasksOpen
@@ -162,7 +161,7 @@ export function WorkspaceSidebarHeader({
 
 			<button
 				type="button"
-				onClick={handleClick}
+				onClick={handleWorkspacesClick}
 				className={cn(
 					"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
 					isWorkspacesListOpen
@@ -179,7 +178,7 @@ export function WorkspaceSidebarHeader({
 			{hasTasksAccess && (
 				<button
 					type="button"
-					onClick={() => openTasks()}
+					onClick={handleTasksClick}
 					className={cn(
 						"flex items-center gap-2 px-2 py-1.5 w-full rounded-md transition-colors",
 						isTasksOpen

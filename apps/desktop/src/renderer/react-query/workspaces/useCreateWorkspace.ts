@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
@@ -19,6 +20,7 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 export function useCreateWorkspace(
 	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
 ) {
+	const navigate = useNavigate();
 	const utils = trpc.useUtils();
 	const addPendingTerminalSetup = useWorkspaceInitStore(
 		(s) => s.addPendingTerminalSetup,
@@ -28,9 +30,9 @@ export function useCreateWorkspace(
 	return trpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
-			// Optimistically set init progress BEFORE query invalidation to prevent
-			// the "interrupted" state flash. The subscription will update with real
-			// progress, but this ensures isInitializing is true immediately.
+			// CRITICAL: Set optimistic progress BEFORE invalidation AND navigation
+			// to ensure isInitializing is true when workspace page first renders,
+			// preventing the "Setup incomplete" flash.
 			if (data.isInitializing) {
 				const optimisticProgress: WorkspaceInitProgress = {
 					workspaceId: data.workspace.id,
@@ -41,9 +43,6 @@ export function useCreateWorkspace(
 				updateProgress(optimisticProgress);
 			}
 
-			// Auto-invalidate all workspace queries
-			await utils.workspaces.invalidate();
-
 			// Add to global pending store (WorkspaceInitEffects will handle terminal creation)
 			// This survives dialog unmounts since it's stored in Zustand, not a hook-local ref
 			addPendingTerminalSetup({
@@ -52,9 +51,21 @@ export function useCreateWorkspace(
 				initialCommands: data.initialCommands,
 			});
 
+			// Auto-invalidate all workspace queries
+			await utils.workspaces.invalidate();
+
 			// Handle race condition: if init already completed before we added to pending,
 			// WorkspaceInitEffects will process it on next render when it sees the progress
 			// is already "ready" and there's a matching pending setup.
+
+			// Navigate to the new workspace immediately
+			// The workspace exists in DB, so it's safe to navigate
+			// Git operations happen in background with progress shown via toast
+			localStorage.setItem("lastViewedWorkspaceId", data.workspace.id);
+			navigate({
+				to: "/workspace/$workspaceId",
+				params: { workspaceId: data.workspace.id },
+			});
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

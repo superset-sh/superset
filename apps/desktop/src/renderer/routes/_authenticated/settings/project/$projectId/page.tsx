@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { trpcClient } from "renderer/lib/trpc-client";
+import { NotFound } from "renderer/routes/not-found";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/project/$projectId/",
 )({
 	component: ProjectSettingsPage,
+	notFoundComponent: NotFound,
 	loader: async ({ params, context }) => {
 		const projectQueryKey = [
 			["projects", "get"],
@@ -16,19 +18,29 @@ export const Route = createFileRoute(
 			{ input: { projectId: params.projectId }, type: "query" },
 		];
 
-		await Promise.all([
-			context.queryClient.ensureQueryData({
-				queryKey: projectQueryKey,
-				queryFn: () => trpcClient.projects.get.query({ id: params.projectId }),
-			}),
-			context.queryClient.ensureQueryData({
-				queryKey: configQueryKey,
-				queryFn: () =>
-					trpcClient.config.getConfigFilePath.query({
-						projectId: params.projectId,
-					}),
-			}),
-		]);
+		try {
+			await Promise.all([
+				context.queryClient.ensureQueryData({
+					queryKey: projectQueryKey,
+					queryFn: () =>
+						trpcClient.projects.get.query({ id: params.projectId }),
+				}),
+				context.queryClient.ensureQueryData({
+					queryKey: configQueryKey,
+					queryFn: () =>
+						trpcClient.config.getConfigFilePath.query({
+							projectId: params.projectId,
+						}),
+				}),
+			]);
+		} catch (error) {
+			// If project not found, throw notFound() to render 404 page
+			if (error instanceof Error && error.message.includes("not found")) {
+				throw notFound();
+			}
+			// Re-throw other errors
+			throw error;
+		}
 	},
 });
 
@@ -46,17 +58,9 @@ function ProjectSettingsPage() {
 		projectId,
 	});
 
+	// Project is guaranteed to exist here because loader handles 404s
 	if (!project) {
-		return (
-			<div className="p-6 max-w-4xl">
-				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Project</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Project not found
-					</p>
-				</div>
-			</div>
-		);
+		return null;
 	}
 
 	return (

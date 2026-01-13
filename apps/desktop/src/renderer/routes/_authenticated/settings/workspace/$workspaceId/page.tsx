@@ -1,21 +1,32 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { trpcClient } from "renderer/lib/trpc-client";
+import { NotFound } from "renderer/routes/not-found";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/workspace/$workspaceId/",
 )({
 	component: WorkspaceSettingsPage,
+	notFoundComponent: NotFound,
 	loader: async ({ params, context }) => {
 		const queryKey = [
 			["workspaces", "get"],
 			{ input: { id: params.workspaceId }, type: "query" },
 		];
 
-		await context.queryClient.ensureQueryData({
-			queryKey,
-			queryFn: () =>
-				trpcClient.workspaces.get.query({ id: params.workspaceId }),
-		});
+		try {
+			await context.queryClient.ensureQueryData({
+				queryKey,
+				queryFn: () =>
+					trpcClient.workspaces.get.query({ id: params.workspaceId }),
+			});
+		} catch (error) {
+			// If workspace not found, throw notFound() to render 404 page
+			if (error instanceof Error && error.message.includes("not found")) {
+				throw notFound();
+			}
+			// Re-throw other errors
+			throw error;
+		}
 	},
 });
 
@@ -33,17 +44,9 @@ function WorkspaceSettingsPage() {
 
 	const rename = useWorkspaceRename(workspace?.id ?? "", workspace?.name ?? "");
 
+	// Workspace is guaranteed to exist here because loader handles 404s
 	if (!workspace) {
-		return (
-			<div className="p-6 max-w-4xl">
-				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Workspace</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Workspace not found
-					</p>
-				</div>
-			</div>
-		);
+		return null;
 	}
 
 	return (

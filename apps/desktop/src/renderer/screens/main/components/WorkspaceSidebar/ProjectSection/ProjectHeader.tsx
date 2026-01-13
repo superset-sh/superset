@@ -56,7 +56,6 @@ export function ProjectHeader({
 	const closeProject = trpc.projects.close.useMutation({
 		onSuccess: (data) => {
 			utils.workspaces.getAllGrouped.invalidate();
-			utils.workspaces.getActive.invalidate();
 			utils.projects.getRecents.invalidate();
 			if (data.terminalWarning) {
 				toast.warning(data.terminalWarning);
