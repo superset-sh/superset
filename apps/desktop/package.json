@@ -27,6 +27,8 @@
 		"install:deps": "electron-builder install-app-deps",
 		"release": "electron-builder --publish always",
 		"clean:dev": "rimraf ./node_modules/.dev",
+		"generate:routes": "tsr generate",
+		"pretypecheck": "bun run generate:routes",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test"
 	},
@@ -128,6 +130,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",
+		"@tanstack/router-cli": "^1.149.0",
 		"@tanstack/router-plugin": "^1.149.0",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/culori": "^4.0.1",
