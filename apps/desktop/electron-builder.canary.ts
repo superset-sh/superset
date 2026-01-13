@@ -19,12 +19,17 @@ const config: Configuration = {
 	appId: "com.superset.desktop.canary",
 	productName,
 
+	// Explicitly set channel for GitHub releases (required - GitHub doesn't detect from version tag)
+	// This ensures canary builds check canary.yml manifest, not latest.yml
+	detectUpdateChannel: false,
+
 	// Point to canary release for auto-updates
 	publish: {
 		provider: "github",
 		owner: "superset-sh",
 		repo: "superset",
 		releaseType: "prerelease",
+		channel: "canary",
 	},
 
 	// macOS overrides

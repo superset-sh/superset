@@ -53,6 +53,7 @@ jobs:
     uses: ./.github/workflows/build-desktop.yml
     with:
       channel: canary
+      version_suffix: "-canary"
       electron_builder_config: electron-builder.canary.ts
       artifact_prefix: desktop-canary
       artifact_retention_days: 7

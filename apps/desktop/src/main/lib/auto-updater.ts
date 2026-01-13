@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
+import { prerelease } from "semver";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
@@ -8,11 +9,23 @@ import { PLATFORM } from "shared/constants";
 
 const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 
-// Canary builds check the canary release tag, stable builds check latest release
-const IS_CANARY = process.env.CANARY_BUILD === "true";
-const UPDATE_FEED_URL = IS_CANARY
-	? "https://github.com/superset-sh/superset/releases/download/desktop-canary"
-	: "https://github.com/superset-sh/superset/releases/latest/download";
+/**
+ * Detect update channel from app version using semver.
+ * Versions like "0.0.53-canary" have prerelease component ["canary"].
+ * Stable versions like "0.0.53" have no prerelease component.
+ */
+function getUpdateChannel(): string {
+	const version = app.getVersion();
+	const prereleaseComponents = prerelease(version);
+	if (prereleaseComponents && prereleaseComponents.length > 0) {
+		// Return first prerelease identifier (e.g., "canary", "beta", "alpha")
+		return String(prereleaseComponents[0]);
+	}
+	return "latest";
+}
+
+const UPDATE_CHANNEL = getUpdateChannel();
+const IS_PRERELEASE = UPDATE_CHANNEL !== "latest";
 
 export interface AutoUpdateStatusEvent {
 	status: AutoUpdateStatus;
@@ -153,12 +166,17 @@ export function setupAutoUpdater(): void {
 
 	autoUpdater.autoDownload = true;
 	autoUpdater.autoInstallOnAppQuit = true;
-	autoUpdater.allowDowngrade = false;
 
-	autoUpdater.setFeedURL({
-		provider: "generic",
-		url: UPDATE_FEED_URL,
-	});
+	// Set update channel based on version (e.g., "canary" for 0.0.53-canary, "latest" for 0.0.53)
+	// This determines which manifest file to check (canary-mac.yml vs latest-mac.yml)
+	autoUpdater.channel = UPDATE_CHANNEL;
+
+	// Allow downgrade for prerelease builds so users can switch back to stable
+	autoUpdater.allowDowngrade = IS_PRERELEASE;
+
+	console.info(
+		`[auto-updater] Configured for channel: ${UPDATE_CHANNEL}, allowDowngrade: ${IS_PRERELEASE}`,
+	);
 
 	autoUpdater.on("error", (error) => {
 		console.error("[auto-updater] Error during update check:", error);

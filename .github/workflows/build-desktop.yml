@@ -7,6 +7,11 @@ on:
         description: "Release channel (stable or canary)"
         required: true
         type: string
+      version_suffix:
+        description: "Version suffix to append (e.g., -canary). Empty for stable."
+        required: false
+        type: string
+        default: ""
       electron_builder_config:
         description: "Electron builder config file"
         required: false
@@ -55,6 +60,23 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen
 
+      - name: Set version suffix
+        if: inputs.version_suffix != ''
+        working-directory: apps/desktop
+        run: |
+          # Read current version and append suffix
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${CURRENT_VERSION}${{ inputs.version_suffix }}"
+          echo "Setting version to: $NEW_VERSION"
+          # Update package.json version using node
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, '\t') + '\n');
+          "
+          echo "Updated package.json version to $NEW_VERSION"
+
       - name: Clean dev folder
         working-directory: apps/desktop
         run: bun run clean:dev
@@ -69,7 +91,6 @@ jobs:
           NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
-          CANARY_BUILD: ${{ inputs.channel == 'canary' && 'true' || 'false' }}
         run: bun run compile:app
 
       - name: Build Electron app
@@ -80,7 +101,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CANARY_BUILD: ${{ inputs.channel == 'canary' && 'true' || 'false' }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
 
       - name: Upload DMG artifact
