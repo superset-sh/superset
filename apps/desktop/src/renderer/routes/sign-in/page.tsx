@@ -1,18 +1,31 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { Navigate, createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { useAuth } from "renderer/contexts/AuthProvider";
 import { posthog } from "renderer/lib/posthog";
 import { trpc } from "renderer/lib/trpc";
 import { SupersetLogo } from "./components/SupersetLogo";
 
-export function SignInScreen() {
+export const Route = createFileRoute("/sign-in/")({
+	component: SignInPage,
+});
+
+function SignInPage() {
+	const { session, token } = useAuth();
 	const signInMutation = trpc.auth.signIn.useMutation();
 
 	useEffect(() => {
 		posthog.capture("desktop_opened");
 	}, []);
+
+	// Redirect to workspace if already authenticated
+	const isSignedIn = !!token && !!session?.user;
+	if (isSignedIn) {
+		return <Navigate to="/workspace" replace />;
+	}
 
 	const signIn = (provider: AuthProvider) => {
 		posthog.capture("auth_started", { provider });

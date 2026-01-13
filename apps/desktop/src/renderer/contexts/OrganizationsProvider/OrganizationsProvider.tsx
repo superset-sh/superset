@@ -1,6 +1,5 @@
 import { createContext, type ReactNode, useContext } from "react";
 import { type RouterOutputs, trpc } from "renderer/lib/trpc";
-import { SignInScreen } from "renderer/screens/sign-in";
 
 export type Organization = RouterOutputs["user"]["myOrganizations"][number];
 
@@ -33,12 +32,9 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
 	}
 
 	if (error) {
-		if (
-			error.data?.code === "UNAUTHORIZED" ||
-			error.message?.includes("Not authenticated")
-		) {
-			return <SignInScreen />;
-		}
+		// Auth is handled by _authenticated/layout.tsx, so any error here is unexpected
+		console.error("[OrganizationsProvider] Error loading organizations:", error);
+		return <div className="p-4 text-destructive">Failed to load organizations</div>;
 	}
 
 	if (!organizations?.length) {

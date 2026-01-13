@@ -1,5 +1,6 @@
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { Navigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { DndProvider } from "react-dnd";
@@ -11,7 +12,6 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { useAuth } from "renderer/contexts/AuthProvider";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
-import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -280,14 +280,7 @@ export function MainScreen() {
 	}
 
 	if (!isSignedIn) {
-		return (
-			<>
-				<Background />
-				<AppFrame>
-					<SignInScreen />
-				</AppFrame>
-			</>
-		);
+		return <Navigate to="/sign-in" replace />;
 	}
 
 	const renderContent = () => {
