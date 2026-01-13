@@ -8,7 +8,7 @@ import {
 	registerSaveAction,
 	SUPERSET_THEME,
 	useMonacoReady,
-} from "renderer/contexts/MonacoProvider";
+} from "renderer/providers/MonacoProvider";
 import type { Tab } from "renderer/stores/tabs/types";
 import { detectLanguage } from "shared/detect-language";
 import type { FileViewerMode } from "shared/tabs-types";

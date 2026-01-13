@@ -16,3 +16,22 @@ export function smoothScrollToBottom(terminal: Terminal): void {
 		terminal.scrollToBottom();
 	}
 }
+
+/** Get scroll offset from bottom (0 = at bottom, >0 = scrolled up N lines) */
+export function getScrollOffsetFromBottom(terminal: Terminal): number {
+	const { baseY, viewportY } = terminal.buffer.active;
+	return baseY - viewportY;
+}
+
+/** Restore scroll position from offset (0 = bottom, >0 = N lines from bottom) */
+export function restoreScrollPosition(
+	terminal: Terminal,
+	offsetFromBottom: number | undefined,
+): void {
+	if (offsetFromBottom && offsetFromBottom > 0) {
+		const targetLine = terminal.buffer.active.baseY - offsetFromBottom;
+		terminal.scrollToLine(Math.max(0, targetLine));
+	} else {
+		terminal.scrollToBottom();
+	}
+}

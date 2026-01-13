@@ -13,6 +13,7 @@ import { initAppState } from "./lib/app-state";
 import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { ensureShellEnvVars } from "./lib/shell-env";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
 
@@ -206,6 +207,10 @@ if (!gotTheLock) {
 
 		await initAppState();
 		await authService.initialize();
+
+		// Resolve shell environment before setting up agent hooks
+		// This ensures ZDOTDIR and PATH are available for terminal initialization
+		await ensureShellEnvVars();
 
 		try {
 			setupAgentHooks();

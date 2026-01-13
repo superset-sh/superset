@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { codeInspectorPlugin } from "code-inspector-plugin";
 import { config } from "dotenv";
@@ -137,6 +138,14 @@ export default defineConfig({
 		},
 
 		plugins: [
+			tanstackRouter({
+				target: "react",
+				routesDirectory: resolve("src/renderer/routes"),
+				generatedRouteTree: resolve("src/renderer/routeTree.gen.ts"),
+				indexToken: "page",
+				routeToken: "layout",
+				autoCodeSplitting: true,
+			}),
 			tsconfigPaths,
 			tailwindcss(),
 			reactPlugin(),

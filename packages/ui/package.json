@@ -12,6 +12,7 @@
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",
 		"./icons/preset-icons": "./src/assets/icons/preset-icons/index.ts",
 		"./icons/preset-icons/*": "./src/assets/icons/preset-icons/*.svg",
+		"./atoms/*": "./src/atoms/*/index.ts",
 		"./*": "./src/components/ui/*.tsx"
 	},
 	"scripts": {
@@ -48,6 +49,7 @@
 		"@radix-ui/react-toggle-group": "^1.1.11",
 		"@radix-ui/react-tooltip": "^1.2.8",
 		"@radix-ui/react-use-controllable-state": "^1.2.2",
+		"@superset/shared": "workspace:*",
 		"@xyflow/react": "^12.10.0",
 		"ai": "^5.0.112",
 		"class-variance-authority": "^0.7.1",

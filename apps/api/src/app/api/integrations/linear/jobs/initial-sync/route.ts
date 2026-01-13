@@ -1,11 +1,17 @@
 import { LinearClient } from "@linear/sdk";
 import { buildConflictUpdateColumns, db } from "@superset/db";
-import { integrationConnections, tasks, users } from "@superset/db/schema";
+import {
+	integrationConnections,
+	taskStatuses,
+	tasks,
+	users,
+} from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
 import { and, eq, inArray } from "drizzle-orm";
 import chunk from "lodash.chunk";
 import { z } from "zod";
 import { env } from "@/env";
+import { syncWorkflowStates } from "./syncWorkflowStates";
 import { fetchAllIssues, mapIssueToTask } from "./utils";
 
 const BATCH_SIZE = 100;
@@ -28,11 +34,10 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const qstashBaseUrl = env.NEXT_PUBLIC_API_URL;
 	const isValid = await receiver.verify({
 		body,
 		signature,
-		url: `${qstashBaseUrl}/api/integrations/linear/jobs/initial-sync`,
+		url: `${env.NEXT_PUBLIC_API_URL}/api/integrations/linear/jobs/initial-sync`,
 	});
 
 	if (!isValid) {
@@ -68,6 +73,21 @@ async function performInitialSync(
 	organizationId: string,
 	creatorUserId: string,
 ) {
+	await syncWorkflowStates({ client, organizationId });
+
+	const statusByExternalId = new Map<string, string>();
+	const statuses = await db.query.taskStatuses.findMany({
+		where: and(
+			eq(taskStatuses.organizationId, organizationId),
+			eq(taskStatuses.externalProvider, "linear"),
+		),
+	});
+	for (const status of statuses) {
+		if (status.externalId) {
+			statusByExternalId.set(status.externalId, status.id);
+		}
+	}
+
 	const issues = await fetchAllIssues(client);
 
 	if (issues.length === 0) {
@@ -90,7 +110,13 @@ async function performInitialSync(
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
 	const taskValues = issues.map((issue) =>
-		mapIssueToTask(issue, organizationId, creatorUserId, userByEmail),
+		mapIssueToTask(
+			issue,
+			organizationId,
+			creatorUserId,
+			userByEmail,
+			statusByExternalId,
+		),
 	);
 
 	const batches = chunk(taskValues, BATCH_SIZE);
@@ -100,15 +126,17 @@ async function performInitialSync(
 			.insert(tasks)
 			.values(batch)
 			.onConflictDoUpdate({
-				target: [tasks.externalProvider, tasks.externalId],
+				target: [
+					tasks.organizationId,
+					tasks.externalProvider,
+					tasks.externalId,
+				],
 				set: {
 					...buildConflictUpdateColumns(tasks, [
 						"slug",
 						"title",
 						"description",
-						"status",
-						"statusColor",
-						"statusType",
+						"statusId",
 						"priority",
 						"assigneeId",
 						"estimate",

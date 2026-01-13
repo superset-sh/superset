@@ -1,0 +1,33 @@
+{
+	"name": "@superset/email",
+	"version": "0.1.0",
+	"devDependencies": {
+		"@react-email/preview-server": "5.0.7",
+		"@superset/typescript": "workspace:*",
+		"@types/node": "^24.9.1",
+		"@types/react": "^19.2.7",
+		"react-email": "5.0.7",
+		"typescript": "^5.9.3"
+	},
+	"exports": {
+		"./emails/*": "./src/emails/*.tsx",
+		"./components": "./src/components/index.ts",
+		"./lib/*": "./src/lib/*.ts"
+	},
+	"private": true,
+	"scripts": {
+		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev",
+		"export": "email export",
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit"
+	},
+	"type": "module",
+	"dependencies": {
+		"@react-email/components": "1.0.1",
+		"@react-email/tailwind": "2.0.3",
+		"@t3-oss/env-core": "^0.13.8",
+		"react": "^19.2.3",
+		"react-dom": "^19.2.3",
+		"zod": "^4.1.13"
+	}
+}

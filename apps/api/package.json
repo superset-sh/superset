@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@electric-sql/client": "^1.3.1",
+		"@electric-sql/client": "1.4.0",
 		"@linear/sdk": "^68.1.0",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/auth": "workspace:*",
@@ -23,6 +23,7 @@
 		"@upstash/qstash": "^2.8.4",
 		"@vercel/blob": "^2.0.0",
 		"better-auth": "^1.4.9",
+		"date-fns": "^4.1.0",
 		"drizzle-orm": "0.45.1",
 		"import-in-the-middle": "2.0.1",
 		"jose": "^6.1.3",

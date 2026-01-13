@@ -2,17 +2,31 @@ import { initSentry } from "./lib/sentry";
 
 initSentry();
 
+import {
+	createHashHistory,
+	createRouter,
+	type RouterHistory,
+	RouterProvider,
+} from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
-
-import { ThemedToaster } from "./components/ThemedToaster";
-import { AppProviders } from "./contexts/AppProviders";
-import { AppRoutes } from "./routes";
+import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
 
+const hashHistory = createHashHistory();
+
+const router = createRouter({
+	routeTree,
+	history: hashHistory as RouterHistory,
+	defaultPreload: "intent",
+});
+
+declare module "@tanstack/react-router" {
+	interface Register {
+		router: typeof router;
+	}
+}
+
 ReactDom.createRoot(document.querySelector("app") as HTMLElement).render(
-	<AppProviders>
-		<AppRoutes />
-		<ThemedToaster />
-	</AppProviders>,
+	<RouterProvider router={router} />,
 );
