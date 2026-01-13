@@ -1,8 +1,8 @@
+import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
-import { EventEmitter } from "node:events";
 import { prerelease } from "semver";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
