@@ -2,6 +2,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import { adminRouter } from "./router/admin";
 import { analyticsRouter } from "./router/analytics";
+import { cloudWorkspaceRouter } from "./router/cloud-workspace";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
 import { repositoryRouter } from "./router/repository";
@@ -12,6 +13,7 @@ import { createCallerFactory, createTRPCRouter } from "./trpc";
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
 	analytics: analyticsRouter,
+	cloudWorkspace: cloudWorkspaceRouter,
 	integration: integrationRouter,
 	organization: organizationRouter,
 	repository: repositoryRouter,

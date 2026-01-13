@@ -78,6 +78,13 @@
       "when": 1768004449114,
       "tag": "0010_add_workspace_deleting_at",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1768250000000,
+      "tag": "0011_add_cloud_workspaces",
+      "breakpoints": true
     }
   ]
 }

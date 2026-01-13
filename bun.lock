@@ -121,7 +121,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "0.0.51",
+      "version": "0.0.52",
       "dependencies": {
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
@@ -174,6 +174,7 @@
         "fast-glob": "^3.3.3",
         "file-uri-to-path": "^1.0.0",
         "framer-motion": "^12.23.26",
+        "freestyle-sandboxes": "^0.1.3",
         "http-proxy": "^1.18.1",
         "idb": "^8.0.3",
         "idb-keyval": "^6.2.2",
@@ -445,6 +446,7 @@
         "@vercel/blob": "^2.0.0",
         "@vercel/kv": "^3.0.0",
         "drizzle-orm": "0.45.1",
+        "freestyle-sandboxes": "^0.1.3",
         "superjson": "^2.2.5",
         "zod": "^4.1.13",
       },
@@ -2242,6 +2244,8 @@
     "fractional-indexing": ["fractional-indexing@3.2.0", "", {}, "sha512-PcOxmqwYCW7O2ovKRU8OoQQj2yqTfEB/yeTYk4gPid6dN5ODRfU1hXd9tTVZzax/0NkO7AxpHykvZnT1aYp/BQ=="],
 
     "framer-motion": ["framer-motion@12.23.26", "", { "dependencies": { "motion-dom": "^12.23.23", "motion-utils": "^12.23.6", "tslib": "^2.4.0" }, "peerDependencies": { "@emotion/is-prop-valid": "*", "react": "^18.0.0 || ^19.0.0", "react-dom": "^18.0.0 || ^19.0.0" }, "optionalPeers": ["@emotion/is-prop-valid", "react", "react-dom"] }, "sha512-cPcIhgR42xBn1Uj+PzOyheMtZ73H927+uWPDVhUMqxy8UHt6Okavb6xIz9J/phFUHUj0OncR6UvMfJTXoc/LKA=="],
+
+    "freestyle-sandboxes": ["freestyle-sandboxes@0.1.3", "", {}, "sha512-P4rtLOHYdCgdHs2H5CrtVbtuAq3Ph89n3z9i4Gz9UWGrf6hI6kqJRYp8HB4LdjwU5adMWCD/vmraDs9FyE1H5Q=="],
 
     "fresh": ["fresh@2.0.0", "", {}, "sha512-Rx/WycZ60HOaqLKAi6cHRKKI7zxWbJ31MhntmtwMoaTeF7XFH9hhBp8vITaMidfljRQ6eYWCKkaTK+ykVJHP2A=="],
 

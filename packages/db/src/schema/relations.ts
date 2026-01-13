@@ -8,6 +8,7 @@ import {
 	sessions,
 	users,
 } from "./auth";
+import { cloudWorkspaces, cloudWorkspaceSessions } from "./cloud-workspace";
 import { integrationConnections, repositories, tasks } from "./schema";
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -18,6 +19,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
+	createdCloudWorkspaces: many(cloudWorkspaces),
+	cloudWorkspaceSessions: many(cloudWorkspaceSessions),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -40,6 +43,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	repositories: many(repositories),
 	tasks: many(tasks),
 	integrations: many(integrationConnections),
+	cloudWorkspaces: many(cloudWorkspaces),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -72,6 +76,7 @@ export const repositoriesRelations = relations(
 			references: [organizations.id],
 		}),
 		tasks: many(tasks),
+		cloudWorkspaces: many(cloudWorkspaces),
 	}),
 );
 
@@ -105,6 +110,39 @@ export const integrationConnectionsRelations = relations(
 		}),
 		connectedBy: one(users, {
 			fields: [integrationConnections.connectedByUserId],
+			references: [users.id],
+		}),
+	}),
+);
+
+export const cloudWorkspacesRelations = relations(
+	cloudWorkspaces,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [cloudWorkspaces.organizationId],
+			references: [organizations.id],
+		}),
+		repository: one(repositories, {
+			fields: [cloudWorkspaces.repositoryId],
+			references: [repositories.id],
+		}),
+		creator: one(users, {
+			fields: [cloudWorkspaces.creatorId],
+			references: [users.id],
+		}),
+		sessions: many(cloudWorkspaceSessions),
+	}),
+);
+
+export const cloudWorkspaceSessionsRelations = relations(
+	cloudWorkspaceSessions,
+	({ one }) => ({
+		workspace: one(cloudWorkspaces, {
+			fields: [cloudWorkspaceSessions.workspaceId],
+			references: [cloudWorkspaces.id],
+		}),
+		user: one(users, {
+			fields: [cloudWorkspaceSessions.userId],
 			references: [users.id],
 		}),
 	}),
