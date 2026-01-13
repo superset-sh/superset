@@ -112,13 +112,14 @@ function parsePortelainStatus(stdout: string): StatusResult {
 
 	// Parse file status entries
 	const files: StatusResult["files"] = [];
-	const staged: string[] = [];
-	const modified: string[] = [];
-	const deleted: string[] = [];
-	const created: string[] = [];
+	// Use Sets to avoid duplicates (e.g., MM status would otherwise add to modified twice)
+	const stagedSet = new Set<string>();
+	const modifiedSet = new Set<string>();
+	const deletedSet = new Set<string>();
+	const createdSet = new Set<string>();
 	const renamed: Array<{ from: string; to: string }> = [];
-	const conflicted: string[] = [];
-	const not_added: string[] = [];
+	const conflictedSet = new Set<string>();
+	const notAddedSet = new Set<string>();
 
 	let i = 0;
 	while (i < entries.length) {
@@ -187,39 +188,40 @@ function parsePortelainStatus(stdout: string): StatusResult {
 
 		// Populate convenience arrays for checkBranchCheckoutSafety compatibility
 		if (indexStatus === "?" && workingStatus === "?") {
-			not_added.push(path);
+			notAddedSet.add(path);
 		} else {
 			// Index status (staged changes)
-			if (indexStatus === "A") created.push(path);
+			if (indexStatus === "A") createdSet.add(path);
 			else if (indexStatus === "M") {
-				staged.push(path);
-				modified.push(path);
+				stagedSet.add(path);
+				modifiedSet.add(path);
 			} else if (indexStatus === "D") {
-				staged.push(path);
-				deleted.push(path);
-			} else if (indexStatus === "R" || indexStatus === "C") staged.push(path);
-			else if (indexStatus === "U") conflicted.push(path);
-			else if (indexStatus !== " " && indexStatus !== "?") staged.push(path);
+				stagedSet.add(path);
+				deletedSet.add(path);
+			} else if (indexStatus === "R" || indexStatus === "C")
+				stagedSet.add(path);
+			else if (indexStatus === "U") conflictedSet.add(path);
+			else if (indexStatus !== " " && indexStatus !== "?") stagedSet.add(path);
 
 			// Working tree status (unstaged changes)
-			if (workingStatus === "M") modified.push(path);
-			else if (workingStatus === "D") deleted.push(path);
-			else if (workingStatus === "U") conflicted.push(path);
+			if (workingStatus === "M") modifiedSet.add(path);
+			else if (workingStatus === "D") deletedSet.add(path);
+			else if (workingStatus === "U") conflictedSet.add(path);
 		}
 
 		i++;
 	}
 
 	return {
-		not_added,
-		conflicted,
-		created,
-		deleted,
+		not_added: [...notAddedSet],
+		conflicted: [...conflictedSet],
+		created: [...createdSet],
+		deleted: [...deletedSet],
 		ignored: undefined,
-		modified,
+		modified: [...modifiedSet],
 		renamed,
 		files,
-		staged,
+		staged: [...stagedSet],
 		ahead: 0,
 		behind: 0,
 		current,
