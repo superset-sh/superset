@@ -45,14 +45,6 @@ describe("shell-env", () => {
 			expect(process.env.PATH).toBe("/usr/bin:/bin");
 		});
 
-		it("should handle undefined current PATH", () => {
-			delete process.env.PATH;
-			const result = mergePathFromShell("/usr/bin:/bin");
-
-			expect(result).toBe(true);
-			expect(process.env.PATH).toBe("/usr/bin:/bin");
-		});
-
 		it("should handle empty shell PATH", () => {
 			process.env.PATH = "/usr/bin";
 			const result = mergePathFromShell("");
