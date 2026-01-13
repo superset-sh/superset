@@ -425,4 +425,56 @@ describe("stripPathWrappers", () => {
 			expect(stripPathWrappers('"(./path/file.ts)".')).toBe("./path/file.ts");
 		});
 	});
+
+	describe("line numbers with trailing punctuation", () => {
+		test("strips trailing period after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42.")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing comma after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42,")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing colon after line number", () => {
+			expect(stripPathWrappers("./path/file.ts:42:")).toBe("./path/file.ts:42");
+		});
+
+		test("strips trailing period after line:col", () => {
+			expect(stripPathWrappers("./path/file.ts:42:10.")).toBe(
+				"./path/file.ts:42:10",
+			);
+		});
+
+		test("strips trailing comma after line:col", () => {
+			expect(stripPathWrappers("./path/file.ts:42:10,")).toBe(
+				"./path/file.ts:42:10",
+			);
+		});
+	});
+
+	describe("various extension types", () => {
+		test("preserves numeric extensions like .mp3", () => {
+			expect(stripPathWrappers("./path/file.mp3")).toBe("./path/file.mp3");
+		});
+
+		test("preserves single character extensions like .c", () => {
+			expect(stripPathWrappers("./path/file.c")).toBe("./path/file.c");
+		});
+
+		test("preserves uppercase extensions like .TSX", () => {
+			expect(stripPathWrappers("./path/file.TSX")).toBe("./path/file.TSX");
+		});
+
+		test("preserves dotfiles", () => {
+			expect(stripPathWrappers(".gitignore")).toBe(".gitignore");
+		});
+
+		test("preserves dotfiles with extension", () => {
+			expect(stripPathWrappers(".eslintrc.json")).toBe(".eslintrc.json");
+		});
+
+		test("strips trailing period from dotfile with extension", () => {
+			expect(stripPathWrappers(".eslintrc.json.")).toBe(".eslintrc.json");
+		});
+	});
 });
