@@ -1,9 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { trpcClient } from "renderer/lib/trpc-client";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/workspace/$workspaceId/",
 )({
 	component: WorkspaceSettingsPage,
+	loader: async ({ params, context }) => {
+		const queryKey = [
+			["workspaces", "get"],
+			{ input: { id: params.workspaceId }, type: "query" },
+		];
+
+		await context.queryClient.ensureQueryData({
+			queryKey,
+			queryFn: () =>
+				trpcClient.workspaces.get.query({ id: params.workspaceId }),
+		});
+	},
 });
 
 import { Input } from "@superset/ui/input";
@@ -14,22 +27,11 @@ import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRena
 
 function WorkspaceSettingsPage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace, isLoading } = trpc.workspaces.get.useQuery({
+	const { data: workspace } = trpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
 
 	const rename = useWorkspaceRename(workspace?.id ?? "", workspace?.name ?? "");
-
-	if (isLoading) {
-		return (
-			<div className="p-6 max-w-4xl select-text">
-				<div className="animate-pulse space-y-4">
-					<div className="h-8 bg-muted rounded w-1/3" />
-					<div className="h-4 bg-muted rounded w-1/2" />
-				</div>
-			</div>
-		);
-	}
 
 	if (!workspace) {
 		return (

@@ -1,9 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { trpcClient } from "renderer/lib/trpc-client";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/project/$projectId/",
 )({
 	component: ProjectSettingsPage,
+	loader: async ({ params, context }) => {
+		const projectQueryKey = [
+			["projects", "get"],
+			{ input: { id: params.projectId }, type: "query" },
+		];
+
+		const configQueryKey = [
+			["config", "getConfigFilePath"],
+			{ input: { projectId: params.projectId }, type: "query" },
+		];
+
+		await Promise.all([
+			context.queryClient.ensureQueryData({
+				queryKey: projectQueryKey,
+				queryFn: () => trpcClient.projects.get.query({ id: params.projectId }),
+			}),
+			context.queryClient.ensureQueryData({
+				queryKey: configQueryKey,
+				queryFn: () =>
+					trpcClient.config.getConfigFilePath.query({
+						projectId: params.projectId,
+					}),
+			}),
+		]);
+	},
 });
 
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
@@ -12,25 +38,13 @@ import { trpc } from "renderer/lib/trpc";
 
 function ProjectSettingsPage() {
 	const { projectId } = Route.useParams();
-	const { data: project, isLoading } = trpc.projects.get.useQuery({
+	const { data: project } = trpc.projects.get.useQuery({
 		id: projectId,
 	});
 
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
-		{ projectId },
-		{ enabled: !!projectId },
-	);
-
-	if (isLoading) {
-		return (
-			<div className="p-6 max-w-4xl select-text">
-				<div className="animate-pulse space-y-4">
-					<div className="h-8 bg-muted rounded w-1/3" />
-					<div className="h-4 bg-muted rounded w-1/2" />
-				</div>
-			</div>
-		);
-	}
+	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery({
+		projectId,
+	});
 
 	if (!project) {
 		return (
