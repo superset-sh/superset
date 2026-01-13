@@ -32,9 +32,13 @@ export function OrganizationsProvider({ children }: { children: ReactNode }) {
 	}
 
 	if (error) {
-		// Auth is handled by _authenticated/layout.tsx, so any error here is unexpected
-		console.error("[OrganizationsProvider] Error loading organizations:", error);
-		return <div className="p-4 text-destructive">Failed to load organizations</div>;
+		console.error(
+			"[OrganizationsProvider] Error loading organizations:",
+			error,
+		);
+		return (
+			<div className="p-4 text-destructive">Failed to load organizations</div>
+		);
 	}
 
 	if (!organizations?.length) {

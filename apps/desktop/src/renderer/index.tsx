@@ -13,17 +13,14 @@ import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
 
-// Create hash history for Electron file:// protocol compatibility
 const hashHistory = createHashHistory();
 
-// Create router instance
 const router = createRouter({
 	routeTree,
 	history: hashHistory as RouterHistory,
 	defaultPreload: "intent",
 });
 
-// Register router for type safety
 declare module "@tanstack/react-router" {
 	interface Register {
 		router: typeof router;
