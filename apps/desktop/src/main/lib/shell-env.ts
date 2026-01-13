@@ -6,7 +6,7 @@ function isLaunchedFromTerminal(): boolean {
 	return Boolean(process.stdout.isTTY || process.env.TERM_PROGRAM);
 }
 
-function mergePathFromShell(shellPath: string): boolean {
+export function mergePathFromShell(shellPath: string): boolean {
 	const currentPath = process.env.PATH || "";
 	const currentPaths = new Set(currentPath.split(":").filter(Boolean));
 	const shellPaths = shellPath.split(":").filter(Boolean);
