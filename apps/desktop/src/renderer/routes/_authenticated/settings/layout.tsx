@@ -8,7 +8,6 @@ export const Route = createFileRoute("/_authenticated/settings")({
 
 function SettingsLayout() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
-	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 
 	return (

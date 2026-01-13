@@ -3,13 +3,13 @@ import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiOutlineStar, HiStar } from "react-icons/hi2";
 import { LuTrash } from "react-icons/lu";
-import { CommandsEditor } from "../CommandsEditor";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnConfig,
 	type PresetColumnKey,
 	type TerminalPreset,
 } from "../../types";
+import { CommandsEditor } from "../CommandsEditor";
 
 interface PresetCellProps {
 	column: PresetColumnConfig;
