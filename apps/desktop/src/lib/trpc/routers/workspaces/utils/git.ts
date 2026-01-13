@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import simpleGit from "simple-git";
+import simpleGit, { type StatusResult } from "simple-git";
 import {
 	adjectives,
 	animals,
@@ -49,6 +49,120 @@ async function getGitEnv(): Promise<Record<string, string>> {
 	}
 
 	return result;
+}
+
+/**
+ * Runs `git status` with --no-optional-locks to avoid holding locks on the repository.
+ * This prevents blocking other git operations that may need to acquire locks.
+ * Returns a StatusResult-compatible object that can be used with parseGitStatus.
+ */
+export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
+	const env = await getGitEnv();
+
+	// Run git status with --no-optional-locks to avoid holding locks
+	// Use porcelain=v1 for machine-parseable output, -b for branch info
+	const { stdout } = await execFileAsync(
+		"git",
+		["--no-optional-locks", "-C", repoPath, "status", "--porcelain=v1", "-b"],
+		{ env, timeout: 30_000 },
+	);
+
+	const lines = stdout.split("\n");
+	let current: string | null = null;
+	let tracking: string | null = null;
+
+	// Parse branch line: ## branch...tracking or ## branch
+	const branchLine = lines[0];
+	if (branchLine?.startsWith("## ")) {
+		const branchInfo = branchLine.slice(3);
+		const trackingMatch = branchInfo.match(/^(.+?)\.\.\.(.+?)(?:\s|$)/);
+		if (trackingMatch) {
+			current = trackingMatch[1];
+			tracking = trackingMatch[2].split(" ")[0] || null;
+		} else {
+			// No tracking branch, just get branch name (before any space for detached HEAD info)
+			current = branchInfo.split(" ")[0] || null;
+		}
+	}
+
+	// Parse file status lines (skip the branch line)
+	const files: StatusResult["files"] = [];
+	const staged: string[] = [];
+	const modified: string[] = [];
+	const deleted: string[] = [];
+	const created: string[] = [];
+	const renamed: Array<{ from: string; to: string }> = [];
+	const conflicted: string[] = [];
+	const not_added: string[] = [];
+
+	for (let i = 1; i < lines.length; i++) {
+		const line = lines[i];
+		if (!line || line.length < 3) continue;
+
+		const indexStatus = line[0];
+		const workingStatus = line[1];
+		let path = line.slice(3);
+		let from: string | undefined;
+
+		// Handle renames: "R  old -> new" format
+		if (indexStatus === "R" || workingStatus === "R") {
+			const renameMatch = path.match(/^(.+) -> (.+)$/);
+			if (renameMatch) {
+				from = renameMatch[1];
+				path = renameMatch[2];
+				renamed.push({ from, to: path });
+			}
+		}
+
+		files.push({
+			path,
+			from: from ?? path,
+			index: indexStatus,
+			working_dir: workingStatus,
+		});
+
+		// Populate convenience arrays for checkBranchCheckoutSafety compatibility
+		if (indexStatus === "?" && workingStatus === "?") {
+			not_added.push(path);
+		} else {
+			// Index status
+			if (indexStatus === "A") created.push(path);
+			else if (indexStatus === "M") {
+				staged.push(path);
+				modified.push(path);
+			} else if (indexStatus === "D") {
+				staged.push(path);
+				deleted.push(path);
+			} else if (indexStatus === "R") staged.push(path);
+			else if (indexStatus === "U") conflicted.push(path);
+			else if (indexStatus !== " " && indexStatus !== "?") staged.push(path);
+
+			// Working tree status
+			if (workingStatus === "M") modified.push(path);
+			else if (workingStatus === "D") deleted.push(path);
+			else if (workingStatus === "U") conflicted.push(path);
+		}
+	}
+
+	return {
+		not_added,
+		conflicted,
+		created,
+		deleted,
+		ignored: undefined,
+		modified,
+		renamed,
+		files,
+		staged,
+		ahead: 0,
+		behind: 0,
+		current,
+		tracking,
+		detached: current === "HEAD",
+		isClean: () =>
+			files.length === 0 ||
+			files.every((f) => f.index === "?" && f.working_dir === "?"),
+	};
 }
 
 async function repoUsesLfs(repoPath: string): Promise<boolean> {
@@ -401,8 +515,7 @@ export async function checkNeedsRebase(
 export async function hasUncommittedChanges(
 	worktreePath: string,
 ): Promise<boolean> {
-	const git = simpleGit(worktreePath);
-	const status = await git.status();
+	const status = await getStatusNoLock(worktreePath);
 	return !status.isClean();
 }
 
@@ -714,10 +827,8 @@ export interface CheckoutSafetyResult {
 export async function checkBranchCheckoutSafety(
 	repoPath: string,
 ): Promise<CheckoutSafetyResult> {
-	const git = simpleGit(repoPath);
-
 	try {
-		const status = await git.status();
+		const status = await getStatusNoLock(repoPath);
 
 		const hasUncommittedChanges =
 			status.staged.length > 0 ||
@@ -752,6 +863,7 @@ export async function checkBranchCheckoutSafety(
 
 		// Fetch and prune stale remote refs (best-effort, ignore errors if offline)
 		try {
+			const git = simpleGit(repoPath);
 			await git.fetch(["--prune"]);
 		} catch {
 			// Ignore fetch errors
