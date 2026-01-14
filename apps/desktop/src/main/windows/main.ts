@@ -17,12 +17,12 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
-import { getActiveTerminalManager } from "../lib/terminal";
 import {
 	getInitialWindowBounds,
 	loadWindowState,
 	saveWindowState,
 } from "../lib/window-state";
+import { getWorkspaceRuntimeRegistry } from "../lib/workspace-runtime";
 
 // Singleton IPC handler to prevent duplicate handlers on window reopen (macOS)
 let ipcHandler: ReturnType<typeof createIPCHandler> | null = null;
@@ -173,16 +173,18 @@ export async function MainWindow() {
 	// Forward low-volume terminal lifecycle events to the renderer via the existing
 	// notifications subscription. This is used only for correctness (e.g. clearing
 	// stuck agent lifecycle statuses when terminal panes aren't mounted).
-	getActiveTerminalManager().on(
-		"terminalExit",
-		(event: { paneId: string; exitCode: number; signal?: number }) => {
-			notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
-				paneId: event.paneId,
-				exitCode: event.exitCode,
-				signal: event.signal,
-			});
-		},
-	);
+	getWorkspaceRuntimeRegistry()
+		.getDefault()
+		.terminal.on(
+			"terminalExit",
+			(event: { paneId: string; exitCode: number; signal?: number }) => {
+				notificationsEmitter.emit(NOTIFICATION_EVENTS.TERMINAL_EXIT, {
+					paneId: event.paneId,
+					exitCode: event.exitCode,
+					signal: event.signal,
+				});
+			},
+		);
 
 	window.webContents.on("did-finish-load", async () => {
 		// Restore maximized state if it was saved
@@ -207,7 +209,7 @@ export async function MainWindow() {
 		server.close();
 		notificationsEmitter.removeAllListeners();
 		// Remove terminal listeners to prevent duplicates when window reopens on macOS
-		getActiveTerminalManager().detachAllListeners();
+		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		// Detach window from IPC handler (handler stays alive for window reopen)
 		ipcHandler?.detachWindow(window);
 		// Clear current window reference

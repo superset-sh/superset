@@ -15,10 +15,10 @@ import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { ensureShellEnvVars } from "./lib/shell-env";
 import {
-	getActiveTerminalManager,
 	reconcileDaemonSessions,
 	shutdownOrphanedDaemon,
 } from "./lib/terminal";
+import { getWorkspaceRuntimeRegistry } from "./lib/workspace-runtime";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -174,7 +174,7 @@ app.on("before-quit", async (event) => {
 
 	try {
 		await Promise.all([
-			getActiveTerminalManager().cleanup(),
+			getWorkspaceRuntimeRegistry().getDefault().terminal.cleanup(),
 			posthog?.shutdown(),
 		]);
 	} finally {

@@ -1,7 +1,7 @@
 import { projects, workspaces } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import { getActiveTerminalManager } from "main/lib/terminal";
+import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
 import {
@@ -87,7 +87,9 @@ export const createBranchProcedures = () => {
 				await safeCheckoutBranch(project.mainRepoPath, input.branch);
 
 				// Send newline to terminals so their prompts refresh with new branch
-				getActiveTerminalManager().refreshPromptsForWorkspace(workspace.id);
+				getWorkspaceRuntimeRegistry()
+					.getForWorkspaceId(workspace.id)
+					.terminal.refreshPromptsForWorkspace(workspace.id);
 
 				// Update the workspace - name is always the branch for branch workspaces
 				touchWorkspace(workspace.id, {

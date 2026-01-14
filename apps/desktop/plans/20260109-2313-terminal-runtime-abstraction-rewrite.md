@@ -16,6 +16,8 @@ Reference: This plan follows conventions from `AGENTS.md`, `apps/desktop/AGENTS.
 - [Future Backend: Remote Runner / Cloud Terminals](#future-backend-remote-runner--cloud-terminals)
 - [Open Questions](#open-questions)
 - [Plan of Work](#plan-of-work)
+- [PR1 Scope Lock (Runtime Abstraction Only)](#pr1-scope-lock-runtime-abstraction-only)
+- [Decisions (Lock Before Implementing)](#decisions-lock-before-implementing)
 - [Target Shape (After Refactor)](#target-shape-after-refactor)
   - [File Tree (Proposed)](#file-tree-proposed)
   - [Identity + Lifecycle (State Machines)](#identity--lifecycle-state-machines)
@@ -58,7 +60,7 @@ Observable outcomes:
 1. With terminal persistence disabled, terminals behave as before (no persistence across app restarts), and Settings → Terminal “Manage sessions” shows that session management is unavailable.
 2. With terminal persistence enabled, terminals survive app restarts, cold restore works, and Settings → Terminal “Manage sessions” continues to list/kill sessions.
 3. The tRPC `terminal.*` router no longer needs `instanceof DaemonTerminalManager` checks; daemon awareness is centralized in the main-process runtime/provider layer.
-4. The renderer terminal component remains correct but is easier to reason about because backend-agnostic “session initialization” and “stream event handling” logic is extracted into small, testable helpers rather than being interleaved with UI rendering.
+4. The renderer terminal component remains correct with minimal required changes for the core refactor. Optional follow-up: extract backend-agnostic “session initialization” and “stream event handling” logic into small, testable helpers to reduce `Terminal.tsx` branching.
 
 
 ## Context / Orientation (Repository Map)
@@ -120,6 +122,7 @@ This refactor is intentionally conservative to avoid regressions:
 1. No large protocol redesign between main and terminal-host. Additive fields (typed error codes, cursors/watermarks, capability bits) are acceptable if they preserve backwards compatibility.
 2. No behavioral change to cold restore, attach scheduling, warm set mounting, or stream lifecycle.
 3. No implementation of cloud terminals in this PR. The plan only ensures the abstraction boundary is compatible with adding a cloud backend later.
+4. Keep renderer and identity changes optional: `streamV2`/identity decoupling and `Terminal.tsx` decomposition can be deferred to follow-up PRs if scope/review risk is high.
 
 
 ## Assumptions
@@ -206,6 +209,55 @@ This decision materially changes the scope and correctness model of cloud termin
 ## Plan of Work
 
 This work is a refactor, so milestones are organized to keep behavior stable and to validate frequently.
+
+Shipping strategy (based on review feedback): default to keep the initial PR focused on Milestones 1–3 plus Milestone 5 (provider boundary + router migration + invariants/tests). Milestones 4, 6a–6c, and 7 are follow-ups unless a correctness gap forces pulling them forward.
+
+## PR1 Scope Lock (Runtime Abstraction Only)
+
+This plan can be executed across multiple PRs. To make handoff safe and reduce regression risk, treat PR1 as “runtime/provider abstraction only”: centralize backend selection + remove `instanceof` branching, while keeping renderer behavior and IPC shapes stable.
+
+### In Scope (PR1)
+
+1. Main process: introduce `WorkspaceRuntimeRegistry` + `LocalWorkspaceRuntime` and route daemon vs in-process selection through the provider boundary.
+2. Main process: expose session management as `terminal.management: TerminalManagement | null` (capability presence, no “no-op admin methods”).
+3. Routers: migrate the terminal router to use the registry/provider (remove `instanceof DaemonTerminalManager` checks) and preserve existing endpoint names/shapes.
+4. Keep the legacy `terminal.stream(paneId)` subscription and semantics:
+   - subscription must use `observable`
+   - MUST NOT complete on `exit` (exit is a state transition)
+   - completion happens only when the client unsubscribes/disposes
+5. Update non-terminal call sites that currently reach around the boundary via `getActiveTerminalManager()` (examples in this repo today: `apps/desktop/src/main/index.ts`, `apps/desktop/src/main/windows/main.ts`, and workspace flows like `apps/desktop/src/lib/trpc/routers/workspaces/procedures/delete.ts`, plus other references found via ripgrep) to use the provider boundary instead.
+6. Regression coverage: keep/extend the existing “stream does not complete on exit” test and add a capability presence test (`management === null` in non-daemon mode).
+   - Also add/keep coverage that `disconnect`/`error` events do not complete the subscription (completion only on unsubscribe/dispose).
+
+### Out of Scope (PR1)
+
+1. Renderer changes (no `Terminal.tsx` refactors; no new hooks/modules in the renderer).
+2. Identity separation (`backendSessionId/clientId/attachmentId`) and `streamV2` adoption in the renderer (Milestone 4).
+3. Replay/cursor correctness upgrades (ring buffer, `watermarkEventId`, `since` replay), typed error-code normalization across daemon protocol, and resize `seq` enforcement (all follow-ups unless required to fix a real gap).
+4. Cloud readiness skeleton/provider selection plumbing (Milestone 7).
+
+### PR1 Acceptance Gates (Must Pass)
+
+1. `bun run lint`, `bun run typecheck --filter=@superset/desktop`, and `bun test --filter=@superset/desktop` all pass.
+2. Manual smoke (minimum):
+   - persistence disabled: open terminal, type, exit; Settings “Manage sessions” shows unavailable
+   - persistence enabled: warm attach + cold restore still works; Settings “Manage sessions” works
+   - `terminal.stream` does not complete on exit (no “listeners=0” cold-restore regressions)
+3. macOS window reopen behavior remains correct (no duplicated terminal lifecycle listeners after closing and reopening the window).
+
+## Decisions (Lock Before Implementing)
+
+These are the decisions that should be treated as locked for PR1 to avoid accidental scope creep. If any of these must change during implementation, update this plan explicitly before continuing.
+
+1. **Renderer scope:** PR1 makes no behavior changes in the renderer. Any renderer decomposition (Milestones 6a–6c) is a follow-up PR.
+2. **Identity:** PR1 keeps `paneId` as the session key at the IPC boundary. Do not introduce `backendSessionId/clientId/attachmentId` plumbing or `streamV2` in PR1.
+3. **Stream contract:** PR1 preserves the existing `terminal.stream(paneId)` subscription (observable) and MUST NOT complete the stream on `exit` (or on disconnect/error). Only unsubscribe/dispose completes it.
+4. **Replay/cursor correctness:** PR1 does not add ring buffers, `watermarkEventId`, or `since` replay semantics unless a concrete “lost first output” bug is demonstrated.
+5. **Error semantics:** PR1 preserves existing error behavior and error codes. Do not redesign daemon protocol or require typed error codes end-to-end in PR1; treat that as a follow-up if desired.
+6. **Resize sequencing (`seq`):** PR1 does not implement resize `seq` enforcement (the current renderer does not pass a `seq` today). If we want `seq`, include it as part of Milestone 4 when we touch renderer identity/state anyway.
+7. **Listener lifecycle:** PR1 must preserve window-close cleanup behavior (no duplicate listeners on macOS reopen) and app-quit cleanup behavior. If the abstraction introduces new listener wiring, ensure the cleanup story is equally explicit (unsubscribe/remove listeners).
+8. **tRPC input shapes:** PR1 keeps the existing paneId-only mutation inputs (`write`, `resize`, `signal`, `kill`, `detach`, `clearScrollback`, `ackColdRestore`, `stream`). Do not add `workspaceId` or new identity fields to these inputs in PR1; derive routing internally (local provider, or mapping populated during `createOrAttach`).
+9. **Registry invalidation / settings:** terminal persistence remains “requires restart” (existing behavior). The runtime registry is process-scoped and does not reconfigure live if `settings.terminalPersistence` is toggled while the app is running.
 
 
 ## Target Shape (After Refactor)
@@ -307,6 +359,8 @@ Terminal identities (first-class in contracts):
       | "PROTOCOL_MISMATCH"
       | "REPLAY_UNAVAILABLE"
       | "NOT_IMPLEMENTED";
+
+Note: In PR1, `TerminalErrorCode` is primarily documentation for the desired taxonomy. PR1 preserves existing error behavior; end-to-end typed error normalization is a follow-up.
 
 Terminal capabilities and management:
 
@@ -540,6 +594,8 @@ The critical invariants remain unchanged:
 
 Main call flow (today and after refactor; the difference is where switching happens):
 
+Note: PR1 keeps `trpc.terminal.stream(paneId)`; `streamV2` is introduced only if Milestone 4 is in scope.
+
     Renderer (Terminal.tsx + helpers)
       |
       | trpc.terminal.createOrAttach / trpc.terminal.streamV2
@@ -587,8 +643,8 @@ Scope:
    - exit is a state transition; must arrive after all data events
    - detach/reattach scroll restoration (`viewportY`) is preserved (PR #698 behavior)
    - all operations are Promise-returning at the boundary (normalize sync to async)
-   - errors are normalized to typed `TerminalErrorCode` (no string matching)
-   - replay semantics are explicit (`eventId` cursor + bounded replay)
+   - errors are classified and documented as `TerminalErrorCode` (PR1 preserves existing error behavior; typed codes can be a follow-up)
+   - replay semantics are documented (`eventId` cursor + bounded replay) (follow-up if we adopt `streamV2`/identity separation)
 
 Acceptance:
 
@@ -608,21 +664,21 @@ Scope:
 2. Implement a `LocalWorkspaceRuntime` (initially only `terminal` is real; other components are stubs):
    - backend selection is allowed to use `backend instanceof DaemonTerminalManager` internally (provider boundary only)
    - expose `terminal.management: TerminalManagement | null` (no no-op admin methods)
-3. Implement the “correctness upgrades” at the backend/provider boundary (so the renderer does not have to):
+3. (Optional; required for `streamV2`/Milestone 4) Implement the “correctness upgrades” at the backend/provider boundary (so the renderer does not have to):
    - monotonic `eventId` per `backendSessionId`
    - bounded ring buffer of recent events per session (bytes + frames cap)
    - `subscribeSession({ since })` best-effort replay from the ring buffer
    - include `watermarkEventId` in `createOrAttach` responses so the renderer can subscribe without gaps
-4. Normalize errors into `TerminalErrorCode`:
-   - daemon client/host and local backend must return typed codes (stop string-matching in routers/renderers)
-5. Enforce resize sequencing:
-   - honor `resize.seq` in both in-process and daemon implementations; drop stale resizes
+4. (Optional; follow-up) Normalize errors into `TerminalErrorCode`:
+   - daemon client/host and local backend return typed codes (stop string-matching in routers/renderers)
+5. (Optional; follow-up) Enforce resize sequencing:
+   - honor `resize.seq` in both in-process and daemon implementations; drop stale resizes (requires renderer to send `seq`)
 
 Acceptance:
 
 1. Provider selection is centralized and callers can only reach it via the workspace runtime registry.
 2. `management === null` correctly represents “unsupported/unavailable”, while real failures propagate as errors.
-3. The terminal event contract supports cursor/replay (even if replay window is initially small).
+3. (Optional; follow-up) The terminal event contract supports cursor/replay (even if replay window is initially small).
 
 
 ### Milestone 3: tRPC Terminal Router Migration
@@ -633,12 +689,12 @@ Scope:
 
 1. Update `apps/desktop/src/lib/trpc/routers/terminal/terminal.ts` to:
    - capture `const registry = getWorkspaceRuntimeRegistry()` once at router creation time
-   - select `const terminal = registry.getForWorkspaceId(input.workspaceId).terminal` for all workspace-scoped calls
+   - select `const terminal = registry.getForWorkspaceId(...)` for workspace-scoped calls (create/attach + workspace ops); keep paneId-only inputs unchanged in PR1 and route them via the local provider (or a `paneId -> workspaceId` mapping) rather than changing renderer inputs
    - remove `instanceof DaemonTerminalManager` checks (replace with `terminal.management` and capability flags)
-2. Introduce/implement a V2 stream surface (recommended) that is explicit about identity + replay:
+2. (Optional; required for Milestone 4) Introduce/implement a V2 stream surface that is explicit about identity + replay:
    - `terminal.streamV2({ workspaceId, backendSessionId, clientId, attachmentId, since? })`
    - subscription uses `terminal.events.subscribeSession(...)` and must not complete on exit
-   - keep legacy `stream(paneId)` only temporarily if needed for incremental migration
+   - keep legacy `stream(paneId)` for the initial PR if Milestone 4 is deferred; otherwise keep it only temporarily for incremental migration
 3. Preserve legacy settings endpoints for session management (`listDaemonSessions`, etc.), but route them through `terminal.management` and propagate errors:
    - `daemonModeEnabled: false` only when capability is absent
    - failures when capability is present must throw (do not silently “disable”)
@@ -653,6 +709,8 @@ Acceptance:
 ### Milestone 4: Identity + Stream Contract (backendSessionId/clientId)
 
 This milestone pulls forward what used to be “cloud readiness”: it decouples pane identity from backend session identity and makes viewer identity explicit.
+
+Note: This is a good follow-up PR candidate if we want to keep the initial refactor smaller and easier to regression-test (the core runtime/provider abstraction can ship while still using the legacy `paneId`-based identity).
 
 Scope:
 
@@ -681,13 +739,15 @@ This milestone makes the boundary hard to accidentally regress and expands verif
 Scope (tests):
 
 1. Keep and/or extend the “stream does not complete on exit” regression test (`terminal.stream.test.ts`).
-2. Add contract/invariant tests for:
+2. Add/keep tests for capability presence and error propagation:
+   - `management: null` in non-daemon mode
+   - “management present but failing throws loudly” (do not silently “disable” on real failures)
+3. Follow-up tests (only if Milestones 2/4 are pulled into scope):
    - exit arrives after all data (ordering)
    - cold restore + Start Shell does not replay stale exit into the new session
    - replay cursor semantics (late subscribe sees output; bounded replay emits `REPLAY_UNAVAILABLE` explicitly when needed)
    - resize sequencing (stale `seq` dropped)
    - error code propagation (no string matching in router/renderer paths)
-3. Keep the existing capability presence tests (`management: null`) and add a test that “management present but failing throws loudly”.
 
 Scope (manual):
 
@@ -699,13 +759,15 @@ Scope (manual):
 
 Acceptance:
 
-1. Tests fail if someone reintroduces `emit.complete()` on exit or breaks cursor/replay semantics.
+1. Tests fail if someone reintroduces `emit.complete()` on exit. (If Milestones 2/4 are in scope: tests also fail if cursor/replay semantics regress.)
 2. Manual matrix passes with persistence disabled and enabled.
 
 
 ### Milestone 6a: Build a Terminal Init Plan (Renderer)
 
 This milestone reduces complexity in the renderer terminal component without changing behavior. The goal is not to “rewrite the terminal UI”, but to isolate protocol/state-machine logic (snapshot vs scrollback selection, restore sequencing, cold restore gating, and scroll restoration) into small units that can be tested.
+
+Note: Optional follow-up. This is decomposition-only and can be deferred if we want to keep the initial refactor focused on the main-process runtime/provider boundary.
 
 Scope:
 
@@ -763,6 +825,8 @@ Acceptance:
 
 This milestone ensures we are investing in the right direction for remote runners/cloud workspaces. It does not implement cloud terminals, but it makes the seams concrete so that adding a remote provider later does not require reworking router/UI contracts again.
 
+Note: Optional follow-up. Defer this milestone if the goal is to keep the terminal refactor narrowly scoped and land it quickly.
+
 Scope:
 
 1. Implement a `CloudWorkspaceRuntime` skeleton behind the same `WorkspaceRuntime` interface:
@@ -790,7 +854,7 @@ Run these commands from the repo root:
 
     bun run lint
     bun run typecheck --filter=@superset/desktop
-    bun test --filter=@superset/desktop
+    bun run test --filter=@superset/desktop
 
 Expected results:
 
@@ -817,9 +881,11 @@ Mitigation: Keep event ownership scoped to the provider instance (no shared/glob
 - no duplicate listeners/cross-talk
 - output still flows after exit/cold restore
 
-Risk: Output loss during attach if the stream subscription attaches after early PTY output (race between `createOrAttach` and `streamV2` subscribe).
+Risk: Output loss during attach if the stream subscription attaches after early PTY output (race between `createOrAttach` and stream subscribe).
 
-Mitigation: Move replay correctness to the backend boundary (Milestone 2):
+Mitigation (PR1): Preserve the current renderer sequencing and buffering (“buffer until ready”), and include an “immediate output” check in manual QA (example: run `echo READY` immediately after attach and confirm it reliably appears).
+
+Mitigation (follow-up if a real gap is observed): Move replay correctness to the backend boundary (Milestone 2 + Milestone 4):
 - `createOrAttach` returns `watermarkEventId`
 - renderer subscribes with `since = watermark + 1`
 - provider maintains a bounded ring buffer and replays gaps best-effort
@@ -850,26 +916,28 @@ Mitigation: Keep the “stream does not complete on exit” regression test as P
 
 ### Milestone 1
 
-- [ ] Inventory terminal backend call sites, events, and error string matching
-- [ ] Define `WorkspaceRuntime` + `TerminalRuntime` contracts (identities, lifecycle, error codes, replay)
-- [ ] Confirm no behavior change; run `bun run lint`
+- [x] Inventory terminal backend call sites, events, and error string matching
+- [x] Define `WorkspaceRuntime` + `TerminalRuntime` contracts (identities, lifecycle, error codes, replay)
+- [x] Confirm no behavior change; run `bun run lint`
 
 ### Milestone 2
 
-- [ ] Implement `getWorkspaceRuntimeRegistry()` + `LocalWorkspaceRuntime` in `apps/desktop/src/main/lib/workspace-runtime/`
-- [ ] Implement session management as `terminal.management: TerminalManagement | null` (no no-op admin methods)
-- [ ] Add event cursor + bounded replay ring buffer at provider boundary
-- [ ] Normalize error codes (`TerminalErrorCode`) and enforce resize sequencing (`seq`)
-- [ ] Run `bun run typecheck --filter=@superset/desktop`
+- [x] Implement `getWorkspaceRuntimeRegistry()` + `LocalWorkspaceRuntime` in `apps/desktop/src/main/lib/workspace-runtime/`
+- [x] Implement session management as `terminal.management: TerminalManagement | null` (no no-op admin methods)
+- [ ] (Follow-up) Add event cursor + bounded replay ring buffer at provider boundary
+- [ ] (Follow-up) Normalize error codes (`TerminalErrorCode`) and enforce resize sequencing (`seq`)
+- [x] Run `bun run typecheck --filter=@superset/desktop`
 
 ### Milestone 3
 
-- [ ] Migrate `apps/desktop/src/lib/trpc/routers/terminal/terminal.ts` to `getWorkspaceRuntimeRegistry()`
-- [ ] Remove `instanceof DaemonTerminalManager` checks
-- [ ] Add `terminal.streamV2` (identity + since cursor) and migrate router internals to `subscribeSession`
-- [ ] Run `bun test --filter=@superset/desktop`
+- [x] Migrate `apps/desktop/src/lib/trpc/routers/terminal/terminal.ts` to `getWorkspaceRuntimeRegistry()`
+- [x] Remove `instanceof DaemonTerminalManager` checks
+- [ ] (Follow-up / Milestone 4) Add `terminal.streamV2` (identity + since cursor) and migrate router internals to `subscribeSession`
+- [x] Run `bun test --filter=@superset/desktop`
 
 ### Milestone 4
+
+Optional follow-up PR (cloud prep / identity separation).
 
 - [ ] Add renderer `clientId` + per-pane `attachmentId`
 - [ ] Add `{ paneId -> backendSessionId }` + `{ paneId -> lastSeenEventId }` mapping
@@ -879,11 +947,13 @@ Mitigation: Keep the “stream does not complete on exit” regression test as P
 
 ### Milestone 5
 
-- [ ] Add/adjust unit tests for replay/cursor semantics, error codes, and resize sequencing
-- [ ] Confirm stream exit regression test still covers “no complete on exit”
+- [ ] (Follow-up) Add/adjust unit tests for replay/cursor semantics, error codes, and resize sequencing
+- [x] Confirm stream exit regression test still covers “no complete on exit”
 - [ ] Update PR verification matrix and run manual verification (non-daemon, warm attach, cold restore)
 
 ### Milestone 6a
+
+Optional follow-up PR (renderer decomposition).
 
 - [ ] Implement init plan adapter (normalize snapshot vs scrollback, modes, `viewportY`)
 - [ ] Implement restore applier helper (rehydrate → snapshot → scroll restore → stream ready)
@@ -900,6 +970,8 @@ Mitigation: Keep the “stream does not complete on exit” regression test as P
 - [ ] Preserve detach/reattach scroll restoration (`viewportY`)
 
 ### Milestone 7 (Cloud Readiness)
+
+Optional follow-up PR.
 
 - [ ] Add `CloudWorkspaceRuntime` skeleton and selection plumbing (metadata-driven)
 - [ ] Ensure terminal contract includes connection/auth lifecycle events

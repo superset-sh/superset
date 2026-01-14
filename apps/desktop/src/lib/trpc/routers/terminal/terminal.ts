@@ -4,10 +4,7 @@ import { projects, workspaces, worktrees } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import {
-	DaemonTerminalManager,
-	getActiveTerminalManager,
-} from "main/lib/terminal";
+import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertWorkspaceUsable } from "../workspaces/utils/usability";
@@ -32,12 +29,13 @@ let createOrAttachCallCounter = 0;
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
-	// Get the active terminal manager (in-process or daemon-based)
-	const terminalManager = getActiveTerminalManager();
+	// Get the workspace runtime registry (selects backend based on settings)
+	const registry = getWorkspaceRuntimeRegistry();
+	const terminal = registry.getDefault().terminal;
 	if (DEBUG_TERMINAL) {
 		console.log(
-			"[Terminal Router] Using terminal manager:",
-			terminalManager.constructor.name,
+			"[Terminal Router] Using terminal runtime, capabilities:",
+			terminal.capabilities,
 		);
 	}
 
@@ -105,7 +103,7 @@ export const createTerminalRouter = () => {
 					: undefined;
 
 				try {
-					const result = await terminalManager.createOrAttach({
+					const result = await terminal.createOrAttach({
 						paneId,
 						tabId,
 						workspaceId,
@@ -164,7 +162,7 @@ export const createTerminalRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				try {
-					terminalManager.write(input);
+					terminal.write(input);
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : "Write failed";
@@ -173,11 +171,11 @@ export const createTerminalRouter = () => {
 					// This prevents error toast floods when workspaces with terminals are deleted.
 					if (message.includes("not found or not alive")) {
 						// SIGTERM (15) - synthetic signal for consistent event typing.
-						terminalManager.emit(`exit:${input.paneId}`, 0, 15);
+						terminal.emit(`exit:${input.paneId}`, 0, 15);
 						return;
 					}
 
-					terminalManager.emit(`error:${input.paneId}`, {
+					terminal.emit(`error:${input.paneId}`, {
 						error: message,
 						code: "WRITE_FAILED",
 					});
@@ -191,7 +189,7 @@ export const createTerminalRouter = () => {
 		ackColdRestore: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
-				terminalManager.ackColdRestore(input.paneId);
+				terminal.ackColdRestore(input.paneId);
 			}),
 
 		resize: publicProcedure
@@ -204,7 +202,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.resize(input);
+				terminal.resize(input);
 			}),
 
 		signal: publicProcedure
@@ -215,7 +213,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.signal(input);
+				terminal.signal(input);
 			}),
 
 		kill: publicProcedure
@@ -225,7 +223,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await terminalManager.kill(input);
+				await terminal.kill(input);
 			}),
 
 		/**
@@ -239,7 +237,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				terminalManager.detach(input);
+				terminal.detach(input);
 			}),
 
 		/**
@@ -253,42 +251,45 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
-				await terminalManager.clearScrollback(input);
+				await terminal.clearScrollback(input);
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			if (!(terminalManager instanceof DaemonTerminalManager)) {
+			// Use capability-based check instead of instanceof
+			if (!terminal.management) {
 				return { daemonModeEnabled: false, sessions: [] };
 			}
 
-			const response = await terminalManager.listDaemonSessions();
+			const response = await terminal.management.listSessions();
 			return { daemonModeEnabled: true, sessions: response.sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
-			if (!(terminalManager instanceof DaemonTerminalManager)) {
+			// Use capability-based check instead of instanceof
+			if (!terminal.management) {
 				return { daemonModeEnabled: false, killedCount: 0 };
 			}
 
-			const { sessions } = await terminalManager.listDaemonSessions();
-			await terminalManager.forceKillAll();
+			const { sessions } = await terminal.management.listSessions();
+			await terminal.management.killAllSessions();
 			return { daemonModeEnabled: true, killedCount: sessions.length };
 		}),
 
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				if (!(terminalManager instanceof DaemonTerminalManager)) {
+				// Use capability-based check instead of instanceof
+				if (!terminal.management) {
 					return { daemonModeEnabled: false, killedCount: 0 };
 				}
 
-				const { sessions } = await terminalManager.listDaemonSessions();
+				const { sessions } = await terminal.management.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
 
 				for (const session of toKill) {
-					await terminalManager.kill({ paneId: session.sessionId });
+					await terminal.kill({ paneId: session.sessionId });
 				}
 
 				return { daemonModeEnabled: true, killedCount: toKill.length };
@@ -297,8 +298,8 @@ export const createTerminalRouter = () => {
 		clearTerminalHistory: publicProcedure.mutation(async () => {
 			// Note: Disk-based terminal history was removed. This is now a no-op
 			// for non-daemon mode. In daemon mode, it resets the history persistence.
-			if (terminalManager instanceof DaemonTerminalManager) {
-				await terminalManager.resetHistoryPersistence();
+			if (terminal.management) {
+				await terminal.management.resetHistoryPersistence();
 			}
 
 			return { success: true };
@@ -307,7 +308,7 @@ export const createTerminalRouter = () => {
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: paneId }) => {
-				return terminalManager.getSession(paneId);
+				return terminal.getSession(paneId);
 			}),
 
 		/**
@@ -433,20 +434,20 @@ export const createTerminalRouter = () => {
 						});
 					};
 
-					terminalManager.on(`data:${paneId}`, onData);
-					terminalManager.on(`exit:${paneId}`, onExit);
-					terminalManager.on(`disconnect:${paneId}`, onDisconnect);
-					terminalManager.on(`error:${paneId}`, onError);
+					terminal.on(`data:${paneId}`, onData);
+					terminal.on(`exit:${paneId}`, onExit);
+					terminal.on(`disconnect:${paneId}`, onDisconnect);
+					terminal.on(`error:${paneId}`, onError);
 
 					// Cleanup on unsubscribe
 					return () => {
 						if (DEBUG_TERMINAL) {
 							console.log(`[Terminal Stream] Unsubscribe: ${paneId}`);
 						}
-						terminalManager.off(`data:${paneId}`, onData);
-						terminalManager.off(`exit:${paneId}`, onExit);
-						terminalManager.off(`disconnect:${paneId}`, onDisconnect);
-						terminalManager.off(`error:${paneId}`, onError);
+						terminal.off(`data:${paneId}`, onData);
+						terminal.off(`exit:${paneId}`, onExit);
+						terminal.off(`disconnect:${paneId}`, onDisconnect);
+						terminal.off(`error:${paneId}`, onError);
 					};
 				});
 			}),
