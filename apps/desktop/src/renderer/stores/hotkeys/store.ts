@@ -77,7 +77,7 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 							? null
 							: canonicalizeHotkeyForPlatform(keys, platform);
 					if (keys !== null && !canonical) return;
-					// App hotkeys must include ctrl or meta to work in terminal
+					// App hotkeys must include ctrl, meta, or alt to work in terminal
 					if (canonical !== null && !hasPrimaryModifier(canonical)) return;
 
 					const defaultValue = getDefaultHotkey(id, platform);
@@ -117,7 +117,7 @@ export const useHotkeysStore = create<HotkeysStoreState>()(
 								? null
 								: canonicalizeHotkeyForPlatform(keys, platform);
 						if (keys !== null && !canonical) continue;
-						// App hotkeys must include ctrl or meta to work in terminal
+						// App hotkeys must include ctrl, meta, or alt to work in terminal
 						if (canonical !== null && !hasPrimaryModifier(canonical)) continue;
 						const defaultValue = getDefaultHotkey(hotkeyId, platform);
 						if (canonical === defaultValue) {

@@ -270,8 +270,8 @@ export function hotkeyFromKeyboardEvent(
 		return null;
 	}
 
-	// App hotkeys must include ctrl or meta to avoid conflicts with terminal input
-	if (!event.ctrlKey && !event.metaKey) {
+	// App hotkeys must include ctrl, meta, or alt to avoid conflicts with terminal input
+	if (!event.ctrlKey && !event.metaKey && !event.altKey) {
 		return null;
 	}
 
@@ -310,13 +310,13 @@ export function isOsReservedHotkey(
 }
 
 /**
- * Checks if a hotkey includes a primary modifier (ctrl or meta).
- * App hotkeys must include ctrl or meta to avoid conflicts with terminal input
+ * Checks if a hotkey includes a primary modifier (ctrl, meta, or alt).
+ * App hotkeys must include ctrl, meta, or alt to avoid conflicts with terminal input
  * and to ensure they work when the terminal is focused.
  */
 export function hasPrimaryModifier(keys: string): boolean {
 	const parsed = parseHotkeyString(keys);
-	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta");
+	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta") || parsed.modifiers.has("alt");
 }
 
 export function deriveNonMacDefault(keys: string | null): string | null {
@@ -635,7 +635,7 @@ export function buildOverridesFromBindings(
 		if (canonical === null && value !== null) {
 			continue;
 		}
-		// App hotkeys must include ctrl or meta to work in terminal
+		// App hotkeys must include ctrl, meta, or alt to work in terminal
 		if (canonical !== null && !hasPrimaryModifier(canonical)) {
 			continue;
 		}
