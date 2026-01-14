@@ -380,15 +380,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			wasRecovered: boolean;
 			isNew: boolean;
 			scrollback: string;
-			viewportY?: number;
 		}) => {
-			// Callback ensures scroll restoration happens after content is rendered
-			xterm.write(result.scrollback, () => {
-				updateCwdRef.current(result.scrollback);
-				if (result.viewportY !== undefined) {
-					xterm.scrollToLine(result.viewportY);
-				}
-			});
+			xterm.write(result.scrollback);
+			updateCwdRef.current(result.scrollback);
 		};
 
 		const restartTerminal = () => {
@@ -567,9 +561,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
-			const viewportY = xterm.buffer.active.viewportY;
 			// Detach instead of kill to keep PTY running for reattachment
-			detachRef.current({ paneId, viewportY });
+			detachRef.current({ paneId });
 			setSubscriptionEnabled(false);
 			xterm.dispose();
 			xtermRef.current = null;
