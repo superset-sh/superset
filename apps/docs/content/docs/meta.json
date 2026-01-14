@@ -1,0 +1,11 @@
+{
+	"title": "Documentation",
+	"pages": [
+		"---Get Started---",
+		"quick-start",
+		"overview",
+		"installation",
+		"---Guides---",
+		"guides"
+	]
+}

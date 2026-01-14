@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "fumadocs-ui/css/neutral.css";
+@import "fumadocs-ui/css/preset.css";
+
+/* Sidebar separator styling */
+[data-sidebar] [role="separator"] {
+	margin-top: 1.25rem;
+	margin-bottom: 0.5rem;
+	padding-left: 0.5rem;
+	font-size: 0.7rem;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--color-fd-muted-foreground);
+	opacity: 0.7;
+}
+
+/* First separator doesn't need top margin */
+[data-sidebar] [role="separator"]:first-of-type {
+	margin-top: 0;
+}
+
+/* Sidebar item hover */
+[data-sidebar] a {
+	transition: background-color 0.15s ease;
+}
