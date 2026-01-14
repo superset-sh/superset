@@ -6,7 +6,7 @@ import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";

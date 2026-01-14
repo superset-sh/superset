@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
 import { ContentView } from "renderer/screens/main/components/WorkspaceView/ContentView";

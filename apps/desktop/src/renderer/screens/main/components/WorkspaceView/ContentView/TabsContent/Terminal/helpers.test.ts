@@ -14,7 +14,7 @@ globalThis.localStorage = mockLocalStorage;
 
 // Mock trpc-client to avoid electronTRPC dependency
 mock.module("renderer/lib/trpc-client", () => ({
-	trpcClient: {
+	electronTrpcClient: {
 		external: {
 			openUrl: { mutate: mock(() => Promise.resolve()) },
 			openFileInEditor: { mutate: mock(() => Promise.resolve()) },
@@ -26,6 +26,7 @@ mock.module("renderer/lib/trpc-client", () => ({
 			},
 		},
 	},
+	electronReactClient: {},
 }));
 
 // Import after mocks are set up
