@@ -37,6 +37,26 @@ export interface AutoUpdateStatusEvent {
 
 export const autoUpdateEmitter = new EventEmitter();
 
+// Network errors that don't need to be shown to the user
+// These are transient/expected and will resolve on retry
+const SILENT_ERROR_PATTERNS = [
+	"net::ERR_INTERNET_DISCONNECTED",
+	"net::ERR_NETWORK_CHANGED",
+	"net::ERR_CONNECTION_REFUSED",
+	"net::ERR_NAME_NOT_RESOLVED",
+	"net::ERR_CONNECTION_TIMED_OUT",
+	"net::ERR_CONNECTION_RESET",
+	"ENOTFOUND",
+	"ETIMEDOUT",
+	"ECONNREFUSED",
+	"ECONNRESET",
+];
+
+function isNetworkError(error: Error | string): boolean {
+	const message = typeof error === "string" ? error : error.message;
+	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
 let isDismissed = false;
@@ -86,6 +106,11 @@ export function checkForUpdates(): void {
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
+		if (isNetworkError(error)) {
+			console.info("[auto-updater] Network unavailable, will retry later");
+			emitStatus(AUTO_UPDATE_STATUS.IDLE);
+			return;
+		}
 		console.error("[auto-updater] Failed to check for updates:", error);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
@@ -129,6 +154,16 @@ export function checkForUpdatesInteractive(): void {
 			}
 		})
 		.catch((error) => {
+			if (isNetworkError(error)) {
+				console.info("[auto-updater] Network unavailable");
+				emitStatus(AUTO_UPDATE_STATUS.IDLE);
+				dialog.showMessageBox({
+					type: "info",
+					title: "No Internet Connection",
+					message: "Unable to check for updates. Please check your internet connection.",
+				});
+				return;
+			}
 			console.error("[auto-updater] Failed to check for updates:", error);
 			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 			dialog.showMessageBox({
@@ -180,6 +215,11 @@ export function setupAutoUpdater(): void {
 	});
 
 	autoUpdater.on("error", (error) => {
+		if (isNetworkError(error)) {
+			console.info("[auto-updater] Network unavailable, will retry later");
+			emitStatus(AUTO_UPDATE_STATUS.IDLE);
+			return;
+		}
 		console.error("[auto-updater] Error during update check:", error);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
 	});
