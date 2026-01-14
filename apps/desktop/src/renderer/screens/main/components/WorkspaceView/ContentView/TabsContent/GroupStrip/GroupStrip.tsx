@@ -25,6 +25,7 @@ import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
+import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
@@ -34,6 +35,7 @@ export function GroupStrip() {
 	const allTabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const { addTab } = useTabsWithPresets();
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
@@ -71,9 +73,15 @@ export function GroupStrip() {
 		[activeWorkspaceId, allTabs],
 	);
 
-	const activeTabId = activeWorkspaceId
-		? activeTabIds[activeWorkspaceId]
-		: null;
+	const activeTabId = useMemo(() => {
+		if (!activeWorkspaceId) return null;
+		return resolveActiveTabIdForWorkspace({
+			workspaceId: activeWorkspaceId,
+			tabs: allTabs,
+			activeTabIds,
+			tabHistoryStacks,
+		});
+	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
 	// Compute aggregate status per tab using shared priority logic
 	const tabStatusMap = useMemo(() => {

@@ -16,6 +16,7 @@ import {
 	getPaneIdsForTab,
 	isLastPaneInTab,
 	removePaneFromLayout,
+	resolveActiveTabIdForWorkspace,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
 
@@ -367,8 +368,15 @@ export const useTabsStore = create<TabsStore>()(
 					options: AddFileViewerPaneOptions,
 				) => {
 					const state = get();
-					const activeTabId = state.activeTabIds[workspaceId];
-					const activeTab = state.tabs.find((t) => t.id === activeTabId);
+					const resolvedActiveTabId = resolveActiveTabIdForWorkspace({
+						workspaceId,
+						tabs: state.tabs,
+						activeTabIds: state.activeTabIds,
+						tabHistoryStacks: state.tabHistoryStacks,
+					});
+					const activeTab = resolvedActiveTabId
+						? state.tabs.find((t) => t.id === resolvedActiveTabId)
+						: null;
 
 					// If no active tab, create a new one (this shouldn't normally happen)
 					if (!activeTab) {
@@ -854,7 +862,12 @@ export const useTabsStore = create<TabsStore>()(
 
 				getActiveTab: (workspaceId) => {
 					const state = get();
-					const activeTabId = state.activeTabIds[workspaceId];
+					const activeTabId = resolveActiveTabIdForWorkspace({
+						workspaceId,
+						tabs: state.tabs,
+						activeTabIds: state.activeTabIds,
+						tabHistoryStacks: state.tabHistoryStacks,
+					});
 					if (!activeTabId) return null;
 					return state.tabs.find((t) => t.id === activeTabId) || null;
 				},
@@ -915,7 +928,68 @@ export const useTabsStore = create<TabsStore>()(
 							}
 						}
 					}
-					return { ...currentState, ...persisted };
+
+					const mergedState = { ...currentState, ...persisted };
+
+					// Sanitize persisted tab pointers to be workspace-scoped.
+					// This prevents cross-workspace rendering when state is stale/corrupt.
+					const tabIds = new Set(mergedState.tabs.map((t) => t.id));
+					const workspaceTabIdSets = new Map<string, Set<string>>();
+					for (const tab of mergedState.tabs) {
+						let setForWorkspace = workspaceTabIdSets.get(tab.workspaceId);
+						if (!setForWorkspace) {
+							setForWorkspace = new Set();
+							workspaceTabIdSets.set(tab.workspaceId, setForWorkspace);
+						}
+						setForWorkspace.add(tab.id);
+					}
+
+					const workspaceIds = new Set<string>([
+						...Object.keys(mergedState.activeTabIds),
+						...Object.keys(mergedState.tabHistoryStacks),
+					]);
+					for (const tab of mergedState.tabs) {
+						workspaceIds.add(tab.workspaceId);
+					}
+
+					const nextActiveTabIds = { ...mergedState.activeTabIds };
+					const nextHistoryStacks = { ...mergedState.tabHistoryStacks };
+
+					for (const workspaceId of workspaceIds) {
+						nextActiveTabIds[workspaceId] = resolveActiveTabIdForWorkspace({
+							workspaceId,
+							tabs: mergedState.tabs,
+							activeTabIds: mergedState.activeTabIds,
+							tabHistoryStacks: mergedState.tabHistoryStacks,
+						});
+
+						const workspaceTabIds = workspaceTabIdSets.get(workspaceId);
+						const history = nextHistoryStacks[workspaceId] ?? [];
+						if (workspaceTabIds && Array.isArray(history)) {
+							nextHistoryStacks[workspaceId] = history.filter((id) =>
+								workspaceTabIds.has(id),
+							);
+						}
+					}
+
+					const nextFocusedPaneIds = { ...mergedState.focusedPaneIds };
+					for (const [tabId, paneId] of Object.entries(nextFocusedPaneIds)) {
+						if (!tabIds.has(tabId)) {
+							delete nextFocusedPaneIds[tabId];
+							continue;
+						}
+						const pane = mergedState.panes[paneId];
+						if (!pane || pane.tabId !== tabId) {
+							delete nextFocusedPaneIds[tabId];
+						}
+					}
+
+					return {
+						...mergedState,
+						activeTabIds: nextActiveTabIds,
+						tabHistoryStacks: nextHistoryStacks,
+						focusedPaneIds: nextFocusedPaneIds,
+					};
 				},
 			},
 		),

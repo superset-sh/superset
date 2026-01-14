@@ -30,6 +30,49 @@ export const getTabDisplayName = (tab: Tab): string => {
 	return name;
 };
 
+export function resolveActiveTabIdForWorkspace({
+	workspaceId,
+	tabs,
+	activeTabIds,
+	tabHistoryStacks,
+}: {
+	workspaceId: string;
+	tabs: Tab[];
+	activeTabIds: Record<string, string | null | undefined>;
+	tabHistoryStacks: Record<string, string[] | undefined>;
+}): string | null {
+	const workspaceTabIds = new Set<string>();
+	let firstWorkspaceTabId: string | null = null;
+
+	for (const tab of tabs) {
+		if (tab.workspaceId !== workspaceId) continue;
+		workspaceTabIds.add(tab.id);
+		if (firstWorkspaceTabId === null) {
+			firstWorkspaceTabId = tab.id;
+		}
+	}
+
+	const isWorkspaceTabId = (
+		tabId: string | null | undefined,
+	): tabId is string => {
+		return typeof tabId === "string" && workspaceTabIds.has(tabId);
+	};
+
+	const activeTabId = activeTabIds[workspaceId];
+	if (isWorkspaceTabId(activeTabId)) {
+		return activeTabId;
+	}
+
+	const historyStack = tabHistoryStacks[workspaceId] ?? [];
+	for (const historyTabId of historyStack) {
+		if (isWorkspaceTabId(historyTabId)) {
+			return historyTabId;
+		}
+	}
+
+	return firstWorkspaceTabId;
+}
+
 /**
  * Extracts all pane IDs from a mosaic layout tree in visual navigation order:
  * left-to-right, top-to-bottom.

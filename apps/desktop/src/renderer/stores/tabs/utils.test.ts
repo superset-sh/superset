@@ -1,6 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import type { MosaicNode } from "react-mosaic-component";
-import { findPanePath, getAdjacentPaneId } from "./utils";
+import type { Tab } from "./types";
+import {
+	findPanePath,
+	getAdjacentPaneId,
+	resolveActiveTabIdForWorkspace,
+} from "./utils";
 
 describe("findPanePath", () => {
 	it("returns empty array for single pane layout matching the id", () => {
@@ -187,5 +192,101 @@ describe("getAdjacentPaneId", () => {
 		expect(getAdjacentPaneId(layout, "pane-2")).toBe("pane-3");
 		expect(getAdjacentPaneId(layout, "pane-3")).toBe("pane-4");
 		expect(getAdjacentPaneId(layout, "pane-4")).toBe("pane-3"); // Last pane goes to previous
+	});
+});
+
+describe("resolveActiveTabIdForWorkspace", () => {
+	const createTab = ({
+		id,
+		workspaceId,
+	}: {
+		id: string;
+		workspaceId: string;
+	}): Tab => {
+		return {
+			id,
+			name: id,
+			workspaceId,
+			layout: `${id}-pane`,
+			createdAt: 0,
+		};
+	};
+
+	it("returns active tab when valid for workspace", () => {
+		const tabs = [
+			createTab({ id: "tab-a", workspaceId: "ws-1" }),
+			createTab({ id: "tab-b", workspaceId: "ws-1" }),
+		];
+
+		expect(
+			resolveActiveTabIdForWorkspace({
+				workspaceId: "ws-1",
+				tabs,
+				activeTabIds: { "ws-1": "tab-b" },
+				tabHistoryStacks: { "ws-1": ["tab-a"] },
+			}),
+		).toBe("tab-b");
+	});
+
+	it("falls back to MRU history when active tab is invalid", () => {
+		const tabs = [
+			createTab({ id: "tab-a", workspaceId: "ws-1" }),
+			createTab({ id: "tab-b", workspaceId: "ws-1" }),
+		];
+
+		expect(
+			resolveActiveTabIdForWorkspace({
+				workspaceId: "ws-1",
+				tabs,
+				activeTabIds: { "ws-1": "tab-missing" },
+				tabHistoryStacks: { "ws-1": ["tab-b", "tab-a"] },
+			}),
+		).toBe("tab-b");
+	});
+
+	it("ignores history entries from other workspaces", () => {
+		const tabs = [
+			createTab({ id: "tab-a", workspaceId: "ws-1" }),
+			createTab({ id: "tab-c", workspaceId: "ws-2" }),
+		];
+
+		expect(
+			resolveActiveTabIdForWorkspace({
+				workspaceId: "ws-1",
+				tabs,
+				activeTabIds: { "ws-1": "tab-missing" },
+				tabHistoryStacks: { "ws-1": ["tab-c", "tab-a"] },
+			}),
+		).toBe("tab-a");
+	});
+
+	it("falls back to first tab in workspace when no active or valid history", () => {
+		const tabs = [
+			createTab({ id: "tab-x", workspaceId: "ws-2" }),
+			createTab({ id: "tab-a", workspaceId: "ws-1" }),
+			createTab({ id: "tab-b", workspaceId: "ws-1" }),
+		];
+
+		expect(
+			resolveActiveTabIdForWorkspace({
+				workspaceId: "ws-1",
+				tabs,
+				activeTabIds: {},
+				tabHistoryStacks: {},
+			}),
+		).toBe("tab-a");
+	});
+
+	it("returns null when workspace has no tabs", () => {
+		const tabs = [createTab({ id: "tab-x", workspaceId: "ws-2" })];
+
+		expect(
+			resolveActiveTabIdForWorkspace({
+				workspaceId: "ws-1",
+				tabs,
+				activeTabIds: { "ws-1": "tab-x" },
+				tabHistoryStacks: { "ws-1": ["tab-x"] },
+			}),
+		).toBeNull();
 	});
 });

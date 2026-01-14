@@ -17,6 +17,7 @@ import {
 	getFirstPaneId,
 	getNextPaneId,
 	getPreviousPaneId,
+	resolveActiveTabIdForWorkspace,
 } from "renderer/stores/tabs/utils";
 import {
 	useHasWorkspaceFailed,
@@ -74,6 +75,7 @@ function WorkspacePage() {
 
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
+	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
 	const { addTab, splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
 		useTabsWithPresets();
@@ -87,7 +89,14 @@ function WorkspacePage() {
 		[workspaceId, allTabs],
 	);
 
-	const activeTabId = activeTabIds[workspaceId] ?? null;
+	const activeTabId = useMemo(() => {
+		return resolveActiveTabIdForWorkspace({
+			workspaceId,
+			tabs,
+			activeTabIds,
+			tabHistoryStacks,
+		});
+	}, [workspaceId, tabs, activeTabIds, tabHistoryStacks]);
 
 	const activeTab = useMemo(
 		() => (activeTabId ? tabs.find((t) => t.id === activeTabId) : null),

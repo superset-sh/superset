@@ -28,7 +28,13 @@ export function movePaneToTab(
 
 	const sourceTab = state.tabs.find((t) => t.id === pane.tabId);
 	const targetTab = state.tabs.find((t) => t.id === targetTabId);
-	if (!sourceTab || !targetTab || sourceTab.id === targetTabId) return null;
+	if (
+		!sourceTab ||
+		!targetTab ||
+		sourceTab.id === targetTabId ||
+		sourceTab.workspaceId !== targetTab.workspaceId
+	)
+		return null;
 
 	const isLastPane = isLastPaneInTab(state.panes, sourceTab.id);
 	const newSourceLayout = removePaneFromLayout(sourceTab.layout, paneId);
