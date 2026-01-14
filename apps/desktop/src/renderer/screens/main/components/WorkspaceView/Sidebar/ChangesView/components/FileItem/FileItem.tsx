@@ -94,7 +94,8 @@ export function FileItem({
 	const hasAction = onStage || onUnstage;
 
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const openInEditorMutation = electronTrpc.external.openFileInEditor.useMutation();
+	const openInEditorMutation =
+		electronTrpc.external.openFileInEditor.useMutation();
 
 	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 

@@ -23,8 +23,10 @@ export function WorkspacesListView() {
 	const utils = electronTrpc.useUtils();
 
 	// Fetch all data
-	const { data: groups = [] } = electronTrpc.workspaces.getAllGrouped.useQuery();
-	const { data: allProjects = [] } = electronTrpc.projects.getRecents.useQuery();
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const { data: allProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
 
 	// Fetch worktrees for all projects
 	const worktreeQueries = electronTrpc.useQueries((t) =>

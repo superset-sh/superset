@@ -109,13 +109,14 @@ export function WorkspaceListItem({
 		useWorkspaceDeleteHandler();
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } = electronTrpc.workspaces.getGitHubStatus.useQuery(
-		{ workspaceId: id },
-		{
-			enabled: hasHovered && type === "worktree",
-			staleTime: GITHUB_STATUS_STALE_TIME,
-		},
-	);
+	const { data: githubStatus } =
+		electronTrpc.workspaces.getGitHubStatus.useQuery(
+			{ workspaceId: id },
+			{
+				enabled: hasHovered && type === "worktree",
+				staleTime: GITHUB_STATUS_STALE_TIME,
+			},
+		);
 
 	// Memoize workspace pane IDs to avoid recalculating on every render
 	const workspacePaneIds = useMemo(() => {

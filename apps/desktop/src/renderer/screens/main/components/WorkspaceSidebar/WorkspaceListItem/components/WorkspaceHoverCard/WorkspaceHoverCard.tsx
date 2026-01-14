@@ -23,10 +23,11 @@ export function WorkspaceHoverCardContent({
 	workspaceId,
 	workspaceAlias,
 }: WorkspaceHoverCardContentProps) {
-	const { data: worktreeInfo } = electronTrpc.workspaces.getWorktreeInfo.useQuery(
-		{ workspaceId },
-		{ enabled: !!workspaceId },
-	);
+	const { data: worktreeInfo } =
+		electronTrpc.workspaces.getWorktreeInfo.useQuery(
+			{ workspaceId },
+			{ enabled: !!workspaceId },
+		);
 
 	const {
 		pr,

@@ -53,7 +53,9 @@ export const Route = createFileRoute(
 
 function WorkspacePage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace } = electronTrpc.workspaces.get.useQuery({ id: workspaceId });
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
+		id: workspaceId,
+	});
 	const navigate = useNavigate();
 
 	// Check if workspace is initializing or failed
@@ -289,10 +291,11 @@ function WorkspacePage() {
 	);
 
 	// Navigate to previous workspace (⌘↑)
-	const getPreviousWorkspace = electronTrpc.workspaces.getPreviousWorkspace.useQuery(
-		{ id: workspaceId },
-		{ enabled: !!workspaceId },
-	);
+	const getPreviousWorkspace =
+		electronTrpc.workspaces.getPreviousWorkspace.useQuery(
+			{ id: workspaceId },
+			{ enabled: !!workspaceId },
+		);
 	useAppHotkey(
 		"PREV_WORKSPACE",
 		() => {

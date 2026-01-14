@@ -12,7 +12,9 @@ import { useTabsStore } from "renderer/stores/tabs/store";
  * Shows config toast if no setup commands are configured
  */
 export function useOpenWorktree(
-	options?: Parameters<typeof electronTrpc.workspaces.openWorktree.useMutation>[0],
+	options?: Parameters<
+		typeof electronTrpc.workspaces.openWorktree.useMutation
+	>[0],
 ) {
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
@@ -20,7 +22,8 @@ export function useOpenWorktree(
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast = electronTrpc.config.dismissConfigToast.useMutation();
+	const dismissConfigToast =
+		electronTrpc.config.dismissConfigToast.useMutation();
 
 	return electronTrpc.workspaces.openWorktree.useMutation({
 		...options,

@@ -54,9 +54,10 @@ function ProjectSettingsPage() {
 		id: projectId,
 	});
 
-	const { data: configFilePath } = electronTrpc.config.getConfigFilePath.useQuery({
-		projectId,
-	});
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery({
+			projectId,
+		});
 
 	// Project is guaranteed to exist here because loader handles 404s
 	if (!project) {

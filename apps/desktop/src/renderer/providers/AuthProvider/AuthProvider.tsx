@@ -19,23 +19,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	const { refetch: refetchSession } = authClient.useSession();
 
 	// Initial hydration: Load token from disk
-	const { data: storedToken } = electronTrpc.auth.getStoredToken.useQuery(
-		undefined,
-		{
+	const { data: storedToken, isSuccess } =
+		electronTrpc.auth.getStoredToken.useQuery(undefined, {
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false,
-		},
-	);
+		});
 
 	useEffect(() => {
-		if (storedToken && !isHydrated) {
-			if (storedToken.token && storedToken.expiresAt) {
-				setAuthToken(storedToken.token);
-				refetchSession();
-			}
-			setIsHydrated(true);
+		// Wait for query to complete before hydrating
+		if (!isSuccess || isHydrated) return;
+
+		// If token exists, set it in memory and refetch session
+		if (storedToken?.token && storedToken?.expiresAt) {
+			setAuthToken(storedToken.token);
+			refetchSession();
 		}
-	}, [storedToken, isHydrated, refetchSession]);
+
+		// Always mark as hydrated once query completes (even if no token)
+		setIsHydrated(true);
+	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 
 	// Listen for token changes from main process (OAuth callback)
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {

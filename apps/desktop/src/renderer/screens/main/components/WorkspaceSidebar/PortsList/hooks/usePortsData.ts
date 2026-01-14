@@ -20,7 +20,8 @@ export function usePortsData() {
 
 	const utils = electronTrpc.useUtils();
 
-	const { data: allStaticPortsData } = electronTrpc.ports.getAllStatic.useQuery();
+	const { data: allStaticPortsData } =
+		electronTrpc.ports.getAllStatic.useQuery();
 
 	// Subscribe to all static port changes
 	electronTrpc.ports.subscribeStatic.useSubscription(

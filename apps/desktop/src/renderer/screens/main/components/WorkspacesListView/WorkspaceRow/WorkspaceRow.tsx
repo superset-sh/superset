@@ -42,14 +42,17 @@ export function WorkspaceRow({
 		useWorkspaceDeleteHandler();
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } = electronTrpc.workspaces.getGitHubStatus.useQuery(
-		{ workspaceId: workspace.workspaceId ?? "" },
-		{
-			enabled:
-				hasHovered && workspace.type === "worktree" && !!workspace.workspaceId,
-			staleTime: GITHUB_STATUS_STALE_TIME,
-		},
-	);
+	const { data: githubStatus } =
+		electronTrpc.workspaces.getGitHubStatus.useQuery(
+			{ workspaceId: workspace.workspaceId ?? "" },
+			{
+				enabled:
+					hasHovered &&
+					workspace.type === "worktree" &&
+					!!workspace.workspaceId,
+				staleTime: GITHUB_STATUS_STALE_TIME,
+			},
+		);
 
 	const pr = githubStatus?.pr;
 	const showDiffStats = pr && (pr.additions > 0 || pr.deletions > 0);

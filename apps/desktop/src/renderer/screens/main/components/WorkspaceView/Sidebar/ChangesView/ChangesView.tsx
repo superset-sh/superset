@@ -107,24 +107,26 @@ export function ChangesView({
 		},
 	});
 
-	const discardChangesMutation = electronTrpc.changes.discardChanges.useMutation({
-		onSuccess: () => refetch(),
-		onError: (error, variables) => {
-			console.error(
-				`Failed to discard changes for ${variables.filePath}:`,
-				error,
-			);
-			toast.error(`Failed to discard changes: ${error.message}`);
-		},
-	});
+	const discardChangesMutation =
+		electronTrpc.changes.discardChanges.useMutation({
+			onSuccess: () => refetch(),
+			onError: (error, variables) => {
+				console.error(
+					`Failed to discard changes for ${variables.filePath}:`,
+					error,
+				);
+				toast.error(`Failed to discard changes: ${error.message}`);
+			},
+		});
 
-	const deleteUntrackedMutation = electronTrpc.changes.deleteUntracked.useMutation({
-		onSuccess: () => refetch(),
-		onError: (error, variables) => {
-			console.error(`Failed to delete ${variables.filePath}:`, error);
-			toast.error(`Failed to delete file: ${error.message}`);
-		},
-	});
+	const deleteUntrackedMutation =
+		electronTrpc.changes.deleteUntracked.useMutation({
+			onSuccess: () => refetch(),
+			onError: (error, variables) => {
+				console.error(`Failed to delete ${variables.filePath}:`, error);
+				toast.error(`Failed to delete file: ${error.message}`);
+			},
+		});
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;

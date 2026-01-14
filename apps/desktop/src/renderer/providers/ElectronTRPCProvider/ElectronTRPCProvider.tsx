@@ -26,10 +26,11 @@ export function ElectronTRPCProvider({
 	children: React.ReactNode;
 }) {
 	return (
-		<electronTrpc.Provider client={electronReactClient} queryClient={queryClient}>
-			<QueryClientProvider client={queryClient}>
-				{children}
-			</QueryClientProvider>
+		<electronTrpc.Provider
+			client={electronReactClient}
+			queryClient={queryClient}
+		>
+			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 		</electronTrpc.Provider>
 	);
 }

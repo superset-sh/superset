@@ -215,7 +215,9 @@ if (!gotTheLock) {
 				// Parse URL to extract pathname (e.g., superset://app/index.html#/ -> /index.html)
 				const parsedUrl = new URL(request.url);
 				const pathname = parsedUrl.pathname;
-				const filePath = path.normalize(path.join(__dirname, "../renderer", pathname));
+				const filePath = path.normalize(
+					path.join(__dirname, "../renderer", pathname),
+				);
 				return net.fetch(`file://${filePath}`);
 			});
 		}

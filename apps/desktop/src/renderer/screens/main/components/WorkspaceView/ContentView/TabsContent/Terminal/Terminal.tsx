@@ -197,11 +197,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const updateCwdRef = useRef(updateCwdFromData);
 	updateCwdRef.current = updateCwdFromData;
 
-	const createOrAttachMutation = electronTrpc.terminal.createOrAttach.useMutation();
+	const createOrAttachMutation =
+		electronTrpc.terminal.createOrAttach.useMutation();
 	const writeMutation = electronTrpc.terminal.write.useMutation();
 	const resizeMutation = electronTrpc.terminal.resize.useMutation();
 	const detachMutation = electronTrpc.terminal.detach.useMutation();
-	const clearScrollbackMutation = electronTrpc.terminal.clearScrollback.useMutation();
+	const clearScrollbackMutation =
+		electronTrpc.terminal.clearScrollback.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
