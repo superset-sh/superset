@@ -75,7 +75,11 @@ export function ProjectSection({
 
 	const [, drop] = useDrop({
 		accept: PROJECT_TYPE,
-		hover: (item: { projectId: string; index: number; originalIndex: number }) => {
+		hover: (item: {
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
 			if (item.index !== index) {
 				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
 					if (!oldData) return oldData;
@@ -87,11 +91,18 @@ export function ProjectSection({
 				item.index = index;
 			}
 		},
-		drop: (item: { projectId: string; index: number; originalIndex: number }) => {
+		drop: (item: {
+			projectId: string;
+			index: number;
+			originalIndex: number;
+		}) => {
 			if (item.originalIndex !== item.index) {
 				reorderProjects.mutate(
 					{ fromIndex: item.originalIndex, toIndex: item.index },
-					{ onError: (error) => toast.error(`Failed to reorder: ${error.message}`) },
+					{
+						onError: (error) =>
+							toast.error(`Failed to reorder: ${error.message}`),
+					},
 				);
 			}
 		},
