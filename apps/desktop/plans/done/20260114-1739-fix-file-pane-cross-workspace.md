@@ -27,7 +27,7 @@ None. If new edge cases appear during implementation, add them here and record d
 - [x] (2026-01-14 17:48Z) Implement workspace-scoped active tab resolver and state sanitization
 - [x] (2026-01-14 17:50Z) Update UI components to consume the resolver (TabsContent, TabView, GroupStrip, workspace route)
 - [x] (2026-01-14 17:51Z) Add regression tests for resolver
-- [ ] (2026-01-14 17:52Z) Run `bun test` (desktop/unit ok; repo-wide has 1 unrelated failing test in apps/cli)
+- [x] (2026-01-14 17:52Z) Run `bun test` (desktop/unit ok; repo-wide has 1 unrelated failing test in apps/cli)
 - [ ] Manual validation in desktop app
 
 ## Surprises & Discoveries
@@ -54,7 +54,29 @@ None. If new edge cases appear during implementation, add them here and record d
 
 ## Outcomes & Retrospective
 
-(To be completed after implementation.)
+This change prevents the “blank file viewer pane” that could appear when switching workspaces with a file viewer open.
+
+The underlying issue was that the route workspace ID and the rendered tab’s `workspaceId` could become inconsistent (stale `activeTabIds` / history), allowing the UI to render a tab from workspace A while the route was workspace B.
+
+Outcomes:
+
+- Enforced workspace-scoped tab selection via a pure resolver (`resolveActiveTabIdForWorkspace`).
+- Hardened the tabs store to use the resolver when opening file viewers and to sanitize persisted tab pointers on hydration.
+- Updated the renderer to use the resolver for tab rendering and group selection.
+- Updated `TabView` to resolve `worktreePath` from `tab.workspaceId`.
+- Prevented moving panes across workspaces.
+
+Validation:
+
+    bun run typecheck --filter=@superset/desktop
+    bun run lint
+    bun test apps/desktop/src/renderer/stores/tabs/utils.test.ts
+
+Note: `bun test` (repo-wide) currently fails due to `apps/cli/src/lib/storage/lowdb-adapter.test.ts` (unrelated to this change).
+
+Manual QA:
+
+Not yet run in the desktop UI. Follow the checklist in “Validation and Acceptance”.
 
 ## Context and Orientation
 
