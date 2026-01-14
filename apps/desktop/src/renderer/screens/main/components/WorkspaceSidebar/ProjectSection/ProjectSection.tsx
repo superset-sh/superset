@@ -61,7 +61,6 @@ export function ProjectSection({
 		openModal(projectId);
 	};
 
-	// Drag and drop for project reordering
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
 			type: PROJECT_TYPE,
@@ -77,7 +76,6 @@ export function ProjectSection({
 		accept: PROJECT_TYPE,
 		hover: (item: { projectId: string; index: number; originalIndex: number }) => {
 			if (item.index !== index) {
-				// Optimistically reorder in cache for immediate UI feedback
 				utils.workspaces.getAllGrouped.setData(undefined, (oldData) => {
 					if (!oldData) return oldData;
 					const newGroups = [...oldData];
@@ -89,7 +87,6 @@ export function ProjectSection({
 			}
 		},
 		drop: (item: { projectId: string; index: number; originalIndex: number }) => {
-			// Only call server mutation once on drop, if position changed
 			if (item.originalIndex !== item.index) {
 				reorderProjects.mutate({
 					fromIndex: item.originalIndex,
@@ -99,7 +96,6 @@ export function ProjectSection({
 		},
 	});
 
-	// When sidebar is collapsed, show compact view with just thumbnail and workspace icons
 	if (isSidebarCollapsed) {
 		return (
 			<div
