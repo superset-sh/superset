@@ -8,6 +8,7 @@
 		"---Core Features---",
 		"core-features",
 		"---How to Guides---",
-		"guides"
+		"guides",
+		"setup-teardown-scripts"
 	]
 }
