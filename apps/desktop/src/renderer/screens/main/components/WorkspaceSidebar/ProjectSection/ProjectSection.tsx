@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useDrag, useDrop } from "react-dnd";
@@ -88,10 +89,10 @@ export function ProjectSection({
 		},
 		drop: (item: { projectId: string; index: number; originalIndex: number }) => {
 			if (item.originalIndex !== item.index) {
-				reorderProjects.mutate({
-					fromIndex: item.originalIndex,
-					toIndex: item.index,
-				});
+				reorderProjects.mutate(
+					{ fromIndex: item.originalIndex, toIndex: item.index },
+					{ onError: (error) => toast.error(`Failed to reorder: ${error.message}`) },
+				);
 			}
 		},
 	});
