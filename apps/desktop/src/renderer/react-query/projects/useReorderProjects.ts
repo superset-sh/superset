@@ -1,15 +1,15 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 /**
  * Mutation hook for reordering projects
  * Automatically invalidates workspace and project queries on success
  */
 export function useReorderProjects(
-	options?: Parameters<typeof trpc.projects.reorder.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.projects.reorder.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.projects.reorder.useMutation({
+	return electronTrpc.projects.reorder.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.workspaces.getAllGrouped.invalidate();

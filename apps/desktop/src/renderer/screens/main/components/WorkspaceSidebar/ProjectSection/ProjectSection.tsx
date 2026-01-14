@@ -2,7 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useDrag, useDrop } from "react-dnd";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjects } from "renderer/react-query/projects";
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -52,7 +52,7 @@ export function ProjectSection({
 		useWorkspaceSidebarStore();
 	const openModal = useOpenNewWorkspaceModal();
 	const reorderProjects = useReorderProjects();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	const isCollapsed = isProjectCollapsed(projectId);
 
