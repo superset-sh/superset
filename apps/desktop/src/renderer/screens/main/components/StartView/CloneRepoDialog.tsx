@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 
 interface CloneRepoDialogProps {
@@ -14,8 +14,8 @@ export function CloneRepoDialog({
 	onError,
 }: CloneRepoDialogProps) {
 	const [url, setUrl] = useState("");
-	const utils = trpc.useUtils();
-	const cloneRepo = trpc.projects.cloneRepo.useMutation();
+	const utils = electronTrpc.useUtils();
+	const cloneRepo = electronTrpc.projects.cloneRepo.useMutation();
 	const createWorkspace = useCreateWorkspace();
 
 	const handleClone = async () => {

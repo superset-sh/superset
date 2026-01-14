@@ -1,13 +1,13 @@
 import { useParams } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { SupportMenu } from "./SupportMenu";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
-	const { data: platform } = trpc.window.getPlatform.useQuery();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const { workspaceId } = useParams({ strict: false });
-	const { data: workspace } = trpc.workspaces.get.useQuery(
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);

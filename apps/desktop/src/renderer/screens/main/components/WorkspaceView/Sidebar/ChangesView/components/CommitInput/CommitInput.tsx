@@ -19,7 +19,7 @@ import {
 	HiCheck,
 	HiChevronDown,
 } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface CommitInputProps {
 	worktreePath: string;
@@ -47,7 +47,7 @@ export function CommitInput({
 	const [commitMessage, setCommitMessage] = useState("");
 	const [isOpen, setIsOpen] = useState(false);
 
-	const commitMutation = trpc.changes.commit.useMutation({
+	const commitMutation = electronTrpc.changes.commit.useMutation({
 		onSuccess: () => {
 			toast.success("Committed");
 			setCommitMessage("");
@@ -56,7 +56,7 @@ export function CommitInput({
 		onError: (error) => toast.error(`Commit failed: ${error.message}`),
 	});
 
-	const pushMutation = trpc.changes.push.useMutation({
+	const pushMutation = electronTrpc.changes.push.useMutation({
 		onSuccess: () => {
 			toast.success("Pushed");
 			onRefresh();
@@ -64,7 +64,7 @@ export function CommitInput({
 		onError: (error) => toast.error(`Push failed: ${error.message}`),
 	});
 
-	const pullMutation = trpc.changes.pull.useMutation({
+	const pullMutation = electronTrpc.changes.pull.useMutation({
 		onSuccess: () => {
 			toast.success("Pulled");
 			onRefresh();
@@ -72,7 +72,7 @@ export function CommitInput({
 		onError: (error) => toast.error(`Pull failed: ${error.message}`),
 	});
 
-	const syncMutation = trpc.changes.sync.useMutation({
+	const syncMutation = electronTrpc.changes.sync.useMutation({
 		onSuccess: () => {
 			toast.success("Synced");
 			onRefresh();
@@ -80,7 +80,7 @@ export function CommitInput({
 		onError: (error) => toast.error(`Sync failed: ${error.message}`),
 	});
 
-	const createPRMutation = trpc.changes.createPR.useMutation({
+	const createPRMutation = electronTrpc.changes.createPR.useMutation({
 		onSuccess: () => {
 			toast.success("Opening GitHub...");
 			onRefresh();

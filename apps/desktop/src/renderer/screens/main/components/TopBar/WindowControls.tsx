@@ -1,10 +1,10 @@
 import { HiMiniMinus, HiMiniStop, HiMiniXMark } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export function WindowControls() {
-	const minimizeMutation = trpc.window.minimize.useMutation();
-	const maximizeMutation = trpc.window.maximize.useMutation();
-	const closeMutation = trpc.window.close.useMutation();
+	const minimizeMutation = electronTrpc.window.minimize.useMutation();
+	const maximizeMutation = electronTrpc.window.maximize.useMutation();
+	const closeMutation = electronTrpc.window.close.useMutation();
 
 	const handleMinimize = () => {
 		minimizeMutation.mutate();

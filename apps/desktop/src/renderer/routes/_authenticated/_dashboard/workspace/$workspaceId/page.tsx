@@ -1,6 +1,6 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
@@ -53,7 +53,7 @@ export const Route = createFileRoute(
 
 function WorkspacePage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace } = trpc.workspaces.get.useQuery({ id: workspaceId });
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({ id: workspaceId });
 	const navigate = useNavigate();
 
 	// Check if workspace is initializing or failed
@@ -173,8 +173,8 @@ function WorkspacePage() {
 
 	// Open in last used app shortcut
 	const { data: lastUsedApp = "cursor" } =
-		trpc.settings.getLastUsedApp.useQuery();
-	const openInApp = trpc.external.openInApp.useMutation();
+		electronTrpc.settings.getLastUsedApp.useQuery();
+	const openInApp = electronTrpc.external.openInApp.useMutation();
 	useAppHotkey(
 		"OPEN_IN_APP",
 		() => {
@@ -190,7 +190,7 @@ function WorkspacePage() {
 	);
 
 	// Copy path shortcut
-	const copyPath = trpc.external.copyPath.useMutation();
+	const copyPath = electronTrpc.external.copyPath.useMutation();
 	useAppHotkey(
 		"COPY_PATH",
 		() => {
@@ -289,7 +289,7 @@ function WorkspacePage() {
 	);
 
 	// Navigate to previous workspace (⌘↑)
-	const getPreviousWorkspace = trpc.workspaces.getPreviousWorkspace.useQuery(
+	const getPreviousWorkspace = electronTrpc.workspaces.getPreviousWorkspace.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
 	);
@@ -306,7 +306,7 @@ function WorkspacePage() {
 	);
 
 	// Navigate to next workspace (⌘↓)
-	const getNextWorkspace = trpc.workspaces.getNextWorkspace.useQuery(
+	const getNextWorkspace = electronTrpc.workspaces.getNextWorkspace.useQuery(
 		{ id: workspaceId },
 		{ enabled: !!workspaceId },
 	);
