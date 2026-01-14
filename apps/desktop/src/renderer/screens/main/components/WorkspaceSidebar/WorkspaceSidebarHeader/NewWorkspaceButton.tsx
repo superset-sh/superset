@@ -1,7 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMatchRoute } from "@tanstack/react-router";
 import { LuPlus } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { STROKE_WIDTH_THICK } from "../constants";
 
@@ -24,7 +24,7 @@ export function NewWorkspaceButton({
 		? currentWorkspaceMatch.workspaceId
 		: null;
 
-	const { data: currentWorkspace } = trpc.workspaces.get.useQuery(
+	const { data: currentWorkspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: currentWorkspaceId ?? "" },
 		{ enabled: !!currentWorkspaceId },
 	);

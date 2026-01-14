@@ -2,7 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiBellSlash, HiCheck, HiPlay, HiStop } from "react-icons/hi2";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	AVAILABLE_RINGTONES,
 	type Ringtone,
@@ -167,7 +167,7 @@ function RingtonesSettingsPage() {
 				clearTimeout(previewTimerRef.current);
 			}
 			// Stop any in-progress preview when navigating away
-			trpcClient.ringtone.stop.mutate().catch(() => {
+			electronTrpcClient.ringtone.stop.mutate().catch(() => {
 				// Ignore errors during cleanup
 			});
 		};
@@ -188,7 +188,7 @@ function RingtonesSettingsPage() {
 			// If this ringtone is already playing, stop it
 			if (playingId === ringtone.id) {
 				try {
-					await trpcClient.ringtone.stop.mutate();
+					await electronTrpcClient.ringtone.stop.mutate();
 				} catch (error) {
 					console.error("Failed to stop ringtone:", error);
 				}
@@ -198,7 +198,7 @@ function RingtonesSettingsPage() {
 
 			// Stop any currently playing sound first
 			try {
-				await trpcClient.ringtone.stop.mutate();
+				await electronTrpcClient.ringtone.stop.mutate();
 			} catch (error) {
 				console.error("Failed to stop ringtone:", error);
 			}
@@ -207,7 +207,7 @@ function RingtonesSettingsPage() {
 			setPlayingId(ringtone.id);
 
 			try {
-				await trpcClient.ringtone.preview.mutate({
+				await electronTrpcClient.ringtone.preview.mutate({
 					filename: ringtone.filename,
 				});
 			} catch (error) {

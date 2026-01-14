@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 
 interface ProjectThumbnailProps {
@@ -41,7 +41,7 @@ export function ProjectThumbnail({
 }: ProjectThumbnailProps) {
 	const [imageError, setImageError] = useState(false);
 
-	const { data: avatarData } = trpc.projects.getGitHubAvatar.useQuery(
+	const { data: avatarData } = electronTrpc.projects.getGitHubAvatar.useQuery(
 		{ id: projectId },
 		{
 			staleTime: 1000 * 60 * 5,

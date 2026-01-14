@@ -25,7 +25,7 @@ import {
 	LuSearch,
 	LuX,
 } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { Tab } from "renderer/stores/tabs/types";
 
 export interface EditorActions {
@@ -64,7 +64,7 @@ export function EditorContextMenu({
 		(t) => t.id !== paneActions.currentTabId,
 	);
 
-	const { data: platform } = trpc.window.getPlatform.useQuery();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const cmdKey = isMac ? "Cmd" : "Ctrl";
 

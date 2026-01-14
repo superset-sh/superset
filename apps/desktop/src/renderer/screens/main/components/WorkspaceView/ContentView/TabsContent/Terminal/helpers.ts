@@ -8,7 +8,7 @@ import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { debounce } from "lodash";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { getHotkeyKeys, isAppHotkeyEvent } from "renderer/stores/hotkeys";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import { isTerminalReservedEvent, matchesHotkeyEvent } from "shared/hotkeys";

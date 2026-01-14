@@ -1,56 +1,63 @@
-import {
-	createContext,
-	type ReactNode,
-	useContext,
-	useEffect,
-	useState,
-} from "react";
-import type { RouterOutputs } from "../../lib/trpc";
-import { trpc } from "../../lib/trpc";
+import { Spinner } from "@superset/ui/spinner";
+import { type ReactNode, useEffect, useState } from "react";
+import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import { electronTrpc } from "../../lib/electron-trpc";
 
-type AuthState = RouterOutputs["auth"]["onAuthState"];
-
-interface AuthContextValue {
-	token: string | null;
-	session: AuthState;
-	isInitialized: boolean;
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null);
-
+/**
+ * AuthProvider: Manages token synchronization between memory and encrypted disk storage.
+ *
+ * Simple flow:
+ * 1. Load token from disk on mount
+ * 2. Listen for OAuth callback tokens
+ * 3. Set in memory via setAuthToken()
+ * 4. Layouts handle session checks naturally via authClient.useSession()
+ */
 export function AuthProvider({ children }: { children: ReactNode }) {
-	const { data: authState } = trpc.auth.onAuthState.useSubscription();
-	const [isInitialized, setIsInitialized] = useState(false);
+	const [isHydrated, setIsHydrated] = useState(false);
 
-	// Mark as initialized once we receive the first auth state
+	// Get session refetch to bust cache when token changes
+	const { refetch: refetchSession } = authClient.useSession();
+
+	// Initial hydration: Load token from disk
+	const { data: storedToken, isSuccess } =
+		electronTrpc.auth.getStoredToken.useQuery(undefined, {
+			refetchOnWindowFocus: false,
+			refetchOnReconnect: false,
+		});
+
 	useEffect(() => {
-		if (authState !== undefined && !isInitialized) {
-			setIsInitialized(true);
+		// Wait for query to complete before hydrating
+		if (!isSuccess || isHydrated) return;
+
+		// If token exists, set it in memory and refetch session
+		if (storedToken?.token && storedToken?.expiresAt) {
+			setAuthToken(storedToken.token);
+			refetchSession();
 		}
-	}, [authState, isInitialized]);
 
-	const value: AuthContextValue = {
-		token: authState?.token ?? null,
-		session: authState ?? null,
-		isInitialized,
-	};
+		// Always mark as hydrated once query completes (even if no token)
+		setIsHydrated(true);
+	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 
-	// Show loading spinner until auth state is initialized
-	if (!isInitialized) {
+	// Listen for token changes from main process (OAuth callback)
+	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
+		onData: (data) => {
+			if (data?.token && data?.expiresAt) {
+				setAuthToken(data.token);
+				setIsHydrated(true);
+				refetchSession();
+			}
+		},
+	});
+
+	// Show loading spinner until initial hydration completes
+	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
+				<Spinner className="size-8" />
 			</div>
 		);
 	}
 
-	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth(): AuthContextValue {
-	const context = useContext(AuthContext);
-	if (!context) {
-		throw new Error("useAuth must be used within AuthProvider");
-	}
-	return context;
+	return <>{children}</>;
 }

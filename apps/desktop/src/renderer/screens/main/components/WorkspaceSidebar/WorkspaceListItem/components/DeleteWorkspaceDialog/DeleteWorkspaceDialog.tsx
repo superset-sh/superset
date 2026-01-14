@@ -9,7 +9,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseWorkspace,
 	useDeleteWorkspace,
@@ -35,7 +35,7 @@ export function DeleteWorkspaceDialog({
 	const closeWorkspace = useCloseWorkspace();
 
 	const { data: gitStatusData, isLoading: isLoadingGitStatus } =
-		trpc.workspaces.canDelete.useQuery(
+		electronTrpc.workspaces.canDelete.useQuery(
 			{ id: workspaceId },
 			{
 				enabled: open,
@@ -43,13 +43,14 @@ export function DeleteWorkspaceDialog({
 			},
 		);
 
-	const { data: terminalCountData } = trpc.workspaces.canDelete.useQuery(
-		{ id: workspaceId, skipGitChecks: true },
-		{
-			enabled: open,
-			refetchInterval: open ? 2000 : false,
-		},
-	);
+	const { data: terminalCountData } =
+		electronTrpc.workspaces.canDelete.useQuery(
+			{ id: workspaceId, skipGitChecks: true },
+			{
+				enabled: open,
+				refetchInterval: open ? 2000 : false,
+			},
+		);
 
 	const canDeleteData = gitStatusData
 		? {

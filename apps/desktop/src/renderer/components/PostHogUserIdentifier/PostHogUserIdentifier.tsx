@@ -1,13 +1,15 @@
 import { useEffect } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 import { posthog } from "../../lib/posthog";
 
 const AUTH_COMPLETED_KEY = "superset_auth_completed";
 
 export function PostHogUserIdentifier() {
-	const { data: user, isSuccess } = trpc.user.me.useQuery();
-	const { mutate: setUserId } = trpc.analytics.setUserId.useMutation();
+	const { data: session } = authClient.useSession();
+	const user = session?.user;
+	const { mutate: setUserId } = electronTrpc.analytics.setUserId.useMutation();
 
 	useEffect(() => {
 		if (user) {
@@ -24,12 +26,13 @@ export function PostHogUserIdentifier() {
 				posthog.capture("auth_completed");
 				localStorage.setItem(AUTH_COMPLETED_KEY, user.id);
 			}
-		} else if (isSuccess) {
+		} else if (session !== undefined && !user) {
+			// Session loaded but no user - user is signed out
 			posthog.reset();
 			setUserId({ userId: null });
 			localStorage.removeItem(AUTH_COMPLETED_KEY);
 		}
-	}, [user, isSuccess, setUserId]);
+	}, [user, session, setUserId]);
 
 	return null;
 }

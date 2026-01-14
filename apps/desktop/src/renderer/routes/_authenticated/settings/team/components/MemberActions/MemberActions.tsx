@@ -1,4 +1,3 @@
-import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -17,6 +16,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
+import { authClient } from "renderer/lib/auth-client";
 
 export interface MemberDetails {
 	memberId: string;

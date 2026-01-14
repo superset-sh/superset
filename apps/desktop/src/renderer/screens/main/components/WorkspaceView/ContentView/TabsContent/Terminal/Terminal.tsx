@@ -5,8 +5,8 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { trpc } from "renderer/lib/trpc";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
@@ -75,11 +75,11 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	clearPaneInitialDataRef.current = clearPaneInitialData;
 
 	const { data: workspaceCwd } =
-		trpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
+		electronTrpc.terminal.getWorkspaceCwd.useQuery(workspaceId);
 
 	// Query terminal link behavior setting
 	const { data: terminalLinkBehavior } =
-		trpc.settings.getTerminalLinkBehavior.useQuery();
+		electronTrpc.settings.getTerminalLinkBehavior.useQuery();
 
 	// Handler for file link clicks - uses current setting value
 	const handleFileLinkClick = useCallback(
@@ -197,11 +197,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const updateCwdRef = useRef(updateCwdFromData);
 	updateCwdRef.current = updateCwdFromData;
 
-	const createOrAttachMutation = trpc.terminal.createOrAttach.useMutation();
-	const writeMutation = trpc.terminal.write.useMutation();
-	const resizeMutation = trpc.terminal.resize.useMutation();
-	const detachMutation = trpc.terminal.detach.useMutation();
-	const clearScrollbackMutation = trpc.terminal.clearScrollback.useMutation();
+	const createOrAttachMutation =
+		electronTrpc.terminal.createOrAttach.useMutation();
+	const writeMutation = electronTrpc.terminal.write.useMutation();
+	const resizeMutation = electronTrpc.terminal.resize.useMutation();
+	const detachMutation = electronTrpc.terminal.detach.useMutation();
+	const clearScrollbackMutation =
+		electronTrpc.terminal.clearScrollback.useMutation();
 
 	const createOrAttachRef = useRef(createOrAttachMutation.mutate);
 	const writeRef = useRef(writeMutation.mutate);
@@ -271,7 +273,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	trpc.terminal.stream.useSubscription(paneId, {
+	electronTrpc.terminal.stream.useSubscription(paneId, {
 		onData: handleStreamData,
 		enabled: true,
 	});

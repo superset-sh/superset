@@ -1,9 +1,10 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SettingsButton } from "../SettingsButton";
 import { WindowControls } from "../TopBar/WindowControls";
 
 export function StartTopBar() {
-	const { data: platform, isLoading } = trpc.window.getPlatform.useQuery();
+	const { data: platform, isLoading } =
+		electronTrpc.window.getPlatform.useQuery();
 	const isMac = !isLoading && platform === "darwin";
 	const showWindowControls = !isLoading && !isMac;
 

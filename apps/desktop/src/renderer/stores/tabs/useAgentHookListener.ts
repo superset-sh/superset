@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
@@ -49,7 +49,7 @@ export function useAgentHookListener() {
 		currentWorkspaceIdRef.current = null;
 	}
 
-	trpc.notifications.subscribe.useSubscription(undefined, {
+	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
 

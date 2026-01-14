@@ -1,12 +1,13 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
+import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
-import { trpc } from "renderer/lib/trpc";
-import { useAuth } from "renderer/providers/AuthProvider";
 import { SupersetLogo } from "./components/SupersetLogo";
 
 export const Route = createFileRoute("/sign-in/")({
@@ -14,15 +15,24 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 function SignInPage() {
-	const { session, token } = useAuth();
-	const signInMutation = trpc.auth.signIn.useMutation();
+	const { data: session, isPending } = authClient.useSession();
+	const signInMutation = electronTrpc.auth.signIn.useMutation();
 
 	useEffect(() => {
 		posthog.capture("desktop_opened");
 	}, []);
 
-	const isSignedIn = !!token && !!session?.user;
-	if (isSignedIn) {
+	// Show loading while session is being fetched
+	if (isPending) {
+		return (
+			<div className="flex h-screen w-screen items-center justify-center bg-background">
+				<Spinner className="size-8" />
+			</div>
+		);
+	}
+
+	// If already signed in, redirect to workspace
+	if (session?.user) {
 		return <Navigate to="/workspace" replace />;
 	}
 

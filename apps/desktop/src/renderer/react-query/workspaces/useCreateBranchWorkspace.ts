@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -10,13 +10,13 @@ import { useTabsStore } from "renderer/stores/tabs/store";
  */
 export function useCreateBranchWorkspace(
 	options?: Parameters<
-		typeof trpc.workspaces.createBranchWorkspace.useMutation
+		typeof electronTrpc.workspaces.createBranchWorkspace.useMutation
 	>[0],
 ) {
 	const navigate = useNavigate();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.workspaces.createBranchWorkspace.useMutation({
+	return electronTrpc.workspaces.createBranchWorkspace.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			// Auto-invalidate all workspace queries

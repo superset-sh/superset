@@ -27,7 +27,7 @@ import {
 	LuTrash2,
 	LuUndo2,
 } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangedFile } from "shared/changes-types";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
@@ -93,8 +93,9 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	const openInFinderMutation = trpc.external.openInFinder.useMutation();
-	const openInEditorMutation = trpc.external.openFileInEditor.useMutation();
+	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
+	const openInEditorMutation =
+		electronTrpc.external.openFileInEditor.useMutation();
 
 	const absolutePath = worktreePath ? `${worktreePath}/${file.path}` : null;
 

@@ -25,16 +25,15 @@ import {
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
 import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
-import { useAuth } from "renderer/providers/AuthProvider";
+import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 export function OrganizationDropdown() {
-	const { session } = useAuth();
+	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const setActiveOrg = trpc.auth.setActiveOrganization.useMutation();
-	const signOut = trpc.auth.signOut.useMutation();
+	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 	const navigate = useNavigate();
 	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
 	const showShortcut = shortcutsHotkey !== "Unassigned";
@@ -53,11 +52,14 @@ export function OrganizationDropdown() {
 	const userEmail = session?.user?.email;
 
 	const switchOrganization = async (newOrgId: string) => {
-		await setActiveOrg.mutateAsync({ organizationId: newOrgId });
+		await authClient.organization.setActive({
+			organizationId: newOrgId,
+		});
 	};
 
-	const handleSignOut = () => {
-		signOut.mutate();
+	const handleSignOut = async () => {
+		await authClient.signOut();
+		signOutMutation.mutate();
 	};
 
 	const handleKeyboardShortcuts = () => {

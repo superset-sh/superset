@@ -15,7 +15,7 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
@@ -53,12 +53,12 @@ export function ProjectHeader({
 	workspaceCount,
 	onNewWorkspace,
 }: ProjectHeaderProps) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
 
-	const closeProject = trpc.projects.close.useMutation({
+	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
 			// Check if we're viewing a workspace from this project BEFORE closing
 			let shouldNavigate = false;
@@ -105,7 +105,7 @@ export function ProjectHeader({
 		},
 	});
 
-	const openInFinder = trpc.external.openInFinder.useMutation({
+	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
 

@@ -9,7 +9,7 @@ import {
 	type MosaicNode,
 } from "react-mosaic-component";
 import { dragDropManager } from "renderer/lib/dnd";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
@@ -39,7 +39,7 @@ export function TabView({ tab }: TabViewProps) {
 
 	// Get workspace path for file viewer panes
 	const { workspaceId } = useParams({ strict: false });
-	const { data: workspace } = trpc.workspaces.get.useQuery(
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);

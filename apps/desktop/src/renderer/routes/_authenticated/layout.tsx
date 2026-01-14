@@ -7,25 +7,24 @@ import {
 import { DndProvider } from "react-dnd";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
-import { trpc } from "renderer/lib/trpc";
-import { useAuth } from "renderer/providers/AuthProvider";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
-import { OrganizationsProvider } from "./providers/OrganizationsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
-	const { session, token } = useAuth();
-	const isSignedIn = !!token && !!session?.user;
+	const { data: session } = authClient.useSession();
+	const isSignedIn = !!session?.user;
 	const navigate = useNavigate();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	// Global hooks and subscriptions
 	useAgentHookListener();
@@ -34,7 +33,7 @@ function AuthenticatedLayout() {
 
 	// Workspace initialization progress subscription
 	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
-	trpc.workspaces.onInitProgress.useSubscription(undefined, {
+	electronTrpc.workspaces.onInitProgress.useSubscription(undefined, {
 		onData: (progress) => {
 			updateInitProgress(progress);
 			if (progress.step === "ready" || progress.step === "failed") {
@@ -49,7 +48,7 @@ function AuthenticatedLayout() {
 	});
 
 	// Menu navigation subscription
-	trpc.menu.subscribe.useSubscription(undefined, {
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "open-settings") {
 				const section = event.data.section || "account";
@@ -65,11 +64,9 @@ function AuthenticatedLayout() {
 	return (
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
-				<OrganizationsProvider>
-					<Outlet />
-					<WorkspaceInitEffects />
-					<NewWorkspaceModal />
-				</OrganizationsProvider>
+				<Outlet />
+				<WorkspaceInitEffects />
+				<NewWorkspaceModal />
 			</CollectionsProvider>
 		</DndProvider>
 	);

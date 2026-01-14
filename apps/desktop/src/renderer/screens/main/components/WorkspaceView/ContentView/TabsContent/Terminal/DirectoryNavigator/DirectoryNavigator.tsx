@@ -2,7 +2,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useState } from "react";
 import { HiChevronRight, HiFolder, HiFolderOpen } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface DirectoryNavigatorProps {
 	paneId: string;
@@ -18,15 +18,15 @@ export function DirectoryNavigator({
 	const [isOpen, setIsOpen] = useState(false);
 	const [browsePath, setBrowsePath] = useState<string | null>(null);
 
-	const { data: homeDir } = trpc.window.getHomeDir.useQuery();
-	const writeMutation = trpc.terminal.write.useMutation();
+	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
+	const writeMutation = electronTrpc.terminal.write.useMutation();
 
 	// Navigation enabled when we have any cwd (seeded or confirmed)
 	const hasCwd = !!currentCwd;
 	const displayPath = browsePath || currentCwd;
 
 	const { data: directoryData, isLoading } =
-		trpc.terminal.listDirectory.useQuery(
+		electronTrpc.terminal.listDirectory.useQuery(
 			{ dirPath: displayPath || "/" },
 			{ enabled: isOpen && hasCwd && !!displayPath },
 		);

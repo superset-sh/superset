@@ -1,13 +1,13 @@
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 function useCreateTerminalPreset(
 	options?: Parameters<
-		typeof trpc.settings.createTerminalPreset.useMutation
+		typeof electronTrpc.settings.createTerminalPreset.useMutation
 	>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.settings.createTerminalPreset.useMutation({
+	return electronTrpc.settings.createTerminalPreset.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
@@ -18,12 +18,12 @@ function useCreateTerminalPreset(
 
 function useUpdateTerminalPreset(
 	options?: Parameters<
-		typeof trpc.settings.updateTerminalPreset.useMutation
+		typeof electronTrpc.settings.updateTerminalPreset.useMutation
 	>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.settings.updateTerminalPreset.useMutation({
+	return electronTrpc.settings.updateTerminalPreset.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
@@ -34,12 +34,12 @@ function useUpdateTerminalPreset(
 
 function useDeleteTerminalPreset(
 	options?: Parameters<
-		typeof trpc.settings.deleteTerminalPreset.useMutation
+		typeof electronTrpc.settings.deleteTerminalPreset.useMutation
 	>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.settings.deleteTerminalPreset.useMutation({
+	return electronTrpc.settings.deleteTerminalPreset.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
@@ -49,11 +49,13 @@ function useDeleteTerminalPreset(
 }
 
 function useSetDefaultPreset(
-	options?: Parameters<typeof trpc.settings.setDefaultPreset.useMutation>[0],
+	options?: Parameters<
+		typeof electronTrpc.settings.setDefaultPreset.useMutation
+	>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	return trpc.settings.setDefaultPreset.useMutation({
+	return electronTrpc.settings.setDefaultPreset.useMutation({
 		...options,
 		onSuccess: async (...args) => {
 			await utils.settings.getTerminalPresets.invalidate();
@@ -69,9 +71,10 @@ function useSetDefaultPreset(
  */
 export function usePresets() {
 	const { data: presets = [], isLoading } =
-		trpc.settings.getTerminalPresets.useQuery();
+		electronTrpc.settings.getTerminalPresets.useQuery();
 
-	const { data: defaultPreset } = trpc.settings.getDefaultPreset.useQuery();
+	const { data: defaultPreset } =
+		electronTrpc.settings.getDefaultPreset.useQuery();
 
 	const createPreset = useCreateTerminalPreset();
 	const updatePreset = useUpdateTerminalPreset();

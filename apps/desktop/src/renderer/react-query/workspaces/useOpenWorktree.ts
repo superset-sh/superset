@@ -1,6 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -12,17 +12,20 @@ import { useTabsStore } from "renderer/stores/tabs/store";
  * Shows config toast if no setup commands are configured
  */
 export function useOpenWorktree(
-	options?: Parameters<typeof trpc.workspaces.openWorktree.useMutation>[0],
+	options?: Parameters<
+		typeof electronTrpc.workspaces.openWorktree.useMutation
+	>[0],
 ) {
 	const navigate = useNavigate();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
+	const dismissConfigToast =
+		electronTrpc.config.dismissConfigToast.useMutation();
 
-	return trpc.workspaces.openWorktree.useMutation({
+	return electronTrpc.workspaces.openWorktree.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			// Auto-invalidate all workspace queries

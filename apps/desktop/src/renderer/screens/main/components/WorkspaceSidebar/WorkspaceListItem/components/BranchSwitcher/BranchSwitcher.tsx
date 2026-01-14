@@ -12,7 +12,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "../../../constants";
 
@@ -30,21 +30,22 @@ export function BranchSwitcher({
 	const [isOpen, setIsOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 
 	// Fetch branches when dropdown opens
 	const { data: branchesData, isLoading } =
-		trpc.workspaces.getBranches.useQuery(
+		electronTrpc.workspaces.getBranches.useQuery(
 			{ projectId, fetch: false },
 			{ enabled: isOpen },
 		);
 
-	const switchBranch = trpc.workspaces.switchBranchWorkspace.useMutation({
-		onSuccess: () => {
-			utils.workspaces.invalidate();
-		},
-	});
+	const switchBranch =
+		electronTrpc.workspaces.switchBranchWorkspace.useMutation({
+			onSuccess: () => {
+				utils.workspaces.invalidate();
+			},
+		});
 
 	// Branches in use by worktrees (branch -> workspaceId)
 	const inUseWorkspaces = useMemo(() => {

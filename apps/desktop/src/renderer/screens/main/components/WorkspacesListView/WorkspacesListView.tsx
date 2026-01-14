@@ -5,7 +5,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
 import { WorkspaceRow } from "./WorkspaceRow";
@@ -20,20 +20,22 @@ export function WorkspacesListView() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [filterMode, setFilterMode] = useState<FilterMode>("all");
 	const navigate = useNavigate();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	// Fetch all data
-	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
-	const { data: allProjects = [] } = trpc.projects.getRecents.useQuery();
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const { data: allProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
 
 	// Fetch worktrees for all projects
-	const worktreeQueries = trpc.useQueries((t) =>
+	const worktreeQueries = electronTrpc.useQueries((t) =>
 		allProjects.map((project) =>
 			t.workspaces.getWorktreesByProject({ projectId: project.id }),
 		),
 	);
 
-	const openWorktree = trpc.workspaces.openWorktree.useMutation({
+	const openWorktree = electronTrpc.workspaces.openWorktree.useMutation({
 		onSuccess: (data) => {
 			utils.workspaces.getAllGrouped.invalidate();
 			// Navigate to the newly opened workspace

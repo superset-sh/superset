@@ -3,7 +3,7 @@ import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { OpenInButton } from "renderer/components/OpenInButton";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	CONFIG_FILE_NAME,
 	CONFIG_TEMPLATE,
@@ -23,7 +23,7 @@ export function ConfigFilePreview({
 	configFilePath,
 	className,
 }: ConfigFilePreviewProps) {
-	const { data: configData } = trpc.config.getConfigContent.useQuery(
+	const { data: configData } = electronTrpc.config.getConfigContent.useQuery(
 		{ projectId },
 		{ enabled: !!projectId },
 	);
