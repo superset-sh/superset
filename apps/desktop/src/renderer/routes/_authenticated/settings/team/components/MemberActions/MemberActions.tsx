@@ -103,7 +103,7 @@ export function MemberActions({
 				<DialogContent>
 					<DialogHeader>
 						<DialogTitle>
-							{isCurrentUser ? "Leave organization?" : "Remove team member?"}
+							{isCurrentUser ? "Leave organization?" : "Remove member?"}
 						</DialogTitle>
 						<DialogDescription>
 							{isCurrentUser ? (

@@ -65,7 +65,7 @@ function TeamSettingsPage() {
 		<div className="flex-1 flex flex-col min-h-0">
 			<div className="p-8 border-b">
 				<div className="max-w-5xl">
-					<h2 className="text-2xl font-semibold">Team</h2>
+					<h2 className="text-2xl font-semibold">Organization</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Manage members in your organization
 					</p>
@@ -95,7 +95,7 @@ function TeamSettingsPage() {
 							</div>
 						) : members.length === 0 ? (
 							<div className="text-center py-12 text-muted-foreground border rounded-lg">
-								No team members yet
+								No members yet
 							</div>
 						) : (
 							<div className="border rounded-lg">

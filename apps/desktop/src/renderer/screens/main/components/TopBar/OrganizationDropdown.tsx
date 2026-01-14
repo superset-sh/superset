@@ -82,7 +82,8 @@ export function OrganizationDropdown() {
 		window.open(COMPANY.X_URL, "_blank");
 	};
 
-	const orgName = activeOrganization?.name ?? "Organization";
+	const userName = session?.user?.name;
+	const displayName = activeOrganization?.name ?? userName ?? "Organization";
 
 	return (
 		<DropdownMenu>
@@ -99,7 +100,7 @@ export function OrganizationDropdown() {
 						className="rounded-md"
 					/>
 					<span className="text-sm font-medium truncate max-w-32">
-						{orgName}
+						{displayName}
 					</span>
 					<HiChevronUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
 				</button>
@@ -115,7 +116,7 @@ export function OrganizationDropdown() {
 
 				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/team" })}>
 					<HiOutlineUserGroup className="h-4 w-4" />
-					<span>Invite and manage members</span>
+					<span>Organization</span>
 				</DropdownMenuItem>
 
 				<DropdownMenuSeparator />
