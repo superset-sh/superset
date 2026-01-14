@@ -15,18 +15,19 @@ export function getAuthToken(): string | null {
 /**
  * Better Auth client for Electron desktop app.
  *
- * Security: Token stored in memory only (not localStorage).
- * - Better Auth reads token via getter function
- * - AuthProvider manages token in React context
- * - Token persisted only to encrypted disk storage (main process)
+ * Bearer authentication configured via onRequest hook.
+ * Server has bearer() plugin enabled to accept bearer tokens.
  */
 export const authClient = createAuthClient({
 	baseURL: env.NEXT_PUBLIC_API_URL,
 	plugins: [organizationClient()],
 	fetchOptions: {
-		auth: {
-			type: "Bearer",
-			token: () => authToken || "",
+		credentials: "include",
+		onRequest: async (context) => {
+			const token = getAuthToken();
+			if (token) {
+				context.headers.set("Authorization", `Bearer ${token}`);
+			}
 		},
 	},
 });

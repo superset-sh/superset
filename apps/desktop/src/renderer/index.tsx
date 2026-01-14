@@ -9,7 +9,7 @@ import {
 	RouterProvider,
 } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
-import { queryClient } from "./lib/query-client";
+import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
@@ -21,7 +21,7 @@ const router = createRouter({
 	history: hashHistory as RouterHistory,
 	defaultPreload: "intent",
 	context: {
-		queryClient,
+		queryClient: electronQueryClient,
 	},
 });
 

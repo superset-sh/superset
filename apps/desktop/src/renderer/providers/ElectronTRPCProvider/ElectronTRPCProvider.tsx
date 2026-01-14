@@ -1,39 +1,38 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronReactClient } from "../../lib/trpc-client";
 
+// Shared QueryClient for tRPC hooks and router loaders
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: {
+			networkMode: "always",
+			retry: false,
+		},
+		mutations: {
+			networkMode: "always",
+			retry: false,
+		},
+	},
+});
+
 /**
  * Provider for Electron IPC tRPC client.
- * For desktop-specific operations: workspaces, terminal, auth, etc.
+ * QueryClient is shared with router context for loader prefetching.
  */
 export function ElectronTRPCProvider({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const [queryClient] = useState(
-		() =>
-			new QueryClient({
-				defaultOptions: {
-					queries: {
-						networkMode: "always",
-						retry: false,
-					},
-					mutations: {
-						networkMode: "always",
-						retry: false,
-					},
-				},
-			}),
-	);
-
 	return (
-		<electronTrpc.Provider
-			client={electronReactClient}
-			queryClient={queryClient}
-		>
-			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+		<electronTrpc.Provider client={electronReactClient} queryClient={queryClient}>
+			<QueryClientProvider client={queryClient}>
+				{children}
+			</QueryClientProvider>
 		</electronTrpc.Provider>
 	);
 }
+
+// Export for router context
+export { queryClient as electronQueryClient };

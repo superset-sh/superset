@@ -443,7 +443,7 @@ function AuthenticatedLayout() {
 
   return (
     <CollectionsProvider>
-      <OrganizationsProvider>
+
         <Background />
         <AppFrame>
           <Outlet /> {/* workspace, tasks, workspaces, settings render here */}
@@ -451,7 +451,7 @@ function AuthenticatedLayout() {
         <SetupConfigModal />
         <NewWorkspaceModal />
         <WorkspaceInitEffects />
-      </OrganizationsProvider>
+
     </CollectionsProvider>
   );
 }

@@ -21,6 +21,10 @@ export const auth = betterAuth({
 		env.NEXT_PUBLIC_API_URL,
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
+		// Electron desktop app origins
+		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		"superset://app", // Production Electron app
+		"superset-dev://app", // Development Electron app (if using custom protocol)
 	],
 	session: {
 		expiresIn: 60 * 60 * 24 * 30, // 30 days

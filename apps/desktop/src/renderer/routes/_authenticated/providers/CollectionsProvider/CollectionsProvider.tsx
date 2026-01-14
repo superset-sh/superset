@@ -1,6 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { useAuthToken } from "renderer/providers/AuthProvider";
 import { getCollections } from "./collections";
 
 type Collections = ReturnType<typeof getCollections>;
@@ -9,18 +8,16 @@ const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session } = authClient.useSession();
-	const token = useAuthToken();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const collections = useMemo(() => {
-		if (!token || !activeOrganizationId) {
+		if (!activeOrganizationId) {
 			return null;
 		}
 
-		return getCollections(activeOrganizationId, token);
-	}, [token, activeOrganizationId]);
+		return getCollections(activeOrganizationId);
+	}, [activeOrganizationId]);
 
-	// Show loading only on initial mount
 	if (!collections) {
 		return (
 			<div className="flex items-center justify-center h-screen">

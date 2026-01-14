@@ -1,1 +1,4 @@
-export { ElectronTRPCProvider } from "./ElectronTRPCProvider";
+export {
+	ElectronTRPCProvider,
+	electronQueryClient,
+} from "./ElectronTRPCProvider";

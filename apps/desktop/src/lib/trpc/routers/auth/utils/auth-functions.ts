@@ -29,7 +29,6 @@ export async function loadToken(): Promise<{
 	try {
 		const data = decrypt(await fs.readFile(TOKEN_FILE));
 		const parsed: StoredAuth = JSON.parse(data);
-		console.log("[auth] Token loaded from disk");
 		return { token: parsed.token, expiresAt: parsed.expiresAt };
 	} catch {
 		return { token: null, expiresAt: null };
@@ -48,9 +47,6 @@ export async function saveToken({
 }): Promise<void> {
 	const storedAuth: StoredAuth = { token, expiresAt };
 	await fs.writeFile(TOKEN_FILE, encrypt(JSON.stringify(storedAuth)));
-	console.log("[auth] Token saved to disk");
-
-	// Emit event for onTokenChanged subscription
 	authEvents.emit("token-saved", { token, expiresAt });
 }
 

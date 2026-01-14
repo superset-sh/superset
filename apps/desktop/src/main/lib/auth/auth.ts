@@ -63,11 +63,8 @@ class AuthService extends EventEmitter {
 			this.expiresAt = new Date(parsed.expiresAt);
 
 			if (this.isExpired()) {
-				console.log("[auth] Session expired, clearing");
 				await this.signOut();
 			} else {
-				console.log("[auth] Session restored");
-				// Fetch session data from API
 				await this.refreshSession();
 			}
 		} catch {
@@ -84,27 +81,14 @@ class AuthService extends EventEmitter {
 	}
 
 	getState() {
-		const state = {
+		return {
 			isSignedIn: !!this.token && !this.isExpired(),
 			expiresAt: this.expiresAt?.toISOString() ?? null,
 		};
-		console.log("[auth] getState called:", {
-			hasToken: !!this.token,
-			isExpired: this.isExpired(),
-			isSignedIn: state.isSignedIn,
-		});
-		return state;
 	}
 
 	getAccessToken(): string | null {
-		const expired = this.isExpired();
-		const token = expired ? null : this.token;
-		console.log("[auth] getAccessToken called:", {
-			hasToken: !!this.token,
-			isExpired: expired,
-			returning: token ? "token" : "null",
-		});
-		return token;
+		return this.isExpired() ? null : this.token;
 	}
 
 	getSession(): Session | null {
@@ -206,30 +190,20 @@ class AuthService extends EventEmitter {
 		};
 		await fs.writeFile(TOKEN_FILE, encrypt(JSON.stringify(storedAuth)));
 
-		console.log("[auth] Token saved, fetching session...");
-
-		// Fetch session data from API before emitting state change
 		await this.refreshSession();
-
-		console.log("[auth] Session fetched, emitting state change");
-		const state = this.getState();
-		console.log("[auth] EMIT state-changed from handleAuthCallback:", state);
-		this.emit("state-changed", state);
+		this.emit("state-changed", this.getState());
 
 		return { success: true };
 	}
 
 	async signOut(): Promise<void> {
-		console.log("[auth] signOut called");
 		this.token = null;
 		this.expiresAt = null;
 		this.session = null;
 		try {
 			await fs.unlink(TOKEN_FILE);
 		} catch {}
-		const state = this.getState();
-		console.log("[auth] EMIT state-changed from signOut:", state);
-		this.emit("state-changed", state);
+		this.emit("state-changed", this.getState());
 	}
 }
 

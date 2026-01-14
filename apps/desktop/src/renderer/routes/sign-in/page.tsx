@@ -14,15 +14,24 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 function SignInPage() {
-	const { data: session } = authClient.useSession();
+	const { data: session, isPending } = authClient.useSession();
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 
 	useEffect(() => {
 		posthog.capture("desktop_opened");
 	}, []);
 
-	const isSignedIn = !!session?.user;
-	if (isSignedIn) {
+	// Show loading while session is being fetched
+	if (isPending) {
+		return (
+			<div className="flex h-screen w-screen items-center justify-center bg-background">
+				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
+			</div>
+		);
+	}
+
+	// If already signed in, redirect to workspace
+	if (session?.user) {
 		return <Navigate to="/workspace" replace />;
 	}
 
