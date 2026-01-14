@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/dialog";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { OpenInButton } from "renderer/components/OpenInButton";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseConfigModal,
 	useConfigModalOpen,
@@ -26,15 +26,16 @@ export function SetupConfigModal() {
 	const projectId = useConfigModalProjectId();
 	const closeModal = useCloseConfigModal();
 
-	const { data: project } = trpc.projects.get.useQuery(
+	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
 
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
-		{ projectId: projectId ?? "" },
-		{ enabled: !!projectId },
-	);
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: !!projectId },
+		);
 
 	const projectName = project?.name ?? "your-project";
 

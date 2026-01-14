@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -7,7 +7,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 });
 
 function SettingsLayout() {
-	const { data: platform } = trpc.window.getPlatform.useQuery();
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
 
 	return (

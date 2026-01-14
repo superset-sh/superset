@@ -1,52 +1,47 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
-import { trpcClient } from "renderer/lib/trpc-client";
-import { NotFound } from "renderer/routes/not-found";
+import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/workspace/$workspaceId/",
 )({
 	component: WorkspaceSettingsPage,
-	notFoundComponent: NotFound,
-	loader: async ({ params, context }) => {
-		const queryKey = [
-			["workspaces", "get"],
-			{ input: { id: params.workspaceId }, type: "query" },
-		];
-
-		try {
-			await context.queryClient.ensureQueryData({
-				queryKey,
-				queryFn: () =>
-					trpcClient.workspaces.get.query({ id: params.workspaceId }),
-			});
-		} catch (error) {
-			// If workspace not found, throw notFound() to render 404 page
-			if (error instanceof Error && error.message.includes("not found")) {
-				throw notFound();
-			}
-			// Re-throw other errors
-			throw error;
-		}
-	},
 });
 
 import { Input } from "@superset/ui/input";
 import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 
 function WorkspaceSettingsPage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace } = trpc.workspaces.get.useQuery({
+	const { data: workspace, isLoading } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
 
 	const rename = useWorkspaceRename(workspace?.id ?? "", workspace?.name ?? "");
 
-	// Workspace is guaranteed to exist here because loader handles 404s
+	if (isLoading) {
+		return (
+			<div className="p-6 max-w-4xl select-text">
+				<div className="animate-pulse space-y-4">
+					<div className="h-8 bg-muted rounded w-1/3" />
+					<div className="h-4 bg-muted rounded w-1/2" />
+				</div>
+			</div>
+		);
+	}
+
 	if (!workspace) {
-		return null;
+		return (
+			<div className="p-6 max-w-4xl">
+				<div className="mb-8">
+					<h2 className="text-xl font-semibold">Workspace</h2>
+					<p className="text-sm text-muted-foreground mt-1">
+						Workspace not found
+					</p>
+				</div>
+			</div>
+		);
 	}
 
 	return (

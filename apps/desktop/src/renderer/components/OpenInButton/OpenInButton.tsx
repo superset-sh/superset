@@ -37,7 +37,7 @@ import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
 interface AppOption {
@@ -110,7 +110,7 @@ export function OpenInButton({
 	showShortcuts = false,
 }: OpenInButtonProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const openInShortcut = useHotkeyText("OPEN_IN_APP");
 	const copyPathShortcut = useHotkeyText("COPY_PATH");
 	const showOpenInShortcut = showShortcuts && openInShortcut !== "Unassigned";
@@ -118,12 +118,12 @@ export function OpenInButton({
 		showShortcuts && copyPathShortcut !== "Unassigned";
 
 	const { data: lastUsedApp = "cursor" } =
-		trpc.settings.getLastUsedApp.useQuery();
+		electronTrpc.settings.getLastUsedApp.useQuery();
 
-	const openInApp = trpc.external.openInApp.useMutation({
+	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => utils.settings.getLastUsedApp.invalidate(),
 	});
-	const copyPath = trpc.external.copyPath.useMutation();
+	const copyPath = electronTrpc.external.copyPath.useMutation();
 
 	const currentApp = getAppOption(lastUsedApp);
 

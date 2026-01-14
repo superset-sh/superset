@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	setSkipNextHotkeysPersist,
 	trpcHotkeysStorage,
@@ -278,9 +278,9 @@ export function useHotkeysSync() {
 	const platform = useHotkeysStore((state) => state.platform);
 	const replace = useHotkeysStore((state) => state.replaceHotkeysState);
 
-	trpc.uiState.hotkeys.subscribe.useSubscription(undefined, {
+	electronTrpc.uiState.hotkeys.subscribe.useSubscription(undefined, {
 		onData: () => {
-			trpcClient.uiState.hotkeys.get
+			electronTrpcClient.uiState.hotkeys.get
 				.query()
 				.then((state: HotkeysState) => {
 					const current = useHotkeysStore.getState().hotkeysState;

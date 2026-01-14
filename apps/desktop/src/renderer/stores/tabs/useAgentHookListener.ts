@@ -1,9 +1,9 @@
-import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
-import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useSetActiveWorkspace } from "renderer/react-query/workspaces/useSetActiveWorkspace";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
+import { useAppStore } from "../app-state";
 import { useTabsStore } from "./store";
 import { resolveNotificationTarget } from "./utils/resolve-notification-target";
 
@@ -33,23 +33,15 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  * for clearing stuck indicators when agent hooks fail to fire.
  */
 export function useAgentHookListener() {
-	const navigate = useNavigate();
+	const setActiveWorkspace = useSetActiveWorkspace();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 
-	// Track current workspace from router to avoid stale closure
-	const currentWorkspaceIdRef = useRef<string | null>(null);
+	// Use ref to avoid stale closure in subscription callback
+	const activeWorkspaceRef = useRef(activeWorkspace);
+	activeWorkspaceRef.current = activeWorkspace;
 
-	// We need to update this ref from the workspace page, but for now
-	// we'll use router state. This is called from _authenticated/layout
-	// so we check the current route
-	try {
-		const location = window.location;
-		const match = location.pathname.match(/\/workspace\/([^/]+)/);
-		currentWorkspaceIdRef.current = match ? match[1] : null;
-	} catch {
-		currentWorkspaceIdRef.current = null;
-	}
-
-	trpc.notifications.subscribe.useSubscription(undefined, {
+	electronTrpc.notifications.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (!event.data) return;
 
@@ -64,7 +56,7 @@ export function useAgentHookListener() {
 					eventType: event.data?.eventType,
 					paneId,
 					workspaceId,
-					currentWorkspace: currentWorkspaceIdRef.current,
+					activeWorkspace: activeWorkspaceRef.current?.id,
 				});
 
 				if (!paneId) return;
@@ -86,7 +78,7 @@ export function useAgentHookListener() {
 					const focusedPaneId =
 						activeTabId && state.focusedPaneIds[activeTabId];
 					const isAlreadyActive =
-						currentWorkspaceIdRef.current === workspaceId &&
+						activeWorkspaceRef.current?.id === workspaceId &&
 						focusedPaneId === paneId;
 
 					debugLog("agent-hooks", "Stop event:", {
@@ -106,25 +98,38 @@ export function useAgentHookListener() {
 					}
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
-				// Navigate to the workspace and focus the tab/pane
-				navigateToWorkspace(workspaceId, navigate);
-
-				// Set active tab and focused pane after navigation
-				// (router navigation is async, but state updates are immediate)
-				const freshState = useTabsStore.getState();
-				const freshTarget = resolveNotificationTarget(event.data, freshState);
-				if (!freshTarget?.tabId) return;
-
-				const freshTab = freshState.tabs.find(
-					(t) => t.id === freshTarget.tabId,
-				);
-				if (!freshTab || freshTab.workspaceId !== workspaceId) return;
-
-				freshState.setActiveTab(workspaceId, freshTarget.tabId);
-
-				if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
-					freshState.setFocusedPane(freshTarget.tabId, freshTarget.paneId);
+				const appState = useAppStore.getState();
+				if (appState.currentView !== "workspace") {
+					appState.setView("workspace");
 				}
+
+				setActiveWorkspace.mutate(
+					{ id: workspaceId },
+					{
+						onSuccess: () => {
+							const freshState = useTabsStore.getState();
+							const freshTarget = resolveNotificationTarget(
+								event.data,
+								freshState,
+							);
+							if (!freshTarget?.tabId) return;
+
+							const freshTab = freshState.tabs.find(
+								(t) => t.id === freshTarget.tabId,
+							);
+							if (!freshTab || freshTab.workspaceId !== workspaceId) return;
+
+							freshState.setActiveTab(workspaceId, freshTarget.tabId);
+
+							if (freshTarget.paneId && freshState.panes[freshTarget.paneId]) {
+								freshState.setFocusedPane(
+									freshTarget.tabId,
+									freshTarget.paneId,
+								);
+							}
+						},
+					},
+				);
 			}
 		},
 	});

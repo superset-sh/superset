@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { trpc } from "renderer/lib/trpc";
 
 import { posthog } from "../../lib/posthog";
@@ -7,7 +8,7 @@ const AUTH_COMPLETED_KEY = "superset_auth_completed";
 
 export function PostHogUserIdentifier() {
 	const { data: user, isSuccess } = trpc.user.me.useQuery();
-	const { mutate: setUserId } = trpc.analytics.setUserId.useMutation();
+	const { mutate: setUserId } = electronTrpc.analytics.setUserId.useMutation();
 
 	useEffect(() => {
 		if (user) {
