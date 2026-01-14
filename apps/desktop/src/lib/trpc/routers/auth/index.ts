@@ -16,18 +16,10 @@ import {
 
 export const createAuthRouter = () => {
 	return router({
-		/**
-		 * Get initial token from encrypted disk storage.
-		 * Called once on app startup for hydration.
-		 */
 		getStoredToken: publicProcedure.query(async () => {
 			return await loadToken();
 		}),
 
-		/**
-		 * Persist token to encrypted disk storage.
-		 * Called when renderer saves token to localStorage.
-		 */
 		persistToken: publicProcedure
 			.input(
 				z.object({
@@ -40,14 +32,8 @@ export const createAuthRouter = () => {
 				return { success: true };
 			}),
 
-		/**
-		 * Subscribe to token changes from deep link callbacks.
-		 * CRITICAL: Notifies renderer when OAuth callback saves new token.
-		 * Without this, renderer wouldn't know to update localStorage after OAuth.
-		 */
 		onTokenChanged: publicProcedure.subscription(() => {
 			return observable<{ token: string; expiresAt: string } | null>((emit) => {
-				// Emit initial token on subscription
 				loadToken().then((initial) => {
 					if (initial.token && initial.expiresAt) {
 						emit.next({ token: initial.token, expiresAt: initial.expiresAt });
@@ -99,12 +85,7 @@ export const createAuthRouter = () => {
 				}
 			}),
 
-		/**
-		 * Sign out - clears token from disk.
-		 * Renderer should also clear localStorage and call authClient.signOut().
-		 */
 		signOut: publicProcedure.mutation(async () => {
-			console.log("[auth] Clearing token");
 			try {
 				await fs.unlink(TOKEN_FILE);
 			} catch {}
