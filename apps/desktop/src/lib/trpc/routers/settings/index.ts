@@ -1,4 +1,5 @@
 import {
+	PROJECT_THUMBNAIL_SOURCES,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -6,6 +7,7 @@ import {
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
+	DEFAULT_PROJECT_THUMBNAIL_SOURCE,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 } from "shared/constants";
 import { DEFAULT_RINGTONE_ID, RINGTONES } from "shared/ringtones";
@@ -232,6 +234,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalLinkBehavior: input.behavior },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getProjectThumbnailSource: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.projectThumbnailSource ?? DEFAULT_PROJECT_THUMBNAIL_SOURCE;
+		}),
+
+		setProjectThumbnailSource: publicProcedure
+			.input(z.object({ source: z.enum(PROJECT_THUMBNAIL_SOURCES) }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, projectThumbnailSource: input.source })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { projectThumbnailSource: input.source },
 					})
 					.run();
 

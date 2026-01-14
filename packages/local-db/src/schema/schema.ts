@@ -5,6 +5,7 @@ import type {
 	ExternalApp,
 	GitHubStatus,
 	GitStatus,
+	ProjectThumbnailSource,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -139,6 +140,9 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
+	projectThumbnailSource: text(
+		"project_thumbnail_source",
+	).$type<ProjectThumbnailSource>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

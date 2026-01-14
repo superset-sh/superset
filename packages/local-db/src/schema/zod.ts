@@ -107,3 +107,10 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * Project thumbnail source options
+ */
+export const PROJECT_THUMBNAIL_SOURCES = ["text", "github"] as const;
+
+export type ProjectThumbnailSource = (typeof PROJECT_THUMBNAIL_SOURCES)[number];
