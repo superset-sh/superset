@@ -1,7 +1,7 @@
 import { useParams } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
 import { OpenInMenuButton } from "./OpenInMenuButton";
-import { SupportMenu } from "./SupportMenu";
+import { OrganizationDropdown } from "./OrganizationDropdown";
 import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
@@ -32,7 +32,7 @@ export function TopBar() {
 						branch={workspace.worktree?.branch}
 					/>
 				)}
-				<SupportMenu />
+				<OrganizationDropdown />
 				{!isMac && <WindowControls />}
 			</div>
 		</div>

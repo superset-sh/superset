@@ -56,8 +56,8 @@ export const auth = betterAuth({
 					// Create organization for new user
 					const org = await auth.api.createOrganization({
 						body: {
-							name: `${user.name}'s Workspace`,
-							slug: `${user.id.slice(0, 8)}-workspace`,
+							name: `${user.name}'s Org`,
+							slug: `${user.id.slice(0, 8)}-org`,
 							userId: user.id,
 						},
 					});

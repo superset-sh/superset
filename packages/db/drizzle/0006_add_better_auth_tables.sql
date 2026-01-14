@@ -116,12 +116,12 @@ FROM organization_members_backup
 WHERE user_id IN (SELECT id FROM users_backup WHERE deleted_at IS NULL)
 ON CONFLICT (id) DO NOTHING;
 --> statement-breakpoint
--- Backfill: Create personal workspace for users without an org
+-- Backfill: Create personal org for users without an org
 INSERT INTO "auth"."organizations" (id, name, slug, created_at)
 SELECT
     gen_random_uuid(),
-    u.name || '''s Workspace',
-    LEFT(u.id::text, 8) || '-workspace',
+    u.name || '''s Org',
+    LEFT(u.id::text, 8) || '-org',
     NOW()
 FROM "auth"."users" u
 WHERE NOT EXISTS (
@@ -137,7 +137,7 @@ SELECT
     'owner',
     NOW()
 FROM "auth"."users" u
-JOIN "auth"."organizations" o ON o.slug = LEFT(u.id::text, 8) || '-workspace'
+JOIN "auth"."organizations" o ON o.slug = LEFT(u.id::text, 8) || '-org'
 WHERE NOT EXISTS (
     SELECT 1 FROM "auth"."members" m WHERE m.user_id = u.id
 );

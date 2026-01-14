@@ -1,3 +1,4 @@
+import { COMPANY } from "@superset/shared/constants";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -5,35 +6,37 @@ import {
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
+import { FaDiscord, FaXTwitter } from "react-icons/fa6";
 import {
 	HiCheck,
-	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
+	HiOutlineBugAnt,
+	HiOutlineCog6Tooth,
+	HiOutlineEnvelope,
+	HiOutlineUserGroup,
 } from "react-icons/hi2";
+import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useAuth } from "renderer/providers/AuthProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 
-interface OrganizationDropdownProps {
-	isCollapsed?: boolean;
-}
-
-export function OrganizationDropdown({
-	isCollapsed = false,
-}: OrganizationDropdownProps) {
+export function OrganizationDropdown() {
 	const { session } = useAuth();
 	const collections = useCollections();
 	const setActiveOrg = trpc.auth.setActiveOrganization.useMutation();
 	const signOut = trpc.auth.signOut.useMutation();
 	const navigate = useNavigate();
+	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
+	const showShortcut = shortcutsHotkey !== "Unassigned";
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -46,8 +49,7 @@ export function OrganizationDropdown({
 		(o) => o.id === activeOrganizationId,
 	);
 
-	// Always render dropdown to prevent trapping users without orgs
-	const orgName = activeOrganization?.name ?? "No Organization";
+	const userEmail = session?.user?.email;
 
 	const switchOrganization = async (newOrgId: string) => {
 		await setActiveOrg.mutateAsync({ organizationId: newOrgId });
@@ -57,12 +59,33 @@ export function OrganizationDropdown({
 		signOut.mutate();
 	};
 
-	const trigger = isCollapsed ? (
-		<Tooltip delayDuration={300}>
-			<TooltipTrigger asChild>
+	const handleKeyboardShortcuts = () => {
+		navigate({ to: "/settings/keyboard" });
+	};
+
+	const handleContactUs = () => {
+		window.open(COMPANY.MAIL_TO, "_blank");
+	};
+
+	const handleReportIssue = () => {
+		window.open(COMPANY.REPORT_ISSUE_URL, "_blank");
+	};
+
+	const handleJoinDiscord = () => {
+		window.open(COMPANY.DISCORD_URL, "_blank");
+	};
+
+	const handleTwitter = () => {
+		window.open(COMPANY.X_URL, "_blank");
+	};
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					className="flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors"
+					className="no-drag flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+					aria-label="Organization menu"
 				>
 					<Avatar
 						size="sm"
@@ -71,51 +94,22 @@ export function OrganizationDropdown({
 						className="rounded-md"
 					/>
 				</button>
-			</TooltipTrigger>
-			<TooltipContent side="right">{orgName}</TooltipContent>
-		</Tooltip>
-	) : (
-		<button
-			type="button"
-			className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md hover:bg-accent/50 transition-colors text-left"
-		>
-			<Avatar
-				size="sm"
-				fullName={activeOrganization?.name}
-				image={activeOrganization?.logo}
-				className="rounded-md"
-			/>
-			<span className="flex-1 text-sm font-medium truncate">{orgName}</span>
-			<HiChevronUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
-		</button>
-	);
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-56">
+				{/* Settings and team management - always shown for logged in users */}
+				<DropdownMenuItem
+					onSelect={() => navigate({ to: "/settings/account" })}
+				>
+					<HiOutlineCog6Tooth className="h-4 w-4" />
+					<span>Settings</span>
+				</DropdownMenuItem>
 
-	const userEmail = session?.user?.email;
+				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/team" })}>
+					<HiOutlineUserGroup className="h-4 w-4" />
+					<span>Invite and manage members</span>
+				</DropdownMenuItem>
 
-	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-			<DropdownMenuContent align="start" className="w-56">
-				{/* Only show org-specific items if user has an active organization */}
-				{activeOrganization && (
-					<>
-						{/* Settings */}
-						<DropdownMenuItem
-							onSelect={() => navigate({ to: "/settings/account" })}
-						>
-							<span>Settings</span>
-						</DropdownMenuItem>
-
-						{/* Team management */}
-						<DropdownMenuItem
-							onSelect={() => navigate({ to: "/settings/team" })}
-						>
-							<span>Invite and manage members</span>
-						</DropdownMenuItem>
-
-						<DropdownMenuSeparator />
-					</>
-				)}
+				<DropdownMenuSeparator />
 
 				{/* Org switcher - only show if user has multiple orgs */}
 				{organizations && organizations.length > 1 && (
@@ -125,7 +119,6 @@ export function OrganizationDropdown({
 								<span>Switch organization</span>
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
-								{/* User email header in submenu */}
 								{userEmail && (
 									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
 										{userEmail}
@@ -154,6 +147,40 @@ export function OrganizationDropdown({
 						<DropdownMenuSeparator />
 					</>
 				)}
+
+				{/* Support section */}
+				<DropdownMenuItem onClick={handleReportIssue}>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
+				<DropdownMenuItem onClick={handleKeyboardShortcuts}>
+					<LuKeyboard className="h-4 w-4" />
+					Keyboard Shortcuts
+					{showShortcut && (
+						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
+					)}
+				</DropdownMenuItem>
+				<DropdownMenuSub>
+					<DropdownMenuSubTrigger>
+						<LuLifeBuoy className="h-4 w-4" />
+						Contact Us
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent sideOffset={8} className="w-56">
+						<DropdownMenuItem onClick={handleJoinDiscord}>
+							<FaDiscord className="h-4 w-4" />
+							Discord
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleTwitter}>
+							<FaXTwitter className="h-4 w-4" />X
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleContactUs}>
+							<HiOutlineEnvelope className="h-4 w-4" />
+							Email Founders
+						</DropdownMenuItem>
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+
+				<DropdownMenuSeparator />
 
 				{/* Sign out - ALWAYS show so users can never get trapped */}
 				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
