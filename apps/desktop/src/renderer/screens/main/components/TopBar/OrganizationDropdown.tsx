@@ -17,6 +17,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { FaDiscord, FaXTwitter } from "react-icons/fa6";
 import {
 	HiCheck,
+	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
 	HiOutlineBugAnt,
 	HiOutlineCog6Tooth,
@@ -79,12 +80,14 @@ export function OrganizationDropdown() {
 		window.open(COMPANY.X_URL, "_blank");
 	};
 
+	const orgName = activeOrganization?.name ?? "Organization";
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					className="no-drag flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+					className="no-drag flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
 					aria-label="Organization menu"
 				>
 					<Avatar
@@ -93,6 +96,10 @@ export function OrganizationDropdown() {
 						image={activeOrganization?.logo}
 						className="rounded-md"
 					/>
+					<span className="text-sm font-medium truncate max-w-32">
+						{orgName}
+					</span>
+					<HiChevronUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
