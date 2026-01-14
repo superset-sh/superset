@@ -1,1 +1,1 @@
-export * from "./InviteMemberButton";
+export { InviteMemberButton } from "./InviteMemberButton";

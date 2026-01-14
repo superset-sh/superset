@@ -1,1 +1,1 @@
-export * from "./GeneralSettings";
+export { GeneralSettings } from "./GeneralSettings";

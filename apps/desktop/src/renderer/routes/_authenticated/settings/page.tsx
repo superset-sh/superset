@@ -5,6 +5,5 @@ export const Route = createFileRoute("/_authenticated/settings/")({
 });
 
 function SettingsPage() {
-	// Redirect to account settings by default
 	return <Navigate to="/settings/account" replace />;
 }

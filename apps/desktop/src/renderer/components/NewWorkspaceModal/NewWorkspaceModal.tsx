@@ -94,7 +94,6 @@ export function NewWorkspaceModal() {
 		debouncedSetTitle(value); // Debounced update for derived state
 	};
 
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: recentProjects = [] } = trpc.projects.getRecents.useQuery();
 	const {
 		data: branchData,
@@ -106,8 +105,6 @@ export function NewWorkspaceModal() {
 	);
 	const createWorkspace = useCreateWorkspace();
 
-	const currentProjectId = activeWorkspace?.projectId;
-
 	// Filter branches based on search
 	const filteredBranches = useMemo(() => {
 		if (!branchData?.branches) return [];
@@ -118,15 +115,12 @@ export function NewWorkspaceModal() {
 		);
 	}, [branchData?.branches, branchSearch]);
 
-	// Auto-select project when modal opens (prioritize pre-selected, then current)
+	// Auto-select project when modal opens (use pre-selected from NewWorkspaceButton)
 	useEffect(() => {
-		if (isOpen && !selectedProjectId) {
-			const projectToSelect = preSelectedProjectId ?? currentProjectId;
-			if (projectToSelect) {
-				setSelectedProjectId(projectToSelect);
-			}
+		if (isOpen && !selectedProjectId && preSelectedProjectId) {
+			setSelectedProjectId(preSelectedProjectId);
 		}
-	}, [isOpen, currentProjectId, selectedProjectId, preSelectedProjectId]);
+	}, [isOpen, selectedProjectId, preSelectedProjectId]);
 
 	// Effective base branch - use explicit selection or fall back to default
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? null;

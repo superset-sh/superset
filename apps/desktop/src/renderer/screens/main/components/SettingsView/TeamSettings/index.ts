@@ -1,1 +1,0 @@
-export { TeamSettings } from "./TeamSettings";

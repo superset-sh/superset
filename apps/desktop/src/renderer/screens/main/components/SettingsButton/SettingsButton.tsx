@@ -1,11 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useNavigate } from "@tanstack/react-router";
 import { CiSettings } from "react-icons/ci";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { useOpenSettings } from "renderer/stores";
 
 export function SettingsButton() {
-	const openSettings = useOpenSettings();
+	const navigate = useNavigate();
 
 	return (
 		<Tooltip>
@@ -13,7 +13,7 @@ export function SettingsButton() {
 				<Button
 					variant="ghost"
 					size="icon"
-					onClick={() => openSettings()}
+					onClick={() => navigate({ to: "/settings/account" })}
 					aria-label="Open settings"
 					className="no-drag"
 				>

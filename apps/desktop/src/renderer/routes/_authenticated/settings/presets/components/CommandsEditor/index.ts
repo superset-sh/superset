@@ -1,1 +1,1 @@
-export * from "./CommandsEditor";
+export { CommandsEditor } from "./CommandsEditor";

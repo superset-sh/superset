@@ -1,5 +1,7 @@
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -12,6 +14,7 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 export function useOpenWorktree(
 	options?: Parameters<typeof trpc.workspaces.openWorktree.useMutation>[0],
 ) {
+	const navigate = useNavigate();
 	const utils = trpc.useUtils();
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
@@ -59,6 +62,9 @@ export function useOpenWorktree(
 					},
 				});
 			}
+
+			// Navigate to the opened workspace
+			navigateToWorkspace(data.workspace.id, navigate);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

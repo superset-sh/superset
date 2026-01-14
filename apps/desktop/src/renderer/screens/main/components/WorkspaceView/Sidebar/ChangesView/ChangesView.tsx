@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { trpc } from "renderer/lib/trpc";
@@ -32,8 +33,12 @@ export function ChangesView({
 	onFileOpen,
 	onFileOpenPinned,
 }: ChangesViewProps) {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const worktreePath = activeWorkspace?.worktreePath;
+	const { workspaceId } = useParams({ strict: false });
+	const { data: workspace } = trpc.workspaces.get.useQuery(
+		{ id: workspaceId ?? "" },
+		{ enabled: !!workspaceId },
+	);
+	const worktreePath = workspace?.worktreePath;
 
 	const { baseBranch } = useChangesStore();
 	const { data: branchData } = trpc.changes.getBranches.useQuery(
@@ -58,9 +63,9 @@ export function ChangesView({
 
 	const { data: githubStatus, refetch: refetchGithubStatus } =
 		trpc.workspaces.getGitHubStatus.useQuery(
-			{ workspaceId: activeWorkspace?.id ?? "" },
+			{ workspaceId: workspaceId ?? "" },
 			{
-				enabled: !!activeWorkspace?.id,
+				enabled: !!workspaceId,
 				refetchInterval: 10000,
 			},
 		);
@@ -277,7 +282,7 @@ export function ChangesView({
 				viewMode={fileListViewMode}
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
-				workspaceId={activeWorkspace?.id}
+				workspaceId={workspaceId}
 			/>
 
 			<CommitInput

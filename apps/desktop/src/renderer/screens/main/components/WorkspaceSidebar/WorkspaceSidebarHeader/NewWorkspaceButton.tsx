@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useMatchRoute } from "@tanstack/react-router";
 import { LuPlus } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -12,13 +13,26 @@ export function NewWorkspaceButton({
 	isCollapsed = false,
 }: NewWorkspaceButtonProps) {
 	const openModal = useOpenNewWorkspaceModal();
-	const { data: activeWorkspace, isLoading } =
-		trpc.workspaces.getActive.useQuery();
+
+	// Derive current workspace from route to pre-select project in modal
+	const matchRoute = useMatchRoute();
+	const currentWorkspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const currentWorkspaceId = currentWorkspaceMatch
+		? currentWorkspaceMatch.workspaceId
+		: null;
+
+	const { data: currentWorkspace } = trpc.workspaces.get.useQuery(
+		{ id: currentWorkspaceId ?? "" },
+		{ enabled: !!currentWorkspaceId },
+	);
 
 	const handleClick = () => {
-		// projectId may be undefined if no workspace is active or query failed
+		// projectId may be undefined if no workspace is active in route
 		// openModal handles undefined by opening without a pre-selected project
-		const projectId = activeWorkspace?.projectId;
+		const projectId = currentWorkspace?.projectId;
 		openModal(projectId);
 	};
 
@@ -29,8 +43,7 @@ export function NewWorkspaceButton({
 					<button
 						type="button"
 						onClick={handleClick}
-						disabled={isLoading}
-						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+						className="group flex items-center justify-center size-8 rounded-md hover:bg-accent/50 transition-colors"
 					>
 						<div className="flex items-center justify-center size-5 rounded bg-accent">
 							<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
@@ -46,8 +59,7 @@ export function NewWorkspaceButton({
 		<button
 			type="button"
 			onClick={handleClick}
-			disabled={isLoading}
-			className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+			className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
 		>
 			<div className="flex items-center justify-center size-5 rounded bg-accent">
 				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />

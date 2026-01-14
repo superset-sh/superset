@@ -7,7 +7,8 @@ import {
 	settings,
 	workspaces,
 } from "@superset/local-db";
-import { desc, eq, inArray } from "drizzle-orm";
+import { TRPCError } from "@trpc/server";
+import { and, desc, eq, inArray, isNull, not } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
@@ -18,6 +19,13 @@ import simpleGit from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
+	activateProject,
+	getBranchWorkspace,
+	setLastActiveWorkspace,
+	touchWorkspace,
+} from "../workspaces/utils/db-helpers";
+import {
+	getCurrentBranch,
 	getDefaultBranch,
 	getGitRoot,
 	refreshDefaultBranch,
@@ -77,6 +85,96 @@ function upsertProject(mainRepoPath: string, defaultBranch: string): Project {
 		.get();
 
 	return project;
+}
+
+/**
+ * Ensures a project has a main (branch) workspace.
+ * If one doesn't exist, creates it automatically.
+ * This is called after opening/creating a project to provide a default workspace.
+ */
+async function ensureMainWorkspace(project: Project): Promise<void> {
+	const existingBranchWorkspace = getBranchWorkspace(project.id);
+
+	// If branch workspace already exists, just touch it and return
+	if (existingBranchWorkspace) {
+		touchWorkspace(existingBranchWorkspace.id);
+		setLastActiveWorkspace(existingBranchWorkspace.id);
+		return;
+	}
+
+	// Get current branch from main repo
+	const branch = await getCurrentBranch(project.mainRepoPath);
+	if (!branch) {
+		console.warn(
+			`[ensureMainWorkspace] Could not determine current branch for project ${project.id}`,
+		);
+		return;
+	}
+
+	// Insert new branch workspace with conflict handling for race conditions
+	// The unique partial index (projectId WHERE type='branch') prevents duplicates
+	const insertResult = localDb
+		.insert(workspaces)
+		.values({
+			projectId: project.id,
+			type: "branch",
+			branch,
+			name: branch,
+			tabOrder: 0,
+		})
+		.onConflictDoNothing()
+		.returning()
+		.all();
+
+	const wasExisting = insertResult.length === 0;
+
+	// Only shift existing workspaces if we successfully inserted
+	if (!wasExisting) {
+		const newWorkspaceId = insertResult[0].id;
+		const projectWorkspaces = localDb
+			.select()
+			.from(workspaces)
+			.where(
+				and(
+					eq(workspaces.projectId, project.id),
+					not(eq(workspaces.id, newWorkspaceId)),
+					isNull(workspaces.deletingAt),
+				),
+			)
+			.all();
+
+		for (const ws of projectWorkspaces) {
+			localDb
+				.update(workspaces)
+				.set({ tabOrder: ws.tabOrder + 1 })
+				.where(eq(workspaces.id, ws.id))
+				.run();
+		}
+	}
+
+	// Get the workspace (either newly created or existing from race condition)
+	const workspace = insertResult[0] ?? getBranchWorkspace(project.id);
+
+	if (!workspace) {
+		console.warn(
+			`[ensureMainWorkspace] Failed to create or find branch workspace for project ${project.id}`,
+		);
+		return;
+	}
+
+	setLastActiveWorkspace(workspace.id);
+
+	if (!wasExisting) {
+		activateProject(project);
+
+		track("workspace_opened", {
+			workspace_id: workspace.id,
+			project_id: project.id,
+			type: "branch",
+			was_existing: false,
+			auto_created: true,
+		});
+	}
 }
 
 // Safe filename regex: letters, numbers, dots, underscores, hyphens, spaces, and common unicode
@@ -144,14 +242,21 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
-			.query(({ input }): Project | null => {
-				return (
-					localDb
-						.select()
-						.from(projects)
-						.where(eq(projects.id, input.id))
-						.get() ?? null
-				);
+			.query(({ input }): Project => {
+				const project = localDb
+					.select()
+					.from(projects)
+					.where(eq(projects.id, input.id))
+					.get();
+
+				if (!project) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${input.id} not found`,
+					});
+				}
+
+				return project;
 			}),
 
 		getRecents: publicProcedure.query((): Project[] => {
@@ -311,6 +416,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			const defaultBranch = await getDefaultBranch(mainRepoPath);
 			const project = upsertProject(mainRepoPath, defaultBranch);
 
+			// Auto-create main workspace if it doesn't exist
+			await ensureMainWorkspace(project);
+
 			track("project_opened", {
 				project_id: project.id,
 				method: "open",
@@ -365,6 +473,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				const defaultBranch = branchSummary.current || "main";
 
 				const project = upsertProject(input.path, defaultBranch);
+
+				// Auto-create main workspace if it doesn't exist
+				await ensureMainWorkspace(project);
 
 				track("project_opened", {
 					project_id: project.id,
@@ -441,6 +552,12 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								.where(eq(projects.id, existingProject.id))
 								.run();
 
+							// Auto-create main workspace if it doesn't exist
+							await ensureMainWorkspace({
+								...existingProject,
+								lastOpenedAt: Date.now(),
+							});
+
 							track("project_opened", {
 								project_id: existingProject.id,
 								method: "clone",
@@ -486,6 +603,9 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						})
 						.returning()
 						.get();
+
+					// Auto-create main workspace if it doesn't exist
+					await ensureMainWorkspace(project);
 
 					track("project_opened", {
 						project_id: project.id,

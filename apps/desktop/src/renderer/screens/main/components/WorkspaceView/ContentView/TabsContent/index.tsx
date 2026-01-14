@@ -1,3 +1,4 @@
+import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { useSidebarStore } from "renderer/stores";
@@ -25,10 +26,9 @@ function hasTerminalPane(tab: Tab, panes: Record<string, Pane>): boolean {
 }
 
 export function TabsContent() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
+	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
 	const { data: terminalPersistence } =
 		trpc.settings.getTerminalPersistence.useQuery();
-	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const panes = useTabsStore((s) => s.panes);

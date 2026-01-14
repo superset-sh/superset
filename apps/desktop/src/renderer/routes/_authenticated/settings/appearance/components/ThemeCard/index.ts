@@ -1,1 +1,1 @@
-export * from "./ThemeCard";
+export { ThemeCard } from "./ThemeCard";

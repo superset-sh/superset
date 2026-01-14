@@ -1,1 +1,1 @@
-export * from "./SettingsSidebar";
+export { SettingsSidebar } from "./SettingsSidebar";

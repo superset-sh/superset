@@ -9,6 +9,7 @@ import {
 	RouterProvider,
 } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
+import { queryClient } from "./lib/query-client";
 import { routeTree } from "./routeTree.gen";
 
 import "./globals.css";
@@ -19,6 +20,9 @@ const router = createRouter({
 	routeTree,
 	history: hashHistory as RouterHistory,
 	defaultPreload: "intent",
+	context: {
+		queryClient,
+	},
 });
 
 declare module "@tanstack/react-router" {

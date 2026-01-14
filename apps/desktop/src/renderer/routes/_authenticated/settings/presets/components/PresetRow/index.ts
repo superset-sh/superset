@@ -1,1 +1,1 @@
-export * from "./PresetRow";
+export { PresetRow } from "./PresetRow";

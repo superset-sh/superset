@@ -1,0 +1,128 @@
+name: Build Desktop App
+
+on:
+  workflow_call:
+    inputs:
+      channel:
+        description: "Release channel (stable or canary)"
+        required: true
+        type: string
+      version_suffix:
+        description: "Version suffix to append (e.g., -canary). Empty for stable."
+        required: false
+        type: string
+        default: ""
+      electron_builder_config:
+        description: "Electron builder config file"
+        required: false
+        type: string
+        default: "electron-builder.ts"
+      artifact_prefix:
+        description: "Prefix for artifact names"
+        required: false
+        type: string
+        default: "desktop"
+      artifact_retention_days:
+        description: "Number of days to retain artifacts"
+        required: false
+        type: number
+        default: 30
+
+jobs:
+  build:
+    name: Build - macOS (${{ matrix.arch }})
+    runs-on: macos-latest
+    environment: production
+
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: "1.3.2"
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen
+
+      - name: Set version suffix
+        if: inputs.version_suffix != ''
+        working-directory: apps/desktop
+        run: |
+          # Read current version and append suffix
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION="${CURRENT_VERSION}${{ inputs.version_suffix }}"
+          echo "Setting version to: $NEW_VERSION"
+          # Update package.json version using node
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$NEW_VERSION';
+            fs.writeFileSync('./package.json', JSON.stringify(pkg, null, '\t') + '\n');
+          "
+          echo "Updated package.json version to $NEW_VERSION"
+
+      - name: Clean dev folder
+        working-directory: apps/desktop
+        run: bun run clean:dev
+
+      - name: Compile app with electron-vite
+        working-directory: apps/desktop
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_POSTHOG_HOST: ${{ secrets.NEXT_PUBLIC_POSTHOG_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GH_CLIENT_ID: ${{ secrets.GH_CLIENT_ID }}
+          NEXT_PUBLIC_WEB_URL: ${{ secrets.NEXT_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+        run: bun run compile:app
+
+      - name: Build Electron app
+        working-directory: apps/desktop
+        env:
+          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-dmg
+          path: apps/desktop/release/*.dmg
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-mac-${{ matrix.arch }}-zip
+          path: apps/desktop/release/*.zip
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
+
+      - name: Upload auto-update manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_prefix }}-mac-update-manifest
+          path: apps/desktop/release/*-mac.yml
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error

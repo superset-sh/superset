@@ -8,11 +8,12 @@ import {
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
-import { useSetActiveWorkspace } from "renderer/react-query/workspaces";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "../../../constants";
 
 interface BranchSwitcherProps {
@@ -30,7 +31,7 @@ export function BranchSwitcher({
 	const [search, setSearch] = useState("");
 
 	const utils = trpc.useUtils();
-	const setActiveWorkspace = useSetActiveWorkspace();
+	const navigate = useNavigate();
 
 	// Fetch branches when dropdown opens
 	const { data: branchesData, isLoading } =
@@ -97,7 +98,7 @@ export function BranchSwitcher({
 		// If branch is in use by a worktree, jump to that workspace
 		const worktreeWorkspaceId = inUseWorkspaces[branch];
 		if (worktreeWorkspaceId) {
-			setActiveWorkspace.mutate({ id: worktreeWorkspaceId });
+			navigateToWorkspace(worktreeWorkspaceId, navigate);
 			setIsOpen(false);
 			return;
 		}

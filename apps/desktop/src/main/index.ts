@@ -13,6 +13,7 @@ import { initAppState } from "./lib/app-state";
 import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { ensureShellEnvVars } from "./lib/shell-env";
 import {
 	reconcileDaemonSessions,
@@ -211,6 +212,9 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+
+		// Request local network access early to trigger the macOS permission prompt
+		requestLocalNetworkAccess();
 
 		await initAppState();
 

@@ -1,4 +1,6 @@
+import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
 /**
@@ -11,6 +13,7 @@ export function useCreateBranchWorkspace(
 		typeof trpc.workspaces.createBranchWorkspace.useMutation
 	>[0],
 ) {
+	const navigate = useNavigate();
 	const utils = trpc.useUtils();
 
 	return trpc.workspaces.createBranchWorkspace.useMutation({
@@ -24,6 +27,10 @@ export function useCreateBranchWorkspace(
 			if (!data.wasExisting) {
 				useTabsStore.getState().addTab(data.workspace.id);
 			}
+
+			// Navigate to the workspace
+			// Branch workspaces don't need async initialization, so always navigate
+			navigateToWorkspace(data.workspace.id, navigate);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

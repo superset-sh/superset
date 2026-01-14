@@ -8,12 +8,10 @@ import { mergePorts } from "../utils";
 export interface MergedWorkspaceGroup {
 	workspaceId: string;
 	workspaceName: string;
-	isCurrentWorkspace: boolean;
 	ports: MergedPort[];
 }
 
 export function usePortsData() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 	const { data: allWorkspaces } = trpc.workspaces.getAll.useQuery();
 	const ports = usePortsStore((s) => s.ports);
 	const setPorts = usePortsStore((s) => s.setPorts);
@@ -24,10 +22,10 @@ export function usePortsData() {
 
 	const { data: allStaticPortsData } = trpc.ports.getAllStatic.useQuery();
 
+	// Subscribe to all static port changes
 	trpc.ports.subscribeStatic.useSubscription(
-		{ workspaceId: activeWorkspace?.id ?? "" },
+		{ workspaceId: "" },
 		{
-			enabled: !!activeWorkspace?.id,
 			onData: () => {
 				utils.ports.getAllStatic.invalidate();
 			},
@@ -113,26 +111,16 @@ export function usePortsData() {
 				return {
 					workspaceId,
 					workspaceName: workspaceNames[workspaceId] || "Unknown",
-					isCurrentWorkspace: workspaceId === activeWorkspace?.id,
 					ports: merged,
 				};
 			},
 		);
 
-		groups.sort((a, b) => {
-			if (a.isCurrentWorkspace && !b.isCurrentWorkspace) return -1;
-			if (!a.isCurrentWorkspace && b.isCurrentWorkspace) return 1;
-			return a.workspaceName.localeCompare(b.workspaceName);
-		});
+		// Sort alphabetically by workspace name
+		groups.sort((a, b) => a.workspaceName.localeCompare(b.workspaceName));
 
 		return groups;
-	}, [
-		allWorkspaceIds,
-		allStaticPortsData?.ports,
-		ports,
-		workspaceNames,
-		activeWorkspace?.id,
-	]);
+	}, [allWorkspaceIds, allStaticPortsData?.ports, ports, workspaceNames]);
 
 	const totalPortCount = workspacePortGroups.reduce(
 		(sum, g) => sum + g.ports.length,

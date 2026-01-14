@@ -3,21 +3,31 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { useNavigate } from "@tanstack/react-router";
 import { FaDiscord, FaXTwitter } from "react-icons/fa6";
 import {
 	HiOutlineBugAnt,
 	HiOutlineEnvelope,
 	HiOutlineQuestionMarkCircle,
 } from "react-icons/hi2";
-import { LuLifeBuoy } from "react-icons/lu";
+import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
+import { useHotkeyText } from "renderer/stores/hotkeys";
 
 export function SupportMenu() {
+	const navigate = useNavigate();
+	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
+	const showShortcut = shortcutsHotkey !== "Unassigned";
+
+	const handleKeyboardShortcuts = () => {
+		navigate({ to: "/settings/keyboard" });
+	};
+
 	const handleContactUs = () => {
 		window.open(COMPANY.MAIL_TO, "_blank");
 	};
@@ -46,6 +56,17 @@ export function SupportMenu() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
+				<DropdownMenuItem onClick={handleReportIssue}>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
+				<DropdownMenuItem onClick={handleKeyboardShortcuts}>
+					<LuKeyboard className="h-4 w-4" />
+					Keyboard Shortcuts
+					{showShortcut && (
+						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
+					)}
+				</DropdownMenuItem>
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
 						<LuLifeBuoy className="h-4 w-4" />
@@ -67,11 +88,6 @@ export function SupportMenu() {
 						</DropdownMenuItem>
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem onClick={handleReportIssue}>
-					<HiOutlineBugAnt className="h-4 w-4" />
-					Report Issue
-				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

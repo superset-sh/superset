@@ -1,1 +1,0 @@
-export { RingtonesSettings } from "./RingtonesSettings";

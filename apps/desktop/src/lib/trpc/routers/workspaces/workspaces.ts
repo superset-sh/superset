@@ -13,10 +13,10 @@ import { createStatusProcedures } from "./procedures/status";
  * Procedures are organized into logical groups:
  * - create: create, createBranchWorkspace, openWorktree
  * - delete: delete, close, canDelete
- * - query: get, getAll, getAllGrouped, getActive
+ * - query: get, getAll, getAllGrouped
  * - branch: getBranches, switchBranchWorkspace
  * - git-status: refreshGitStatus, getGitHubStatus, getWorktreeInfo, getWorktreesByProject
- * - status: setActive, reorder, update, setUnread
+ * - status: reorder, update, setUnread
  * - init: onInitProgress, retryInit, getInitProgress, getSetupCommands
  */
 export const createWorkspacesRouter = () => {

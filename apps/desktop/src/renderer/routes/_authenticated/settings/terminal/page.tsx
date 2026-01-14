@@ -23,7 +23,6 @@ function TerminalSettingsPage() {
 	const utils = trpc.useUtils();
 	const { data: terminalPersistence, isLoading } =
 		trpc.settings.getTerminalPersistence.useQuery();
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
 
 	const { data: daemonSessions } = trpc.terminal.listDaemonSessions.useQuery();
 	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
@@ -39,14 +38,8 @@ function TerminalSettingsPage() {
 			return bTime - aTime;
 		});
 	}, [sessions]);
-	const activeWorkspaceSessionCount = useMemo(() => {
-		if (!activeWorkspace?.id) return 0;
-		return sessions.filter((s) => s.workspaceId === activeWorkspace.id).length;
-	}, [sessions, activeWorkspace?.id]);
 
 	const [confirmKillAllOpen, setConfirmKillAllOpen] = useState(false);
-	const [confirmKillWorkspaceOpen, setConfirmKillWorkspaceOpen] =
-		useState(false);
 	const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 	const [pendingKillSession, setPendingKillSession] = useState<{
@@ -104,27 +97,6 @@ function TerminalSettingsPage() {
 			},
 		},
 	);
-
-	const killDaemonSessionsForWorkspace =
-		trpc.terminal.killDaemonSessionsForWorkspace.useMutation({
-			onSuccess: (result) => {
-				if (result.daemonModeEnabled) {
-					toast.success("Killed workspace terminal sessions", {
-						description: `${result.killedCount} sessions terminated`,
-					});
-				} else {
-					toast.error("Terminal persistence is not active", {
-						description: "Restart the app after enabling terminal persistence.",
-					});
-				}
-				utils.terminal.listDaemonSessions.invalidate();
-			},
-			onError: (error) => {
-				toast.error("Failed to kill sessions", {
-					description: error.message,
-				});
-			},
-		});
 
 	const clearTerminalHistory = trpc.terminal.clearTerminalHistory.useMutation({
 		onSuccess: () => {
@@ -235,19 +207,6 @@ function TerminalSettingsPage() {
 							onClick={() => setConfirmKillAllOpen(true)}
 						>
 							Kill all sessions
-						</Button>
-						<Button
-							variant="secondary"
-							size="sm"
-							disabled={
-								!daemonModeEnabled ||
-								!activeWorkspace?.id ||
-								activeWorkspaceSessionCount === 0 ||
-								killDaemonSessionsForWorkspace.isPending
-							}
-							onClick={() => setConfirmKillWorkspaceOpen(true)}
-						>
-							Kill sessions for active workspace
 						</Button>
 						<Button
 							variant="secondary"
@@ -373,53 +332,6 @@ function TerminalSettingsPage() {
 							}}
 						>
 							Kill all
-						</Button>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
-
-			<AlertDialog
-				open={confirmKillWorkspaceOpen}
-				onOpenChange={setConfirmKillWorkspaceOpen}
-			>
-				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
-					<AlertDialogHeader className="px-4 pt-4 pb-2">
-						<AlertDialogTitle className="font-medium">
-							Kill active workspace terminal sessions?
-						</AlertDialogTitle>
-						<AlertDialogDescription asChild>
-							<div className="text-muted-foreground space-y-1.5">
-								<span className="block">
-									This will terminate terminal processes for the currently
-									active workspace.
-								</span>
-								<span className="block">
-									You can’t undo this action. Terminal panes will show “Process
-									exited” and can be restarted.
-								</span>
-							</div>
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setConfirmKillWorkspaceOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="secondary"
-							size="sm"
-							disabled={killDaemonSessionsForWorkspace.isPending}
-							onClick={() => {
-								const workspaceId = activeWorkspace?.id;
-								setConfirmKillWorkspaceOpen(false);
-								if (!workspaceId) return;
-								killDaemonSessionsForWorkspace.mutate({ workspaceId });
-							}}
-						>
-							Kill sessions
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

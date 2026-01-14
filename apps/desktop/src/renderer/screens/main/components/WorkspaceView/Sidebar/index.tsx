@@ -1,12 +1,16 @@
+import { useParams } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { ChangesView } from "./ChangesView";
 
 export function Sidebar() {
-	const { data: activeWorkspace } = trpc.workspaces.getActive.useQuery();
-	const workspaceId = activeWorkspace?.id;
-	const worktreePath = activeWorkspace?.worktreePath;
+	const { workspaceId } = useParams({ strict: false });
+	const { data: workspace } = trpc.workspaces.get.useQuery(
+		{ id: workspaceId ?? "" },
+		{ enabled: !!workspaceId },
+	);
+	const worktreePath = workspace?.worktreePath;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
 	const trpcUtils = trpc.useUtils();

@@ -22,8 +22,6 @@ export interface TerminalSession {
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;
-	/** Saved viewport scroll position for restoration on reattach */
-	viewportY?: number;
 }
 
 export interface TerminalDataEvent {
