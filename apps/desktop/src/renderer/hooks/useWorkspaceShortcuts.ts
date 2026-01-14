@@ -1,62 +1,17 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import { trpc } from "renderer/lib/trpc";
-import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
 /**
- * Shared hook for workspace keyboard shortcuts and auto-creation logic.
+ * Shared hook for workspace keyboard shortcuts.
  * Used by WorkspaceSidebar for navigation between workspaces.
  *
- * It handles:
- * - ⌘1-9 workspace switching shortcuts (global)
- * - Auto-create main workspace for new projects
- *
- * Note: PREV/NEXT workspace shortcuts (⌘↑/⌘↓) are handled in the workspace
- * page itself to avoid conflicts with terminal/editor shortcuts.
+ * Handles ⌘1-9 workspace switching shortcuts (global).
  */
 export function useWorkspaceShortcuts() {
 	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
 	const navigate = useNavigate();
-
-	const createBranchWorkspace = useCreateBranchWorkspace();
-
-	// Track projects we've attempted to create workspaces for (persists across renders)
-	const attemptedProjectsRef = useRef<Set<string>>(new Set());
-	const [isCreating, setIsCreating] = useState(false);
-
-	// Auto-create main workspace for new projects (one-time per project)
-	useEffect(() => {
-		if (isCreating) return;
-
-		for (const group of groups) {
-			const projectId = group.project.id;
-			const hasMainWorkspace = group.workspaces.some(
-				(w) => w.type === "branch",
-			);
-
-			// Skip if already has main workspace or we've already attempted this project
-			if (hasMainWorkspace || attemptedProjectsRef.current.has(projectId)) {
-				continue;
-			}
-
-			// Mark as attempted before creating (prevents retries)
-			attemptedProjectsRef.current.add(projectId);
-			setIsCreating(true);
-
-			// Auto-create fails silently - this is a background convenience feature
-			createBranchWorkspace.mutate(
-				{ projectId },
-				{
-					onSettled: () => {
-						setIsCreating(false);
-					},
-				},
-			);
-			// Only create one at a time
-			break;
-		}
-	}, [groups, isCreating, createBranchWorkspace]);
 
 	// Flatten workspaces for keyboard navigation
 	const allWorkspaces = groups.flatMap((group) => group.workspaces);

@@ -11,7 +11,8 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
@@ -20,6 +21,7 @@ import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
+import { CloseProjectDialog } from "./CloseProjectDialog";
 import { STROKE_WIDTH } from "../constants";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
@@ -52,11 +54,51 @@ export function ProjectHeader({
 }: ProjectHeaderProps) {
 	const utils = trpc.useUtils();
 	const navigate = useNavigate();
+	const params = useParams({ strict: false }) as { workspaceId?: string };
+	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
 
 	const closeProject = trpc.projects.close.useMutation({
-		onSuccess: (data) => {
+		onMutate: async ({ id }) => {
+			// Check if we're viewing a workspace from this project BEFORE closing
+			let shouldNavigate = false;
+
+			if (params.workspaceId) {
+				try {
+					const currentWorkspace = await utils.workspaces.get.fetch({
+						id: params.workspaceId,
+					});
+					shouldNavigate = currentWorkspace?.projectId === id;
+				} catch {
+					// Workspace might not exist, skip navigation
+				}
+			}
+
+			return { shouldNavigate };
+		},
+		onSuccess: async (data, { id }, context) => {
 			utils.workspaces.getAllGrouped.invalidate();
 			utils.projects.getRecents.invalidate();
+
+			// Navigate away if we were viewing a workspace from the closed project
+			if (context?.shouldNavigate) {
+				// Find a workspace from a different project to navigate to
+				const groups = await utils.workspaces.getAllGrouped.fetch();
+				const otherWorkspace = groups
+					.flatMap((group) => group.workspaces)
+					.find((w) => w.projectId !== id);
+
+				if (otherWorkspace) {
+					localStorage.setItem("lastViewedWorkspaceId", otherWorkspace.id);
+					navigate({
+						to: "/workspace/$workspaceId",
+						params: { workspaceId: otherWorkspace.id },
+					});
+				} else {
+					// No other workspaces exist - go to workspace index
+					navigate({ to: "/workspace" });
+				}
+			}
+
 			if (data.terminalWarning) {
 				toast.warning(data.terminalWarning);
 			}
@@ -71,6 +113,10 @@ export function ProjectHeader({
 	});
 
 	const handleCloseProject = () => {
+		setIsCloseDialogOpen(true);
+	};
+
+	const handleConfirmClose = () => {
 		closeProject.mutate({ id: projectId });
 	};
 
@@ -127,7 +173,8 @@ export function ProjectHeader({
 	// Collapsed sidebar: show just the thumbnail with tooltip and context menu
 	if (isSidebarCollapsed) {
 		return (
-			<ContextMenu>
+			<>
+				<ContextMenu>
 				<Tooltip delayDuration={300}>
 					<ContextMenuTrigger asChild>
 						<TooltipTrigger asChild>
@@ -175,13 +222,23 @@ export function ProjectHeader({
 						{closeProject.isPending ? "Closing..." : "Close Project"}
 					</ContextMenuItem>
 				</ContextMenuContent>
-			</ContextMenu>
+				</ContextMenu>
+
+				<CloseProjectDialog
+					projectName={projectName}
+					workspaceCount={workspaceCount}
+					open={isCloseDialogOpen}
+					onOpenChange={setIsCloseDialogOpen}
+					onConfirm={handleConfirmClose}
+				/>
+			</>
 		);
 	}
 
 	return (
-		<ContextMenu>
-			<ContextMenuTrigger asChild>
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
 				<div
 					className={cn(
 						"flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
@@ -264,5 +321,14 @@ export function ProjectHeader({
 				</ContextMenuItem>
 			</ContextMenuContent>
 		</ContextMenu>
+
+		<CloseProjectDialog
+			projectName={projectName}
+			workspaceCount={workspaceCount}
+			open={isCloseDialogOpen}
+			onOpenChange={setIsCloseDialogOpen}
+			onConfirm={handleConfirmClose}
+		/>
+		</>
 	);
 }
