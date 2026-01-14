@@ -90,19 +90,19 @@ export function OrganizationDropdown() {
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"
-					className="no-drag flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-accent/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
 					aria-label="Organization menu"
 				>
 					<Avatar
-						size="sm"
+						size="xs"
 						fullName={activeOrganization?.name}
 						image={activeOrganization?.logo}
-						className="rounded-md"
+						className="rounded size-4"
 					/>
-					<span className="text-sm font-medium truncate max-w-32">
+					<span className="text-xs font-medium truncate max-w-32">
 						{displayName}
 					</span>
-					<HiChevronUpDown className="h-4 w-4 text-muted-foreground shrink-0" />
+					<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
