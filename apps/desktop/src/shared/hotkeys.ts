@@ -316,7 +316,11 @@ export function isOsReservedHotkey(
  */
 export function hasPrimaryModifier(keys: string): boolean {
 	const parsed = parseHotkeyString(keys);
-	return parsed.modifiers.has("ctrl") || parsed.modifiers.has("meta") || parsed.modifiers.has("alt");
+	return (
+		parsed.modifiers.has("ctrl") ||
+		parsed.modifiers.has("meta") ||
+		parsed.modifiers.has("alt")
+	);
 }
 
 export function deriveNonMacDefault(keys: string | null): string | null {
