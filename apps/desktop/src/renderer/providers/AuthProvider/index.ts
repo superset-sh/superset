@@ -1,1 +1,1 @@
-export { AuthProvider, useAuth } from "./AuthProvider";
+export { AuthProvider, useAuthToken } from "./AuthProvider";

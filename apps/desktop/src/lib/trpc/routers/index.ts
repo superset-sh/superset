@@ -13,10 +13,8 @@ import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
-import { createTasksRouter } from "./tasks";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
-import { createUserRouter } from "./user";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -25,7 +23,6 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		analytics: createAnalyticsRouter(),
 		auth: createAuthRouter(),
 		autoUpdate: createAutoUpdateRouter(),
-		user: createUserRouter(),
 		window: createWindowRouter(getWindow),
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
@@ -40,7 +37,6 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		uiState: createUiStateRouter(),
 		ringtone: createRingtoneRouter(),
-		tasks: createTasksRouter(),
 	});
 };
 

@@ -6,14 +6,16 @@ import path from "node:path";
 import { settings } from "@superset/local-db";
 import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
+import {
+	handleAuthCallback,
+	parseAuthDeepLink,
+} from "lib/trpc/routers/auth/utils/auth-functions";
 import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
 import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
-import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import { ensureShellEnvVars } from "./lib/shell-env";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
@@ -42,7 +44,7 @@ async function processDeepLink(url: string): Promise<void> {
 	const authParams = parseAuthDeepLink(url);
 	if (!authParams) return;
 
-	const result = await authService.handleAuthCallback(authParams);
+	const result = await handleAuthCallback(authParams);
 	if (result.success) {
 		focusMainWindow();
 	} else {
@@ -206,11 +208,7 @@ if (!gotTheLock) {
 	(async () => {
 		await app.whenReady();
 
-		// Request local network access early to trigger the macOS permission prompt
-		requestLocalNetworkAccess();
-
 		await initAppState();
-		await authService.initialize();
 
 		// Resolve shell environment before setting up agent hooks
 		// This ensures ZDOTDIR and PATH are available for terminal initialization

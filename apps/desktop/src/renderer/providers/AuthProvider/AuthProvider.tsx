@@ -5,38 +5,70 @@ import {
 	useEffect,
 	useState,
 } from "react";
-import type { RouterOutputs } from "../../lib/trpc";
-import { trpc } from "../../lib/trpc";
+import { authClient, setAuthToken } from "renderer/lib/auth-client";
+import { electronTrpc } from "../../lib/electron-trpc";
 
-type AuthState = RouterOutputs["auth"]["onAuthState"];
-
-interface AuthContextValue {
+interface AuthTokenContextValue {
 	token: string | null;
-	session: AuthState;
-	isInitialized: boolean;
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null);
+const AuthTokenContext = createContext<AuthTokenContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-	const { data: authState } = trpc.auth.onAuthState.useSubscription();
-	const [isInitialized, setIsInitialized] = useState(false);
+	const [isHydrated, setIsHydrated] = useState(false);
+	const [token, setToken] = useState<string | null>(null);
 
-	// Mark as initialized once we receive the first auth state
+	const { data: session } = authClient.useSession();
+
+	const { data: storedToken } = electronTrpc.auth.getStoredToken.useQuery(
+		undefined,
+		{
+			refetchOnWindowFocus: false,
+			refetchOnReconnect: false,
+		},
+	);
+
+	const persistMutation = electronTrpc.auth.persistToken.useMutation();
+
+	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
+		onData: (data) => {
+			if (data?.token && data?.expiresAt) {
+				setToken(data.token);
+				setAuthToken(data.token);
+				persistMutation.mutate({
+					token: data.token,
+					expiresAt: data.expiresAt,
+				});
+			}
+		},
+	});
+
 	useEffect(() => {
-		if (authState !== undefined && !isInitialized) {
-			setIsInitialized(true);
+		if (storedToken && !isHydrated) {
+			if (storedToken.token && storedToken.expiresAt) {
+				setToken(storedToken.token);
+				setAuthToken(storedToken.token);
+			}
+			setIsHydrated(true);
 		}
-	}, [authState, isInitialized]);
+	}, [storedToken, isHydrated]);
 
-	const value: AuthContextValue = {
-		token: authState?.token ?? null,
-		session: authState ?? null,
-		isInitialized,
-	};
+	useEffect(() => {
+		if (token) {
+			setAuthToken(token);
+		} else {
+			setAuthToken(null);
+		}
+	}, [token]);
 
-	// Show loading spinner until auth state is initialized
-	if (!isInitialized) {
+	useEffect(() => {
+		if (!session?.user && token) {
+			setToken(null);
+			setAuthToken(null);
+		}
+	}, [session, token]);
+
+	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
 				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
@@ -44,13 +76,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		);
 	}
 
-	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+	return (
+		<AuthTokenContext.Provider value={{ token }}>
+			{children}
+		</AuthTokenContext.Provider>
+	);
 }
 
-export function useAuth(): AuthContextValue {
-	const context = useContext(AuthContext);
+export function useAuthToken(): string | null {
+	const context = useContext(AuthTokenContext);
 	if (!context) {
-		throw new Error("useAuth must be used within AuthProvider");
+		throw new Error("useAuthToken must be used within AuthProvider");
 	}
-	return context;
+	return context.token;
 }
