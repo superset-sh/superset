@@ -1,9 +1,47 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { NotFound } from "renderer/routes/not-found";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/project/$projectId/",
 )({
 	component: ProjectSettingsPage,
+	notFoundComponent: NotFound,
+	loader: async ({ params, context }) => {
+		const projectQueryKey = [
+			["projects", "get"],
+			{ input: { id: params.projectId }, type: "query" },
+		];
+
+		const configQueryKey = [
+			["config", "getConfigFilePath"],
+			{ input: { projectId: params.projectId }, type: "query" },
+		];
+
+		try {
+			await Promise.all([
+				context.queryClient.ensureQueryData({
+					queryKey: projectQueryKey,
+					queryFn: () =>
+						electronTrpcClient.projects.get.query({ id: params.projectId }),
+				}),
+				context.queryClient.ensureQueryData({
+					queryKey: configQueryKey,
+					queryFn: () =>
+						electronTrpcClient.config.getConfigFilePath.query({
+							projectId: params.projectId,
+						}),
+				}),
+			]);
+		} catch (error) {
+			// If project not found, throw notFound() to render 404 page
+			if (error instanceof Error && error.message.includes("not found")) {
+				throw notFound();
+			}
+			// Re-throw other errors
+			throw error;
+		}
+	},
 });
 
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
@@ -12,38 +50,17 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 
 function ProjectSettingsPage() {
 	const { projectId } = Route.useParams();
-	const { data: project, isLoading } = electronTrpc.projects.get.useQuery({
+	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
 
-	const { data: configFilePath } =
-		electronTrpc.config.getConfigFilePath.useQuery(
-			{ projectId },
-			{ enabled: !!projectId },
-		);
+	const { data: configFilePath } = electronTrpc.config.getConfigFilePath.useQuery({
+		projectId,
+	});
 
-	if (isLoading) {
-		return (
-			<div className="p-6 max-w-4xl select-text">
-				<div className="animate-pulse space-y-4">
-					<div className="h-8 bg-muted rounded w-1/3" />
-					<div className="h-4 bg-muted rounded w-1/2" />
-				</div>
-			</div>
-		);
-	}
-
+	// Project is guaranteed to exist here because loader handles 404s
 	if (!project) {
-		return (
-			<div className="p-6 max-w-4xl">
-				<div className="mb-8">
-					<h2 className="text-xl font-semibold">Project</h2>
-					<p className="text-sm text-muted-foreground mt-1">
-						Project not found
-					</p>
-				</div>
-			</div>
-		);
+		return null;
 	}
 
 	return (

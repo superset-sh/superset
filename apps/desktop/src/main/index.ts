@@ -212,8 +212,10 @@ if (!gotTheLock) {
 		// This provides a stable origin (superset://app or superset-dev://app) for Better Auth CORS
 		if (process.env.NODE_ENV !== "development") {
 			protocol.handle(PROTOCOL_SCHEME, (request) => {
-				const url = request.url.replace(`${PROTOCOL_SCHEME}://`, "");
-				const filePath = path.normalize(path.join(__dirname, "../renderer", url));
+				// Parse URL to extract pathname (e.g., superset://app/index.html#/ -> /index.html)
+				const parsedUrl = new URL(request.url);
+				const pathname = parsedUrl.pathname;
+				const filePath = path.normalize(path.join(__dirname, "../renderer", pathname));
 				return net.fetch(`file://${filePath}`);
 			});
 		}

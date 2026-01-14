@@ -1,7 +1,19 @@
-import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Navigate,
+	Outlet,
+	useNavigate,
+} from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
+import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
+import { useUpdateListener } from "renderer/components/UpdateToast";
 import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
+import { useHotkeysSync } from "renderer/stores/hotkeys";
+import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -9,19 +21,43 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
-	const { data: session, isPending, error } = authClient.useSession();
+	const { data: session } = authClient.useSession();
+	const isSignedIn = !!session?.user;
+	const navigate = useNavigate();
+	const utils = electronTrpc.useUtils();
 
-	// Session still loading - show spinner
-	if (isPending) {
-		return (
-			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
-			</div>
-		);
-	}
+	// Global hooks and subscriptions
+	useAgentHookListener();
+	useUpdateListener();
+	useHotkeysSync();
 
-	// Error or no user - not authenticated, redirect to sign-in
-	if (error || !session?.user) {
+	// Workspace initialization progress subscription
+	const updateInitProgress = useWorkspaceInitStore((s) => s.updateProgress);
+	electronTrpc.workspaces.onInitProgress.useSubscription(undefined, {
+		onData: (progress) => {
+			updateInitProgress(progress);
+			if (progress.step === "ready" || progress.step === "failed") {
+				// Invalidate both the grouped list AND the specific workspace
+				utils.workspaces.getAllGrouped.invalidate();
+				utils.workspaces.get.invalidate({ id: progress.workspaceId });
+			}
+		},
+		onError: (error) => {
+			console.error("[workspace-init-subscription] Subscription error:", error);
+		},
+	});
+
+	// Menu navigation subscription
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.type === "open-settings") {
+				const section = event.data.section || "account";
+				navigate({ to: `/settings/${section}` as "/settings/account" });
+			}
+		},
+	});
+
+	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;
 	}
 
@@ -29,6 +65,8 @@ function AuthenticatedLayout() {
 		<DndProvider manager={dragDropManager}>
 			<CollectionsProvider>
 				<Outlet />
+				<WorkspaceInitEffects />
+				<NewWorkspaceModal />
 			</CollectionsProvider>
 		</DndProvider>
 	);

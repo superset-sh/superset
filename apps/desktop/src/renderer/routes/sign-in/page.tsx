@@ -1,5 +1,6 @@
 import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
@@ -25,7 +26,7 @@ function SignInPage() {
 	if (isPending) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
+				<Spinner className="size-8" />
 			</div>
 		);
 	}

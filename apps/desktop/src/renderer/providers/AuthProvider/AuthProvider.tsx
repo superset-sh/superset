@@ -1,3 +1,4 @@
+import { Spinner } from "@superset/ui/spinner";
 import { type ReactNode, useEffect, useState } from "react";
 import { authClient, setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "../../lib/electron-trpc";
@@ -51,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	if (!isHydrated) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
-				<div className="h-8 w-8 animate-spin rounded-full border-4 border-muted-foreground border-t-transparent" />
+				<Spinner className="size-8" />
 			</div>
 		);
 	}

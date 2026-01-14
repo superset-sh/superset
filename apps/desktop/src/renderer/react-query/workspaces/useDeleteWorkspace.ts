@@ -13,13 +13,15 @@ type DeleteContext = {
 	>["workspaces"]["getAll"]["getData"] extends () => infer R
 		? R
 		: never;
+	wasViewingDeleted: boolean;
+	navigatedTo: string | null;
 };
 
 /**
- * Mutation hook for deleting a workspace and its worktree
- * Uses optimistic updates to immediately remove workspace from UI,
- * then performs actual deletion in background.
- * Automatically navigates away if the deleted workspace is currently being viewed.
+ * Mutation hook for deleting a workspace with optimistic updates.
+ * Server marks `deletingAt` immediately so refetches stay correct during slow git operations.
+ * Optimistically navigates away immediately if the deleted workspace is currently being viewed.
+ * Navigates back on error to restore the user to the original workspace.
  */
 export function useDeleteWorkspace(
 	options?: Parameters<typeof electronTrpc.workspaces.delete.useMutation>[0],
@@ -31,17 +33,38 @@ export function useDeleteWorkspace(
 	return electronTrpc.workspaces.delete.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
-			// Cancel outgoing refetches to avoid overwriting optimistic update
+			// Check if we're viewing the workspace being deleted
+			const wasViewingDeleted = params.workspaceId === id;
+			let navigatedTo: string | null = null;
+
+			// If viewing deleted workspace, get navigation target BEFORE optimistic update
+			if (wasViewingDeleted) {
+				const prevWorkspaceId =
+					await utils.workspaces.getPreviousWorkspace.fetch({ id });
+				const nextWorkspaceId = await utils.workspaces.getNextWorkspace.fetch({
+					id,
+				});
+				const targetWorkspaceId = prevWorkspaceId ?? nextWorkspaceId;
+
+				if (targetWorkspaceId) {
+					navigatedTo = targetWorkspaceId;
+					navigateToWorkspace(targetWorkspaceId, navigate);
+				} else {
+					navigatedTo = "/workspace";
+					navigate({ to: "/workspace" });
+				}
+			}
+
+			// Cancel outgoing queries and get snapshots
 			await Promise.all([
 				utils.workspaces.getAll.cancel(),
 				utils.workspaces.getAllGrouped.cancel(),
 			]);
 
-			// Snapshot previous values for rollback
 			const previousGrouped = utils.workspaces.getAllGrouped.getData();
 			const previousAll = utils.workspaces.getAll.getData();
 
-			// Optimistically remove workspace from getAllGrouped cache
+			// Optimistic update: remove workspace from cache
 			if (previousGrouped) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
@@ -54,7 +77,6 @@ export function useDeleteWorkspace(
 				);
 			}
 
-			// Optimistically remove workspace from getAll cache
 			if (previousAll) {
 				utils.workspaces.getAll.setData(
 					undefined,
@@ -62,11 +84,23 @@ export function useDeleteWorkspace(
 				);
 			}
 
-			// Return context for rollback
-			return { previousGrouped, previousAll } as DeleteContext;
+			return {
+				previousGrouped,
+				previousAll,
+				wasViewingDeleted,
+				navigatedTo,
+			} as DeleteContext;
 		},
-		onError: (_err, _variables, context) => {
-			// Rollback to previous state on error
+		onSettled: async (...args) => {
+			await utils.workspaces.invalidate();
+			await options?.onSettled?.(...args);
+		},
+		onSuccess: async (data, variables, ...rest) => {
+			// Navigation already handled in onMutate (optimistic)
+			await options?.onSuccess?.(data, variables, ...rest);
+		},
+		onError: async (_err, variables, context, ...rest) => {
+			// Rollback optimistic cache updates
 			if (context?.previousGrouped !== undefined) {
 				utils.workspaces.getAllGrouped.setData(
 					undefined,
@@ -76,36 +110,13 @@ export function useDeleteWorkspace(
 			if (context?.previousAll !== undefined) {
 				utils.workspaces.getAll.setData(undefined, context.previousAll);
 			}
-		},
-		onSuccess: async (data, variables, ...rest) => {
-			// Invalidate to ensure consistency with backend state
-			await utils.workspaces.invalidate();
-			// Invalidate project queries since delete updates project metadata
-			await utils.projects.getRecents.invalidate();
 
-			// If the deleted workspace is currently being viewed, navigate away
-			if (params.workspaceId === variables.id) {
-				// Try to navigate to previous workspace first, then next
-				const prevWorkspaceId =
-					await utils.workspaces.getPreviousWorkspace.fetch({
-						id: variables.id,
-					});
-				const nextWorkspaceId = await utils.workspaces.getNextWorkspace.fetch({
-					id: variables.id,
-				});
-
-				const targetWorkspaceId = prevWorkspaceId ?? nextWorkspaceId;
-
-				if (targetWorkspaceId) {
-					navigateToWorkspace(targetWorkspaceId, navigate);
-				} else {
-					// No other workspaces, navigate to workspace index (shows StartView)
-					navigate({ to: "/workspace" });
-				}
+			// If we optimistically navigated away, navigate back to the deleted workspace
+			if (context?.wasViewingDeleted) {
+				navigateToWorkspace(variables.id, navigate);
 			}
 
-			// Call user's onSuccess if provided
-			await options?.onSuccess?.(data, variables, ...rest);
+			await options?.onError?.(_err, variables, context, ...rest);
 		},
 	});
 }
