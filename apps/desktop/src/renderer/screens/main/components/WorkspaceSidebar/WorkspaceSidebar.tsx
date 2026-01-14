@@ -43,6 +43,7 @@ export function WorkspaceSidebar({
 						workspaces={group.workspaces}
 						activeWorkspaceId={activeWorkspaceId}
 						shortcutBaseIndex={projectShortcutIndices[index]}
+						index={index}
 						isCollapsed={isCollapsed}
 					/>
 				))}
