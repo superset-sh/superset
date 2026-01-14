@@ -3,7 +3,6 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuShortcut,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
@@ -57,6 +56,10 @@ export function SupportMenu() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
+				<DropdownMenuItem onClick={handleReportIssue}>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
 				<DropdownMenuItem onClick={handleKeyboardShortcuts}>
 					<LuKeyboard className="h-4 w-4" />
 					Keyboard Shortcuts
@@ -64,7 +67,6 @@ export function SupportMenu() {
 						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
 					)}
 				</DropdownMenuItem>
-				<DropdownMenuSeparator />
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>
 						<LuLifeBuoy className="h-4 w-4" />
@@ -86,11 +88,6 @@ export function SupportMenu() {
 						</DropdownMenuItem>
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem onClick={handleReportIssue}>
-					<HiOutlineBugAnt className="h-4 w-4" />
-					Report Issue
-				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
