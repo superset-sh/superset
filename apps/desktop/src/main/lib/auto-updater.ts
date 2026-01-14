@@ -160,7 +160,8 @@ export function checkForUpdatesInteractive(): void {
 				dialog.showMessageBox({
 					type: "info",
 					title: "No Internet Connection",
-					message: "Unable to check for updates. Please check your internet connection.",
+					message:
+						"Unable to check for updates. Please check your internet connection.",
 				});
 				return;
 			}
