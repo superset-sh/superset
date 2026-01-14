@@ -9,6 +9,7 @@ import {
 	RouterProvider,
 } from "@tanstack/react-router";
 import ReactDom from "react-dom/client";
+import { posthog } from "./lib/posthog";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { routeTree } from "./routeTree.gen";
 
@@ -23,6 +24,12 @@ const router = createRouter({
 	context: {
 		queryClient: electronQueryClient,
 	},
+});
+
+router.subscribe("onResolved", () => {
+	posthog.capture("$pageview", {
+		$current_url: window.location.href,
+	});
 });
 
 declare module "@tanstack/react-router" {
