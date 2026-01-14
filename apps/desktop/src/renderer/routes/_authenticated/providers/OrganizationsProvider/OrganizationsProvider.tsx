@@ -1,7 +1,10 @@
+import type { AppRouter } from "@superset/trpc";
+import type { inferRouterOutputs } from "@trpc/server";
 import { createContext, type ReactNode, useContext } from "react";
-import { type RouterOutputs, trpc } from "renderer/lib/trpc";
+import { trpc } from "renderer/lib/trpc";
 
-export type Organization = RouterOutputs["user"]["myOrganizations"][number];
+type ApiRouterOutputs = inferRouterOutputs<AppRouter>;
+export type Organization = ApiRouterOutputs["user"]["myOrganizations"][number];
 
 interface OrganizationsContextValue {
 	organizations: Organization[];
