@@ -57,28 +57,40 @@ export function getDefaultTerminalBg(): string {
 	return getDefaultTerminalTheme().background ?? "#1a1a1a";
 }
 
+export interface RendererHandle {
+	dispose: () => void;
+	/** Clear WebGL texture atlas and refresh terminal. Call on visibility change to fix rendering corruption. */
+	clearTextureAtlasAndRefresh: () => void;
+}
+
 /**
  * Load GPU-accelerated renderer with automatic fallback.
  * Tries WebGL first, falls back to Canvas if WebGL fails.
  */
-function loadRenderer(xterm: XTerm): { dispose: () => void } {
+function loadRenderer(xterm: XTerm): RendererHandle {
 	let renderer: WebglAddon | CanvasAddon | null = null;
+	let usingWebGL = false;
 
 	try {
 		const webglAddon = new WebglAddon();
 
 		webglAddon.onContextLoss(() => {
 			webglAddon.dispose();
+			usingWebGL = false;
 			try {
 				renderer = new CanvasAddon();
 				xterm.loadAddon(renderer);
+				// Force refresh after context loss recovery
+				xterm.refresh(0, xterm.rows - 1);
 			} catch {
 				// Canvas fallback failed, use default renderer
+				renderer = null;
 			}
 		});
 
 		xterm.loadAddon(webglAddon);
 		renderer = webglAddon;
+		usingWebGL = true;
 	} catch {
 		try {
 			renderer = new CanvasAddon();
@@ -90,6 +102,13 @@ function loadRenderer(xterm: XTerm): { dispose: () => void } {
 
 	return {
 		dispose: () => renderer?.dispose(),
+		clearTextureAtlasAndRefresh: () => {
+			if (usingWebGL && renderer instanceof WebglAddon) {
+				renderer.clearTextureAtlas();
+			}
+			// Always refresh to ensure display is up-to-date
+			xterm.refresh(0, xterm.rows - 1);
+		},
 	};
 }
 
@@ -105,6 +124,7 @@ export function createTerminalInstance(
 ): {
 	xterm: XTerm;
 	fitAddon: FitAddon;
+	renderer: RendererHandle;
 	cleanup: () => void;
 } {
 	const { cwd, initialTheme, onFileLinkClick } = options;
@@ -185,6 +205,7 @@ export function createTerminalInstance(
 	return {
 		xterm,
 		fitAddon,
+		renderer,
 		cleanup: () => {
 			cleanupQuerySuppression();
 			renderer.dispose();
