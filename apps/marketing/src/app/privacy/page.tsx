@@ -281,10 +281,10 @@ export default function PrivacyPolicyPage() {
 						<p className="text-foreground">
 							Email:{" "}
 							<a
-								href="mailto:privacy@supersetlabs.com"
+								href="mailto:privacy@superset.sh"
 								className="text-primary hover:text-primary/80 underline underline-offset-2"
 							>
-								privacy@supersetlabs.com
+								privacy@superset.sh
 							</a>
 						</p>
 					</section>
