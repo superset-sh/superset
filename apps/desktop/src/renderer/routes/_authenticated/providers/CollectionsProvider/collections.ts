@@ -1,5 +1,6 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	SelectCloudWorkspace,
 	SelectMember,
 	SelectOrganization,
 	SelectRepository,
@@ -18,21 +19,8 @@ import superjson from "superjson";
 const columnMapper = snakeCamelMapper();
 const electricUrl = `${env.NEXT_PUBLIC_API_URL}/api/electric/v1/shape`;
 
-interface OrgCollections {
-	tasks: Collection<SelectTask>;
-	taskStatuses: Collection<SelectTaskStatus>;
-	repositories: Collection<SelectRepository>;
-	members: Collection<SelectMember>;
-	users: Collection<SelectUser>;
-}
-
-// Per-org collections cache
-const collectionsCache = new Map<string, OrgCollections>();
-
-// Shared organizations collection (same for all orgs)
-let organizationsCollection: Collection<SelectOrganization> | null = null;
-
-function createApiClient(token: string) {
+// Re-export createApiClient for use in mutation hooks
+export function createApiClient(token: string) {
 	return createTRPCProxyClient<AppRouter>({
 		links: [
 			httpBatchLink({
@@ -43,6 +31,23 @@ function createApiClient(token: string) {
 		],
 	});
 }
+
+export type ApiClient = ReturnType<typeof createApiClient>;
+
+interface OrgCollections {
+	tasks: Collection<SelectTask>;
+	taskStatuses: Collection<SelectTaskStatus>;
+	repositories: Collection<SelectRepository>;
+	members: Collection<SelectMember>;
+	users: Collection<SelectUser>;
+	cloudWorkspaces: Collection<SelectCloudWorkspace>;
+}
+
+// Per-org collections cache
+const collectionsCache = new Map<string, OrgCollections>();
+
+// Shared organizations collection (same for all orgs)
+let organizationsCollection: Collection<SelectOrganization> | null = null;
 
 function createOrgCollections(
 	organizationId: string,
@@ -159,7 +164,43 @@ function createOrgCollections(
 		}),
 	);
 
-	return { tasks, taskStatuses, repositories, members, users };
+	const cloudWorkspaces = createCollection(
+		electricCollectionOptions<SelectCloudWorkspace>({
+			id: `cloud_workspaces-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "cloud_workspaces",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+			onInsert: async ({ transaction }) => {
+				const item = transaction.mutations[0].modified;
+				const result = await apiClient.cloudWorkspace.create.mutate(item);
+				return { txid: result.txid };
+			},
+			onUpdate: async ({ transaction }) => {
+				const { original, changes } = transaction.mutations[0];
+				const result = await apiClient.cloudWorkspace.update.mutate({
+					...changes,
+					id: original.id,
+				});
+				return { txid: result.txid };
+			},
+			onDelete: async ({ transaction }) => {
+				const item = transaction.mutations[0].original;
+				const result = await apiClient.cloudWorkspace.delete.mutate({
+					workspaceId: item.id,
+				});
+				return { txid: result.txid };
+			},
+		}),
+	);
+
+	return { tasks, taskStatuses, repositories, members, users, cloudWorkspaces };
 }
 
 function getOrCreateOrganizationsCollection(
