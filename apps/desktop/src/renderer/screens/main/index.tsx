@@ -4,6 +4,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
+import { CloudWorkspaceModal } from "renderer/components/CloudWorkspace";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { SetupConfigModal } from "renderer/components/SetupConfigModal";
 import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
@@ -374,6 +375,7 @@ export function MainScreen() {
 			</AppFrame>
 			<SetupConfigModal />
 			<NewWorkspaceModal />
+			<CloudWorkspaceModal />
 			<WorkspaceInitEffects />
 		</>
 	);

@@ -1,1 +1,5 @@
-export { CollectionsProvider, useCollections } from "./CollectionsProvider";
+export {
+	CollectionsProvider,
+	useApiClient,
+	useCollections,
+} from "./CollectionsProvider";

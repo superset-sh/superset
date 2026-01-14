@@ -26,3 +26,24 @@ export type TaskPriority = z.infer<typeof taskPriorityEnum>;
 export const integrationProviderValues = ["linear"] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
+
+// Cloud workspace status
+export const cloudWorkspaceStatusValues = [
+	"provisioning",
+	"running",
+	"paused",
+	"stopped",
+	"error",
+] as const;
+export const cloudWorkspaceStatusEnum = z.enum(cloudWorkspaceStatusValues);
+export type CloudWorkspaceStatus = z.infer<typeof cloudWorkspaceStatusEnum>;
+
+// Cloud provider type
+export const cloudProviderTypeValues = ["freestyle", "fly"] as const;
+export const cloudProviderTypeEnum = z.enum(cloudProviderTypeValues);
+export type CloudProviderType = z.infer<typeof cloudProviderTypeEnum>;
+
+// Client type for sessions
+export const cloudClientTypeValues = ["desktop", "web"] as const;
+export const cloudClientTypeEnum = z.enum(cloudClientTypeValues);
+export type CloudClientType = z.infer<typeof cloudClientTypeEnum>;

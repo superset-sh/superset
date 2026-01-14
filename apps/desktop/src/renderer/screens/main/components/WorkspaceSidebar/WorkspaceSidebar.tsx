@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { CloudWorkspaceSection } from "./CloudWorkspaceSection";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
@@ -32,6 +33,10 @@ export function WorkspaceSidebar({
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
+				{/* Cloud Workspaces Section */}
+				<CloudWorkspaceSection isCollapsed={isCollapsed} />
+
+				{/* Local Workspaces by Project */}
 				{groups.map((group, index) => (
 					<ProjectSection
 						key={group.project.id}

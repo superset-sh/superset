@@ -4,6 +4,7 @@ import { createAnalyticsRouter } from "./analytics";
 import { createAuthRouter } from "./auth";
 import { createAutoUpdateRouter } from "./auto-update";
 import { createChangesRouter } from "./changes";
+import { createCloudTerminalRouter } from "./cloud-terminal";
 import { createConfigRouter } from "./config";
 import { createExternalRouter } from "./external";
 import { createHotkeysRouter } from "./hotkeys";
@@ -30,6 +31,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		projects: createProjectsRouter(getWindow),
 		workspaces: createWorkspacesRouter(),
 		terminal: createTerminalRouter(),
+		cloudTerminal: createCloudTerminalRouter(),
 		changes: createChangesRouter(),
 		notifications: createNotificationsRouter(),
 		ports: createPortsRouter(),

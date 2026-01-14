@@ -106,6 +106,9 @@ export const workspaces = sqliteTable(
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
+		// Link to cloud workspace (synced via Electric SQL)
+		// When set, this workspace is backed by a cloud VM
+		cloudWorkspaceId: text("cloud_workspace_id"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
@@ -278,3 +281,47 @@ export const tasks = sqliteTable(
 
 export type InsertTask = typeof tasks.$inferInsert;
 export type SelectTask = typeof tasks.$inferSelect;
+
+export type CloudWorkspaceStatus =
+	| "provisioning"
+	| "running"
+	| "paused"
+	| "stopped"
+	| "error";
+export type CloudProviderType = "freestyle" | "fly";
+
+/**
+ * Cloud workspaces table - synced from cloud
+ * Represents remote VMs that can be connected to from the desktop app
+ */
+export const cloudWorkspaces = sqliteTable(
+	"cloud_workspaces",
+	{
+		id: text("id").primaryKey(),
+		organization_id: text("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		repository_id: text("repository_id").notNull(),
+		name: text("name").notNull(),
+		branch: text("branch").notNull(),
+		provider_type: text("provider_type").notNull().$type<CloudProviderType>(),
+		provider_vm_id: text("provider_vm_id"),
+		status: text("status").notNull().$type<CloudWorkspaceStatus>(),
+		status_message: text("status_message"),
+		creator_id: text("creator_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		auto_stop_minutes: integer("auto_stop_minutes").notNull().default(30),
+		last_active_at: text("last_active_at"),
+		created_at: text("created_at").notNull(),
+		updated_at: text("updated_at").notNull(),
+	},
+	(table) => [
+		index("cloud_workspaces_organization_id_idx").on(table.organization_id),
+		index("cloud_workspaces_creator_id_idx").on(table.creator_id),
+		index("cloud_workspaces_status_idx").on(table.status),
+	],
+);
+
+export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
+export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;
