@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { LuExternalLink } from "react-icons/lu";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { MergedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
@@ -38,11 +39,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 		if (!pane) return;
 
 		// Navigate to workspace, then focus the pane
-		localStorage.setItem("lastViewedWorkspaceId", port.workspaceId);
-		navigate({
-			to: "/workspace/$workspaceId",
-			params: { workspaceId: port.workspaceId },
-		});
+		navigateToWorkspace(port.workspaceId, navigate);
 		setActiveTab(port.workspaceId, pane.tabId);
 		setFocusedPane(pane.tabId, port.paneId);
 	};

@@ -13,6 +13,7 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch, LuGitFork, LuLoader } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "../../../constants";
 
 interface BranchSwitcherProps {
@@ -97,11 +98,7 @@ export function BranchSwitcher({
 		// If branch is in use by a worktree, jump to that workspace
 		const worktreeWorkspaceId = inUseWorkspaces[branch];
 		if (worktreeWorkspaceId) {
-			localStorage.setItem("lastViewedWorkspaceId", worktreeWorkspaceId);
-			navigate({
-				to: "/workspace/$workspaceId",
-				params: { workspaceId: worktreeWorkspaceId },
-			});
+			navigateToWorkspace(worktreeWorkspaceId, navigate);
 			setIsOpen(false);
 			return;
 		}

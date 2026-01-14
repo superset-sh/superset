@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 
 type DeleteContext = {
 	previousGrouped: ReturnType<
@@ -47,11 +48,7 @@ export function useDeleteWorkspace(
 
 				if (targetWorkspaceId) {
 					navigatedTo = targetWorkspaceId;
-					localStorage.setItem("lastViewedWorkspaceId", targetWorkspaceId);
-					navigate({
-						to: "/workspace/$workspaceId",
-						params: { workspaceId: targetWorkspaceId },
-					});
+					navigateToWorkspace(targetWorkspaceId, navigate);
 				} else {
 					navigatedTo = "/workspace";
 					navigate({ to: "/workspace" });
@@ -116,11 +113,7 @@ export function useDeleteWorkspace(
 
 			// If we optimistically navigated away, navigate back to the deleted workspace
 			if (context?.wasViewingDeleted) {
-				localStorage.setItem("lastViewedWorkspaceId", variables.id);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId: variables.id },
-				});
+				navigateToWorkspace(variables.id, navigate);
 			}
 
 			await options?.onError?.(_err, variables, context, ...rest);

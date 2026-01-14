@@ -1,5 +1,6 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 
 type CloseContext = {
 	previousGrouped: ReturnType<
@@ -96,11 +97,7 @@ export function useCloseWorkspace(
 				const targetWorkspaceId = prevWorkspaceId ?? nextWorkspaceId;
 
 				if (targetWorkspaceId) {
-					localStorage.setItem("lastViewedWorkspaceId", targetWorkspaceId);
-					navigate({
-						to: "/workspace/$workspaceId",
-						params: { workspaceId: targetWorkspaceId },
-					});
+					navigateToWorkspace(targetWorkspaceId, navigate);
 				} else {
 					// No other workspaces, navigate to workspace index (shows StartView)
 					navigate({ to: "/workspace" });

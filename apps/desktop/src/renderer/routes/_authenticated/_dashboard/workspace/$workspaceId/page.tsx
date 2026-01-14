@@ -2,6 +2,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
 import { ContentView } from "renderer/screens/main/components/WorkspaceView/ContentView";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
@@ -297,11 +298,7 @@ function WorkspacePage() {
 		() => {
 			const prevWorkspaceId = getPreviousWorkspace.data;
 			if (prevWorkspaceId) {
-				localStorage.setItem("lastViewedWorkspaceId", prevWorkspaceId);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId: prevWorkspaceId },
-				});
+				navigateToWorkspace(prevWorkspaceId, navigate);
 			}
 		},
 		undefined,
@@ -318,11 +315,7 @@ function WorkspacePage() {
 		() => {
 			const nextWorkspaceId = getNextWorkspace.data;
 			if (nextWorkspaceId) {
-				localStorage.setItem("lastViewedWorkspaceId", nextWorkspaceId);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId: nextWorkspaceId },
-				});
+				navigateToWorkspace(nextWorkspaceId, navigate);
 			}
 		},
 		undefined,

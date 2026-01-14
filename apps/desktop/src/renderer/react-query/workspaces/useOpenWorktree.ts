@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 
@@ -63,11 +64,7 @@ export function useOpenWorktree(
 			}
 
 			// Navigate to the opened workspace
-			localStorage.setItem("lastViewedWorkspaceId", data.workspace.id);
-			navigate({
-				to: "/workspace/$workspaceId",
-				params: { workspaceId: data.workspace.id },
-			});
+			navigateToWorkspace(data.workspace.id, navigate);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);

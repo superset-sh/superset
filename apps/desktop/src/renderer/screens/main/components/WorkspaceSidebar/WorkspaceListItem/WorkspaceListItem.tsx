@@ -25,6 +25,7 @@ import {
 	useReorderWorkspaces,
 	useWorkspaceDeleteHandler,
 } from "renderer/react-query/workspaces";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
@@ -138,11 +139,7 @@ export function WorkspaceListItem({
 	const handleClick = () => {
 		if (!rename.isRenaming) {
 			clearWorkspaceAttentionStatus(id);
-			localStorage.setItem("lastViewedWorkspaceId", id);
-			navigate({
-				to: "/workspace/$workspaceId",
-				params: { workspaceId: id },
-			});
+			navigateToWorkspace(id, navigate);
 		}
 	};
 

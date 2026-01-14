@@ -8,7 +8,7 @@ import {
 	workspaces,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, inArray, isNotNull, isNull, not } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, not } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
 import { track } from "main/lib/analytics";
@@ -29,7 +29,6 @@ import {
 	getDefaultBranch,
 	getGitRoot,
 	refreshDefaultBranch,
-	safeCheckoutBranch,
 } from "../workspaces/utils/git";
 import { getDefaultProjectColor } from "./utils/colors";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";

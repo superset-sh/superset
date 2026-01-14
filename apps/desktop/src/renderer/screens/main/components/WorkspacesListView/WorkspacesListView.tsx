@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuSearch, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { FilterMode, ProjectGroup, WorkspaceItem } from "./types";
 import { WorkspaceRow } from "./WorkspaceRow";
 
@@ -37,11 +38,7 @@ export function WorkspacesListView() {
 			utils.workspaces.getAllGrouped.invalidate();
 			// Navigate to the newly opened workspace
 			if (data.workspace?.id) {
-				localStorage.setItem("lastViewedWorkspaceId", data.workspace.id);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId: data.workspace.id },
-				});
+				navigateToWorkspace(data.workspace.id, navigate);
 			}
 		},
 		onError: (error) => {
@@ -166,11 +163,7 @@ export function WorkspacesListView() {
 
 	const handleSwitch = (item: WorkspaceItem) => {
 		if (item.workspaceId) {
-			localStorage.setItem("lastViewedWorkspaceId", item.workspaceId);
-			navigate({
-				to: "/workspace/$workspaceId",
-				params: { workspaceId: item.workspaceId },
-			});
+			navigateToWorkspace(item.workspaceId, navigate);
 		}
 	};
 

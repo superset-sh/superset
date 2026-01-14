@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { MergedWorkspaceGroup } from "../../hooks/usePortsData";
 import { MergedPortBadge } from "../MergedPortBadge";
 
@@ -10,11 +11,7 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 	const navigate = useNavigate();
 
 	const handleWorkspaceClick = () => {
-		localStorage.setItem("lastViewedWorkspaceId", group.workspaceId);
-		navigate({
-			to: "/workspace/$workspaceId",
-			params: { workspaceId: group.workspaceId },
-		});
+		navigateToWorkspace(group.workspaceId, navigate);
 	};
 
 	return (

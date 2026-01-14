@@ -39,8 +39,8 @@ export function CloseProjectDialog({
 						<div className="text-muted-foreground space-y-1.5">
 							<span className="block">
 								This will close {workspaceCount} workspace
-								{workspaceCount !== 1 ? "s" : ""} and kill all active terminals in
-								this project.
+								{workspaceCount !== 1 ? "s" : ""} and kill all active terminals
+								in this project.
 							</span>
 							<span className="block">
 								Your files and git history will remain on disk.

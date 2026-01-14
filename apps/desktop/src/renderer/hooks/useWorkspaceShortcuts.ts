@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
 /**
@@ -20,11 +21,7 @@ export function useWorkspaceShortcuts() {
 		(index: number) => {
 			const workspace = allWorkspaces[index];
 			if (workspace) {
-				localStorage.setItem("lastViewedWorkspaceId", workspace.id);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId: workspace.id },
-				});
+				navigateToWorkspace(workspace.id, navigate);
 			}
 		},
 		[allWorkspaces, navigate],

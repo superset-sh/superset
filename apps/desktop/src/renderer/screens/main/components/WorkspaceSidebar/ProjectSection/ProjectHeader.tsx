@@ -17,12 +17,13 @@ import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
 	PROJECT_COLOR_DEFAULT,
 	PROJECT_COLORS,
 } from "shared/constants/project-colors";
-import { CloseProjectDialog } from "./CloseProjectDialog";
 import { STROKE_WIDTH } from "../constants";
+import { CloseProjectDialog } from "./CloseProjectDialog";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
 interface ProjectHeaderProps {
@@ -88,11 +89,7 @@ export function ProjectHeader({
 					.find((w) => w.projectId !== id);
 
 				if (otherWorkspace) {
-					localStorage.setItem("lastViewedWorkspaceId", otherWorkspace.id);
-					navigate({
-						to: "/workspace/$workspaceId",
-						params: { workspaceId: otherWorkspace.id },
-					});
+					navigateToWorkspace(otherWorkspace.id, navigate);
 				} else {
 					// No other workspaces exist - go to workspace index
 					navigate({ to: "/workspace" });
@@ -175,33 +172,134 @@ export function ProjectHeader({
 		return (
 			<>
 				<ContextMenu>
-				<Tooltip delayDuration={300}>
-					<ContextMenuTrigger asChild>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={onToggleCollapse}
+					<Tooltip delayDuration={300}>
+						<ContextMenuTrigger asChild>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={onToggleCollapse}
+									className={cn(
+										"flex items-center justify-center size-8 rounded-md",
+										"hover:bg-muted/50 transition-colors",
+									)}
+								>
+									<ProjectThumbnail
+										projectId={projectId}
+										projectName={projectName}
+										projectColor={projectColor}
+										githubOwner={githubOwner}
+									/>
+								</button>
+							</TooltipTrigger>
+						</ContextMenuTrigger>
+						<TooltipContent side="right" className="flex flex-col gap-0.5">
+							<span className="font-medium">{projectName}</span>
+							<span className="text-xs text-muted-foreground">
+								{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
+							</span>
+						</TooltipContent>
+					</Tooltip>
+					<ContextMenuContent>
+						<ContextMenuItem onSelect={handleOpenInFinder}>
+							<LuFolderOpen
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
+							Open in Finder
+						</ContextMenuItem>
+						<ContextMenuItem onSelect={handleOpenSettings}>
+							<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							Project Settings
+						</ContextMenuItem>
+						{colorPickerSubmenu}
+						<ContextMenuSeparator />
+						<ContextMenuItem
+							onSelect={handleCloseProject}
+							disabled={closeProject.isPending}
+							className="text-destructive focus:text-destructive"
+						>
+							<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							{closeProject.isPending ? "Closing..." : "Close Project"}
+						</ContextMenuItem>
+					</ContextMenuContent>
+				</ContextMenu>
+
+				<CloseProjectDialog
+					projectName={projectName}
+					workspaceCount={workspaceCount}
+					open={isCloseDialogOpen}
+					onOpenChange={setIsCloseDialogOpen}
+					onConfirm={handleConfirmClose}
+				/>
+			</>
+		);
+	}
+
+	return (
+		<>
+			<ContextMenu>
+				<ContextMenuTrigger asChild>
+					<div
+						className={cn(
+							"flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
+							"hover:bg-muted/50 transition-colors",
+						)}
+					>
+						{/* Main clickable area */}
+						<button
+							type="button"
+							onClick={onToggleCollapse}
+							className="flex items-center gap-2 flex-1 min-w-0 py-0.5 text-left cursor-pointer"
+						>
+							<ProjectThumbnail
+								projectId={projectId}
+								projectName={projectName}
+								projectColor={projectColor}
+								githubOwner={githubOwner}
+							/>
+							<span className="truncate">{projectName}</span>
+							<span className="text-xs text-muted-foreground tabular-nums">
+								({workspaceCount})
+							</span>
+						</button>
+
+						{/* Add workspace button */}
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										onNewWorkspace();
+									}}
+									onContextMenu={(e) => e.stopPropagation()}
+									className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+								>
+									<HiMiniPlus className="size-4 text-muted-foreground" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" sideOffset={4}>
+								New workspace
+							</TooltipContent>
+						</Tooltip>
+
+						{/* Collapse chevron */}
+						<button
+							type="button"
+							onClick={onToggleCollapse}
+							onContextMenu={(e) => e.stopPropagation()}
+							aria-expanded={!isCollapsed}
+							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+						>
+							<HiChevronRight
 								className={cn(
-									"flex items-center justify-center size-8 rounded-md",
-									"hover:bg-muted/50 transition-colors",
+									"size-3.5 text-muted-foreground transition-transform duration-150",
+									!isCollapsed && "rotate-90",
 								)}
-							>
-								<ProjectThumbnail
-									projectId={projectId}
-									projectName={projectName}
-									projectColor={projectColor}
-									githubOwner={githubOwner}
-								/>
-							</button>
-						</TooltipTrigger>
-					</ContextMenuTrigger>
-					<TooltipContent side="right" className="flex flex-col gap-0.5">
-						<span className="font-medium">{projectName}</span>
-						<span className="text-xs text-muted-foreground">
-							{workspaceCount} workspace{workspaceCount !== 1 ? "s" : ""}
-						</span>
-					</TooltipContent>
-				</Tooltip>
+							/>
+						</button>
+					</div>
+				</ContextMenuTrigger>
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={handleOpenInFinder}>
 						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
@@ -222,113 +320,15 @@ export function ProjectHeader({
 						{closeProject.isPending ? "Closing..." : "Close Project"}
 					</ContextMenuItem>
 				</ContextMenuContent>
-				</ContextMenu>
+			</ContextMenu>
 
-				<CloseProjectDialog
-					projectName={projectName}
-					workspaceCount={workspaceCount}
-					open={isCloseDialogOpen}
-					onOpenChange={setIsCloseDialogOpen}
-					onConfirm={handleConfirmClose}
-				/>
-			</>
-		);
-	}
-
-	return (
-		<>
-			<ContextMenu>
-				<ContextMenuTrigger asChild>
-				<div
-					className={cn(
-						"flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
-						"hover:bg-muted/50 transition-colors",
-					)}
-				>
-					{/* Main clickable area */}
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						className="flex items-center gap-2 flex-1 min-w-0 py-0.5 text-left cursor-pointer"
-					>
-						<ProjectThumbnail
-							projectId={projectId}
-							projectName={projectName}
-							projectColor={projectColor}
-							githubOwner={githubOwner}
-						/>
-						<span className="truncate">{projectName}</span>
-						<span className="text-xs text-muted-foreground tabular-nums">
-							({workspaceCount})
-						</span>
-					</button>
-
-					{/* Add workspace button */}
-					<Tooltip delayDuration={500}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={(e) => {
-									e.stopPropagation();
-									onNewWorkspace();
-								}}
-								onContextMenu={(e) => e.stopPropagation()}
-								className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-							>
-								<HiMiniPlus className="size-4 text-muted-foreground" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" sideOffset={4}>
-							New workspace
-						</TooltipContent>
-					</Tooltip>
-
-					{/* Collapse chevron */}
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						onContextMenu={(e) => e.stopPropagation()}
-						aria-expanded={!isCollapsed}
-						className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
-					>
-						<HiChevronRight
-							className={cn(
-								"size-3.5 text-muted-foreground transition-transform duration-150",
-								!isCollapsed && "rotate-90",
-							)}
-						/>
-					</button>
-				</div>
-			</ContextMenuTrigger>
-			<ContextMenuContent>
-				<ContextMenuItem onSelect={handleOpenInFinder}>
-					<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Open in Finder
-				</ContextMenuItem>
-				<ContextMenuItem onSelect={handleOpenSettings}>
-					<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					Project Settings
-				</ContextMenuItem>
-				{colorPickerSubmenu}
-				<ContextMenuSeparator />
-				<ContextMenuItem
-					onSelect={handleCloseProject}
-					disabled={closeProject.isPending}
-					className="text-destructive focus:text-destructive"
-				>
-					<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
-					{closeProject.isPending ? "Closing..." : "Close Project"}
-				</ContextMenuItem>
-			</ContextMenuContent>
-		</ContextMenu>
-
-		<CloseProjectDialog
-			projectName={projectName}
-			workspaceCount={workspaceCount}
-			open={isCloseDialogOpen}
-			onOpenChange={setIsCloseDialogOpen}
-			onConfirm={handleConfirmClose}
-		/>
+			<CloseProjectDialog
+				projectName={projectName}
+				workspaceCount={workspaceCount}
+				open={isCloseDialogOpen}
+				onOpenChange={setIsCloseDialogOpen}
+				onConfirm={handleConfirmClose}
+			/>
 		</>
 	);
 }

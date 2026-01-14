@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { debugLog } from "shared/debug";
 import { useTabsStore } from "./store";
@@ -106,11 +107,7 @@ export function useAgentHookListener() {
 				}
 			} else if (event.type === NOTIFICATION_EVENTS.FOCUS_TAB) {
 				// Navigate to the workspace and focus the tab/pane
-				localStorage.setItem("lastViewedWorkspaceId", workspaceId);
-				navigate({
-					to: "/workspace/$workspaceId",
-					params: { workspaceId },
-				});
+				navigateToWorkspace(workspaceId, navigate);
 
 				// Set active tab and focused pane after navigation
 				// (router navigation is async, but state updates are immediate)

@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { trpc } from "renderer/lib/trpc";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
 
@@ -61,11 +62,7 @@ export function useCreateWorkspace(
 			// Navigate to the new workspace immediately
 			// The workspace exists in DB, so it's safe to navigate
 			// Git operations happen in background with progress shown via toast
-			localStorage.setItem("lastViewedWorkspaceId", data.workspace.id);
-			navigate({
-				to: "/workspace/$workspaceId",
-				params: { workspaceId: data.workspace.id },
-			});
+			navigateToWorkspace(data.workspace.id, navigate);
 
 			// Call user's onSuccess if provided
 			await options?.onSuccess?.(data, ...rest);
