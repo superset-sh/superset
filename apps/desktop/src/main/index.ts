@@ -6,14 +6,14 @@ import path from "node:path";
 import { settings } from "@superset/local-db";
 import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
-import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
-import { setupAgentHooks } from "./lib/agent-setup";
-import { posthog } from "./lib/analytics";
-import { initAppState } from "./lib/app-state";
 import {
 	handleAuthCallback,
 	parseAuthDeepLink,
 } from "lib/trpc/routers/auth/utils/auth-functions";
+import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
+import { setupAgentHooks } from "./lib/agent-setup";
+import { posthog } from "./lib/analytics";
+import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
 import { ensureShellEnvVars } from "./lib/shell-env";

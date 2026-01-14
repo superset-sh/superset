@@ -5,7 +5,9 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
  * Handles cache invalidation for worktree-related queries.
  */
 export function useDeleteWorktree(
-	options?: Parameters<typeof electronTrpc.workspaces.deleteWorktree.useMutation>[0],
+	options?: Parameters<
+		typeof electronTrpc.workspaces.deleteWorktree.useMutation
+	>[0],
 ) {
 	const utils = electronTrpc.useUtils();
 

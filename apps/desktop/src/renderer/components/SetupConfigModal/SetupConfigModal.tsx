@@ -31,10 +31,11 @@ export function SetupConfigModal() {
 		{ enabled: !!projectId },
 	);
 
-	const { data: configFilePath } = electronTrpc.config.getConfigFilePath.useQuery(
-		{ projectId: projectId ?? "" },
-		{ enabled: !!projectId },
-	);
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: !!projectId },
+		);
 
 	const projectName = project?.name ?? "your-project";
 

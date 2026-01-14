@@ -30,7 +30,8 @@ import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
 
 export function GroupStrip() {
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 
 	const allTabs = useTabsStore((s) => s.tabs);

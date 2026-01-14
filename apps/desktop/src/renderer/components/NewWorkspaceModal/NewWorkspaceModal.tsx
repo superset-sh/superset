@@ -31,8 +31,8 @@ import debounce from "lodash/debounce";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoGitBranch } from "react-icons/go";
 import { HiCheck, HiChevronDown, HiChevronUpDown } from "react-icons/hi2";
-import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import { useCreateWorkspace } from "renderer/react-query/workspaces";
 import {
 	useCloseNewWorkspaceModal,
@@ -94,8 +94,10 @@ export function NewWorkspaceModal() {
 		debouncedSetTitle(value); // Debounced update for derived state
 	};
 
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
-	const { data: recentProjects = [] } = electronTrpc.projects.getRecents.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
+	const { data: recentProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
 	const {
 		data: branchData,
 		isLoading: isBranchesLoading,

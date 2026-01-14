@@ -2,8 +2,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
-import { formatPathWithProject } from "renderer/lib/formatPath";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { formatPathWithProject } from "renderer/lib/formatPath";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
 import { ActionCard } from "./ActionCard";
@@ -12,7 +12,8 @@ import { InitGitDialog } from "./InitGitDialog";
 import { StartTopBar } from "./StartTopBar";
 
 export function StartView() {
-	const { data: recentProjects = [] } = electronTrpc.projects.getRecents.useQuery();
+	const { data: recentProjects = [] } =
+		electronTrpc.projects.getRecents.useQuery();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();

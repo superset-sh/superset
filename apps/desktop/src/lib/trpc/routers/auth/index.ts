@@ -93,7 +93,8 @@ export const createAuthRouter = () => {
 				} catch (err) {
 					return {
 						success: false,
-						error: err instanceof Error ? err.message : "Failed to open browser",
+						error:
+							err instanceof Error ? err.message : "Failed to open browser",
 					};
 				}
 			}),

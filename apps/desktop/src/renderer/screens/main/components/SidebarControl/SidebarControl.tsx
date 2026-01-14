@@ -25,7 +25,8 @@ export function SidebarControl() {
 	const { isSidebarOpen, toggleSidebar } = useSidebarStore();
 
 	// Get active workspace for file opening
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const workspaceId = activeWorkspace?.id;
 	const worktreePath = activeWorkspace?.worktreePath;
 

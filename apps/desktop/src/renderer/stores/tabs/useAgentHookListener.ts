@@ -34,7 +34,8 @@ import { resolveNotificationTarget } from "./utils/resolve-notification-target";
  */
 export function useAgentHookListener() {
 	const setActiveWorkspace = useSetActiveWorkspace();
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 
 	// Use ref to avoid stale closure in subscription callback
 	const activeWorkspaceRef = useRef(activeWorkspace);

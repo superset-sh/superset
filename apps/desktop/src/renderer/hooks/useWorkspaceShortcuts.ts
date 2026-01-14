@@ -16,8 +16,10 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
  * - Auto-create main workspace for new projects
  */
 export function useWorkspaceShortcuts() {
-	const { data: groups = [] } = electronTrpc.workspaces.getAllGrouped.useQuery();
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id || null;
 	const setActiveWorkspace = useSetActiveWorkspace();
 	const createBranchWorkspace = useCreateBranchWorkspace();

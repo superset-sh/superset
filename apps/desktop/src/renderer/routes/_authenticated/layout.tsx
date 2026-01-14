@@ -1,6 +1,6 @@
-import { authClient } from "renderer/lib/auth-client";
 import { createFileRoute, Navigate, Outlet } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
+import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 import { OrganizationsProvider } from "./providers/OrganizationsProvider";

@@ -4,7 +4,8 @@ import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { ChangesView } from "./ChangesView";
 
 export function Sidebar() {
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const workspaceId = activeWorkspace?.id;
 	const worktreePath = activeWorkspace?.worktreePath;
 

@@ -16,10 +16,11 @@ function ProjectSettingsPage() {
 		id: projectId,
 	});
 
-	const { data: configFilePath } = electronTrpc.config.getConfigFilePath.useQuery(
-		{ projectId },
-		{ enabled: !!projectId },
-	);
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery(
+			{ projectId },
+			{ enabled: !!projectId },
+		);
 
 	if (isLoading) {
 		return (

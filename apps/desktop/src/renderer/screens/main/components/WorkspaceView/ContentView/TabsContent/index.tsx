@@ -12,7 +12,8 @@ import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
 export function TabsContent() {
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const activeWorkspaceId = activeWorkspace?.id;
 	const allTabs = useTabsStore((s) => s.tabs);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);

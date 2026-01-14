@@ -5,7 +5,8 @@ import { WindowControls } from "./WindowControls";
 
 export function TopBar() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 

@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink } from "@trpc/client";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import { getAuthToken } from "renderer/lib/auth-client";
 import { env } from "renderer/env.renderer";
+import { getAuthToken } from "renderer/lib/auth-client";
 import { trpc } from "renderer/lib/trpc";
 import superjson from "superjson";
 

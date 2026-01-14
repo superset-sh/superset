@@ -60,10 +60,11 @@ export function ChangesHeader({
 
 	const { baseBranch, setBaseBranch } = useChangesStore();
 
-	const { data: branchData, isLoading } = electronTrpc.changes.getBranches.useQuery(
-		{ worktreePath },
-		{ enabled: !!worktreePath },
-	);
+	const { data: branchData, isLoading } =
+		electronTrpc.changes.getBranches.useQuery(
+			{ worktreePath },
+			{ enabled: !!worktreePath },
+		);
 
 	const { pr, isLoading: isPRLoading } = usePRStatus({
 		workspaceId,

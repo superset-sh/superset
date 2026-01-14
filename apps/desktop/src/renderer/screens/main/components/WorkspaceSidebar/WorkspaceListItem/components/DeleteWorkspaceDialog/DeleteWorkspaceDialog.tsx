@@ -43,13 +43,14 @@ export function DeleteWorkspaceDialog({
 			},
 		);
 
-	const { data: terminalCountData } = electronTrpc.workspaces.canDelete.useQuery(
-		{ id: workspaceId, skipGitChecks: true },
-		{
-			enabled: open,
-			refetchInterval: open ? 2000 : false,
-		},
-	);
+	const { data: terminalCountData } =
+		electronTrpc.workspaces.canDelete.useQuery(
+			{ id: workspaceId, skipGitChecks: true },
+			{
+				enabled: open,
+				refetchInterval: open ? 2000 : false,
+			},
+		);
 
 	const canDeleteData = gitStatusData
 		? {

@@ -1,4 +1,3 @@
-import { authClient } from "renderer/lib/auth-client";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import {
 	DropdownMenu,
@@ -19,6 +18,7 @@ import {
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
 } from "react-icons/hi2";
+import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 

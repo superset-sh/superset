@@ -13,7 +13,8 @@ export interface MergedWorkspaceGroup {
 }
 
 export function usePortsData() {
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const { data: allWorkspaces } = electronTrpc.workspaces.getAll.useQuery();
 	const ports = usePortsStore((s) => s.ports);
 	const setPorts = usePortsStore((s) => s.setPorts);
@@ -22,7 +23,8 @@ export function usePortsData() {
 
 	const utils = electronTrpc.useUtils();
 
-	const { data: allStaticPortsData } = electronTrpc.ports.getAllStatic.useQuery();
+	const { data: allStaticPortsData } =
+		electronTrpc.ports.getAllStatic.useQuery();
 
 	electronTrpc.ports.subscribeStatic.useSubscription(
 		{ workspaceId: activeWorkspace?.id ?? "" },

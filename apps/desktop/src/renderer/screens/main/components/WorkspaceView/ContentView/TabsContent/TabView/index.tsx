@@ -37,7 +37,8 @@ export function TabView({ tab }: TabViewProps) {
 	const allPanes = useTabsStore((s) => s.panes);
 
 	// Get worktree path for file viewer panes
-	const { data: activeWorkspace } = electronTrpc.workspaces.getActive.useQuery();
+	const { data: activeWorkspace } =
+		electronTrpc.workspaces.getActive.useQuery();
 	const worktreePath = activeWorkspace?.worktreePath ?? "";
 
 	// Get tabs in the same workspace for move targets

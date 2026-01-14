@@ -39,11 +39,12 @@ export function BranchSwitcher({
 			{ enabled: isOpen },
 		);
 
-	const switchBranch = electronTrpc.workspaces.switchBranchWorkspace.useMutation({
-		onSuccess: () => {
-			utils.workspaces.invalidate();
-		},
-	});
+	const switchBranch =
+		electronTrpc.workspaces.switchBranchWorkspace.useMutation({
+			onSuccess: () => {
+				utils.workspaces.invalidate();
+			},
+		});
 
 	// Branches in use by worktrees (branch -> workspaceId)
 	const inUseWorkspaces = useMemo(() => {

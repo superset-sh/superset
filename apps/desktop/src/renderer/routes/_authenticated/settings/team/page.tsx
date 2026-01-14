@@ -1,4 +1,3 @@
-import { authClient } from "renderer/lib/auth-client";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -13,6 +12,7 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute } from "@tanstack/react-router";
+import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { InviteMemberButton } from "./components/InviteMemberButton";
 import { MemberActions } from "./components/MemberActions";

@@ -35,7 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			if (data?.token && data?.expiresAt) {
 				setToken(data.token);
 				setAuthToken(data.token);
-				persistMutation.mutate({ token: data.token, expiresAt: data.expiresAt });
+				persistMutation.mutate({
+					token: data.token,
+					expiresAt: data.expiresAt,
+				});
 			}
 		},
 	});

@@ -1,5 +1,5 @@
-import { authClient } from "renderer/lib/auth-client";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { authClient } from "renderer/lib/auth-client";
 import { useAuthToken } from "renderer/providers/AuthProvider";
 import { getCollections } from "./collections";
 

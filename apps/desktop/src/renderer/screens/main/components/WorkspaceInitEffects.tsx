@@ -37,7 +37,8 @@ export function WorkspaceInitEffects() {
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
 	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast = electronTrpc.config.dismissConfigToast.useMutation();
+	const dismissConfigToast =
+		electronTrpc.config.dismissConfigToast.useMutation();
 	const utils = electronTrpc.useUtils();
 
 	// Helper to create terminal with setup commands
