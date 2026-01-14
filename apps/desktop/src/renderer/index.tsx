@@ -26,11 +26,19 @@ const router = createRouter({
 	},
 });
 
-router.subscribe("onResolved", () => {
+// Track pageviews on navigation
+const unsubscribe = router.subscribe("onResolved", (event) => {
 	posthog.capture("$pageview", {
-		$current_url: window.location.href,
+		$current_url: event.toLocation.pathname,
 	});
 });
+
+// Clean up subscription on HMR
+if (import.meta.hot) {
+	import.meta.hot.dispose(() => {
+		unsubscribe();
+	});
+}
 
 declare module "@tanstack/react-router" {
 	interface Register {
