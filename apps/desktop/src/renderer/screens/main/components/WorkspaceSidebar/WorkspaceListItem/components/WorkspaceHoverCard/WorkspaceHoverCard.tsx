@@ -6,7 +6,7 @@ import {
 	LuLoaderCircle,
 	LuTriangleAlert,
 } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { STROKE_WIDTH } from "../../../constants";
 import { ChecksList } from "./components/ChecksList";
@@ -23,10 +23,11 @@ export function WorkspaceHoverCardContent({
 	workspaceId,
 	workspaceAlias,
 }: WorkspaceHoverCardContentProps) {
-	const { data: worktreeInfo } = trpc.workspaces.getWorktreeInfo.useQuery(
-		{ workspaceId },
-		{ enabled: !!workspaceId },
-	);
+	const { data: worktreeInfo } =
+		electronTrpc.workspaces.getWorktreeInfo.useQuery(
+			{ workspaceId },
+			{ enabled: !!workspaceId },
+		);
 
 	const {
 		pr,

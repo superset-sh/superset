@@ -13,6 +13,7 @@ import type { Collection } from "@tanstack/react-db";
 import { createCollection } from "@tanstack/react-db";
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
+import { getAuthToken } from "renderer/lib/auth-client";
 import superjson from "superjson";
 
 const columnMapper = snakeCamelMapper();
@@ -29,27 +30,45 @@ interface OrgCollections {
 // Per-org collections cache
 const collectionsCache = new Map<string, OrgCollections>();
 
-// Shared organizations collection (same for all orgs)
-let organizationsCollection: Collection<SelectOrganization> | null = null;
+// Singleton API client with dynamic auth headers
+const apiClient = createTRPCProxyClient<AppRouter>({
+	links: [
+		httpBatchLink({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+			headers: () => {
+				const token = getAuthToken();
+				return token ? { Authorization: `Bearer ${token}` } : {};
+			},
+			transformer: superjson,
+		}),
+	],
+});
 
-function createApiClient(token: string) {
-	return createTRPCProxyClient<AppRouter>({
-		links: [
-			httpBatchLink({
-				url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-				headers: { Authorization: `Bearer ${token}` },
-				transformer: superjson,
-			}),
-		],
-	});
-}
+const organizationsCollection = createCollection(
+	electricCollectionOptions<SelectOrganization>({
+		id: "organizations",
+		shapeOptions: {
+			url: electricUrl,
+			params: { table: "auth.organizations" },
+			headers: {
+				Authorization: () => {
+					const token = getAuthToken();
+					return token ? `Bearer ${token}` : "";
+				},
+			},
+			columnMapper,
+		},
+		getKey: (item) => item.id,
+	}),
+);
 
-function createOrgCollections(
-	organizationId: string,
-	token: string,
-): OrgCollections {
-	const headers = { Authorization: `Bearer ${token}` };
-	const apiClient = createApiClient(token);
+function createOrgCollections(organizationId: string): OrgCollections {
+	const headers = {
+		Authorization: () => {
+			const token = getAuthToken();
+			return token ? `Bearer ${token}` : "";
+		},
+	};
 
 	const tasks = createCollection(
 		electricCollectionOptions<SelectTask>({
@@ -162,41 +181,15 @@ function createOrgCollections(
 	return { tasks, taskStatuses, repositories, members, users };
 }
 
-function getOrCreateOrganizationsCollection(
-	token: string,
-): Collection<SelectOrganization> {
-	if (!organizationsCollection) {
-		organizationsCollection = createCollection(
-			electricCollectionOptions<SelectOrganization>({
-				id: "organizations",
-				shapeOptions: {
-					url: electricUrl,
-					params: { table: "auth.organizations" },
-					headers: { Authorization: `Bearer ${token}` },
-					columnMapper,
-				},
-				getKey: (item) => item.id,
-			}),
-		);
-	}
-	return organizationsCollection;
-}
-
 /**
  * Get collections for an organization, creating them if needed.
  * Collections are cached per org for instant switching.
+ * Auth token is read dynamically via getAuthToken() - no need to pass it.
  */
-export function getCollections(organizationId: string, token: string) {
+export function getCollections(organizationId: string) {
 	// Get or create org-specific collections
 	if (!collectionsCache.has(organizationId)) {
-		console.log(
-			"[collections] Creating new collections for org:",
-			organizationId,
-		);
-		collectionsCache.set(
-			organizationId,
-			createOrgCollections(organizationId, token),
-		);
+		collectionsCache.set(organizationId, createOrgCollections(organizationId));
 	}
 
 	const orgCollections = collectionsCache.get(organizationId);
@@ -204,10 +197,8 @@ export function getCollections(organizationId: string, token: string) {
 		throw new Error(`Collections not found for org: ${organizationId}`);
 	}
 
-	const organizations = getOrCreateOrganizationsCollection(token);
-
 	return {
 		...orgCollections,
-		organizations,
+		organizations: organizationsCollection,
 	};
 }

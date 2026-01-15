@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -9,12 +8,13 @@ import {
 } from "@superset/ui/dialog";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
 import { OpenInButton } from "renderer/components/OpenInButton";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useCloseConfigModal,
 	useConfigModalOpen,
 	useConfigModalProjectId,
 } from "renderer/stores/config-modal";
+import { EXTERNAL_LINKS } from "shared/constants";
 
 const CONFIG_TEMPLATE = `{
   "setup": [],
@@ -26,20 +26,21 @@ export function SetupConfigModal() {
 	const projectId = useConfigModalProjectId();
 	const closeModal = useCloseConfigModal();
 
-	const { data: project } = trpc.projects.get.useQuery(
+	const { data: project } = electronTrpc.projects.get.useQuery(
 		{ id: projectId ?? "" },
 		{ enabled: !!projectId },
 	);
 
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery(
-		{ projectId: projectId ?? "" },
-		{ enabled: !!projectId },
-	);
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: !!projectId },
+		);
 
 	const projectName = project?.name ?? "your-project";
 
 	const handleLearnMore = () => {
-		window.open(COMPANY.SCRIPTS_URL, "_blank");
+		window.open(EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS, "_blank");
 	};
 
 	return (

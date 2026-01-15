@@ -30,6 +30,16 @@ const config: NextConfig = {
 		];
 	},
 
+	async redirects() {
+		return [
+			{
+				source: "/docs/:path*",
+				destination: "https://docs.superset.sh/:path*",
+				permanent: true,
+			},
+		];
+	},
+
 	skipTrailingSlashRedirect: true,
 };
 

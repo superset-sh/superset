@@ -344,10 +344,10 @@ export default function TermsOfServicePage() {
 						<p className="text-foreground">
 							Email:{" "}
 							<a
-								href="mailto:legal@supersetlabs.com"
+								href="mailto:legal@superset.sh"
 								className="text-primary hover:text-primary/80 underline underline-offset-2"
 							>
-								legal@supersetlabs.com
+								legal@superset.sh
 							</a>
 						</p>
 					</section>

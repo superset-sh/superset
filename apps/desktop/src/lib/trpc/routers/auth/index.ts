@@ -1,62 +1,94 @@
+import crypto from "node:crypto";
+import fs from "node:fs/promises";
 import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { observable } from "@trpc/server/observable";
-import { type AuthSession, authService } from "main/lib/auth";
+import { shell } from "electron";
+import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-
-/** Auth state emitted by onAuthState subscription */
-export type AuthState = (AuthSession & { token: string | null }) | null;
+import {
+	authEvents,
+	loadToken,
+	saveToken,
+	stateStore,
+	TOKEN_FILE,
+} from "./utils/auth-functions";
 
 export const createAuthRouter = () => {
 	return router({
-		onAuthState: publicProcedure.subscription(() => {
-			return observable<AuthState>((emit) => {
-				const emitCurrent = () => {
-					const sessionData = authService.getSession();
-					const token = authService.getAccessToken();
+		getStoredToken: publicProcedure.query(async () => {
+			return await loadToken();
+		}),
 
-					if (!sessionData) {
-						emit.next(null);
-						return;
+		persistToken: publicProcedure
+			.input(
+				z.object({
+					token: z.string(),
+					expiresAt: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				await saveToken(input);
+				return { success: true };
+			}),
+
+		onTokenChanged: publicProcedure.subscription(() => {
+			return observable<{ token: string; expiresAt: string } | null>((emit) => {
+				loadToken().then((initial) => {
+					if (initial.token && initial.expiresAt) {
+						emit.next({ token: initial.token, expiresAt: initial.expiresAt });
 					}
+				});
 
-					emit.next({ ...sessionData, token });
+				const handler = (data: { token: string; expiresAt: string }) => {
+					emit.next(data);
 				};
 
-				emitCurrent();
-
-				const sessionHandler = () => {
-					emitCurrent();
-				};
-				const stateHandler = () => {
-					emitCurrent();
-				};
-
-				authService.on("session-changed", sessionHandler);
-				authService.on("state-changed", stateHandler);
+				authEvents.on("token-saved", handler);
 
 				return () => {
-					authService.off("session-changed", sessionHandler);
-					authService.off("state-changed", stateHandler);
+					authEvents.off("token-saved", handler);
 				};
 			});
 		}),
 
-		setActiveOrganization: publicProcedure
-			.input(z.object({ organizationId: z.string() }))
-			.mutation(async ({ input }) => {
-				await authService.setActiveOrganization(input.organizationId);
-				return { success: true };
-			}),
-
+		/**
+		 * Start OAuth sign-in flow.
+		 * Opens browser for OAuth, token delivered via deep link callback.
+		 */
 		signIn: publicProcedure
 			.input(z.object({ provider: z.enum(AUTH_PROVIDERS) }))
 			.mutation(async ({ input }) => {
-				return authService.signIn(input.provider);
+				try {
+					const state = crypto.randomBytes(32).toString("base64url");
+					stateStore.set(state, Date.now());
+
+					// Clean up old states (older than 10 minutes)
+					const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+					for (const [s, ts] of stateStore) {
+						if (ts < tenMinutesAgo) stateStore.delete(s);
+					}
+
+					const connectUrl = new URL(
+						`${env.NEXT_PUBLIC_API_URL}/api/auth/desktop/connect`,
+					);
+					connectUrl.searchParams.set("provider", input.provider);
+					connectUrl.searchParams.set("state", state);
+					await shell.openExternal(connectUrl.toString());
+					return { success: true };
+				} catch (err) {
+					return {
+						success: false,
+						error:
+							err instanceof Error ? err.message : "Failed to open browser",
+					};
+				}
 			}),
 
 		signOut: publicProcedure.mutation(async () => {
-			await authService.signOut();
+			try {
+				await fs.unlink(TOKEN_FILE);
+			} catch {}
 			return { success: true };
 		}),
 	});

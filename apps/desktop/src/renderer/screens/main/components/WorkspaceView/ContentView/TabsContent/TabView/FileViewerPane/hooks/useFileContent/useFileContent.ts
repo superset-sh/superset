@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 
 interface UseFileContentParams {
@@ -25,14 +25,14 @@ export function useFileContent({
 	originalContentRef,
 	originalDiffContentRef,
 }: UseFileContentParams) {
-	const { data: branchData } = trpc.changes.getBranches.useQuery(
+	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath },
 		{ enabled: !!worktreePath && diffCategory === "against-base" },
 	);
 	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
 
 	const { data: rawFileData, isLoading: isLoadingRaw } =
-		trpc.changes.readWorkingFile.useQuery(
+		electronTrpc.changes.readWorkingFile.useQuery(
 			{ worktreePath, filePath },
 			{
 				enabled: viewMode !== "diff" && !!filePath && !!worktreePath,
@@ -40,7 +40,7 @@ export function useFileContent({
 		);
 
 	const { data: diffData, isLoading: isLoadingDiff } =
-		trpc.changes.getFileContents.useQuery(
+		electronTrpc.changes.getFileContents.useQuery(
 			{
 				worktreePath,
 				filePath,

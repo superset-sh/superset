@@ -1,19 +1,19 @@
 import { useParams } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { ChangesView } from "./ChangesView";
 
 export function Sidebar() {
 	const { workspaceId } = useParams({ strict: false });
-	const { data: workspace } = trpc.workspaces.get.useQuery(
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);
 	const worktreePath = workspace?.worktreePath;
 
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const trpcUtils = trpc.useUtils();
+	const trpcUtils = electronTrpc.useUtils();
 
 	// Invalidate file content queries to ensure fresh data when clicking a file
 	const invalidateFileContent = (filePath: string) => {

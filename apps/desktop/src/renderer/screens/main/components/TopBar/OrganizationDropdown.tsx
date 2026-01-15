@@ -1,0 +1,203 @@
+import { COMPANY } from "@superset/shared/constants";
+import { Avatar } from "@superset/ui/atoms/Avatar";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useNavigate } from "@tanstack/react-router";
+import { FaDiscord, FaXTwitter } from "react-icons/fa6";
+import {
+	HiCheck,
+	HiChevronUpDown,
+	HiOutlineArrowRightOnRectangle,
+	HiOutlineBugAnt,
+	HiOutlineCog6Tooth,
+	HiOutlineEnvelope,
+	HiOutlineUserGroup,
+} from "react-icons/hi2";
+import { LuKeyboard, LuLifeBuoy } from "react-icons/lu";
+import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHotkeyText } from "renderer/stores/hotkeys";
+
+export function OrganizationDropdown() {
+	const { data: session } = authClient.useSession();
+	const collections = useCollections();
+	const signOutMutation = electronTrpc.auth.signOut.useMutation();
+	const navigate = useNavigate();
+	const shortcutsHotkey = useHotkeyText("SHOW_HOTKEYS");
+	const showShortcut = shortcutsHotkey !== "Unassigned";
+
+	const activeOrganizationId = session?.session?.activeOrganizationId;
+
+	const { data: organizations } = useLiveQuery(
+		(q) => q.from({ organizations: collections.organizations }),
+		[collections],
+	);
+
+	const activeOrganization = organizations?.find(
+		(o) => o.id === activeOrganizationId,
+	);
+
+	const userEmail = session?.user?.email;
+
+	const switchOrganization = async (newOrgId: string) => {
+		await authClient.organization.setActive({
+			organizationId: newOrgId,
+		});
+	};
+
+	const handleSignOut = async () => {
+		await authClient.signOut();
+		signOutMutation.mutate();
+	};
+
+	const handleKeyboardShortcuts = () => {
+		navigate({ to: "/settings/keyboard" });
+	};
+
+	const handleContactUs = () => {
+		window.open(COMPANY.MAIL_TO, "_blank");
+	};
+
+	const handleReportIssue = () => {
+		window.open(COMPANY.REPORT_ISSUE_URL, "_blank");
+	};
+
+	const handleJoinDiscord = () => {
+		window.open(COMPANY.DISCORD_URL, "_blank");
+	};
+
+	const handleTwitter = () => {
+		window.open(COMPANY.X_URL, "_blank");
+	};
+
+	const userName = session?.user?.name;
+	const displayName = activeOrganization?.name ?? userName ?? "Organization";
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<button
+					type="button"
+					className="no-drag flex items-center gap-1.5 h-6 px-1.5 rounded border border-border/60 bg-secondary/50 hover:bg-secondary hover:border-border transition-all duration-150 ease-out focus:outline-none focus:ring-1 focus:ring-ring"
+					aria-label="Organization menu"
+				>
+					<Avatar
+						size="xs"
+						fullName={activeOrganization?.name}
+						image={activeOrganization?.logo}
+						className="rounded size-4"
+					/>
+					<span className="text-xs font-medium truncate max-w-32">
+						{displayName}
+					</span>
+					<HiChevronUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+				</button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-56">
+				{/* Settings and team management - always shown for logged in users */}
+				<DropdownMenuItem
+					onSelect={() => navigate({ to: "/settings/account" })}
+				>
+					<HiOutlineCog6Tooth className="h-4 w-4" />
+					<span>Settings</span>
+				</DropdownMenuItem>
+
+				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/team" })}>
+					<HiOutlineUserGroup className="h-4 w-4" />
+					<span>Organization</span>
+				</DropdownMenuItem>
+
+				<DropdownMenuSeparator />
+
+				{/* Org switcher - only show if user has multiple orgs */}
+				{organizations && organizations.length > 1 && (
+					<>
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger className="gap-2">
+								<span>Switch organization</span>
+							</DropdownMenuSubTrigger>
+							<DropdownMenuSubContent>
+								{userEmail && (
+									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
+										{userEmail}
+									</DropdownMenuLabel>
+								)}
+								{organizations.map((organization) => (
+									<DropdownMenuItem
+										key={organization.id}
+										onSelect={() => switchOrganization(organization.id)}
+										className="gap-2"
+									>
+										<Avatar
+											size="xs"
+											fullName={organization.name}
+											image={organization.logo}
+											className="rounded-md"
+										/>
+										<span className="flex-1 truncate">{organization.name}</span>
+										{organization.id === activeOrganization?.id && (
+											<HiCheck className="h-4 w-4 text-primary" />
+										)}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuSubContent>
+						</DropdownMenuSub>
+						<DropdownMenuSeparator />
+					</>
+				)}
+
+				{/* Support section */}
+				<DropdownMenuItem onClick={handleReportIssue}>
+					<HiOutlineBugAnt className="h-4 w-4" />
+					Report Issue
+				</DropdownMenuItem>
+				<DropdownMenuItem onClick={handleKeyboardShortcuts}>
+					<LuKeyboard className="h-4 w-4" />
+					Keyboard Shortcuts
+					{showShortcut && (
+						<DropdownMenuShortcut>{shortcutsHotkey}</DropdownMenuShortcut>
+					)}
+				</DropdownMenuItem>
+				<DropdownMenuSub>
+					<DropdownMenuSubTrigger>
+						<LuLifeBuoy className="h-4 w-4" />
+						Contact Us
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent sideOffset={8} className="w-56">
+						<DropdownMenuItem onClick={handleJoinDiscord}>
+							<FaDiscord className="h-4 w-4" />
+							Discord
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleTwitter}>
+							<FaXTwitter className="h-4 w-4" />X
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={handleContactUs}>
+							<HiOutlineEnvelope className="h-4 w-4" />
+							Email Founders
+						</DropdownMenuItem>
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+
+				<DropdownMenuSeparator />
+
+				{/* Sign out - ALWAYS show so users can never get trapped */}
+				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
+					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
+					<span>Log out</span>
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}

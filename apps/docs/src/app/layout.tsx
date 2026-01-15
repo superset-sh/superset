@@ -1,49 +1,16 @@
-import { Banner } from "nextra/components";
-import { getPageMap } from "nextra/page-map";
-import { Footer, Layout, Navbar } from "nextra-theme-docs";
-import type * as React from "react";
-import "nextra-theme-docs/style.css";
+import { RootProvider } from "fumadocs-ui/provider/next";
+import "./global.css";
+import { Inter } from "next/font/google";
 
-import { Providers } from "./providers";
+const inter = Inter({
+	subsets: ["latin"],
+});
 
-export const metadata = {
-	title: "Superset Docs",
-	description: "Superset Documentation",
-};
-
-const banner = (
-	<Banner storageKey="superset-docs-banner">
-		Welcome to Superset Documentation
-	</Banner>
-);
-
-const navbar = <Navbar logo={<strong>Superset</strong>} />;
-
-const footer = (
-	<Footer>
-		<p>© {new Date().getFullYear()} Superset. All rights reserved.</p>
-	</Footer>
-);
-
-export default async function DocsLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export default function Layout({ children }: LayoutProps<"/">) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body>
-				<Providers>
-					<Layout
-						banner={banner}
-						navbar={navbar}
-						pageMap={await getPageMap()}
-						docsRepositoryBase="https://github.com/yourusername/superset"
-						footer={footer}
-					>
-						{children}
-					</Layout>
-				</Providers>
+		<html lang="en" className={inter.className} suppressHydrationWarning>
+			<body className="flex flex-col min-h-screen">
+				<RootProvider>{children}</RootProvider>
 			</body>
 		</html>
 	);

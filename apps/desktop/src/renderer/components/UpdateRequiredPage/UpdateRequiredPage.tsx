@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 import { HiArrowPath, HiExclamationTriangle } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AppFrame } from "renderer/screens/main/components/AppFrame";
 import { Background } from "renderer/screens/main/components/Background";
 import {
@@ -21,9 +21,9 @@ export function UpdateRequiredPage({
 	minimumVersion,
 	message,
 }: UpdateRequiredPageProps) {
-	const openUrl = trpc.external.openUrl.useMutation();
-	const checkMutation = trpc.autoUpdate.check.useMutation();
-	const installMutation = trpc.autoUpdate.install.useMutation();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const checkMutation = electronTrpc.autoUpdate.check.useMutation();
+	const installMutation = electronTrpc.autoUpdate.install.useMutation();
 
 	// Track update status via subscription for real-time updates
 	const [updateStatus, setUpdateStatus] = useState<{
@@ -32,7 +32,7 @@ export function UpdateRequiredPage({
 	}>({ status: AUTO_UPDATE_STATUS.IDLE });
 
 	// Subscribe to auto-update status changes
-	trpc.autoUpdate.subscribe.useSubscription(undefined, {
+	electronTrpc.autoUpdate.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			setUpdateStatus({ status: event.status, error: event.error });
 		},

@@ -1,0 +1,14 @@
+{
+	"title": "Documentation",
+	"pages": [
+		"---Get Started---",
+		"quick-start",
+		"overview",
+		"installation",
+		"---Core Features---",
+		"core-features",
+		"---How to Guides---",
+		"guides",
+		"setup-teardown-scripts"
+	]
+}

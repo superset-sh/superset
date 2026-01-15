@@ -14,7 +14,6 @@ import {
 import { useWorkspaceSidebarStore } from "renderer/stores";
 import { STROKE_WIDTH, STROKE_WIDTH_THIN } from "../constants";
 import { NewWorkspaceButton } from "./NewWorkspaceButton";
-import { OrganizationDropdown } from "./OrganizationDropdown";
 
 interface WorkspaceSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -85,8 +84,6 @@ export function WorkspaceSidebarHeader({
 					<TooltipContent side="right">Toggle sidebar</TooltipContent>
 				</Tooltip>
 
-				<OrganizationDropdown isCollapsed />
-
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
@@ -156,8 +153,6 @@ export function WorkspaceSidebarHeader({
 				</TooltipTrigger>
 				<TooltipContent side="right">Toggle sidebar</TooltipContent>
 			</Tooltip>
-
-			<OrganizationDropdown />
 
 			<button
 				type="button"

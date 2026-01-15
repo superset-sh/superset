@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { HiMiniXMark } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS, RELEASES_URL } from "shared/auto-update";
 
 interface UpdateToastProps {
@@ -17,9 +17,9 @@ export function UpdateToast({
 	version,
 	error,
 }: UpdateToastProps) {
-	const openUrl = trpc.external.openUrl.useMutation();
-	const installMutation = trpc.autoUpdate.install.useMutation();
-	const dismissMutation = trpc.autoUpdate.dismiss.useMutation({
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const installMutation = electronTrpc.autoUpdate.install.useMutation();
+	const dismissMutation = electronTrpc.autoUpdate.dismiss.useMutation({
 		onSuccess: () => {
 			toast.dismiss(toastId);
 		},

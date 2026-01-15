@@ -13,7 +13,7 @@ import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HiMagnifyingGlass } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	captureHotkeyFromEvent,
 	getHotkeyConflict,
@@ -116,8 +116,8 @@ function KeyboardShortcutsPage() {
 	);
 	const hotkeysByCategory = useHotkeysByCategory();
 
-	const exportMutation = trpc.hotkeys.export.useMutation();
-	const importMutation = trpc.hotkeys.import.useMutation();
+	const exportMutation = electronTrpc.hotkeys.export.useMutation();
+	const importMutation = electronTrpc.hotkeys.import.useMutation();
 
 	const showHotkeysDisplay = useHotkeyDisplay("SHOW_HOTKEYS");
 

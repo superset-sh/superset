@@ -2,10 +2,11 @@ import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export function ProjectsSettings() {
-	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const matchRoute = useMatchRoute();
 	const [expandedProjects, setExpandedProjects] = useState<Set<string>>(
 		new Set(),

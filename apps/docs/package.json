@@ -1,34 +1,28 @@
 {
 	"name": "@superset/docs",
-	"version": "0.1.0",
+	"version": "0.0.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
-		"clean": "git clean -xdf .cache .next .turbo node_modules",
+		"build": "fumadocs-mdx && next build",
 		"dev": "next dev --port 3004",
-		"build": "next build --webpack",
 		"start": "next start",
-		"typecheck": "tsc --noEmit"
+		"typecheck": "fumadocs-mdx && next typegen && tsc --noEmit",
+		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
-		"@react-three/drei": "^10.7.6",
-		"@react-three/fiber": "^9.4.0",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/shared": "workspace:*",
-		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
-		"dotenv": "^17.2.3",
-		"framer-motion": "^12.23.26",
-		"geist": "^1.5.1",
-		"import-in-the-middle": "2.0.1",
+		"fumadocs-core": "16.4.7",
+		"fumadocs-mdx": "14.2.5",
+		"fumadocs-ui": "16.4.7",
+		"lucide-react": "^0.560.0",
 		"next": "^16.0.10",
-		"nextra": "^4.6.1",
-		"nextra-theme-blog": "^4.6.1",
-		"nextra-theme-docs": "^4.6.1",
 		"posthog-js": "1.310.1",
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
-		"require-in-the-middle": "8.0.1",
-		"three": "^0.181.2",
+		"tailwind-merge": "^3.4.0",
 		"zod": "^4.1.13"
 	},
 	"devDependencies": {
@@ -38,7 +32,7 @@
 		"@types/node": "^24.9.1",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
-		"@types/three": "^0.181.0",
+		"postcss": "^8.5.6",
 		"tailwindcss": "^4.0.9",
 		"typescript": "^5.9.3"
 	}

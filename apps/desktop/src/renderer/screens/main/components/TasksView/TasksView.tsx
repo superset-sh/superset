@@ -1,4 +1,5 @@
 import { ScrollArea } from "@superset/ui/scroll-area";
+import { Spinner } from "@superset/ui/spinner";
 import { useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { TasksTableView } from "./components/TasksTableView";
@@ -25,7 +26,7 @@ export function TasksView() {
 
 			{isLoading ? (
 				<div className="flex-1 flex items-center justify-center">
-					<div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+					<Spinner className="size-5" />
 				</div>
 			) : table.getRowModel().rows.length === 0 ? (
 				<div className="flex-1 flex items-center justify-center">

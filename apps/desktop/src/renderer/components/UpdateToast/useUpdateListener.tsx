@@ -1,13 +1,13 @@
 import { toast } from "@superset/ui/sonner";
 import { useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { UpdateToast } from "./UpdateToast";
 
 export function useUpdateListener() {
 	const toastIdRef = useRef<string | number | null>(null);
 
-	trpc.autoUpdate.subscribe.useSubscription(undefined, {
+	electronTrpc.autoUpdate.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			const { status, version, error } = event;
 

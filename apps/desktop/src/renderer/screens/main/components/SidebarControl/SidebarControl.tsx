@@ -5,7 +5,7 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { LuGitCompareArrows } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores";
 import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -27,7 +27,7 @@ export function SidebarControl() {
 
 	// Get active workspace for file opening
 	const { workspaceId } = useParams({ strict: false });
-	const { data: workspace } = trpc.workspaces.get.useQuery(
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);
@@ -35,21 +35,21 @@ export function SidebarControl() {
 
 	// Get base branch for changes query
 	const { baseBranch, selectFile } = useChangesStore();
-	const { data: branchData } = trpc.changes.getBranches.useQuery(
+	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath: worktreePath || "" },
 		{ enabled: !!worktreePath && !isSidebarOpen },
 	);
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 
 	// Get changes status - only query when sidebar is closed (we need it to open first file)
-	const { data: status } = trpc.changes.getStatus.useQuery(
+	const { data: status } = electronTrpc.changes.getStatus.useQuery(
 		{ worktreePath: worktreePath || "", defaultBranch: effectiveBaseBranch },
 		{ enabled: !!worktreePath && !isSidebarOpen },
 	);
 
 	// Access tabs store for file opening
 	const addFileViewerPane = useTabsStore((s) => s.addFileViewerPane);
-	const trpcUtils = trpc.useUtils();
+	const trpcUtils = electronTrpc.useUtils();
 
 	const invalidateFileContent = useCallback(
 		(filePath: string) => {

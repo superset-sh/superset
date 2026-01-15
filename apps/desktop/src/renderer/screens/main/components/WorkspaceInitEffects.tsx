@@ -1,6 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenConfigModal } from "renderer/stores/config-modal";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import {
@@ -35,10 +35,11 @@ export function WorkspaceInitEffects() {
 
 	const addTab = useTabsStore((state) => state.addTab);
 	const setTabAutoTitle = useTabsStore((state) => state.setTabAutoTitle);
-	const createOrAttach = trpc.terminal.createOrAttach.useMutation();
+	const createOrAttach = electronTrpc.terminal.createOrAttach.useMutation();
 	const openConfigModal = useOpenConfigModal();
-	const dismissConfigToast = trpc.config.dismissConfigToast.useMutation();
-	const utils = trpc.useUtils();
+	const dismissConfigToast =
+		electronTrpc.config.dismissConfigToast.useMutation();
+	const utils = electronTrpc.useUtils();
 
 	// Helper to create terminal with setup commands
 	const handleTerminalSetup = useCallback(

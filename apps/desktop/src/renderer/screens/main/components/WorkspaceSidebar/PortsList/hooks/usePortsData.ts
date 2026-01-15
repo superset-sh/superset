@@ -1,6 +1,6 @@
 import { toast } from "@superset/ui/sonner";
 import { useEffect, useMemo, useRef } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePortsStore } from "renderer/stores";
 import type { MergedPort } from "shared/types";
 import { mergePorts } from "../utils";
@@ -12,18 +12,19 @@ export interface MergedWorkspaceGroup {
 }
 
 export function usePortsData() {
-	const { data: allWorkspaces } = trpc.workspaces.getAll.useQuery();
+	const { data: allWorkspaces } = electronTrpc.workspaces.getAll.useQuery();
 	const ports = usePortsStore((s) => s.ports);
 	const setPorts = usePortsStore((s) => s.setPorts);
 	const addPort = usePortsStore((s) => s.addPort);
 	const removePort = usePortsStore((s) => s.removePort);
 
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
-	const { data: allStaticPortsData } = trpc.ports.getAllStatic.useQuery();
+	const { data: allStaticPortsData } =
+		electronTrpc.ports.getAllStatic.useQuery();
 
 	// Subscribe to all static port changes
-	trpc.ports.subscribeStatic.useSubscription(
+	electronTrpc.ports.subscribeStatic.useSubscription(
 		{ workspaceId: "" },
 		{
 			onData: () => {
@@ -32,7 +33,7 @@ export function usePortsData() {
 		},
 	);
 
-	const { data: initialPorts } = trpc.ports.getAll.useQuery();
+	const { data: initialPorts } = electronTrpc.ports.getAll.useQuery();
 
 	useEffect(() => {
 		if (initialPorts) {
@@ -40,7 +41,7 @@ export function usePortsData() {
 		}
 	}, [initialPorts, setPorts]);
 
-	trpc.ports.subscribe.useSubscription(undefined, {
+	electronTrpc.ports.subscribe.useSubscription(undefined, {
 		onData: (event) => {
 			if (event.type === "add") {
 				addPort(event.port);

@@ -1,6 +1,6 @@
 import type { HotkeysState } from "shared/hotkeys";
 import { createJSONStorage, type StateStorage } from "zustand/middleware";
-import { trpcClient } from "./trpc-client";
+import { electronTrpcClient } from "./trpc-client";
 
 /**
  * Flag to skip the next hotkeys persist operation.
@@ -54,9 +54,9 @@ function createTrpcStorageAdapter(config: TrpcStorageConfig): StateStorage {
  */
 export const trpcTabsStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
-		get: () => trpcClient.uiState.tabs.get.query(),
+		get: () => electronTrpcClient.uiState.tabs.get.query(),
 		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
-		set: (input) => trpcClient.uiState.tabs.set.mutate(input as any),
+		set: (input) => electronTrpcClient.uiState.tabs.set.mutate(input as any),
 	}),
 );
 
@@ -65,9 +65,9 @@ export const trpcTabsStorage = createJSONStorage(() =>
  */
 export const trpcThemeStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
-		get: () => trpcClient.uiState.theme.get.query(),
+		get: () => electronTrpcClient.uiState.theme.get.query(),
 		// biome-ignore lint/suspicious/noExplicitAny: Zustand persist passes unknown, tRPC expects typed input
-		set: (input) => trpcClient.uiState.theme.set.mutate(input as any),
+		set: (input) => electronTrpcClient.uiState.theme.set.mutate(input as any),
 	}),
 );
 
@@ -77,7 +77,7 @@ export const trpcThemeStorage = createJSONStorage(() =>
 export const trpcHotkeysStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
 		get: async () => {
-			const hotkeysState = await trpcClient.uiState.hotkeys.get.query();
+			const hotkeysState = await electronTrpcClient.uiState.hotkeys.get.query();
 			return { hotkeysState };
 		},
 		set: (input) => {
@@ -87,7 +87,7 @@ export const trpcHotkeysStorage = createJSONStorage(() =>
 				return Promise.resolve();
 			}
 			const state = input as { hotkeysState: HotkeysState };
-			return trpcClient.uiState.hotkeys.set.mutate(state.hotkeysState);
+			return electronTrpcClient.uiState.hotkeys.set.mutate(state.hotkeysState);
 		},
 	}),
 );
@@ -100,12 +100,12 @@ export const trpcRingtoneStorage = createJSONStorage(() =>
 	createTrpcStorageAdapter({
 		get: async () => {
 			const ringtoneId =
-				await trpcClient.settings.getSelectedRingtoneId.query();
+				await electronTrpcClient.settings.getSelectedRingtoneId.query();
 			return { selectedRingtoneId: ringtoneId };
 		},
 		set: async (input) => {
 			const state = input as { selectedRingtoneId: string };
-			await trpcClient.settings.setSelectedRingtoneId.mutate({
+			await electronTrpcClient.settings.setSelectedRingtoneId.mutate({
 				ringtoneId: state.selectedRingtoneId,
 			});
 		},

@@ -1,5 +1,5 @@
 import type { GitHubStatus } from "@superset/local-db";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface UsePRStatusOptions {
 	workspaceId: string | undefined;
@@ -28,7 +28,7 @@ export function usePRStatus({
 		data: githubStatus,
 		isLoading,
 		refetch,
-	} = trpc.workspaces.getGitHubStatus.useQuery(
+	} = electronTrpc.workspaces.getGitHubStatus.useQuery(
 		{ workspaceId: workspaceId ?? "" },
 		{
 			enabled: enabled && !!workspaceId,

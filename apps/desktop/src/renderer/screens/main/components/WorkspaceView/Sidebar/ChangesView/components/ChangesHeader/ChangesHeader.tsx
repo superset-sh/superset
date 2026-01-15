@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
 import { LuLoaderCircle } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
@@ -60,10 +60,11 @@ export function ChangesHeader({
 
 	const { baseBranch, setBaseBranch } = useChangesStore();
 
-	const { data: branchData, isLoading } = trpc.changes.getBranches.useQuery(
-		{ worktreePath },
-		{ enabled: !!worktreePath },
-	);
+	const { data: branchData, isLoading } =
+		electronTrpc.changes.getBranches.useQuery(
+			{ worktreePath },
+			{ enabled: !!worktreePath },
+		);
 
 	const { pr, isLoading: isPRLoading } = usePRStatus({
 		workspaceId,

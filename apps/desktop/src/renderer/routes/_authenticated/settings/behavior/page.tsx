@@ -9,19 +9,19 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export const Route = createFileRoute("/_authenticated/settings/behavior/")({
 	component: BehaviorSettingsPage,
 });
 
 function BehaviorSettingsPage() {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	// Confirm on quit setting
 	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
-		trpc.settings.getConfirmOnQuit.useQuery();
-	const setConfirmOnQuit = trpc.settings.setConfirmOnQuit.useMutation({
+		electronTrpc.settings.getConfirmOnQuit.useQuery();
+	const setConfirmOnQuit = electronTrpc.settings.setConfirmOnQuit.useMutation({
 		onMutate: async ({ enabled }) => {
 			await utils.settings.getConfirmOnQuit.cancel();
 			const previous = utils.settings.getConfirmOnQuit.getData();
@@ -44,10 +44,10 @@ function BehaviorSettingsPage() {
 
 	// Terminal link behavior setting
 	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
-		trpc.settings.getTerminalLinkBehavior.useQuery();
+		electronTrpc.settings.getTerminalLinkBehavior.useQuery();
 
 	const setTerminalLinkBehavior =
-		trpc.settings.setTerminalLinkBehavior.useMutation({
+		electronTrpc.settings.setTerminalLinkBehavior.useMutation({
 			onMutate: async ({ behavior }) => {
 				await utils.settings.getTerminalLinkBehavior.cancel();
 				const previous = utils.settings.getTerminalLinkBehavior.getData();

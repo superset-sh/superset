@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 
@@ -11,7 +11,8 @@ import { useAppHotkey } from "renderer/stores/hotkeys";
  * Handles ⌘1-9 workspace switching shortcuts (global).
  */
 export function useWorkspaceShortcuts() {
-	const { data: groups = [] } = trpc.workspaces.getAllGrouped.useQuery();
+	const { data: groups = [] } =
+		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const navigate = useNavigate();
 
 	// Flatten workspaces for keyboard navigation

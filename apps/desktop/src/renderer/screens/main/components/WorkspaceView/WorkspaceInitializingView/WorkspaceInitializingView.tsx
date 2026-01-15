@@ -11,7 +11,7 @@ import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import { HiExclamationTriangle } from "react-icons/hi2";
 import { LuCheck, LuCircle, LuGitBranch, LuLoader } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useHasWorkspaceFailed,
 	useWorkspaceInitProgress,
@@ -55,9 +55,9 @@ export function WorkspaceInitializingView({
 		setShowInterruptedUI(false);
 	}, [isInterrupted, progress]);
 
-	const retryMutation = trpc.workspaces.retryInit.useMutation();
-	const deleteMutation = trpc.workspaces.delete.useMutation();
-	const utils = trpc.useUtils();
+	const retryMutation = electronTrpc.workspaces.retryInit.useMutation();
+	const deleteMutation = electronTrpc.workspaces.delete.useMutation();
+	const utils = electronTrpc.useUtils();
 
 	const handleRetry = () => {
 		retryMutation.mutate(

@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
 import type { WorkspaceInitProgress } from "shared/types/workspace-init";
@@ -19,16 +19,16 @@ import type { WorkspaceInitProgress } from "shared/types/workspace-init";
  * to survive dialog unmounts. This hook just adds to the global pending store.
  */
 export function useCreateWorkspace(
-	options?: Parameters<typeof trpc.workspaces.create.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.create.useMutation>[0],
 ) {
 	const navigate = useNavigate();
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const addPendingTerminalSetup = useWorkspaceInitStore(
 		(s) => s.addPendingTerminalSetup,
 	);
 	const updateProgress = useWorkspaceInitStore((s) => s.updateProgress);
 
-	return trpc.workspaces.create.useMutation({
+	return electronTrpc.workspaces.create.useMutation({
 		...options,
 		onSuccess: async (data, ...rest) => {
 			// CRITICAL: Set optimistic progress BEFORE invalidation AND navigation

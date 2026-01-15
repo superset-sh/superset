@@ -31,7 +31,7 @@ const GENERAL_SECTIONS: {
 	},
 	{
 		id: "/settings/team",
-		label: "Team",
+		label: "Organization",
 		icon: <HiOutlineUserGroup className="h-4 w-4" />,
 	},
 	{

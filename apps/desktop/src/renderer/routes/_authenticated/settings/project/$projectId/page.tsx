@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { NotFound } from "renderer/routes/not-found";
 
 export const Route = createFileRoute(
@@ -23,12 +23,12 @@ export const Route = createFileRoute(
 				context.queryClient.ensureQueryData({
 					queryKey: projectQueryKey,
 					queryFn: () =>
-						trpcClient.projects.get.query({ id: params.projectId }),
+						electronTrpcClient.projects.get.query({ id: params.projectId }),
 				}),
 				context.queryClient.ensureQueryData({
 					queryKey: configQueryKey,
 					queryFn: () =>
-						trpcClient.config.getConfigFilePath.query({
+						electronTrpcClient.config.getConfigFilePath.query({
 							projectId: params.projectId,
 						}),
 				}),
@@ -46,17 +46,18 @@ export const Route = createFileRoute(
 
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { ConfigFilePreview } from "renderer/components/ConfigFilePreview";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 function ProjectSettingsPage() {
 	const { projectId } = Route.useParams();
-	const { data: project } = trpc.projects.get.useQuery({
+	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
 
-	const { data: configFilePath } = trpc.config.getConfigFilePath.useQuery({
-		projectId,
-	});
+	const { data: configFilePath } =
+		electronTrpc.config.getConfigFilePath.useQuery({
+			projectId,
+		});
 
 	// Project is guaranteed to exist here because loader handles 404s
 	if (!project) {

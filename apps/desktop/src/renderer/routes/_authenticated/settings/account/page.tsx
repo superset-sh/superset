@@ -1,17 +1,19 @@
+import { authClient } from "@superset/auth/client";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 
 export const Route = createFileRoute("/_authenticated/settings/account/")({
 	component: AccountSettingsPage,
 });
 
 function AccountSettingsPage() {
-	const { data: user, isLoading } = trpc.user.me.useQuery();
-	const signOutMutation = trpc.auth.signOut.useMutation({
+	const { data: session, isPending: isLoading } = authClient.useSession();
+	const user = session?.user;
+	const signOutMutation = electronTrpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
 	});
 

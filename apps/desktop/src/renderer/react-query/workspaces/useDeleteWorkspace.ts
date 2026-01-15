@@ -1,15 +1,15 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 
 type DeleteContext = {
 	previousGrouped: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAllGrouped"]["getData"] extends () => infer R
 		? R
 		: never;
 	previousAll: ReturnType<
-		typeof trpc.useUtils
+		typeof electronTrpc.useUtils
 	>["workspaces"]["getAll"]["getData"] extends () => infer R
 		? R
 		: never;
@@ -24,13 +24,13 @@ type DeleteContext = {
  * Navigates back on error to restore the user to the original workspace.
  */
 export function useDeleteWorkspace(
-	options?: Parameters<typeof trpc.workspaces.delete.useMutation>[0],
+	options?: Parameters<typeof electronTrpc.workspaces.delete.useMutation>[0],
 ) {
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 	const navigate = useNavigate();
 	const params = useParams({ strict: false });
 
-	return trpc.workspaces.delete.useMutation({
+	return electronTrpc.workspaces.delete.useMutation({
 		...options,
 		onMutate: async ({ id }) => {
 			// Check if we're viewing the workspace being deleted

@@ -20,7 +20,7 @@ import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuEye, LuEyeOff, LuFolder, LuFolderGit2 } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	useReorderWorkspaces,
 	useWorkspaceDeleteHandler,
@@ -86,17 +86,17 @@ export function WorkspaceListItem({
 	const clearWorkspaceAttentionStatus = useTabsStore(
 		(s) => s.clearWorkspaceAttentionStatus,
 	);
-	const utils = trpc.useUtils();
+	const utils = electronTrpc.useUtils();
 
 	// Derive isActive from route
 	const isActive = !!matchRoute({
 		to: "/workspace/$workspaceId",
 		params: { workspaceId: id },
 	});
-	const openInFinder = trpc.external.openInFinder.useMutation({
+	const openInFinder = electronTrpc.external.openInFinder.useMutation({
 		onError: (error) => toast.error(`Failed to open: ${error.message}`),
 	});
-	const setUnread = trpc.workspaces.setUnread.useMutation({
+	const setUnread = electronTrpc.workspaces.setUnread.useMutation({
 		onSuccess: () => {
 			utils.workspaces.getAllGrouped.invalidate();
 		},
@@ -109,13 +109,14 @@ export function WorkspaceListItem({
 		useWorkspaceDeleteHandler();
 
 	// Lazy-load GitHub status on hover to avoid N+1 queries
-	const { data: githubStatus } = trpc.workspaces.getGitHubStatus.useQuery(
-		{ workspaceId: id },
-		{
-			enabled: hasHovered && type === "worktree",
-			staleTime: GITHUB_STATUS_STALE_TIME,
-		},
-	);
+	const { data: githubStatus } =
+		electronTrpc.workspaces.getGitHubStatus.useQuery(
+			{ workspaceId: id },
+			{
+				enabled: hasHovered && type === "worktree",
+				staleTime: GITHUB_STATUS_STALE_TIME,
+			},
+		);
 
 	// Memoize workspace pane IDs to avoid recalculating on every render
 	const workspacePaneIds = useMemo(() => {

@@ -1,5 +1,5 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { trpcClient } from "renderer/lib/trpc-client";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { NotFound } from "renderer/routes/not-found";
 
 export const Route = createFileRoute(
@@ -17,7 +17,7 @@ export const Route = createFileRoute(
 			await context.queryClient.ensureQueryData({
 				queryKey,
 				queryFn: () =>
-					trpcClient.workspaces.get.query({ id: params.workspaceId }),
+					electronTrpcClient.workspaces.get.query({ id: params.workspaceId }),
 			});
 		} catch (error) {
 			// If workspace not found, throw notFound() to render 404 page
@@ -33,12 +33,12 @@ export const Route = createFileRoute(
 import { Input } from "@superset/ui/input";
 import { HiOutlineFolder, HiOutlinePencilSquare } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
-import { trpc } from "renderer/lib/trpc";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceRename } from "renderer/screens/main/hooks/useWorkspaceRename";
 
 function WorkspaceSettingsPage() {
 	const { workspaceId } = Route.useParams();
-	const { data: workspace } = trpc.workspaces.get.useQuery({
+	const { data: workspace } = electronTrpc.workspaces.get.useQuery({
 		id: workspaceId,
 	});
 
