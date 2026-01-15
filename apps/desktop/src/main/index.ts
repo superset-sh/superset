@@ -16,7 +16,6 @@ import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { ensureShellEnvVars } from "./lib/shell-env";
 import {
 	reconcileDaemonSessions,
 	shutdownOrphanedDaemon,
@@ -249,10 +248,6 @@ if (!gotTheLock) {
 		// Shutdown orphaned daemon if persistence is disabled
 		// (cleans up daemon left from previous session with persistence enabled)
 		await shutdownOrphanedDaemon();
-
-		// Resolve shell environment before setting up agent hooks
-		// This ensures ZDOTDIR and PATH are available for terminal initialization
-		await ensureShellEnvVars();
 
 		try {
 			setupAgentHooks();
