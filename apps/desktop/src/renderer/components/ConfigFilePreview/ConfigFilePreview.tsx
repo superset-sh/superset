@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -29,7 +28,8 @@ export function ConfigFilePreview({
 	);
 
 	const handleLearnMore = () => {
-		window.open(COMPANY.SCRIPTS_URL, "_blank");
+		const docsUrl = `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`;
+		window.open(docsUrl, "_blank");
 	};
 
 	const displayContent =

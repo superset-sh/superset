@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -40,7 +39,8 @@ export function SetupConfigModal() {
 	const projectName = project?.name ?? "your-project";
 
 	const handleLearnMore = () => {
-		window.open(COMPANY.SCRIPTS_URL, "_blank");
+		const docsUrl = `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`;
+		window.open(docsUrl, "_blank");
 	};
 
 	return (

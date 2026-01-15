@@ -20,7 +20,6 @@ export const COMPANY = {
 	MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
-	SCRIPTS_URL: `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`,
 } as const;
 
 // Theme
