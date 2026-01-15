@@ -29,7 +29,10 @@ function TerminalSettingsPage() {
 		electronTrpc.terminal.listDaemonSessions.useQuery();
 	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
 	const sessions = daemonSessions?.sessions ?? [];
-	const aliveSessions = sessions.filter((session) => session.isAlive);
+	const aliveSessions = useMemo(
+		() => sessions.filter((session) => session.isAlive),
+		[sessions],
+	);
 	const sessionsSorted = useMemo(() => {
 		return [...aliveSessions].sort((a, b) => {
 			// Attached sessions first, then newest attach time.
