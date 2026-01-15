@@ -42,6 +42,10 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_WEB_URL,
 				"https://app.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
+				process.env.NEXT_PUBLIC_DOCS_URL,
+				"https://docs.superset.sh",
+			),
 			"process.env.GOOGLE_CLIENT_ID": defineEnv(process.env.GOOGLE_CLIENT_ID),
 			"process.env.GH_CLIENT_ID": defineEnv(process.env.GH_CLIENT_ID),
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
@@ -119,6 +123,10 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_WEB_URL": defineEnv(
 				process.env.NEXT_PUBLIC_WEB_URL,
 				"https://app.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
+				process.env.NEXT_PUBLIC_DOCS_URL,
+				"https://docs.superset.sh",
 			),
 			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(
