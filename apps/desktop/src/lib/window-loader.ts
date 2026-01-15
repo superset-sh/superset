@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { PORTS, PROTOCOL_SCHEME } from "shared/constants";
 import { env } from "shared/env.shared";
@@ -32,8 +31,8 @@ export function registerRoute(props: {
 	} else {
 		// Production: load from custom protocol with hash routing
 		// Origin becomes: superset://app (trusted by Better Auth)
-		// Use path.basename for cross-platform compatibility (Windows uses backslashes)
-		const fileName = path.basename(props.htmlFile) || "index.html";
+		// Split on both forward and back slashes for cross-platform compatibility
+		const fileName = props.htmlFile.split(/[/\\]/).pop() || "index.html";
 		const url = `${PROTOCOL_SCHEME}://app/${fileName}#/`;
 		console.log(`[window-loader] Loading production URL: ${url}`);
 		console.log(`[window-loader] HTML file path: ${props.htmlFile}`);
