@@ -4,7 +4,7 @@ initSentry();
 
 import path from "node:path";
 import { settings } from "@superset/local-db";
-import { app, BrowserWindow, dialog, net, protocol } from "electron";
+import { app, BrowserWindow, dialog } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	handleAuthCallback,
@@ -213,31 +213,6 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
-
-		// Register custom protocol to serve app files in production
-		// This provides a stable origin (superset://app or superset-dev://app) for Better Auth CORS
-		if (process.env.NODE_ENV !== "development") {
-			console.log(
-				`[main] Registering protocol handler for: ${PROTOCOL_SCHEME}`,
-			);
-			console.log(`[main] __dirname: ${__dirname}`);
-			console.log(
-				`[main] Renderer path: ${path.join(__dirname, "../renderer")}`,
-			);
-
-			protocol.handle(PROTOCOL_SCHEME, (request) => {
-				// Parse URL to extract pathname (e.g., superset://app/index.html#/ -> /index.html)
-				const parsedUrl = new URL(request.url);
-				const pathname = parsedUrl.pathname;
-				const filePath = path.normalize(
-					path.join(__dirname, "../renderer", pathname),
-				);
-				console.log(`[protocol] Request: ${request.url}`);
-				console.log(`[protocol] Pathname: ${pathname}`);
-				console.log(`[protocol] Resolved file path: ${filePath}`);
-				return net.fetch(`file://${filePath}`);
-			});
-		}
 
 		await initAppState();
 
