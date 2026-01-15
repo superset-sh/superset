@@ -13,6 +13,7 @@ import { Switch } from "@superset/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
+import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
 
 export const Route = createFileRoute("/_authenticated/settings/terminal/")({
@@ -27,8 +28,9 @@ function TerminalSettingsPage() {
 	const { data: daemonSessions } = trpc.terminal.listDaemonSessions.useQuery();
 	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
 	const sessions = daemonSessions?.sessions ?? [];
+	const aliveSessions = sessions.filter((session) => session.isAlive);
 	const sessionsSorted = useMemo(() => {
-		return [...sessions].sort((a, b) => {
+		return [...aliveSessions].sort((a, b) => {
 			// Attached sessions first, then newest attach time.
 			if (a.attachedClients !== b.attachedClients) {
 				return b.attachedClients - a.attachedClients;
@@ -37,7 +39,7 @@ function TerminalSettingsPage() {
 			const bTime = b.lastAttachedAt ? Date.parse(b.lastAttachedAt) : 0;
 			return bTime - aTime;
 		});
-	}, [sessions]);
+	}, [aliveSessions]);
 
 	const [confirmKillAllOpen, setConfirmKillAllOpen] = useState(false);
 	const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
@@ -212,9 +214,9 @@ function TerminalSettingsPage() {
 						{daemonModeEnabled ? (
 							<>
 								<p className="text-xs text-muted-foreground">
-									Daemon sessions running: {sessions.length}
+									Daemon sessions running: {aliveSessions.length}
 								</p>
-								{sessions.length >= 20 && (
+								{aliveSessions.length >= 20 && (
 									<p className="text-xs text-muted-foreground/70">
 										Large numbers of persistent terminals can increase
 										CPU/memory usage. Consider killing old sessions if you
@@ -250,14 +252,14 @@ function TerminalSettingsPage() {
 						<Button
 							variant="ghost"
 							size="sm"
-							disabled={!daemonModeEnabled || sessions.length === 0}
+							disabled={!daemonModeEnabled || aliveSessions.length === 0}
 							onClick={() => setShowSessionList((v) => !v)}
 						>
 							{showSessionList ? "Hide sessions" : "Show sessions"}
 						</Button>
 					</div>
 
-					{daemonModeEnabled && showSessionList && sessions.length > 0 && (
+					{daemonModeEnabled && showSessionList && aliveSessions.length > 0 && (
 						<div className="rounded-md border border-border/60 overflow-hidden">
 							<div className="max-h-64 overflow-auto">
 								<table className="w-full text-xs">
@@ -359,6 +361,9 @@ function TerminalSettingsPage() {
 							disabled={killAllDaemonSessions.isPending}
 							onClick={() => {
 								setConfirmKillAllOpen(false);
+								sessions.forEach((session) =>
+									markTerminalKilledByUser(session.sessionId),
+								);
 								killAllDaemonSessions.mutate();
 							}}
 						>
@@ -454,6 +459,7 @@ function TerminalSettingsPage() {
 								const sessionId = pendingKillSession?.sessionId;
 								setPendingKillSession(null);
 								if (!sessionId) return;
+								markTerminalKilledByUser(sessionId);
 								killDaemonSession.mutate({ paneId: sessionId });
 							}}
 						>

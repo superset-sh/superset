@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { projects, workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -13,6 +14,9 @@ import { resolveCwd } from "./utils";
 
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 let createOrAttachCallCounter = 0;
+
+const TERMINAL_SESSION_KILLED_MESSAGE = "TERMINAL_SESSION_KILLED";
+const userKilledSessions = new Set<string>();
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -51,6 +55,7 @@ export const createTerminalRouter = () => {
 					cwd: z.string().optional(),
 					initialCommands: z.array(z.string()).optional(),
 					skipColdRestore: z.boolean().optional(),
+					allowKilled: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -65,7 +70,23 @@ export const createTerminalRouter = () => {
 					cwd: cwdOverride,
 					initialCommands,
 					skipColdRestore,
+					allowKilled,
 				} = input;
+
+				if (allowKilled) {
+					userKilledSessions.delete(paneId);
+				} else if (userKilledSessions.has(paneId)) {
+					if (DEBUG_TERMINAL) {
+						console.warn("[Terminal Router] createOrAttach blocked (killed):", {
+							paneId,
+							workspaceId,
+						});
+					}
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: TERMINAL_SESSION_KILLED_MESSAGE,
+					});
+				}
 
 				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
 				const workspace = localDb
@@ -223,6 +244,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				userKilledSessions.add(input.paneId);
 				await terminal.kill(input);
 			}),
 
@@ -273,6 +295,7 @@ export const createTerminalRouter = () => {
 			// Get sessions before kill for accurate count
 			const before = await terminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
+			beforeIds.forEach((id) => userKilledSessions.add(id));
 			console.log(
 				"[killAllDaemonSessions] Before kill:",
 				beforeIds.length,
@@ -333,6 +356,7 @@ export const createTerminalRouter = () => {
 				);
 
 				for (const session of toKill) {
+					userKilledSessions.add(session.sessionId);
 					await terminal.kill({ paneId: session.sessionId });
 				}
 

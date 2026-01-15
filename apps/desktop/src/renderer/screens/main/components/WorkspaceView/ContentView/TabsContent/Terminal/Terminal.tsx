@@ -7,6 +7,10 @@ import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { trpc } from "renderer/lib/trpc";
 import { trpcClient } from "renderer/lib/trpc-client";
+import {
+	clearTerminalKilledByUser,
+	isTerminalKilledByUser,
+} from "renderer/lib/terminal-kill-tracking";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
@@ -108,6 +112,10 @@ export const Terminal = ({
 	const searchAddonRef = useRef<SearchAddon | null>(null);
 	const rendererRef = useRef<TerminalRendererRef | null>(null);
 	const isExitedRef = useRef(false);
+	const [exitStatus, setExitStatus] = useState<"killed" | "exited" | null>(
+		null,
+	);
+	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
 	const commandBufferRef = useRef("");
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -152,6 +160,8 @@ export const Terminal = ({
 	const initialThemeRef = useRef(terminalTheme);
 
 	const isFocused = focusedPaneId === paneId;
+	const isTabVisibleRef = useRef(isTabVisible);
+	isTabVisibleRef.current = isTabVisible;
 
 	// Gate streaming until initial state restoration is applied to avoid interleaving output.
 	const isStreamReadyRef = useRef(false);
@@ -161,6 +171,7 @@ export const Terminal = ({
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
 	const renderDisposableRef = useRef<IDisposable | null>(null);
 	const restoreSequenceRef = useRef(0);
+	const restartTerminalRef = useRef<() => void>(() => {});
 
 	// Track alternate screen mode ourselves (xterm.buffer.active.type is unreliable after HMR/recovery)
 	// Updated from: snapshot.modes.alternateScreen on restore, escape sequences in stream
@@ -361,6 +372,37 @@ export const Terminal = ({
 	const updateModesFromDataRef = useRef(updateModesFromData);
 	updateModesFromDataRef.current = updateModesFromData;
 
+	const handleTerminalExit = useCallback(
+		(exitCode: number, xterm: XTerm) => {
+			isExitedRef.current = true;
+			isStreamReadyRef.current = false;
+
+			const wasKilledByUser = isTerminalKilledByUser(paneId);
+			wasKilledByUserRef.current = wasKilledByUser;
+			setExitStatus(wasKilledByUser ? "killed" : "exited");
+
+			if (wasKilledByUser) {
+				xterm.writeln("\r\n\r\n[Session killed]");
+				xterm.writeln("[Restart to start a new session]");
+			} else {
+				xterm.writeln(`\r\n\r\n[Process exited with code ${exitCode}]`);
+				xterm.writeln("[Press any key to restart]");
+			}
+
+			// Clear transient pane status on terminal exit
+			// "working" and "permission" should clear (agent no longer active)
+			// "review" should persist (user needs to see completed work)
+			const currentPane = useTabsStore.getState().panes[paneId];
+			if (
+				currentPane?.status === "working" ||
+				currentPane?.status === "permission"
+			) {
+				setPaneStatus(paneId, "idle");
+			}
+		},
+		[paneId, setPaneStatus],
+	);
+
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
 		if (!xterm) return;
@@ -377,10 +419,7 @@ export const Terminal = ({
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
 			} else if (event.type === "exit") {
-				isExitedRef.current = true;
-				isStreamReadyRef.current = false;
-				xterm.writeln(`\r\n\r\n[Process exited with code ${event.exitCode}]`);
-				xterm.writeln("[Press any key to restart]");
+				handleTerminalExit(event.exitCode, xterm);
 			} else if (event.type === "disconnect") {
 				setConnectionError(
 					event.reason || "Connection to terminal daemon lost",
@@ -430,7 +469,7 @@ export const Terminal = ({
 				}
 			}
 		}
-	}, [setConnectionError]);
+	}, [handleTerminalExit, setConnectionError]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: refs (resizeRef, updateCwdRef, rendererRef) used intentionally to read latest values without recreating callback
 	const maybeApplyInitialState = useCallback(() => {
@@ -725,6 +764,14 @@ export const Terminal = ({
 					}
 				},
 				onError: (error) => {
+					if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+						wasKilledByUserRef.current = true;
+						isExitedRef.current = true;
+						isStreamReadyRef.current = false;
+						setExitStatus("killed");
+						setConnectionError(null);
+						return;
+					}
 					setConnectionError(error.message || "Connection failed");
 					isStreamReadyRef.current = true;
 					flushPendingEvents();
@@ -769,6 +816,9 @@ export const Terminal = ({
 		// Reset state for new session
 		isStreamReadyRef.current = false;
 		isExitedRef.current = false; // Critical: reset so handleTerminalInput writes to shell
+		wasKilledByUserRef.current = false;
+		setExitStatus(null);
+		clearTerminalKilledByUser(paneId);
 		pendingInitialStateRef.current = null;
 		isAlternateScreenRef.current = false;
 		isBracketedPasteRef.current = false;
@@ -784,6 +834,7 @@ export const Terminal = ({
 				rows: xterm.rows,
 				cwd: restoredCwd || undefined,
 				skipColdRestore: true,
+				allowKilled: true,
 			},
 			{
 				onSuccess: (result) => {
@@ -851,23 +902,9 @@ export const Terminal = ({
 			xtermRef.current.write(event.data);
 			updateCwdFromData(event.data);
 		} else if (event.type === "exit") {
-			isExitedRef.current = true;
-			isStreamReadyRef.current = false;
-			xtermRef.current.writeln(
-				`\r\n\r\n[Process exited with code ${event.exitCode}]`,
-			);
-			xtermRef.current.writeln("[Press any key to restart]");
-
-			// Clear transient pane status on terminal exit
-			// "working" and "permission" should clear (agent no longer active)
-			// "review" should persist (user needs to see completed work)
-			// Use store getter to get fresh pane status at event time (not stale closure)
-			const currentPane = useTabsStore.getState().panes[paneId];
-			if (
-				currentPane?.status === "working" ||
-				currentPane?.status === "permission"
-			) {
-				setPaneStatus(paneId, "idle");
+			const xterm = xtermRef.current;
+			if (xterm) {
+				handleTerminalExit(event.exitCode, xterm);
 			}
 		} else if (event.type === "disconnect") {
 			// Daemon connection lost - show error UI with retry option
@@ -935,10 +972,16 @@ export const Terminal = ({
 	}, [isFocused]);
 
 	useEffect(() => {
-		if (isFocused && xtermRef.current) {
+		if (isFocused && isTabVisible && xtermRef.current) {
 			xtermRef.current.focus();
 		}
-	}, [isFocused]);
+	}, [isFocused, isTabVisible]);
+
+	useEffect(() => {
+		if (!isTabVisible && xtermRef.current) {
+			xtermRef.current.blur();
+		}
+	}, [isTabVisible]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",
@@ -1042,6 +1085,9 @@ export const Terminal = ({
 		const restartTerminal = () => {
 			isExitedRef.current = false;
 			isStreamReadyRef.current = false;
+			wasKilledByUserRef.current = false;
+			setExitStatus(null);
+			clearTerminalKilledByUser(paneId);
 			isAlternateScreenRef.current = false; // Reset for new shell
 			isBracketedPasteRef.current = false;
 			modeScanBufferRef.current = "";
@@ -1053,6 +1099,7 @@ export const Terminal = ({
 					workspaceId,
 					cols: xterm.cols,
 					rows: xterm.rows,
+					allowKilled: true,
 				},
 				{
 					onSuccess: (result) => {
@@ -1068,6 +1115,7 @@ export const Terminal = ({
 				},
 			);
 		};
+		restartTerminalRef.current = restartTerminal;
 
 		const handleTerminalInput = (data: string) => {
 			// When overlays are visible, ignore input completely:
@@ -1076,7 +1124,13 @@ export const Terminal = ({
 			if (isRestoredModeRef.current || connectionErrorRef.current) {
 				return;
 			}
+			if (!isTabVisibleRef.current) {
+				return;
+			}
 			if (isExitedRef.current) {
+				if (!isFocusedRef.current || wasKilledByUserRef.current) {
+					return;
+				}
 				restartTerminal();
 				return;
 			}
@@ -1089,6 +1143,9 @@ export const Terminal = ({
 		}) => {
 			// Don't treat overlay interactions as terminal typing.
 			if (isRestoredModeRef.current || connectionErrorRef.current) {
+				return;
+			}
+			if (!isTabVisibleRef.current) {
 				return;
 			}
 			const { domEvent } = event;
@@ -1142,6 +1199,14 @@ export const Terminal = ({
 			paneId,
 			priority: isTabVisible ? (isFocusedRef.current ? 0 : 1) : 2,
 			run: (done) => {
+				if (isTerminalKilledByUser(paneId)) {
+					wasKilledByUserRef.current = true;
+					isExitedRef.current = true;
+					isStreamReadyRef.current = false;
+					setExitStatus("killed");
+					done();
+					return;
+				}
 				if (DEBUG_TERMINAL) {
 					console.log(`[Terminal] createOrAttach start: ${paneId}`);
 				}
@@ -1225,6 +1290,14 @@ export const Terminal = ({
 							maybeApplyInitialState();
 						},
 						onError: (error) => {
+							if (error.message?.includes("TERMINAL_SESSION_KILLED")) {
+								wasKilledByUserRef.current = true;
+								isExitedRef.current = true;
+								isStreamReadyRef.current = false;
+								setExitStatus("killed");
+								setConnectionError(null);
+								return;
+							}
 							if (DEBUG_TERMINAL) {
 								console.log(
 									`[Terminal] createOrAttach error: ${paneId}`,
@@ -1265,9 +1338,10 @@ export const Terminal = ({
 		};
 
 		const handleWrite = (data: string) => {
-			if (!isExitedRef.current) {
-				writeRef.current({ paneId, data });
+			if (!isTabVisibleRef.current || isExitedRef.current) {
+				return;
 			}
+			writeRef.current({ paneId, data });
 		};
 
 		const cleanupKeyboard = setupKeyboardHandler(xterm, {
@@ -1403,6 +1477,10 @@ export const Terminal = ({
 		}
 	};
 
+	const handleRestartSession = useCallback(() => {
+		restartTerminalRef.current();
+	}, []);
+
 	return (
 		<div
 			role="application"
@@ -1417,6 +1495,24 @@ export const Terminal = ({
 				onClose={() => setIsSearchOpen(false)}
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
+			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
+				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
+					<div className="mb-4 px-4 text-center text-red-300">
+						<p className="font-semibold">Session killed</p>
+						<p className="mt-1 text-sm text-gray-400">
+							This terminal was terminated by you. Restart to start a new
+							session.
+						</p>
+					</div>
+					<button
+						type="button"
+						onClick={handleRestartSession}
+						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+					>
+						Restart Session
+					</button>
+				</div>
+			)}
 			{connectionError && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
 					<div className="mb-4 px-4 text-center text-red-400">
