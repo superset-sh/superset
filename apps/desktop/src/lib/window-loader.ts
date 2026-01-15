@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { PORTS, PROTOCOL_SCHEME } from "shared/constants";
 import { env } from "shared/env.shared";
@@ -24,12 +25,21 @@ export function registerRoute(props: {
 	if (isDev) {
 		// Development: load from Vite dev server with hash routing
 		const url = `http://localhost:${PORTS.VITE_DEV_SERVER}/#/`;
-		props.browserWindow.loadURL(url);
+		console.log(`[window-loader] Loading dev URL: ${url}`);
+		props.browserWindow.loadURL(url).catch((error) => {
+			console.error("[window-loader] Failed to load dev URL:", error);
+		});
 	} else {
 		// Production: load from custom protocol with hash routing
 		// Origin becomes: superset://app (trusted by Better Auth)
-		const fileName = props.htmlFile.split("/").pop() || "index.html";
+		// Use path.basename for cross-platform compatibility (Windows uses backslashes)
+		const fileName = path.basename(props.htmlFile) || "index.html";
 		const url = `${PROTOCOL_SCHEME}://app/${fileName}#/`;
-		props.browserWindow.loadURL(url);
+		console.log(`[window-loader] Loading production URL: ${url}`);
+		console.log(`[window-loader] HTML file path: ${props.htmlFile}`);
+		props.browserWindow.loadURL(url).catch((error) => {
+			console.error("[window-loader] Failed to load production URL:", error);
+			console.error("[window-loader] Attempted URL:", url);
+		});
 	}
 }

@@ -211,6 +211,14 @@ if (!gotTheLock) {
 		// Register custom protocol to serve app files in production
 		// This provides a stable origin (superset://app or superset-dev://app) for Better Auth CORS
 		if (process.env.NODE_ENV !== "development") {
+			console.log(
+				`[main] Registering protocol handler for: ${PROTOCOL_SCHEME}`,
+			);
+			console.log(`[main] __dirname: ${__dirname}`);
+			console.log(
+				`[main] Renderer path: ${path.join(__dirname, "../renderer")}`,
+			);
+
 			protocol.handle(PROTOCOL_SCHEME, (request) => {
 				// Parse URL to extract pathname (e.g., superset://app/index.html#/ -> /index.html)
 				const parsedUrl = new URL(request.url);
@@ -218,6 +226,9 @@ if (!gotTheLock) {
 				const filePath = path.normalize(
 					path.join(__dirname, "../renderer", pathname),
 				);
+				console.log(`[protocol] Request: ${request.url}`);
+				console.log(`[protocol] Pathname: ${pathname}`);
+				console.log(`[protocol] Resolved file path: ${filePath}`);
 				return net.fetch(`file://${filePath}`);
 			});
 		}
