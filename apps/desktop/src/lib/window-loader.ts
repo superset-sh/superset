@@ -34,13 +34,19 @@ export function registerRoute(props: {
 
 	// Log successful loads
 	props.browserWindow.webContents.on("did-finish-load", () => {
-		console.log("[window-loader] Successfully loaded:", props.browserWindow.webContents.getURL());
+		console.log(
+			"[window-loader] Successfully loaded:",
+			props.browserWindow.webContents.getURL(),
+		);
 	});
 
 	// Log and handle load failures
-	props.browserWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
-		console.error("[window-loader] Failed to load URL:", validatedURL);
-		console.error("[window-loader] Error code:", errorCode);
-		console.error("[window-loader] Error description:", errorDescription);
-	});
+	props.browserWindow.webContents.on(
+		"did-fail-load",
+		(_event, errorCode, errorDescription, validatedURL) => {
+			console.error("[window-loader] Failed to load URL:", validatedURL);
+			console.error("[window-loader] Error code:", errorCode);
+			console.error("[window-loader] Error description:", errorDescription);
+		},
+	);
 }
