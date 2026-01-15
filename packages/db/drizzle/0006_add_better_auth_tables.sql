@@ -128,7 +128,7 @@ WHERE NOT EXISTS (
     SELECT 1 FROM "auth"."members" m WHERE m.user_id = u.id
 );
 --> statement-breakpoint
--- Backfill: Add users as owners of their new workspaces
+-- Backfill: Add users as owners of their new orgs
 INSERT INTO "auth"."members" (id, organization_id, user_id, role, created_at)
 SELECT
     gen_random_uuid(),
