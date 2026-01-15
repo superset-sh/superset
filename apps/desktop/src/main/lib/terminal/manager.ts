@@ -164,7 +164,9 @@ export class TerminalManager extends EventEmitter {
 			throw new Error(`Terminal session ${paneId} not found or not alive`);
 		}
 
-		session.pty.write(data);
+		// Use InputWriter for non-blocking writes (prevents main thread blocking
+		// when pasting large amounts of text, especially Unicode)
+		session.inputWriter.write(data);
 		session.lastActive = Date.now();
 	}
 
@@ -386,7 +388,7 @@ export class TerminalManager extends EventEmitter {
 		for (const [paneId, session] of this.sessions.entries()) {
 			if (session.workspaceId === workspaceId && session.isAlive) {
 				try {
-					session.pty.write("\n");
+					session.inputWriter.write("\n");
 				} catch (error) {
 					console.warn(
 						`[TerminalManager] Failed to refresh prompt for pane ${paneId}:`,

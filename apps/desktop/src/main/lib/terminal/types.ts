@@ -2,6 +2,7 @@ import type { SerializeAddon } from "@xterm/addon-serialize";
 import type { Terminal as HeadlessTerminal } from "@xterm/headless";
 import type * as pty from "node-pty";
 import type { DataBatcher } from "../data-batcher";
+import type { InputWriter } from "./input-writer";
 
 export interface TerminalSession {
 	pty: pty.IPty;
@@ -16,6 +17,7 @@ export interface TerminalSession {
 	isAlive: boolean;
 	wasRecovered: boolean;
 	dataBatcher: DataBatcher;
+	inputWriter: InputWriter;
 	shell: string;
 	startTime: number;
 	usedFallback: boolean;

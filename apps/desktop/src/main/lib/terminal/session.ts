@@ -9,6 +9,7 @@ import {
 	extractContentAfterClear,
 } from "../terminal-escape-filter";
 import { buildTerminalEnv, FALLBACK_SHELL, getDefaultShell } from "./env";
+import { InputWriter } from "./input-writer";
 import type { InternalCreateSessionParams, TerminalSession } from "./types";
 
 const DEFAULT_COLS = 80;
@@ -130,6 +131,8 @@ export async function createSession(
 		onData(paneId, batchedData);
 	});
 
+	const inputWriter = new InputWriter(ptyProcess);
+
 	return {
 		pty: ptyProcess,
 		paneId,
@@ -143,6 +146,7 @@ export async function createSession(
 		isAlive: true,
 		wasRecovered,
 		dataBatcher,
+		inputWriter,
 		shell,
 		startTime: Date.now(),
 		usedFallback: useFallbackShell,
@@ -206,6 +210,7 @@ export function setupDataHandler(
 }
 
 export function flushSession(session: TerminalSession): void {
+	session.inputWriter.dispose();
 	session.dataBatcher.dispose();
 	session.headless.dispose();
 }
