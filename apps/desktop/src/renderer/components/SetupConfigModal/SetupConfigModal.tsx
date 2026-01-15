@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	Dialog,
@@ -15,6 +14,7 @@ import {
 	useConfigModalOpen,
 	useConfigModalProjectId,
 } from "renderer/stores/config-modal";
+import { EXTERNAL_LINKS } from "shared/constants";
 
 const CONFIG_TEMPLATE = `{
   "setup": [],
@@ -40,7 +40,7 @@ export function SetupConfigModal() {
 	const projectName = project?.name ?? "your-project";
 
 	const handleLearnMore = () => {
-		window.open(COMPANY.SCRIPTS_URL, "_blank");
+		window.open(EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS, "_blank");
 	};
 
 	return (

@@ -1,4 +1,3 @@
-import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { HiArrowTopRightOnSquare } from "react-icons/hi2";
@@ -7,6 +6,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	CONFIG_FILE_NAME,
 	CONFIG_TEMPLATE,
+	EXTERNAL_LINKS,
 	PROJECT_SUPERSET_DIR_NAME,
 } from "shared/constants";
 
@@ -29,7 +29,7 @@ export function ConfigFilePreview({
 	);
 
 	const handleLearnMore = () => {
-		window.open(COMPANY.SCRIPTS_URL, "_blank");
+		window.open(EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS, "_blank");
 	};
 
 	const displayContent =
