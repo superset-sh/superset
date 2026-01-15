@@ -23,7 +23,7 @@ export const auth = betterAuth({
 		env.NEXT_PUBLIC_ADMIN_URL,
 		// Electron desktop app origins
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []), // Dev: http://localhost:5927
-		"file://", // Production Electron app (loadFile uses file:// protocol)
+		"superset://app", // Production Electron app
 	],
 	session: {
 		expiresIn: 60 * 60 * 24 * 30, // 30 days
