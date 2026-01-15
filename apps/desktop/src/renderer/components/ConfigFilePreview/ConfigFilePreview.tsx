@@ -6,6 +6,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	CONFIG_FILE_NAME,
 	CONFIG_TEMPLATE,
+	EXTERNAL_LINKS,
 	PROJECT_SUPERSET_DIR_NAME,
 } from "shared/constants";
 
@@ -28,8 +29,7 @@ export function ConfigFilePreview({
 	);
 
 	const handleLearnMore = () => {
-		const docsUrl = `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`;
-		window.open(docsUrl, "_blank");
+		window.open(EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS, "_blank");
 	};
 
 	const displayContent =

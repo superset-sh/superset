@@ -14,6 +14,7 @@ import {
 	useConfigModalOpen,
 	useConfigModalProjectId,
 } from "renderer/stores/config-modal";
+import { EXTERNAL_LINKS } from "shared/constants";
 
 const CONFIG_TEMPLATE = `{
   "setup": [],
@@ -39,8 +40,7 @@ export function SetupConfigModal() {
 	const projectName = project?.name ?? "your-project";
 
 	const handleLearnMore = () => {
-		const docsUrl = `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`;
-		window.open(docsUrl, "_blank");
+		window.open(EXTERNAL_LINKS.SETUP_TEARDOWN_SCRIPTS, "_blank");
 	};
 
 	return (
