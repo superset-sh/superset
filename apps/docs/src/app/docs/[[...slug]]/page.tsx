@@ -4,7 +4,6 @@ import {
 	DocsPage,
 	DocsTitle,
 } from "fumadocs-ui/layouts/docs/page";
-import { createRelativeLink } from "fumadocs-ui/mdx";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
@@ -43,12 +42,7 @@ export default async function Page(props: PageProps<"/docs/[[...slug]]">) {
 				/>
 			</div>
 			<DocsBody>
-				<MDX
-					components={getMDXComponents({
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						a: createRelativeLink(source as any, page),
-					})}
-				/>
+				<MDX components={getMDXComponents()} />
 			</DocsBody>
 		</DocsPage>
 	);
