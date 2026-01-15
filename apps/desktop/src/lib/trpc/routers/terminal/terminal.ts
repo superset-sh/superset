@@ -52,15 +52,15 @@ export const createTerminalRouter = () => {
 	}
 
 	return router({
-			createOrAttach: publicProcedure
-				.input(
-					z.object({
-						paneId: SAFE_ID,
-						tabId: z.string(),
-						workspaceId: SAFE_ID,
-						cols: z.number().optional(),
-						rows: z.number().optional(),
-						cwd: z.string().optional(),
+		createOrAttach: publicProcedure
+			.input(
+				z.object({
+					paneId: SAFE_ID,
+					tabId: z.string(),
+					workspaceId: SAFE_ID,
+					cols: z.number().optional(),
+					rows: z.number().optional(),
+					cwd: z.string().optional(),
 					initialCommands: z.array(z.string()).optional(),
 					skipColdRestore: z.boolean().optional(),
 					allowKilled: z.boolean().optional(),

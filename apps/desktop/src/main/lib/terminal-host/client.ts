@@ -1012,23 +1012,23 @@ export class TerminalHostClient extends EventEmitter {
 				);
 			}
 
-				// Open log file for daemon output (helps debug daemon-side issues)
-				const logPath = join(SUPERSET_HOME_DIR, "daemon.log");
-				let logFd: number;
-				try {
-					if (existsSync(logPath)) {
-						try {
-							const { size } = statSync(logPath);
-							if (size > MAX_DAEMON_LOG_BYTES) {
-								writeFileSync(logPath, "", { mode: 0o600 });
-							}
-						} catch {
-							// Best-effort.
-						}
-					}
-					logFd = openSync(logPath, "a", 0o600);
+			// Open log file for daemon output (helps debug daemon-side issues)
+			const logPath = join(SUPERSET_HOME_DIR, "daemon.log");
+			let logFd: number;
+			try {
+				if (existsSync(logPath)) {
 					try {
-						chmodSync(logPath, 0o600);
+						const { size } = statSync(logPath);
+						if (size > MAX_DAEMON_LOG_BYTES) {
+							writeFileSync(logPath, "", { mode: 0o600 });
+						}
+					} catch {
+						// Best-effort.
+					}
+				}
+				logFd = openSync(logPath, "a", 0o600);
+				try {
+					chmodSync(logPath, 0o600);
 				} catch {
 					// Best-effort.
 				}
