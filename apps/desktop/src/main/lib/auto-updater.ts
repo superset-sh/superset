@@ -59,6 +59,7 @@ function isNetworkError(error: Error | string): boolean {
 
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
 let currentVersion: string | undefined;
+let currentError: string | undefined;
 let isDismissed = false;
 
 function emitStatus(
@@ -68,6 +69,7 @@ function emitStatus(
 ): void {
 	currentStatus = status;
 	currentVersion = version;
+	currentError = error;
 
 	if (isDismissed && status === AUTO_UPDATE_STATUS.READY) {
 		return;
@@ -80,7 +82,7 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
 		return { status: AUTO_UPDATE_STATUS.IDLE };
 	}
-	return { status: currentStatus, version: currentVersion };
+	return { status: currentStatus, version: currentVersion, error: currentError };
 }
 
 export function installUpdate(): void {
