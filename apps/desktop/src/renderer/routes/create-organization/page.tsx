@@ -12,7 +12,7 @@ import {
 } from "@superset/ui/form";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -46,6 +46,7 @@ export function CreateOrganization() {
 	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const signOutMutation = electronTrpc.auth.signOut.useMutation();
+	const navigate = useNavigate();
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
@@ -135,7 +136,7 @@ export function CreateOrganization() {
 			});
 
 			toast.success("Organization created successfully!");
-			window.location.reload();
+			navigate({ to: "/" });
 		} catch (error) {
 			console.error("[create-org] Failed to create organization:", error);
 			toast.error(

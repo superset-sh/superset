@@ -61,9 +61,6 @@ export function OrganizationDropdown() {
 
 		// Clear cache in background (don't wait)
 		clearCacheMutation.mutate();
-
-		// Reload immediately to get fresh data
-		window.location.reload();
 	};
 
 	const handleSignOut = async () => {

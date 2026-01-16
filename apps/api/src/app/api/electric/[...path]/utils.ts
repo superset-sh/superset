@@ -94,8 +94,6 @@ export async function buildWhereClause(
 		}
 
 		case "auth.users": {
-			// Use the denormalized organization_ids array column
-			// Check if the requested organization_id is in the user's array
 			const fragment = `$1 = ANY("organization_ids")`;
 			return { fragment, params: [organizationId] };
 		}
