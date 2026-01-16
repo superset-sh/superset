@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Card, CardContent, CardHeader } from "@superset/ui/card";
 import {
@@ -14,10 +13,8 @@ import {
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { HiUpload } from "react-icons/hi";
-import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -27,7 +24,7 @@ export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
-// Form schema (lighter - no Zod file validation)
+// Form schema
 const formSchema = z.object({
 	name: z.string().min(1, "Organization name is required").max(100),
 	slug: z
@@ -40,7 +37,6 @@ const formSchema = z.object({
 		)
 		.regex(/^[a-z0-9]/, "Slug must start with a letter or number")
 		.regex(/[a-z0-9]$/, "Slug must end with a letter or number"),
-	logoFile: z.any().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,14 +50,12 @@ export function CreateOrganization() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 	const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
-	const [imagePreview, setImagePreview] = useState<string | null>(null);
 
 	const form = useForm<FormValues>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
 			name: "",
 			slug: "",
-			logoFile: undefined,
 		},
 	});
 
@@ -105,43 +99,6 @@ export function CreateOrganization() {
 		return () => clearTimeout(timer);
 	}, [slugValue]);
 
-	// Manual file validation for lighter bundle
-	const handleFileChange = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const file = e.target.files?.[0];
-
-			if (!file) {
-				form.setValue("logoFile", undefined);
-				setImagePreview(null);
-				return;
-			}
-
-			// Validate file size (5MB max)
-			if (file.size > 5 * 1024 * 1024) {
-				toast.error("File size must be less than 5MB");
-				e.target.value = "";
-				return;
-			}
-
-			// Validate file type
-			const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-			if (!validTypes.includes(file.type)) {
-				toast.error("File must be a JPG, PNG, or WebP image");
-				e.target.value = "";
-				return;
-			}
-
-			// Set file and preview
-			form.setValue("logoFile", file);
-			const reader = new FileReader();
-			reader.onloadend = () => {
-				setImagePreview(reader.result as string);
-			};
-			reader.readAsDataURL(file);
-		},
-		[form],
-	);
-
 	const handleSignOut = async () => {
 		console.log("[CreateOrg] Sign out clicked");
 		try {
@@ -157,7 +114,7 @@ export function CreateOrganization() {
 		}
 	};
 
-	// Three-step submit: create org → set as active → upload logo
+	// Two-step submit: create org → set as active
 	const onSubmit = async (values: FormValues) => {
 		if (slugAvailable === false) {
 			toast.error("Slug is already taken");
@@ -176,20 +133,6 @@ export function CreateOrganization() {
 			await authClient.organization.setActive({
 				organizationId: organization.id,
 			});
-
-			// Step 3: Upload logo using Vercel Blob SDK (if provided)
-			if (values.logoFile && organization) {
-				const file = values.logoFile as File;
-				const ext = file.name.split(".").pop() || "png";
-				const pathname = `organization/${organization.id}/logo.${ext}`;
-
-				const { upload } = await import("@vercel/blob/client");
-				await upload(pathname, file, {
-					access: "public",
-					handleUploadUrl: `${env.NEXT_PUBLIC_API_URL}/api/upload`,
-					clientPayload: JSON.stringify({ organizationId: organization.id }),
-				});
-			}
 
 			toast.success("Organization created successfully!");
 			window.location.reload();
@@ -235,43 +178,6 @@ export function CreateOrganization() {
 				<CardContent>
 					<Form {...form}>
 						<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-							{/* Organization Logo */}
-							<FormField
-								control={form.control}
-								name="logoFile"
-								render={() => (
-									<FormItem>
-										<FormLabel>Organization Logo (Optional)</FormLabel>
-										<FormControl>
-											<div className="flex items-center gap-4">
-												<Avatar className="h-16 w-16">
-													{imagePreview ? (
-														<AvatarImage
-															src={imagePreview}
-															alt="Organization logo"
-														/>
-													) : (
-														<AvatarFallback>
-															<HiUpload className="h-6 w-6" />
-														</AvatarFallback>
-													)}
-												</Avatar>
-												<Input
-													type="file"
-													accept="image/jpeg,image/jpg,image/png,image/webp"
-													onChange={handleFileChange}
-													disabled={isSubmitting}
-												/>
-											</div>
-										</FormControl>
-										<FormDescription>
-											JPG, PNG, or WebP. Max 5MB.
-										</FormDescription>
-										<FormMessage />
-									</FormItem>
-								)}
-							/>
-
 							{/* Organization Name */}
 							<FormField
 								control={form.control}
