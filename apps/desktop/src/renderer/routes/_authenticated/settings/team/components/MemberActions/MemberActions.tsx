@@ -46,64 +46,41 @@ export function MemberActions({
 		ownerCount,
 	);
 
-	const handleRemove = async () => {
+	async function leaveOrganization(): Promise<void> {
+		const result = await apiTrpcClient.organization.leave.mutate({
+			organizationId: member.organizationId,
+		});
+
+		// Update session with new active organization (or null if none left)
+		await authClient.organization.setActive({
+			organizationId: result.activeOrganizationId ?? null,
+		});
+		await refetchSession();
+		navigate({ to: "/" });
+	}
+
+	async function removeMember(): Promise<void> {
+		await apiTrpcClient.organization.removeMember.mutate({
+			organizationId: member.organizationId,
+			userId: member.userId,
+		});
+	}
+
+	function handleRemove(): void {
 		if (isCurrentUser) {
-			console.log(
-				"[MemberActions] Leaving organization:",
-				member.organizationId,
-			);
-			toast.promise(
-				apiTrpcClient.organization.leave
-					.mutate({
-						organizationId: member.organizationId,
-					})
-					.then(async (result) => {
-						console.log("[MemberActions] Leave result:", result);
-						console.log(
-							"[MemberActions] New activeOrganizationId:",
-							result.activeOrganizationId,
-						);
-
-						// Always call setActive to get fresh token with updated activeOrganizationId (or null)
-						console.log(
-							"[MemberActions] Setting active organization to:",
-							result.activeOrganizationId ?? "null",
-						);
-						await authClient.organization.setActive({
-							organizationId: result.activeOrganizationId ?? null,
-						});
-
-						console.log("[MemberActions] Refetching session");
-						await refetchSession();
-
-						console.log("[MemberActions] Navigating to root");
-						navigate({ to: "/" });
-						return result;
-					})
-					.catch((error) => {
-						console.error("[MemberActions] Leave error:", error);
-						throw error;
-					}),
-				{
-					loading: "Leaving organization...",
-					success: "Left organization",
-					error: (err) => err.message || "Failed to leave organization",
-				},
-			);
+			toast.promise(leaveOrganization(), {
+				loading: "Leaving organization...",
+				success: "Left organization",
+				error: (err) => err.message || "Failed to leave organization",
+			});
 		} else {
-			toast.promise(
-				apiTrpcClient.organization.removeMember.mutate({
-					organizationId: member.organizationId,
-					userId: member.userId,
-				}),
-				{
-					loading: "Removing member...",
-					success: "Member removed",
-					error: (err) => err.message || "Failed to remove member",
-				},
-			);
+			toast.promise(removeMember(), {
+				loading: "Removing member...",
+				success: "Member removed",
+				error: (err) => err.message || "Failed to remove member",
+			});
 		}
-	};
+	}
 
 	const handleRemoveClick = () => {
 		alert.destructive({
@@ -113,8 +90,8 @@ export function MemberActions({
 				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.`,
 			confirmText: isCurrentUser ? "Leave Organization" : "Remove Member",
 			cancelText: "Cancel",
-			onConfirm: async () => {
-				await handleRemove();
+			onConfirm: () => {
+				handleRemove();
 			},
 		});
 	};

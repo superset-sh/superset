@@ -13,6 +13,7 @@ import {
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -100,23 +101,37 @@ export function CreateOrganization() {
 		return () => clearTimeout(timer);
 	}, [slugValue]);
 
-	const handleSignOut = async () => {
-		console.log("[CreateOrg] Sign out clicked");
-		try {
-			console.log("[CreateOrg] Calling authClient.signOut()");
-			await authClient.signOut();
-			console.log(
-				"[CreateOrg] authClient.signOut() completed, calling electron mutation",
-			);
-			signOutMutation.mutate();
-			console.log("[CreateOrg] Electron signOut mutation called");
-		} catch (error) {
-			console.error("[CreateOrg] Sign out error:", error);
-		}
-	};
+	async function handleSignOut(): Promise<void> {
+		await authClient.signOut();
+		signOutMutation.mutate();
+	}
 
-	// Two-step submit: create org → set as active
-	const onSubmit = async (values: FormValues) => {
+	function renderSlugStatus(): ReactNode {
+		if (isCheckingSlug) {
+			return (
+				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+					Checking...
+				</span>
+			);
+		}
+		if (slugAvailable === true) {
+			return (
+				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
+					Available
+				</span>
+			);
+		}
+		if (slugAvailable === false) {
+			return (
+				<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">
+					Taken
+				</span>
+			);
+		}
+		return null;
+	}
+
+	async function onSubmit(values: FormValues): Promise<void> {
 		if (slugAvailable === false) {
 			toast.error("Slug is already taken");
 			return;
@@ -124,13 +139,11 @@ export function CreateOrganization() {
 
 		setIsSubmitting(true);
 		try {
-			// Step 1: Create organization
 			const organization = await apiTrpcClient.organization.create.mutate({
 				name: values.name,
 				slug: values.slug,
 			});
 
-			// Step 2: Set new org as active in session
 			await authClient.organization.setActive({
 				organizationId: organization.id,
 			});
@@ -138,7 +151,6 @@ export function CreateOrganization() {
 			toast.success("Organization created successfully!");
 			navigate({ to: "/" });
 		} catch (error) {
-			console.error("[create-org] Failed to create organization:", error);
 			toast.error(
 				error instanceof Error
 					? error.message
@@ -147,7 +159,7 @@ export function CreateOrganization() {
 		} finally {
 			setIsSubmitting(false);
 		}
-	};
+	}
 
 	// Guard: redirect to sign-in if not authenticated
 	if (!isSignedIn) {
@@ -215,21 +227,7 @@ export function CreateOrganization() {
 													placeholder="acme-inc"
 													disabled={isSubmitting}
 												/>
-												{isCheckingSlug && (
-													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-														Checking...
-													</span>
-												)}
-												{!isCheckingSlug && slugAvailable === true && (
-													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-green-600">
-														Available
-													</span>
-												)}
-												{!isCheckingSlug && slugAvailable === false && (
-													<span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-destructive">
-														Taken
-													</span>
-												)}
+												{renderSlugStatus()}
 											</div>
 										</FormControl>
 										<FormDescription>
