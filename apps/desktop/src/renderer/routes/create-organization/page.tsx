@@ -25,7 +25,6 @@ export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
-// Form schema
 const formSchema = z.object({
 	name: z.string().min(1, "Organization name is required").max(100),
 	slug: z
@@ -61,7 +60,6 @@ export function CreateOrganization() {
 		},
 	});
 
-	// Auto-generate slug from organization name
 	const nameValue = form.watch("name");
 	useEffect(() => {
 		const slug = nameValue
@@ -74,7 +72,6 @@ export function CreateOrganization() {
 		}
 	}, [nameValue, form]);
 
-	// Debounced slug validation (500ms)
 	const slugValue = form.watch("slug");
 	useEffect(() => {
 		const timer = setTimeout(async () => {
@@ -88,7 +85,7 @@ export function CreateOrganization() {
 				const result = await authClient.organization.checkSlug({
 					slug: slugValue,
 				});
-				// status: true means slug is available, false means taken
+
 				setSlugAvailable(result.data?.status ?? null);
 			} catch (error) {
 				console.error("[create-org] Slug check failed:", error);
@@ -161,26 +158,22 @@ export function CreateOrganization() {
 		}
 	}
 
-	// Guard: redirect to sign-in if not authenticated
 	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;
 	}
 
-	// Guard: redirect to authenticated layout if user already has active org
 	if (activeOrganizationId) {
 		return <Navigate to="/" replace />;
 	}
 
 	return (
 		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
-			{/* Sign Out button in top right */}
 			<div className="absolute top-4 right-4">
 				<Button variant="ghost" onClick={handleSignOut} type="button">
 					Sign Out
 				</Button>
 			</div>
 
-			{/* Centered form card */}
 			<Card className="w-full max-w-md">
 				<CardHeader>
 					<h1 className="text-2xl font-bold">Create Organization</h1>
@@ -213,7 +206,6 @@ export function CreateOrganization() {
 								)}
 							/>
 
-							{/* Slug */}
 							<FormField
 								control={form.control}
 								name="slug"

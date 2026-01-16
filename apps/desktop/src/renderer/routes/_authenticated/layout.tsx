@@ -62,7 +62,6 @@ function AuthenticatedLayout() {
 		return <Navigate to="/sign-in" replace />;
 	}
 
-	// Guard: redirect to create-organization if no active org
 	if (!activeOrganizationId) {
 		return <Navigate to="/create-organization" replace />;
 	}

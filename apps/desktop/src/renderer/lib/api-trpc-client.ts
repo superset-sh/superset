@@ -7,7 +7,7 @@ import { getAuthToken } from "./auth-client";
 /**
  * HTTP tRPC client for calling the API server.
  * Uses bearer token authentication like the auth client.
- * For mutations only - use electron tRPC for queries.
+ * For mutations only - for fetching data we already have electric
  */
 export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 	links: [
