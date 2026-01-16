@@ -45,5 +45,9 @@
 		"packages/*",
 		"apps/*",
 		"tooling/*"
-	]
+	],
+	"dependencies": {
+		"react-hook-form": "^7.71.1",
+		"zod": "^4.3.5"
+	}
 }
