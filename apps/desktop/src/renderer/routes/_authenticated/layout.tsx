@@ -27,6 +27,12 @@ function AuthenticatedLayout() {
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 
+	console.log(
+		"[AuthenticatedLayout] activeOrganizationId:",
+		activeOrganizationId,
+	);
+	console.log("[AuthenticatedLayout] isSignedIn:", isSignedIn);
+
 	// Global hooks and subscriptions
 	useAgentHookListener();
 	useUpdateListener();

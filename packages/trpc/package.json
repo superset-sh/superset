@@ -29,7 +29,7 @@
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.1",
 		"superjson": "^2.2.5",
-		"zod": "^4.1.13"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

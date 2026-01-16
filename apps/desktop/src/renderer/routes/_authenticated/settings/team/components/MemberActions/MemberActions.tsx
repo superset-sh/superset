@@ -16,6 +16,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -36,6 +37,8 @@ export function MemberActions({
 	canRemove: boolean;
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
+	const { refetch: refetchSession } = authClient.useSession();
+	const navigate = useNavigate();
 
 	const availableRoles = getAvailableRoleChanges(
 		currentUserRole,
@@ -45,22 +48,41 @@ export function MemberActions({
 
 	const handleRemove = async () => {
 		if (isCurrentUser) {
+			console.log(
+				"[MemberActions] Leaving organization:",
+				member.organizationId,
+			);
 			toast.promise(
-				authClient.organization
-					.leave({
+				apiTrpcClient.organization.leave
+					.mutate({
 						organizationId: member.organizationId,
 					})
 					.then(async (result) => {
-						if (result.error) {
-							throw new Error(
-								result.error.message || "Failed to leave organization",
-							);
-						}
-						// Refresh session to update active org and memberships
-						await authClient.getSession();
-						// Reload page to reinitialize with new session state
-						window.location.reload();
+						console.log("[MemberActions] Leave result:", result);
+						console.log(
+							"[MemberActions] New activeOrganizationId:",
+							result.activeOrganizationId,
+						);
+
+						// Always call setActive to get fresh token with updated activeOrganizationId (or null)
+						console.log(
+							"[MemberActions] Setting active organization to:",
+							result.activeOrganizationId ?? "null",
+						);
+						await authClient.organization.setActive({
+							organizationId: result.activeOrganizationId ?? null,
+						});
+
+						console.log("[MemberActions] Refetching session");
+						await refetchSession();
+
+						console.log("[MemberActions] Navigating to root");
+						navigate({ to: "/" });
 						return result;
+					})
+					.catch((error) => {
+						console.error("[MemberActions] Leave error:", error);
+						throw error;
 					}),
 				{
 					loading: "Leaving organization...",

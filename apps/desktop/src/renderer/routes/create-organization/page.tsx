@@ -20,6 +20,7 @@ import { HiUpload } from "react-icons/hi";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { z } from "zod";
 
 export const Route = createFileRoute("/create-organization/")({
@@ -46,7 +47,9 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function CreateOrganization() {
 	const { data: session } = authClient.useSession();
+	const isSignedIn = !!session?.user;
 	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
@@ -139,6 +142,21 @@ export function CreateOrganization() {
 		[form],
 	);
 
+	const handleSignOut = async () => {
+		console.log("[CreateOrg] Sign out clicked");
+		try {
+			console.log("[CreateOrg] Calling authClient.signOut()");
+			await authClient.signOut();
+			console.log(
+				"[CreateOrg] authClient.signOut() completed, calling electron mutation",
+			);
+			signOutMutation.mutate();
+			console.log("[CreateOrg] Electron signOut mutation called");
+		} catch (error) {
+			console.error("[CreateOrg] Sign out error:", error);
+		}
+	};
+
 	// Three-step submit: create org → set as active → upload logo
 	const onSubmit = async (values: FormValues) => {
 		if (slugAvailable === false) {
@@ -187,13 +205,26 @@ export function CreateOrganization() {
 		}
 	};
 
+	// Guard: redirect to sign-in if not authenticated
+	if (!isSignedIn) {
+		return <Navigate to="/sign-in" replace />;
+	}
+
 	// Guard: redirect to authenticated layout if user already has active org
 	if (activeOrganizationId) {
 		return <Navigate to="/" replace />;
 	}
 
 	return (
-		<div className="flex min-h-screen items-center justify-center bg-background p-4">
+		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+			{/* Sign Out button in top right */}
+			<div className="absolute top-4 right-4">
+				<Button variant="ghost" onClick={handleSignOut} type="button">
+					Sign Out
+				</Button>
+			</div>
+
+			{/* Centered form card */}
 			<Card className="w-full max-w-md">
 				<CardHeader>
 					<h1 className="text-2xl font-bold">Create Organization</h1>

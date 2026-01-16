@@ -1,8 +1,9 @@
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
+import { sessions as authSessions } from "@superset/db/schema/auth";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
 
@@ -124,17 +125,15 @@ export const organizationRouter = {
 	removeMember: protectedProcedure
 		.input(
 			z.object({
-				organizationId: z.string().uuid(),
-				userId: z.string().uuid(),
+				organizationId: z.uuid(),
+				userId: z.uuid(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Get all members in the organization
 			const allMembers = await db.query.members.findMany({
 				where: eq(members.organizationId, input.organizationId),
 			});
 
-			// Find the target member being removed
 			const targetMember = allMembers.find((m) => m.userId === input.userId);
 			if (!targetMember) {
 				throw new TRPCError({
@@ -143,7 +142,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Find the actor's membership
 			const actorMembership = allMembers.find(
 				(m) => m.userId === ctx.session.user.id,
 			);
@@ -154,7 +152,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Check authorization
 			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
 			const isTargetSelf = targetMember.userId === ctx.session.user.id;
 
@@ -184,8 +181,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Authorization passed, call better-auth's API to handle removal
-			// This ensures session invalidation and other internal logic runs
 			await ctx.auth.api.removeMember({
 				body: {
 					organizationId: input.organizationId,
@@ -197,6 +192,99 @@ export const organizationRouter = {
 			return { success: true };
 		}),
 
+	leave: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.uuid(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			console.log(
+				"[organization/leave] START - userId:",
+				ctx.session.user.id,
+				"orgId:",
+				input.organizationId,
+			);
+			console.log(
+				"[organization/leave] Current activeOrganizationId:",
+				ctx.session.session.activeOrganizationId,
+			);
+
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.organizationId, input.organizationId),
+					eq(members.userId, ctx.session.user.id),
+				),
+			});
+
+			if (!membership) {
+				console.log(
+					"[organization/leave] ERROR - User is not a member of this organization",
+				);
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			console.log(
+				"[organization/leave] Calling Better Auth leaveOrganization API",
+			);
+			const leaveResult = await ctx.auth.api.leaveOrganization({
+				body: { organizationId: input.organizationId },
+				headers: ctx.headers,
+			});
+
+			if (!leaveResult) {
+				console.log(
+					"[organization/leave] ERROR - Better Auth leaveOrganization failed",
+				);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to leave organization",
+				});
+			}
+
+			console.log(
+				"[organization/leave] Successfully left organization via Better Auth",
+			);
+
+			const otherMembership = await db.query.members.findFirst({
+				where: and(
+					eq(members.userId, ctx.session.user.id),
+					ne(members.organizationId, input.organizationId),
+				),
+			});
+
+			console.log(
+				"[organization/leave] Other membership found:",
+				otherMembership?.organizationId ?? "null",
+			);
+
+			await db
+				.update(authSessions)
+				.set({
+					activeOrganizationId: otherMembership?.organizationId ?? null,
+				})
+				.where(
+					and(
+						eq(authSessions.userId, ctx.session.user.id),
+						eq(authSessions.activeOrganizationId, input.organizationId),
+					),
+				);
+
+			console.log(
+				"[organization/leave] Updated all sessions to new activeOrganizationId:",
+				otherMembership?.organizationId ?? "null",
+			);
+			console.log("[organization/leave] COMPLETE - Returning success");
+
+			return {
+				success: true,
+				activeOrganizationId: otherMembership?.organizationId ?? null,
+			};
+		}),
+
 	updateMemberRole: protectedProcedure
 		.input(
 			z.object({
@@ -206,12 +294,10 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			// Get all members in the organization
 			const allMembers = await db.query.members.findMany({
 				where: eq(members.organizationId, input.organizationId),
 			});
 
-			// Find the target member being updated
 			const targetMember = allMembers.find((m) => m.id === input.memberId);
 			if (!targetMember) {
 				throw new TRPCError({
@@ -220,7 +306,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Find the actor's membership
 			const actorMembership = allMembers.find(
 				(m) => m.userId === ctx.session.user.id,
 			);
@@ -235,22 +320,20 @@ export const organizationRouter = {
 			const targetRole = targetMember.role as OrganizationRole;
 			const ownerCount = allMembers.filter((m) => m.role === "owner").length;
 
-			// Check authorization
-			// Admins can't modify owners
 			if (actorRole === "admin" && targetRole === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Admins cannot modify owners",
 				});
 			}
-			// Admins can't promote to owner
+
 			if (actorRole === "admin" && input.role === "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
 					message: "Admins cannot promote members to owner",
 				});
 			}
-			// Members can't change roles at all
+
 			if (actorRole === "member") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -258,7 +341,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Protect last owner
 			if (
 				targetRole === "owner" &&
 				ownerCount === 1 &&
@@ -270,8 +352,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Authorization passed, call better-auth's API to handle role update
-			// This ensures any internal logic (like invalidating cached roles) runs
 			await ctx.auth.api.updateMemberRole({
 				body: {
 					organizationId: input.organizationId,
@@ -281,7 +361,6 @@ export const organizationRouter = {
 				headers: ctx.headers,
 			});
 
-			// Fetch and return the updated member
 			const updatedMember = await db.query.members.findFirst({
 				where: eq(members.id, input.memberId),
 			});

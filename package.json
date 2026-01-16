@@ -46,8 +46,7 @@
 		"apps/*",
 		"tooling/*"
 	],
-	"dependencies": {
-		"react-hook-form": "^7.71.1",
-		"zod": "^4.3.5"
+	"resolutions": {
+		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724"
 	}
 }

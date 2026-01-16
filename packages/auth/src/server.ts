@@ -4,7 +4,7 @@ import * as authSchema from "@superset/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, organization } from "better-auth/plugins";
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { env } from "./env";
 
@@ -98,33 +98,6 @@ export const auth = betterAuth({
 	plugins: [
 		organization({
 			creatorRole: "owner",
-			organizationHooks: {
-				afterRemoveMember: async ({ member }) => {
-					// Query for other organizations the user is still a member of
-					const otherMembership = await db.query.members.findFirst({
-						where: and(
-							eq(members.userId, member.userId),
-							ne(members.organizationId, member.organizationId),
-						),
-					});
-
-					// Update all sessions where this user's active org was the one they just left
-					await db
-						.update(authSchema.sessions)
-						.set({
-							activeOrganizationId: otherMembership?.organizationId ?? null,
-						})
-						.where(
-							and(
-								eq(authSchema.sessions.userId, member.userId),
-								eq(
-									authSchema.sessions.activeOrganizationId,
-									member.organizationId,
-								),
-							),
-						);
-				},
-			},
 		}),
 		bearer(),
 	],
