@@ -1,1 +1,1 @@
-export { MemberActions, type MemberDetails } from "./MemberActions";
+export { MemberActions } from "./MemberActions";

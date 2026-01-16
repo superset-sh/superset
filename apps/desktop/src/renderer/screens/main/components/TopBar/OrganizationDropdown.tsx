@@ -51,10 +51,19 @@ export function OrganizationDropdown() {
 
 	const userEmail = session?.user?.email;
 
+	const clearCacheMutation =
+		electronTrpc.cache.clearElectricCache.useMutation();
+
 	const switchOrganization = async (newOrgId: string) => {
 		await authClient.organization.setActive({
 			organizationId: newOrgId,
 		});
+
+		// Clear cache in background (don't wait)
+		clearCacheMutation.mutate();
+
+		// Reload immediately to get fresh data
+		window.location.reload();
 	};
 
 	const handleSignOut = async () => {

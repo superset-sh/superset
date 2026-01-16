@@ -1,4 +1,4 @@
-import type { Session } from "@superset/auth/server";
+import type { auth, Session } from "@superset/auth/server";
 import { COMPANY } from "@superset/shared/constants";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
@@ -6,6 +6,8 @@ import { ZodError } from "zod";
 
 export type TRPCContext = {
 	session: Session | null;
+	auth: typeof auth;
+	headers: Headers;
 };
 
 export const createTRPCContext = (opts: TRPCContext): TRPCContext => opts;

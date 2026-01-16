@@ -15,6 +15,10 @@
 		"./terminal-link-parsing": {
 			"types": "./src/terminal-link-parsing/index.ts",
 			"default": "./src/terminal-link-parsing/index.ts"
+		},
+		"./auth": {
+			"types": "./src/auth/index.ts",
+			"default": "./src/auth/index.ts"
 		}
 	},
 	"scripts": {

@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@electric-sql/client": "1.4.0",
+		"@electric-sql/client": "1.4.1",
 		"@linear/sdk": "^68.1.0",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/auth": "workspace:*",

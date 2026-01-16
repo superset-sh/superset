@@ -1,4 +1,3 @@
-import { Spinner } from "@superset/ui/spinner";
 import { createContext, type ReactNode, useContext, useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
 import { getCollections } from "./collections";
@@ -20,11 +19,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	}, [activeOrganizationId]);
 
 	if (!collections) {
-		return (
-			<div className="flex items-center justify-center h-screen">
-				<Spinner className="size-8" />
-			</div>
-		);
+		return null;
 	}
 
 	return (

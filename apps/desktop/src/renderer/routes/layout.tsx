@@ -1,3 +1,4 @@
+import { Alerter } from "@superset/ui/atoms/Alert";
 import type { ReactNode } from "react";
 import { PostHogUserIdentifier } from "renderer/components/PostHogUserIdentifier";
 import { ThemedToaster } from "renderer/components/ThemedToaster";
@@ -15,6 +16,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
 					<MonacoProvider>
 						{children}
 						<ThemedToaster />
+						<Alerter />
 					</MonacoProvider>
 				</AuthProvider>
 			</ElectronTRPCProvider>

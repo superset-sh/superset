@@ -1,3 +1,8 @@
+import {
+	canRemoveMember,
+	getRoleSortPriority,
+	type OrganizationRole,
+} from "@superset/shared/auth";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
@@ -16,6 +21,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { InviteMemberButton } from "./components/InviteMemberButton";
 import { MemberActions } from "./components/MemberActions";
+import type { TeamMember } from "./types";
 
 export const Route = createFileRoute("/_authenticated/settings/team/")({
 	component: TeamSettingsPage,
@@ -24,34 +30,49 @@ export const Route = createFileRoute("/_authenticated/settings/team/")({
 function TeamSettingsPage() {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const { data: activeOrg } = authClient.useActiveOrganization();
 
 	const { data: membersData, isLoading } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
-				.leftJoin({ users: collections.users }, ({ members, users }) =>
+				.innerJoin({ users: collections.users }, ({ members, users }) =>
 					eq(members.userId, users.id),
 				)
 				.select(({ members, users }) => ({
+					...users,
+					...members,
 					memberId: members.id,
-					userId: members.userId,
-					name: users?.name ?? null,
-					email: users?.email ?? "",
-					image: users?.image ?? null,
-					role: members.role,
-					joinedAt: members.createdAt,
-					organizationId: members.organizationId,
 				}))
+				.where(({ members }) =>
+					eq(members.organizationId, activeOrganizationId ?? ""),
+				)
 				.orderBy(({ members }) => members.role, "asc")
 				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections],
+		[collections, activeOrganizationId],
 	);
 
-	const members = membersData ?? [];
+	// Sort by role priority (owner > admin > member), then by join date
+	// Cast roles to OrganizationRole since database stores them as strings
+	const members: TeamMember[] = (membersData ?? [])
+		.map((m) => ({
+			...m,
+			role: m.role as OrganizationRole,
+		}))
+		.sort((a, b) => {
+			const priorityDiff =
+				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+			if (priorityDiff !== 0) return priorityDiff;
+			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+		});
+	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
-	const currentMember = members.find((m) => m.userId === currentUserId);
-	const isOwner = currentMember?.role === "owner";
+	const currentMember = activeOrg?.members?.find(
+		(m) => m.userId === currentUserId,
+	);
+	const currentUserRole = currentMember?.role as OrganizationRole;
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
@@ -151,17 +172,20 @@ function TeamSettingsPage() {
 														</Badge>
 													</TableCell>
 													<TableCell className="text-muted-foreground">
-														{formatDate(member.joinedAt)}
+														{formatDate(member.createdAt)}
 													</TableCell>
 													<TableCell>
 														<MemberActions
 															member={member}
+															currentUserRole={currentUserRole}
+															ownerCount={ownerCount}
 															isCurrentUser={isCurrentUserRow}
-															canRemove={
-																isOwner &&
-																!isCurrentUserRow &&
-																member.role !== "owner"
-															}
+															canRemove={canRemoveMember(
+																currentUserRole,
+																member.role as OrganizationRole,
+																isCurrentUserRow,
+																ownerCount,
+															)}
 														/>
 													</TableCell>
 												</TableRow>
