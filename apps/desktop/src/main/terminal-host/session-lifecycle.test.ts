@@ -686,6 +686,11 @@ describe("Terminal Host Session Lifecycle", () => {
 
 				await sendRequest(control, createRequest);
 
+				const isReady = await waitForSessionReady(control, "test-session-kill");
+				expect(isReady).toBe(true);
+
+				const exitPromise = waitForEvent(stream, "exit", 5000);
+
 				// Kill session
 				const killRequest: IpcRequest = {
 					id: "test-kill-2",
@@ -699,7 +704,7 @@ describe("Terminal Host Session Lifecycle", () => {
 				expect(killResponse.ok).toBe(true);
 
 				// Wait for exit event
-				const exitEvent = await waitForEvent(stream, "exit", 5000);
+				const exitEvent = await exitPromise;
 				expect(exitEvent.sessionId).toBe("test-session-kill");
 			} finally {
 				control.destroy();
