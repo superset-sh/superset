@@ -163,6 +163,8 @@ export const Terminal = ({
 	const isTabVisibleRef = useRef(isTabVisible);
 	isTabVisibleRef.current = isTabVisible;
 
+	const wasTabVisibleRef = useRef(isTabVisible);
+
 	// Gate streaming until initial state restoration is applied to avoid interleaving output.
 	const isStreamReadyRef = useRef(false);
 
@@ -972,16 +974,37 @@ export const Terminal = ({
 	}, [isFocused]);
 
 	useEffect(() => {
-		if (isFocused && isTabVisible && xtermRef.current) {
-			xtermRef.current.focus();
-		}
-	}, [isFocused, isTabVisible]);
+		const xterm = xtermRef.current;
+		const fitAddon = fitAddonRef.current;
+		const wasVisible = wasTabVisibleRef.current;
+		wasTabVisibleRef.current = isTabVisible;
 
-	useEffect(() => {
-		if (!isTabVisible && xtermRef.current) {
-			xtermRef.current.blur();
+		if (!xterm || !fitAddon) {
+			return;
 		}
-	}, [isTabVisible]);
+
+		if (!isTabVisible) {
+			xterm.blur();
+			return;
+		}
+
+		if (!wasVisible) {
+			requestAnimationFrame(() => {
+				if (xtermRef.current !== xterm) return;
+				fitAddon.fit();
+				const cols = xterm.cols;
+				const rows = xterm.rows;
+				if (cols > 0 && rows > 0) {
+					resizeRef.current({ paneId, cols, rows });
+					xterm.refresh(0, rows - 1);
+				}
+			});
+		}
+
+		if (isFocused) {
+			xterm.focus();
+		}
+	}, [isFocused, isTabVisible, paneId, resizeRef]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",

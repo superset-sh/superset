@@ -129,6 +129,7 @@ export function TabView({ tab, isTabVisible = true }: TabViewProps) {
 						paneId={paneId}
 						path={path}
 						isActive={isActive}
+						isTabVisible={isTabVisible}
 						tabId={tab.id}
 						worktreePath={worktreePath}
 						splitPaneAuto={splitPaneAuto}

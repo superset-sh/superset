@@ -49,6 +49,7 @@ interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
 	filePath: string;
+	isTabVisible?: boolean;
 	editable?: boolean;
 	onSave?: (content: string) => void;
 	onChange?: (content: string) => void;
@@ -60,6 +61,7 @@ export function DiffViewer({
 	contents,
 	viewMode,
 	filePath,
+	isTabVisible = true,
 	editable = false,
 	onSave,
 	onChange,
@@ -74,6 +76,19 @@ export function DiffViewer({
 	);
 	const [isEditorMounted, setIsEditorMounted] = useState(false);
 	const hasScrolledToFirstDiffRef = useRef(false);
+
+	useEffect(() => {
+		if (!isTabVisible) return;
+		if (!isMonacoReady) return;
+		if (!isEditorMounted) return;
+
+		requestAnimationFrame(() => {
+			const modifiedEditor = modifiedEditorRef.current;
+			if (modifiedEditor) {
+				modifiedEditor.layout();
+			}
+		});
+	}, [isTabVisible, isMonacoReady, isEditorMounted]);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Reset on file change only
 	useEffect(() => {

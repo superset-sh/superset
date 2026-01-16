@@ -42,6 +42,7 @@ interface DiffData {
 interface FileViewerContentProps {
 	viewMode: FileViewerMode;
 	filePath: string;
+	isTabVisible: boolean;
 	isLoadingRaw: boolean;
 	isLoadingDiff: boolean;
 	rawFileData: RawFileResult;
@@ -70,6 +71,7 @@ interface FileViewerContentProps {
 export function FileViewerContent({
 	viewMode,
 	filePath,
+	isTabVisible,
 	isLoadingRaw,
 	isLoadingDiff,
 	rawFileData,
@@ -134,7 +136,8 @@ export function FileViewerContent({
 			!initialLine ||
 			hasAppliedInitialLocationRef.current ||
 			isLoadingRaw ||
-			!rawFileData?.ok
+			!rawFileData?.ok ||
+			!isTabVisible
 		) {
 			return;
 		}
@@ -161,7 +164,19 @@ export function FileViewerContent({
 		isLoadingRaw,
 		rawFileData,
 		editorRef,
+		isTabVisible,
 	]);
+
+	useEffect(() => {
+		if (!isTabVisible) return;
+		if (!isMonacoReady) return;
+		if (viewMode !== "raw") return;
+		if (!editorRef.current) return;
+
+		requestAnimationFrame(() => {
+			editorRef.current?.layout();
+		});
+	}, [isTabVisible, isMonacoReady, viewMode, editorRef]);
 
 	if (viewMode === "diff") {
 		if (isLoadingDiff) {
@@ -188,6 +203,7 @@ export function FileViewerContent({
 				}}
 				viewMode="inline"
 				filePath={filePath}
+				isTabVisible={isTabVisible}
 				editable={isDiffEditable}
 				onSave={isDiffEditable ? onSaveDiff : undefined}
 				onChange={isDiffEditable ? onDiffChange : undefined}
