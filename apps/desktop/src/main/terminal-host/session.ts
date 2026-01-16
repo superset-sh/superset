@@ -169,13 +169,16 @@ export class Session {
 
 		const { cwd, cols, rows, env = {} } = options;
 
-		// Use the environment passed from the main process (already filtered by buildTerminalEnv).
-		// This matches the non-persistent mode behavior - only use the filtered env,
-		// not the daemon's process.env which may have stale or different values.
-		const processEnv: Record<string, string> = {
-			...env,
-			TERM: "xterm-256color",
-		};
+		// Build environment - filter out undefined values and ELECTRON_RUN_AS_NODE
+		const processEnv: Record<string, string> = {};
+		for (const [key, value] of Object.entries(process.env)) {
+			if (key === "ELECTRON_RUN_AS_NODE") continue;
+			if (value !== undefined) {
+				processEnv[key] = value;
+			}
+		}
+		Object.assign(processEnv, env);
+		processEnv.TERM = "xterm-256color";
 
 		// Get shell args
 		const shellArgs = this.getShellArgs(this.shell);
