@@ -37,6 +37,7 @@ import vscodeInsidersIcon from "renderer/assets/app-icons/vscode-insiders.svg";
 import warpIcon from "renderer/assets/app-icons/warp.png";
 import webstormIcon from "renderer/assets/app-icons/webstorm.svg";
 import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
+import zedIcon from "renderer/assets/app-icons/zed.png";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHotkeyText } from "renderer/stores/hotkeys";
 
@@ -50,6 +51,7 @@ interface AppOption {
 export const APP_OPTIONS: AppOption[] = [
 	{ id: "finder", label: "Finder", icon: finderIcon },
 	{ id: "cursor", label: "Cursor", icon: cursorIcon },
+	{ id: "zed", label: "Zed", icon: zedIcon },
 	{ id: "sublime", label: "Sublime Text", icon: sublimeIcon },
 	{ id: "xcode", label: "Xcode", icon: xcodeIcon },
 	{ id: "iterm", label: "iTerm", icon: itermIcon },

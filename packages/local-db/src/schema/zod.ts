@@ -76,6 +76,7 @@ export const EXTERNAL_APPS = [
 	"vscode",
 	"vscode-insiders",
 	"cursor",
+	"zed",
 	"sublime",
 	"xcode",
 	"iterm",
