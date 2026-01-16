@@ -1,6 +1,6 @@
+import { eq } from "drizzle-orm";
 import { db } from "../src/client";
 import { members, organizations, users } from "../src/schema/auth";
-import { eq } from "drizzle-orm";
 
 // Test users to add
 const testUsers = [
@@ -54,16 +54,15 @@ async function addTestMembers() {
 				user = newUser;
 				console.log(`✅ Created user: ${testUser.name} (${testUser.email})`);
 			} else {
-				console.log(`⏭️  User already exists: ${testUser.name} (${testUser.email})`);
+				console.log(
+					`⏭️  User already exists: ${testUser.name} (${testUser.email})`,
+				);
 			}
 
 			// Check if membership already exists
 			const existingMember = await db.query.members.findFirst({
 				where: (m, { and, eq }) =>
-					and(
-						eq(m.userId, user.id),
-						eq(m.organizationId, supersetOrg.id),
-					),
+					and(eq(m.userId, user.id), eq(m.organizationId, supersetOrg.id)),
 			});
 
 			if (!existingMember) {
@@ -73,9 +72,7 @@ async function addTestMembers() {
 					organizationId: supersetOrg.id,
 					role: testUser.role,
 				});
-				console.log(
-					`   ➕ Added as ${testUser.role} to ${supersetOrg.name}`,
-				);
+				console.log(`   ➕ Added as ${testUser.role} to ${supersetOrg.name}`);
 			} else {
 				console.log(`   ⏭️  Already a member with role: ${existingMember.role}`);
 			}

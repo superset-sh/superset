@@ -58,6 +58,8 @@ export function MemberActions({
 						}
 						// Refresh session to update active org and memberships
 						await authClient.getSession();
+						// Reload page to reinitialize with new session state
+						window.location.reload();
 						return result;
 					}),
 				{
