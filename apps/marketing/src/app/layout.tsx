@@ -6,6 +6,7 @@ import { CookieConsent } from "@/components/CookieConsent";
 
 import { CTAButtons } from "./components/CTAButtons";
 import { Footer } from "./components/Footer";
+import { GitHubStarCounter } from "./components/GitHubStarCounter";
 import { Header } from "./components/Header";
 import "./globals.css";
 import { Providers } from "./providers";
@@ -47,7 +48,7 @@ export default function RootLayout({
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers>
-					<Header ctaButtons={<CTAButtons />} />
+					<Header ctaButtons={<CTAButtons />} starCounter={<GitHubStarCounter />} />
 					{children}
 					<Footer />
 					<CookieConsent />
