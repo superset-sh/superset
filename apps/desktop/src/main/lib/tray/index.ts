@@ -62,72 +62,32 @@ function getTrayIconPath(): string | null {
 let tray: Tray | null = null;
 let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
-function createTrayIcon(): Electron.NativeImage {
+function createTrayIcon(): Electron.NativeImage | null {
 	const iconPath = getTrayIconPath();
-	if (iconPath) {
-		try {
-			let image = nativeImage.createFromPath(iconPath);
-			const size = image.getSize();
-			console.log("[Tray] Loaded image size:", size);
+	if (!iconPath) {
+		console.warn("[Tray] Icon not found");
+		return null;
+	}
 
-			if (!image.isEmpty() && size.width > 0 && size.height > 0) {
-				// 16x16 is standard menu bar size, auto-scales for Retina
-				if (size.width > 22 || size.height > 22) {
-					image = image.resize({ width: 16, height: 16 });
-				}
-				image.setTemplateImage(true);
-				console.log("[Tray] Loaded icon from:", iconPath);
-				return image;
-			}
+	try {
+		let image = nativeImage.createFromPath(iconPath);
+		const size = image.getSize();
+
+		if (image.isEmpty() || size.width === 0 || size.height === 0) {
 			console.warn("[Tray] Icon loaded with zero size from:", iconPath);
-		} catch (error) {
-			console.warn("[Tray] Failed to load icon:", error);
+			return null;
 		}
-	}
 
-	return createFallbackIcon();
-}
-
-/**
- * Programmatic placeholder icon (">_" prompt symbol).
- * macOS template images must be black with transparency - the system handles dark/light mode.
- */
-function createFallbackIcon(): Electron.NativeImage {
-	const size = 16;
-	const canvas = Buffer.alloc(size * size * 4);
-
-	const drawPixel = (x: number, y: number, alpha: number) => {
-		if (x >= 0 && x < size && y >= 0 && y < size) {
-			const offset = (y * size + x) * 4;
-			canvas[offset] = 0;
-			canvas[offset + 1] = 0;
-			canvas[offset + 2] = 0;
-			canvas[offset + 3] = alpha;
+		// 16x16 is standard menu bar size, auto-scales for Retina
+		if (size.width > 22 || size.height > 22) {
+			image = image.resize({ width: 16, height: 16 });
 		}
-	};
-
-	// ">" chevron
-	for (let i = 0; i < 4; i++) {
-		drawPixel(3 + i, 4 + i, 255);
-		drawPixel(4 + i, 4 + i, 200);
-		drawPixel(3 + i, 12 - i, 255);
-		drawPixel(4 + i, 12 - i, 200);
+		image.setTemplateImage(true);
+		return image;
+	} catch (error) {
+		console.warn("[Tray] Failed to load icon:", error);
+		return null;
 	}
-
-	// "_" underscore
-	for (let x = 9; x < 14; x++) {
-		drawPixel(x, 11, 255);
-		drawPixel(x, 12, 200);
-	}
-
-	const image = nativeImage.createFromBuffer(canvas, {
-		width: size,
-		height: size,
-	});
-	image.setTemplateImage(true);
-
-	console.log("[Tray] Using fallback programmatic icon");
-	return image;
 }
 
 function showWindow(): void {
@@ -350,6 +310,11 @@ export function initTray(): void {
 
 	try {
 		const icon = createTrayIcon();
+		if (!icon) {
+			console.warn("[Tray] Skipping initialization - no icon available");
+			return;
+		}
+
 		tray = new Tray(icon);
 		tray.setToolTip("Superset");
 
