@@ -1,5 +1,6 @@
 "use client";
 
+import { COMPANY } from "@superset/shared/constants";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { SocialLinks } from "../SocialLinks";
@@ -44,6 +45,12 @@ export function Footer() {
 							<SupersetLogo />
 						</Link>
 						<nav className="flex items-center gap-6 text-sm">
+							<a
+								href={COMPANY.DOCS_URL}
+								className="text-muted-foreground hover:text-foreground transition-colors"
+							>
+								Docs
+							</a>
 							<Link
 								href="/privacy"
 								className="text-muted-foreground hover:text-foreground transition-colors"
