@@ -9,23 +9,10 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
-import { access } from "node:fs/promises";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
-
-// Determine subprocess path once at module load (async, cached)
-// Try .js first (production build), fall back to .ts (test/dev with Bun)
-const subprocessPathPromise = (async () => {
-	const jsPath = path.join(__dirname, "pty-subprocess.js");
-	const tsPath = path.join(__dirname, "pty-subprocess.ts");
-	const jsExists = await access(jsPath)
-		.then(() => true)
-		.catch(() => false);
-	return jsExists ? jsPath : tsPath;
-})();
-
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
@@ -171,12 +158,12 @@ export class Session {
 	/**
 	 * Spawn the PTY process via subprocess
 	 */
-	async spawn(options: {
+	spawn(options: {
 		cwd: string;
 		cols: number;
 		rows: number;
 		env?: Record<string, string>;
-	}): Promise<void> {
+	}): void {
 		if (this.subprocess) {
 			throw new Error("PTY already spawned");
 		}
@@ -191,14 +178,13 @@ export class Session {
 		processEnv.TERM = "xterm-256color";
 
 		const shellArgs = this.getShellArgs(this.shell);
-		const subprocessPath = await subprocessPathPromise;
+		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
-		// Spawn subprocess with full env (it's trusted code that needs runtime vars).
-		// The PTY shell will receive filtered processEnv via pendingSpawn below.
+		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
 		const electronPath = process.execPath;
 		this.subprocess = spawn(electronPath, [subprocessPath], {
 			stdio: ["pipe", "pipe", "inherit"],
-			env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
 		});
 
 		// Read framed messages from subprocess stdout
@@ -221,6 +207,9 @@ export class Session {
 
 		// Handle subprocess exit
 		this.subprocess.on("exit", (code) => {
+			console.log(
+				`[Session ${this.sessionId}] Subprocess exited with code ${code}`,
+			);
 			this.handleSubprocessExit(code ?? -1);
 		});
 
