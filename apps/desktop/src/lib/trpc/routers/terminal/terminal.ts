@@ -175,7 +175,7 @@ export const createTerminalRouter = () => {
 					rootPath = project?.mainRepoPath;
 				}
 
-				const cwd = resolveCwd(cwdOverride, workspacePath);
+				const cwd = resolveCwd(cwdOverride, workspacePath, isRemote);
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {

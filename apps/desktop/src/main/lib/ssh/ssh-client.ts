@@ -20,7 +20,38 @@ const DEFAULT_PORT = 22;
 const DEFAULT_KEEPALIVE_INTERVAL = 60;
 const DEFAULT_CONNECTION_TIMEOUT = 30000;
 const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY_MS = 2000;
+const BASE_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+
+/**
+ * Escape a string for safe use in a shell command.
+ * Uses single quotes which prevent all shell expansions.
+ * Single quotes within the string are escaped using the pattern: 'text'"'"'more'
+ */
+function shellEscape(str: string): string {
+	// Wrap in single quotes and escape any single quotes within
+	return `'${str.replace(/'/g, "'\"'\"'")}'`;
+}
+
+/**
+ * Validate that a path is safe for use as a remote cwd.
+ * Must be an absolute POSIX path with no dangerous patterns.
+ */
+function isValidRemotePath(remotePath: string): boolean {
+	// Must start with /
+	if (!remotePath.startsWith("/")) {
+		return false;
+	}
+	// Disallow null bytes
+	if (remotePath.includes("\0")) {
+		return false;
+	}
+	// Disallow .. path traversal
+	if (remotePath.includes("..")) {
+		return false;
+	}
+	return true;
+}
 
 export class SSHClient extends EventEmitter {
 	private client: Client;
@@ -29,6 +60,10 @@ export class SSHClient extends EventEmitter {
 	private reconnectAttempts = 0;
 	private reconnectTimer: NodeJS.Timeout | null = null;
 	private channels: Map<string, ClientChannel> = new Map();
+	// Tracks whether we're in an initial connection attempt (vs reconnecting after established connection)
+	// This prevents double handling: the persistent error handler should not call attemptReconnect()
+	// during initial connection because connect() handles errors via promise rejection.
+	private isInitialConnect = false;
 
 	constructor(config: SSHConnectionConfig) {
 		super();
@@ -42,6 +77,7 @@ export class SSHClient extends EventEmitter {
 			console.log(`[ssh/client] Connected to ${this.config.host}`);
 			this.state = "connected";
 			this.reconnectAttempts = 0;
+			this.isInitialConnect = false; // Mark initial connection complete
 			this.emitStatus();
 		});
 
@@ -49,7 +85,11 @@ export class SSHClient extends EventEmitter {
 			console.error(`[ssh/client] Connection error:`, err.message);
 			this.state = "error";
 			this.emitStatus(err.message);
-			this.attemptReconnect();
+			// Only attempt reconnect if this is not an initial connection attempt.
+			// During initial connect, the connect() method handles errors via promise rejection.
+			if (!this.isInitialConnect) {
+				this.attemptReconnect();
+			}
 		});
 
 		this.client.on("close", () => {
@@ -113,8 +153,14 @@ export class SSHClient extends EventEmitter {
 		this.reconnectAttempts++;
 		this.emitStatus();
 
+		// Exponential backoff: delay = base * 2^(attempt-1), capped at max
+		const delay = Math.min(
+			BASE_RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1),
+			MAX_RECONNECT_DELAY_MS,
+		);
+
 		console.log(
-			`[ssh/client] Reconnecting in ${RECONNECT_DELAY_MS}ms (attempt ${this.reconnectAttempts})`,
+			`[ssh/client] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
 		);
 
 		this.reconnectTimer = setTimeout(() => {
@@ -122,7 +168,7 @@ export class SSHClient extends EventEmitter {
 			this.connect().catch((err) => {
 				console.error(`[ssh/client] Reconnect failed:`, err.message);
 			});
-		}, RECONNECT_DELAY_MS);
+		}, delay);
 	}
 
 	async connect(): Promise<void> {
@@ -133,6 +179,8 @@ export class SSHClient extends EventEmitter {
 
 		console.log(`[ssh/client] Connecting to ${this.config.host}:${this.config.port} as ${this.config.username}`);
 		this.state = "connecting";
+		// Mark as initial connect to prevent persistent error handler from triggering reconnect
+		this.isInitialConnect = true;
 		this.emitStatus();
 
 		let connectConfig: ConnectConfig;
@@ -143,6 +191,7 @@ export class SSHClient extends EventEmitter {
 			const message = err instanceof Error ? err.message : String(err);
 			console.error(`[ssh/client] Failed to build connect config: ${message}`);
 			this.state = "error";
+			this.isInitialConnect = false; // Clear flag on config build failure
 			this.emitStatus(message);
 			throw err;
 		}
@@ -150,6 +199,7 @@ export class SSHClient extends EventEmitter {
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				console.error(`[ssh/client] Connection timeout after ${this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT}ms`);
+				this.isInitialConnect = false; // Clear flag on timeout
 				this.client.end();
 				reject(new Error("Connection timeout"));
 			}, this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT);
@@ -157,12 +207,14 @@ export class SSHClient extends EventEmitter {
 			this.client.once("ready", () => {
 				clearTimeout(timeout);
 				console.log(`[ssh/client] Connection ready`);
+				// Note: isInitialConnect is cleared in the persistent ready handler
 				resolve();
 			});
 
 			this.client.once("error", (err) => {
 				clearTimeout(timeout);
 				console.error(`[ssh/client] Connection error: ${err.message}`);
+				this.isInitialConnect = false; // Clear flag on error
 				reject(err);
 			});
 
@@ -326,9 +378,11 @@ export class SSHClient extends EventEmitter {
 					this.emit(`error:${paneId}`, err.message);
 				});
 
-				// Change directory if specified
-				if (cwd) {
-					channel.write(`cd ${JSON.stringify(cwd)} && clear\n`);
+				// Change directory if specified (with validation and proper escaping)
+				if (cwd && isValidRemotePath(cwd)) {
+					channel.write(`cd ${shellEscape(cwd)} && clear\n`);
+				} else if (cwd) {
+					console.warn(`[ssh/client] Invalid remote path for cwd, ignoring: ${cwd}`);
 				}
 
 				resolve(channel);
@@ -343,6 +397,8 @@ export class SSHClient extends EventEmitter {
 		const channel = this.channels.get(paneId);
 		if (channel) {
 			channel.write(data);
+		} else {
+			console.warn(`[ssh/client] Cannot write to ${paneId}: channel not found`);
 		}
 	}
 
@@ -353,6 +409,8 @@ export class SSHClient extends EventEmitter {
 		const channel = this.channels.get(paneId);
 		if (channel) {
 			channel.setWindow(rows, cols, 0, 0);
+		} else {
+			console.warn(`[ssh/client] Cannot resize ${paneId} to ${cols}x${rows}: channel not found`);
 		}
 	}
 
@@ -363,6 +421,8 @@ export class SSHClient extends EventEmitter {
 		const channel = this.channels.get(paneId);
 		if (channel) {
 			channel.signal(signalName);
+		} else {
+			console.warn(`[ssh/client] Cannot send signal ${signalName} to ${paneId}: channel not found`);
 		}
 	}
 
