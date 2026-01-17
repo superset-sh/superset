@@ -20,6 +20,7 @@ import {
 	reconcileDaemonSessions,
 	shutdownOrphanedDaemon,
 } from "./lib/terminal";
+import { disposeTray, initTray } from "./lib/tray";
 import { getWorkspaceRuntimeRegistry } from "./lib/workspace-runtime";
 import { MainWindow } from "./windows/main";
 
@@ -175,6 +176,9 @@ app.on("before-quit", async (event) => {
 	quitState = "cleaning";
 
 	try {
+		// Dispose tray before other cleanup
+		disposeTray();
+
 		await Promise.all([
 			getWorkspaceRuntimeRegistry().getDefault().terminal.cleanup(),
 			posthog?.shutdown(),
@@ -233,6 +237,9 @@ if (!gotTheLock) {
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
+
+		// Initialize system tray (macOS menu bar icon for daemon management)
+		initTray();
 
 		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
