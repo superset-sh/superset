@@ -173,7 +173,7 @@ export function GroupStrip() {
 								<HiMiniPlus className="size-4" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom" sideOffset={4}>
+						<TooltipContent side="top" sideOffset={4}>
 							<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
 						</TooltipContent>
 					</Tooltip>

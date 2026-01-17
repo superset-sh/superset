@@ -16,9 +16,7 @@ import {
 
 export const createAuthRouter = () => {
 	return router({
-		getStoredToken: publicProcedure.query(async () => {
-			return await loadToken();
-		}),
+		getStoredToken: publicProcedure.query(() => loadToken()),
 
 		persistToken: publicProcedure
 			.input(
@@ -63,10 +61,10 @@ export const createAuthRouter = () => {
 					const state = crypto.randomBytes(32).toString("base64url");
 					stateStore.set(state, Date.now());
 
-					// Clean up old states (older than 10 minutes)
-					const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+					// Clean up expired states (10 minutes)
+					const cutoff = Date.now() - 10 * 60 * 1000;
 					for (const [s, ts] of stateStore) {
-						if (ts < tenMinutesAgo) stateStore.delete(s);
+						if (ts < cutoff) stateStore.delete(s);
 					}
 
 					const connectUrl = new URL(
@@ -86,9 +84,7 @@ export const createAuthRouter = () => {
 			}),
 
 		signOut: publicProcedure.mutation(async () => {
-			try {
-				await fs.unlink(TOKEN_FILE);
-			} catch {}
+			await fs.unlink(TOKEN_FILE).catch(() => {});
 			return { success: true };
 		}),
 	});

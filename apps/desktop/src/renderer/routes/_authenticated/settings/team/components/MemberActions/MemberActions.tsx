@@ -1,149 +1,183 @@
-import { Button } from "@superset/ui/button";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@superset/ui/dialog";
+	getAvailableRoleChanges,
+	getRoleLevel,
+	ORGANIZATION_ROLES,
+	type OrganizationRole,
+} from "@superset/shared/auth";
+import { alert } from "@superset/ui/atoms/Alert";
+import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-
-export interface MemberDetails {
-	memberId: string;
-	userId: string;
-	name: string | null;
-	email: string;
-	image: string | null;
-	role: string;
-	joinedAt: Date;
-	organizationId: string;
-}
-
-interface MemberActionsProps {
-	member: MemberDetails;
-	isCurrentUser: boolean;
-	canRemove: boolean;
-}
+import type { TeamMember } from "../../types";
 
 export function MemberActions({
 	member,
+	currentUserRole,
+	ownerCount,
 	isCurrentUser,
 	canRemove,
-}: MemberActionsProps) {
-	const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-	const [isRemoving, setIsRemoving] = useState(false);
+}: {
+	member: TeamMember;
+	currentUserRole: OrganizationRole;
+	ownerCount: number;
+	isCurrentUser: boolean;
+	canRemove: boolean;
+}) {
+	const [isChangingRole, setIsChangingRole] = useState(false);
+	const { refetch: refetchSession } = authClient.useSession();
+	const navigate = useNavigate();
 
-	const handleRemove = async () => {
-		setIsRemoving(true);
+	const availableRoles = getAvailableRoleChanges(
+		currentUserRole,
+		member.role,
+		ownerCount,
+	);
+
+	async function leaveOrganization(): Promise<void> {
+		const result = await apiTrpcClient.organization.leave.mutate({
+			organizationId: member.organizationId,
+		});
+
+		// Update session with new active organization (or null if none left)
+		await authClient.organization.setActive({
+			organizationId: result.activeOrganizationId ?? null,
+		});
+		await refetchSession();
+		navigate({ to: "/" });
+	}
+
+	async function removeMember(): Promise<void> {
+		await apiTrpcClient.organization.removeMember.mutate({
+			organizationId: member.organizationId,
+			userId: member.userId,
+		});
+	}
+
+	function handleRemove(): void {
+		if (isCurrentUser) {
+			toast.promise(leaveOrganization(), {
+				loading: "Leaving organization...",
+				success: "Left organization",
+				error: (err) => err.message || "Failed to leave organization",
+			});
+		} else {
+			toast.promise(removeMember(), {
+				loading: "Removing member...",
+				success: "Member removed",
+				error: (err) => err.message || "Failed to remove member",
+			});
+		}
+	}
+
+	const handleRemoveClick = () => {
+		alert.destructive({
+			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
+			description: isCurrentUser
+				? "Are you sure you want to leave this organization? You will lose access immediately."
+				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.`,
+			confirmText: isCurrentUser ? "Leave Organization" : "Remove Member",
+			cancelText: "Cancel",
+			onConfirm: () => {
+				handleRemove();
+			},
+		});
+	};
+
+	const handleChangeRole = async (newRole: OrganizationRole) => {
+		setIsChangingRole(true);
 		try {
-			if (isCurrentUser) {
-				await authClient.organization.leave({
-					organizationId: member.organizationId,
-				});
-				toast.success("Left organization");
-			} else {
-				await authClient.organization.removeMember({
-					organizationId: member.organizationId,
-					memberIdOrEmail: member.userId,
-				});
-				toast.success("Member removed");
-			}
-			setShowRemoveDialog(false);
+			await apiTrpcClient.organization.updateMemberRole.mutate({
+				organizationId: member.organizationId,
+				memberId: member.memberId,
+				role: newRole,
+			});
+			toast.success(`Role changed to ${ORGANIZATION_ROLES[newRole].name}`);
 		} catch (error) {
 			toast.error(
-				error instanceof Error
-					? error.message
-					: `Failed to ${isCurrentUser ? "leave" : "remove member from"} organization`,
+				error instanceof Error ? error.message : "Failed to change role",
 			);
 		} finally {
-			setIsRemoving(false);
+			setIsChangingRole(false);
+		}
+	};
+
+	const handleRoleSelection = (newRole: OrganizationRole) => {
+		const isSelfDemotion =
+			isCurrentUser && getRoleLevel(newRole) < getRoleLevel(member.role);
+
+		if (isSelfDemotion) {
+			alert.destructive({
+				title: "Demote yourself?",
+				description: `You're about to change your role from ${ORGANIZATION_ROLES[member.role].name} to ${ORGANIZATION_ROLES[newRole].name}. Another owner will need to restore your permissions. Are you sure?`,
+				confirmText: "Yes, demote me",
+				cancelText: "Cancel",
+				onConfirm: async () => {
+					await handleChangeRole(newRole);
+				},
+			});
+		} else {
+			handleChangeRole(newRole);
 		}
 	};
 
 	return (
-		<>
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="h-8 w-8">
-						<HiEllipsisVertical className="h-4 w-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					{isCurrentUser ? (
-						<DropdownMenuItem
-							className="text-destructive gap-2"
-							onSelect={() => setShowRemoveDialog(true)}
-						>
-							<HiOutlineTrash className="h-4 w-4" />
-							<span>Leave organization...</span>
-						</DropdownMenuItem>
-					) : canRemove ? (
-						<DropdownMenuItem
-							className="text-destructive gap-2"
-							onSelect={() => setShowRemoveDialog(true)}
-						>
-							<HiOutlineTrash className="h-4 w-4" />
-							<span>Remove member</span>
-						</DropdownMenuItem>
-					) : null}
-				</DropdownMenuContent>
-			</DropdownMenu>
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Button variant="ghost" size="icon" className="h-8 w-8">
+					<HiEllipsisVertical className="h-4 w-4" />
+				</Button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end">
+				{availableRoles.length > 0 && (
+					<DropdownMenuSub>
+						<DropdownMenuSubTrigger disabled={isChangingRole}>
+							Change role
+						</DropdownMenuSubTrigger>
+						<DropdownMenuSubContent>
+							{availableRoles.map((role) => (
+								<DropdownMenuItem
+									key={role}
+									onSelect={() => handleRoleSelection(role)}
+									disabled={isChangingRole}
+								>
+									Change to {ORGANIZATION_ROLES[role].name}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuSubContent>
+					</DropdownMenuSub>
+				)}
 
-			<Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>
-							{isCurrentUser ? "Leave organization?" : "Remove member?"}
-						</DialogTitle>
-						<DialogDescription>
-							{isCurrentUser ? (
-								<>
-									Are you sure you want to leave this organization? You will
-									lose access immediately.
-								</>
-							) : (
-								<>
-									Are you sure you want to remove <strong>{member.name}</strong>{" "}
-									({member.email}) from the organization? They will lose access
-									immediately.
-								</>
-							)}
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							variant="outline"
-							onClick={() => setShowRemoveDialog(false)}
-							disabled={isRemoving}
-						>
-							Cancel
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={handleRemove}
-							disabled={isRemoving}
-						>
-							{isRemoving
-								? isCurrentUser
-									? "Leaving..."
-									: "Removing..."
-								: isCurrentUser
-									? "Leave Organization"
-									: "Remove Member"}
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
-		</>
+				{isCurrentUser ? (
+					<DropdownMenuItem
+						className="text-destructive gap-2"
+						onSelect={handleRemoveClick}
+					>
+						<HiOutlineTrash className="h-4 w-4 text-destructive" />
+						<span>Leave organization...</span>
+					</DropdownMenuItem>
+				) : canRemove ? (
+					<DropdownMenuItem
+						className="text-destructive gap-2"
+						onSelect={handleRemoveClick}
+					>
+						<HiOutlineTrash className="h-4 w-4 text-destructive" />
+						<span>Remove member</span>
+					</DropdownMenuItem>
+				) : null}
+			</DropdownMenuContent>
+		</DropdownMenu>
 	);
 }

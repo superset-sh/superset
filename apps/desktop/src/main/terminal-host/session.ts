@@ -11,6 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
+import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
@@ -169,22 +170,14 @@ export class Session {
 
 		const { cwd, cols, rows, env = {} } = options;
 
-		// Build environment - filter out undefined values and ELECTRON_RUN_AS_NODE
-		const processEnv: Record<string, string> = {};
-		for (const [key, value] of Object.entries(process.env)) {
-			if (key === "ELECTRON_RUN_AS_NODE") continue;
-			if (value !== undefined) {
-				processEnv[key] = value;
-			}
-		}
-		Object.assign(processEnv, env);
+		// Merge process.env with passed env (passed takes precedence), then filter
+		const processEnv = buildSafeEnv({ ...process.env, ...env } as Record<
+			string,
+			string
+		>);
 		processEnv.TERM = "xterm-256color";
 
-		// Get shell args
 		const shellArgs = this.getShellArgs(this.shell);
-
-		// Spawn PTY subprocess
-		// The subprocess script is bundled alongside terminal-host.js
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Use electron as node to run the subprocess
@@ -226,17 +219,6 @@ export class Session {
 		this.subprocess.on("error", (error) => {
 			console.error(`[Session ${this.sessionId}] Subprocess error:`, error);
 			this.handleSubprocessExit(-1);
-		});
-
-		// Debug: Log shell spawn config
-		console.log(`[Session ${this.sessionId}] Spawn config:`, {
-			shell: this.shell,
-			args: shellArgs,
-			cwd,
-			cols,
-			rows,
-			ZDOTDIR: processEnv.ZDOTDIR,
-			SUPERSET_ORIG_ZDOTDIR: processEnv.SUPERSET_ORIG_ZDOTDIR,
 		});
 
 		// Store pending spawn config

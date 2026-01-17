@@ -68,6 +68,31 @@ chmod +x .superset/setup.sh
 3. Commands execute in a terminal tab so you can see output
 4. When deleting a workspace, teardown commands run before the worktree is removed
 
+## Environment Variables
+
+Superset provides environment variables to your setup scripts. These are available when your commands run:
+
+### Provided by Superset
+
+| Variable | Description |
+|----------|-------------|
+| `SUPERSET_ROOT_PATH` | Absolute path to the root repository (main worktree) |
+| `SUPERSET_WORKSPACE_NAME` | Name of the workspace being created (defaults to directory name) |
+
+### Example Usage
+
+Your setup script can use these variables to access shared configuration:
+
+```bash
+#!/usr/bin/env bash
+
+# Copy shared environment from root to workspace
+cp "$SUPERSET_ROOT_PATH/.env" .env
+
+# Use workspace name for resource naming
+echo "Setting up workspace: $SUPERSET_WORKSPACE_NAME"
+```
+
 ## Tips
 
 - Keep setup scripts fast - they run every time you create a workspace

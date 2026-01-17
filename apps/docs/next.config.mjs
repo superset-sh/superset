@@ -10,12 +10,12 @@ const config = {
 		return [
 			{
 				source: "/",
-				destination: "/docs/quick-start",
+				destination: "/quick-start",
 				permanent: false,
 			},
 			{
 				source: "/docs",
-				destination: "/docs/quick-start",
+				destination: "/quick-start",
 				permanent: false,
 			},
 		];
@@ -24,8 +24,8 @@ const config = {
 		return [
 			// Fumadocs MDX rewrites
 			{
-				source: "/docs/:path*.mdx",
-				destination: "/llms.mdx/docs/:path*",
+				source: "/:path*.mdx",
+				destination: "/llms.mdx/:path*",
 			},
 			// PostHog rewrites
 			{

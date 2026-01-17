@@ -128,38 +128,37 @@ export class TerminalHost {
 					env: request.env,
 				});
 
-				// Hold the spawn permit until the PTY is ready (or times out). This spreads
-				// out large bursts of session creation and avoids CPU spikes from dozens
-				// of shells starting simultaneously.
-				void promiseWithTimeout(session.waitForReady(), SPAWN_READY_TIMEOUT_MS)
-					.catch(() => {})
-					.finally(() => {
-						releaseSpawn();
-					});
+				// Wait for PTY ready to ensure PID is available for port scanning
+				try {
+					await promiseWithTimeout(
+						session.waitForReady(),
+						SPAWN_READY_TIMEOUT_MS,
+					);
+				} catch {
+					console.warn(
+						`[TerminalHost] Timeout waiting for PTY ready for session ${sessionId}`,
+					);
+				} finally {
+					releaseSpawn();
+				}
 			} catch (error) {
 				releaseSpawn();
 				throw error;
 			}
 
-			// Run initial commands if provided (after PTY is ready)
+			// Run initial commands if provided
 			if (request.initialCommands && request.initialCommands.length > 0) {
-				const initialCommands = request.initialCommands;
-				// Wait for PTY to be ready, then run commands
-				session.waitForReady().then(() => {
-					// Double-check session is still alive after await
-					if (session?.isAlive) {
-						try {
-							const cmdString = `${initialCommands.join(" && ")}\n`;
-							session.write(cmdString);
-						} catch (error) {
-							// Log but don't crash - initialCommands are best-effort
-							console.error(
-								`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
-								error,
-							);
-						}
+				if (session.isAlive) {
+					try {
+						const cmdString = `${request.initialCommands.join(" && ")}\n`;
+						session.write(cmdString);
+					} catch (error) {
+						console.error(
+							`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
+							error,
+						);
 					}
-				});
+				}
 			}
 
 			this.sessions.set(sessionId, session);

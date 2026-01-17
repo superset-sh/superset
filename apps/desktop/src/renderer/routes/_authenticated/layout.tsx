@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!session?.user;
+	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
 
@@ -59,6 +60,10 @@ function AuthenticatedLayout() {
 
 	if (!isSignedIn) {
 		return <Navigate to="/sign-in" replace />;
+	}
+
+	if (!activeOrganizationId) {
+		return <Navigate to="/create-organization" replace />;
 	}
 
 	return (

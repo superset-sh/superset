@@ -51,36 +51,22 @@ export function OrganizationDropdown() {
 
 	const userEmail = session?.user?.email;
 
-	const switchOrganization = async (newOrgId: string) => {
-		await authClient.organization.setActive({
-			organizationId: newOrgId,
-		});
-	};
+	const clearCacheMutation =
+		electronTrpc.cache.clearElectricCache.useMutation();
 
-	const handleSignOut = async () => {
+	async function switchOrganization(newOrgId: string): Promise<void> {
+		await authClient.organization.setActive({ organizationId: newOrgId });
+		clearCacheMutation.mutate();
+	}
+
+	async function handleSignOut(): Promise<void> {
 		await authClient.signOut();
 		signOutMutation.mutate();
-	};
+	}
 
-	const handleKeyboardShortcuts = () => {
-		navigate({ to: "/settings/keyboard" });
-	};
-
-	const handleContactUs = () => {
-		window.open(COMPANY.MAIL_TO, "_blank");
-	};
-
-	const handleReportIssue = () => {
-		window.open(COMPANY.REPORT_ISSUE_URL, "_blank");
-	};
-
-	const handleJoinDiscord = () => {
-		window.open(COMPANY.DISCORD_URL, "_blank");
-	};
-
-	const handleTwitter = () => {
-		window.open(COMPANY.X_URL, "_blank");
-	};
+	function openExternal(url: string): void {
+		window.open(url, "_blank");
+	}
 
 	const userName = session?.user?.name;
 	const displayName = activeOrganization?.name ?? userName ?? "Organization";
@@ -159,11 +145,15 @@ export function OrganizationDropdown() {
 				)}
 
 				{/* Support section */}
-				<DropdownMenuItem onClick={handleReportIssue}>
+				<DropdownMenuItem
+					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
+				>
 					<HiOutlineBugAnt className="h-4 w-4" />
 					Report Issue
 				</DropdownMenuItem>
-				<DropdownMenuItem onClick={handleKeyboardShortcuts}>
+				<DropdownMenuItem
+					onClick={() => navigate({ to: "/settings/keyboard" })}
+				>
 					<LuKeyboard className="h-4 w-4" />
 					Keyboard Shortcuts
 					{showShortcut && (
@@ -176,14 +166,14 @@ export function OrganizationDropdown() {
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
-						<DropdownMenuItem onClick={handleJoinDiscord}>
+						<DropdownMenuItem onClick={() => openExternal(COMPANY.DISCORD_URL)}>
 							<FaDiscord className="h-4 w-4" />
 							Discord
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={handleTwitter}>
+						<DropdownMenuItem onClick={() => openExternal(COMPANY.X_URL)}>
 							<FaXTwitter className="h-4 w-4" />X
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={handleContactUs}>
+						<DropdownMenuItem onClick={() => openExternal(COMPANY.MAIL_TO)}>
 							<HiOutlineEnvelope className="h-4 w-4" />
 							Email Founders
 						</DropdownMenuItem>

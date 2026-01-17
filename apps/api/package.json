@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@electric-sql/client": "1.4.0",
+		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724",
 		"@linear/sdk": "^68.1.0",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/auth": "workspace:*",
@@ -32,7 +32,7 @@
 		"react": "^19.2.3",
 		"react-dom": "^19.2.3",
 		"require-in-the-middle": "8.0.1",
-		"zod": "^4.1.13"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

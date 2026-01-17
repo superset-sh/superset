@@ -15,6 +15,10 @@
 		"./terminal-link-parsing": {
 			"types": "./src/terminal-link-parsing/index.ts",
 			"default": "./src/terminal-link-parsing/index.ts"
+		},
+		"./auth": {
+			"types": "./src/auth/index.ts",
+			"default": "./src/auth/index.ts"
 		}
 	},
 	"scripts": {
@@ -23,7 +27,7 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"zod": "^4.1.13"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

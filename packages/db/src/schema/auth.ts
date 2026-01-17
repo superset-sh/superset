@@ -16,6 +16,9 @@ export const users = authSchema.table("users", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
+	// Have to denormalize this for electric sql to properly be able to filter
+	// Users by org, as electric sql doesn't support joins.
+	organizationIds: uuid("organization_ids").array().default([]).notNull(),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()

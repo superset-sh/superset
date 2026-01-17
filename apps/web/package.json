@@ -39,7 +39,7 @@
 		"require-in-the-middle": "8.0.1",
 		"server-only": "^0.0.1",
 		"superjson": "^2.2.5",
-		"zod": "^4.1.13"
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
