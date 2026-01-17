@@ -154,7 +154,14 @@ export function FileViewerContent({
 		editor.focus();
 
 		hasAppliedInitialLocationRef.current = true;
-	}, [viewMode, initialLine, initialColumn, isLoadingRaw, rawFileData, editorRef]);
+	}, [
+		viewMode,
+		initialLine,
+		initialColumn,
+		isLoadingRaw,
+		rawFileData,
+		editorRef,
+	]);
 
 	if (viewMode === "diff") {
 		if (isLoadingDiff) {
