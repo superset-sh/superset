@@ -256,6 +256,9 @@ export class Session {
 	): void {
 		switch (type) {
 			case PtySubprocessIpcType.Ready:
+				console.error(
+					`[Session ${this.sessionId}] Received Ready from subprocess`,
+				);
 				this.subprocessReady = true;
 				if (this.pendingSpawn) {
 					this.sendSpawnToSubprocess(this.pendingSpawn);
@@ -265,6 +268,9 @@ export class Session {
 
 			case PtySubprocessIpcType.Spawned:
 				this.ptyPid = payload.length >= 4 ? payload.readUInt32LE(0) : null;
+				console.error(
+					`[Session ${this.sessionId}] Received Spawned from subprocess, ptyPid=${this.ptyPid}`,
+				);
 				// Resolve the ready promise so callers can await PTY readiness
 				if (this.ptyReadyResolve) {
 					this.ptyReadyResolve();
