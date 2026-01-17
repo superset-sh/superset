@@ -970,35 +970,14 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [isFocused]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: resizeRef used intentionally to read latest value without recreating callback
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		const fitAddon = fitAddonRef.current;
-		if (!xterm || !fitAddon) return;
+		if (!xterm) return;
 
 		if (isFocused) {
 			xterm.focus();
-
-			// Trigger SIGWINCH for alt-screen TUIs so they repaint on pane focus change.
-			// Apps with focus reporting (mode 1004) get CSI I from xterm.js automatically.
-			if (isAlternateScreenRef.current) {
-				requestAnimationFrame(() => {
-					if (xtermRef.current !== xterm) return;
-					fitAddon.fit();
-					const cols = xterm.cols;
-					const rows = xterm.rows;
-					if (cols > 0 && rows > 0) {
-						resizeRef.current({ paneId, cols, rows: rows - 1 });
-						setTimeout(() => {
-							if (xtermRef.current !== xterm) return;
-							resizeRef.current({ paneId, cols, rows });
-							xterm.refresh(0, rows - 1);
-						}, 100);
-					}
-				});
-			}
 		}
-	}, [isFocused, paneId]);
+	}, [isFocused]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",
