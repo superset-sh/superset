@@ -184,6 +184,10 @@ export class Session {
 		const tsPath = path.join(__dirname, "pty-subprocess.ts");
 		const subprocessPath = existsSync(jsPath) ? jsPath : tsPath;
 
+		console.log(
+			`[Session ${this.sessionId}] Spawning subprocess: execPath=${process.execPath}, subprocessPath=${subprocessPath}, jsExists=${existsSync(jsPath)}, tsExists=${existsSync(tsPath)}`,
+		);
+
 		// Spawn subprocess with full env (it's trusted code that needs runtime vars).
 		// The PTY shell will receive filtered processEnv via pendingSpawn below.
 		const electronPath = process.execPath;
