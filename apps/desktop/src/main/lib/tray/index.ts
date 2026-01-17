@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import {
@@ -13,11 +15,9 @@ import {
 	getActiveTerminalManager,
 	isDaemonModeEnabled,
 } from "main/lib/terminal";
+import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
-import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 
 const POLL_INTERVAL_MS = 5000;
 
