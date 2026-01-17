@@ -184,7 +184,7 @@ export class Session {
 		const tsPath = path.join(__dirname, "pty-subprocess.ts");
 		const subprocessPath = existsSync(jsPath) ? jsPath : tsPath;
 
-		console.log(
+		console.error(
 			`[Session ${this.sessionId}] Spawning subprocess: execPath=${process.execPath}, subprocessPath=${subprocessPath}, jsExists=${existsSync(jsPath)}, tsExists=${existsSync(tsPath)}`,
 		);
 
