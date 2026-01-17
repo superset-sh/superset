@@ -6,11 +6,7 @@ import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-	HiExclamationTriangle,
-	HiOutlineArrowPath,
-	HiXMark,
-} from "react-icons/hi2";
+import { HiExclamationTriangle, HiXMark } from "react-icons/hi2";
 import { LuTerminal } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -1545,20 +1541,17 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
-						<div className="flex items-center justify-center size-14 rounded-full bg-destructive/10">
-							<HiXMark className="size-7 text-destructive" />
-						</div>
-						<div className="space-y-1.5">
-							<h2 className="text-base font-medium text-foreground">
+					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
+						<HiXMark className="size-6 text-destructive" />
+						<div className="space-y-1">
+							<p className="text-sm font-medium text-foreground">
 								Session killed
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								This terminal was terminated. Restart to begin a new session.
+							</p>
+							<p className="text-xs text-muted-foreground">
+								This terminal was terminated.
 							</p>
 						</div>
 						<Button size="sm" onClick={handleRestartSession}>
-							<HiOutlineArrowPath className="size-4" />
 							Restart Session
 						</Button>
 					</div>
@@ -1566,18 +1559,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			)}
 			{connectionError && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
-						<div className="flex items-center justify-center size-14 rounded-full bg-destructive/10">
-							<HiExclamationTriangle className="size-7 text-destructive" />
-						</div>
-						<div className="space-y-1.5">
-							<h2 className="text-base font-medium text-foreground">
+					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
+						<HiExclamationTriangle className="size-6 text-destructive" />
+						<div className="space-y-1">
+							<p className="text-sm font-medium text-foreground">
 								Connection error
-							</h2>
-							<p className="text-sm text-muted-foreground">{connectionError}</p>
+							</p>
+							<p className="text-xs text-muted-foreground">{connectionError}</p>
 						</div>
 						<Button size="sm" onClick={handleRetryConnection}>
-							<HiOutlineArrowPath className="size-4" />
 							Retry Connection
 						</Button>
 					</div>
@@ -1585,26 +1575,22 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			)}
 			{isRestoredMode && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
-						<div className="flex items-center justify-center size-14 rounded-full bg-primary/10">
-							<LuTerminal className="size-7 text-primary" />
-						</div>
-						<div className="space-y-1.5">
-							<h2 className="text-base font-medium text-foreground">
+					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
+						<LuTerminal className="size-6 text-primary" />
+						<div className="space-y-1">
+							<p className="text-sm font-medium text-foreground">
 								Session restored
-							</h2>
-							<p className="text-sm text-muted-foreground">
-								Your previous terminal output was preserved. Click below to
-								start a new shell session.
+							</p>
+							<p className="text-xs text-muted-foreground">
+								Your previous output was preserved.
 							</p>
 							{restoredCwd && (
-								<p className="text-xs text-muted-foreground/70 font-mono truncate max-w-xs">
+								<p className="text-xs text-muted-foreground/60 font-mono truncate max-w-[200px]">
 									{restoredCwd}
 								</p>
 							)}
 						</div>
 						<Button size="sm" onClick={handleStartShell}>
-							<LuTerminal className="size-4" />
 							Start Shell
 						</Button>
 					</div>
