@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
@@ -5,6 +6,12 @@ import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	HiExclamationTriangle,
+	HiOutlineArrowPath,
+	HiXMark,
+} from "react-icons/hi2";
+import { LuTerminal } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	clearTerminalKilledByUser,
@@ -1538,59 +1545,69 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="mb-4 px-4 text-center text-red-300">
-						<p className="font-semibold">Session killed</p>
-						<p className="mt-1 text-sm text-gray-400">
-							This terminal was terminated by you. Restart to start a new
-							session.
-						</p>
+					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
+						<div className="flex items-center justify-center size-14 rounded-full bg-destructive/10">
+							<HiXMark className="size-7 text-destructive" />
+						</div>
+						<div className="space-y-1.5">
+							<h2 className="text-base font-medium text-foreground">
+								Session killed
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								This terminal was terminated. Restart to begin a new session.
+							</p>
+						</div>
+						<Button size="sm" onClick={handleRestartSession}>
+							<HiOutlineArrowPath className="size-4" />
+							Restart Session
+						</Button>
 					</div>
-					<button
-						type="button"
-						onClick={handleRestartSession}
-						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-					>
-						Restart Session
-					</button>
 				</div>
 			)}
 			{connectionError && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="mb-4 px-4 text-center text-red-400">
-						<p className="font-semibold">Connection Error</p>
-						<p className="mt-1 text-sm text-gray-400">{connectionError}</p>
+					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
+						<div className="flex items-center justify-center size-14 rounded-full bg-destructive/10">
+							<HiExclamationTriangle className="size-7 text-destructive" />
+						</div>
+						<div className="space-y-1.5">
+							<h2 className="text-base font-medium text-foreground">
+								Connection error
+							</h2>
+							<p className="text-sm text-muted-foreground">{connectionError}</p>
+						</div>
+						<Button size="sm" onClick={handleRetryConnection}>
+							<HiOutlineArrowPath className="size-4" />
+							Retry Connection
+						</Button>
 					</div>
-					<button
-						type="button"
-						onClick={handleRetryConnection}
-						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-					>
-						Retry Connection
-					</button>
 				</div>
 			)}
 			{isRestoredMode && (
 				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="mb-4 px-4 text-center max-w-md">
-						<p className="text-blue-300 font-semibold flex items-center gap-2 justify-center">
-							<span className="text-xl">↻</span>
-							Session Restored
-						</p>
-						<p className="mt-2 text-sm text-gray-400">
-							Your previous terminal output was preserved. Click below to start
-							a new shell session.
-						</p>
-						{restoredCwd && (
-							<p className="mt-2 text-gray-500 text-xs">{restoredCwd}</p>
-						)}
+					<div className="flex flex-col items-center max-w-sm text-center space-y-4">
+						<div className="flex items-center justify-center size-14 rounded-full bg-primary/10">
+							<LuTerminal className="size-7 text-primary" />
+						</div>
+						<div className="space-y-1.5">
+							<h2 className="text-base font-medium text-foreground">
+								Session restored
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								Your previous terminal output was preserved. Click below to
+								start a new shell session.
+							</p>
+							{restoredCwd && (
+								<p className="text-xs text-muted-foreground/70 font-mono truncate max-w-xs">
+									{restoredCwd}
+								</p>
+							)}
+						</div>
+						<Button size="sm" onClick={handleStartShell}>
+							<LuTerminal className="size-4" />
+							Start Shell
+						</Button>
 					</div>
-					<button
-						type="button"
-						onClick={handleStartShell}
-						className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-					>
-						Start Shell
-					</button>
 				</div>
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
