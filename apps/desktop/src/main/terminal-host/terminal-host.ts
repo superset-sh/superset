@@ -130,7 +130,10 @@ export class TerminalHost {
 
 				// Wait for PTY ready to ensure PID is available for port scanning
 				try {
-					await promiseWithTimeout(session.waitForReady(), SPAWN_READY_TIMEOUT_MS);
+					await promiseWithTimeout(
+						session.waitForReady(),
+						SPAWN_READY_TIMEOUT_MS,
+					);
 				} catch {
 					console.warn(
 						`[TerminalHost] Timeout waiting for PTY ready for session ${sessionId}`,
