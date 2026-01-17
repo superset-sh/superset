@@ -9,11 +9,22 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { access } from "node:fs/promises";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { buildSafeEnv } from "../lib/terminal/env";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
+
+// Determine subprocess path once at module load (async, cached)
+// Try .js first (production build), fall back to .ts (test/dev with Bun)
+const subprocessPathPromise = (async () => {
+	const jsPath = path.join(__dirname, "pty-subprocess.js");
+	const tsPath = path.join(__dirname, "pty-subprocess.ts");
+	const jsExists = await access(jsPath)
+		.then(() => true)
+		.catch(() => false);
+	return jsExists ? jsPath : tsPath;
+})();
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
@@ -159,12 +170,12 @@ export class Session {
 	/**
 	 * Spawn the PTY process via subprocess
 	 */
-	spawn(options: {
+	async spawn(options: {
 		cwd: string;
 		cols: number;
 		rows: number;
 		env?: Record<string, string>;
-	}): void {
+	}): Promise<void> {
 		if (this.subprocess) {
 			throw new Error("PTY already spawned");
 		}
@@ -179,10 +190,7 @@ export class Session {
 		processEnv.TERM = "xterm-256color";
 
 		const shellArgs = this.getShellArgs(this.shell);
-		// Try .js first (production build), fall back to .ts (test/dev with Bun)
-		const jsPath = path.join(__dirname, "pty-subprocess.js");
-		const tsPath = path.join(__dirname, "pty-subprocess.ts");
-		const subprocessPath = existsSync(jsPath) ? jsPath : tsPath;
+		const subprocessPath = await subprocessPathPromise;
 
 		// Spawn subprocess with full env (it's trusted code that needs runtime vars).
 		// The PTY shell will receive filtered processEnv via pendingSpawn below.

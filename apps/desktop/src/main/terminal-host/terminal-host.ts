@@ -121,7 +121,7 @@ export class TerminalHost {
 				});
 
 				// Spawn PTY
-				session.spawn({
+				await session.spawn({
 					cwd: request.cwd || process.env.HOME || "/",
 					cols: request.cols,
 					rows: request.rows,
