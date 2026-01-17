@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { usePRStatusPolling } from "renderer/screens/main/hooks/usePRStatus";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
@@ -13,6 +14,9 @@ export function WorkspaceSidebar({
 	isCollapsed = false,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
+
+	// Poll GitHub PR status for all open worktree workspaces in the background
+	usePRStatusPolling();
 
 	// Calculate shortcut base indices for each project group using cumulative offsets
 	const projectShortcutIndices = useMemo(
