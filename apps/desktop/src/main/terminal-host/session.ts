@@ -180,14 +180,11 @@ export class Session {
 		const shellArgs = this.getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
-		// Use electron as node to run the subprocess
+		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
 		const electronPath = process.execPath;
 		this.subprocess = spawn(electronPath, [subprocessPath], {
-			stdio: ["pipe", "pipe", "inherit"], // pipe stdin/stdout, inherit stderr
-			env: {
-				...process.env,
-				ELECTRON_RUN_AS_NODE: "1",
-			},
+			stdio: ["pipe", "pipe", "inherit"],
+			env: { ...processEnv, ELECTRON_RUN_AS_NODE: "1" },
 		});
 
 		// Read framed messages from subprocess stdout
