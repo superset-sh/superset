@@ -11,8 +11,8 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
-import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import { buildSafeEnv } from "../lib/terminal/env";
+import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
@@ -171,8 +171,10 @@ export class Session {
 		const { cwd, cols, rows, env = {} } = options;
 
 		// Merge process.env with passed env (passed takes precedence), then filter
-		const mergedEnv = Object.assign({}, process.env, env);
-		const processEnv = buildSafeEnv(mergedEnv as Record<string, string>);
+		const processEnv = buildSafeEnv({ ...process.env, ...env } as Record<
+			string,
+			string
+		>);
 		processEnv.TERM = "xterm-256color";
 
 		const shellArgs = this.getShellArgs(this.shell);
