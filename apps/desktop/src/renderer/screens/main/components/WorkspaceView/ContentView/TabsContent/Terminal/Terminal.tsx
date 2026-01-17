@@ -616,19 +616,24 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 							const rows = xterm.rows;
 							if (cols <= 0 || rows <= 0) return;
 
-							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-							resizeRef.current({ paneId, cols, rows });
-
 							if (!result.isNew) {
+								// Reattach: resize down/up to guarantee SIGWINCH for TUI repaint
+								resizeRef.current({ paneId, cols, rows: rows - 1 });
+								setTimeout(() => {
+									if (xtermRef.current !== xterm) return;
+									resizeRef.current({ paneId, cols, rows });
+									xterm.refresh(0, rows - 1);
+								}, 100);
+
 								const renderer = rendererRef.current?.current;
 								if (renderer?.kind === "webgl") {
-									// Clear twice: once immediately, and once after fonts settle.
-									// This reduces restore artifacts (especially for TUIs like opencode)
-									// and prevents stale glyphs when fonts swap in.
 									renderer.clearTextureAtlas?.();
 								}
+							} else {
+								// New session: single resize to sync PTY dimensions
+								resizeRef.current({ paneId, cols, rows });
+								xterm.refresh(0, rows - 1);
 							}
-							xterm.refresh(0, rows - 1);
 							restoreScrollPosition(xterm, result.viewportY);
 						} catch (error) {
 							console.warn(
@@ -965,14 +970,35 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [isFocused]);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: resizeRef used intentionally to read latest value without recreating callback
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		if (!xterm) return;
+		const fitAddon = fitAddonRef.current;
+		if (!xterm || !fitAddon) return;
 
 		if (isFocused) {
 			xterm.focus();
+
+			// Trigger SIGWINCH for alt-screen TUIs so they repaint on pane focus change.
+			// Apps with focus reporting (mode 1004) get CSI I from xterm.js automatically.
+			if (isAlternateScreenRef.current) {
+				requestAnimationFrame(() => {
+					if (xtermRef.current !== xterm) return;
+					fitAddon.fit();
+					const cols = xterm.cols;
+					const rows = xterm.rows;
+					if (cols > 0 && rows > 0) {
+						resizeRef.current({ paneId, cols, rows: rows - 1 });
+						setTimeout(() => {
+							if (xtermRef.current !== xterm) return;
+							resizeRef.current({ paneId, cols, rows });
+							xterm.refresh(0, rows - 1);
+						}, 100);
+					}
+				});
+			}
 		}
-	}, [isFocused]);
+	}, [isFocused, paneId]);
 
 	useAppHotkey(
 		"FIND_IN_TERMINAL",
