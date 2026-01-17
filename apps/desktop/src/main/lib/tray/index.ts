@@ -24,12 +24,6 @@ const POLL_INTERVAL_MS = 5000;
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
 
-/**
- * Path resolution mirrors sound-paths.ts:
- * - Production: app.asar.unpacked (must be unpacked so Tray can access it)
- * - Preview: dist/resources/tray
- * - Development: src/resources/tray
- */
 function getTrayIconPath(): string | null {
 	if (app.isPackaged) {
 		const prodPath = join(
@@ -263,9 +257,7 @@ async function updateTrayMenu(): Promise<void> {
 				sessions = result.sessions;
 				sessionCount = sessions.filter((s) => s.isAlive).length;
 			}
-		} catch {
-			// Daemon not running
-		}
+		} catch {}
 	}
 
 	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonEnabled);
