@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events";
 import express from "express";
 import { NOTIFICATION_EVENTS } from "shared/constants";
-import { debugLog } from "shared/debug";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
