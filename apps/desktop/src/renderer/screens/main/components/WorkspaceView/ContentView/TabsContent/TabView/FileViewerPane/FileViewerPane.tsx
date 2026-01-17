@@ -15,7 +15,6 @@ interface FileViewerPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	isActive: boolean;
-	isTabVisible: boolean;
 	tabId: string;
 	worktreePath: string;
 	splitPaneAuto: (
@@ -45,7 +44,6 @@ export function FileViewerPane({
 	paneId,
 	path,
 	isActive,
-	isTabVisible,
 	tabId,
 	worktreePath,
 	splitPaneAuto,
@@ -288,7 +286,6 @@ export function FileViewerPane({
 				<FileViewerContent
 					viewMode={viewMode}
 					filePath={filePath}
-					isTabVisible={isTabVisible}
 					isLoadingRaw={isLoadingRaw}
 					isLoadingDiff={isLoadingDiff}
 					rawFileData={rawFileData}

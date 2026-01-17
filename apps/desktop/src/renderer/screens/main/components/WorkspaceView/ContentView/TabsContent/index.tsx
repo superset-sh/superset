@@ -52,7 +52,7 @@ export function TabsContent() {
 		<div className="flex-1 min-h-0 flex overflow-hidden">
 			<div className="flex-1 min-w-0 overflow-hidden">
 				{tabToRender ? (
-					<TabView tab={tabToRender} isTabVisible />
+					<TabView tab={tabToRender} />
 				) : (
 					<EmptyTabView />
 				)}

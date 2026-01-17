@@ -1,7 +1,6 @@
 export interface TerminalProps {
 	tabId: string;
 	workspaceId: string;
-	isTabVisible: boolean;
 }
 
 export type TerminalStreamEvent =

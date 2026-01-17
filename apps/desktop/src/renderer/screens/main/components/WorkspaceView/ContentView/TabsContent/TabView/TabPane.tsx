@@ -16,7 +16,6 @@ interface TabPaneProps {
 	paneId: string;
 	path: MosaicBranch[];
 	isActive: boolean;
-	isTabVisible: boolean;
 	tabId: string;
 	workspaceId: string;
 	splitPaneAuto: (
@@ -46,7 +45,6 @@ export function TabPane({
 	paneId,
 	path,
 	isActive,
-	isTabVisible,
 	tabId,
 	workspaceId,
 	splitPaneAuto,
@@ -125,11 +123,7 @@ export function TabPane({
 				onMoveToNewTab={onMoveToNewTab}
 			>
 				<div ref={terminalContainerRef} className="w-full h-full">
-					<Terminal
-						tabId={paneId}
-						workspaceId={workspaceId}
-						isTabVisible={isTabVisible}
-					/>
+					<Terminal tabId={paneId} workspaceId={workspaceId} />
 				</div>
 			</TabContentContextMenu>
 		</BasePaneWindow>
