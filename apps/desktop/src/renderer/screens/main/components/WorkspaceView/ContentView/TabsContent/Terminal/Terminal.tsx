@@ -946,7 +946,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	electronTrpc.terminal.stream.useSubscription(paneId, {
+	electronTrpc.terminal.stream.useSubscription({ paneId, workspaceId }, {
 		onData: handleStreamData,
 		enabled: true,
 	});

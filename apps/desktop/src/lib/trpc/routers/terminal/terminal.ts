@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import { projects, workspaces, worktrees, remoteWorkspaces, remoteProjects } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -17,6 +17,8 @@ let createOrAttachCallCounter = 0;
 
 const TERMINAL_SESSION_KILLED_MESSAGE = "TERMINAL_SESSION_KILLED";
 const userKilledSessions = new Set<string>();
+// Track paneId -> workspaceId mapping for routing terminal operations
+const paneToWorkspace = new Map<string, string>();
 const SAFE_ID = z
 	.string()
 	.min(1)
@@ -25,6 +27,29 @@ const SAFE_ID = z
 			!value.includes("/") && !value.includes("\\") && !value.includes(".."),
 		{ message: "Invalid id" },
 	);
+
+/**
+ * Helper to get terminal runtime for a workspace.
+ * Returns SSH terminal for SSH workspaces, local terminal otherwise.
+ */
+function getTerminalForWorkspace(workspaceId: string) {
+	const registry = getWorkspaceRuntimeRegistry();
+	return registry.getForWorkspaceId(workspaceId).terminal;
+}
+
+/**
+ * Helper to get terminal runtime for a pane.
+ * Uses the paneId -> workspaceId mapping to determine the correct terminal.
+ */
+function getTerminalForPane(paneId: string) {
+	const workspaceId = paneToWorkspace.get(paneId);
+	if (workspaceId) {
+		return getTerminalForWorkspace(workspaceId);
+	}
+	// Fall back to default terminal if mapping not found
+	const registry = getWorkspaceRuntimeRegistry();
+	return registry.getDefault().terminal;
+}
 
 /**
  * Terminal router using TerminalManager with node-pty
@@ -43,11 +68,11 @@ const SAFE_ID = z
 export const createTerminalRouter = () => {
 	// Get the workspace runtime registry (selects backend based on settings)
 	const registry = getWorkspaceRuntimeRegistry();
-	const terminal = registry.getDefault().terminal;
+	const defaultTerminal = registry.getDefault().terminal;
 	if (DEBUG_TERMINAL) {
 		console.log(
 			"[Terminal Router] Using terminal runtime, capabilities:",
-			terminal.capabilities,
+			defaultTerminal.capabilities,
 		);
 	}
 
@@ -96,18 +121,60 @@ export const createTerminalRouter = () => {
 					});
 				}
 
-				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
-				const workspace = localDb
-					.select()
-					.from(workspaces)
-					.where(eq(workspaces.id, workspaceId))
-					.get();
-				const workspacePath = workspace
-					? (getWorkspacePath(workspace) ?? undefined)
-					: undefined;
-				if (workspace?.type === "worktree") {
-					assertWorkspaceUsable(workspaceId, workspacePath);
+				// Check if this is a remote workspace
+				const isRemote = registry.isSSHWorkspace(workspaceId);
+				let workspacePath: string | undefined;
+				let workspaceName: string | undefined;
+				let rootPath: string | undefined;
+
+				if (isRemote) {
+					// Remote workspace - get path from remoteWorkspaces/remoteProjects
+					const remoteWs = localDb
+						.select()
+						.from(remoteWorkspaces)
+						.where(eq(remoteWorkspaces.id, workspaceId))
+						.get();
+
+					if (remoteWs) {
+						workspaceName = remoteWs.name;
+						const remoteProject = localDb
+							.select()
+							.from(remoteProjects)
+							.where(eq(remoteProjects.id, remoteWs.remoteProjectId))
+							.get();
+
+						if (remoteProject) {
+							workspacePath = remoteProject.remotePath;
+							rootPath = remoteProject.remotePath;
+						}
+					}
+				} else {
+					// Local workspace - existing logic
+					const workspace = localDb
+						.select()
+						.from(workspaces)
+						.where(eq(workspaces.id, workspaceId))
+						.get();
+					workspacePath = workspace
+						? (getWorkspacePath(workspace) ?? undefined)
+						: undefined;
+					workspaceName = workspace?.name;
+
+					if (workspace?.type === "worktree") {
+						assertWorkspaceUsable(workspaceId, workspacePath);
+					}
+
+					// Get project info for environment variables
+					const project = workspace
+						? localDb
+								.select()
+								.from(projects)
+								.where(eq(projects.id, workspace.projectId))
+								.get()
+						: undefined;
+					rootPath = project?.mainRepoPath;
 				}
+
 				const cwd = resolveCwd(cwdOverride, workspacePath);
 
 				if (DEBUG_TERMINAL) {
@@ -119,26 +186,25 @@ export const createTerminalRouter = () => {
 						resolvedCwd: cwd,
 						cols,
 						rows,
+						isRemote,
 					});
 				}
 
-				// Get project info for environment variables
-				const project = workspace
-					? localDb
-							.select()
-							.from(projects)
-							.where(eq(projects.id, workspace.projectId))
-							.get()
-					: undefined;
+				// Store paneId -> workspaceId mapping FIRST so concurrent operations
+				// (like stream subscription, resize) route to the correct terminal
+				paneToWorkspace.set(paneId, workspaceId);
+
+				// Get the terminal for this workspace (SSH or local)
+				const terminal = getTerminalForWorkspace(workspaceId);
 
 				try {
 					const result = await terminal.createOrAttach({
 						paneId,
 						tabId,
 						workspaceId,
-						workspaceName: workspace?.name,
+						workspaceName,
 						workspacePath,
-						rootPath: project?.mainRepoPath,
+						rootPath,
 						cwd,
 						cols,
 						rows,
@@ -190,6 +256,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				try {
 					terminal.write(input);
 				} catch (error) {
@@ -218,6 +285,7 @@ export const createTerminalRouter = () => {
 		ackColdRestore: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				terminal.ackColdRestore(input.paneId);
 			}),
 
@@ -231,6 +299,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				terminal.resize(input);
 			}),
 
@@ -242,6 +311,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				terminal.signal(input);
 			}),
 
@@ -252,7 +322,9 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				userKilledSessions.add(input.paneId);
+				paneToWorkspace.delete(input.paneId); // Clean up mapping
 				await terminal.kill(input);
 			}),
 
@@ -267,6 +339,7 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				terminal.detach(input);
 			}),
 
@@ -281,27 +354,28 @@ export const createTerminalRouter = () => {
 				}),
 			)
 			.mutation(async ({ input }) => {
+				const terminal = getTerminalForPane(input.paneId);
 				await terminal.clearScrollback(input);
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			// Use capability-based check instead of instanceof
-			if (!terminal.management) {
+			// Use capability-based check instead of instanceof (local terminal only)
+			if (!defaultTerminal.management) {
 				return { daemonModeEnabled: false, sessions: [] };
 			}
 
-			const response = await terminal.management.listSessions();
+			const response = await defaultTerminal.management.listSessions();
 			return { daemonModeEnabled: true, sessions: response.sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
-			// Use capability-based check instead of instanceof
-			if (!terminal.management) {
+			// Use capability-based check instead of instanceof (local terminal only)
+			if (!defaultTerminal.management) {
 				return { daemonModeEnabled: false, killedCount: 0, remainingCount: 0 };
 			}
 
 			// Get sessions before kill for accurate count
-			const before = await terminal.management.listSessions();
+			const before = await defaultTerminal.management.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
 			for (const id of beforeIds) {
 				userKilledSessions.add(id);
@@ -314,7 +388,7 @@ export const createTerminalRouter = () => {
 			);
 
 			// Request kill of all sessions
-			await terminal.management.killAllSessions();
+			await defaultTerminal.management.killAllSessions();
 
 			// Wait and verify loop - poll until sessions are actually dead
 			// This ensures we don't return success before daemon has finished cleanup
@@ -325,7 +399,7 @@ export const createTerminalRouter = () => {
 
 			for (let i = 0; i < MAX_RETRIES && remainingCount > 0; i++) {
 				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-				const after = await terminal.management.listSessions();
+				const after = await defaultTerminal.management.listSessions();
 				afterIds = after.sessions
 					.filter((s) => s.isAlive)
 					.map((s) => s.sessionId);
@@ -355,19 +429,19 @@ export const createTerminalRouter = () => {
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				// Use capability-based check instead of instanceof
-				if (!terminal.management) {
+				// Use capability-based check instead of instanceof (local terminal only)
+				if (!defaultTerminal.management) {
 					return { daemonModeEnabled: false, killedCount: 0 };
 				}
 
-				const { sessions } = await terminal.management.listSessions();
+				const { sessions } = await defaultTerminal.management.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
 
 				for (const session of toKill) {
 					userKilledSessions.add(session.sessionId);
-					await terminal.kill({ paneId: session.sessionId });
+					await defaultTerminal.kill({ paneId: session.sessionId });
 				}
 
 				return { daemonModeEnabled: true, killedCount: toKill.length };
@@ -376,8 +450,8 @@ export const createTerminalRouter = () => {
 		clearTerminalHistory: publicProcedure.mutation(async () => {
 			// Note: Disk-based terminal history was removed. This is now a no-op
 			// for non-daemon mode. In daemon mode, it resets the history persistence.
-			if (terminal.management) {
-				await terminal.management.resetHistoryPersistence();
+			if (defaultTerminal.management) {
+				await defaultTerminal.management.resetHistoryPersistence();
 			}
 
 			return { success: true };
@@ -386,6 +460,7 @@ export const createTerminalRouter = () => {
 		getSession: publicProcedure
 			.input(z.string())
 			.query(async ({ input: paneId }) => {
+				const terminal = getTerminalForPane(paneId);
 				return terminal.getSession(paneId);
 			}),
 
@@ -396,6 +471,25 @@ export const createTerminalRouter = () => {
 		getWorkspaceCwd: publicProcedure
 			.input(z.string())
 			.query(({ input: workspaceId }) => {
+				// Check if it's a remote workspace
+				if (registry.isSSHWorkspace(workspaceId)) {
+					const remoteWs = localDb
+						.select()
+						.from(remoteWorkspaces)
+						.where(eq(remoteWorkspaces.id, workspaceId))
+						.get();
+					if (remoteWs) {
+						const remoteProject = localDb
+							.select()
+							.from(remoteProjects)
+							.where(eq(remoteProjects.id, remoteWs.remoteProjectId))
+							.get();
+						return remoteProject?.remotePath ?? null;
+					}
+					return null;
+				}
+
+				// Local workspace
 				const workspace = localDb
 					.select()
 					.from(workspaces)
@@ -467,8 +561,9 @@ export const createTerminalRouter = () => {
 			}),
 
 		stream: publicProcedure
-			.input(z.string())
-			.subscription(({ input: paneId }) => {
+			.input(z.object({ paneId: z.string(), workspaceId: z.string().optional() }))
+			.subscription(({ input }) => {
+				const { paneId, workspaceId } = input;
 				return observable<
 					| { type: "data"; data: string }
 					| { type: "exit"; exitCode: number; signal?: number }
@@ -476,8 +571,15 @@ export const createTerminalRouter = () => {
 					| { type: "error"; error: string; code?: string }
 				>((emit) => {
 					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal Stream] Subscribe: ${paneId}`);
+						console.log(`[Terminal Stream] Subscribe: ${paneId}, workspaceId: ${workspaceId}`);
 					}
+
+					// Get the terminal for this workspace/pane
+					// If workspaceId is provided, use it directly for routing
+					// Otherwise fall back to the paneId mapping
+					const terminal = workspaceId
+						? getTerminalForWorkspace(workspaceId)
+						: getTerminalForPane(paneId);
 
 					let firstDataReceived = false;
 
