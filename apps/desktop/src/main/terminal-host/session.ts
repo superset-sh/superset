@@ -184,10 +184,6 @@ export class Session {
 		const tsPath = path.join(__dirname, "pty-subprocess.ts");
 		const subprocessPath = existsSync(jsPath) ? jsPath : tsPath;
 
-		console.error(
-			`[Session ${this.sessionId}] Spawning subprocess: execPath=${process.execPath}, subprocessPath=${subprocessPath}, jsExists=${existsSync(jsPath)}, tsExists=${existsSync(tsPath)}`,
-		);
-
 		// Spawn subprocess with full env (it's trusted code that needs runtime vars).
 		// The PTY shell will receive filtered processEnv via pendingSpawn below.
 		const electronPath = process.execPath;
@@ -216,9 +212,6 @@ export class Session {
 
 		// Handle subprocess exit
 		this.subprocess.on("exit", (code) => {
-			console.error(
-				`[Session ${this.sessionId}] Subprocess exited with code ${code}`,
-			);
 			this.handleSubprocessExit(code ?? -1);
 		});
 
@@ -256,9 +249,6 @@ export class Session {
 	): void {
 		switch (type) {
 			case PtySubprocessIpcType.Ready:
-				console.error(
-					`[Session ${this.sessionId}] Received Ready from subprocess`,
-				);
 				this.subprocessReady = true;
 				if (this.pendingSpawn) {
 					this.sendSpawnToSubprocess(this.pendingSpawn);
@@ -268,9 +258,6 @@ export class Session {
 
 			case PtySubprocessIpcType.Spawned:
 				this.ptyPid = payload.length >= 4 ? payload.readUInt32LE(0) : null;
-				console.error(
-					`[Session ${this.sessionId}] Received Spawned from subprocess, ptyPid=${this.ptyPid}`,
-				);
 				// Resolve the ready promise so callers can await PTY readiness
 				if (this.ptyReadyResolve) {
 					this.ptyReadyResolve();
