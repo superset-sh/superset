@@ -204,8 +204,11 @@ export class SSHClient extends EventEmitter {
 				}
 
 				// Expand ~ to home directory (handles Unix-style paths in config files)
+				// and normalize to ensure consistent path separators on Windows
 				if (keyPath.startsWith("~")) {
-					keyPath = keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep);
+					keyPath = path.normalize(
+						keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep)
+					);
 				}
 				console.log(`[ssh/client] Reading private key from: ${keyPath}`);
 				try {
@@ -220,10 +223,18 @@ export class SSHClient extends EventEmitter {
 				// Use SSH agent - platform-specific handling
 				if (process.platform === "win32") {
 					// Windows: OpenSSH agent uses a named pipe
-					// Check for OpenSSH agent pipe (Windows 10+)
 					const opensshPipe = "\\\\.\\pipe\\openssh-ssh-agent";
-					config.agent = opensshPipe;
-					console.log(`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`);
+					// Verify the agent is running by checking if the pipe exists
+					try {
+						fs.accessSync(opensshPipe, fs.constants.R_OK);
+						config.agent = opensshPipe;
+						console.log(`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`);
+					} catch {
+						throw new Error(
+							"Windows OpenSSH Agent not available. Ensure the ssh-agent service is running: " +
+							"Start-Service ssh-agent (PowerShell as Admin)"
+						);
+					}
 				} else {
 					// Unix/macOS: Use SSH_AUTH_SOCK environment variable
 					config.agent = process.env.SSH_AUTH_SOCK;
