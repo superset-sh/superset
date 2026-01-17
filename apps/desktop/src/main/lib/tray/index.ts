@@ -1,10 +1,3 @@
-/**
- * macOS Menu Bar Tray Manager
- *
- * Provides a system tray icon for managing the terminal host daemon
- * and accessing the app when the main window is closed.
- */
-
 import { workspaces } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import {
@@ -26,26 +19,19 @@ import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 
-// =============================================================================
-// Constants
-// =============================================================================
-
-/** Interval for polling daemon session count (ms) */
 const POLL_INTERVAL_MS = 5000;
 
-/** Icon filename - must have "Template" suffix for macOS dark/light mode support */
+/** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
 
 /**
- * Get the path to the tray icon file.
- * Path resolution strategy mirrors sound-paths.ts:
- * - Production (packaged .app): app.asar.unpacked/resources/tray/
- * - Development (NODE_ENV=development): src/resources/tray/
- * - Preview (electron-vite preview): dist/resources/tray/
+ * Path resolution mirrors sound-paths.ts:
+ * - Production: app.asar.unpacked (must be unpacked so Tray can access it)
+ * - Preview: dist/resources/tray
+ * - Development: src/resources/tray
  */
 function getTrayIconPath(): string | null {
 	if (app.isPackaged) {
-		// Production: unpacked from asar so Tray can access it
 		const prodPath = join(
 			process.resourcesPath,
 			"app.asar.unpacked/resources/tray",
@@ -55,13 +41,11 @@ function getTrayIconPath(): string | null {
 		return null;
 	}
 
-	// Try preview path first (dist/resources/tray)
 	const previewPath = join(__dirname, "../resources/tray", TRAY_ICON_FILENAME);
 	if (existsSync(previewPath)) {
 		return previewPath;
 	}
 
-	// Try development path (src/resources/tray)
 	const devPath = join(
 		app.getAppPath(),
 		"src/resources/tray",
@@ -71,28 +55,14 @@ function getTrayIconPath(): string | null {
 		return devPath;
 	}
 
-	// Not found
 	console.warn("[Tray] Icon not found at:", previewPath, "or", devPath);
 	return null;
 }
 
-// =============================================================================
-// State
-// =============================================================================
-
 let tray: Tray | null = null;
 let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
-// =============================================================================
-// Icon Generation
-// =============================================================================
-
-/**
- * Create tray icon, loading from file if available, otherwise falling back
- * to a programmatic placeholder icon.
- */
 function createTrayIcon(): Electron.NativeImage {
-	// Try loading from file first
 	const iconPath = getTrayIconPath();
 	if (iconPath) {
 		try {
@@ -101,7 +71,7 @@ function createTrayIcon(): Electron.NativeImage {
 			console.log("[Tray] Loaded image size:", size);
 
 			if (!image.isEmpty() && size.width > 0 && size.height > 0) {
-				// Resize to standard menu bar size (16x16 for @1x, will auto-scale for Retina)
+				// 16x16 is standard menu bar size, auto-scales for Retina
 				if (size.width > 22 || size.height > 22) {
 					image = image.resize({ width: 16, height: 16 });
 				}
@@ -115,39 +85,28 @@ function createTrayIcon(): Electron.NativeImage {
 		}
 	}
 
-	// Fall back to programmatic placeholder icon
 	return createFallbackIcon();
 }
 
 /**
- * Create a simple placeholder template icon for macOS menu bar.
- * This is a 16x16 terminal-style icon ("> _" prompt symbol).
- *
- * For macOS, template images should be black with transparency.
- * The system automatically handles dark/light mode adaptation.
+ * Programmatic placeholder icon (">_" prompt symbol).
+ * macOS template images must be black with transparency - the system handles dark/light mode.
  */
 function createFallbackIcon(): Electron.NativeImage {
-	// 16x16 PNG with a simple terminal prompt icon (">_")
-	// Created programmatically - this is a placeholder until a proper icon is designed
-	// The icon is black on transparent background for macOS template image support
 	const size = 16;
-
-	// Using raw RGBA data to create a template image
 	const canvas = Buffer.alloc(size * size * 4);
 
-	// Template images should be black (#000000) with varying alpha
 	const drawPixel = (x: number, y: number, alpha: number) => {
 		if (x >= 0 && x < size && y >= 0 && y < size) {
 			const offset = (y * size + x) * 4;
-			canvas[offset] = 0; // R
-			canvas[offset + 1] = 0; // G
-			canvas[offset + 2] = 0; // B
-			canvas[offset + 3] = alpha; // A
+			canvas[offset] = 0;
+			canvas[offset + 1] = 0;
+			canvas[offset + 2] = 0;
+			canvas[offset + 3] = alpha;
 		}
 	};
 
-	// Draw a simple terminal prompt ">_" shape
-	// ">" part (lines from 3,4 to 7,8 and 7,8 to 3,12)
+	// ">" chevron
 	for (let i = 0; i < 4; i++) {
 		drawPixel(3 + i, 4 + i, 255);
 		drawPixel(4 + i, 4 + i, 200);
@@ -155,7 +114,7 @@ function createFallbackIcon(): Electron.NativeImage {
 		drawPixel(4 + i, 12 - i, 200);
 	}
 
-	// "_" part (horizontal line at bottom)
+	// "_" underscore
 	for (let x = 9; x < 14; x++) {
 		drawPixel(x, 11, 255);
 		drawPixel(x, 12, 200);
@@ -165,21 +124,12 @@ function createFallbackIcon(): Electron.NativeImage {
 		width: size,
 		height: size,
 	});
-
-	// Mark as template image for macOS (enables automatic dark/light mode)
 	image.setTemplateImage(true);
 
 	console.log("[Tray] Using fallback programmatic icon");
 	return image;
 }
 
-// =============================================================================
-// Menu Actions
-// =============================================================================
-
-/**
- * Show or create the main window
- */
 function showWindow(): void {
 	const windows = BrowserWindow.getAllWindows();
 
@@ -191,39 +141,27 @@ function showWindow(): void {
 		mainWindow.show();
 		mainWindow.focus();
 	} else {
-		// No window exists - emit activate to trigger window creation
-		// This works because makeAppSetup sets up the activate handler
+		// Triggers window creation via makeAppSetup's activate handler
 		app.emit("activate");
 	}
 }
 
-/**
- * Open settings page in main window
- */
 function openSettings(): void {
 	showWindow();
-	// Send message to renderer to navigate to settings
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		windows[0].webContents.send("navigate", "/settings");
 	}
 }
 
-/**
- * Open a specific session/workspace in Superset
- */
 function openSessionInSuperset(workspaceId: string): void {
 	showWindow();
-	// Send message to renderer to navigate to the workspace
 	const windows = BrowserWindow.getAllWindows();
 	if (windows.length > 0) {
 		windows[0].webContents.send("navigate", `/workspace/${workspaceId}`);
 	}
 }
 
-/**
- * Kill all terminal sessions in the daemon
- */
 async function killAllSessions(): Promise<void> {
 	try {
 		const manager = getActiveTerminalManager();
@@ -235,13 +173,9 @@ async function killAllSessions(): Promise<void> {
 		console.error("[Tray] Failed to kill sessions:", error);
 	}
 
-	// Update menu to reflect new state
 	await updateTrayMenu();
 }
 
-/**
- * Kill a specific terminal session
- */
 async function killSession(paneId: string): Promise<void> {
 	try {
 		const manager = getActiveTerminalManager();
@@ -253,13 +187,9 @@ async function killSession(paneId: string): Promise<void> {
 		console.error(`[Tray] Failed to kill session ${paneId}:`, error);
 	}
 
-	// Update menu to reflect new state
 	await updateTrayMenu();
 }
 
-/**
- * Get workspace name from database
- */
 function getWorkspaceName(workspaceId: string): string {
 	try {
 		const workspace = localDb
@@ -273,9 +203,6 @@ function getWorkspaceName(workspaceId: string): string {
 	}
 }
 
-/**
- * Format session display label
- */
 function formatSessionLabel(
 	session: ListSessionsResponse["sessions"][0],
 ): string {
@@ -284,9 +211,6 @@ function formatSessionLabel(
 	return `${shellName}${attached}`;
 }
 
-/**
- * Build sessions submenu grouped by workspace
- */
 function buildSessionsSubmenu(
 	sessions: ListSessionsResponse["sessions"],
 	daemonEnabled: boolean,
@@ -297,7 +221,6 @@ function buildSessionsSubmenu(
 	if (aliveSessions.length === 0) {
 		menuItems.push({ label: "No active sessions", enabled: false });
 	} else {
-		// Group sessions by workspace
 		const byWorkspace = new Map<string, ListSessionsResponse["sessions"]>();
 		for (const session of aliveSessions) {
 			const existing = byWorkspace.get(session.workspaceId) || [];
@@ -305,12 +228,10 @@ function buildSessionsSubmenu(
 			byWorkspace.set(session.workspaceId, existing);
 		}
 
-		// Build flat list with workspace headers as separators
 		let isFirst = true;
 		for (const [workspaceId, workspaceSessions] of byWorkspace) {
 			const workspaceName = getWorkspaceName(workspaceId);
 
-			// Add separator with workspace name as header
 			if (!isFirst) {
 				menuItems.push({ type: "separator" });
 			}
@@ -319,7 +240,6 @@ function buildSessionsSubmenu(
 				enabled: false,
 			});
 
-			// Add individual sessions with submenu
 			for (const session of workspaceSessions) {
 				menuItems.push({
 					label: formatSessionLabel(session),
@@ -339,7 +259,6 @@ function buildSessionsSubmenu(
 			isFirst = false;
 		}
 
-		// Add Kill All Sessions at the bottom
 		menuItems.push({ type: "separator" });
 		menuItems.push({
 			label: "Kill All Sessions",
@@ -347,7 +266,6 @@ function buildSessionsSubmenu(
 		});
 	}
 
-	// Always show Restart Daemon option
 	menuItems.push({
 		label: "Restart Daemon",
 		enabled: daemonEnabled,
@@ -357,33 +275,19 @@ function buildSessionsSubmenu(
 	return menuItems;
 }
 
-/**
- * Restart the terminal host daemon
- */
 async function restartDaemon(): Promise<void> {
 	try {
 		const client = getTerminalHostClient();
-
-		// Shutdown existing daemon (if running)
 		await client.shutdownIfRunning({ killSessions: true });
-
-		// The daemon will be auto-spawned on next terminal operation
+		// Daemon auto-spawns on next terminal operation
 		console.log("[Tray] Daemon restarted (will spawn on next use)");
 	} catch (error) {
 		console.error("[Tray] Failed to restart daemon:", error);
 	}
 
-	// Update menu to reflect new state
 	await updateTrayMenu();
 }
 
-// =============================================================================
-// Menu Building
-// =============================================================================
-
-/**
- * Update the tray context menu with current daemon status
- */
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
@@ -400,11 +304,10 @@ async function updateTrayMenu(): Promise<void> {
 				sessionCount = sessions.filter((s) => s.isAlive).length;
 			}
 		} catch {
-			// Daemon not running - sessions will be empty
+			// Daemon not running
 		}
 	}
 
-	// Build sessions submenu
 	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonEnabled);
 	const sessionsLabel =
 		sessionCount > 0
@@ -434,21 +337,13 @@ async function updateTrayMenu(): Promise<void> {
 	tray.setContextMenu(menu);
 }
 
-// =============================================================================
-// Public API
-// =============================================================================
-
-/**
- * Initialize the system tray.
- * Should be called once after app.whenReady().
- */
+/** Call once after app.whenReady() */
 export function initTray(): void {
 	if (tray) {
 		console.warn("[Tray] Already initialized");
 		return;
 	}
 
-	// Only show tray on macOS
 	if (process.platform !== "darwin") {
 		return;
 	}
@@ -458,12 +353,10 @@ export function initTray(): void {
 		tray = new Tray(icon);
 		tray.setToolTip("Superset");
 
-		// Build initial menu
 		updateTrayMenu().catch((error) => {
 			console.error("[Tray] Failed to build initial menu:", error);
 		});
 
-		// Poll for session count updates
 		pollIntervalId = setInterval(() => {
 			updateTrayMenu().catch((error) => {
 				console.error("[Tray] Failed to update menu:", error);
@@ -476,10 +369,7 @@ export function initTray(): void {
 	}
 }
 
-/**
- * Dispose of the tray and stop polling.
- * Should be called on app quit.
- */
+/** Call on app quit */
 export function disposeTray(): void {
 	if (pollIntervalId) {
 		clearInterval(pollIntervalId);
