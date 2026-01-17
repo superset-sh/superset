@@ -16,11 +16,15 @@ import path from "node:path";
  * - Skips existsSync checks since the path is on a remote server
  * - Assumes remote paths are valid since we can't verify them locally
  */
-export function resolveCwd(
-	cwdOverride: string | undefined,
-	worktreePath: string | undefined,
+export function resolveCwd({
+	cwdOverride,
+	worktreePath,
 	isRemote = false,
-): string | undefined {
+}: {
+	cwdOverride?: string;
+	worktreePath?: string;
+	isRemote?: boolean;
+}): string | undefined {
 	// For remote workspaces, use POSIX path operations
 	const pathModule = isRemote ? path.posix : path;
 

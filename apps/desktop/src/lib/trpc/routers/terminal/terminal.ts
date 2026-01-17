@@ -175,7 +175,7 @@ export const createTerminalRouter = () => {
 					rootPath = project?.mainRepoPath;
 				}
 
-				const cwd = resolveCwd(cwdOverride, workspacePath, isRemote);
+				const cwd = resolveCwd({ cwdOverride, worktreePath: workspacePath, isRemote });
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {
@@ -235,6 +235,8 @@ export const createTerminalRouter = () => {
 						snapshot: result.snapshot,
 					};
 				} catch (error) {
+					// Clean up pane mapping on failure to prevent stale routing
+					paneToWorkspace.delete(paneId);
 					if (DEBUG_TERMINAL) {
 						console.warn("[Terminal Router] createOrAttach failed:", {
 							callId,
