@@ -9,6 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { buildSafeEnv } from "../lib/terminal/env";
@@ -178,7 +179,10 @@ export class Session {
 		processEnv.TERM = "xterm-256color";
 
 		const shellArgs = this.getShellArgs(this.shell);
-		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
+		// Try .js first (production build), fall back to .ts (test/dev with Bun)
+		const jsPath = path.join(__dirname, "pty-subprocess.js");
+		const tsPath = path.join(__dirname, "pty-subprocess.ts");
+		const subprocessPath = existsSync(jsPath) ? jsPath : tsPath;
 
 		// Spawn subprocess with full env (it's trusted code that needs runtime vars).
 		// The PTY shell will receive filtered processEnv via pendingSpawn below.
