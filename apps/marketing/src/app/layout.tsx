@@ -48,7 +48,10 @@ export default function RootLayout({
 			</head>
 			<body className="overscroll-none font-sans">
 				<Providers>
-					<Header ctaButtons={<CTAButtons />} starCounter={<GitHubStarCounter />} />
+					<Header
+						ctaButtons={<CTAButtons />}
+						starCounter={<GitHubStarCounter />}
+					/>
 					{children}
 					<Footer />
 					<CookieConsent />
