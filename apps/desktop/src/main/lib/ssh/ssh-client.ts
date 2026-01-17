@@ -184,11 +184,28 @@ export class SSHClient extends EventEmitter {
 
 		switch (this.config.authMethod) {
 			case "key": {
-				let keyPath =
-					this.config.privateKeyPath ?? path.join(os.homedir(), ".ssh", "id_rsa");
-				// Expand ~ to home directory
+				let keyPath = this.config.privateKeyPath;
+
+				// If no key path specified, try common default locations
+				if (!keyPath) {
+					const sshDir = path.join(os.homedir(), ".ssh");
+					// Try id_ed25519 first (more common now), then id_rsa
+					const defaultKeys = ["id_ed25519", "id_rsa", "id_ecdsa"];
+					for (const keyName of defaultKeys) {
+						const candidatePath = path.join(sshDir, keyName);
+						if (fs.existsSync(candidatePath)) {
+							keyPath = candidatePath;
+							break;
+						}
+					}
+					if (!keyPath) {
+						keyPath = path.join(sshDir, "id_rsa"); // Fallback for error message
+					}
+				}
+
+				// Expand ~ to home directory (handles Unix-style paths in config files)
 				if (keyPath.startsWith("~")) {
-					keyPath = keyPath.replace(/^~/, os.homedir());
+					keyPath = keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep);
 				}
 				console.log(`[ssh/client] Reading private key from: ${keyPath}`);
 				try {
@@ -200,10 +217,19 @@ export class SSHClient extends EventEmitter {
 				break;
 			}
 			case "agent": {
-				// Use SSH agent from environment
-				config.agent = process.env.SSH_AUTH_SOCK;
-				if (!config.agent) {
-					throw new Error("SSH agent not available (SSH_AUTH_SOCK not set)");
+				// Use SSH agent - platform-specific handling
+				if (process.platform === "win32") {
+					// Windows: OpenSSH agent uses a named pipe
+					// Check for OpenSSH agent pipe (Windows 10+)
+					const opensshPipe = "\\\\.\\pipe\\openssh-ssh-agent";
+					config.agent = opensshPipe;
+					console.log(`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`);
+				} else {
+					// Unix/macOS: Use SSH_AUTH_SOCK environment variable
+					config.agent = process.env.SSH_AUTH_SOCK;
+					if (!config.agent) {
+						throw new Error("SSH agent not available (SSH_AUTH_SOCK not set)");
+					}
 				}
 				break;
 			}
