@@ -353,6 +353,13 @@ function handleResize(payload: Buffer): void {
 		const cols = payload.readUInt32LE(0);
 		const rows = payload.readUInt32LE(4);
 		ptyProcess.resize(cols, rows);
+
+		// Send acknowledgment with the applied dimensions
+		// This allows the daemon to synchronize emulator resize with PTY resize
+		const ackPayload = Buffer.allocUnsafe(8);
+		ackPayload.writeUInt32LE(cols, 0);
+		ackPayload.writeUInt32LE(rows, 4);
+		send(PtySubprocessIpcType.Resized, ackPayload);
 	} catch {
 		// Ignore resize errors
 	}

@@ -13,6 +13,7 @@ export enum PtySubprocessIpcType {
 	Data = 103,
 	Exit = 104,
 	Error = 105,
+	Resized = 106, // Acknowledgment after PTY resize completes
 }
 
 export interface PtySubprocessFrame {

@@ -315,6 +315,18 @@ export class Session {
 				} satisfies TerminalErrorEvent);
 				break;
 			}
+
+			case PtySubprocessIpcType.Resized: {
+				// PTY has been resized - now resize the emulator to match
+				// This ensures the emulator dimensions are synchronized with the PTY,
+				// preventing cursor position mismatches during autocomplete/line editing
+				if (payload.length >= 8) {
+					const cols = payload.readUInt32LE(0);
+					const rows = payload.readUInt32LE(4);
+					this.emulator.resize(cols, rows);
+				}
+				break;
+			}
 		}
 	}
 
@@ -732,12 +744,20 @@ export class Session {
 
 	/**
 	 * Resize PTY and emulator
+	 *
+	 * The emulator resize is deferred until we receive the Resized acknowledgment
+	 * from the subprocess. This ensures the emulator dimensions stay synchronized
+	 * with the actual PTY dimensions, preventing cursor position mismatches during
+	 * operations like autocomplete that rely on accurate line/column calculations.
 	 */
 	resize(cols: number, rows: number): void {
 		if (this.subprocess && this.subprocessReady) {
 			this.sendResizeToSubprocess(cols, rows);
+			// Emulator will be resized when we receive Resized ack from subprocess
+		} else {
+			// Subprocess not ready - resize emulator directly as fallback
+			this.emulator.resize(cols, rows);
 		}
-		this.emulator.resize(cols, rows);
 	}
 
 	/**
