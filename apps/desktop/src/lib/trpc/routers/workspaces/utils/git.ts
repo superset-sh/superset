@@ -1,14 +1,9 @@
 import { execFile } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import friendlyWords = require("friendly-words");
 import simpleGit, { type StatusResult } from "simple-git";
-import {
-	adjectives,
-	animals,
-	uniqueNamesGenerator,
-} from "unique-names-generator";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -294,16 +289,26 @@ function isEnoent(error: unknown): boolean {
 	);
 }
 
-export function generateBranchName(): string {
-	const name = uniqueNamesGenerator({
-		dictionaries: [adjectives, animals],
-		separator: "-",
-		length: 2,
-		style: "lowerCase",
-	});
-	const suffix = randomBytes(3).toString("hex");
+/**
+ * Generates a random branch name using a single friendly word.
+ * Checks against existing branches to avoid collisions.
+ * With ~9000 words, collisions are rare even with hundreds of branches.
+ */
+export function generateBranchName(existingBranches: string[] = []): string {
+	const words = friendlyWords.objects as string[];
+	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
 
-	return `${name}-${suffix}`;
+	// Try up to 10 times to find a unique word
+	for (let i = 0; i < 10; i++) {
+		const word = words[Math.floor(Math.random() * words.length)];
+		if (!existingSet.has(word.toLowerCase())) {
+			return word;
+		}
+	}
+
+	// Fallback: add a small number suffix (almost never hit)
+	const word = words[Math.floor(Math.random() * words.length)];
+	return `${word}-${Math.floor(Math.random() * 100)}`;
 }
 
 export async function createWorktree(
