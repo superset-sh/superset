@@ -128,14 +128,10 @@ export class TerminalHost {
 					env: request.env,
 				});
 
-				// Wait for the PTY to be ready before continuing. This ensures:
-				// 1. We have the PID for port scanning
-				// 2. Concurrency is controlled (spawn permit held until ready)
-				// 3. CPU spikes from simultaneous shell starts are avoided
+				// Wait for PTY ready to ensure PID is available for port scanning
 				try {
 					await promiseWithTimeout(session.waitForReady(), SPAWN_READY_TIMEOUT_MS);
 				} catch {
-					// Timeout waiting for PTY ready - continue anyway, PID will be null
 					console.warn(
 						`[TerminalHost] Timeout waiting for PTY ready for session ${sessionId}`,
 					);
@@ -147,14 +143,13 @@ export class TerminalHost {
 				throw error;
 			}
 
-			// Run initial commands if provided (PTY is already ready from above await)
+			// Run initial commands if provided
 			if (request.initialCommands && request.initialCommands.length > 0) {
 				if (session.isAlive) {
 					try {
 						const cmdString = `${request.initialCommands.join(" && ")}\n`;
 						session.write(cmdString);
 					} catch (error) {
-						// Log but don't crash - initialCommands are best-effort
 						console.error(
 							`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
 							error,
