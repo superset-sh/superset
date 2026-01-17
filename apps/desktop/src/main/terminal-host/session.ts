@@ -25,6 +25,7 @@ const subprocessPathPromise = (async () => {
 		.catch(() => false);
 	return jsExists ? jsPath : tsPath;
 })();
+
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
