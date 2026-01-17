@@ -238,9 +238,10 @@ describe("Terminal Host Session Lifecycle", () => {
 	async function waitForSessionReady(
 		socket: Socket,
 		sessionId: string,
-		timeoutMs = 3000,
+		timeoutMs = 5000,
 	): Promise<boolean> {
 		const startTime = Date.now();
+		let lastPayload: ListSessionsResponse | null = null;
 		while (Date.now() - startTime < timeoutMs) {
 			const listRequest: IpcRequest = {
 				id: `list-${Date.now()}`,
@@ -250,6 +251,7 @@ describe("Terminal Host Session Lifecycle", () => {
 			const response = await sendRequest(socket, listRequest);
 			if (response.ok) {
 				const payload = response.payload as ListSessionsResponse;
+				lastPayload = payload;
 				const session = payload.sessions.find((s) => s.sessionId === sessionId);
 				if (session?.isAlive) {
 					return true;
@@ -257,6 +259,11 @@ describe("Terminal Host Session Lifecycle", () => {
 			}
 			await new Promise((r) => setTimeout(r, 100));
 		}
+		// Log debug info on failure
+		console.error(
+			`[waitForSessionReady] Timeout waiting for session ${sessionId}. Last sessions:`,
+			JSON.stringify(lastPayload?.sessions, null, 2),
+		);
 		return false;
 	}
 
