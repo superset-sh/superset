@@ -11,7 +11,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
-import { buildSafeEnv } from "../lib/terminal/env";
+import { getShellArgs } from "../lib/agent-setup/shell-wrappers";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
 import type {
 	CreateOrAttachRequest,
@@ -170,17 +170,13 @@ export class Session {
 
 		const { cwd, cols, rows, env = {} } = options;
 
-		// Merge process.env with passed env (passed takes precedence), then filter
-		const processEnv = buildSafeEnv({ ...process.env, ...env } as Record<
-			string,
-			string
-		>);
-		processEnv.TERM = "xterm-256color";
+		// Use buildTerminalEnv output directly (already sanitized and wrapper-aware)
+		const processEnv: Record<string, string> = { ...env };
 
-		const shellArgs = this.getShellArgs(this.shell);
+		const shellArgs = getShellArgs(this.shell);
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
-		// Spawn subprocess with filtered env to prevent leaking NODE_ENV etc.
+		// Spawn subprocess with terminal env (already filtered upstream).
 		const electronPath = process.execPath;
 		this.subprocess = spawn(electronPath, [subprocessPath], {
 			stdio: ["pipe", "pipe", "inherit"],
@@ -943,18 +939,6 @@ export class Session {
 		return process.env.SHELL || "/bin/zsh";
 	}
 
-	/**
-	 * Get shell arguments for login shell
-	 */
-	private getShellArgs(shell: string): string[] {
-		const shellName = shell.split("/").pop() || "";
-
-		if (["zsh", "bash", "sh", "ksh", "fish"].includes(shellName)) {
-			return ["-l"];
-		}
-
-		return [];
-	}
 }
 
 // =============================================================================

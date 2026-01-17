@@ -541,6 +541,7 @@ describe("env", () => {
 		// Store original env vars to restore after tests
 		const originalEnvVars: Record<string, string | undefined> = {};
 		const varsToTrack = [
+			"TERM",
 			"NODE_ENV",
 			"NODE_OPTIONS",
 			"NODE_PATH",
@@ -615,6 +616,18 @@ describe("env", () => {
 		});
 
 		describe("terminal metadata", () => {
+			it("should default TERM to xterm-256color when missing", () => {
+				delete process.env.TERM;
+				const result = buildTerminalEnv(baseParams);
+				expect(result.TERM).toBe("xterm-256color");
+			});
+
+			it("should preserve TERM when provided", () => {
+				process.env.TERM = "screen-256color";
+				const result = buildTerminalEnv(baseParams);
+				expect(result.TERM).toBe("screen-256color");
+			});
+
 			it("should set TERM_PROGRAM to Superset", () => {
 				const result = buildTerminalEnv(baseParams);
 				expect(result.TERM_PROGRAM).toBe("Superset");

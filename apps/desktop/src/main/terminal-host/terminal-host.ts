@@ -9,6 +9,7 @@
  */
 
 import type { Socket } from "node:net";
+import { buildTerminalEnv, getDefaultShell } from "../lib/terminal/env";
 import type {
 	ClearScrollbackRequest,
 	CreateOrAttachRequest,
@@ -83,7 +84,24 @@ export class TerminalHost {
 		socket: Socket,
 		request: CreateOrAttachRequest,
 	): Promise<CreateOrAttachResponse> {
-		const { sessionId } = request;
+		const shell = request.shell ?? request.env?.SHELL ?? getDefaultShell();
+		const env =
+			request.env ??
+			buildTerminalEnv({
+				shell,
+				paneId: request.paneId,
+				tabId: request.tabId,
+				workspaceId: request.workspaceId,
+				workspaceName: request.workspaceName,
+				workspacePath: request.workspacePath,
+				rootPath: request.rootPath,
+			});
+		const normalizedRequest: CreateOrAttachRequest = {
+			...request,
+			shell,
+			env,
+		};
+		const { sessionId } = normalizedRequest;
 
 		let session = this.sessions.get(sessionId);
 		let isNew = false;
@@ -113,7 +131,7 @@ export class TerminalHost {
 
 			// Create new session
 			try {
-				session = createSession(request);
+				session = createSession(normalizedRequest);
 
 				// Set up exit handler
 				session.onExit((id, exitCode, signal) => {
@@ -122,10 +140,10 @@ export class TerminalHost {
 
 				// Spawn PTY
 				session.spawn({
-					cwd: request.cwd || process.env.HOME || "/",
-					cols: request.cols,
-					rows: request.rows,
-					env: request.env,
+					cwd: normalizedRequest.cwd || process.env.HOME || "/",
+					cols: normalizedRequest.cols,
+					rows: normalizedRequest.rows,
+					env: normalizedRequest.env,
 				});
 
 				// Wait for PTY ready to ensure PID is available for port scanning
@@ -147,12 +165,17 @@ export class TerminalHost {
 			}
 
 			// Run initial commands if provided
-			if (request.initialCommands && request.initialCommands.length > 0) {
-				if (session.isAlive) {
-					try {
-						const cmdString = `${request.initialCommands.join(" && ")}\n`;
-						session.write(cmdString);
-					} catch (error) {
+				if (
+					normalizedRequest.initialCommands &&
+					normalizedRequest.initialCommands.length > 0
+				) {
+					if (session.isAlive) {
+						try {
+							const cmdString = `${normalizedRequest.initialCommands.join(
+								" && ",
+							)}\n`;
+							session.write(cmdString);
+						} catch (error) {
 						console.error(
 							`[TerminalHost] Failed to run initial commands for ${sessionId}:`,
 							error,
@@ -169,7 +192,7 @@ export class TerminalHost {
 			// Note: Resize can fail if PTY is in a bad state (e.g., EBADF)
 			// We catch and ignore these errors since the session may still be usable
 			try {
-				session.resize(request.cols, request.rows);
+				session.resize(normalizedRequest.cols, normalizedRequest.rows);
 			} catch {
 				// Ignore resize failures - session may still be attachable
 			}
