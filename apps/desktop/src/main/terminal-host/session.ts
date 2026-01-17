@@ -12,6 +12,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type { Socket } from "node:net";
 import * as path from "node:path";
 import { HeadlessEmulator } from "../lib/terminal-host/headless-emulator";
+import { buildSafeEnv } from "../lib/terminal/env";
 import type {
 	CreateOrAttachRequest,
 	IpcEvent,
@@ -169,19 +170,12 @@ export class Session {
 
 		const { cwd, cols, rows, env = {} } = options;
 
-		// Use the environment passed from the main process (already filtered by buildTerminalEnv).
-		// This matches the non-persistent mode behavior - only use the filtered env,
-		// not the daemon's process.env which may have stale or different values.
-		const processEnv: Record<string, string> = {
-			...env,
-			TERM: "xterm-256color",
-		};
+		// Merge process.env with passed env (passed takes precedence), then filter
+		const mergedEnv = Object.assign({}, process.env, env);
+		const processEnv = buildSafeEnv(mergedEnv as Record<string, string>);
+		processEnv.TERM = "xterm-256color";
 
-		// Get shell args
 		const shellArgs = this.getShellArgs(this.shell);
-
-		// Spawn PTY subprocess
-		// The subprocess script is bundled alongside terminal-host.js
 		const subprocessPath = path.join(__dirname, "pty-subprocess.js");
 
 		// Use electron as node to run the subprocess
@@ -223,17 +217,6 @@ export class Session {
 		this.subprocess.on("error", (error) => {
 			console.error(`[Session ${this.sessionId}] Subprocess error:`, error);
 			this.handleSubprocessExit(-1);
-		});
-
-		// Debug: Log shell spawn config
-		console.log(`[Session ${this.sessionId}] Spawn config:`, {
-			shell: this.shell,
-			args: shellArgs,
-			cwd,
-			cols,
-			rows,
-			ZDOTDIR: processEnv.ZDOTDIR,
-			SUPERSET_ORIG_ZDOTDIR: processEnv.SUPERSET_ORIG_ZDOTDIR,
 		});
 
 		// Store pending spawn config
