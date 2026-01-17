@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Card } from "@superset/ui/card";
 import { toast } from "@superset/ui/sonner";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
@@ -6,8 +7,8 @@ import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiExclamationTriangle, HiXMark } from "react-icons/hi2";
-import { LuTerminal } from "react-icons/lu";
+import { HiExclamationTriangle } from "react-icons/hi2";
+import { LuPower, LuTerminal } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	clearTerminalKilledByUser,
@@ -1540,60 +1541,71 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			/>
 			<ScrollToBottomButton terminal={xtermInstance} />
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
-				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
-						<HiXMark className="size-6 text-destructive" />
-						<div className="space-y-1">
-							<p className="text-sm font-medium text-foreground">
-								Session killed
-							</p>
-							<p className="text-xs text-muted-foreground">
-								This terminal was terminated.
-							</p>
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+					<Card className="gap-3 py-4 px-2">
+						<div className="flex flex-col items-center text-center gap-1.5 px-4">
+							<LuPower className="size-5 text-muted-foreground" />
+							<div className="space-y-0.5">
+								<p className="text-sm font-medium">Session killed</p>
+								<p className="text-xs text-muted-foreground">
+									You terminated this shell session
+								</p>
+							</div>
 						</div>
-						<Button size="sm" onClick={handleRestartSession}>
-							Restart Session
-						</Button>
-					</div>
+						<div className="px-4">
+							<Button
+								size="sm"
+								className="w-full"
+								onClick={handleRestartSession}
+							>
+								Restart
+							</Button>
+						</div>
+					</Card>
 				</div>
 			)}
 			{connectionError && (
-				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
-						<HiExclamationTriangle className="size-6 text-destructive" />
-						<div className="space-y-1">
-							<p className="text-sm font-medium text-foreground">
-								Connection error
-							</p>
-							<p className="text-xs text-muted-foreground">{connectionError}</p>
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+					<Card className="gap-3 py-4 px-2 max-w-xs">
+						<div className="flex flex-col items-center text-center gap-1.5 px-4">
+							<HiExclamationTriangle className="size-5 text-destructive" />
+							<div className="space-y-0.5">
+								<p className="text-sm font-medium">Connection error</p>
+								<p className="text-xs text-muted-foreground">
+									Lost connection to terminal daemon
+								</p>
+							</div>
 						</div>
-						<Button size="sm" onClick={handleRetryConnection}>
-							Retry Connection
-						</Button>
-					</div>
+						<div className="px-4">
+							<Button
+								size="sm"
+								className="w-full"
+								onClick={handleRetryConnection}
+							>
+								Retry
+							</Button>
+						</div>
+					</Card>
 				</div>
 			)}
 			{isRestoredMode && (
-				<div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
-					<div className="flex flex-col items-center max-w-xs text-center space-y-3">
-						<LuTerminal className="size-6 text-primary" />
-						<div className="space-y-1">
-							<p className="text-sm font-medium text-foreground">
-								Session restored
-							</p>
-							<p className="text-xs text-muted-foreground">
-								Your previous output was preserved.
-							</p>
-							{restoredCwd && (
-								<p className="text-xs text-muted-foreground/60 font-mono truncate max-w-[200px]">
-									{restoredCwd}
+				<div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
+					<Card className="gap-3 py-4 px-2">
+						<div className="flex flex-col items-center text-center gap-1.5 px-4">
+							<LuTerminal className="size-5 text-primary" />
+							<div className="space-y-0.5">
+								<p className="text-sm font-medium">Session restored</p>
+								<p className="text-xs text-muted-foreground">
+									Previous scrollback preserved after restart
 								</p>
-							)}
+							</div>
 						</div>
-						<Button size="sm" onClick={handleStartShell}>
-							Start Shell
-						</Button>
-					</div>
+						<div className="px-4">
+							<Button size="sm" className="w-full" onClick={handleStartShell}>
+								Start Shell
+							</Button>
+						</div>
+					</Card>
 				</div>
 			)}
 			<div ref={terminalRef} className="h-full w-full" />
