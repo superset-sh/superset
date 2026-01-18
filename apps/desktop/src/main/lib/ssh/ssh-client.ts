@@ -72,6 +72,7 @@ export class SSHClient extends EventEmitter {
 		this.setupClientHandlers();
 	}
 
+	/** Sets up persistent event handlers for SSH client connection lifecycle */
 	private setupClientHandlers(): void {
 		this.client.on("ready", () => {
 			console.log(`[ssh/client] Connected to ${this.config.host}`);
@@ -127,6 +128,7 @@ export class SSHClient extends EventEmitter {
 		});
 	}
 
+	/** Emits connection status to listeners */
 	private emitStatus(error?: string): void {
 		const status: SSHConnectionStatus = {
 			state: this.state,
@@ -137,6 +139,7 @@ export class SSHClient extends EventEmitter {
 		this.emit("connectionStatus", status);
 	}
 
+	/** Attempts to reconnect with exponential backoff after connection loss */
 	private attemptReconnect(): void {
 		if (this.reconnectTimer) {
 			return;
@@ -171,6 +174,7 @@ export class SSHClient extends EventEmitter {
 		}, delay);
 	}
 
+	/** Establishes SSH connection to the remote server */
 	async connect(): Promise<void> {
 		if (this.state === "connected" || this.state === "connecting") {
 			console.log(`[ssh/client] Already ${this.state}, skipping connect`);
@@ -222,6 +226,7 @@ export class SSHClient extends EventEmitter {
 		});
 	}
 
+	/** Builds SSH connection config based on authentication method */
 	private async buildConnectConfig(): Promise<ConnectConfig> {
 		const config: ConnectConfig = {
 			host: this.config.host,
@@ -308,6 +313,7 @@ export class SSHClient extends EventEmitter {
 		return config;
 	}
 
+	/** Disconnects from the SSH server and prevents automatic reconnection */
 	disconnect(): void {
 		if (this.reconnectTimer) {
 			clearTimeout(this.reconnectTimer);
@@ -317,10 +323,12 @@ export class SSHClient extends EventEmitter {
 		this.client.end();
 	}
 
+	/** Returns true if currently connected to the SSH server */
 	isConnected(): boolean {
 		return this.state === "connected";
 	}
 
+	/** Returns the current connection state */
 	getState(): SSHConnectionState {
 		return this.state;
 	}
