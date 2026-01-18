@@ -4,7 +4,7 @@ import type { Terminal } from "@xterm/xterm";
 import { useCallback, useEffect, useState } from "react";
 import { HiArrowDown } from "react-icons/hi2";
 import { useHotkeyText } from "renderer/stores/hotkeys";
-import { smoothScrollToBottom } from "../utils";
+import { scrollToBottom } from "../utils";
 
 interface ScrollToBottomButtonProps {
 	terminal: Terminal | null;
@@ -42,7 +42,7 @@ export function ScrollToBottomButton({ terminal }: ScrollToBottomButtonProps) {
 
 	const handleClick = () => {
 		if (terminal) {
-			smoothScrollToBottom(terminal);
+			scrollToBottom(terminal);
 		}
 	};
 
