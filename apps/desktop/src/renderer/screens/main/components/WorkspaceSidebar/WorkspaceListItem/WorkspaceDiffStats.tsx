@@ -19,11 +19,19 @@ export function WorkspaceDiffStats({
 		<div
 			className={cn(
 				"group/diff flex items-center text-[10px] font-mono tabular-nums px-1.5 py-0.5 rounded relative cursor-pointer",
-				isActive ? "bg-foreground/10 group-hover:bg-transparent" : "bg-muted/50 group-hover:bg-transparent",
+				isActive
+					? "bg-foreground/10 group-hover:bg-transparent"
+					: "bg-muted/50 group-hover:bg-transparent",
 			)}
 		>
 			{/* Diff stats - hidden on card hover when onClose provided */}
-			<div className={onClose ? "flex items-center gap-1.5 group-hover:hidden" : "flex items-center gap-1.5"}>
+			<div
+				className={
+					onClose
+						? "flex items-center gap-1.5 group-hover:hidden"
+						: "flex items-center gap-1.5"
+				}
+			>
 				<span className="text-emerald-500/90">+{additions}</span>
 				<span className="text-red-400/90">−{deletions}</span>
 			</div>

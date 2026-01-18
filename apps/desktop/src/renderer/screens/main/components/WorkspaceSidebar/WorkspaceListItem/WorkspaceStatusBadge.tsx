@@ -7,11 +7,13 @@ type PRState = "open" | "merged" | "closed" | "draft";
 interface WorkspaceStatusBadgeProps {
 	state: PRState;
 	prNumber?: number;
+	className?: string;
 }
 
 export function WorkspaceStatusBadge({
 	state,
 	prNumber,
+	className,
 }: WorkspaceStatusBadgeProps) {
 	const iconClass = "w-3 h-3";
 
@@ -61,6 +63,7 @@ export function WorkspaceStatusBadge({
 			className={cn(
 				"flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px]",
 				bgColor,
+				className,
 			)}
 		>
 			{icon}
