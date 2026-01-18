@@ -30,10 +30,10 @@ interface ChangesHeaderProps {
 	onViewModeChange: (mode: ChangesViewMode) => void;
 	worktreePath: string;
 	workspaceId?: string;
-	onStash?: () => void;
-	onStashIncludeUntracked?: () => void;
-	onStashPop?: () => void;
-	isStashPending?: boolean;
+	onStash: () => void;
+	onStashIncludeUntracked: () => void;
+	onStashPop: () => void;
+	isStashPending: boolean;
 }
 
 export function ChangesHeader({
@@ -149,45 +149,43 @@ export function ChangesHeader({
 					viewMode={viewMode}
 					onViewModeChange={onViewModeChange}
 				/>
-				{onStash && onStashIncludeUntracked && onStashPop && (
-					<DropdownMenu>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="size-6 p-0"
-										disabled={isStashPending}
-									>
-										<LuArchive className="size-3.5" />
-									</Button>
-								</DropdownMenuTrigger>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Stash operations
-							</TooltipContent>
-						</Tooltip>
-						<DropdownMenuContent align="end" className="w-52">
-							<DropdownMenuItem onClick={onStash} className="text-xs">
-								<LuArchive className="size-3.5" />
-								Stash Changes
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={onStashIncludeUntracked}
-								className="text-xs"
-							>
-								<LuArchive className="size-3.5" />
-								Stash (Include Untracked)
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={onStashPop} className="text-xs">
-								<LuArchiveRestore className="size-3.5" />
-								Pop Stash
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
+				<DropdownMenu>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-6 p-0"
+									disabled={isStashPending}
+								>
+									<LuArchive className="size-3.5" />
+								</Button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							Stash operations
+						</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent align="end" className="w-52">
+						<DropdownMenuItem onClick={onStash} className="text-xs">
+							<LuArchive className="size-3.5" />
+							Stash Changes
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={onStashIncludeUntracked}
+							className="text-xs"
+						>
+							<LuArchive className="size-3.5" />
+							Stash (Include Untracked)
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={onStashPop} className="text-xs">
+							<LuArchiveRestore className="size-3.5" />
+							Pop Stash
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button
