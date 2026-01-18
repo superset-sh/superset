@@ -87,7 +87,22 @@ console.log(`[local-db] Running migrations from: ${migrationsFolder}`);
 
 export const localDb = drizzle(sqlite, { schema });
 
-migrate(localDb, { migrationsFolder });
+try {
+	migrate(localDb, { migrationsFolder });
+} catch (error) {
+	const isIdempotent =
+		error instanceof Error &&
+		(error as Error & { code?: string }).code === "SQLITE_ERROR" &&
+		/duplicate column name|already exists|no such column/i.test(error.message);
+
+	if (isIdempotent) {
+		console.log(
+			`[local-db] Skipped idempotent error: ${(error as Error).message}`,
+		);
+	} else {
+		throw error;
+	}
+}
 
 console.log("[local-db] Migrations complete");
 
