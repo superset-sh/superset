@@ -47,6 +47,8 @@ function TerminalSettingsPage() {
 
 	const [confirmKillAllOpen, setConfirmKillAllOpen] = useState(false);
 	const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
+	const [confirmRestartDaemonOpen, setConfirmRestartDaemonOpen] =
+		useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 	const [pendingKillSession, setPendingKillSession] = useState<{
 		sessionId: string;
@@ -75,6 +77,8 @@ function TerminalSettingsPage() {
 			onSettled: () => {
 				// Refetch to ensure sync with server
 				utils.settings.getTerminalPersistence.invalidate();
+				// Daemon may have spawned/stopped, refresh session list
+				utils.terminal.listDaemonSessions.invalidate();
 			},
 		});
 
@@ -156,6 +160,42 @@ function TerminalSettingsPage() {
 			toast.error("Failed to kill session", {
 				description: error.message,
 			});
+		},
+	});
+
+	const restartDaemon = electronTrpc.terminal.restartDaemon.useMutation({
+		onMutate: async () => {
+			await utils.terminal.listDaemonSessions.cancel();
+			const previous = utils.terminal.listDaemonSessions.getData();
+			utils.terminal.listDaemonSessions.setData(undefined, {
+				daemonModeEnabled: true,
+				sessions: [],
+			});
+			return { previous };
+		},
+		onSuccess: (result) => {
+			if (result.daemonModeEnabled) {
+				toast.success("Daemon restarted", {
+					description: "The daemon will start on next terminal use.",
+				});
+			} else {
+				toast.error("Terminal persistence is not active", {
+					description: "Enable terminal persistence and restart the app.",
+				});
+			}
+		},
+		onError: (error, _vars, context) => {
+			if (context?.previous) {
+				utils.terminal.listDaemonSessions.setData(undefined, context.previous);
+			}
+			toast.error("Failed to restart daemon", {
+				description: error.message,
+			});
+		},
+		onSettled: () => {
+			setTimeout(() => {
+				utils.terminal.listDaemonSessions.invalidate();
+			}, 500);
 		},
 	});
 
@@ -335,6 +375,31 @@ function TerminalSettingsPage() {
 						</div>
 					)}
 				</div>
+
+				<div className="flex items-center justify-between">
+					<div className="space-y-0.5">
+						<Label className="text-sm font-medium">Restart daemon</Label>
+						<p className="text-xs text-muted-foreground">
+							Restart the background terminal daemon process. This will kill all
+							running sessions.
+						</p>
+						<p className="text-xs text-muted-foreground/70 mt-1">
+							Use this if terminals are behaving unexpectedly or to free up
+							resources.
+						</p>
+					</div>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={
+							!(terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE) ||
+							restartDaemon.isPending
+						}
+						onClick={() => setConfirmRestartDaemonOpen(true)}
+					>
+						Restart
+					</Button>
+				</div>
 			</div>
 
 			<AlertDialog
@@ -425,6 +490,54 @@ function TerminalSettingsPage() {
 							}}
 						>
 							Clear history
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog
+				open={confirmRestartDaemonOpen}
+				onOpenChange={setConfirmRestartDaemonOpen}
+			>
+				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Restart terminal daemon?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									This will kill all running terminal sessions and restart the
+									background daemon process.
+								</span>
+								<span className="block">
+									Use this if terminals are behaving unexpectedly or to free up
+									resources.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setConfirmRestartDaemonOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="secondary"
+							size="sm"
+							disabled={restartDaemon.isPending}
+							onClick={() => {
+								setConfirmRestartDaemonOpen(false);
+								for (const session of sessions) {
+									markTerminalKilledByUser(session.sessionId);
+								}
+								restartDaemon.mutate();
+							}}
+						>
+							Restart daemon
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

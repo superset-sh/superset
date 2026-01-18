@@ -5,6 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { restartDaemon as restartDaemonClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -381,6 +382,31 @@ export const createTerminalRouter = () => {
 			}
 
 			return { success: true };
+		}),
+
+		/**
+		 * Restart the terminal daemon.
+		 * Kills all sessions and shuts down the daemon. The daemon will
+		 * auto-spawn on the next terminal operation.
+		 */
+		restartDaemon: publicProcedure.mutation(async () => {
+			if (!terminal.management) {
+				return { daemonModeEnabled: false, success: false };
+			}
+
+			try {
+				await restartDaemonClient();
+				console.log(
+					"[Terminal Router] Daemon restarted (will spawn on next use)",
+				);
+				return { daemonModeEnabled: true, success: true };
+			} catch (error) {
+				console.error("[Terminal Router] Failed to restart daemon:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to restart daemon",
+				});
+			}
 		}),
 
 		getSession: publicProcedure

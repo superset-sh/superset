@@ -1372,7 +1372,15 @@ export class TerminalHostClient extends EventEmitter {
 				throw error;
 			}
 
-			await this.sendRequest<EmptyResponse>("shutdown", request);
+			try {
+				await this.sendRequest<EmptyResponse>("shutdown", request);
+			} catch (error) {
+				// "Connection lost" is expected - daemon shuts down before responding
+				const message = error instanceof Error ? error.message : String(error);
+				if (!message.includes("Connection lost")) {
+					throw error;
+				}
+			}
 			return { wasRunning: true };
 		} finally {
 			this.disconnect();
@@ -1423,4 +1431,15 @@ export function disposeTerminalHostClient(): void {
 		clientInstance.dispose();
 		clientInstance = null;
 	}
+}
+
+/**
+ * Restart the terminal daemon by shutting it down (killing all sessions).
+ * The daemon will auto-spawn on the next terminal operation.
+ * Returns true if daemon was running, false if not.
+ */
+export async function restartDaemon(): Promise<boolean> {
+	const client = getTerminalHostClient();
+	const { wasRunning } = await client.shutdownIfRunning({ killSessions: true });
+	return wasRunning;
 }

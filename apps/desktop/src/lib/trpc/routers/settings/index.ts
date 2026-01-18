@@ -5,6 +5,7 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { localDb } from "main/lib/local-db";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -253,7 +254,7 @@ export const createSettingsRouter = () => {
 
 		setTerminalPersistence: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				localDb
 					.insert(settings)
 					.values({ id: 1, terminalPersistence: input.enabled })
@@ -262,6 +263,20 @@ export const createSettingsRouter = () => {
 						set: { terminalPersistence: input.enabled },
 					})
 					.run();
+
+				// Spawn daemon immediately when enabled so restart/management works
+				if (input.enabled) {
+					try {
+						const client = getTerminalHostClient();
+						await client.ensureConnected();
+					} catch (error) {
+						console.error(
+							"[Settings] Failed to spawn daemon after enabling persistence:",
+							error,
+						);
+						// Don't fail the mutation - daemon will spawn on next terminal use
+					}
+				}
 
 				return { success: true };
 			}),

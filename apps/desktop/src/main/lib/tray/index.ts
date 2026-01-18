@@ -16,7 +16,7 @@ import {
 	isDaemonModeEnabled,
 } from "main/lib/terminal";
 import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
-import { getTerminalHostClient } from "main/lib/terminal-host/client";
+import { restartDaemon as restartDaemonClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
 const POLL_INTERVAL_MS = 5000;
@@ -231,9 +231,7 @@ function buildSessionsSubmenu(
 
 async function restartDaemon(): Promise<void> {
 	try {
-		const client = getTerminalHostClient();
-		await client.shutdownIfRunning({ killSessions: true });
-		// Daemon auto-spawns on next terminal operation
+		await restartDaemonClient();
 		console.log("[Tray] Daemon restarted (will spawn on next use)");
 	} catch (error) {
 		console.error("[Tray] Failed to restart daemon:", error);
