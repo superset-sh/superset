@@ -10,12 +10,8 @@ import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
 
-/**
- * Get workspace IDs in visual order: sorted by project.tabOrder, then workspace.tabOrder.
- * This matches the order displayed in the sidebar for keyboard navigation.
- */
+/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then workspace.tabOrder). */
 function getWorkspacesInVisualOrder(): string[] {
-	// Get active projects sorted by tabOrder
 	const activeProjects = localDb
 		.select()
 		.from(projects)
@@ -23,14 +19,12 @@ function getWorkspacesInVisualOrder(): string[] {
 		.all()
 		.sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
 
-	// Get all non-deleted workspaces
 	const allWorkspaces = localDb
 		.select()
 		.from(workspaces)
 		.where(isNull(workspaces.deletingAt))
 		.all();
 
-	// Build ordered list: for each project (in tabOrder), add its workspaces (in tabOrder)
 	const orderedIds: string[] = [];
 	for (const project of activeProjects) {
 		const projectWorkspaces = allWorkspaces
@@ -233,7 +227,6 @@ export const createQueryProcedures = () => {
 		getPreviousWorkspace: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				// Get workspaces in visual order: sorted by project.tabOrder, then workspace.tabOrder
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
 				if (orderedWorkspaceIds.length === 0) return null;
 
@@ -242,7 +235,6 @@ export const createQueryProcedures = () => {
 				);
 				if (currentIndex === -1) return null;
 
-				// Wrap around: if at first, go to last
 				const prevIndex =
 					currentIndex === 0
 						? orderedWorkspaceIds.length - 1
@@ -253,7 +245,6 @@ export const createQueryProcedures = () => {
 		getNextWorkspace: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				// Get workspaces in visual order: sorted by project.tabOrder, then workspace.tabOrder
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
 				if (orderedWorkspaceIds.length === 0) return null;
 
@@ -262,7 +253,6 @@ export const createQueryProcedures = () => {
 				);
 				if (currentIndex === -1) return null;
 
-				// Wrap around: if at last, go to first
 				const nextIndex =
 					currentIndex === orderedWorkspaceIds.length - 1
 						? 0
