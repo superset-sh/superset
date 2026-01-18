@@ -407,13 +407,10 @@ class PortManager extends EventEmitter {
 	 * - The port is tracked by us
 	 * - The PID is not the terminal's shell PID (only child processes)
 	 */
-	killPort({
-		paneId,
-		port,
-	}: {
-		paneId: string;
-		port: number;
-	}): { success: boolean; error?: string } {
+	killPort({ paneId, port }: { paneId: string; port: number }): {
+		success: boolean;
+		error?: string;
+	} {
 		const key = this.makeKey(paneId, port);
 		const detectedPort = this.ports.get(key);
 
@@ -437,8 +434,7 @@ class PortManager extends EventEmitter {
 			process.kill(detectedPort.pid, "SIGTERM");
 			return { success: true };
 		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Unknown error";
+			const message = error instanceof Error ? error.message : "Unknown error";
 			console.error(
 				`[PortManager] Failed to kill process ${detectedPort.pid}:`,
 				message,
