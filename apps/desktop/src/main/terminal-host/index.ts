@@ -36,6 +36,8 @@ import {
 	type IpcSuccessResponse,
 	type KillAllRequest,
 	type KillRequest,
+	type PingRequest,
+	type PingResponse,
 	PROTOCOL_VERSION,
 	type ResizeRequest,
 	type ShutdownRequest,
@@ -51,6 +53,7 @@ import { TerminalHost } from "./terminal-host";
 // =============================================================================
 
 const DAEMON_VERSION = "1.0.0";
+const DAEMON_START_TIME = Date.now();
 
 // Determine superset directory based on NODE_ENV
 const SUPERSET_DIR_NAME =
@@ -152,7 +155,15 @@ function sendResponse(
 	socket: Socket,
 	response: IpcSuccessResponse | IpcErrorResponse,
 ) {
-	socket.write(`${JSON.stringify(response)}\n`);
+	try {
+		if (!socket.destroyed && socket.writable) {
+			socket.write(`${JSON.stringify(response)}\n`);
+		}
+	} catch (error) {
+		log("warn", "Failed to send response (socket closed)", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+	}
 }
 
 function sendSuccess(socket: Socket, id: string, payload: unknown) {
@@ -197,6 +208,17 @@ function isValidRole(role: unknown): role is "control" | "stream" {
 	return role === "control" || role === "stream";
 }
 
+function removeStreamSocket(clientId: string): void {
+	const sockets = clientsById.get(clientId);
+	if (!sockets) return;
+
+	if (sockets.control) {
+		clientsById.set(clientId, { control: sockets.control });
+	} else {
+		clientsById.delete(clientId);
+	}
+}
+
 function broadcastEventToAllStreamSockets(event: IpcEvent): void {
 	const message = `${JSON.stringify(event)}\n`;
 
@@ -204,21 +226,20 @@ function broadcastEventToAllStreamSockets(event: IpcEvent): void {
 		const streamSocket = sockets.stream;
 		if (!streamSocket) continue;
 
+		if (streamSocket.destroyed || !streamSocket.writable) {
+			removeStreamSocket(clientId);
+			continue;
+		}
+
 		try {
 			streamSocket.write(message);
 		} catch {
-			// Best-effort cleanup of broken sockets.
 			try {
 				streamSocket.destroy();
 			} catch {
-				// ignore
+				// Already destroyed
 			}
-			const { control } = sockets;
-			if (control) {
-				clientsById.set(clientId, { control });
-			} else {
-				clientsById.delete(clientId);
-			}
+			removeStreamSocket(clientId);
 		}
 	}
 }
@@ -537,6 +558,28 @@ const handlers: Record<string, RequestHandler> = {
 			stopServer().then(() => process.exit(0));
 		}, 100);
 	},
+
+	ping: (socket, id, payload, clientState) => {
+		if (!clientState.authenticated) {
+			sendError(socket, id, "NOT_AUTHENTICATED", "Must authenticate first");
+			return;
+		}
+		if (clientState.role !== "control") {
+			sendError(socket, id, "INVALID_ROLE", "ping requires control");
+			return;
+		}
+
+		const request = payload as PingRequest;
+		const sessions = terminalHost.listSessions();
+
+		const response: PingResponse = {
+			timestamp: request.timestamp,
+			uptime: Date.now() - DAEMON_START_TIME,
+			activeSessions: sessions.sessions.filter((s) => s.isAlive).length,
+		};
+
+		sendSuccess(socket, id, response);
+	},
 };
 
 async function handleRequest(
@@ -801,9 +844,10 @@ function setupSignalHandlers() {
 	process.on("SIGTERM", () => shutdown("SIGTERM"));
 	process.on("SIGHUP", () => shutdown("SIGHUP"));
 
-	// Handle uncaught errors
+	// Handle uncaught errors - always exit for a clean restart
+	// The client has auto-restart logic that will respawn the daemon
 	process.on("uncaughtException", (error) => {
-		log("error", "Uncaught exception", {
+		log("error", "Uncaught exception, exiting for restart", {
 			error: error.message,
 			stack: error.stack,
 		});
@@ -811,7 +855,7 @@ function setupSignalHandlers() {
 	});
 
 	process.on("unhandledRejection", (reason) => {
-		log("error", "Unhandled rejection", { reason });
+		log("error", "Unhandled rejection, exiting for restart", { reason });
 		stopServer().then(() => process.exit(1));
 	});
 }
