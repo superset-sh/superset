@@ -230,9 +230,7 @@ export const createQueryProcedures = () => {
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
 				if (orderedWorkspaceIds.length === 0) return null;
 
-				const currentIndex = orderedWorkspaceIds.findIndex(
-					(id) => id === input.id,
-				);
+				const currentIndex = orderedWorkspaceIds.indexOf(input.id);
 				if (currentIndex === -1) return null;
 
 				const prevIndex =
@@ -248,9 +246,7 @@ export const createQueryProcedures = () => {
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
 				if (orderedWorkspaceIds.length === 0) return null;
 
-				const currentIndex = orderedWorkspaceIds.findIndex(
-					(id) => id === input.id,
-				);
+				const currentIndex = orderedWorkspaceIds.indexOf(input.id);
 				if (currentIndex === -1) return null;
 
 				const nextIndex =
