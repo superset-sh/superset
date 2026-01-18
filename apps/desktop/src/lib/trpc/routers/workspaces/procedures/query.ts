@@ -235,15 +235,19 @@ export const createQueryProcedures = () => {
 			.query(({ input }) => {
 				// Get workspaces in visual order: sorted by project.tabOrder, then workspace.tabOrder
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
+				if (orderedWorkspaceIds.length === 0) return null;
+
 				const currentIndex = orderedWorkspaceIds.findIndex(
 					(id) => id === input.id,
 				);
+				if (currentIndex === -1) return null;
 
-				if (currentIndex > 0) {
-					return orderedWorkspaceIds[currentIndex - 1];
-				}
-
-				return null;
+				// Wrap around: if at first, go to last
+				const prevIndex =
+					currentIndex === 0
+						? orderedWorkspaceIds.length - 1
+						: currentIndex - 1;
+				return orderedWorkspaceIds[prevIndex];
 			}),
 
 		getNextWorkspace: publicProcedure
@@ -251,15 +255,19 @@ export const createQueryProcedures = () => {
 			.query(({ input }) => {
 				// Get workspaces in visual order: sorted by project.tabOrder, then workspace.tabOrder
 				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
+				if (orderedWorkspaceIds.length === 0) return null;
+
 				const currentIndex = orderedWorkspaceIds.findIndex(
 					(id) => id === input.id,
 				);
+				if (currentIndex === -1) return null;
 
-				if (currentIndex !== -1 && currentIndex < orderedWorkspaceIds.length - 1) {
-					return orderedWorkspaceIds[currentIndex + 1];
-				}
-
-				return null;
+				// Wrap around: if at last, go to first
+				const nextIndex =
+					currentIndex === orderedWorkspaceIds.length - 1
+						? 0
+						: currentIndex + 1;
+				return orderedWorkspaceIds[nextIndex];
 			}),
 	});
 };
