@@ -104,6 +104,14 @@ function openSettings(): void {
 	}
 }
 
+function openTerminalSettings(): void {
+	showWindow();
+	const windows = BrowserWindow.getAllWindows();
+	if (windows.length > 0) {
+		windows[0].webContents.send("navigate", "/settings/terminal");
+	}
+}
+
 function openSessionInSuperset(workspaceId: string): void {
 	showWindow();
 	const windows = BrowserWindow.getAllWindows();
@@ -212,6 +220,10 @@ function buildSessionsSubmenu(
 		}
 
 		menuItems.push({ type: "separator" });
+		menuItems.push({
+			label: "Terminal Settings...",
+			click: openTerminalSettings,
+		});
 		menuItems.push({
 			label: "Kill All Sessions",
 			click: killAllSessions,
