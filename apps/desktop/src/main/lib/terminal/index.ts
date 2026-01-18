@@ -25,27 +25,21 @@ export type {
 // Terminal Manager Selection
 // =============================================================================
 
-// Cache the daemon mode setting to avoid repeated DB reads
-// This is set once at app startup and doesn't change until restart
+// Cached daemon mode setting. Updated at startup and via enable/disable functions.
 let cachedDaemonMode: boolean | null = null;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
- * Check if daemon mode is enabled.
- * Reads from user settings (terminalPersistence) or falls back to env var.
- * The value is cached since it requires app restart to take effect.
+ * Check if daemon mode is enabled. Caches the result after first read.
  */
 export function isDaemonModeEnabled(): boolean {
-	// Return cached value if available
 	if (cachedDaemonMode !== null) {
 		return cachedDaemonMode;
 	}
 
-	// First check environment variable override (for development/testing)
+	// Environment variable override for development/testing
 	if (process.env.SUPERSET_TERMINAL_DAEMON === "1") {
-		console.log(
-			"[TerminalManager] Daemon mode: ENABLED (via SUPERSET_TERMINAL_DAEMON env var)",
-		);
+		console.log("[TerminalManager] Daemon mode: ENABLED (env override)");
 		cachedDaemonMode = true;
 		return true;
 	}
@@ -55,98 +49,134 @@ export function isDaemonModeEnabled(): boolean {
 		const row = localDb.select().from(settings).get();
 		const enabled = row?.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
 		console.log(
-			`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
+			`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"}`,
 		);
 		cachedDaemonMode = enabled;
 		return enabled;
 	} catch (error) {
-		console.warn(
-			"[TerminalManager] Failed to read settings, defaulting to disabled:",
-			error,
-		);
+		console.warn("[TerminalManager] Failed to read settings:", error);
 		cachedDaemonMode = DEFAULT_TERMINAL_PERSISTENCE;
 		return DEFAULT_TERMINAL_PERSISTENCE;
 	}
 }
 
 /**
- * Get the active terminal manager based on current settings.
- * Returns either the in-process manager or the daemon-based manager.
+ * Get the active terminal manager based on current daemon mode setting.
  */
 export function getActiveTerminalManager():
 	| TerminalManager
 	| DaemonTerminalManager {
 	const daemonEnabled = isDaemonModeEnabled();
 	if (DEBUG_TERMINAL) {
-		console.log(
-			"[getActiveTerminalManager] Daemon mode enabled:",
-			daemonEnabled,
-		);
+		console.log("[getActiveTerminalManager] Daemon:", daemonEnabled);
 	}
-	if (daemonEnabled) {
-		return getDaemonTerminalManager();
-	}
-	return terminalManager;
+	return daemonEnabled ? getDaemonTerminalManager() : terminalManager;
+}
+
+// =============================================================================
+// Core Daemon Operations
+// =============================================================================
+
+/**
+ * Initialize daemon and reconcile sessions.
+ * Used by both startup and runtime enable paths.
+ */
+async function initializeDaemon(): Promise<void> {
+	const manager = getDaemonTerminalManager();
+	await manager.reconcileOnStartup();
 }
 
 /**
- * Reconcile daemon sessions on app startup.
- * Should be called on app startup when daemon mode is ENABLED to clean up
- * stale sessions from previous app runs.
- *
- * Current semantics: terminal persistence survives app restarts.
- * Reconciliation removes sessions that no longer map to existing workspaces and
- * restores state for sessions that can be retained.
+ * Shutdown daemon and dispose client.
+ * Used by both startup orphan cleanup and runtime disable paths.
+ */
+async function shutdownDaemon(): Promise<{ wasRunning: boolean }> {
+	try {
+		const client = getTerminalHostClient();
+		const result = await client.shutdownIfRunning({ killSessions: true });
+		return result;
+	} finally {
+		disposeTerminalHostClient();
+	}
+}
+
+// =============================================================================
+// Startup Functions
+// =============================================================================
+
+/**
+ * Reconcile daemon sessions on app startup (if daemon mode is enabled).
  */
 export async function reconcileDaemonSessions(): Promise<void> {
 	if (!isDaemonModeEnabled()) {
-		// Not in daemon mode, nothing to reconcile
 		return;
 	}
 
 	try {
-		const manager = getDaemonTerminalManager();
-		await manager.reconcileOnStartup();
+		await initializeDaemon();
 	} catch (error) {
-		console.warn(
-			"[TerminalManager] Failed to reconcile daemon sessions:",
-			error,
-		);
+		console.warn("[TerminalManager] Failed to reconcile daemon sessions:", error);
 	}
 }
 
 /**
- * Shutdown any orphaned daemon process.
- * Should be called on app startup when daemon mode is disabled to clean up
- * any daemon left running from a previous session with persistence enabled.
- *
- * Uses shutdownIfRunning() to avoid spawning a new daemon just to shut it down.
+ * Shutdown orphaned daemon on app startup (if daemon mode is disabled).
  */
 export async function shutdownOrphanedDaemon(): Promise<void> {
 	if (isDaemonModeEnabled()) {
-		// Daemon mode is enabled, don't shutdown
 		return;
 	}
 
 	try {
-		const client = getTerminalHostClient();
-		// Use shutdownIfRunning to avoid spawning a daemon if none exists
-		const { wasRunning } = await client.shutdownIfRunning({
-			killSessions: true,
-		});
-		if (wasRunning) {
-			console.log("[TerminalManager] Shutdown orphaned daemon successfully");
-		} else {
-			console.log("[TerminalManager] No orphaned daemon to shutdown");
-		}
-	} catch (error) {
-		// Unexpected error during shutdown attempt
-		console.warn(
-			"[TerminalManager] Error during orphan daemon cleanup:",
-			error,
+		const { wasRunning } = await shutdownDaemon();
+		console.log(
+			`[TerminalManager] Orphan cleanup: ${wasRunning ? "daemon shutdown" : "no daemon"}`,
 		);
-	} finally {
-		// Always dispose the client to clean up any partial state
-		disposeTerminalHostClient();
+	} catch (error) {
+		console.warn("[TerminalManager] Orphan cleanup error:", error);
+	}
+}
+
+// =============================================================================
+// Runtime Toggle Functions
+// =============================================================================
+
+/**
+ * Enable daemon mode at runtime. Initializes daemon and reconciles sessions.
+ */
+export async function enableDaemonMode(): Promise<void> {
+	if (cachedDaemonMode === true) {
+		return;
+	}
+
+	console.log("[TerminalManager] Enabling daemon mode");
+	cachedDaemonMode = true;
+
+	try {
+		await initializeDaemon();
+	} catch (error) {
+		console.error("[TerminalManager] Failed to enable daemon mode:", error);
+		throw error;
+	}
+}
+
+/**
+ * Disable daemon mode at runtime. Shuts down daemon and terminates all sessions.
+ */
+export async function disableDaemonMode(): Promise<void> {
+	if (cachedDaemonMode === false) {
+		return;
+	}
+
+	console.log("[TerminalManager] Disabling daemon mode");
+	cachedDaemonMode = false;
+
+	try {
+		const { wasRunning } = await shutdownDaemon();
+		console.log(
+			`[TerminalManager] Daemon ${wasRunning ? "shutdown" : "was not running"}`,
+		);
+	} catch (error) {
+		console.warn("[TerminalManager] Daemon shutdown error:", error);
 	}
 }
