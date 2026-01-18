@@ -39,7 +39,7 @@ import type { TerminalProps, TerminalStreamEvent } from "./types";
 import {
 	getScrollOffsetFromBottom,
 	shellEscapePaths,
-	smoothScrollToBottom,
+	scrollToBottom,
 } from "./utils";
 
 const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
@@ -934,7 +934,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		"SCROLL_TO_BOTTOM",
 		() => {
 			if (xtermRef.current) {
-				smoothScrollToBottom(xtermRef.current);
+				scrollToBottom(xtermRef.current);
 			}
 		},
 		{ enabled: isFocused, preventDefault: true },
@@ -1266,7 +1266,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		};
 
 		const handleScrollToBottom = () => {
-			smoothScrollToBottom(xterm);
+			scrollToBottom(xterm);
 		};
 
 		const handleWrite = (data: string) => {

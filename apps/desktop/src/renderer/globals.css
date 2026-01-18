@@ -147,7 +147,7 @@
 		margin: 0;
 		overflow: hidden; /* prevent scroll-lock adjustments from collapsing layout */
 		user-select: none;
-		scroll-behavior: smooth;
+		scroll-behavior: auto;
 		-webkit-app-region: no-drag;
 		-webkit-font-smoothing: antialiased;
 	}
