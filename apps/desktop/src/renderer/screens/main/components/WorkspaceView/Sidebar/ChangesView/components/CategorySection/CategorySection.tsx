@@ -35,7 +35,7 @@ export function CategorySection({
 			className="min-w-0 overflow-hidden"
 		>
 			{/* Section header */}
-			<div className="flex items-center min-w-0">
+			<div className="group flex items-center min-w-0">
 				<CollapsibleTrigger
 					className={cn(
 						"flex-1 flex items-center gap-1.5 px-2 py-1.5 text-left min-w-0",
