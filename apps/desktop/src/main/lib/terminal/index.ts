@@ -108,6 +108,11 @@ export async function reconcileDaemonSessions(): Promise<void> {
 	}
 }
 
+/**
+ * Shutdown any orphaned daemon process.
+ * Called on app startup when daemon mode is disabled to clean up
+ * any daemon left running from a previous session with persistence enabled.
+ */
 export async function shutdownOrphanedDaemon(): Promise<void> {
 	if (isDaemonModeEnabled()) {
 		return;

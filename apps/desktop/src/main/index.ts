@@ -220,8 +220,11 @@ if (!gotTheLock) {
 
 		await initAppState();
 
+		// Clean up stale daemon sessions from previous app runs
 		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
+
+		// Shutdown orphaned daemon if persistence is disabled
 		await shutdownOrphanedDaemon();
 
 		try {
