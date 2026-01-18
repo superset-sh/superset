@@ -5,6 +5,8 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { localDb } from "main/lib/local-db";
+import { disableDaemonMode, enableDaemonMode } from "main/lib/terminal";
+import { resetWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -253,7 +255,7 @@ export const createSettingsRouter = () => {
 
 		setTerminalPersistence: publicProcedure
 			.input(z.object({ enabled: z.boolean() }))
-			.mutation(({ input }) => {
+			.mutation(async ({ input }) => {
 				localDb
 					.insert(settings)
 					.values({ id: 1, terminalPersistence: input.enabled })
@@ -262,6 +264,14 @@ export const createSettingsRouter = () => {
 						set: { terminalPersistence: input.enabled },
 					})
 					.run();
+
+				if (input.enabled) {
+					await enableDaemonMode();
+				} else {
+					await disableDaemonMode();
+				}
+
+				resetWorkspaceRuntimeRegistry();
 
 				return { success: true };
 			}),
