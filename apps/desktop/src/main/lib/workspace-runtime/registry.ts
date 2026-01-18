@@ -11,10 +11,10 @@
  * Runtime selection is based on workspace metadata (sshConnectionId).
  */
 
+import type { SSHConnectionConfig } from "../ssh/types";
 import { LocalWorkspaceRuntime } from "./local";
 import { SSHWorkspaceRuntime } from "./ssh";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
-import type { SSHConnectionConfig } from "../ssh/types";
 
 // =============================================================================
 // Extended Registry Interface
@@ -23,7 +23,8 @@ import type { SSHConnectionConfig } from "../ssh/types";
 /**
  * Extended registry interface with SSH support.
  */
-export interface ExtendedWorkspaceRuntimeRegistry extends WorkspaceRuntimeRegistry {
+export interface ExtendedWorkspaceRuntimeRegistry
+	extends WorkspaceRuntimeRegistry {
 	/**
 	 * Get or create an SSH runtime for a connection.
 	 * Reuses existing runtime if already connected to the same host.
@@ -72,7 +73,9 @@ export interface ExtendedWorkspaceRuntimeRegistry extends WorkspaceRuntimeRegist
  * - Local workspaces use LocalWorkspaceRuntime
  * - SSH workspaces use SSHWorkspaceRuntime based on their sshConnectionId
  */
-class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistry {
+class DefaultWorkspaceRuntimeRegistry
+	implements ExtendedWorkspaceRuntimeRegistry
+{
 	private localRuntime: LocalWorkspaceRuntime | null = null;
 	private sshRuntimes: Map<string, SSHWorkspaceRuntime> = new Map();
 	private workspaceToSSH: Map<string, string> = new Map(); // workspaceId -> sshConnectionId
@@ -113,7 +116,9 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 	getSSHRuntime(config: SSHConnectionConfig): SSHWorkspaceRuntime {
 		let runtime = this.sshRuntimes.get(config.id);
 		if (!runtime) {
-			console.log(`[registry] Creating new SSH runtime for ${config.name} (${config.host})`);
+			console.log(
+				`[registry] Creating new SSH runtime for ${config.name} (${config.host})`,
+			);
 			runtime = new SSHWorkspaceRuntime(config);
 			this.sshRuntimes.set(config.id, runtime);
 			this.sshConfigs.set(config.id, config);
@@ -125,7 +130,9 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 	 * Register a workspace as using SSH.
 	 */
 	registerSSHWorkspace(workspaceId: string, sshConnectionId: string): void {
-		console.log(`[registry] Registering workspace ${workspaceId} with SSH connection ${sshConnectionId}`);
+		console.log(
+			`[registry] Registering workspace ${workspaceId} with SSH connection ${sshConnectionId}`,
+		);
 		this.workspaceToSSH.set(workspaceId, sshConnectionId);
 	}
 
@@ -156,15 +163,33 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 	async disconnectSSHRuntime(sshConnectionId: string): Promise<void> {
 		const runtime = this.sshRuntimes.get(sshConnectionId);
 		if (runtime) {
-			console.log(`[registry] Disconnecting SSH runtime for ${sshConnectionId}`);
+			console.log(
+				`[registry] Disconnecting SSH runtime for ${sshConnectionId}`,
+			);
 			let cleanupError: Error | undefined;
+			let disconnectError: Error | undefined;
 			try {
 				await runtime.terminal.cleanup();
-				runtime.disconnect();
 			} catch (error) {
-				cleanupError = error instanceof Error ? error : new Error(String(error));
-				console.error(`[registry] Error disconnecting SSH runtime ${sshConnectionId}:`, cleanupError.message);
+				cleanupError =
+					error instanceof Error ? error : new Error(String(error));
+				console.error(
+					`[registry] Error cleaning up SSH runtime ${sshConnectionId}:`,
+					cleanupError.message,
+				);
 			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (error) {
+					disconnectError =
+						error instanceof Error ? error : new Error(String(error));
+					console.error(
+						`[registry] Error disconnecting SSH runtime ${sshConnectionId}:`,
+						disconnectError.message,
+					);
+				}
+
 				// Always clean up state even if cleanup/disconnect failed
 				this.sshRuntimes.delete(sshConnectionId);
 				this.sshConfigs.delete(sshConnectionId);
@@ -176,8 +201,12 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 					}
 				}
 			}
+			// Propagate the first error encountered
 			if (cleanupError) {
 				throw cleanupError;
+			}
+			if (disconnectError) {
+				throw disconnectError;
 			}
 		}
 	}
@@ -191,7 +220,10 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 			try {
 				await this.localRuntime.terminal.cleanup();
 			} catch (error) {
-				console.error(`[registry] Error cleaning up local runtime:`, error instanceof Error ? error.message : String(error));
+				console.error(
+					`[registry] Error cleaning up local runtime:`,
+					error instanceof Error ? error.message : String(error),
+				);
 			}
 		}
 
@@ -201,13 +233,21 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 			try {
 				await runtime.terminal.cleanup();
 			} catch (error) {
-				console.error(`[registry] Error cleaning up SSH runtime ${id}:`, error instanceof Error ? error.message : String(error));
+				console.error(
+					`[registry] Error cleaning up SSH runtime ${id}:`,
+					error instanceof Error ? error.message : String(error),
+				);
 			} finally {
 				// Always disconnect even if cleanup failed
 				try {
 					runtime.disconnect();
 				} catch (disconnectError) {
-					console.error(`[registry] Error disconnecting SSH runtime ${id}:`, disconnectError instanceof Error ? disconnectError.message : String(disconnectError));
+					console.error(
+						`[registry] Error disconnecting SSH runtime ${id}:`,
+						disconnectError instanceof Error
+							? disconnectError.message
+							: String(disconnectError),
+					);
 				}
 			}
 		}

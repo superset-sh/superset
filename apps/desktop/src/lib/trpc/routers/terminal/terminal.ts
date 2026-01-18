@@ -1,6 +1,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { projects, workspaces, worktrees, remoteWorkspaces, remoteProjects } from "@superset/local-db";
+import {
+	projects,
+	remoteProjects,
+	remoteWorkspaces,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -40,15 +46,17 @@ function getTerminalForWorkspace(workspaceId: string) {
 /**
  * Helper to get terminal runtime for a pane.
  * Uses the paneId -> workspaceId mapping to determine the correct terminal.
+ * Throws if no mapping exists - callers should reattach the session.
  */
 function getTerminalForPane(paneId: string) {
 	const workspaceId = paneToWorkspace.get(paneId);
-	if (workspaceId) {
-		return getTerminalForWorkspace(workspaceId);
+	if (!workspaceId) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No workspace mapping found for pane ${paneId}. Session may need to be reattached.`,
+		});
 	}
-	// Fall back to default terminal if mapping not found
-	const registry = getWorkspaceRuntimeRegistry();
-	return registry.getDefault().terminal;
+	return getTerminalForWorkspace(workspaceId);
 }
 
 /**
@@ -175,7 +183,11 @@ export const createTerminalRouter = () => {
 					rootPath = project?.mainRepoPath;
 				}
 
-				const cwd = resolveCwd({ cwdOverride, worktreePath: workspacePath, isRemote });
+				const cwd = resolveCwd({
+					cwdOverride,
+					worktreePath: workspacePath,
+					isRemote,
+				});
 
 				if (DEBUG_TERMINAL) {
 					console.log("[Terminal Router] createOrAttach called:", {
@@ -563,7 +575,9 @@ export const createTerminalRouter = () => {
 			}),
 
 		stream: publicProcedure
-			.input(z.object({ paneId: z.string(), workspaceId: z.string().optional() }))
+			.input(
+				z.object({ paneId: z.string(), workspaceId: z.string().optional() }),
+			)
 			.subscription(({ input }) => {
 				const { paneId, workspaceId } = input;
 				return observable<
@@ -573,7 +587,9 @@ export const createTerminalRouter = () => {
 					| { type: "error"; error: string; code?: string }
 				>((emit) => {
 					if (DEBUG_TERMINAL) {
-						console.log(`[Terminal Stream] Subscribe: ${paneId}, workspaceId: ${workspaceId}`);
+						console.log(
+							`[Terminal Stream] Subscribe: ${paneId}, workspaceId: ${workspaceId}`,
+						);
 					}
 
 					// Get the terminal for this workspace/pane

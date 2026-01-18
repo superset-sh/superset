@@ -78,7 +78,7 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream("pane-1");
+		const stream$ = await caller.stream({ paneId: "pane-1" });
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;
@@ -117,7 +117,7 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream("pane-2");
+		const stream$ = await caller.stream({ paneId: "pane-2" });
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;
@@ -145,7 +145,7 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream("pane-3");
+		const stream$ = await caller.stream({ paneId: "pane-3" });
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;
