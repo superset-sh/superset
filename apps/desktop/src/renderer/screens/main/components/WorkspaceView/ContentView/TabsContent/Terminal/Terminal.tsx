@@ -38,8 +38,8 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import {
 	getScrollOffsetFromBottom,
-	shellEscapePaths,
 	scrollToBottom,
+	shellEscapePaths,
 } from "./utils";
 
 const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
