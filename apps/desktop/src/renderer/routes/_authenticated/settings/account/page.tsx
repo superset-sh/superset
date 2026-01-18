@@ -1,4 +1,4 @@
-import { authClient } from "@superset/auth/client";
+import { authClient } from "renderer/lib/auth-client";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
