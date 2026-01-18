@@ -495,7 +495,11 @@ export function WorkspaceListItem({
 									</span>
 								)}
 								{pr && (
-									<WorkspaceStatusBadge state={pr.state} prNumber={pr.number} className="ml-auto" />
+									<WorkspaceStatusBadge
+										state={pr.state}
+										prNumber={pr.number}
+										className="ml-auto"
+									/>
 								)}
 							</div>
 						)}
