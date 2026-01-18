@@ -220,6 +220,7 @@ if (!gotTheLock) {
 
 		await initAppState();
 
+		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
 		await shutdownOrphanedDaemon();
 
