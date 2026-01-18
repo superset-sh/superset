@@ -3,6 +3,7 @@ import { members, organizations } from "@superset/db/schema";
 import { sessions as authSessions } from "@superset/db/schema/auth";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import { del, put } from "@vercel/blob";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
@@ -81,19 +82,187 @@ export const organizationRouter = {
 	update: protectedProcedure
 		.input(
 			z.object({
-				id: z.string(),
-				name: z.string().min(1).optional(),
+				id: z.string().uuid(),
+				name: z.string().min(1).max(100).optional(),
+				slug: z
+					.string()
+					.min(3, "Slug must be at least 3 characters")
+					.max(50)
+					.regex(
+						/^[a-z0-9-]+$/,
+						"Slug can only contain lowercase letters, numbers, and hyphens",
+					)
+					.regex(/^[a-z0-9]/, "Slug must start with a letter or number")
+					.regex(/[a-z0-9]$/, "Slug must end with a letter or number")
+					.optional(),
 				logo: z.string().url().optional(),
 			}),
 		)
-		.mutation(async ({ input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
+
+			// Check if user is a member of the organization
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.organizationId, id),
+					eq(members.userId, ctx.session.user.id),
+				),
+			});
+
+			if (!membership) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			// Only owners can update organization settings
+			if (membership.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners can update organization settings",
+				});
+			}
+
+			// If slug is being updated, check uniqueness
+			if (data.slug) {
+				const existingOrg = await db.query.organizations.findFirst({
+					where: and(
+						eq(organizations.slug, data.slug),
+						ne(organizations.id, id),
+					),
+				});
+
+				if (existingOrg) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "This slug is already taken",
+					});
+				}
+			}
+
 			const [organization] = await db
 				.update(organizations)
 				.set(data)
 				.where(eq(organizations.id, id))
 				.returning();
 			return organization;
+		}),
+
+	uploadLogo: protectedProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				fileData: z.string(), // base64 string
+				fileName: z.string(),
+				mimeType: z.string(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			console.log("[organization/uploadLogo] START - orgId:", input.organizationId);
+
+			// Check if user is a member and is owner
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.organizationId, input.organizationId),
+					eq(members.userId, ctx.session.user.id),
+				),
+			});
+
+			if (!membership) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "You are not a member of this organization",
+				});
+			}
+
+			if (membership.role !== "owner") {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Only owners can update organization settings",
+				});
+			}
+
+			// Get current organization to check for old logo
+			const organization = await db.query.organizations.findFirst({
+				where: eq(organizations.id, input.organizationId),
+			});
+
+			if (!organization) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			// Delete old logo from blob storage if it exists and is a blob URL
+			if (organization.logo && organization.logo.includes("blob.vercel-storage.com")) {
+				try {
+					// Extract pathname from blob URL
+					const url = new URL(organization.logo);
+					const pathname = url.pathname.slice(1); // Remove leading slash
+					console.log("[organization/uploadLogo] Deleting old logo:", pathname);
+					await del(pathname);
+				} catch (error) {
+					console.error("[organization/uploadLogo] Failed to delete old logo:", error);
+					// Continue anyway - don't fail the upload if deletion fails
+				}
+			}
+
+			// Generate unique pathname: organization/{orgId}/logo/{timestamp}-{randomId}.{ext}
+			const timestamp = Date.now();
+			const randomId = Math.random().toString(36).substring(2, 15);
+			const ext = input.fileName.split(".").pop()?.toLowerCase() || "png";
+			const pathname = `organization/${input.organizationId}/logo/${timestamp}-${randomId}.${ext}`;
+
+			console.log("[organization/uploadLogo] Uploading to pathname:", pathname);
+
+			// Convert base64 to Buffer
+			// Handle both data URL format and raw base64
+			const base64Data = input.fileData.includes("base64,")
+				? input.fileData.split("base64,")[1] || input.fileData
+				: input.fileData;
+			const buffer = Buffer.from(base64Data, "base64");
+
+			// Check file size (4.5 MB limit for server uploads)
+			const sizeInMB = buffer.length / (1024 * 1024);
+			if (sizeInMB > 4.5) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `File too large (${sizeInMB.toFixed(2)}MB). Maximum size is 4.5MB`,
+				});
+			}
+
+			// Upload to Vercel Blob
+			try {
+				const blob = await put(pathname, buffer, {
+					access: "public",
+					contentType: input.mimeType,
+				});
+
+				console.log("[organization/uploadLogo] Upload successful, URL:", blob.url);
+
+				// Update database with new blob URL
+				const [updatedOrg] = await db
+					.update(organizations)
+					.set({ logo: blob.url })
+					.where(eq(organizations.id, input.organizationId))
+					.returning();
+
+				console.log("[organization/uploadLogo] COMPLETE");
+
+				return {
+					success: true,
+					url: blob.url,
+					organization: updatedOrg,
+				};
+			} catch (error) {
+				console.error("[organization/uploadLogo] Upload failed:", error);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to upload logo",
+				});
+			}
 		}),
 
 	delete: protectedProcedure

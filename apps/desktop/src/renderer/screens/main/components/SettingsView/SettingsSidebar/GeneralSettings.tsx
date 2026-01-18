@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import {
 	HiOutlineBell,
+	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
 	HiOutlinePaintBrush,
@@ -17,7 +18,8 @@ interface GeneralSettingsProps {
 
 type SettingsRoute =
 	| "/settings/account"
-	| "/settings/team"
+	| "/settings/organization"
+	| "/settings/members"
 	| "/settings/appearance"
 	| "/settings/ringtones"
 	| "/settings/keyboard"
@@ -37,9 +39,15 @@ const GENERAL_SECTIONS: {
 		icon: <HiOutlineUser className="h-4 w-4" />,
 	},
 	{
-		id: "/settings/team",
-		section: "team",
+		id: "/settings/organization",
+		section: "organization",
 		label: "Organization",
+		icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/members",
+		section: "members",
+		label: "Members",
 		icon: <HiOutlineUserGroup className="h-4 w-4" />,
 	},
 	{

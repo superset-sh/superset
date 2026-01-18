@@ -21,7 +21,7 @@ import { useState } from "react";
 import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import type { TeamMember } from "../../types";
+import type { Member } from "../../types";
 
 export function MemberActions({
 	member,
@@ -30,7 +30,7 @@ export function MemberActions({
 	isCurrentUser,
 	canRemove,
 }: {
-	member: TeamMember;
+	member: Member;
 	currentUserRole: OrganizationRole;
 	ownerCount: number;
 	isCurrentUser: boolean;
@@ -84,7 +84,7 @@ export function MemberActions({
 
 	const handleRemoveClick = () => {
 		alert.destructive({
-			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
+			title: isCurrentUser ? "Leave organization?" : "Remove member?",
 			description: isCurrentUser
 				? "Are you sure you want to leave this organization? You will lose access immediately."
 				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.`,

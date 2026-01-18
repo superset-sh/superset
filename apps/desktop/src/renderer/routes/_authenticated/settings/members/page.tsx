@@ -21,13 +21,13 @@ import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { InviteMemberButton } from "./components/InviteMemberButton";
 import { MemberActions } from "./components/MemberActions";
-import type { TeamMember } from "./types";
+import type { Member } from "./types";
 
-export const Route = createFileRoute("/_authenticated/settings/team/")({
-	component: TeamSettingsPage,
+export const Route = createFileRoute("/_authenticated/settings/members/")({
+	component: MembersSettingsPage,
 });
 
-function TeamSettingsPage() {
+function MembersSettingsPage() {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -51,11 +51,11 @@ function TeamSettingsPage() {
 				.orderBy(({ members }) => members.role, "asc")
 				.orderBy(({ members }) => members.createdAt, "asc"),
 		[collections, activeOrganizationId],
-	);
+	)
 
 	// Sort by role priority (owner > admin > member), then by join date
 	// Cast roles to OrganizationRole since database stores them as strings
-	const members: TeamMember[] = (membersData ?? [])
+	const members: Member[] = (membersData ?? [])
 		.map((m) => ({
 			...m,
 			role: m.role as OrganizationRole,
@@ -65,13 +65,13 @@ function TeamSettingsPage() {
 				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
 			if (priorityDiff !== 0) return priorityDiff;
 			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+		})
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
 	const currentMember = activeOrg?.members?.find(
 		(m) => m.userId === currentUserId,
-	);
+	)
 	const currentUserRole = currentMember?.role as OrganizationRole;
 
 	const formatDate = (date: Date | string) => {
@@ -79,16 +79,16 @@ function TeamSettingsPage() {
 		return d.toLocaleDateString("en-US", {
 			month: "short",
 			day: "numeric",
-		});
-	};
+		})
+	}
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0">
-			<div className="p-8 border-b">
+			<div className="p-8">
 				<div className="max-w-5xl">
-					<h2 className="text-2xl font-semibold">Organization</h2>
+					<h2 className="text-2xl font-semibold">Members</h2>
 					<p className="text-sm text-muted-foreground mt-1">
-						Manage members in your organization
+						Invite and manage members, assign roles, and control permissions
 					</p>
 				</div>
 			</div>
@@ -189,7 +189,7 @@ function TeamSettingsPage() {
 														/>
 													</TableCell>
 												</TableRow>
-											);
+											)
 										})}
 									</TableBody>
 								</Table>
@@ -199,5 +199,5 @@ function TeamSettingsPage() {
 				</div>
 			</div>
 		</div>
-	);
+	)
 }

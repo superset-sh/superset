@@ -1,7 +1,7 @@
 import type { SelectMember, SelectUser } from "@superset/db/schema/auth";
 import type { OrganizationRole } from "@superset/shared/auth";
 
-export type TeamMember = SelectUser &
+export type Member = SelectUser &
 	SelectMember & {
 		memberId: string;
 		role: OrganizationRole;
