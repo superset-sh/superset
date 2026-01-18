@@ -78,7 +78,10 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream({ paneId: "pane-1" });
+		const stream$ = await caller.stream({
+			paneId: "pane-1",
+			workspaceId: "test-workspace",
+		});
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;
@@ -117,7 +120,10 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream({ paneId: "pane-2" });
+		const stream$ = await caller.stream({
+			paneId: "pane-2",
+			workspaceId: "test-workspace",
+		});
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;
@@ -145,7 +151,10 @@ describe("terminal.stream", () => {
 
 		const router = createTerminalRouter();
 		const caller = router.createCaller({} as never);
-		const stream$ = await caller.stream({ paneId: "pane-3" });
+		const stream$ = await caller.stream({
+			paneId: "pane-3",
+			workspaceId: "test-workspace",
+		});
 
 		const events: Array<{ type: string }> = [];
 		let didComplete = false;

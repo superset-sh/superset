@@ -93,6 +93,9 @@ class DefaultWorkspaceRuntimeRegistry
 			if (sshRuntime) {
 				return sshRuntime;
 			}
+			console.warn(
+				`[registry] Workspace ${workspaceId} mapped to SSH ${sshConnectionId} but runtime not found, falling back to local`,
+			);
 		}
 		return this.getDefault();
 	}

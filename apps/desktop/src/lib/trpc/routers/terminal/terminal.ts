@@ -154,6 +154,10 @@ export const createTerminalRouter = () => {
 						if (remoteProject) {
 							workspacePath = remoteProject.remotePath;
 							rootPath = remoteProject.remotePath;
+						} else {
+							console.warn(
+								`[Terminal Router] Remote project not found for workspace ${workspaceId}, remoteProjectId: ${remoteWs.remoteProjectId}`,
+							);
 						}
 					}
 				} else {
