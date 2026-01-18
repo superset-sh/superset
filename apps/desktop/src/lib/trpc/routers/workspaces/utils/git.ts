@@ -64,6 +64,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 		// Use porcelain=v1 for machine-parseable output, -b for branch info
 		// Use -z for NUL-terminated output (handles filenames with special chars)
 		// Use -M for rename detection (otherwise renames show as delete + add)
+		// Use -uall to show individual files in untracked directories (not just the directory)
 		const { stdout } = await execFileAsync(
 			"git",
 			[
@@ -75,6 +76,7 @@ export async function getStatusNoLock(repoPath: string): Promise<StatusResult> {
 				"-b",
 				"-z",
 				"-M",
+				"-uall",
 			],
 			{ env, timeout: 30_000 },
 		);
