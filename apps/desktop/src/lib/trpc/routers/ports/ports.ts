@@ -45,7 +45,7 @@ export const createPortsRouter = () => {
 		}),
 
 		kill: publicProcedure
-			.input(z.object({ pid: z.number() }))
+			.input(z.object({ pid: z.number().int().positive() }))
 			.mutation(({ input }): { success: boolean; error?: string } => {
 				try {
 					process.kill(input.pid, "SIGTERM");
