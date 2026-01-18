@@ -145,11 +145,7 @@ function StashDropdown({
 	);
 }
 
-function RefreshButton({
-	onRefresh,
-}: {
-	onRefresh: () => void;
-}) {
+function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 	const [isSpinning, setIsSpinning] = useState(false);
 	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
