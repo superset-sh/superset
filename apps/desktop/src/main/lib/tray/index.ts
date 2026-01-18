@@ -219,7 +219,7 @@ function buildSessionsSubmenu(
 
 		menuItems.push({ type: "separator" });
 		menuItems.push({
-			label: "Terminal Settings...",
+			label: "Terminal Settings",
 			click: openTerminalSettings,
 		});
 		menuItems.push({
