@@ -72,7 +72,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 						type="button"
 						onClick={handleOpenInBrowser}
 						aria-label={`Open ${port.label || `port ${port.port}`} in browser`}
-						className="opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none"
+						className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
 					>
 						<LuExternalLink className="size-3" strokeWidth={STROKE_WIDTH} />
 					</button>
@@ -81,7 +81,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 							type="button"
 							onClick={handleClose}
 							aria-label={`Close ${port.label || `port ${port.port}`}`}
-							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none"
+							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none"
 						>
 							<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 						</button>
