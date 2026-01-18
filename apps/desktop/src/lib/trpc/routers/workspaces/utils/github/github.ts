@@ -1,9 +1,11 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { CheckItem, GitHubStatus } from "@superset/local-db";
+import { z } from "zod";
 import { branchExistsOnRemote } from "../git";
 import { execWithShellEnv } from "../shell-env";
 import {
+	GHCheckContextSchema,
 	type GHPRResponse,
 	GHPRResponseSchema,
 	GHRepoResponseSchema,
@@ -14,6 +16,167 @@ const execFileAsync = promisify(execFile);
 // Cache for GitHub status (10 second TTL)
 const cache = new Map<string, { data: GitHubStatus; timestamp: number }>();
 const CACHE_TTL_MS = 10_000;
+
+// Cache for batch PR list per repo (30 second TTL)
+const prListCache = new Map<
+	string,
+	{ data: Map<string, GHPRListItem>; timestamp: number }
+>();
+const PR_LIST_CACHE_TTL_MS = 30_000;
+
+// Schema for gh pr list response (extends GHPRResponse with headRefName)
+const GHPRListItemSchema = z.object({
+	number: z.number(),
+	title: z.string(),
+	url: z.string(),
+	state: z.enum(["OPEN", "CLOSED", "MERGED"]),
+	isDraft: z.boolean(),
+	headRefName: z.string(),
+	mergedAt: z.string().nullable(),
+	additions: z.number(),
+	deletions: z.number(),
+	reviewDecision: z
+		.enum(["APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED", ""])
+		.nullable(),
+	statusCheckRollup: z.array(GHCheckContextSchema).nullable(),
+});
+const GHPRListSchema = z.array(GHPRListItemSchema);
+type GHPRListItem = z.infer<typeof GHPRListItemSchema>;
+
+/**
+ * Fetches all open PRs for a repo in a single gh call.
+ * Results are cached for 30 seconds per repo.
+ */
+async function fetchAllPRsForRepo(
+	repoPath: string,
+): Promise<Map<string, GHPRListItem>> {
+	const cached = prListCache.get(repoPath);
+	if (cached && Date.now() - cached.timestamp < PR_LIST_CACHE_TTL_MS) {
+		return cached.data;
+	}
+
+	try {
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"pr",
+				"list",
+				"--author",
+				"@me",
+				"--state",
+				"all",
+				"--limit",
+				"50",
+				"--json",
+				"number,title,url,state,isDraft,headRefName,mergedAt,additions,deletions,reviewDecision,statusCheckRollup",
+			],
+			{ cwd: repoPath },
+		);
+
+		const raw = JSON.parse(stdout);
+		const result = GHPRListSchema.safeParse(raw);
+		if (!result.success) {
+			console.error("[GitHub] PR list schema validation failed:", result.error);
+			return new Map();
+		}
+
+		// Index by branch name for fast lookup
+		const prMap = new Map<string, GHPRListItem>();
+		for (const pr of result.data) {
+			prMap.set(pr.headRefName, pr);
+		}
+
+		prListCache.set(repoPath, { data: prMap, timestamp: Date.now() });
+		return prMap;
+	} catch {
+		return new Map();
+	}
+}
+
+interface WorktreeInfo {
+	workspaceId: string;
+	worktreePath: string;
+	branch: string;
+	repoPath: string;
+}
+
+/**
+ * Batch fetch GitHub PR status for multiple worktrees.
+ * Groups by repo and fetches all PRs per repo in one call.
+ */
+export async function fetchGitHubPRStatusBatch(
+	worktrees: WorktreeInfo[],
+): Promise<Map<string, GitHubStatus | null>> {
+	const results = new Map<string, GitHubStatus | null>();
+
+	// Group worktrees by repo
+	const byRepo = new Map<string, WorktreeInfo[]>();
+	for (const wt of worktrees) {
+		const existing = byRepo.get(wt.repoPath) ?? [];
+		existing.push(wt);
+		byRepo.set(wt.repoPath, existing);
+	}
+
+	// Fetch PRs for each repo in parallel
+	await Promise.all(
+		Array.from(byRepo.entries()).map(async ([repoPath, repoWorktrees]) => {
+			const [repoUrl, prMap] = await Promise.all([
+				getRepoUrl(repoPath),
+				fetchAllPRsForRepo(repoPath),
+			]);
+
+			// Skip if we couldn't get repo URL
+			if (!repoUrl) {
+				for (const wt of repoWorktrees) {
+					results.set(wt.workspaceId, null);
+				}
+				return;
+			}
+
+			// Check branch existence in parallel for all worktrees in this repo
+			const branchChecks = await Promise.all(
+				repoWorktrees.map((wt) =>
+					branchExistsOnRemote(wt.worktreePath, wt.branch),
+				),
+			);
+
+			for (let i = 0; i < repoWorktrees.length; i++) {
+				const wt = repoWorktrees[i];
+				const pr = prMap.get(wt.branch);
+				const branchCheck = branchChecks[i];
+
+				const status: GitHubStatus = {
+					pr: pr ? convertPRListItemToStatus(pr) : null,
+					repoUrl,
+					branchExistsOnRemote: branchCheck.status === "exists",
+					lastRefreshed: Date.now(),
+				};
+
+				results.set(wt.workspaceId, status);
+				cache.set(wt.worktreePath, { data: status, timestamp: Date.now() });
+			}
+		}),
+	);
+
+	return results;
+}
+
+function convertPRListItemToStatus(
+	pr: GHPRListItem,
+): NonNullable<GitHubStatus["pr"]> {
+	return {
+		number: pr.number,
+		title: pr.title,
+		url: pr.url,
+		state: mapPRState(pr.state, pr.isDraft),
+		mergedAt: pr.mergedAt ? new Date(pr.mergedAt).getTime() : undefined,
+		additions: pr.additions,
+		deletions: pr.deletions,
+		reviewDecision: mapReviewDecision(pr.reviewDecision),
+		checksStatus: computeChecksStatus(pr.statusCheckRollup),
+		checks: parseChecks(pr.statusCheckRollup),
+	};
+}
 
 /**
  * Fetches GitHub PR status for a worktree using the `gh` CLI.

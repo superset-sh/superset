@@ -1,5 +1,5 @@
-import { workspaces, worktrees } from "@superset/local-db";
-import { and, eq, isNull } from "drizzle-orm";
+import { projects, workspaces, worktrees } from "@superset/local-db";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
@@ -15,7 +15,7 @@ import {
 	getDefaultBranch,
 	refreshDefaultBranch,
 } from "../utils/git";
-import { fetchGitHubPRStatus } from "../utils/github";
+import { fetchGitHubPRStatus, fetchGitHubPRStatusBatch } from "../utils/github";
 
 export const createGitStatusProcedures = () => {
 	return router({
@@ -111,6 +111,56 @@ export const createGitStatusProcedures = () => {
 				}
 
 				return freshStatus;
+			}),
+
+		getGitHubStatusBatch: publicProcedure
+			.input(z.object({ workspaceIds: z.array(z.string()) }))
+			.query(async ({ input }) => {
+				if (input.workspaceIds.length === 0) {
+					return {};
+				}
+
+				// Get all workspaces with their worktrees and projects in one query
+				const workspaceData = localDb
+					.select({
+						workspace: workspaces,
+						worktree: worktrees,
+						project: projects,
+					})
+					.from(workspaces)
+					.innerJoin(worktrees, eq(workspaces.worktreeId, worktrees.id))
+					.innerJoin(projects, eq(workspaces.projectId, projects.id))
+					.where(
+						and(
+							inArray(workspaces.id, input.workspaceIds),
+							isNull(workspaces.deletingAt),
+						),
+					)
+					.all();
+
+				const worktreeInfos = workspaceData.map((row) => ({
+					workspaceId: row.workspace.id,
+					worktreePath: row.worktree.path,
+					branch: row.worktree.branch,
+					repoPath: row.project.mainRepoPath,
+				}));
+
+				const results = await fetchGitHubPRStatusBatch(worktreeInfos);
+
+				// Update DB cache for each result
+				for (const row of workspaceData) {
+					const status = results.get(row.workspace.id);
+					if (status) {
+						localDb
+							.update(worktrees)
+							.set({ githubStatus: status })
+							.where(eq(worktrees.id, row.worktree.id))
+							.run();
+					}
+				}
+
+				// Convert Map to plain object for serialization
+				return Object.fromEntries(results);
 			}),
 
 		getWorktreeInfo: publicProcedure

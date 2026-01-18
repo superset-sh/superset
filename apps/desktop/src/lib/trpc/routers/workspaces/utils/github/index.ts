@@ -1,1 +1,1 @@
-export { fetchGitHubPRStatus } from "./github";
+export { fetchGitHubPRStatus, fetchGitHubPRStatusBatch } from "./github";
