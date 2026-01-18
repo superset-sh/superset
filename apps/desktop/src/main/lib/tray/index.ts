@@ -11,11 +11,7 @@ import {
 	Tray,
 } from "electron";
 import { localDb } from "main/lib/local-db";
-import {
-	getActiveTerminalManager,
-	isDaemonModeEnabled,
-} from "main/lib/terminal";
-import { DaemonTerminalManager } from "main/lib/terminal/daemon-manager";
+import { tryListExistingDaemonSessions } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
@@ -118,9 +114,10 @@ function openSessionInSuperset(workspaceId: string): void {
 
 async function killAllSessions(): Promise<void> {
 	try {
-		const manager = getActiveTerminalManager();
-		if (manager instanceof DaemonTerminalManager) {
-			await manager.forceKillAll();
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+		if (connected) {
+			await client.killAll({});
 			console.log("[Tray] Killed all daemon sessions");
 		}
 	} catch (error) {
@@ -132,9 +129,10 @@ async function killAllSessions(): Promise<void> {
 
 async function killSession(paneId: string): Promise<void> {
 	try {
-		const manager = getActiveTerminalManager();
-		if (manager instanceof DaemonTerminalManager) {
-			await manager.kill({ paneId, deleteHistory: false });
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+		if (connected) {
+			await client.kill({ sessionId: paneId });
 			console.log(`[Tray] Killed session: ${paneId}`);
 		}
 	} catch (error) {
@@ -167,7 +165,7 @@ function formatSessionLabel(
 
 function buildSessionsSubmenu(
 	sessions: ListSessionsResponse["sessions"],
-	daemonEnabled: boolean,
+	daemonRunning: boolean,
 ): MenuItemConstructorOptions[] {
 	const aliveSessions = sessions.filter((s) => s.isAlive);
 	const menuItems: MenuItemConstructorOptions[] = [];
@@ -222,7 +220,7 @@ function buildSessionsSubmenu(
 
 	menuItems.push({
 		label: "Restart Daemon",
-		enabled: daemonEnabled,
+		enabled: daemonRunning,
 		click: restartDaemon,
 	});
 
@@ -245,22 +243,10 @@ async function restartDaemon(): Promise<void> {
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
-	const daemonEnabled = isDaemonModeEnabled();
-	let sessionCount = 0;
-	let sessions: ListSessionsResponse["sessions"] = [];
+	const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
+	const sessionCount = sessions.filter((s) => s.isAlive).length;
 
-	if (daemonEnabled) {
-		try {
-			const manager = getActiveTerminalManager();
-			if (manager instanceof DaemonTerminalManager) {
-				const result = await manager.listDaemonSessions();
-				sessions = result.sessions;
-				sessionCount = sessions.filter((s) => s.isAlive).length;
-			}
-		} catch {}
-	}
-
-	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonEnabled);
+	const sessionsSubmenu = buildSessionsSubmenu(sessions, daemonRunning);
 	const sessionsLabel =
 		sessionCount > 0
 			? `Background Sessions (${sessionCount})`

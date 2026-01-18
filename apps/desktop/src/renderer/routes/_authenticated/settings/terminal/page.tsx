@@ -12,6 +12,7 @@ import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { env } from "renderer/env.renderer";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
@@ -27,7 +28,7 @@ function TerminalSettingsPage() {
 
 	const { data: daemonSessions } =
 		electronTrpc.terminal.listDaemonSessions.useQuery();
-	const daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
+	const _daemonModeEnabled = daemonSessions?.daemonModeEnabled ?? false;
 	const sessions = daemonSessions?.sessions ?? [];
 	const aliveSessions = useMemo(
 		() => sessions.filter((session) => session.isAlive),
@@ -52,6 +53,9 @@ function TerminalSettingsPage() {
 		sessionId: string;
 		workspaceId: string;
 	} | null>(null);
+	const [pendingPersistenceChange, setPendingPersistenceChange] = useState<
+		boolean | null
+	>(null);
 	const setTerminalPersistence =
 		electronTrpc.settings.setTerminalPersistence.useMutation({
 			onMutate: async ({ enabled }) => {
@@ -78,8 +82,32 @@ function TerminalSettingsPage() {
 			},
 		});
 
+	const restartApp = electronTrpc.settings.restartApp.useMutation();
+
 	const handleToggle = (enabled: boolean) => {
-		setTerminalPersistence.mutate({ enabled });
+		setPendingPersistenceChange(enabled);
+	};
+
+	const confirmPersistenceChange = () => {
+		if (pendingPersistenceChange === null) return;
+		const isDev = env.NODE_ENV === "development";
+
+		setTerminalPersistence.mutate(
+			{ enabled: pendingPersistenceChange },
+			{
+				onSuccess: () => {
+					if (isDev) {
+						toast.info("Setting saved", {
+							description:
+								"Dev mode: please restart the app manually for changes to take effect.",
+						});
+					} else {
+						restartApp.mutate();
+					}
+				},
+			},
+		);
+		setPendingPersistenceChange(null);
 	};
 
 	const killAllDaemonSessions =
@@ -191,9 +219,6 @@ function TerminalSettingsPage() {
 							May use more memory with many terminals open. Disable if you
 							notice performance issues.
 						</p>
-						<p className="text-xs text-muted-foreground/70 mt-1">
-							Requires app restart to take effect.
-						</p>
 					</div>
 					<Switch
 						id="terminal-persistence"
@@ -215,10 +240,10 @@ function TerminalSettingsPage() {
 								Refresh
 							</Button>
 						</div>
-						{daemonModeEnabled ? (
+						{aliveSessions.length > 0 ? (
 							<>
 								<p className="text-xs text-muted-foreground">
-									Daemon sessions running: {aliveSessions.length}
+									Background sessions running: {aliveSessions.length}
 								</p>
 								{aliveSessions.length >= 20 && (
 									<p className="text-xs text-muted-foreground/70">
@@ -230,8 +255,7 @@ function TerminalSettingsPage() {
 							</>
 						) : (
 							<p className="text-xs text-muted-foreground">
-								Enable terminal persistence and restart the app to manage daemon
-								sessions.
+								No background sessions running.
 							</p>
 						)}
 					</div>
@@ -241,9 +265,7 @@ function TerminalSettingsPage() {
 							variant="destructive"
 							size="sm"
 							disabled={
-								!daemonModeEnabled ||
-								aliveSessions.length === 0 ||
-								killAllDaemonSessions.isPending
+								aliveSessions.length === 0 || killAllDaemonSessions.isPending
 							}
 							onClick={() => setConfirmKillAllOpen(true)}
 						>
@@ -253,9 +275,7 @@ function TerminalSettingsPage() {
 							variant="secondary"
 							size="sm"
 							disabled={
-								!daemonModeEnabled ||
-								aliveSessions.length === 0 ||
-								clearTerminalHistory.isPending
+								aliveSessions.length === 0 || clearTerminalHistory.isPending
 							}
 							onClick={() => setConfirmClearHistoryOpen(true)}
 						>
@@ -264,14 +284,14 @@ function TerminalSettingsPage() {
 						<Button
 							variant="ghost"
 							size="sm"
-							disabled={!daemonModeEnabled || aliveSessions.length === 0}
+							disabled={aliveSessions.length === 0}
 							onClick={() => setShowSessionList((v) => !v)}
 						>
 							{showSessionList ? "Hide sessions" : "Show sessions"}
 						</Button>
 					</div>
 
-					{daemonModeEnabled && showSessionList && aliveSessions.length > 0 && (
+					{showSessionList && aliveSessions.length > 0 && (
 						<div className="rounded-md border border-border/60 overflow-hidden">
 							<div className="max-h-64 overflow-auto">
 								<table className="w-full text-xs">
@@ -476,6 +496,53 @@ function TerminalSettingsPage() {
 							}}
 						>
 							Kill
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog
+				open={pendingPersistenceChange !== null}
+				onOpenChange={(open) => {
+					if (!open) setPendingPersistenceChange(null);
+				}}
+			>
+				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Restart app to apply changes?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									{pendingPersistenceChange
+										? "Enabling terminal persistence requires an app restart."
+										: "Disabling terminal persistence requires an app restart."}
+								</span>
+								<span className="block">
+									The app will restart immediately. Make sure to save any
+									unsaved work.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setPendingPersistenceChange(null)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							disabled={
+								setTerminalPersistence.isPending || restartApp.isPending
+							}
+							onClick={confirmPersistenceChange}
+						>
+							Restart now
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

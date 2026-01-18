@@ -16,10 +16,7 @@ import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import {
-	reconcileDaemonSessions,
-	shutdownOrphanedDaemon,
-} from "./lib/terminal";
+import { reconcileDaemonSessions } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
 import { getWorkspaceRuntimeRegistry } from "./lib/workspace-runtime";
 import { MainWindow } from "./windows/main";
@@ -220,13 +217,7 @@ if (!gotTheLock) {
 
 		await initAppState();
 
-		// Clean up stale daemon sessions from previous app runs
-		// Must happen BEFORE renderer restore runs
 		await reconcileDaemonSessions();
-
-		// Shutdown orphaned daemon if persistence is disabled
-		// (cleans up daemon left from previous session with persistence enabled)
-		await shutdownOrphanedDaemon();
 
 		try {
 			setupAgentHooks();

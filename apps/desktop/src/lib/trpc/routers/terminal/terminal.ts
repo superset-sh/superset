@@ -5,6 +5,8 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
+import { tryListExistingDaemonSessions } from "main/lib/terminal";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -285,23 +287,19 @@ export const createTerminalRouter = () => {
 			}),
 
 		listDaemonSessions: publicProcedure.query(async () => {
-			// Use capability-based check instead of instanceof
-			if (!terminal.management) {
-				return { daemonModeEnabled: false, sessions: [] };
-			}
-
-			const response = await terminal.management.listSessions();
-			return { daemonModeEnabled: true, sessions: response.sessions };
+			const { daemonRunning, sessions } = await tryListExistingDaemonSessions();
+			return { daemonModeEnabled: daemonRunning, sessions };
 		}),
 
 		killAllDaemonSessions: publicProcedure.mutation(async () => {
-			// Use capability-based check instead of instanceof
-			if (!terminal.management) {
+			const client = getTerminalHostClient();
+			const connected = await client.tryConnectAndAuthenticate();
+			if (!connected) {
 				return { daemonModeEnabled: false, killedCount: 0, remainingCount: 0 };
 			}
 
 			// Get sessions before kill for accurate count
-			const before = await terminal.management.listSessions();
+			const before = await client.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
 			for (const id of beforeIds) {
 				userKilledSessions.add(id);
@@ -314,7 +312,7 @@ export const createTerminalRouter = () => {
 			);
 
 			// Request kill of all sessions
-			await terminal.management.killAllSessions();
+			await client.killAll({});
 
 			// Wait and verify loop - poll until sessions are actually dead
 			// This ensures we don't return success before daemon has finished cleanup
@@ -325,7 +323,7 @@ export const createTerminalRouter = () => {
 
 			for (let i = 0; i < MAX_RETRIES && remainingCount > 0; i++) {
 				await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-				const after = await terminal.management.listSessions();
+				const after = await client.listSessions();
 				afterIds = after.sessions
 					.filter((s) => s.isAlive)
 					.map((s) => s.sessionId);
@@ -355,31 +353,29 @@ export const createTerminalRouter = () => {
 		killDaemonSessionsForWorkspace: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.mutation(async ({ input }) => {
-				// Use capability-based check instead of instanceof
-				if (!terminal.management) {
+				const client = getTerminalHostClient();
+				const connected = await client.tryConnectAndAuthenticate();
+				if (!connected) {
 					return { daemonModeEnabled: false, killedCount: 0 };
 				}
 
-				const { sessions } = await terminal.management.listSessions();
+				const { sessions } = await client.listSessions();
 				const toKill = sessions.filter(
 					(session) => session.workspaceId === input.workspaceId,
 				);
 
 				for (const session of toKill) {
 					userKilledSessions.add(session.sessionId);
-					await terminal.kill({ paneId: session.sessionId });
+					await client.kill({ sessionId: session.sessionId });
 				}
 
 				return { daemonModeEnabled: true, killedCount: toKill.length };
 			}),
 
 		clearTerminalHistory: publicProcedure.mutation(async () => {
-			// Note: Disk-based terminal history was removed. This is now a no-op
-			// for non-daemon mode. In daemon mode, it resets the history persistence.
 			if (terminal.management) {
 				await terminal.management.resetHistoryPersistence();
 			}
-
 			return { success: true };
 		}),
 
