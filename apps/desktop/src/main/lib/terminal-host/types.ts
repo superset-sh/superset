@@ -260,6 +260,23 @@ export interface ShutdownRequest {
 	killSessions?: boolean;
 }
 
+/**
+ * Ping request for health checks
+ */
+export interface PingRequest {
+	/** Optional timestamp from client for latency measurement */
+	timestamp?: number;
+}
+
+export interface PingResponse {
+	/** Echo back client timestamp if provided */
+	timestamp?: number;
+	/** Daemon uptime in milliseconds */
+	uptime: number;
+	/** Number of active sessions */
+	activeSessions: number;
+}
+
 // =============================================================================
 // IPC Message Framing
 // =============================================================================
@@ -362,4 +379,5 @@ export type RequestTypeMap = {
 	listSessions: { request: undefined; response: ListSessionsResponse };
 	clearScrollback: { request: ClearScrollbackRequest; response: EmptyResponse };
 	shutdown: { request: ShutdownRequest; response: EmptyResponse };
+	ping: { request: PingRequest; response: PingResponse };
 };

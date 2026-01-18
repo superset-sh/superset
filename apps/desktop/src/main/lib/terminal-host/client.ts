@@ -39,6 +39,8 @@ import {
 	type KillAllRequest,
 	type KillRequest,
 	type ListSessionsResponse,
+	type PingRequest,
+	type PingResponse,
 	PROTOCOL_VERSION,
 	type ResizeRequest,
 	type ShutdownRequest,
@@ -79,6 +81,16 @@ const CONNECT_TIMEOUT_MS = 5000;
 const SPAWN_WAIT_MS = 2000;
 const REQUEST_TIMEOUT_MS = 30000;
 const SPAWN_LOCK_TIMEOUT_MS = 10000; // Max time to hold spawn lock
+
+// Auto-restart configuration (exponential backoff: 500ms → 30s, max 10 attempts)
+const AUTO_RESTART_INITIAL_DELAY_MS = 500;
+const AUTO_RESTART_MAX_DELAY_MS = 30000;
+const AUTO_RESTART_BACKOFF_FACTOR = 2;
+const AUTO_RESTART_MAX_ATTEMPTS = 10;
+
+// Health check configuration
+const HEALTH_CHECK_INTERVAL_MS = 30000;
+const HEALTH_CHECK_TIMEOUT_MS = 5000;
 
 // Queue limits
 const MAX_NOTIFY_QUEUE_BYTES = 2_000_000; // 2MB cap to prevent OOM
@@ -146,6 +158,8 @@ export interface TerminalHostClientEvents {
 	terminalError: (sessionId: string, error: string, code?: string) => void;
 	connected: () => void;
 	disconnected: () => void;
+	/** Emitted when daemon is successfully restarted after a crash */
+	reconnected: () => void;
 	error: (error: Error) => void;
 }
 
@@ -169,6 +183,17 @@ export class TerminalHostClient extends EventEmitter {
 	private notifyDrainArmed = false;
 	private disconnectArmed = false;
 	private clientId = randomUUID();
+
+	// Auto-restart state
+	private autoRestartEnabled = true;
+	private autoRestartAttempts = 0;
+	private autoRestartDelay = AUTO_RESTART_INITIAL_DELAY_MS;
+	private autoRestartTimer: NodeJS.Timeout | null = null;
+	private wasConnectedOnce = false;
+
+	// Health check state
+	private healthCheckTimer: NodeJS.Timeout | null = null;
+	private healthCheckEnabled = true;
 
 	constructor() {
 		super();
@@ -248,9 +273,11 @@ export class TerminalHostClient extends EventEmitter {
 			await this.connectAndAuthenticate();
 			this.connectionState = ConnectionState.CONNECTED;
 			this.disconnectArmed = false;
+			this.wasConnectedOnce = true;
+			this.resetAutoRestartState();
+			this.startHealthCheck();
 			this.emit("connected");
 		} catch (error) {
-			// Reset without emitting disconnected (connection never became usable)
 			this.resetConnectionState({ emitDisconnected: false });
 			throw error;
 		}
@@ -557,13 +584,156 @@ export class TerminalHostClient extends EventEmitter {
 		}
 	}
 
-	/**
-	 * Handle socket disconnect
-	 */
 	private handleDisconnect(): void {
 		if (this.disconnectArmed) return;
 		this.disconnectArmed = true;
 		this.resetConnectionState({ emitDisconnected: true });
+
+		if (this.autoRestartEnabled && this.wasConnectedOnce && !this.disposed) {
+			this.scheduleAutoRestart();
+		}
+	}
+
+	// ===========================================================================
+	// Auto-Restart
+	// ===========================================================================
+
+	private scheduleAutoRestart(): void {
+		this.clearAutoRestartTimer();
+
+		if (this.autoRestartAttempts >= AUTO_RESTART_MAX_ATTEMPTS) {
+			console.error(
+				`[TerminalHostClient] Auto-restart failed after ${AUTO_RESTART_MAX_ATTEMPTS} attempts`,
+			);
+			this.emit(
+				"error",
+				new Error(
+					`Daemon auto-restart failed after ${AUTO_RESTART_MAX_ATTEMPTS} attempts`,
+				),
+			);
+			return;
+		}
+
+		console.log(
+			`[TerminalHostClient] Scheduling auto-restart in ${this.autoRestartDelay}ms ` +
+				`(attempt ${this.autoRestartAttempts + 1}/${AUTO_RESTART_MAX_ATTEMPTS})`,
+		);
+
+		this.autoRestartTimer = setTimeout(() => {
+			this.autoRestartTimer = null;
+			this.attemptAutoRestart();
+		}, this.autoRestartDelay);
+
+		this.autoRestartDelay = Math.min(
+			this.autoRestartDelay * AUTO_RESTART_BACKOFF_FACTOR,
+			AUTO_RESTART_MAX_DELAY_MS,
+		);
+	}
+
+	private attemptAutoRestart(): void {
+		if (this.disposed || !this.autoRestartEnabled) return;
+
+		this.autoRestartAttempts++;
+		console.log(
+			`[TerminalHostClient] Auto-restart attempt ${this.autoRestartAttempts}`,
+		);
+
+		this.ensureConnected()
+			.then(() => {
+				console.log("[TerminalHostClient] Auto-restart successful");
+				this.emit("reconnected");
+			})
+			.catch((error) => {
+				console.error(
+					"[TerminalHostClient] Auto-restart failed:",
+					error instanceof Error ? error.message : String(error),
+				);
+				if (!this.disposed && this.autoRestartEnabled) {
+					this.scheduleAutoRestart();
+				}
+			});
+	}
+
+	private clearAutoRestartTimer(): void {
+		if (this.autoRestartTimer) {
+			clearTimeout(this.autoRestartTimer);
+			this.autoRestartTimer = null;
+		}
+	}
+
+	private resetAutoRestartState(): void {
+		this.autoRestartAttempts = 0;
+		this.autoRestartDelay = AUTO_RESTART_INITIAL_DELAY_MS;
+		this.clearAutoRestartTimer();
+	}
+
+	setAutoRestart(enabled: boolean): void {
+		this.autoRestartEnabled = enabled;
+		if (!enabled) {
+			this.clearAutoRestartTimer();
+		}
+	}
+
+	// ===========================================================================
+	// Health Check
+	// ===========================================================================
+
+	private startHealthCheck(): void {
+		this.stopHealthCheck();
+		if (!this.healthCheckEnabled) return;
+
+		this.healthCheckTimer = setInterval(() => {
+			this.performHealthCheck();
+		}, HEALTH_CHECK_INTERVAL_MS);
+	}
+
+	private stopHealthCheck(): void {
+		if (this.healthCheckTimer) {
+			clearInterval(this.healthCheckTimer);
+			this.healthCheckTimer = null;
+		}
+	}
+
+	private performHealthCheck(): void {
+		if (this.connectionState !== ConnectionState.CONNECTED) return;
+
+		const timeout = new Promise<never>((_, reject) =>
+			setTimeout(
+				() => reject(new Error("Health check timeout")),
+				HEALTH_CHECK_TIMEOUT_MS,
+			),
+		);
+
+		Promise.race([this.ping(), timeout])
+			.then(() => {
+				if (DEBUG_CLIENT) {
+					console.log("[TerminalHostClient] Health check passed");
+				}
+			})
+			.catch((error) => {
+				const message = error instanceof Error ? error.message : String(error);
+
+				// Older daemon doesn't support ping - disable health checks gracefully
+				if (message.includes("UNKNOWN_REQUEST")) {
+					console.log(
+						"[TerminalHostClient] Daemon doesn't support ping, disabling health checks",
+					);
+					this.setHealthCheck(false);
+					return;
+				}
+
+				console.warn("[TerminalHostClient] Health check failed:", message);
+				this.handleDisconnect();
+			});
+	}
+
+	setHealthCheck(enabled: boolean): void {
+		this.healthCheckEnabled = enabled;
+		if (enabled && this.connectionState === ConnectionState.CONNECTED) {
+			this.startHealthCheck();
+		} else {
+			this.stopHealthCheck();
+		}
 	}
 
 	/**
@@ -574,25 +744,24 @@ export class TerminalHostClient extends EventEmitter {
 	}: {
 		emitDisconnected: boolean;
 	}): void {
-		// Destroy sockets (best-effort; close handlers may also fire)
+		this.stopHealthCheck();
+
 		try {
 			this.controlSocket?.destroy();
 		} catch {
-			// Ignore
+			// Socket may already be destroyed
 		}
 		try {
 			this.streamSocket?.destroy();
 		} catch {
-			// Ignore
+			// Socket may already be destroyed
 		}
 
 		this.controlSocket = null;
 		this.streamSocket = null;
-
 		this.controlAuthenticated = false;
 		this.streamAuthenticated = false;
 		this.connectionState = ConnectionState.DISCONNECTED;
-
 		this.notifyQueue = [];
 		this.notifyQueueBytes = 0;
 		this.notifyDrainArmed = false;
@@ -1333,6 +1502,15 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	/**
+	 * Ping the daemon to check if it's responsive.
+	 * Useful for health checks and latency measurement.
+	 */
+	async ping(request: PingRequest = {}): Promise<PingResponse> {
+		await this.ensureConnected();
+		return this.sendRequest<PingResponse>("ping", request);
+	}
+
+	/**
 	 * Shutdown the daemon gracefully.
 	 * After calling this, the client should be disposed and a new daemon
 	 * will be spawned on the next getTerminalHostClient() call.
@@ -1394,6 +1572,8 @@ export class TerminalHostClient extends EventEmitter {
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;
+		this.clearAutoRestartTimer();
+		this.stopHealthCheck();
 		this.disconnect();
 		this.removeAllListeners();
 	}
