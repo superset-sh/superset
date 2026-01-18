@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import process from "node:process";
 import type { DetectedPort } from "shared/types";
 import { getListeningPortsForPids, getProcessTree } from "./port-scanner";
 import type { TerminalSession } from "./types";
@@ -398,6 +399,48 @@ class PortManager extends EventEmitter {
 	 */
 	async forceScan(): Promise<void> {
 		await this.scanAllSessions();
+	}
+
+	/**
+	 * Safely kill a process listening on a tracked port.
+	 * Only kills if:
+	 * - The port is tracked by us
+	 * - The PID is not the terminal's shell PID (only child processes)
+	 */
+	killPort({ paneId, port }: { paneId: string; port: number }): {
+		success: boolean;
+		error?: string;
+	} {
+		const key = this.makeKey(paneId, port);
+		const detectedPort = this.ports.get(key);
+
+		if (!detectedPort) {
+			return { success: false, error: "Port not found in tracked ports" };
+		}
+
+		// Get the terminal's shell PID to ensure we don't kill it
+		const session = this.sessions.get(paneId);
+		const daemonSession = this.daemonSessions.get(paneId);
+		const shellPid = session?.session.pty.pid ?? daemonSession?.pid;
+
+		if (shellPid != null && detectedPort.pid === shellPid) {
+			return {
+				success: false,
+				error: "Cannot kill the terminal shell process",
+			};
+		}
+
+		try {
+			process.kill(detectedPort.pid, "SIGTERM");
+			return { success: true };
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Unknown error";
+			console.error(
+				`[PortManager] Failed to kill process ${detectedPort.pid}:`,
+				message,
+			);
+			return { success: false, error: message };
+		}
 	}
 }
 

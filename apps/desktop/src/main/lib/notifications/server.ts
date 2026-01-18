@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events";
 import express from "express";
 import { NOTIFICATION_EVENTS } from "shared/constants";
-import { debugLog } from "shared/debug";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { appState } from "../app-state";
@@ -144,14 +143,6 @@ app.get("/hook/complete", (req, res) => {
 	}
 
 	const mappedEventType = mapEventType(eventType as string | undefined);
-
-	debugLog("notifications", "Received hook:", {
-		eventType,
-		mappedEventType,
-		paneId,
-		tabId,
-		workspaceId,
-	});
 
 	// Unknown or missing eventType: return success but don't process
 	// This ensures forward compatibility and doesn't block the agent

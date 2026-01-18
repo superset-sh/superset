@@ -20,6 +20,7 @@ import {
 import {
 	generateBranchName,
 	getCurrentBranch,
+	listBranches,
 	safeCheckoutBranch,
 	worktreeExists,
 } from "../utils/git";
@@ -47,7 +48,11 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				const branch = input.branchName?.trim() || generateBranchName();
+				// Get existing branches to avoid name collisions
+				const { local, remote } = await listBranches(project.mainRepoPath);
+				const existingBranches = [...local, ...remote];
+				const branch =
+					input.branchName?.trim() || generateBranchName(existingBranches);
 
 				const worktreePath = join(
 					homedir(),

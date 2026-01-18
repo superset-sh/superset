@@ -98,6 +98,10 @@ const ALLOWED_ENV_VARS = new Set([
 	"LC_TIME",
 	"TZ",
 
+	// Shell initialization (required for agent wrapper PATH injection)
+	"ZDOTDIR", // zsh config directory - used to source our wrapper
+	"BASH_ENV", // bash startup file - used for non-interactive shells
+
 	// Terminal/display
 	"DISPLAY",
 	"COLORTERM",

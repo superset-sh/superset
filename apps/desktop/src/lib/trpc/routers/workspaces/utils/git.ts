@@ -1,14 +1,11 @@
 import { execFile } from "node:child_process";
-import { randomBytes } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+
+import friendlyWords = require("friendly-words");
+
 import simpleGit, { type StatusResult } from "simple-git";
-import {
-	adjectives,
-	animals,
-	uniqueNamesGenerator,
-} from "unique-names-generator";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -296,16 +293,39 @@ function isEnoent(error: unknown): boolean {
 	);
 }
 
-export function generateBranchName(): string {
-	const name = uniqueNamesGenerator({
-		dictionaries: [adjectives, animals],
-		separator: "-",
-		length: 2,
-		style: "lowerCase",
-	});
-	const suffix = randomBytes(3).toString("hex");
+/** Maximum attempts to find a unique word before falling back to suffixed names */
+const MAX_ATTEMPTS = 10;
+/** Maximum suffix value to try in fallback (exclusive), e.g., 0-99 */
+const FALLBACK_MAX_SUFFIX = 100;
 
-	return `${name}-${suffix}`;
+/**
+ * Generates a random branch name using a single friendly word.
+ * Checks against existing branches to avoid collisions.
+ * With ~3000 words, collisions are rare even with hundreds of branches.
+ */
+export function generateBranchName(existingBranches: string[] = []): string {
+	const words = friendlyWords.objects as string[];
+	const existingSet = new Set(existingBranches.map((b) => b.toLowerCase()));
+
+	// Try to find a unique word
+	for (let i = 0; i < MAX_ATTEMPTS; i++) {
+		const word = words[Math.floor(Math.random() * words.length)];
+		if (!existingSet.has(word.toLowerCase())) {
+			return word;
+		}
+	}
+
+	// Fallback: try word with numeric suffix
+	const baseWord = words[Math.floor(Math.random() * words.length)];
+	for (let n = 0; n < FALLBACK_MAX_SUFFIX; n++) {
+		const candidate = `${baseWord}-${n}`;
+		if (!existingSet.has(candidate.toLowerCase())) {
+			return candidate;
+		}
+	}
+
+	// Final fallback: use timestamp to guarantee uniqueness
+	return `${baseWord}-${Date.now()}`;
 }
 
 export async function createWorktree(

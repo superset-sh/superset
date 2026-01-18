@@ -44,6 +44,8 @@ const config: Configuration = {
 		"**/node_modules/node-pty/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
+		// Tray icon must be unpacked so Electron Tray can load it
+		"**/resources/tray/**/*",
 	],
 
 	// Extra resources placed outside asar archive (accessible via process.resourcesPath)
@@ -88,6 +90,12 @@ const config: Configuration = {
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
+		// friendly-words is a CommonJS module that Vite doesn't bundle
+		{
+			from: "node_modules/friendly-words",
+			to: "node_modules/friendly-words",
 			filter: ["**/*"],
 		},
 		"!**/.DS_Store",

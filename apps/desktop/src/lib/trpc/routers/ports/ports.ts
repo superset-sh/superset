@@ -43,6 +43,17 @@ export const createPortsRouter = () => {
 			});
 		}),
 
+		kill: publicProcedure
+			.input(
+				z.object({
+					paneId: z.string(),
+					port: z.number().int().positive(),
+				}),
+			)
+			.mutation(({ input }): { success: boolean; error?: string } => {
+				return portManager.killPort(input);
+			}),
+
 		hasStaticConfig: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
 			.query(({ input }): { hasStatic: boolean } => {

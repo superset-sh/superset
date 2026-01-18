@@ -32,6 +32,10 @@ const RESOURCES_TO_COPY = [
 		dest: resolve(__dirname, "..", devPath, "resources/sounds"),
 	},
 	{
+		src: resolve(__dirname, "..", resources, "tray"),
+		dest: resolve(__dirname, "..", devPath, "resources/tray"),
+	},
+	{
 		src: resolve(__dirname, "../../../packages/local-db/drizzle"),
 		dest: resolve(__dirname, "..", devPath, "resources/migrations"),
 	},

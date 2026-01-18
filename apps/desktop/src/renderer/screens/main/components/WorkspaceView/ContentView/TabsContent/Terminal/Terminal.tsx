@@ -38,7 +38,6 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import {
 	getScrollOffsetFromBottom,
-	restoreScrollPosition,
 	shellEscapePaths,
 	smoothScrollToBottom,
 } from "./utils";
@@ -469,7 +468,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [handleTerminalExit, setConnectionError]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refs (resizeRef, updateCwdRef, rendererRef) used intentionally to read latest values without recreating callback
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;
 		const result = pendingInitialStateRef.current;
@@ -481,7 +479,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Clear before applying to prevent double-apply on concurrent triggers.
 		pendingInitialStateRef.current = null;
-		const restoreSequence = ++restoreSequenceRef.current;
+		const _restoreSequence = ++restoreSequenceRef.current;
 
 		try {
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback (non-daemon)
@@ -571,24 +569,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 					}
 					flushPendingEvents();
 
-					// Fit xterm to container and trigger SIGWINCH
+					// Fit terminal to container - triggers resize which sends SIGWINCH
 					requestAnimationFrame(() => {
 						if (xtermRef.current !== xterm) return;
-
 						fitAddon.fit();
-						const cols = xterm.cols;
-						const rows = xterm.rows;
-
-						if (cols > 0 && rows > 0) {
-							// Resize down then up to guarantee SIGWINCH
-							resizeRef.current({ paneId, cols, rows: rows - 1 });
-							setTimeout(() => {
-								if (xtermRef.current !== xterm) return;
-								resizeRef.current({ paneId, cols, rows });
-								// Force xterm to repaint after SIGWINCH completes
-								xterm.refresh(0, rows - 1);
-							}, 100);
-						}
 					});
 				});
 
@@ -604,56 +588,15 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			const rehydrateSequences = result.snapshot?.rehydrateSequences ?? "";
 
 			const finalizeRestore = () => {
-				const redraw = () => {
-					requestAnimationFrame(() => {
-						try {
-							if (restoreSequenceRef.current !== restoreSequence) return;
-							if (xtermRef.current !== xterm) return;
-
-							fitAddon.fit();
-							if (xtermRef.current !== xterm) return;
-
-							// Reattached sessions can sometimes render partially until the user resizes the pane.
-							// WebGL off fully fixes this, which strongly suggests a WebGL texture-atlas repaint bug.
-							// Clearing the atlas forces xterm-webgl to rebuild glyphs and repaint without a resize nudge.
-							const cols = xterm.cols;
-							const rows = xterm.rows;
-							if (cols <= 0 || rows <= 0) return;
-
-							// Keep PTY dimensions in sync even when FitAddon doesn't change cols/rows.
-							resizeRef.current({ paneId, cols, rows });
-
-							if (!result.isNew) {
-								const renderer = rendererRef.current?.current;
-								if (renderer?.kind === "webgl") {
-									// Clear twice: once immediately, and once after fonts settle.
-									// This reduces restore artifacts (especially for TUIs like opencode)
-									// and prevents stale glyphs when fonts swap in.
-									renderer.clearTextureAtlas?.();
-								}
-							}
-							xterm.refresh(0, rows - 1);
-							restoreScrollPosition(xterm, result.viewportY);
-						} catch (error) {
-							console.warn(
-								"[Terminal] redraw() failed after restoration:",
-								error,
-							);
-						}
-					});
-				};
-
-				// Redraw once immediately, and once again after fonts settle.
-				redraw();
-				void document.fonts?.ready.then(() => {
-					if (restoreSequenceRef.current !== restoreSequence) return;
-					if (xtermRef.current !== xterm) return;
-					redraw();
-				});
-
 				// Enable streaming AFTER xterm has processed the restoration writes.
 				// This prevents live PTY output from interleaving with snapshot replay.
 				isStreamReadyRef.current = true;
+
+				// Fit terminal to container - triggers resize which sends SIGWINCH
+				requestAnimationFrame(() => {
+					if (xtermRef.current !== xterm) return;
+					fitAddon.fit();
+				});
 				if (DEBUG_TERMINAL) {
 					console.log(
 						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,

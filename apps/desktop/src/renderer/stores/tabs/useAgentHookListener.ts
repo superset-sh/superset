@@ -60,13 +60,6 @@ export function useAgentHookListener() {
 			const { paneId, workspaceId } = target;
 
 			if (event.type === NOTIFICATION_EVENTS.AGENT_LIFECYCLE) {
-				debugLog("agent-hooks", "Received:", {
-					eventType: event.data?.eventType,
-					paneId,
-					workspaceId,
-					currentWorkspace: currentWorkspaceIdRef.current,
-				});
-
 				if (!paneId) return;
 
 				const lifecycleEvent = event.data;
