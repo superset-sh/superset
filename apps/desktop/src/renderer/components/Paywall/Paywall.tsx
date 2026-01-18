@@ -4,8 +4,8 @@ import { Dialog, DialogContent } from "@superset/ui/dialog";
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
-import type { GatedFeature } from "./usePaywall";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
+import type { GatedFeature } from "./usePaywall";
 
 type PaywallCallbacks = {
 	onOpen?: (feature: GatedFeature) => void;
@@ -17,8 +17,9 @@ let showPaywallFn: ((feature: GatedFeature) => void) | null = null;
 let callbacks: PaywallCallbacks = {};
 
 export const Paywall = (props?: PaywallCallbacks) => {
-	const [triggeredFeature, setTriggeredFeature] =
-		useState<GatedFeature | null>(null);
+	const [triggeredFeature, setTriggeredFeature] = useState<GatedFeature | null>(
+		null,
+	);
 	const [isOpen, setIsOpen] = useState(false);
 
 	callbacks = props || {};
@@ -28,6 +29,12 @@ export const Paywall = (props?: PaywallCallbacks) => {
 		setIsOpen(true);
 		callbacks.onOpen?.(feature);
 	};
+
+	useEffect(() => {
+		return () => {
+			showPaywallFn = null;
+		};
+	}, []);
 
 	const initialFeatureId =
 		(triggeredFeature && FEATURE_ID_MAP[triggeredFeature]) ||
