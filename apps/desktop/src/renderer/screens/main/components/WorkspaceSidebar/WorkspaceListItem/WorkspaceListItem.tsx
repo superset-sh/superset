@@ -16,7 +16,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuEye, LuEyeOff, LuFolder, LuFolderGit2 } from "react-icons/lu";
@@ -79,7 +79,6 @@ export function WorkspaceListItem({
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const reorderWorkspaces = useReorderWorkspaces();
-	const [hasHovered, setHasHovered] = useState(false);
 	const rename = useWorkspaceRename(id, name);
 	const tabs = useTabsStore((s) => s.tabs);
 	const panes = useTabsStore((s) => s.panes);
@@ -108,12 +107,12 @@ export function WorkspaceListItem({
 	const { showDeleteDialog, setShowDeleteDialog, handleDeleteClick } =
 		useWorkspaceDeleteHandler();
 
-	// Lazy-load GitHub status on hover to avoid N+1 queries
+	// Reads from cache populated by usePRStatusPolling
 	const { data: githubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: id },
 			{
-				enabled: hasHovered && type === "worktree",
+				enabled: type === "worktree",
 				staleTime: GITHUB_STATUS_STALE_TIME,
 			},
 		);
@@ -141,12 +140,6 @@ export function WorkspaceListItem({
 		if (!rename.isRenaming) {
 			clearWorkspaceAttentionStatus(id);
 			navigateToWorkspace(id, navigate);
-		}
-	};
-
-	const handleMouseEnter = () => {
-		if (!hasHovered) {
-			setHasHovered(true);
 		}
 	};
 
@@ -205,7 +198,6 @@ export function WorkspaceListItem({
 			<button
 				type="button"
 				onClick={handleClick}
-				onMouseEnter={handleMouseEnter}
 				className={cn(
 					"relative flex items-center justify-center size-8 rounded-md",
 					"hover:bg-muted/50 transition-colors",
@@ -308,7 +300,6 @@ export function WorkspaceListItem({
 					handleClick();
 				}
 			}}
-			onMouseEnter={handleMouseEnter}
 			onDoubleClick={isBranchWorkspace ? undefined : rename.startRename}
 			className={cn(
 				"flex items-center w-full pl-3 pr-2 text-sm",

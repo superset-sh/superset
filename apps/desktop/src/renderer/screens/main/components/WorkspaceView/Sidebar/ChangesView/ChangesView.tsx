@@ -61,13 +61,11 @@ export function ChangesView({
 		},
 	);
 
+	// Reads from cache populated by usePRStatusPolling
 	const { data: githubStatus, refetch: refetchGithubStatus } =
 		electronTrpc.workspaces.getGitHubStatus.useQuery(
 			{ workspaceId: workspaceId ?? "" },
-			{
-				enabled: !!workspaceId,
-				refetchInterval: 10000,
-			},
+			{ enabled: !!workspaceId },
 		);
 
 	const handleRefresh = () => {
