@@ -16,7 +16,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
-import { LuArchive, LuArchiveRestore, LuLoaderCircle } from "react-icons/lu";
+import { LuLoaderCircle } from "react-icons/lu";
+import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
@@ -103,131 +104,142 @@ export function ChangesHeader({
 	};
 
 	return (
-		<div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
-			<div className="flex items-center gap-1 min-w-0 flex-1">
-				<span className="text-[10px] text-muted-foreground shrink-0">
-					Base:
-				</span>
-				{isLoading || !branchData ? (
-					<span className="px-1.5 py-0.5 rounded bg-muted/50 text-foreground text-[10px] font-medium truncate">
-						{effectiveBaseBranch}
+		<div className="flex flex-col">
+			{/* Row 1: Base branch, view mode, refresh */}
+			<div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
+				<div className="flex items-center gap-1 min-w-0 flex-1">
+					<span className="text-[10px] text-muted-foreground shrink-0">
+						Base:
 					</span>
-				) : (
-					<Tooltip>
-						<Select value={effectiveBaseBranch} onValueChange={handleChange}>
-							<TooltipTrigger asChild>
-								<SelectTrigger
-									size="sm"
-									className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
-								>
-									<SelectValue />
-								</SelectTrigger>
-							</TooltipTrigger>
-							<SelectContent align="start">
-								{sortedBranches
-									.filter((branch) => branch)
-									.map((branch) => (
-										<SelectItem key={branch} value={branch} className="text-xs">
-											{branch}
-											{branch === branchData.defaultBranch && (
-												<span className="ml-1 text-muted-foreground">
-													(default)
-												</span>
-											)}
-										</SelectItem>
-									))}
-							</SelectContent>
-						</Select>
-						<TooltipContent side="bottom" showArrow={false}>
-							Change base branch
-						</TooltipContent>
-					</Tooltip>
-				)}
-			</div>
-			<div className="flex items-center shrink-0">
-				<ViewModeToggle
-					viewMode={viewMode}
-					onViewModeChange={onViewModeChange}
-				/>
-				<DropdownMenu>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									size="icon"
-									className="size-6 p-0"
-									disabled={isStashPending}
-								>
-									<LuArchive className="size-3.5" />
-								</Button>
-							</DropdownMenuTrigger>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Stash operations
-						</TooltipContent>
-					</Tooltip>
-					<DropdownMenuContent align="end" className="w-52">
-						<DropdownMenuItem onClick={onStash} className="text-xs">
-							<LuArchive className="size-3.5" />
-							Stash Changes
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							onClick={onStashIncludeUntracked}
-							className="text-xs"
-						>
-							<LuArchive className="size-3.5" />
-							Stash (Include Untracked)
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem onClick={onStashPop} className="text-xs">
-							<LuArchiveRestore className="size-3.5" />
-							Pop Stash
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							onClick={handleRefresh}
-							disabled={isManualRefresh}
-							className="size-6 p-0"
-						>
-							<HiArrowPath
-								className={`size-3.5 ${isManualRefresh ? "animate-spin" : ""}`}
-							/>
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Refresh changes
-					</TooltipContent>
-				</Tooltip>
-
-				{/* PR Status Icon */}
-				{isPRLoading ? (
-					<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
-				) : pr ? (
+					{isLoading || !branchData ? (
+						<span className="px-1.5 py-0.5 rounded bg-muted/50 text-foreground text-[10px] font-medium truncate">
+							{effectiveBaseBranch}
+						</span>
+					) : (
+						<Tooltip>
+							<Select value={effectiveBaseBranch} onValueChange={handleChange}>
+								<TooltipTrigger asChild>
+									<SelectTrigger
+										size="sm"
+										className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
+									>
+										<SelectValue />
+									</SelectTrigger>
+								</TooltipTrigger>
+								<SelectContent align="start">
+									{sortedBranches
+										.filter((branch) => branch)
+										.map((branch) => (
+											<SelectItem key={branch} value={branch} className="text-xs">
+												{branch}
+												{branch === branchData.defaultBranch && (
+													<span className="ml-1 text-muted-foreground">
+														(default)
+													</span>
+												)}
+											</SelectItem>
+										))}
+								</SelectContent>
+							</Select>
+							<TooltipContent side="bottom" showArrow={false}>
+								Change base branch
+							</TooltipContent>
+						</Tooltip>
+					)}
+				</div>
+				<div className="flex items-center shrink-0">
+					<ViewModeToggle
+						viewMode={viewMode}
+						onViewModeChange={onViewModeChange}
+					/>
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<a
-								href={pr.url}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
+							<Button
+								variant="ghost"
+								size="icon"
+								onClick={handleRefresh}
+								disabled={isManualRefresh}
+								className="size-6 p-0"
 							>
-								<PRIcon state={pr.state} className="w-4 h-4" />
-								<span className="text-xs text-muted-foreground font-mono">
-									#{pr.number}
-								</span>
-							</a>
+								<HiArrowPath
+									className={`size-3.5 ${isManualRefresh ? "animate-spin" : ""}`}
+								/>
+							</Button>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							View PR on GitHub
+							Refresh changes
 						</TooltipContent>
 					</Tooltip>
-				) : null}
+				</div>
+			</div>
+
+			{/* Row 2: Stash operations, PR status */}
+			<div className="flex items-center justify-between gap-1.5 px-2 pb-1.5">
+				<div className="flex items-center gap-0.5">
+					<DropdownMenu>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-6 p-0"
+										disabled={isStashPending}
+									>
+										<VscGitStash className="size-4" />
+									</Button>
+								</DropdownMenuTrigger>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Stash operations
+							</TooltipContent>
+						</Tooltip>
+						<DropdownMenuContent align="start" className="w-52">
+							<DropdownMenuItem onClick={onStash} className="text-xs">
+								<VscGitStash className="size-4" />
+								Stash Changes
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={onStashIncludeUntracked}
+								className="text-xs"
+							>
+								<VscGitStash className="size-4" />
+								Stash (Include Untracked)
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={onStashPop} className="text-xs">
+								<VscGitStashApply className="size-4" />
+								Pop Stash
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+
+				{/* PR Status */}
+				<div className="flex items-center shrink-0">
+					{isPRLoading ? (
+						<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+					) : pr ? (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<a
+									href={pr.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
+								>
+									<PRIcon state={pr.state} className="w-4 h-4" />
+									<span className="text-xs text-muted-foreground font-mono">
+										#{pr.number}
+									</span>
+								</a>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								View PR on GitHub
+							</TooltipContent>
+						</Tooltip>
+					) : null}
+				</div>
 			</div>
 		</div>
 	);
