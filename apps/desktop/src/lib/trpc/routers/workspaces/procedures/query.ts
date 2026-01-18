@@ -10,6 +10,34 @@ import { getWorkspacePath } from "../utils/worktree";
 
 type WorktreePathMap = Map<string, string>;
 
+/** Returns workspace IDs in sidebar visual order (by project.tabOrder, then workspace.tabOrder). */
+function getWorkspacesInVisualOrder(): string[] {
+	const activeProjects = localDb
+		.select()
+		.from(projects)
+		.where(isNotNull(projects.tabOrder))
+		.all()
+		.sort((a, b) => (a.tabOrder ?? 0) - (b.tabOrder ?? 0));
+
+	const allWorkspaces = localDb
+		.select()
+		.from(workspaces)
+		.where(isNull(workspaces.deletingAt))
+		.all();
+
+	const orderedIds: string[] = [];
+	for (const project of activeProjects) {
+		const projectWorkspaces = allWorkspaces
+			.filter((w) => w.projectId === project.id)
+			.sort((a, b) => a.tabOrder - b.tabOrder);
+		for (const ws of projectWorkspaces) {
+			orderedIds.push(ws.id);
+		}
+	}
+
+	return orderedIds;
+}
+
 export const createQueryProcedures = () => {
 	return router({
 		get: publicProcedure
@@ -199,39 +227,33 @@ export const createQueryProcedures = () => {
 		getPreviousWorkspace: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				const allWorkspaces = localDb
-					.select()
-					.from(workspaces)
-					.where(isNull(workspaces.deletingAt))
-					.all()
-					.sort((a, b) => a.tabOrder - b.tabOrder);
+				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
+				if (orderedWorkspaceIds.length === 0) return null;
 
-				const currentIndex = allWorkspaces.findIndex((w) => w.id === input.id);
+				const currentIndex = orderedWorkspaceIds.indexOf(input.id);
+				if (currentIndex === -1) return null;
 
-				if (currentIndex > 0) {
-					return allWorkspaces[currentIndex - 1].id;
-				}
-
-				return null;
+				const prevIndex =
+					currentIndex === 0
+						? orderedWorkspaceIds.length - 1
+						: currentIndex - 1;
+				return orderedWorkspaceIds[prevIndex];
 			}),
 
 		getNextWorkspace: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }) => {
-				const allWorkspaces = localDb
-					.select()
-					.from(workspaces)
-					.where(isNull(workspaces.deletingAt))
-					.all()
-					.sort((a, b) => a.tabOrder - b.tabOrder);
+				const orderedWorkspaceIds = getWorkspacesInVisualOrder();
+				if (orderedWorkspaceIds.length === 0) return null;
 
-				const currentIndex = allWorkspaces.findIndex((w) => w.id === input.id);
+				const currentIndex = orderedWorkspaceIds.indexOf(input.id);
+				if (currentIndex === -1) return null;
 
-				if (currentIndex !== -1 && currentIndex < allWorkspaces.length - 1) {
-					return allWorkspaces[currentIndex + 1].id;
-				}
-
-				return null;
+				const nextIndex =
+					currentIndex === orderedWorkspaceIds.length - 1
+						? 0
+						: currentIndex + 1;
+				return orderedWorkspaceIds[nextIndex];
 			}),
 	});
 };
