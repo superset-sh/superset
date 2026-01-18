@@ -1,5 +1,6 @@
 import { db } from "@superset/db/client";
 import {
+	invitations,
 	members,
 	organizations,
 	repositories,
@@ -16,7 +17,8 @@ export type AllowedTable =
 	| "repositories"
 	| "auth.members"
 	| "auth.organizations"
-	| "auth.users";
+	| "auth.users"
+	| "auth.invitations";
 
 interface WhereClause {
 	fragment: string;
@@ -51,6 +53,9 @@ export async function buildWhereClause(
 
 		case "auth.members":
 			return build(members, members.organizationId, organizationId);
+
+		case "auth.invitations":
+			return build(invitations, invitations.organizationId, organizationId);
 
 		case "auth.organizations": {
 			const userMemberships = await db.query.members.findMany({

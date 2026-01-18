@@ -3,12 +3,18 @@ import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
+import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
+import { resend } from "@superset/email/lib/resend";
+import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "./env";
+import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
+import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { invitationRateLimit } from "./lib/rate-limit";
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
@@ -93,6 +99,60 @@ export const auth = betterAuth({
 		expo(),
 		organization({
 			creatorRole: "owner",
+			invitationExpiresIn: 60 * 60 * 24 * 7, // 1 week
+			sendInvitationEmail: async (data) => {
+				// Generate magic token for this invitation
+				const token = await generateMagicTokenForInvite({
+					email: data.email,
+					invitationId: data.id,
+				});
+
+				// Construct invitation link with magic token
+				const inviteLink = `${env.NEXT_PUBLIC_WEB_URL}/accept-invitation/${data.id}?token=${token}`;
+
+				await resend.emails.send({
+					from: "Superset <noreply@superset.sh>",
+					to: data.email,
+					subject: `${data.inviter.user.name} invited you to join ${data.organization.name}`,
+					react: OrganizationInvitationEmail({
+						organizationName: data.organization.name,
+						inviterName: data.inviter.user.name,
+						inviteLink,
+						role: data.role,
+					}),
+				});
+			},
+			organizationHooks: {
+				beforeCreateInvitation: async (data) => {
+					const { inviterId, organizationId, role } = data.invitation;
+
+					// Rate limiting: 10 invitations per hour per user
+					const { success } = await invitationRateLimit.limit(inviterId);
+					if (!success) {
+						throw new Error("Rate limit exceeded. Max 10 invitations per hour.");
+					}
+
+					const inviterMember = await db.query.members.findFirst({
+						where: and(
+							eq(members.userId, inviterId),
+							eq(members.organizationId, organizationId),
+						),
+					});
+
+					if (!inviterMember) {
+						throw new Error("Not a member of this organization");
+					}
+
+					if (
+						!canInvite(
+							inviterMember.role as OrganizationRole,
+							role as OrganizationRole,
+						)
+					) {
+						throw new Error("Cannot invite users with this role");
+					}
+				},
+			},
 		}),
 		bearer(),
 		customSession(async ({ user, session: baseSession }) => {
@@ -122,6 +182,7 @@ export const auth = betterAuth({
 				session: { ...session, activeOrganizationId, role: membership?.role },
 			};
 		}),
+		acceptInvitationEndpoint,
 	],
 });
 

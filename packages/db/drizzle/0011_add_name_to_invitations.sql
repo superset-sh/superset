@@ -1,0 +1,1 @@
+ALTER TABLE "auth"."invitations" ADD COLUMN "name" text;

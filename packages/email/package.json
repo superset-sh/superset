@@ -26,8 +26,10 @@
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
 		"@t3-oss/env-core": "^0.13.8",
+		"date-fns": "^4.1.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
+		"resend": "^4.0.1",
 		"zod": "^4.3.5"
 	}
 }

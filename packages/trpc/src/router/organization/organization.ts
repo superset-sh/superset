@@ -1,9 +1,15 @@
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
-import { sessions as authSessions } from "@superset/db/schema/auth";
+import {
+	invitations,
+	sessions as authSessions,
+	users,
+	verifications,
+} from "@superset/db/schema/auth";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { del, put } from "@vercel/blob";
+import { randomBytes } from "node:crypto";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure, publicProcedure } from "../../trpc";
@@ -49,6 +55,238 @@ export const organizationRouter = {
 			},
 		});
 	}),
+
+	getInvitation: publicProcedure.input(z.uuid()).query(async ({ input }) => {
+		const invitation = await db.query.invitations.findFirst({
+			where: eq(invitations.id, input),
+			with: {
+				organization: true,
+				inviter: true,
+			},
+		});
+
+		if (!invitation) {
+			throw new TRPCError({
+				code: "NOT_FOUND",
+				message: "Invitation not found",
+			});
+		}
+
+		// Check if invitation is expired
+		const isExpired = new Date(invitation.expiresAt) < new Date();
+
+		return {
+			id: invitation.id,
+			email: invitation.email,
+			name: invitation.name,
+			role: invitation.role,
+			status: invitation.status,
+			expiresAt: invitation.expiresAt,
+			isExpired,
+			organization: {
+				id: invitation.organization.id,
+				name: invitation.organization.name,
+				slug: invitation.organization.slug,
+				logo: invitation.organization.logo,
+			},
+			inviter: {
+				id: invitation.inviter.id,
+				name: invitation.inviter.name,
+				email: invitation.inviter.email,
+				image: invitation.inviter.image,
+			},
+		};
+	}),
+
+	acceptInvitation: publicProcedure
+		.input(
+			z.object({
+				invitationId: z.string().uuid(),
+				token: z.string(),
+			}),
+		)
+		.mutation(async ({ input }) => {
+			const { invitationId, token } = input;
+
+			const verification = await db.query.verifications.findFirst({
+				where: eq(verifications.value, token),
+			});
+
+			if (!verification || new Date() > new Date(verification.expiresAt)) {
+				console.log("[invitation/accept] ERROR - Invalid or expired token");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "Invalid or expired token",
+				});
+			}
+
+			console.log(
+				"[invitation/accept] Token verified for email:",
+				verification.identifier,
+			);
+
+			// 2. Get invitation to verify email matches
+			const invitation = await db.query.invitations.findFirst({
+				where: eq(invitations.id, invitationId),
+				with: {
+					organization: true,
+				},
+			});
+
+			if (!invitation) {
+				console.log("[invitation/accept] ERROR - Invitation not found");
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Invitation not found",
+				});
+			}
+
+			if (invitation.email !== verification.identifier) {
+				console.log(
+					"[invitation/accept] ERROR - Token email does not match invitation email",
+				);
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Token does not match invitation",
+				});
+			}
+
+			if (invitation.status !== "pending") {
+				console.log(
+					"[invitation/accept] ERROR - Invitation already processed:",
+					invitation.status,
+				);
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invitation already accepted or rejected",
+				});
+			}
+
+			console.log("[invitation/accept] Invitation validated");
+
+			// 3. Create or get user
+			let user = await db.query.users.findFirst({
+				where: eq(users.email, invitation.email),
+			});
+
+			if (!user) {
+				console.log("[invitation/accept] Creating new user");
+				const userName =
+					invitation.name ||
+					invitation.email.split("@")[0] ||
+					"User";
+				const [newUser] = await db
+					.insert(users)
+					.values({
+						email: invitation.email,
+						name: userName,
+						emailVerified: true, // Email verified via magic link
+					})
+					.returning();
+
+				if (!newUser) {
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: "Failed to create user",
+					});
+				}
+
+				user = newUser;
+				console.log("[invitation/accept] New user created:", user.id);
+			} else {
+				console.log("[invitation/accept] Existing user found:", user.id);
+			}
+
+			// 4. Create session manually for the verified user
+			if (!user) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "User creation failed",
+				});
+			}
+
+			console.log("[invitation/accept] Creating session for user:", user.id);
+			const sessionToken = randomBytes(32).toString("hex");
+			const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+			const [session] = await db
+				.insert(authSessions)
+				.values({
+					userId: user.id,
+					token: sessionToken,
+					expiresAt,
+					activeOrganizationId: invitation.organization.id,
+				})
+				.returning();
+
+			if (!session) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Session creation failed",
+				});
+			}
+
+			console.log("[invitation/accept] Session created:", session.id);
+
+			// 5. Accept invitation by updating status and creating member
+			console.log("[invitation/accept] Accepting invitation");
+
+			// Update invitation status
+			await db
+				.update(invitations)
+				.set({ status: "accepted" })
+				.where(eq(invitations.id, invitationId));
+
+			console.log("[invitation/accept] Invitation status updated to accepted");
+
+			// Create member record (check if not already a member)
+			const existingMember = await db.query.members.findFirst({
+				where: and(
+					eq(members.organizationId, invitation.organization.id),
+					eq(members.userId, user.id),
+				),
+			});
+
+			if (!existingMember) {
+				await db.insert(members).values({
+					organizationId: invitation.organization.id,
+					userId: user.id,
+					role: invitation.role ?? "member",
+				});
+
+				console.log(
+					"[invitation/accept] Member created for organization:",
+					invitation.organization.id,
+				);
+			} else {
+				console.log(
+					"[invitation/accept] User already a member, skipping member creation",
+				);
+			}
+
+			// 6. Organization is already set as active during session creation
+			console.log(
+				"[invitation/accept] Active organization already set:",
+				invitation.organization.id,
+			);
+
+			// 7. Set session cookie in response headers
+			// Better Auth expects cookies to be set via Set-Cookie header
+			// The ctx.headers is for reading request headers, but tRPC responses
+			// automatically include cookies when credentials are enabled
+			console.log("[invitation/accept] Session token created:", sessionToken);
+
+			// 8. Delete verification token (one-time use)
+			await db.delete(verifications).where(eq(verifications.value, token));
+			console.log("[invitation/accept] Verification token deleted");
+
+			console.log("[invitation/accept] COMPLETE - Success");
+			return {
+				success: true,
+				organizationId: invitation.organization.id,
+				sessionToken, // Return token so client can set it
+			};
+		}),
 
 	create: protectedProcedure
 		.input(
@@ -335,7 +573,7 @@ export const organizationRouter = {
 			await ctx.auth.api.removeMember({
 				body: {
 					organizationId: input.organizationId,
-					memberIdOrEmail: input.userId,
+					memberIdOrEmail: targetMember.id, // Use member ID, not user ID
 				},
 				headers: ctx.headers,
 			});

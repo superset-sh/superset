@@ -1,5 +1,6 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
 	SelectRepository,
@@ -25,6 +26,7 @@ interface OrgCollections {
 	repositories: Collection<SelectRepository>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
+	invitations: Collection<SelectInvitation>;
 }
 
 // Per-org collections cache
@@ -178,7 +180,23 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	return { tasks, taskStatuses, repositories, members, users };
+	const invitations = createCollection(
+		electricCollectionOptions<SelectInvitation>({
+			id: `invitations-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: {
+					table: "auth.invitations",
+					organizationId,
+				},
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	return { tasks, taskStatuses, repositories, members, users, invitations };
 }
 
 /**

@@ -135,6 +135,7 @@ export const invitations = authSchema.table(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		email: text("email").notNull(),
+		name: text("name"),
 		role: text("role"),
 		status: text("status").default("pending").notNull(),
 		expiresAt: timestamp("expires_at").notNull(),
@@ -148,3 +149,6 @@ export const invitations = authSchema.table(
 		index("invitations_email_idx").on(table.email),
 	],
 );
+
+export type SelectInvitation = typeof invitations.$inferSelect;
+export type InsertInvitation = typeof invitations.$inferInsert;
