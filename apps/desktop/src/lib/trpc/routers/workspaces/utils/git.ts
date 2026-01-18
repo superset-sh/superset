@@ -2,7 +2,9 @@ import { execFile } from "node:child_process";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+
 import friendlyWords = require("friendly-words");
+
 import simpleGit, { type StatusResult } from "simple-git";
 import { checkGitLfsAvailable, getShellEnvironment } from "./shell-env";
 
