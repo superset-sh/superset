@@ -4,7 +4,8 @@ export type SettingsSection =
 	| "project"
 	| "workspace"
 	| "appearance"
-	| "keyboard";
+	| "keyboard"
+	| "terminal";
 
 export interface OpenSettingsEvent {
 	section?: SettingsSection;

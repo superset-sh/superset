@@ -11,6 +11,7 @@ import {
 	Tray,
 } from "electron";
 import { localDb } from "main/lib/local-db";
+import { menuEmitter } from "main/lib/menu-events";
 import { tryListExistingDaemonSessions } from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
@@ -106,10 +107,7 @@ function openSettings(): void {
 
 function openTerminalSettings(): void {
 	showWindow();
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("navigate", "/settings/terminal");
-	}
+	menuEmitter.emit("open-settings", "terminal");
 }
 
 function openSessionInSuperset(workspaceId: string): void {
