@@ -14,8 +14,6 @@ export function WorkspaceSidebar({
 	isCollapsed = false,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
-
-	// Poll GitHub PR status for all open worktree workspaces in the background
 	usePRStatusPolling();
 
 	// Calculate shortcut base indices for each project group using cumulative offsets
