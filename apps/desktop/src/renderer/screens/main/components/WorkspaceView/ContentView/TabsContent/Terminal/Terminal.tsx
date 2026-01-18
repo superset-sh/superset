@@ -34,7 +34,6 @@ import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
 import {
 	getScrollOffsetFromBottom,
-	restoreScrollPosition,
 	shellEscapePaths,
 	smoothScrollToBottom,
 } from "./utils";
@@ -465,7 +464,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	}, [handleTerminalExit, setConnectionError]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: refs (resizeRef, updateCwdRef, rendererRef) used intentionally to read latest values without recreating callback
 	const maybeApplyInitialState = useCallback(() => {
 		if (!didFirstRenderRef.current) return;
 		const result = pendingInitialStateRef.current;
@@ -477,7 +475,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		// Clear before applying to prevent double-apply on concurrent triggers.
 		pendingInitialStateRef.current = null;
-		const restoreSequence = ++restoreSequenceRef.current;
+		const _restoreSequence = ++restoreSequenceRef.current;
 
 		try {
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback (non-daemon)
