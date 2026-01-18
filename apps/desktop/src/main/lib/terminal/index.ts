@@ -25,46 +25,27 @@ export type {
 // Terminal Manager Selection
 // =============================================================================
 
-// Cache the daemon mode setting to avoid repeated DB reads
-// This is set once at app startup and doesn't change until restart
-let cachedDaemonMode: boolean | null = null;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
  * Check if daemon mode is enabled.
  * Reads from user settings (terminalPersistence) or falls back to env var.
- * The value is cached since it requires app restart to take effect.
  */
 export function isDaemonModeEnabled(): boolean {
-	// Return cached value if available
-	if (cachedDaemonMode !== null) {
-		return cachedDaemonMode;
-	}
-
 	// First check environment variable override (for development/testing)
 	if (process.env.SUPERSET_TERMINAL_DAEMON === "1") {
-		console.log(
-			"[TerminalManager] Daemon mode: ENABLED (via SUPERSET_TERMINAL_DAEMON env var)",
-		);
-		cachedDaemonMode = true;
 		return true;
 	}
 
 	// Read from user settings
 	try {
 		const row = localDb.select().from(settings).get();
-		const enabled = row?.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
-		console.log(
-			`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
-		);
-		cachedDaemonMode = enabled;
-		return enabled;
+		return row?.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
 	} catch (error) {
 		console.warn(
 			"[TerminalManager] Failed to read settings, defaulting to disabled:",
 			error,
 		);
-		cachedDaemonMode = DEFAULT_TERMINAL_PERSISTENCE;
 		return DEFAULT_TERMINAL_PERSISTENCE;
 	}
 }
