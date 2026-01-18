@@ -74,9 +74,13 @@ export function parseSSHConfig(configPath?: string): SSHConfigHost[] {
 				case "user":
 					currentHost.user = value;
 					break;
-				case "port":
-					currentHost.port = parseInt(value, 10);
+				case "port": {
+					const port = parseInt(value, 10);
+					if (Number.isInteger(port) && port >= 1 && port <= 65535) {
+						currentHost.port = port;
+					}
 					break;
+				}
 				case "identityfile":
 					// Expand ~ to home directory
 					currentHost.identityFile = value.replace(/^~/, os.homedir());

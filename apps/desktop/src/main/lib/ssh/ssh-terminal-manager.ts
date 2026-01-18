@@ -24,9 +24,17 @@ interface SSHSession {
 	viewportY?: number;
 }
 
+/** Stored event handlers for cleanup */
+interface SessionHandlers {
+	data: (data: string) => void;
+	exit: (exitCode: number, signal?: number) => void;
+	error: (error: string) => void;
+}
+
 export class SSHTerminalManager extends EventEmitter {
 	private sshClient: SSHClient;
 	private sessions: Map<string, SSHSession> = new Map();
+	private sessionHandlers: Map<string, SessionHandlers> = new Map();
 	private pendingCreates: Map<string, Promise<unknown>> = new Map();
 	private config: SSHConnectionConfig;
 
@@ -55,8 +63,26 @@ export class SSHTerminalManager extends EventEmitter {
 	 * Disconnect from the remote SSH server
 	 */
 	disconnect(): void {
+		// Remove all session handlers before disconnecting
+		for (const [paneId, handlers] of this.sessionHandlers) {
+			this.sshClient.off(`data:${paneId}`, handlers.data);
+			this.sshClient.off(`exit:${paneId}`, handlers.exit);
+			this.sshClient.off(`error:${paneId}`, handlers.error);
+		}
+		this.sessionHandlers.clear();
 		this.sshClient.disconnect();
 		this.sessions.clear();
+	}
+
+	/** Removes event handlers for a specific session to prevent listener leaks */
+	private cleanupSessionHandlers(paneId: string): void {
+		const handlers = this.sessionHandlers.get(paneId);
+		if (handlers) {
+			this.sshClient.off(`data:${paneId}`, handlers.data);
+			this.sshClient.off(`exit:${paneId}`, handlers.exit);
+			this.sshClient.off(`error:${paneId}`, handlers.error);
+			this.sessionHandlers.delete(paneId);
+		}
 	}
 
 	/**
@@ -160,27 +186,36 @@ export class SSHTerminalManager extends EventEmitter {
 			cwd,
 		});
 
-		// Set up event listeners
-		this.sshClient.on(`data:${paneId}`, (data: string) => {
+		// Set up event listeners (store references for cleanup)
+		const dataHandler = (data: string) => {
 			this.emit(`data:${paneId}`, data);
 			const session = this.sessions.get(paneId);
 			if (session) {
 				session.lastActive = Date.now();
 			}
-		});
+		};
 
-		this.sshClient.on(`exit:${paneId}`, (exitCode: number, signal?: number) => {
+		const exitHandler = (exitCode: number, signal?: number) => {
 			const session = this.sessions.get(paneId);
 			if (session) {
 				session.isAlive = false;
 			}
 			this.emit(`exit:${paneId}`, exitCode, signal);
 			this.emit("terminalExit", { paneId, exitCode, signal });
-		});
+			// Clean up handlers on exit
+			this.cleanupSessionHandlers(paneId);
+		};
 
-		this.sshClient.on(`error:${paneId}`, (error: string) => {
+		const errorHandler = (error: string) => {
 			this.emit(`error:${paneId}`, error);
-		});
+		};
+
+		// Store handlers for later cleanup
+		this.sessionHandlers.set(paneId, { data: dataHandler, exit: exitHandler, error: errorHandler });
+
+		this.sshClient.on(`data:${paneId}`, dataHandler);
+		this.sshClient.on(`exit:${paneId}`, exitHandler);
+		this.sshClient.on(`error:${paneId}`, errorHandler);
 
 		// Create session record
 		const session: SSHSession = {
@@ -244,6 +279,7 @@ export class SSHTerminalManager extends EventEmitter {
 	 */
 	async kill(params: { paneId: string }): Promise<void> {
 		const { paneId } = params;
+		this.cleanupSessionHandlers(paneId);
 		this.sshClient.killChannel(paneId);
 		this.sessions.delete(paneId);
 	}
@@ -302,10 +338,16 @@ export class SSHTerminalManager extends EventEmitter {
 		for (const [paneId, session] of this.sessions) {
 			if (session.workspaceId === workspaceId) {
 				try {
+					this.cleanupSessionHandlers(paneId);
 					this.sshClient.killChannel(paneId);
 					this.sessions.delete(paneId);
 					killed++;
-				} catch {
+				} catch (error) {
+					console.error(`[ssh/terminal-manager] Failed to kill SSH channel`, {
+						paneId,
+						workspaceId,
+						error: error instanceof Error ? error.message : String(error),
+					});
 					failed++;
 				}
 			}

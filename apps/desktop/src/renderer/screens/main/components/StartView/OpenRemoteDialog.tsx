@@ -24,11 +24,12 @@ export function OpenRemoteDialog({
 
 	const createRemoteProject = electronTrpc.ssh.createRemoteProject.useMutation({
 		onSuccess: (project) => {
-			// Create a workspace for the project
+			// Create a workspace for the project using its default branch
+			const branch = project.defaultBranch || "main";
 			createRemoteWorkspace.mutate({
 				remoteProjectId: project.id,
-				branch: "main",
-				name: "main",
+				branch,
+				name: branch,
 			});
 		},
 		onError: (err) => {

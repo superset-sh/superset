@@ -157,16 +157,27 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 		const runtime = this.sshRuntimes.get(sshConnectionId);
 		if (runtime) {
 			console.log(`[registry] Disconnecting SSH runtime for ${sshConnectionId}`);
-			await runtime.terminal.cleanup();
-			runtime.disconnect();
-			this.sshRuntimes.delete(sshConnectionId);
-			this.sshConfigs.delete(sshConnectionId);
+			let cleanupError: Error | undefined;
+			try {
+				await runtime.terminal.cleanup();
+				runtime.disconnect();
+			} catch (error) {
+				cleanupError = error instanceof Error ? error : new Error(String(error));
+				console.error(`[registry] Error disconnecting SSH runtime ${sshConnectionId}:`, cleanupError.message);
+			} finally {
+				// Always clean up state even if cleanup/disconnect failed
+				this.sshRuntimes.delete(sshConnectionId);
+				this.sshConfigs.delete(sshConnectionId);
 
-			// Remove all workspace mappings for this SSH connection
-			for (const [workspaceId, connId] of this.workspaceToSSH) {
-				if (connId === sshConnectionId) {
-					this.workspaceToSSH.delete(workspaceId);
+				// Remove all workspace mappings for this SSH connection
+				for (const [workspaceId, connId] of this.workspaceToSSH) {
+					if (connId === sshConnectionId) {
+						this.workspaceToSSH.delete(workspaceId);
+					}
 				}
+			}
+			if (cleanupError) {
+				throw cleanupError;
 			}
 		}
 	}
@@ -177,14 +188,28 @@ class DefaultWorkspaceRuntimeRegistry implements ExtendedWorkspaceRuntimeRegistr
 	async cleanupAll(): Promise<void> {
 		// Cleanup local runtime
 		if (this.localRuntime) {
-			await this.localRuntime.terminal.cleanup();
+			try {
+				await this.localRuntime.terminal.cleanup();
+			} catch (error) {
+				console.error(`[registry] Error cleaning up local runtime:`, error instanceof Error ? error.message : String(error));
+			}
 		}
 
-		// Cleanup all SSH runtimes
+		// Cleanup all SSH runtimes (continue even if individual cleanups fail)
 		for (const [id, runtime] of this.sshRuntimes) {
 			console.log(`[registry] Cleaning up SSH runtime ${id}`);
-			await runtime.terminal.cleanup();
-			runtime.disconnect();
+			try {
+				await runtime.terminal.cleanup();
+			} catch (error) {
+				console.error(`[registry] Error cleaning up SSH runtime ${id}:`, error instanceof Error ? error.message : String(error));
+			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (disconnectError) {
+					console.error(`[registry] Error disconnecting SSH runtime ${id}:`, disconnectError instanceof Error ? disconnectError.message : String(disconnectError));
+				}
+			}
 		}
 		this.sshRuntimes.clear();
 		this.sshConfigs.clear();

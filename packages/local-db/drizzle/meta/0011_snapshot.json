@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b74ef022-acd9-4140-b9e8-b7c92dd13b16",
+  "id": "24f884ea-2a0b-46e0-984a-643b88ec7c4d",
   "prevId": "b74ef022-acd9-4140-b9e8-b7c92dd13b16",
   "tables": {
     "organization_members": {
