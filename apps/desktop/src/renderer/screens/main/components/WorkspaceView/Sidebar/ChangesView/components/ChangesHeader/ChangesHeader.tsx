@@ -148,94 +148,88 @@ export function ChangesHeader({
 			</div>
 
 			{/* Row 2: All action buttons */}
-			<div className="flex items-center justify-between gap-1.5 px-2 pb-1.5">
-				<div className="flex items-center gap-0.5">
-					<DropdownMenu>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<DropdownMenuTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="size-6 p-0"
-										disabled={isStashPending}
-									>
-										<VscGitStash className="size-4" />
-									</Button>
-								</DropdownMenuTrigger>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Stash operations
-							</TooltipContent>
-						</Tooltip>
-						<DropdownMenuContent align="start" className="w-52">
-							<DropdownMenuItem onClick={onStash} className="text-xs">
-								<VscGitStash className="size-4" />
-								Stash Changes
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={onStashIncludeUntracked}
-								className="text-xs"
-							>
-								<VscGitStash className="size-4" />
-								Stash (Include Untracked)
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={onStashPop} className="text-xs">
-								<VscGitStashApply className="size-4" />
-								Pop Stash
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-					<ViewModeToggle
-						viewMode={viewMode}
-						onViewModeChange={onViewModeChange}
-					/>
+			<div className="flex items-center gap-0.5 px-2 pb-1.5">
+				<DropdownMenu>
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="icon"
-								onClick={handleRefresh}
-								disabled={isManualRefresh}
-								className="size-6 p-0"
-							>
-								<HiArrowPath
-									className={`size-3.5 ${isManualRefresh ? "animate-spin" : ""}`}
-								/>
-							</Button>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-6 p-0"
+									disabled={isStashPending}
+								>
+									<VscGitStash className="size-4" />
+								</Button>
+							</DropdownMenuTrigger>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							Refresh changes
+							Stash operations
 						</TooltipContent>
 					</Tooltip>
-				</div>
-
-				{/* PR Status */}
-				<div className="flex items-center shrink-0">
-					{isPRLoading ? (
-						<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
-					) : pr ? (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<a
-									href={pr.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
-								>
-									<PRIcon state={pr.state} className="w-4 h-4" />
-									<span className="text-xs text-muted-foreground font-mono">
-										#{pr.number}
-									</span>
-								</a>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								View PR on GitHub
-							</TooltipContent>
-						</Tooltip>
-					) : null}
-				</div>
+					<DropdownMenuContent align="start" className="w-52">
+						<DropdownMenuItem onClick={onStash} className="text-xs">
+							<VscGitStash className="size-4" />
+							Stash Changes
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={onStashIncludeUntracked}
+							className="text-xs"
+						>
+							<VscGitStash className="size-4" />
+							Stash (Include Untracked)
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={onStashPop} className="text-xs">
+							<VscGitStashApply className="size-4" />
+							Pop Stash
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+				<ViewModeToggle
+					viewMode={viewMode}
+					onViewModeChange={onViewModeChange}
+				/>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleRefresh}
+							disabled={isManualRefresh}
+							className="size-6 p-0"
+						>
+							<HiArrowPath
+								className={`size-3.5 ${isManualRefresh ? "animate-spin" : ""}`}
+							/>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom" showArrow={false}>
+						Refresh changes
+					</TooltipContent>
+				</Tooltip>
+				{isPRLoading ? (
+					<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground" />
+				) : pr ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<a
+								href={pr.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+							>
+								<PRIcon state={pr.state} className="w-4 h-4" />
+								<span className="text-xs text-muted-foreground font-mono">
+									#{pr.number}
+								</span>
+							</a>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							View PR on GitHub
+						</TooltipContent>
+					</Tooltip>
+				) : null}
 			</div>
 		</div>
 	);
