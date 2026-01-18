@@ -4,40 +4,99 @@
  * Process-scoped registry for workspace runtime providers.
  * The registry is cached for the lifetime of the process.
  *
- * Current behavior:
- * - All workspaces use the LocalWorkspaceRuntime
- * - The runtime is selected once based on settings (requires restart to change)
+ * Supports:
+ * - LocalWorkspaceRuntime for local workspaces
+ * - SSHWorkspaceRuntime for remote SSH workspaces
  *
- * Future behavior (cloud readiness):
- * - Per-workspace selection based on workspace metadata (cloudWorkspaceId, etc.)
- * - Local + cloud workspaces can coexist
+ * Runtime selection is based on workspace metadata (sshConnectionId).
  */
 
+import type { SSHConnectionConfig } from "../ssh/types";
 import { LocalWorkspaceRuntime } from "./local";
+import { SSHWorkspaceRuntime } from "./ssh";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
+
+// =============================================================================
+// Extended Registry Interface
+// =============================================================================
+
+/**
+ * Extended registry interface with SSH support.
+ */
+export interface ExtendedWorkspaceRuntimeRegistry
+	extends WorkspaceRuntimeRegistry {
+	/**
+	 * Get or create an SSH runtime for a connection.
+	 * Reuses existing runtime if already connected to the same host.
+	 */
+	getSSHRuntime(config: SSHConnectionConfig): SSHWorkspaceRuntime;
+
+	/**
+	 * Register a workspace as using SSH.
+	 * Call this when a workspace is associated with an SSH connection.
+	 */
+	registerSSHWorkspace(workspaceId: string, sshConnectionId: string): void;
+
+	/**
+	 * Unregister a workspace from SSH.
+	 */
+	unregisterSSHWorkspace(workspaceId: string): void;
+
+	/**
+	 * Check if a workspace is using SSH.
+	 */
+	isSSHWorkspace(workspaceId: string): boolean;
+
+	/**
+	 * Get all active SSH runtimes.
+	 */
+	getActiveSSHRuntimes(): Map<string, SSHWorkspaceRuntime>;
+
+	/**
+	 * Disconnect and remove an SSH runtime.
+	 */
+	disconnectSSHRuntime(sshConnectionId: string): Promise<void>;
+
+	/**
+	 * Cleanup all runtimes.
+	 */
+	cleanupAll(): Promise<void>;
+}
 
 // =============================================================================
 // Registry Implementation
 // =============================================================================
 
 /**
- * Default registry implementation.
+ * Default registry implementation with SSH support.
  *
- * Currently returns the same LocalWorkspaceRuntime for all workspaces.
- * The interface supports per-workspace selection for future cloud work.
+ * - Local workspaces use LocalWorkspaceRuntime
+ * - SSH workspaces use SSHWorkspaceRuntime based on their sshConnectionId
  */
-class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
+class DefaultWorkspaceRuntimeRegistry
+	implements ExtendedWorkspaceRuntimeRegistry
+{
 	private localRuntime: LocalWorkspaceRuntime | null = null;
+	private sshRuntimes: Map<string, SSHWorkspaceRuntime> = new Map();
+	private workspaceToSSH: Map<string, string> = new Map(); // workspaceId -> sshConnectionId
+	private sshConfigs: Map<string, SSHConnectionConfig> = new Map(); // sshConnectionId -> config
 
 	/**
 	 * Get the runtime for a specific workspace.
 	 *
-	 * Currently always returns the local runtime.
-	 * Future: will check workspace metadata to select local vs cloud.
+	 * Returns SSH runtime if workspace is registered as SSH, otherwise local.
 	 */
-	getForWorkspaceId(_workspaceId: string): WorkspaceRuntime {
-		// Currently all workspaces use the local runtime
-		// Future: check workspace metadata for cloudWorkspaceId to select cloud runtime
+	getForWorkspaceId(workspaceId: string): WorkspaceRuntime {
+		const sshConnectionId = this.workspaceToSSH.get(workspaceId);
+		if (sshConnectionId) {
+			const sshRuntime = this.sshRuntimes.get(sshConnectionId);
+			if (sshRuntime) {
+				return sshRuntime;
+			}
+			console.warn(
+				`[registry] Workspace ${workspaceId} mapped to SSH ${sshConnectionId} but runtime not found, falling back to local`,
+			);
+		}
 		return this.getDefault();
 	}
 
@@ -53,13 +112,159 @@ class DefaultWorkspaceRuntimeRegistry implements WorkspaceRuntimeRegistry {
 		}
 		return this.localRuntime;
 	}
+
+	/**
+	 * Get or create an SSH runtime for a connection configuration.
+	 */
+	getSSHRuntime(config: SSHConnectionConfig): SSHWorkspaceRuntime {
+		let runtime = this.sshRuntimes.get(config.id);
+		if (!runtime) {
+			console.log(
+				`[registry] Creating new SSH runtime for ${config.name} (${config.host})`,
+			);
+			runtime = new SSHWorkspaceRuntime(config);
+			this.sshRuntimes.set(config.id, runtime);
+			this.sshConfigs.set(config.id, config);
+		}
+		return runtime;
+	}
+
+	/**
+	 * Register a workspace as using SSH.
+	 */
+	registerSSHWorkspace(workspaceId: string, sshConnectionId: string): void {
+		console.log(
+			`[registry] Registering workspace ${workspaceId} with SSH connection ${sshConnectionId}`,
+		);
+		this.workspaceToSSH.set(workspaceId, sshConnectionId);
+	}
+
+	/**
+	 * Unregister a workspace from SSH.
+	 */
+	unregisterSSHWorkspace(workspaceId: string): void {
+		this.workspaceToSSH.delete(workspaceId);
+	}
+
+	/**
+	 * Check if a workspace is using SSH.
+	 */
+	isSSHWorkspace(workspaceId: string): boolean {
+		return this.workspaceToSSH.has(workspaceId);
+	}
+
+	/**
+	 * Get all active SSH runtimes.
+	 */
+	getActiveSSHRuntimes(): Map<string, SSHWorkspaceRuntime> {
+		return new Map(this.sshRuntimes);
+	}
+
+	/**
+	 * Disconnect and remove an SSH runtime.
+	 */
+	async disconnectSSHRuntime(sshConnectionId: string): Promise<void> {
+		const runtime = this.sshRuntimes.get(sshConnectionId);
+		if (runtime) {
+			console.log(
+				`[registry] Disconnecting SSH runtime for ${sshConnectionId}`,
+			);
+			let cleanupError: Error | undefined;
+			let disconnectError: Error | undefined;
+			try {
+				await runtime.terminal.cleanup();
+			} catch (error) {
+				cleanupError =
+					error instanceof Error ? error : new Error(String(error));
+				console.error(
+					`[registry] Error cleaning up SSH runtime ${sshConnectionId}:`,
+					cleanupError.message,
+				);
+			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (error) {
+					disconnectError =
+						error instanceof Error ? error : new Error(String(error));
+					console.error(
+						`[registry] Error disconnecting SSH runtime ${sshConnectionId}:`,
+						disconnectError.message,
+					);
+				}
+
+				// Always clean up state even if cleanup/disconnect failed
+				this.sshRuntimes.delete(sshConnectionId);
+				this.sshConfigs.delete(sshConnectionId);
+
+				// Remove all workspace mappings for this SSH connection
+				for (const [workspaceId, connId] of this.workspaceToSSH) {
+					if (connId === sshConnectionId) {
+						this.workspaceToSSH.delete(workspaceId);
+					}
+				}
+			}
+			// Propagate the first error encountered
+			if (cleanupError) {
+				throw cleanupError;
+			}
+			if (disconnectError) {
+				throw disconnectError;
+			}
+		}
+	}
+
+	/**
+	 * Cleanup all runtimes.
+	 */
+	async cleanupAll(): Promise<void> {
+		// Cleanup local runtime
+		if (this.localRuntime) {
+			try {
+				await this.localRuntime.terminal.cleanup();
+			} catch (error) {
+				console.error(
+					`[registry] Error cleaning up local runtime:`,
+					error instanceof Error ? error.message : String(error),
+				);
+			}
+		}
+
+		// Cleanup all SSH runtimes (continue even if individual cleanups fail)
+		for (const [id, runtime] of this.sshRuntimes) {
+			console.log(`[registry] Cleaning up SSH runtime ${id}`);
+			try {
+				await runtime.terminal.cleanup();
+			} catch (error) {
+				console.error(
+					`[registry] Error cleaning up SSH runtime ${id}:`,
+					error instanceof Error ? error.message : String(error),
+				);
+			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (disconnectError) {
+					console.error(
+						`[registry] Error disconnecting SSH runtime ${id}:`,
+						disconnectError instanceof Error
+							? disconnectError.message
+							: String(disconnectError),
+					);
+				}
+			}
+		}
+		this.sshRuntimes.clear();
+		this.sshConfigs.clear();
+		this.workspaceToSSH.clear();
+	}
 }
 
 // =============================================================================
 // Singleton Instance
 // =============================================================================
 
-let registryInstance: WorkspaceRuntimeRegistry | null = null;
+let registryInstance: ExtendedWorkspaceRuntimeRegistry | null = null;
 
 /**
  * Get the workspace runtime registry.
@@ -70,9 +275,9 @@ let registryInstance: WorkspaceRuntimeRegistry | null = null;
  * This design allows:
  * 1. Stable runtime instances (no re-creation on each call)
  * 2. Consistent event wiring (same backend for all listeners)
- * 3. Future per-workspace selection (local vs cloud)
+ * 3. Per-workspace selection (local vs SSH)
  */
-export function getWorkspaceRuntimeRegistry(): WorkspaceRuntimeRegistry {
+export function getWorkspaceRuntimeRegistry(): ExtendedWorkspaceRuntimeRegistry {
 	if (!registryInstance) {
 		registryInstance = new DefaultWorkspaceRuntimeRegistry();
 	}

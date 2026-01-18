@@ -1,0 +1,461 @@
+/**
+ * SSH Client
+ *
+ * Manages SSH connections to remote servers using ssh2 library.
+ * Handles connection lifecycle, authentication, and reconnection.
+ */
+
+import { EventEmitter } from "node:events";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { Client, type ClientChannel, type ConnectConfig } from "ssh2";
+import type {
+	SSHConnectionConfig,
+	SSHConnectionState,
+	SSHConnectionStatus,
+} from "./types";
+
+const DEFAULT_PORT = 22;
+const DEFAULT_KEEPALIVE_INTERVAL = 60;
+const DEFAULT_CONNECTION_TIMEOUT = 30000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const BASE_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+
+/**
+ * Escape a string for safe use in a shell command.
+ * Uses single quotes which prevent all shell expansions.
+ * Single quotes within the string are escaped using the pattern: 'text'"'"'more'
+ */
+function shellEscape(str: string): string {
+	// Wrap in single quotes and escape any single quotes within
+	return `'${str.replace(/'/g, "'\"'\"'")}'`;
+}
+
+/**
+ * Validate that a path is safe for use as a remote cwd.
+ * Must be an absolute POSIX path with no dangerous patterns.
+ */
+function isValidRemotePath(remotePath: string): boolean {
+	// Must start with /
+	if (!remotePath.startsWith("/")) {
+		return false;
+	}
+	// Disallow null bytes
+	if (remotePath.includes("\0")) {
+		return false;
+	}
+	// Disallow .. path traversal
+	if (remotePath.includes("..")) {
+		return false;
+	}
+	return true;
+}
+
+export class SSHClient extends EventEmitter {
+	private client: Client;
+	private config: SSHConnectionConfig;
+	private state: SSHConnectionState = "disconnected";
+	private reconnectAttempts = 0;
+	private reconnectTimer: NodeJS.Timeout | null = null;
+	private channels: Map<string, ClientChannel> = new Map();
+	// Tracks whether we're in an initial connection attempt (vs reconnecting after established connection)
+	// This prevents double handling: the persistent error handler should not call attemptReconnect()
+	// during initial connection because connect() handles errors via promise rejection.
+	private isInitialConnect = false;
+
+	constructor(config: SSHConnectionConfig) {
+		super();
+		this.config = config;
+		this.client = new Client();
+		this.setupClientHandlers();
+	}
+
+	/** Sets up persistent event handlers for SSH client connection lifecycle */
+	private setupClientHandlers(): void {
+		this.client.on("ready", () => {
+			console.log(`[ssh/client] Connected to ${this.config.host}`);
+			this.state = "connected";
+			this.reconnectAttempts = 0;
+			this.isInitialConnect = false; // Mark initial connection complete
+			this.emitStatus();
+		});
+
+		this.client.on("error", (err) => {
+			console.error(`[ssh/client] Connection error:`, err.message);
+			this.state = "error";
+			this.emitStatus(err.message);
+			// Only attempt reconnect if this is not an initial connection attempt.
+			// During initial connect, the connect() method handles errors via promise rejection.
+			if (!this.isInitialConnect) {
+				this.attemptReconnect();
+			}
+		});
+
+		this.client.on("close", () => {
+			console.log(`[ssh/client] Connection closed`);
+			const wasConnected = this.state === "connected";
+			this.state = "disconnected";
+			this.emitStatus();
+
+			// Clean up all channels
+			for (const [paneId, channel] of this.channels) {
+				channel.destroy();
+				this.emit(`exit:${paneId}`, 1, undefined);
+			}
+			this.channels.clear();
+
+			// Attempt reconnect if was previously connected
+			if (wasConnected) {
+				this.attemptReconnect();
+			}
+		});
+
+		this.client.on("end", () => {
+			console.log(`[ssh/client] Connection ended`);
+			this.state = "disconnected";
+			this.emitStatus();
+		});
+
+		this.client.on("keyboard-interactive", (_name, _instructions, _lang, prompts, finish) => {
+			// For keyboard-interactive auth, we don't support password prompts here
+			// This would require UI integration
+			console.warn(
+				"[ssh/client] Keyboard-interactive auth requested but not supported",
+			);
+			finish([]);
+		});
+	}
+
+	/** Emits connection status to listeners */
+	private emitStatus(error?: string): void {
+		const status: SSHConnectionStatus = {
+			state: this.state,
+			error,
+			reconnectAttempt:
+				this.state === "reconnecting" ? this.reconnectAttempts : undefined,
+		};
+		this.emit("connectionStatus", status);
+	}
+
+	/** Attempts to reconnect with exponential backoff after connection loss */
+	private attemptReconnect(): void {
+		if (this.reconnectTimer) {
+			return;
+		}
+
+		if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+			console.log(`[ssh/client] Max reconnect attempts reached`);
+			this.state = "error";
+			this.emitStatus("Max reconnect attempts reached");
+			return;
+		}
+
+		this.state = "reconnecting";
+		this.reconnectAttempts++;
+		this.emitStatus();
+
+		// Exponential backoff: delay = base * 2^(attempt-1), capped at max
+		const delay = Math.min(
+			BASE_RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1),
+			MAX_RECONNECT_DELAY_MS,
+		);
+
+		console.log(
+			`[ssh/client] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`,
+		);
+
+		this.reconnectTimer = setTimeout(() => {
+			this.reconnectTimer = null;
+			this.connect().catch((err) => {
+				console.error(`[ssh/client] Reconnect failed:`, err.message);
+			});
+		}, delay);
+	}
+
+	/** Establishes SSH connection to the remote server */
+	async connect(): Promise<void> {
+		if (this.state === "connected" || this.state === "connecting") {
+			console.log(`[ssh/client] Already ${this.state}, skipping connect`);
+			return;
+		}
+
+		console.log(`[ssh/client] Connecting to ${this.config.host}:${this.config.port} as ${this.config.username}`);
+		this.state = "connecting";
+		// Mark as initial connect to prevent persistent error handler from triggering reconnect
+		this.isInitialConnect = true;
+		this.emitStatus();
+
+		let connectConfig: ConnectConfig;
+		try {
+			connectConfig = await this.buildConnectConfig();
+			console.log(`[ssh/client] Auth method: ${this.config.authMethod}`);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			console.error(`[ssh/client] Failed to build connect config: ${message}`);
+			this.state = "error";
+			this.isInitialConnect = false; // Clear flag on config build failure
+			this.emitStatus(message);
+			throw err;
+		}
+
+		return new Promise((resolve, reject) => {
+			const timeout = setTimeout(() => {
+				console.error(`[ssh/client] Connection timeout after ${this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT}ms`);
+				this.isInitialConnect = false; // Clear flag on timeout
+				this.client.end();
+				reject(new Error("Connection timeout"));
+			}, this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT);
+
+			this.client.once("ready", () => {
+				clearTimeout(timeout);
+				console.log(`[ssh/client] Connection ready`);
+				// Note: isInitialConnect is cleared in the persistent ready handler
+				resolve();
+			});
+
+			this.client.once("error", (err) => {
+				clearTimeout(timeout);
+				console.error(`[ssh/client] Connection error: ${err.message}`);
+				this.isInitialConnect = false; // Clear flag on error
+				reject(err);
+			});
+
+			this.client.connect(connectConfig);
+		});
+	}
+
+	/** Builds SSH connection config based on authentication method */
+	private async buildConnectConfig(): Promise<ConnectConfig> {
+		const config: ConnectConfig = {
+			host: this.config.host,
+			port: this.config.port ?? DEFAULT_PORT,
+			username: this.config.username,
+			keepaliveInterval:
+				(this.config.keepAliveInterval ?? DEFAULT_KEEPALIVE_INTERVAL) * 1000,
+			keepaliveCountMax: 3,
+			readyTimeout: this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT,
+			agentForward: this.config.agentForward,
+		};
+
+		switch (this.config.authMethod) {
+			case "key": {
+				let keyPath = this.config.privateKeyPath;
+
+				// If no key path specified, try common default locations
+				if (!keyPath) {
+					const sshDir = path.join(os.homedir(), ".ssh");
+					// Try id_ed25519 first (more common now), then id_rsa
+					const defaultKeys = ["id_ed25519", "id_rsa", "id_ecdsa"];
+					for (const keyName of defaultKeys) {
+						const candidatePath = path.join(sshDir, keyName);
+						if (fs.existsSync(candidatePath)) {
+							keyPath = candidatePath;
+							break;
+						}
+					}
+					if (!keyPath) {
+						keyPath = path.join(sshDir, "id_rsa"); // Fallback for error message
+					}
+				}
+
+				// Expand ~ to home directory (handles Unix-style paths in config files)
+				// and normalize to ensure consistent path separators on Windows
+				if (keyPath.startsWith("~")) {
+					keyPath = path.normalize(
+						keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep)
+					);
+				}
+				console.log(`[ssh/client] Reading private key from: ${keyPath}`);
+				try {
+					config.privateKey = fs.readFileSync(keyPath);
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new Error(`Failed to read private key at ${keyPath}: ${message}`);
+				}
+				break;
+			}
+			case "agent": {
+				// Use SSH agent - platform-specific handling
+				if (process.platform === "win32") {
+					// Windows: OpenSSH agent uses a named pipe
+					const opensshPipe = "\\\\.\\pipe\\openssh-ssh-agent";
+					// Verify the agent is running by checking if the pipe exists
+					try {
+						fs.accessSync(opensshPipe, fs.constants.R_OK);
+						config.agent = opensshPipe;
+						console.log(`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`);
+					} catch {
+						throw new Error(
+							"Windows OpenSSH Agent not available. Ensure the ssh-agent service is running: " +
+							"Start-Service ssh-agent (PowerShell as Admin)"
+						);
+					}
+				} else {
+					// Unix/macOS: Use SSH_AUTH_SOCK environment variable
+					config.agent = process.env.SSH_AUTH_SOCK;
+					if (!config.agent) {
+						throw new Error("SSH agent not available (SSH_AUTH_SOCK not set)");
+					}
+				}
+				break;
+			}
+			case "password": {
+				// Password would need to be passed securely
+				// For now, we rely on key or agent auth
+				throw new Error(
+					"Password authentication not implemented - use key or agent auth",
+				);
+			}
+		}
+
+		return config;
+	}
+
+	/** Disconnects from the SSH server and prevents automatic reconnection */
+	disconnect(): void {
+		if (this.reconnectTimer) {
+			clearTimeout(this.reconnectTimer);
+			this.reconnectTimer = null;
+		}
+		this.reconnectAttempts = MAX_RECONNECT_ATTEMPTS; // Prevent reconnect
+		this.client.end();
+	}
+
+	/** Returns true if currently connected to the SSH server */
+	isConnected(): boolean {
+		return this.state === "connected";
+	}
+
+	/** Returns the current connection state */
+	getState(): SSHConnectionState {
+		return this.state;
+	}
+
+	/**
+	 * Create a PTY channel for a terminal session
+	 */
+	async createPtyChannel({
+		paneId,
+		cols,
+		rows,
+		cwd,
+	}: {
+		paneId: string;
+		cols: number;
+		rows: number;
+		cwd?: string;
+	}): Promise<ClientChannel> {
+		if (!this.isConnected()) {
+			throw new Error("SSH client not connected");
+		}
+
+		return new Promise((resolve, reject) => {
+			const ptyOptions = {
+				term: process.env.TERM || "xterm-256color",
+				cols,
+				rows,
+				modes: {},
+			};
+
+			this.client.shell(ptyOptions, (err, channel) => {
+				if (err) {
+					reject(err);
+					return;
+				}
+
+				this.channels.set(paneId, channel);
+
+				// Set up channel event handlers
+				channel.on("data", (data: Buffer) => {
+					this.emit(`data:${paneId}`, data.toString());
+				});
+
+				channel.stderr.on("data", (data: Buffer) => {
+					this.emit(`data:${paneId}`, data.toString());
+				});
+
+				channel.on("close", () => {
+					this.channels.delete(paneId);
+					this.emit(`exit:${paneId}`, 0, undefined);
+				});
+
+				channel.on("error", (err: Error) => {
+					console.error(`[ssh/client] Channel error for ${paneId}:`, err.message);
+					this.emit(`error:${paneId}`, err.message);
+				});
+
+				// Change directory if specified (with validation and proper escaping)
+				if (cwd && isValidRemotePath(cwd)) {
+					channel.write(`cd ${shellEscape(cwd)} && clear\n`);
+				} else if (cwd) {
+					console.warn(`[ssh/client] Invalid remote path for cwd, ignoring: ${cwd}`);
+				}
+
+				resolve(channel);
+			});
+		});
+	}
+
+	/**
+	 * Write data to a PTY channel
+	 */
+	write(paneId: string, data: string): void {
+		const channel = this.channels.get(paneId);
+		if (channel) {
+			channel.write(data);
+		} else {
+			console.warn(`[ssh/client] Cannot write to ${paneId}: channel not found`);
+		}
+	}
+
+	/**
+	 * Resize a PTY channel
+	 */
+	resize(paneId: string, cols: number, rows: number): void {
+		const channel = this.channels.get(paneId);
+		if (channel) {
+			channel.setWindow(rows, cols, 0, 0);
+		} else {
+			console.warn(`[ssh/client] Cannot resize ${paneId} to ${cols}x${rows}: channel not found`);
+		}
+	}
+
+	/**
+	 * Send a signal to a PTY channel
+	 */
+	signal(paneId: string, signalName: string): void {
+		const channel = this.channels.get(paneId);
+		if (channel) {
+			channel.signal(signalName);
+		} else {
+			console.warn(`[ssh/client] Cannot send signal ${signalName} to ${paneId}: channel not found`);
+		}
+	}
+
+	/**
+	 * Kill/close a PTY channel
+	 */
+	killChannel(paneId: string): void {
+		const channel = this.channels.get(paneId);
+		if (channel) {
+			channel.close();
+			this.channels.delete(paneId);
+		}
+	}
+
+	/**
+	 * Check if a channel exists and is alive
+	 */
+	hasChannel(paneId: string): boolean {
+		return this.channels.has(paneId);
+	}
+
+	/**
+	 * Get all active channel pane IDs
+	 */
+	getChannelIds(): string[] {
+		return Array.from(this.channels.keys());
+	}
+}
