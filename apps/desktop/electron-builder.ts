@@ -92,6 +92,12 @@ const config: Configuration = {
 			to: "node_modules/node-pty",
 			filter: ["**/*"],
 		},
+		// friendly-words is a CommonJS module that Vite doesn't bundle
+		{
+			from: "node_modules/friendly-words",
+			to: "node_modules/friendly-words",
+			filter: ["**/*"],
+		},
 		"!**/.DS_Store",
 	],
 
