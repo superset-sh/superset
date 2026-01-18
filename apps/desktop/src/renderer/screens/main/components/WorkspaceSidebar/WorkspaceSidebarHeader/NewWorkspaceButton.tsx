@@ -1,6 +1,7 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useMatchRoute } from "@tanstack/react-router";
 import { LuPlus } from "react-icons/lu";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { STROKE_WIDTH_THICK } from "../constants";
@@ -50,21 +51,33 @@ export function NewWorkspaceButton({
 						</div>
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="right">New Workspace</TooltipContent>
+				<TooltipContent side="right">
+					<HotkeyTooltipContent
+						label="New Workspace"
+						hotkeyId="NEW_WORKSPACE"
+					/>
+				</TooltipContent>
 			</Tooltip>
 		);
 	}
 
 	return (
-		<button
-			type="button"
-			onClick={handleClick}
-			className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
-		>
-			<div className="flex items-center justify-center size-5 rounded bg-accent">
-				<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
-			</div>
-			<span>New Workspace</span>
-		</button>
+		<Tooltip delayDuration={300}>
+			<TooltipTrigger asChild>
+				<button
+					type="button"
+					onClick={handleClick}
+					className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
+				>
+					<div className="flex items-center justify-center size-5 rounded bg-accent">
+						<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
+					</div>
+					<span>New Workspace</span>
+				</button>
+			</TooltipTrigger>
+			<TooltipContent side="right">
+				<HotkeyTooltipContent label="New Workspace" hotkeyId="NEW_WORKSPACE" />
+			</TooltipContent>
+		</Tooltip>
 	);
 }
