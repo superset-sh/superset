@@ -34,7 +34,6 @@ export function CategorySection({
 			onOpenChange={onToggle}
 			className="min-w-0 overflow-hidden"
 		>
-			{/* Section header */}
 			<div className="group flex items-center min-w-0">
 				<CollapsibleTrigger
 					className={cn(
@@ -56,7 +55,6 @@ export function CategorySection({
 				{actions && <div className="pr-1.5 shrink-0">{actions}</div>}
 			</div>
 
-			{/* Section content */}
 			<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
 				{children}
 			</CollapsibleContent>

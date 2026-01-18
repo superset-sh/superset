@@ -385,7 +385,6 @@ export function ChangesView({
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto">
-					{/* Against base branch */}
 					<CategorySection
 						title={`Against ${effectiveBaseBranch}`}
 						count={status.againstBase.length}
@@ -405,7 +404,6 @@ export function ChangesView({
 						/>
 					</CategorySection>
 
-					{/* Commits */}
 					<CategorySection
 						title="Commits"
 						count={status.commits.length}
@@ -428,7 +426,6 @@ export function ChangesView({
 						))}
 					</CategorySection>
 
-					{/* Staged */}
 					<CategorySection
 						title="Staged"
 						count={status.staged.length}
@@ -493,7 +490,6 @@ export function ChangesView({
 						/>
 					</CategorySection>
 
-					{/* Unstaged */}
 					<CategorySection
 						title="Unstaged"
 						count={unstagedFiles.length}
@@ -565,7 +561,6 @@ export function ChangesView({
 				</div>
 			)}
 
-			{/* Discard Unstaged Confirmation Dialog */}
 			<AlertDialog
 				open={showDiscardUnstagedDialog}
 				onOpenChange={setShowDiscardUnstagedDialog}
@@ -606,7 +601,6 @@ export function ChangesView({
 				</AlertDialogContent>
 			</AlertDialog>
 
-			{/* Discard Staged Confirmation Dialog */}
 			<AlertDialog
 				open={showDiscardStagedDialog}
 				onOpenChange={setShowDiscardStagedDialog}
