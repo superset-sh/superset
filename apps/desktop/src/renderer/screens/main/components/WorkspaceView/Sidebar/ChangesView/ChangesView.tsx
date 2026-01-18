@@ -1,9 +1,18 @@
+import {
+	AlertDialog,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
+import { LuUndo2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -127,6 +136,68 @@ export function ChangesView({
 				toast.error(`Failed to delete file: ${error.message}`);
 			},
 		});
+
+	const discardAllUnstagedMutation =
+		electronTrpc.changes.discardAllUnstaged.useMutation({
+			onSuccess: () => {
+				toast.success("Discarded all unstaged changes");
+				refetch();
+			},
+			onError: (error) => {
+				console.error("Failed to discard all unstaged:", error);
+				toast.error(`Failed to discard: ${error.message}`);
+			},
+		});
+
+	const discardAllStagedMutation =
+		electronTrpc.changes.discardAllStaged.useMutation({
+			onSuccess: () => {
+				toast.success("Discarded all staged changes");
+				refetch();
+			},
+			onError: (error) => {
+				console.error("Failed to discard all staged:", error);
+				toast.error(`Failed to discard: ${error.message}`);
+			},
+		});
+
+	const stashMutation = electronTrpc.changes.stash.useMutation({
+		onSuccess: () => {
+			toast.success("Changes stashed");
+			refetch();
+		},
+		onError: (error) => {
+			console.error("Failed to stash:", error);
+			toast.error(`Failed to stash: ${error.message}`);
+		},
+	});
+
+	const stashIncludeUntrackedMutation =
+		electronTrpc.changes.stashIncludeUntracked.useMutation({
+			onSuccess: () => {
+				toast.success("All changes stashed (including untracked)");
+				refetch();
+			},
+			onError: (error) => {
+				console.error("Failed to stash:", error);
+				toast.error(`Failed to stash: ${error.message}`);
+			},
+		});
+
+	const stashPopMutation = electronTrpc.changes.stashPop.useMutation({
+		onSuccess: () => {
+			toast.success("Stash applied and removed");
+			refetch();
+		},
+		onError: (error) => {
+			console.error("Failed to pop stash:", error);
+			toast.error(`Failed to pop stash: ${error.message}`);
+		},
+	});
+
+	const [showDiscardUnstagedDialog, setShowDiscardUnstagedDialog] =
+		useState(false);
+	const [showDiscardStagedDialog, setShowDiscardStagedDialog] = useState(false);
 
 	const handleDiscard = (file: ChangedFile) => {
 		if (!worktreePath) return;
@@ -285,6 +356,16 @@ export function ChangesView({
 				onViewModeChange={setFileListViewMode}
 				worktreePath={worktreePath}
 				workspaceId={workspaceId}
+				onStash={() => stashMutation.mutate({ worktreePath })}
+				onStashIncludeUntracked={() =>
+					stashIncludeUntrackedMutation.mutate({ worktreePath })
+				}
+				onStashPop={() => stashPopMutation.mutate({ worktreePath })}
+				isStashPending={
+					stashMutation.isPending ||
+					stashIncludeUntrackedMutation.isPending ||
+					stashPopMutation.isPending
+				}
 			/>
 
 			<CommitInput
@@ -304,7 +385,6 @@ export function ChangesView({
 				</div>
 			) : (
 				<div className="flex-1 overflow-y-auto">
-					{/* Against base branch */}
 					<CategorySection
 						title={`Against ${effectiveBaseBranch}`}
 						count={status.againstBase.length}
@@ -324,7 +404,6 @@ export function ChangesView({
 						/>
 					</CategorySection>
 
-					{/* Commits */}
 					<CategorySection
 						title="Commits"
 						count={status.commits.length}
@@ -347,31 +426,48 @@ export function ChangesView({
 						))}
 					</CategorySection>
 
-					{/* Staged */}
 					<CategorySection
 						title="Staged"
 						count={status.staged.length}
 						isExpanded={expandedSections.staged}
 						onToggle={() => toggleSection("staged")}
 						actions={
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-6 w-6"
-										onClick={() =>
-											unstageAllMutation.mutate({
-												worktreePath: worktreePath || "",
-											})
-										}
-										disabled={unstageAllMutation.isPending}
-									>
-										<HiMiniMinus className="w-4 h-4" />
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom">Unstage all</TooltipContent>
-							</Tooltip>
+							<div className="flex items-center gap-0.5">
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+											onClick={() => setShowDiscardStagedDialog(true)}
+											disabled={discardAllStagedMutation.isPending}
+										>
+											<LuUndo2 className="w-3.5 h-3.5" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="bottom">
+										Discard all staged
+									</TooltipContent>
+								</Tooltip>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6"
+											onClick={() =>
+												unstageAllMutation.mutate({
+													worktreePath: worktreePath || "",
+												})
+											}
+											disabled={unstageAllMutation.isPending}
+										>
+											<HiMiniMinus className="w-4 h-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="bottom">Unstage all</TooltipContent>
+								</Tooltip>
+							</div>
 						}
 					>
 						<FileList
@@ -394,31 +490,48 @@ export function ChangesView({
 						/>
 					</CategorySection>
 
-					{/* Unstaged */}
 					<CategorySection
 						title="Unstaged"
 						count={unstagedFiles.length}
 						isExpanded={expandedSections.unstaged}
 						onToggle={() => toggleSection("unstaged")}
 						actions={
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="h-6 w-6"
-										onClick={() =>
-											stageAllMutation.mutate({
-												worktreePath: worktreePath || "",
-											})
-										}
-										disabled={stageAllMutation.isPending}
-									>
-										<HiMiniPlus className="w-4 h-4" />
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom">Stage all</TooltipContent>
-							</Tooltip>
+							<div className="flex items-center gap-0.5">
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+											onClick={() => setShowDiscardUnstagedDialog(true)}
+											disabled={discardAllUnstagedMutation.isPending}
+										>
+											<LuUndo2 className="w-3.5 h-3.5" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="bottom">
+										Discard all unstaged
+									</TooltipContent>
+								</Tooltip>
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Button
+											variant="ghost"
+											size="icon"
+											className="h-6 w-6"
+											onClick={() =>
+												stageAllMutation.mutate({
+													worktreePath: worktreePath || "",
+												})
+											}
+											disabled={stageAllMutation.isPending}
+										>
+											<HiMiniPlus className="w-4 h-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="bottom">Stage all</TooltipContent>
+								</Tooltip>
+							</div>
 						}
 					>
 						<FileList
@@ -447,6 +560,86 @@ export function ChangesView({
 					</CategorySection>
 				</div>
 			)}
+
+			<AlertDialog
+				open={showDiscardUnstagedDialog}
+				onOpenChange={setShowDiscardUnstagedDialog}
+			>
+				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Discard all unstaged changes?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will revert all unstaged modifications. Untracked files will
+							not be affected. This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => setShowDiscardUnstagedDialog(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDiscardUnstagedDialog(false);
+								discardAllUnstagedMutation.mutate({
+									worktreePath: worktreePath || "",
+								});
+							}}
+						>
+							Discard All
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog
+				open={showDiscardStagedDialog}
+				onOpenChange={setShowDiscardStagedDialog}
+			>
+				<AlertDialogContent className="max-w-[340px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Discard all staged changes?
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							This will unstage and revert all staged changes. Untracked files
+							will not be affected. This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => setShowDiscardStagedDialog(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="destructive"
+							size="sm"
+							className="h-7 px-3 text-xs"
+							onClick={() => {
+								setShowDiscardStagedDialog(false);
+								discardAllStagedMutation.mutate({
+									worktreePath: worktreePath || "",
+								});
+							}}
+						>
+							Discard All
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }
