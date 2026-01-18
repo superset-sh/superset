@@ -1,3 +1,4 @@
+import process from "node:process";
 import { workspaces } from "@superset/local-db";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
@@ -42,6 +43,23 @@ export const createPortsRouter = () => {
 				};
 			});
 		}),
+
+		kill: publicProcedure
+			.input(z.object({ pid: z.number() }))
+			.mutation(({ input }): { success: boolean; error?: string } => {
+				try {
+					process.kill(input.pid, "SIGTERM");
+					return { success: true };
+				} catch (error) {
+					const message =
+						error instanceof Error ? error.message : "Unknown error";
+					console.error(
+						`[ports/kill] Failed to kill process ${input.pid}:`,
+						message,
+					);
+					return { success: false, error: message };
+				}
+			}),
 
 		hasStaticConfig: publicProcedure
 			.input(z.object({ workspaceId: z.string() }))
