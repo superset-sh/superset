@@ -9,20 +9,20 @@
 import {
 	remoteProjects,
 	remoteWorkspaces,
-	sshConnections,
 	SSH_AUTH_METHODS,
+	sshConnections,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
-import { eq, desc } from "drizzle-orm";
+import { observable } from "@trpc/server/observable";
+import { desc, eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import {
-	getWorkspaceRuntimeRegistry,
-	type ExtendedWorkspaceRuntimeRegistry,
-} from "main/lib/workspace-runtime/registry";
 import { getSSHConfigHosts, hasSSHConfig } from "main/lib/ssh";
+import {
+	type ExtendedWorkspaceRuntimeRegistry,
+	getWorkspaceRuntimeRegistry,
+} from "main/lib/workspace-runtime/registry";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { observable } from "@trpc/server/observable";
 
 // Get the registry with SSH support
 function getRegistry(): ExtendedWorkspaceRuntimeRegistry {
@@ -94,7 +94,9 @@ export const createSSHRouter = () => {
 					.returning()
 					.get();
 
-				console.log(`[ssh/router] Created SSH connection: ${connection.name} (${connection.host})`);
+				console.log(
+					`[ssh/router] Created SSH connection: ${connection.name} (${connection.host})`,
+				);
 				return connection;
 			}),
 
@@ -210,7 +212,8 @@ export const createSSHRouter = () => {
 
 					return { success: true, message: "Connection successful" };
 				} catch (error) {
-					const message = error instanceof Error ? error.message : "Unknown error";
+					const message =
+						error instanceof Error ? error.message : "Unknown error";
 					return { success: false, message };
 				}
 			}),
@@ -221,7 +224,9 @@ export const createSSHRouter = () => {
 		connect: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.mutation(async ({ input }) => {
-				console.log(`[ssh/router] Connect requested for connection: ${input.id}`);
+				console.log(
+					`[ssh/router] Connect requested for connection: ${input.id}`,
+				);
 
 				const connection = localDb
 					.select()
@@ -236,7 +241,9 @@ export const createSSHRouter = () => {
 					});
 				}
 
-				console.log(`[ssh/router] Found connection: ${connection.name} (${connection.username}@${connection.host})`);
+				console.log(
+					`[ssh/router] Found connection: ${connection.name} (${connection.username}@${connection.host})`,
+				);
 
 				const registry = getRegistry();
 				const runtime = registry.getSSHRuntime({
@@ -258,7 +265,8 @@ export const createSSHRouter = () => {
 					await runtime.connect();
 					console.log(`[ssh/router] Connected to ${connection.name}`);
 				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error);
+					const message =
+						error instanceof Error ? error.message : String(error);
 					console.error(`[ssh/router] Connection failed: ${message}`);
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
@@ -304,7 +312,9 @@ export const createSSHRouter = () => {
 
 				return {
 					connected: runtime.isConnected(),
-					state: runtime.isConnected() ? "connected" as const : "disconnected" as const,
+					state: runtime.isConnected()
+						? ("connected" as const)
+						: ("disconnected" as const),
 				};
 			}),
 
@@ -403,7 +413,9 @@ export const createSSHRouter = () => {
 					.returning()
 					.get();
 
-				console.log(`[ssh/router] Created remote project: ${project.name} at ${project.remotePath}`);
+				console.log(
+					`[ssh/router] Created remote project: ${project.name} at ${project.remotePath}`,
+				);
 				return project;
 			}),
 
@@ -578,7 +590,8 @@ export const createSSHRouter = () => {
 					try {
 						await runtime.connect();
 					} catch (error) {
-						const message = error instanceof Error ? error.message : String(error);
+						const message =
+							error instanceof Error ? error.message : String(error);
 						throw new TRPCError({
 							code: "INTERNAL_SERVER_ERROR",
 							message: `Failed to connect to SSH: ${message}`,
@@ -606,7 +619,9 @@ export const createSSHRouter = () => {
 						})
 						.returning()
 						.get();
-					console.log(`[ssh/router] Created default workspace for project: ${project.name}`);
+					console.log(
+						`[ssh/router] Created default workspace for project: ${project.name}`,
+					);
 				}
 
 				// Register workspace with SSH runtime
@@ -625,7 +640,9 @@ export const createSSHRouter = () => {
 					.where(eq(remoteWorkspaces.id, workspace.id))
 					.run();
 
-				console.log(`[ssh/router] Opened remote project: ${project.name}, workspace: ${workspace.id}`);
+				console.log(
+					`[ssh/router] Opened remote project: ${project.name}, workspace: ${workspace.id}`,
+				);
 				return { project, workspace };
 			}),
 
@@ -666,15 +683,18 @@ export const createSSHRouter = () => {
 		 */
 		importFromSSHConfig: publicProcedure
 			.input(
-				z.object({
-					/** Specific host names to import, or empty to import all */
-					hostNames: z.array(z.string()).optional(),
-					/** Skip hosts that already exist (by name) */
-					skipExisting: z.boolean().default(true),
-				}).optional(),
+				z
+					.object({
+						/** Specific host names to import, or empty to import all */
+						hostNames: z.array(z.string()).optional(),
+						/** Skip hosts that already exist (by name) */
+						skipExisting: z.boolean().default(true),
+					})
+					.optional(),
 			)
 			.mutation(({ input }) => {
-				const options = input ?? {};
+				const hostNames = input?.hostNames;
+				const skipExisting = input?.skipExisting ?? true;
 				const configHosts = getSSHConfigHosts();
 
 				// Get existing connection names for deduplication
@@ -689,14 +709,16 @@ export const createSSHRouter = () => {
 				// Filter hosts to import
 				let hostsToImport = configHosts;
 
-				if (options.hostNames && options.hostNames.length > 0) {
-					const namesSet = new Set(options.hostNames.map((n) => n.toLowerCase()));
+				if (hostNames && hostNames.length > 0) {
+					const namesSet = new Set(
+						hostNames.map((n: string) => n.toLowerCase()),
+					);
 					hostsToImport = hostsToImport.filter((h) =>
 						namesSet.has(h.name.toLowerCase()),
 					);
 				}
 
-				if (options.skipExisting) {
+				if (skipExisting) {
 					hostsToImport = hostsToImport.filter(
 						(h) => !existingNames.has(h.name.toLowerCase()),
 					);
