@@ -1,5 +1,12 @@
 import { Button } from "@superset/ui/button";
 import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
+import {
 	Select,
 	SelectContent,
 	SelectItem,
@@ -9,7 +16,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
-import { LuLoaderCircle } from "react-icons/lu";
+import { LuArchive, LuArchiveRestore, LuLoaderCircle } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
@@ -23,6 +30,10 @@ interface ChangesHeaderProps {
 	onViewModeChange: (mode: ChangesViewMode) => void;
 	worktreePath: string;
 	workspaceId?: string;
+	onStash?: () => void;
+	onStashIncludeUntracked?: () => void;
+	onStashPop?: () => void;
+	isStashPending?: boolean;
 }
 
 export function ChangesHeader({
@@ -31,6 +42,10 @@ export function ChangesHeader({
 	onViewModeChange,
 	worktreePath,
 	workspaceId,
+	onStash,
+	onStashIncludeUntracked,
+	onStashPop,
+	isStashPending,
 }: ChangesHeaderProps) {
 	const [isManualRefresh, setIsManualRefresh] = useState(false);
 	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -134,6 +149,45 @@ export function ChangesHeader({
 					viewMode={viewMode}
 					onViewModeChange={onViewModeChange}
 				/>
+				{onStash && onStashIncludeUntracked && onStashPop && (
+					<DropdownMenu>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-6 p-0"
+										disabled={isStashPending}
+									>
+										<LuArchive className="size-3.5" />
+									</Button>
+								</DropdownMenuTrigger>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Stash operations
+							</TooltipContent>
+						</Tooltip>
+						<DropdownMenuContent align="end" className="w-52">
+							<DropdownMenuItem onClick={onStash} className="text-xs">
+								<LuArchive className="size-3.5" />
+								Stash Changes
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={onStashIncludeUntracked}
+								className="text-xs"
+							>
+								<LuArchive className="size-3.5" />
+								Stash (Include Untracked)
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={onStashPop} className="text-xs">
+								<LuArchiveRestore className="size-3.5" />
+								Pop Stash
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button

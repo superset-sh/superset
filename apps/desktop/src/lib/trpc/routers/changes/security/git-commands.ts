@@ -135,3 +135,71 @@ export async function gitUnstageAll(worktreePath: string): Promise<void> {
 	const git = simpleGit(worktreePath);
 	await git.reset(["HEAD"]);
 }
+
+/**
+ * Discard all unstaged changes (modified and deleted files).
+ *
+ * Uses `git checkout -- .` to restore all tracked files to HEAD state.
+ * Does NOT affect untracked files.
+ */
+export async function gitDiscardAllUnstaged(
+	worktreePath: string,
+): Promise<void> {
+	assertRegisteredWorktree(worktreePath);
+
+	const git = simpleGit(worktreePath);
+	await git.checkout(["--", "."]);
+}
+
+/**
+ * Discard all staged changes by unstaging then discarding.
+ *
+ * Uses `git reset HEAD` followed by `git checkout -- .`.
+ * Does NOT affect untracked files.
+ */
+export async function gitDiscardAllStaged(worktreePath: string): Promise<void> {
+	assertRegisteredWorktree(worktreePath);
+
+	const git = simpleGit(worktreePath);
+	await git.reset(["HEAD"]);
+	await git.checkout(["--", "."]);
+}
+
+/**
+ * Stash all tracked changes.
+ *
+ * Uses `git stash push` to save current work-in-progress.
+ */
+export async function gitStash(worktreePath: string): Promise<void> {
+	assertRegisteredWorktree(worktreePath);
+
+	const git = simpleGit(worktreePath);
+	await git.stash(["push"]);
+}
+
+/**
+ * Stash all changes including untracked files.
+ *
+ * Uses `git stash push --include-untracked`.
+ */
+export async function gitStashIncludeUntracked(
+	worktreePath: string,
+): Promise<void> {
+	assertRegisteredWorktree(worktreePath);
+
+	const git = simpleGit(worktreePath);
+	await git.stash(["push", "--include-untracked"]);
+}
+
+/**
+ * Pop the most recent stash.
+ *
+ * Uses `git stash pop` to apply and remove the top stash entry.
+ * Throws if no stash exists or if there are conflicts.
+ */
+export async function gitStashPop(worktreePath: string): Promise<void> {
+	assertRegisteredWorktree(worktreePath);
+
+	const git = simpleGit(worktreePath);
+	await git.stash(["pop"]);
+}
