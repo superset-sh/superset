@@ -6,9 +6,12 @@ export function useKillPort() {
 	const killMutation = electronTrpc.ports.kill.useMutation();
 
 	const killPort = async (port: MergedPort) => {
-		if (port.pid == null) return;
+		if (!port.isActive || port.paneId == null) return;
 
-		const result = await killMutation.mutateAsync({ pid: port.pid });
+		const result = await killMutation.mutateAsync({
+			paneId: port.paneId,
+			port: port.port,
+		});
 		if (!result.success) {
 			toast.error(`Failed to close port ${port.port}`, {
 				description: result.error,
@@ -17,12 +20,15 @@ export function useKillPort() {
 	};
 
 	const killPorts = async (ports: MergedPort[]) => {
-		const portsToKill = ports.filter((p) => p.isActive && p.pid != null);
+		const portsToKill = ports.filter((p) => p.isActive && p.paneId != null);
 		if (portsToKill.length === 0) return;
 
 		const results = await Promise.all(
 			portsToKill.map((port) =>
-				killMutation.mutateAsync({ pid: port.pid as number }),
+				killMutation.mutateAsync({
+					paneId: port.paneId as string,
+					port: port.port,
+				}),
 			),
 		);
 

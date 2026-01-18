@@ -54,7 +54,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 		killPort(port);
 	};
 
-	const canClose = port.isActive && port.pid != null;
+	const canClose = port.isActive && port.paneId != null;
 
 	return (
 		<Tooltip>
