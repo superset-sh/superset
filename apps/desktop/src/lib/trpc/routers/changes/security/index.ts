@@ -10,8 +10,13 @@
 
 export {
 	gitCheckoutFile,
+	gitDiscardAllStaged,
+	gitDiscardAllUnstaged,
 	gitStageAll,
 	gitStageFile,
+	gitStash,
+	gitStashIncludeUntracked,
+	gitStashPop,
 	gitSwitchBranch,
 	gitUnstageAll,
 	gitUnstageFile,
