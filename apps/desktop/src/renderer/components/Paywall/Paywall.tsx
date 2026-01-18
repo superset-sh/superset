@@ -7,19 +7,28 @@ import { useEffect, useState } from "react";
 import type { GatedFeature } from "./usePaywall";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
 
-let showPaywallFn: ((feature: GatedFeature) => void) | null = null;
+type PaywallCallbacks = {
+	onOpen?: (feature: GatedFeature) => void;
+	onUpgrade?: (feature: GatedFeature) => void;
+	onCancel?: (feature: GatedFeature) => void;
+};
 
-export const Paywall = () => {
+let showPaywallFn: ((feature: GatedFeature) => void) | null = null;
+let callbacks: PaywallCallbacks = {};
+
+export const Paywall = (props?: PaywallCallbacks) => {
 	const [triggeredFeature, setTriggeredFeature] =
 		useState<GatedFeature | null>(null);
 	const [isOpen, setIsOpen] = useState(false);
 
+	callbacks = props || {};
+
 	showPaywallFn = (feature: GatedFeature) => {
 		setTriggeredFeature(feature);
 		setIsOpen(true);
+		callbacks.onOpen?.(feature);
 	};
 
-	// Determine which feature to highlight based on what triggered the paywall
 	const initialFeatureId =
 		(triggeredFeature && FEATURE_ID_MAP[triggeredFeature]) ||
 		PRO_FEATURES[0]?.id ||
@@ -28,7 +37,6 @@ export const Paywall = () => {
 	const [selectedFeatureId, setSelectedFeatureId] =
 		useState<string>(initialFeatureId);
 
-	// Update selected feature when triggered feature changes
 	useEffect(() => {
 		if (triggeredFeature && isOpen) {
 			const mappedId = FEATURE_ID_MAP[triggeredFeature] || PRO_FEATURES[0]?.id;
@@ -39,7 +47,8 @@ export const Paywall = () => {
 	}, [triggeredFeature, isOpen]);
 
 	const handleOpenChange = (open: boolean) => {
-		if (!open) {
+		if (!open && triggeredFeature) {
+			callbacks.onCancel?.(triggeredFeature);
 			setIsOpen(false);
 		}
 	};
@@ -52,8 +61,9 @@ export const Paywall = () => {
 	}
 
 	const handleUpgrade = () => {
-		console.log("[paywall] User clicked upgrade for:", selectedFeature.id);
-		// TODO: Open external pricing page or Stripe checkout
+		if (triggeredFeature) {
+			callbacks.onUpgrade?.(triggeredFeature);
+		}
 		setIsOpen(false);
 	};
 
@@ -63,18 +73,14 @@ export const Paywall = () => {
 				className="!w-[744px] !max-w-[744px] p-0 gap-0 overflow-hidden"
 				showCloseButton={false}
 			>
-				{/* Main Layout */}
 				<div className="flex">
-					{/* Left Sidebar */}
 					<div className="flex flex-col border-r bg-neutral-900">
-						{/* Header */}
 						<div className="px-5 py-2.5">
 							<h1 className="mb-0 mt-1.5 text-lg font-bold text-foreground">
 								Pro Features
 							</h1>
 						</div>
 
-						{/* Feature Cards */}
 						<div className="flex flex-col gap-2.5 px-5 py-2.5">
 							{PRO_FEATURES.map((proFeature) => {
 								const Icon = proFeature.icon;
@@ -115,11 +121,8 @@ export const Paywall = () => {
 						</div>
 					</div>
 
-					{/* Right Panel - Feature Display */}
 					<div className="flex h-[487px] w-[495px] flex-col">
-						{/* Feature Visual/Preview - Expanded to top */}
 						<div className="relative h-[346px] overflow-hidden">
-							{/* Render all gradients with opacity transitions */}
 							{PRO_FEATURES.map((proFeature) => (
 								<div
 									key={`gradient-${proFeature.id}`}
@@ -137,13 +140,11 @@ export const Paywall = () => {
 								</div>
 							))}
 
-							{/* Icon overlay */}
 							<div className="absolute inset-0 flex items-center justify-center">
 								<selectedFeature.icon className="text-white/20 text-[120px] select-none pointer-events-none" />
 							</div>
 						</div>
 
-						{/* Feature Details */}
 						<div className="flex min-h-[141px] w-full flex-col border-t bg-background px-6 py-4 items-center justify-center">
 							<div className="mb-2 flex w-full items-center justify-center gap-2">
 								<span className="text-lg font-semibold text-foreground">
@@ -158,7 +159,6 @@ export const Paywall = () => {
 					</div>
 				</div>
 
-				{/* Footer */}
 				<div className="box-border flex items-center justify-between border-t bg-background px-5 py-4">
 					<Button variant="outline" onClick={() => setIsOpen(false)}>
 						Cancel

@@ -3,8 +3,8 @@ import { HiUsers } from "react-icons/hi2";
 import { IoSparkles, IoTerminal } from "react-icons/io5";
 import { MdWorkspaces } from "react-icons/md";
 import { RiRocketLine } from "react-icons/ri";
-import type { GatedFeature } from "renderer/hooks/usePaywall";
-import { GATED_FEATURES } from "renderer/hooks/usePaywall";
+import type { GatedFeature } from "./usePaywall";
+import { GATED_FEATURES } from "./usePaywall";
 
 export interface ProFeature {
 	id: string;
