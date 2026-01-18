@@ -16,7 +16,10 @@ import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
-import { reconcileDaemonSessions } from "./lib/terminal";
+import {
+	reconcileDaemonSessions,
+	shutdownOrphanedDaemon,
+} from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
 import { getWorkspaceRuntimeRegistry } from "./lib/workspace-runtime";
 import { MainWindow } from "./windows/main";
@@ -218,6 +221,7 @@ if (!gotTheLock) {
 		await initAppState();
 
 		await reconcileDaemonSessions();
+		await shutdownOrphanedDaemon();
 
 		try {
 			setupAgentHooks();
