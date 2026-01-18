@@ -90,15 +90,18 @@ export const localDb = drizzle(sqlite, { schema });
 try {
 	migrate(localDb, { migrationsFolder });
 } catch (error) {
-	const isIdempotent =
-		error instanceof Error &&
-		(error as Error & { code?: string }).code === "SQLITE_ERROR" &&
-		/duplicate column name|already exists|no such column/i.test(error.message);
+	const sqliteError = error as Error & { code?: string };
+	const errorCode = sqliteError.code?.toLowerCase() ?? "";
+	const errorMessage = sqliteError.message?.toLowerCase() ?? "";
 
-	if (isIdempotent) {
-		console.log(
-			`[local-db] Skipped idempotent error: ${(error as Error).message}`,
-		);
+	const isSqliteError = errorCode === "sqlite_error";
+	const isIdempotentMessage =
+		errorMessage.includes("duplicate column name") ||
+		errorMessage.includes("already exists") ||
+		errorMessage.includes("no such column");
+
+	if (isSqliteError && isIdempotentMessage) {
+		console.log(`[local-db] Skipped idempotent error: ${sqliteError.message}`);
 	} else {
 		throw error;
 	}
