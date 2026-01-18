@@ -5,6 +5,8 @@ import type {
 	ExternalApp,
 	GitHubStatus,
 	GitStatus,
+	SSHAuthMethod,
+	SSHConnectionConfig,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,
@@ -144,6 +146,108 @@ export const settings = sqliteTable("settings", {
 
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
+
+/**
+ * SSH Connections table - stores SSH connection configurations for remote workspaces
+ */
+export const sshConnections = sqliteTable(
+	"ssh_connections",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		name: text("name").notNull(),
+		host: text("host").notNull(),
+		port: integer("port").notNull().default(22),
+		username: text("username").notNull(),
+		authMethod: text("auth_method").notNull().$type<SSHAuthMethod>(),
+		privateKeyPath: text("private_key_path"),
+		agentForward: integer("agent_forward", { mode: "boolean" }),
+		remoteWorkDir: text("remote_work_dir"),
+		keepAliveInterval: integer("keep_alive_interval"),
+		connectionTimeout: integer("connection_timeout"),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		lastConnectedAt: integer("last_connected_at"),
+	},
+	(table) => [
+		index("ssh_connections_name_idx").on(table.name),
+		index("ssh_connections_host_idx").on(table.host),
+	],
+);
+
+export type InsertSSHConnection = typeof sshConnections.$inferInsert;
+export type SelectSSHConnection = typeof sshConnections.$inferSelect;
+
+/**
+ * Remote Projects table - represents a project on a remote SSH server
+ */
+export const remoteProjects = sqliteTable(
+	"remote_projects",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		sshConnectionId: text("ssh_connection_id")
+			.notNull()
+			.references(() => sshConnections.id, { onDelete: "cascade" }),
+		remotePath: text("remote_path").notNull(),
+		name: text("name").notNull(),
+		color: text("color").notNull(),
+		tabOrder: integer("tab_order"),
+		lastOpenedAt: integer("last_opened_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		defaultBranch: text("default_branch"),
+	},
+	(table) => [
+		index("remote_projects_ssh_connection_id_idx").on(table.sshConnectionId),
+		index("remote_projects_last_opened_at_idx").on(table.lastOpenedAt),
+	],
+);
+
+export type InsertRemoteProject = typeof remoteProjects.$inferInsert;
+export type SelectRemoteProject = typeof remoteProjects.$inferSelect;
+
+/**
+ * Remote Workspaces table - represents an active workspace on a remote server
+ */
+export const remoteWorkspaces = sqliteTable(
+	"remote_workspaces",
+	{
+		id: text("id")
+			.primaryKey()
+			.$defaultFn(() => uuidv4()),
+		remoteProjectId: text("remote_project_id")
+			.notNull()
+			.references(() => remoteProjects.id, { onDelete: "cascade" }),
+		branch: text("branch").notNull(),
+		name: text("name").notNull(),
+		tabOrder: integer("tab_order").notNull(),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		lastOpenedAt: integer("last_opened_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		deletingAt: integer("deleting_at"),
+	},
+	(table) => [
+		index("remote_workspaces_remote_project_id_idx").on(table.remoteProjectId),
+		index("remote_workspaces_last_opened_at_idx").on(table.lastOpenedAt),
+	],
+);
+
+export type InsertRemoteWorkspace = typeof remoteWorkspaces.$inferInsert;
+export type SelectRemoteWorkspace = typeof remoteWorkspaces.$inferSelect;
 
 // =============================================================================
 // Synced tables - mirrored from cloud Postgres via Electric SQL

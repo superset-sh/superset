@@ -1,4 +1,4 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import { projects, workspaces, worktrees, remoteWorkspaces, remoteProjects, sshConnections } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -15,12 +15,72 @@ export const createQueryProcedures = () => {
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(async ({ input }) => {
+				// First check local workspaces
 				const workspace = getWorkspace(input.id);
+
+				// If not found in local workspaces, check remote workspaces
 				if (!workspace) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: `Workspace ${input.id} not found`,
-					});
+					const remoteWorkspace = localDb
+						.select()
+						.from(remoteWorkspaces)
+						.where(eq(remoteWorkspaces.id, input.id))
+						.get();
+
+					if (!remoteWorkspace) {
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Workspace ${input.id} not found`,
+						});
+					}
+
+					// Get the remote project
+					const remoteProject = localDb
+						.select()
+						.from(remoteProjects)
+						.where(eq(remoteProjects.id, remoteWorkspace.remoteProjectId))
+						.get();
+
+					// Get the SSH connection
+					const connection = remoteProject
+						? localDb
+								.select()
+								.from(sshConnections)
+								.where(eq(sshConnections.id, remoteProject.sshConnectionId))
+								.get()
+						: null;
+
+					return {
+						id: remoteWorkspace.id,
+						name: remoteWorkspace.name,
+						branch: remoteWorkspace.branch,
+						projectId: remoteWorkspace.remoteProjectId,
+						worktreeId: null,
+						tabOrder: remoteWorkspace.tabOrder,
+						createdAt: remoteWorkspace.createdAt,
+						updatedAt: remoteWorkspace.updatedAt,
+						lastOpenedAt: remoteWorkspace.lastOpenedAt,
+						isUnread: false,
+						deletingAt: null,
+						type: "remote" as const,
+						worktreePath: remoteProject?.remotePath ?? "",
+						project: remoteProject
+							? {
+									id: remoteProject.id,
+									name: remoteProject.name,
+									mainRepoPath: remoteProject.remotePath,
+								}
+							: null,
+						worktree: null,
+						// SSH-specific fields
+						sshConnection: connection
+							? {
+									id: connection.id,
+									name: connection.name,
+									host: connection.host,
+									username: connection.username,
+								}
+							: null,
+					};
 				}
 
 				const project = localDb
@@ -96,6 +156,7 @@ export const createQueryProcedures = () => {
 								gitStatus: worktree.gitStatus ?? null,
 							}
 						: null,
+					sshConnection: null,
 				};
 			}),
 

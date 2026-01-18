@@ -1,24 +1,43 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { HiExclamationTriangle } from "react-icons/hi2";
+import { HiExclamationTriangle, HiOutlineServer } from "react-icons/hi2";
 import { LuChevronUp, LuFolderGit, LuFolderOpen, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatPathWithProject } from "renderer/lib/formatPath";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
+import { useTabsStore } from "renderer/stores/tabs/store";
 import { ActionCard } from "./ActionCard";
 import { CloneRepoDialog } from "./CloneRepoDialog";
 import { InitGitDialog } from "./InitGitDialog";
+import { OpenRemoteDialog } from "./OpenRemoteDialog";
 import { StartTopBar } from "./StartTopBar";
 
 export function StartView() {
+	const navigate = useNavigate();
 	const { data: recentProjects = [] } =
 		electronTrpc.projects.getRecents.useQuery();
+	const { data: remoteProjects = [] } =
+		electronTrpc.ssh.listRemoteProjects.useQuery();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const openRemoteProject = electronTrpc.ssh.openRemoteProject.useMutation({
+		onSuccess: (data) => {
+			// Add tab for the workspace
+			useTabsStore.getState().addTab(data.workspace.id);
+			// Navigate to the workspace
+			navigateToWorkspace(data.workspace.id, navigate);
+		},
+		onError: (err) => {
+			setError(err.message || "Failed to open remote project");
+		},
+	});
 	const [error, setError] = useState<string | null>(null);
 	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+	const [isRemoteDialogOpen, setIsRemoteDialogOpen] = useState(false);
 	const [initGitDialog, setInitGitDialog] = useState<{
 		isOpen: boolean;
 		selectedPath: string;
@@ -75,7 +94,7 @@ export function StartView() {
 		? recentProjects.slice(0, visibleCount)
 		: recentProjects.slice(0, 5);
 	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
-	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
+	const isLoading = openNew.isPending || createBranchWorkspace.isPending || openRemoteProject.isPending;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -139,6 +158,16 @@ export function StartView() {
 								onClick={() => {
 									setError(null);
 									setIsCloneDialogOpen(true);
+								}}
+								isLoading={isLoading}
+							/>
+
+							<ActionCard
+								icon={HiOutlineServer}
+								label="Open remote"
+								onClick={() => {
+									setError(null);
+									setIsRemoteDialogOpen(true);
 								}}
 								isLoading={isLoading}
 							/>
@@ -223,6 +252,46 @@ export function StartView() {
 								</div>
 							</div>
 						)}
+
+						{/* Remote Projects */}
+						{remoteProjects.length > 0 && (
+							<div className="w-full max-w-[650px]">
+								<div className="flex-1 p-1 py-4 rounded-lg flex flex-col gap-1">
+									<div className="flex justify-between items-center px-2 py-1">
+										<span className="text-muted-foreground text-xs font-normal flex items-center gap-1.5">
+											<HiOutlineServer className="h-3 w-3" />
+											Remote projects
+										</span>
+									</div>
+
+									<div className="max-h-48 overflow-y-auto flex flex-col gap-1">
+										{remoteProjects.map((project) => (
+											<button
+												key={project.id}
+												type="button"
+												onClick={() => {
+													setError(null);
+													openRemoteProject.mutate({ projectId: project.id });
+												}}
+												disabled={isLoading}
+												className="w-full flex justify-between items-center px-2 py-1 rounded-md hover:bg-accent/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+											>
+												<span className="text-foreground text-xs font-normal truncate flex items-center gap-1.5">
+													<span
+														className="w-2 h-2 rounded-full"
+														style={{ backgroundColor: project.color }}
+													/>
+													{project.name}
+												</span>
+												<span className="text-muted-foreground text-xs font-normal truncate ml-4">
+													{project.remotePath}
+												</span>
+											</button>
+										))}
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
 			</div>
@@ -237,6 +306,11 @@ export function StartView() {
 				isOpen={initGitDialog.isOpen}
 				selectedPath={initGitDialog.selectedPath}
 				onClose={() => setInitGitDialog({ isOpen: false, selectedPath: "" })}
+				onError={setError}
+			/>
+			<OpenRemoteDialog
+				isOpen={isRemoteDialogOpen}
+				onClose={() => setIsRemoteDialogOpen(false)}
 				onError={setError}
 			/>
 		</div>

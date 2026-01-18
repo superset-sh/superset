@@ -108,3 +108,29 @@ export const TERMINAL_LINK_BEHAVIORS = [
 ] as const;
 
 export type TerminalLinkBehavior = (typeof TERMINAL_LINK_BEHAVIORS)[number];
+
+/**
+ * SSH authentication methods
+ */
+export const SSH_AUTH_METHODS = ["key", "password", "agent"] as const;
+
+export type SSHAuthMethod = (typeof SSH_AUTH_METHODS)[number];
+
+/**
+ * SSH connection configuration
+ */
+export const sshConnectionConfigSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	host: z.string(),
+	port: z.number().default(22),
+	username: z.string(),
+	authMethod: z.enum(SSH_AUTH_METHODS),
+	privateKeyPath: z.string().optional(),
+	agentForward: z.boolean().optional(),
+	remoteWorkDir: z.string().optional(),
+	keepAliveInterval: z.number().optional(),
+	connectionTimeout: z.number().optional(),
+});
+
+export type SSHConnectionConfig = z.infer<typeof sshConnectionConfigSchema>;
