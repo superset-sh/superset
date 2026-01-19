@@ -69,6 +69,35 @@ mock.module("main/lib/local-db", () => ({
 	},
 }));
 
+// Mock terminal module to avoid Electron imports from terminal-host/client
+// The mock checks mockTerminal.management to determine daemon mode
+mock.module("main/lib/terminal", () => ({
+	tryListExistingDaemonSessions: async () => {
+		// Check if mockTerminal.management is set to simulate daemon mode
+		if (mockTerminal.management) {
+			const result = await mockTerminal.management.listSessions();
+			return {
+				daemonRunning: true,
+				sessions: result.sessions,
+			};
+		}
+		return {
+			daemonRunning: false,
+			sessions: [],
+		};
+	},
+}));
+
+// Mock terminal-host/client to avoid Electron app import
+mock.module("main/lib/terminal-host/client", () => ({
+	getTerminalHostClient: () => ({
+		tryConnectAndAuthenticate: async () => false,
+		listSessions: async () => ({ sessions: [] }),
+		killAll: async () => ({}),
+		kill: async () => ({}),
+	}),
+}));
+
 const { createTerminalRouter } = await import("./terminal");
 
 describe("terminal.stream", () => {

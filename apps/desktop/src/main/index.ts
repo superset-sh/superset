@@ -225,7 +225,6 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 
 		// Shutdown orphaned daemon if persistence is disabled
-		// (cleans up daemon left from previous session with persistence enabled)
 		await shutdownOrphanedDaemon();
 
 		try {

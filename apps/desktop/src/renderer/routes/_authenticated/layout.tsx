@@ -54,6 +54,8 @@ function AuthenticatedLayout() {
 			if (event.type === "open-settings") {
 				const section = event.data.section || "account";
 				navigate({ to: `/settings/${section}` as "/settings/account" });
+			} else if (event.type === "open-workspace") {
+				navigate({ to: `/workspace/${event.data.workspaceId}` });
 			}
 		},
 	});
