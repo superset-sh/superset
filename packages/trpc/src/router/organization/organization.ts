@@ -188,23 +188,25 @@ export const organizationRouter = {
 				});
 			}
 
-			if (organization.logo?.includes("blob.vercel-storage.com")) {
+			if (organization.logo) {
 				try {
-					const url = new URL(organization.logo);
-					const pathname = url.pathname.slice(1);
-					await del(pathname);
-				} catch (error) {
-					console.error(
-						"[organization/uploadLogo] Failed to delete old logo:",
-						error,
-					);
+					await del(organization.logo);
+				} catch {
+					// Old logo doesn't exist or isn't in blob storage - that's fine
 				}
 			}
 
-			const timestamp = Date.now();
+			const allowedMimeTypes = ["image/png", "image/jpeg", "image/webp"];
+			if (!allowedMimeTypes.includes(input.mimeType)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid image type. Only PNG, JPEG, and WebP are allowed",
+				});
+			}
+
+			const ext = input.mimeType.split("/")[1]?.replace("jpeg", "jpg") || "png";
 			const randomId = Math.random().toString(36).substring(2, 15);
-			const ext = input.fileName.split(".").pop()?.toLowerCase() || "png";
-			const pathname = `organization/${input.organizationId}/logo/${timestamp}-${randomId}.${ext}`;
+			const pathname = `organization/${input.organizationId}/logo/${randomId}.${ext}`;
 
 			const base64Data = input.fileData.includes("base64,")
 				? input.fileData.split("base64,")[1] || input.fileData
