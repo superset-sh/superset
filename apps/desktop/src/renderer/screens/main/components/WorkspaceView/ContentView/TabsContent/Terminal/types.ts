@@ -46,3 +46,34 @@ export interface ColdRestoreState {
 	cwd: string | null;
 	scrollback: string;
 }
+
+/**
+ * Input parameters for createOrAttach mutation
+ */
+export interface CreateOrAttachInput {
+	paneId: string;
+	tabId: string;
+	workspaceId: string;
+	cols?: number;
+	rows?: number;
+	cwd?: string;
+	initialCommands?: string[];
+	skipColdRestore?: boolean;
+	allowKilled?: boolean;
+}
+
+/**
+ * Callbacks for createOrAttach mutation
+ */
+export interface CreateOrAttachCallbacks {
+	onSuccess?: (data: CreateOrAttachResult) => void;
+	onError?: (error: { message?: string }) => void;
+}
+
+/**
+ * Type for the createOrAttach mutation function
+ */
+export type CreateOrAttachMutate = (
+	input: CreateOrAttachInput,
+	callbacks?: CreateOrAttachCallbacks,
+) => void;

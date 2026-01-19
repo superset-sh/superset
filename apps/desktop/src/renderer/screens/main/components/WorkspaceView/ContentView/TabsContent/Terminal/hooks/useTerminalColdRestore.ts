@@ -4,7 +4,11 @@ import { useCallback, useRef, useState } from "react";
 import { clearTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { coldRestoreState } from "../state";
-import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
+import type {
+	CreateOrAttachMutate,
+	CreateOrAttachResult,
+	TerminalStreamEvent,
+} from "../types";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -19,8 +23,7 @@ export interface UseTerminalColdRestoreOptions {
 	didFirstRenderRef: React.MutableRefObject<boolean>;
 	pendingInitialStateRef: React.MutableRefObject<CreateOrAttachResult | null>;
 	pendingEventsRef: React.MutableRefObject<TerminalStreamEvent[]>;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	createOrAttachRef: React.MutableRefObject<any>;
+	createOrAttachRef: React.MutableRefObject<CreateOrAttachMutate>;
 	setConnectionError: (error: string | null) => void;
 	setExitStatus: (status: "killed" | "exited" | null) => void;
 	maybeApplyInitialState: () => void;
