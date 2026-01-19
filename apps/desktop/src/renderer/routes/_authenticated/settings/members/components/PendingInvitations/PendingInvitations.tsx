@@ -1,0 +1,144 @@
+import { Badge } from "@superset/ui/badge";
+import { Skeleton } from "@superset/ui/skeleton";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@superset/ui/table";
+import { and, eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
+import { authClient } from "renderer/lib/auth-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import {
+	isItemVisible,
+	SETTING_ITEM_ID,
+	type SettingItemId,
+} from "../../../utils/settings-search";
+import { InvitationActions } from "./components/InvitationActions";
+
+interface PendingInvitationsProps {
+	visibleItems?: SettingItemId[] | null;
+}
+
+export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
+	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+	const activeOrganizationId = session?.session?.activeOrganizationId;
+
+	const shouldShowSection = isItemVisible(
+		SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
+		visibleItems,
+	);
+
+	const { data: invitationsData, isLoading } = useLiveQuery(
+		(q) =>
+			q
+				.from({ invitations: collections.invitations })
+				.leftJoin({ users: collections.users }, ({ invitations, users }) =>
+					eq(invitations.inviterId, users.id),
+				)
+				.select(({ invitations, users }) => ({
+					invitation: invitations,
+					inviter: users,
+				}))
+				.where(({ invitations }) =>
+					and(
+						eq(invitations.organizationId, activeOrganizationId ?? ""),
+						eq(invitations.status, "pending"),
+					),
+				)
+				.orderBy(({ invitations }) => invitations.createdAt, "desc"),
+		[collections, activeOrganizationId],
+	);
+
+	const invitations = invitationsData ?? [];
+
+	if (!shouldShowSection) {
+		return null;
+	}
+
+	const formatDate = (date: Date | string) => {
+		const d = date instanceof Date ? date : new Date(date);
+		return d.toLocaleDateString("en-US", {
+			month: "short",
+			day: "numeric",
+			year: "numeric",
+		});
+	};
+
+	if (isLoading) {
+		return (
+			<div className="space-y-4">
+				<h3 className="text-lg font-semibold">Pending Invitations</h3>
+				<div className="space-y-2 border rounded-lg">
+					{[1, 2, 3].map((i) => (
+						<div key={i} className="flex items-center gap-4 p-4">
+							<div className="flex-1 space-y-2">
+								<Skeleton className="h-4 w-48" />
+								<Skeleton className="h-3 w-32" />
+							</div>
+							<Skeleton className="h-4 w-16" />
+							<Skeleton className="h-4 w-20" />
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	if (invitations.length === 0) {
+		return null;
+	}
+
+	return (
+		<div className="space-y-4">
+			<h3 className="text-lg font-semibold">Pending Invitations</h3>
+			<div className="border rounded-lg">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead>Email</TableHead>
+							<TableHead>Name</TableHead>
+							<TableHead>Role</TableHead>
+							<TableHead>Invited By</TableHead>
+							<TableHead>Sent</TableHead>
+							<TableHead className="w-[50px]" />
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{invitations.map(({ invitation, inviter }) => (
+							<TableRow key={invitation.id}>
+								<TableCell className="font-medium">
+									{invitation.email}
+								</TableCell>
+								<TableCell className="text-muted-foreground">
+									{invitation.name || "-"}
+								</TableCell>
+								<TableCell>
+									<Badge variant="outline" className="text-xs capitalize">
+										{invitation.role}
+									</Badge>
+								</TableCell>
+								<TableCell className="text-muted-foreground">
+									{inviter?.name || "Unknown"}
+								</TableCell>
+								<TableCell className="text-muted-foreground">
+									{formatDate(invitation.createdAt)}
+								</TableCell>
+								<TableCell>
+									<InvitationActions
+										invitation={invitation}
+										organizationId={activeOrganizationId ?? ""}
+									/>
+								</TableCell>
+							</TableRow>
+						))}
+					</TableBody>
+				</Table>
+			</div>
+		</div>
+	);
+}

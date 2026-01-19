@@ -24,6 +24,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import type { TeamMember } from "../../types";
+import { PendingInvitations } from "../PendingInvitations";
 import { InviteMemberButton } from "./components/InviteMemberButton";
 import { MemberActions } from "./components/MemberActions";
 
@@ -211,6 +212,10 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 									</Table>
 								</div>
 							))}
+					</div>
+
+					<div className="max-w-5xl">
+						<PendingInvitations visibleItems={visibleItems} />
 					</div>
 				</div>
 			</div>

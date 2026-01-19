@@ -18,6 +18,7 @@ export const SETTING_ITEM_ID = {
 	// Members
 	MEMBERS_LIST: "members-list",
 	MEMBERS_INVITE: "members-invite",
+	MEMBERS_PENDING_INVITATIONS: "members-pending-invitations",
 
 	// Appearance
 	APPEARANCE_THEME: "appearance-theme",
@@ -200,6 +201,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"collaborate",
 			"email",
 			"send invite",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
+		section: "members",
+		title: "Pending Invitations",
+		description: "View and manage pending organization invitations",
+		keywords: [
+			"members",
+			"invite",
+			"invitation",
+			"pending",
+			"team",
+			"waiting",
+			"sent",
+			"cancel",
+			"resend",
+			"email",
 		],
 	},
 

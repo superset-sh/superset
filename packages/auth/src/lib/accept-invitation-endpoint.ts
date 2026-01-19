@@ -167,20 +167,12 @@ export const acceptInvitationEndpoint = {
 				console.log("[invitation/accept] COMPLETE - Success");
 
 				// 7. Return the session to set cookie on the client
-				return ctx.json(
-					{
-						success: true,
-						organizationId: invitation.organization.id,
-						session,
-						user,
-					},
-					{
-						body: {
-							session,
-							user,
-						},
-					},
-				);
+				return ctx.json({
+					success: true,
+					organizationId: invitation.organization.id,
+					session,
+					user,
+				});
 			},
 		),
 	},

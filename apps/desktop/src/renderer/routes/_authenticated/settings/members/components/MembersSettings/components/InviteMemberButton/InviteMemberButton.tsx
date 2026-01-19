@@ -59,7 +59,6 @@ export function InviteMemberButton() {
 			await authClient.organization.inviteMember({
 				organizationId,
 				email,
-				name: name || undefined,
 				role,
 			});
 
