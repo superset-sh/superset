@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
@@ -45,25 +45,6 @@ export function GroupStrip() {
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
-	const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-	const handleDropdownMouseEnter = useCallback(() => {
-		if (hoverTimeoutRef.current) {
-			clearTimeout(hoverTimeoutRef.current);
-		}
-		hoverTimeoutRef.current = setTimeout(() => {
-			setDropdownOpen(true);
-		}, 150);
-	}, []);
-
-	const handleDropdownMouseLeave = useCallback(() => {
-		if (hoverTimeoutRef.current) {
-			clearTimeout(hoverTimeoutRef.current);
-		}
-		hoverTimeoutRef.current = setTimeout(() => {
-			setDropdownOpen(false);
-		}, 150);
-	}, []);
 
 	const tabs = useMemo(
 		() =>
@@ -182,19 +163,12 @@ export function GroupStrip() {
 							variant="ghost"
 							size="icon"
 							className="size-7 rounded-l-none px-1"
-							onMouseEnter={handleDropdownMouseEnter}
-							onMouseLeave={handleDropdownMouseLeave}
 						>
 							<HiMiniChevronDown className="size-3" />
 						</Button>
 					</DropdownMenuTrigger>
 				</div>
-				<DropdownMenuContent
-					align="end"
-					className="w-56"
-					onMouseEnter={handleDropdownMouseEnter}
-					onMouseLeave={handleDropdownMouseLeave}
-				>
+				<DropdownMenuContent align="end" className="w-56">
 					{presets.length > 0 && (
 						<>
 							{presets.map((preset) => {
