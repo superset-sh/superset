@@ -1,0 +1,26 @@
+{
+	"name": "@superset/git-utils",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./src/index.ts",
+			"default": "./src/index.ts"
+		}
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
+		"test": "bun test"
+	},
+	"dependencies": {
+		"friendly-words": "^1.2.0",
+		"simple-git": "^3.27.0"
+	},
+	"devDependencies": {
+		"@superset/typescript": "workspace:*",
+		"@types/bun": "^1.2.18",
+		"typescript": "^5.9.3"
+	}
+}
