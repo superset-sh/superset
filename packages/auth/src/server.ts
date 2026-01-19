@@ -1,7 +1,7 @@
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
-import * as authSchema from "@superset/db/schema/auth";
 import type { sessions } from "@superset/db/schema/auth";
+import * as authSchema from "@superset/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
@@ -129,3 +129,6 @@ export const auth = betterAuth({
 		}),
 	],
 });
+
+export type Session = typeof auth.$Infer.Session;
+export type User = typeof auth.$Infer.Session.user;
