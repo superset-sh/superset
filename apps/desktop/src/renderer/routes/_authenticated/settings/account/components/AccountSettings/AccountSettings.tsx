@@ -91,10 +91,18 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								variant="ghost"
 								size="icon"
 								className="h-6 w-6"
-								onClick={() => {
+								onClick={async () => {
 									const version = `Superset Desktop v${window.App?.appVersion ?? "unknown"}`;
-									navigator.clipboard.writeText(version);
-									toast.success("Version copied to clipboard");
+									try {
+										await navigator.clipboard.writeText(version);
+										toast.success("Version copied to clipboard");
+									} catch (error) {
+										console.error(
+											"[account/copy-version] Failed to copy version to clipboard:",
+											error,
+										);
+										toast.error("Copy failed, please try again");
+									}
 								}}
 							>
 								<LuCopy className="size-3.5" />
