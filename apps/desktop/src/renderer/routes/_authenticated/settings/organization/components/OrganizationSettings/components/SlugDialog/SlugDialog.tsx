@@ -43,7 +43,7 @@ interface SlugDialogProps {
 	onOpenChange: (open: boolean) => void;
 	organizationId: string;
 	currentSlug: string;
-	onSuccess: () => void;
+	onSuccess?: () => void;
 }
 
 export function SlugDialog({
@@ -113,7 +113,7 @@ export function SlugDialog({
 				id: organizationId,
 				slug: values.slug,
 			});
-			onSuccess();
+			onSuccess?.();
 			onOpenChange(false);
 			setSlugAvailable(null);
 			toast.success("Organization URL updated!");

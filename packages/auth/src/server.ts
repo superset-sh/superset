@@ -4,7 +4,7 @@ import * as authSchema from "@superset/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, organization } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { env } from "./env";
 
@@ -89,8 +89,32 @@ export const auth = betterAuth({
 						data: {
 							...session,
 							activeOrganizationId: membership?.organizationId,
+							role: membership?.role,
 						},
 					};
+				},
+			},
+			update: {
+				before: async (session) => {
+					// Update role when session is updated (e.g., when switching orgs)
+					const orgId = session.activeOrganizationId as string | undefined;
+					if (orgId && session.userId) {
+						const membership = await db.query.members.findFirst({
+							where: and(
+								eq(members.userId, session.userId),
+								eq(members.organizationId, orgId),
+							),
+						});
+
+						return {
+							data: {
+								...session,
+								role: membership?.role,
+							},
+						};
+					}
+
+					return { data: session };
 				},
 			},
 		},

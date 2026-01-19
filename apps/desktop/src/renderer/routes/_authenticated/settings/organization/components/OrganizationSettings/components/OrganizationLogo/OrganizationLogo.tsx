@@ -1,6 +1,6 @@
 interface OrganizationLogoProps {
 	logo: string | null | undefined;
-	name: string;
+	name: string | undefined;
 	size?: "sm" | "md";
 }
 
@@ -27,7 +27,7 @@ export function OrganizationLogo({
 			className={`${sizeClasses} rounded bg-muted flex items-center justify-center`}
 		>
 			<span className={`${textSize} font-medium text-muted-foreground`}>
-				{name.charAt(0).toUpperCase()}
+				{name?.charAt(0).toUpperCase() ?? "?"}
 			</span>
 		</div>
 	);

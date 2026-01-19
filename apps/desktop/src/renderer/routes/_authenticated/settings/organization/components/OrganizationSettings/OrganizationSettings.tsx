@@ -1,12 +1,15 @@
 import { Button } from "@superset/ui/button";
 import { Card, CardContent } from "@superset/ui/card";
 import { Input } from "@superset/ui/input";
+import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
 import { HiOutlinePencil } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -24,21 +27,30 @@ export function OrganizationSettings({
 }: OrganizationSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
+	const collections = useCollections();
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
 
-	const { data: organization, refetch: refetchOrganization } =
-		authClient.useActiveOrganization();
+	const { data: organizations, isLoading } = useLiveQuery(
+		(q) => q.from({ organizations: collections.organizations }),
+		[collections],
+	);
 
-	const selectImageMutation = electronTrpc.window.selectImageFile.useMutation();
+	const organization = organizations?.find(
+		(o) => o.id === activeOrganizationId,
+	);
 
+	// Check owner status via Better Auth (includes member data)
+	const { data: activeOrg } = authClient.useActiveOrganization();
 	const currentUserId = session?.user?.id;
-	const currentMember = organization?.members?.find(
+	const currentMember = activeOrg?.members?.find(
 		(m) => m.userId === currentUserId,
 	);
 	const isOwner = currentMember?.role === "owner";
+
+	const selectImageMutation = electronTrpc.window.selectImageFile.useMutation();
 
 	const showLogo = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_LOGO,
@@ -79,7 +91,6 @@ export function OrganizationSettings({
 			});
 
 			setLogoPreview(uploadResult.url);
-			await refetchOrganization();
 			toast.success("Logo updated successfully!");
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
@@ -100,7 +111,6 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
-			await refetchOrganization();
 			toast.success("Organization name updated!");
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
@@ -109,7 +119,7 @@ export function OrganizationSettings({
 		}
 	}
 
-	if (!activeOrganizationId || !organization) {
+	if (!activeOrganizationId) {
 		return (
 			<div className="p-8">
 				<p className="text-sm text-muted-foreground">
@@ -119,50 +129,27 @@ export function OrganizationSettings({
 		);
 	}
 
-	if (!isOwner) {
+	if (isLoading || !organization) {
 		return (
 			<div className="p-8 max-w-3xl">
-				<h1 className="text-2xl font-semibold mb-8">Organization</h1>
-
-				<ul className="space-y-6">
-					{showLogo && (
-						<li className="flex items-start justify-between gap-8">
-							<div className="flex-1">
-								<div className="text-sm font-medium mb-1">Logo</div>
-								<div className="text-xs text-muted-foreground">
-									Recommended size is 256x256px
-								</div>
-							</div>
-							<OrganizationLogo
-								logo={organization.logo}
-								name={organization.name}
-								size="sm"
-							/>
-						</li>
-					)}
-
-					{showName && (
-						<li className="flex items-center justify-between gap-8">
-							<div className="flex-1 text-sm font-medium">Name</div>
-							<div className="flex-1 text-sm text-muted-foreground">
-								{organization.name}
-							</div>
-						</li>
-					)}
-
-					{showSlug && (
-						<li className="flex items-center justify-between gap-8">
-							<div className="flex-1 text-sm font-medium">Slug</div>
-							<div className="flex-1 text-sm text-muted-foreground">
-								{organization.slug}
-							</div>
-						</li>
-					)}
-				</ul>
-
-				<p className="text-xs text-muted-foreground mt-8">
-					Only organization owners can modify these settings.
-				</p>
+				<Skeleton className="h-8 w-48 mb-8" />
+				<div className="space-y-6">
+					<div className="flex items-center justify-between gap-8">
+						<div className="flex-1">
+							<Skeleton className="h-4 w-24 mb-2" />
+							<Skeleton className="h-3 w-48" />
+						</div>
+						<Skeleton className="h-8 w-8 rounded" />
+					</div>
+					<div className="flex items-center justify-between gap-8">
+						<Skeleton className="h-4 w-16" />
+						<Skeleton className="h-10 flex-1" />
+					</div>
+					<div className="flex items-center justify-between gap-8">
+						<Skeleton className="h-4 w-12" />
+						<Skeleton className="h-10 flex-1" />
+					</div>
+				</div>
 			</div>
 		);
 	}
@@ -188,15 +175,20 @@ export function OrganizationSettings({
 								<button
 									type="button"
 									onClick={handleLogoUpload}
-									className="relative w-8 h-8 cursor-pointer group"
+									disabled={!isOwner}
+									className={`relative w-8 h-8 group ${
+										isOwner ? "cursor-pointer" : ""
+									}`}
 								>
 									<OrganizationLogo
 										logo={logoPreview}
 										name={organization.name}
 									/>
-									<div className="absolute inset-0 bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-										<HiOutlinePencil className="h-4 w-4 text-white" />
-									</div>
+									{isOwner && (
+										<div className="absolute inset-0 bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+											<HiOutlinePencil className="h-4 w-4 text-white" />
+										</div>
+									)}
 								</button>
 							</li>
 						)}
@@ -213,6 +205,7 @@ export function OrganizationSettings({
 										onBlur={handleNameBlur}
 										placeholder="Acme Inc."
 										className="w-full"
+										disabled={!isOwner}
 									/>
 								</div>
 							</li>
@@ -225,18 +218,21 @@ export function OrganizationSettings({
 									<Input
 										value={organization.slug}
 										readOnly
-										onClick={() => setIsSlugDialogOpen(true)}
-										className="w-full cursor-pointer pr-8"
+										onClick={() => isOwner && setIsSlugDialogOpen(true)}
+										className={`w-full pr-8 ${isOwner ? "cursor-pointer" : ""}`}
+										disabled={!isOwner}
 									/>
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										onClick={() => setIsSlugDialogOpen(true)}
-										className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-									>
-										<HiOutlinePencil className="h-4 w-4" />
-									</Button>
+									{isOwner && (
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											onClick={() => setIsSlugDialogOpen(true)}
+											className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+										>
+											<HiOutlinePencil className="h-4 w-4" />
+										</Button>
+									)}
 								</div>
 							</li>
 						)}
@@ -244,13 +240,20 @@ export function OrganizationSettings({
 				</CardContent>
 			</Card>
 
-			<SlugDialog
-				open={isSlugDialogOpen}
-				onOpenChange={setIsSlugDialogOpen}
-				organizationId={organization.id}
-				currentSlug={organization.slug}
-				onSuccess={refetchOrganization}
-			/>
+			{!isOwner && (
+				<p className="text-xs text-muted-foreground mt-4">
+					Only organization owners can modify these settings.
+				</p>
+			)}
+
+			{isOwner && (
+				<SlugDialog
+					open={isSlugDialogOpen}
+					onOpenChange={setIsSlugDialogOpen}
+					organizationId={organization.id}
+					currentSlug={organization.slug}
+				/>
+			)}
 		</div>
 	);
 }
