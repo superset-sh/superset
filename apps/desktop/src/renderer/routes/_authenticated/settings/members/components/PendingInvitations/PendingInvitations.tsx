@@ -17,6 +17,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { InviteMemberButton } from "../MembersSettings/components/InviteMemberButton";
 import { InvitationActions } from "./components/InvitationActions";
 
 interface PendingInvitationsProps {
@@ -69,10 +70,18 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 		});
 	};
 
+	const showInvite = isItemVisible(
+		SETTING_ITEM_ID.MEMBERS_INVITE,
+		visibleItems,
+	);
+
 	if (isLoading) {
 		return (
 			<div className="space-y-4">
-				<h3 className="text-lg font-semibold">Pending Invitations</h3>
+				<div className="flex items-center justify-between">
+					<h3 className="text-lg font-semibold">Pending Invitations</h3>
+					{showInvite && <InviteMemberButton />}
+				</div>
 				<div className="space-y-2 border rounded-lg">
 					{[1, 2, 3].map((i) => (
 						<div key={i} className="flex items-center gap-4 p-4">
@@ -89,56 +98,61 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 		);
 	}
 
-	if (invitations.length === 0) {
-		return null;
-	}
-
 	return (
 		<div className="space-y-4">
-			<h3 className="text-lg font-semibold">Pending Invitations</h3>
-			<div className="border rounded-lg">
-				<Table>
-					<TableHeader>
-						<TableRow>
-							<TableHead>Email</TableHead>
-							<TableHead>Name</TableHead>
-							<TableHead>Role</TableHead>
-							<TableHead>Invited By</TableHead>
-							<TableHead>Sent</TableHead>
-							<TableHead className="w-[50px]" />
-						</TableRow>
-					</TableHeader>
-					<TableBody>
-						{invitations.map(({ invitation, inviter }) => (
-							<TableRow key={invitation.id}>
-								<TableCell className="font-medium">
-									{invitation.email}
-								</TableCell>
-								<TableCell className="text-muted-foreground">
-									{invitation.name || "-"}
-								</TableCell>
-								<TableCell>
-									<Badge variant="outline" className="text-xs capitalize">
-										{invitation.role}
-									</Badge>
-								</TableCell>
-								<TableCell className="text-muted-foreground">
-									{inviter?.name || "Unknown"}
-								</TableCell>
-								<TableCell className="text-muted-foreground">
-									{formatDate(invitation.createdAt)}
-								</TableCell>
-								<TableCell>
-									<InvitationActions
-										invitation={invitation}
-										organizationId={activeOrganizationId ?? ""}
-									/>
-								</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
+			<div className="flex items-center justify-between">
+				<h3 className="text-lg font-semibold">Pending Invitations</h3>
+				{showInvite && <InviteMemberButton />}
 			</div>
+			{invitations.length === 0 ? (
+				<div className="text-center py-12 text-muted-foreground border rounded-lg">
+					No pending invitations
+				</div>
+			) : (
+				<div className="border rounded-lg">
+					<Table>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Email</TableHead>
+								<TableHead>Name</TableHead>
+								<TableHead>Role</TableHead>
+								<TableHead>Invited By</TableHead>
+								<TableHead>Sent</TableHead>
+								<TableHead className="w-[50px]" />
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							{invitations.map(({ invitation, inviter }) => (
+								<TableRow key={invitation.id}>
+									<TableCell className="font-medium">
+										{invitation.email}
+									</TableCell>
+									<TableCell className="text-muted-foreground">
+										{invitation.name || "-"}
+									</TableCell>
+									<TableCell>
+										<Badge variant="outline" className="text-xs capitalize">
+											{invitation.role}
+										</Badge>
+									</TableCell>
+									<TableCell className="text-muted-foreground">
+										{inviter?.name || "Unknown"}
+									</TableCell>
+									<TableCell className="text-muted-foreground">
+										{formatDate(invitation.createdAt)}
+									</TableCell>
+									<TableCell>
+										<InvitationActions
+											invitation={invitation}
+											organizationId={activeOrganizationId ?? ""}
+										/>
+									</TableCell>
+								</TableRow>
+							))}
+						</TableBody>
+					</Table>
+				</div>
+			)}
 		</div>
 	);
 }
