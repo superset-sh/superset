@@ -348,7 +348,8 @@ export function TocPopoverTrigger({
 	const { open } = context;
 	const active = Primitive.useActiveAnchor();
 	const current = useMemo(() => {
-		return items.find((item: TOCItemType) => active === item.url.slice(1))?.title;
+		return items.find((item: TOCItemType) => active === item.url.slice(1))
+			?.title;
 	}, [items, active]);
 
 	return (
@@ -380,7 +381,9 @@ export function TocPopoverTrigger({
 	);
 }
 
-export function TocPopoverContent(props: ComponentProps<typeof CollapsibleContent>) {
+export function TocPopoverContent(
+	props: ComponentProps<typeof CollapsibleContent>,
+) {
 	return (
 		<CollapsibleContent
 			data-toc-popover=""
