@@ -109,10 +109,7 @@ function openTerminalSettings(): void {
 
 function openSessionInSuperset(workspaceId: string): void {
 	showWindow();
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("navigate", `/workspace/${workspaceId}`);
-	}
+	menuEmitter.emit("open-workspace", workspaceId);
 }
 
 async function killAllSessions(): Promise<void> {
