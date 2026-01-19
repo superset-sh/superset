@@ -176,11 +176,6 @@ export const contents: Content[] = [
 		Icon: GuidesIcon,
 		list: [
 			{
-				title: "Guides",
-				href: "/guides",
-				icon: BookIcon,
-			},
-			{
 				title: "Setup & Teardown Scripts",
 				href: "/setup-teardown-scripts",
 				icon: CodeIcon,
