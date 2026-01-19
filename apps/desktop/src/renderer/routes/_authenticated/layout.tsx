@@ -5,6 +5,7 @@ import {
 	useNavigate,
 } from "@tanstack/react-router";
 import { DndProvider } from "react-dnd";
+import { NewCloudWorkspaceModal } from "renderer/components/NewCloudWorkspaceModal";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
@@ -75,6 +76,7 @@ function AuthenticatedLayout() {
 				<Outlet />
 				<WorkspaceInitEffects />
 				<NewWorkspaceModal />
+				<NewCloudWorkspaceModal />
 				<Paywall />
 			</CollectionsProvider>
 		</DndProvider>

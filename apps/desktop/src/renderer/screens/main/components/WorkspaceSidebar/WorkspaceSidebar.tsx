@@ -1,5 +1,7 @@
 import { useMemo } from "react";
+import { useNewCloudWorkspaceModal } from "renderer/components/NewCloudWorkspaceModal";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
+import { CloudWorkspaceSection } from "./CloudWorkspaceSection";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
 import { SidebarDropZone } from "./SidebarDropZone";
@@ -14,6 +16,7 @@ export function WorkspaceSidebar({
 	isCollapsed = false,
 }: WorkspaceSidebarProps) {
 	const { groups } = useWorkspaceShortcuts();
+	const { open: openNewCloudWorkspaceModal } = useNewCloudWorkspaceModal();
 
 	// Calculate shortcut base indices for each project group using cumulative offsets
 	const projectShortcutIndices = useMemo(
@@ -27,6 +30,11 @@ export function WorkspaceSidebar({
 			).indices,
 		[groups],
 	);
+
+	const handleConnectCloudWorkspace = (workspaceId: string) => {
+		// TODO: Open cloud terminal tab for the workspace
+		console.log("[WorkspaceSidebar] Connect to cloud workspace:", workspaceId);
+	};
 
 	return (
 		<SidebarDropZone className="flex flex-col h-full bg-background">
@@ -56,6 +64,12 @@ export function WorkspaceSidebar({
 						</span>
 					</div>
 				)}
+
+				<CloudWorkspaceSection
+					isCollapsed={isCollapsed}
+					onNewWorkspace={openNewCloudWorkspaceModal}
+					onConnectWorkspace={handleConnectCloudWorkspace}
+				/>
 			</div>
 
 			{!isCollapsed && <PortsList />}

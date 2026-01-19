@@ -129,6 +129,9 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
+			// Use provided branch or repository default branch
+			const branch = input.branch ?? repository.defaultBranch;
+
 			// Create workspace record in provisioning state
 			const result = await dbWs.transaction(async (tx) => {
 				const [workspace] = await tx
@@ -138,7 +141,7 @@ export const cloudWorkspaceRouter = {
 						repositoryId: input.repositoryId,
 						creatorId: ctx.session.user.id,
 						name: input.name,
-						branch: input.branch,
+						branch,
 						providerType: input.providerType,
 						status: "provisioning",
 						autoStopMinutes: input.autoStopMinutes,
@@ -154,7 +157,7 @@ export const cloudWorkspaceRouter = {
 				provisionWorkspaceAsync({
 					workspaceId: result.workspace.id,
 					repoUrl: repository.repoUrl,
-					branch: input.branch,
+					branch,
 					workspaceName: input.name,
 					providerType: input.providerType,
 					autoStopMinutes: input.autoStopMinutes,
