@@ -19,6 +19,7 @@ export interface UseTerminalRestoreOptions {
 		event: Extract<TerminalStreamEvent, { type: "error" }>,
 		xterm: XTerm,
 	) => void;
+	onDisconnectEvent: (reason: string | undefined) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -51,6 +52,7 @@ export function useTerminalRestore({
 	updateModesFromData,
 	onExitEvent,
 	onErrorEvent,
+	onDisconnectEvent,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -68,6 +70,8 @@ export function useTerminalRestore({
 	onExitEventRef.current = onExitEvent;
 	const onErrorEventRef = useRef(onErrorEvent);
 	onErrorEventRef.current = onErrorEvent;
+	const onDisconnectEventRef = useRef(onDisconnectEvent);
+	onDisconnectEventRef.current = onDisconnectEvent;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -88,9 +92,9 @@ export function useTerminalRestore({
 				onExitEventRef.current(event.exitCode, xterm);
 			} else if (event.type === "error") {
 				onErrorEventRef.current(event, xterm);
+			} else if (event.type === "disconnect") {
+				onDisconnectEventRef.current(event.reason);
 			}
-			// Note: disconnect events are handled immediately in handleStreamData
-			// and should not be in pending events
 		}
 	}, [xtermRef, pendingEventsRef]);
 

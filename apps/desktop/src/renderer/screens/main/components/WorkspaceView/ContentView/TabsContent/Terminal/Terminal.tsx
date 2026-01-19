@@ -191,6 +191,8 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		onExitEvent: (exitCode, xterm) =>
 			handleTerminalExitRef.current(exitCode, xterm),
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
+		onDisconnectEvent: (reason) =>
+			setConnectionError(reason || "Connection to terminal daemon lost"),
 	});
 
 	// Cold restore handling

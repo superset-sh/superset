@@ -126,39 +126,10 @@ export function useTerminalStream({
 		(event: TerminalStreamEvent) => {
 			const xterm = xtermRef.current;
 
-			// Handle critical events (exit, disconnect, error) immediately if xterm exists
-			// These should not be queued as they represent important state changes
-			if (event.type === "exit") {
-				if (xterm) {
-					handleTerminalExit(event.exitCode, xterm);
-				} else {
-					// Queue if xterm doesn't exist yet - will be processed when flushed
-					pendingEventsRef.current.push(event);
-				}
-				return;
-			}
-
-			if (event.type === "disconnect") {
-				// Disconnect doesn't need xterm - can always handle immediately
-				setConnectionError(
-					event.reason || "Connection to terminal daemon lost",
-				);
-				return;
-			}
-
-			if (event.type === "error") {
-				if (xterm) {
-					handleStreamError(event, xterm);
-				} else {
-					// Queue if xterm doesn't exist yet - will be processed when flushed
-					pendingEventsRef.current.push(event);
-				}
-				return;
-			}
-
-			// Queue data events until terminal is ready
+			// Queue ALL events until terminal is ready, preserving order
+			// flushPendingEvents will process them in sequence after restore
 			if (!xterm || !isStreamReadyRef.current) {
-				if (DEBUG_TERMINAL) {
+				if (DEBUG_TERMINAL && event.type === "data") {
 					console.log(
 						`[Terminal] Queuing event (not ready): ${paneId}, type=${event.type}, bytes=${event.data.length}`,
 					);
@@ -167,15 +138,26 @@ export function useTerminalStream({
 				return;
 			}
 
-			if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
-				firstStreamDataReceivedRef.current = true;
-				console.log(
-					`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
+			// Process events when stream is ready
+			if (event.type === "data") {
+				if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
+					firstStreamDataReceivedRef.current = true;
+					console.log(
+						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
+					);
+				}
+				updateModesRef.current(event.data);
+				xterm.write(event.data);
+				updateCwdRef.current(event.data);
+			} else if (event.type === "exit") {
+				handleTerminalExit(event.exitCode, xterm);
+			} else if (event.type === "disconnect") {
+				setConnectionError(
+					event.reason || "Connection to terminal daemon lost",
 				);
+			} else if (event.type === "error") {
+				handleStreamError(event, xterm);
 			}
-			updateModesRef.current(event.data);
-			xterm.write(event.data);
-			updateCwdRef.current(event.data);
 		},
 		[
 			paneId,
