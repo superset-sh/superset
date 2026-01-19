@@ -1,4 +1,12 @@
+import { Button } from "@superset/ui/button";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
+import { HiOutlineDevicePhoneMobile } from "react-icons/hi2";
+import { useMobilePairingModal } from "renderer/components/MobilePairingModal";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { OrganizationDropdown } from "./OrganizationDropdown";
@@ -11,6 +19,7 @@ export function TopBar() {
 		{ id: workspaceId ?? "" },
 		{ enabled: !!workspaceId },
 	);
+	const openMobilePairing = useMobilePairingModal((s) => s.openModal);
 	// Default to Mac layout while loading to avoid overlap with traffic lights
 	const isMac = platform === undefined || platform === "darwin";
 
@@ -32,6 +41,25 @@ export function TopBar() {
 						branch={workspace.worktree?.branch}
 					/>
 				)}
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="no-drag h-8 w-8"
+							onClick={() =>
+								openMobilePairing({
+									workspaceId: workspace?.id,
+									workspaceName: workspace?.name,
+									projectPath: workspace?.worktreePath,
+								})
+							}
+						>
+							<HiOutlineDevicePhoneMobile className="h-4 w-4" />
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent>Connect Mobile</TooltipContent>
+				</Tooltip>
 				<OrganizationDropdown />
 				{!isMac && <WindowControls />}
 			</div>

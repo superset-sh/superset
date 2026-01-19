@@ -38,6 +38,13 @@ export default function RootLayout({
 }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
+			<head>
+				<link rel="manifest" href="/manifest.webmanifest" />
+				<meta name="apple-mobile-web-app-capable" content="yes" />
+				<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+				<meta name="apple-mobile-web-app-title" content="Superset" />
+				<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+			</head>
 			<body
 				className={cn(
 					"bg-background text-foreground min-h-screen font-sans antialiased",
@@ -49,7 +56,26 @@ export default function RootLayout({
 					{children}
 					<Toaster />
 				</Providers>
+				<ServiceWorkerRegistration />
 			</body>
 		</html>
+	);
+}
+
+function ServiceWorkerRegistration() {
+	return (
+		<script
+			dangerouslySetInnerHTML={{
+				__html: `
+					if ('serviceWorker' in navigator) {
+						window.addEventListener('load', function() {
+							navigator.serviceWorker.register('/sw.js').catch(function(err) {
+								console.log('[sw] Registration failed:', err);
+							});
+						});
+					}
+				`,
+			}}
+		/>
 	);
 }

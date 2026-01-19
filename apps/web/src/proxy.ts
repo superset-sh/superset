@@ -7,6 +7,10 @@ const publicRoutes = [
 	"/sign-up",
 	"/auth/desktop",
 	"/api/auth/desktop",
+	"/api/mobile-pair",
+	"/api/mobile/voice-command",
+	"/api/mobile/commands",
+	"/mobile-scan",
 ];
 
 function isPublicRoute(pathname: string): boolean {

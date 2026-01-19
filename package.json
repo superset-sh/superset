@@ -16,6 +16,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "turbo dev --filter=@superset/api --filter=@superset/web --filter=@superset/desktop",
+		"dev:mobile": "bun run dev & ngrok http 3000",
 		"dev:all": "turbo dev",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:cli": "turbo dev --filter=@superset/cli",

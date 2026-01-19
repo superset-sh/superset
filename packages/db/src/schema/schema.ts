@@ -14,8 +14,11 @@ import {
 import { organizations, users } from "./auth";
 import {
 	integrationProviderValues,
+	mobilePairingStatusValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
+	voiceCommandStatusValues,
+	voiceCommandTargetValues,
 } from "./enums";
 import type { IntegrationConfig } from "./types";
 
@@ -24,6 +27,18 @@ export const taskPriority = pgEnum("task_priority", taskPriorityValues);
 export const integrationProvider = pgEnum(
 	"integration_provider",
 	integrationProviderValues,
+);
+export const mobilePairingStatus = pgEnum(
+	"mobile_pairing_status",
+	mobilePairingStatusValues,
+);
+export const voiceCommandTarget = pgEnum(
+	"voice_command_target",
+	voiceCommandTargetValues,
+);
+export const voiceCommandStatus = pgEnum(
+	"voice_command_status",
+	voiceCommandStatusValues,
 );
 
 export const repositories = pgTable(
@@ -212,3 +227,94 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+// Mobile pairing sessions for QR code-based workspace linking
+export const mobilePairingSessions = pgTable(
+	"mobile_pairing_sessions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		// Pairing token (short-lived, single-use)
+		pairingToken: text("pairing_token").notNull().unique(),
+
+		// Desktop session context
+		desktopInstanceId: text("desktop_instance_id").notNull(),
+		activeWorkspaceId: text("active_workspace_id"),
+		activeWorkspaceName: text("active_workspace_name"),
+		activeProjectPath: text("active_project_path"),
+
+		// Status tracking
+		status: mobilePairingStatus().notNull().default("pending"),
+		pairedAt: timestamp("paired_at"),
+
+		// TTL for security
+		expiresAt: timestamp("expires_at").notNull(),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("mobile_pairing_sessions_user_id_idx").on(table.userId),
+		index("mobile_pairing_sessions_org_id_idx").on(table.organizationId),
+		index("mobile_pairing_sessions_token_idx").on(table.pairingToken),
+		index("mobile_pairing_sessions_status_idx").on(table.status),
+	],
+);
+
+export type InsertMobilePairingSession =
+	typeof mobilePairingSessions.$inferInsert;
+export type SelectMobilePairingSession =
+	typeof mobilePairingSessions.$inferSelect;
+
+// Voice command history for analytics and debugging
+export const voiceCommands = pgTable(
+	"voice_commands",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		pairingSessionId: uuid("pairing_session_id").references(
+			() => mobilePairingSessions.id,
+			{ onDelete: "set null" },
+		),
+
+		// Voice content
+		transcript: text().notNull(),
+
+		// Target routing
+		targetType: voiceCommandTarget("target_type").notNull(),
+		targetId: text("target_id"), // paneId for terminal, workspaceId for claude, etc.
+
+		// Execution status
+		status: voiceCommandStatus().notNull().default("pending"),
+		errorMessage: text("error_message"),
+		executedAt: timestamp("executed_at"),
+
+		// Response from execution (terminal output, claude response, etc.)
+		response: text("response"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		index("voice_commands_user_id_idx").on(table.userId),
+		index("voice_commands_org_id_idx").on(table.organizationId),
+		index("voice_commands_session_id_idx").on(table.pairingSessionId),
+		index("voice_commands_created_at_idx").on(table.createdAt),
+	],
+);
+
+export type InsertVoiceCommand = typeof voiceCommands.$inferInsert;
+export type SelectVoiceCommand = typeof voiceCommands.$inferSelect;

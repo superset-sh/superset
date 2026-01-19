@@ -1,5 +1,6 @@
 import { Alerter } from "@superset/ui/atoms/Alert";
 import type { ReactNode } from "react";
+import { MobilePairingModal } from "renderer/components/MobilePairingModal";
 import { PostHogUserIdentifier } from "renderer/components/PostHogUserIdentifier";
 import { ThemedToaster } from "renderer/components/ThemedToaster";
 import { AuthProvider } from "renderer/providers/AuthProvider";
@@ -17,6 +18,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
 						{children}
 						<ThemedToaster />
 						<Alerter />
+						<MobilePairingModal />
 					</MonacoProvider>
 				</AuthProvider>
 			</ElectronTRPCProvider>

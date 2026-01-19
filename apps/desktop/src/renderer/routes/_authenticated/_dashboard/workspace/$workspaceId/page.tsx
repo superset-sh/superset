@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
+import { useMobileCommandHandler } from "renderer/components/MobilePairingModal";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -58,6 +59,9 @@ function WorkspacePage() {
 		id: workspaceId,
 	});
 	const navigate = useNavigate();
+
+	// Handle mobile voice commands for this workspace
+	useMobileCommandHandler(workspaceId);
 
 	// Check if workspace is initializing or failed
 	const isInitializing = useIsWorkspaceInitializing(workspaceId);

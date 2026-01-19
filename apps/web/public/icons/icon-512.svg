@@ -1,0 +1,42 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="512" height="512" fill="#000000"/>
+<g transform="translate(96, 128) scale(2.5)">
+  <!-- S letter - pixelated style -->
+  <rect x="0" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="12" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="24" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="0" y="12" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="0" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="12" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="24" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="24" y="36" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="24" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="12" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="0" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="0" y="60" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="0" y="72" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="12" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="24" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="36" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="36" y="72" width="12" height="12" fill="#EAE8E6"/>
+
+  <!-- S letter - second one, offset -->
+  <rect x="72" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="84" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="96" y="0" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="72" y="12" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="72" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="84" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="96" y="24" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="96" y="36" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="96" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="84" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="72" y="48" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="72" y="60" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="72" y="72" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="84" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="96" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="108" y="84" width="12" height="12" fill="#EAE8E6"/>
+  <rect x="108" y="72" width="12" height="12" fill="#EAE8E6"/>
+</g>
+</svg>
