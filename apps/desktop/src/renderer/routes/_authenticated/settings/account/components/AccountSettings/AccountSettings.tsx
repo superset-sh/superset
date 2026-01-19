@@ -91,6 +91,8 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 								variant="ghost"
 								size="icon"
 								className="h-6 w-6"
+								aria-label="Copy version to clipboard"
+								title="Copy version to clipboard"
 								onClick={async () => {
 									const version = `Superset Desktop v${window.App?.appVersion ?? "unknown"}`;
 									try {
