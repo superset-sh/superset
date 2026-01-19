@@ -133,7 +133,23 @@ export const createConfigRouter = () => {
 				}
 
 				const configPath = ensureConfigExists(project.mainRepoPath);
+
+				// Read and parse existing config, preserving other fields
+				let existingConfig: Record<string, unknown> = {};
+				try {
+					const existingContent = readFileSync(configPath, "utf-8");
+					const parsed = JSON.parse(existingContent);
+					if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+						existingConfig = parsed;
+					}
+				} catch {
+					// If file doesn't exist or has invalid JSON, start fresh
+					existingConfig = {};
+				}
+
+				// Merge existing config with new setup/teardown values
 				const config = {
+					...existingConfig,
 					setup: input.setup,
 					teardown: input.teardown,
 				};
