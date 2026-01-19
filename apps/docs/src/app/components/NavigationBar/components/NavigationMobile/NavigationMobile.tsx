@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import { contents } from "./sidebar-content";
+import { contents } from "@/app/(docs)/components/Sidebar/components/SidebarContent";
 
 interface NavbarMobileContextProps {
 	isOpen: boolean;
@@ -39,7 +39,7 @@ export const useNavbarMobile = (): NavbarMobileContextProps => {
 	return context;
 };
 
-export const NavbarMobile = () => {
+export const NavigationMobile = () => {
 	const { isOpen, toggleNavbar } = useNavbarMobile();
 	const pathname = usePathname();
 

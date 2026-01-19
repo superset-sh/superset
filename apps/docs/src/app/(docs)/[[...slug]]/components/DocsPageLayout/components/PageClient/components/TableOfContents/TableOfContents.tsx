@@ -21,9 +21,9 @@ import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { ScrollArea, ScrollViewport } from "@/components/ui/scroll-area";
-import { TocThumb } from "./toc-thumb";
+} from "@/components/Collapsible";
+import { ScrollArea, ScrollViewport } from "@/components/ScrollArea";
+import { TocThumb } from "./components/TableOfContentsThumb/TableOfContentsThumb";
 
 export interface TOCProps {
 	/**

@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { Menu } from "lucide-react";
-import { MobileSearchIcon } from "./docs/mobile-search-icon";
-import { useNavbarMobile, NavbarMobile } from "./nav-mobile";
+import { MobileSearchIcon } from "@/app/(docs)/[[...slug]]/components/DocsPageLayout/components/PageClient/components/MobileSearchIcon";
+import { useNavbarMobile, NavigationMobile } from "./components/NavigationMobile";
 
 function SupersetLogo() {
 	return (
@@ -38,7 +38,7 @@ function SidebarTrigger() {
 	);
 }
 
-export const Navbar = () => {
+export default function NavigationBar() {
 	return (
 		<div className="flex flex-col sticky top-0 bg-background backdrop-blur-md z-30">
 			<nav className="md:grid grid-cols-12 border-b flex items-center justify-between">
@@ -75,10 +75,10 @@ export const Navbar = () => {
 					</ul>
 				</div>
 			</nav>
-			<NavbarMobile />
+			<NavigationMobile />
 		</div>
 	);
-};
+}
 
 interface NavLinkProps {
 	href: string;

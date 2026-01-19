@@ -1,5 +1,5 @@
 "use client";
-import { buttonVariants } from "@/components/docs/button";
+import { buttonVariants } from "@/components/Button";
 import {
 	Popover,
 	PopoverContent,

@@ -15,8 +15,8 @@ import type { HTMLAttributes } from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { isActive } from "@/lib/is-active";
-import { useNav } from "./nav";
-import { TocPopover } from "./toc";
+import { useNav } from "@/app/(docs)/components/Navigation";
+import { TocPopover } from "./components/TableOfContents/TableOfContents";
 
 export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 	const ref = useRef<HTMLElement>(null);

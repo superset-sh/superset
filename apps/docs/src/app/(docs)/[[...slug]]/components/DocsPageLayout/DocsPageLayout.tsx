@@ -1,21 +1,21 @@
 import type { TableOfContents } from "fumadocs-core/toc";
 import { AnchorProvider } from "fumadocs-core/toc";
-import { buttonVariants } from "@/components/docs/button";
+import { buttonVariants } from "@/components/Button";
 import { I18nLabel } from "fumadocs-ui/contexts/i18n";
 import { Edit, Text } from "lucide-react";
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
 import { cn } from "@/lib/cn";
-import { Footer, LastUpdate, PageArticle, PageBody, TocPopoverHeader } from "./page.client";
-import type { FooterProps } from "./page.client";
-import type { TOCProps } from "./toc";
+import { Footer, LastUpdate, PageArticle, PageBody, TocPopoverHeader } from "./components/PageClient/PageClient";
+import type { FooterProps } from "./components/PageClient/PageClient";
+import type { TOCProps } from "./components/PageClient/components/TableOfContents/TableOfContents";
 import {
 	TOCItems,
 	TOCScrollArea,
 	Toc,
 	TocPopoverContent,
 	TocPopoverTrigger,
-} from "./toc";
+} from "./components/PageClient/components/TableOfContents/TableOfContents";
 
 type TableOfContentOptions = Omit<TOCProps, "items" | "children"> & {
 	enabled: boolean;

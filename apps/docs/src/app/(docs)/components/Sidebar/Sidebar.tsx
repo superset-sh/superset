@@ -5,11 +5,11 @@ import { useSearchContext } from "fumadocs-ui/contexts/search";
 import { ChevronDownIcon, Search } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { AsideLink } from "@/components/ui/aside-link";
+import { AsideLink } from "@/components/AsideLink";
 import { cn } from "@/lib/cn";
-import { contents } from "./sidebar-content";
+import { contents } from "./components/SidebarContent";
 
-export default function CustomSidebar() {
+export default function Sidebar() {
 	// Initialize with all sections open by default
 	const [currentOpen, setCurrentOpen] = useState<number[]>(() =>
 		Array.from({ length: contents.length }, (_, i) => i),

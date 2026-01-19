@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
+import { LLMCopyButton, ViewOptions } from "./components/PageActions";
 import {
 	DocsBody,
 	DocsPage,
 	DocsTitle,
-} from "@/components/docs/page";
+} from "./components/DocsPageLayout";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 
