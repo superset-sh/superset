@@ -1,9 +1,12 @@
-import { Badge } from "@superset/ui/badge";
 import { ToggleGroup, ToggleGroupItem } from "@superset/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { HiMiniPencil } from "react-icons/hi2";
-import { TbPinFilled } from "react-icons/tb";
+import {
+	TbLayoutSidebarRightFilled,
+	TbListDetails,
+	TbPinFilled,
+} from "react-icons/tb";
+import type { DiffViewMode } from "shared/changes-types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { PaneToolbarActions } from "../../../components";
 import type { SplitOrientation } from "../../../hooks";
@@ -11,15 +14,15 @@ import type { SplitOrientation } from "../../../hooks";
 interface FileViewerToolbarProps {
 	fileName: string;
 	isDirty: boolean;
-	isSaving: boolean;
 	viewMode: FileViewerMode;
 	/** If false, this is a preview pane (italic name, can be replaced) */
 	isPinned: boolean;
 	isMarkdown: boolean;
 	hasDiff: boolean;
-	showEditableBadge: boolean;
 	splitOrientation: SplitOrientation;
+	diffViewMode: DiffViewMode;
 	onViewModeChange: (value: string) => void;
+	onDiffViewModeChange: (mode: DiffViewMode) => void;
 	onSplitPane: (e: React.MouseEvent) => void;
 	/** Pin this pane (convert from preview to permanent) */
 	onPin: () => void;
@@ -29,14 +32,14 @@ interface FileViewerToolbarProps {
 export function FileViewerToolbar({
 	fileName,
 	isDirty,
-	isSaving,
 	viewMode,
 	isPinned,
 	isMarkdown,
 	hasDiff,
-	showEditableBadge,
 	splitOrientation,
+	diffViewMode,
 	onViewModeChange,
+	onDiffViewModeChange,
 	onSplitPane,
 	onPin,
 	onClosePane,
@@ -65,12 +68,6 @@ export function FileViewerToolbar({
 						</TooltipContent>
 					</Tooltip>
 				)}
-				{showEditableBadge && (
-					<Badge variant="secondary" className="gap-1 text-[10px] h-4 px-1">
-						<HiMiniPencil className="w-2.5 h-2.5" />
-						{isSaving ? "Saving..." : "⌘S"}
-					</Badge>
-				)}
 			</div>
 			<div className="flex items-center gap-1">
 				<ToggleGroup
@@ -97,6 +94,48 @@ export function FileViewerToolbar({
 						</ToggleGroupItem>
 					)}
 				</ToggleGroup>
+				{viewMode === "diff" && (
+					<div className="flex items-center border-l border-border pl-1 ml-0.5">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => onDiffViewModeChange("inline")}
+									className={cn(
+										"rounded p-0.5 transition-colors",
+										diffViewMode === "inline"
+											? "text-foreground bg-muted"
+											: "text-muted-foreground/60 hover:text-muted-foreground",
+									)}
+								>
+									<TbListDetails className="size-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Inline diff
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() => onDiffViewModeChange("side-by-side")}
+									className={cn(
+										"rounded p-0.5 transition-colors",
+										diffViewMode === "side-by-side"
+											? "text-foreground bg-muted"
+											: "text-muted-foreground/60 hover:text-muted-foreground",
+									)}
+								>
+									<TbLayoutSidebarRightFilled className="size-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								Side by side
+							</TooltipContent>
+						</Tooltip>
+					</div>
+				)}
 				<PaneToolbarActions
 					splitOrientation={splitOrientation}
 					onSplitPane={onSplitPane}
