@@ -101,7 +101,6 @@ export const organizationRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const { id, ...data } = input;
 
-			// Check if user is a member of the organization
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.organizationId, id),
@@ -116,7 +115,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Only owners can update organization settings
 			if (membership.role !== "owner") {
 				throw new TRPCError({
 					code: "FORBIDDEN",
@@ -124,7 +122,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// If slug is being updated, check uniqueness
 			if (data.slug) {
 				const existingOrg = await db.query.organizations.findFirst({
 					where: and(
@@ -159,12 +156,6 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			console.log(
-				"[organization/uploadLogo] START - orgId:",
-				input.organizationId,
-			);
-
-			// Check if user is a member and is owner
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.organizationId, input.organizationId),
@@ -186,7 +177,6 @@ export const organizationRouter = {
 				});
 			}
 
-			// Get current organization to check for old logo
 			const organization = await db.query.organizations.findFirst({
 				where: eq(organizations.id, input.organizationId),
 			});
@@ -198,39 +188,29 @@ export const organizationRouter = {
 				});
 			}
 
-			// Delete old logo from blob storage if it exists and is a blob URL
 			if (organization.logo?.includes("blob.vercel-storage.com")) {
 				try {
-					// Extract pathname from blob URL
 					const url = new URL(organization.logo);
-					const pathname = url.pathname.slice(1); // Remove leading slash
-					console.log("[organization/uploadLogo] Deleting old logo:", pathname);
+					const pathname = url.pathname.slice(1);
 					await del(pathname);
 				} catch (error) {
 					console.error(
 						"[organization/uploadLogo] Failed to delete old logo:",
 						error,
 					);
-					// Continue anyway - don't fail the upload if deletion fails
 				}
 			}
 
-			// Generate unique pathname: organization/{orgId}/logo/{timestamp}-{randomId}.{ext}
 			const timestamp = Date.now();
 			const randomId = Math.random().toString(36).substring(2, 15);
 			const ext = input.fileName.split(".").pop()?.toLowerCase() || "png";
 			const pathname = `organization/${input.organizationId}/logo/${timestamp}-${randomId}.${ext}`;
 
-			console.log("[organization/uploadLogo] Uploading to pathname:", pathname);
-
-			// Convert base64 to Buffer
-			// Handle both data URL format and raw base64
 			const base64Data = input.fileData.includes("base64,")
 				? input.fileData.split("base64,")[1] || input.fileData
 				: input.fileData;
 			const buffer = Buffer.from(base64Data, "base64");
 
-			// Check file size (4.5 MB limit for server uploads)
 			const sizeInMB = buffer.length / (1024 * 1024);
 			if (sizeInMB > 4.5) {
 				throw new TRPCError({
@@ -239,26 +219,17 @@ export const organizationRouter = {
 				});
 			}
 
-			// Upload to Vercel Blob
 			try {
 				const blob = await put(pathname, buffer, {
 					access: "public",
 					contentType: input.mimeType,
 				});
 
-				console.log(
-					"[organization/uploadLogo] Upload successful, URL:",
-					blob.url,
-				);
-
-				// Update database with new blob URL
 				const [updatedOrg] = await db
 					.update(organizations)
 					.set({ logo: blob.url })
 					.where(eq(organizations.id, input.organizationId))
 					.returning();
-
-				console.log("[organization/uploadLogo] COMPLETE");
 
 				return {
 					success: true,
@@ -377,17 +348,6 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			console.log(
-				"[organization/leave] START - userId:",
-				ctx.session.user.id,
-				"orgId:",
-				input.organizationId,
-			);
-			console.log(
-				"[organization/leave] Current activeOrganizationId:",
-				ctx.session.session.activeOrganizationId,
-			);
-
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.organizationId, input.organizationId),
@@ -396,36 +356,23 @@ export const organizationRouter = {
 			});
 
 			if (!membership) {
-				console.log(
-					"[organization/leave] ERROR - User is not a member of this organization",
-				);
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "You are not a member of this organization",
 				});
 			}
 
-			console.log(
-				"[organization/leave] Calling Better Auth leaveOrganization API",
-			);
 			const leaveResult = await ctx.auth.api.leaveOrganization({
 				body: { organizationId: input.organizationId },
 				headers: ctx.headers,
 			});
 
 			if (!leaveResult) {
-				console.log(
-					"[organization/leave] ERROR - Better Auth leaveOrganization failed",
-				);
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: "Failed to leave organization",
 				});
 			}
-
-			console.log(
-				"[organization/leave] Successfully left organization via Better Auth",
-			);
 
 			const otherMembership = await db.query.members.findFirst({
 				where: and(
@@ -433,11 +380,6 @@ export const organizationRouter = {
 					ne(members.organizationId, input.organizationId),
 				),
 			});
-
-			console.log(
-				"[organization/leave] Other membership found:",
-				otherMembership?.organizationId ?? "null",
-			);
 
 			await db
 				.update(authSessions)
@@ -450,12 +392,6 @@ export const organizationRouter = {
 						eq(authSessions.activeOrganizationId, input.organizationId),
 					),
 				);
-
-			console.log(
-				"[organization/leave] Updated all sessions to new activeOrganizationId:",
-				otherMembership?.organizationId ?? "null",
-			);
-			console.log("[organization/leave] COMPLETE - Returning success");
 
 			return {
 				success: true,
