@@ -26,6 +26,7 @@ export function usePaywall() {
 	function gateFeature(
 		feature: GatedFeature,
 		callback: () => void | Promise<void>,
+		context?: Record<string, unknown>,
 	): void {
 		if (hasAccess(feature)) {
 			const result = callback();
@@ -35,7 +36,7 @@ export function usePaywall() {
 				});
 			}
 		} else {
-			console.log(`[paywall] User blocked from feature: ${feature}`);
+			console.log(`[paywall] User blocked from feature: ${feature}`, context);
 			paywall(feature);
 		}
 	}
