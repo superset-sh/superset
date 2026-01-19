@@ -7,6 +7,8 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { LogOut } from "lucide-react";
@@ -53,7 +55,14 @@ export function Header() {
 							</Avatar>
 						</button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
+					<DropdownMenuContent align="end" className="min-w-56">
+						<DropdownMenuLabel>
+							<div className="flex flex-col space-y-1">
+								<p className="text-sm font-medium">{user?.name}</p>
+								<p className="text-xs text-muted-foreground">{user?.email}</p>
+							</div>
+						</DropdownMenuLabel>
+						<DropdownMenuSeparator />
 						<DropdownMenuItem
 							className="cursor-pointer"
 							onClick={handleSignOut}

@@ -88,7 +88,6 @@ export const auth = betterAuth({
 
 			let activeOrganizationId = session.activeOrganizationId;
 
-			// Find membership - query by active org if set, otherwise get first membership
 			const membership = await db.query.members.findFirst({
 				where: activeOrganizationId
 					? and(
@@ -98,7 +97,6 @@ export const auth = betterAuth({
 					: eq(members.userId, session.userId),
 			});
 
-			// If no active org but user has a membership, set it in DB
 			if (!activeOrganizationId && membership?.organizationId) {
 				activeOrganizationId = membership.organizationId;
 				await db
