@@ -303,6 +303,9 @@ export const voiceCommands = pgTable(
 		errorMessage: text("error_message"),
 		executedAt: timestamp("executed_at"),
 
+		// Response from execution (terminal output, claude response, etc.)
+		response: text("response"),
+
 		createdAt: timestamp("created_at").notNull().defaultNow(),
 	},
 	(table) => [

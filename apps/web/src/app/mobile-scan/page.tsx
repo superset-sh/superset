@@ -224,6 +224,17 @@ export default function ScanPage() {
 	);
 }
 
+interface CommandMessage {
+	id: string;
+	transcript: string;
+	targetType: string;
+	status: string;
+	response: string | null;
+	errorMessage: string | null;
+	createdAt: string;
+	executedAt: string | null;
+}
+
 function CommandInterface({
 	sessionId,
 	workspaceName,
@@ -236,8 +247,36 @@ function CommandInterface({
 	const [target, setTarget] = useState<CommandTarget>("claude");
 	const [textInput, setTextInput] = useState("");
 	const [isSending, setIsSending] = useState(false);
-	const [lastSent, setLastSent] = useState<string | null>(null);
 	const [sendError, setSendError] = useState<string | null>(null);
+	const [messages, setMessages] = useState<CommandMessage[]>([]);
+	const messagesEndRef = useRef<HTMLDivElement>(null);
+
+	// Poll for command history
+	useEffect(() => {
+		const fetchHistory = async () => {
+			try {
+				const response = await fetch(
+					`/api/mobile/commands?sessionId=${sessionId}&history=true`,
+				);
+				if (response.ok) {
+					const data = await response.json();
+					// Reverse to show oldest first
+					setMessages((data.commands || []).reverse());
+				}
+			} catch (err) {
+				console.error("[command] Failed to fetch history:", err);
+			}
+		};
+
+		fetchHistory();
+		const interval = setInterval(fetchHistory, 2000);
+		return () => clearInterval(interval);
+	}, [sessionId]);
+
+	// Auto-scroll to bottom when messages change
+	useEffect(() => {
+		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+	}, [messages]);
 
 	const sendCommand = useCallback(
 		async (transcript: string) => {
@@ -264,10 +303,7 @@ function CommandInterface({
 					return;
 				}
 
-				setLastSent(transcript.trim());
 				setTextInput("");
-				// Clear the success message after a few seconds
-				setTimeout(() => setLastSent(null), 3000);
 			} catch (err) {
 				console.error("[command] Send error:", err);
 				setSendError("Network error. Please try again.");
@@ -284,40 +320,94 @@ function CommandInterface({
 	};
 
 	return (
-		<div className="flex flex-col gap-6">
-			{/* Success indicator */}
-			<div className="flex items-center gap-3 rounded-xl bg-green-500/10 p-4">
-				<CheckIcon className="h-6 w-6 text-green-500" />
+		<div className="flex flex-col gap-4">
+			{/* Header */}
+			<div className="flex items-center gap-3 rounded-xl bg-green-500/10 p-3">
+				<CheckIcon className="h-5 w-5 text-green-500" />
 				<div className="flex-1">
-					<p className="font-medium text-white">Connected</p>
-					<p className="text-sm text-white/50">Sending to {workspaceName}</p>
+					<p className="text-sm font-medium text-white">Connected to {workspaceName}</p>
 				</div>
 				<button
 					onClick={onDisconnect}
-					className="rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white/70 hover:bg-white/20"
+					className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-white/70 hover:bg-white/20"
 				>
 					Disconnect
 				</button>
 			</div>
 
+			{/* Conversation */}
+			<div className="flex max-h-[400px] flex-col gap-3 overflow-y-auto rounded-xl bg-white/5 p-4">
+				{messages.length === 0 ? (
+					<p className="text-center text-sm text-white/40">
+						No messages yet. Send a command to get started!
+					</p>
+				) : (
+					messages.map((msg) => (
+						<div key={msg.id} className="flex flex-col gap-2">
+							{/* User message */}
+							<div className="flex justify-end">
+								<div className="max-w-[80%] rounded-2xl rounded-br-sm bg-blue-500 px-4 py-2">
+									<p className="text-sm text-white">{msg.transcript}</p>
+									<p className="mt-1 text-xs text-white/60">
+										→ {msg.targetType === "claude" ? "Claude" : msg.targetType === "terminal" ? "Terminal" : "Task"}
+									</p>
+								</div>
+							</div>
+
+							{/* Response */}
+							{msg.status === "pending" ? (
+								<div className="flex justify-start">
+									<div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-white/10 px-4 py-2">
+										<div className="flex items-center gap-2">
+											<div className="h-2 w-2 animate-pulse rounded-full bg-yellow-500" />
+											<p className="text-sm text-white/50">Waiting for response...</p>
+										</div>
+									</div>
+								</div>
+							) : msg.status === "failed" ? (
+								<div className="flex justify-start">
+									<div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-red-500/20 px-4 py-2">
+										<p className="text-sm text-red-400">
+											Error: {msg.errorMessage || "Command failed"}
+										</p>
+									</div>
+								</div>
+							) : msg.response ? (
+								<div className="flex justify-start">
+									<div className="max-w-[90%] rounded-2xl rounded-bl-sm bg-white/10 px-4 py-2">
+										<pre className="whitespace-pre-wrap break-all font-mono text-xs text-white/90">
+											{msg.response}
+										</pre>
+									</div>
+								</div>
+							) : (
+								<div className="flex justify-start">
+									<div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-white/10 px-4 py-2">
+										<p className="text-sm text-white/50">Command executed</p>
+									</div>
+								</div>
+							)}
+						</div>
+					))
+				)}
+				<div ref={messagesEndRef} />
+			</div>
+
 			{/* Target selector */}
-			<div className="flex flex-col gap-2">
-				<label className="text-sm text-white/70">Send to:</label>
-				<div className="flex gap-2">
-					{(["claude", "terminal", "task"] as const).map((t) => (
-						<button
-							key={t}
-							onClick={() => setTarget(t)}
-							className={`flex-1 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-								target === t
-									? "bg-white text-black"
-									: "bg-white/10 text-white hover:bg-white/20"
-							}`}
-						>
-							{t === "claude" ? "Claude" : t === "terminal" ? "Terminal" : "New Task"}
-						</button>
-					))}
-				</div>
+			<div className="flex gap-2">
+				{(["claude", "terminal", "task"] as const).map((t) => (
+					<button
+						key={t}
+						onClick={() => setTarget(t)}
+						className={`flex-1 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+							target === t
+								? "bg-white text-black"
+								: "bg-white/10 text-white hover:bg-white/20"
+						}`}
+					>
+						{t === "claude" ? "Claude" : t === "terminal" ? "Terminal" : "Task"}
+					</button>
+				))}
 			</div>
 
 			{/* Voice button */}
@@ -328,33 +418,25 @@ function CommandInterface({
 			/>
 
 			{/* Text input */}
-			<form onSubmit={handleTextSubmit} className="flex flex-col gap-2">
-				<label className="text-sm text-white/70">Or type a message:</label>
-				<div className="flex gap-2">
-					<input
-						type="text"
-						value={textInput}
-						onChange={(e) => setTextInput(e.target.value)}
-						placeholder={`Message to ${target === "claude" ? "Claude" : target === "terminal" ? "Terminal" : "create task"}...`}
-						disabled={isSending}
-						className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none disabled:opacity-50"
-					/>
-					<button
-						type="submit"
-						disabled={isSending || !textInput.trim()}
-						className="rounded-lg bg-white px-5 py-3 text-sm font-medium text-black disabled:opacity-50"
-					>
-						{isSending ? "..." : "Send"}
-					</button>
-				</div>
+			<form onSubmit={handleTextSubmit} className="flex gap-2">
+				<input
+					type="text"
+					value={textInput}
+					onChange={(e) => setTextInput(e.target.value)}
+					placeholder={`Message to ${target === "claude" ? "Claude" : target === "terminal" ? "Terminal" : "create task"}...`}
+					disabled={isSending}
+					className="flex-1 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-white/30 focus:outline-none disabled:opacity-50"
+				/>
+				<button
+					type="submit"
+					disabled={isSending || !textInput.trim()}
+					className="rounded-lg bg-white px-4 py-3 text-sm font-medium text-black disabled:opacity-50"
+				>
+					{isSending ? "..." : "Send"}
+				</button>
 			</form>
 
-			{/* Feedback */}
-			{lastSent && (
-				<div className="rounded-lg bg-green-500/10 p-3 text-center">
-					<p className="text-sm text-green-400">Sent: "{lastSent}"</p>
-				</div>
-			)}
+			{/* Error feedback */}
 			{sendError && (
 				<div className="rounded-lg bg-red-500/10 p-3 text-center">
 					<p className="text-sm text-red-400">{sendError}</p>

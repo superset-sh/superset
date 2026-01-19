@@ -842,6 +842,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			updateModesFromDataRef.current(event.data);
 			xtermRef.current.write(event.data);
 			updateCwdFromData(event.data);
+
+			// Emit terminal output event for mobile command capture
+			window.dispatchEvent(
+				new CustomEvent("terminal-output", {
+					detail: { paneId, data: event.data },
+				}),
+			);
 		} else if (event.type === "exit") {
 			const xterm = xtermRef.current;
 			if (xterm) {

@@ -1,10 +1,14 @@
 import crypto from "node:crypto";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { observable } from "@trpc/server/observable";
 import { EventEmitter } from "node:events";
 import { env } from "main/env.main";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { loadToken } from "../auth/utils/auth-functions";
+
+const execAsync = promisify(exec);
 
 /**
  * Mobile pairing and relay for the desktop app.
@@ -20,6 +24,7 @@ export const mobileEvents = new EventEmitter();
 
 // Active session
 let activeSessionId: string | null = null;
+let activeProjectPath: string | null = null;
 
 interface MobileCommand {
 	id: string;
@@ -43,20 +48,96 @@ let pollingInterval: NodeJS.Timeout | null = null;
 const POLL_INTERVAL_MS = 2000;
 
 /**
+ * Execute a terminal command and return the output
+ * Note: Claude commands are handled separately via terminal write (to support existing sessions)
+ */
+async function executeTerminalCommand(command: MobileCommand): Promise<string> {
+	const cwd = activeProjectPath || process.cwd();
+	const shellCommand = command.transcript;
+
+	console.log("[mobile] Executing terminal command:", { shellCommand, cwd });
+
+	try {
+		const { stdout, stderr } = await execAsync(shellCommand, {
+			cwd,
+			timeout: 60000, // 60 second timeout
+			maxBuffer: 1024 * 1024, // 1MB buffer
+			env: { ...process.env, FORCE_COLOR: "0" }, // Disable colors for cleaner output
+		});
+
+		const output = (stdout + (stderr ? `\n${stderr}` : "")).trim();
+		console.log("[mobile] Command output length:", output.length);
+		return output || "(no output)";
+	} catch (err: unknown) {
+		const error = err as { stdout?: string; stderr?: string; message?: string };
+		// Command failed but might still have output
+		const output = (error.stdout || "") + (error.stderr || "");
+		if (output.trim()) {
+			return output.trim();
+		}
+		return `Error: ${error.message || "Command failed"}`;
+	}
+}
+
+/**
+ * Send command response back to server
+ */
+async function sendCommandResponse(commandId: string, response: string): Promise<void> {
+	const url = `${env.NEXT_PUBLIC_WEB_URL}/api/mobile/commands`;
+	console.log("[mobile] Sending response to:", url);
+	console.log("[mobile] Command ID:", commandId);
+	console.log("[mobile] Response preview:", response.substring(0, 200));
+
+	try {
+		const res = await fetch(url, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				commandId,
+				status: "executed",
+				response: response.substring(0, 50000), // Limit response size
+			}),
+		});
+
+		if (!res.ok) {
+			const errorText = await res.text();
+			console.error("[mobile] Failed to send response:", res.status, errorText);
+		} else {
+			console.log("[mobile] Response sent successfully");
+		}
+	} catch (err) {
+		console.error("[mobile] Failed to send response (network error):", err);
+	}
+}
+
+// Track when polling started to distinguish "not yet paired" from "expired"
+let pollingStartTime: number | null = null;
+// How long to wait for mobile to scan QR before considering it expired
+const PAIRING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
  * Poll for mobile commands from the server
+ * Note: Uses WEB_URL since /api/mobile/commands is in the web app, not the API
  */
 async function pollForCommands(sessionId: string): Promise<void> {
 	try {
-		const commandsUrl = new URL(`${env.NEXT_PUBLIC_API_URL}/api/mobile/commands`);
+		const commandsUrl = new URL(`${env.NEXT_PUBLIC_WEB_URL}/api/mobile/commands`);
 		commandsUrl.searchParams.set("sessionId", sessionId);
 
 		const response = await fetch(commandsUrl.toString());
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				console.log("[mobile] Session expired, stopping poll");
-				disconnectFromRelay();
-				mobileEvents.emit("disconnected");
+				// Check if we've been waiting too long for pairing
+				const waitTime = pollingStartTime ? Date.now() - pollingStartTime : 0;
+				if (waitTime > PAIRING_TIMEOUT_MS) {
+					console.log("[mobile] Session expired after", Math.round(waitTime / 1000), "seconds, stopping poll");
+					disconnectFromRelay();
+					mobileEvents.emit("disconnected");
+					return;
+				}
+				// Session not paired yet, keep waiting
+				console.log("[mobile] Session not paired yet, waiting... (", Math.round(waitTime / 1000), "s)");
 				return;
 			}
 			console.error("[mobile] Poll failed:", response.status);
@@ -66,17 +147,34 @@ async function pollForCommands(sessionId: string): Promise<void> {
 		const data = await response.json();
 		const commands = data.commands as MobileCommand[];
 
+		if (commands.length > 0) {
+			console.log("[mobile] Received", commands.length, "command(s)");
+		}
+
 		// Process each command
 		for (const command of commands) {
-			console.log("[mobile] Received command:", {
+			console.log("[mobile] Processing command:", {
 				id: command.id,
 				targetType: command.targetType,
 				transcript: command.transcript.substring(0, 50),
 			});
+
+			// Emit event for UI/renderer handling
 			mobileEvents.emit("command", command);
 
-			// Mark command as executed (we'll handle actual execution in renderer)
-			await markCommandExecuted(command.id);
+			if (command.targetType === "claude") {
+				// Claude commands are handled by the renderer (writes to existing Claude session in terminal)
+				// The renderer will capture output and send response via useMobileCommandHandler
+				console.log("[mobile] Claude command delegated to renderer");
+			} else {
+				// Terminal commands: execute directly and send response
+				const output = await executeTerminalCommand(command);
+				console.log("[mobile] Command executed, output length:", output.length);
+
+				// Send response back to server (this also marks as executed)
+				await sendCommandResponse(command.id, output);
+				console.log("[mobile] Response sent for command:", command.id);
+			}
 		}
 	} catch (err) {
 		console.error("[mobile] Poll error:", err);
@@ -84,30 +182,16 @@ async function pollForCommands(sessionId: string): Promise<void> {
 }
 
 /**
- * Mark a command as executed on the server
- */
-async function markCommandExecuted(commandId: string): Promise<void> {
-	try {
-		const url = `${env.NEXT_PUBLIC_API_URL}/api/mobile/commands`;
-		await fetch(url, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ commandId, status: "executed" }),
-		});
-	} catch (err) {
-		console.error("[mobile] Failed to mark command as executed:", err);
-	}
-}
-
-/**
  * Start polling for mobile commands
  */
-function startPolling(sessionId: string): void {
+function startPolling(sessionId: string, projectPath?: string): void {
 	// Stop any existing polling
 	stopPolling();
 
 	activeSessionId = sessionId;
-	console.log("[mobile] Starting command polling for session:", sessionId);
+	activeProjectPath = projectPath || null;
+	pollingStartTime = Date.now();
+	console.log("[mobile] Starting command polling for session:", sessionId, "path:", projectPath);
 	mobileEvents.emit("connected");
 
 	// Poll immediately, then at interval
@@ -126,6 +210,8 @@ function stopPolling(): void {
 		pollingInterval = null;
 	}
 	activeSessionId = null;
+	activeProjectPath = null;
+	pollingStartTime = null;
 }
 
 /**
@@ -137,6 +223,12 @@ function disconnectFromRelay(): void {
 }
 
 export const createMobileRouter = () => {
+	// Log environment on router creation for debugging
+	console.log("[mobile] Router initialized with:", {
+		WEB_URL: env.NEXT_PUBLIC_WEB_URL,
+		API_URL: env.NEXT_PUBLIC_API_URL,
+	});
+
 	return router({
 		/**
 		 * Generate a QR code for pairing with mobile
@@ -193,7 +285,7 @@ export const createMobileRouter = () => {
 							: `superset://pair?token=${pairingToken}`;
 
 					// Start polling for commands on this session
-					startPolling(sessionId);
+					startPolling(sessionId, input.projectPath);
 
 					return {
 						success: true,
@@ -215,10 +307,10 @@ export const createMobileRouter = () => {
 		 * Start listening for mobile commands on a pairing session
 		 */
 		startRelayConnection: publicProcedure
-			.input(z.object({ sessionId: z.string() }))
+			.input(z.object({ sessionId: z.string(), projectPath: z.string().optional() }))
 			.mutation(({ input }) => {
 				// Start polling for commands
-				startPolling(input.sessionId);
+				startPolling(input.sessionId, input.projectPath);
 				return { success: true };
 			}),
 
@@ -284,6 +376,7 @@ export const createMobileRouter = () => {
 
 		/**
 		 * Acknowledge a command was executed
+		 * Note: Uses WEB_URL since /api/mobile/commands is in the web app
 		 */
 		acknowledgeCommand: publicProcedure
 			.input(
@@ -295,7 +388,7 @@ export const createMobileRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const status = input.success ? "executed" : "failed";
-				const url = `${env.NEXT_PUBLIC_API_URL}/api/mobile/commands`;
+				const url = `${env.NEXT_PUBLIC_WEB_URL}/api/mobile/commands`;
 				await fetch(url, {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
@@ -303,6 +396,35 @@ export const createMobileRouter = () => {
 						commandId: input.commandId,
 						status,
 						error: input.error,
+					}),
+				});
+				return { success: true };
+			}),
+
+		/**
+		 * Send command response (terminal output) back to mobile
+		 * Note: Uses WEB_URL since /api/mobile/commands is in the web app
+		 */
+		sendCommandResponse: publicProcedure
+			.input(
+				z.object({
+					commandId: z.string(),
+					response: z.string(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const url = `${env.NEXT_PUBLIC_WEB_URL}/api/mobile/commands`;
+				console.log("[mobile] Sending command response:", {
+					commandId: input.commandId,
+					responseLength: input.response.length,
+				});
+				await fetch(url, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						commandId: input.commandId,
+						response: input.response,
+						status: "executed",
 					}),
 				});
 				return { success: true };
