@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { NotFound } from "renderer/routes/not-found";
-import { ProjectSettings } from "renderer/screens/main/components/SettingsView/ProjectSettings";
+import { ProjectSettings } from "./components/ProjectSettings";
 
 export const Route = createFileRoute(
 	"/_authenticated/settings/project/$projectId/",

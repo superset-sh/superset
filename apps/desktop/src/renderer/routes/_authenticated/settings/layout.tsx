@@ -6,8 +6,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { SettingsSidebar } from "renderer/screens/main/components/SettingsView/SettingsSidebar";
-import { getMatchCountBySection } from "renderer/screens/main/components/SettingsView/settings-search";
+import { SettingsSidebar } from "./components/SettingsSidebar";
+import { getMatchCountBySection } from "./utils/settings-search";
 import {
 	type SettingsSection,
 	useSettingsSearchQuery,
@@ -20,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/settings")({
 // Order of sections for auto-navigation
 const SECTION_ORDER: SettingsSection[] = [
 	"account",
-	"team",
+	"organization",
+	"members",
 	"appearance",
 	"ringtones",
 	"keyboard",
@@ -31,7 +32,8 @@ const SECTION_ORDER: SettingsSection[] = [
 // Map route paths to section names
 function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/account")) return "account";
-	if (pathname.includes("/settings/team")) return "team";
+	if (pathname.includes("/settings/organization")) return "organization";
+	if (pathname.includes("/settings/members")) return "members";
 	if (pathname.includes("/settings/appearance")) return "appearance";
 	if (pathname.includes("/settings/ringtones")) return "ringtones";
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
@@ -47,8 +49,10 @@ function getPathFromSection(section: SettingsSection): string {
 	switch (section) {
 		case "account":
 			return "/settings/account";
-		case "team":
-			return "/settings/team";
+		case "organization":
+			return "/settings/organization";
+		case "members":
+			return "/settings/members";
 		case "appearance":
 			return "/settings/appearance";
 		case "ringtones":

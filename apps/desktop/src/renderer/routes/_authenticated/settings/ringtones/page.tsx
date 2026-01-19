@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { RingtonesSettings } from "renderer/screens/main/components/SettingsView/RingtonesSettings";
-import { getMatchingItemsForSection } from "renderer/screens/main/components/SettingsView/settings-search";
+import { RingtonesSettings } from "./components/RingtonesSettings";
+import { getMatchingItemsForSection } from "../utils/settings-search";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export const Route = createFileRoute("/_authenticated/settings/ringtones/")({
