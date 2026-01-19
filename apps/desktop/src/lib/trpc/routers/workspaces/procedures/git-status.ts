@@ -17,6 +17,9 @@ import {
 } from "../utils/git";
 import { fetchGitHubPRStatus } from "../utils/github";
 
+// Cache TTL for GitHub status (2 minutes)
+const GITHUB_STATUS_CACHE_TTL_MS = 2 * 60 * 1000;
+
 export const createGitStatusProcedures = () => {
 	return router({
 		refreshGitStatus: publicProcedure
@@ -98,7 +101,16 @@ export const createGitStatusProcedures = () => {
 					return null;
 				}
 
-				// Always fetch fresh data on hover
+				// Check if cached data is fresh enough
+				const cachedStatus = worktree.githubStatus;
+				if (cachedStatus?.lastRefreshed) {
+					const age = Date.now() - cachedStatus.lastRefreshed;
+					if (age < GITHUB_STATUS_CACHE_TTL_MS) {
+						return cachedStatus;
+					}
+				}
+
+				// Cache is stale or missing, fetch fresh data
 				const freshStatus = await fetchGitHubPRStatus(worktree.path);
 
 				// Update cache if we got data
