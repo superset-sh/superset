@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
+import { SidebarDropZone } from "./SidebarDropZone";
 import { WorkspaceSidebarFooter } from "./WorkspaceSidebarFooter";
 import { WorkspaceSidebarHeader } from "./WorkspaceSidebarHeader";
 
@@ -28,7 +29,7 @@ export function WorkspaceSidebar({
 	);
 
 	return (
-		<div className="flex flex-col h-full bg-background">
+		<SidebarDropZone className="flex flex-col h-full bg-background">
 			<WorkspaceSidebarHeader isCollapsed={isCollapsed} />
 
 			<div className="flex-1 overflow-y-auto hide-scrollbar">
@@ -50,7 +51,9 @@ export function WorkspaceSidebar({
 				{groups.length === 0 && !isCollapsed && (
 					<div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
 						<span>No workspaces yet</span>
-						<span className="text-xs mt-1">Add a project to get started</span>
+						<span className="text-xs mt-1">
+							Add a project or drag a folder here
+						</span>
 					</div>
 				)}
 			</div>
@@ -58,6 +61,6 @@ export function WorkspaceSidebar({
 			{!isCollapsed && <PortsList />}
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
-		</div>
+		</SidebarDropZone>
 	);
 }

@@ -1,3 +1,4 @@
+export { useOpenFromPath } from "./useOpenFromPath";
 export { useOpenNew } from "./useOpenNew";
 export { useReorderProjects } from "./useReorderProjects";
 export { useUpdateProject } from "./useUpdateProject";

@@ -430,6 +430,45 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 			};
 		}),
 
+		openFromPath: publicProcedure
+			.input(z.object({ path: z.string() }))
+			.mutation(async ({ input }): Promise<OpenNewResult> => {
+				const selectedPath = input.path;
+
+				// Check if path exists
+				if (!existsSync(selectedPath)) {
+					return { canceled: false, error: "Path does not exist" };
+				}
+
+				let mainRepoPath: string;
+				try {
+					mainRepoPath = await getGitRoot(selectedPath);
+				} catch (_error) {
+					// Return a special response so the UI can offer to initialize git
+					return {
+						canceled: false,
+						needsGitInit: true,
+						selectedPath,
+					};
+				}
+
+				const defaultBranch = await getDefaultBranch(mainRepoPath);
+				const project = upsertProject(mainRepoPath, defaultBranch);
+
+				// Auto-create main workspace if it doesn't exist
+				await ensureMainWorkspace(project);
+
+				track("project_opened", {
+					project_id: project.id,
+					method: "drop",
+				});
+
+				return {
+					canceled: false,
+					project,
+				};
+			}),
+
 		initGitAndOpen: publicProcedure
 			.input(z.object({ path: z.string() }))
 			.mutation(async ({ input }) => {
