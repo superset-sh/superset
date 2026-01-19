@@ -64,11 +64,15 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 									<Avatar size="xl" fullName={user.name} image={user.image} />
 									<div>
 										<p className="font-medium text-lg">{user.name}</p>
-										<p className="text-sm text-muted-foreground">{user.email}</p>
+										<p className="text-sm text-muted-foreground">
+											{user.email}
+										</p>
 									</div>
 								</>
 							) : (
-								<p className="text-muted-foreground">Unable to load user info</p>
+								<p className="text-muted-foreground">
+									Unable to load user info
+								</p>
 							)}
 						</div>
 					</div>

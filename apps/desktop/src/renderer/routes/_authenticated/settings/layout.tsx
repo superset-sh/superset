@@ -9,8 +9,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { SettingsSidebar } from "renderer/screens/main/components/SettingsView/SettingsSidebar";
 import { getMatchCountBySection } from "renderer/screens/main/components/SettingsView/settings-search";
 import {
-	useSettingsSearchQuery,
 	type SettingsSection,
+	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
 
 export const Route = createFileRoute("/_authenticated/settings")({

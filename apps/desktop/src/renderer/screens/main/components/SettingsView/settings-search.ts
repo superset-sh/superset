@@ -177,14 +177,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		section: "terminal",
 		title: "Terminal Presets",
 		description: "Manage your terminal presets",
-		keywords: [
-			"preset",
-			"terminal",
-			"commands",
-			"agent",
-			"launch",
-			"default",
-		],
+		keywords: ["preset", "terminal", "commands", "agent", "launch", "default"],
 	},
 	{
 		id: SETTING_ITEM_ID.TERMINAL_QUICK_ADD,

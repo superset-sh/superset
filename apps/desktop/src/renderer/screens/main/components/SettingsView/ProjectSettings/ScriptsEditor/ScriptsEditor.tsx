@@ -25,9 +25,10 @@ function generateId(): string {
 	return Math.random().toString(36).substring(2, 9);
 }
 
-function parseScriptsFromConfig(
-	content: string | null,
-): { setup: ScriptEntry[]; teardown: ScriptEntry[] } {
+function parseScriptsFromConfig(content: string | null): {
+	setup: ScriptEntry[];
+	teardown: ScriptEntry[];
+} {
 	if (!content) {
 		return { setup: [], teardown: [] };
 	}
@@ -108,7 +109,10 @@ function ScriptEntryRow({
 	);
 
 	return (
+		// biome-ignore lint/a11y/useSemanticElements: Drop zone wrapper for drag-and-drop functionality
 		<div
+			role="region"
+			aria-label="Script editor with file drop support"
 			className={cn(
 				"relative group rounded-lg border transition-colors",
 				isDragOver
@@ -304,10 +308,7 @@ export function ScriptsEditor({
 					result,
 				);
 				if (content && typeof content === "string") {
-					setSetupScripts((prev) => [
-						...prev,
-						{ id: generateId(), content },
-					]);
+					setSetupScripts((prev) => [...prev, { id: generateId(), content }]);
 					setHasChanges(true);
 				}
 			}

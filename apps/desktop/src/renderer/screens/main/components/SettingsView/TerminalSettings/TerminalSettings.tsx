@@ -28,11 +28,11 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { usePresets } from "renderer/react-query/presets";
+import { PresetRow } from "renderer/routes/_authenticated/settings/presets/components/PresetRow";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import { PresetRow } from "renderer/routes/_authenticated/settings/presets/components/PresetRow";
 import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
 import {
 	isItemVisible,
@@ -336,7 +336,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 			},
 			onError: (error, _vars, context) => {
 				if (context?.previous) {
-					utils.terminal.listDaemonSessions.setData(undefined, context.previous);
+					utils.terminal.listDaemonSessions.setData(
+						undefined,
+						context.previous,
+					);
 				}
 				toast.error("Failed to kill sessions", {
 					description: error.message,
@@ -651,71 +654,76 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							</Button>
 						</div>
 
-						{daemonModeEnabled && showSessionList && aliveSessions.length > 0 && (
-							<div className="rounded-md border border-border/60 overflow-hidden">
-								<div className="max-h-64 overflow-auto">
-									<table className="w-full text-xs">
-										<thead className="sticky top-0 bg-background">
-											<tr className="text-muted-foreground">
-												<th className="px-2 py-2 text-left font-medium">
-													Workspace
-												</th>
-												<th className="px-2 py-2 text-left font-medium">
-													Session
-												</th>
-												<th className="px-2 py-2 text-right font-medium">
-													Clients
-												</th>
-												<th className="px-2 py-2 text-right font-medium">
-													PID
-												</th>
-												<th className="px-2 py-2 text-left font-medium">
-													Last attached
-												</th>
-												<th className="px-2 py-2 text-right font-medium">
-													Action
-												</th>
-											</tr>
-										</thead>
-										<tbody className="divide-y divide-border/60">
-											{sessionsSorted.map((session) => (
-												<tr key={session.sessionId} className="hover:bg-muted/30">
-													<td className="px-2 py-2 font-mono">
-														{session.workspaceId}
-													</td>
-													<td className="px-2 py-2 font-mono">
-														{session.sessionId}
-													</td>
-													<td className="px-2 py-2 text-right">
-														{session.attachedClients}
-													</td>
-													<td className="px-2 py-2 text-right font-mono">
-														{session.pid ?? "—"}
-													</td>
-													<td className="px-2 py-2">
-														{formatTimestamp(session.lastAttachedAt)}
-													</td>
-													<td className="px-2 py-2 text-right">
-														<Button
-															variant="ghost"
-															size="sm"
-															onClick={() =>
-																setPendingKillSession({
-																	sessionId: session.sessionId,
-																	workspaceId: session.workspaceId,
-																})
-															}
-														>
-															Kill
-														</Button>
-													</td>
+						{daemonModeEnabled &&
+							showSessionList &&
+							aliveSessions.length > 0 && (
+								<div className="rounded-md border border-border/60 overflow-hidden">
+									<div className="max-h-64 overflow-auto">
+										<table className="w-full text-xs">
+											<thead className="sticky top-0 bg-background">
+												<tr className="text-muted-foreground">
+													<th className="px-2 py-2 text-left font-medium">
+														Workspace
+													</th>
+													<th className="px-2 py-2 text-left font-medium">
+														Session
+													</th>
+													<th className="px-2 py-2 text-right font-medium">
+														Clients
+													</th>
+													<th className="px-2 py-2 text-right font-medium">
+														PID
+													</th>
+													<th className="px-2 py-2 text-left font-medium">
+														Last attached
+													</th>
+													<th className="px-2 py-2 text-right font-medium">
+														Action
+													</th>
 												</tr>
-											))}
-										</tbody>
-									</table>
+											</thead>
+											<tbody className="divide-y divide-border/60">
+												{sessionsSorted.map((session) => (
+													<tr
+														key={session.sessionId}
+														className="hover:bg-muted/30"
+													>
+														<td className="px-2 py-2 font-mono">
+															{session.workspaceId}
+														</td>
+														<td className="px-2 py-2 font-mono">
+															{session.sessionId}
+														</td>
+														<td className="px-2 py-2 text-right">
+															{session.attachedClients}
+														</td>
+														<td className="px-2 py-2 text-right font-mono">
+															{session.pid ?? "—"}
+														</td>
+														<td className="px-2 py-2">
+															{formatTimestamp(session.lastAttachedAt)}
+														</td>
+														<td className="px-2 py-2 text-right">
+															<Button
+																variant="ghost"
+																size="sm"
+																onClick={() =>
+																	setPendingKillSession({
+																		sessionId: session.sessionId,
+																		workspaceId: session.workspaceId,
+																	})
+																}
+															>
+																Kill
+															</Button>
+														</td>
+													</tr>
+												))}
+											</tbody>
+										</table>
+									</div>
 								</div>
-							</div>
-						)}
+							)}
 					</div>
 				)}
 			</div>
