@@ -18,20 +18,16 @@ export default function Sidebar() {
 	const { setOpenSearch } = useSearchContext();
 	const pathname = usePathname();
 
-	function getDefaultValue() {
+	useEffect(() => {
+		// Ensure the current section is open when pathname changes
 		const defaultValue = contents.findIndex((item) =>
 			item.list.some((listItem) => listItem.href === pathname),
 		);
-		return defaultValue === -1 ? 0 : defaultValue;
-	}
-
-	useEffect(() => {
-		// Ensure the current section is open when pathname changes
-		const currentSection = getDefaultValue();
+		const currentSection = defaultValue === -1 ? 0 : defaultValue;
 		if (!currentOpen.includes(currentSection)) {
 			setCurrentOpen((prev) => [...prev, currentSection]);
 		}
-	}, [pathname]);
+	}, [pathname, currentOpen]);
 
 	return (
 		<div className={cn("fixed start-0 top-0")}>

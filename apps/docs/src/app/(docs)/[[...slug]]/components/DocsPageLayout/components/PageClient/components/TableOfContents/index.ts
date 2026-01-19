@@ -1,10 +1,10 @@
 export {
+	TOCItems,
+	type TOCProps,
+	TOCScrollArea,
 	Toc,
 	TocItemsEmpty,
-	TOCScrollArea,
-	TOCItems,
 	TocPopover,
-	TocPopoverTrigger,
 	TocPopoverContent,
-	type TOCProps,
+	TocPopoverTrigger,
 } from "./TableOfContents";

@@ -1,10 +1,10 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
-import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/cn";
+import { usePathname } from "next/navigation";
+import { createContext, useContext, useState } from "react";
 import { contents } from "@/app/(docs)/components/Sidebar/components/SidebarContent";
+import { cn } from "@/lib/cn";
 
 interface NavbarMobileContextProps {
 	isOpen: boolean;
@@ -47,8 +47,7 @@ export const NavigationMobile = () => {
 		<div
 			className={cn(
 				"fixed top-[56px] inset-x-0 transform-gpu z-[100] bg-background grid grid-rows-[0fr] duration-300 transition-all navbar:hidden",
-				isOpen &&
-					"shadow-lg border-b border-border grid-rows-[1fr]",
+				isOpen && "shadow-lg border-b border-border grid-rows-[1fr]",
 			)}
 		>
 			<div
@@ -67,7 +66,10 @@ export const NavigationMobile = () => {
 							{section.list.map((item) => {
 								if (item.separator || item.group) {
 									return (
-										<div key={item.title} className="text-xs text-muted-foreground py-1">
+										<div
+											key={item.title}
+											className="text-xs text-muted-foreground py-1"
+										>
 											{item.title}
 										</div>
 									);
@@ -79,7 +81,7 @@ export const NavigationMobile = () => {
 										onClick={toggleNavbar}
 										className={cn(
 											"block py-1.5 text-sm text-muted-foreground hover:text-foreground",
-											pathname === item.href && "text-foreground font-medium"
+											pathname === item.href && "text-foreground font-medium",
 										)}
 									>
 										<div className="flex items-center gap-2">

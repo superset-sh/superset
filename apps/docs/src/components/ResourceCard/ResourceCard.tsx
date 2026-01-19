@@ -32,10 +32,9 @@ export function ResourceCard({
 						</h3>
 					</a>
 				</div>
-				<p
-					dangerouslySetInnerHTML={{ __html: `${description}` }}
-					className="p-4 py-0 text-sm md:decoration-none text-muted-foreground"
-				/>
+				<p className="p-4 py-0 text-sm md:decoration-none text-muted-foreground">
+					{description}
+				</p>
 			</div>
 			<div>
 				{tags && tags.length > 0 && (

@@ -1,8 +1,4 @@
 "use client";
-import type {
-	PopoverContentProps,
-	PopoverTriggerProps,
-} from "@radix-ui/react-popover";
 import type { TOCItemType } from "fumadocs-core/toc";
 import * as Primitive from "fumadocs-core/toc";
 import { useI18n } from "fumadocs-ui/contexts/i18n";
@@ -16,13 +12,13 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { cn } from "@/lib/cn";
 import {
 	Collapsible,
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/Collapsible";
 import { ScrollArea, ScrollViewport } from "@/components/ScrollArea";
+import { cn } from "@/lib/cn";
 import { TocThumb } from "./components/TableOfContentsThumb/TableOfContentsThumb";
 
 export interface TOCProps {
@@ -282,6 +278,7 @@ function TOCItem({
 					xmlns="http://www.w3.org/2000/svg"
 					viewBox="0 0 16 16"
 					className="absolute -top-1.5 start-0 size-4 rtl:-scale-x-100"
+					aria-hidden="true"
 				>
 					<line
 						x1={upperOffset}
@@ -343,12 +340,15 @@ export function TocPopover({
 export function TocPopoverTrigger({
 	items,
 	...props
-}: PopoverTriggerProps & { items: TOCItemType[] }) {
+}: ComponentProps<typeof CollapsibleTrigger> & { items: TOCItemType[] }) {
 	const { text } = useI18n();
-	const { open } = use(Context)!;
+	const context = use(Context);
+	if (!context)
+		throw new Error("TocPopoverTrigger must be used within TocPopover");
+	const { open } = context;
 	const active = Primitive.useActiveAnchor();
 	const current = useMemo(() => {
-		return items.find((item) => active === item.url.slice(1))?.title;
+		return items.find((item: TOCItemType) => active === item.url.slice(1))?.title;
 	}, [items, active]);
 
 	return (
@@ -380,7 +380,7 @@ export function TocPopoverTrigger({
 	);
 }
 
-export function TocPopoverContent(props: PopoverContentProps) {
+export function TocPopoverContent(props: ComponentProps<typeof CollapsibleContent>) {
 	return (
 		<CollapsibleContent
 			data-toc-popover=""

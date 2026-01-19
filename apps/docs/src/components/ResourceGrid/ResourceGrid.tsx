@@ -1,5 +1,5 @@
 import { cn } from "@/lib/cn";
-import { ResourceCard } from "./resource-card";
+import { ResourceCard } from "../ResourceCard";
 
 interface ResourceGridProps {
 	resources: {

@@ -1,1 +1,1 @@
-export { DocsPage, DocsTitle, DocsBody } from "./DocsPageLayout";
+export { DocsBody, DocsPage, DocsTitle } from "./DocsPageLayout";

@@ -1,1 +1,5 @@
-export { NavigationMobile, NavbarProvider, useNavbarMobile } from "./NavigationMobile";
+export {
+	NavbarProvider,
+	NavigationMobile,
+	useNavbarMobile,
+} from "./NavigationMobile";

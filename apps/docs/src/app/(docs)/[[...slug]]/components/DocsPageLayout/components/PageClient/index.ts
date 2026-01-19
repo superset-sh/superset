@@ -1,10 +1,10 @@
 export {
-	TocPopoverHeader,
-	PageBody,
-	PageArticle,
-	LastUpdate,
-	Footer,
 	Breadcrumb,
-	type FooterProps,
 	type BreadcrumbProps,
+	Footer,
+	type FooterProps,
+	LastUpdate,
+	PageArticle,
+	PageBody,
+	TocPopoverHeader,
 } from "./PageClient";

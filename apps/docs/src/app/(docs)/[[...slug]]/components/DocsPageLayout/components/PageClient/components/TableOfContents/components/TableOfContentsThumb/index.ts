@@ -1,1 +1,1 @@
-export { TocThumb, type TOCThumb } from "./TableOfContentsThumb";
+export { type TOCThumb, TocThumb } from "./TableOfContentsThumb";

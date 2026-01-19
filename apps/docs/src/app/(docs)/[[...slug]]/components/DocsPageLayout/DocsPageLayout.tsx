@@ -1,13 +1,11 @@
 import type { TableOfContents } from "fumadocs-core/toc";
 import { AnchorProvider } from "fumadocs-core/toc";
-import { buttonVariants } from "@/components/Button";
 import { I18nLabel } from "fumadocs-ui/contexts/i18n";
 import { Edit, Text } from "lucide-react";
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
+import { buttonVariants } from "@/components/Button";
 import { cn } from "@/lib/cn";
-import { Footer, LastUpdate, PageArticle, PageBody, TocPopoverHeader } from "./components/PageClient/PageClient";
-import type { FooterProps } from "./components/PageClient/PageClient";
 import type { TOCProps } from "./components/PageClient/components/TableOfContents/TableOfContents";
 import {
 	TOCItems,
@@ -16,6 +14,14 @@ import {
 	TocPopoverContent,
 	TocPopoverTrigger,
 } from "./components/PageClient/components/TableOfContents/TableOfContents";
+import type { FooterProps } from "./components/PageClient/PageClient";
+import {
+	Footer,
+	LastUpdate,
+	PageArticle,
+	PageBody,
+	TocPopoverHeader,
+} from "./components/PageClient/PageClient";
 
 type TableOfContentOptions = Omit<TOCProps, "items" | "children"> & {
 	enabled: boolean;
@@ -128,12 +134,8 @@ export function DocsPage({
 					{children}
 					<div role="none" className="flex-1" />
 					<div className="flex flex-row flex-wrap items-center justify-between gap-4 empty:hidden">
-						{editOnGithub ? (
-							<EditOnGitHub {...editOnGithub} />
-						) : null}
-						{lastUpdate ? (
-							<LastUpdate date={new Date(lastUpdate)} />
-						) : null}
+						{editOnGithub ? <EditOnGitHub {...editOnGithub} /> : null}
+						{lastUpdate ? <LastUpdate date={new Date(lastUpdate)} /> : null}
 					</div>
 					{footerEnabled && !footerReplace ? (
 						<Footer items={footerOptions?.items} />
@@ -180,7 +182,8 @@ function EditOnGitHub({
 				buttonVariants({
 					variant: "secondary",
 					size: "sm",
-					className: "gap-1.5 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground",
+					className:
+						"gap-1.5 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground",
 				}),
 				props.className,
 			)}

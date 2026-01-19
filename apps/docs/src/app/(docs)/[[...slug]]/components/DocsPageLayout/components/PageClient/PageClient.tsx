@@ -13,9 +13,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { HTMLAttributes } from "react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useNav } from "@/app/(docs)/components/Navigation";
 import { cn } from "@/lib/cn";
 import { isActive } from "@/lib/is-active";
-import { useNav } from "@/app/(docs)/components/Navigation";
 import { TocPopover } from "./components/TableOfContents/TableOfContents";
 
 export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
@@ -219,7 +219,7 @@ export function Breadcrumb(options: BreadcrumbProps) {
 				);
 
 				return (
-					<Fragment key={i}>
+					<Fragment key={item.url || String(item.name)}>
 						{i !== 0 && <span className="text-fd-foreground/30">/</span>}
 						{item.url ? (
 							<Link

@@ -1,9 +1,9 @@
 import { SidebarProvider } from "fumadocs-ui/components/sidebar/base";
 import { TreeContextProvider } from "fumadocs-ui/contexts/tree";
-import { source } from "@/lib/source";
 import { cn } from "@/lib/cn";
-import { Sidebar } from "./components/Sidebar";
+import { source } from "@/lib/source";
 import { NavProvider } from "./components/Navigation";
+import { Sidebar } from "./components/Sidebar";
 
 export default function Layout({ children }: LayoutProps<"/">) {
 	const tree = source.getPageTree();

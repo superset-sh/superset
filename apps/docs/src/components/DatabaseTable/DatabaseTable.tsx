@@ -1,5 +1,5 @@
+import { Check, Key, Link, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Key, Link, Check, X } from "lucide-react";
 
 interface DatabaseField {
 	name: string;
@@ -56,7 +56,10 @@ export function DatabaseTable({
 						{fields.map((field) => {
 							const isRequired = field.isRequired ?? !field.isOptional;
 							return (
-								<tr key={field.name} className="hover:bg-muted/30 transition-colors">
+								<tr
+									key={field.name}
+									className="hover:bg-muted/30 transition-colors"
+								>
 									<td className="px-4 py-3">
 										<div className="flex items-center gap-2">
 											<code className="text-sm font-mono font-medium">

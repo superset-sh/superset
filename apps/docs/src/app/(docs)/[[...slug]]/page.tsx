@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { LLMCopyButton, ViewOptions } from "./components/PageActions";
-import {
-	DocsBody,
-	DocsPage,
-	DocsTitle,
-} from "./components/DocsPageLayout";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
+import { DocsBody, DocsPage, DocsTitle } from "./components/DocsPageLayout";
+import { LLMCopyButton, ViewOptions } from "./components/PageActions";
 
 export default async function Page(props: PageProps<"/[[...slug]]">) {
 	const params = await props.params;

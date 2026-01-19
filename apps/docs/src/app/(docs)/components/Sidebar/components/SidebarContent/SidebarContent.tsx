@@ -4,12 +4,12 @@ import type { ReactNode, SVGProps } from "react";
 interface Content {
 	title: string;
 	href?: string;
-	Icon: ((props?: SVGProps<any>) => ReactNode) | LucideIcon;
+	Icon: ((props?: SVGProps<SVGSVGElement>) => ReactNode) | LucideIcon;
 	isNew?: boolean;
 	list: {
 		title: string;
 		href: string;
-		icon: ((props?: SVGProps<any>) => ReactNode) | LucideIcon;
+		icon: ((props?: SVGProps<SVGSVGElement>) => ReactNode) | LucideIcon;
 		group?: boolean;
 		separator?: boolean;
 		isNew?: boolean;
@@ -22,6 +22,8 @@ const PlayIcon = () => (
 		width="1.2em"
 		height="1.2em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Play"
 	>
 		<path
 			fill="currentColor"
@@ -36,6 +38,8 @@ const BookIcon = () => (
 		width="1.2em"
 		height="1.2em"
 		viewBox="0 0 256 256"
+		role="img"
+		aria-label="Book"
 	>
 		<path
 			fill="currentColor"
@@ -50,6 +54,8 @@ const DownloadIcon = () => (
 		width="1.2em"
 		height="1.2em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Download"
 	>
 		<path
 			fill="currentColor"
@@ -66,6 +72,8 @@ const ChartIcon = () => (
 		width="1.2em"
 		height="1.2em"
 		viewBox="0 0 16 16"
+		role="img"
+		aria-label="Chart"
 	>
 		<path
 			fill="currentColor"
@@ -74,13 +82,14 @@ const ChartIcon = () => (
 	</svg>
 );
 
-
 const CodeIcon = () => (
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		width="1.2em"
 		height="1.2em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Code"
 	>
 		<path
 			fill="currentColor"
@@ -96,6 +105,8 @@ const GetStartedIcon = () => (
 		width="1.4em"
 		height="1.4em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Get Started"
 	>
 		<path
 			fill="currentColor"
@@ -110,6 +121,8 @@ const CoreFeaturesIcon = () => (
 		width="1.4em"
 		height="1.4em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Core Features"
 	>
 		<path
 			fill="currentColor"
@@ -130,6 +143,8 @@ const GuidesIcon = () => (
 		width="1.4em"
 		height="1.4em"
 		viewBox="0 0 24 24"
+		role="img"
+		aria-label="Guides"
 	>
 		<path
 			fill="currentColor"

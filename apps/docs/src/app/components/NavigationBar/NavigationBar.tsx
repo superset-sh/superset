@@ -1,9 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { Menu } from "lucide-react";
+import Link from "next/link";
 import { MobileSearchIcon } from "@/app/(docs)/[[...slug]]/components/DocsPageLayout/components/PageClient/components/MobileSearchIcon";
-import { useNavbarMobile, NavigationMobile } from "./components/NavigationMobile";
+import {
+	NavigationMobile,
+	useNavbarMobile,
+} from "./components/NavigationMobile";
 
 function SupersetLogo() {
 	return (
@@ -88,8 +91,15 @@ interface NavLinkProps {
 	"aria-label"?: string;
 }
 
-function NavLink({ href, children, external, className, ...props }: NavLinkProps) {
-	const baseClasses = "px-4 py-2 text-sm hover:text-foreground transition-colors text-muted-foreground";
+function NavLink({
+	href,
+	children,
+	external,
+	className,
+	...props
+}: NavLinkProps) {
+	const baseClasses =
+		"px-4 py-2 text-sm hover:text-foreground transition-colors text-muted-foreground";
 
 	if (external) {
 		return (
@@ -106,7 +116,11 @@ function NavLink({ href, children, external, className, ...props }: NavLinkProps
 	}
 
 	return (
-		<Link href={href} className={`${baseClasses} ${className || ""}`} {...props}>
+		<Link
+			href={href}
+			className={`${baseClasses} ${className || ""}`}
+			{...props}
+		>
 			{children}
 		</Link>
 	);
