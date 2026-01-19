@@ -94,29 +94,6 @@ export const auth = betterAuth({
 					};
 				},
 			},
-			update: {
-				before: async (session) => {
-					// Update role when session is updated (e.g., when switching orgs)
-					const orgId = session.activeOrganizationId as string | undefined;
-					if (orgId && session.userId) {
-						const membership = await db.query.members.findFirst({
-							where: and(
-								eq(members.userId, session.userId),
-								eq(members.organizationId, orgId),
-							),
-						});
-
-						return {
-							data: {
-								...session,
-								role: membership?.role,
-							},
-						};
-					}
-
-					return { data: session };
-				},
-			},
 		},
 	},
 	plugins: [
@@ -124,23 +101,30 @@ export const auth = betterAuth({
 			creatorRole: "owner",
 		}),
 		bearer(),
-		customSession(async ({ session }) => {
-			const activeOrganizationId = (session as typeof sessions.$inferSelect)
-				.activeOrganizationId;
+		customSession(async ({ user, session: baseSession }) => {
+			const session = baseSession as typeof sessions.$inferSelect;
 
-			if (!activeOrganizationId) {
-				return { role: undefined };
+			if (!session.activeOrganizationId) {
+				return {
+					role: undefined,
+					user,
+					session: {
+						...session,
+						activeOrganizationId: undefined,
+					},
+				};
 			}
 
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.userId, session.userId),
-					eq(members.organizationId, activeOrganizationId),
+					eq(members.organizationId, session.activeOrganizationId),
 				),
 			});
 
 			return {
-				role: membership?.role,
+				user,
+				session: { ...session, role: membership?.role },
 			};
 		}),
 	],
