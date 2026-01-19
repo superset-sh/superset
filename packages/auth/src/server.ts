@@ -77,25 +77,6 @@ export const auth = betterAuth({
 				},
 			},
 		},
-		session: {
-			create: {
-				before: async (session) => {
-					// Set initial active organization when session is created
-					// This handles existing users who already have organizations
-					const membership = await db.query.members.findFirst({
-						where: eq(members.userId, session.userId),
-					});
-
-					return {
-						data: {
-							...session,
-							activeOrganizationId: membership?.organizationId,
-							role: membership?.role,
-						},
-					};
-				},
-			},
-		},
 	},
 	plugins: [
 		organization({
@@ -105,17 +86,41 @@ export const auth = betterAuth({
 		customSession(async ({ user, session: baseSession }) => {
 			const session = baseSession as typeof sessions.$inferSelect;
 
+			// If no active organization, find one and set it
 			if (!session.activeOrganizationId) {
+				const membership = await db.query.members.findFirst({
+					where: eq(members.userId, session.userId),
+				});
+
+				// If user has a membership, update the session with their first org
+				if (membership?.organizationId) {
+					await db
+						.update(authSchema.sessions)
+						.set({ activeOrganizationId: membership.organizationId })
+						.where(eq(authSchema.sessions.id, session.id));
+
+					return {
+						user,
+						session: {
+							...session,
+							activeOrganizationId: membership.organizationId,
+							role: membership.role,
+						},
+					};
+				}
+
+				// No membership found - user hasn't been added to any orgs yet
 				return {
-					role: undefined,
 					user,
 					session: {
 						...session,
 						activeOrganizationId: undefined,
+						role: undefined,
 					},
 				};
 			}
 
+			// Active organization exists - fetch the role
 			const membership = await db.query.members.findFirst({
 				where: and(
 					eq(members.userId, session.userId),
