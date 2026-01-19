@@ -1,9 +1,8 @@
+import { Database } from "bun:sqlite";
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import * as schema from "@superset/local-db";
-
-import { Database } from "bun:sqlite";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 
@@ -87,7 +86,6 @@ export function getLocalDb() {
 	}
 	sqlite.exec("PRAGMA journal_mode = WAL");
 	sqlite.exec("PRAGMA foreign_keys = OFF");
-
 
 	_localDb = drizzle(sqlite, { schema });
 

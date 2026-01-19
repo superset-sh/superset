@@ -1,12 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { render } from "ink";
-
-// New simplified commands (use local-db SQLite)
-import { ProjectInit } from "./commands/project";
-import { Status } from "./commands/status";
-import { WorktreeCreate, WorktreeDelete, WorktreeList } from "./commands/worktree";
-
 // Keep existing agent commands for now (they still use lowdb, will be migrated in Milestone 4)
 import {
 	AgentAttach,
@@ -15,6 +9,14 @@ import {
 	AgentStop,
 	AgentStopAll,
 } from "./commands/index";
+// New simplified commands (use local-db SQLite)
+import { ProjectInit } from "./commands/project";
+import { Status } from "./commands/status";
+import {
+	WorktreeCreate,
+	WorktreeDelete,
+	WorktreeList,
+} from "./commands/worktree";
 
 const program = new Command();
 
@@ -54,8 +56,14 @@ const worktree = program
 worktree
 	.command("create")
 	.description("Create a new worktree workspace")
-	.argument("[name]", "Branch name for the worktree (auto-generated if not provided)")
-	.option("--base <branch>", "Base branch to create from (defaults to main/master)")
+	.argument(
+		"[name]",
+		"Branch name for the worktree (auto-generated if not provided)",
+	)
+	.option(
+		"--base <branch>",
+		"Base branch to create from (defaults to main/master)",
+	)
 	.action((name?: string, options?: { base?: string }) => {
 		render(
 			<WorktreeCreate
@@ -91,7 +99,10 @@ const agent = program
 agent
 	.command("start")
 	.description("Start an agent in the current workspace")
-	.argument("[workspaceId]", "Workspace ID (uses current workspace if not provided)")
+	.argument(
+		"[workspaceId]",
+		"Workspace ID (uses current workspace if not provided)",
+	)
 	.action((workspaceId?: string) => {
 		render(<AgentStart workspaceId={workspaceId} />);
 	});

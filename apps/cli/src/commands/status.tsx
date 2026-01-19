@@ -1,9 +1,9 @@
+import { getCurrentBranch, getStatusNoLock } from "@superset/git-utils";
+import { desc, eq } from "drizzle-orm";
 import { Box, Text, useApp } from "ink";
 import { useEffect, useState } from "react";
-import { desc, eq } from "drizzle-orm";
-import { getStatusNoLock, getCurrentBranch } from "@superset/git-utils";
-import { getLocalDb, projects, worktrees } from "../lib/local-db";
 import { Spinner } from "../components/Spinner";
+import { getLocalDb, projects, worktrees } from "../lib/local-db";
 
 interface StatusProps {
 	onComplete?: () => void;
@@ -30,8 +30,8 @@ const LOGO_LINES = [
 function Logo() {
 	return (
 		<Box flexDirection="column">
-			{LOGO_LINES.map((line, i) => (
-				<Text key={i} color="magenta" bold>
+			{LOGO_LINES.map((line) => (
+				<Text key={line} color="magenta" bold>
 					{line}
 				</Text>
 			))}
@@ -43,7 +43,11 @@ function Badge({
 	label,
 	value,
 	color,
-}: { label: string; value: string | number; color: string }) {
+}: {
+	label: string;
+	value: string | number;
+	color: string;
+}) {
 	return (
 		<Box>
 			<Text color="gray">{label} </Text>
@@ -164,12 +168,7 @@ export function Status({ onComplete }: StatusProps) {
 		return (
 			<Box flexDirection="column" gap={1}>
 				<Logo />
-				<Box
-					borderStyle="round"
-					borderColor="yellow"
-					paddingX={2}
-					paddingY={1}
-				>
+				<Box borderStyle="round" borderColor="yellow" paddingX={2} paddingY={1}>
 					<Text color="yellow">
 						⚠ No projects found. Run <Text bold>superset init</Text> to get
 						started.
@@ -213,7 +212,11 @@ export function Status({ onComplete }: StatusProps) {
 					value={projectStatus.currentBranch || "detached"}
 					color="green"
 				/>
-				<Badge label="⊕" value={`${projectStatus.worktreeCount} worktrees`} color="blue" />
+				<Badge
+					label="⊕"
+					value={`${projectStatus.worktreeCount} worktrees`}
+					color="blue"
+				/>
 			</Box>
 
 			{/* Git Status */}
@@ -248,11 +251,11 @@ export function Status({ onComplete }: StatusProps) {
 					</Text>
 					<Text>
 						<Text color="cyan">superset worktree list</Text>
-						<Text color="gray">   → List worktrees</Text>
+						<Text color="gray"> → List worktrees</Text>
 					</Text>
 					<Text>
 						<Text color="cyan">superset agent start</Text>
-						<Text color="gray">     → Start AI agent</Text>
+						<Text color="gray"> → Start AI agent</Text>
 					</Text>
 				</Box>
 			</Box>

@@ -5,7 +5,11 @@ import simpleGit from "simple-git";
 
 import { getCurrentBranch } from "./branch";
 import { getGitEnv } from "./shell-env";
-import type { CheckoutSafetyResult, ExecFileException, StatusResult } from "./types";
+import type {
+	CheckoutSafetyResult,
+	ExecFileException,
+	StatusResult,
+} from "./types";
 
 const execFileAsync = promisify(execFile);
 

@@ -1,18 +1,18 @@
-import { Box, Text, useApp } from "ink";
-import { useEffect, useState } from "react";
-import { eq, desc } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
-import { join } from "node:path";
 import { homedir } from "node:os";
+import { join } from "node:path";
 import {
+	generateBranchName,
+	getDefaultBranch,
 	createWorktree as gitCreateWorktree,
 	removeWorktree as gitRemoveWorktree,
-	generateBranchName,
 	listBranches,
-	getDefaultBranch,
 } from "@superset/git-utils";
-import { getLocalDb, projects, worktrees, workspaces } from "../lib/local-db";
+import { desc, eq } from "drizzle-orm";
+import { Box, Text, useApp } from "ink";
+import { useEffect, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { Spinner } from "../components/Spinner";
+import { getLocalDb, projects, workspaces, worktrees } from "../lib/local-db";
 
 interface WorktreeCreateProps {
 	name?: string;
@@ -45,21 +45,14 @@ export function WorktreeCreate({
 				const db = getLocalDb();
 
 				// Get the project - either by ID or most recently opened
-				let project;
-				if (projectId) {
-					project = db
-						.select()
-						.from(projects)
-						.where(eq(projects.id, projectId))
-						.get();
-				} else {
-					project = db
-						.select()
-						.from(projects)
-						.orderBy(desc(projects.lastOpenedAt))
-						.limit(1)
-						.get();
-				}
+				const project = projectId
+					? db.select().from(projects).where(eq(projects.id, projectId)).get()
+					: db
+							.select()
+							.from(projects)
+							.orderBy(desc(projects.lastOpenedAt))
+							.limit(1)
+							.get();
 
 				if (!project) {
 					throw new Error(
@@ -260,21 +253,14 @@ export function WorktreeList({ projectId, onComplete }: WorktreeListProps) {
 				const db = getLocalDb();
 
 				// Get the project
-				let project;
-				if (projectId) {
-					project = db
-						.select()
-						.from(projects)
-						.where(eq(projects.id, projectId))
-						.get();
-				} else {
-					project = db
-						.select()
-						.from(projects)
-						.orderBy(desc(projects.lastOpenedAt))
-						.limit(1)
-						.get();
-				}
+				const project = projectId
+					? db.select().from(projects).where(eq(projects.id, projectId)).get()
+					: db
+							.select()
+							.from(projects)
+							.orderBy(desc(projects.lastOpenedAt))
+							.limit(1)
+							.get();
 
 				if (!project) {
 					throw new Error(
@@ -332,12 +318,7 @@ export function WorktreeList({ projectId, onComplete }: WorktreeListProps) {
 	if (items.length === 0) {
 		return (
 			<Box flexDirection="column" gap={1}>
-				<Box
-					borderStyle="round"
-					borderColor="yellow"
-					paddingX={2}
-					paddingY={1}
-				>
+				<Box borderStyle="round" borderColor="yellow" paddingX={2} paddingY={1}>
 					<Text color="yellow">
 						⚠ No worktrees found for <Text bold>{projectName}</Text>
 					</Text>

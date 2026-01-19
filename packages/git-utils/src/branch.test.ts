@@ -22,8 +22,8 @@ describe("generateBranchName", () => {
 		const existing = ["BRANCH", "Test", "HELLO"];
 		const name = generateBranchName(existing);
 		// Should not match any of the existing (case-insensitive)
-		expect(
-			existing.some((b) => b.toLowerCase() === name.toLowerCase()),
-		).toBe(false);
+		expect(existing.some((b) => b.toLowerCase() === name.toLowerCase())).toBe(
+			false,
+		);
 	});
 });

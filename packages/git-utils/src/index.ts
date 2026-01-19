@@ -1,27 +1,4 @@
 // Types
-export type {
-	BranchExistsResult,
-	CheckoutSafetyResult,
-	ExecFileException,
-	StatusResult,
-} from "./types";
-
-// Shell environment utilities
-export {
-	checkGitLfsAvailable,
-	clearShellEnvCache,
-	getGitEnv,
-	getShellEnvironment,
-} from "./shell-env";
-
-// Worktree utilities
-export {
-	createWorktree,
-	getGitRoot,
-	listWorktrees,
-	removeWorktree,
-	worktreeExists,
-} from "./worktree";
 
 // Branch utilities
 export {
@@ -39,6 +16,13 @@ export {
 	sanitizeGitError,
 } from "./branch";
 
+// Shell environment utilities
+export {
+	checkGitLfsAvailable,
+	clearShellEnvCache,
+	getGitEnv,
+	getShellEnvironment,
+} from "./shell-env";
 // Status utilities
 export {
 	checkBranchCheckoutSafety,
@@ -48,3 +32,17 @@ export {
 	hasUnpushedCommits,
 	safeCheckoutBranch,
 } from "./status";
+export type {
+	BranchExistsResult,
+	CheckoutSafetyResult,
+	ExecFileException,
+	StatusResult,
+} from "./types";
+// Worktree utilities
+export {
+	createWorktree,
+	getGitRoot,
+	listWorktrees,
+	removeWorktree,
+	worktreeExists,
+} from "./worktree";

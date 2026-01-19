@@ -10,7 +10,7 @@ import type { ExecFileException } from "./types";
 
 const execFileAsync = promisify(execFile);
 
-function isExecFileException(error: unknown): error is ExecFileException {
+function _isExecFileException(error: unknown): error is ExecFileException {
 	return (
 		error instanceof Error &&
 		("code" in error || "signal" in error || "killed" in error)

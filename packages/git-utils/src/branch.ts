@@ -1,3 +1,4 @@
+/// <reference path="./friendly-words.d.ts" />
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
@@ -80,9 +81,7 @@ function categorizeGitError(errorMessage: string): BranchExistsResult {
 	}
 
 	if (
-		GIT_ERROR_PATTERNS.remoteNotConfigured.some((p) =>
-			lowerMessage.includes(p),
-		)
+		GIT_ERROR_PATTERNS.remoteNotConfigured.some((p) => lowerMessage.includes(p))
 	) {
 		return {
 			status: "error",
