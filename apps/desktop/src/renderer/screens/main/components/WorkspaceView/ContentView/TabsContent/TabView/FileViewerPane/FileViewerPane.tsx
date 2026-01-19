@@ -81,7 +81,7 @@ export function FileViewerPane({
 
 	const pinPane = useTabsStore((s) => s.pinPane);
 
-	const { handleSaveRaw, handleSaveDiff, isSaving } = useFileSave({
+	const { handleSaveRaw, handleSaveDiff } = useFileSave({
 		worktreePath,
 		filePath,
 		paneId,
