@@ -84,7 +84,7 @@ export function MemberActions({
 
 	const handleRemoveClick = () => {
 		alert.destructive({
-			title: isCurrentUser ? "Leave organization?" : "Remove member?",
+			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
 			description: isCurrentUser
 				? "Are you sure you want to leave this organization? You will lose access immediately."
 				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.`,
