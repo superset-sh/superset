@@ -7,27 +7,17 @@ import { useEffect, useState } from "react";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
 import type { GatedFeature } from "./usePaywall";
 
-type PaywallCallbacks = {
-	onOpen?: (feature: GatedFeature) => void;
-	onUpgrade?: (feature: GatedFeature) => void;
-	onCancel?: (feature: GatedFeature) => void;
-};
-
 let showPaywallFn: ((feature: GatedFeature) => void) | null = null;
-let callbacks: PaywallCallbacks = {};
 
-export const Paywall = (props?: PaywallCallbacks) => {
+export const Paywall = () => {
 	const [triggeredFeature, setTriggeredFeature] = useState<GatedFeature | null>(
 		null,
 	);
 	const [isOpen, setIsOpen] = useState(false);
 
-	callbacks = props || {};
-
 	showPaywallFn = (feature: GatedFeature) => {
 		setTriggeredFeature(feature);
 		setIsOpen(true);
-		callbacks.onOpen?.(feature);
 	};
 
 	useEffect(() => {
@@ -54,8 +44,7 @@ export const Paywall = (props?: PaywallCallbacks) => {
 	}, [triggeredFeature, isOpen]);
 
 	const handleOpenChange = (open: boolean) => {
-		if (!open && triggeredFeature) {
-			callbacks.onCancel?.(triggeredFeature);
+		if (!open) {
 			setIsOpen(false);
 		}
 	};
@@ -68,9 +57,6 @@ export const Paywall = (props?: PaywallCallbacks) => {
 	}
 
 	const handleUpgrade = () => {
-		if (triggeredFeature) {
-			callbacks.onUpgrade?.(triggeredFeature);
-		}
 		setIsOpen(false);
 	};
 
