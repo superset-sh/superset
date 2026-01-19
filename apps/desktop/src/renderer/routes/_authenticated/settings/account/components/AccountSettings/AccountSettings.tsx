@@ -2,6 +2,7 @@ import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
+import { LuCopy } from "react-icons/lu";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -82,9 +83,23 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 				{showVersion && (
 					<div className={showProfile ? "pt-6 border-t" : ""}>
 						<h3 className="text-sm font-medium mb-2">Version</h3>
-						<p className="text-sm text-muted-foreground">
-							Superset Desktop v{window.App?.appVersion ?? "unknown"}
-						</p>
+						<div className="flex items-center gap-2">
+							<p className="text-sm text-muted-foreground">
+								Superset Desktop v{window.App?.appVersion ?? "unknown"}
+							</p>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="h-6 w-6"
+								onClick={() => {
+									const version = `Superset Desktop v${window.App?.appVersion ?? "unknown"}`;
+									navigator.clipboard.writeText(version);
+									toast.success("Version copied to clipboard");
+								}}
+							>
+								<LuCopy className="size-3.5" />
+							</Button>
+						</div>
 					</div>
 				)}
 
