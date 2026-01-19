@@ -214,7 +214,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 							))}
 					</div>
 
-					<div className="max-w-5xl">
+					<div className="max-w-5xl mt-12">
 						<PendingInvitations visibleItems={visibleItems} />
 					</div>
 				</div>
