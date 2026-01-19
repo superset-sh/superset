@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { isTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
@@ -110,7 +111,6 @@ export function useTerminalStream({
 				return;
 			}
 
-			const { toast } = require("@superset/ui/sonner");
 			toast.error("Terminal error", { description: message });
 
 			if (event.code === "WRITE_QUEUE_FULL" || event.code === "WRITE_FAILED") {
@@ -124,9 +124,41 @@ export function useTerminalStream({
 
 	const handleStreamData = useCallback(
 		(event: TerminalStreamEvent) => {
-			// Queue events until terminal is ready
-			if (!xtermRef.current || !isStreamReadyRef.current) {
-				if (DEBUG_TERMINAL && event.type === "data") {
+			const xterm = xtermRef.current;
+
+			// Handle critical events (exit, disconnect, error) immediately if xterm exists
+			// These should not be queued as they represent important state changes
+			if (event.type === "exit") {
+				if (xterm) {
+					handleTerminalExit(event.exitCode, xterm);
+				} else {
+					// Queue if xterm doesn't exist yet - will be processed when flushed
+					pendingEventsRef.current.push(event);
+				}
+				return;
+			}
+
+			if (event.type === "disconnect") {
+				// Disconnect doesn't need xterm - can always handle immediately
+				setConnectionError(
+					event.reason || "Connection to terminal daemon lost",
+				);
+				return;
+			}
+
+			if (event.type === "error") {
+				if (xterm) {
+					handleStreamError(event, xterm);
+				} else {
+					// Queue if xterm doesn't exist yet - will be processed when flushed
+					pendingEventsRef.current.push(event);
+				}
+				return;
+			}
+
+			// Queue data events until terminal is ready
+			if (!xterm || !isStreamReadyRef.current) {
+				if (DEBUG_TERMINAL) {
 					console.log(
 						`[Terminal] Queuing event (not ready): ${paneId}, type=${event.type}, bytes=${event.data.length}`,
 					);
@@ -135,25 +167,15 @@ export function useTerminalStream({
 				return;
 			}
 
-			if (event.type === "data") {
-				if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
-					firstStreamDataReceivedRef.current = true;
-					console.log(
-						`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
-					);
-				}
-				updateModesRef.current(event.data);
-				xtermRef.current.write(event.data);
-				updateCwdRef.current(event.data);
-			} else if (event.type === "exit") {
-				handleTerminalExit(event.exitCode, xtermRef.current);
-			} else if (event.type === "disconnect") {
-				setConnectionError(
-					event.reason || "Connection to terminal daemon lost",
+			if (DEBUG_TERMINAL && !firstStreamDataReceivedRef.current) {
+				firstStreamDataReceivedRef.current = true;
+				console.log(
+					`[Terminal] First stream data received: ${paneId}, ${event.data.length} bytes`,
 				);
-			} else if (event.type === "error") {
-				handleStreamError(event, xtermRef.current);
 			}
+			updateModesRef.current(event.data);
+			xterm.write(event.data);
+			updateCwdRef.current(event.data);
 		},
 		[
 			paneId,

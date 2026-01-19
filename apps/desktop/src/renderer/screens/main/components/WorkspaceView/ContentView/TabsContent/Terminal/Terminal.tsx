@@ -134,6 +134,18 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const handleFileLinkClickRef = useRef(handleFileLinkClick);
 	handleFileLinkClickRef.current = handleFileLinkClick;
 
+	// Refs for stream event handlers (populated after useTerminalStream)
+	// These allow flushPendingEvents to call the handlers via refs
+	const handleTerminalExitRef = useRef<
+		(exitCode: number, xterm: XTerm) => void
+	>(() => {});
+	const handleStreamErrorRef = useRef<
+		(
+			event: Extract<TerminalStreamEvent, { type: "error" }>,
+			xterm: XTerm,
+		) => void
+	>(() => {});
+
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
 
@@ -175,6 +187,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		isBracketedPasteRef,
 		modeScanBufferRef,
 		updateCwdFromData,
+		updateModesFromData,
+		onExitEvent: (exitCode, xterm) =>
+			handleTerminalExitRef.current(exitCode, xterm),
+		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 	});
 
 	// Cold restore handling
@@ -212,18 +228,23 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	connectionErrorRef.current = connectionError;
 
 	// Stream handling
-	const { handleTerminalExit, handleStreamData } = useTerminalStream({
-		paneId,
-		xtermRef,
-		isStreamReadyRef,
-		isExitedRef,
-		wasKilledByUserRef,
-		pendingEventsRef,
-		setExitStatus,
-		setConnectionError,
-		updateModesFromData,
-		updateCwdFromData,
-	});
+	const { handleTerminalExit, handleStreamError, handleStreamData } =
+		useTerminalStream({
+			paneId,
+			xtermRef,
+			isStreamReadyRef,
+			isExitedRef,
+			wasKilledByUserRef,
+			pendingEventsRef,
+			setExitStatus,
+			setConnectionError,
+			updateModesFromData,
+			updateCwdFromData,
+		});
+
+	// Populate handler refs for flushPendingEvents to use
+	handleTerminalExitRef.current = handleTerminalExit;
+	handleStreamErrorRef.current = handleStreamError;
 
 	// Stream subscription
 	electronTrpc.terminal.stream.useSubscription(paneId, {

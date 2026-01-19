@@ -13,6 +13,12 @@ export interface UseTerminalRestoreOptions {
 	isBracketedPasteRef: React.MutableRefObject<boolean>;
 	modeScanBufferRef: React.MutableRefObject<string>;
 	updateCwdFromData: (data: string) => void;
+	updateModesFromData: (data: string) => void;
+	onExitEvent: (exitCode: number, xterm: XTerm) => void;
+	onErrorEvent: (
+		event: Extract<TerminalStreamEvent, { type: "error" }>,
+		xterm: XTerm,
+	) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -42,6 +48,9 @@ export function useTerminalRestore({
 	isBracketedPasteRef,
 	modeScanBufferRef,
 	updateCwdFromData,
+	updateModesFromData,
+	onExitEvent,
+	onErrorEvent,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -50,9 +59,15 @@ export function useTerminalRestore({
 	const pendingInitialStateRef = useRef<CreateOrAttachResult | null>(null);
 	const restoreSequenceRef = useRef(0);
 
-	// Ref to use cwd parser inside callbacks
+	// Refs to use latest values in callbacks
 	const updateCwdRef = useRef(updateCwdFromData);
 	updateCwdRef.current = updateCwdFromData;
+	const updateModesRef = useRef(updateModesFromData);
+	updateModesRef.current = updateModesFromData;
+	const onExitEventRef = useRef(onExitEvent);
+	onExitEventRef.current = onExitEvent;
+	const onErrorEventRef = useRef(onErrorEvent);
+	onErrorEventRef.current = onErrorEvent;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -66,11 +81,16 @@ export function useTerminalRestore({
 
 		for (const event of events) {
 			if (event.type === "data") {
+				updateModesRef.current(event.data);
 				xterm.write(event.data);
 				updateCwdRef.current(event.data);
+			} else if (event.type === "exit") {
+				onExitEventRef.current(event.exitCode, xterm);
+			} else if (event.type === "error") {
+				onErrorEventRef.current(event, xterm);
 			}
-			// Note: exit, disconnect, error events are handled in the stream subscription
-			// and shouldn't be in pending events during restore
+			// Note: disconnect events are handled immediately in handleStreamData
+			// and should not be in pending events
 		}
 	}, [xtermRef, pendingEventsRef]);
 
