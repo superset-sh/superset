@@ -15,7 +15,6 @@ export type GatedFeature = (typeof GATED_FEATURES)[keyof typeof GATED_FEATURES];
 export function usePaywall() {
 	const { data: session } = authClient.useSession();
 
-	void session;
 	const userPlan: UserPlan = "free";
 
 	function hasAccess(feature: GatedFeature): boolean {
@@ -36,7 +35,13 @@ export function usePaywall() {
 				});
 			}
 		} else {
-			console.log(`[paywall] User blocked from feature: ${feature}`, context);
+			const trackingContext = {
+				userId: session?.user?.id,
+				organizationId: session?.session?.activeOrganizationId,
+				userPlan,
+				...context,
+			};
+			console.log(`[paywall] User blocked from feature: ${feature}`, trackingContext);
 			paywall(feature);
 		}
 	}
