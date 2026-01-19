@@ -139,7 +139,9 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
-	terminalPersistence: integer("terminal_persistence", { mode: "boolean" }),
+	persistTerminal: integer("persist_terminal", { mode: "boolean" }).default(
+		true,
+	),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

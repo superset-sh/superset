@@ -85,6 +85,13 @@
       "when": 1768790828810,
       "tag": "0011_add_terminal_persistence",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1768799848274,
+      "tag": "0012_add_persist_terminal",
+      "breakpoints": true
     }
   ]
 }

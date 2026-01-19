@@ -250,7 +250,7 @@ export const createSettingsRouter = () => {
 
 		getTerminalPersistence: publicProcedure.query(() => {
 			const row = getSettings();
-			return row.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
+			return row.persistTerminal ?? DEFAULT_TERMINAL_PERSISTENCE;
 		}),
 
 		setTerminalPersistence: publicProcedure
@@ -258,10 +258,10 @@ export const createSettingsRouter = () => {
 			.mutation(({ input }) => {
 				localDb
 					.insert(settings)
-					.values({ id: 1, terminalPersistence: input.enabled })
+					.values({ id: 1, persistTerminal: input.enabled })
 					.onConflictDoUpdate({
 						target: settings.id,
-						set: { terminalPersistence: input.enabled },
+						set: { persistTerminal: input.enabled },
 					})
 					.run();
 

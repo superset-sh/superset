@@ -30,7 +30,7 @@ const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
  * Check if daemon mode is enabled.
- * Reads from user settings (terminalPersistence) or falls back to env var.
+ * Reads from user settings (persistTerminal) or falls back to env var.
  */
 export function isDaemonModeEnabled(): boolean {
 	// First check environment variable override (for development/testing)
@@ -46,10 +46,10 @@ export function isDaemonModeEnabled(): boolean {
 	// Read from user settings
 	try {
 		const row = localDb.select().from(settings).get();
-		const enabled = row?.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
+		const enabled = row?.persistTerminal ?? DEFAULT_TERMINAL_PERSISTENCE;
 		if (DEBUG_TERMINAL) {
 			console.log(
-				`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
+				`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.persistTerminal)`,
 			);
 		}
 		return enabled;

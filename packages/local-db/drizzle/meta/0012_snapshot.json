@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "488b17d3-5a03-4206-b041-097293f9ef08",
-  "prevId": "b74ef022-acd9-4140-b9e8-b7c92dd13b16",
+  "id": "8aa1c587-bd94-4cf9-909d-1dc931aa7ac8",
+  "prevId": "488b17d3-5a03-4206-b041-097293f9ef08",
   "tables": {
     "organization_members": {
       "name": "organization_members",
@@ -347,6 +347,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "persist_terminal": {
+          "name": "persist_terminal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": true
         }
       },
       "indexes": {},
