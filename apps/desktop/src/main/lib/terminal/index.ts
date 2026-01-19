@@ -4,6 +4,7 @@ import {
 	disposeTerminalHostClient,
 	getTerminalHostClient,
 } from "main/lib/terminal-host/client";
+import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
 import {
 	DaemonTerminalManager,
@@ -25,28 +26,20 @@ export type {
 // Terminal Manager Selection
 // =============================================================================
 
-// Cache the daemon mode setting to avoid repeated DB reads
-// This is set once at app startup and doesn't change until restart
-let cachedDaemonMode: boolean | null = null;
 const DEBUG_TERMINAL = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 
 /**
  * Check if daemon mode is enabled.
  * Reads from user settings (terminalPersistence) or falls back to env var.
- * The value is cached since it requires app restart to take effect.
  */
 export function isDaemonModeEnabled(): boolean {
-	// Return cached value if available
-	if (cachedDaemonMode !== null) {
-		return cachedDaemonMode;
-	}
-
 	// First check environment variable override (for development/testing)
 	if (process.env.SUPERSET_TERMINAL_DAEMON === "1") {
-		console.log(
-			"[TerminalManager] Daemon mode: ENABLED (via SUPERSET_TERMINAL_DAEMON env var)",
-		);
-		cachedDaemonMode = true;
+		if (DEBUG_TERMINAL) {
+			console.log(
+				"[TerminalManager] Daemon mode: ENABLED (via SUPERSET_TERMINAL_DAEMON env var)",
+			);
+		}
 		return true;
 	}
 
@@ -54,17 +47,17 @@ export function isDaemonModeEnabled(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
 		const enabled = row?.terminalPersistence ?? DEFAULT_TERMINAL_PERSISTENCE;
-		console.log(
-			`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
-		);
-		cachedDaemonMode = enabled;
+		if (DEBUG_TERMINAL) {
+			console.log(
+				`[TerminalManager] Daemon mode: ${enabled ? "ENABLED" : "DISABLED"} (via settings.terminalPersistence)`,
+			);
+		}
 		return enabled;
 	} catch (error) {
 		console.warn(
 			"[TerminalManager] Failed to read settings, defaulting to disabled:",
 			error,
 		);
-		cachedDaemonMode = DEFAULT_TERMINAL_PERSISTENCE;
 		return DEFAULT_TERMINAL_PERSISTENCE;
 	}
 }
@@ -117,20 +110,16 @@ export async function reconcileDaemonSessions(): Promise<void> {
 
 /**
  * Shutdown any orphaned daemon process.
- * Should be called on app startup when daemon mode is disabled to clean up
+ * Called on app startup when daemon mode is disabled to clean up
  * any daemon left running from a previous session with persistence enabled.
- *
- * Uses shutdownIfRunning() to avoid spawning a new daemon just to shut it down.
  */
 export async function shutdownOrphanedDaemon(): Promise<void> {
 	if (isDaemonModeEnabled()) {
-		// Daemon mode is enabled, don't shutdown
 		return;
 	}
 
 	try {
 		const client = getTerminalHostClient();
-		// Use shutdownIfRunning to avoid spawning a daemon if none exists
 		const { wasRunning } = await client.shutdownIfRunning({
 			killSessions: true,
 		});
@@ -140,13 +129,35 @@ export async function shutdownOrphanedDaemon(): Promise<void> {
 			console.log("[TerminalManager] No orphaned daemon to shutdown");
 		}
 	} catch (error) {
-		// Unexpected error during shutdown attempt
 		console.warn(
 			"[TerminalManager] Error during orphan daemon cleanup:",
 			error,
 		);
 	} finally {
-		// Always dispose the client to clean up any partial state
 		disposeTerminalHostClient();
+	}
+}
+
+export async function tryListExistingDaemonSessions(): Promise<{
+	daemonRunning: boolean;
+	sessions: ListSessionsResponse["sessions"];
+}> {
+	try {
+		const client = getTerminalHostClient();
+		const connected = await client.tryConnectAndAuthenticate();
+		if (!connected) {
+			return { daemonRunning: false, sessions: [] };
+		}
+
+		const result = await client.listSessions();
+		return { daemonRunning: true, sessions: result.sessions };
+	} catch (error) {
+		if (DEBUG_TERMINAL) {
+			console.log(
+				"[TerminalManager] Failed to list existing daemon sessions:",
+				error,
+			);
+		}
+		return { daemonRunning: false, sessions: [] };
 	}
 }

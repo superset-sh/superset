@@ -4,6 +4,8 @@ import {
 	type TerminalPreset,
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { app } from "electron";
+import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
 	DEFAULT_CONFIRM_ON_QUIT,
@@ -265,5 +267,11 @@ export const createSettingsRouter = () => {
 
 				return { success: true };
 			}),
+
+		restartApp: publicProcedure.mutation(() => {
+			app.relaunch();
+			quitWithoutConfirmation();
+			return { success: true };
+		}),
 	});
 };
