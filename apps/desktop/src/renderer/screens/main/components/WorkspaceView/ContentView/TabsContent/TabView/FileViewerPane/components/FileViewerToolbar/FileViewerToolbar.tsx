@@ -95,46 +95,30 @@ export function FileViewerToolbar({
 					)}
 				</ToggleGroup>
 				{viewMode === "diff" && (
-					<div className="flex items-center border-l border-border pl-1 ml-0.5">
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={() => onDiffViewModeChange("inline")}
-									className={cn(
-										"rounded p-0.5 transition-colors",
-										diffViewMode === "inline"
-											? "text-foreground bg-muted"
-											: "text-muted-foreground/60 hover:text-muted-foreground",
-									)}
-								>
-									<TbListDetails className="size-3.5" />
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Inline diff
-							</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={() => onDiffViewModeChange("side-by-side")}
-									className={cn(
-										"rounded p-0.5 transition-colors",
-										diffViewMode === "side-by-side"
-											? "text-foreground bg-muted"
-											: "text-muted-foreground/60 hover:text-muted-foreground",
-									)}
-								>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={() =>
+									onDiffViewModeChange(
+										diffViewMode === "side-by-side" ? "inline" : "side-by-side",
+									)
+								}
+								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+							>
+								{diffViewMode === "side-by-side" ? (
 									<TbLayoutSidebarRightFilled className="size-3.5" />
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								Side by side
-							</TooltipContent>
-						</Tooltip>
-					</div>
+								) : (
+									<TbListDetails className="size-3.5" />
+								)}
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							{diffViewMode === "side-by-side"
+								? "Switch to inline diff"
+								: "Switch to side by side diff"}
+						</TooltipContent>
+					</Tooltip>
 				)}
 				<PaneToolbarActions
 					splitOrientation={splitOrientation}

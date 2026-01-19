@@ -120,6 +120,8 @@ export function FileViewerPane({
 	useEffect(() => {
 		setIsDirty(false);
 		originalContentRef.current = "";
+		originalDiffContentRef.current = "";
+		currentDiffContentRef.current = "";
 		draftContentRef.current = null;
 	}, [filePath]);
 

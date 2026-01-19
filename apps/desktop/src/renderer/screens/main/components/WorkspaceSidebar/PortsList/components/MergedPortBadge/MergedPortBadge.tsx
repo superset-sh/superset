@@ -81,7 +81,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 							type="button"
 							onClick={handleClose}
 							aria-label={`Close ${port.label || `port ${port.port}`}`}
-							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-destructive focus-visible:opacity-100 focus-visible:outline-none"
+							className="opacity-0 group-hover:opacity-100 pr-1 transition-opacity text-muted-foreground hover:text-primary focus-visible:opacity-100 focus-visible:outline-none"
 						>
 							<LuX className="size-3.5" strokeWidth={STROKE_WIDTH} />
 						</button>

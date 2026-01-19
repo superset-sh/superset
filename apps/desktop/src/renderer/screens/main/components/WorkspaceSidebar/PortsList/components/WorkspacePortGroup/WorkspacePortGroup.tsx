@@ -41,7 +41,7 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 							<button
 								type="button"
 								onClick={handleCloseAll}
-								className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted/50 transition-opacity text-muted-foreground hover:text-destructive"
+								className="ml-auto opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-muted/50 transition-opacity text-muted-foreground hover:text-primary"
 							>
 								<LuX className="size-3" strokeWidth={STROKE_WIDTH} />
 							</button>
