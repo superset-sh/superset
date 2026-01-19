@@ -946,10 +946,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
-	electronTrpc.terminal.stream.useSubscription({ paneId, workspaceId }, {
-		onData: handleStreamData,
-		enabled: true,
-	});
+	electronTrpc.terminal.stream.useSubscription(
+		{ paneId, workspaceId },
+		{
+			onData: handleStreamData,
+			enabled: true,
+		},
+	);
 
 	// Use ref to avoid triggering full terminal recreation when focus handler changes
 	const handleTerminalFocusRef = useRef(() => {});

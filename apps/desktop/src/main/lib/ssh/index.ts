@@ -2,12 +2,12 @@
  * SSH Module Exports
  */
 
-export * from "./types";
 export { SSHClient } from "./ssh-client";
-export { SSHTerminalManager } from "./ssh-terminal-manager";
 export {
-	parseSSHConfig,
+	convertToConnectionConfigs,
 	getSSHConfigHosts,
 	hasSSHConfig,
-	convertToConnectionConfigs,
+	parseSSHConfig,
 } from "./ssh-config-parser";
+export { SSHTerminalManager } from "./ssh-terminal-manager";
+export * from "./types";

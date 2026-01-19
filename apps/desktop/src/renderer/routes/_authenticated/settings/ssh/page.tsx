@@ -40,10 +40,13 @@ function SSHSettingsPage() {
 	const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 	const [testingId, setTestingId] = useState<string | null>(null);
-	const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
+	const [testResults, setTestResults] = useState<
+		Record<string, { success: boolean; message: string }>
+	>({});
 
 	// Queries
-	const { data: connections, isLoading } = electronTrpc.ssh.listConnections.useQuery();
+	const { data: connections, isLoading } =
+		electronTrpc.ssh.listConnections.useQuery();
 	const { data: hasConfig } = electronTrpc.ssh.hasSSHConfig.useQuery();
 	const { data: configHosts } = electronTrpc.ssh.getSSHConfigHosts.useQuery();
 
@@ -138,10 +141,13 @@ function SSHSettingsPage() {
 								</p>
 							</div>
 						</div>
-						<Dialog open={isImportDialogOpen} onOpenChange={(open) => {
-							setIsImportDialogOpen(open);
-							if (!open) setImportResult(null);
-						}}>
+						<Dialog
+							open={isImportDialogOpen}
+							onOpenChange={(open) => {
+								setIsImportDialogOpen(open);
+								if (!open) setImportResult(null);
+							}}
+						>
 							<DialogTrigger asChild>
 								<Button variant="outline" size="sm">
 									Import Hosts
@@ -159,13 +165,17 @@ function SSHSettingsPage() {
 										const existingNames = new Set(
 											(connections ?? []).map((c) => c.name.toLowerCase()),
 										);
-										const alreadyExists = existingNames.has(host.name.toLowerCase());
+										const alreadyExists = existingNames.has(
+											host.name.toLowerCase(),
+										);
 										return (
 											<div
 												key={host.name}
 												className={cn(
 													"flex items-center justify-between p-2 rounded",
-													alreadyExists ? "bg-muted/30 opacity-60" : "bg-muted/50",
+													alreadyExists
+														? "bg-muted/30 opacity-60"
+														: "bg-muted/50",
 												)}
 											>
 												<div>
@@ -189,31 +199,33 @@ function SSHSettingsPage() {
 									})}
 								</div>
 								<DialogFooter className="flex-col gap-2">
-								{importResult && importResult.imported.length === 0 && (
-									<p className="text-sm text-amber-500 w-full text-left">
-										All hosts already exist in your connections.
-									</p>
-								)}
-								<div className="flex gap-3 w-full justify-end">
-									<Button
-										variant="outline"
-										onClick={() => {
-											setIsImportDialogOpen(false);
-											setImportResult(null);
-										}}
-									>
-										{importResult ? "Close" : "Cancel"}
-									</Button>
-									{!importResult && (
-										<Button
-											onClick={handleImportAll}
-											disabled={importFromConfig.isPending}
-										>
-											{importFromConfig.isPending ? "Importing..." : "Import All"}
-										</Button>
+									{importResult && importResult.imported.length === 0 && (
+										<p className="text-sm text-amber-500 w-full text-left">
+											All hosts already exist in your connections.
+										</p>
 									)}
-								</div>
-							</DialogFooter>
+									<div className="flex gap-3 w-full justify-end">
+										<Button
+											variant="outline"
+											onClick={() => {
+												setIsImportDialogOpen(false);
+												setImportResult(null);
+											}}
+										>
+											{importResult ? "Close" : "Cancel"}
+										</Button>
+										{!importResult && (
+											<Button
+												onClick={handleImportAll}
+												disabled={importFromConfig.isPending}
+											>
+												{importFromConfig.isPending
+													? "Importing..."
+													: "Import All"}
+											</Button>
+										)}
+									</div>
+								</DialogFooter>
 							</DialogContent>
 						</Dialog>
 					</div>
@@ -459,7 +471,9 @@ function AddConnectionForm({
 				)}
 
 				<div className="space-y-2">
-					<Label htmlFor="remoteWorkDir">Default Remote Directory (optional)</Label>
+					<Label htmlFor="remoteWorkDir">
+						Default Remote Directory (optional)
+					</Label>
 					<Input
 						id="remoteWorkDir"
 						placeholder="/home/user/projects"

@@ -42,6 +42,9 @@ const config: Configuration = {
 		"**/node_modules/bindings/**/*",
 		"**/node_modules/file-uri-to-path/**/*",
 		"**/node_modules/node-pty/**/*",
+		// ssh2 has native crypto module for SSH connections
+		"**/node_modules/ssh2/**/*",
+		"**/node_modules/cpu-features/**/*",
 		// Sound files must be unpacked so external audio players (afplay, paplay, etc.) can access them
 		"**/resources/sounds/**/*",
 	],
@@ -88,6 +91,18 @@ const config: Configuration = {
 		{
 			from: "node_modules/node-pty",
 			to: "node_modules/node-pty",
+			filter: ["**/*"],
+		},
+		// ssh2 for SSH remote connections
+		{
+			from: "node_modules/ssh2",
+			to: "node_modules/ssh2",
+			filter: ["**/*"],
+		},
+		// cpu-features is a dependency of ssh2
+		{
+			from: "node_modules/cpu-features",
+			to: "node_modules/cpu-features",
 			filter: ["**/*"],
 		},
 		"!**/.DS_Store",

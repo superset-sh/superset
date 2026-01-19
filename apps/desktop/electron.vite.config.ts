@@ -76,6 +76,7 @@ export default defineConfig({
 					"electron",
 					"better-sqlite3",
 					"node-pty",
+					"ssh2",
 					/^@sentry\/electron/,
 				],
 			},

@@ -61,6 +61,8 @@ export async function MainWindow() {
 			// Isolate Electron session from system browser cookies
 			// This ensures desktop uses bearer token auth, not web cookies
 			partition: "persist:superset",
+			// Disable web security in development to bypass CORS when connecting to production API
+			webSecurity: process.env.NODE_ENV !== "development",
 		},
 	});
 

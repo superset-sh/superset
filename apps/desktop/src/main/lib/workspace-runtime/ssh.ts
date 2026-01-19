@@ -7,6 +7,8 @@
  * Similar to LocalWorkspaceRuntime but connects to remote servers via SSH.
  */
 
+import { SSHTerminalManager } from "../ssh/ssh-terminal-manager";
+import type { SSHConnectionConfig } from "../ssh/types";
 import type {
 	TerminalCapabilities,
 	TerminalManagement,
@@ -14,8 +16,6 @@ import type {
 	WorkspaceRuntime,
 	WorkspaceRuntimeId,
 } from "./types";
-import type { SSHConnectionConfig } from "../ssh/types";
-import { SSHTerminalManager } from "../ssh/ssh-terminal-manager";
 
 // =============================================================================
 // SSH Terminal Runtime Adapter

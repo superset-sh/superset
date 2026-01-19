@@ -94,7 +94,10 @@ export function StartView() {
 		? recentProjects.slice(0, visibleCount)
 		: recentProjects.slice(0, 5);
 	const hasMoreToLoad = showAllProjects && recentProjects.length > visibleCount;
-	const isLoading = openNew.isPending || createBranchWorkspace.isPending || openRemoteProject.isPending;
+	const isLoading =
+		openNew.isPending ||
+		createBranchWorkspace.isPending ||
+		openRemoteProject.isPending;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">

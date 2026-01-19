@@ -8,9 +8,9 @@ import { DesktopRedirect } from "./components/DesktopRedirect";
 export default async function DesktopSuccessPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ desktop_state?: string }>;
+	searchParams: Promise<{ desktop_state?: string; protocol?: string }>;
 }) {
-	const { desktop_state: state } = await searchParams;
+	const { desktop_state: state, protocol: protocolParam } = await searchParams;
 
 	if (!state) {
 		return (
@@ -77,8 +77,8 @@ export default async function DesktopSuccessPage({
 		activeOrganizationId: session.session.activeOrganizationId,
 		updatedAt: now,
 	});
-	const protocol =
-		process.env.NODE_ENV === "development" ? "superset-dev" : "superset";
+	// Use protocol from URL param (passed from desktop app), fallback to production
+	const protocol = protocolParam || "superset";
 	const desktopUrl = `${protocol}://auth/callback?token=${encodeURIComponent(token)}&expiresAt=${encodeURIComponent(expiresAt.toISOString())}&state=${encodeURIComponent(state)}`;
 
 	return (

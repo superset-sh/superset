@@ -7,8 +7,9 @@
  * Supports:
  * - LocalWorkspaceRuntime for local workspaces
  * - SSHWorkspaceRuntime for remote SSH workspaces
+ * - CloudWorkspaceRuntime for cloud-hosted workspaces (extensible)
  *
- * Runtime selection is based on workspace metadata (sshConnectionId).
+ * Runtime selection is based on workspace metadata (sshConnectionId, cloudProviderId, etc.).
  */
 
 import type { SSHConnectionConfig } from "../ssh/types";
@@ -17,14 +18,74 @@ import { SSHWorkspaceRuntime } from "./ssh";
 import type { WorkspaceRuntime, WorkspaceRuntimeRegistry } from "./types";
 
 // =============================================================================
+// Remote Workspace Types
+// =============================================================================
+
+/**
+ * Remote workspace types supported by the registry.
+ * Extensible for future cloud providers.
+ */
+export type RemoteWorkspaceType = "ssh" | "cloud";
+
+/**
+ * Mapping info for a remote workspace.
+ */
+interface RemoteWorkspaceMapping {
+	type: RemoteWorkspaceType;
+	runtimeId: string; // sshConnectionId or cloudProviderId
+}
+
+/**
+ * Interface for cloud workspace runtimes.
+ * Cloud providers should implement this interface to integrate with the registry.
+ *
+ * Example implementation:
+ * ```typescript
+ * class FreestyleWorkspaceRuntime implements CloudWorkspaceRuntime {
+ *   readonly id: string;
+ *   readonly terminal: TerminalRuntime;
+ *   readonly capabilities: { terminal: TerminalCapabilities };
+ *
+ *   async connect(): Promise<void> { ... }
+ *   disconnect(): void { ... }
+ *   isConnected(): boolean { ... }
+ * }
+ * ```
+ */
+export interface CloudWorkspaceRuntime extends WorkspaceRuntime {
+	connect(): Promise<void>;
+	disconnect(): void;
+	isConnected(): boolean;
+}
+
+// =============================================================================
 // Extended Registry Interface
 // =============================================================================
 
 /**
- * Extended registry interface with SSH support.
+ * Extended registry interface with SSH and cloud workspace support.
  */
 export interface ExtendedWorkspaceRuntimeRegistry
 	extends WorkspaceRuntimeRegistry {
+	// ===========================================================================
+	// Generic Remote Workspace Methods
+	// ===========================================================================
+
+	/**
+	 * Get the remote workspace type for a workspace.
+	 * Returns undefined if the workspace is local.
+	 */
+	getWorkspaceType(workspaceId: string): RemoteWorkspaceType | undefined;
+
+	/**
+	 * Unregister any remote workspace mapping.
+	 */
+	unregisterRemoteWorkspace(workspaceId: string): void;
+
+	// ===========================================================================
+	// SSH Workspace Methods
+	// ===========================================================================
+
 	/**
 	 * Get or create an SSH runtime for a connection.
 	 * Reuses existing runtime if already connected to the same host.
@@ -39,6 +100,7 @@ export interface ExtendedWorkspaceRuntimeRegistry
 
 	/**
 	 * Unregister a workspace from SSH.
+	 * @deprecated Use unregisterRemoteWorkspace instead
 	 */
 	unregisterSSHWorkspace(workspaceId: string): void;
 
@@ -57,8 +119,55 @@ export interface ExtendedWorkspaceRuntimeRegistry
 	 */
 	disconnectSSHRuntime(sshConnectionId: string): Promise<void>;
 
+	// ===========================================================================
+	// Cloud Workspace Methods
+	// ===========================================================================
+
 	/**
-	 * Cleanup all runtimes.
+	 * Register a cloud runtime with the registry.
+	 * Call this when initializing a cloud provider.
+	 *
+	 * @param providerId Unique identifier for the cloud provider instance
+	 * @param runtime The cloud workspace runtime implementation
+	 */
+	registerCloudRuntime(
+		providerId: string,
+		runtime: CloudWorkspaceRuntime,
+	): void;
+
+	/**
+	 * Get a cloud runtime by provider ID.
+	 * Returns undefined if no runtime is registered for this provider.
+	 */
+	getCloudRuntime(providerId: string): CloudWorkspaceRuntime | undefined;
+
+	/**
+	 * Register a workspace as using a cloud provider.
+	 * Call this when a workspace is associated with a cloud VM.
+	 */
+	registerCloudWorkspace(workspaceId: string, providerId: string): void;
+
+	/**
+	 * Check if a workspace is using a cloud provider.
+	 */
+	isCloudWorkspace(workspaceId: string): boolean;
+
+	/**
+	 * Get all active cloud runtimes.
+	 */
+	getActiveCloudRuntimes(): Map<string, CloudWorkspaceRuntime>;
+
+	/**
+	 * Disconnect and remove a cloud runtime.
+	 */
+	disconnectCloudRuntime(providerId: string): Promise<void>;
+
+	// ===========================================================================
+	// Lifecycle
+	// ===========================================================================
+
+	/**
+	 * Cleanup all runtimes (local, SSH, and cloud).
 	 */
 	cleanupAll(): Promise<void>;
 }
@@ -68,34 +177,49 @@ export interface ExtendedWorkspaceRuntimeRegistry
 // =============================================================================
 
 /**
- * Default registry implementation with SSH support.
+ * Default registry implementation with SSH and cloud workspace support.
  *
  * - Local workspaces use LocalWorkspaceRuntime
  * - SSH workspaces use SSHWorkspaceRuntime based on their sshConnectionId
+ * - Cloud workspaces use CloudWorkspaceRuntime based on their providerId
  */
 class DefaultWorkspaceRuntimeRegistry
 	implements ExtendedWorkspaceRuntimeRegistry
 {
 	private localRuntime: LocalWorkspaceRuntime | null = null;
 	private sshRuntimes: Map<string, SSHWorkspaceRuntime> = new Map();
-	private workspaceToSSH: Map<string, string> = new Map(); // workspaceId -> sshConnectionId
+	private cloudRuntimes: Map<string, CloudWorkspaceRuntime> = new Map();
+	private workspaceToRemote: Map<string, RemoteWorkspaceMapping> = new Map(); // workspaceId -> mapping
 	private sshConfigs: Map<string, SSHConnectionConfig> = new Map(); // sshConnectionId -> config
 
 	/**
 	 * Get the runtime for a specific workspace.
 	 *
-	 * Returns SSH runtime if workspace is registered as SSH, otherwise local.
+	 * Returns the appropriate runtime based on workspace type:
+	 * - SSH runtime for SSH workspaces
+	 * - Cloud runtime for cloud workspaces
+	 * - Local runtime for everything else
 	 */
 	getForWorkspaceId(workspaceId: string): WorkspaceRuntime {
-		const sshConnectionId = this.workspaceToSSH.get(workspaceId);
-		if (sshConnectionId) {
-			const sshRuntime = this.sshRuntimes.get(sshConnectionId);
-			if (sshRuntime) {
-				return sshRuntime;
+		const mapping = this.workspaceToRemote.get(workspaceId);
+		if (mapping) {
+			if (mapping.type === "ssh") {
+				const sshRuntime = this.sshRuntimes.get(mapping.runtimeId);
+				if (sshRuntime) {
+					return sshRuntime;
+				}
+				console.warn(
+					`[registry] Workspace ${workspaceId} mapped to SSH ${mapping.runtimeId} but runtime not found, falling back to local`,
+				);
+			} else if (mapping.type === "cloud") {
+				const cloudRuntime = this.cloudRuntimes.get(mapping.runtimeId);
+				if (cloudRuntime) {
+					return cloudRuntime;
+				}
+				console.warn(
+					`[registry] Workspace ${workspaceId} mapped to cloud ${mapping.runtimeId} but runtime not found, falling back to local`,
+				);
 			}
-			console.warn(
-				`[registry] Workspace ${workspaceId} mapped to SSH ${sshConnectionId} but runtime not found, falling back to local`,
-			);
 		}
 		return this.getDefault();
 	}
@@ -112,6 +236,28 @@ class DefaultWorkspaceRuntimeRegistry
 		}
 		return this.localRuntime;
 	}
+
+	// ===========================================================================
+	// Generic Remote Workspace Methods
+	// ===========================================================================
+
+	/**
+	 * Get the remote workspace type for a workspace.
+	 */
+	getWorkspaceType(workspaceId: string): RemoteWorkspaceType | undefined {
+		return this.workspaceToRemote.get(workspaceId)?.type;
+	}
+
+	/**
+	 * Unregister any remote workspace mapping.
+	 */
+	unregisterRemoteWorkspace(workspaceId: string): void {
+		this.workspaceToRemote.delete(workspaceId);
+	}
+
+	// ===========================================================================
+	// SSH Workspace Methods
+	// ===========================================================================
 
 	/**
 	 * Get or create an SSH runtime for a connection configuration.
@@ -136,21 +282,25 @@ class DefaultWorkspaceRuntimeRegistry
 		console.log(
 			`[registry] Registering workspace ${workspaceId} with SSH connection ${sshConnectionId}`,
 		);
-		this.workspaceToSSH.set(workspaceId, sshConnectionId);
+		this.workspaceToRemote.set(workspaceId, {
+			type: "ssh",
+			runtimeId: sshConnectionId,
+		});
 	}
 
 	/**
 	 * Unregister a workspace from SSH.
+	 * @deprecated Use unregisterRemoteWorkspace instead
 	 */
 	unregisterSSHWorkspace(workspaceId: string): void {
-		this.workspaceToSSH.delete(workspaceId);
+		this.unregisterRemoteWorkspace(workspaceId);
 	}
 
 	/**
 	 * Check if a workspace is using SSH.
 	 */
 	isSSHWorkspace(workspaceId: string): boolean {
-		return this.workspaceToSSH.has(workspaceId);
+		return this.workspaceToRemote.get(workspaceId)?.type === "ssh";
 	}
 
 	/**
@@ -198,9 +348,9 @@ class DefaultWorkspaceRuntimeRegistry
 				this.sshConfigs.delete(sshConnectionId);
 
 				// Remove all workspace mappings for this SSH connection
-				for (const [workspaceId, connId] of this.workspaceToSSH) {
-					if (connId === sshConnectionId) {
-						this.workspaceToSSH.delete(workspaceId);
+				for (const [workspaceId, mapping] of this.workspaceToRemote) {
+					if (mapping.type === "ssh" && mapping.runtimeId === sshConnectionId) {
+						this.workspaceToRemote.delete(workspaceId);
 					}
 				}
 			}
@@ -214,8 +364,114 @@ class DefaultWorkspaceRuntimeRegistry
 		}
 	}
 
+	// ===========================================================================
+	// Cloud Workspace Methods
+	// ===========================================================================
+
 	/**
-	 * Cleanup all runtimes.
+	 * Register a cloud runtime with the registry.
+	 */
+	registerCloudRuntime(
+		providerId: string,
+		runtime: CloudWorkspaceRuntime,
+	): void {
+		console.log(
+			`[registry] Registering cloud runtime for provider ${providerId}`,
+		);
+		this.cloudRuntimes.set(providerId, runtime);
+	}
+
+	/**
+	 * Get a cloud runtime by provider ID.
+	 */
+	getCloudRuntime(providerId: string): CloudWorkspaceRuntime | undefined {
+		return this.cloudRuntimes.get(providerId);
+	}
+
+	/**
+	 * Register a workspace as using a cloud provider.
+	 */
+	registerCloudWorkspace(workspaceId: string, providerId: string): void {
+		console.log(
+			`[registry] Registering workspace ${workspaceId} with cloud provider ${providerId}`,
+		);
+		this.workspaceToRemote.set(workspaceId, {
+			type: "cloud",
+			runtimeId: providerId,
+		});
+	}
+
+	/**
+	 * Check if a workspace is using a cloud provider.
+	 */
+	isCloudWorkspace(workspaceId: string): boolean {
+		return this.workspaceToRemote.get(workspaceId)?.type === "cloud";
+	}
+
+	/**
+	 * Get all active cloud runtimes.
+	 */
+	getActiveCloudRuntimes(): Map<string, CloudWorkspaceRuntime> {
+		return new Map(this.cloudRuntimes);
+	}
+
+	/**
+	 * Disconnect and remove a cloud runtime.
+	 */
+	async disconnectCloudRuntime(providerId: string): Promise<void> {
+		const runtime = this.cloudRuntimes.get(providerId);
+		if (runtime) {
+			console.log(`[registry] Disconnecting cloud runtime for ${providerId}`);
+			let cleanupError: Error | undefined;
+			let disconnectError: Error | undefined;
+			try {
+				await runtime.terminal.cleanup();
+			} catch (error) {
+				cleanupError =
+					error instanceof Error ? error : new Error(String(error));
+				console.error(
+					`[registry] Error cleaning up cloud runtime ${providerId}:`,
+					cleanupError.message,
+				);
+			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (error) {
+					disconnectError =
+						error instanceof Error ? error : new Error(String(error));
+					console.error(
+						`[registry] Error disconnecting cloud runtime ${providerId}:`,
+						disconnectError.message,
+					);
+				}
+
+				// Always clean up state even if cleanup/disconnect failed
+				this.cloudRuntimes.delete(providerId);
+
+				// Remove all workspace mappings for this cloud provider
+				for (const [workspaceId, mapping] of this.workspaceToRemote) {
+					if (mapping.type === "cloud" && mapping.runtimeId === providerId) {
+						this.workspaceToRemote.delete(workspaceId);
+					}
+				}
+			}
+			// Propagate the first error encountered
+			if (cleanupError) {
+				throw cleanupError;
+			}
+			if (disconnectError) {
+				throw disconnectError;
+			}
+		}
+	}
+
+	// ===========================================================================
+	// Lifecycle
+	// ===========================================================================
+
+	/**
+	 * Cleanup all runtimes (local, SSH, and cloud).
 	 */
 	async cleanupAll(): Promise<void> {
 		// Cleanup local runtime
@@ -254,9 +510,36 @@ class DefaultWorkspaceRuntimeRegistry
 				}
 			}
 		}
+
+		// Cleanup all cloud runtimes (continue even if individual cleanups fail)
+		for (const [id, runtime] of this.cloudRuntimes) {
+			console.log(`[registry] Cleaning up cloud runtime ${id}`);
+			try {
+				await runtime.terminal.cleanup();
+			} catch (error) {
+				console.error(
+					`[registry] Error cleaning up cloud runtime ${id}:`,
+					error instanceof Error ? error.message : String(error),
+				);
+			} finally {
+				// Always disconnect even if cleanup failed
+				try {
+					runtime.disconnect();
+				} catch (disconnectError) {
+					console.error(
+						`[registry] Error disconnecting cloud runtime ${id}:`,
+						disconnectError instanceof Error
+							? disconnectError.message
+							: String(disconnectError),
+					);
+				}
+			}
+		}
+
 		this.sshRuntimes.clear();
+		this.cloudRuntimes.clear();
 		this.sshConfigs.clear();
-		this.workspaceToSSH.clear();
+		this.workspaceToRemote.clear();
 	}
 }
 

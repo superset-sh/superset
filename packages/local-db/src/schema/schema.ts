@@ -6,7 +6,6 @@ import type {
 	GitHubStatus,
 	GitStatus,
 	SSHAuthMethod,
-	SSHConnectionConfig,
 	TerminalLinkBehavior,
 	TerminalPreset,
 	WorkspaceType,

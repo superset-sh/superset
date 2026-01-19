@@ -17,10 +17,14 @@ import { cpSync, existsSync, lstatSync, realpathSync, rmSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 // Native modules that must exist for the app to work
-const NATIVE_MODULES = ["better-sqlite3", "node-pty"] as const;
+const NATIVE_MODULES = ["better-sqlite3", "node-pty", "ssh2"] as const;
 
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
-const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
+const NATIVE_MODULE_DEPS = [
+	"bindings",
+	"file-uri-to-path",
+	"cpu-features",
+] as const;
 
 function copyModuleIfSymlink(
 	nodeModulesDir: string,

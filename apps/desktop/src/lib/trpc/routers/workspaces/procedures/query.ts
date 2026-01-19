@@ -1,4 +1,11 @@
-import { projects, workspaces, worktrees, remoteWorkspaces, remoteProjects, sshConnections } from "@superset/local-db";
+import {
+	projects,
+	remoteProjects,
+	remoteWorkspaces,
+	sshConnections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq, isNotNull, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";

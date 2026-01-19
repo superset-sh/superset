@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { HiOutlineServer, HiOutlineCog6Tooth } from "react-icons/hi2";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
+import { HiOutlineCog6Tooth, HiOutlineServer } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface OpenRemoteDialogProps {
@@ -55,7 +55,8 @@ export function OpenRemoteDialog({
 			createRemoteProject.mutate({
 				sshConnectionId: selectedConnectionId,
 				remotePath: remotePath.trim(),
-				name: projectName.trim() || remotePath.split("/").pop() || "Remote Project",
+				name:
+					projectName.trim() || remotePath.split("/").pop() || "Remote Project",
 			});
 		},
 		onError: (err) => {
@@ -211,7 +212,9 @@ export function OpenRemoteDialog({
 								<button
 									type="button"
 									onClick={handleConnect}
-									disabled={isLoading || !selectedConnectionId || !remotePath.trim()}
+									disabled={
+										isLoading || !selectedConnectionId || !remotePath.trim()
+									}
 									className="px-4 py-2 rounded-md bg-foreground text-background hover:bg-foreground/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
 								>
 									{isLoading ? "Connecting..." : "Connect"}

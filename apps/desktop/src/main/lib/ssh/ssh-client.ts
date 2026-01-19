@@ -118,14 +118,17 @@ export class SSHClient extends EventEmitter {
 			this.emitStatus();
 		});
 
-		this.client.on("keyboard-interactive", (_name, _instructions, _lang, prompts, finish) => {
-			// For keyboard-interactive auth, we don't support password prompts here
-			// This would require UI integration
-			console.warn(
-				"[ssh/client] Keyboard-interactive auth requested but not supported",
-			);
-			finish([]);
-		});
+		this.client.on(
+			"keyboard-interactive",
+			(_name, _instructions, _lang, _prompts, finish) => {
+				// For keyboard-interactive auth, we don't support password prompts here
+				// This would require UI integration
+				console.warn(
+					"[ssh/client] Keyboard-interactive auth requested but not supported",
+				);
+				finish([]);
+			},
+		);
 	}
 
 	/** Emits connection status to listeners */
@@ -158,7 +161,7 @@ export class SSHClient extends EventEmitter {
 
 		// Exponential backoff: delay = base * 2^(attempt-1), capped at max
 		const delay = Math.min(
-			BASE_RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1),
+			BASE_RECONNECT_DELAY_MS * 2 ** (this.reconnectAttempts - 1),
 			MAX_RECONNECT_DELAY_MS,
 		);
 
@@ -181,7 +184,9 @@ export class SSHClient extends EventEmitter {
 			return;
 		}
 
-		console.log(`[ssh/client] Connecting to ${this.config.host}:${this.config.port} as ${this.config.username}`);
+		console.log(
+			`[ssh/client] Connecting to ${this.config.host}:${this.config.port} as ${this.config.username}`,
+		);
 		this.state = "connecting";
 		// Mark as initial connect to prevent persistent error handler from triggering reconnect
 		this.isInitialConnect = true;
@@ -202,7 +207,9 @@ export class SSHClient extends EventEmitter {
 
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
-				console.error(`[ssh/client] Connection timeout after ${this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT}ms`);
+				console.error(
+					`[ssh/client] Connection timeout after ${this.config.connectionTimeout ?? DEFAULT_CONNECTION_TIMEOUT}ms`,
+				);
 				this.isInitialConnect = false; // Clear flag on timeout
 				this.client.end();
 				reject(new Error("Connection timeout"));
@@ -264,7 +271,7 @@ export class SSHClient extends EventEmitter {
 				// and normalize to ensure consistent path separators on Windows
 				if (keyPath.startsWith("~")) {
 					keyPath = path.normalize(
-						keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep)
+						keyPath.replace(/^~[/\\]?/, os.homedir() + path.sep),
 					);
 				}
 				console.log(`[ssh/client] Reading private key from: ${keyPath}`);
@@ -272,7 +279,9 @@ export class SSHClient extends EventEmitter {
 					config.privateKey = fs.readFileSync(keyPath);
 				} catch (err) {
 					const message = err instanceof Error ? err.message : String(err);
-					throw new Error(`Failed to read private key at ${keyPath}: ${message}`);
+					throw new Error(
+						`Failed to read private key at ${keyPath}: ${message}`,
+					);
 				}
 				break;
 			}
@@ -285,11 +294,13 @@ export class SSHClient extends EventEmitter {
 					try {
 						fs.accessSync(opensshPipe, fs.constants.R_OK);
 						config.agent = opensshPipe;
-						console.log(`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`);
+						console.log(
+							`[ssh/client] Using Windows OpenSSH agent pipe: ${opensshPipe}`,
+						);
 					} catch {
 						throw new Error(
 							"Windows OpenSSH Agent not available. Ensure the ssh-agent service is running: " +
-							"Start-Service ssh-agent (PowerShell as Admin)"
+								"Start-Service ssh-agent (PowerShell as Admin)",
 						);
 					}
 				} else {
@@ -382,7 +393,10 @@ export class SSHClient extends EventEmitter {
 				});
 
 				channel.on("error", (err: Error) => {
-					console.error(`[ssh/client] Channel error for ${paneId}:`, err.message);
+					console.error(
+						`[ssh/client] Channel error for ${paneId}:`,
+						err.message,
+					);
 					this.emit(`error:${paneId}`, err.message);
 				});
 
@@ -390,7 +404,9 @@ export class SSHClient extends EventEmitter {
 				if (cwd && isValidRemotePath(cwd)) {
 					channel.write(`cd ${shellEscape(cwd)} && clear\n`);
 				} else if (cwd) {
-					console.warn(`[ssh/client] Invalid remote path for cwd, ignoring: ${cwd}`);
+					console.warn(
+						`[ssh/client] Invalid remote path for cwd, ignoring: ${cwd}`,
+					);
 				}
 
 				resolve(channel);
@@ -418,7 +434,9 @@ export class SSHClient extends EventEmitter {
 		if (channel) {
 			channel.setWindow(rows, cols, 0, 0);
 		} else {
-			console.warn(`[ssh/client] Cannot resize ${paneId} to ${cols}x${rows}: channel not found`);
+			console.warn(
+				`[ssh/client] Cannot resize ${paneId} to ${cols}x${rows}: channel not found`,
+			);
 		}
 	}
 
@@ -430,7 +448,9 @@ export class SSHClient extends EventEmitter {
 		if (channel) {
 			channel.signal(signalName);
 		} else {
-			console.warn(`[ssh/client] Cannot send signal ${signalName} to ${paneId}: channel not found`);
+			console.warn(
+				`[ssh/client] Cannot send signal ${signalName} to ${paneId}: channel not found`,
+			);
 		}
 	}
 

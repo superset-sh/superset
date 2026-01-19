@@ -8,7 +8,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { SSHConnectionConfig, SSHAuthMethod } from "./types";
+import type { SSHAuthMethod, SSHConnectionConfig } from "./types";
 
 interface SSHConfigHost {
 	name: string;
@@ -100,7 +100,9 @@ export function parseSSHConfig(configPath?: string): SSHConfigHost[] {
 		hosts.push(currentHost);
 	}
 
-	console.log(`[ssh-config] Parsed ${hosts.length} hosts from ${sshConfigPath}`);
+	console.log(
+		`[ssh-config] Parsed ${hosts.length} hosts from ${sshConfigPath}`,
+	);
 	return hosts;
 }
 

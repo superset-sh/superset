@@ -7,6 +7,7 @@ import {
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
 	HiOutlinePaintBrush,
+	HiOutlineServer,
 	HiOutlineUser,
 	HiOutlineUserGroup,
 } from "react-icons/hi2";
@@ -19,7 +20,8 @@ type SettingsRoute =
 	| "/settings/keyboard"
 	| "/settings/presets"
 	| "/settings/behavior"
-	| "/settings/terminal";
+	| "/settings/terminal"
+	| "/settings/ssh";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
@@ -65,6 +67,11 @@ const GENERAL_SECTIONS: {
 		id: "/settings/terminal",
 		label: "Terminal",
 		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/ssh",
+		label: "SSH Remote",
+		icon: <HiOutlineServer className="h-4 w-4" />,
 	},
 ];
 

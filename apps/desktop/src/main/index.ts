@@ -35,9 +35,12 @@ if (process.env.NODE_ENV === "development") {
 // In development, we need to provide the execPath and args
 if (process.defaultApp) {
 	if (process.argv.length >= 2) {
-		app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [
-			path.resolve(process.argv[1]),
-		]);
+		const execArgs = [path.resolve(process.argv[1])];
+		app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, execArgs);
+		// In development, also register production protocol so OAuth redirects work
+		if (process.env.NODE_ENV === "development") {
+			app.setAsDefaultProtocolClient("superset", process.execPath, execArgs);
+		}
 	}
 } else {
 	app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
@@ -59,7 +62,10 @@ async function processDeepLink(url: string): Promise<void> {
  * Find a deep link URL in argv
  */
 function findDeepLinkInArgv(argv: string[]): string | undefined {
-	return argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
+	return argv.find(
+		(arg) =>
+			arg.startsWith(`${PROTOCOL_SCHEME}://`) || arg.startsWith("superset://"),
+	);
 }
 
 /**

@@ -7,8 +7,8 @@
  */
 
 import { EventEmitter } from "node:events";
-import type { SSHConnectionConfig, SSHSessionInfo } from "./types";
 import { SSHClient } from "./ssh-client";
+import type { SSHConnectionConfig, SSHSessionInfo } from "./types";
 
 const DEFAULT_COLS = 80;
 const DEFAULT_ROWS = 24;
@@ -37,6 +37,9 @@ export class SSHTerminalManager extends EventEmitter {
 	private sessionHandlers: Map<string, SessionHandlers> = new Map();
 	private pendingCreates: Map<string, Promise<unknown>> = new Map();
 	private config: SSHConnectionConfig;
+	private connectionStatusHandler:
+		| ((status: { state: string }) => void)
+		| null = null;
 
 	constructor(config: SSHConnectionConfig) {
 		super();
@@ -46,10 +49,11 @@ export class SSHTerminalManager extends EventEmitter {
 	}
 
 	private setupEventForwarding(): void {
-		// Forward connection status events
-		this.sshClient.on("connectionStatus", (status) => {
+		// Forward connection status events (store handler for cleanup)
+		this.connectionStatusHandler = (status) => {
 			this.emit("connectionStatus", status);
-		});
+		};
+		this.sshClient.on("connectionStatus", this.connectionStatusHandler);
 	}
 
 	/**
@@ -63,6 +67,12 @@ export class SSHTerminalManager extends EventEmitter {
 	 * Disconnect from the remote SSH server
 	 */
 	disconnect(): void {
+		// Remove connectionStatus handler
+		if (this.connectionStatusHandler) {
+			this.sshClient.off("connectionStatus", this.connectionStatusHandler);
+			this.connectionStatusHandler = null;
+		}
+
 		// Remove all session handlers before disconnecting
 		for (const [paneId, handlers] of this.sessionHandlers) {
 			this.sshClient.off(`data:${paneId}`, handlers.data);
@@ -134,7 +144,7 @@ export class SSHTerminalManager extends EventEmitter {
 
 		// Check for existing session
 		const existing = this.sessions.get(paneId);
-		if (existing && existing.isAlive && this.sshClient.hasChannel(paneId)) {
+		if (existing?.isAlive && this.sshClient.hasChannel(paneId)) {
 			existing.lastActive = Date.now();
 			return {
 				isNew: false,
@@ -211,7 +221,11 @@ export class SSHTerminalManager extends EventEmitter {
 		};
 
 		// Store handlers for later cleanup
-		this.sessionHandlers.set(paneId, { data: dataHandler, exit: exitHandler, error: errorHandler });
+		this.sessionHandlers.set(paneId, {
+			data: dataHandler,
+			exit: exitHandler,
+			error: errorHandler,
+		});
 
 		this.sshClient.on(`data:${paneId}`, dataHandler);
 		this.sshClient.on(`exit:${paneId}`, exitHandler);
