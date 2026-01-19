@@ -65,12 +65,11 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only sync on organization change
 	useEffect(() => {
 		if (!organization) return;
 		setNameValue(organization.name);
 		setLogoPreview(organization.logo ?? null);
-	}, [organization?.id]);
+	}, [organization]);
 
 	async function handleLogoUpload(): Promise<void> {
 		if (!organization) return;
