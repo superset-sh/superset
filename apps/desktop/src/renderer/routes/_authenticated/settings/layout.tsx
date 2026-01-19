@@ -6,12 +6,12 @@ import {
 } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { SettingsSidebar } from "./components/SettingsSidebar";
-import { getMatchCountBySection } from "./utils/settings-search";
 import {
 	type SettingsSection,
 	useSettingsSearchQuery,
 } from "renderer/stores/settings-state";
+import { SettingsSidebar } from "./components/SettingsSidebar";
+import { getMatchCountBySection } from "./utils/settings-search";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,

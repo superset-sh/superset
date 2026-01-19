@@ -28,7 +28,6 @@ import {
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { markTerminalKilledByUser } from "renderer/lib/terminal-kill-tracking";
 import { usePresets } from "renderer/react-query/presets";
-import { PresetRow } from "./components/PresetRow";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
@@ -39,6 +38,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { PresetRow } from "./components/PresetRow";
 
 interface PresetTemplate {
 	name: string;

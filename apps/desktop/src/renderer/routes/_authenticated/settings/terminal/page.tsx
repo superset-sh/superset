@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { getMatchingItemsForSection } from "../utils/settings-search";
 import { TerminalSettings } from "./components/TerminalSettings";
-import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export const Route = createFileRoute("/_authenticated/settings/terminal/")({
 	component: TerminalSettingsPage,

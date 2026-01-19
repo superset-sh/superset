@@ -115,105 +115,105 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 							</div>
 						)}
 
-						{showMembersList && (
-							<>
-								{isLoading ? (
-									<div className="space-y-2 border rounded-lg">
-										{[1, 2, 3].map((i) => (
-											<div key={i} className="flex items-center gap-4 p-4">
-												<Skeleton className="h-8 w-8 rounded-full" />
-												<div className="flex-1 space-y-2">
-													<Skeleton className="h-4 w-48" />
-													<Skeleton className="h-3 w-32" />
-												</div>
-												<Skeleton className="h-4 w-16" />
-												<Skeleton className="h-4 w-20" />
+						{showMembersList &&
+							(isLoading ? (
+								<div className="space-y-2 border rounded-lg">
+									{[1, 2, 3].map((i) => (
+										<div key={i} className="flex items-center gap-4 p-4">
+											<Skeleton className="h-8 w-8 rounded-full" />
+											<div className="flex-1 space-y-2">
+												<Skeleton className="h-4 w-48" />
+												<Skeleton className="h-3 w-32" />
 											</div>
-										))}
-									</div>
-								) : members.length === 0 ? (
-									<div className="text-center py-12 text-muted-foreground border rounded-lg">
-										No members yet
-									</div>
-								) : (
-									<div className="border rounded-lg">
-										<Table>
-											<TableHeader>
-												<TableRow>
-													<TableHead>Name</TableHead>
-													<TableHead>Email</TableHead>
-													<TableHead>Role</TableHead>
-													<TableHead>Joined</TableHead>
-													<TableHead className="w-[50px]" />
-												</TableRow>
-											</TableHeader>
-											<TableBody>
-												{members.map((member) => {
-													const isCurrentUserRow = member.userId === currentUserId;
+											<Skeleton className="h-4 w-16" />
+											<Skeleton className="h-4 w-20" />
+										</div>
+									))}
+								</div>
+							) : members.length === 0 ? (
+								<div className="text-center py-12 text-muted-foreground border rounded-lg">
+									No members yet
+								</div>
+							) : (
+								<div className="border rounded-lg">
+									<Table>
+										<TableHeader>
+											<TableRow>
+												<TableHead>Name</TableHead>
+												<TableHead>Email</TableHead>
+												<TableHead>Role</TableHead>
+												<TableHead>Joined</TableHead>
+												<TableHead className="w-[50px]" />
+											</TableRow>
+										</TableHeader>
+										<TableBody>
+											{members.map((member) => {
+												const isCurrentUserRow =
+													member.userId === currentUserId;
 
-													return (
-														<TableRow key={member.memberId}>
-															<TableCell>
-																<div className="flex items-center gap-3">
-																	<Avatar
-																		size="md"
-																		fullName={member.name}
-																		image={member.image}
-																	/>
-																	<div className="flex items-center gap-2">
-																		<span className="font-medium">
-																			{member.name || "Unknown"}
-																		</span>
-																		{isCurrentUserRow && (
-																			<Badge
-																				variant="secondary"
-																				className="text-xs"
-																			>
-																				You
-																			</Badge>
-																		)}
-																	</div>
-																</div>
-															</TableCell>
-															<TableCell className="text-muted-foreground">
-																{member.email}
-															</TableCell>
-															<TableCell>
-																<Badge
-																	variant={
-																		member.role === "owner" ? "default" : "outline"
-																	}
-																	className="text-xs capitalize"
-																>
-																	{member.role}
-																</Badge>
-															</TableCell>
-															<TableCell className="text-muted-foreground">
-																{formatDate(member.createdAt)}
-															</TableCell>
-															<TableCell>
-																<MemberActions
-																	member={member}
-																	currentUserRole={currentUserRole}
-																	ownerCount={ownerCount}
-																	isCurrentUser={isCurrentUserRow}
-																	canRemove={canRemoveMember(
-																		currentUserRole,
-																		member.role as OrganizationRole,
-																		isCurrentUserRow,
-																		ownerCount,
-																	)}
+												return (
+													<TableRow key={member.memberId}>
+														<TableCell>
+															<div className="flex items-center gap-3">
+																<Avatar
+																	size="md"
+																	fullName={member.name}
+																	image={member.image}
 																/>
-															</TableCell>
-														</TableRow>
-													);
-												})}
-											</TableBody>
-										</Table>
-									</div>
-								)}
-							</>
-						)}
+																<div className="flex items-center gap-2">
+																	<span className="font-medium">
+																		{member.name || "Unknown"}
+																	</span>
+																	{isCurrentUserRow && (
+																		<Badge
+																			variant="secondary"
+																			className="text-xs"
+																		>
+																			You
+																		</Badge>
+																	)}
+																</div>
+															</div>
+														</TableCell>
+														<TableCell className="text-muted-foreground">
+															{member.email}
+														</TableCell>
+														<TableCell>
+															<Badge
+																variant={
+																	member.role === "owner"
+																		? "default"
+																		: "outline"
+																}
+																className="text-xs capitalize"
+															>
+																{member.role}
+															</Badge>
+														</TableCell>
+														<TableCell className="text-muted-foreground">
+															{formatDate(member.createdAt)}
+														</TableCell>
+														<TableCell>
+															<MemberActions
+																member={member}
+																currentUserRole={currentUserRole}
+																ownerCount={ownerCount}
+																isCurrentUser={isCurrentUserRow}
+																canRemove={canRemoveMember(
+																	currentUserRole,
+																	member.role as OrganizationRole,
+																	isCurrentUserRow,
+																	ownerCount,
+																)}
+															/>
+														</TableCell>
+													</TableRow>
+												);
+											})}
+										</TableBody>
+									</Table>
+								</div>
+							))}
 					</div>
 				</div>
 			</div>
