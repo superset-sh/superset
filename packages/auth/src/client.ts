@@ -1,7 +1,10 @@
 "use client";
 
 import type { auth } from "@superset/auth/server";
-import { customSessionClient, organizationClient } from "better-auth/client/plugins";
+import {
+	customSessionClient,
+	organizationClient,
+} from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 // Auth client for both browser and non-browser environments

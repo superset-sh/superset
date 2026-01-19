@@ -90,6 +90,7 @@ export const auth = betterAuth({
 						data: {
 							...session,
 							activeOrganizationId: membership?.organizationId,
+							role: membership?.role,
 						},
 					};
 				},
