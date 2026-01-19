@@ -187,6 +187,7 @@ export function DiffViewer({
 
 	const diffEditor = (
 		<DiffEditor
+			key={`${filePath}-${viewMode}`}
 			height="100%"
 			original={contents.original}
 			modified={contents.modified}
@@ -202,6 +203,7 @@ export function DiffViewer({
 			options={{
 				...MONACO_EDITOR_OPTIONS,
 				renderSideBySide: viewMode === "side-by-side",
+				useInlineViewWhenSpaceIsLimited: false,
 				readOnly: !editable,
 				originalEditable: false,
 				renderOverviewRuler: true,

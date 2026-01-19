@@ -1311,59 +1311,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
 
-		// Fix WebGL texture atlas corruption when app returns from background.
-		// The WebGL renderer caches glyphs in a texture atlas for performance. When the app
-		// is backgrounded, the WebGL context can be invalidated, leaving stale/corrupt glyphs
-		// in the atlas. Clearing the atlas and forcing a full refresh rebuilds glyphs from
-		// the (correct) terminal buffer, "healing" the display.
-		//
-		// We need BOTH visibilitychange AND window.focus handlers because:
-		// - visibilitychange: Fires when document becomes hidden/visible (minimize, switch apps)
-		// - window.focus: Fires on window blur/focus which may NOT trigger visibilitychange
-		//   in Electron (e.g., alt-tab where window loses focus but document isn't "hidden")
-		//
-		// A debounce prevents double-refresh when both events fire in quick succession.
-		let lastRefreshTime = 0;
-		const REFRESH_DEBOUNCE_MS = 100;
-
-		const refreshTerminalDisplay = () => {
-			if (isUnmounted) return;
-
-			// Debounce: skip if we just refreshed (e.g., both events fired together)
-			const now = Date.now();
-			if (now - lastRefreshTime < REFRESH_DEBOUNCE_MS) return;
-			lastRefreshTime = now;
-
-			// Capture dimensions before fit() to detect if resize occurred while backgrounded
+		// Sync terminal dimensions when app returns from background.
+		// Window may have been resized while minimized/hidden.
+		const handleVisibilityChange = () => {
+			if (document.hidden || isUnmounted) return;
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
 			fitAddon.fit();
-
-			// If dimensions changed (e.g., DPI/layout change while backgrounded), sync PTY
 			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
 			}
-
-			const currentRenderer = rendererRef.current?.current;
-			if (currentRenderer?.kind === "webgl") {
-				currentRenderer.clearTextureAtlas?.();
-			}
-			if (xterm.rows > 0) {
-				xterm.refresh(0, xterm.rows - 1);
-			}
-		};
-
-		const handleVisibilityChange = () => {
-			if (document.hidden) return;
-			refreshTerminalDisplay();
-		};
-
-		const handleWindowFocus = () => {
-			refreshTerminalDisplay();
 		};
 
 		document.addEventListener("visibilitychange", handleVisibilityChange);
-		window.addEventListener("focus", handleWindowFocus);
 
 		return () => {
 			if (DEBUG_TERMINAL) {
@@ -1376,7 +1336,6 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 				clearTimeout(firstRenderFallback);
 			}
 			document.removeEventListener("visibilitychange", handleVisibilityChange);
-			window.removeEventListener("focus", handleWindowFocus);
 			inputDisposable.dispose();
 			keyDisposable.dispose();
 			titleDisposable.dispose();

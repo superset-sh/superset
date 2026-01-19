@@ -1,6 +1,7 @@
 import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
+import { useChangesStore } from "renderer/stores/changes";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
@@ -57,6 +58,8 @@ export function FileViewerPane({
 }: FileViewerPaneProps) {
 	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
+	const { viewMode: diffViewMode, setViewMode: setDiffViewMode } =
+		useChangesStore();
 
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
@@ -117,6 +120,8 @@ export function FileViewerPane({
 	useEffect(() => {
 		setIsDirty(false);
 		originalContentRef.current = "";
+		originalDiffContentRef.current = "";
+		currentDiffContentRef.current = "";
 		draftContentRef.current = null;
 	}, [filePath]);
 
@@ -249,8 +254,6 @@ export function FileViewerPane({
 	const hasDraft = draftContentRef.current !== null;
 	const isDiffEditable =
 		(diffCategory === "staged" || diffCategory === "unstaged") && !hasDraft;
-	const showEditableBadge =
-		viewMode === "raw" || (viewMode === "diff" && isDiffEditable);
 
 	return (
 		<>
@@ -268,14 +271,14 @@ export function FileViewerPane({
 						<FileViewerToolbar
 							fileName={fileName}
 							isDirty={isDirty}
-							isSaving={isSaving}
 							viewMode={viewMode}
 							isPinned={isPinned}
 							isMarkdown={isMarkdown}
 							hasDiff={hasDiff}
-							showEditableBadge={showEditableBadge}
 							splitOrientation={handlers.splitOrientation}
+							diffViewMode={diffViewMode}
 							onViewModeChange={handleViewModeChange}
+							onDiffViewModeChange={setDiffViewMode}
 							onSplitPane={handlers.onSplitPane}
 							onPin={handlePin}
 							onClosePane={handlers.onClosePane}
@@ -296,6 +299,7 @@ export function FileViewerPane({
 					draftContentRef={draftContentRef}
 					initialLine={initialLine}
 					initialColumn={initialColumn}
+					diffViewMode={diffViewMode}
 					onSaveRaw={handleSaveRaw}
 					onSaveDiff={isDiffEditable ? handleSaveDiff : undefined}
 					onEditorChange={handleEditorChange}
