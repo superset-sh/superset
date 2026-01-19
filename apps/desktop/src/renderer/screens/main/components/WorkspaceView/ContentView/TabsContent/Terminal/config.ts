@@ -3,6 +3,15 @@ import type { ITerminalOptions } from "@xterm/xterm";
 // Use user's theme
 export const TERMINAL_THEME: ITerminalOptions["theme"] = undefined;
 
+// Fallback timeout for first render (in case xterm doesn't emit onRender)
+export const FIRST_RENDER_RESTORE_FALLBACK_MS = 250;
+
+// Debug logging for terminal lifecycle (enable via localStorage)
+// Run in DevTools console: localStorage.setItem('SUPERSET_TERMINAL_DEBUG', '1')
+export const DEBUG_TERMINAL =
+	typeof localStorage !== "undefined" &&
+	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
+
 // Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
 const TERMINAL_FONT_FAMILY = [
 	"MesloLGM Nerd Font",
