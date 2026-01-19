@@ -1,5 +1,6 @@
 import { HiOutlineCog6Tooth, HiOutlineFolder } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ClickablePath } from "../../../../components/ClickablePath";
 import { ScriptsEditor } from "./components/ScriptsEditor";
 
 interface ProjectSettingsProps {
@@ -32,7 +33,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
 						<HiOutlineFolder className="h-4 w-4" />
 						Repository Path
 					</h3>
-					<p className="text-sm font-mono break-all">{project.mainRepoPath}</p>
+					<ClickablePath path={project.mainRepoPath} />
 				</div>
 
 				<div className="pt-4 border-t space-y-4">

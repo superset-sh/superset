@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/select";
 import {
 	type MarkdownStyle,
+	SYSTEM_THEME_ID,
 	useMarkdownStyle,
 	useSetMarkdownStyle,
 	useSetTheme,
@@ -19,6 +20,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { SystemThemeCard } from "./components/SystemThemeCard";
 import { ThemeCard } from "./components/ThemeCard";
 
 interface AppearanceSettingsProps {
@@ -62,6 +64,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 					<div>
 						<h3 className="text-sm font-medium mb-4">Theme</h3>
 						<div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+							<SystemThemeCard
+								isSelected={activeThemeId === SYSTEM_THEME_ID}
+								onSelect={() => setTheme(SYSTEM_THEME_ID)}
+							/>
 							{allThemes.map((theme) => (
 								<ThemeCard
 									key={theme.id}
