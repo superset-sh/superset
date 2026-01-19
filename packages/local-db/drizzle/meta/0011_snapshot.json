@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "b74ef022-acd9-4140-b9e8-b7c92dd13b16",
-  "prevId": "3177be28-43bc-4b9b-ba61-763632dee908",
+  "id": "488b17d3-5a03-4206-b041-097293f9ef08",
+  "prevId": "b74ef022-acd9-4140-b9e8-b7c92dd13b16",
   "tables": {
     "organization_members": {
       "name": "organization_members",
