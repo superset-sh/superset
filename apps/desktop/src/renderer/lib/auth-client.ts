@@ -1,4 +1,5 @@
-import { organizationClient } from "better-auth/client/plugins";
+import type { auth } from "@superset/auth/server";
+import { customSessionClient, organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 import { env } from "renderer/env.renderer";
 
@@ -20,7 +21,7 @@ export function getAuthToken(): string | null {
  */
 export const authClient = createAuthClient({
 	baseURL: env.NEXT_PUBLIC_API_URL,
-	plugins: [organizationClient()],
+	plugins: [organizationClient(), customSessionClient<typeof auth>()],
 	fetchOptions: {
 		credentials: "include",
 		onRequest: async (context) => {

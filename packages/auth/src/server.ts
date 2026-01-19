@@ -1,9 +1,10 @@
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import * as authSchema from "@superset/db/schema/auth";
+import type { sessions } from "@superset/db/schema/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, organization } from "better-auth/plugins";
+import { bearer, customSession, organization } from "better-auth/plugins";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "./env";
@@ -89,7 +90,6 @@ export const auth = betterAuth({
 						data: {
 							...session,
 							activeOrganizationId: membership?.organizationId,
-							role: membership?.role,
 						},
 					};
 				},
@@ -124,8 +124,24 @@ export const auth = betterAuth({
 			creatorRole: "owner",
 		}),
 		bearer(),
+		customSession(async ({ session }) => {
+			const activeOrganizationId = (session as typeof sessions.$inferSelect)
+				.activeOrganizationId;
+
+			if (!activeOrganizationId) {
+				return { role: undefined };
+			}
+
+			const membership = await db.query.members.findFirst({
+				where: and(
+					eq(members.userId, session.userId),
+					eq(members.organizationId, activeOrganizationId),
+				),
+			});
+
+			return {
+				role: membership?.role,
+			};
+		}),
 	],
 });
-
-export type Session = typeof auth.$Infer.Session;
-export type User = typeof auth.$Infer.Session.user;
