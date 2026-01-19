@@ -1,14 +1,99 @@
-import { createFileRoute, Outlet } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useLocation,
+	useNavigate,
+} from "@tanstack/react-router";
+import { useEffect } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { SettingsSidebar } from "./components/SettingsSidebar";
+import { SettingsSidebar } from "renderer/screens/main/components/SettingsView/SettingsSidebar";
+import { getMatchCountBySection } from "renderer/screens/main/components/SettingsView/settings-search";
+import {
+	useSettingsSearchQuery,
+	type SettingsSection,
+} from "renderer/stores/settings-state";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	component: SettingsLayout,
 });
 
+// Order of sections for auto-navigation
+const SECTION_ORDER: SettingsSection[] = [
+	"account",
+	"team",
+	"appearance",
+	"ringtones",
+	"keyboard",
+	"behavior",
+	"terminal",
+];
+
+// Map route paths to section names
+function getSectionFromPath(pathname: string): SettingsSection | null {
+	if (pathname.includes("/settings/account")) return "account";
+	if (pathname.includes("/settings/team")) return "team";
+	if (pathname.includes("/settings/appearance")) return "appearance";
+	if (pathname.includes("/settings/ringtones")) return "ringtones";
+	if (pathname.includes("/settings/keyboard")) return "keyboard";
+	if (pathname.includes("/settings/behavior")) return "behavior";
+	if (pathname.includes("/settings/terminal")) return "terminal";
+	if (pathname.includes("/settings/project")) return "project";
+	if (pathname.includes("/settings/workspace")) return "workspace";
+	return null;
+}
+
+// Map section names to route paths
+function getPathFromSection(section: SettingsSection): string {
+	switch (section) {
+		case "account":
+			return "/settings/account";
+		case "team":
+			return "/settings/team";
+		case "appearance":
+			return "/settings/appearance";
+		case "ringtones":
+			return "/settings/ringtones";
+		case "keyboard":
+			return "/settings/keyboard";
+		case "behavior":
+			return "/settings/behavior";
+		case "terminal":
+			return "/settings/terminal";
+		default:
+			return "/settings/account";
+	}
+}
+
 function SettingsLayout() {
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
+	const searchQuery = useSettingsSearchQuery();
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	// Auto-navigate to first matching section when search filters out current section
+	useEffect(() => {
+		if (!searchQuery) return;
+
+		const currentSection = getSectionFromPath(location.pathname);
+		if (!currentSection) return;
+
+		// Don't auto-navigate from project/workspace pages
+		if (currentSection === "project" || currentSection === "workspace") return;
+
+		const matchCounts = getMatchCountBySection(searchQuery);
+		const currentHasMatches = (matchCounts[currentSection] ?? 0) > 0;
+
+		if (!currentHasMatches) {
+			// Find first section with matches
+			const firstMatch = SECTION_ORDER.find(
+				(section) => (matchCounts[section] ?? 0) > 0,
+			);
+			if (firstMatch) {
+				navigate({ to: getPathFromSection(firstMatch) });
+			}
+		}
+	}, [searchQuery, location.pathname, navigate]);
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">

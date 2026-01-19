@@ -1,135 +1,22 @@
-import type { TerminalLinkBehavior } from "@superset/local-db";
-import { Label } from "@superset/ui/label";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@superset/ui/select";
-import { Switch } from "@superset/ui/switch";
 import { createFileRoute } from "@tanstack/react-router";
-import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useMemo } from "react";
+import { BehaviorSettings } from "renderer/screens/main/components/SettingsView/BehaviorSettings";
+import { getMatchingItemsForSection } from "renderer/screens/main/components/SettingsView/settings-search";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export const Route = createFileRoute("/_authenticated/settings/behavior/")({
 	component: BehaviorSettingsPage,
 });
 
 function BehaviorSettingsPage() {
-	const utils = electronTrpc.useUtils();
+	const searchQuery = useSettingsSearchQuery();
 
-	// Confirm on quit setting
-	const { data: confirmOnQuit, isLoading: isConfirmLoading } =
-		electronTrpc.settings.getConfirmOnQuit.useQuery();
-	const setConfirmOnQuit = electronTrpc.settings.setConfirmOnQuit.useMutation({
-		onMutate: async ({ enabled }) => {
-			await utils.settings.getConfirmOnQuit.cancel();
-			const previous = utils.settings.getConfirmOnQuit.getData();
-			utils.settings.getConfirmOnQuit.setData(undefined, enabled);
-			return { previous };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getConfirmOnQuit.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getConfirmOnQuit.invalidate();
-		},
-	});
+	const visibleItems = useMemo(() => {
+		if (!searchQuery) return null;
+		return getMatchingItemsForSection(searchQuery, "behavior").map(
+			(item) => item.id,
+		);
+	}, [searchQuery]);
 
-	const handleConfirmToggle = (enabled: boolean) => {
-		setConfirmOnQuit.mutate({ enabled });
-	};
-
-	// Terminal link behavior setting
-	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
-		electronTrpc.settings.getTerminalLinkBehavior.useQuery();
-
-	const setTerminalLinkBehavior =
-		electronTrpc.settings.setTerminalLinkBehavior.useMutation({
-			onMutate: async ({ behavior }) => {
-				await utils.settings.getTerminalLinkBehavior.cancel();
-				const previous = utils.settings.getTerminalLinkBehavior.getData();
-				utils.settings.getTerminalLinkBehavior.setData(undefined, behavior);
-				return { previous };
-			},
-			onError: (_err, _vars, context) => {
-				if (context?.previous !== undefined) {
-					utils.settings.getTerminalLinkBehavior.setData(
-						undefined,
-						context.previous,
-					);
-				}
-			},
-			onSettled: () => {
-				utils.settings.getTerminalLinkBehavior.invalidate();
-			},
-		});
-
-	const handleLinkBehaviorChange = (value: string) => {
-		setTerminalLinkBehavior.mutate({
-			behavior: value as TerminalLinkBehavior,
-		});
-	};
-
-	return (
-		<div className="p-6 max-w-4xl w-full">
-			<div className="mb-8">
-				<h2 className="text-xl font-semibold">Behavior</h2>
-				<p className="text-sm text-muted-foreground mt-1">
-					Configure app behavior and preferences
-				</p>
-			</div>
-
-			<div className="space-y-6">
-				{/* Confirm on Quit */}
-				<div className="flex items-center justify-between">
-					<div className="space-y-0.5">
-						<Label htmlFor="confirm-on-quit" className="text-sm font-medium">
-							Confirm before quitting
-						</Label>
-						<p className="text-xs text-muted-foreground">
-							Show a confirmation dialog when quitting the app
-						</p>
-					</div>
-					<Switch
-						id="confirm-on-quit"
-						checked={confirmOnQuit ?? true}
-						onCheckedChange={handleConfirmToggle}
-						disabled={isConfirmLoading || setConfirmOnQuit.isPending}
-					/>
-				</div>
-
-				<div className="flex items-center justify-between">
-					<div className="space-y-0.5">
-						<Label
-							htmlFor="terminal-link-behavior"
-							className="text-sm font-medium"
-						>
-							Terminal file links
-						</Label>
-						<p className="text-xs text-muted-foreground">
-							Choose how to open file paths when Cmd+clicking in the terminal
-						</p>
-					</div>
-					<Select
-						value={terminalLinkBehavior ?? "external-editor"}
-						onValueChange={handleLinkBehaviorChange}
-						disabled={
-							isLoadingLinkBehavior || setTerminalLinkBehavior.isPending
-						}
-					>
-						<SelectTrigger className="w-[180px]">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="external-editor">External editor</SelectItem>
-							<SelectItem value="file-viewer">File viewer</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-			</div>
-		</div>
-	);
+	return <BehaviorSettings visibleItems={visibleItems} />;
 }
