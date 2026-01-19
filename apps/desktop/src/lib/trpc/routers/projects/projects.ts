@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { basename, join } from "node:path";
 import {
@@ -438,6 +438,22 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 				// Check if path exists
 				if (!existsSync(selectedPath)) {
 					return { canceled: false, error: "Path does not exist" };
+				}
+
+				// Check if path is a directory
+				try {
+					const stats = statSync(selectedPath);
+					if (!stats.isDirectory()) {
+						return {
+							canceled: false,
+							error: "Please drop a folder, not a file",
+						};
+					}
+				} catch {
+					return {
+						canceled: false,
+						error: "Could not access the dropped item",
+					};
 				}
 
 				let mainRepoPath: string;

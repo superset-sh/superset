@@ -21,6 +21,9 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	const openFromPath = useOpenFromPath();
 	const createBranchWorkspace = useCreateBranchWorkspace();
 
+	const isProcessing =
+		openFromPath.isPending || createBranchWorkspace.isPending;
+
 	const handleDragOver = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
@@ -52,10 +55,14 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 	}, []);
 
 	const handleDrop = useCallback(
-		async (e: React.DragEvent) => {
+		(e: React.DragEvent) => {
 			e.preventDefault();
 			e.stopPropagation();
 			setIsDragOver(false);
+
+			// Prevent multiple drops while processing
+			if (isProcessing) return;
+
 			setError(null);
 
 			const files = Array.from(e.dataTransfer.files);
@@ -65,7 +72,14 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 			if (!firstFile) return;
 
 			// In Electron with contextIsolation, use webUtils.getPathForFile to get the file path
-			const filePath = window.webUtils.getPathForFile(firstFile);
+			let filePath: string;
+			try {
+				filePath = window.webUtils.getPathForFile(firstFile);
+			} catch {
+				setError("Could not get path from dropped item");
+				return;
+			}
+
 			if (!filePath) {
 				setError("Could not get path from dropped item");
 				return;
@@ -95,7 +109,17 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 
 						// Create a main workspace on the current branch
 						if ("project" in result && result.project) {
-							createBranchWorkspace.mutate({ projectId: result.project.id });
+							createBranchWorkspace.mutate(
+								{ projectId: result.project.id },
+								{
+									onError: (err) => {
+										setError(
+											err.message ||
+												"Project added but failed to create workspace",
+										);
+									},
+								},
+							);
 						}
 					},
 					onError: (err) => {
@@ -104,7 +128,7 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 				},
 			);
 		},
-		[openFromPath, createBranchWorkspace],
+		[openFromPath, createBranchWorkspace, isProcessing],
 	);
 
 	return (
@@ -122,12 +146,21 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 				<div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/95 border-2 border-dashed border-primary rounded-lg m-1">
 					<LuFolderPlus className="h-8 w-8 text-primary mb-2" />
 					<span className="text-sm font-medium text-primary">
-						Drop to add project
+						{isProcessing ? "Processing..." : "Drop to add project"}
 					</span>
 				</div>
 			)}
 
-			{/* Error toast - shown briefly then auto-dismissed */}
+			{/* Processing indicator when not dragging */}
+			{isProcessing && !isDragOver && (
+				<div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80">
+					<span className="text-sm text-muted-foreground">
+						Adding project...
+					</span>
+				</div>
+			)}
+
+			{/* Error toast */}
 			{error && (
 				<div className="absolute bottom-4 left-4 right-4 z-50 bg-destructive/90 text-destructive-foreground text-xs px-3 py-2 rounded-md">
 					{error}
