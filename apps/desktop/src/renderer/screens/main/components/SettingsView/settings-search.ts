@@ -496,16 +496,3 @@ export function isItemVisible(
 ): boolean {
 	return !visibleItems || visibleItems.includes(itemId);
 }
-
-/**
- * Get all general (non-dynamic) sections in display order.
- */
-export const GENERAL_SECTIONS: SettingsSection[] = [
-	"account",
-	"team",
-	"appearance",
-	"ringtones",
-	"keyboard",
-	"behavior",
-	"terminal",
-];
