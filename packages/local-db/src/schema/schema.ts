@@ -139,7 +139,7 @@ export const settings = sqliteTable("settings", {
 	terminalLinkBehavior: text(
 		"terminal_link_behavior",
 	).$type<TerminalLinkBehavior>(),
-	persistTerminal: integer("persist_terminal", { mode: "boolean" }).default(
+	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
 });
