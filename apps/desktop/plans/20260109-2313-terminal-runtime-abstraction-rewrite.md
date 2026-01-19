@@ -128,7 +128,7 @@ This refactor is intentionally conservative to avoid regressions:
 ## Assumptions
 
 1. Windows is not a supported desktop target right now, so Unix-domain socket constraints are acceptable.
-2. The terminal persistence setting (`settings.terminalPersistence`) is treated as "requires restart" today; we keep that behavior for this refactor.
+2. The terminal persistence setting (`settings.terminalPersistence`) is treated as “requires restart” today; we keep that behavior for this refactor.
 3. tRPC subscriptions must use `observable` (per `apps/desktop/AGENTS.md`); we will not introduce generator-based subscriptions.
 4. The most important regression to prevent is the “listeners=0” cold-restore failure mode; specifically, the `terminal.stream` subscription must not complete on exit.
    - This applies to `streamV2` as well; session exit is a state transition, not stream completion.
@@ -257,7 +257,7 @@ These are the decisions that should be treated as locked for PR1 to avoid accide
 6. **Resize sequencing (`seq`):** PR1 does not implement resize `seq` enforcement (the current renderer does not pass a `seq` today). If we want `seq`, include it as part of Milestone 4 when we touch renderer identity/state anyway.
 7. **Listener lifecycle:** PR1 must preserve window-close cleanup behavior (no duplicate listeners on macOS reopen) and app-quit cleanup behavior. If the abstraction introduces new listener wiring, ensure the cleanup story is equally explicit (unsubscribe/remove listeners).
 8. **tRPC input shapes:** PR1 keeps the existing paneId-only mutation inputs (`write`, `resize`, `signal`, `kill`, `detach`, `clearScrollback`, `ackColdRestore`, `stream`). Do not add `workspaceId` or new identity fields to these inputs in PR1; derive routing internally (local provider, or mapping populated during `createOrAttach`).
-9. **Registry invalidation / settings:** terminal persistence remains "requires restart" (existing behavior). The runtime registry is process-scoped and does not reconfigure live if `settings.terminalPersistence` is toggled while the app is running.
+9. **Registry invalidation / settings:** terminal persistence remains “requires restart” (existing behavior). The runtime registry is process-scoped and does not reconfigure live if `settings.terminalPersistence` is toggled while the app is running.
 
 
 ## Target Shape (After Refactor)
