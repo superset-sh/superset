@@ -63,7 +63,7 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 				filters: [
 					{
 						name: "Images",
-						extensions: ["png", "jpg", "jpeg", "webp", "gif"],
+						extensions: ["png", "jpg", "jpeg", "webp"],
 					},
 				],
 			});

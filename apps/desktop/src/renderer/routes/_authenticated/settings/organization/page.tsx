@@ -1,59 +1,25 @@
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@superset/ui/button";
 import { Card, CardContent } from "@superset/ui/card";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@superset/ui/dialog";
-import {
-	Form,
-	FormControl,
-	FormField,
-	FormLabel,
-	FormMessage,
-} from "@superset/ui/form";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { HiOutlinePencil } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { z } from "zod";
-import { EditIcon } from "./components/EditIcon";
 import { OrganizationLogo } from "./components/OrganizationLogo";
+import { SlugDialog } from "./components/SlugDialog";
 
 export const Route = createFileRoute("/_authenticated/settings/organization/")({
 	component: OrganizationSettings,
 });
-
-const slugSchema = z.object({
-	slug: z
-		.string()
-		.min(3, "Slug must be at least 3 characters")
-		.max(50)
-		.regex(
-			/^[a-z0-9-]+$/,
-			"Slug can only contain lowercase letters, numbers, and hyphens",
-		)
-		.regex(/^[a-z0-9]/, "Slug must start with a letter or number")
-		.regex(/[a-z0-9]$/, "Slug must end with a letter or number"),
-});
-
-type SlugFormValues = z.infer<typeof slugSchema>;
 
 export function OrganizationSettings() {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
-	const [isCheckingSlug, setIsCheckingSlug] = useState(false);
-	const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
 
@@ -68,54 +34,12 @@ export function OrganizationSettings() {
 	);
 	const isOwner = currentMember?.role === "owner";
 
-	const slugForm = useForm<SlugFormValues>({
-		resolver: zodResolver(slugSchema),
-		defaultValues: {
-			slug: "",
-		},
-	});
-
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally only sync on organization change
 	useEffect(() => {
 		if (!organization) return;
 		setNameValue(organization.name);
-		slugForm.reset({ slug: organization.slug });
 		setLogoPreview(organization.logo ?? null);
 	}, [organization?.id]);
-
-	const slugValue = slugForm.watch("slug");
-	const originalSlug = organization?.slug;
-	useEffect(() => {
-		if (!originalSlug || !isSlugDialogOpen) return;
-
-		const timer = setTimeout(async () => {
-			if (slugValue === originalSlug) {
-				setSlugAvailable(null);
-				return;
-			}
-
-			if (!slugValue || slugValue.length < 3) {
-				setSlugAvailable(null);
-				return;
-			}
-
-			setIsCheckingSlug(true);
-			try {
-				const result = await authClient.organization.checkSlug({
-					slug: slugValue,
-				});
-
-				setSlugAvailable(result.data?.status ?? null);
-			} catch (error) {
-				console.error("[organization-settings] Slug check failed:", error);
-				setSlugAvailable(null);
-			} finally {
-				setIsCheckingSlug(false);
-			}
-		}, 500);
-
-		return () => clearTimeout(timer);
-	}, [slugValue, originalSlug, isSlugDialogOpen]);
 
 	async function handleLogoUpload(): Promise<void> {
 		if (!organization) return;
@@ -163,30 +87,6 @@ export function OrganizationSettings() {
 			console.error("[organization-settings] Name update failed:", error);
 			toast.error("Failed to update name");
 			setNameValue(organization.name);
-		}
-	}
-
-	async function handleSlugUpdate(values: SlugFormValues): Promise<void> {
-		if (!organization) return;
-
-		if (slugAvailable === false) {
-			toast.error("Slug is already taken");
-			return;
-		}
-
-		try {
-			await apiTrpcClient.organization.update.mutate({
-				id: organization.id,
-				slug: values.slug,
-			});
-			await refetchOrganization();
-			setIsSlugDialogOpen(false);
-			setSlugAvailable(null);
-			toast.success("Organization URL updated!");
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Failed to update URL";
-			toast.error(message);
 		}
 	}
 
@@ -242,21 +142,6 @@ export function OrganizationSettings() {
 		);
 	}
 
-	function getSlugStatusDisplay(): { text: string; className: string } | null {
-		if (isCheckingSlug) {
-			return { text: "Checking...", className: "text-muted-foreground" };
-		}
-		if (slugAvailable === true) {
-			return { text: "Available", className: "text-green-600" };
-		}
-		if (slugAvailable === false) {
-			return { text: "Taken", className: "text-destructive" };
-		}
-		return null;
-	}
-
-	const slugStatus = getSlugStatusDisplay();
-
 	return (
 		<div className="p-8 max-w-3xl">
 			<h1 className="text-2xl font-semibold mb-2">Organization</h1>
@@ -281,7 +166,7 @@ export function OrganizationSettings() {
 							>
 								<OrganizationLogo logo={logoPreview} name={organization.name} />
 								<div className="absolute inset-0 bg-black/50 rounded opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-									<EditIcon className="h-4 w-4 text-white" />
+									<HiOutlinePencil className="h-4 w-4 text-white" />
 								</div>
 							</button>
 						</li>
@@ -315,7 +200,7 @@ export function OrganizationSettings() {
 									onClick={() => setIsSlugDialogOpen(true)}
 									className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
 								>
-									<EditIcon className="h-4 w-4" />
+									<HiOutlinePencil className="h-4 w-4" />
 								</Button>
 							</div>
 						</li>
@@ -323,69 +208,13 @@ export function OrganizationSettings() {
 				</CardContent>
 			</Card>
 
-			<Dialog open={isSlugDialogOpen} onOpenChange={setIsSlugDialogOpen}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Change organization slug</DialogTitle>
-						<DialogDescription>
-							This will change your organization's public URL. Make sure to
-							update any bookmarks or shared links.
-						</DialogDescription>
-					</DialogHeader>
-					<Form {...slugForm}>
-						<form
-							onSubmit={slugForm.handleSubmit(handleSlugUpdate)}
-							className="space-y-4"
-						>
-							<FormField
-								control={slugForm.control}
-								name="slug"
-								render={({ field }) => (
-									<>
-										<FormLabel>Organization slug</FormLabel>
-										<FormControl>
-											<div className="relative">
-												<Input {...field} placeholder="acme-inc" />
-												{slugStatus && (
-													<span
-														className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs ${slugStatus.className}`}
-													>
-														{slugStatus.text}
-													</span>
-												)}
-											</div>
-										</FormControl>
-										<FormMessage />
-									</>
-								)}
-							/>
-							<DialogFooter>
-								<Button
-									type="button"
-									variant="ghost"
-									onClick={() => {
-										setIsSlugDialogOpen(false);
-										slugForm.reset({ slug: organization.slug });
-										setSlugAvailable(null);
-									}}
-								>
-									Cancel
-								</Button>
-								<Button
-									type="submit"
-									disabled={
-										isCheckingSlug ||
-										slugAvailable === false ||
-										slugValue === organization.slug
-									}
-								>
-									Save
-								</Button>
-							</DialogFooter>
-						</form>
-					</Form>
-				</DialogContent>
-			</Dialog>
+			<SlugDialog
+				open={isSlugDialogOpen}
+				onOpenChange={setIsSlugDialogOpen}
+				organizationId={organization.id}
+				currentSlug={organization.slug}
+				onSuccess={refetchOrganization}
+			/>
 		</div>
 	);
 }
