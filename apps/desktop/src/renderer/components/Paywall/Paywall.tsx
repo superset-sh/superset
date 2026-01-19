@@ -7,16 +7,21 @@ import { useEffect, useState } from "react";
 import { FEATURE_ID_MAP, PRO_FEATURES } from "./constants";
 import type { GatedFeature } from "./usePaywall";
 
-let showPaywallFn: ((feature: GatedFeature) => void) | null = null;
+type PaywallOptions = {
+	feature: GatedFeature;
+	context?: Record<string, unknown>;
+};
+
+let showPaywallFn: ((options: PaywallOptions) => void) | null = null;
 
 export const Paywall = () => {
-	const [triggeredFeature, setTriggeredFeature] = useState<GatedFeature | null>(
+	const [paywallOptions, setPaywallOptions] = useState<PaywallOptions | null>(
 		null,
 	);
 	const [isOpen, setIsOpen] = useState(false);
 
-	showPaywallFn = (feature: GatedFeature) => {
-		setTriggeredFeature(feature);
+	showPaywallFn = (options: PaywallOptions) => {
+		setPaywallOptions(options);
 		setIsOpen(true);
 	};
 
@@ -27,7 +32,7 @@ export const Paywall = () => {
 	}, []);
 
 	const initialFeatureId =
-		(triggeredFeature && FEATURE_ID_MAP[triggeredFeature]) ||
+		(paywallOptions?.feature && FEATURE_ID_MAP[paywallOptions.feature]) ||
 		PRO_FEATURES[0]?.id ||
 		"team-collaboration";
 
@@ -35,13 +40,14 @@ export const Paywall = () => {
 		useState<string>(initialFeatureId);
 
 	useEffect(() => {
-		if (triggeredFeature && isOpen) {
-			const mappedId = FEATURE_ID_MAP[triggeredFeature] || PRO_FEATURES[0]?.id;
+		if (paywallOptions?.feature && isOpen) {
+			const mappedId =
+				FEATURE_ID_MAP[paywallOptions.feature] || PRO_FEATURES[0]?.id;
 			if (mappedId) {
 				setSelectedFeatureId(mappedId);
 			}
 		}
-	}, [triggeredFeature, isOpen]);
+	}, [paywallOptions?.feature, isOpen]);
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open) {
@@ -163,12 +169,15 @@ export const Paywall = () => {
 	);
 };
 
-export const paywall = (feature: GatedFeature) => {
+export const paywall = (
+	feature: GatedFeature,
+	context?: Record<string, unknown>,
+) => {
 	if (!showPaywallFn) {
 		console.error(
 			"[paywall] Paywall not mounted. Make sure to render <Paywall /> in your app",
 		);
 		return;
 	}
-	showPaywallFn(feature);
+	showPaywallFn({ feature, context });
 };

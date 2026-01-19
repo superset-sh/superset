@@ -36,13 +36,11 @@ export function usePaywall() {
 			}
 		} else {
 			const trackingContext = {
-				userId: session?.user?.id,
 				organizationId: session?.session?.activeOrganizationId,
 				userPlan,
 				...context,
 			};
-			console.log(`[paywall] User blocked from feature: ${feature}`, trackingContext);
-			paywall(feature);
+			paywall(feature, trackingContext);
 		}
 	}
 
