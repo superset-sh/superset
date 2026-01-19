@@ -99,10 +99,7 @@ function showWindow(): void {
 
 function openSettings(): void {
 	showWindow();
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("navigate", "/settings");
-	}
+	menuEmitter.emit("open-settings");
 }
 
 function openTerminalSettings(): void {
@@ -219,15 +216,16 @@ function buildSessionsSubmenu(
 
 		menuItems.push({ type: "separator" });
 		menuItems.push({
-			label: "Terminal Settings",
-			click: openTerminalSettings,
-		});
-		menuItems.push({
 			label: "Kill All Sessions",
 			click: killAllSessions,
 		});
 	}
 
+	menuItems.push({ type: "separator" });
+	menuItems.push({
+		label: "Terminal Settings",
+		click: openTerminalSettings,
+	});
 	menuItems.push({
 		label: "Restart Daemon",
 		enabled: daemonRunning,
