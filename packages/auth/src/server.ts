@@ -86,51 +86,30 @@ export const auth = betterAuth({
 		customSession(async ({ user, session: baseSession }) => {
 			const session = baseSession as typeof sessions.$inferSelect;
 
-			// If no active organization, find one and set it
-			if (!session.activeOrganizationId) {
-				const membership = await db.query.members.findFirst({
-					where: eq(members.userId, session.userId),
-				});
+			let activeOrganizationId = session.activeOrganizationId;
 
-				// If user has a membership, update the session with their first org
-				if (membership?.organizationId) {
-					await db
-						.update(authSchema.sessions)
-						.set({ activeOrganizationId: membership.organizationId })
-						.where(eq(authSchema.sessions.id, session.id));
-
-					return {
-						user,
-						session: {
-							...session,
-							activeOrganizationId: membership.organizationId,
-							role: membership.role,
-						},
-					};
-				}
-
-				// No membership found - user hasn't been added to any orgs yet
-				return {
-					user,
-					session: {
-						...session,
-						activeOrganizationId: undefined,
-						role: undefined,
-					},
-				};
-			}
-
-			// Active organization exists - fetch the role
+			// Find membership - query by active org if set, otherwise get first membership
 			const membership = await db.query.members.findFirst({
-				where: and(
-					eq(members.userId, session.userId),
-					eq(members.organizationId, session.activeOrganizationId),
-				),
+				where: activeOrganizationId
+					? and(
+							eq(members.userId, session.userId),
+							eq(members.organizationId, activeOrganizationId),
+						)
+					: eq(members.userId, session.userId),
 			});
+
+			// If no active org but user has a membership, set it in DB
+			if (!activeOrganizationId && membership?.organizationId) {
+				activeOrganizationId = membership.organizationId;
+				await db
+					.update(authSchema.sessions)
+					.set({ activeOrganizationId })
+					.where(eq(authSchema.sessions.id, session.id));
+			}
 
 			return {
 				user,
-				session: { ...session, role: membership?.role },
+				session: { ...session, activeOrganizationId, role: membership?.role },
 			};
 		}),
 	],
