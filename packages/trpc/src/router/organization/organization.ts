@@ -159,7 +159,10 @@ export const organizationRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			console.log("[organization/uploadLogo] START - orgId:", input.organizationId);
+			console.log(
+				"[organization/uploadLogo] START - orgId:",
+				input.organizationId,
+			);
 
 			// Check if user is a member and is owner
 			const membership = await db.query.members.findFirst({
@@ -196,7 +199,7 @@ export const organizationRouter = {
 			}
 
 			// Delete old logo from blob storage if it exists and is a blob URL
-			if (organization.logo && organization.logo.includes("blob.vercel-storage.com")) {
+			if (organization.logo?.includes("blob.vercel-storage.com")) {
 				try {
 					// Extract pathname from blob URL
 					const url = new URL(organization.logo);
@@ -204,7 +207,10 @@ export const organizationRouter = {
 					console.log("[organization/uploadLogo] Deleting old logo:", pathname);
 					await del(pathname);
 				} catch (error) {
-					console.error("[organization/uploadLogo] Failed to delete old logo:", error);
+					console.error(
+						"[organization/uploadLogo] Failed to delete old logo:",
+						error,
+					);
 					// Continue anyway - don't fail the upload if deletion fails
 				}
 			}
@@ -240,7 +246,10 @@ export const organizationRouter = {
 					contentType: input.mimeType,
 				});
 
-				console.log("[organization/uploadLogo] Upload successful, URL:", blob.url);
+				console.log(
+					"[organization/uploadLogo] Upload successful, URL:",
+					blob.url,
+				);
 
 				// Update database with new blob URL
 				const [updatedOrg] = await db

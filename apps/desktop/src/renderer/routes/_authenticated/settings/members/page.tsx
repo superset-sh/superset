@@ -51,7 +51,7 @@ function MembersSettingsPage() {
 				.orderBy(({ members }) => members.role, "asc")
 				.orderBy(({ members }) => members.createdAt, "asc"),
 		[collections, activeOrganizationId],
-	)
+	);
 
 	// Sort by role priority (owner > admin > member), then by join date
 	// Cast roles to OrganizationRole since database stores them as strings
@@ -65,13 +65,13 @@ function MembersSettingsPage() {
 				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
 			if (priorityDiff !== 0) return priorityDiff;
 			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		})
+		});
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
 	const currentMember = activeOrg?.members?.find(
 		(m) => m.userId === currentUserId,
-	)
+	);
 	const currentUserRole = currentMember?.role as OrganizationRole;
 
 	const formatDate = (date: Date | string) => {
@@ -79,8 +79,8 @@ function MembersSettingsPage() {
 		return d.toLocaleDateString("en-US", {
 			month: "short",
 			day: "numeric",
-		})
-	}
+		});
+	};
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0">
@@ -189,7 +189,7 @@ function MembersSettingsPage() {
 														/>
 													</TableCell>
 												</TableRow>
-											)
+											);
 										})}
 									</TableBody>
 								</Table>
@@ -199,5 +199,5 @@ function MembersSettingsPage() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
