@@ -1,12 +1,11 @@
-import {
-	DocsBody,
-	DocsDescription,
-	DocsPage,
-	DocsTitle,
-} from "fumadocs-ui/layouts/docs/page";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LLMCopyButton, ViewOptions } from "@/components/ai/page-actions";
+import {
+	DocsBody,
+	DocsPage,
+	DocsTitle,
+} from "@/components/docs/page";
 import { getPageImage, source } from "@/lib/source";
 import { getMDXComponents } from "@/mdx-components";
 
@@ -16,29 +15,26 @@ export default async function Page(props: PageProps<"/[[...slug]]">) {
 	if (!page) notFound();
 
 	const MDX = page.data.body;
-	const gitConfig = {
-		user: "superset-sh",
-		repo: "superset",
-		branch: "main",
-	};
 
 	return (
 		<DocsPage
 			toc={page.data.toc}
 			full={page.data.full}
 			tableOfContent={{
-				style: "clerk",
+				header: <div className="w-10 h-4"></div>,
+			}}
+			editOnGithub={{
+				owner: "superset-sh",
+				repo: "superset",
+				path: `apps/docs/content/docs/${page.path}`,
 			}}
 		>
 			<DocsTitle>{page.data.title}</DocsTitle>
-			<DocsDescription className="mb-0">
-				{page.data.description}
-			</DocsDescription>
-			<div className="flex flex-row gap-2 items-center border-b pb-6">
+			<div className="flex flex-row gap-2 items-center border-b pb-3">
 				<LLMCopyButton markdownUrl={`${page.url}.mdx`} />
 				<ViewOptions
 					markdownUrl={`${page.url}.mdx`}
-					githubUrl={`https://github.com/${gitConfig.user}/${gitConfig.repo}/blob/${gitConfig.branch}/apps/docs/content/docs/${page.path}`}
+					githubUrl={`https://github.com/superset-sh/superset/blob/main/apps/docs/content/docs/${page.path}`}
 				/>
 			</div>
 			<DocsBody>

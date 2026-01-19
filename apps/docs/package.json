@@ -11,9 +11,13 @@
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
+		"@radix-ui/react-collapsible": "^1.1.12",
+		"@radix-ui/react-scroll-area": "^1.2.10",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
+		"class-variance-authority": "^0.7.1",
+		"framer-motion": "^12.23.26",
 		"fumadocs-core": "16.4.7",
 		"fumadocs-mdx": "14.2.5",
 		"fumadocs-ui": "16.4.7",
@@ -34,6 +38,7 @@
 		"@types/react-dom": "^19.2.3",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.0.9",
+		"tailwindcss-animate": "^1.0.7",
 		"typescript": "^5.9.3"
 	}
 }

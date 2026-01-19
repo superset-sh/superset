@@ -9,29 +9,28 @@ Superset is a desktop application that helps developers work more efficiently wi
 
 ## Key Features
 
-### Workspace Management
-
-Organize your projects using git worktrees. Superset makes it easy to:
-
-- Create and manage multiple worktrees for the same repository
-- Switch between branches without stashing changes
-- Keep your work organized across features and fixes
-
-### Terminal Integration
-
-Built-in terminal with powerful session management:
-
-- Multiple terminal sessions per workspace
-- Persistent sessions that survive restarts
-- Quick access to common commands
-
-### Team Collaboration
-
-Work together with your team seamlessly:
-
-- Share workspaces with team members
-- Sync configurations across devices
-- Manage team permissions and access
+<ResourceGrid
+  resources={[
+    {
+      title: "Workspace Management",
+      description: "Organize your projects using git worktrees. Create and manage multiple worktrees for the same repository, switch between branches without stashing changes, and keep your work organized across features and fixes.",
+      href: "/quick-start",
+      tags: ["core", "git"]
+    },
+    {
+      title: "Terminal Integration",
+      description: "Built-in terminal with powerful session management. Multiple terminal sessions per workspace, persistent sessions that survive restarts, and quick access to common commands.",
+      href: "/guides",
+      tags: ["core", "terminal"]
+    },
+    {
+      title: "Team Collaboration",
+      description: "Work together with your team seamlessly. Share workspaces with team members, sync configurations across devices, and manage team permissions and access.",
+      href: "/guides",
+      tags: ["collaboration", "team"]
+    }
+  ]}
+/>
 
 ## How It Works
 
@@ -57,3 +56,116 @@ Superset is built with modern technologies:
 - **React** - UI components with TypeScript
 - **SQLite** - Local database for fast queries
 - **Git** - Version control integration
+
+## Database Schema
+
+Superset uses a local SQLite database to store workspace and session information. Here's an overview of the core tables:
+
+<DatabaseTable
+  tableName="workspaces"
+  fields={[
+    {
+      name: "id",
+      type: "string",
+      description: "Unique workspace identifier (UUID)",
+      isPrimaryKey: true,
+      isRequired: true,
+    },
+    {
+      name: "name",
+      type: "string",
+      description: "Display name for the workspace",
+      isRequired: true,
+    },
+    {
+      name: "path",
+      type: "string",
+      description: "Filesystem path to the git worktree",
+      isRequired: true,
+      isUnique: true,
+    },
+    {
+      name: "branch",
+      type: "string",
+      description: "Git branch associated with this workspace",
+      isRequired: true,
+    },
+    {
+      name: "repositoryId",
+      type: "string",
+      description: "Reference to the parent repository",
+      isForeignKey: true,
+      isRequired: true,
+      references: {
+        model: "repositories",
+        field: "id",
+      },
+    },
+    {
+      name: "createdAt",
+      type: "date",
+      description: "Timestamp when workspace was created",
+      isRequired: true,
+    },
+    {
+      name: "lastAccessedAt",
+      type: "date",
+      description: "Last time this workspace was opened",
+      isOptional: true,
+    },
+  ]}
+/>
+
+<DatabaseTable
+  tableName="terminal_sessions"
+  fields={[
+    {
+      name: "id",
+      type: "string",
+      description: "Unique session identifier (UUID)",
+      isPrimaryKey: true,
+      isRequired: true,
+    },
+    {
+      name: "workspaceId",
+      type: "string",
+      description: "Workspace this session belongs to",
+      isForeignKey: true,
+      isRequired: true,
+      references: {
+        model: "workspaces",
+        field: "id",
+      },
+    },
+    {
+      name: "title",
+      type: "string",
+      description: "User-defined session title",
+      isOptional: true,
+    },
+    {
+      name: "shellPath",
+      type: "string",
+      description: "Path to the shell executable (e.g., /bin/bash)",
+      isRequired: true,
+    },
+    {
+      name: "cwd",
+      type: "string",
+      description: "Current working directory for the session",
+      isRequired: true,
+    },
+    {
+      name: "isActive",
+      type: "boolean",
+      description: "Whether the session is currently running",
+      isRequired: true,
+    },
+    {
+      name: "createdAt",
+      type: "date",
+      description: "When the session was created",
+      isRequired: true,
+    },
+  ]}
+/>
