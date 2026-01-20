@@ -11,10 +11,3 @@ export function getDaemonTerminalManager(): DaemonTerminalManager {
 	}
 	return daemonManager;
 }
-
-export function disposeDaemonManager(): void {
-	if (daemonManager) {
-		daemonManager.removeAllListeners();
-		daemonManager = null;
-	}
-}

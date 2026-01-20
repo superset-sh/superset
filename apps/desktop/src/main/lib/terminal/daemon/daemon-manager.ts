@@ -361,6 +361,8 @@ export class DaemonTerminalManager extends EventEmitter {
 			const effectiveCols = response.snapshot.cols || cols;
 			const effectiveRows = response.snapshot.rows || rows;
 
+			this.cancelPendingCleanup(paneId);
+
 			this.sessions.set(paneId, {
 				paneId,
 				workspaceId,
@@ -787,6 +789,14 @@ export class DaemonTerminalManager extends EventEmitter {
 			) {
 				this.removeAllListeners(event);
 			}
+		}
+	}
+
+	private cancelPendingCleanup(paneId: string): void {
+		const timeout = this.cleanupTimeouts.get(paneId);
+		if (timeout) {
+			clearTimeout(timeout);
+			this.cleanupTimeouts.delete(paneId);
 		}
 	}
 
