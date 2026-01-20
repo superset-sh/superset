@@ -13,7 +13,7 @@ import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import type { FileViewerMode } from "shared/tabs-types";
-import { DiffViewer } from "../../../../../ChangesContent/components/DiffViewer";
+import { DiffViewer } from "../../../../../../ChangesContent/components/DiffViewer";
 import { registerCopyPathLineAction } from "../../../../../components/EditorContextMenu";
 import { FileEditorContextMenu } from "../FileEditorContextMenu";
 

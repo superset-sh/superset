@@ -15,7 +15,7 @@ import {
 	type PaneActions,
 	registerCopyPathLineAction,
 	useEditorActions,
-} from "../../../components/EditorContextMenu";
+} from "../../../ContentView/components/EditorContextMenu";
 
 function scrollToFirstDiff(
 	editor: Monaco.editor.IStandaloneDiffEditor,
