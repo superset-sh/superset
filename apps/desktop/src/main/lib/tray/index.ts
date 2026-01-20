@@ -13,11 +13,11 @@ import {
 } from "electron";
 import { localDb } from "main/lib/local-db";
 import { menuEmitter } from "main/lib/menu-events";
-import { tryListExistingDaemonSessions } from "main/lib/terminal";
 import {
-	disposeTerminalHostClient,
-	getTerminalHostClient,
-} from "main/lib/terminal-host/client";
+	getDaemonTerminalManager,
+	tryListExistingDaemonSessions,
+} from "main/lib/terminal";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
 const POLL_INTERVAL_MS = 5000;
@@ -270,8 +270,9 @@ async function restartDaemon(): Promise<void> {
 		console.warn("[Tray] Error during shutdown (continuing):", error);
 	}
 
-	// Always dispose the client to clear any stale state
-	disposeTerminalHostClient();
+	// Reset the daemon manager - clears state and gets fresh client
+	const manager = getDaemonTerminalManager();
+	manager.reset();
 
 	console.log(
 		"[Tray] Daemon restart complete. Next terminal operation will spawn fresh daemon.",

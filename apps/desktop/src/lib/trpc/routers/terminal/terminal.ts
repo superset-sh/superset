@@ -5,15 +5,11 @@ import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
-import { tryListExistingDaemonSessions } from "main/lib/terminal";
 import {
-	disposeDaemonManager,
 	getDaemonTerminalManager,
+	tryListExistingDaemonSessions,
 } from "main/lib/terminal";
-import {
-	disposeTerminalHostClient,
-	getTerminalHostClient,
-} from "main/lib/terminal-host/client";
+import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
