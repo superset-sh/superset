@@ -114,8 +114,8 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 						<TableHeader>
 							<TableRow>
 								<TableHead>Email</TableHead>
-								<TableHead>Role</TableHead>
 								<TableHead>Invited By</TableHead>
+								<TableHead>Role</TableHead>
 								<TableHead>Sent</TableHead>
 								<TableHead className="w-[50px]" />
 							</TableRow>
@@ -126,13 +126,13 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 									<TableCell className="font-medium">
 										{invitation.email}
 									</TableCell>
+									<TableCell className="text-muted-foreground">
+										{inviter?.name || "Unknown"}
+									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className="text-xs capitalize">
 											{invitation.role}
 										</Badge>
-									</TableCell>
-									<TableCell className="text-muted-foreground">
-										{inviter?.name || "Unknown"}
 									</TableCell>
 									<TableCell className="text-muted-foreground">
 										{formatDate(invitation.createdAt)}
