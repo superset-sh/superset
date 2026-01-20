@@ -113,7 +113,9 @@ export function FileViewerToolbar({
 									type="button"
 									onClick={() =>
 										onDiffViewModeChange(
-											diffViewMode === "side-by-side" ? "inline" : "side-by-side",
+											diffViewMode === "side-by-side"
+												? "inline"
+												: "side-by-side",
 										)
 									}
 									className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
