@@ -70,14 +70,28 @@ export const githubRouter = {
 				});
 			}
 
-			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
-				body: {
-					installationDbId: installation.id,
-					organizationId: input.organizationId,
-				},
-				retries: 3,
-			});
+			const syncUrl = `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`;
+			const syncBody = {
+				installationDbId: installation.id,
+				organizationId: input.organizationId,
+			};
+
+			// In development, call the sync endpoint directly (QStash can't reach localhost)
+			if (env.NODE_ENV === "development") {
+				fetch(syncUrl, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(syncBody),
+				}).catch((error) => {
+					console.error("[github/triggerSync] Dev sync failed:", error);
+				});
+			} else {
+				await qstash.publishJSON({
+					url: syncUrl,
+					body: syncBody,
+					retries: 3,
+				});
+			}
 
 			return { success: true };
 		}),

@@ -34,11 +34,29 @@ export async function syncTask(taskId: string) {
 				return { provider: conn.provider, skipped: true };
 			}
 
-			await qstash.publishJSON({
-				url: `${qstashBaseUrl}${endpoint}`,
-				body: { taskId },
-				retries: 3,
-			});
+			const syncUrl = `${qstashBaseUrl}${endpoint}`;
+
+			// In development, call the sync endpoint directly (QStash can't reach localhost)
+			if (env.NODE_ENV === "development") {
+				try {
+					await fetch(syncUrl, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ taskId }),
+					});
+				} catch (error) {
+					console.error(
+						`[sync/tasks] Dev sync failed for ${conn.provider}:`,
+						error,
+					);
+				}
+			} else {
+				await qstash.publishJSON({
+					url: syncUrl,
+					body: { taskId },
+					retries: 3,
+				});
+			}
 
 			return { provider: conn.provider, queued: true };
 		}),
