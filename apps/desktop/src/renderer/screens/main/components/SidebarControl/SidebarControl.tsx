@@ -141,7 +141,7 @@ export function SidebarControl() {
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<HotkeyTooltipContent
-					label="Toggle Changes Sidebar"
+					label="Open Changes Sidebar"
 					hotkeyId="TOGGLE_SIDEBAR"
 				/>
 			</TooltipContent>

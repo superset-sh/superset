@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
 import { LuExpand, LuLoaderCircle, LuShrink, LuX } from "react-icons/lu";
 import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
+import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
@@ -278,7 +279,10 @@ export function ChangesHeader({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						Close sidebar
+						<HotkeyTooltipContent
+							label="Close Changes Sidebar"
+							hotkeyId="TOGGLE_SIDEBAR"
+						/>
 					</TooltipContent>
 				</Tooltip>
 			</div>
