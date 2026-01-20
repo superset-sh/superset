@@ -184,6 +184,7 @@ jobs:
           POSTHOG_PROJECT_ID: ${{ secrets.POSTHOG_PROJECT_ID }}
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
           LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
           LINEAR_WEBHOOK_SECRET: ${{ secrets.LINEAR_WEBHOOK_SECRET }}
@@ -215,6 +216,7 @@ jobs:
             --env POSTHOG_PROJECT_ID=$POSTHOG_PROJECT_ID \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
+            --env RESEND_API_KEY=$RESEND_API_KEY \
             --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
             --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
             --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \

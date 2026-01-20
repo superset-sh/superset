@@ -11,6 +11,10 @@
 		"./client": {
 			"types": "./src/client.ts",
 			"default": "./src/client.ts"
+		},
+		"./env": {
+			"types": "./src/env.ts",
+			"default": "./src/env.ts"
 		}
 	},
 	"scripts": {
