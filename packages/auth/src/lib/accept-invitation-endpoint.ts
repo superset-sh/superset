@@ -25,12 +25,7 @@ export const acceptInvitationEndpoint = {
 			async (ctx) => {
 				const { invitationId, token } = ctx.body;
 
-				console.log(
-					"[invitation/accept] START - invitationId:",
-					invitationId,
-					"token:",
-					token.substring(0, 8) + "...",
-				);
+				console.log("[invitation/accept] START - invitationId:", invitationId);
 
 				// 1. Verify token exists and is valid
 				const verification = await db.query.verifications.findFirst({
