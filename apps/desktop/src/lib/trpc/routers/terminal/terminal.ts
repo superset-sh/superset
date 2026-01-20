@@ -6,7 +6,14 @@ import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { tryListExistingDaemonSessions } from "main/lib/terminal";
-import { getTerminalHostClient } from "main/lib/terminal-host/client";
+import {
+	disposeDaemonManager,
+	getDaemonTerminalManager,
+} from "main/lib/terminal";
+import {
+	disposeTerminalHostClient,
+	getTerminalHostClient,
+} from "main/lib/terminal-host/client";
 import { getWorkspaceRuntimeRegistry } from "main/lib/workspace-runtime";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -376,6 +383,59 @@ export const createTerminalRouter = () => {
 			if (terminal.management) {
 				await terminal.management.resetHistoryPersistence();
 			}
+			return { success: true };
+		}),
+
+		/**
+		 * Restart the terminal daemon completely.
+		 * This is a fix for when the daemon gets into a bad state (e.g., all sessions
+		 * report "not attachable" even after createOrAttach).
+		 *
+		 * This will:
+		 * 1. Shutdown the daemon process (killing all sessions)
+		 * 2. Reset the manager state and get a fresh client connection
+		 * 3. The next terminal operation will spawn a fresh daemon
+		 */
+		restartDaemon: publicProcedure.mutation(async () => {
+			console.log("[restartDaemon] Starting daemon restart...");
+
+			try {
+				const client = getTerminalHostClient();
+				const connected = await client.tryConnectAndAuthenticate();
+
+				if (connected) {
+					// Get session count for logging
+					const { sessions } = await client.listSessions();
+					const aliveCount = sessions.filter((s) => s.isAlive).length;
+					console.log(
+						`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
+					);
+
+					// Mark all sessions as killed by user
+					for (const session of sessions) {
+						userKilledSessions.add(session.sessionId);
+					}
+
+					// Shutdown with session kill
+					await client.shutdownIfRunning({ killSessions: true });
+				} else {
+					console.log("[restartDaemon] Daemon was not running");
+				}
+			} catch (error) {
+				console.warn(
+					"[restartDaemon] Error during shutdown (continuing):",
+					error,
+				);
+			}
+
+			// Reset the daemon manager - clears state and gets fresh client
+			const manager = getDaemonTerminalManager();
+			manager.reset();
+
+			console.log(
+				"[restartDaemon] Daemon shutdown complete. Next terminal operation will spawn fresh daemon.",
+			);
+
 			return { success: true };
 		}),
 

@@ -73,6 +73,7 @@ const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
+const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
@@ -292,9 +293,24 @@ export class TerminalHostClient extends EventEmitter {
 	/**
 	 * Connect and authenticate both control + stream sockets.
 	 * Handles protocol mismatch by shutting down a legacy daemon and retrying once.
+	 * In development mode, also detects stale daemons (script rebuilt since spawn).
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
 		for (let attempt = 0; attempt < 2; attempt++) {
+			// In development mode, check if daemon script has been rebuilt
+			// and restart the daemon if so. This prevents stale code issues.
+			if (attempt === 0 && process.env.NODE_ENV === "development") {
+				const shouldRestart = this.isDaemonScriptStale();
+				if (shouldRestart) {
+					console.log(
+						"[TerminalHostClient] Daemon script was rebuilt, restarting daemon...",
+					);
+					this.killDaemonFromPidFile();
+					await this.waitForDaemonShutdown();
+					// spawnDaemon will be called below when control socket fails
+				}
+			}
+
 			// Control socket (RPC)
 			let controlConnected = await this.tryConnectControl();
 			if (!controlConnected) {
@@ -358,6 +374,47 @@ export class TerminalHostClient extends EventEmitter {
 		}
 
 		throw new Error("Failed to connect after protocol upgrade");
+	}
+
+	/**
+	 * Check if the daemon script has been rebuilt since the daemon was spawned.
+	 * Only used in development mode to detect stale daemons.
+	 */
+	private isDaemonScriptStale(): boolean {
+		try {
+			if (!existsSync(SCRIPT_MTIME_PATH)) {
+				return false; // No mtime file = first run or manual cleanup
+			}
+
+			const savedMtime = readFileSync(SCRIPT_MTIME_PATH, "utf-8").trim();
+			const scriptPath = this.getDaemonScriptPath();
+
+			if (!existsSync(scriptPath)) {
+				return false;
+			}
+
+			const currentMtime = statSync(scriptPath).mtimeMs.toString();
+			return savedMtime !== currentMtime;
+		} catch {
+			return false; // On error, don't restart
+		}
+	}
+
+	/**
+	 * Save the daemon script's mtime to detect rebuilds.
+	 */
+	private saveDaemonScriptMtime(): void {
+		try {
+			const scriptPath = this.getDaemonScriptPath();
+			if (!existsSync(scriptPath)) {
+				return;
+			}
+
+			const mtime = statSync(scriptPath).mtimeMs.toString();
+			writeFileSync(SCRIPT_MTIME_PATH, mtime, { mode: 0o600 });
+		} catch {
+			// Best-effort
+		}
 	}
 
 	private killDaemonFromPidFile(): void {
@@ -1080,6 +1137,12 @@ export class TerminalHostClient extends EventEmitter {
 				console.log("[TerminalHostClient] Waiting for daemon to start...");
 			}
 			await this.waitForDaemon();
+
+			// In development mode, save the script mtime to detect rebuilds
+			if (process.env.NODE_ENV === "development") {
+				this.saveDaemonScriptMtime();
+			}
+
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Daemon started successfully");
 			}

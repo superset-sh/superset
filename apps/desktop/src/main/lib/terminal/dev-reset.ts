@@ -14,6 +14,7 @@ const TERMINAL_STATE_PATHS = [
 	"terminal-host.token",
 	"terminal-host.pid",
 	"terminal-host.spawn.lock",
+	"terminal-host.mtime",
 	"daemon.log",
 ] as const;
 

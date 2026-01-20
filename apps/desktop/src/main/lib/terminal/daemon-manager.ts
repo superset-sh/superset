@@ -65,7 +65,7 @@ interface SessionInfo {
 // =============================================================================
 
 export class DaemonTerminalManager extends EventEmitter {
-	private client: TerminalHostClient;
+	private client!: TerminalHostClient;
 	private sessions = new Map<string, SessionInfo>();
 	private pendingSessions = new Map<string, Promise<SessionResult>>();
 	private createOrAttachLimiter = new PrioritySemaphore(
@@ -103,6 +103,14 @@ export class DaemonTerminalManager extends EventEmitter {
 
 	constructor() {
 		super();
+		this.initializeClient();
+	}
+
+	/**
+	 * Initialize or re-initialize the client connection.
+	 * Called at construction and during reset.
+	 */
+	private initializeClient(): void {
 		this.client = getTerminalHostClient();
 		this.setupClientEventHandlers();
 	}
@@ -1217,6 +1225,40 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.daemonSessionIdsHydrated = true;
 		this.coldRestoreInfo.clear();
 		this.sessions.clear();
+	}
+
+	/**
+	 * Reset the manager after daemon restart.
+	 * Clears all internal state and gets a fresh client connection.
+	 * This is called when the daemon is restarted to fix stuck terminals.
+	 */
+	reset(): void {
+		console.log("[DaemonTerminalManager] Resetting manager state...");
+
+		// Cancel any pending cleanup timeouts
+		for (const timeout of this.cleanupTimeouts.values()) {
+			clearTimeout(timeout);
+		}
+		this.cleanupTimeouts.clear();
+
+		// Remove listeners from old client before getting new one
+		this.client.removeAllListeners();
+
+		// Clear all internal state
+		this.sessions.clear();
+		this.pendingSessions.clear();
+		this.daemonAliveSessionIds.clear();
+		this.daemonSessionIdsHydrated = false;
+		this.coldRestoreInfo.clear();
+		this.historyWriters.clear();
+		this.historyInitializing.clear();
+		this.pendingHistoryData.clear();
+
+		// Dispose the old client singleton and get a fresh one
+		disposeTerminalHostClient();
+		this.initializeClient();
+
+		console.log("[DaemonTerminalManager] Reset complete");
 	}
 }
 

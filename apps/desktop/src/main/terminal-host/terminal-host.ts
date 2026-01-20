@@ -146,6 +146,19 @@ export class TerminalHost {
 				throw error;
 			}
 
+			// Check if session died during spawn (e.g., shell crashed immediately).
+			// waitForReady() resolves even on subprocess exit to prevent hangs,
+			// so we must verify the session is still alive before proceeding.
+			if (!session.isAlive) {
+				console.error(
+					`[TerminalHost] Session ${sessionId} died during spawn`,
+				);
+				session.dispose();
+				throw new Error(
+					`Session spawn failed: PTY process exited immediately`,
+				);
+			}
+
 			// Run initial commands if provided
 			if (request.initialCommands && request.initialCommands.length > 0) {
 				if (session.isAlive) {
@@ -281,11 +294,12 @@ export class TerminalHost {
 	/**
 	 * Kill all terminal sessions
 	 */
-	killAll(_request: KillAllRequest): EmptyResponse {
+	killAll(request: KillAllRequest): EmptyResponse {
+		// Use the proper kill() method with fail-safe timers for each session.
+		// This ensures stuck sessions get force-disposed even if PTYs don't exit cleanly.
 		for (const session of this.sessions.values()) {
-			session.kill();
+			this.kill({ sessionId: session.sessionId, deleteHistory: request.deleteHistory });
 		}
-		// Sessions will be removed on exit events
 		return { success: true };
 	}
 
@@ -367,6 +381,18 @@ export class TerminalHost {
 			throw new Error(`Session not found: ${sessionId}`);
 		}
 		if (!session.isAttachable) {
+			// Log detailed state to help diagnose why session is not attachable
+			console.error(
+				`[TerminalHost] Session ${sessionId} not attachable:`,
+				{
+					isAlive: session.isAlive,
+					isTerminating: session.isTerminating,
+					hasSubprocess: session["subprocess"] !== null,
+					exitCode: session["exitCode"],
+					terminatingAt: session["terminatingAt"],
+					disposed: session["disposed"],
+				},
+			);
 			throw new Error(`Session not attachable: ${sessionId}`);
 		}
 		return session;
