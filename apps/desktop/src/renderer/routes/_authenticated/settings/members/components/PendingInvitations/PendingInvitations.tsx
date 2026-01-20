@@ -1,3 +1,4 @@
+import type { OrganizationRole } from "@superset/shared/auth";
 import { Badge } from "@superset/ui/badge";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -10,7 +11,6 @@ import {
 } from "@superset/ui/table";
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	isItemVisible,
@@ -22,12 +22,18 @@ import { InvitationActions } from "./components/InvitationActions";
 
 interface PendingInvitationsProps {
 	visibleItems?: SettingItemId[] | null;
+	currentUserRole: OrganizationRole;
+	organizationId: string;
+	organizationName: string;
 }
 
-export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
+export function PendingInvitations({
+	visibleItems,
+	currentUserRole,
+	organizationId,
+	organizationName,
+}: PendingInvitationsProps) {
 	const collections = useCollections();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const shouldShowSection = isItemVisible(
 		SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
@@ -47,12 +53,12 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 				}))
 				.where(({ invitations }) =>
 					and(
-						eq(invitations.organizationId, activeOrganizationId ?? ""),
+						eq(invitations.organizationId, organizationId),
 						eq(invitations.status, "pending"),
 					),
 				)
 				.orderBy(({ invitations }) => invitations.createdAt, "desc"),
-		[collections, activeOrganizationId],
+		[collections, organizationId],
 	);
 
 	const invitations = invitationsData ?? [];
@@ -80,7 +86,13 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
 					<h3 className="text-lg font-semibold">Pending Invitations</h3>
-					{showInvite && <InviteMemberButton />}
+					{showInvite && (
+						<InviteMemberButton
+							currentUserRole={currentUserRole}
+							organizationId={organizationId}
+							organizationName={organizationName}
+						/>
+					)}
 				</div>
 				<div className="space-y-2 border rounded-lg">
 					{[1, 2, 3].map((i) => (
@@ -102,7 +114,13 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<h3 className="text-lg font-semibold">Pending Invitations</h3>
-				{showInvite && <InviteMemberButton />}
+				{showInvite && (
+					<InviteMemberButton
+						currentUserRole={currentUserRole}
+						organizationId={organizationId}
+						organizationName={organizationName}
+					/>
+				)}
 			</div>
 			{invitations.length === 0 ? (
 				<div className="text-center py-12 text-muted-foreground border rounded-lg">

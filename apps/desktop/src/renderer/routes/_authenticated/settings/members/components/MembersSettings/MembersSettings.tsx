@@ -101,9 +101,16 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 			<div className="flex-1 overflow-auto">
 				<div className="p-8 space-y-12">
-					<div className="max-w-5xl">
-						<PendingInvitations visibleItems={visibleItems} />
-					</div>
+					{currentUserRole && activeOrganizationId && activeOrg?.name && (
+						<div className="max-w-5xl">
+							<PendingInvitations
+								visibleItems={visibleItems}
+								currentUserRole={currentUserRole}
+								organizationId={activeOrganizationId}
+								organizationName={activeOrg.name}
+							/>
+						</div>
+					)}
 
 					<div className="max-w-5xl space-y-4">
 						<h3 className="text-lg font-semibold">Team Members</h3>
