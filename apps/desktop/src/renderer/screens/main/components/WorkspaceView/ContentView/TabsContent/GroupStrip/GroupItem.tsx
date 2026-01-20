@@ -2,8 +2,11 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
+import { useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
+import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { useDraggingPaneStore } from "renderer/stores/tabs/dragging-pane";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
 import { getTabDisplayName } from "renderer/stores/tabs/utils";
 
@@ -14,6 +17,7 @@ interface GroupItemProps {
 	onSelect: () => void;
 	onClose: () => void;
 	onRename: (newName: string) => void;
+	onPaneDrop?: (paneId: string) => void;
 }
 
 export function GroupItem({
@@ -23,11 +27,35 @@ export function GroupItem({
 	onSelect,
 	onClose,
 	onRename,
+	onPaneDrop,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
+
+	const draggingPaneId = useDraggingPaneStore((s) => s.draggingPaneId);
+
+	const [{ isOver, canDrop }, dropRef] = useDrop<
+		unknown,
+		void,
+		{ isOver: boolean; canDrop: boolean }
+	>(
+		() => ({
+			accept: MosaicDragType.WINDOW,
+			drop: () => {
+				if (draggingPaneId && onPaneDrop) {
+					onPaneDrop(draggingPaneId);
+				}
+			},
+			canDrop: () => !!onPaneDrop && !!draggingPaneId,
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+				canDrop: monitor.canDrop(),
+			}),
+		}),
+		[onPaneDrop, draggingPaneId],
+	);
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
@@ -66,8 +94,18 @@ export function GroupItem({
 			: "text-muted-foreground/70 hover:text-muted-foreground hover:bg-tertiary/20",
 	);
 
+	const isDragActive = isOver && canDrop;
+
 	return (
-		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
+		<div
+			ref={(node) => {
+				dropRef(node);
+			}}
+			className={cn(
+				"group relative flex items-center shrink-0 h-full border-r border-border transition-colors",
+				isDragActive && "bg-accent/50 ring-2 ring-inset ring-accent",
+			)}
+		>
 			{isEditing ? (
 				<div className={tabStyles}>
 					<input

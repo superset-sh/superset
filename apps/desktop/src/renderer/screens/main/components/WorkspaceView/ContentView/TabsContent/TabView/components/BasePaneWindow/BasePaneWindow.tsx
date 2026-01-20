@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicWindow } from "react-mosaic-component";
+import { useDraggingPaneStore } from "renderer/stores/tabs/dragging-pane";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
 
@@ -43,6 +44,15 @@ export function BasePaneWindow({
 }: BasePaneWindowProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const splitOrientation = useSplitOrientation(containerRef);
+	const setDraggingPane = useDraggingPaneStore((s) => s.setDraggingPane);
+
+	const handleDragStart = useCallback(() => {
+		setDraggingPane(paneId, tabId);
+	}, [paneId, tabId, setDraggingPane]);
+
+	const handleDragEnd = useCallback(() => {
+		setDraggingPane(null, null);
+	}, [setDraggingPane]);
 
 	const handleFocus = () => {
 		setFocusedPane(tabId, paneId);
@@ -75,6 +85,8 @@ export function BasePaneWindow({
 			title=""
 			renderToolbar={() => renderToolbar(handlers)}
 			className={isActive ? "mosaic-window-focused" : ""}
+			onDragStart={handleDragStart}
+			onDragEnd={handleDragEnd}
 		>
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Focus handler for pane */}
 			<div
