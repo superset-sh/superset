@@ -187,6 +187,9 @@ jobs:
           LINEAR_CLIENT_ID: ${{ secrets.LINEAR_CLIENT_ID }}
           LINEAR_CLIENT_SECRET: ${{ secrets.LINEAR_CLIENT_SECRET }}
           LINEAR_WEBHOOK_SECRET: ${{ secrets.LINEAR_WEBHOOK_SECRET }}
+          GH_APP_ID: ${{ secrets.GH_APP_ID }}
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_CURRENT_SIGNING_KEY: ${{ secrets.QSTASH_CURRENT_SIGNING_KEY }}
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
@@ -218,6 +221,9 @@ jobs:
             --env LINEAR_CLIENT_ID=$LINEAR_CLIENT_ID \
             --env LINEAR_CLIENT_SECRET=$LINEAR_CLIENT_SECRET \
             --env LINEAR_WEBHOOK_SECRET=$LINEAR_WEBHOOK_SECRET \
+            --env GH_APP_ID=$GH_APP_ID \
+            --env GH_APP_PRIVATE_KEY=$GH_APP_PRIVATE_KEY \
+            --env GH_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
             --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
