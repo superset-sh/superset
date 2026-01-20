@@ -41,11 +41,11 @@ export function NewTabDropZone({
 			ref={(node) => {
 				drop(node);
 			}}
-			className={cn(
-				"flex items-center h-full flex-1 min-w-0 transition-colors rounded",
-				isOver && canDrop && "bg-primary/10 ring-1 ring-primary",
-			)}
+			className="relative flex items-center h-full flex-1 min-w-0"
 		>
+			{isOver && canDrop && (
+				<div className="absolute left-0 top-0 bottom-0 w-1 bg-primary/20" />
+			)}
 			{children}
 		</div>
 	);

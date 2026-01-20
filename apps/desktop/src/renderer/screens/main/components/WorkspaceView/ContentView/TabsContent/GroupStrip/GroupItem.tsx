@@ -106,8 +106,8 @@ export function GroupItem({
 				drop(node);
 			}}
 			className={cn(
-				"group relative flex items-center shrink-0 h-full border-r border-border transition-colors",
-				isOver && canDrop && "bg-primary/10 border-primary",
+				"group relative flex items-center shrink-0 h-full border-r border-border",
+				isOver && canDrop && "bg-primary/5",
 			)}
 		>
 			{isEditing ? (
