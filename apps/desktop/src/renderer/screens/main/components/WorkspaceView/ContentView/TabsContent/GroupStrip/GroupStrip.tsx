@@ -98,23 +98,18 @@ export function GroupStrip() {
 		const isParallel =
 			preset.executionMode === "parallel" && preset.commands.length > 1;
 
-		if (isParallel) {
-			const { tabId } = addTabWithMultiplePanes(activeWorkspaceId, {
-				commands: preset.commands,
-				initialCwd: preset.cwd || undefined,
-			});
-			if (preset.name) {
-				renameTab(tabId, preset.name);
-			}
-		} else {
-			// Existing sequential behavior
-			const { tabId } = addTab(activeWorkspaceId, {
-				initialCommands: preset.commands,
-				initialCwd: preset.cwd || undefined,
-			});
-			if (preset.name) {
-				renameTab(tabId, preset.name);
-			}
+		const { tabId } = isParallel
+			? addTabWithMultiplePanes(activeWorkspaceId, {
+					commands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				})
+			: addTab(activeWorkspaceId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+
+		if (preset.name) {
+			renameTab(tabId, preset.name);
 		}
 
 		setDropdownOpen(false);

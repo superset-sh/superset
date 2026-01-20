@@ -1,4 +1,4 @@
-import type { ExecutionMode } from "@superset/local-db";
+import { EXECUTION_MODES, type ExecutionMode } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import {
@@ -115,9 +115,11 @@ export function PresetRow({
 			<div className="w-24 shrink-0 pt-0.5">
 				<Select
 					value={preset.executionMode ?? "sequential"}
-					onValueChange={(value) =>
-						onExecutionModeChange(rowIndex, value as ExecutionMode)
-					}
+					onValueChange={(value) => {
+						if (EXECUTION_MODES.includes(value as ExecutionMode)) {
+							onExecutionModeChange(rowIndex, value as ExecutionMode);
+						}
+					}}
 				>
 					<SelectTrigger className="h-8 w-full text-xs">
 						<SelectValue />
