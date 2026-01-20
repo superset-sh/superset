@@ -15,27 +15,33 @@ export function NewTabDropZone({
 	isLastPaneInTab,
 	children,
 }: NewTabDropZoneProps) {
-	const [{ isOver, canDrop }, drop] = useDrop({
-		accept: MosaicDragType.WINDOW,
-		canDrop: () => {
-			const { draggingPaneId } = useDragPaneStore.getState();
-			if (!draggingPaneId) return false;
-			// Don't allow if it's the only pane in its tab
-			return !isLastPaneInTab(draggingPaneId);
-		},
-		drop: () => {
-			const { draggingPaneId } = useDragPaneStore.getState();
-			if (!draggingPaneId) return undefined;
-			// Double-check it's not the last pane
-			if (isLastPaneInTab(draggingPaneId)) return undefined;
-			onDrop(draggingPaneId);
-			return { handled: true };
-		},
-		collect: (monitor) => ({
-			isOver: monitor.isOver(),
-			canDrop: monitor.canDrop(),
+	const [{ isOver, canDrop }, drop] = useDrop<
+		unknown,
+		{ handled: true },
+		{ isOver: boolean; canDrop: boolean }
+	>(
+		() => ({
+			accept: MosaicDragType.WINDOW,
+			canDrop: () => {
+				const { draggingPaneId } = useDragPaneStore.getState();
+				if (!draggingPaneId) return false;
+				return !isLastPaneInTab(draggingPaneId);
+			},
+			drop: () => {
+				const { draggingPaneId, clearDragging } = useDragPaneStore.getState();
+				if (draggingPaneId && !isLastPaneInTab(draggingPaneId)) {
+					onDrop(draggingPaneId);
+				}
+				clearDragging();
+				return { handled: true };
+			},
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+				canDrop: monitor.canDrop(),
+			}),
 		}),
-	});
+		[onDrop, isLastPaneInTab],
+	);
 
 	return (
 		<div

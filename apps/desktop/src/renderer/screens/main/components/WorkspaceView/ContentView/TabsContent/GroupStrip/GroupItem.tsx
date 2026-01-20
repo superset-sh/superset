@@ -8,10 +8,7 @@ import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
-import {
-	extractPaneIdsFromLayout,
-	getTabDisplayName,
-} from "renderer/stores/tabs/utils";
+import { getTabDisplayName } from "renderer/stores/tabs/utils";
 
 interface GroupItemProps {
 	tab: Tab;
@@ -37,32 +34,43 @@ export function GroupItem({
 	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const [{ isOver, canDrop }, drop] = useDrop({
-		accept: MosaicDragType.WINDOW,
-		canDrop: () => {
-			const { draggingPaneId, draggingSourceTabId } =
-				useDragPaneStore.getState();
-			if (!draggingPaneId) return false;
-			// Can't drop on same tab
-			if (draggingSourceTabId === tab.id) return false;
-			// Can't drop if pane already in this tab (duplicate prevention)
-			const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
-			return !existingPaneIds.includes(draggingPaneId);
-		},
-		drop: () => {
-			const { draggingPaneId } = useDragPaneStore.getState();
-			if (!draggingPaneId) return undefined;
-			// Double-check pane isn't already in this tab
-			const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
-			if (existingPaneIds.includes(draggingPaneId)) return undefined;
-			onPaneDrop?.(draggingPaneId);
-			return { handled: true };
-		},
-		collect: (monitor) => ({
-			isOver: monitor.isOver(),
-			canDrop: monitor.canDrop(),
+	const [{ isOver, canDrop }, drop] = useDrop<
+		unknown,
+		{ handled: true },
+		{ isOver: boolean; canDrop: boolean }
+	>(
+		() => ({
+			accept: MosaicDragType.WINDOW,
+			canDrop: () => {
+				const { draggingPaneId, draggingSourceTabId } =
+					useDragPaneStore.getState();
+				// Must have valid drag state AND be dropping on a different tab
+				return (
+					!!draggingPaneId &&
+					!!draggingSourceTabId &&
+					draggingSourceTabId !== tab.id
+				);
+			},
+			drop: () => {
+				const { draggingPaneId, draggingSourceTabId, clearDragging } =
+					useDragPaneStore.getState();
+				if (
+					draggingPaneId &&
+					draggingSourceTabId &&
+					draggingSourceTabId !== tab.id
+				) {
+					onPaneDrop?.(draggingPaneId);
+				}
+				clearDragging();
+				return { handled: true };
+			},
+			collect: (monitor) => ({
+				isOver: monitor.isOver(),
+				canDrop: monitor.canDrop(),
+			}),
 		}),
-	});
+		[onPaneDrop, tab.id],
+	);
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
