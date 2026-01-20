@@ -176,9 +176,20 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	};
 
 	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
+		const preset = localPresets[rowIndex];
+		const isDelete = preset && commands.length < preset.commands.length;
+
 		setLocalPresets((prev) =>
 			prev.map((p, i) => (i === rowIndex ? { ...p, commands } : p)),
 		);
+
+		// Save immediately on delete since onBlur won't have the updated state yet
+		if (isDelete) {
+			updatePreset.mutate({
+				id: preset.id,
+				patch: { commands },
+			});
+		}
 	};
 
 	const handleCommandsBlur = (rowIndex: number) => {

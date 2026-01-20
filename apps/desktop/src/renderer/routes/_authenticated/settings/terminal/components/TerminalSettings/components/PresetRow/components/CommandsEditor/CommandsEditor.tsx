@@ -58,7 +58,6 @@ export function CommandsEditor({
 			e.preventDefault();
 			const updated = commands.filter((_, i) => i !== index);
 			onChange(updated);
-			onBlur?.();
 		}
 	};
 
@@ -66,7 +65,6 @@ export function CommandsEditor({
 		if (commands.length > 1) {
 			const updated = commands.filter((_, i) => i !== index);
 			onChange(updated);
-			onBlur?.();
 		}
 	};
 
