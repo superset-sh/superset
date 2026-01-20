@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
@@ -25,9 +25,13 @@ import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
-import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
+import {
+	isLastPaneInTab,
+	resolveActiveTabIdForWorkspace,
+} from "renderer/stores/tabs/utils";
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { GroupItem } from "./GroupItem";
+import { NewTabDropZone } from "./NewTabDropZone";
 
 export function GroupStrip() {
 	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
@@ -40,6 +44,8 @@ export function GroupStrip() {
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
+	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
+	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
@@ -116,6 +122,15 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const checkIsLastPaneInTab = useCallback(
+		(paneId: string) => {
+			const pane = panes[paneId];
+			if (!pane) return true;
+			return isLastPaneInTab(panes, pane.tabId);
+		},
+		[panes],
+	);
+
 	return (
 		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
@@ -136,77 +151,83 @@ export function GroupStrip() {
 								onSelect={() => handleSelectGroup(tab.id)}
 								onClose={() => handleCloseGroup(tab.id)}
 								onRename={(newName) => handleRenameGroup(tab.id, newName)}
+								onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
 							/>
 						</div>
 					))}
 				</div>
 			)}
-			<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-				<div className="flex items-center shrink-0">
-					<Tooltip>
-						<TooltipTrigger asChild>
+			<NewTabDropZone
+				onDrop={(paneId) => movePaneToNewTab(paneId)}
+				isLastPaneInTab={checkIsLastPaneInTab}
+			>
+				<DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+					<div className="flex items-center shrink-0">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 rounded-r-none"
+									onClick={handleAddGroup}
+								>
+									<HiMiniPlus className="size-4" />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent side="top" sideOffset={4}>
+								<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
+							</TooltipContent>
+						</Tooltip>
+						<DropdownMenuTrigger asChild>
 							<Button
 								variant="ghost"
 								size="icon"
-								className="size-7 rounded-r-none"
-								onClick={handleAddGroup}
+								className="size-7 rounded-l-none px-1"
 							>
-								<HiMiniPlus className="size-4" />
+								<HiMiniChevronDown className="size-3" />
 							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="top" sideOffset={4}>
-							<HotkeyTooltipContent label="New Tab" hotkeyId="NEW_GROUP" />
-						</TooltipContent>
-					</Tooltip>
-					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7 rounded-l-none px-1"
+						</DropdownMenuTrigger>
+					</div>
+					<DropdownMenuContent align="end" className="w-56">
+						{presets.length > 0 && (
+							<>
+								{presets.map((preset) => {
+									const presetIcon = getPresetIcon(preset.name, isDark);
+									return (
+										<DropdownMenuItem
+											key={preset.id}
+											onClick={() => handleSelectPreset(preset)}
+											className="gap-2"
+										>
+											{presetIcon ? (
+												<img
+													src={presetIcon}
+													alt=""
+													className="size-4 object-contain"
+												/>
+											) : (
+												<HiMiniCommandLine className="size-4" />
+											)}
+											<span className="truncate">{preset.name || "default"}</span>
+											{preset.isDefault && (
+												<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
+											)}
+										</DropdownMenuItem>
+									);
+								})}
+								<DropdownMenuSeparator />
+							</>
+						)}
+						<DropdownMenuItem
+							onClick={handleOpenPresetsSettings}
+							className="gap-2"
 						>
-							<HiMiniChevronDown className="size-3" />
-						</Button>
-					</DropdownMenuTrigger>
-				</div>
-				<DropdownMenuContent align="end" className="w-56">
-					{presets.length > 0 && (
-						<>
-							{presets.map((preset) => {
-								const presetIcon = getPresetIcon(preset.name, isDark);
-								return (
-									<DropdownMenuItem
-										key={preset.id}
-										onClick={() => handleSelectPreset(preset)}
-										className="gap-2"
-									>
-										{presetIcon ? (
-											<img
-												src={presetIcon}
-												alt=""
-												className="size-4 object-contain"
-											/>
-										) : (
-											<HiMiniCommandLine className="size-4" />
-										)}
-										<span className="truncate">{preset.name || "default"}</span>
-										{preset.isDefault && (
-											<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
-										)}
-									</DropdownMenuItem>
-								);
-							})}
-							<DropdownMenuSeparator />
-						</>
-					)}
-					<DropdownMenuItem
-						onClick={handleOpenPresetsSettings}
-						className="gap-2"
-					>
-						<HiMiniCog6Tooth className="size-4" />
-						<span>Configure Presets</span>
-					</DropdownMenuItem>
-				</DropdownMenuContent>
-			</DropdownMenu>
+							<HiMiniCog6Tooth className="size-4" />
+							<span>Configure Presets</span>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</NewTabDropZone>
 		</div>
 	);
 }

@@ -2,6 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import type { Pane, Tab, TabsState } from "../types";
 import {
 	addPaneToLayout,
+	extractPaneIdsFromLayout,
 	generateId,
 	generateTabName,
 	getFirstPaneId,
@@ -35,6 +36,13 @@ export function movePaneToTab(
 		sourceTab.workspaceId !== targetTab.workspaceId
 	)
 		return null;
+
+	// Defense in depth: Check for duplicate pane in target tab
+	const targetPaneIds = extractPaneIdsFromLayout(targetTab.layout);
+	if (targetPaneIds.includes(paneId)) {
+		console.warn("[move-pane] Attempted to add duplicate pane:", paneId);
+		return null;
+	}
 
 	const isLastPane = isLastPaneInTab(state.panes, sourceTab.id);
 	const newSourceLayout = removePaneFromLayout(sourceTab.layout, paneId);

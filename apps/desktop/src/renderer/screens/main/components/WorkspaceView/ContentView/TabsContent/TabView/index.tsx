@@ -92,13 +92,18 @@ export function TabView({ tab }: TabViewProps) {
 			);
 
 			// Remove panes that were removed via Mosaic UI
+			// But skip panes that were moved to another tab (their tabId changed)
 			for (const removedId of removedPaneIds) {
-				removePane(removedId);
+				const pane = allPanes[removedId];
+				// Only remove if pane still belongs to this tab (actual removal, not move)
+				if (pane && pane.tabId === tab.id) {
+					removePane(removedId);
+				}
 			}
 
 			updateTabLayout(tab.id, newLayout);
 		},
-		[tab.id, tab.layout, updateTabLayout, removePane],
+		[tab.id, tab.layout, updateTabLayout, removePane, allPanes],
 	);
 
 	const renderPane = useCallback(

@@ -2,10 +2,16 @@ import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useRef, useState } from "react";
+import { useDrop } from "react-dnd";
 import { HiMiniXMark } from "react-icons/hi2";
+import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
+import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
-import { getTabDisplayName } from "renderer/stores/tabs/utils";
+import {
+	extractPaneIdsFromLayout,
+	getTabDisplayName,
+} from "renderer/stores/tabs/utils";
 
 interface GroupItemProps {
 	tab: Tab;
@@ -14,6 +20,7 @@ interface GroupItemProps {
 	onSelect: () => void;
 	onClose: () => void;
 	onRename: (newName: string) => void;
+	onPaneDrop?: (paneId: string) => void;
 }
 
 export function GroupItem({
@@ -23,11 +30,38 @@ export function GroupItem({
 	onSelect,
 	onClose,
 	onRename,
+	onPaneDrop,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
+
+	const [{ isOver, canDrop }, drop] = useDrop({
+		accept: MosaicDragType.WINDOW,
+		canDrop: () => {
+			const { draggingPaneId, draggingSourceTabId } =
+				useDragPaneStore.getState();
+			if (!draggingPaneId) return false;
+			// Can't drop on same tab
+			if (draggingSourceTabId === tab.id) return false;
+			// Can't drop if pane already in this tab (duplicate prevention)
+			const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
+			return !existingPaneIds.includes(draggingPaneId);
+		},
+		drop: () => {
+			const { draggingPaneId } = useDragPaneStore.getState();
+			if (!draggingPaneId) return;
+			// Double-check pane isn't already in this tab
+			const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
+			if (existingPaneIds.includes(draggingPaneId)) return;
+			onPaneDrop?.(draggingPaneId);
+		},
+		collect: (monitor) => ({
+			isOver: monitor.isOver(),
+			canDrop: monitor.canDrop(),
+		}),
+	});
 
 	useEffect(() => {
 		if (isEditing && inputRef.current) {
@@ -67,7 +101,15 @@ export function GroupItem({
 	);
 
 	return (
-		<div className="group relative flex items-center shrink-0 h-full border-r border-border">
+		<div
+			ref={(node) => {
+				drop(node);
+			}}
+			className={cn(
+				"group relative flex items-center shrink-0 h-full border-r border-border transition-colors",
+				isOver && canDrop && "bg-primary/10 border-primary",
+			)}
+		>
 			{isEditing ? (
 				<div className={tabStyles}>
 					<input
