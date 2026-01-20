@@ -1,5 +1,5 @@
 import { Hr, Img, Link, Section, Text } from "@react-email/components";
-import { env } from "../../../../../src/lib/env";
+import { env } from "../../../../../lib/env";
 
 interface FooterProps {
 	showSocial?: boolean;
@@ -29,40 +29,37 @@ export function Footer({ showSocial = true }: FooterProps) {
 			{/* Social Icons */}
 			{showSocial && (
 				<Section className="mb-6">
-					<Link
-						href="https://x.com/superset_sh"
-						style={{ display: "inline-block", marginRight: "16px" }}
-					>
+					<Link href="https://x.com/superset_sh" className="inline-block mr-4">
 						<Img
 							src={socialIcons.x}
 							alt="X (Twitter)"
 							width="24"
 							height="24"
-							style={{ display: "block" }}
+							className="block"
 						/>
 					</Link>
 					<Link
 						href="https://instagram.com/superset"
-						style={{ display: "inline-block", marginRight: "16px" }}
+						className="inline-block mr-4"
 					>
 						<Img
 							src={socialIcons.instagram}
 							alt="Instagram"
 							width="24"
 							height="24"
-							style={{ display: "block" }}
+							className="block"
 						/>
 					</Link>
 					<Link
 						href="https://www.linkedin.com/company/superset-sh"
-						style={{ display: "inline-block" }}
+						className="inline-block"
 					>
 						<Img
 							src={socialIcons.linkedin}
 							alt="LinkedIn"
 							width="24"
 							height="24"
-							style={{ display: "block" }}
+							className="block"
 						/>
 					</Link>
 				</Section>

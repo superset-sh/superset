@@ -109,6 +109,11 @@ export const auth = betterAuth({
 				// Construct invitation link with magic token
 				const inviteLink = `${env.NEXT_PUBLIC_WEB_URL}/accept-invitation/${data.id}?token=${token}`;
 
+				// Check if user already exists to personalize greeting
+				const existingUser = await db.query.users.findFirst({
+					where: eq(authSchema.users.email, data.email),
+				});
+
 				await resend.emails.send({
 					from: "Superset <noreply@superset.sh>",
 					to: data.email,
@@ -118,6 +123,9 @@ export const auth = betterAuth({
 						inviterName: data.inviter.user.name,
 						inviteLink,
 						role: data.role,
+						inviteeName: existingUser?.name ?? null,
+						inviterEmail: data.inviter.user.email,
+						expiresAt: data.invitation.expiresAt,
 					}),
 				});
 			},

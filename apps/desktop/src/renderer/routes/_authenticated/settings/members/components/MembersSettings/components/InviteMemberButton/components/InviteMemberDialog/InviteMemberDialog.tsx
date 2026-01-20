@@ -92,6 +92,11 @@ export function InviteMemberDialog({
 							placeholder="user@example.com"
 							value={email}
 							onChange={(e) => setEmail(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && email && !isInviting) {
+									handleInvite();
+								}
+							}}
 							disabled={isInviting}
 						/>
 					</div>

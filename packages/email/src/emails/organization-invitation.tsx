@@ -1,4 +1,5 @@
-import { Heading, Text } from "@react-email/components";
+import { Heading, Link, Section, Text } from "@react-email/components";
+import { differenceInDays } from "date-fns";
 import { Button, StandardLayout } from "../components";
 
 interface OrganizationInvitationEmailProps {
@@ -6,37 +7,68 @@ interface OrganizationInvitationEmailProps {
 	inviterName: string;
 	inviteLink: string;
 	role: string;
+	inviteeName?: string | null;
+	inviterEmail: string;
+	expiresAt: Date;
 }
 
 export function OrganizationInvitationEmail({
 	organizationName = "Acme Inc",
-	inviterName = "John Doe",
-	inviteLink = "https://app.superset.sh/accept-invitation/123",
+	inviterName = "John Smith",
+	inviteLink = "https://app.superset.sh/accept-invitation/123?token=abc",
 	role = "member",
+	inviteeName = "Satya Patel",
+	inviterEmail = "john@acme.com",
+	expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
 }: OrganizationInvitationEmailProps) {
-	const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+	const roleDisplay = role === "member" ? "Member" : "Admin";
+
+	// Calculate days until expiration
+	const daysUntilExpiration = differenceInDays(expiresAt, new Date());
+	const expirationText =
+		daysUntilExpiration === 1 ? "1 day" : `${daysUntilExpiration} days`;
 
 	return (
 		<StandardLayout
 			preview={`${inviterName} invited you to join ${organizationName}`}
 		>
-			<Heading>You've been invited to join {organizationName}</Heading>
+			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
+				Join <strong>{organizationName}</strong> on <strong>Superset</strong>
+			</Heading>
 
-			<Text>
-				{inviterName} has invited you to join{" "}
+			{inviteeName && (
+				<Text className="text-base leading-[26px] mb-4 text-foreground">
+					Hi {inviteeName},
+				</Text>
+			)}
+
+			<Text className="text-base leading-[26px] text-foreground mb-4">
+				{inviterName} ({inviterEmail}) has invited you to join{" "}
 				<strong>{organizationName}</strong> on Superset as a{" "}
 				<strong>{roleDisplay}</strong>.
 			</Text>
 
-			<Text>
-				Superset helps teams automate workflows and boost productivity with
-				AI-powered task management.
+			<Text className="text-base leading-[26px] text-foreground mb-4">
+				Superset helps teams automate workflows, manage tasks, and collaborate
+				effectively. Accept this invitation to get started.
 			</Text>
 
-			<Button href={inviteLink}>Accept Invitation</Button>
+			<Section className="mt-6 mb-6">
+				<Button href={inviteLink}>Accept Invitation</Button>
+			</Section>
 
-			<Text>
-				This invitation will expire in 1 week. If you weren't expecting this
+			<Text className="text-xs leading-5 text-muted mt-4 mb-2">
+				Or copy and paste this URL into your browser:
+			</Text>
+			<Link
+				href={inviteLink}
+				className="text-sm leading-6 text-primary break-all block mb-6 no-underline"
+			>
+				{inviteLink}
+			</Link>
+
+			<Text className="text-xs leading-5 text-muted">
+				This invitation expires in {expirationText}. If you didn't expect this
 				invitation, you can safely ignore this email.
 			</Text>
 		</StandardLayout>

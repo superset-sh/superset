@@ -1,5 +1,5 @@
 import { Img } from "@react-email/components";
-import { env } from "../../../src/lib/env";
+import { env } from "../../../lib/env";
 
 /**
  * Superset logo component for email header

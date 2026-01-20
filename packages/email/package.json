@@ -6,18 +6,18 @@
 		"@superset/typescript": "workspace:*",
 		"@types/node": "^24.9.1",
 		"@types/react": "~19.1.0",
+		"@types/tailwindcss": "^3.1.0",
 		"react-email": "5.0.7",
 		"typescript": "^5.9.3"
 	},
 	"exports": {
 		"./emails/*": "./src/emails/*.tsx",
-		"./components": "./src/components/index.ts",
 		"./lib/*": "./src/lib/*.ts"
 	},
 	"private": true,
 	"scripts": {
-		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev",
-		"export": "email export",
+		"dev": "NEXT_PUBLIC_MARKETING_URL=$(grep NEXT_PUBLIC_MARKETING_URL ../../.env | cut -d '=' -f2) email dev --dir src/emails",
+		"export": "email export --dir src/emails",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit"
 	},
@@ -30,6 +30,7 @@
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
 		"resend": "^4.0.1",
+		"tailwindcss": "^4.1.18",
 		"zod": "^4.3.5"
 	}
 }

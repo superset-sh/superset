@@ -131,8 +131,8 @@ export function PendingInvitations({
 					<Table>
 						<TableHeader>
 							<TableRow>
-								<TableHead>Invited By</TableHead>
 								<TableHead>Email</TableHead>
+								<TableHead>Invited By</TableHead>
 								<TableHead>Role</TableHead>
 								<TableHead>Sent</TableHead>
 								<TableHead className="w-[50px]" />
@@ -141,11 +141,11 @@ export function PendingInvitations({
 						<TableBody>
 							{invitations.map(({ invitation, inviter }) => (
 								<TableRow key={invitation.id}>
-									<TableCell className="text-muted-foreground">
-										{inviter?.name || "Unknown"}
-									</TableCell>
 									<TableCell className="font-medium">
 										{invitation.email}
+									</TableCell>
+									<TableCell className="text-muted-foreground">
+										{inviter?.name || "Unknown"}
 									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className="text-xs capitalize">

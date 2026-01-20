@@ -5,16 +5,10 @@
 		"jsx": "react-jsx",
 		"moduleResolution": "bundler",
 		"baseUrl": ".",
-		"paths": {
-			"@/*": ["./src/*"]
-		}
 	},
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.tsx",
-		"components/**/*.ts",
-		"components/**/*.tsx",
-		"emails/**/*.tsx"
 	],
 	"exclude": ["node_modules", "dist"]
 }

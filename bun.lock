@@ -469,6 +469,7 @@
         "react": "19.1.0",
         "react-dom": "19.1.0",
         "resend": "^4.0.1",
+        "tailwindcss": "^4.1.18",
         "zod": "^4.3.5",
       },
       "devDependencies": {
@@ -476,6 +477,7 @@
         "@superset/typescript": "workspace:*",
         "@types/node": "^24.9.1",
         "@types/react": "~19.1.0",
+        "@types/tailwindcss": "^3.1.0",
         "react-email": "5.0.7",
         "typescript": "^5.9.3",
       },
@@ -1914,6 +1916,8 @@
     "@types/stack-utils": ["@types/stack-utils@2.0.3", "", {}, "sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw=="],
 
     "@types/stats.js": ["@types/stats.js@0.17.4", "", {}, "sha512-jIBvWWShCvlBqBNIZt0KAshWpvSjhkwkEu4ZUcASoAvhmrgAUI2t1dXrjSL4xXVLB4FznPrIsX3nKXFl/Dt4vA=="],
+
+    "@types/tailwindcss": ["@types/tailwindcss@3.1.0", "", { "dependencies": { "tailwindcss": "*" } }, "sha512-JxPzrm609hzvF4nmOI3StLjbBEP3WWQxDDJESqR1nh94h7gyyy3XSl0hn5RBMJ9mPudlLjtaXs5YEBtLw7CnPA=="],
 
     "@types/tedious": ["@types/tedious@4.0.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-KHPsfX/FoVbUGbyYvk1q9MMQHLPeRZhRJZdO45Q4YjvFkv4hMNghCWTvy7rdKessBsmtz4euWCWAB6/tVpI1Iw=="],
 

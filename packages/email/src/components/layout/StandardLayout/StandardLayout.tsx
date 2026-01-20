@@ -8,6 +8,7 @@ import {
 } from "@react-email/components";
 import { Tailwind } from "@react-email/tailwind";
 import type { ReactNode } from "react";
+import { colors } from "../../../lib/colors";
 import { Logo } from "../../ui/Logo";
 import { Footer } from "./components/Footer";
 
@@ -25,11 +26,11 @@ export function StandardLayout({ preview, children }: StandardLayoutProps) {
 					theme: {
 						extend: {
 							colors: {
-								background: "#FFFFFF",
-								foreground: "#212121",
-								primary: "#323232",
-								muted: "#888888",
-								border: "#EBEBEB",
+								background: colors.background,
+								foreground: colors.foreground,
+								primary: colors.primary,
+								muted: colors.mutedForeground,
+								border: colors.border,
 							},
 						},
 					},
