@@ -52,16 +52,13 @@ export function GroupItem({
 				return { handled: true };
 			},
 			canDrop: () => {
-				const paneId = useDraggingPaneStore.getState().draggingPaneId;
-				return !!onPaneDrop && !!paneId;
+				const { draggingPaneId, draggingTabId } =
+					useDraggingPaneStore.getState();
+				return !!onPaneDrop && !!draggingPaneId && draggingTabId !== tab.id;
 			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),
-				canDrop: (() => {
-					if (!monitor.canDrop()) return false;
-					const { draggingTabId } = useDraggingPaneStore.getState();
-					return draggingTabId !== tab.id;
-				})(),
+				canDrop: monitor.canDrop(),
 			}),
 		}),
 		[onPaneDrop, tab.id],

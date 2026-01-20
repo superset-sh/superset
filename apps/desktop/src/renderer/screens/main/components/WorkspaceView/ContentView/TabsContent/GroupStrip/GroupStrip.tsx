@@ -10,8 +10,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useDrop } from "react-dnd";
+import { useEffect, useMemo, useState } from "react";
+import { useDragLayer, useDrop } from "react-dnd";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
@@ -49,6 +49,22 @@ export function GroupStrip() {
 	const isDark = useIsDarkTheme();
 	const navigate = useNavigate();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
+
+	// Monitor global drag state to clear stale drag pane state
+	// This handles edge cases where onDragEnd doesn't fire (e.g., source unmounts)
+	const { isDragging } = useDragLayer((monitor) => ({
+		isDragging: monitor.isDragging(),
+	}));
+
+	useEffect(() => {
+		if (!isDragging) {
+			const { draggingPaneId, setDraggingPane } =
+				useDraggingPaneStore.getState();
+			if (draggingPaneId) {
+				setDraggingPane(null, null);
+			}
+		}
+	}, [isDragging]);
 
 	const tabs = useMemo(
 		() =>
@@ -120,8 +136,7 @@ export function GroupStrip() {
 	};
 
 	const resolveDropPaneId = () => {
-		const { draggingPaneId, draggingTabId } =
-			useDraggingPaneStore.getState();
+		const { draggingPaneId, draggingTabId } = useDraggingPaneStore.getState();
 		const {
 			activeTabIds: currentActiveTabIds,
 			tabHistoryStacks: currentTabHistoryStacks,
