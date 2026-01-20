@@ -37,7 +37,7 @@ export async function GET(request: Request) {
 		);
 	}
 
-	if (!env.GITHUB_APP_ID) {
+	if (!env.GH_APP_ID) {
 		return Response.json(
 			{ error: "GitHub App not configured" },
 			{ status: 500 },
