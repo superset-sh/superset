@@ -44,8 +44,6 @@ export function GroupStrip() {
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const removeTab = useTabsStore((s) => s.removeTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
-	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
-	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
 
 	const { presets } = usePresets();
 	const isDark = useIsDarkTheme();
@@ -121,25 +119,47 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
+	const resolveDropPaneId = () => {
+		const { draggingPaneId, draggingTabId } =
+			useDraggingPaneStore.getState();
+		const {
+			activeTabIds: currentActiveTabIds,
+			tabHistoryStacks: currentTabHistoryStacks,
+			tabs: currentTabs,
+			panes: currentPanes,
+			focusedPaneIds: currentFocusedPaneIds,
+		} = useTabsStore.getState();
+
+		if (draggingPaneId) {
+			const pane = currentPanes[draggingPaneId];
+			if (!draggingTabId || pane?.tabId === draggingTabId) {
+				return draggingPaneId;
+			}
+		}
+
+		if (!activeWorkspaceId) return null;
+		const activeTabIdForWorkspace = resolveActiveTabIdForWorkspace({
+			workspaceId: activeWorkspaceId,
+			tabs: currentTabs,
+			activeTabIds: currentActiveTabIds,
+			tabHistoryStacks: currentTabHistoryStacks,
+		});
+		if (!activeTabIdForWorkspace) return null;
+		return currentFocusedPaneIds[activeTabIdForWorkspace] ?? null;
+	};
+
+	// Get fresh state at call time to avoid stale closures
 	const handlePaneDropToTab = (paneId: string, targetTabId: string) => {
+		const { panes, tabs, movePaneToTab } = useTabsStore.getState();
 		const pane = panes[paneId];
 		if (!pane || pane.tabId === targetTabId) return;
 
-		const targetTab = allTabs.find((t) => t.id === targetTabId);
-		const sourceTab = allTabs.find((t) => t.id === pane.tabId);
+		const targetTab = tabs.find((t) => t.id === targetTabId);
+		const sourceTab = tabs.find((t) => t.id === pane.tabId);
 		if (!targetTab || !sourceTab) return;
 		if (targetTab.workspaceId !== sourceTab.workspaceId) return;
 
 		movePaneToTab(paneId, targetTabId);
-	};
-
-	const draggingPaneId = useDraggingPaneStore((s) => s.draggingPaneId);
-
-	const isPaneInCurrentWorkspace = (paneId: string) => {
-		const pane = panes[paneId];
-		if (!pane) return false;
-		const sourceTab = allTabs.find((t) => t.id === pane.tabId);
-		return sourceTab?.workspaceId === activeWorkspaceId;
 	};
 
 	const [{ isOver: isOverStrip, canDrop: canDropStrip }, stripDropRef] =
@@ -149,18 +169,40 @@ export function GroupStrip() {
 				drop: (_item, monitor) => {
 					// Skip if a nested drop target (GroupItem) already handled it
 					if (monitor.didDrop()) return;
-					if (draggingPaneId && isPaneInCurrentWorkspace(draggingPaneId)) {
-						movePaneToNewTab(draggingPaneId);
-					}
+					if (!monitor.isOver({ shallow: true })) return;
+
+					// Get fresh state at drop time to avoid stale closures
+					const { setDraggingPane } = useDraggingPaneStore.getState();
+					const paneId = resolveDropPaneId();
+					if (!paneId) return;
+
+					const { panes, tabs, movePaneToNewTab } = useTabsStore.getState();
+					const pane = panes[paneId];
+					if (!pane) return;
+
+					const sourceTab = tabs.find((t) => t.id === pane.tabId);
+					if (sourceTab?.workspaceId !== activeWorkspaceId) return;
+
+					movePaneToNewTab(paneId);
+					setDraggingPane(null, null);
 				},
-				canDrop: () =>
-					!!draggingPaneId && isPaneInCurrentWorkspace(draggingPaneId),
+				canDrop: () => {
+					const paneId = resolveDropPaneId();
+					if (!paneId) return false;
+
+					const { panes, tabs } = useTabsStore.getState();
+					const pane = panes[paneId];
+					if (!pane) return false;
+
+					const sourceTab = tabs.find((t) => t.id === pane.tabId);
+					return sourceTab?.workspaceId === activeWorkspaceId;
+				},
 				collect: (monitor) => ({
 					isOver: monitor.isOver({ shallow: true }),
 					canDrop: monitor.canDrop(),
 				}),
 			}),
-			[panes, allTabs, activeWorkspaceId, movePaneToNewTab, draggingPaneId],
+			[activeWorkspaceId], // Only stable values in deps
 		);
 
 	const isStripDropActive = isOverStrip && canDropStrip;

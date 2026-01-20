@@ -34,27 +34,37 @@ export function GroupItem({
 	const [editValue, setEditValue] = useState("");
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const draggingPaneId = useDraggingPaneStore((s) => s.draggingPaneId);
-
 	const [{ isOver, canDrop }, dropRef] = useDrop<
 		unknown,
-		void,
+		{ handled: true },
 		{ isOver: boolean; canDrop: boolean }
 	>(
 		() => ({
 			accept: MosaicDragType.WINDOW,
 			drop: () => {
-				if (draggingPaneId && onPaneDrop) {
+				// Get fresh state at drop time to avoid stale closures
+				const { draggingPaneId, draggingTabId, setDraggingPane } =
+					useDraggingPaneStore.getState();
+				if (draggingPaneId && onPaneDrop && draggingTabId !== tab.id) {
 					onPaneDrop(draggingPaneId);
 				}
+				setDraggingPane(null, null);
+				return { handled: true };
 			},
-			canDrop: () => !!onPaneDrop && !!draggingPaneId,
+			canDrop: () => {
+				const paneId = useDraggingPaneStore.getState().draggingPaneId;
+				return !!onPaneDrop && !!paneId;
+			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),
-				canDrop: monitor.canDrop(),
+				canDrop: (() => {
+					if (!monitor.canDrop()) return false;
+					const { draggingTabId } = useDraggingPaneStore.getState();
+					return draggingTabId !== tab.id;
+				})(),
 			}),
 		}),
-		[onPaneDrop, draggingPaneId],
+		[onPaneDrop, tab.id],
 	);
 
 	useEffect(() => {

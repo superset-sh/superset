@@ -47,8 +47,9 @@ export function BasePaneWindow({
 	const setDraggingPane = useDraggingPaneStore((s) => s.setDraggingPane);
 
 	const handleDragStart = useCallback(() => {
+		setFocusedPane(tabId, paneId);
 		setDraggingPane(paneId, tabId);
-	}, [paneId, tabId, setDraggingPane]);
+	}, [paneId, tabId, setDraggingPane, setFocusedPane]);
 
 	const handleDragEnd = useCallback(() => {
 		setDraggingPane(null, null);
