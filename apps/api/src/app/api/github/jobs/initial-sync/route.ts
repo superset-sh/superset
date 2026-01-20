@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 		.verify({
 			body,
 			signature,
-			url: `${env.NEXT_PUBLIC_WEB_URL}/api/github/jobs/initial-sync`,
+			url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
 		})
 		.catch((error) => {
 			console.error(

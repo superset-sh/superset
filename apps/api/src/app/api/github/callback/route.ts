@@ -111,7 +111,7 @@ export async function GET(request: Request) {
 		// Queue initial sync job
 		try {
 			await qstash.publishJSON({
-				url: `${env.NEXT_PUBLIC_WEB_URL}/api/github/jobs/initial-sync`,
+				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
 				body: {
 					installationDbId: savedInstallation.id,
 					organizationId,

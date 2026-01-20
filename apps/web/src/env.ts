@@ -15,14 +15,6 @@ export const env = createEnv({
 		DATABASE_URL_UNPOOLED: z.string().url(),
 		BETTER_AUTH_SECRET: z.string(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
-		// GitHub App credentials
-		GITHUB_APP_ID: z.string().min(1),
-		GITHUB_APP_PRIVATE_KEY: z.string().min(1),
-		GITHUB_WEBHOOK_SECRET: z.string().min(1),
-		// QStash for background jobs
-		QSTASH_TOKEN: z.string().min(1),
-		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
-		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
 	},
 
 	client: {
