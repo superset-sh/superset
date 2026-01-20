@@ -88,16 +88,33 @@ export function GroupStrip() {
 		addTab(activeWorkspaceId);
 	};
 
+	const addTabWithMultiplePanes = useTabsStore(
+		(s) => s.addTabWithMultiplePanes,
+	);
+
 	const handleSelectPreset = (preset: TerminalPreset) => {
 		if (!activeWorkspaceId) return;
 
-		const { tabId } = addTab(activeWorkspaceId, {
-			initialCommands: preset.commands,
-			initialCwd: preset.cwd || undefined,
-		});
+		const isParallel =
+			preset.executionMode === "parallel" && preset.commands.length > 1;
 
-		if (preset.name) {
-			renameTab(tabId, preset.name);
+		if (isParallel) {
+			const { tabId } = addTabWithMultiplePanes(activeWorkspaceId, {
+				commands: preset.commands,
+				initialCwd: preset.cwd || undefined,
+			});
+			if (preset.name) {
+				renameTab(tabId, preset.name);
+			}
+		} else {
+			// Existing sequential behavior
+			const { tabId } = addTab(activeWorkspaceId, {
+				initialCommands: preset.commands,
+				initialCwd: preset.cwd || undefined,
+			});
+			if (preset.name) {
+				renameTab(tabId, preset.name);
+			}
 		}
 
 		setDropdownOpen(false);

@@ -440,6 +440,63 @@ export const addPaneToLayout = (
 });
 
 /**
+ * Builds a balanced multi-pane Mosaic layout from an array of pane IDs.
+ *
+ * Layout strategy:
+ * - 1 pane: Returns the single pane ID (leaf node)
+ * - 2 panes: Horizontal split (side-by-side)
+ * - 3+ panes: Recursive binary splits creating a grid layout
+ *   - Alternates between column (vertical) and row (horizontal) splits
+ *   - Splits the array roughly in half at each level
+ *
+ * Example for 4 panes:
+ * ```
+ * ┌───────┬───────┐
+ * │   A   │   B   │  (row split)
+ * ├───────┼───────┤
+ * │   C   │   D   │  (row split)
+ * └───────┴───────┘
+ * (column split between top and bottom rows)
+ * ```
+ *
+ * @param paneIds - Array of pane IDs to arrange in the layout
+ * @param direction - The split direction for this level ("row" = horizontal, "column" = vertical)
+ * @returns A MosaicNode tree representing the balanced layout
+ */
+export const buildMultiPaneLayout = (
+	paneIds: string[],
+	direction: "row" | "column" = "column",
+): MosaicNode<string> => {
+	if (paneIds.length === 0) {
+		throw new Error("Cannot build layout with zero panes");
+	}
+
+	if (paneIds.length === 1) {
+		return paneIds[0];
+	}
+
+	if (paneIds.length === 2) {
+		return {
+			direction: "row",
+			first: paneIds[0],
+			second: paneIds[1],
+			splitPercentage: 50,
+		};
+	}
+
+	// Split array in half and recurse, alternating direction
+	const mid = Math.ceil(paneIds.length / 2);
+	const nextDirection = direction === "column" ? "row" : "column";
+
+	return {
+		direction,
+		first: buildMultiPaneLayout(paneIds.slice(0, mid), nextDirection),
+		second: buildMultiPaneLayout(paneIds.slice(mid), nextDirection),
+		splitPercentage: 50,
+	};
+};
+
+/**
  * Updates the history stack when switching to a new active tab
  * Adds the current active to history and removes the new active from history
  */

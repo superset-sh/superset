@@ -1,4 +1,8 @@
-import type { TerminalLinkBehavior, TerminalPreset } from "@superset/local-db";
+import type {
+	ExecutionMode,
+	TerminalLinkBehavior,
+	TerminalPreset,
+} from "@superset/local-db";
 import {
 	AlertDialog,
 	AlertDialogContent,
@@ -216,6 +220,22 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		updatePreset.mutate({
 			id: preset.id,
 			patch: { commands: preset.commands },
+		});
+	};
+
+	const handleExecutionModeChange = (rowIndex: number, mode: ExecutionMode) => {
+		const preset = localPresets[rowIndex];
+		if (!preset) return;
+
+		// Update local state
+		setLocalPresets((prev) =>
+			prev.map((p, i) => (i === rowIndex ? { ...p, executionMode: mode } : p)),
+		);
+
+		// Persist to server
+		updatePreset.mutate({
+			id: preset.id,
+			patch: { executionMode: mode },
 		});
 	};
 
@@ -508,6 +528,9 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 											{column.label}
 										</div>
 									))}
+									<div className="w-24 text-xs font-medium text-muted-foreground uppercase tracking-wider shrink-0">
+										Mode
+									</div>
 									<div className="w-20 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 										Actions
 									</div>
@@ -532,6 +555,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 												onBlur={handleCellBlur}
 												onCommandsChange={handleCommandsChange}
 												onCommandsBlur={handleCommandsBlur}
+												onExecutionModeChange={handleExecutionModeChange}
 												onDelete={handleDeleteRow}
 												onSetDefault={handleSetDefault}
 											/>

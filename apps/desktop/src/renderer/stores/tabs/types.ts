@@ -36,6 +36,16 @@ export interface AddTabOptions {
 }
 
 /**
+ * Options for creating a tab with multiple panes (parallel execution mode)
+ */
+export interface AddTabWithMultiplePanesOptions {
+	/** Array of commands, one per pane */
+	commands: string[];
+	/** Optional working directory for all panes */
+	initialCwd?: string;
+}
+
+/**
  * Options for opening a file in a file-viewer pane
  */
 export interface AddFileViewerPaneOptions {
@@ -60,6 +70,10 @@ export interface TabsStore extends TabsState {
 		workspaceId: string,
 		options?: AddTabOptions,
 	) => { tabId: string; paneId: string };
+	addTabWithMultiplePanes: (
+		workspaceId: string,
+		options: AddTabWithMultiplePanesOptions,
+	) => { tabId: string; paneIds: string[] };
 	removeTab: (tabId: string) => void;
 	renameTab: (tabId: string, newName: string) => void;
 	setTabAutoTitle: (tabId: string, title: string) => void;
