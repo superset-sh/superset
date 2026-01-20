@@ -18,6 +18,15 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
 
+	// Verify signature BEFORE storing to prevent spam from unverified requests
+	try {
+		await webhooks.verify(body, signature ?? "");
+	} catch (error) {
+		console.error("[github/webhook] Signature verification failed:", error);
+		return Response.json({ error: "Invalid signature" }, { status: 401 });
+	}
+
+	// Store verified event
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
 		.values({
@@ -33,15 +42,14 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Failed to store event" }, { status: 500 });
 	}
 
+	// Process the verified event
 	try {
-		await webhooks.verifyAndReceive({
+		// biome-ignore lint/suspicious/noExplicitAny: GitHub webhook event types are complex unions
+		await webhooks.receive({
 			id: deliveryId ?? "",
-			name: eventType as Parameters<
-				typeof webhooks.verifyAndReceive
-			>[0]["name"],
-			payload: body,
-			signature: signature ?? "",
-		});
+			name: eventType,
+			payload,
+		} as any);
 
 		await db
 			.update(webhookEvents)
@@ -61,9 +69,6 @@ export async function POST(request: Request) {
 			})
 			.where(eq(webhookEvents.id, webhookEvent.id));
 
-		const status =
-			error instanceof Error && error.message.includes("signature") ? 401 : 500;
-
-		return Response.json({ error: "Webhook failed" }, { status });
+		return Response.json({ error: "Webhook processing failed" }, { status: 500 });
 	}
 }

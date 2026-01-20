@@ -5,10 +5,15 @@ import {
 	githubRepositories,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
+import { TRPCError } from "@trpc/server";
+import { Client } from "@upstash/qstash";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "./utils";
+
+const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 export const githubRouter = {
 	getInstallation: protectedProcedure
@@ -44,6 +49,35 @@ export const githubRouter = {
 			if (result.length === 0) {
 				return { success: false, error: "No installation found" };
 			}
+
+			return { success: true };
+		}),
+
+	triggerSync: protectedProcedure
+		.input(z.object({ organizationId: z.string().uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+
+			const installation = await db.query.githubInstallations.findFirst({
+				where: eq(githubInstallations.organizationId, input.organizationId),
+				columns: { id: true },
+			});
+
+			if (!installation) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "GitHub installation not found",
+				});
+			}
+
+			await qstash.publishJSON({
+				url: `${env.NEXT_PUBLIC_API_URL}/api/github/jobs/initial-sync`,
+				body: {
+					installationDbId: installation.id,
+					organizationId: input.organizationId,
+				},
+				retries: 3,
+			});
 
 			return { success: true };
 		}),

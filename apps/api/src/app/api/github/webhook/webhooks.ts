@@ -179,7 +179,9 @@ webhooks.on(
 			.onConflictDoUpdate({
 				target: [githubPullRequests.repositoryId, githubPullRequests.prNumber],
 				set: {
+					headBranch: pr.head.ref,
 					headSha: pr.head.sha,
+					baseBranch: pr.base.ref,
 					title: pr.title,
 					state: pr.state,
 					isDraft: pr.draft ?? false,

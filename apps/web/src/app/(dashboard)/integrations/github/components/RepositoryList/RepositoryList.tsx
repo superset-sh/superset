@@ -2,10 +2,9 @@
 
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { GitBranch, Lock, RefreshCw, Unlock } from "lucide-react";
-import { useState } from "react";
-import { env } from "@/env";
+import { toast } from "@superset/ui/sonner";
 import { useTRPC } from "@/trpc/react";
 
 interface RepositoryListProps {
@@ -14,7 +13,6 @@ interface RepositoryListProps {
 
 export function RepositoryList({ organizationId }: RepositoryListProps) {
 	const trpc = useTRPC();
-	const [isSyncing, setIsSyncing] = useState(false);
 
 	const {
 		data: repositories,
@@ -27,26 +25,28 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		}),
 	);
 
-	const handleSync = async () => {
-		setIsSyncing(true);
-		try {
-			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}/api/github/sync`, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ organizationId }),
-			});
-			const result = await response.json();
-			if (result.success) {
-				await refetch();
-			} else {
-				console.error("[github/sync] Sync failed:", result.error);
-			}
-		} catch (error) {
-			console.error("[github/sync] Sync error:", error);
-		} finally {
-			setIsSyncing(false);
-		}
+	const syncMutation = useMutation(
+		trpc.integration.github.triggerSync.mutationOptions({
+			onSuccess: () => {
+				toast.success("Sync started", {
+					description: "Repositories will be updated shortly.",
+				});
+				// Refetch after a short delay to allow sync to complete
+				setTimeout(() => refetch(), 3000);
+			},
+			onError: (error) => {
+				toast.error("Sync failed", {
+					description: error.message,
+				});
+			},
+		}),
+	);
+
+	const handleSync = () => {
+		syncMutation.mutate({ organizationId });
 	};
+
+	const isSyncing = syncMutation.isPending;
 
 	if (isLoading) {
 		return (
