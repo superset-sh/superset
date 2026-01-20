@@ -2,45 +2,45 @@ import { DarkTheme, DefaultTheme, type Theme } from "@react-navigation/native";
 
 export const THEME = {
 	light: {
-		background: "hsl(0 0% 100%)", // --color-background
-		foreground: "hsl(240 10% 3.9%)", // --color-foreground
-		card: "hsl(0 0% 100%)", // --color-card
-		cardForeground: "hsl(240 10% 3.9%)", // --color-card-foreground
-		popover: "hsl(0 0% 100%)", // --color-popover
-		popoverForeground: "hsl(240 10% 3.9%)", // --color-popover-foreground
-		primary: "hsl(240 5.9% 10%)", // --color-primary
-		primaryForeground: "hsl(0 0% 98%)", // --color-primary-foreground
-		secondary: "hsl(240 4.8% 95.9%)", // --color-secondary
-		secondaryForeground: "hsl(240 5.9% 10%)", // --color-secondary-foreground
-		muted: "hsl(240 4.8% 95.9%)", // --color-muted
-		mutedForeground: "hsl(240 3.8% 46.1%)", // --color-muted-foreground
-		accent: "hsl(240 4.8% 95.9%)", // --color-accent
-		accentForeground: "hsl(240 5.9% 10%)", // --color-accent-foreground
-		destructive: "hsl(0 84.2% 60.2%)", // --color-destructive
-		border: "hsl(240 5.9% 90%)", // --color-border
-		input: "hsl(240 5.9% 90%)", // --color-input
-		ring: "hsl(240 5.9% 10%)", // --color-ring
+		background: "hsl(0 0% 100%)",
+		foreground: "hsl(240 10% 3.9%)",
+		card: "hsl(0 0% 100%)",
+		cardForeground: "hsl(240 10% 3.9%)",
+		popover: "hsl(0 0% 100%)",
+		popoverForeground: "hsl(240 10% 3.9%)",
+		primary: "hsl(240 5.9% 10%)",
+		primaryForeground: "hsl(0 0% 98%)",
+		secondary: "hsl(240 4.8% 95.9%)",
+		secondaryForeground: "hsl(240 5.9% 10%)",
+		muted: "hsl(240 4.8% 95.9%)",
+		mutedForeground: "hsl(240 3.8% 46.1%)",
+		accent: "hsl(240 4.8% 95.9%)",
+		accentForeground: "hsl(240 5.9% 10%)",
+		destructive: "hsl(0 84.2% 60.2%)",
+		border: "hsl(240 5.9% 90%)",
+		input: "hsl(240 5.9% 90%)",
+		ring: "hsl(240 5.9% 10%)",
 		radius: "0.5rem",
 	},
 	dark: {
-		background: "hsl(240 10% 3.9%)", // --color-background
-		foreground: "hsl(0 0% 98%)", // --color-foreground
-		card: "hsl(240 10% 3.9%)", // --color-card
-		cardForeground: "hsl(0 0% 98%)", // --color-card-foreground
-		popover: "hsl(240 10% 3.9%)", // --color-popover
-		popoverForeground: "hsl(0 0% 98%)", // --color-popover-foreground
-		primary: "hsl(0 0% 98%)", // --color-primary
-		primaryForeground: "hsl(240 5.9% 10%)", // --color-primary-foreground
-		secondary: "hsl(240 3.7% 15.9%)", // --color-secondary
-		secondaryForeground: "hsl(0 0% 98%)", // --color-secondary-foreground
-		muted: "hsl(240 3.7% 15.9%)", // --color-muted
-		mutedForeground: "hsl(240 5% 64.9%)", // --color-muted-foreground
-		accent: "hsl(240 3.7% 15.9%)", // --color-accent
-		accentForeground: "hsl(0 0% 98%)", // --color-accent-foreground
-		destructive: "hsl(0 62.8% 30.6%)", // --color-destructive
-		border: "hsl(240 3.7% 15.9%)", // --color-border
-		input: "hsl(240 3.7% 15.9%)", // --color-input
-		ring: "hsl(240 4.9% 83.9%)", // --color-ring
+		background: "hsl(240 10% 3.9%)",
+		foreground: "hsl(0 0% 98%)",
+		card: "hsl(240 10% 3.9%)",
+		cardForeground: "hsl(0 0% 98%)",
+		popover: "hsl(240 10% 3.9%)",
+		popoverForeground: "hsl(0 0% 98%)",
+		primary: "hsl(0 0% 98%)",
+		primaryForeground: "hsl(240 5.9% 10%)",
+		secondary: "hsl(240 3.7% 15.9%)",
+		secondaryForeground: "hsl(0 0% 98%)",
+		muted: "hsl(240 3.7% 15.9%)",
+		mutedForeground: "hsl(240 5% 64.9%)",
+		accent: "hsl(240 3.7% 15.9%)",
+		accentForeground: "hsl(0 0% 98%)",
+		destructive: "hsl(0 62.8% 30.6%)",
+		border: "hsl(240 3.7% 15.9%)",
+		input: "hsl(240 3.7% 15.9%)",
+		ring: "hsl(240 4.9% 83.9%)",
 		radius: "0.5rem",
 	},
 };
