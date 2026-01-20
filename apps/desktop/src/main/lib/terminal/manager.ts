@@ -264,7 +264,7 @@ export class TerminalManager extends EventEmitter {
 		}
 	}
 
-	detach(params: { paneId: string; viewportY?: number }): void {
+	detach(params: { paneId: string }): void {
 		const { paneId } = params;
 		const session = this.sessions.get(paneId);
 

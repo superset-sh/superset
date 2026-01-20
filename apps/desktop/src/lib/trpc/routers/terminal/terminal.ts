@@ -163,7 +163,6 @@ export const createTerminalRouter = () => {
 						isNew: result.isNew,
 						scrollback: result.scrollback,
 						wasRecovered: result.wasRecovered,
-						viewportY: result.viewportY,
 						// Cold restore fields (for reboot recovery)
 						isColdRestore: result.isColdRestore,
 						previousCwd: result.previousCwd,
@@ -265,7 +264,6 @@ export const createTerminalRouter = () => {
 			.input(
 				z.object({
 					paneId: z.string(),
-					viewportY: z.number().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {

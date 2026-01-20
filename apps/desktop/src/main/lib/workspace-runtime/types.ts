@@ -96,9 +96,8 @@ export interface TerminalSessionOperations {
 
 	/**
 	 * Detach from the terminal (keep session alive).
-	 * viewportY is saved for scroll restoration on reattach.
 	 */
-	detach(params: { paneId: string; viewportY?: number }): void;
+	detach(params: { paneId: string }): void;
 
 	/** Clear the scrollback buffer */
 	clearScrollback(params: { paneId: string }): void | Promise<void>;

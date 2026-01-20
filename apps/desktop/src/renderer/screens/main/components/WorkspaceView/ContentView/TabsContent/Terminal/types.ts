@@ -13,7 +13,6 @@ export type CreateOrAttachResult = {
 	wasRecovered: boolean;
 	isNew: boolean;
 	scrollback: string;
-	viewportY?: number;
 	// Cold restore fields (for reboot recovery)
 	isColdRestore?: boolean;
 	previousCwd?: string;

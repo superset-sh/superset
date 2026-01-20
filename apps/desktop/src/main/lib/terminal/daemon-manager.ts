@@ -56,8 +56,6 @@ interface SessionInfo {
 	pid: number | null;
 	cols: number;
 	rows: number;
-	/** Saved viewport scroll position for restoration on reattach */
-	viewportY?: number;
 }
 
 // =============================================================================
@@ -747,7 +745,6 @@ export class DaemonTerminalManager extends EventEmitter {
 				// The renderer should prefer snapshot.snapshotAnsi when available.
 				scrollback: "",
 				wasRecovered: response.wasRecovered,
-				viewportY: this.sessions.get(paneId)?.viewportY,
 				snapshot: {
 					snapshotAnsi: response.snapshot.snapshotAnsi,
 					rehydrateSequences: response.snapshot.rehydrateSequences,
@@ -896,8 +893,8 @@ export class DaemonTerminalManager extends EventEmitter {
 		await this.client.kill({ sessionId: paneId, deleteHistory });
 	}
 
-	detach(params: { paneId: string; viewportY?: number }): void {
-		const { paneId, viewportY } = params;
+	detach(params: { paneId: string }): void {
+		const { paneId } = params;
 
 		const session = this.sessions.get(paneId);
 
@@ -912,9 +909,6 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		if (session) {
 			session.lastActive = Date.now();
-			if (viewportY !== undefined) {
-				session.viewportY = viewportY;
-			}
 		}
 	}
 
