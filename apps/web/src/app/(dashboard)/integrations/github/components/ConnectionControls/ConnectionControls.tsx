@@ -45,7 +45,7 @@ export function ConnectionControls({
 	);
 
 	const handleConnect = () => {
-		window.location.href = `${env.NEXT_PUBLIC_WEB_URL}/api/integrations/github/install?organizationId=${organizationId}`;
+		window.location.href = `${env.NEXT_PUBLIC_WEB_URL}/api/github/install?organizationId=${organizationId}`;
 	};
 
 	const handleDisconnect = () => {
