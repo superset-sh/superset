@@ -1,8 +1,7 @@
 {
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
-		"rootDir": "src",
-		"skipLibCheck": true
+		"rootDir": "src"
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]

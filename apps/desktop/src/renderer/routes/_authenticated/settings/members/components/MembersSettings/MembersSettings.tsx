@@ -47,10 +47,8 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	);
 
 	const { data: membersData, isLoading } = useLiveQuery(
-		(q) => {
-			if (!activeOrganizationId) return null;
-
-			return q
+		(q) =>
+			q
 				.from({ members: collections.members })
 				.innerJoin({ users: collections.users }, ({ members, users }) =>
 					eq(members.userId, users.id),
@@ -61,8 +59,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					memberId: members.id,
 				}))
 				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc");
-		},
+				.orderBy(({ members }) => members.createdAt, "asc"),
 		[collections, activeOrganizationId],
 	);
 
