@@ -65,8 +65,8 @@ export function ConnectionControls({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Disconnect GitHub?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This will disconnect GitHub from your organization. The GitHub
-							App will remain installed but will no longer sync data. You can
+							This will disconnect GitHub from your organization. The GitHub App
+							will remain installed but will no longer sync data. You can
 							reconnect at any time.
 						</AlertDialogDescription>
 					</AlertDialogHeader>

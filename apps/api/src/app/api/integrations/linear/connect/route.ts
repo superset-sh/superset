@@ -2,7 +2,9 @@ import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
+
 import { env } from "@/env";
+import { createSignedState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
 	const session = await auth.api.getSession({
@@ -37,9 +39,10 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const state = Buffer.from(
-		JSON.stringify({ organizationId, userId: session.user.id }),
-	).toString("base64url");
+	const state = createSignedState({
+		organizationId,
+		userId: session.user.id,
+	});
 
 	const linearAuthUrl = new URL("https://linear.app/oauth/authorize");
 	linearAuthUrl.searchParams.set("client_id", env.LINEAR_CLIENT_ID);

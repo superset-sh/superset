@@ -2,9 +2,9 @@
 
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { GitBranch, Lock, RefreshCw, Unlock } from "lucide-react";
-import { toast } from "@superset/ui/sonner";
 import { useTRPC } from "@/trpc/react";
 
 interface RepositoryListProps {
@@ -78,7 +78,9 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 					repositories.
 				</p>
 				<Button onClick={handleSync} disabled={isSyncing} variant="outline">
-					<RefreshCw className={`mr-2 size-4 ${isSyncing ? "animate-spin" : ""}`} />
+					<RefreshCw
+						className={`mr-2 size-4 ${isSyncing ? "animate-spin" : ""}`}
+					/>
 					{isSyncing ? "Syncing..." : "Sync Repositories"}
 				</Button>
 			</div>
@@ -89,10 +91,18 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
 				<p className="text-sm text-muted-foreground">
-					{repositories.length} {repositories.length === 1 ? "repository" : "repositories"}
+					{repositories.length}{" "}
+					{repositories.length === 1 ? "repository" : "repositories"}
 				</p>
-				<Button onClick={handleSync} disabled={isSyncing} variant="outline" size="sm">
-					<RefreshCw className={`mr-2 size-3 ${isSyncing ? "animate-spin" : ""}`} />
+				<Button
+					onClick={handleSync}
+					disabled={isSyncing}
+					variant="outline"
+					size="sm"
+				>
+					<RefreshCw
+						className={`mr-2 size-3 ${isSyncing ? "animate-spin" : ""}`}
+					/>
 					{isSyncing ? "Syncing..." : "Sync"}
 				</Button>
 			</div>

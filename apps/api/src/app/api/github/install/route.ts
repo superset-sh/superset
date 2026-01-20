@@ -4,6 +4,7 @@ import { members } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import { createSignedState } from "@/lib/oauth-state";
 
 export async function GET(request: Request) {
 	const session = await auth.api.getSession({ headers: request.headers });
@@ -43,9 +44,10 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const state = Buffer.from(
-		JSON.stringify({ organizationId, userId: session.user.id }),
-	).toString("base64url");
+	const state = createSignedState({
+		organizationId,
+		userId: session.user.id,
+	});
 
 	const installUrl = new URL(
 		"https://github.com/apps/superset-app/installations/new",

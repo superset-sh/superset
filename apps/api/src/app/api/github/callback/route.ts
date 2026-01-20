@@ -1,17 +1,13 @@
 import { db } from "@superset/db/client";
-import { githubInstallations } from "@superset/db/schema";
+import { githubInstallations, members } from "@superset/db/schema";
 import { Client } from "@upstash/qstash";
-import { z } from "zod";
+import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
+import { verifySignedState } from "@/lib/oauth-state";
 import { githubApp } from "../octokit";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
-
-const stateSchema = z.object({
-	organizationId: z.string().min(1),
-	userId: z.string().min(1),
-});
 
 /**
  * Callback handler for GitHub App installation.
@@ -35,23 +31,33 @@ export async function GET(request: Request) {
 		);
 	}
 
-	let stateData: unknown;
-	try {
-		stateData = JSON.parse(Buffer.from(state, "base64url").toString("utf-8"));
-	} catch {
+	// Verify signed state (prevents forgery)
+	const stateData = verifySignedState(state);
+	if (!stateData) {
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=invalid_state`,
 		);
 	}
 
-	const parsed = stateSchema.safeParse(stateData);
-	if (!parsed.success) {
+	const { organizationId, userId } = stateData;
+
+	// Re-verify membership at callback time (defense-in-depth)
+	const membership = await db.query.members.findFirst({
+		where: and(
+			eq(members.organizationId, organizationId),
+			eq(members.userId, userId),
+		),
+	});
+
+	if (!membership) {
+		console.error("[github/callback] Membership verification failed:", {
+			organizationId,
+			userId,
+		});
 		return Response.redirect(
-			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=invalid_state`,
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=unauthorized`,
 		);
 	}
-
-	const { organizationId, userId } = parsed.data;
 
 	try {
 		const octokit = await githubApp.getInstallationOctokit(
