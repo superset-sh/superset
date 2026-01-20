@@ -122,14 +122,13 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
-	const checkIsLastPaneInTab = useCallback(
-		(paneId: string) => {
-			const pane = panes[paneId];
-			if (!pane) return true;
-			return isLastPaneInTab(panes, pane.tabId);
-		},
-		[panes],
-	);
+	const checkIsLastPaneInTab = useCallback((paneId: string) => {
+		// Get fresh panes from store to avoid stale closure issues during drag-drop
+		const freshPanes = useTabsStore.getState().panes;
+		const pane = freshPanes[paneId];
+		if (!pane) return true;
+		return isLastPaneInTab(freshPanes, pane.tabId);
+	}, []);
 
 	return (
 		<div className="flex items-center h-10 flex-1 min-w-0">

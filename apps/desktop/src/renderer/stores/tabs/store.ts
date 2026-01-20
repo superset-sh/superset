@@ -305,11 +305,16 @@ export const useTabsStore = create<TabsStore>()(
 
 					const newPanes = { ...state.panes };
 					for (const paneId of removedPaneIds) {
-						// P2: Only kill terminal for actual terminal panes (avoid unnecessary IPC)
-						if (state.panes[paneId]?.type === "terminal") {
-							killTerminalForPane(paneId);
+						const pane = state.panes[paneId];
+						// Only delete panes that actually belong to this tab
+						// During drag operations, Mosaic may temporarily include foreign panes
+						// in layouts - we must not delete those when they're "removed"
+						if (pane && pane.tabId === tabId) {
+							if (pane.type === "terminal") {
+								killTerminalForPane(paneId);
+							}
+							delete newPanes[paneId];
 						}
-						delete newPanes[paneId];
 					}
 
 					// Update focused pane if it was removed
