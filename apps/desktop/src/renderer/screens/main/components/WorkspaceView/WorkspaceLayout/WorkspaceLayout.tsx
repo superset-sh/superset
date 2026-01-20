@@ -1,13 +1,13 @@
-import { ResizablePanel } from "../../ResizablePanel";
-import { ChangesContent } from "../ChangesContent";
-import { ContentView } from "../ContentView";
-import { Sidebar } from "../Sidebar";
 import {
 	MAX_SIDEBAR_WIDTH,
 	MIN_SIDEBAR_WIDTH,
 	SidebarMode,
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
+import { ResizablePanel } from "../../ResizablePanel";
+import { ChangesContent } from "../ChangesContent";
+import { ContentView } from "../ContentView";
+import { Sidebar } from "../Sidebar";
 
 export function WorkspaceLayout() {
 	const {
