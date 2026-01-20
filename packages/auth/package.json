@@ -18,6 +18,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@better-auth/expo": "^1.4.15",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "^0.13.8",
