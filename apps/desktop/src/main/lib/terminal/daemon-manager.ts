@@ -1240,6 +1240,7 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.historyWriters.clear();
 		this.historyInitializing.clear();
 		this.pendingHistoryData.clear();
+		this.createOrAttachLimiter.reset();
 
 		disposeTerminalHostClient();
 		this.initializeClient();
@@ -1286,6 +1287,11 @@ class PrioritySemaphore {
 			this.inUse++;
 			next.resolve(() => this.release());
 		}
+	}
+
+	reset(): void {
+		this.inUse = 0;
+		this.queue = [];
 	}
 }
 

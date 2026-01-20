@@ -934,10 +934,13 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							disabled={restartDaemon.isPending}
 							onClick={() => {
 								setConfirmRestartDaemonOpen(false);
-								for (const session of sessions) {
-									markTerminalKilledByUser(session.sessionId);
-								}
-								restartDaemon.mutate();
+								restartDaemon.mutate(undefined, {
+									onSuccess: () => {
+										for (const session of sessions) {
+											markTerminalKilledByUser(session.sessionId);
+										}
+									},
+								});
 							}}
 						>
 							Restart daemon
