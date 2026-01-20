@@ -48,16 +48,5 @@
 	],
 	"resolutions": {
 		"@electric-sql/client": "https://pkg.pr.new/@electric-sql/client@3724"
-	},
-	"dependencies": {
-		"@react-navigation/native": "^7.1.28",
-		"@tanstack/react-query": "^5.90.19",
-		"@trpc/client": "^11.8.1",
-		"@trpc/react-query": "^11.8.1",
-		"expo-linking": "^8.0.11",
-		"expo-secure-store": "^15.0.8",
-		"expo-web-browser": "^15.0.10",
-		"react-native-keychain": "^10.0.0",
-		"zustand": "^5.0.10"
 	}
 }
