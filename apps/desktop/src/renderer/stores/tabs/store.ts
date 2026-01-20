@@ -129,6 +129,13 @@ export const useTabsStore = create<TabsStore>()(
 					return { tabId: tab.id, paneId: pane.id };
 				},
 
+				/**
+				 * Creates a new tab with multiple panes, one for each command.
+				 * Used for parallel execution mode where each command runs in its own pane.
+				 * @param workspaceId - The workspace to add the tab to
+				 * @param options - Options containing commands array and optional cwd
+				 * @returns Object with tabId and array of paneIds
+				 */
 				addTabWithMultiplePanes: (
 					workspaceId: string,
 					options: AddTabWithMultiplePanesOptions,

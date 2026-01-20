@@ -223,6 +223,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		});
 	};
 
+	/**
+	 * Handles execution mode changes for a preset row.
+	 * Updates local state and persists the change to the server.
+	 */
 	const handleExecutionModeChange = (rowIndex: number, mode: ExecutionMode) => {
 		const preset = localPresets[rowIndex];
 		if (!preset) return;
