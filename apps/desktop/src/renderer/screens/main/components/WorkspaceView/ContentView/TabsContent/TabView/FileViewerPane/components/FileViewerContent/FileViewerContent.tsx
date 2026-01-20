@@ -54,6 +54,7 @@ interface FileViewerContentProps {
 	initialLine?: number;
 	initialColumn?: number;
 	diffViewMode: DiffViewMode;
+	hideUnchangedRegions: boolean;
 	onSaveRaw: () => Promise<void>;
 	onSaveDiff?: (content: string) => Promise<void>;
 	onEditorChange: (value: string | undefined) => void;
@@ -83,6 +84,7 @@ export function FileViewerContent({
 	initialLine,
 	initialColumn,
 	diffViewMode,
+	hideUnchangedRegions,
 	onSaveRaw,
 	onSaveDiff,
 	onEditorChange,
@@ -190,6 +192,7 @@ export function FileViewerContent({
 					language: diffData.language,
 				}}
 				viewMode={diffViewMode}
+				hideUnchangedRegions={hideUnchangedRegions}
 				filePath={filePath}
 				editable={isDiffEditable}
 				onSave={isDiffEditable ? onSaveDiff : undefined}

@@ -48,6 +48,7 @@ export interface DiffViewerContextMenuProps {
 interface DiffViewerProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
+	hideUnchangedRegions?: boolean;
 	filePath: string;
 	editable?: boolean;
 	onSave?: (content: string) => void;
@@ -59,6 +60,7 @@ interface DiffViewerProps {
 export function DiffViewer({
 	contents,
 	viewMode,
+	hideUnchangedRegions = false,
 	filePath,
 	editable = false,
 	onSave,
@@ -187,7 +189,7 @@ export function DiffViewer({
 
 	const diffEditor = (
 		<DiffEditor
-			key={`${filePath}-${viewMode}`}
+			key={`${filePath}-${viewMode}-${hideUnchangedRegions}`}
 			height="100%"
 			original={contents.original}
 			modified={contents.modified}
@@ -209,6 +211,9 @@ export function DiffViewer({
 				renderOverviewRuler: true,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
+				hideUnchangedRegions: {
+					enabled: hideUnchangedRegions,
+				},
 			}}
 		/>
 	);
