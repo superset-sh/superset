@@ -80,21 +80,27 @@ export function FileViewerToolbar({
 					value={viewMode}
 					onValueChange={onViewModeChange}
 					size="sm"
-					className="h-5"
+					className="h-5 bg-muted/50 rounded-md"
 				>
 					{isMarkdown && (
 						<ToggleGroupItem
 							value="rendered"
-							className="h-5 px-1.5 text-[10px]"
+							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
 						>
 							Rendered
 						</ToggleGroupItem>
 					)}
-					<ToggleGroupItem value="raw" className="h-5 px-1.5 text-[10px]">
+					<ToggleGroupItem
+						value="raw"
+						className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+					>
 						Raw
 					</ToggleGroupItem>
 					{hasDiff && (
-						<ToggleGroupItem value="diff" className="h-5 px-1.5 text-[10px]">
+						<ToggleGroupItem
+							value="diff"
+							className="h-5 px-1.5 text-[10px] text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+						>
 							Diff
 						</ToggleGroupItem>
 					)}
