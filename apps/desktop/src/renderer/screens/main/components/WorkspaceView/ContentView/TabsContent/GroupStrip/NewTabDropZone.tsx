@@ -25,10 +25,11 @@ export function NewTabDropZone({
 		},
 		drop: () => {
 			const { draggingPaneId } = useDragPaneStore.getState();
-			if (!draggingPaneId) return;
+			if (!draggingPaneId) return undefined;
 			// Double-check it's not the last pane
-			if (isLastPaneInTab(draggingPaneId)) return;
+			if (isLastPaneInTab(draggingPaneId)) return undefined;
 			onDrop(draggingPaneId);
+			return { handled: true };
 		},
 		collect: (monitor) => ({
 			isOver: monitor.isOver(),

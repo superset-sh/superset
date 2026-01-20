@@ -51,11 +51,12 @@ export function GroupItem({
 		},
 		drop: () => {
 			const { draggingPaneId } = useDragPaneStore.getState();
-			if (!draggingPaneId) return;
+			if (!draggingPaneId) return undefined;
 			// Double-check pane isn't already in this tab
 			const existingPaneIds = extractPaneIdsFromLayout(tab.layout);
-			if (existingPaneIds.includes(draggingPaneId)) return;
+			if (existingPaneIds.includes(draggingPaneId)) return undefined;
 			onPaneDrop?.(draggingPaneId);
+			return { handled: true };
 		},
 		collect: (monitor) => ({
 			isOver: monitor.isOver(),
