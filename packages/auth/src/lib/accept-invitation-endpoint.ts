@@ -123,7 +123,19 @@ export const acceptInvitationEndpoint = {
 
 				console.log("[invitation/accept] Session created:", session.token);
 
-				// Set the session cookie in the response
+				// Set the session cookie in the response (following Better Auth's setSessionCookie implementation)
+				// First: Set the actual HTTP cookie
+				await ctx.setSignedCookie(
+					ctx.context.authCookies.sessionToken.name,
+					session.token,
+					ctx.context.secret,
+					{
+						...ctx.context.authCookies.sessionToken.attributes,
+						maxAge: ctx.context.sessionConfig.expiresIn,
+					},
+				);
+
+				// Second: Update the context
 				ctx.context.setNewSession({
 					session: session,
 					user: user,
