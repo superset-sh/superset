@@ -62,7 +62,6 @@ export class HistoryManager {
 			await writer.init(safeScrollback);
 			this.historyWriters.set(paneId, writer);
 
-			// Mark init complete BEFORE replaying to avoid re-buffering into the same array
 			const buffered = this.pendingHistoryData.get(paneId) || [];
 			this.historyInitializing.delete(paneId);
 			this.pendingHistoryData.delete(paneId);
