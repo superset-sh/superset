@@ -5,7 +5,7 @@ import {
 	githubRepositories,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "./utils";
@@ -107,8 +107,8 @@ export const githubRouter = {
 
 			// Build query conditions
 			const conditions = [];
-			if (repoIds.length === 1 && repoIds[0]) {
-				conditions.push(eq(githubPullRequests.repositoryId, repoIds[0]));
+			if (repoIds.length > 0) {
+				conditions.push(inArray(githubPullRequests.repositoryId, repoIds));
 			}
 
 			if (input.state !== "all") {
@@ -171,9 +171,7 @@ export const githubRouter = {
 			const openPrs = await db.query.githubPullRequests.findMany({
 				where: and(
 					eq(githubPullRequests.state, "open"),
-					repoIds.length === 1 && repoIds[0]
-						? eq(githubPullRequests.repositoryId, repoIds[0])
-						: undefined,
+					inArray(githubPullRequests.repositoryId, repoIds),
 				),
 				columns: {
 					id: true,
