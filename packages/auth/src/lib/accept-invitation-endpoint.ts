@@ -123,6 +123,14 @@ export const acceptInvitationEndpoint = {
 
 				console.log("[invitation/accept] Session created:", session.token);
 
+				// Set the session cookie in the response
+				ctx.context.setNewSession({
+					session: session,
+					user: user,
+				});
+
+				console.log("[invitation/accept] Session cookie set");
+
 				// 5. Accept invitation by updating status and creating member
 				console.log("[invitation/accept] Accepting invitation");
 
@@ -166,12 +174,10 @@ export const acceptInvitationEndpoint = {
 
 				console.log("[invitation/accept] COMPLETE - Success");
 
-				// 7. Return the session to set cookie on the client
+				// 7. Return success (session is now in the cookie)
 				return ctx.json({
 					success: true,
 					organizationId: invitation.organization.id,
-					session,
-					user,
 				});
 			},
 		),
