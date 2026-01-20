@@ -39,7 +39,6 @@ export function InviteMemberButton() {
 	)?.role as OrganizationRole | undefined;
 	const [open, setOpen] = useState(false);
 	const [email, setEmail] = useState("");
-	const [name, setName] = useState("");
 	const [role, setRole] = useState<OrganizationRole>("member");
 	const [isInviting, setIsInviting] = useState(false);
 
@@ -64,7 +63,6 @@ export function InviteMemberButton() {
 
 			toast.success(`Invitation sent to ${email}`);
 			setEmail("");
-			setName("");
 			setRole("member");
 			setOpen(false);
 		} catch (error) {
@@ -107,18 +105,6 @@ export function InviteMemberButton() {
 					</DialogHeader>
 
 					<div className="space-y-4 py-4">
-						<div className="space-y-2">
-							<Label htmlFor="name">Name (optional)</Label>
-							<Input
-								id="name"
-								type="text"
-								placeholder="John Doe"
-								value={name}
-								onChange={(e) => setName(e.target.value)}
-								disabled={isInviting}
-							/>
-						</div>
-
 						<div className="space-y-2">
 							<Label htmlFor="email">Email</Label>
 							<Input
