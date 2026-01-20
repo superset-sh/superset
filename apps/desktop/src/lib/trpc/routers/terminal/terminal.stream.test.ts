@@ -86,6 +86,9 @@ mock.module("main/lib/terminal", () => ({
 			sessions: [],
 		};
 	},
+	getDaemonTerminalManager: () => ({
+		reset: () => {},
+	}),
 }));
 
 // Mock terminal-host/client to avoid Electron app import

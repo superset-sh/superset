@@ -1237,6 +1237,11 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.daemonAliveSessionIds.clear();
 		this.daemonSessionIdsHydrated = false;
 		this.coldRestoreInfo.clear();
+
+		// Best-effort close history writers (fire-and-forget to keep reset() sync)
+		for (const writer of this.historyWriters.values()) {
+			writer.close().catch(() => {});
+		}
 		this.historyWriters.clear();
 		this.historyInitializing.clear();
 		this.pendingHistoryData.clear();
@@ -1258,6 +1263,7 @@ class PrioritySemaphore {
 	private queue: Array<{
 		priority: number;
 		resolve: (release: () => void) => void;
+		reject: (error: Error) => void;
 	}> = [];
 
 	constructor(private max: number) {}
@@ -1268,9 +1274,8 @@ class PrioritySemaphore {
 			return Promise.resolve(() => this.release());
 		}
 
-		return new Promise<() => void>((resolve) => {
-			this.queue.push({ priority, resolve });
-			// Small N; simple sort is fine and keeps the implementation obvious.
+		return new Promise<() => void>((resolve, reject) => {
+			this.queue.push({ priority, resolve, reject });
 			this.queue.sort((a, b) => a.priority - b.priority);
 		});
 	}
@@ -1290,8 +1295,13 @@ class PrioritySemaphore {
 	}
 
 	reset(): void {
-		this.inUse = 0;
+		const waiters = this.queue;
 		this.queue = [];
+		this.inUse = 0;
+		const error = new Error("Semaphore reset");
+		for (const waiter of waiters) {
+			waiter.reject(error);
+		}
 	}
 }
 
