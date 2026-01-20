@@ -60,10 +60,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					...members,
 					memberId: members.id,
 				}))
-				.where(({ members }) =>
-					// @ts-expect-error - TanStack DB eq() type inference issue with RefLeaf<string> and string literal comparison
-					eq(members.organizationId, activeOrganizationId as string),
-				)
 				.orderBy(({ members }) => members.role, "asc")
 				.orderBy(({ members }) => members.createdAt, "asc");
 		},
