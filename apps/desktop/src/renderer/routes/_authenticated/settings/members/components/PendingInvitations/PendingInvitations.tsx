@@ -138,10 +138,7 @@ export function PendingInvitations({ visibleItems }: PendingInvitationsProps) {
 										{formatDate(invitation.createdAt)}
 									</TableCell>
 									<TableCell>
-										<InvitationActions
-											invitation={invitation}
-											organizationId={activeOrganizationId ?? ""}
-										/>
+										<InvitationActions invitation={invitation} />
 									</TableCell>
 								</TableRow>
 							))}

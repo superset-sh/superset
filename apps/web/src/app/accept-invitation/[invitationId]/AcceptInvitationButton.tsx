@@ -1,6 +1,5 @@
 "use client";
 
-import { authClient } from "@superset/auth/client";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
 
@@ -21,15 +20,6 @@ export function AcceptInvitationButton({
 	const handleContinue = async () => {
 		setIsProcessing(true);
 		try {
-			// Sign out any existing session first
-			await authClient.signOut({
-				fetchOptions: {
-					onSuccess: () => {
-						// Session cleared, proceed with acceptance
-					},
-				},
-			});
-
 			// Call the Better Auth endpoint that handles auth and cookies properly
 			const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 			const response = await fetch(`${apiUrl}/api/auth/accept-invitation`, {

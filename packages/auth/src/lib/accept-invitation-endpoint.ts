@@ -42,11 +42,6 @@ export const acceptInvitationEndpoint = {
 					throw new Error("Invalid or expired token");
 				}
 
-				console.log(
-					"[invitation/accept] Token verified for email:",
-					verification.identifier,
-				);
-
 				// 2. Get invitation to verify email matches
 				const invitation = await db.query.invitations.findFirst({
 					where: eq(invitations.id, invitationId),
@@ -75,15 +70,12 @@ export const acceptInvitationEndpoint = {
 					throw new Error("Invitation already accepted or rejected");
 				}
 
-				console.log("[invitation/accept] Invitation validated");
-
 				// 3. Create or get user
 				let user = await db.query.users.findFirst({
 					where: eq(users.email, invitation.email),
 				});
 
 				if (!user) {
-					console.log("[invitation/accept] Creating new user");
 					const userName =
 						invitation.name || invitation.email.split("@")[0] || "User";
 					const [newUser] = await db
@@ -91,7 +83,7 @@ export const acceptInvitationEndpoint = {
 						.values({
 							email: invitation.email,
 							name: userName,
-							emailVerified: true, // Email verified via magic link
+							emailVerified: true,
 						})
 						.returning();
 
@@ -100,14 +92,9 @@ export const acceptInvitationEndpoint = {
 					}
 
 					user = newUser;
-					console.log("[invitation/accept] New user created:", user.id);
-				} else {
-					console.log("[invitation/accept] Existing user found:", user.id);
 				}
 
 				// 4. Create session using Better Auth's proper API
-				console.log("[invitation/accept] Creating session for user:", user.id);
-
 				const session = await ctx.context.internalAdapter.createSession(
 					user.id,
 				);
@@ -121,10 +108,7 @@ export const acceptInvitationEndpoint = {
 					activeOrganizationId: invitation.organization.id,
 				});
 
-				console.log("[invitation/accept] Session created:", session.token);
-
-				// Set the session cookie in the response (following Better Auth's setSessionCookie implementation)
-				// First: Set the actual HTTP cookie
+				// Set session cookie (follows Better Auth's setSessionCookie pattern)
 				await ctx.setSignedCookie(
 					ctx.context.authCookies.sessionToken.name,
 					session.token,
@@ -135,25 +119,16 @@ export const acceptInvitationEndpoint = {
 					},
 				);
 
-				// Second: Update the context
 				ctx.context.setNewSession({
 					session: session,
 					user: user,
 				});
 
-				console.log("[invitation/accept] Session cookie set");
-
 				// 5. Accept invitation by updating status and creating member
-				console.log("[invitation/accept] Accepting invitation");
-
 				await db
 					.update(invitations)
 					.set({ status: "accepted" })
 					.where(eq(invitations.id, invitationId));
-
-				console.log(
-					"[invitation/accept] Invitation status updated to accepted",
-				);
 
 				// Create member record (check if not already a member)
 				const existingMember = await db.query.members.findFirst({
@@ -169,20 +144,10 @@ export const acceptInvitationEndpoint = {
 						userId: user.id,
 						role: invitation.role ?? "member",
 					});
-
-					console.log(
-						"[invitation/accept] Member created for organization:",
-						invitation.organization.id,
-					);
-				} else {
-					console.log(
-						"[invitation/accept] User already a member, skipping member creation",
-					);
 				}
 
 				// 6. Delete verification token (one-time use)
 				await db.delete(verifications).where(eq(verifications.value, token));
-				console.log("[invitation/accept] Verification token deleted");
 
 				console.log("[invitation/accept] COMPLETE - Success");
 

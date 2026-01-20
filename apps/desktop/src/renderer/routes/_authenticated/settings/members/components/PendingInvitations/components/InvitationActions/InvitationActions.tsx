@@ -16,12 +16,10 @@ import { authClient } from "renderer/lib/auth-client";
 
 interface InvitationActionsProps {
 	invitation: SelectInvitation;
-	organizationId: string;
 }
 
 export function InvitationActions({
 	invitation,
-	organizationId,
 }: InvitationActionsProps) {
 	const [isCanceling, setIsCanceling] = useState(false);
 
