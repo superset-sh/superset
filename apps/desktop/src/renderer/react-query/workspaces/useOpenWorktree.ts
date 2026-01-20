@@ -66,6 +66,7 @@ export function useOpenWorktree(
 				tabId,
 				workspaceId: data.workspace.id,
 				initialCommands,
+				cwd: initialCwd,
 			});
 
 			if (!initialCommands) {
