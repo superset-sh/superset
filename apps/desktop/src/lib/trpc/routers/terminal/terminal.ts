@@ -46,7 +46,6 @@ const SAFE_ID = z
  * - SUPERSET_PORT: The hooks server port for agent completion notifications
  */
 export const createTerminalRouter = () => {
-	// Get the workspace runtime registry (selects backend based on settings)
 	const registry = getWorkspaceRuntimeRegistry();
 	const terminal = registry.getDefault().terminal;
 	if (DEBUG_TERMINAL) {
@@ -101,7 +100,6 @@ export const createTerminalRouter = () => {
 					});
 				}
 
-				// Resolve cwd: absolute paths stay as-is, relative paths resolve against workspace path
 				const workspace = localDb
 					.select()
 					.from(workspaces)
@@ -127,7 +125,6 @@ export const createTerminalRouter = () => {
 					});
 				}
 
-				// Get project info for environment variables
 				const project = workspace
 					? localDb
 							.select()
@@ -201,10 +198,8 @@ export const createTerminalRouter = () => {
 					const message =
 						error instanceof Error ? error.message : "Write failed";
 
-					// If session is gone, emit exit instead of error.
-					// This prevents error toast floods when workspaces with terminals are deleted.
+					// Emit exit instead of error for deleted sessions to prevent toast floods
 					if (message.includes("not found or not alive")) {
-						// SIGTERM (15) - synthetic signal for consistent event typing.
 						terminal.emit(`exit:${input.paneId}`, 0, 15);
 						return;
 					}
@@ -216,10 +211,6 @@ export const createTerminalRouter = () => {
 				}
 			}),
 
-		/**
-		 * Acknowledge cold restore - clears the sticky cold restore info.
-		 * Call this after displaying the cold restore UI and starting a new shell.
-		 */
 		ackColdRestore: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
@@ -261,9 +252,6 @@ export const createTerminalRouter = () => {
 				await terminal.kill(input);
 			}),
 
-		/**
-		 * Detach from terminal (keep session alive)
-		 */
 		detach: publicProcedure
 			.input(
 				z.object({
@@ -275,10 +263,6 @@ export const createTerminalRouter = () => {
 				terminal.detach(input);
 			}),
 
-		/**
-		 * Clear scrollback buffer for terminal (used by Cmd+K / clear command)
-		 * This clears both in-memory scrollback and persistent history file
-		 */
 		clearScrollback: publicProcedure
 			.input(
 				z.object({
@@ -301,7 +285,6 @@ export const createTerminalRouter = () => {
 				return { daemonModeEnabled: false, killedCount: 0, remainingCount: 0 };
 			}
 
-			// Get sessions before kill for accurate count
 			const before = await client.listSessions();
 			const beforeIds = before.sessions.map((s) => s.sessionId);
 			for (const id of beforeIds) {
@@ -314,11 +297,9 @@ export const createTerminalRouter = () => {
 				beforeIds,
 			);
 
-			// Request kill of all sessions
 			await client.killAll({});
 
-			// Wait and verify loop - poll until sessions are actually dead
-			// This ensures we don't return success before daemon has finished cleanup
+			// Poll until sessions are actually dead
 			const MAX_RETRIES = 10;
 			const RETRY_DELAY_MS = 100;
 			let remainingCount = before.sessions.length;
@@ -382,16 +363,7 @@ export const createTerminalRouter = () => {
 			return { success: true };
 		}),
 
-		/**
-		 * Restart the terminal daemon completely.
-		 * This is a fix for when the daemon gets into a bad state (e.g., all sessions
-		 * report "not attachable" even after createOrAttach).
-		 *
-		 * This will:
-		 * 1. Shutdown the daemon process (killing all sessions)
-		 * 2. Reset the manager state and get a fresh client connection
-		 * 3. The next terminal operation will spawn a fresh daemon
-		 */
+		/** Restart daemon to recover from stuck state. Kills all sessions. */
 		restartDaemon: publicProcedure.mutation(async () => {
 			console.log("[restartDaemon] Starting daemon restart...");
 
@@ -400,19 +372,16 @@ export const createTerminalRouter = () => {
 				const connected = await client.tryConnectAndAuthenticate();
 
 				if (connected) {
-					// Get session count for logging
 					const { sessions } = await client.listSessions();
 					const aliveCount = sessions.filter((s) => s.isAlive).length;
 					console.log(
 						`[restartDaemon] Shutting down daemon with ${aliveCount} alive sessions`,
 					);
 
-					// Mark all sessions as killed by user
 					for (const session of sessions) {
 						userKilledSessions.add(session.sessionId);
 					}
 
-					// Shutdown with session kill
 					await client.shutdownIfRunning({ killSessions: true });
 				} else {
 					console.log("[restartDaemon] Daemon was not running");
@@ -424,13 +393,10 @@ export const createTerminalRouter = () => {
 				);
 			}
 
-			// Reset the daemon manager - clears state and gets fresh client
 			const manager = getDaemonTerminalManager();
 			manager.reset();
 
-			console.log(
-				"[restartDaemon] Daemon shutdown complete. Next terminal operation will spawn fresh daemon.",
-			);
+			console.log("[restartDaemon] Complete");
 
 			return { success: true };
 		}),
@@ -441,10 +407,6 @@ export const createTerminalRouter = () => {
 				return terminal.getSession(paneId);
 			}),
 
-		/**
-		 * Get the current working directory for a workspace
-		 * This is used for resolving relative file paths in terminal output
-		 */
 		getWorkspaceCwd: publicProcedure
 			.input(z.string())
 			.query(({ input: workspaceId }) => {
@@ -469,10 +431,6 @@ export const createTerminalRouter = () => {
 				return worktree?.path ?? null;
 			}),
 
-		/**
-		 * List directory contents for navigation
-		 * Returns directories and files in the specified path
-		 */
 		listDirectory: publicProcedure
 			.input(
 				z.object({
@@ -544,11 +502,7 @@ export const createTerminalRouter = () => {
 					};
 
 					const onExit = (exitCode: number, signal?: number) => {
-						// IMPORTANT: Do not `emit.complete()` on exit.
-						// The renderer uses a stable `paneId` input and `@trpc/react-query`
-						// won't auto-resubscribe after completion unless the subscription key changes.
-						// We reuse the same paneId across restarts/cold restore, so completing here
-						// would strand the pane with no listeners (terminal output never renders again).
+						// Don't emit.complete() - paneId is reused across restarts, completion would strand listeners
 						emit.next({ type: "exit", exitCode, signal });
 					};
 
@@ -569,7 +523,6 @@ export const createTerminalRouter = () => {
 					terminal.on(`disconnect:${paneId}`, onDisconnect);
 					terminal.on(`error:${paneId}`, onError);
 
-					// Cleanup on unsubscribe
 					return () => {
 						if (DEBUG_TERMINAL) {
 							console.log(`[Terminal Stream] Unsubscribe: ${paneId}`);

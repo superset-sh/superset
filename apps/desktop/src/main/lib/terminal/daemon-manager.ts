@@ -106,10 +106,6 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.initializeClient();
 	}
 
-	/**
-	 * Initialize or re-initialize the client connection.
-	 * Called at construction and during reset.
-	 */
 	private initializeClient(): void {
 		this.client = getTerminalHostClient();
 		this.setupClientEventHandlers();
@@ -1227,24 +1223,15 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.sessions.clear();
 	}
 
-	/**
-	 * Reset the manager after daemon restart.
-	 * Clears all internal state and gets a fresh client connection.
-	 * This is called when the daemon is restarted to fix stuck terminals.
-	 */
 	reset(): void {
-		console.log("[DaemonTerminalManager] Resetting manager state...");
+		console.log("[DaemonTerminalManager] Resetting...");
 
-		// Cancel any pending cleanup timeouts
 		for (const timeout of this.cleanupTimeouts.values()) {
 			clearTimeout(timeout);
 		}
 		this.cleanupTimeouts.clear();
-
-		// Remove listeners from old client before getting new one
 		this.client.removeAllListeners();
 
-		// Clear all internal state
 		this.sessions.clear();
 		this.pendingSessions.clear();
 		this.daemonAliveSessionIds.clear();
@@ -1254,7 +1241,6 @@ export class DaemonTerminalManager extends EventEmitter {
 		this.historyInitializing.clear();
 		this.pendingHistoryData.clear();
 
-		// Dispose the old client singleton and get a fresh one
 		disposeTerminalHostClient();
 		this.initializeClient();
 

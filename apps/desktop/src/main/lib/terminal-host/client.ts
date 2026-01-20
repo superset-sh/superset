@@ -293,25 +293,21 @@ export class TerminalHostClient extends EventEmitter {
 	/**
 	 * Connect and authenticate both control + stream sockets.
 	 * Handles protocol mismatch by shutting down a legacy daemon and retrying once.
-	 * In development mode, also detects stale daemons (script rebuilt since spawn).
 	 */
 	private async connectAndAuthenticate(): Promise<void> {
 		for (let attempt = 0; attempt < 2; attempt++) {
-			// In development mode, check if daemon script has been rebuilt
-			// and restart the daemon if so. This prevents stale code issues.
 			if (attempt === 0 && process.env.NODE_ENV === "development") {
-				const shouldRestart = this.isDaemonScriptStale();
-				if (shouldRestart) {
-					console.log(
-						"[TerminalHostClient] Daemon script was rebuilt, restarting daemon...",
-					);
+				if (this.isDaemonScriptStale()) {
+					if (DEBUG_CLIENT) {
+						console.log(
+							"[TerminalHostClient] Daemon script rebuilt, restarting...",
+						);
+					}
 					this.killDaemonFromPidFile();
 					await this.waitForDaemonShutdown();
-					// spawnDaemon will be called below when control socket fails
 				}
 			}
 
-			// Control socket (RPC)
 			let controlConnected = await this.tryConnectControl();
 			if (!controlConnected) {
 				await this.spawnDaemon();
@@ -321,14 +317,10 @@ export class TerminalHostClient extends EventEmitter {
 				}
 			}
 
-			// Token is created by the daemon at startup, so we must read it after we’ve
-			// ensured a daemon exists (fresh installs / cleaned ~/.superset).
 			let token: string;
 			try {
 				token = this.readAuthToken();
 			} catch (error) {
-				// If a socket exists but the token is missing, we can’t authenticate; force
-				// a daemon restart to re-create a coherent socket+token pair.
 				if (attempt === 0) {
 					if (DEBUG_CLIENT) {
 						console.log(
@@ -362,7 +354,6 @@ export class TerminalHostClient extends EventEmitter {
 				throw error;
 			}
 
-			// Stream socket (events)
 			const streamConnected = await this.tryConnectStream();
 			if (!streamConnected) {
 				throw new Error("Failed to connect stream socket");

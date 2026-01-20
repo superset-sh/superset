@@ -237,7 +237,6 @@ function buildSessionsSubmenu(
 }
 
 async function restartDaemon(): Promise<void> {
-	// Show confirmation dialog
 	const { response } = await dialog.showMessageBox({
 		type: "warning",
 		buttons: ["Cancel", "Restart Daemon"],
@@ -250,7 +249,6 @@ async function restartDaemon(): Promise<void> {
 	});
 
 	if (response === 0) {
-		// User clicked Cancel
 		return;
 	}
 
@@ -270,13 +268,10 @@ async function restartDaemon(): Promise<void> {
 		console.warn("[Tray] Error during shutdown (continuing):", error);
 	}
 
-	// Reset the daemon manager - clears state and gets fresh client
 	const manager = getDaemonTerminalManager();
 	manager.reset();
 
-	console.log(
-		"[Tray] Daemon restart complete. Next terminal operation will spawn fresh daemon.",
-	);
+	console.log("[Tray] Daemon restart complete");
 
 	await updateTrayMenu();
 }

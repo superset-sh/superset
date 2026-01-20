@@ -244,7 +244,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 	const [confirmKillAllOpen, setConfirmKillAllOpen] = useState(false);
 	const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
-	const [confirmRestartDaemonOpen, setConfirmRestartDaemonOpen] = useState(false);
+	const [confirmRestartDaemonOpen, setConfirmRestartDaemonOpen] =
+		useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 	const [pendingKillSession, setPendingKillSession] = useState<{
 		sessionId: string;
@@ -381,7 +382,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	const restartDaemon = electronTrpc.terminal.restartDaemon.useMutation({
 		onSuccess: () => {
 			toast.success("Daemon restarted", {
-				description: "Terminal daemon has been restarted. Open a terminal to spawn a fresh daemon.",
+				description:
+					"Terminal daemon has been restarted. Open a terminal to spawn a fresh daemon.",
 			});
 			utils.terminal.listDaemonSessions.invalidate();
 		},
