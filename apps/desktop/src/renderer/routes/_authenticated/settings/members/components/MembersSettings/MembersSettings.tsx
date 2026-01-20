@@ -47,8 +47,10 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	);
 
 	const { data: membersData, isLoading } = useLiveQuery(
-		(q) =>
-			q
+		(q) => {
+			if (!activeOrganizationId) return null;
+
+			return q
 				.from({ members: collections.members })
 				.innerJoin({ users: collections.users }, ({ members, users }) =>
 					eq(members.userId, users.id),
@@ -59,10 +61,12 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					memberId: members.id,
 				}))
 				.where(({ members }) =>
-					eq(members.organizationId, activeOrganizationId ?? ""),
+					// @ts-expect-error - TanStack DB eq() type inference issue with RefLeaf<string> and string literal comparison
+					eq(members.organizationId, activeOrganizationId as string),
 				)
 				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
+				.orderBy(({ members }) => members.createdAt, "asc");
+		},
 		[collections, activeOrganizationId],
 	);
 
