@@ -119,7 +119,7 @@ export function PresetRow({
 						onExecutionModeChange(rowIndex, value as ExecutionMode)
 					}
 				>
-					<SelectTrigger className="h-8 text-xs">
+					<SelectTrigger className="h-8 w-full text-xs">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
