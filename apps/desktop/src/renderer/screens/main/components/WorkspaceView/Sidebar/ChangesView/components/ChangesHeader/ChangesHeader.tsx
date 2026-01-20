@@ -16,13 +16,13 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
-import { LuExpand, LuLoaderCircle, LuX } from "react-icons/lu";
+import { LuExpand, LuLoaderCircle, LuShrink, LuX } from "react-icons/lu";
 import { VscGitStash, VscGitStashApply } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { usePRStatus } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
-import { useSidebarStore } from "renderer/stores/sidebar-state";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 
@@ -232,7 +232,12 @@ export function ChangesHeader({
 	onStashPop,
 	isStashPending,
 }: ChangesHeaderProps) {
-	const { toggleSidebar } = useSidebarStore();
+	const { toggleSidebar, currentMode, setMode } = useSidebarStore();
+	const isExpanded = currentMode === SidebarMode.Changes;
+
+	const handleExpandToggle = () => {
+		setMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+	};
 
 	return (
 		<div className="flex flex-col">
@@ -244,12 +249,21 @@ export function ChangesHeader({
 				<div className="flex-1" />
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<Button variant="ghost" size="icon" className="size-6 p-0">
-							<LuExpand className="size-3.5" />
+						<Button
+							variant="ghost"
+							size="icon"
+							onClick={handleExpandToggle}
+							className="size-6 p-0"
+						>
+							{isExpanded ? (
+								<LuShrink className="size-3.5" />
+							) : (
+								<LuExpand className="size-3.5" />
+							)}
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						Expand sidebar
+						{isExpanded ? "Collapse sidebar" : "Expand sidebar"}
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>

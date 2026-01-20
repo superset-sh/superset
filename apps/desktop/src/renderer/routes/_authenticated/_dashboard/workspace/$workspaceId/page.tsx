@@ -4,10 +4,18 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
+import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
+import { ChangesContent } from "renderer/screens/main/components/WorkspaceView/ContentView/ChangesContent";
 import { ContentView } from "renderer/screens/main/components/WorkspaceView/ContentView";
+import { Sidebar } from "renderer/screens/main/components/WorkspaceView/Sidebar";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import { useSidebarStore } from "renderer/stores/sidebar-state";
+import {
+	MAX_SIDEBAR_WIDTH,
+	MIN_SIDEBAR_WIDTH,
+	SidebarMode,
+	useSidebarStore,
+} from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -84,7 +92,16 @@ function WorkspacePage() {
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const {
+		isSidebarOpen,
+		sidebarWidth,
+		setSidebarWidth,
+		isResizing,
+		setIsResizing,
+		currentMode,
+		toggleSidebar,
+	} = useSidebarStore();
+	const isExpanded = currentMode === SidebarMode.Changes;
 
 	const tabs = useMemo(
 		() => allTabs.filter((tab) => tab.workspaceId === workspaceId),
@@ -336,7 +353,7 @@ function WorkspacePage() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
-			<div className="flex-1 min-h-0 overflow-hidden">
+			<div className="flex-1 min-h-0 flex overflow-hidden">
 				{showInitView ? (
 					<WorkspaceInitializingView
 						workspaceId={workspaceId}
@@ -344,7 +361,25 @@ function WorkspacePage() {
 						isInterrupted={hasIncompleteInit && !isInitializing}
 					/>
 				) : (
-					<ContentView />
+					<>
+						<div className="flex-1 min-w-0 overflow-hidden">
+							{isExpanded ? <ChangesContent /> : <ContentView />}
+						</div>
+						{isSidebarOpen && (
+							<ResizablePanel
+								width={sidebarWidth}
+								onWidthChange={setSidebarWidth}
+								isResizing={isResizing}
+								onResizingChange={setIsResizing}
+								minWidth={MIN_SIDEBAR_WIDTH}
+								maxWidth={MAX_SIDEBAR_WIDTH}
+								handleSide="left"
+								className={isExpanded ? "border-l-0" : undefined}
+							>
+								<Sidebar />
+							</ResizablePanel>
+						)}
+					</>
 				)}
 			</div>
 		</div>
