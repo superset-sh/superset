@@ -16,7 +16,12 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 	const trpc = useTRPC();
 	const [isSyncing, setIsSyncing] = useState(false);
 
-	const { data: repositories, isLoading, refetch } = useQuery(
+	const {
+		data: repositories,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery(
 		trpc.integration.github.listRepositories.queryOptions({
 			organizationId,
 		}),
@@ -47,6 +52,20 @@ export function RepositoryList({ organizationId }: RepositoryListProps) {
 		return (
 			<div className="py-8 text-center text-muted-foreground">
 				Loading repositories...
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex flex-col items-center gap-4 py-8">
+				<p className="text-center text-muted-foreground">
+					Failed to load repositories. Please try again.
+				</p>
+				<Button onClick={() => refetch()} variant="outline">
+					<RefreshCw className="mr-2 size-4" />
+					Retry
+				</Button>
 			</div>
 		);
 	}

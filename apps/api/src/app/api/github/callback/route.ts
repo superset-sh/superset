@@ -35,10 +35,16 @@ export async function GET(request: Request) {
 		);
 	}
 
-	const parsed = stateSchema.safeParse(
-		JSON.parse(Buffer.from(state, "base64url").toString("utf-8")),
-	);
+	let stateData: unknown;
+	try {
+		stateData = JSON.parse(Buffer.from(state, "base64url").toString("utf-8"));
+	} catch {
+		return Response.redirect(
+			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=invalid_state`,
+		);
+	}
 
+	const parsed = stateSchema.safeParse(stateData);
 	if (!parsed.success) {
 		return Response.redirect(
 			`${env.NEXT_PUBLIC_WEB_URL}/integrations/github?error=invalid_state`,

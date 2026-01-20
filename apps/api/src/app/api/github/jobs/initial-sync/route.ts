@@ -47,7 +47,14 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	let bodyData: unknown;
+	try {
+		bodyData = JSON.parse(body);
+	} catch {
+		return Response.json({ error: "Invalid JSON" }, { status: 400 });
+	}
+
+	const parsed = payloadSchema.safeParse(bodyData);
 	if (!parsed.success) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
