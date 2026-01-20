@@ -19,7 +19,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -140,9 +140,21 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
+	const presetsContainerRef = useRef<HTMLDivElement>(null);
+	const prevPresetsCountRef = useRef(serverPresets.length);
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
+
+		if (serverPresets.length > prevPresetsCountRef.current) {
+			requestAnimationFrame(() => {
+				presetsContainerRef.current?.scrollTo({
+					top: presetsContainerRef.current.scrollHeight,
+					behavior: "smooth",
+				});
+			});
+		}
+		prevPresetsCountRef.current = serverPresets.length;
 	}, [serverPresets]);
 
 	const existingPresetNames = useMemo(
@@ -490,7 +502,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									</div>
 								</div>
 
-								<div className="max-h-[320px] overflow-y-auto">
+								<div
+									ref={presetsContainerRef}
+									className="max-h-[320px] overflow-y-auto"
+								>
 									{isLoadingPresets ? (
 										<div className="py-8 text-center text-sm text-muted-foreground">
 											Loading presets...
