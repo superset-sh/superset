@@ -10,13 +10,21 @@ export async function POST(request: Request) {
 	const eventType = request.headers.get("x-github-event");
 	const deliveryId = request.headers.get("x-github-delivery");
 
+	let payload: unknown;
+	try {
+		payload = JSON.parse(body);
+	} catch {
+		console.error("[github/webhook] Invalid JSON payload");
+		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
+	}
+
 	const [webhookEvent] = await db
 		.insert(webhookEvents)
 		.values({
 			provider: "github",
-			eventId: deliveryId ?? `github-${Date.now()}`,
+			eventId: deliveryId ?? `github-${crypto.randomUUID()}`,
 			eventType: eventType ?? "unknown",
-			payload: JSON.parse(body),
+			payload,
 			status: "pending",
 		})
 		.returning();

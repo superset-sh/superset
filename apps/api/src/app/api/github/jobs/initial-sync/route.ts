@@ -68,7 +68,10 @@ export async function POST(request: Request) {
 		.limit(1);
 
 	if (!installation) {
-		return Response.json({ error: "Installation not found", skipped: true });
+		return Response.json(
+			{ error: "Installation not found", skipped: true },
+			{ status: 404 },
+		);
 	}
 
 	try {

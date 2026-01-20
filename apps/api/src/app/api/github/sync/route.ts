@@ -27,9 +27,14 @@ export async function POST(request: Request) {
 		);
 	}
 
-	const body = await request.json();
-	const parsed = bodySchema.safeParse(body);
+	let body: unknown;
+	try {
+		body = await request.json();
+	} catch {
+		return Response.json({ error: "Invalid JSON" }, { status: 400 });
+	}
 
+	const parsed = bodySchema.safeParse(body);
 	if (!parsed.success) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
