@@ -8,6 +8,7 @@ interface SpinnerProps {
 	color?: string;
 	interval?: number;
 	frames?: string[];
+	text?: string;
 }
 
 /**
@@ -45,6 +46,7 @@ export function Spinner({
 	color,
 	interval = DEFAULT_INTERVAL,
 	frames = DEFAULT_FRAMES,
+	text,
 }: SpinnerProps) {
 	const frame = useSpinner(frames, interval);
 
@@ -52,5 +54,10 @@ export function Spinner({
 		return null;
 	}
 
-	return <Text color={color}>{frame}</Text>;
+	return (
+		<Text color={color}>
+			{frame}
+			{text ? ` ${text}` : ""}
+		</Text>
+	);
 }

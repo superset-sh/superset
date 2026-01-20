@@ -3,14 +3,15 @@
 	"version": "0.0.0",
 	"license": "MIT",
 	"bin": {
-		"superset": "dist/cli.js"
+		"superset": "./dist/cli.js"
 	},
 	"type": "module",
 	"engines": {
 		"node": ">=20"
 	},
 	"scripts": {
-		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=node",
+		"build": "bun build src/cli.tsx --outfile=dist/cli.js --target=bun && sed -i '' '1s|.*|#!/usr/bin/env bun|' dist/cli.js && chmod +x dist/cli.js",
+		"install:global": "bun run build && ln -sf \"$(pwd)/dist/cli.js\" ~/.bun/bin/superset",
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"dev": "tsc --watch",
 		"start": "bun src/server.ts",
@@ -26,12 +27,15 @@
 		"./types": "./src/types/index.ts"
 	},
 	"dependencies": {
+		"@superset/git-utils": "workspace:*",
+		"@superset/local-db": "workspace:*",
 		"commander": "^14.0.2",
+		"drizzle-orm": "0.45.1",
+		"uuid": "^13.0.0",
 		"ink": "^6.5.0",
 		"ink-select-input": "^6.2.0",
 		"ink-table": "^3.1.0",
 		"ink-text-input": "^6.0.0",
-		"lowdb": "^7.0.1",
 		"meow": "^11.0.0",
 		"react": "^19.2.3",
 		"react-devtools-core": "^7.0.1",
