@@ -9,6 +9,11 @@ import {
 	users,
 } from "./auth";
 import {
+	githubInstallations,
+	githubPullRequests,
+	githubRepositories,
+} from "./github";
+import {
 	integrationConnections,
 	repositories,
 	taskStatuses,
@@ -23,6 +28,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	createdTasks: many(tasks, { relationName: "creator" }),
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
+	githubInstallations: many(githubInstallations),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -46,6 +52,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
 	integrations: many(integrationConnections),
+	githubInstallations: many(githubInstallations),
 }));
 
 export const membersRelations = relations(members, ({ one }) => ({
@@ -127,6 +134,43 @@ export const integrationConnectionsRelations = relations(
 		connectedBy: one(users, {
 			fields: [integrationConnections.connectedByUserId],
 			references: [users.id],
+		}),
+	}),
+);
+
+// GitHub relations
+export const githubInstallationsRelations = relations(
+	githubInstallations,
+	({ one, many }) => ({
+		organization: one(organizations, {
+			fields: [githubInstallations.organizationId],
+			references: [organizations.id],
+		}),
+		connectedBy: one(users, {
+			fields: [githubInstallations.connectedByUserId],
+			references: [users.id],
+		}),
+		repositories: many(githubRepositories),
+	}),
+);
+
+export const githubRepositoriesRelations = relations(
+	githubRepositories,
+	({ one, many }) => ({
+		installation: one(githubInstallations, {
+			fields: [githubRepositories.installationId],
+			references: [githubInstallations.id],
+		}),
+		pullRequests: many(githubPullRequests),
+	}),
+);
+
+export const githubPullRequestsRelations = relations(
+	githubPullRequests,
+	({ one }) => ({
+		repository: one(githubRepositories, {
+			fields: [githubPullRequests.repositoryId],
+			references: [githubRepositories.id],
 		}),
 	}),
 );

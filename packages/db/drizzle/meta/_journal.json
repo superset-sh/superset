@@ -78,6 +78,13 @@
       "when": 1768446870608,
       "tag": "0010_add_organization_ids_to_users",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768871460342,
+      "tag": "0011_add_github_integration_tables",
+      "breakpoints": true
     }
   ]
 }

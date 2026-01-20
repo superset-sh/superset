@@ -22,7 +22,6 @@ const integrations: IntegrationCardProps[] = [
 		description: "Connect repos and sync pull requests.",
 		category: "Version Control",
 		accentColor: "#FFFFFF",
-		disabled: true,
 		icon: <FaGithub className="size-8" />,
 	},
 ];

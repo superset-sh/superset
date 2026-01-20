@@ -23,7 +23,7 @@
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test",
 		"db:generate": "turbo db:generate",
-		"db:push": "cd packages/db && bun db:push",
+		"db:push": "cd packages/db && bun push",
 		"db:seed": "cd packages/db && bun db:seed",
 		"db:migrate": "cd packages/db && bun db:migrate",
 		"db:studio": "cd packages/db && bun db:studio",

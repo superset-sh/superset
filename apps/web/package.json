@@ -11,6 +11,9 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@octokit/app": "^16.1.2",
+		"@octokit/rest": "^22.0.1",
+		"@octokit/webhooks": "^14.2.0",
 		"@sentry/nextjs": "^10.32.1",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
@@ -24,7 +27,9 @@
 		"@trpc/server": "^11.7.1",
 		"@trpc/tanstack-react-query": "^11.7.1",
 		"@uiw/react-md-editor": "^4.0.11",
+		"@upstash/qstash": "^2.8.4",
 		"better-auth": "^1.4.9",
+		"drizzle-orm": "0.45.1",
 		"framer-motion": "^12.23.26",
 		"geist": "^1.5.1",
 		"import-in-the-middle": "2.0.1",
