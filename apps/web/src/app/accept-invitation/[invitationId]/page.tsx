@@ -1,5 +1,5 @@
 import { Button } from "@superset/ui/button";
-import { ArrowLeft, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { api } from "../../../trpc/server";
@@ -19,10 +19,12 @@ export default async function AcceptInvitationPage({
 
 	// Fetch invitation using tRPC
 	const trpc = await api();
-	let invitation;
+	let invitation: Awaited<
+		ReturnType<typeof trpc.organization.getInvitation.query>
+	> | null;
 	try {
 		invitation = await trpc.organization.getInvitation.query(invitationId);
-	} catch (error) {
+	} catch (_error) {
 		invitation = null;
 	}
 

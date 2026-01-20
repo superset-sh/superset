@@ -23,8 +23,9 @@ export function OrganizationInvitationEmail({
 			<Heading>You've been invited to join {organizationName}</Heading>
 
 			<Text>
-				{inviterName} has invited you to join <strong>{organizationName}</strong>{" "}
-				on Superset as a <strong>{roleDisplay}</strong>.
+				{inviterName} has invited you to join{" "}
+				<strong>{organizationName}</strong> on Superset as a{" "}
+				<strong>{roleDisplay}</strong>.
 			</Text>
 
 			<Text>

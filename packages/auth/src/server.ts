@@ -104,7 +104,6 @@ export const auth = betterAuth({
 				// Generate magic token for this invitation
 				const token = await generateMagicTokenForInvite({
 					email: data.email,
-					invitationId: data.id,
 				});
 
 				// Construct invitation link with magic token
@@ -129,7 +128,9 @@ export const auth = betterAuth({
 					// Rate limiting: 10 invitations per hour per user
 					const { success } = await invitationRateLimit.limit(inviterId);
 					if (!success) {
-						throw new Error("Rate limit exceeded. Max 10 invitations per hour.");
+						throw new Error(
+							"Rate limit exceeded. Max 10 invitations per hour.",
+						);
 					}
 
 					const inviterMember = await db.query.members.findFirst({

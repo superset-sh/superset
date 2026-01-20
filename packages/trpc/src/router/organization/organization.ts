@@ -1,8 +1,8 @@
 import { db } from "@superset/db/client";
 import { members, organizations } from "@superset/db/schema";
 import {
-	invitations,
 	sessions as authSessions,
+	invitations,
 } from "@superset/db/schema/auth";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";

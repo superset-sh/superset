@@ -1,13 +1,11 @@
+import crypto from "node:crypto";
 import { db } from "@superset/db/client";
 import { verifications } from "@superset/db/schema/auth";
-import crypto from "node:crypto";
 
 export async function generateMagicTokenForInvite({
 	email,
-	invitationId,
 }: {
 	email: string;
-	invitationId: string;
 }): Promise<string> {
 	// Generate cryptographically secure token (64 hex characters)
 	const token = crypto.randomBytes(32).toString("hex");

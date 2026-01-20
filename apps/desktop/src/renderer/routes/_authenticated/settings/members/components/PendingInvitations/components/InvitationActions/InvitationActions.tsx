@@ -8,19 +8,14 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
-import {
-	HiEllipsisVertical,
-	HiOutlineXMark,
-} from "react-icons/hi2";
+import { HiEllipsisVertical, HiOutlineXMark } from "react-icons/hi2";
 import { authClient } from "renderer/lib/auth-client";
 
 interface InvitationActionsProps {
 	invitation: SelectInvitation;
 }
 
-export function InvitationActions({
-	invitation,
-}: InvitationActionsProps) {
+export function InvitationActions({ invitation }: InvitationActionsProps) {
 	const [isCanceling, setIsCanceling] = useState(false);
 
 	const handleCancel = async () => {
