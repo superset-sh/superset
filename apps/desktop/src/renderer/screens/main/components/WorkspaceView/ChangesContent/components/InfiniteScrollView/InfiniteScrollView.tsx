@@ -95,8 +95,11 @@ export function InfiniteScrollView({
 
 	const trpcUtils = electronTrpc.useUtils();
 	const refetch = useCallback(() => {
-		trpcUtils.changes.getStatus.invalidate({ worktreePath });
-	}, [trpcUtils, worktreePath]);
+		trpcUtils.changes.getStatus.invalidate({
+			worktreePath,
+			defaultBranch: baseBranch,
+		});
+	}, [trpcUtils, worktreePath, baseBranch]);
 
 	const stageFileMutation = electronTrpc.changes.stageFile.useMutation({
 		onSuccess: () => refetch(),
@@ -216,6 +219,7 @@ export function InfiniteScrollView({
 										file={file}
 										category="against-base"
 										worktreePath={worktreePath}
+										baseBranch={baseBranch}
 										isExpanded={!collapsedFiles.has(fileKey)}
 										onToggleExpanded={() => toggleFile(fileKey)}
 									/>

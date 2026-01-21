@@ -49,6 +49,7 @@ interface FileDiffSectionProps {
 	category: ChangeCategory;
 	commitHash?: string;
 	worktreePath: string;
+	baseBranch?: string;
 	isExpanded: boolean;
 	onToggleExpanded: () => void;
 	onStage?: () => void;
@@ -62,6 +63,7 @@ export function FileDiffSection({
 	category,
 	commitHash,
 	worktreePath,
+	baseBranch,
 	isExpanded,
 	onToggleExpanded,
 	onStage,
@@ -70,8 +72,13 @@ export function FileDiffSection({
 	isActioning = false,
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
-	const { registerFileRef, viewedFiles, setFileViewed, setActiveFileKey } =
-		useScrollContext();
+	const {
+		registerFileRef,
+		viewedFiles,
+		setFileViewed,
+		setActiveFileKey,
+		containerRef,
+	} = useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 
@@ -125,7 +132,8 @@ export function FileDiffSection({
 	// IntersectionObserver to track active file on scroll
 	useEffect(() => {
 		const element = sectionRef.current;
-		if (!element) return;
+		const container = containerRef.current;
+		if (!element || !container) return;
 
 		const observer = new IntersectionObserver(
 			(entries) => {
@@ -136,7 +144,7 @@ export function FileDiffSection({
 				}
 			},
 			{
-				root: null,
+				root: container,
 				rootMargin: "-100px 0px -60% 0px", // Trigger when file header is near top
 				threshold: [0.1],
 			},
@@ -147,13 +155,7 @@ export function FileDiffSection({
 		return () => {
 			observer.disconnect();
 		};
-	}, [fileKey, setActiveFileKey]);
-
-	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
-		{ worktreePath },
-		{ enabled: !!worktreePath && category === "against-base" },
-	);
-	const effectiveBaseBranch = branchData?.defaultBranch ?? "main";
+	}, [fileKey, setActiveFileKey, containerRef]);
 
 	const { data: diffData, isLoading: isLoadingDiff } =
 		electronTrpc.changes.getFileContents.useQuery(
@@ -163,8 +165,7 @@ export function FileDiffSection({
 				oldPath: file.oldPath,
 				category,
 				commitHash,
-				defaultBranch:
-					category === "against-base" ? effectiveBaseBranch : undefined,
+				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
 				enabled: isExpanded && !!worktreePath,
