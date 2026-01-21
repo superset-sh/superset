@@ -134,7 +134,7 @@ export function GroupStrip() {
 		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
 				<div
-					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border pr-2"
+					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border"
 					style={{ scrollbarWidth: "none" }}
 				>
 					{tabs.map((tab) => (
@@ -167,7 +167,7 @@ export function GroupStrip() {
 								<Button
 									variant="ghost"
 									size="icon"
-									className="size-7 rounded-r-none"
+									className="size-7 rounded-r-none pl-2"
 									onClick={handleAddGroup}
 								>
 									<HiMiniPlus className="size-4" />
@@ -207,7 +207,9 @@ export function GroupStrip() {
 											) : (
 												<HiMiniCommandLine className="size-4" />
 											)}
-											<span className="truncate">{preset.name || "default"}</span>
+											<span className="truncate">
+												{preset.name || "default"}
+											</span>
 											{preset.isDefault && (
 												<HiStar className="size-3 text-yellow-500 ml-auto flex-shrink-0" />
 											)}
