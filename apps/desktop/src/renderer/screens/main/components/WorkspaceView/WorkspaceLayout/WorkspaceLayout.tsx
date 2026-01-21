@@ -7,7 +7,7 @@ import {
 import { ResizablePanel } from "../../ResizablePanel";
 import {
 	ChangesContent,
-	MonacoQueueProvider,
+	DiffEditorPoolProvider,
 	ScrollProvider,
 } from "../ChangesContent";
 import { ContentView } from "../ContentView";
@@ -27,7 +27,7 @@ export function WorkspaceLayout() {
 
 	return (
 		<ScrollProvider>
-			<MonacoQueueProvider>
+			<DiffEditorPoolProvider>
 				<div className="flex-1 min-w-0 overflow-hidden">
 					{isExpanded ? <ChangesContent /> : <ContentView />}
 				</div>
@@ -45,7 +45,7 @@ export function WorkspaceLayout() {
 						<Sidebar />
 					</ResizablePanel>
 				)}
-			</MonacoQueueProvider>
+			</DiffEditorPoolProvider>
 		</ScrollProvider>
 	);
 }
