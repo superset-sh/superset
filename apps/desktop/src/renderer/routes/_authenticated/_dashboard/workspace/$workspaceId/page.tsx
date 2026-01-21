@@ -1,5 +1,6 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
+import { usePresetChordShortcut } from "renderer/hooks/usePresetChordShortcut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -111,15 +112,11 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts
-	useAppHotkey(
-		"NEW_GROUP",
-		() => {
-			addTab(workspaceId);
-		},
-		undefined,
-		[workspaceId, addTab],
-	);
+	// Tab management shortcuts - NEW_GROUP handled by chord shortcut hook
+	usePresetChordShortcut({
+		workspaceId,
+		addTab,
+	});
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",
