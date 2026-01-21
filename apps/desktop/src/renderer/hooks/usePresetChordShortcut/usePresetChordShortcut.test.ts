@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { DEFAULT_CHORD_TIMEOUT_MS } from "shared/constants";
 import { matchesHotkeyEvent } from "shared/hotkeys";
 
 /**
@@ -235,19 +236,19 @@ describe("chord state machine logic", () => {
 });
 
 describe("timeout behavior", () => {
-	const CHORD_TIMEOUT_MS = 300;
-
-	it("uses 300ms timeout", () => {
-		expect(CHORD_TIMEOUT_MS).toBe(300);
+	it("uses default chord timeout from constants", () => {
+		expect(DEFAULT_CHORD_TIMEOUT_MS).toBe(500);
 	});
 
 	it("timeout triggers default tab open (conceptual)", async () => {
 		let timeoutTriggered = false;
 		const timeout = setTimeout(() => {
 			timeoutTriggered = true;
-		}, CHORD_TIMEOUT_MS);
+		}, DEFAULT_CHORD_TIMEOUT_MS);
 
-		await new Promise((resolve) => setTimeout(resolve, CHORD_TIMEOUT_MS + 50));
+		await new Promise((resolve) =>
+			setTimeout(resolve, DEFAULT_CHORD_TIMEOUT_MS + 50),
+		);
 
 		expect(timeoutTriggered).toBe(true);
 		clearTimeout(timeout);
@@ -257,11 +258,13 @@ describe("timeout behavior", () => {
 		let timeoutTriggered = false;
 		const timeout = setTimeout(() => {
 			timeoutTriggered = true;
-		}, CHORD_TIMEOUT_MS);
+		}, DEFAULT_CHORD_TIMEOUT_MS);
 
 		clearTimeout(timeout);
 
-		await new Promise((resolve) => setTimeout(resolve, CHORD_TIMEOUT_MS + 50));
+		await new Promise((resolve) =>
+			setTimeout(resolve, DEFAULT_CHORD_TIMEOUT_MS + 50),
+		);
 
 		expect(timeoutTriggered).toBe(false);
 	});

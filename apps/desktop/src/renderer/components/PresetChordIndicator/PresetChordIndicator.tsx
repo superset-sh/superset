@@ -7,7 +7,7 @@ const MAX_VISIBLE_PRESETS = 9;
 
 export function PresetChordIndicator() {
 	const isChordActive = usePresetChordStore((s) => s.isChordActive);
-	const { presets } = usePresets();
+	const { presets, isLoading } = usePresets();
 	const visiblePresets = presets.slice(0, MAX_VISIBLE_PRESETS);
 
 	if (!isChordActive) return null;
@@ -22,7 +22,9 @@ export function PresetChordIndicator() {
 				"animate-in fade-in slide-in-from-bottom-2 duration-150",
 			)}
 		>
-			{visiblePresets.length > 0 ? (
+			{isLoading ? (
+				<span className="text-sm text-muted-foreground">Loading presets…</span>
+			) : visiblePresets.length > 0 ? (
 				<div className="flex items-center gap-4">
 					{visiblePresets.map((preset, index) => (
 						<div key={preset.id} className="flex items-center gap-1.5">
