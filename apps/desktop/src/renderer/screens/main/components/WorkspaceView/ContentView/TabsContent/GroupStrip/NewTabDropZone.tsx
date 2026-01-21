@@ -1,4 +1,3 @@
-import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
 import { useDrop } from "react-dnd";
 import { MosaicDragType } from "react-mosaic-component";
