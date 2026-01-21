@@ -1,4 +1,5 @@
 import {
+	boolean,
 	index,
 	integer,
 	jsonb,
@@ -10,6 +11,7 @@ import {
 	unique,
 	uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { organizations, users } from "./auth";
 import {
@@ -212,3 +214,48 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+// Tracked branches for PR diff statistics
+export const trackedBranches = pgTable(
+	"tracked_branches",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		userId: uuid("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+
+		// Branch identification
+		repoOwner: text("repo_owner").notNull(),
+		repoName: text("repo_name").notNull(),
+		branchName: text("branch_name").notNull(),
+		baseBranch: text("base_branch"),
+
+		// PR tracking state
+		prNumber: integer("pr_number"),
+		prState: text("pr_state"), // "open" | "merged" | "closed"
+		additions: integer("additions"),
+		deletions: integer("deletions"),
+		changedFiles: integer("changed_files"),
+		mergedAt: timestamp("merged_at"),
+
+		// Processing flags
+		diffTracked: boolean("diff_tracked").default(false).notNull(),
+		lastPolledAt: timestamp("last_polled_at"),
+
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+	},
+	(table) => [
+		unique("tracked_branches_unique").on(
+			table.repoOwner,
+			table.repoName,
+			table.branchName,
+		),
+		index("tracked_branches_untracked_idx")
+			.on(table.diffTracked)
+			.where(sql`diff_tracked = false`),
+		index("tracked_branches_user_id_idx").on(table.userId),
+	],
+);
+
+export type InsertTrackedBranch = typeof trackedBranches.$inferInsert;
+export type SelectTrackedBranch = typeof trackedBranches.$inferSelect;

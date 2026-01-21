@@ -8,6 +8,7 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import { SUPERSET_DIR_NAME, WORKTREES_DIR_NAME } from "shared/constants";
 import { z } from "zod";
 import { publicProcedure, router } from "../../..";
+import { fetchGitHubRepoInfo } from "../../projects/utils/github";
 import {
 	activateProject,
 	getBranchWorkspace,
@@ -48,8 +49,12 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Get existing branches to avoid name collisions
-				const { local, remote } = await listBranches(project.mainRepoPath);
+				// Fetch repo info and branches in parallel
+				const [branchesResult, repoInfo] = await Promise.all([
+					listBranches(project.mainRepoPath),
+					fetchGitHubRepoInfo(project.mainRepoPath).catch(() => null),
+				]);
+				const { local, remote } = branchesResult;
 				const existingBranches = [...local, ...remote];
 				const branch =
 					input.branchName?.trim() || generateBranchName(existingBranches);
@@ -130,6 +135,9 @@ export const createCreateProcedures = () => {
 					worktreePath,
 					projectId: project.id,
 					isInitializing: true,
+					branch,
+					baseBranch: targetBranch,
+					repoInfo,
 				};
 			}),
 

@@ -6,6 +6,7 @@ import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
 import { repositoryRouter } from "./router/repository";
 import { taskRouter } from "./router/task";
+import { trackingRouter } from "./router/tracking";
 import { userRouter } from "./router/user";
 import { createCallerFactory, createTRPCRouter } from "./trpc";
 
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
 	organization: organizationRouter,
 	repository: repositoryRouter,
 	task: taskRouter,
+	tracking: trackingRouter,
 	user: userRouter,
 });
 

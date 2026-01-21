@@ -1,4 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
@@ -51,6 +52,20 @@ export function useCreateWorkspace(
 				projectId: data.projectId,
 				initialCommands: data.initialCommands,
 			});
+
+			// Record branch in cloud for PR tracking (fire and forget)
+			if (data.repoInfo) {
+				apiTrpcClient.tracking.recordBranch
+					.mutate({
+						repoOwner: data.repoInfo.owner,
+						repoName: data.repoInfo.name,
+						branchName: data.branch,
+						baseBranch: data.baseBranch,
+					})
+					.catch((err) => {
+						console.warn("[tracking] Failed to record branch:", err);
+					});
+			}
 
 			// Auto-invalidate all workspace queries
 			await utils.workspaces.invalidate();

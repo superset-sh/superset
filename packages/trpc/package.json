@@ -11,6 +11,14 @@
 		"./integrations/*": {
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
+		},
+		"./lib/posthog-client": {
+			"types": "./src/lib/posthog-client.ts",
+			"default": "./src/lib/posthog-client.ts"
+		},
+		"./lib/github/pr-stats": {
+			"types": "./src/lib/github/pr-stats.ts",
+			"default": "./src/lib/github/pr-stats.ts"
 		}
 	},
 	"scripts": {
@@ -28,6 +36,7 @@
 		"@vercel/blob": "^2.0.0",
 		"@vercel/kv": "^3.0.0",
 		"drizzle-orm": "0.45.1",
+		"posthog-node": "^5.23.0",
 		"superjson": "^2.2.5",
 		"zod": "^4.3.5"
 	},

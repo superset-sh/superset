@@ -1,5 +1,58 @@
+import { PostHog } from "posthog-node";
 import { kv } from "@vercel/kv";
 import { env } from "../env";
+
+// Server-side PostHog client for event capture
+let posthogClient: PostHog | null = null;
+
+function getPostHogClient(): PostHog | null {
+	if (!env.POSTHOG_API_KEY) {
+		return null;
+	}
+
+	if (!posthogClient) {
+		posthogClient = new PostHog(env.POSTHOG_API_KEY, {
+			host: env.POSTHOG_API_HOST,
+			flushAt: 1,
+			flushInterval: 0,
+		});
+	}
+	return posthogClient;
+}
+
+export function captureEvent({
+	distinctId,
+	event,
+	properties,
+}: {
+	distinctId: string;
+	event: string;
+	properties?: Record<string, unknown>;
+}): void {
+	const client = getPostHogClient();
+	if (!client) {
+		console.warn("[posthog] Client not configured, skipping event capture");
+		return;
+	}
+
+	client.capture({
+		distinctId,
+		event,
+		properties: {
+			...properties,
+			app_name: "api",
+			event_source: "server",
+		},
+	});
+}
+
+export async function flushPostHog(): Promise<void> {
+	const client = getPostHogClient();
+	if (client) {
+		await client.shutdown();
+		posthogClient = null;
+	}
+}
 
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
 const CACHE_PREFIX = `posthog:${env.NODE_ENV}:`;
