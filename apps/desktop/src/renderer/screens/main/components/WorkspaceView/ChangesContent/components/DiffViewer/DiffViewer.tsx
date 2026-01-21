@@ -17,8 +17,6 @@ import {
 	useEditorActions,
 } from "../../../ContentView/components/EditorContextMenu";
 
-const REVERT_GLYPH_CLASS = "diff-revert-glyph";
-
 function scrollToFirstDiff(
 	editor: Monaco.editor.IStandaloneDiffEditor,
 	modifiedEditor: Monaco.editor.IStandaloneCodeEditor,
@@ -86,11 +84,6 @@ export function DiffViewer({
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	const contentSizeListenersRef = useRef<Monaco.IDisposable[]>([]);
-	const glyphDecorationsRef = useRef<string[]>([]);
-	const mouseDownListenerRef = useRef<Monaco.IDisposable | null>(null);
-	const lineChangesMapRef = useRef<Map<number, Monaco.editor.ILineChange>>(
-		new Map(),
-	);
 
 	useEffect(() => {
 		if (!isMonacoReady) return;
@@ -117,163 +110,6 @@ export function DiffViewer({
 	const changeListenerRef = useRef<Monaco.IDisposable | null>(null);
 	const diffUpdateListenerRef = useRef<Monaco.IDisposable | null>(null);
 
-	const updateGlyphDecorations = useCallback(
-		(
-			editor: Monaco.editor.IStandaloneDiffEditor,
-			modifiedEditor: Monaco.editor.IStandaloneCodeEditor,
-		) => {
-			const lineChanges = editor.getLineChanges();
-			if (!lineChanges) return;
-
-			lineChangesMapRef.current.clear();
-
-			const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
-
-			for (const change of lineChanges) {
-				const startLine =
-					change.modifiedStartLineNumber > 0
-						? change.modifiedStartLineNumber
-						: change.modifiedEndLineNumber;
-
-				if (startLine > 0) {
-					lineChangesMapRef.current.set(startLine, change);
-					decorations.push({
-						range: {
-							startLineNumber: startLine,
-							startColumn: 1,
-							endLineNumber: startLine,
-							endColumn: 1,
-						},
-						options: {
-							glyphMarginClassName: REVERT_GLYPH_CLASS,
-							glyphMarginHoverMessage: { value: "Revert this change" },
-						},
-					});
-				}
-			}
-
-			glyphDecorationsRef.current = modifiedEditor.deltaDecorations(
-				glyphDecorationsRef.current,
-				decorations,
-			);
-		},
-		[],
-	);
-
-	const handleGlyphClick = useCallback(
-		(
-			e: Monaco.editor.IEditorMouseEvent,
-			diffEditor: Monaco.editor.IStandaloneDiffEditor,
-		) => {
-			if (e.target.type !== 2) return; // 2 = GUTTER_GLYPH_MARGIN
-
-			const lineNumber = e.target.position?.lineNumber;
-			if (!lineNumber) return;
-
-			const lineChange = lineChangesMapRef.current.get(lineNumber);
-			if (!lineChange) return;
-
-			// Use Monaco's internal revert method if available
-			const editorAny = diffEditor as unknown as {
-				revert?: (diff: unknown) => void;
-			};
-			if (typeof editorAny.revert === "function") {
-				// Try to find the LineRangeMapping for this change
-				const diffState = (
-					diffEditor as unknown as {
-						_diffModel?: {
-							get?: () => {
-								diff?: {
-									get?: () => {
-										mappings?: Array<{ lineRangeMapping: unknown }>;
-									};
-								};
-							};
-						};
-					}
-				)._diffModel
-					?.get?.()
-					?.diff?.get?.();
-				if (diffState?.mappings) {
-					const mapping = diffState.mappings.find((m) => {
-						const modified = (
-							m.lineRangeMapping as { modified?: { startLineNumber?: number } }
-						).modified;
-						return (
-							modified?.startLineNumber ===
-								lineChange.modifiedStartLineNumber ||
-							(lineChange.modifiedStartLineNumber === 0 &&
-								modified?.startLineNumber ===
-									lineChange.modifiedEndLineNumber + 1)
-						);
-					});
-					if (mapping) {
-						editorAny.revert(mapping.lineRangeMapping);
-						return;
-					}
-				}
-			}
-
-			// Fallback: replicate Monaco's revert behavior using executeEdits with undo stops
-			const originalModel = diffEditor.getOriginalEditor().getModel();
-			const modifiedEditor = diffEditor.getModifiedEditor();
-			const modifiedModel = modifiedEditor.getModel();
-			if (!originalModel || !modifiedModel) return;
-
-			// Get the original content for this change
-			let originalContent = "";
-			if (
-				lineChange.originalStartLineNumber > 0 &&
-				lineChange.originalEndLineNumber >= lineChange.originalStartLineNumber
-			) {
-				originalContent = originalModel.getValueInRange({
-					startLineNumber: lineChange.originalStartLineNumber,
-					startColumn: 1,
-					endLineNumber: lineChange.originalEndLineNumber,
-					endColumn: originalModel.getLineMaxColumn(
-						lineChange.originalEndLineNumber,
-					),
-				});
-			}
-
-			// Determine the range to replace in the modified model
-			const modifiedStartLine = lineChange.modifiedStartLineNumber;
-			const modifiedEndLine = lineChange.modifiedEndLineNumber;
-
-			let replaceRange: Monaco.IRange;
-			if (modifiedStartLine === 0 || modifiedEndLine < modifiedStartLine) {
-				// This is a pure deletion in modified (content was added in original)
-				// Insert after the previous line
-				const insertLine = modifiedEndLine > 0 ? modifiedEndLine : 1;
-				const insertColumn = modifiedModel.getLineMaxColumn(insertLine);
-				replaceRange = {
-					startLineNumber: insertLine,
-					startColumn: insertColumn,
-					endLineNumber: insertLine,
-					endColumn: insertColumn,
-				};
-				// Prepend newline since we're inserting
-				originalContent = `\n${originalContent}`;
-			} else {
-				// Replace the modified range with original content
-				replaceRange = {
-					startLineNumber: modifiedStartLine,
-					startColumn: 1,
-					endLineNumber: modifiedEndLine,
-					endColumn: modifiedModel.getLineMaxColumn(modifiedEndLine),
-				};
-			}
-
-			// Apply the edit using Monaco's pattern: pushUndoStop, executeEdits, pushUndoStop
-			modifiedEditor.pushUndoStop();
-			modifiedEditor.executeEdits("diffEditor", [
-				{ range: replaceRange, text: originalContent },
-			]);
-			modifiedEditor.pushUndoStop();
-		},
-		[],
-	);
-
 	const handleMount: DiffOnMount = useCallback(
 		(editor) => {
 			diffEditorRef.current = editor;
@@ -284,20 +120,12 @@ export function DiffViewer({
 			registerCopyPathLineAction(originalEditor, filePath);
 			registerCopyPathLineAction(modifiedEditor, filePath);
 
-			// Set up glyph margin click handler for revert
-			mouseDownListenerRef.current?.dispose();
-			mouseDownListenerRef.current = modifiedEditor.onMouseDown((e) => {
-				handleGlyphClick(e, editor);
-			});
-
 			diffUpdateListenerRef.current?.dispose();
 			diffUpdateListenerRef.current = editor.onDidUpdateDiff(() => {
 				if (!hasScrolledToFirstDiffRef.current) {
 					scrollToFirstDiff(editor, modifiedEditor);
 					hasScrolledToFirstDiffRef.current = true;
 				}
-				// Update glyph decorations when diff changes
-				updateGlyphDecorations(editor, modifiedEditor);
 			});
 
 			if (fitContent) {
@@ -322,15 +150,13 @@ export function DiffViewer({
 
 			setIsEditorMounted(true);
 		},
-		[filePath, fitContent, handleGlyphClick, updateGlyphDecorations],
+		[filePath, fitContent],
 	);
 
 	useEffect(() => {
 		return () => {
 			diffUpdateListenerRef.current?.dispose();
 			diffUpdateListenerRef.current = null;
-			mouseDownListenerRef.current?.dispose();
-			mouseDownListenerRef.current = null;
 			contentSizeListenersRef.current.forEach((d) => {
 				d.dispose();
 			});
@@ -449,7 +275,7 @@ export function DiffViewer({
 				readOnly: !editable,
 				originalEditable: false,
 				renderOverviewRuler: !fitContent,
-				glyphMargin: true,
+				renderGutterMenu: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
 				hideUnchangedRegions: {
