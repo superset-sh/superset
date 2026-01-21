@@ -24,6 +24,9 @@ import {
 	LuEyeOff,
 	LuFolder,
 	LuFolderGit2,
+	LuFolderOpen,
+	LuPencil,
+	LuX,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -323,6 +326,7 @@ export function WorkspaceListItem({
 							</ContextMenuItem>
 							<ContextMenuSeparator />
 							<ContextMenuItem onSelect={() => handleDeleteClick()}>
+								<LuX className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 								Close Worktree
 							</ContextMenuItem>
 						</ContextMenuContent>
@@ -555,6 +559,10 @@ export function WorkspaceListItem({
 					<ContextMenuTrigger asChild>{content}</ContextMenuTrigger>
 					<ContextMenuContent>
 						<ContextMenuItem onSelect={handleOpenInFinder}>
+							<LuFolderOpen
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
 							Open in Finder
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={handleCopyPath}>
@@ -588,10 +596,15 @@ export function WorkspaceListItem({
 					</HoverCardTrigger>
 					<ContextMenuContent>
 						<ContextMenuItem onSelect={rename.startRename}>
+							<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 							Rename
 						</ContextMenuItem>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={handleOpenInFinder}>
+							<LuFolderOpen
+								className="size-4 mr-2"
+								strokeWidth={STROKE_WIDTH}
+							/>
 							Open in Finder
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={handleCopyPath}>
