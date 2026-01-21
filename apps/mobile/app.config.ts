@@ -43,7 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
 		favicon: "./assets/favicon.png",
 		bundler: "metro",
 	},
-	plugins: ["expo-router"],
+	plugins: ["expo-router", "expo-localization"],
 	extra: {
 		router: {},
 		eas: {

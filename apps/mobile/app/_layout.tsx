@@ -1,16 +1,6 @@
 import "react-native-get-random-values"; // MUST BE FIRST IMPORT
 import "../global.css";
-import { PortalHost } from "@rn-primitives/portal";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
 
-const queryClient = new QueryClient();
+import { RootLayout } from "@/screens/RootLayout";
 
-export default function RootLayout() {
-	return (
-		<QueryClientProvider client={queryClient}>
-			<Stack screenOptions={{ headerShown: false }} />
-			<PortalHost />
-		</QueryClientProvider>
-	);
-}
+export default RootLayout;
