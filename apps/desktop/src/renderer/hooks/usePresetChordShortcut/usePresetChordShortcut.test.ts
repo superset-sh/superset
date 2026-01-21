@@ -13,7 +13,6 @@ import { matchesHotkeyEvent } from "shared/hotkeys";
  * 6. Any other key cancels the chord without action
  */
 
-// Helper to create keyboard events
 function createKeyboardEvent(
 	key: string,
 	options: Partial<KeyboardEvent> = {},
@@ -101,7 +100,6 @@ describe("usePresetChordShortcut behavior", () => {
 });
 
 describe("chord state machine logic", () => {
-	// Simulates the state machine logic from the hook
 	type ChordState = "idle" | "waiting";
 
 	interface ChordStateMachine {
@@ -127,24 +125,20 @@ describe("chord state machine logic", () => {
 				if (state === "waiting") {
 					const key = event.key;
 
-					// Check for number keys 1-9
 					if (key >= "1" && key <= "9") {
 						state = "idle";
 						return { type: "open_preset", index: parseInt(key, 10) - 1 };
 					}
 
-					// Escape cancels the chord
 					if (key === "Escape") {
 						state = "idle";
 						return { type: "cancel" };
 					}
 
-					// Any other key cancels without action
 					state = "idle";
 					return { type: "cancel" };
 				}
 
-				// Check if this is the NEW_GROUP hotkey
 				if (matchesHotkeyEvent(event, newGroupKeys)) {
 					state = "waiting";
 					return { type: "start_chord" };
@@ -182,12 +176,10 @@ describe("chord state machine logic", () => {
 	});
 
 	it("opens preset on number key while waiting", () => {
-		// Enter waiting state
 		const triggerEvent = createKeyboardEvent("t", { metaKey: true });
 		machine.transition(triggerEvent, "meta+t");
 		expect(machine.state).toBe("waiting");
 
-		// Press number key
 		const numberEvent = createKeyboardEvent("3");
 		const action = machine.transition(numberEvent, "meta+t");
 
@@ -196,12 +188,10 @@ describe("chord state machine logic", () => {
 	});
 
 	it("cancels chord on Escape while waiting", () => {
-		// Enter waiting state
 		const triggerEvent = createKeyboardEvent("t", { metaKey: true });
 		machine.transition(triggerEvent, "meta+t");
 		expect(machine.state).toBe("waiting");
 
-		// Press Escape
 		const escapeEvent = createKeyboardEvent("Escape");
 		const action = machine.transition(escapeEvent, "meta+t");
 
@@ -210,12 +200,10 @@ describe("chord state machine logic", () => {
 	});
 
 	it("cancels chord on other key while waiting", () => {
-		// Enter waiting state
 		const triggerEvent = createKeyboardEvent("t", { metaKey: true });
 		machine.transition(triggerEvent, "meta+t");
 		expect(machine.state).toBe("waiting");
 
-		// Press other key
 		const otherEvent = createKeyboardEvent("a");
 		const action = machine.transition(otherEvent, "meta+t");
 
@@ -225,14 +213,11 @@ describe("chord state machine logic", () => {
 
 	it("handles all preset numbers 1-9", () => {
 		for (let i = 1; i <= 9; i++) {
-			// Reset machine
 			machine = createChordStateMachine();
 
-			// Enter waiting state
 			const triggerEvent = createKeyboardEvent("t", { metaKey: true });
 			machine.transition(triggerEvent, "meta+t");
 
-			// Press number key
 			const numberEvent = createKeyboardEvent(String(i));
 			const action = machine.transition(numberEvent, "meta+t");
 
@@ -257,16 +242,11 @@ describe("timeout behavior", () => {
 	});
 
 	it("timeout triggers default tab open (conceptual)", async () => {
-		// This test documents the expected timeout behavior
-		// In the actual hook, setTimeout is used to trigger openTabWithDefault
-		// after CHORD_TIMEOUT_MS milliseconds if no key is pressed
-
 		let timeoutTriggered = false;
 		const timeout = setTimeout(() => {
 			timeoutTriggered = true;
 		}, CHORD_TIMEOUT_MS);
 
-		// Wait for timeout
 		await new Promise((resolve) => setTimeout(resolve, CHORD_TIMEOUT_MS + 50));
 
 		expect(timeoutTriggered).toBe(true);
@@ -279,10 +259,8 @@ describe("timeout behavior", () => {
 			timeoutTriggered = true;
 		}, CHORD_TIMEOUT_MS);
 
-		// Clear immediately (simulates user pressing a key)
 		clearTimeout(timeout);
 
-		// Wait past the timeout
 		await new Promise((resolve) => setTimeout(resolve, CHORD_TIMEOUT_MS + 50));
 
 		expect(timeoutTriggered).toBe(false);

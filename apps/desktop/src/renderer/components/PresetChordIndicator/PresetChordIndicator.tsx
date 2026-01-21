@@ -8,8 +8,6 @@ const MAX_VISIBLE_PRESETS = 9;
 export function PresetChordIndicator() {
 	const isChordActive = usePresetChordStore((s) => s.isChordActive);
 	const { presets } = usePresets();
-
-	// Only show presets up to index 9 (keys 1-9)
 	const visiblePresets = presets.slice(0, MAX_VISIBLE_PRESETS);
 
 	if (!isChordActive) return null;
