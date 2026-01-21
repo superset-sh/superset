@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import reactPlugin from "@vitejs/plugin-react";
@@ -23,6 +24,16 @@ config({ path: resolve(__dirname, "../../.env"), override: true });
 const tsconfigPaths = tsconfigPathsPlugin({
 	projects: [resolve("tsconfig.json")],
 });
+
+// Sentry plugin for uploading sourcemaps (only in CI with auth token)
+const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
+	? sentryVitePlugin({
+			org: "superset-sh",
+			project: "desktop",
+			authToken: process.env.SENTRY_AUTH_TOKEN,
+			release: { name: version },
+		})
+	: null;
 
 export default defineConfig({
 	main: {
@@ -61,6 +72,7 @@ export default defineConfig({
 		},
 
 		build: {
+			sourcemap: true,
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
@@ -72,12 +84,8 @@ export default defineConfig({
 				output: {
 					dir: resolve(devPath, "main"),
 				},
-				external: [
-					"electron",
-					"better-sqlite3",
-					"node-pty",
-					/^@sentry\/electron/,
-				],
+				external: ["electron", "better-sqlite3", "node-pty"],
+				plugins: [sentryPlugin].filter(Boolean),
 			},
 		},
 		resolve: {
@@ -180,6 +188,7 @@ export default defineConfig({
 		publicDir: resolve(resources, "public"),
 
 		build: {
+			sourcemap: true,
 			outDir: resolve(devPath, "renderer"),
 
 			rollupOptions: {
@@ -188,14 +197,12 @@ export default defineConfig({
 						NODE_ENV: "production",
 						platform: process.platform,
 					}),
-				],
+					sentryPlugin,
+				].filter(Boolean),
 
 				input: {
 					index: resolve("src/renderer/index.html"),
 				},
-
-				// Sentry uses IPC to communicate with main process
-				external: [/^@sentry\/electron/],
 			},
 		},
 	},
