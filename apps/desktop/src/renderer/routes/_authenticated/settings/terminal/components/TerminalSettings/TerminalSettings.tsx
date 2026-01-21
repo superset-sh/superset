@@ -652,7 +652,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							</p>
 							<p className="text-xs text-muted-foreground/70">
 								Example: ⌘T → 1 opens the first preset. This timeout controls
-								how long you have to press the number after the new tab shortcut.
+								how long you have to press the number after the new tab
+								shortcut.
 							</p>
 						</div>
 						<div className="flex items-center gap-3">
