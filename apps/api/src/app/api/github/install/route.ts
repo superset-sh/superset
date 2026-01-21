@@ -53,6 +53,10 @@ export async function GET(request: Request) {
 		"https://github.com/apps/superset-app/installations/new",
 	);
 	installUrl.searchParams.set("state", state);
+	installUrl.searchParams.set(
+		"redirect_url",
+		`${env.NEXT_PUBLIC_API_URL}/api/github/callback`,
+	);
 
 	return Response.redirect(installUrl.toString());
 }
