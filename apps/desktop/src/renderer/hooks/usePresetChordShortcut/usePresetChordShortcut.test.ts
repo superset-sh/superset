@@ -7,7 +7,7 @@ import { matchesHotkeyEvent } from "shared/hotkeys";
  *
  * The chord shortcut works as follows:
  * 1. User presses NEW_GROUP hotkey (e.g., Cmd+T)
- * 2. System enters "chord waiting" state for 300ms
+ * 2. System enters "chord waiting" state for DEFAULT_CHORD_TIMEOUT_MS (500ms)
  * 3. If user presses 1-9 within timeout, opens tab with that preset
  * 4. If user presses Escape, cancels chord without action
  * 5. If timeout expires, opens tab with default preset
@@ -242,7 +242,7 @@ describe("timeout behavior", () => {
 
 	it("timeout triggers default tab open (conceptual)", async () => {
 		let timeoutTriggered = false;
-		const timeout = setTimeout(() => {
+		setTimeout(() => {
 			timeoutTriggered = true;
 		}, DEFAULT_CHORD_TIMEOUT_MS);
 
@@ -251,7 +251,6 @@ describe("timeout behavior", () => {
 		);
 
 		expect(timeoutTriggered).toBe(true);
-		clearTimeout(timeout);
 	});
 
 	it("clearing timeout prevents default action (conceptual)", async () => {

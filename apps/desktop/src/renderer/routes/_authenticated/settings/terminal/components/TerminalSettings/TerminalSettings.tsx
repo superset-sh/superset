@@ -379,9 +379,12 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		setChordTimeoutLocal(value[0]);
 	}, []);
 
-	const handleChordTimeoutCommit = (value: number[]) => {
-		setChordTimeout.mutate({ timeoutMs: value[0] });
-	};
+	const handleChordTimeoutCommit = useCallback(
+		(value: number[]) => {
+			setChordTimeout.mutate({ timeoutMs: value[0] });
+		},
+		[setChordTimeout],
+	);
 
 	// Terminal link behavior setting
 	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
