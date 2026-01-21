@@ -36,11 +36,18 @@ interface ChangesViewProps {
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
+	/**
+	 * Whether sidebar is in expanded view mode (with infinite scroll diff viewer).
+	 * - Expanded: file highlighting based on scroll position
+	 * - Collapsed: file highlighting based on click selection
+	 */
+	isExpandedView?: boolean;
 }
 
 export function ChangesView({
 	onFileOpen,
 	onFileOpenPinned,
+	isExpandedView,
 }: ChangesViewProps) {
 	const { workspaceId } = useParams({ strict: false });
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
@@ -402,6 +409,7 @@ export function ChangesView({
 							}
 							worktreePath={worktreePath}
 							category="against-base"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 
@@ -423,6 +431,7 @@ export function ChangesView({
 								onFileDoubleClick={handleCommitFileDoubleClick}
 								viewMode={fileListViewMode}
 								worktreePath={worktreePath}
+								isExpandedView={isExpandedView}
 							/>
 						))}
 					</CategorySection>
@@ -489,6 +498,7 @@ export function ChangesView({
 							isActioning={unstageFileMutation.isPending}
 							worktreePath={worktreePath}
 							category="staged"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 
@@ -559,6 +569,7 @@ export function ChangesView({
 							worktreePath={worktreePath}
 							onDiscard={handleDiscard}
 							category="unstaged"
+							isExpandedView={isExpandedView}
 						/>
 					</CategorySection>
 				</div>

@@ -21,6 +21,8 @@ interface FileListGroupedProps {
 	category?: ChangeCategory;
 	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
+	/** Whether sidebar is in expanded view mode */
+	isExpandedView?: boolean;
 }
 
 interface FolderGroup {
@@ -75,6 +77,7 @@ interface FolderGroupItemProps {
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 function FolderGroupItem({
@@ -90,6 +93,7 @@ function FolderGroupItem({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
@@ -120,6 +124,7 @@ function FolderGroupItem({
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 					category={category}
 					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</FolderRow>
@@ -139,6 +144,7 @@ export function FileListGrouped({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -159,6 +165,7 @@ export function FileListGrouped({
 					onDiscard={onDiscard}
 					category={category}
 					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</div>

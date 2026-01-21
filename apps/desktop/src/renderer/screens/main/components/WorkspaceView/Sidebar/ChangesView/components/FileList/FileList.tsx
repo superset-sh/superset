@@ -27,6 +27,8 @@ interface FileListProps {
 	category?: ChangeCategory;
 	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
+	/** Whether sidebar is in expanded view mode (scroll sync highlighting vs selection) */
+	isExpandedView?: boolean;
 }
 
 export function FileList({
@@ -44,6 +46,7 @@ export function FileList({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -65,6 +68,7 @@ export function FileList({
 				onDiscard={onDiscard}
 				category={category}
 				commitHash={commitHash}
+				isExpandedView={isExpandedView}
 			/>
 		);
 	}
@@ -85,6 +89,7 @@ export function FileList({
 			onDiscard={onDiscard}
 			category={category}
 			commitHash={commitHash}
+			isExpandedView={isExpandedView}
 		/>
 	);
 }

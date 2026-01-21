@@ -17,6 +17,8 @@ interface CommitItemProps {
 	viewMode: ChangesViewMode;
 	/** Worktree path for constructing absolute paths */
 	worktreePath?: string;
+	/** Whether sidebar is in expanded view mode */
+	isExpandedView?: boolean;
 }
 
 function CommitHeader({
@@ -51,6 +53,7 @@ export function CommitItem({
 	onFileDoubleClick,
 	viewMode,
 	worktreePath,
+	isExpandedView,
 }: CommitItemProps) {
 	const hasFiles = commit.files.length > 0;
 
@@ -89,6 +92,7 @@ export function CommitItem({
 					worktreePath={worktreePath}
 					category="committed"
 					commitHash={commit.hash}
+					isExpandedView={isExpandedView}
 				/>
 			)}
 		</CollapsibleRow>

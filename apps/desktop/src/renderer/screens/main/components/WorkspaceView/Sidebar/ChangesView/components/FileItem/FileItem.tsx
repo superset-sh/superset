@@ -56,6 +56,12 @@ interface FileItemProps {
 	category?: ChangeCategory;
 	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
+	/**
+	 * Whether sidebar is in expanded view mode (with infinite scroll diff viewer).
+	 * - Expanded: highlight based on scroll position
+	 * - Collapsed: highlight based on click selection
+	 */
+	isExpandedView?: boolean;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -89,6 +95,7 @@ export function FileItem({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView = false,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
 	const { activeFileKey } = useScrollContext();
@@ -101,9 +108,12 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	// Check if this file is the currently active file from scroll sync
-	const isActive =
+	// Highlighting modes:
+	// - Expanded view (with infinite scroll): highlight based on scroll position
+	// - Collapsed sidebar view: highlight based on click selection
+	const isScrollSyncActive =
 		category && activeFileKey === createFileKey(file, category, commitHash);
+	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;
 
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
 	const openInEditorMutation =
@@ -156,7 +166,7 @@ export function FileItem({
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
-				(isSelected || isActive) && "bg-accent",
+				isHighlighted && "bg-accent",
 			)}
 		>
 			{hasIndent && <LevelIndicators level={level} />}

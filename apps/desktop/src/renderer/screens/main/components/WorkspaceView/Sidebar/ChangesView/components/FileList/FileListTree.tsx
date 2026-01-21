@@ -21,6 +21,8 @@ interface FileListTreeProps {
 	category?: ChangeCategory;
 	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
+	/** Whether sidebar is in expanded view mode */
+	isExpandedView?: boolean;
 }
 
 interface FileTreeNode {
@@ -99,6 +101,7 @@ interface TreeNodeComponentProps {
 	onDiscard?: (file: ChangedFile) => void;
 	category?: ChangeCategory;
 	commitHash?: string;
+	isExpandedView?: boolean;
 }
 
 function TreeNodeComponent({
@@ -116,6 +119,7 @@ function TreeNodeComponent({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -148,6 +152,7 @@ function TreeNodeComponent({
 						onDiscard={onDiscard}
 						category={category}
 						commitHash={commitHash}
+						isExpandedView={isExpandedView}
 					/>
 				))}
 			</FolderRow>
@@ -173,6 +178,7 @@ function TreeNodeComponent({
 				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
 				category={category}
 				commitHash={commitHash}
+				isExpandedView={isExpandedView}
 			/>
 		);
 	}
@@ -194,6 +200,7 @@ export function FileListTree({
 	onDiscard,
 	category,
 	commitHash,
+	isExpandedView,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -215,6 +222,7 @@ export function FileListTree({
 					onDiscard={onDiscard}
 					category={category}
 					commitHash={commitHash}
+					isExpandedView={isExpandedView}
 				/>
 			))}
 		</div>

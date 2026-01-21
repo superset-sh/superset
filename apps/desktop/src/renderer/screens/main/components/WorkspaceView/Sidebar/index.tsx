@@ -100,6 +100,7 @@ export function Sidebar() {
 			<ChangesView
 				onFileOpen={handleFileOpen}
 				onFileOpenPinned={handleFileOpenPinned}
+				isExpandedView={isExpanded}
 			/>
 		</aside>
 	);
