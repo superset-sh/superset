@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+// SUPERSET_DIR_NAME is workspace-aware for multi-worktree support
 import { SUPERSET_DIR_NAME } from "shared/constants";
 
 export const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
