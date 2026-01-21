@@ -33,6 +33,7 @@
 		"better-auth": "1.4.16",
 		"dotenv": "^17.2.3",
 		"drizzle-orm": "0.45.1",
+		"resend": "^4.0.1",
 		"zod": "^4.3.5"
 	},
 	"devDependencies": {

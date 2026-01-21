@@ -1,8 +1,8 @@
 "use client";
 
-import { env } from "@/env";
 import { Button } from "@superset/ui/button";
 import { useState } from "react";
+import { env } from "@/env";
 
 interface AcceptInvitationButtonProps {
 	invitationId: string;
@@ -22,17 +22,20 @@ export function AcceptInvitationButton({
 		setIsProcessing(true);
 		try {
 			// Call the Better Auth endpoint that handles auth and cookies properly
-			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}/api/auth/accept-invitation`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const response = await fetch(
+				`${env.NEXT_PUBLIC_API_URL}/api/auth/accept-invitation`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+					body: JSON.stringify({
+						invitationId,
+						token,
+					}),
 				},
-				credentials: "include",
-				body: JSON.stringify({
-					invitationId,
-					token,
-				}),
-			});
+			);
 
 			if (!response.ok) {
 				const data = await response.json();

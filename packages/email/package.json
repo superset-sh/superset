@@ -11,8 +11,7 @@
 		"typescript": "^5.9.3"
 	},
 	"exports": {
-		"./emails/*": "./src/emails/*.tsx",
-		"./lib/*": "./src/lib/*.ts"
+		"./emails/*": "./src/emails/*.tsx"
 	},
 	"private": true,
 	"scripts": {
@@ -29,7 +28,6 @@
 		"date-fns": "^4.1.0",
 		"react": "19.1.0",
 		"react-dom": "19.1.0",
-		"resend": "^4.0.1",
 		"tailwindcss": "^4.1.18",
 		"zod": "^4.3.5"
 	}

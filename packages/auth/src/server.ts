@@ -4,17 +4,16 @@ import { members } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
-import { resend } from "@superset/email/lib/resend";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
 import { and, eq } from "drizzle-orm";
-
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
+import { resend } from "./lib/resend";
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
