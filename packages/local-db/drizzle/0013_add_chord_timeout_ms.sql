@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `chord_timeout_ms` integer;

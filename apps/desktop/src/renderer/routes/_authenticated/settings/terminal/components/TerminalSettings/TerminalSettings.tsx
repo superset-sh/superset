@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { Slider } from "@superset/ui/slider";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -32,7 +33,10 @@ import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
+import {
+	DEFAULT_CHORD_TIMEOUT_MS,
+	DEFAULT_TERMINAL_PERSISTENCE,
+} from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -111,6 +115,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 	const showQuickAdd = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
+		visibleItems,
+	);
+	const showChordTimeout = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_CHORD_TIMEOUT,
 		visibleItems,
 	);
 	const showPersistence = isItemVisible(
@@ -298,6 +306,31 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 	const handleToggle = (enabled: boolean) => {
 		setTerminalPersistence.mutate({ enabled });
+	};
+
+	// Chord timeout setting
+	const { data: chordTimeout, isLoading: isLoadingChordTimeout } =
+		electronTrpc.settings.getChordTimeout.useQuery();
+
+	const setChordTimeout = electronTrpc.settings.setChordTimeout.useMutation({
+		onMutate: async ({ timeoutMs }) => {
+			await utils.settings.getChordTimeout.cancel();
+			const previous = utils.settings.getChordTimeout.getData();
+			utils.settings.getChordTimeout.setData(undefined, timeoutMs);
+			return { previous };
+		},
+		onError: (_err, _vars, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getChordTimeout.setData(undefined, context.previous);
+			}
+		},
+		onSettled: () => {
+			utils.settings.getChordTimeout.invalidate();
+		},
+	});
+
+	const handleChordTimeoutChange = (value: number[]) => {
+		setChordTimeout.mutate({ timeoutMs: value[0] });
 	};
 
 	// Terminal link behavior setting
@@ -548,10 +581,44 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showPersistence && (
+				{showChordTimeout && (
 					<div
 						className={
 							showPresets || showQuickAdd
+								? "flex items-center justify-between pt-6 border-t"
+								: "flex items-center justify-between"
+						}
+					>
+						<div className="space-y-0.5">
+							<Label htmlFor="chord-timeout" className="text-sm font-medium">
+								Preset chord timeout
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Time to wait for number key after pressing new tab shortcut
+							</p>
+						</div>
+						<div className="flex items-center gap-3">
+							<Slider
+								id="chord-timeout"
+								className="w-[140px]"
+								min={100}
+								max={2000}
+								step={100}
+								value={[chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS]}
+								onValueChange={handleChordTimeoutChange}
+								disabled={isLoadingChordTimeout || setChordTimeout.isPending}
+							/>
+							<span className="text-sm text-muted-foreground w-14 text-right">
+								{chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS}ms
+							</span>
+						</div>
+					</div>
+				)}
+
+				{showPersistence && (
+					<div
+						className={
+							showPresets || showQuickAdd || showChordTimeout
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -588,7 +655,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence || showPresets || showQuickAdd
+							showPersistence || showPresets || showQuickAdd || showChordTimeout
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}

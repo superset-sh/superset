@@ -50,6 +50,7 @@ export const NOTIFICATION_EVENTS = {
 export const DEFAULT_CONFIRM_ON_QUIT = true;
 export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "external-editor" as const;
 export const DEFAULT_TERMINAL_PERSISTENCE = true;
+export const DEFAULT_CHORD_TIMEOUT_MS = 500;
 
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {

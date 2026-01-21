@@ -142,6 +142,7 @@ export const settings = sqliteTable("settings", {
 	terminalPersistence: integer("persist_terminal", { mode: "boolean" }).default(
 		true,
 	),
+	chordTimeoutMs: integer("chord_timeout_ms"),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

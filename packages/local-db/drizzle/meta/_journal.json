@@ -92,6 +92,13 @@
       "when": 1768799848274,
       "tag": "0012_add_persist_terminal",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1769016527858,
+      "tag": "0013_add_chord_timeout_ms",
+      "breakpoints": true
     }
   ]
 }

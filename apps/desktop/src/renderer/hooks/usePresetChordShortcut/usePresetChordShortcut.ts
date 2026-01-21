@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { getHotkeyKeys } from "renderer/stores/hotkeys";
 import { usePresetChordStore } from "renderer/stores/preset-chord-store";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { AddTabOptions } from "renderer/stores/tabs/types";
+import { DEFAULT_CHORD_TIMEOUT_MS } from "shared/constants";
 import { matchesHotkeyEvent } from "shared/hotkeys";
-
-const CHORD_TIMEOUT_MS = 300;
 
 interface UsePresetChordShortcutParams {
 	workspaceId: string;
@@ -18,9 +18,9 @@ interface UsePresetChordShortcutParams {
 
 /**
  * Hook that implements chord shortcuts for opening tabs with presets.
- * Press NEW_GROUP hotkey followed by a number (1-9) within 300ms to open
- * a tab with the preset at that position. If no number is pressed,
- * falls back to default preset behavior.
+ * Press NEW_GROUP hotkey followed by a number (1-9) within the configured
+ * timeout to open a tab with the preset at that position. If no number is
+ * pressed, falls back to default preset behavior.
  */
 export function usePresetChordShortcut({
 	workspaceId,
@@ -30,6 +30,11 @@ export function usePresetChordShortcut({
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const setChordActive = usePresetChordStore((s) => s.setChordActive);
 
+	// Query the chord timeout setting
+	const { data: chordTimeout } =
+		electronTrpc.settings.getChordTimeout.useQuery();
+	const chordTimeoutMs = chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS;
+
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const isWaitingRef = useRef(false);
 
@@ -38,13 +43,15 @@ export function usePresetChordShortcut({
 	const addTabRef = useRef(addTab);
 	const presetsRef = useRef(presets);
 	const renameTabRef = useRef(renameTab);
+	const chordTimeoutMsRef = useRef(chordTimeoutMs);
 
 	useEffect(() => {
 		workspaceIdRef.current = workspaceId;
 		addTabRef.current = addTab;
 		presetsRef.current = presets;
 		renameTabRef.current = renameTab;
-	}, [workspaceId, addTab, presets, renameTab]);
+		chordTimeoutMsRef.current = chordTimeoutMs;
+	}, [workspaceId, addTab, presets, renameTab, chordTimeoutMs]);
 
 	const clearChordState = useCallback(() => {
 		if (timeoutRef.current) {
@@ -127,7 +134,7 @@ export function usePresetChordShortcut({
 						clearChordState();
 						openTabWithDefault();
 					}
-				}, CHORD_TIMEOUT_MS);
+				}, chordTimeoutMsRef.current);
 			}
 		};
 
