@@ -35,32 +35,18 @@ import { getStatusColor, getStatusIndicator } from "../../utils";
 interface FileItemProps {
 	file: ChangedFile;
 	isSelected: boolean;
-	/** Single click - opens in preview mode */
 	onClick: () => void;
-	/** Double click - opens pinned (permanent) */
 	onDoubleClick?: () => void;
 	showStats?: boolean;
-	/** Number of level indentations (for tree view) */
 	level?: number;
-	/** Callback for staging the file (shown on hover for unstaged files) */
 	onStage?: () => void;
-	/** Callback for unstaging the file (shown on hover for staged files) */
 	onUnstage?: () => void;
-	/** Whether the action is currently pending */
 	isActioning?: boolean;
-	/** Worktree path for constructing absolute paths */
 	worktreePath?: string;
-	/** Callback for discarding changes */
 	onDiscard?: () => void;
-	/** Category for scroll sync highlighting */
 	category?: ChangeCategory;
-	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
-	/**
-	 * Whether sidebar is in expanded view mode (with infinite scroll diff viewer).
-	 * - Expanded: highlight based on scroll position
-	 * - Collapsed: highlight based on click selection
-	 */
+	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
 	isExpandedView?: boolean;
 }
 
@@ -108,9 +94,6 @@ export function FileItem({
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
 
-	// Highlighting modes:
-	// - Expanded view (with infinite scroll): highlight based on scroll position
-	// - Collapsed sidebar view: highlight based on click selection
 	const isScrollSyncActive =
 		category && activeFileKey === createFileKey(file, category, commitHash);
 	const isHighlighted = isExpandedView ? isScrollSyncActive : isSelected;

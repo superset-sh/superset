@@ -24,23 +24,16 @@ import { CommitItem } from "./components/CommitItem";
 import { FileList } from "./components/FileList";
 
 interface ChangesViewProps {
-	/** Single click - opens in preview mode */
 	onFileOpen?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
-	/** Double click - opens pinned (permanent) */
 	onFileOpenPinned?: (
 		file: ChangedFile,
 		category: ChangeCategory,
 		commitHash?: string,
 	) => void;
-	/**
-	 * Whether sidebar is in expanded view mode (with infinite scroll diff viewer).
-	 * - Expanded: file highlighting based on scroll position
-	 * - Collapsed: file highlighting based on click selection
-	 */
 	isExpandedView?: boolean;
 }
 

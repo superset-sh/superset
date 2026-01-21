@@ -8,26 +8,16 @@ interface FileListProps {
 	viewMode: ChangesViewMode;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
-	/** Double click - opens pinned (permanent) */
 	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
-	/** Callback for staging a file */
 	onStage?: (file: ChangedFile) => void;
-	/** Callback for unstaging a file */
 	onUnstage?: (file: ChangedFile) => void;
-	/** Whether an action is currently pending */
 	isActioning?: boolean;
-	/** Worktree path for constructing absolute paths */
 	worktreePath?: string;
-	/** Callback for discarding changes */
 	onDiscard?: (file: ChangedFile) => void;
-	/** Category for scroll sync highlighting */
 	category?: ChangeCategory;
-	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
-	/** Whether sidebar is in expanded view mode (scroll sync highlighting vs selection) */
 	isExpandedView?: boolean;
 }
 
@@ -73,7 +63,6 @@ export function FileList({
 		);
 	}
 
-	// Grouped mode - group files by folder
 	return (
 		<FileListGrouped
 			files={files}

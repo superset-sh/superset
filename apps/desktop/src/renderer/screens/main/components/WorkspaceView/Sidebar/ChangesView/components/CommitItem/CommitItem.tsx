@@ -10,14 +10,10 @@ interface CommitItemProps {
 	onToggle: () => void;
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile, commitHash: string) => void;
-	/** Double click - opens pinned (permanent) */
 	onFileDoubleClick?: (file: ChangedFile, commitHash: string) => void;
 	viewMode: ChangesViewMode;
-	/** Worktree path for constructing absolute paths */
 	worktreePath?: string;
-	/** Whether sidebar is in expanded view mode */
 	isExpandedView?: boolean;
 }
 

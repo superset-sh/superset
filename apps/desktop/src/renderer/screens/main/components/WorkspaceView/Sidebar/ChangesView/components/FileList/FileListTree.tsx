@@ -7,9 +7,7 @@ interface FileListTreeProps {
 	files: ChangedFile[];
 	selectedFile: ChangedFile | null;
 	selectedCommitHash: string | null;
-	/** Single click - opens in preview mode */
 	onFileSelect: (file: ChangedFile) => void;
-	/** Double click - opens pinned (permanent) */
 	onFileDoubleClick?: (file: ChangedFile) => void;
 	showStats?: boolean;
 	onStage?: (file: ChangedFile) => void;
@@ -17,11 +15,8 @@ interface FileListTreeProps {
 	isActioning?: boolean;
 	worktreePath?: string;
 	onDiscard?: (file: ChangedFile) => void;
-	/** Category for scroll sync highlighting */
 	category?: ChangeCategory;
-	/** Commit hash for committed files (scroll sync) */
 	commitHash?: string;
-	/** Whether sidebar is in expanded view mode */
 	isExpandedView?: boolean;
 }
 
