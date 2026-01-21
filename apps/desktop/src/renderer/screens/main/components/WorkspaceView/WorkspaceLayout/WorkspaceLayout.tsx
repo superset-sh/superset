@@ -5,7 +5,7 @@ import {
 	useSidebarStore,
 } from "renderer/stores/sidebar-state";
 import { ResizablePanel } from "../../ResizablePanel";
-import { ChangesContent } from "../ChangesContent";
+import { ChangesContent, ScrollProvider } from "../ChangesContent";
 import { ContentView } from "../ContentView";
 import { Sidebar } from "../Sidebar";
 
@@ -22,7 +22,7 @@ export function WorkspaceLayout() {
 	const isExpanded = currentMode === SidebarMode.Changes;
 
 	return (
-		<>
+		<ScrollProvider>
 			<div className="flex-1 min-w-0 overflow-hidden">
 				{isExpanded ? <ChangesContent /> : <ContentView />}
 			</div>
@@ -40,6 +40,6 @@ export function WorkspaceLayout() {
 					<Sidebar />
 				</ResizablePanel>
 			)}
-		</>
+		</ScrollProvider>
 	);
 }

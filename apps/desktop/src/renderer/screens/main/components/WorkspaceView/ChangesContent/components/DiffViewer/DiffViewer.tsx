@@ -55,6 +55,8 @@ interface DiffViewerProps {
 	onChange?: (content: string) => void;
 	// Optional context menu props - when provided, wraps editor with context menu
 	contextMenuProps?: DiffViewerContextMenuProps;
+	// When false, editor won't capture scroll events unless focused (for infinite scroll views)
+	captureScroll?: boolean;
 }
 
 export function DiffViewer({
@@ -66,6 +68,7 @@ export function DiffViewer({
 	onSave,
 	onChange,
 	contextMenuProps,
+	captureScroll = true,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
 	const diffEditorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(
@@ -75,7 +78,9 @@ export function DiffViewer({
 		null,
 	);
 	const [isEditorMounted, setIsEditorMounted] = useState(false);
+	const [isFocused, setIsFocused] = useState(false);
 	const hasScrolledToFirstDiffRef = useRef(false);
+	const containerRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
 		if (!isMonacoReady) return;
@@ -131,6 +136,40 @@ export function DiffViewer({
 			diffUpdateListenerRef.current = null;
 		};
 	}, []);
+
+	// Update scroll capture based on focus state (only when captureScroll is false)
+	useEffect(() => {
+		if (captureScroll) return;
+		if (!isEditorMounted || !diffEditorRef.current) return;
+
+		const originalEditor = diffEditorRef.current.getOriginalEditor();
+		const modifiedEditor = diffEditorRef.current.getModifiedEditor();
+
+		const scrollOptions = {
+			scrollbar: { handleMouseWheel: isFocused },
+		};
+
+		originalEditor.updateOptions(scrollOptions);
+		modifiedEditor.updateOptions(scrollOptions);
+	}, [captureScroll, isEditorMounted, isFocused]);
+
+	const handleFocus = useCallback(() => {
+		if (!captureScroll) {
+			setIsFocused(true);
+		}
+	}, [captureScroll]);
+
+	const handleBlur = useCallback(
+		(e: React.FocusEvent) => {
+			if (!captureScroll && containerRef.current) {
+				// Only blur if focus is leaving the container entirely
+				if (!containerRef.current.contains(e.relatedTarget as Node)) {
+					setIsFocused(false);
+				}
+			}
+		},
+		[captureScroll],
+	);
 
 	// Update readOnly and register save action when editable changes or editor mounts
 	// Using addAction with an ID allows replacing the action on subsequent calls
@@ -215,13 +254,26 @@ export function DiffViewer({
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},
+				scrollbar: {
+					handleMouseWheel: captureScroll,
+				},
 			}}
 		/>
 	);
 
 	// If no context menu props, return plain editor
 	if (!contextMenuProps) {
-		return <div className="h-full w-full">{diffEditor}</div>;
+		return (
+			// biome-ignore lint/a11y/noStaticElementInteractions: focus/blur tracking for scroll behavior
+			<div
+				ref={containerRef}
+				className="h-full w-full"
+				onFocus={handleFocus}
+				onBlur={handleBlur}
+			>
+				{diffEditor}
+			</div>
+		);
 	}
 
 	// Wrap with custom context menu
@@ -237,7 +289,15 @@ export function DiffViewer({
 
 	return (
 		<EditorContextMenu editorActions={editorActions} paneActions={paneActions}>
-			<div className="h-full w-full">{diffEditor}</div>
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: focus/blur tracking for scroll behavior */}
+			<div
+				ref={containerRef}
+				className="h-full w-full"
+				onFocus={handleFocus}
+				onBlur={handleBlur}
+			>
+				{diffEditor}
+			</div>
 		</EditorContextMenu>
 	);
 }
