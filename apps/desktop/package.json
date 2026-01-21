@@ -18,7 +18,7 @@
 		"start": "electron-vite preview",
 		"predev": "bun run clean:dev && bun run scripts/patch-dev-protocol.ts",
 		"dev": "cross-env NODE_ENV=development electron-vite dev --watch",
-		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=4096 electron-vite build",
+		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=8192 electron-vite build",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"prebuild": "bun run clean:dev && bun run compile:app && bun run copy:native-modules",
 		"build": "cross-env CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --publish never",
@@ -131,6 +131,7 @@
 		"zustand": "^5.0.8"
 	},
 	"devDependencies": {
+		"@sentry/vite-plugin": "^4.7.0",
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/vite": "^4.0.9",
 		"@tanstack/router-cli": "^1.149.0",
