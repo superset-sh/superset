@@ -1,3 +1,4 @@
+import { expo } from "@better-auth/expo";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
@@ -25,6 +26,16 @@ export const auth = betterAuth({
 		// Electron desktop app origins
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []), // Dev: http://localhost:5927
 		"superset://app", // Production Electron app
+		// React Native mobile app origins
+		"superset://", // Production mobile app
+		// Expo development mode - exp:// scheme with local IP ranges
+		...(process.env.NODE_ENV === "development"
+			? [
+					"exp://", // Trust all Expo URLs (prefix matching)
+					"exp://**", // Trust all Expo URLs (wildcard matching)
+					"exp://192.168.*.*:*/**", // Trust 192.168.x.x IP range with any port and path
+				]
+			: []),
 	],
 	session: {
 		expiresIn: 60 * 60 * 24 * 30, // 30 days
@@ -79,6 +90,7 @@ export const auth = betterAuth({
 		},
 	},
 	plugins: [
+		expo(),
 		organization({
 			creatorRole: "owner",
 		}),

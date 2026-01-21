@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import {
 	app,
 	BrowserWindow,
+	dialog,
 	Menu,
 	type MenuItemConstructorOptions,
 	nativeImage,
@@ -12,7 +13,10 @@ import {
 } from "electron";
 import { localDb } from "main/lib/local-db";
 import { menuEmitter } from "main/lib/menu-events";
-import { tryListExistingDaemonSessions } from "main/lib/terminal";
+import {
+	getDaemonTerminalManager,
+	tryListExistingDaemonSessions,
+} from "main/lib/terminal";
 import { getTerminalHostClient } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 
@@ -233,14 +237,41 @@ function buildSessionsSubmenu(
 }
 
 async function restartDaemon(): Promise<void> {
+	const { response } = await dialog.showMessageBox({
+		type: "warning",
+		buttons: ["Cancel", "Restart Daemon"],
+		defaultId: 0,
+		cancelId: 0,
+		title: "Restart Terminal Daemon?",
+		message: "Restart Terminal Daemon?",
+		detail:
+			"This will shut down the terminal daemon and kill all running sessions. Use this to fix terminals that are stuck or unresponsive.\n\nA fresh daemon will start automatically when you open a new terminal.",
+	});
+
+	if (response === 0) {
+		return;
+	}
+
+	console.log("[Tray] Restarting daemon...");
+
 	try {
 		const client = getTerminalHostClient();
-		await client.shutdownIfRunning({ killSessions: true });
-		// Daemon auto-spawns on next terminal operation
-		console.log("[Tray] Daemon restarted (will spawn on next use)");
+		const connected = await client.tryConnectAndAuthenticate();
+
+		if (connected) {
+			await client.shutdownIfRunning({ killSessions: true });
+			console.log("[Tray] Daemon shutdown complete");
+		} else {
+			console.log("[Tray] Daemon was not running");
+		}
 	} catch (error) {
-		console.error("[Tray] Failed to restart daemon:", error);
+		console.warn("[Tray] Error during shutdown (continuing):", error);
 	}
+
+	const manager = getDaemonTerminalManager();
+	manager.reset();
+
+	console.log("[Tray] Daemon restart complete");
 
 	await updateTrayMenu();
 }

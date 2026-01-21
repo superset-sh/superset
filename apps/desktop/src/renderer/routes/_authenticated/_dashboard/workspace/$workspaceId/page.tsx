@@ -4,8 +4,8 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
-import { ContentView } from "renderer/screens/main/components/WorkspaceView/ContentView";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
+import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useAppHotkey } from "renderer/stores/hotkeys";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
@@ -336,7 +336,7 @@ function WorkspacePage() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
-			<div className="flex-1 min-h-0 overflow-hidden">
+			<div className="flex-1 min-h-0 flex overflow-hidden">
 				{showInitView ? (
 					<WorkspaceInitializingView
 						workspaceId={workspaceId}
@@ -344,7 +344,7 @@ function WorkspacePage() {
 						isInterrupted={hasIncompleteInit && !isInitializing}
 					/>
 				) : (
-					<ContentView />
+					<WorkspaceLayout />
 				)}
 			</div>
 		</div>

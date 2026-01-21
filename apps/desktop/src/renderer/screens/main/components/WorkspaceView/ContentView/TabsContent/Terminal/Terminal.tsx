@@ -44,11 +44,7 @@ import { ScrollToBottomButton } from "./ScrollToBottomButton";
 import { coldRestoreState, pendingDetaches } from "./state";
 import { TerminalSearch } from "./TerminalSearch";
 import type { TerminalProps, TerminalStreamEvent } from "./types";
-import {
-	getScrollOffsetFromBottom,
-	scrollToBottom,
-	shellEscapePaths,
-} from "./utils";
+import { scrollToBottom, shellEscapePaths } from "./utils";
 
 export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const paneId = tabId;
@@ -617,10 +613,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			debouncedSetTabAutoTitleRef.current?.cancel?.();
 
 			const detachTimeout = setTimeout(() => {
-				detachRef.current({
-					paneId,
-					viewportY: getScrollOffsetFromBottom(xterm),
-				});
+				detachRef.current({ paneId });
 				pendingDetaches.delete(paneId);
 				coldRestoreState.delete(paneId);
 			}, 50);

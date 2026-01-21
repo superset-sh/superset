@@ -21,6 +21,7 @@ interface ChangesState {
 	expandedSections: Record<ChangeCategory, boolean>;
 	baseBranch: string | null;
 	showRenderedMarkdown: Record<string, boolean>;
+	hideUnchangedRegions: boolean;
 
 	selectFile: (
 		worktreePath: string,
@@ -36,6 +37,7 @@ interface ChangesState {
 	setBaseBranch: (branch: string | null) => void;
 	toggleRenderedMarkdown: (worktreePath: string) => void;
 	getShowRenderedMarkdown: (worktreePath: string) => boolean;
+	toggleHideUnchangedRegions: () => void;
 	reset: (worktreePath: string) => void;
 }
 
@@ -51,6 +53,7 @@ const initialState = {
 	},
 	baseBranch: null,
 	showRenderedMarkdown: {} as Record<string, boolean>,
+	hideUnchangedRegions: false,
 };
 
 export const useChangesStore = create<ChangesState>()(
@@ -125,6 +128,10 @@ export const useChangesStore = create<ChangesState>()(
 					return get().showRenderedMarkdown[worktreePath] ?? false;
 				},
 
+				toggleHideUnchangedRegions: () => {
+					set({ hideUnchangedRegions: !get().hideUnchangedRegions });
+				},
+
 				reset: (worktreePath) => {
 					const { selectedFiles } = get();
 					set({
@@ -144,6 +151,7 @@ export const useChangesStore = create<ChangesState>()(
 					expandedSections: state.expandedSections,
 					baseBranch: state.baseBranch,
 					showRenderedMarkdown: state.showRenderedMarkdown,
+					hideUnchangedRegions: state.hideUnchangedRegions,
 				}),
 			},
 		),

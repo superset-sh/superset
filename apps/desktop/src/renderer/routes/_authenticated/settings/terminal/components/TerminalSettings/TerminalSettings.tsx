@@ -19,7 +19,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -140,9 +140,21 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
+	const presetsContainerRef = useRef<HTMLDivElement>(null);
+	const prevPresetsCountRef = useRef(serverPresets.length);
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
+
+		if (serverPresets.length > prevPresetsCountRef.current) {
+			requestAnimationFrame(() => {
+				presetsContainerRef.current?.scrollTo({
+					top: presetsContainerRef.current.scrollHeight,
+					behavior: "smooth",
+				});
+			});
+		}
+		prevPresetsCountRef.current = serverPresets.length;
 	}, [serverPresets]);
 
 	const existingPresetNames = useMemo(
@@ -176,9 +188,20 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	};
 
 	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
+		const preset = localPresets[rowIndex];
+		const isDelete = preset && commands.length < preset.commands.length;
+
 		setLocalPresets((prev) =>
 			prev.map((p, i) => (i === rowIndex ? { ...p, commands } : p)),
 		);
+
+		// Save immediately on delete since onBlur won't have the updated state yet
+		if (isDelete) {
+			updatePreset.mutate({
+				id: preset.id,
+				patch: { commands },
+			});
+		}
 	};
 
 	const handleCommandsBlur = (rowIndex: number) => {
@@ -244,6 +267,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 
 	const [confirmKillAllOpen, setConfirmKillAllOpen] = useState(false);
 	const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
+	const [confirmRestartDaemonOpen, setConfirmRestartDaemonOpen] =
+		useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 	const [pendingKillSession, setPendingKillSession] = useState<{
 		sessionId: string;
@@ -377,6 +402,21 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		},
 	});
 
+	const restartDaemon = electronTrpc.terminal.restartDaemon.useMutation({
+		onSuccess: () => {
+			toast.success("Daemon restarted", {
+				description:
+					"Terminal daemon has been restarted. Open a terminal to spawn a fresh daemon.",
+			});
+			utils.terminal.listDaemonSessions.invalidate();
+		},
+		onError: (error) => {
+			toast.error("Failed to restart daemon", {
+				description: error.message,
+			});
+		},
+	});
+
 	const formatTimestamp = (value?: string) => {
 		if (!value) return "—";
 		return value.replace("T", " ").replace(/\.\d+Z$/, "Z");
@@ -473,7 +513,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 									</div>
 								</div>
 
-								<div className="max-h-[320px] overflow-y-auto">
+								<div
+									ref={presetsContainerRef}
+									className="max-h-[320px] overflow-y-auto"
+								>
 									{isLoadingPresets ? (
 										<div className="py-8 text-center text-sm text-muted-foreground">
 											Loading presets...
@@ -643,6 +686,14 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								onClick={() => setConfirmClearHistoryOpen(true)}
 							>
 								Clear terminal history
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={!daemonModeEnabled || restartDaemon.isPending}
+								onClick={() => setConfirmRestartDaemonOpen(true)}
+							>
+								Restart daemon
 							</Button>
 							<Button
 								variant="ghost"
@@ -867,6 +918,58 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							}}
 						>
 							Kill
+						</Button>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			<AlertDialog
+				open={confirmRestartDaemonOpen}
+				onOpenChange={setConfirmRestartDaemonOpen}
+			>
+				<AlertDialogContent className="max-w-[520px] gap-0 p-0">
+					<AlertDialogHeader className="px-4 pt-4 pb-2">
+						<AlertDialogTitle className="font-medium">
+							Restart terminal daemon?
+						</AlertDialogTitle>
+						<AlertDialogDescription asChild>
+							<div className="text-muted-foreground space-y-1.5">
+								<span className="block">
+									This will shut down the terminal daemon process and kill all
+									running sessions. Use this to fix terminals that are stuck or
+									unresponsive.
+								</span>
+								<span className="block">
+									A fresh daemon will start automatically when you open a new
+									terminal.
+								</span>
+							</div>
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
+						<Button
+							variant="ghost"
+							size="sm"
+							onClick={() => setConfirmRestartDaemonOpen(false)}
+						>
+							Cancel
+						</Button>
+						<Button
+							variant="default"
+							size="sm"
+							disabled={restartDaemon.isPending}
+							onClick={() => {
+								setConfirmRestartDaemonOpen(false);
+								restartDaemon.mutate(undefined, {
+									onSuccess: () => {
+										for (const session of sessions) {
+											markTerminalKilledByUser(session.sessionId);
+										}
+									},
+								});
+							}}
+						>
+							Restart daemon
 						</Button>
 					</AlertDialogFooter>
 				</AlertDialogContent>

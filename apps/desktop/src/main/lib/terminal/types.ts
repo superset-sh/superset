@@ -46,8 +46,6 @@ export interface SessionResult {
 	 */
 	scrollback: string;
 	wasRecovered: boolean;
-	/** Saved viewport scroll position for restoration on reattach */
-	viewportY?: number;
 	/**
 	 * True if this is a cold restore from disk after reboot/crash.
 	 * The daemon didn't have this session, but we found scrollback on disk

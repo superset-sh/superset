@@ -58,9 +58,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					...members,
 					memberId: members.id,
 				}))
-				.where(({ members }) =>
-					eq(members.organizationId, activeOrganizationId ?? ""),
-				)
 				.orderBy(({ members }) => members.role, "asc")
 				.orderBy(({ members }) => members.createdAt, "asc"),
 		[collections, activeOrganizationId],

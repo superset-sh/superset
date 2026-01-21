@@ -142,17 +142,6 @@ export function useTerminalRestore({
 				}
 			}
 
-			// Resize xterm to match snapshot dimensions before applying content
-			const snapshotCols = result.snapshot?.cols;
-			const snapshotRows = result.snapshot?.rows;
-			if (
-				snapshotCols &&
-				snapshotRows &&
-				(xterm.cols !== snapshotCols || xterm.rows !== snapshotRows)
-			) {
-				xterm.resize(snapshotCols, snapshotRows);
-			}
-
 			const isAltScreenReattach =
 				!result.isNew && result.snapshot?.modes.alternateScreen;
 

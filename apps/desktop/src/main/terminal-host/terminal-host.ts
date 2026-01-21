@@ -88,20 +88,14 @@ export class TerminalHost {
 		let session = this.sessions.get(sessionId);
 		let isNew = false;
 
-		// If session is terminating (kill was called but PTY hasn't exited yet),
-		// force-dispose it and create a fresh session. This prevents race conditions
-		// where createOrAttach is called immediately after kill.
+		// Force-dispose terminating sessions to prevent race conditions
 		if (session?.isTerminating) {
-			console.log(
-				`[TerminalHost] Session ${sessionId} is terminating, force-disposing for fresh start`,
-			);
 			session.dispose();
 			this.sessions.delete(sessionId);
 			this.clearKillTimer(sessionId);
 			session = undefined;
 		}
 
-		// If session exists but is dead, dispose it and create a new one
 		if (session && !session.isAlive) {
 			session.dispose();
 			this.sessions.delete(sessionId);
@@ -111,16 +105,13 @@ export class TerminalHost {
 		if (!session) {
 			const releaseSpawn = await this.spawnLimiter.acquire();
 
-			// Create new session
 			try {
 				session = createSession(request);
 
-				// Set up exit handler
 				session.onExit((id, exitCode, signal) => {
 					this.handleSessionExit(id, exitCode, signal);
 				});
 
-				// Spawn PTY
 				session.spawn({
 					cwd: request.cwd || process.env.HOME || "/",
 					cols: request.cols,
@@ -128,7 +119,6 @@ export class TerminalHost {
 					env: request.env,
 				});
 
-				// Wait for PTY ready to ensure PID is available for port scanning
 				try {
 					await promiseWithTimeout(
 						session.waitForReady(),
@@ -146,7 +136,11 @@ export class TerminalHost {
 				throw error;
 			}
 
-			// Run initial commands if provided
+			if (!session.isAlive) {
+				session.dispose();
+				throw new Error("Session spawn failed: PTY process exited immediately");
+			}
+
 			if (request.initialCommands && request.initialCommands.length > 0) {
 				if (session.isAlive) {
 					try {
@@ -164,18 +158,14 @@ export class TerminalHost {
 			this.sessions.set(sessionId, session);
 			isNew = true;
 		} else {
-			// Attaching to existing live session - resize to requested dimensions
-			// This ensures the snapshot reflects the client's current terminal size
-			// Note: Resize can fail if PTY is in a bad state (e.g., EBADF)
-			// We catch and ignore these errors since the session may still be usable
+			// Resize to client dimensions - failures are non-fatal
 			try {
 				session.resize(request.cols, request.rows);
 			} catch {
-				// Ignore resize failures - session may still be attachable
+				// Ignore - session may still be attachable
 			}
 		}
 
-		// Attach client to session (async to ensure pending writes are flushed)
 		const snapshot = await session.attach(socket);
 
 		return {
@@ -202,8 +192,6 @@ export class TerminalHost {
 	 */
 	resize(request: ResizeRequest): EmptyResponse {
 		const session = this.sessions.get(request.sessionId);
-		// Silently succeed if session doesn't exist or is terminating
-		// This prevents noisy errors during kill/reconciliation races
 		if (!session || !session.isAttachable) {
 			return { success: true };
 		}
@@ -218,7 +206,6 @@ export class TerminalHost {
 		const session = this.sessions.get(request.sessionId);
 		if (session) {
 			session.detach(socket);
-			// Clean up dead sessions when last client detaches
 			if (!session.isAlive && session.clientCount === 0) {
 				session.dispose();
 				this.sessions.delete(request.sessionId);
@@ -258,8 +245,7 @@ export class TerminalHost {
 
 		session.kill();
 
-		// Set up fail-safe timer to force-dispose if exit never fires.
-		// This prevents zombie sessions if the PTY process hangs.
+		// Fail-safe timer to force-dispose if PTY hangs
 		if (!this.killTimers.has(sessionId)) {
 			const timer = setTimeout(() => {
 				const s = this.sessions.get(sessionId);
@@ -278,14 +264,13 @@ export class TerminalHost {
 		return { success: true };
 	}
 
-	/**
-	 * Kill all terminal sessions
-	 */
-	killAll(_request: KillAllRequest): EmptyResponse {
+	killAll(request: KillAllRequest): EmptyResponse {
 		for (const session of this.sessions.values()) {
-			session.kill();
+			this.kill({
+				sessionId: session.sessionId,
+				deleteHistory: request.deleteHistory,
+			});
 		}
-		// Sessions will be removed on exit events
 		return { success: true };
 	}
 
@@ -339,17 +324,12 @@ export class TerminalHost {
 		}
 	}
 
-	/**
-	 * Clean up all sessions on shutdown
-	 */
 	dispose(): void {
-		// Clear all kill timers
 		for (const timer of this.killTimers.values()) {
 			clearTimeout(timer);
 		}
 		this.killTimers.clear();
 
-		// Dispose all sessions
 		for (const session of this.sessions.values()) {
 			session.dispose();
 		}
@@ -380,19 +360,13 @@ export class TerminalHost {
 		exitCode: number,
 		signal?: number,
 	): void {
-		// Clear the kill timer since session exited normally
 		this.clearKillTimer(sessionId);
 
-		// If no clients are attached, the session won't have anywhere to deliver the
-		// exit event. Emit a low-volume lifecycle signal so the main process can keep
-		// UI state correct even when a terminal isn't actively streamed.
 		const session = this.sessions.get(sessionId);
 		if (session?.clientCount === 0) {
 			this.onUnattachedExit?.({ sessionId, exitCode, signal });
 		}
 
-		// Keep session around for a bit so clients can see exit status
-		// Then clean up (reschedule if clients still attached)
 		this.scheduleSessionCleanup(sessionId);
 	}
 
@@ -415,17 +389,13 @@ export class TerminalHost {
 		setTimeout(() => {
 			const session = this.sessions.get(sessionId);
 			if (!session || session.isAlive) {
-				// Session was recreated or is alive, nothing to clean up
 				return;
 			}
 
 			if (session.clientCount === 0) {
-				// No clients attached, safe to clean up
 				session.dispose();
 				this.sessions.delete(sessionId);
 			} else {
-				// Clients still attached, reschedule cleanup
-				// They'll see the exit status and can restart
 				this.scheduleSessionCleanup(sessionId);
 			}
 		}, 5000);

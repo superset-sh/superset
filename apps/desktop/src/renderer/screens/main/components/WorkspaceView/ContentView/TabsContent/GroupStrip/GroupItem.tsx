@@ -88,6 +88,12 @@ export function GroupItem({
 							type="button"
 							onClick={onSelect}
 							onDoubleClick={startEditing}
+							onAuxClick={(e) => {
+								if (e.button === 1) {
+									e.preventDefault();
+									onClose();
+								}
+							}}
 							className={tabStyles}
 						>
 							<span className="text-sm whitespace-nowrap overflow-hidden flex-1 text-left">

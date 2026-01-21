@@ -6,10 +6,7 @@ import {
 } from "main/lib/terminal-host/client";
 import type { ListSessionsResponse } from "main/lib/terminal-host/types";
 import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
-import {
-	DaemonTerminalManager,
-	getDaemonTerminalManager,
-} from "./daemon-manager";
+import { DaemonTerminalManager, getDaemonTerminalManager } from "./daemon";
 import { TerminalManager, terminalManager } from "./manager";
 
 export { TerminalManager, terminalManager };

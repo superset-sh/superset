@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { LuGitCompareArrows } from "react-icons/lu";
+import { LuDiff } from "react-icons/lu";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores";
@@ -129,19 +129,19 @@ export function SidebarControl() {
 					}
 					aria-pressed={isSidebarOpen}
 					className={cn(
-						"no-drag gap-1.5",
+						"no-drag gap-1.5 h-6 px-1.5 rounded",
 						isSidebarOpen
 							? "font-semibold text-foreground bg-accent"
 							: "text-muted-foreground hover:text-foreground",
 					)}
 				>
-					<LuGitCompareArrows className="size-4" />
+					<LuDiff className="size-3" />
 					<span className="text-xs">Changes</span>
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
 				<HotkeyTooltipContent
-					label="Toggle Changes Sidebar"
+					label="Open Changes Sidebar"
 					hotkeyId="TOGGLE_SIDEBAR"
 				/>
 			</TooltipContent>

@@ -58,8 +58,12 @@ export function FileViewerPane({
 }: FileViewerPaneProps) {
 	// Use granular selector to only get this pane's fileViewer data
 	const fileViewer = useTabsStore((s) => s.panes[paneId]?.fileViewer);
-	const { viewMode: diffViewMode, setViewMode: setDiffViewMode } =
-		useChangesStore();
+	const {
+		viewMode: diffViewMode,
+		setViewMode: setDiffViewMode,
+		hideUnchangedRegions,
+		toggleHideUnchangedRegions,
+	} = useChangesStore();
 
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
@@ -277,8 +281,10 @@ export function FileViewerPane({
 							hasDiff={hasDiff}
 							splitOrientation={handlers.splitOrientation}
 							diffViewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
 							onViewModeChange={handleViewModeChange}
 							onDiffViewModeChange={setDiffViewMode}
+							onToggleHideUnchangedRegions={toggleHideUnchangedRegions}
 							onSplitPane={handlers.onSplitPane}
 							onPin={handlePin}
 							onClosePane={handlers.onClosePane}
@@ -300,6 +306,7 @@ export function FileViewerPane({
 					initialLine={initialLine}
 					initialColumn={initialColumn}
 					diffViewMode={diffViewMode}
+					hideUnchangedRegions={hideUnchangedRegions}
 					onSaveRaw={handleSaveRaw}
 					onSaveDiff={isDiffEditable ? handleSaveDiff : undefined}
 					onEditorChange={handleEditorChange}

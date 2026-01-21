@@ -5,7 +5,7 @@
 		"@react-email/preview-server": "5.0.7",
 		"@superset/typescript": "workspace:*",
 		"@types/node": "^24.9.1",
-		"@types/react": "^19.2.7",
+		"@types/react": "~19.1.0",
 		"react-email": "5.0.7",
 		"typescript": "^5.9.3"
 	},
@@ -26,8 +26,8 @@
 		"@react-email/components": "1.0.1",
 		"@react-email/tailwind": "2.0.3",
 		"@t3-oss/env-core": "^0.13.8",
-		"react": "^19.2.3",
-		"react-dom": "^19.2.3",
+		"react": "19.1.0",
+		"react-dom": "19.1.0",
 		"zod": "^4.3.5"
 	}
 }
