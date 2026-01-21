@@ -145,6 +145,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		updatePreset,
 		deletePreset,
 		setDefaultPreset,
+		reorderPresets,
 	} = usePresets();
 	const [localPresets, setLocalPresets] =
 		useState<TerminalPreset[]>(serverPresets);
@@ -284,6 +285,22 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		},
 		[setDefaultPreset],
 	);
+
+	const handleReorder = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			// Update local state optimistically
+			setLocalPresets((prev) => {
+				const newPresets = [...prev];
+				const [removed] = newPresets.splice(fromIndex, 1);
+				newPresets.splice(toIndex, 0, removed);
+				return newPresets;
+			});
+			// Persist to server
+			reorderPresets.mutate({ fromIndex, toIndex });
+		},
+		[reorderPresets],
+	);
+
 	const { data: terminalPersistence, isLoading } =
 		electronTrpc.settings.getTerminalPersistence.useQuery();
 
@@ -586,6 +603,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						{showPresets && (
 							<div className="rounded-lg border border-border overflow-hidden">
 								<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border">
+									<div className="w-6 shrink-0" />
 									<div className="w-10 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
 										Key
 									</div>
@@ -623,6 +641,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 												onCommandsBlur={handleCommandsBlur}
 												onDelete={handleDeleteRow}
 												onSetDefault={handleSetDefault}
+												onReorder={handleReorder}
 											/>
 										))
 									) : (

@@ -154,6 +154,39 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
+		reorderTerminalPresets: publicProcedure
+			.input(z.object({ fromIndex: z.number(), toIndex: z.number() }))
+			.mutation(({ input }) => {
+				const row = getSettings();
+				const presets = row.terminalPresets ?? [];
+
+				if (
+					input.fromIndex < 0 ||
+					input.fromIndex >= presets.length ||
+					input.toIndex < 0 ||
+					input.toIndex >= presets.length
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "Invalid index for reordering presets",
+					});
+				}
+
+				const [removed] = presets.splice(input.fromIndex, 1);
+				presets.splice(input.toIndex, 0, removed);
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalPresets: presets })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalPresets: presets },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
 		getDefaultPreset: publicProcedure.query(() => {
 			const row = getSettings();
 			const presets = row.terminalPresets ?? [];

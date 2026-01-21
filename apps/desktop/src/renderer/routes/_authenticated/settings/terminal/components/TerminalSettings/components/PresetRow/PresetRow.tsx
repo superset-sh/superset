@@ -2,8 +2,10 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Kbd } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useRef } from "react";
+import { useDrag, useDrop } from "react-dnd";
 import { HiOutlineStar, HiStar } from "react-icons/hi2";
-import { LuTrash } from "react-icons/lu";
+import { LuGripVertical, LuTrash } from "react-icons/lu";
 import {
 	PRESET_COLUMNS,
 	type PresetColumnConfig,
@@ -11,6 +13,8 @@ import {
 	type TerminalPreset,
 } from "renderer/routes/_authenticated/settings/presets/types";
 import { CommandsEditor } from "./components/CommandsEditor";
+
+const PRESET_TYPE = "TERMINAL_PRESET";
 
 interface PresetCellProps {
 	column: PresetColumnConfig;
@@ -66,6 +70,7 @@ interface PresetRowProps {
 	onCommandsBlur: (rowIndex: number) => void;
 	onDelete: (rowIndex: number) => void;
 	onSetDefault: (presetId: string | null) => void;
+	onReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 export function PresetRow({
@@ -78,7 +83,38 @@ export function PresetRow({
 	onCommandsBlur,
 	onDelete,
 	onSetDefault,
+	onReorder,
 }: PresetRowProps) {
+	const rowRef = useRef<HTMLDivElement>(null);
+	const dragHandleRef = useRef<HTMLDivElement>(null);
+
+	const [{ isDragging }, drag, preview] = useDrag(
+		() => ({
+			type: PRESET_TYPE,
+			item: { id: preset.id, index: rowIndex },
+			collect: (monitor) => ({
+				isDragging: monitor.isDragging(),
+			}),
+		}),
+		[preset.id, rowIndex],
+	);
+
+	const [{ isOver }, drop] = useDrop({
+		accept: PRESET_TYPE,
+		hover: (item: { id: string; index: number }) => {
+			if (item.index !== rowIndex) {
+				onReorder(item.index, rowIndex);
+				item.index = rowIndex;
+			}
+		},
+		collect: (monitor) => ({
+			isOver: monitor.isOver(),
+		}),
+	});
+
+	preview(drop(rowRef));
+	drag(dragHandleRef);
+
 	const handleToggleDefault = () => {
 		// If already default, clear it; otherwise set this preset as default
 		onSetDefault(preset.isDefault ? null : preset.id);
@@ -86,10 +122,17 @@ export function PresetRow({
 
 	return (
 		<div
+			ref={rowRef}
 			className={`flex items-start gap-4 py-3 px-4 ${
 				isEven ? "bg-accent/20" : ""
-			}`}
+			} ${isDragging ? "opacity-30" : ""} ${isOver ? "bg-accent/40" : ""}`}
 		>
+			<div
+				ref={dragHandleRef}
+				className="w-6 flex justify-center shrink-0 pt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+			>
+				<LuGripVertical className="h-4 w-4" />
+			</div>
 			<div className="w-10 flex justify-center shrink-0 pt-1">
 				{rowIndex < 9 ? (
 					<Kbd>{rowIndex + 1}</Kbd>
