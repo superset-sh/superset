@@ -138,7 +138,7 @@ export function FileDiffHeader({
 					id={`viewed-${fileKey}`}
 					checked={isViewed}
 					onCheckedChange={(checked) => onViewedChange(checked === true)}
-					className="size-3.5"
+					className="size-3.5 border-muted-foreground/50"
 				/>
 				<label
 					htmlFor={`viewed-${fileKey}`}
