@@ -275,7 +275,7 @@ export function DiffViewer({
 				readOnly: !editable,
 				originalEditable: false,
 				renderOverviewRuler: !fitContent,
-				renderGutterMenu: false,
+				glyphMargin: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
 				hideUnchangedRegions: {
