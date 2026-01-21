@@ -1,4 +1,4 @@
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import type { ChangesViewMode } from "../../types";
 import { FileListGrouped } from "./FileListGrouped";
 import { FileListTree } from "./FileListTree";
@@ -23,6 +23,10 @@ interface FileListProps {
 	worktreePath?: string;
 	/** Callback for discarding changes */
 	onDiscard?: (file: ChangedFile) => void;
+	/** Category for scroll sync highlighting */
+	category?: ChangeCategory;
+	/** Commit hash for committed files (scroll sync) */
+	commitHash?: string;
 }
 
 export function FileList({
@@ -38,6 +42,8 @@ export function FileList({
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: FileListProps) {
 	if (files.length === 0) {
 		return null;
@@ -57,6 +63,8 @@ export function FileList({
 				isActioning={isActioning}
 				worktreePath={worktreePath}
 				onDiscard={onDiscard}
+				category={category}
+				commitHash={commitHash}
 			/>
 		);
 	}
@@ -75,6 +83,8 @@ export function FileList({
 			isActioning={isActioning}
 			worktreePath={worktreePath}
 			onDiscard={onDiscard}
+			category={category}
+			commitHash={commitHash}
 		/>
 	);
 }

@@ -28,7 +28,8 @@ import {
 	LuUndo2,
 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
+import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 
 interface FileItemProps {
@@ -51,6 +52,10 @@ interface FileItemProps {
 	worktreePath?: string;
 	/** Callback for discarding changes */
 	onDiscard?: () => void;
+	/** Category for scroll sync highlighting */
+	category?: ChangeCategory;
+	/** Commit hash for committed files (scroll sync) */
+	commitHash?: string;
 }
 
 function LevelIndicators({ level }: { level: number }) {
@@ -82,8 +87,11 @@ export function FileItem({
 	isActioning = false,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: FileItemProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+	const { activeFileKey } = useScrollContext();
 
 	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
@@ -92,6 +100,10 @@ export function FileItem({
 		showStats && (file.additions > 0 || file.deletions > 0);
 	const hasIndent = level > 0;
 	const hasAction = onStage || onUnstage;
+
+	// Check if this file is the currently active file from scroll sync
+	const isActive =
+		category && activeFileKey === createFileKey(file, category, commitHash);
 
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
 	const openInEditorMutation =
@@ -144,7 +156,7 @@ export function FileItem({
 			className={cn(
 				"group w-full flex items-stretch gap-1 px-1.5 text-left rounded-sm",
 				"hover:bg-accent/50 cursor-pointer transition-colors overflow-hidden",
-				isSelected && "bg-accent",
+				(isSelected || isActive) && "bg-accent",
 			)}
 		>
 			{hasIndent && <LevelIndicators level={level} />}

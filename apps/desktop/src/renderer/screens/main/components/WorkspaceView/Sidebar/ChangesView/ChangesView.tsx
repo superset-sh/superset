@@ -401,6 +401,7 @@ export function ChangesView({
 								handleFileDoubleClick(file, "against-base")
 							}
 							worktreePath={worktreePath}
+							category="against-base"
 						/>
 					</CategorySection>
 
@@ -487,6 +488,7 @@ export function ChangesView({
 							}
 							isActioning={unstageFileMutation.isPending}
 							worktreePath={worktreePath}
+							category="staged"
 						/>
 					</CategorySection>
 
@@ -556,6 +558,7 @@ export function ChangesView({
 							}
 							worktreePath={worktreePath}
 							onDiscard={handleDiscard}
+							category="unstaged"
 						/>
 					</CategorySection>
 				</div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
 
@@ -17,6 +17,10 @@ interface FileListTreeProps {
 	isActioning?: boolean;
 	worktreePath?: string;
 	onDiscard?: (file: ChangedFile) => void;
+	/** Category for scroll sync highlighting */
+	category?: ChangeCategory;
+	/** Commit hash for committed files (scroll sync) */
+	commitHash?: string;
 }
 
 interface FileTreeNode {
@@ -93,6 +97,8 @@ interface TreeNodeComponentProps {
 	isActioning?: boolean;
 	worktreePath?: string;
 	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
 }
 
 function TreeNodeComponent({
@@ -108,6 +114,8 @@ function TreeNodeComponent({
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: TreeNodeComponentProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const hasChildren = node.children && node.children.length > 0;
@@ -138,6 +146,8 @@ function TreeNodeComponent({
 						isActioning={isActioning}
 						worktreePath={worktreePath}
 						onDiscard={onDiscard}
+						category={category}
+						commitHash={commitHash}
 					/>
 				))}
 			</FolderRow>
@@ -161,6 +171,8 @@ function TreeNodeComponent({
 				isActioning={isActioning}
 				worktreePath={worktreePath}
 				onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+				category={category}
+				commitHash={commitHash}
 			/>
 		);
 	}
@@ -180,6 +192,8 @@ export function FileListTree({
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: FileListTreeProps) {
 	const tree = buildFileTree(files);
 
@@ -199,6 +213,8 @@ export function FileListTree({
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}
+					category={category}
+					commitHash={commitHash}
 				/>
 			))}
 		</div>

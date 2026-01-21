@@ -87,6 +87,8 @@ export function CommitItem({
 					onFileSelect={handleFileSelect}
 					onFileDoubleClick={handleFileDoubleClick}
 					worktreePath={worktreePath}
+					category="committed"
+					commitHash={commit.hash}
 				/>
 			)}
 		</CollapsibleRow>

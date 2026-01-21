@@ -1,21 +1,17 @@
 import { Button } from "@superset/ui/button";
+import { Checkbox } from "@superset/ui/checkbox";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
-	LuChevronDown,
-	LuChevronRight,
+	LuCheck,
+	LuCopy,
 	LuExternalLink,
 	LuLoader,
 	LuUndo2,
 } from "react-icons/lu";
-import {
-	TbFold,
-	TbLayoutSidebarRightFilled,
-	TbListDetails,
-} from "react-icons/tb";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type {
@@ -28,7 +24,7 @@ import {
 	getStatusColor,
 	getStatusIndicator,
 } from "../../../Sidebar/ChangesView/utils";
-import { useScrollContext } from "../../context";
+import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 
 interface DiffViewerFitContentProps {
@@ -71,10 +67,6 @@ interface FileDiffSectionProps {
 	isActioning?: boolean;
 }
 
-function getFileName(path: string): string {
-	return path.split("/").pop() || path;
-}
-
 export function FileDiffSection({
 	file,
 	category,
@@ -88,13 +80,17 @@ export function FileDiffSection({
 	isActioning = false,
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
-	const { registerFileRef } = useScrollContext();
 	const {
-		viewMode: diffViewMode,
-		setViewMode: setDiffViewMode,
-		hideUnchangedRegions,
-		toggleHideUnchangedRegions,
-	} = useChangesStore();
+		registerFileRef,
+		viewedFiles,
+		setFileViewed,
+		setActiveFileKey,
+	} = useScrollContext();
+	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
+	const [isCopied, setIsCopied] = useState(false);
+
+	const fileKey = createFileKey(file, category, commitHash);
+	const isViewed = viewedFiles.has(fileKey);
 
 	const openInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation();
@@ -110,12 +106,49 @@ export function FileDiffSection({
 		[worktreePath, file.path, openInEditorMutation],
 	);
 
+	const handleCopyPath = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			navigator.clipboard.writeText(file.path);
+			setIsCopied(true);
+			setTimeout(() => setIsCopied(false), 2000);
+		},
+		[file.path],
+	);
+
 	useEffect(() => {
 		registerFileRef(file, category, commitHash, sectionRef.current);
 		return () => {
 			registerFileRef(file, category, commitHash, null);
 		};
 	}, [file, category, commitHash, registerFileRef]);
+
+	// IntersectionObserver to track active file on scroll
+	useEffect(() => {
+		const element = sectionRef.current;
+		if (!element) return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting && entry.intersectionRatio > 0.1) {
+						setActiveFileKey(fileKey);
+					}
+				}
+			},
+			{
+				root: null,
+				rootMargin: "-100px 0px -60% 0px", // Trigger when file header is near top
+				threshold: [0.1],
+			},
+		);
+
+		observer.observe(element);
+
+		return () => {
+			observer.disconnect();
+		};
+	}, [fileKey, setActiveFileKey]);
 
 	const { data: branchData } = electronTrpc.changes.getBranches.useQuery(
 		{ worktreePath },
@@ -139,7 +172,6 @@ export function FileDiffSection({
 			},
 		);
 
-	const fileName = getFileName(file.path);
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
 	const showStats = file.additions > 0 || file.deletions > 0;
@@ -149,22 +181,11 @@ export function FileDiffSection({
 	return (
 		<div ref={sectionRef} className="border-b border-border">
 			<Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
-				<button
-					type="button"
+				<div
 					className={cn(
-						"group flex items-center gap-2 px-3 py-2 w-full text-left cursor-pointer hover:bg-accent/50 transition-colors sticky top-0 bg-muted z-10 border-b border-border",
-						isExpanded && "bg-muted",
+						"group flex items-center gap-2 px-3 py-1.5 w-full text-left sticky top-0 z-10 border-b border-border",
 					)}
-					onClick={onToggleExpanded}
 				>
-					<span className="shrink-0">
-						{isExpanded ? (
-							<LuChevronDown className="size-4 text-muted-foreground" />
-						) : (
-							<LuChevronRight className="size-4 text-muted-foreground" />
-						)}
-					</span>
-
 					<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
 						{statusIndicator}
 					</span>
@@ -174,20 +195,34 @@ export function FileDiffSection({
 							{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive element */}
 							{/* biome-ignore lint/a11y/noStaticElementInteractions: clickable to open in editor */}
 							<span
-								className="group/filename flex items-center gap-1 text-sm font-medium truncate min-w-0 flex-1 hover:underline hover:text-primary cursor-pointer"
+								className="group/filename flex items-center gap-1 text-xs truncate min-w-0 flex-1 hover:underline hover:text-primary cursor-pointer font-mono"
 								onClick={handleOpenInEditor}
 							>
-								<span className="truncate">{fileName}</span>
+								<span className="truncate">{file.path}</span>
 								<LuExternalLink className="size-3 shrink-0 opacity-0 group-hover/filename:opacity-100 transition-opacity" />
 							</span>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							<div className="flex flex-col gap-0.5">
-								<span>{file.path}</span>
-								<span className="text-xs text-muted-foreground">
-									Click to open in editor
-								</span>
-							</div>
+							Click to open in editor
+						</TooltipContent>
+					</Tooltip>
+
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleCopyPath}
+								className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
+							>
+								{isCopied ? (
+									<LuCheck className="size-3.5 text-green-500" />
+								) : (
+									<LuCopy className="size-3.5" />
+								)}
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							{isCopied ? "Copied!" : "Copy path"}
 						</TooltipContent>
 					</Tooltip>
 
@@ -206,60 +241,32 @@ export function FileDiffSection({
 						</span>
 					)}
 
+					{/* biome-ignore lint/a11y/useKeyWithClickEvents: checkbox handles keyboard events */}
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper for checkbox */}
+					<div
+						className="flex items-center gap-1.5 shrink-0 text-xs cursor-pointer select-none"
+						onClick={(e) => e.stopPropagation()}
+					>
+						<Checkbox
+							id={`viewed-${fileKey}`}
+							checked={isViewed}
+							onCheckedChange={(checked) => setFileViewed(fileKey, checked === true)}
+							className="size-3.5"
+						/>
+						<label
+							htmlFor={`viewed-${fileKey}`}
+							className="text-muted-foreground cursor-pointer"
+						>
+							Viewed
+						</label>
+					</div>
+
 					{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive elements handle their own events */}
 					{/* biome-ignore lint/a11y/noStaticElementInteractions: this span just stops click propagation */}
 					<span
 						className="flex items-center gap-1 shrink-0"
 						onClick={(e) => e.stopPropagation()}
 					>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={() =>
-										setDiffViewMode(
-											diffViewMode === "side-by-side"
-												? "inline"
-												: "side-by-side",
-										)
-									}
-									className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
-								>
-									{diffViewMode === "side-by-side" ? (
-										<TbLayoutSidebarRightFilled className="size-3.5" />
-									) : (
-										<TbListDetails className="size-3.5" />
-									)}
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								{diffViewMode === "side-by-side"
-									? "Switch to inline diff"
-									: "Switch to side by side diff"}
-							</TooltipContent>
-						</Tooltip>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<button
-									type="button"
-									onClick={toggleHideUnchangedRegions}
-									className={cn(
-										"rounded p-1 transition-colors hover:bg-accent",
-										hideUnchangedRegions
-											? "text-foreground"
-											: "text-muted-foreground/60 hover:text-muted-foreground",
-									)}
-								>
-									<TbFold className="size-3.5" />
-								</button>
-							</TooltipTrigger>
-							<TooltipContent side="bottom" showArrow={false}>
-								{hideUnchangedRegions
-									? "Show all lines"
-									: "Hide unchanged regions"}
-							</TooltipContent>
-						</Tooltip>
-
 						{onDiscard && (
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -320,7 +327,7 @@ export function FileDiffSection({
 							</>
 						)}
 					</span>
-				</button>
+				</div>
 
 				<CollapsibleContent>
 					{isLoadingDiff ? (

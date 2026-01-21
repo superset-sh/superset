@@ -4,7 +4,9 @@ import {
 	type RefObject,
 	useCallback,
 	useContext,
+	useMemo,
 	useRef,
+	useState,
 } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 
@@ -29,6 +31,13 @@ interface ScrollContextValue {
 		commitHash?: string,
 	) => void;
 	containerRef: RefObject<HTMLDivElement | null>;
+	// Viewed state tracking
+	viewedFiles: Set<string>;
+	setFileViewed: (key: string, viewed: boolean) => void;
+	viewedCount: number;
+	// Active file tracking for scroll sync
+	activeFileKey: string | null;
+	setActiveFileKey: (key: string | null) => void;
 }
 
 const ScrollContext = createContext<ScrollContextValue | null>(null);
@@ -36,6 +45,8 @@ const ScrollContext = createContext<ScrollContextValue | null>(null);
 export function ScrollProvider({ children }: { children: ReactNode }) {
 	const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 	const containerRef = useRef<HTMLDivElement>(null);
+	const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
+	const [activeFileKey, setActiveFileKey] = useState<string | null>(null);
 
 	const registerFileRef = useCallback(
 		(
@@ -72,12 +83,43 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 		[],
 	);
 
+	const setFileViewed = useCallback((key: string, viewed: boolean) => {
+		setViewedFiles((prev) => {
+			const next = new Set(prev);
+			if (viewed) {
+				next.add(key);
+			} else {
+				next.delete(key);
+			}
+			return next;
+		});
+	}, []);
+
+	const viewedCount = viewedFiles.size;
+
+	const value = useMemo(
+		() => ({
+			registerFileRef,
+			scrollToFile,
+			containerRef,
+			viewedFiles,
+			setFileViewed,
+			viewedCount,
+			activeFileKey,
+			setActiveFileKey,
+		}),
+		[
+			registerFileRef,
+			scrollToFile,
+			viewedFiles,
+			setFileViewed,
+			viewedCount,
+			activeFileKey,
+		],
+	);
+
 	return (
-		<ScrollContext.Provider
-			value={{ registerFileRef, scrollToFile, containerRef }}
-		>
-			{children}
-		</ScrollContext.Provider>
+		<ScrollContext.Provider value={value}>{children}</ScrollContext.Provider>
 	);
 }
 

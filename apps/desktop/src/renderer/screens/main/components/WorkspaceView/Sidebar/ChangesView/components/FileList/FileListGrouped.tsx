@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ChangedFile } from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
 import { FolderRow } from "../FolderRow";
 
@@ -17,6 +17,10 @@ interface FileListGroupedProps {
 	isActioning?: boolean;
 	worktreePath?: string;
 	onDiscard?: (file: ChangedFile) => void;
+	/** Category for scroll sync highlighting */
+	category?: ChangeCategory;
+	/** Commit hash for committed files (scroll sync) */
+	commitHash?: string;
 }
 
 interface FolderGroup {
@@ -69,6 +73,8 @@ interface FolderGroupItemProps {
 	isActioning?: boolean;
 	worktreePath?: string;
 	onDiscard?: (file: ChangedFile) => void;
+	category?: ChangeCategory;
+	commitHash?: string;
 }
 
 function FolderGroupItem({
@@ -82,6 +88,8 @@ function FolderGroupItem({
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: FolderGroupItemProps) {
 	const [isExpanded, setIsExpanded] = useState(true);
 	const isRoot = group.folderPath === "";
@@ -110,6 +118,8 @@ function FolderGroupItem({
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard ? () => onDiscard(file) : undefined}
+					category={category}
+					commitHash={commitHash}
 				/>
 			))}
 		</FolderRow>
@@ -127,6 +137,8 @@ export function FileListGrouped({
 	isActioning,
 	worktreePath,
 	onDiscard,
+	category,
+	commitHash,
 }: FileListGroupedProps) {
 	const groups = groupFilesByFolder(files);
 
@@ -145,6 +157,8 @@ export function FileListGrouped({
 					isActioning={isActioning}
 					worktreePath={worktreePath}
 					onDiscard={onDiscard}
+					category={category}
+					commitHash={commitHash}
 				/>
 			))}
 		</div>

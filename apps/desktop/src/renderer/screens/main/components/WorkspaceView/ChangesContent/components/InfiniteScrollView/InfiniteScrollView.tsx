@@ -1,7 +1,20 @@
 import { toast } from "@superset/ui/sonner";
-import { useCallback, useState } from "react";
-import { LuChevronDown, LuChevronRight } from "react-icons/lu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { cn } from "@superset/ui/utils";
+import { useCallback, useMemo, useState } from "react";
+import {
+	LuArrowDown,
+	LuArrowUp,
+	LuChevronDown,
+	LuChevronRight,
+} from "react-icons/lu";
+import {
+	TbFold,
+	TbLayoutSidebarRightFilled,
+	TbListDetails,
+} from "react-icons/tb";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useChangesStore } from "renderer/stores/changes";
 import type {
 	ChangeCategory,
 	ChangedFile,
@@ -30,7 +43,7 @@ function CategoryHeader({
 		<button
 			type="button"
 			onClick={onToggle}
-			className="flex items-center gap-2 px-4 py-2 w-full text-left bg-card hover:bg-muted transition-colors sticky top-0 z-20 border-b border-border"
+			className="flex items-center gap-2 px-4 py-2 w-full text-left hover:bg-muted transition-colors sticky top-0 z-20 border-b border-border"
 		>
 			{isExpanded ? (
 				<LuChevronDown className="size-4 text-muted-foreground" />
@@ -123,7 +136,13 @@ export function InfiniteScrollView({
 	worktreePath,
 	baseBranch,
 }: InfiniteScrollViewProps) {
-	const { containerRef } = useScrollContext();
+	const { containerRef, viewedCount } = useScrollContext();
+	const {
+		viewMode: diffViewMode,
+		setViewMode: setDiffViewMode,
+		hideUnchangedRegions,
+		toggleHideUnchangedRegions,
+	} = useChangesStore();
 	const [expandedCategories, setExpandedCategories] = useState<
 		Record<ChangeCategory, boolean>
 	>({
@@ -134,6 +153,42 @@ export function InfiniteScrollView({
 	});
 	// Track collapsed files instead - files are expanded by default
 	const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
+
+	// Calculate aggregate totals for top bar
+	const totals = useMemo(() => {
+		const allFiles = [
+			...status.againstBase,
+			...status.staged,
+			...status.unstaged,
+			...status.untracked,
+		];
+		// For commits, we need to count files from each commit
+		const commitFileCount = status.commits.reduce(
+			(acc, commit) => acc + commit.files.length,
+			0,
+		);
+
+		let totalAdditions = 0;
+		let totalDeletions = 0;
+
+		for (const file of allFiles) {
+			totalAdditions += file.additions;
+			totalDeletions += file.deletions;
+		}
+		// Add commit file stats
+		for (const commit of status.commits) {
+			for (const file of commit.files) {
+				totalAdditions += file.additions;
+				totalDeletions += file.deletions;
+			}
+		}
+
+		return {
+			fileCount: allFiles.length + commitFileCount,
+			additions: totalAdditions,
+			deletions: totalDeletions,
+		};
+	}, [status]);
 
 	const toggleCategory = useCallback((category: ChangeCategory) => {
 		setExpandedCategories((prev) => ({
@@ -245,6 +300,92 @@ export function InfiniteScrollView({
 
 	return (
 		<div ref={containerRef} className="h-full overflow-y-auto">
+			{/* Global diff settings toolbar */}
+			<div className="flex items-center gap-3 px-3 py-1.5 border-b border-border bg-background sticky top-0 z-30">
+				{/* Summary stats */}
+				<div className="flex items-center gap-3 text-xs text-muted-foreground flex-1">
+					<span>
+						{viewedCount}/{totals.fileCount} viewed
+					</span>
+					<span className="flex items-center gap-1 font-mono">
+						{totals.fileCount} files
+						{totals.additions > 0 && (
+							<span className="text-green-600 dark:text-green-500">
+								+{totals.additions}
+							</span>
+						)}
+						{totals.deletions > 0 && (
+							<span className="text-red-600 dark:text-red-400">
+								-{totals.deletions}
+							</span>
+						)}
+					</span>
+					{status.hasUpstream && (status.pushCount > 0 || status.pullCount > 0) && (
+						<span className="flex items-center gap-2">
+							{status.pushCount > 0 && (
+								<span className="flex items-center gap-0.5">
+									<LuArrowUp className="size-3" />
+									{status.pushCount}
+								</span>
+							)}
+							{status.pullCount > 0 && (
+								<span className="flex items-center gap-0.5">
+									<LuArrowDown className="size-3" />
+									{status.pullCount}
+								</span>
+							)}
+						</span>
+					)}
+				</div>
+
+				{/* View controls */}
+				<div className="flex items-center gap-1">
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={() =>
+									setDiffViewMode(
+										diffViewMode === "side-by-side" ? "inline" : "side-by-side",
+									)
+								}
+								className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
+							>
+								{diffViewMode === "side-by-side" ? (
+									<TbLayoutSidebarRightFilled className="size-4" />
+								) : (
+									<TbListDetails className="size-4" />
+								)}
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							{diffViewMode === "side-by-side"
+								? "Switch to inline diff"
+								: "Switch to side by side diff"}
+						</TooltipContent>
+					</Tooltip>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={toggleHideUnchangedRegions}
+								className={cn(
+									"rounded p-1 transition-colors hover:bg-accent",
+									hideUnchangedRegions
+										? "text-foreground"
+										: "text-muted-foreground/60 hover:text-muted-foreground",
+								)}
+							>
+								<TbFold className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							{hideUnchangedRegions ? "Show all lines" : "Hide unchanged regions"}
+						</TooltipContent>
+					</Tooltip>
+				</div>
+			</div>
+
 			{status.againstBase.length > 0 && (
 				<>
 					<CategoryHeader
