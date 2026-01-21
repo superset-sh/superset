@@ -2,7 +2,7 @@ import { useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CommitInfo } from "shared/changes-types";
-import { FileDiffSection } from "../../../FileDiffSection";
+import { LazyFileDiffSection } from "../../../FileDiffSection";
 
 interface CommitSectionProps {
 	commit: CommitInfo;
@@ -54,7 +54,7 @@ export function CommitSection({
 					{files.map((file) => {
 						const fileKey = `committed:${commit.hash}:${file.path}`;
 						return (
-							<FileDiffSection
+							<LazyFileDiffSection
 								key={fileKey}
 								file={file}
 								category="committed"

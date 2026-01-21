@@ -8,7 +8,7 @@ import type {
 	GitChangesStatus,
 } from "shared/changes-types";
 import { useScrollContext } from "../../context";
-import { FileDiffSection } from "../FileDiffSection";
+import { LazyFileDiffSection } from "../FileDiffSection";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { CommitSection } from "./components/CommitSection";
 import { DiffToolbar } from "./components/DiffToolbar";
@@ -214,7 +214,7 @@ export function InfiniteScrollView({
 							{status.againstBase.map((file) => {
 								const fileKey = `against-base::${file.path}`;
 								return (
-									<FileDiffSection
+									<LazyFileDiffSection
 										key={fileKey}
 										file={file}
 										category="against-base"
@@ -267,7 +267,7 @@ export function InfiniteScrollView({
 							{status.staged.map((file) => {
 								const fileKey = `staged::${file.path}`;
 								return (
-									<FileDiffSection
+									<LazyFileDiffSection
 										key={fileKey}
 										file={file}
 										category="staged"
@@ -303,7 +303,7 @@ export function InfiniteScrollView({
 							{unstagedFiles.map((file) => {
 								const fileKey = `unstaged::${file.path}`;
 								return (
-									<FileDiffSection
+									<LazyFileDiffSection
 										key={fileKey}
 										file={file}
 										category="unstaged"
