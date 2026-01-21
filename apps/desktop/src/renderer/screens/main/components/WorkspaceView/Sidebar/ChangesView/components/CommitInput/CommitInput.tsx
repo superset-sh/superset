@@ -102,8 +102,19 @@ export function CommitInput({
 		commitMutation.mutate({ worktreePath, message: commitMessage.trim() });
 	};
 
-	const handlePush = () =>
-		pushMutation.mutate({ worktreePath, setUpstream: true });
+	const handlePush = () => {
+		const isPublishing = !hasUpstream;
+		pushMutation.mutate(
+			{ worktreePath, setUpstream: true },
+			{
+				onSuccess: () => {
+					if (isPublishing) {
+						createPRMutation.mutate({ worktreePath });
+					}
+				},
+			},
+		);
+	};
 	const handlePull = () => pullMutation.mutate({ worktreePath });
 	const handleSync = () => syncMutation.mutate({ worktreePath });
 	const handleCreatePR = () => createPRMutation.mutate({ worktreePath });
