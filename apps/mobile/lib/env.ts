@@ -4,11 +4,8 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
-	EXPO_PUBLIC_API_URL: z
-		.string()
-		.url()
-		.transform((url) => url.replace(/\/$/, "")),
-	EXPO_PUBLIC_WEB_URL: z.string().url().optional(),
+	EXPO_PUBLIC_API_URL: z.url(),
+	EXPO_PUBLIC_WEB_URL: z.url().optional(),
 	EXPO_PUBLIC_DEEP_LINK_SCHEME: z.string().default("superset"),
 	EXPO_PUBLIC_DEEP_LINK_DOMAIN: z.string().optional(),
 });

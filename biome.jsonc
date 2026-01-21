@@ -6,7 +6,13 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!**/drizzle", "!**/*.template.js", "!**/*.template.sh"]
+		"includes": [
+			"**",
+			"!**/drizzle",
+			"!**/*.template.js",
+			"!**/*.template.sh",
+			"!apps/mobile/uniwind-types.d.ts"
+		]
 	},
 	"formatter": {
 		"formatWithErrors": true
