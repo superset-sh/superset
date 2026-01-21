@@ -110,6 +110,7 @@ export const MONACO_EDITOR_OPTIONS = {
 	wordWrap: "on" as const,
 	fontSize: 13,
 	lineHeight: 20,
+	lineNumbersMinChars: 3,
 	fontFamily:
 		"ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace",
 	padding: { top: 8, bottom: 8 },
