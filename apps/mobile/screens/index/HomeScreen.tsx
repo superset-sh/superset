@@ -1,3 +1,4 @@
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Text } from "@/components/ui/text";
 import { signOut } from "@/lib/auth/client";
 
 export default function HomeScreen() {
+	const router = useRouter();
 	const [switchValue, setSwitchValue] = useState(false);
 	const [inputValue, setInputValue] = useState("");
 
@@ -39,6 +41,21 @@ export default function HomeScreen() {
 						</Button>
 					</View>
 				</View>
+
+				{/* Electric Collections Demo Link */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Electric Collections Demo</CardTitle>
+						<CardDescription>
+							View real-time synced data with Electric SQL
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<Button onPress={() => router.push("/(authenticated)/demo")}>
+							<Text>Open Demo Screen</Text>
+						</Button>
+					</CardContent>
+				</Card>
 
 				{/* Typography Section */}
 				<Card>

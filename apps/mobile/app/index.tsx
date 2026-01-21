@@ -1,13 +1,12 @@
 import { Redirect } from "expo-router";
 import { useSession } from "@/lib/auth/client";
-import HomeScreen from "@/screens/index";
 
-export default function RootIndex() {
+export default function Index() {
 	const { data: session } = useSession();
 
 	if (!session) {
 		return <Redirect href="/(auth)/sign-in" />;
 	}
 
-	return <HomeScreen />;
+	return <Redirect href="/(authenticated)" />;
 }

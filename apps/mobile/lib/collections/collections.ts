@@ -1,5 +1,6 @@
 import { snakeCamelMapper } from "@electric-sql/client";
 import type {
+	SelectInvitation,
 	SelectMember,
 	SelectOrganization,
 	SelectRepository,
@@ -23,6 +24,7 @@ interface OrgCollections {
 	repositories: Collection<SelectRepository>;
 	members: Collection<SelectMember>;
 	users: Collection<SelectUser>;
+	invitations: Collection<SelectInvitation>;
 }
 
 const collectionsCache = new Map<string, OrgCollections>();
@@ -102,6 +104,16 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				columnMapper,
 			},
 			getKey: (item) => item.id,
+			onInsert: async ({ transaction }) => {
+				const item = transaction.mutations[0].modified;
+				const result = await apiClient.repository.create.mutate(item);
+				return { txid: result.txid };
+			},
+			onUpdate: async ({ transaction }) => {
+				const { modified } = transaction.mutations[0];
+				const result = await apiClient.repository.update.mutate(modified);
+				return { txid: result.txid };
+			},
 		}),
 	);
 
@@ -131,15 +143,34 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	return { tasks, taskStatuses, repositories, members, users };
+	const invitations = createCollection(
+		electricCollectionOptions<SelectInvitation>({
+			id: `invitations-${organizationId}`,
+			shapeOptions: {
+				url: electricUrl,
+				params: { table: "auth.invitations", organizationId },
+				headers,
+				columnMapper,
+			},
+			getKey: (item) => item.id,
+		}),
+	);
+
+	return { tasks, taskStatuses, repositories, members, users, invitations };
 }
 
 export function getCollections(organizationId: string) {
 	if (!collectionsCache.has(organizationId)) {
 		collectionsCache.set(organizationId, createOrgCollections(organizationId));
 	}
+
+	const orgCollections = collectionsCache.get(organizationId);
+	if (!orgCollections) {
+		throw new Error(`Collections not found for org: ${organizationId}`);
+	}
+
 	return {
-		...collectionsCache.get(organizationId)!,
+		...orgCollections,
 		organizations: organizationsCollection,
 	};
 }
