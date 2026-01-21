@@ -498,6 +498,7 @@ export function WorkspaceListItem({
 									<WorkspaceStatusBadge
 										state={pr.state}
 										prNumber={pr.number}
+										prUrl={pr.url}
 										className="ml-auto"
 									/>
 								)}
