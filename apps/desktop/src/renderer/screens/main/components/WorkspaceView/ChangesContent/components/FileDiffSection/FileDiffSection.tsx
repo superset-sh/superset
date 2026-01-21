@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuCheck,
+	LuChevronDown,
+	LuChevronRight,
 	LuCopy,
 	LuExternalLink,
 	LuLoader,
@@ -179,13 +181,25 @@ export function FileDiffSection({
 	const isDeleteAction = file.status === "untracked" || file.status === "added";
 
 	return (
-		<div ref={sectionRef} className="border-b border-border">
+		<div ref={sectionRef} className="mx-2 my-2 border border-border rounded-lg overflow-hidden">
 			<Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
 				<div
 					className={cn(
-						"group flex items-center gap-2 px-3 py-1.5 w-full text-left sticky top-0 z-10 border-b border-border",
+						"group flex items-center gap-2 px-3 py-1.5 w-full text-left sticky top-0 z-10 bg-muted",
 					)}
 				>
+					<button
+						type="button"
+						onClick={onToggleExpanded}
+						className="shrink-0 p-0.5 -ml-1 rounded hover:bg-accent transition-colors"
+					>
+						{isExpanded ? (
+							<LuChevronDown className="size-4 text-muted-foreground" />
+						) : (
+							<LuChevronRight className="size-4 text-muted-foreground" />
+						)}
+					</button>
+
 					<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
 						{statusIndicator}
 					</span>
@@ -195,7 +209,7 @@ export function FileDiffSection({
 							{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive element */}
 							{/* biome-ignore lint/a11y/noStaticElementInteractions: clickable to open in editor */}
 							<span
-								className="group/filename flex items-center gap-1 text-xs truncate min-w-0 flex-1 hover:underline hover:text-primary cursor-pointer font-mono"
+								className="group/filename flex items-center gap-1 text-xs truncate min-w-0 hover:underline hover:text-primary cursor-pointer font-mono"
 								onClick={handleOpenInEditor}
 							>
 								<span className="truncate">{file.path}</span>
@@ -226,6 +240,8 @@ export function FileDiffSection({
 						</TooltipContent>
 					</Tooltip>
 
+					<div className="flex-1" />
+
 					{showStats && (
 						<span className="flex items-center gap-1 text-xs font-mono shrink-0">
 							{file.additions > 0 && (
@@ -250,7 +266,16 @@ export function FileDiffSection({
 						<Checkbox
 							id={`viewed-${fileKey}`}
 							checked={isViewed}
-							onCheckedChange={(checked) => setFileViewed(fileKey, checked === true)}
+							onCheckedChange={(checked) => {
+								const isChecked = checked === true;
+								setFileViewed(fileKey, isChecked);
+								// Collapse when marking as viewed, expand when unmarking
+								if (isChecked && isExpanded) {
+									onToggleExpanded();
+								} else if (!isChecked && !isExpanded) {
+									onToggleExpanded();
+								}
+							}}
 							className="size-3.5"
 						/>
 						<label
