@@ -52,7 +52,7 @@ export function FileDiffSection({
 	} = useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
-	const [isNearViewport, setIsNearViewport] = useState(false);
+	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
@@ -135,9 +135,14 @@ export function FileDiffSection({
 			},
 		);
 
-		// Track if section is near viewport to mount/unmount Monaco
+		// Lazy-mount Monaco when first visible (never unmount to avoid disposal race)
 		const visibilityObserver = new IntersectionObserver(
-			([entry]) => setIsNearViewport(entry.isIntersecting),
+			([entry]) => {
+				if (entry.isIntersecting) {
+					setHasBeenVisible(true);
+					visibilityObserver.disconnect();
+				}
+			},
 			{ root: container, rootMargin: MONACO_VISIBILITY_MARGIN },
 		);
 
@@ -200,22 +205,21 @@ export function FileDiffSection({
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
 						</div>
-					) : diffData ? (
+					) : diffData && hasBeenVisible ? (
 						<div className="bg-background">
-							{isNearViewport ? (
-								<DiffViewer
-									contents={diffData}
-									viewMode={diffViewMode}
-									hideUnchangedRegions={hideUnchangedRegions}
-									filePath={file.path}
-									captureScroll={false}
-									fitContent
-								/>
-							) : (
-								<div className="h-24 flex items-center justify-center text-muted-foreground">
-									Scroll to view diff
-								</div>
-							)}
+							<DiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+								captureScroll={false}
+								fitContent
+							/>
+						</div>
+					) : diffData ? (
+						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
+							<LuLoader className="w-4 h-4 animate-spin mr-2" />
+							<span>Loading diff...</span>
 						</div>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
