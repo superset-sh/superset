@@ -1,5 +1,4 @@
 import type { BrowserWindow } from "electron";
-import { PORTS } from "shared/constants";
 import { env } from "shared/env.shared";
 
 /** Window IDs defined in the router configuration */
@@ -22,7 +21,7 @@ export function registerRoute(props: {
 
 	if (isDev) {
 		// Development: load from Vite dev server with hash routing
-		const url = `http://localhost:${PORTS.VITE_DEV_SERVER}/#/`;
+		const url = `http://localhost:${env.DESKTOP_VITE_PORT}/#/`;
 		console.log("[window-loader] Loading development URL:", url);
 		props.browserWindow.loadURL(url);
 	} else {

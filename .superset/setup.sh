@@ -342,6 +342,50 @@ step_write_env() {
       echo "ELECTRIC_SECRET=$ELECTRIC_SECRET"
     fi
 
+    # Port allocation for multi-worktree dev instances
+    # Each workspace gets a range of 20 ports from its base.
+    # Offsets: +0 web, +1 api, +2 marketing, +3 admin, +4 docs,
+    #          +5 desktop vite, +6 notifications, +7 streams, +8 streams internal, +9 electric
+    if [ -n "${SUPERSET_PORT_BASE:-}" ]; then
+      local BASE=$SUPERSET_PORT_BASE
+
+      # App ports (fixed offsets from base)
+      local WEB_PORT=$((BASE))
+      local API_PORT=$((BASE + 1))
+      local MARKETING_PORT=$((BASE + 2))
+      local ADMIN_PORT=$((BASE + 3))
+      local DOCS_PORT=$((BASE + 4))
+      local DESKTOP_VITE_PORT=$((BASE + 5))
+      local DESKTOP_NOTIFICATIONS_PORT=$((BASE + 6))
+      local STREAMS_PORT=$((BASE + 7))
+      local STREAMS_INTERNAL_PORT=$((BASE + 8))
+      local ELECTRIC_PORT=$((BASE + 9))
+
+      echo ""
+      echo "# Workspace Ports (allocated from SUPERSET_PORT_BASE=$BASE, range=20)"
+      echo "SUPERSET_PORT_BASE=$BASE"
+      echo "WEB_PORT=$WEB_PORT"
+      echo "API_PORT=$API_PORT"
+      echo "MARKETING_PORT=$MARKETING_PORT"
+      echo "ADMIN_PORT=$ADMIN_PORT"
+      echo "DOCS_PORT=$DOCS_PORT"
+      echo "DESKTOP_VITE_PORT=$DESKTOP_VITE_PORT"
+      echo "DESKTOP_NOTIFICATIONS_PORT=$DESKTOP_NOTIFICATIONS_PORT"
+      echo "STREAMS_PORT=$STREAMS_PORT"
+      echo "STREAMS_INTERNAL_PORT=$STREAMS_INTERNAL_PORT"
+      echo "ELECTRIC_PORT=$ELECTRIC_PORT"
+      echo ""
+      echo "# Cross-app URLs (overrides from root .env)"
+      echo "NEXT_PUBLIC_API_URL=http://localhost:$API_PORT"
+      echo "NEXT_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+      echo "NEXT_PUBLIC_MARKETING_URL=http://localhost:$MARKETING_PORT"
+      echo "NEXT_PUBLIC_ADMIN_URL=http://localhost:$ADMIN_PORT"
+      echo "NEXT_PUBLIC_DOCS_URL=http://localhost:$DOCS_PORT"
+      echo "NEXT_PUBLIC_DESKTOP_URL=http://localhost:$DESKTOP_VITE_PORT"
+      echo "STREAMS_URL=http://localhost:$STREAMS_PORT"
+      echo "EXPO_PUBLIC_WEB_URL=http://localhost:$WEB_PORT"
+      echo "EXPO_PUBLIC_API_URL=http://localhost:$API_PORT"
+    fi
   } >> .env
 
   success "Workspace .env written"

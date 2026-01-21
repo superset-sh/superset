@@ -6,7 +6,8 @@ import { app, Notification, nativeTheme } from "electron";
 import { createWindow } from "lib/electron-app/factories/windows/create";
 import { createAppRouter } from "lib/trpc/routers";
 import { localDb } from "main/lib/local-db";
-import { NOTIFICATION_EVENTS, PLATFORM, PORTS } from "shared/constants";
+import { NOTIFICATION_EVENTS, PLATFORM } from "shared/constants";
+import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
 import { createIPCHandler } from "trpc-electron/main";
 import { productName } from "~/package.json";
@@ -134,11 +135,11 @@ export async function MainWindow() {
 	}
 
 	const server = notificationsApp.listen(
-		PORTS.NOTIFICATIONS,
+		env.DESKTOP_NOTIFICATIONS_PORT,
 		"127.0.0.1",
 		() => {
 			console.log(
-				`[notifications] Listening on http://127.0.0.1:${PORTS.NOTIFICATIONS}`,
+				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
 			);
 		},
 	);

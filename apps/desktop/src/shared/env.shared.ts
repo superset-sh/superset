@@ -16,6 +16,12 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
+	// Port env vars (set in root .env or written by setup.sh for inner worktrees)
+	DESKTOP_VITE_PORT: z.coerce.number(),
+	DESKTOP_NOTIFICATIONS_PORT: z.coerce.number(),
+	ELECTRIC_PORT: z.coerce.number(),
+	// Workspace name for instance isolation
+	SUPERSET_WORKSPACE_NAME: z.string().optional(),
 });
 
 /**
@@ -27,4 +33,8 @@ const envSchema = z.object({
  */
 export const env = envSchema.parse({
 	NODE_ENV: process.env.NODE_ENV,
+	DESKTOP_VITE_PORT: process.env.DESKTOP_VITE_PORT,
+	DESKTOP_NOTIFICATIONS_PORT: process.env.DESKTOP_NOTIFICATIONS_PORT,
+	ELECTRIC_PORT: process.env.ELECTRIC_PORT,
+	SUPERSET_WORKSPACE_NAME: process.env.SUPERSET_WORKSPACE_NAME,
 });
