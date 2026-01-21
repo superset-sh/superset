@@ -363,6 +363,22 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		},
 	});
 
+	// Local state for slider to enable smooth dragging
+	const [chordTimeoutLocal, setChordTimeoutLocal] = useState(
+		chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS,
+	);
+
+	// Sync local state when server value changes
+	useEffect(() => {
+		if (chordTimeout !== undefined) {
+			setChordTimeoutLocal(chordTimeout);
+		}
+	}, [chordTimeout]);
+
+	const handleChordTimeoutChange = useCallback((value: number[]) => {
+		setChordTimeoutLocal(value[0]);
+	}, []);
+
 	const handleChordTimeoutCommit = (value: number[]) => {
 		setChordTimeout.mutate({ timeoutMs: value[0] });
 	};
@@ -638,12 +654,13 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								min={100}
 								max={2000}
 								step={100}
-								value={[chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS]}
+								value={[chordTimeoutLocal]}
+								onValueChange={handleChordTimeoutChange}
 								onValueCommit={handleChordTimeoutCommit}
 								disabled={isLoadingChordTimeout || setChordTimeout.isPending}
 							/>
 							<span className="text-sm text-muted-foreground w-14 text-right">
-								{chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS}ms
+								{chordTimeoutLocal}ms
 							</span>
 						</div>
 					</div>
