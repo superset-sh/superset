@@ -642,13 +642,17 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								: "flex items-center justify-between"
 						}
 					>
-						<div className="space-y-0.5">
+						<div className="space-y-1">
 							<Label htmlFor="chord-timeout" className="text-sm font-medium">
-								Preset chord timeout
+								Preset chord shortcut timeout
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								After pressing the new tab shortcut, press a number key (1-9) within
-								this time to open a preset
+								Quickly open presets with a two-key combo: press the new tab
+								shortcut, then a number key (1-9) to launch that preset.
+							</p>
+							<p className="text-xs text-muted-foreground/70">
+								Example: ⌘T → 1 opens the first preset. This timeout controls
+								how long you have to press the number after the new tab shortcut.
 							</p>
 						</div>
 						<div className="flex items-center gap-3">
