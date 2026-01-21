@@ -264,7 +264,10 @@ export function ChangesHeader({
 						</Button>
 					</TooltipTrigger>
 					<TooltipContent side="bottom" showArrow={false}>
-						{isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+						<HotkeyTooltipContent
+							label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
+							hotkeyId="TOGGLE_EXPAND_SIDEBAR"
+						/>
 					</TooltipContent>
 				</Tooltip>
 				<Tooltip>

@@ -3,12 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
-import type {
-	ChangeCategory,
-	ChangedFile,
-	DiffViewMode,
-	FileContents,
-} from "shared/changes-types";
+import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import {
 	getStatusColor,
 	getStatusIndicator,
@@ -16,33 +11,6 @@ import {
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
-
-interface DiffViewerFitContentProps {
-	contents: FileContents;
-	viewMode: DiffViewMode;
-	hideUnchangedRegions: boolean;
-	filePath: string;
-}
-
-function DiffViewerFitContent({
-	contents,
-	viewMode,
-	hideUnchangedRegions,
-	filePath,
-}: DiffViewerFitContentProps) {
-	return (
-		<div className="bg-background">
-			<DiffViewer
-				contents={contents}
-				viewMode={viewMode}
-				hideUnchangedRegions={hideUnchangedRegions}
-				filePath={filePath}
-				captureScroll={false}
-				fitContent
-			/>
-		</div>
-	);
-}
 
 interface FileDiffSectionProps {
 	file: ChangedFile;
@@ -72,6 +40,7 @@ export function FileDiffSection({
 	isActioning = false,
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
+	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const {
 		registerFileRef,
 		viewedFiles,
@@ -102,12 +71,30 @@ export function FileDiffSection({
 	const handleCopyPath = useCallback(
 		(e: React.MouseEvent) => {
 			e.stopPropagation();
-			navigator.clipboard.writeText(file.path);
-			setIsCopied(true);
-			setTimeout(() => setIsCopied(false), 2000);
+			navigator.clipboard
+				.writeText(file.path)
+				.then(() => {
+					setIsCopied(true);
+					if (copyTimeoutRef.current) {
+						clearTimeout(copyTimeoutRef.current);
+					}
+					copyTimeoutRef.current = setTimeout(() => setIsCopied(false), 2000);
+				})
+				.catch((err) => {
+					console.error("[FileDiffSection/copyPath] Failed to copy:", err);
+				});
 		},
 		[file.path],
 	);
+
+	// Clean up copy timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (copyTimeoutRef.current) {
+				clearTimeout(copyTimeoutRef.current);
+			}
+		};
+	}, []);
 
 	const handleViewedChange = useCallback(
 		(checked: boolean) => {
@@ -208,12 +195,16 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : diffData ? (
-						<DiffViewerFitContent
-							contents={diffData}
-							viewMode={diffViewMode}
-							hideUnchangedRegions={hideUnchangedRegions}
-							filePath={file.path}
-						/>
+						<div className="bg-background">
+							<DiffViewer
+								contents={diffData}
+								viewMode={diffViewMode}
+								hideUnchangedRegions={hideUnchangedRegions}
+								filePath={file.path}
+								captureScroll={false}
+								fitContent
+							/>
+						</div>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							Unable to load diff

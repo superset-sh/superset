@@ -426,6 +426,11 @@ export const HOTKEYS = {
 		label: "Toggle Changes Tab",
 		category: "Layout",
 	}),
+	TOGGLE_EXPAND_SIDEBAR: defineHotkey({
+		keys: "meta+shift+l",
+		label: "Toggle Expand Sidebar",
+		category: "Layout",
+	}),
 	TOGGLE_WORKSPACE_SIDEBAR: defineHotkey({
 		keys: "meta+b",
 		label: "Toggle Workspaces Sidebar",

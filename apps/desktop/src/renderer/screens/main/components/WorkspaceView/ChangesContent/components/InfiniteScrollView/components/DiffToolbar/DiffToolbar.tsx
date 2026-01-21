@@ -83,6 +83,11 @@ export function DiffToolbar({
 								)
 							}
 							className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
+							aria-label={
+								diffViewMode === "side-by-side"
+									? "Switch to inline diff"
+									: "Switch to side-by-side diff"
+							}
 						>
 							{diffViewMode === "side-by-side" ? (
 								<TbLayoutSidebarRightFilled className="size-4" />
@@ -108,6 +113,12 @@ export function DiffToolbar({
 									? "text-foreground"
 									: "text-muted-foreground/60 hover:text-muted-foreground",
 							)}
+							aria-label={
+								hideUnchangedRegions
+									? "Show all lines"
+									: "Hide unchanged regions"
+							}
+							aria-pressed={hideUnchangedRegions}
 						>
 							<TbFold className="size-4" />
 						</button>

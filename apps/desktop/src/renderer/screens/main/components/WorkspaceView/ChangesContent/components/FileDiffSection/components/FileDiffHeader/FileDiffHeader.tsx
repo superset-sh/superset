@@ -77,15 +77,15 @@ export function FileDiffHeader({
 
 			<Tooltip>
 				<TooltipTrigger asChild>
-					{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive element */}
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: clickable to open in editor */}
-					<span
+					<button
+						type="button"
 						className="group/filename flex items-center gap-1 text-xs truncate min-w-0 hover:underline hover:text-primary cursor-pointer font-mono"
 						onClick={onOpenInEditor}
+						aria-label={`Open ${file.path} in editor`}
 					>
 						<span className="truncate">{file.path}</span>
 						<LuExternalLink className="size-3 shrink-0 opacity-0 group-hover/filename:opacity-100 transition-opacity" />
-					</span>
+					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom" showArrow={false}>
 					Click to open in editor

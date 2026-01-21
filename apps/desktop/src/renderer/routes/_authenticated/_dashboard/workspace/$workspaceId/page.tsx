@@ -7,7 +7,7 @@ import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
 import { WorkspaceLayout } from "renderer/screens/main/components/WorkspaceView/WorkspaceLayout";
 import { useAppHotkey } from "renderer/stores/hotkeys";
-import { useSidebarStore } from "renderer/stores/sidebar-state";
+import { SidebarMode, useSidebarStore } from "renderer/stores/sidebar-state";
 import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
@@ -85,6 +85,10 @@ function WorkspacePage() {
 	const removePane = useTabsStore((s) => s.removePane);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
+	const isSidebarOpen = useSidebarStore((s) => s.isSidebarOpen);
+	const setSidebarOpen = useSidebarStore((s) => s.setSidebarOpen);
+	const currentSidebarMode = useSidebarStore((s) => s.currentMode);
+	const setSidebarMode = useSidebarStore((s) => s.setMode);
 
 	const tabs = useMemo(
 		() => allTabs.filter((tab) => tab.workspaceId === workspaceId),
@@ -217,6 +221,22 @@ function WorkspacePage() {
 	useAppHotkey("TOGGLE_SIDEBAR", () => toggleSidebar(), undefined, [
 		toggleSidebar,
 	]);
+
+	// Toggle expand/collapse sidebar (⌘⇧L)
+	useAppHotkey(
+		"TOGGLE_EXPAND_SIDEBAR",
+		() => {
+			if (!isSidebarOpen) {
+				setSidebarOpen(true);
+				setSidebarMode(SidebarMode.Changes);
+			} else {
+				const isExpanded = currentSidebarMode === SidebarMode.Changes;
+				setSidebarMode(isExpanded ? SidebarMode.Tabs : SidebarMode.Changes);
+			}
+		},
+		undefined,
+		[isSidebarOpen, setSidebarOpen, setSidebarMode, currentSidebarMode],
+	);
 
 	// Pane splitting helper - resolves target pane for split operations
 	const resolveSplitTarget = useCallback(
