@@ -52,6 +52,9 @@ export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "external-editor" as const;
 export const DEFAULT_TERMINAL_PERSISTENCE = true;
 export const DEFAULT_CHORD_TIMEOUT_MS = 500;
 
+// Preset chord indicator
+export const MAX_VISIBLE_PRESETS = 9;
+
 // External links (documentation, help resources, etc.)
 export const EXTERNAL_LINKS = {
 	SETUP_TEARDOWN_SCRIPTS: `${process.env.NEXT_PUBLIC_DOCS_URL}/setup-teardown-scripts`,

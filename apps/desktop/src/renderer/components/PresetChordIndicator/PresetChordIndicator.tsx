@@ -2,8 +2,7 @@ import { Kbd } from "@superset/ui/kbd";
 import { cn } from "@superset/ui/lib/utils";
 import { usePresets } from "renderer/react-query/presets";
 import { usePresetChordStore } from "renderer/stores/preset-chord-store";
-
-const MAX_VISIBLE_PRESETS = 9;
+import { MAX_VISIBLE_PRESETS } from "shared/constants";
 
 export function PresetChordIndicator() {
 	const isChordActive = usePresetChordStore((s) => s.isChordActive);

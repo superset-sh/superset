@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
-import { DEFAULT_CHORD_TIMEOUT_MS } from "shared/constants";
+import {
+	DEFAULT_CHORD_TIMEOUT_MS,
+	MAX_VISIBLE_PRESETS,
+} from "shared/constants";
 import { matchesHotkeyEvent } from "shared/hotkeys";
 
 /**
@@ -111,7 +114,6 @@ describe("chord state machine logic", () => {
 	type ChordAction =
 		| { type: "start_chord" }
 		| { type: "open_preset"; index: number }
-		| { type: "open_default" }
 		| { type: "cancel" }
 		| { type: "ignore" };
 
@@ -270,8 +272,6 @@ describe("timeout behavior", () => {
 });
 
 describe("preset bounds checking", () => {
-	const MAX_VISIBLE_PRESETS = 9;
-
 	it("limits visible presets to 9", () => {
 		expect(MAX_VISIBLE_PRESETS).toBe(9);
 	});
