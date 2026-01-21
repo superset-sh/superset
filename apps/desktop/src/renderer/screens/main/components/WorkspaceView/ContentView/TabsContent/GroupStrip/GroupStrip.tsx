@@ -8,10 +8,8 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { useDragLayer, useDrop } from "react-dnd";
+import { useMemo, useState } from "react";
 import {
 	HiMiniChevronDown,
 	HiMiniCog6Tooth,
@@ -19,14 +17,12 @@ import {
 	HiMiniPlus,
 	HiStar,
 } from "react-icons/hi2";
-import { MosaicDragType } from "react-mosaic-component";
 import {
 	getPresetIcon,
 	useIsDarkTheme,
 } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyTooltipContent } from "renderer/components/HotkeyTooltipContent";
 import { usePresets } from "renderer/react-query/presets";
-import { useDraggingPaneStore } from "renderer/stores/tabs/dragging-pane";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import { resolveActiveTabIdForWorkspace } from "renderer/stores/tabs/utils";
@@ -50,22 +46,6 @@ export function GroupStrip() {
 	const navigate = useNavigate();
 	const [dropdownOpen, setDropdownOpen] = useState(false);
 
-	// Monitor global drag state to clear stale drag pane state
-	// This handles edge cases where onDragEnd doesn't fire (e.g., source unmounts)
-	const { isDragging } = useDragLayer((monitor) => ({
-		isDragging: monitor.isDragging(),
-	}));
-
-	useEffect(() => {
-		if (!isDragging) {
-			const { draggingPaneId, setDraggingPane } =
-				useDraggingPaneStore.getState();
-			if (draggingPaneId) {
-				setDraggingPane(null, null);
-			}
-		}
-	}, [isDragging]);
-
 	const tabs = useMemo(
 		() =>
 			activeWorkspaceId
@@ -84,6 +64,7 @@ export function GroupStrip() {
 		});
 	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
 
+	// Compute aggregate status per tab using shared priority logic
 	const tabStatusMap = useMemo(() => {
 		const result = new Map<string, ActivePaneStatus>();
 		for (const pane of Object.values(panes)) {
@@ -135,103 +116,8 @@ export function GroupStrip() {
 		renameTab(tabId, newName);
 	};
 
-	const resolveDropPaneId = () => {
-		const { draggingPaneId, draggingTabId } = useDraggingPaneStore.getState();
-		const {
-			activeTabIds: currentActiveTabIds,
-			tabHistoryStacks: currentTabHistoryStacks,
-			tabs: currentTabs,
-			panes: currentPanes,
-			focusedPaneIds: currentFocusedPaneIds,
-		} = useTabsStore.getState();
-
-		if (draggingPaneId) {
-			const pane = currentPanes[draggingPaneId];
-			if (!draggingTabId || pane?.tabId === draggingTabId) {
-				return draggingPaneId;
-			}
-		}
-
-		if (!activeWorkspaceId) return null;
-		const activeTabIdForWorkspace = resolveActiveTabIdForWorkspace({
-			workspaceId: activeWorkspaceId,
-			tabs: currentTabs,
-			activeTabIds: currentActiveTabIds,
-			tabHistoryStacks: currentTabHistoryStacks,
-		});
-		if (!activeTabIdForWorkspace) return null;
-		return currentFocusedPaneIds[activeTabIdForWorkspace] ?? null;
-	};
-
-	// Get fresh state at call time to avoid stale closures
-	const handlePaneDropToTab = (paneId: string, targetTabId: string) => {
-		const { panes, tabs, movePaneToTab } = useTabsStore.getState();
-		const pane = panes[paneId];
-		if (!pane || pane.tabId === targetTabId) return;
-
-		const targetTab = tabs.find((t) => t.id === targetTabId);
-		const sourceTab = tabs.find((t) => t.id === pane.tabId);
-		if (!targetTab || !sourceTab) return;
-		if (targetTab.workspaceId !== sourceTab.workspaceId) return;
-
-		movePaneToTab(paneId, targetTabId);
-	};
-
-	const [{ isOver: isOverStrip, canDrop: canDropStrip }, stripDropRef] =
-		useDrop<unknown, void, { isOver: boolean; canDrop: boolean }>(
-			() => ({
-				accept: MosaicDragType.WINDOW,
-				drop: (_item, monitor) => {
-					// Skip if a nested drop target (GroupItem) already handled it
-					if (monitor.didDrop()) return;
-					if (!monitor.isOver({ shallow: true })) return;
-
-					// Get fresh state at drop time to avoid stale closures
-					const { setDraggingPane } = useDraggingPaneStore.getState();
-					const paneId = resolveDropPaneId();
-					if (!paneId) return;
-
-					const { panes, tabs, movePaneToNewTab } = useTabsStore.getState();
-					const pane = panes[paneId];
-					if (!pane) return;
-
-					const sourceTab = tabs.find((t) => t.id === pane.tabId);
-					if (sourceTab?.workspaceId !== activeWorkspaceId) return;
-
-					movePaneToNewTab(paneId);
-					setDraggingPane(null, null);
-				},
-				canDrop: () => {
-					const paneId = resolveDropPaneId();
-					if (!paneId) return false;
-
-					const { panes, tabs } = useTabsStore.getState();
-					const pane = panes[paneId];
-					if (!pane) return false;
-
-					const sourceTab = tabs.find((t) => t.id === pane.tabId);
-					return sourceTab?.workspaceId === activeWorkspaceId;
-				},
-				collect: (monitor) => ({
-					isOver: monitor.isOver({ shallow: true }),
-					canDrop: monitor.canDrop(),
-				}),
-			}),
-			[activeWorkspaceId], // Only stable values in deps
-		);
-
-	const isStripDropActive = isOverStrip && canDropStrip;
-
 	return (
-		<div
-			ref={(node) => {
-				stripDropRef(node);
-			}}
-			className={cn(
-				"flex items-center h-10 flex-1 min-w-0 transition-colors",
-				isStripDropActive && "bg-accent/30",
-			)}
-		>
+		<div className="flex items-center h-10 flex-1 min-w-0">
 			{tabs.length > 0 && (
 				<div
 					className="flex items-center h-full overflow-x-auto overflow-y-hidden border-l border-border pr-2"
@@ -250,7 +136,6 @@ export function GroupStrip() {
 								onSelect={() => handleSelectGroup(tab.id)}
 								onClose={() => handleCloseGroup(tab.id)}
 								onRename={(newName) => handleRenameGroup(tab.id, newName)}
-								onPaneDrop={(paneId) => handlePaneDropToTab(paneId, tab.id)}
 							/>
 						</div>
 					))}
