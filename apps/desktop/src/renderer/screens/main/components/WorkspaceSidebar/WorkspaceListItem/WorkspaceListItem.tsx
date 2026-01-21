@@ -224,8 +224,7 @@ export function WorkspaceListItem({
 	const showDiffStats = !!diffStats;
 
 	// Determine if we should show the branch subtitle
-	const showBranchSubtitle =
-		!isBranchWorkspace && name && name !== branch && !rename.isRenaming;
+	const showBranchSubtitle = !isBranchWorkspace;
 
 	// Collapsed sidebar: show just the icon with hover card (worktree) or tooltip (branch)
 	if (isCollapsed) {
@@ -498,6 +497,7 @@ export function WorkspaceListItem({
 									<WorkspaceStatusBadge
 										state={pr.state}
 										prNumber={pr.number}
+										prUrl={pr.url}
 										className="ml-auto"
 									/>
 								)}
