@@ -139,7 +139,6 @@ export function FileDiffSection({
 			},
 		);
 
-		// Lazy-mount Monaco when first visible (never unmount to avoid disposal race)
 		const visibilityObserver = new IntersectionObserver(
 			([entry]) => {
 				if (entry.isIntersecting) {

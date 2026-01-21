@@ -196,8 +196,6 @@ export function DiffViewer({
 		[captureScroll],
 	);
 
-	// Update readOnly and register save action when editable changes or editor mounts
-	// Using addAction with an ID allows replacing the action on subsequent calls
 	useEffect(() => {
 		if (!isEditorMounted || !modifiedEditorRef.current) return;
 
@@ -208,11 +206,9 @@ export function DiffViewer({
 		}
 	}, [isEditorMounted, editable, handleSave]);
 
-	// Set up content change listener for dirty tracking
 	useEffect(() => {
 		if (!isEditorMounted || !modifiedEditorRef.current || !onChange) return;
 
-		// Clean up previous listener
 		changeListenerRef.current?.dispose();
 
 		changeListenerRef.current =
@@ -228,21 +224,18 @@ export function DiffViewer({
 		};
 	}, [isEditorMounted, onChange]);
 
-	// Get the active editor (modified or original)
 	const getEditor = useCallback(() => {
 		return (
 			modifiedEditorRef.current || diffEditorRef.current?.getOriginalEditor()
 		);
 	}, []);
 
-	// Use shared editor actions hook - diff viewer is read-only (no cut/paste)
 	const editorActions = useEditorActions({
 		getEditor,
 		filePath,
 		editable: false,
 	});
 
-	// Update options on existing editor instead of remounting
 	useEffect(() => {
 		if (!diffEditorRef.current) return;
 		diffEditorRef.current.updateOptions({
@@ -300,7 +293,6 @@ export function DiffViewer({
 		/>
 	);
 
-	// If no context menu props, return plain editor
 	if (!contextMenuProps) {
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: focus/blur tracking for scroll behavior
@@ -315,7 +307,6 @@ export function DiffViewer({
 		);
 	}
 
-	// Wrap with custom context menu
 	const paneActions: PaneActions = {
 		onSplitHorizontal: contextMenuProps.onSplitHorizontal,
 		onSplitVertical: contextMenuProps.onSplitVertical,

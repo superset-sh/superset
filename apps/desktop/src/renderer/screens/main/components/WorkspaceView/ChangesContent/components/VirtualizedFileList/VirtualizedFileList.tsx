@@ -38,7 +38,6 @@ export function VirtualizedFileList({
 	const listRef = useRef<HTMLDivElement>(null);
 	const renderedIndicesRef = useRef<Set<number>>(new Set());
 
-	// Keep items mounted once rendered to preserve diff data and scroll state
 	const rangeExtractor = useCallback(
 		(range: { startIndex: number; endIndex: number }) => {
 			const indices = new Set<number>(renderedIndicesRef.current);

@@ -4,100 +4,76 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
 
 interface MonacoQueueContextValue {
-	requestMount: (id: string) => void;
+	requestMount: (id: string, callback: () => void) => void;
 	releaseMount: (id: string) => void;
-	canMount: (id: string) => boolean;
 }
 
 const MonacoQueueContext = createContext<MonacoQueueContextValue | null>(null);
 
-const MAX_CONCURRENT_MOUNTS = 2;
-const MOUNT_DELAY_MS = 50;
+const MAX_CONCURRENT = 2;
+const STAGGER_DELAY_MS = 100;
 
 export function MonacoQueueProvider({ children }: { children: ReactNode }) {
-	const [mountedIds, setMountedIds] = useState<Set<string>>(() => new Set());
-	const queueRef = useRef<string[]>([]);
-	const processingRef = useRef(false);
+	const activeCountRef = useRef(0);
+	const queueRef = useRef<Array<{ id: string; callback: () => void }>>([]);
+	const activeIdsRef = useRef<Set<string>>(new Set());
 
-	const processQueue = useCallback(() => {
-		if (processingRef.current) return;
-		processingRef.current = true;
+	const processNext = useCallback(() => {
+		if (activeCountRef.current >= MAX_CONCURRENT) return;
+		if (queueRef.current.length === 0) return;
 
-		const process = () => {
-			setMountedIds((current) => {
-				if (
-					current.size >= MAX_CONCURRENT_MOUNTS ||
-					queueRef.current.length === 0
-				) {
-					processingRef.current = false;
-					return current;
-				}
+		const next = queueRef.current.shift();
+		if (!next) return;
 
-				const nextId = queueRef.current.shift();
-				if (!nextId || current.has(nextId)) {
-					processingRef.current = false;
-					if (queueRef.current.length > 0) {
-						setTimeout(() => {
-							processingRef.current = false;
-							processQueue();
-						}, MOUNT_DELAY_MS);
-					}
-					return current;
-				}
+		activeCountRef.current++;
+		activeIdsRef.current.add(next.id);
 
-				const next = new Set(current);
-				next.add(nextId);
-
-				if (queueRef.current.length > 0) {
-					setTimeout(() => {
-						processingRef.current = false;
-						processQueue();
-					}, MOUNT_DELAY_MS);
-				} else {
-					processingRef.current = false;
-				}
-
-				return next;
-			});
-		};
-
-		requestAnimationFrame(process);
+		setTimeout(() => {
+			next.callback();
+			processNext();
+		}, STAGGER_DELAY_MS);
 	}, []);
 
 	const requestMount = useCallback(
-		(id: string) => {
-			if (!queueRef.current.includes(id)) {
-				queueRef.current.push(id);
-				processQueue();
+		(id: string, callback: () => void) => {
+			if (activeIdsRef.current.has(id)) {
+				callback();
+				return;
 			}
+
+			const existingIndex = queueRef.current.findIndex((q) => q.id === id);
+			if (existingIndex >= 0) {
+				queueRef.current[existingIndex].callback = callback;
+				return;
+			}
+
+			queueRef.current.push({ id, callback });
+			processNext();
 		},
-		[processQueue],
+		[processNext],
 	);
 
 	const releaseMount = useCallback((id: string) => {
-		queueRef.current = queueRef.current.filter((qId) => qId !== id);
-		setMountedIds((current) => {
-			if (!current.has(id)) return current;
-			const next = new Set(current);
-			next.delete(id);
-			return next;
-		});
+		queueRef.current = queueRef.current.filter((q) => q.id !== id);
+		if (activeIdsRef.current.has(id)) {
+			activeIdsRef.current.delete(id);
+			activeCountRef.current = Math.max(0, activeCountRef.current - 1);
+		}
 	}, []);
 
-	const canMount = useCallback(
-		(id: string) => mountedIds.has(id),
-		[mountedIds],
+	const value = useMemo(
+		() => ({ requestMount, releaseMount }),
+		[requestMount, releaseMount],
 	);
 
 	return (
-		<MonacoQueueContext.Provider
-			value={{ requestMount, releaseMount, canMount }}
-		>
+		<MonacoQueueContext.Provider value={value}>
 			{children}
 		</MonacoQueueContext.Provider>
 	);
@@ -108,35 +84,23 @@ export function useMonacoQueue(id: string, shouldMount: boolean) {
 	const [isReady, setIsReady] = useState(false);
 
 	useEffect(() => {
-		if (!context) {
-			setIsReady(shouldMount);
+		if (!shouldMount) {
+			setIsReady(false);
+			context?.releaseMount(id);
 			return;
 		}
 
-		if (shouldMount) {
-			context.requestMount(id);
-		} else {
-			context.releaseMount(id);
-			setIsReady(false);
+		if (!context) {
+			setIsReady(true);
+			return;
 		}
+
+		context.requestMount(id, () => setIsReady(true));
 
 		return () => {
 			context.releaseMount(id);
 		};
 	}, [context, id, shouldMount]);
-
-	useEffect(() => {
-		if (!context) return;
-
-		const checkReady = () => {
-			const ready = context.canMount(id);
-			setIsReady(ready);
-		};
-
-		checkReady();
-		const interval = setInterval(checkReady, 50);
-		return () => clearInterval(interval);
-	}, [context, id]);
 
 	return isReady;
 }
