@@ -75,7 +75,6 @@ export const organizationRouter = {
 		return {
 			id: invitation.id,
 			email: invitation.email,
-			name: invitation.name,
 			role: invitation.role,
 			status: invitation.status,
 			expiresAt: invitation.expiresAt,
