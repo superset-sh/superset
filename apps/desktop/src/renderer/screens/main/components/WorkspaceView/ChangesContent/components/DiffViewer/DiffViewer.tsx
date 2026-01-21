@@ -57,6 +57,8 @@ interface DiffViewerProps {
 	contextMenuProps?: DiffViewerContextMenuProps;
 	// When false, editor won't capture scroll events unless focused (for infinite scroll views)
 	captureScroll?: boolean;
+	// When true, editor height fits content (for inline scroll views like GitHub)
+	fitContent?: boolean;
 }
 
 export function DiffViewer({
@@ -69,6 +71,7 @@ export function DiffViewer({
 	onChange,
 	contextMenuProps,
 	captureScroll = true,
+	fitContent = false,
 }: DiffViewerProps) {
 	const isMonacoReady = useMonacoReady();
 	const diffEditorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(
@@ -79,8 +82,11 @@ export function DiffViewer({
 	);
 	const [isEditorMounted, setIsEditorMounted] = useState(false);
 	const [isFocused, setIsFocused] = useState(false);
+	const [contentHeight, setContentHeight] = useState<number | null>(null);
 	const hasScrolledToFirstDiffRef = useRef(false);
 	const containerRef = useRef<HTMLDivElement>(null);
+
+	const contentSizeListenersRef = useRef<Monaco.IDisposable[]>([]);
 
 	useEffect(() => {
 		if (!isMonacoReady) return;
@@ -119,21 +125,47 @@ export function DiffViewer({
 
 			diffUpdateListenerRef.current?.dispose();
 			diffUpdateListenerRef.current = editor.onDidUpdateDiff(() => {
-				if (hasScrolledToFirstDiffRef.current) return;
-				scrollToFirstDiff(editor, modifiedEditor);
-				hasScrolledToFirstDiffRef.current = true;
+				if (!hasScrolledToFirstDiffRef.current) {
+					scrollToFirstDiff(editor, modifiedEditor);
+					hasScrolledToFirstDiffRef.current = true;
+				}
 			});
+
+			// Set up content size listeners for fitContent mode
+			if (fitContent) {
+				contentSizeListenersRef.current.forEach((d) => {
+					d.dispose();
+				});
+				contentSizeListenersRef.current = [];
+
+				const updateHeight = () => {
+					const modHeight = modifiedEditor.getContentHeight();
+					const origHeight = originalEditor.getContentHeight();
+					setContentHeight(Math.max(modHeight, origHeight));
+				};
+
+				contentSizeListenersRef.current.push(
+					modifiedEditor.onDidContentSizeChange(updateHeight),
+					originalEditor.onDidContentSizeChange(updateHeight),
+				);
+
+				requestAnimationFrame(updateHeight);
+			}
 
 			setIsEditorMounted(true);
 		},
-		[filePath],
+		[filePath, fitContent],
 	);
 
-	// Cleanup diff update listener on unmount
+	// Cleanup listeners on unmount
 	useEffect(() => {
 		return () => {
 			diffUpdateListenerRef.current?.dispose();
 			diffUpdateListenerRef.current = null;
+			contentSizeListenersRef.current.forEach((d) => {
+				d.dispose();
+			});
+			contentSizeListenersRef.current = [];
 		};
 	}, []);
 
@@ -226,10 +258,12 @@ export function DiffViewer({
 		);
 	}
 
+	const editorHeight = fitContent && contentHeight ? contentHeight : "100%";
+
 	const diffEditor = (
 		<DiffEditor
 			key={`${filePath}-${viewMode}-${hideUnchangedRegions}`}
-			height="100%"
+			height={editorHeight}
 			original={contents.original}
 			modified={contents.modified}
 			language={contents.language}
@@ -247,7 +281,7 @@ export function DiffViewer({
 				useInlineViewWhenSpaceIsLimited: false,
 				readOnly: !editable,
 				originalEditable: false,
-				renderOverviewRuler: true,
+				renderOverviewRuler: !fitContent,
 				renderGutterMenu: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
@@ -256,7 +290,10 @@ export function DiffViewer({
 				},
 				scrollbar: {
 					handleMouseWheel: captureScroll,
+					vertical: fitContent ? "hidden" : "auto",
+					horizontal: fitContent ? "hidden" : "auto",
 				},
+				scrollBeyondLastLine: !fitContent,
 			}}
 		/>
 	);

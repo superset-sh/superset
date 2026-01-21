@@ -2,11 +2,12 @@ import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import {
 	LuChevronDown,
 	LuChevronRight,
+	LuExternalLink,
 	LuLoader,
 	LuUndo2,
 } from "react-icons/lu";
@@ -30,39 +31,28 @@ import {
 import { useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
 
-const LINE_HEIGHT = 19;
-const MIN_HEIGHT = 100;
-const MAX_HEIGHT = 800;
-
-interface DiffViewerAutoHeightProps {
+interface DiffViewerFitContentProps {
 	contents: FileContents;
 	viewMode: DiffViewMode;
 	hideUnchangedRegions: boolean;
 	filePath: string;
 }
 
-function DiffViewerAutoHeight({
+function DiffViewerFitContent({
 	contents,
 	viewMode,
 	hideUnchangedRegions,
 	filePath,
-}: DiffViewerAutoHeightProps) {
-	const height = useMemo(() => {
-		const originalLines = contents.original.split("\n").length;
-		const modifiedLines = contents.modified.split("\n").length;
-		const maxLines = Math.max(originalLines, modifiedLines);
-		const calculatedHeight = maxLines * LINE_HEIGHT + 20;
-		return Math.min(Math.max(calculatedHeight, MIN_HEIGHT), MAX_HEIGHT);
-	}, [contents.original, contents.modified]);
-
+}: DiffViewerFitContentProps) {
 	return (
-		<div style={{ height }} className="bg-background">
+		<div className="bg-background">
 			<DiffViewer
 				contents={contents}
 				viewMode={viewMode}
 				hideUnchangedRegions={hideUnchangedRegions}
 				filePath={filePath}
 				captureScroll={false}
+				fitContent
 			/>
 		</div>
 	);
@@ -106,6 +96,20 @@ export function FileDiffSection({
 		toggleHideUnchangedRegions,
 	} = useChangesStore();
 
+	const openInEditorMutation =
+		electronTrpc.external.openFileInEditor.useMutation();
+
+	const handleOpenInEditor = useCallback(
+		(e: React.MouseEvent) => {
+			e.stopPropagation();
+			if (worktreePath) {
+				const absolutePath = `${worktreePath}/${file.path}`;
+				openInEditorMutation.mutate({ path: absolutePath, cwd: worktreePath });
+			}
+		},
+		[worktreePath, file.path, openInEditorMutation],
+	);
+
 	useEffect(() => {
 		registerFileRef(file, category, commitHash, sectionRef.current);
 		return () => {
@@ -148,8 +152,8 @@ export function FileDiffSection({
 				<button
 					type="button"
 					className={cn(
-						"group flex items-center gap-2 px-3 py-2 w-full text-left cursor-pointer hover:bg-accent/50 transition-colors sticky top-0 bg-background z-10 border-b border-border",
-						isExpanded && "bg-muted/30",
+						"group flex items-center gap-2 px-3 py-2 w-full text-left cursor-pointer hover:bg-accent/50 transition-colors sticky top-0 bg-muted z-10 border-b border-border",
+						isExpanded && "bg-muted",
 					)}
 					onClick={onToggleExpanded}
 				>
@@ -167,12 +171,23 @@ export function FileDiffSection({
 
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<span className="text-sm font-medium truncate min-w-0 flex-1">
-								{fileName}
+							{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive element */}
+							{/* biome-ignore lint/a11y/noStaticElementInteractions: clickable to open in editor */}
+							<span
+								className="group/filename flex items-center gap-1 text-sm font-medium truncate min-w-0 flex-1 hover:underline hover:text-primary cursor-pointer"
+								onClick={handleOpenInEditor}
+							>
+								<span className="truncate">{fileName}</span>
+								<LuExternalLink className="size-3 shrink-0 opacity-0 group-hover/filename:opacity-100 transition-opacity" />
 							</span>
 						</TooltipTrigger>
 						<TooltipContent side="bottom" showArrow={false}>
-							{file.path}
+							<div className="flex flex-col gap-0.5">
+								<span>{file.path}</span>
+								<span className="text-xs text-muted-foreground">
+									Click to open in editor
+								</span>
+							</div>
 						</TooltipContent>
 					</Tooltip>
 
@@ -197,57 +212,53 @@ export function FileDiffSection({
 						className="flex items-center gap-1 shrink-0"
 						onClick={(e) => e.stopPropagation()}
 					>
-						{isExpanded && (
-							<>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<button
-											type="button"
-											onClick={() =>
-												setDiffViewMode(
-													diffViewMode === "side-by-side"
-														? "inline"
-														: "side-by-side",
-												)
-											}
-											className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
-										>
-											{diffViewMode === "side-by-side" ? (
-												<TbLayoutSidebarRightFilled className="size-3.5" />
-											) : (
-												<TbListDetails className="size-3.5" />
-											)}
-										</button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom" showArrow={false}>
-										{diffViewMode === "side-by-side"
-											? "Switch to inline diff"
-											: "Switch to side by side diff"}
-									</TooltipContent>
-								</Tooltip>
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<button
-											type="button"
-											onClick={toggleHideUnchangedRegions}
-											className={cn(
-												"rounded p-1 transition-colors hover:bg-accent",
-												hideUnchangedRegions
-													? "text-foreground"
-													: "text-muted-foreground/60 hover:text-muted-foreground",
-											)}
-										>
-											<TbFold className="size-3.5" />
-										</button>
-									</TooltipTrigger>
-									<TooltipContent side="bottom" showArrow={false}>
-										{hideUnchangedRegions
-											? "Show all lines"
-											: "Hide unchanged regions"}
-									</TooltipContent>
-								</Tooltip>
-							</>
-						)}
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={() =>
+										setDiffViewMode(
+											diffViewMode === "side-by-side"
+												? "inline"
+												: "side-by-side",
+										)
+									}
+									className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
+								>
+									{diffViewMode === "side-by-side" ? (
+										<TbLayoutSidebarRightFilled className="size-3.5" />
+									) : (
+										<TbListDetails className="size-3.5" />
+									)}
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								{diffViewMode === "side-by-side"
+									? "Switch to inline diff"
+									: "Switch to side by side diff"}
+							</TooltipContent>
+						</Tooltip>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<button
+									type="button"
+									onClick={toggleHideUnchangedRegions}
+									className={cn(
+										"rounded p-1 transition-colors hover:bg-accent",
+										hideUnchangedRegions
+											? "text-foreground"
+											: "text-muted-foreground/60 hover:text-muted-foreground",
+									)}
+								>
+									<TbFold className="size-3.5" />
+								</button>
+							</TooltipTrigger>
+							<TooltipContent side="bottom" showArrow={false}>
+								{hideUnchangedRegions
+									? "Show all lines"
+									: "Hide unchanged regions"}
+							</TooltipContent>
+						</Tooltip>
 
 						{onDiscard && (
 							<Tooltip>
@@ -318,7 +329,7 @@ export function FileDiffSection({
 							<span>Loading diff...</span>
 						</div>
 					) : diffData ? (
-						<DiffViewerAutoHeight
+						<DiffViewerFitContent
 							contents={diffData}
 							viewMode={diffViewMode}
 							hideUnchangedRegions={hideUnchangedRegions}

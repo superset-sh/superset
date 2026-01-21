@@ -30,7 +30,7 @@ function CategoryHeader({
 		<button
 			type="button"
 			onClick={onToggle}
-			className="flex items-center gap-2 px-4 py-2 w-full text-left bg-muted/50 hover:bg-muted transition-colors sticky top-0 z-20"
+			className="flex items-center gap-2 px-4 py-2 w-full text-left bg-card hover:bg-muted transition-colors sticky top-0 z-20 border-b border-border"
 		>
 			{isExpanded ? (
 				<LuChevronDown className="size-4 text-muted-foreground" />
