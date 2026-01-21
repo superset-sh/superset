@@ -12,6 +12,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
+import { MOCK_ORG_ID } from "shared/constants";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
@@ -25,7 +26,7 @@ function AuthenticatedLayout() {
 	const { data: session } = authClient.useSession();
 	const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || !!session?.user;
 	const activeOrganizationId = process.env.SKIP_ENV_VALIDATION
-		? "mock-org-id"
+		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 	const navigate = useNavigate();
 	const utils = electronTrpc.useUtils();
