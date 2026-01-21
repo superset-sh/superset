@@ -1,19 +1,6 @@
-import { Button } from "@superset/ui/button";
-import { Checkbox } from "@superset/ui/checkbox";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
-import {
-	LuCheck,
-	LuChevronDown,
-	LuChevronRight,
-	LuCopy,
-	LuExternalLink,
-	LuLoader,
-	LuUndo2,
-} from "react-icons/lu";
+import { LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type {
@@ -28,6 +15,7 @@ import {
 } from "../../../Sidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
+import { FileDiffHeader } from "./components/FileDiffHeader";
 
 interface DiffViewerFitContentProps {
 	contents: FileContents;
@@ -82,12 +70,8 @@ export function FileDiffSection({
 	isActioning = false,
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
-	const {
-		registerFileRef,
-		viewedFiles,
-		setFileViewed,
-		setActiveFileKey,
-	} = useScrollContext();
+	const { registerFileRef, viewedFiles, setFileViewed, setActiveFileKey } =
+		useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 
@@ -116,6 +100,19 @@ export function FileDiffSection({
 			setTimeout(() => setIsCopied(false), 2000);
 		},
 		[file.path],
+	);
+
+	const handleViewedChange = useCallback(
+		(checked: boolean) => {
+			setFileViewed(fileKey, checked);
+			// Collapse when marking as viewed, expand when unmarking
+			if (checked && isExpanded) {
+				onToggleExpanded();
+			} else if (!checked && !isExpanded) {
+				onToggleExpanded();
+			}
+		},
+		[fileKey, setFileViewed, isExpanded, onToggleExpanded],
 	);
 
 	useEffect(() => {
@@ -177,182 +174,31 @@ export function FileDiffSection({
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
 	const showStats = file.additions > 0 || file.deletions > 0;
-	const hasAction = onStage || onUnstage;
-	const isDeleteAction = file.status === "untracked" || file.status === "added";
 
 	return (
-		<div ref={sectionRef} className="mx-2 my-2 border border-border rounded-lg overflow-hidden">
+		<div
+			ref={sectionRef}
+			className="mx-2 my-2 border border-border rounded-lg overflow-hidden"
+		>
 			<Collapsible open={isExpanded} onOpenChange={onToggleExpanded}>
-				<div
-					className={cn(
-						"group flex items-center gap-2 px-3 py-1.5 w-full text-left sticky top-0 z-10 bg-muted",
-					)}
-				>
-					<button
-						type="button"
-						onClick={onToggleExpanded}
-						className="shrink-0 p-0.5 -ml-1 rounded hover:bg-accent transition-colors"
-					>
-						{isExpanded ? (
-							<LuChevronDown className="size-4 text-muted-foreground" />
-						) : (
-							<LuChevronRight className="size-4 text-muted-foreground" />
-						)}
-					</button>
-
-					<span className={cn("shrink-0 flex items-center", statusBadgeColor)}>
-						{statusIndicator}
-					</span>
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive element */}
-							{/* biome-ignore lint/a11y/noStaticElementInteractions: clickable to open in editor */}
-							<span
-								className="group/filename flex items-center gap-1 text-xs truncate min-w-0 hover:underline hover:text-primary cursor-pointer font-mono"
-								onClick={handleOpenInEditor}
-							>
-								<span className="truncate">{file.path}</span>
-								<LuExternalLink className="size-3 shrink-0 opacity-0 group-hover/filename:opacity-100 transition-opacity" />
-							</span>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Click to open in editor
-						</TooltipContent>
-					</Tooltip>
-
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleCopyPath}
-								className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground hover:bg-accent"
-							>
-								{isCopied ? (
-									<LuCheck className="size-3.5 text-green-500" />
-								) : (
-									<LuCopy className="size-3.5" />
-								)}
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							{isCopied ? "Copied!" : "Copy path"}
-						</TooltipContent>
-					</Tooltip>
-
-					<div className="flex-1" />
-
-					{showStats && (
-						<span className="flex items-center gap-1 text-xs font-mono shrink-0">
-							{file.additions > 0 && (
-								<span className="text-green-600 dark:text-green-500">
-									+{file.additions}
-								</span>
-							)}
-							{file.deletions > 0 && (
-								<span className="text-red-600 dark:text-red-400">
-									-{file.deletions}
-								</span>
-							)}
-						</span>
-					)}
-
-					{/* biome-ignore lint/a11y/useKeyWithClickEvents: checkbox handles keyboard events */}
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper for checkbox */}
-					<div
-						className="flex items-center gap-1.5 shrink-0 text-xs cursor-pointer select-none"
-						onClick={(e) => e.stopPropagation()}
-					>
-						<Checkbox
-							id={`viewed-${fileKey}`}
-							checked={isViewed}
-							onCheckedChange={(checked) => {
-								const isChecked = checked === true;
-								setFileViewed(fileKey, isChecked);
-								// Collapse when marking as viewed, expand when unmarking
-								if (isChecked && isExpanded) {
-									onToggleExpanded();
-								} else if (!isChecked && !isExpanded) {
-									onToggleExpanded();
-								}
-							}}
-							className="size-3.5"
-						/>
-						<label
-							htmlFor={`viewed-${fileKey}`}
-							className="text-muted-foreground cursor-pointer"
-						>
-							Viewed
-						</label>
-					</div>
-
-					{/* biome-ignore lint/a11y/useKeyWithClickEvents: nested interactive elements handle their own events */}
-					{/* biome-ignore lint/a11y/noStaticElementInteractions: this span just stops click propagation */}
-					<span
-						className="flex items-center gap-1 shrink-0"
-						onClick={(e) => e.stopPropagation()}
-					>
-						{onDiscard && (
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<Button
-										variant="ghost"
-										size="icon"
-										className="size-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-										onClick={onDiscard}
-										disabled={isActioning}
-									>
-										<LuUndo2 className="size-3.5" />
-									</Button>
-								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{isDeleteAction ? "Delete" : "Discard changes"}
-								</TooltipContent>
-							</Tooltip>
-						)}
-
-						{hasAction && (
-							<>
-								{onStage && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
-												onClick={onStage}
-												disabled={isActioning}
-											>
-												<HiMiniPlus className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="bottom" showArrow={false}>
-											Stage
-										</TooltipContent>
-									</Tooltip>
-								)}
-								{onUnstage && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Button
-												variant="ghost"
-												size="icon"
-												className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
-												onClick={onUnstage}
-												disabled={isActioning}
-											>
-												<HiMiniMinus className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="bottom" showArrow={false}>
-											Unstage
-										</TooltipContent>
-									</Tooltip>
-								)}
-							</>
-						)}
-					</span>
-				</div>
+				<FileDiffHeader
+					file={file}
+					fileKey={fileKey}
+					isExpanded={isExpanded}
+					onToggleExpanded={onToggleExpanded}
+					isViewed={isViewed}
+					onViewedChange={handleViewedChange}
+					statusBadgeColor={statusBadgeColor}
+					statusIndicator={statusIndicator}
+					showStats={showStats}
+					onOpenInEditor={handleOpenInEditor}
+					onCopyPath={handleCopyPath}
+					isCopied={isCopied}
+					onStage={onStage}
+					onUnstage={onUnstage}
+					onDiscard={onDiscard}
+					isActioning={isActioning}
+				/>
 
 				<CollapsibleContent>
 					{isLoadingDiff ? (
