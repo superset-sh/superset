@@ -53,11 +53,8 @@ interface DiffViewerProps {
 	editable?: boolean;
 	onSave?: (content: string) => void;
 	onChange?: (content: string) => void;
-	// Optional context menu props - when provided, wraps editor with context menu
 	contextMenuProps?: DiffViewerContextMenuProps;
-	// When false, editor won't capture scroll events unless focused (for infinite scroll views)
 	captureScroll?: boolean;
-	// When true, editor height fits content (for inline scroll views like GitHub)
 	fitContent?: boolean;
 }
 
@@ -131,7 +128,6 @@ export function DiffViewer({
 				}
 			});
 
-			// Set up content size listeners for fitContent mode
 			if (fitContent) {
 				contentSizeListenersRef.current.forEach((d) => {
 					d.dispose();
@@ -157,7 +153,6 @@ export function DiffViewer({
 		[filePath, fitContent],
 	);
 
-	// Cleanup listeners on unmount
 	useEffect(() => {
 		return () => {
 			diffUpdateListenerRef.current?.dispose();
@@ -169,7 +164,6 @@ export function DiffViewer({
 		};
 	}, []);
 
-	// Update scroll capture based on focus state (only when captureScroll is false)
 	useEffect(() => {
 		if (captureScroll) return;
 		if (!isEditorMounted || !diffEditorRef.current) return;
@@ -194,7 +188,6 @@ export function DiffViewer({
 	const handleBlur = useCallback(
 		(e: React.FocusEvent) => {
 			if (!captureScroll && containerRef.current) {
-				// Only blur if focus is leaving the container entirely
 				if (!containerRef.current.contains(e.relatedTarget as Node)) {
 					setIsFocused(false);
 				}

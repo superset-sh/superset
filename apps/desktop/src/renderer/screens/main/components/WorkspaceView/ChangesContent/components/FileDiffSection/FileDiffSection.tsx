@@ -87,7 +87,6 @@ export function FileDiffSection({
 		[file.path],
 	);
 
-	// Clean up copy timeout on unmount
 	useEffect(() => {
 		return () => {
 			if (copyTimeoutRef.current) {
@@ -99,7 +98,6 @@ export function FileDiffSection({
 	const handleViewedChange = useCallback(
 		(checked: boolean) => {
 			setFileViewed(fileKey, checked);
-			// Collapse when marking as viewed, expand when unmarking
 			if (checked && isExpanded) {
 				onToggleExpanded();
 			} else if (!checked && !isExpanded) {
@@ -116,7 +114,6 @@ export function FileDiffSection({
 		};
 	}, [file, category, commitHash, registerFileRef]);
 
-	// IntersectionObserver to track active file on scroll
 	useEffect(() => {
 		const element = sectionRef.current;
 		const container = containerRef.current;
@@ -132,7 +129,7 @@ export function FileDiffSection({
 			},
 			{
 				root: container,
-				rootMargin: "-100px 0px -60% 0px", // Trigger when file header is near top
+				rootMargin: "-100px 0px -60% 0px",
 				threshold: [0.1],
 			},
 		);
