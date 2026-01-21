@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { MOCK_ORG_ID } from "shared/constants";
 import { getCollections } from "./collections";
@@ -9,7 +10,7 @@ const CollectionsContext = createContext<Collections | null>(null);
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session } = authClient.useSession();
-	const activeOrganizationId = process.env.SKIP_ENV_VALIDATION
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 

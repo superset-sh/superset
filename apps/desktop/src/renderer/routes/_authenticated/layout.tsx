@@ -11,6 +11,7 @@ import { useUpdateListener } from "renderer/components/UpdateToast";
 import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { env } from "renderer/env.renderer";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { MOCK_ORG_ID } from "shared/constants";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
@@ -24,8 +25,8 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AuthenticatedLayout() {
 	const { data: session } = authClient.useSession();
-	const isSignedIn = !!process.env.SKIP_ENV_VALIDATION || !!session?.user;
-	const activeOrganizationId = process.env.SKIP_ENV_VALIDATION
+	const isSignedIn = env.SKIP_ENV_VALIDATION || !!session?.user;
+	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 	const navigate = useNavigate();

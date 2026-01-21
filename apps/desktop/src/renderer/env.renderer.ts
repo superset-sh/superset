@@ -42,6 +42,13 @@ const rawEnv = {
 	SENTRY_DSN_DESKTOP: import.meta.env.SENTRY_DSN_DESKTOP as string | undefined,
 };
 
-export const env = process.env.SKIP_ENV_VALIDATION
-	? (rawEnv as z.infer<typeof envSchema>)
-	: envSchema.parse(rawEnv);
+const SKIP_ENV_VALIDATION =
+	process.env.SKIP_ENV_VALIDATION === "true" ||
+	process.env.SKIP_ENV_VALIDATION === "1";
+
+export const env = {
+	...(SKIP_ENV_VALIDATION
+		? (rawEnv as z.infer<typeof envSchema>)
+		: envSchema.parse(rawEnv)),
+	SKIP_ENV_VALIDATION,
+};
