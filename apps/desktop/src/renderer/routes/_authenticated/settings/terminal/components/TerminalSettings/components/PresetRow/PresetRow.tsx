@@ -1,5 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
+import { Kbd } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiOutlineStar, HiStar } from "react-icons/hi2";
 import { LuTrash } from "react-icons/lu";
@@ -89,6 +90,13 @@ export function PresetRow({
 				isEven ? "bg-accent/20" : ""
 			}`}
 		>
+			<div className="w-10 flex justify-center shrink-0 pt-1">
+				{rowIndex < 9 ? (
+					<Kbd>{rowIndex + 1}</Kbd>
+				) : (
+					<span className="text-xs text-muted-foreground">-</span>
+				)}
+			</div>
 			{PRESET_COLUMNS.map((column) => (
 				<div key={column.key} className="flex-1 min-w-0">
 					<PresetCell

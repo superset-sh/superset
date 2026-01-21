@@ -583,6 +583,9 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 						{showPresets && (
 							<div className="rounded-lg border border-border overflow-hidden">
 								<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border">
+									<div className="w-10 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
+										Key
+									</div>
 									{PRESET_COLUMNS.map((column) => (
 										<div
 											key={column.key}
@@ -644,7 +647,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								Preset chord timeout
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Time to wait for number key after pressing new tab shortcut
+								After pressing the new tab shortcut, press a number key (1-9) within
+								this time to open a preset
 							</p>
 						</div>
 						<div className="flex items-center gap-3">
