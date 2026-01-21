@@ -20,6 +20,7 @@ import {
 import { RESIZE_DEBOUNCE_MS, TERMINAL_OPTIONS } from "./config";
 import { FilePathLinkProvider, UrlLinkProvider } from "./link-providers";
 import { suppressQueryResponses } from "./suppressQueryResponses";
+import { scrollToBottom } from "./utils";
 
 /**
  * Get the default terminal theme from localStorage cache.
@@ -520,8 +521,13 @@ export function setupResizeHandlers(
 	onResize: (cols: number, rows: number) => void,
 ): () => void {
 	const debouncedHandleResize = debounce(() => {
+		const buffer = xterm.buffer.active;
+		const wasAtBottom = buffer.viewportY >= buffer.baseY;
 		fitAddon.fit();
 		onResize(xterm.cols, xterm.rows);
+		if (wasAtBottom) {
+			requestAnimationFrame(() => scrollToBottom(xterm));
+		}
 	}, RESIZE_DEBOUNCE_MS);
 
 	const resizeObserver = new ResizeObserver(debouncedHandleResize);

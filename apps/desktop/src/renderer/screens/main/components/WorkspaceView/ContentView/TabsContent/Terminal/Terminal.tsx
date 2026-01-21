@@ -319,6 +319,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			onFileLinkClick: (path, line, column) =>
 				handleFileLinkClickRef.current(path, line, column),
 		});
+
+		const scheduleScrollToBottom = () => {
+			requestAnimationFrame(() => {
+				if (isUnmounted || xtermRef.current !== xterm) return;
+				scrollToBottom(xterm);
+			});
+		};
 		xtermRef.current = xterm;
 		fitAddonRef.current = fitAddon;
 		rendererRef.current = renderer;
@@ -485,7 +492,10 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 								setIsRestoredMode(true);
 								setRestoredCwd(storedColdRestore.cwd);
 								if (storedColdRestore.scrollback && xterm) {
-									xterm.write(storedColdRestore.scrollback);
+									xterm.write(
+										storedColdRestore.scrollback,
+										scheduleScrollToBottom,
+									);
 								}
 								didFirstRenderRef.current = true;
 								return;
@@ -502,7 +512,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 								setIsRestoredMode(true);
 								setRestoredCwd(result.previousCwd || null);
 								if (scrollback && xterm) {
-									xterm.write(scrollback);
+									xterm.write(scrollback, scheduleScrollToBottom);
 								}
 								didFirstRenderRef.current = true;
 								return;
@@ -582,11 +592,19 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 
 		const handleVisibilityChange = () => {
 			if (document.hidden || isUnmounted) return;
+			const buffer = xterm.buffer.active;
+			const wasAtBottom = buffer.viewportY >= buffer.baseY;
 			const prevCols = xterm.cols;
 			const prevRows = xterm.rows;
 			fitAddon.fit();
 			if (xterm.cols !== prevCols || xterm.rows !== prevRows) {
 				resizeRef.current({ paneId, cols: xterm.cols, rows: xterm.rows });
+			}
+			if (wasAtBottom) {
+				requestAnimationFrame(() => {
+					if (isUnmounted || xtermRef.current !== xterm) return;
+					scrollToBottom(xterm);
+				});
 			}
 		};
 		document.addEventListener("visibilitychange", handleVisibilityChange);

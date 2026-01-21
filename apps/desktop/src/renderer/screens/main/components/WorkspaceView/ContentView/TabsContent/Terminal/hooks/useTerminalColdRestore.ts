@@ -9,6 +9,7 @@ import type {
 	CreateOrAttachResult,
 	TerminalStreamEvent,
 } from "../types";
+import { scrollToBottom } from "../utils";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -114,7 +115,12 @@ export function useTerminalColdRestore({
 
 						currentXterm.clear();
 						if (scrollback) {
-							currentXterm.write(scrollback);
+							currentXterm.write(scrollback, () => {
+								requestAnimationFrame(() => {
+									if (xtermRef.current !== currentXterm) return;
+									scrollToBottom(currentXterm);
+								});
+							});
 						}
 
 						didFirstRenderRef.current = true;

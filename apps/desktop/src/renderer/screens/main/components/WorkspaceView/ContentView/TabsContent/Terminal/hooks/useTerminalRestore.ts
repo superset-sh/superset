@@ -3,6 +3,7 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useRef } from "react";
 import { DEBUG_TERMINAL } from "../config";
 import type { CreateOrAttachResult, TerminalStreamEvent } from "../types";
+import { scrollToBottom } from "../utils";
 
 export interface UseTerminalRestoreOptions {
 	paneId: string;
@@ -110,8 +111,18 @@ export function useTerminalRestore({
 		// Clear before applying to prevent double-apply on concurrent triggers
 		pendingInitialStateRef.current = null;
 		++restoreSequenceRef.current;
+		const restoreSequence = restoreSequenceRef.current;
 
 		try {
+			const scheduleFitAndScroll = () => {
+				requestAnimationFrame(() => {
+					if (xtermRef.current !== xterm) return;
+					if (restoreSequenceRef.current !== restoreSequence) return;
+					fitAddon.fit();
+					scrollToBottom(xterm);
+				});
+			};
+
 			// Canonical initial content: prefer snapshot (daemon mode) over scrollback
 			const initialAnsi = result.snapshot?.snapshotAnsi ?? result.scrollback;
 
@@ -168,10 +179,7 @@ export function useTerminalRestore({
 					}
 					flushPendingEvents();
 
-					requestAnimationFrame(() => {
-						if (xtermRef.current !== xterm) return;
-						fitAddon.fit();
-					});
+					scheduleFitAndScroll();
 				});
 
 				if (result.snapshot?.cwd) {
@@ -186,10 +194,7 @@ export function useTerminalRestore({
 
 			const finalizeRestore = () => {
 				isStreamReadyRef.current = true;
-				requestAnimationFrame(() => {
-					if (xtermRef.current !== xterm) return;
-					fitAddon.fit();
-				});
+				scheduleFitAndScroll();
 				if (DEBUG_TERMINAL) {
 					console.log(
 						`[Terminal] isStreamReady=true (finalizeRestore): ${paneId}, pendingEvents=${pendingEventsRef.current.length}`,
