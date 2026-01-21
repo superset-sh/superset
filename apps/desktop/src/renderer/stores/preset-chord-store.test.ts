@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { beforeEach, describe, expect, it } from "bun:test";
 import { usePresetChordStore } from "./preset-chord-store";
 
 describe("preset-chord-store", () => {

@@ -20,7 +20,7 @@ import { Slider } from "@superset/ui/slider";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlineCheck, HiOutlinePlus } from "react-icons/hi2";
 import {
 	getPresetIcon,
@@ -150,6 +150,11 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		useState<TerminalPreset[]>(serverPresets);
 	const presetsContainerRef = useRef<HTMLDivElement>(null);
 	const prevPresetsCountRef = useRef(serverPresets.length);
+	const serverPresetsRef = useRef(serverPresets);
+
+	useEffect(() => {
+		serverPresetsRef.current = serverPresets;
+	}, [serverPresets]);
 
 	useEffect(() => {
 		setLocalPresets(serverPresets);
@@ -173,83 +178,112 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	const isTemplateAdded = (template: PresetTemplate) =>
 		existingPresetNames.has(template.preset.name);
 
-	const handleCellChange = (
-		rowIndex: number,
-		column: PresetColumnKey,
-		value: string,
-	) => {
-		setLocalPresets((prev) =>
-			prev.map((p, i) => (i === rowIndex ? { ...p, [column]: value } : p)),
-		);
-	};
+	const handleCellChange = useCallback(
+		(rowIndex: number, column: PresetColumnKey, value: string) => {
+			setLocalPresets((prev) =>
+				prev.map((p, i) => (i === rowIndex ? { ...p, [column]: value } : p)),
+			);
+		},
+		[],
+	);
 
-	const handleCellBlur = (rowIndex: number, column: PresetColumnKey) => {
-		const preset = localPresets[rowIndex];
-		const serverPreset = serverPresets[rowIndex];
-		if (!preset || !serverPreset) return;
-		if (preset[column] === serverPreset[column]) return;
+	const handleCellBlur = useCallback(
+		(rowIndex: number, column: PresetColumnKey) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				const serverPreset = serverPresetsRef.current[rowIndex];
+				if (!preset || !serverPreset) return currentLocal;
+				if (preset[column] === serverPreset[column]) return currentLocal;
 
-		updatePreset.mutate({
-			id: preset.id,
-			patch: { [column]: preset[column] },
-		});
-	};
-
-	const handleCommandsChange = (rowIndex: number, commands: string[]) => {
-		const preset = localPresets[rowIndex];
-		const isDelete = preset && commands.length < preset.commands.length;
-
-		setLocalPresets((prev) =>
-			prev.map((p, i) => (i === rowIndex ? { ...p, commands } : p)),
-		);
-
-		// Save immediately on delete since onBlur won't have the updated state yet
-		if (isDelete) {
-			updatePreset.mutate({
-				id: preset.id,
-				patch: { commands },
+				updatePreset.mutate({
+					id: preset.id,
+					patch: { [column]: preset[column] },
+				});
+				return currentLocal;
 			});
-		}
-	};
+		},
+		[updatePreset],
+	);
 
-	const handleCommandsBlur = (rowIndex: number) => {
-		const preset = localPresets[rowIndex];
-		const serverPreset = serverPresets[rowIndex];
-		if (!preset || !serverPreset) return;
-		if (
-			JSON.stringify(preset.commands) === JSON.stringify(serverPreset.commands)
-		)
-			return;
+	const handleCommandsChange = useCallback(
+		(rowIndex: number, commands: string[]) => {
+			setLocalPresets((prev) => {
+				const preset = prev[rowIndex];
+				const isDelete = preset && commands.length < preset.commands.length;
+				const newPresets = prev.map((p, i) =>
+					i === rowIndex ? { ...p, commands } : p,
+				);
 
-		updatePreset.mutate({
-			id: preset.id,
-			patch: { commands: preset.commands },
-		});
-	};
+				// Save immediately on delete since onBlur won't have the updated state yet
+				if (isDelete && preset) {
+					updatePreset.mutate({
+						id: preset.id,
+						patch: { commands },
+					});
+				}
+				return newPresets;
+			});
+		},
+		[updatePreset],
+	);
 
-	const handleAddRow = () => {
+	const handleCommandsBlur = useCallback(
+		(rowIndex: number) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				const serverPreset = serverPresetsRef.current[rowIndex];
+				if (!preset || !serverPreset) return currentLocal;
+				if (
+					JSON.stringify(preset.commands) ===
+					JSON.stringify(serverPreset.commands)
+				)
+					return currentLocal;
+
+				updatePreset.mutate({
+					id: preset.id,
+					patch: { commands: preset.commands },
+				});
+				return currentLocal;
+			});
+		},
+		[updatePreset],
+	);
+
+	const handleAddRow = useCallback(() => {
 		createPreset.mutate({
 			name: "",
 			cwd: "",
 			commands: [""],
 		});
-	};
+	}, [createPreset]);
 
-	const handleAddTemplate = (template: PresetTemplate) => {
-		if (isTemplateAdded(template)) return;
-		createPreset.mutate(template.preset);
-	};
+	const handleAddTemplate = useCallback(
+		(template: PresetTemplate) => {
+			if (existingPresetNames.has(template.preset.name)) return;
+			createPreset.mutate(template.preset);
+		},
+		[createPreset, existingPresetNames],
+	);
 
-	const handleDeleteRow = (rowIndex: number) => {
-		const preset = localPresets[rowIndex];
-		if (!preset) return;
+	const handleDeleteRow = useCallback(
+		(rowIndex: number) => {
+			setLocalPresets((currentLocal) => {
+				const preset = currentLocal[rowIndex];
+				if (preset) {
+					deletePreset.mutate({ id: preset.id });
+				}
+				return currentLocal;
+			});
+		},
+		[deletePreset],
+	);
 
-		deletePreset.mutate({ id: preset.id });
-	};
-
-	const handleSetDefault = (presetId: string | null) => {
-		setDefaultPreset.mutate({ id: presetId });
-	};
+	const handleSetDefault = useCallback(
+		(presetId: string | null) => {
+			setDefaultPreset.mutate({ id: presetId });
+		},
+		[setDefaultPreset],
+	);
 	const { data: terminalPersistence, isLoading } =
 		electronTrpc.settings.getTerminalPersistence.useQuery();
 
@@ -329,7 +363,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		},
 	});
 
-	const handleChordTimeoutChange = (value: number[]) => {
+	const handleChordTimeoutCommit = (value: number[]) => {
 		setChordTimeout.mutate({ timeoutMs: value[0] });
 	};
 
@@ -605,7 +639,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 								max={2000}
 								step={100}
 								value={[chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS]}
-								onValueChange={handleChordTimeoutChange}
+								onValueCommit={handleChordTimeoutCommit}
 								disabled={isLoadingChordTimeout || setChordTimeout.isPending}
 							/>
 							<span className="text-sm text-muted-foreground w-14 text-right">
