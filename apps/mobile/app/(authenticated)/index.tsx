@@ -1,1 +1,3 @@
-export { default } from "@/screens/(authenticated)/index";
+import { HomeScreen } from "@/screens/(authenticated)/index";
+
+export default HomeScreen;

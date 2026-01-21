@@ -11,7 +11,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { signIn } from "@/lib/auth/client";
 
-export default function SignInScreen() {
+export function SignInScreen() {
 	const [loading, setLoading] = useState<"github" | "google" | null>(null);
 
 	const handleSignIn = async (provider: "github" | "google") => {

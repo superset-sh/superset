@@ -1,1 +1,3 @@
-export { default } from "@/screens/(authenticated)/demo";
+import { DemoScreen } from "@/screens/(authenticated)/demo";
+
+export default DemoScreen;

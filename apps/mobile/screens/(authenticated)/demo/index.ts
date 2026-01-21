@@ -1,1 +1,1 @@
-export { default } from "./DemoScreen";
+export { DemoScreen } from "./DemoScreen";

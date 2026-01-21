@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { useCollections } from "@/providers/CollectionsProvider";
 
-export default function DemoScreen() {
+export function DemoScreen() {
 	const collections = useCollections();
 
 	const { data: organizations } = useLiveQuery(

@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Text } from "@/components/ui/text";
 import { signOut } from "@/lib/auth/client";
 
-export default function HomeScreen() {
+export function HomeScreen() {
 	const router = useRouter();
 	const [switchValue, setSwitchValue] = useState(false);
 	const [inputValue, setInputValue] = useState("");
