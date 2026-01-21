@@ -11,6 +11,9 @@ export const env = createEnv({
 	},
 	server: {
 		BETTER_AUTH_SECRET: z.string(),
+		RESEND_API_KEY: z.string(),
+		KV_REST_API_URL: z.string(),
+		KV_REST_API_TOKEN: z.string(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 	client: {
