@@ -242,6 +242,15 @@ export function DiffViewer({
 		editable: false,
 	});
 
+	// Update options on existing editor instead of remounting
+	useEffect(() => {
+		if (!diffEditorRef.current) return;
+		diffEditorRef.current.updateOptions({
+			renderSideBySide: viewMode === "side-by-side",
+			hideUnchangedRegions: { enabled: hideUnchangedRegions },
+		});
+	}, [viewMode, hideUnchangedRegions]);
+
 	if (!isMonacoReady) {
 		return (
 			<div className="flex items-center justify-center h-full text-muted-foreground">
@@ -252,15 +261,6 @@ export function DiffViewer({
 	}
 
 	const editorHeight = fitContent && contentHeight ? contentHeight : "100%";
-
-	// Update options on existing editor instead of remounting
-	useEffect(() => {
-		if (!diffEditorRef.current) return;
-		diffEditorRef.current.updateOptions({
-			renderSideBySide: viewMode === "side-by-side",
-			hideUnchangedRegions: { enabled: hideUnchangedRegions },
-		});
-	}, [viewMode, hideUnchangedRegions]);
 
 	const diffEditor = (
 		<DiffEditor

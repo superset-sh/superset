@@ -10,6 +10,7 @@ import {
 } from "../../../Sidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
 import { DiffViewer } from "../DiffViewer";
+import { useMonacoQueue } from "../MonacoQueue";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 
 interface FileDiffSectionProps {
@@ -56,6 +57,9 @@ export function FileDiffSection({
 
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
+
+	const shouldMountMonaco = isExpanded && hasBeenVisible && !!worktreePath;
+	const canMountMonaco = useMonacoQueue(fileKey, shouldMountMonaco);
 
 	const openInEditorMutation =
 		electronTrpc.external.openFileInEditor.useMutation();
@@ -205,7 +209,7 @@ export function FileDiffSection({
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
 						</div>
-					) : diffData && hasBeenVisible ? (
+					) : diffData && canMountMonaco ? (
 						<div className="bg-background">
 							<DiffViewer
 								contents={diffData}
@@ -219,7 +223,7 @@ export function FileDiffSection({
 					) : diffData ? (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
-							<span>Loading diff...</span>
+							<span>Loading editor...</span>
 						</div>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
