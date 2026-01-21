@@ -1,5 +1,1 @@
-import HomeScreen from "@/screens/index";
-
-export default function AuthenticatedIndex() {
-	return <HomeScreen />;
-}
+export { default } from "@/screens/(authenticated)/index";

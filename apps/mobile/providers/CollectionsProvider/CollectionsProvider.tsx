@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { createContext, useContext, useMemo } from "react";
-import { Text, View } from "react-native";
 import { useSession } from "@/lib/auth/client";
 import { getCollections } from "@/lib/collections/collections";
 
@@ -16,13 +15,8 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		return getCollections(activeOrganizationId);
 	}, [activeOrganizationId]);
 
-	// Show loading state while waiting for organization
 	if (!activeOrganizationId) {
-		return (
-			<View className="flex-1 items-center justify-center">
-				<Text className="text-lg">Loading organization...</Text>
-			</View>
-		);
+		return null;
 	}
 
 	return (
