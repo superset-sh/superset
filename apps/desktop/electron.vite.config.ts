@@ -69,6 +69,17 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_POSTHOG_HOST": defineEnv(
 				process.env.NEXT_PUBLIC_POSTHOG_HOST,
 			),
+			// Multi-worktree support env vars
+			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
+			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
+				process.env.DESKTOP_NOTIFICATIONS_PORT,
+			),
+			"process.env.SUPERSET_PORT_BASE": defineEnv(
+				process.env.SUPERSET_PORT_BASE,
+			),
+			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
+				process.env.SUPERSET_WORKSPACE_NAME,
+			),
 		},
 
 		build: {
@@ -149,6 +160,17 @@ export default defineConfig({
 			),
 			"import.meta.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			// Multi-worktree support env vars (for env.shared.ts in renderer)
+			"process.env.DESKTOP_VITE_PORT": defineEnv(process.env.DESKTOP_VITE_PORT),
+			"process.env.DESKTOP_NOTIFICATIONS_PORT": defineEnv(
+				process.env.DESKTOP_NOTIFICATIONS_PORT,
+			),
+			"process.env.SUPERSET_PORT_BASE": defineEnv(
+				process.env.SUPERSET_PORT_BASE,
+			),
+			"process.env.SUPERSET_WORKSPACE_NAME": defineEnv(
+				process.env.SUPERSET_WORKSPACE_NAME,
 			),
 		},
 

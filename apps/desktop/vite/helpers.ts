@@ -4,8 +4,8 @@ import type { Plugin } from "vite";
 
 import { main, resources } from "../package.json";
 
-// Must match PORTS.VITE_DEV_SERVER in src/shared/constants.ts
-export const DEV_SERVER_PORT = 5927;
+// Read from env var (set by setup.sh) for multi-worktree support
+export const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT) || 5927;
 
 export const devPath = normalize(dirname(main)).split(/\/|\\/g)[0];
 
