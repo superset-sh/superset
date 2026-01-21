@@ -102,7 +102,6 @@ export function useTasksTable({
 		setColumnFilters(newColumnFilters);
 	}, [filterTab]);
 
-	// Calculate optimal slug column width based on longest slug
 	const slugColumnWidth = useMemo(() => {
 		if (!data || data.length === 0) return "5rem";
 
@@ -110,18 +109,13 @@ export function useTasksTable({
 			return task.slug.length > longest.length ? task.slug : longest;
 		}, "");
 
-		// Monospace font-mono at text-xs (0.75rem = 12px)
-		// Each character is ~0.5em of the font size = 0.5 * 0.75rem = 0.375rem per char
-		const remPerChar = 0.5 * 0.75; // 0.375rem per character
-		const padding = 0.5; // rem for horizontal padding
-		const width = longestSlug.length * remPerChar + padding;
+		const REM_PER_CHAR = 0.5 * 0.75;
+		const PADDING_REM = 0.5;
+		const width = longestSlug.length * REM_PER_CHAR + PADDING_REM;
 
-		return `${Math.ceil(width * 10) / 10}rem`; // Round to 1 decimal
+		return `${Math.ceil(width * 10) / 10}rem`;
 	}, [data]);
 
-	// TODO: Add localStorage persistence for collapsed groups
-
-	// Define columns with useMemo (following official docs pattern)
 	const columns = useMemo(
 		() => [
 			columnHelper.accessor((row) => row.status, {
@@ -182,7 +176,6 @@ export function useTasksTable({
 				getGroupingValue: (row) => row.status.name,
 			}),
 
-			// Checkbox column (placeholder for future selection)
 			columnHelper.display({
 				id: "checkbox",
 				header: "",
