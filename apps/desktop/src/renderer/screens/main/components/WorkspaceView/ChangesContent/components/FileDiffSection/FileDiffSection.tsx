@@ -26,6 +26,8 @@ interface FileDiffSectionProps {
 	isActioning?: boolean;
 }
 
+const MONACO_VISIBILITY_MARGIN = "500px 0px";
+
 export function FileDiffSection({
 	file,
 	category,
@@ -50,6 +52,7 @@ export function FileDiffSection({
 	} = useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
+	const [isNearViewport, setIsNearViewport] = useState(false);
 
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
@@ -119,12 +122,10 @@ export function FileDiffSection({
 		const container = containerRef.current;
 		if (!element || !container) return;
 
-		const observer = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (entry.isIntersecting && entry.intersectionRatio > 0.1) {
-						setActiveFileKey(fileKey);
-					}
+		const activeObserver = new IntersectionObserver(
+			([entry]) => {
+				if (entry.isIntersecting && entry.intersectionRatio > 0.1) {
+					setActiveFileKey(fileKey);
 				}
 			},
 			{
@@ -134,10 +135,18 @@ export function FileDiffSection({
 			},
 		);
 
-		observer.observe(element);
+		// Track if section is near viewport to mount/unmount Monaco
+		const visibilityObserver = new IntersectionObserver(
+			([entry]) => setIsNearViewport(entry.isIntersecting),
+			{ root: container, rootMargin: MONACO_VISIBILITY_MARGIN },
+		);
+
+		activeObserver.observe(element);
+		visibilityObserver.observe(element);
 
 		return () => {
-			observer.disconnect();
+			activeObserver.disconnect();
+			visibilityObserver.disconnect();
 		};
 	}, [fileKey, setActiveFileKey, containerRef]);
 
@@ -193,14 +202,20 @@ export function FileDiffSection({
 						</div>
 					) : diffData ? (
 						<div className="bg-background">
-							<DiffViewer
-								contents={diffData}
-								viewMode={diffViewMode}
-								hideUnchangedRegions={hideUnchangedRegions}
-								filePath={file.path}
-								captureScroll={false}
-								fitContent
-							/>
+							{isNearViewport ? (
+								<DiffViewer
+									contents={diffData}
+									viewMode={diffViewMode}
+									hideUnchangedRegions={hideUnchangedRegions}
+									filePath={file.path}
+									captureScroll={false}
+									fitContent
+								/>
+							) : (
+								<div className="h-24 flex items-center justify-center text-muted-foreground">
+									Scroll to view diff
+								</div>
+							)}
 						</div>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">

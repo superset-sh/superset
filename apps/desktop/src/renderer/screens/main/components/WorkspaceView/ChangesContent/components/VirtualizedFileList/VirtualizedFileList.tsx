@@ -1,5 +1,5 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { type RefObject, useCallback, useRef, useState } from "react";
+import { type RefObject, useCallback, useRef } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileDiffSection } from "../FileDiffSection";
 
@@ -36,48 +36,35 @@ export function VirtualizedFileList({
 	isActioning = false,
 }: VirtualizedFileListProps) {
 	const listRef = useRef<HTMLDivElement>(null);
-	const [renderedIndices, setRenderedIndices] = useState<Set<number>>(
-		() => new Set(),
-	);
+	const renderedIndicesRef = useRef<Set<number>>(new Set());
 
+	// Keep items mounted once rendered to preserve diff data and scroll state
 	const rangeExtractor = useCallback(
 		(range: { startIndex: number; endIndex: number }) => {
-			const indices = new Set<number>();
+			const indices = new Set<number>(renderedIndicesRef.current);
 
-			for (
-				let i = Math.max(0, range.startIndex - OVERSCAN);
-				i <= Math.min(files.length - 1, range.endIndex + OVERSCAN);
-				i++
-			) {
+			const start = Math.max(0, range.startIndex - OVERSCAN);
+			const end = Math.min(files.length - 1, range.endIndex + OVERSCAN);
+			for (let i = start; i <= end; i++) {
 				indices.add(i);
 			}
 
-			for (const idx of renderedIndices) {
-				if (idx < files.length) {
-					indices.add(idx);
+			for (const idx of indices) {
+				if (idx >= files.length) {
+					indices.delete(idx);
 				}
 			}
 
-			const result = Array.from(indices).sort((a, b) => a - b);
-
-			const newIndices = new Set(result);
-			if (
-				newIndices.size !== renderedIndices.size ||
-				result.some((i) => !renderedIndices.has(i))
-			) {
-				setRenderedIndices(newIndices);
-			}
-
-			return result;
+			renderedIndicesRef.current = indices;
+			return Array.from(indices).sort((a, b) => a - b);
 		},
-		[files.length, renderedIndices],
+		[files.length],
 	);
 
 	const virtualizer = useVirtualizer({
 		count: files.length,
 		getScrollElement: () => scrollElementRef.current,
 		estimateSize: () => ESTIMATED_COLLAPSED_HEIGHT,
-		overscan: OVERSCAN,
 		rangeExtractor,
 		scrollMargin: listRef.current?.offsetTop ?? 0,
 	});

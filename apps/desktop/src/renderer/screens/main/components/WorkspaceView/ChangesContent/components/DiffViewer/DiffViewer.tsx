@@ -253,9 +253,18 @@ export function DiffViewer({
 
 	const editorHeight = fitContent && contentHeight ? contentHeight : "100%";
 
+	// Update options on existing editor instead of remounting
+	useEffect(() => {
+		if (!diffEditorRef.current) return;
+		diffEditorRef.current.updateOptions({
+			renderSideBySide: viewMode === "side-by-side",
+			hideUnchangedRegions: { enabled: hideUnchangedRegions },
+		});
+	}, [viewMode, hideUnchangedRegions]);
+
 	const diffEditor = (
 		<DiffEditor
-			key={`${filePath}-${viewMode}-${hideUnchangedRegions}`}
+			key={filePath}
 			height={editorHeight}
 			original={contents.original}
 			modified={contents.modified}
@@ -277,7 +286,7 @@ export function DiffViewer({
 				renderOverviewRuler: !fitContent,
 				renderGutterMenu: false,
 				diffWordWrap: "on",
-				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
+				contextmenu: !contextMenuProps,
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},
