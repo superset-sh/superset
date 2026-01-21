@@ -478,7 +478,7 @@ export function setupKeyboardHandler(
 
 		if (isCmdBackspace) {
 			if (event.type === "keydown" && options.onWrite) {
-				options.onWrite("\x15"); // Ctrl+U: delete to beginning of line
+				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
 			}
 			return false;
 		}
