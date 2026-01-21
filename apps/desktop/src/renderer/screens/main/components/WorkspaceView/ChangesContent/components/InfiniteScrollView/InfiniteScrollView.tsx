@@ -8,7 +8,7 @@ import type {
 	GitChangesStatus,
 } from "shared/changes-types";
 import { useScrollContext } from "../../context";
-import { LazyFileDiffSection } from "../FileDiffSection";
+import { VirtualizedFileList } from "../VirtualizedFileList";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { CommitSection } from "./components/CommitSection";
 import { DiffToolbar } from "./components/DiffToolbar";
@@ -210,22 +210,15 @@ export function InfiniteScrollView({
 						onToggle={() => toggleCategory("against-base")}
 					/>
 					{expandedCategories["against-base"] && (
-						<div>
-							{status.againstBase.map((file) => {
-								const fileKey = `against-base::${file.path}`;
-								return (
-									<LazyFileDiffSection
-										key={fileKey}
-										file={file}
-										category="against-base"
-										worktreePath={worktreePath}
-										baseBranch={baseBranch}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={status.againstBase}
+							category="against-base"
+							worktreePath={worktreePath}
+							baseBranch={baseBranch}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+						/>
 					)}
 				</>
 			)}
@@ -247,6 +240,7 @@ export function InfiniteScrollView({
 									worktreePath={worktreePath}
 									collapsedFiles={collapsedFiles}
 									onToggleFile={toggleFile}
+									scrollElementRef={containerRef}
 								/>
 							))}
 						</div>
@@ -263,29 +257,22 @@ export function InfiniteScrollView({
 						onToggle={() => toggleCategory("staged")}
 					/>
 					{expandedCategories.staged && (
-						<div>
-							{status.staged.map((file) => {
-								const fileKey = `staged::${file.path}`;
-								return (
-									<LazyFileDiffSection
-										key={fileKey}
-										file={file}
-										category="staged"
-										worktreePath={worktreePath}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-										onUnstage={() =>
-											unstageFileMutation.mutate({
-												worktreePath,
-												filePath: file.path,
-											})
-										}
-										onDiscard={() => handleDiscard(file)}
-										isActioning={isActioning}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={status.staged}
+							category="staged"
+							worktreePath={worktreePath}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+							onUnstage={(file) =>
+								unstageFileMutation.mutate({
+									worktreePath,
+									filePath: file.path,
+								})
+							}
+							onDiscard={handleDiscard}
+							isActioning={isActioning}
+						/>
 					)}
 				</>
 			)}
@@ -299,29 +286,22 @@ export function InfiniteScrollView({
 						onToggle={() => toggleCategory("unstaged")}
 					/>
 					{expandedCategories.unstaged && (
-						<div>
-							{unstagedFiles.map((file) => {
-								const fileKey = `unstaged::${file.path}`;
-								return (
-									<LazyFileDiffSection
-										key={fileKey}
-										file={file}
-										category="unstaged"
-										worktreePath={worktreePath}
-										isExpanded={!collapsedFiles.has(fileKey)}
-										onToggleExpanded={() => toggleFile(fileKey)}
-										onStage={() =>
-											stageFileMutation.mutate({
-												worktreePath,
-												filePath: file.path,
-											})
-										}
-										onDiscard={() => handleDiscard(file)}
-										isActioning={isActioning}
-									/>
-								);
-							})}
-						</div>
+						<VirtualizedFileList
+							files={unstagedFiles}
+							category="unstaged"
+							worktreePath={worktreePath}
+							collapsedFiles={collapsedFiles}
+							onToggleFile={toggleFile}
+							scrollElementRef={containerRef}
+							onStage={(file) =>
+								stageFileMutation.mutate({
+									worktreePath,
+									filePath: file.path,
+								})
+							}
+							onDiscard={handleDiscard}
+							isActioning={isActioning}
+						/>
 					)}
 				</>
 			)}

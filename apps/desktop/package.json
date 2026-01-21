@@ -55,6 +55,7 @@
 		"@tanstack/react-query": "^5.90.19",
 		"@tanstack/react-router": "^1.147.3",
 		"@tanstack/react-table": "^8.21.3",
+		"@tanstack/react-virtual": "^3.13.18",
 		"@trpc/client": "^11.7.1",
 		"@trpc/react-query": "^11.7.1",
 		"@trpc/server": "^11.7.1",
