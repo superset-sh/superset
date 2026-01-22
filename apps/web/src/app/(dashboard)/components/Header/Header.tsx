@@ -85,7 +85,7 @@ export function Header() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						{organizations && organizations.length > 1 && (
+						{organizations && organizations.length > 0 && (
 							<>
 								<DropdownMenuSub>
 									<DropdownMenuSubTrigger className="cursor-pointer">
