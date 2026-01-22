@@ -1,63 +1,46 @@
 import type { SettingsSection } from "renderer/stores/settings-state";
 
-/**
- * Typed setting item IDs for type-safe references across components.
- * When adding a new setting, add its ID here first.
- */
 export const SETTING_ITEM_ID = {
-	// Account
 	ACCOUNT_PROFILE: "account-profile",
 	ACCOUNT_VERSION: "account-version",
 	ACCOUNT_SIGNOUT: "account-signout",
 
-	// Organization
 	ORGANIZATION_LOGO: "organization-logo",
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
-
-	// Organization - Members (merged)
 	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
 	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
 	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
 		"organization-members-pending-invitations",
 
-	// Appearance
 	APPEARANCE_THEME: "appearance-theme",
 	APPEARANCE_MARKDOWN: "appearance-markdown",
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 
-	// Ringtones (Notifications)
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
-	// Keyboard Shortcuts
 	KEYBOARD_SHORTCUTS: "keyboard-shortcuts",
 
-	// Behavior (Features)
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 
-	// Terminal (includes presets)
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
-	// Integrations
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
 
-	// Billing
 	BILLING_OVERVIEW: "billing-overview",
 	BILLING_PLANS: "billing-plans",
 	BILLING_USAGE: "billing-usage",
 	BILLING_INVOICES: "billing-invoices",
 
-	// Project
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
 	PROJECT_SCRIPTS: "project-scripts",
 
-	// Workspace
 	WORKSPACE_NAME: "workspace-name",
 	WORKSPACE_BRANCH: "workspace-branch",
 	WORKSPACE_PATH: "workspace-path",
@@ -74,15 +57,7 @@ export interface SettingsItem {
 	keywords: string[];
 }
 
-/**
- * Single source of truth for all searchable settings items.
- * To add a new setting:
- * 1. Add the ID to SETTING_ITEM_ID above
- * 2. Add the item definition here
- * 3. Use the ID in the corresponding component's visibility check
- */
 export const SETTINGS_ITEMS: SettingsItem[] = [
-	// Account
 	{
 		id: SETTING_ITEM_ID.ACCOUNT_PROFILE,
 		section: "account",
@@ -130,8 +105,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"leave",
 		],
 	},
-
-	// Organization
 	{
 		id: SETTING_ITEM_ID.ORGANIZATION_LOGO,
 		section: "organization",
@@ -177,8 +150,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"unique",
 		],
 	},
-
-	// Organization - Members
 	{
 		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		section: "organization",
@@ -235,8 +206,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"email",
 		],
 	},
-
-	// Appearance
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_THEME,
 		section: "appearance",
@@ -290,8 +259,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"customize",
 		],
 	},
-
-	// Ringtones (sidebar label: Notifications)
 	{
 		id: SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
 		section: "ringtones",
@@ -314,8 +281,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"volume",
 		],
 	},
-
-	// Keyboard Shortcuts
 	{
 		id: SETTING_ITEM_ID.KEYBOARD_SHORTCUTS,
 		section: "keyboard",
@@ -335,8 +300,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"customize",
 		],
 	},
-
-	// Behavior (sidebar label: Features)
 	{
 		id: SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT,
 		section: "behavior",
@@ -355,8 +318,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"unsaved",
 		],
 	},
-
-	// Terminal (includes presets)
 	{
 		id: SETTING_ITEM_ID.TERMINAL_PRESETS,
 		section: "terminal",
@@ -451,8 +412,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"browser",
 		],
 	},
-
-	// Integrations
 	{
 		id: SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
 		section: "integrations",
@@ -488,8 +447,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"git",
 		],
 	},
-
-	// Billing
 	{
 		id: SETTING_ITEM_ID.BILLING_OVERVIEW,
 		section: "billing",
@@ -551,8 +508,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"transactions",
 		],
 	},
-
-	// Project
 	{
 		id: SETTING_ITEM_ID.PROJECT_NAME,
 		section: "project",
@@ -598,8 +553,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"config",
 		],
 	},
-
-	// Workspace
 	{
 		id: SETTING_ITEM_ID.WORKSPACE_NAME,
 		section: "workspace",
@@ -631,10 +584,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	},
 ];
 
-/**
- * Search settings by query string.
- * Matches against title, description, and keywords.
- */
 export function searchSettings(query: string): SettingsItem[] {
 	if (!query.trim()) return SETTINGS_ITEMS;
 
@@ -647,9 +596,6 @@ export function searchSettings(query: string): SettingsItem[] {
 	);
 }
 
-/**
- * Get count of matching items per section for sidebar display.
- */
 export function getMatchCountBySection(
 	query: string,
 ): Partial<Record<SettingsSection, number>> {
@@ -663,9 +609,6 @@ export function getMatchCountBySection(
 	return counts;
 }
 
-/**
- * Get matching items for a specific section.
- */
 export function getMatchingItemsForSection(
 	query: string,
 	section: SettingsSection,
@@ -673,10 +616,6 @@ export function getMatchingItemsForSection(
 	return searchSettings(query).filter((item) => item.section === section);
 }
 
-/**
- * Helper to check if an item should be visible based on search results.
- * Returns true if no search filter is active OR if the item is in the visible list.
- */
 export function isItemVisible(
 	itemId: SettingItemId,
 	visibleItems: SettingItemId[] | null | undefined,

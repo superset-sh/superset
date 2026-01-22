@@ -92,7 +92,6 @@ export function OrganizationDropdown() {
 				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56">
-				{/* Settings and team management - always shown for logged in users */}
 				<DropdownMenuItem
 					onSelect={() => navigate({ to: "/settings/account" })}
 				>
@@ -109,7 +108,6 @@ export function OrganizationDropdown() {
 
 				<DropdownMenuSeparator />
 
-				{/* Org switcher - only show if user has multiple orgs */}
 				{organizations && organizations.length > 1 && (
 					<>
 						<DropdownMenuSub>
@@ -146,7 +144,6 @@ export function OrganizationDropdown() {
 					</>
 				)}
 
-				{/* Support section */}
 				<DropdownMenuItem
 					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
 				>
@@ -184,7 +181,6 @@ export function OrganizationDropdown() {
 
 				<DropdownMenuSeparator />
 
-				{/* Sign out - ALWAYS show so users can never get trapped */}
 				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
 					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
 					<span>Log out</span>

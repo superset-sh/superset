@@ -61,7 +61,6 @@ export function OrganizationSettings({
 		(o) => o.id === activeOrganizationId,
 	);
 
-	// Check owner status via Better Auth (includes member data)
 	const { data: activeOrg } = authClient.useActiveOrganization();
 	const currentUserId = session?.user?.id;
 	const currentMember = activeOrg?.members?.find(
@@ -88,7 +87,6 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 
-	// Members data
 	const { data: membersData, isLoading: isMembersLoading } = useLiveQuery(
 		(q) =>
 			q
@@ -106,7 +104,6 @@ export function OrganizationSettings({
 		[collections, activeOrganizationId],
 	);
 
-	// Sort by role priority (owner > admin > member), then by join date
 	const members: TeamMember[] = (membersData ?? [])
 		.map((m) => ({
 			...m,
@@ -231,7 +228,6 @@ export function OrganizationSettings({
 		<div className="flex-1 flex flex-col min-h-0">
 			<div className="flex-1 overflow-auto">
 				<div className="p-8 space-y-12 max-w-5xl">
-					{/* Organization Settings */}
 					{showOrgSettings && (
 						<div>
 							<h2 className="text-2xl font-semibold mb-2">Organization</h2>
@@ -326,7 +322,6 @@ export function OrganizationSettings({
 						</div>
 					)}
 
-					{/* Members Section */}
 					{showMembersSection && (
 						<div className="space-y-8">
 							{currentUserRole &&

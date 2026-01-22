@@ -4,13 +4,13 @@ import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
-	HiOutlineComputerDesktop,
 	HiOutlineCreditCard,
 	HiOutlinePaintBrush,
 	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
 	HiOutlineUser,
 } from "react-icons/hi2";
+import { LuKeyboard } from "react-icons/lu";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface GeneralSettingsProps {
@@ -62,7 +62,7 @@ const GENERAL_SECTIONS: {
 		id: "/settings/keyboard",
 		section: "keyboard",
 		label: "Keyboard",
-		icon: <HiOutlineCommandLine className="h-4 w-4" />,
+		icon: <LuKeyboard className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/behavior",
@@ -74,7 +74,7 @@ const GENERAL_SECTIONS: {
 		id: "/settings/terminal",
 		section: "terminal",
 		label: "Terminal",
-		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+		icon: <HiOutlineCommandLine className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/integrations",

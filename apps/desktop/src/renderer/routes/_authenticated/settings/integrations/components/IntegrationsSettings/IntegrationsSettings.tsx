@@ -137,7 +137,6 @@ export function IntegrationsSettings({
 			)}
 
 			<div className="grid gap-4">
-				{/* Linear Integration */}
 				{showLinear && (
 					<IntegrationCard
 						name="Linear"
@@ -150,7 +149,6 @@ export function IntegrationsSettings({
 					/>
 				)}
 
-				{/* GitHub Integration */}
 				{showGithub && (
 					<IntegrationCard
 						name="GitHub"
