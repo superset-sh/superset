@@ -1,5 +1,5 @@
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
 interface WorkspaceThumbnailProps {
@@ -18,6 +18,11 @@ export function WorkspaceThumbnail({
 	className,
 }: WorkspaceThumbnailProps) {
 	const [imageError, setImageError] = useState(false);
+
+	// Reset error state when workspace changes
+	useEffect(() => {
+		setImageError(false);
+	}, [workspaceId]);
 
 	const { data: imageData } =
 		electronTrpc.workspaces.getWorkspaceImage.useQuery(
