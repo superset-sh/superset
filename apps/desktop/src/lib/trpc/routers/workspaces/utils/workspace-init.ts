@@ -6,6 +6,7 @@ import { workspaceInitManager } from "main/lib/workspace-init-manager";
 import {
 	branchExistsOnRemote,
 	createWorktree,
+	createWorktreeFromExistingBranch,
 	fetchDefaultBranch,
 	hasOriginRemote,
 	refExistsLocally,
@@ -25,6 +26,8 @@ export interface WorkspaceInitParams {
 	/** If true, user explicitly specified baseBranch - don't auto-update it */
 	baseBranchWasExplicit: boolean;
 	mainRepoPath: string;
+	/** If true, use an existing branch instead of creating a new one */
+	useExistingBranch?: boolean;
 }
 
 /**
@@ -42,6 +45,7 @@ export async function initializeWorkspaceWorktree({
 	baseBranch,
 	baseBranchWasExplicit,
 	mainRepoPath,
+	useExistingBranch,
 }: WorkspaceInitParams): Promise<void> {
 	const manager = workspaceInitManager;
 
@@ -55,6 +59,79 @@ export async function initializeWorkspaceWorktree({
 		// workspace temporarily reappears. finalizeJob() in the finally block will
 		// still unblock waitForInit() callers.
 		if (manager.isCancellationRequested(workspaceId)) {
+			return;
+		}
+
+		// Fast path for existing branch - skip all base branch verification
+		if (useExistingBranch) {
+			manager.updateProgress(
+				workspaceId,
+				"creating_worktree",
+				"Creating git worktree...",
+			);
+			await createWorktreeFromExistingBranch(
+				mainRepoPath,
+				branch,
+				worktreePath,
+			);
+			manager.markWorktreeCreated(workspaceId);
+
+			if (manager.isCancellationRequested(workspaceId)) {
+				try {
+					await removeWorktree(mainRepoPath, worktreePath);
+				} catch (e) {
+					console.error(
+						"[workspace-init] Failed to cleanup worktree after cancel:",
+						e,
+					);
+				}
+				return;
+			}
+
+			// Copy config
+			manager.updateProgress(
+				workspaceId,
+				"copying_config",
+				"Copying configuration...",
+			);
+			copySupersetConfigToWorktree(mainRepoPath, worktreePath);
+
+			if (manager.isCancellationRequested(workspaceId)) {
+				try {
+					await removeWorktree(mainRepoPath, worktreePath);
+				} catch (e) {
+					console.error(
+						"[workspace-init] Failed to cleanup worktree after cancel:",
+						e,
+					);
+				}
+				return;
+			}
+
+			// Finalize
+			manager.updateProgress(workspaceId, "finalizing", "Finalizing setup...");
+			localDb
+				.update(worktrees)
+				.set({
+					gitStatus: {
+						branch,
+						needsRebase: false,
+						lastRefreshed: Date.now(),
+					},
+				})
+				.where(eq(worktrees.id, worktreeId))
+				.run();
+
+			manager.updateProgress(workspaceId, "ready", "Ready");
+
+			track("workspace_initialized", {
+				workspace_id: workspaceId,
+				project_id: projectId,
+				branch,
+				base_branch: branch, // For existing branch, base = branch
+				use_existing_branch: true,
+			});
+
 			return;
 		}
 

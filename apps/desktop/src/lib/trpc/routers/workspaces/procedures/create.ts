@@ -19,6 +19,7 @@ import {
 } from "../utils/db-helpers";
 import {
 	generateBranchName,
+	getBranchWorktreePath,
 	getCurrentBranch,
 	listBranches,
 	safeCheckoutBranch,
@@ -36,6 +37,8 @@ export const createCreateProcedures = () => {
 					name: z.string().optional(),
 					branchName: z.string().optional(),
 					baseBranch: z.string().optional(),
+					/** If true, use an existing branch instead of creating a new one */
+					useExistingBranch: z.boolean().optional(),
 				}),
 			)
 			.mutation(async ({ input }) => {
@@ -48,11 +51,45 @@ export const createCreateProcedures = () => {
 					throw new Error(`Project ${input.projectId} not found`);
 				}
 
-				// Get existing branches to avoid name collisions
+				// Validation for existing branch mode
+				if (input.useExistingBranch) {
+					if (!input.branchName?.trim()) {
+						throw new Error(
+							"Branch name is required when using an existing branch",
+						);
+					}
+
+					// Check if the branch already has a worktree
+					const existingWorktreePath = await getBranchWorktreePath(
+						project.mainRepoPath,
+						input.branchName.trim(),
+					);
+					if (existingWorktreePath) {
+						throw new Error(
+							`Branch "${input.branchName}" is already checked out in another worktree at: ${existingWorktreePath}`,
+						);
+					}
+				}
+
+				// Get existing branches to avoid name collisions (only for new branches)
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
-				const branch =
-					input.branchName?.trim() || generateBranchName(existingBranches);
+
+				let branch: string;
+				if (input.useExistingBranch) {
+					// Use the exact branch name provided - it must exist
+					// Note: branchName is validated to be non-empty above when useExistingBranch is true
+					branch = input.branchName!.trim();
+					if (!existingBranches.includes(branch)) {
+						throw new Error(
+							`Branch "${branch}" does not exist. Please select an existing branch.`,
+						);
+					}
+				} else {
+					// Normal flow: generate or use provided branch name
+					branch =
+						input.branchName?.trim() || generateBranchName(existingBranches);
+				}
 
 				const worktreePath = join(
 					homedir(),
@@ -105,6 +142,7 @@ export const createCreateProcedures = () => {
 					project_id: project.id,
 					branch: branch,
 					base_branch: targetBranch,
+					use_existing_branch: input.useExistingBranch ?? false,
 				});
 
 				workspaceInitManager.startJob(workspace.id, input.projectId);
@@ -119,6 +157,7 @@ export const createCreateProcedures = () => {
 					baseBranch: targetBranch,
 					baseBranchWasExplicit: !!input.baseBranch,
 					mainRepoPath: project.mainRepoPath,
+					useExistingBranch: input.useExistingBranch,
 				});
 
 				// Load setup configuration (fast operation, can return with response)

@@ -414,6 +414,134 @@ export async function createWorktree(
 	}
 }
 
+/**
+ * Creates a worktree from an existing branch.
+ * Unlike createWorktree, this does NOT create a new branch - it checks out
+ * an existing local or remote branch into a new worktree.
+ *
+ * @param mainRepoPath - Path to the main repository
+ * @param branch - The existing branch name to checkout
+ * @param worktreePath - Path where the worktree should be created
+ */
+export async function createWorktreeFromExistingBranch(
+	mainRepoPath: string,
+	branch: string,
+	worktreePath: string,
+): Promise<void> {
+	const usesLfs = await repoUsesLfs(mainRepoPath);
+
+	try {
+		const parentDir = join(worktreePath, "..");
+		await mkdir(parentDir, { recursive: true });
+
+		const env = await getGitEnv();
+
+		if (usesLfs) {
+			const lfsAvailable = await checkGitLfsAvailable(env);
+			if (!lfsAvailable) {
+				throw new Error(
+					`This repository uses Git LFS, but git-lfs was not found. ` +
+						`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
+				);
+			}
+		}
+
+		// First, check if the branch exists locally
+		const git = simpleGit(mainRepoPath);
+		const localBranches = await git.branchLocal();
+		const branchExistsLocally = localBranches.all.includes(branch);
+
+		if (branchExistsLocally) {
+			// Branch exists locally - just checkout into the worktree
+			await execFileAsync(
+				"git",
+				["-C", mainRepoPath, "worktree", "add", worktreePath, branch],
+				{ env, timeout: 120_000 },
+			);
+		} else {
+			// Branch doesn't exist locally - check if it's a remote branch
+			const remoteBranches = await git.branch(["-r"]);
+			const remoteBranchName = `origin/${branch}`;
+			if (remoteBranches.all.includes(remoteBranchName)) {
+				// Create worktree with local tracking branch from remote
+				// This creates a new local branch that tracks the remote
+				await execFileAsync(
+					"git",
+					[
+						"-C",
+						mainRepoPath,
+						"worktree",
+						"add",
+						"--track",
+						"-b",
+						branch,
+						worktreePath,
+						remoteBranchName,
+					],
+					{ env, timeout: 120_000 },
+				);
+			} else {
+				throw new Error(
+					`Branch "${branch}" does not exist locally or on remote`,
+				);
+			}
+		}
+
+		console.log(
+			`Created worktree at ${worktreePath} using existing branch ${branch}`,
+		);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const lowerError = errorMessage.toLowerCase();
+
+		const isLockError =
+			lowerError.includes("could not lock") ||
+			lowerError.includes("unable to lock") ||
+			(lowerError.includes(".lock") && lowerError.includes("file exists"));
+
+		if (isLockError) {
+			console.error(
+				`Git lock file error during worktree creation: ${errorMessage}`,
+			);
+			throw new Error(
+				`Failed to create worktree: The git repository is locked by another process. ` +
+					`This usually happens when another git operation is in progress, or a previous operation crashed. ` +
+					`Please wait for the other operation to complete, or manually remove the lock file ` +
+					`(e.g., .git/config.lock or .git/index.lock) if you're sure no git operations are running.`,
+			);
+		}
+
+		const isLfsError =
+			lowerError.includes("git-lfs") ||
+			lowerError.includes("filter-process") ||
+			lowerError.includes("smudge filter") ||
+			(lowerError.includes("lfs") && lowerError.includes("not")) ||
+			(lowerError.includes("lfs") && usesLfs);
+
+		if (isLfsError) {
+			console.error(`Git LFS error during worktree creation: ${errorMessage}`);
+			throw new Error(
+				`Failed to create worktree: This repository uses Git LFS, but git-lfs was not found or failed. ` +
+					`Please install git-lfs (e.g., 'brew install git-lfs') and run 'git lfs install'.`,
+			);
+		}
+
+		// Check if the branch is already checked out in another worktree
+		if (
+			lowerError.includes("already checked out") ||
+			lowerError.includes("is already used by worktree")
+		) {
+			throw new Error(
+				`Branch "${branch}" is already checked out in another worktree. ` +
+					`Each branch can only be checked out in one worktree at a time.`,
+			);
+		}
+
+		console.error(`Failed to create worktree: ${errorMessage}`);
+		throw new Error(`Failed to create worktree: ${errorMessage}`);
+	}
+}
+
 export async function removeWorktree(
 	mainRepoPath: string,
 	worktreePath: string,
@@ -458,6 +586,41 @@ export async function worktreeExists(
 		return lines.some((line) => line.trim() === worktreePrefix);
 	} catch (error) {
 		console.error(`Failed to check worktree existence: ${error}`);
+		throw error;
+	}
+}
+
+/**
+ * Checks if a branch is already checked out in a worktree.
+ * @param mainRepoPath - Path to the main repository
+ * @param branch - The branch name to check
+ * @returns The worktree path if the branch is checked out, null otherwise
+ */
+export async function getBranchWorktreePath(
+	mainRepoPath: string,
+	branch: string,
+): Promise<string | null> {
+	try {
+		const git = simpleGit(mainRepoPath);
+		const worktreesOutput = await git.raw(["worktree", "list", "--porcelain"]);
+
+		const lines = worktreesOutput.split("\n");
+		let currentWorktreePath: string | null = null;
+
+		for (const line of lines) {
+			if (line.startsWith("worktree ")) {
+				currentWorktreePath = line.slice("worktree ".length);
+			} else if (line.startsWith("branch refs/heads/")) {
+				const branchName = line.slice("branch refs/heads/".length);
+				if (branchName === branch && currentWorktreePath) {
+					return currentWorktreePath;
+				}
+			}
+		}
+
+		return null;
+	} catch (error) {
+		console.error(`Failed to check branch worktree: ${error}`);
 		throw error;
 	}
 }
