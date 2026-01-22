@@ -9,7 +9,7 @@ import {
 	getStatusIndicator,
 } from "../../../Sidebar/ChangesView/utils";
 import { createFileKey, useScrollContext } from "../../context";
-import { useDiffEditorPool } from "../DiffEditorPool";
+import { DiffViewer } from "../DiffViewer";
 import { FileDiffHeader } from "./components/FileDiffHeader";
 
 interface FileDiffSectionProps {
@@ -42,7 +42,6 @@ export function FileDiffSection({
 	isActioning = false,
 }: FileDiffSectionProps) {
 	const sectionRef = useRef<HTMLDivElement>(null);
-	const editorContainerRef = useRef<HTMLDivElement>(null);
 	const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const {
 		registerFileRef,
@@ -53,10 +52,8 @@ export function FileDiffSection({
 	} = useScrollContext();
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
-	const [isNearViewport, setIsNearViewport] = useState(false);
-	const [hasEditor, setHasEditor] = useState(false);
+	const [hasBeenVisible, setHasBeenVisible] = useState(false);
 
-	const pool = useDiffEditorPool();
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
 
@@ -139,7 +136,11 @@ export function FileDiffSection({
 		);
 
 		const visibilityObserver = new IntersectionObserver(
-			([entry]) => setIsNearViewport(entry.isIntersecting),
+			([entry]) => {
+				if (entry.isIntersecting) {
+					setHasBeenVisible(true);
+				}
+			},
 			{ root: container, rootMargin: VISIBILITY_MARGIN },
 		);
 
@@ -167,56 +168,11 @@ export function FileDiffSection({
 			},
 		);
 
-	// Acquire/release editor from pool based on visibility
-	useEffect(() => {
-		if (!pool || !editorContainerRef.current) return;
-
-		const shouldHaveEditor = isExpanded && isNearViewport && diffData;
-
-		if (shouldHaveEditor && !hasEditor) {
-			const editor = pool.acquireEditor(
-				fileKey,
-				editorContainerRef.current,
-				diffData,
-				{ viewMode: diffViewMode, hideUnchangedRegions },
-			);
-			if (editor) {
-				setHasEditor(true);
-			}
-		} else if (!shouldHaveEditor && hasEditor) {
-			pool.releaseEditor(fileKey);
-			setHasEditor(false);
-		}
-	}, [
-		pool,
-		fileKey,
-		isExpanded,
-		isNearViewport,
-		diffData,
-		hasEditor,
-		diffViewMode,
-		hideUnchangedRegions,
-	]);
-
-	// Release editor on unmount
-	useEffect(() => {
-		return () => {
-			if (pool && hasEditor) {
-				pool.releaseEditor(fileKey);
-			}
-		};
-	}, [pool, fileKey, hasEditor]);
-
-	// Update options when they change
-	useEffect(() => {
-		if (pool && hasEditor) {
-			pool.updateOptions({ viewMode: diffViewMode, hideUnchangedRegions });
-		}
-	}, [pool, hasEditor, diffViewMode, hideUnchangedRegions]);
-
 	const statusBadgeColor = getStatusColor(file.status);
 	const statusIndicator = getStatusIndicator(file.status);
 	const showStats = file.additions > 0 || file.deletions > 0;
+
+	const shouldRenderEditor = hasBeenVisible && diffData;
 
 	return (
 		<div
@@ -249,23 +205,25 @@ export function FileDiffSection({
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
 						</div>
-					) : diffData ? (
-						<div className="bg-background min-h-24">
-							<div
-								ref={editorContainerRef}
-								className="w-full"
-								style={{ minHeight: hasEditor ? "auto" : 96 }}
-							/>
-							{!hasEditor && (
-								<div className="flex items-center justify-center h-24 text-muted-foreground absolute inset-0">
-									<LuLoader className="w-4 h-4 animate-spin mr-2" />
-									<span>Loading editor...</span>
-								</div>
-							)}
-						</div>
+					) : shouldRenderEditor ? (
+						<DiffViewer
+							contents={diffData}
+							viewMode={diffViewMode}
+							hideUnchangedRegions={hideUnchangedRegions}
+							filePath={file.path}
+							fitContent
+							captureScroll={false}
+						/>
 					) : (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
-							Unable to load diff
+							{diffData ? (
+								<>
+									<LuLoader className="w-4 h-4 animate-spin mr-2" />
+									<span>Loading editor...</span>
+								</>
+							) : (
+								"Unable to load diff"
+							)}
 						</div>
 					)}
 				</CollapsibleContent>
