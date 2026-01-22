@@ -10,13 +10,12 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiMiniMinus, HiMiniPlus } from "react-icons/hi2";
 import { LuUndo2 } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
-
 import { CategorySection } from "./components/CategorySection";
 import { ChangesHeader } from "./components/ChangesHeader";
 import { CommitInput } from "./components/CommitInput";
@@ -255,6 +254,14 @@ export function ChangesView({
 		}
 	});
 
+	const combinedUnstaged = useMemo(
+		() =>
+			status?.unstaged && status?.untracked
+				? [...status.unstaged, ...status.untracked]
+				: [],
+		[status?.unstaged, status?.untracked],
+	);
+
 	// Single click - opens in preview mode
 	const handleFileSelect = (file: ChangedFile, category: ChangeCategory) => {
 		if (!worktreePath) return;
@@ -341,8 +348,6 @@ export function ChangesView({
 		...commit,
 		files: commitFilesMap.get(commit.hash) || [],
 	}));
-
-	const unstagedFiles = [...status.unstaged, ...status.untracked];
 
 	const hasStagedChanges = status.staged.length > 0;
 	const hasExistingPR = !!githubStatus?.pr;
@@ -497,7 +502,7 @@ export function ChangesView({
 
 					<CategorySection
 						title="Unstaged"
-						count={unstagedFiles.length}
+						count={combinedUnstaged.length}
 						isExpanded={expandedSections.unstaged}
 						onToggle={() => toggleSection("unstaged")}
 						actions={
@@ -540,7 +545,7 @@ export function ChangesView({
 						}
 					>
 						<FileList
-							files={unstagedFiles}
+							files={combinedUnstaged}
 							viewMode={fileListViewMode}
 							selectedFile={selectedFile}
 							selectedCommitHash={selectedCommitHash}
