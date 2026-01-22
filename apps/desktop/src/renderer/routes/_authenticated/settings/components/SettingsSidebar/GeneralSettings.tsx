@@ -7,6 +7,7 @@ import {
 	HiOutlineComputerDesktop,
 	HiOutlineCreditCard,
 	HiOutlinePaintBrush,
+	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
 	HiOutlineUser,
 	HiOutlineUserGroup,
@@ -26,6 +27,7 @@ type SettingsRoute =
 	| "/settings/keyboard"
 	| "/settings/behavior"
 	| "/settings/terminal"
+	| "/settings/integrations"
 	| "/settings/billing";
 
 const GENERAL_SECTIONS: {
@@ -81,6 +83,12 @@ const GENERAL_SECTIONS: {
 		section: "terminal",
 		label: "Terminal",
 		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/integrations",
+		section: "integrations",
+		label: "Integrations",
+		icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/billing",

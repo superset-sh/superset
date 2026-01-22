@@ -14,6 +14,7 @@ export type SettingsSection =
 	| "keyboard"
 	| "behavior"
 	| "terminal"
+	| "integrations"
 	| "billing"
 	| "project"
 	| "workspace";

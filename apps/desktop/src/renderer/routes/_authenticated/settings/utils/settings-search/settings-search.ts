@@ -41,6 +41,10 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
+	// Integrations
+	INTEGRATIONS_LINEAR: "integrations-linear",
+	INTEGRATIONS_GITHUB: "integrations-github",
+
 	// Billing
 	BILLING_OVERVIEW: "billing-overview",
 	BILLING_PLANS: "billing-plans",
@@ -441,6 +445,43 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+
+	// Integrations
+	{
+		id: SETTING_ITEM_ID.INTEGRATIONS_LINEAR,
+		section: "integrations",
+		title: "Linear",
+		description: "Sync issues bidirectionally with Linear",
+		keywords: [
+			"integrations",
+			"linear",
+			"issues",
+			"tasks",
+			"sync",
+			"connect",
+			"connected",
+			"project management",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.INTEGRATIONS_GITHUB,
+		section: "integrations",
+		title: "GitHub",
+		description: "Connect repos and sync pull requests",
+		keywords: [
+			"integrations",
+			"github",
+			"repos",
+			"repositories",
+			"pull requests",
+			"pr",
+			"sync",
+			"connect",
+			"connected",
+			"version control",
+			"git",
 		],
 	},
 

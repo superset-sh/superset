@@ -27,6 +27,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"keyboard",
 	"behavior",
 	"terminal",
+	"integrations",
 ];
 
 // Map route paths to section names
@@ -39,6 +40,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
 	if (pathname.includes("/settings/behavior")) return "behavior";
 	if (pathname.includes("/settings/terminal")) return "terminal";
+	if (pathname.includes("/settings/integrations")) return "integrations";
 	if (pathname.includes("/settings/project")) return "project";
 	if (pathname.includes("/settings/workspace")) return "workspace";
 	return null;
@@ -63,6 +65,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/behavior";
 		case "terminal":
 			return "/settings/terminal";
+		case "integrations":
+			return "/settings/integrations";
 		default:
 			return "/settings/account";
 	}

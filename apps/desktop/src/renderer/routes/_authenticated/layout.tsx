@@ -8,15 +8,15 @@ import { DndProvider } from "react-dnd";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { useUpdateListener } from "renderer/components/UpdateToast";
+import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { env } from "renderer/env.renderer";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
-import { MOCK_ORG_ID } from "shared/constants";
 import { useHotkeysSync } from "renderer/stores/hotkeys";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
+import { MOCK_ORG_ID } from "shared/constants";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
 
 export const Route = createFileRoute("/_authenticated")({
