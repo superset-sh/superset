@@ -415,13 +415,8 @@ export async function createWorktree(
 }
 
 /**
- * Creates a worktree from an existing branch.
- * Unlike createWorktree, this does NOT create a new branch - it checks out
- * an existing local or remote branch into a new worktree.
- *
- * @param mainRepoPath - Path to the main repository
- * @param branch - The existing branch name to checkout
- * @param worktreePath - Path where the worktree should be created
+ * Creates a worktree from an existing branch (local or remote).
+ * Unlike createWorktree, this does NOT create a new branch.
  */
 export async function createWorktreeFromExistingBranch(
 	mainRepoPath: string,

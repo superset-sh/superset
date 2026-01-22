@@ -52,41 +52,38 @@ export const createCreateProcedures = () => {
 				}
 
 				// Validation for existing branch mode
+				let existingBranchName: string | undefined;
 				if (input.useExistingBranch) {
-					if (!input.branchName?.trim()) {
+					existingBranchName = input.branchName?.trim();
+					if (!existingBranchName) {
 						throw new Error(
 							"Branch name is required when using an existing branch",
 						);
 					}
 
-					// Check if the branch already has a worktree
 					const existingWorktreePath = await getBranchWorktreePath(
 						project.mainRepoPath,
-						input.branchName.trim(),
+						existingBranchName,
 					);
 					if (existingWorktreePath) {
 						throw new Error(
-							`Branch "${input.branchName}" is already checked out in another worktree at: ${existingWorktreePath}`,
+							`Branch "${existingBranchName}" is already checked out in another worktree at: ${existingWorktreePath}`,
 						);
 					}
 				}
 
-				// Get existing branches to avoid name collisions (only for new branches)
 				const { local, remote } = await listBranches(project.mainRepoPath);
 				const existingBranches = [...local, ...remote];
 
 				let branch: string;
-				if (input.useExistingBranch) {
-					// Use the exact branch name provided - it must exist
-					// Note: branchName is validated to be non-empty above when useExistingBranch is true
-					branch = input.branchName!.trim();
-					if (!existingBranches.includes(branch)) {
+				if (existingBranchName) {
+					if (!existingBranches.includes(existingBranchName)) {
 						throw new Error(
-							`Branch "${branch}" does not exist. Please select an existing branch.`,
+							`Branch "${existingBranchName}" does not exist. Please select an existing branch.`,
 						);
 					}
+					branch = existingBranchName;
 				} else {
-					// Normal flow: generate or use provided branch name
 					branch =
 						input.branchName?.trim() || generateBranchName(existingBranches);
 				}
