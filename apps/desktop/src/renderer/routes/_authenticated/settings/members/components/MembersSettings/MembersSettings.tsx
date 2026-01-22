@@ -87,6 +87,11 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	// Find current user's role from the members data we already fetched
 	const currentMember = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMember?.role;
+	const plan = session?.session?.plan as
+		| "free"
+		| "pro"
+		| "enterprise"
+		| undefined;
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
@@ -116,6 +121,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 								currentUserRole={currentUserRole}
 								organizationId={activeOrganizationId}
 								organizationName={organization.name}
+								plan={plan}
 							/>
 						</div>
 					)}
@@ -214,6 +220,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 																		isCurrentUserRow,
 																		ownerCount,
 																	)}
+																	plan={plan}
 																/>
 															)}
 														</TableCell>

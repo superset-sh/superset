@@ -15,6 +15,10 @@ export const env = createEnv({
 		RESEND_API_KEY: z.string(),
 		KV_REST_API_URL: z.string(),
 		KV_REST_API_TOKEN: z.string(),
+		STRIPE_SECRET_KEY: z.string(),
+		STRIPE_WEBHOOK_SECRET: z.string(),
+		STRIPE_PRO_MONTHLY_PRICE_ID: z.string(),
+		STRIPE_PRO_YEARLY_PRICE_ID: z.string(),
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {

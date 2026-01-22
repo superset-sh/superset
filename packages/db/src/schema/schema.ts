@@ -1,4 +1,5 @@
 import {
+	boolean,
 	index,
 	integer,
 	jsonb,
@@ -212,3 +213,40 @@ export type InsertIntegrationConnection =
 	typeof integrationConnections.$inferInsert;
 export type SelectIntegrationConnection =
 	typeof integrationConnections.$inferSelect;
+
+// Stripe subscriptions (org-based billing)
+export const subscriptions = pgTable(
+	"subscriptions",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		plan: text().notNull(),
+		referenceId: uuid("reference_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		stripeCustomerId: text("stripe_customer_id"),
+		stripeSubscriptionId: text("stripe_subscription_id"),
+		status: text().default("incomplete").notNull(),
+		periodStart: timestamp("period_start"),
+		periodEnd: timestamp("period_end"),
+		trialStart: timestamp("trial_start"),
+		trialEnd: timestamp("trial_end"),
+		cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+		cancelAt: timestamp("cancel_at"),
+		canceledAt: timestamp("canceled_at"),
+		endedAt: timestamp("ended_at"),
+		seats: integer(),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("subscriptions_reference_id_idx").on(table.referenceId),
+		index("subscriptions_stripe_customer_id_idx").on(table.stripeCustomerId),
+		index("subscriptions_status_idx").on(table.status),
+	],
+);
+
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+export type SelectSubscription = typeof subscriptions.$inferSelect;
