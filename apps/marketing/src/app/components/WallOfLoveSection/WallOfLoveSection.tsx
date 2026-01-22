@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useState } from "react";
 import { TESTIMONIALS, type Testimonial } from "./constants";
 
@@ -16,7 +17,7 @@ function getInitials(name: string) {
 function Avatar({ src, name }: { src?: string; name: string }) {
 	if (src) {
 		return (
-			<img
+			<Image
 				src={src}
 				alt={name}
 				width={40}
