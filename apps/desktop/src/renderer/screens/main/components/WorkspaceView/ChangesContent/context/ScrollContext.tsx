@@ -69,15 +69,9 @@ export function ScrollProvider({ children }: { children: ReactNode }) {
 		(file: ChangedFile, category: ChangeCategory, commitHash?: string) => {
 			const key = createFileKey(file, category, commitHash);
 			const element = fileRefs.current.get(key);
-			const container = containerRef.current;
 
-			if (element && container) {
-				const scrollTop = element.offsetTop - container.offsetTop - 16;
-
-				container.scrollTo({
-					top: scrollTop,
-					behavior: "smooth",
-				});
+			if (element) {
+				element.scrollIntoView({ behavior: "smooth", block: "start" });
 			}
 		},
 		[],
