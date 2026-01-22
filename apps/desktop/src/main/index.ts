@@ -1,7 +1,3 @@
-import { initSentry } from "./lib/sentry";
-
-initSentry();
-
 import path from "node:path";
 import { settings } from "@superset/local-db";
 import { app, BrowserWindow, dialog } from "electron";
@@ -15,6 +11,7 @@ import { setupAgentHooks } from "./lib/agent-setup";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
+import { initSentry } from "./lib/sentry";
 import {
 	reconcileDaemonSessions,
 	shutdownOrphanedDaemon,
@@ -215,6 +212,8 @@ if (!gotTheLock) {
 
 	(async () => {
 		await app.whenReady();
+
+		initSentry();
 
 		await initAppState();
 
