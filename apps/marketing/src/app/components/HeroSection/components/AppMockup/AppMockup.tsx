@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
 	LuChevronDown,
@@ -10,8 +11,6 @@ import {
 	LuFolderGit2,
 	LuGitBranch,
 	LuGitPullRequest,
-	LuLayers,
-	LuPanelLeft,
 	LuPencil,
 	LuPlus,
 	LuRefreshCw,
@@ -63,62 +62,45 @@ function StatusIndicator({
 }
 
 const WORKSPACES = [
-	{ name: "main", branch: "main", isMain: true },
 	{
-		name: "autoupdate toast",
-		branch: "autoupdate-toast",
+		name: "use any agents",
+		branch: "use-any-agents",
 		add: 46,
 		del: 1,
 		pr: "#733",
-	},
-	{
-		name: "brew install",
-		branch: "brew-install",
-		add: 193,
-		del: 0,
-		pr: "#815",
-	},
-	{
-		name: "fix option key",
-		branch: "fix-option-key",
-		add: 394,
-		del: 23,
-		pr: "#884",
-		status: "review" as const,
-	},
-	{
-		name: "ui blocking threads",
-		branch: "ui-blocking-threads",
-		add: 33,
-		del: 0,
-		pr: "#816",
-	},
-	{
-		name: "cloud ws",
-		branch: "cloud-ws",
-		add: 5,
-		del: 0,
-		pr: "#827",
 		isActive: true,
 		status: "working" as const,
 	},
 	{
-		name: "terminal bugs 2",
-		branch: "terminal-bugs-2",
-		add: 233,
-		del: 188,
-		pr: "#905",
+		name: "create parallel branches",
+		branch: "create-parallel-branches",
+		add: 193,
+		del: 0,
+		pr: "#815",
+		status: "review" as const,
+	},
+	{
+		name: "see changes",
+		branch: "see-changes",
+		add: 394,
+		del: 23,
+		pr: "#884",
+	},
+	{
+		name: "open in any IDE",
+		branch: "open-in-any-ide",
+		add: 33,
+		del: 0,
+		pr: "#816",
 		status: "permission" as const,
 	},
-	{ name: "feature parity", branch: "feature-parity", add: 207, del: 1 },
 	{
-		name: "allow binding hotkeys t...",
-		branch: "allow-binding-hotkeys-to-preset",
-		add: 461,
-		del: 1,
+		name: "forward ports",
+		branch: "forward-ports",
+		add: 127,
+		del: 8,
+		pr: "#902",
 	},
-	{ name: "hero component", branch: "hero-component", add: 299, del: 2 },
-	{ name: "terminal bug 3", branch: "terminal-bug-3", add: 37, del: 0 },
 ];
 
 const FILE_CHANGES = [
@@ -136,10 +118,10 @@ const FILE_CHANGES = [
 ];
 
 const PORTS = [
-	{ workspace: "hero component", ports: ["3002"] },
+	{ workspace: "use any agents", ports: ["3002"] },
 	{
-		workspace: "terminal bug 3",
-		ports: ["3000", "3001", "5678", "5927", "31416"],
+		workspace: "see changes",
+		ports: ["3000", "3001", "5678"],
 	},
 ];
 
@@ -150,7 +132,6 @@ function WorkspaceItem({
 	del,
 	pr,
 	isActive,
-	isMain,
 	status,
 }: {
 	name: string;
@@ -159,7 +140,6 @@ function WorkspaceItem({
 	del?: number;
 	pr?: string;
 	isActive?: boolean;
-	isMain?: boolean;
 	status?: "permission" | "working" | "review";
 }) {
 	return (
@@ -172,8 +152,6 @@ function WorkspaceItem({
 			<div className="mt-0.5 text-muted-foreground/50 relative">
 				{status === "working" ? (
 					<AsciiSpinner className="text-[10px]" />
-				) : isMain ? (
-					<LuFolder className="size-3.5" />
 				) : (
 					<LuFolderGit2 className="size-3.5" />
 				)}
@@ -311,8 +289,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</span>
 					<span>Open</span>
 					<LuChevronDown className="size-3 text-muted-foreground/50" />
-					<span className="ml-2">KO</span>
-					<span className="text-muted-foreground/70">Kiet's Org</span>
 				</div>
 				<div className="flex items-center gap-3 text-[10px] text-muted-foreground">
 					<span>Base:</span>
@@ -325,25 +301,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 			<div className="flex h-[calc(100%-36px)]">
 				{/* Left sidebar */}
 				<div className="w-[180px] bg-[#111111] border-r border-white/10 flex flex-col shrink-0">
-					{/* Workspaces header */}
-					<div className="flex items-center justify-between px-2 py-2 border-b border-white/10">
-						<div className="flex items-center gap-2">
-							<button
-								type="button"
-								className="p-1 hover:bg-white/5 rounded text-muted-foreground/70"
-							>
-								<LuPanelLeft className="size-3.5" />
-							</button>
-							<button
-								type="button"
-								className="flex items-center gap-1.5 px-1.5 py-1 hover:bg-white/5 rounded text-muted-foreground"
-							>
-								<LuLayers className="size-3.5" />
-								<span className="text-[11px]">Workspaces</span>
-							</button>
-						</div>
-					</div>
-
 					{/* New Workspace button */}
 					<div className="px-2 py-2 border-b border-white/10">
 						<button
@@ -358,9 +315,8 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					{/* Repository section */}
 					<div className="flex items-center justify-between px-2 py-1.5 border-b border-white/10 cursor-pointer hover:bg-white/5">
 						<div className="flex items-center gap-2">
-							<span className="text-cyan-400 text-[10px]">⟨:⟩</span>
 							<span className="text-[11px] text-foreground/90">superset</span>
-							<span className="text-[10px] text-muted-foreground/50">(11)</span>
+							<span className="text-[10px] text-muted-foreground/50">(5)</span>
 						</div>
 						<div className="flex items-center gap-1 text-muted-foreground/50">
 							<LuPlus className="size-3" />
@@ -379,7 +335,6 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								del={ws.del}
 								pr={ws.pr}
 								isActive={ws.isActive}
-								isMain={ws.isMain}
 								status={ws.status}
 							/>
 						))}
@@ -392,7 +347,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 								<span>⌥</span>
 								<span>Ports</span>
 							</div>
-							<span className="text-[9px] text-muted-foreground/40">6</span>
+							<span className="text-[9px] text-muted-foreground/40">4</span>
 						</div>
 						{PORTS.map((port) => (
 							<div key={port.workspace} className="px-2 py-1">
@@ -432,18 +387,38 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 				<div className="flex-1 flex flex-col min-w-0">
 					{/* Tab bar */}
 					<div className="flex items-center gap-0.5 px-2 py-1 bg-[#141414] border-b border-white/10">
-						<div className="flex items-center gap-2 px-3 py-1 bg-[#1e1e1e] rounded-t text-[10px] text-foreground/90 border-b-2 border-cyan-500">
+						{/* Claude tab - always visible, active */}
+						<div className="flex items-center gap-1.5 px-3 py-1 bg-[#1e1e1e] rounded-t text-[10px] text-foreground/90 border-b-2 border-cyan-500">
+							<Image src="/app-icons/claude.svg" alt="Claude" width={12} height={12} />
 							<span>claude</span>
 							<LuX className="size-3 text-muted-foreground/50 hover:text-muted-foreground" />
 						</div>
-						<div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
-							<span>Terminal 1</span>
-							<LuX className="size-3 text-muted-foreground/30" />
-						</div>
-						<div className="flex items-center gap-2 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
-							<span>mcp</span>
-							<LuX className="size-3 text-muted-foreground/30" />
-						</div>
+						{/* Other agent tabs - shown when "Use Any Agents" is active */}
+						<motion.div
+							className="flex items-center gap-0.5 overflow-hidden"
+							initial={{ opacity: 0, width: 0 }}
+							animate={{
+								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
+								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+							}}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+						>
+							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
+								<Image src="/app-icons/codex.svg" alt="Codex" width={12} height={12} />
+								<span>codex</span>
+								<LuX className="size-3 text-muted-foreground/30" />
+							</div>
+							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
+								<Image src="/app-icons/gemini.svg" alt="Gemini" width={12} height={12} />
+								<span>gemini</span>
+								<LuX className="size-3 text-muted-foreground/30" />
+							</div>
+							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
+								<Image src="/app-icons/cursor-agent.svg" alt="Cursor" width={12} height={12} />
+								<span>cursor</span>
+								<LuX className="size-3 text-muted-foreground/30" />
+							</div>
+						</motion.div>
 						<div className="flex items-center px-2 py-1 text-muted-foreground/40 hover:text-muted-foreground/60 cursor-pointer">
 							<LuPlus className="size-3.5" />
 							<LuChevronDown className="size-3 ml-0.5" />
@@ -568,16 +543,11 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						</div>
 					</div>
 
-					{/* Commit message section */}
-					<div className="px-3 py-2 border-b border-white/10">
-						<div className="text-[10px] text-muted-foreground/60 mb-2">
-							Commit message
+					{/* Commit & Push section */}
+					<div className="px-3 py-2 border-b border-white/10 space-y-2">
+						<div className="h-7 bg-[#0a0a0a] rounded border border-white/10 px-2 flex items-center text-[10px] text-muted-foreground/40">
+							Commit message...
 						</div>
-						<div className="h-8 bg-[#0a0a0a] rounded border border-white/10" />
-					</div>
-
-					{/* Push button */}
-					<div className="px-3 py-2 border-b border-white/10">
 						<button
 							type="button"
 							className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-[10px] bg-white/10 hover:bg-white/15 rounded text-foreground/90"
@@ -585,26 +555,7 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 							<span>↑</span>
 							<span>Push</span>
 							<span className="text-muted-foreground/60">26</span>
-							<LuChevronDown className="size-3 text-muted-foreground/40 ml-auto" />
 						</button>
-					</div>
-
-					{/* Against main */}
-					<div className="px-3 py-2 border-b border-white/10">
-						<div className="flex items-center justify-between text-[10px]">
-							<div className="flex items-center gap-1">
-								<LuChevronDown className="size-3 text-muted-foreground/50" />
-								<span className="text-muted-foreground/70">Against main</span>
-							</div>
-							<span className="text-muted-foreground/50">46</span>
-						</div>
-					</div>
-
-					{/* Root Path */}
-					<div className="px-3 py-1.5 border-b border-white/10">
-						<span className="text-[9px] text-muted-foreground/50">
-							Root Path
-						</span>
 					</div>
 
 					{/* File changes list */}
@@ -622,6 +573,67 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 					</div>
 				</div>
 			</div>
+
+			{/* External IDE Popup - shown when "Open in Any IDE" is active */}
+			<motion.div
+				className="absolute bottom-6 right-6 w-[55%] rounded-lg overflow-hidden bg-[#1a1a1a] border border-white/20 shadow-2xl"
+				style={{ aspectRatio: "16/10" }}
+				initial={{ opacity: 0, scale: 0.9, y: 20 }}
+				animate={{
+					opacity: activeDemo === "Open in Any IDE" ? 1 : 0,
+					scale: activeDemo === "Open in Any IDE" ? 1 : 0.9,
+					y: activeDemo === "Open in Any IDE" ? 0 : 20,
+				}}
+				transition={{ duration: 0.3, ease: "easeOut" }}
+			>
+				{/* IDE window chrome */}
+				<div className="flex items-center justify-between px-3 py-2 bg-[#252525] border-b border-white/10">
+					<div className="flex items-center gap-1.5">
+						<div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+						<div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+						<div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+					</div>
+					<span className="text-sm text-muted-foreground/70">External IDE</span>
+					<div className="w-12" />
+				</div>
+
+				<div className="flex h-[calc(100%-36px)]">
+					{/* File tree */}
+					<div className="w-[110px] bg-[#1e1e1e] border-r border-white/10 p-3 text-sm">
+						<div className="flex items-center gap-2 text-muted-foreground/70 mb-2">
+							<LuFolder className="size-4" />
+							<span>src</span>
+						</div>
+						<div className="ml-4 space-y-1.5">
+							<div className="flex items-center gap-2 text-cyan-400">
+								<LuFile className="size-4" />
+								<span>index.ts</span>
+							</div>
+							<div className="flex items-center gap-2 text-muted-foreground/60">
+								<LuFile className="size-4" />
+								<span>utils.ts</span>
+							</div>
+							<div className="flex items-center gap-2 text-muted-foreground/60">
+								<LuFile className="size-4" />
+								<span>types.ts</span>
+							</div>
+						</div>
+					</div>
+
+					{/* Code editor */}
+					<div className="flex-1 bg-[#0d0d0d] p-4 text-sm font-mono overflow-hidden">
+						<div className="space-y-1.5 leading-relaxed">
+							<div><span className="text-purple-400">import</span> {"{"} Agent {"}"} <span className="text-purple-400">from</span> <span className="text-amber-300">"ai"</span></div>
+							<div><span className="text-purple-400">import</span> {"{"} tools {"}"} <span className="text-purple-400">from</span> <span className="text-amber-300">"./utils"</span></div>
+							<div className="text-muted-foreground/30">│</div>
+							<div><span className="text-purple-400">const</span> <span className="text-cyan-400">agent</span> = <span className="text-amber-400">new</span> Agent({"{"}</div>
+							<div className="pl-4"><span className="text-foreground/70">model:</span> <span className="text-amber-300">"claude-4"</span>,</div>
+							<div className="pl-4"><span className="text-foreground/70">tools:</span> [tools.read, tools.write]</div>
+							<div>{"}"})</div>
+						</div>
+					</div>
+				</div>
+			</motion.div>
 		</motion.div>
 	);
 }
