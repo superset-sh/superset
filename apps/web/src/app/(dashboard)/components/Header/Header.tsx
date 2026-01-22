@@ -85,7 +85,22 @@ export function Header() {
 							</div>
 						</DropdownMenuLabel>
 						<DropdownMenuSeparator />
-						{organizations && organizations.length > 0 && (
+						{organizations && organizations.length === 1 && (
+							<>
+								<DropdownMenuItem disabled className="opacity-100">
+									<Avatar className="mr-2 size-4">
+										<AvatarFallback className="text-[8px]">
+											{activeOrganization?.name?.charAt(0) ?? "O"}
+										</AvatarFallback>
+									</Avatar>
+									<span className="truncate">
+										{activeOrganization?.name ?? "Organization"}
+									</span>
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+							</>
+						)}
+						{organizations && organizations.length > 1 && (
 							<>
 								<DropdownMenuSub>
 									<DropdownMenuSubTrigger className="cursor-pointer">
