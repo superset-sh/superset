@@ -8,7 +8,6 @@ import { devtools } from "zustand/middleware";
 export type SettingsSection =
 	| "account"
 	| "organization"
-	| "members"
 	| "appearance"
 	| "ringtones"
 	| "keyboard"

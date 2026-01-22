@@ -101,7 +101,7 @@ export function OrganizationDropdown() {
 				</DropdownMenuItem>
 
 				<DropdownMenuItem
-					onSelect={() => navigate({ to: "/settings/members" })}
+					onSelect={() => navigate({ to: "/settings/organization" })}
 				>
 					<HiOutlineUserGroup className="h-4 w-4" />
 					<span>Invite and manage members</span>

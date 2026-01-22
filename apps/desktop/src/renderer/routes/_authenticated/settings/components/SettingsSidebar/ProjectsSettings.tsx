@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { HiChevronDown, HiChevronRight } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getMatchCountBySection } from "../../utils/settings-search";
@@ -26,13 +26,6 @@ export function ProjectsSettings({ searchQuery }: ProjectsSettingsProps) {
 	const hasProjectMatches = (matchCounts?.project ?? 0) > 0;
 	const hasWorkspaceMatches = (matchCounts?.workspace ?? 0) > 0;
 	const hasAnyMatches = hasProjectMatches || hasWorkspaceMatches;
-
-	// Expand all projects by default when groups are loaded
-	useEffect(() => {
-		if (groups.length > 0) {
-			setExpandedProjects(new Set(groups.map((g) => g.project.id)));
-		}
-	}, [groups]);
 
 	const toggleProject = (projectId: string) => {
 		setExpandedProjects((prev) => {

@@ -37,7 +37,7 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
 	const showMembersList = isItemVisible(
-		SETTING_ITEM_ID.MEMBERS_LIST,
+		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
 		visibleItems,
 	);
 

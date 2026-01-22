@@ -15,10 +15,11 @@ export const SETTING_ITEM_ID = {
 	ORGANIZATION_NAME: "organization-name",
 	ORGANIZATION_SLUG: "organization-slug",
 
-	// Members
-	MEMBERS_LIST: "members-list",
-	MEMBERS_INVITE: "members-invite",
-	MEMBERS_PENDING_INVITATIONS: "members-pending-invitations",
+	// Organization - Members (merged)
+	ORGANIZATION_MEMBERS_LIST: "organization-members-list",
+	ORGANIZATION_MEMBERS_INVITE: "organization-members-invite",
+	ORGANIZATION_MEMBERS_PENDING_INVITATIONS:
+		"organization-members-pending-invitations",
 
 	// Appearance
 	APPEARANCE_THEME: "appearance-theme",
@@ -177,13 +178,14 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 
-	// Members
+	// Organization - Members
 	{
-		id: SETTING_ITEM_ID.MEMBERS_LIST,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,
+		section: "organization",
 		title: "Team Members",
 		description: "View and manage team members and their roles",
 		keywords: [
+			"organization",
 			"members",
 			"team",
 			"users",
@@ -197,11 +199,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.MEMBERS_INVITE,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE,
+		section: "organization",
 		title: "Invite Members",
 		description: "Invite new members to your organization",
 		keywords: [
+			"organization",
 			"members",
 			"invite",
 			"add",
@@ -214,11 +217,12 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
-		section: "members",
+		id: SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS,
+		section: "organization",
 		title: "Pending Invitations",
 		description: "View and manage pending organization invitations",
 		keywords: [
+			"organization",
 			"members",
 			"invite",
 			"invitation",

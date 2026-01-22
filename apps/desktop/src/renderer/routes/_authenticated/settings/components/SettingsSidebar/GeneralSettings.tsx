@@ -10,7 +10,6 @@ import {
 	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
 	HiOutlineUser,
-	HiOutlineUserGroup,
 } from "react-icons/hi2";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
@@ -21,7 +20,6 @@ interface GeneralSettingsProps {
 type SettingsRoute =
 	| "/settings/account"
 	| "/settings/organization"
-	| "/settings/members"
 	| "/settings/appearance"
 	| "/settings/ringtones"
 	| "/settings/keyboard"
@@ -47,12 +45,6 @@ const GENERAL_SECTIONS: {
 		section: "organization",
 		label: "Organization",
 		icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
-	},
-	{
-		id: "/settings/members",
-		section: "members",
-		label: "Members",
-		icon: <HiOutlineUserGroup className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/appearance",
