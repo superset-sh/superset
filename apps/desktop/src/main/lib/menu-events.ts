@@ -5,7 +5,8 @@ export type SettingsSection =
 	| "workspace"
 	| "appearance"
 	| "keyboard"
-	| "terminal";
+	| "terminal"
+	| "integrations";
 
 export interface OpenSettingsEvent {
 	section?: SettingsSection;

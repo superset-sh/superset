@@ -36,7 +36,7 @@ export function PendingInvitations({
 	const collections = useCollections();
 
 	const shouldShowSection = isItemVisible(
-		SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
+		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS,
 		visibleItems,
 	);
 
@@ -77,7 +77,7 @@ export function PendingInvitations({
 	};
 
 	const showInvite = isItemVisible(
-		SETTING_ITEM_ID.MEMBERS_INVITE,
+		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE,
 		visibleItems,
 	);
 
