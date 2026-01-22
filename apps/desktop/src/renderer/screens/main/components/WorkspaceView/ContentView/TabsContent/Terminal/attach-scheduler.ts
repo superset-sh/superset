@@ -139,8 +139,13 @@ export function scheduleTerminalAttach({
 		existing.state !== "completed" &&
 		existing.state !== "canceled"
 	) {
+		const wasRunning = existing.state === "running";
 		existing.state = "canceled";
-		log(`Canceled existing task: ${paneId}`);
+		// Release inFlight slot immediately if the canceled task was running
+		if (wasRunning) {
+			inFlight = Math.max(0, inFlight - 1);
+		}
+		log(`Canceled existing task: ${paneId}`, { wasRunning });
 	}
 
 	const task: AttachTask = {

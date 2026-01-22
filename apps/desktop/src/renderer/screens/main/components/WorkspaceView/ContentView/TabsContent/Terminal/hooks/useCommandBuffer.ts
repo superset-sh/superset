@@ -25,6 +25,10 @@ export function useCommandBuffer({
 	const commandBufferRef = useRef("");
 	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 
+	// Use ref to avoid stale closures in xterm handlers bound at mount
+	const parentTabIdRef = useRef(parentTabId);
+	parentTabIdRef.current = parentTabId;
+
 	const debouncedSetTitle = useRef(
 		debounce((tabId: string, title: string) => {
 			setTabAutoTitle(tabId, title);
@@ -36,8 +40,8 @@ export function useCommandBuffer({
 			if (domEvent.key === "Enter") {
 				if (!isAlternateScreenRef.current) {
 					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title && parentTabId) {
-						debouncedSetTitle.current(parentTabId, title);
+					if (title && parentTabIdRef.current) {
+						debouncedSetTitle.current(parentTabIdRef.current, title);
 					}
 				}
 				commandBufferRef.current = "";
@@ -68,21 +72,18 @@ export function useCommandBuffer({
 				commandBufferRef.current += domEvent.key;
 			}
 		},
-		[paneId, parentTabId, isAlternateScreenRef],
+		[paneId, isAlternateScreenRef],
 	);
 
 	const appendToBuffer = useCallback((text: string) => {
 		commandBufferRef.current += text;
 	}, []);
 
-	const setTitle = useCallback(
-		(title: string) => {
-			if (title && parentTabId) {
-				debouncedSetTitle.current(parentTabId, title);
-			}
-		},
-		[parentTabId],
-	);
+	const setTitle = useCallback((title: string) => {
+		if (title && parentTabIdRef.current) {
+			debouncedSetTitle.current(parentTabIdRef.current, title);
+		}
+	}, []);
 
 	const cancelDebounce = useCallback(() => {
 		debouncedSetTitle.current?.cancel?.();
