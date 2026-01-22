@@ -12,7 +12,6 @@ import {
 } from "lib/trpc/routers/auth/utils/auth-functions";
 import { DEFAULT_CONFIRM_ON_QUIT, PROTOCOL_SCHEME } from "shared/constants";
 import { setupAgentHooks } from "./lib/agent-setup";
-import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { setupAutoUpdater } from "./lib/auto-updater";
 import { localDb } from "./lib/local-db";
@@ -21,7 +20,6 @@ import {
 	shutdownOrphanedDaemon,
 } from "./lib/terminal";
 import { disposeTray, initTray } from "./lib/tray";
-import { getWorkspaceRuntimeRegistry } from "./lib/workspace-runtime";
 import { MainWindow } from "./windows/main";
 
 // Initialize local SQLite database (runs migrations + legacy data migration on import)
@@ -84,13 +82,6 @@ app.on("open-url", async (event, url) => {
 	await processDeepLink(url);
 });
 
-type QuitState =
-	| "idle"
-	| "confirming"
-	| "confirmed"
-	| "cleaning"
-	| "ready-to-quit";
-let quitState: QuitState = "idle";
 let isQuitting = false;
 let skipConfirmation = false;
 
@@ -118,75 +109,43 @@ export function setSkipQuitConfirmation(): void {
  */
 export function quitWithoutConfirmation(): void {
 	skipConfirmation = true;
-	app.quit();
+	app.exit(0);
 }
 
 app.on("before-quit", async (event) => {
-	isQuitting = true;
+	if (isQuitting) return;
 
-	if (quitState === "ready-to-quit") return;
-	if (quitState === "cleaning" || quitState === "confirming") {
+	const isDev = process.env.NODE_ENV === "development";
+	const shouldConfirm =
+		!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+
+	if (shouldConfirm) {
 		event.preventDefault();
-		return;
-	}
 
-	// Check if we need to show confirmation
-	// Skip confirmation in development mode to avoid interrupting hot-reload
-	if (quitState === "idle") {
-		const isDev = process.env.NODE_ENV === "development";
-		const shouldConfirm =
-			!skipConfirmation && !isDev && getConfirmOnQuitSetting();
+		try {
+			const { response } = await dialog.showMessageBox({
+				type: "question",
+				buttons: ["Quit", "Cancel"],
+				defaultId: 0,
+				cancelId: 1,
+				title: "Quit Superset",
+				message: "Are you sure you want to quit?",
+			});
 
-		if (shouldConfirm) {
-			event.preventDefault();
-			quitState = "confirming";
-
-			try {
-				const { response } = await dialog.showMessageBox({
-					type: "question",
-					buttons: ["Quit", "Cancel"],
-					defaultId: 0,
-					cancelId: 1,
-					title: "Quit Superset",
-					message: "Are you sure you want to quit?",
-				});
-
-				if (response === 1) {
-					// User cancelled
-					quitState = "idle";
-					isQuitting = false;
-					return;
-				}
-			} catch (error) {
-				// Dialog failed - proceed with quit to avoid stuck state
-				console.error("[main] Quit confirmation dialog failed:", error);
+			if (response === 1) {
+				// User cancelled
+				return;
 			}
-
-			// User confirmed or dialog failed, proceed with quit
-			quitState = "confirmed";
-			app.quit();
-			return;
+		} catch (error) {
+			console.error("[main] Quit confirmation dialog failed:", error);
 		}
-
-		// No confirmation needed
-		quitState = "confirmed";
 	}
 
-	event.preventDefault();
-	quitState = "cleaning";
-
-	try {
-		// Dispose tray before other cleanup
-		disposeTray();
-
-		await Promise.all([
-			getWorkspaceRuntimeRegistry().getDefault().terminal.cleanup(),
-			posthog?.shutdown(),
-		]);
-	} finally {
-		quitState = "ready-to-quit";
-		app.quit();
-	}
+	// Quit confirmed or no confirmation needed - exit immediately
+	// Let OS clean up child processes, tray, etc.
+	isQuitting = true;
+	disposeTray();
+	app.exit(0);
 });
 
 process.on("uncaughtException", (error) => {
@@ -198,6 +157,45 @@ process.on("unhandledRejection", (reason) => {
 	if (isQuitting) return;
 	console.error("[main] Unhandled rejection:", reason);
 });
+
+// Handle termination signals (e.g., when dev server stops via Ctrl+C)
+// Without these handlers, Electron may not quit when electron-vite sends SIGTERM
+if (process.env.NODE_ENV === "development") {
+	const handleTerminationSignal = (signal: string) => {
+		console.log(`[main] Received ${signal}, quitting...`);
+		// Use app.exit() to bypass before-quit async cleanup which can hang
+		app.exit(0);
+	};
+
+	process.on("SIGTERM", () => handleTerminationSignal("SIGTERM"));
+	process.on("SIGINT", () => handleTerminationSignal("SIGINT"));
+
+	// Monitor parent process (electron-vite CLI) and quit if it exits.
+	// This is a fallback for when signals don't propagate correctly.
+	// When electron-vite receives Ctrl+C, it may exit without properly
+	// signaling the child Electron process to quit.
+	const parentPid = process.ppid;
+	const checkParentAlive = (): boolean => {
+		try {
+			// Signal 0 doesn't actually send a signal, just checks if process exists
+			process.kill(parentPid, 0);
+			return true;
+		} catch {
+			return false;
+		}
+	};
+
+	const parentCheckInterval = setInterval(() => {
+		if (!checkParentAlive()) {
+			console.log("[main] Parent process exited, quitting...");
+			clearInterval(parentCheckInterval);
+			// Use app.exit() instead of app.quit() to bypass the before-quit
+			// handler's async cleanup which can hang in dev mode
+			app.exit(0);
+		}
+	}, 1000);
+	parentCheckInterval.unref();
+}
 
 // Single instance lock - required for second-instance event on Windows/Linux
 const gotTheLock = app.requestSingleInstanceLock();

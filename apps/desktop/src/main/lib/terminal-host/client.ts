@@ -449,6 +449,8 @@ export class TerminalHostClient extends EventEmitter {
 					resolved = true;
 					clearTimeout(timeout);
 					this.controlSocket = socket;
+					// Don't keep Electron alive just for daemon connection
+					socket.unref();
 					this.setupControlSocketHandlers();
 					resolve(true);
 				}
@@ -496,6 +498,8 @@ export class TerminalHostClient extends EventEmitter {
 						this.handleDisconnect();
 					});
 					this.streamSocket = socket;
+					// Don't keep Electron alive just for daemon connection
+					socket.unref();
 					resolve(true);
 				}
 			});
