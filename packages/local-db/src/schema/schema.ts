@@ -34,6 +34,9 @@ export const projects = sqliteTable(
 		}),
 		defaultBranch: text("default_branch"),
 		githubOwner: text("github_owner"),
+		// Relative path within repo for project thumbnail image
+		// null = auto-detect, "" (empty) = use fallback icon, "path/to/image.png" = specific image
+		imagePath: text("image_path"),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -103,6 +106,9 @@ export const workspaces = sqliteTable(
 			.notNull()
 			.$defaultFn(() => Date.now()),
 		isUnread: integer("is_unread", { mode: "boolean" }).default(false),
+		// Relative path within repo for workspace thumbnail image
+		// null = auto-detect, "" (empty) = use fallback icon, "path/to/image.png" = specific image
+		imagePath: text("image_path"),
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),

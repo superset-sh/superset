@@ -8,13 +8,23 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
+import { Spinner } from "@superset/ui/spinner";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
-import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
+import {
+	LuCheck,
+	LuFolder,
+	LuFolderOpen,
+	LuImage,
+	LuPalette,
+	LuSettings,
+	LuWand,
+	LuX,
+} from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
@@ -57,6 +67,31 @@ export function ProjectHeader({
 	const navigate = useNavigate();
 	const params = useParams({ strict: false }) as { workspaceId?: string };
 	const [isCloseDialogOpen, setIsCloseDialogOpen] = useState(false);
+
+	// Query the project to get current imagePath
+	const { data: project } = electronTrpc.projects.get.useQuery(
+		{ id: projectId },
+		{ refetchOnWindowFocus: false },
+	);
+
+	// Query discovered images in the repository
+	const { data: discoveredImages, isLoading: isLoadingImages } =
+		electronTrpc.projects.discoverImages.useQuery(
+			{ projectId },
+			{ refetchOnWindowFocus: false },
+		);
+
+	// Mutation to set the project image
+	const setProjectImage = electronTrpc.projects.setProjectImage.useMutation({
+		onSuccess: () => {
+			utils.projects.get.invalidate({ id: projectId });
+			utils.projects.getProjectImage.invalidate({ projectId });
+		},
+		onError: (error) => toast.error(`Failed to set image: ${error.message}`),
+	});
+
+	// Current image path from project (null = auto-detect, "" = fallback, string = custom)
+	const currentImagePath = project?.imagePath ?? null;
 
 	const closeProject = electronTrpc.projects.close.useMutation({
 		onMutate: async ({ id }) => {
@@ -133,6 +168,65 @@ export function ProjectHeader({
 		updateProject.mutate({ id: projectId, patch: { color } });
 	};
 
+	// Handle image selection
+	const handleImageSelect = (imagePath: string | null) => {
+		setProjectImage.mutate({ projectId, imagePath });
+	};
+
+	// Image picker submenu used in both collapsed and expanded context menus
+	const imagePickerSubmenu = (
+		<ContextMenuSub>
+			<ContextMenuSubTrigger>
+				<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Set Image
+			</ContextMenuSubTrigger>
+			<ContextMenuSubContent className="w-56">
+				<ContextMenuItem onSelect={() => handleImageSelect("")}>
+					<LuFolder className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+					<span className="flex-1">Default icon</span>
+					{currentImagePath === "" && (
+						<LuCheck className="size-4 text-primary" />
+					)}
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={() => handleImageSelect(null)}>
+					<LuWand className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+					<span className="flex-1">Auto-detect</span>
+					{currentImagePath === null && (
+						<LuCheck className="size-4 text-primary" />
+					)}
+				</ContextMenuItem>
+				{discoveredImages && discoveredImages.length > 0 && (
+					<>
+						<ContextMenuSeparator />
+						<div className="px-2 py-1 text-xs text-muted-foreground">
+							Images in repository
+						</div>
+						{isLoadingImages ? (
+							<div className="flex items-center justify-center py-2">
+								<Spinner className="size-4" />
+							</div>
+						) : (
+							discoveredImages.map((image) => (
+								<ContextMenuItem
+									key={image.path}
+									onSelect={() => handleImageSelect(image.path)}
+								>
+									<LuImage className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+									<span className="flex-1 truncate">
+										{image.path.split("/").pop()}
+									</span>
+									{currentImagePath === image.path && (
+										<LuCheck className="size-4 text-primary" />
+									)}
+								</ContextMenuItem>
+							))
+						)}
+					</>
+				)}
+			</ContextMenuSubContent>
+		</ContextMenuSub>
+	);
+
 	// Color picker submenu used in both collapsed and expanded context menus
 	const colorPickerSubmenu = (
 		<ContextMenuSub>
@@ -202,23 +296,25 @@ export function ProjectHeader({
 					<ContextMenuContent>
 						<ContextMenuItem onSelect={handleOpenInFinder}>
 							<LuFolderOpen
-								className="size-4 mr-2"
+								className="size-4"
 								strokeWidth={STROKE_WIDTH}
 							/>
 							Open in Finder
 						</ContextMenuItem>
 						<ContextMenuItem onSelect={handleOpenSettings}>
-							<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+							<LuSettings className="size-4" strokeWidth={STROKE_WIDTH} />
 							Project Settings
 						</ContextMenuItem>
+						<ContextMenuSeparator />
 						{colorPickerSubmenu}
+						{imagePickerSubmenu}
 						<ContextMenuSeparator />
 						<ContextMenuItem
 							onSelect={handleCloseProject}
 							disabled={closeProject.isPending}
 							className="text-destructive focus:text-destructive"
 						>
-							<LuX
+<LuX
 								className="size-4 mr-2 text-destructive"
 								strokeWidth={STROKE_WIDTH}
 							/>
@@ -305,21 +401,23 @@ export function ProjectHeader({
 				</ContextMenuTrigger>
 				<ContextMenuContent>
 					<ContextMenuItem onSelect={handleOpenInFinder}>
-						<LuFolderOpen className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 						Open in Finder
 					</ContextMenuItem>
 					<ContextMenuItem onSelect={handleOpenSettings}>
-						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						<LuSettings className="size-4" strokeWidth={STROKE_WIDTH} />
 						Project Settings
 					</ContextMenuItem>
+					<ContextMenuSeparator />
 					{colorPickerSubmenu}
+					{imagePickerSubmenu}
 					<ContextMenuSeparator />
 					<ContextMenuItem
 						onSelect={handleCloseProject}
 						disabled={closeProject.isPending}
 						className="text-destructive focus:text-destructive"
 					>
-						<LuX
+<LuX
 							className="size-4 mr-2 text-destructive"
 							strokeWidth={STROKE_WIDTH}
 						/>
