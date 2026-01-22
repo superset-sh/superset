@@ -1,129 +1,124 @@
+/**
+ * Terminal Attach Scheduler
+ *
+ * Manages concurrent terminal attach operations with:
+ * - Concurrency limit (max 3 simultaneous attaches)
+ * - Priority ordering (focused terminals attach first)
+ * - StrictMode double-mount handling
+ * - Idempotent completion (safe to call done() multiple times)
+ */
+
+type TaskState = "queued" | "running" | "waiting" | "completed" | "canceled";
+
 type AttachTask = {
 	paneId: string;
 	priority: number;
 	enqueuedAt: number;
-	canceled: boolean;
-	/** Whether this task has released its inFlight slot (idempotent completion) */
-	released: boolean;
+	state: TaskState;
 	run: (done: () => void) => void;
 };
 
 const MAX_CONCURRENT_ATTACHES = 3;
 
-// Debug logging (enable via localStorage.setItem('SUPERSET_TERMINAL_DEBUG', '1'))
 const DEBUG_SCHEDULER =
 	typeof localStorage !== "undefined" &&
 	localStorage.getItem("SUPERSET_TERMINAL_DEBUG") === "1";
 
 let inFlight = 0;
 const queue: AttachTask[] = [];
-const pendingByPaneId = new Map<string, AttachTask>();
 
-// Track running tasks per paneId to prevent StrictMode double-runs exhausting concurrency
-const runningByPaneId = new Map<string, AttachTask>();
+// Single source of truth for all tasks, keyed by paneId
+const tasks = new Map<string, AttachTask>();
 
-// Tasks waiting for a running task to complete (stored separately to avoid infinite loop)
-const waitingByPaneId = new Map<string, AttachTask>();
+function log(message: string, data?: Record<string, unknown>) {
+	if (!DEBUG_SCHEDULER) return;
+	console.log(`[AttachScheduler] ${message}`, data ?? "");
+}
 
 function pump(): void {
 	while (inFlight < MAX_CONCURRENT_ATTACHES && queue.length > 0) {
-		// Pick highest priority (lowest number), FIFO within same priority.
 		queue.sort(
 			(a, b) => a.priority - b.priority || a.enqueuedAt - b.enqueuedAt,
 		);
 		const task = queue.shift();
 		if (!task) return;
-		if (task.canceled) {
-			if (DEBUG_SCHEDULER) {
-				console.log(`[AttachScheduler] Skipping canceled task: ${task.paneId}`);
-			}
+
+		// Skip canceled or completed tasks
+		if (task.state === "canceled" || task.state === "completed") {
+			log(`Skipping ${task.state} task: ${task.paneId}`);
 			continue;
 		}
 
-		// If a newer task replaced this paneId, skip this stale one.
-		const current = pendingByPaneId.get(task.paneId);
-		if (current !== task) {
-			if (DEBUG_SCHEDULER) {
-				console.log(`[AttachScheduler] Skipping replaced task: ${task.paneId}`);
-			}
+		// Skip if a newer task replaced this one
+		if (tasks.get(task.paneId) !== task) {
+			log(`Skipping replaced task: ${task.paneId}`);
 			continue;
 		}
 
-		// If there's already a running task for this paneId (from a previous mount
-		// that was canceled but still executing), wait for it to finish before
-		// starting a new one. This prevents StrictMode double-mounts from
-		// exhausting the concurrency limit.
-		const running = runningByPaneId.get(task.paneId);
-		if (running && running !== task) {
-			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Waiting for previous task to finish: ${task.paneId}, inFlight=${inFlight}`,
-				);
-			}
-			// Store in waiting map (NOT back in queue to avoid infinite loop).
-			// Will be re-queued when the running task completes.
-			waitingByPaneId.set(task.paneId, task);
+		// If another task is running for this paneId, wait for it
+		const currentTask = tasks.get(task.paneId);
+		if (
+			currentTask &&
+			currentTask !== task &&
+			currentTask.state === "running"
+		) {
+			log(`Waiting for previous task: ${task.paneId}`);
+			task.state = "waiting";
 			continue;
 		}
 
+		// Start the task
 		inFlight++;
-		runningByPaneId.set(task.paneId, task);
-
-		if (DEBUG_SCHEDULER) {
-			console.log(
-				`[AttachScheduler] Starting task: ${task.paneId}, inFlight=${inFlight}, queueLength=${queue.length}`,
-			);
-		}
-
-		task.run(() => {
-			// Idempotent completion: only release inFlight slot once
-			// This prevents double-decrement when cancel() was called while task was running
-			const shouldRelease = !task.released;
-			if (shouldRelease) {
-				task.released = true;
-			}
-
-			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Task done: ${task.paneId}, inFlight=${shouldRelease ? inFlight - 1 : inFlight}, alreadyReleased=${!shouldRelease}`,
-				);
-			}
-
-			// Clear running tracker
-			if (runningByPaneId.get(task.paneId) === task) {
-				runningByPaneId.delete(task.paneId);
-			}
-
-			// Only clear pending if this task is still the current one for the paneId.
-			if (pendingByPaneId.get(task.paneId) === task) {
-				pendingByPaneId.delete(task.paneId);
-			}
-
-			// Re-queue any task that was waiting for this one to complete
-			const waiting = waitingByPaneId.get(task.paneId);
-			if (waiting && !waiting.canceled) {
-				waitingByPaneId.delete(task.paneId);
-				queue.push(waiting);
-				if (DEBUG_SCHEDULER) {
-					console.log(
-						`[AttachScheduler] Re-queued waiting task: ${task.paneId}`,
-					);
-				}
-			}
-
-			// Only decrement inFlight if we're the one releasing
-			if (shouldRelease) {
-				inFlight = Math.max(0, inFlight - 1);
-			}
-			pump();
+		task.state = "running";
+		log(`Starting task: ${task.paneId}`, {
+			inFlight,
+			queueLength: queue.length,
 		});
+
+		task.run(() => completeTask(task));
 	}
 
 	if (DEBUG_SCHEDULER && queue.length > 0) {
-		console.log(
-			`[AttachScheduler] pump() exited with ${queue.length} tasks waiting, inFlight=${inFlight}`,
-		);
+		log(`pump() exited with tasks waiting`, {
+			queueLength: queue.length,
+			inFlight,
+		});
 	}
+}
+
+function completeTask(task: AttachTask): void {
+	// Idempotent: only complete once
+	if (task.state === "completed" || task.state === "canceled") {
+		log(`Task already ${task.state}: ${task.paneId}`);
+		return;
+	}
+
+	const wasRunning = task.state === "running";
+	task.state = "completed";
+
+	log(`Task done: ${task.paneId}`, {
+		wasRunning,
+		inFlight: wasRunning ? inFlight - 1 : inFlight,
+	});
+
+	// Clean up if this is still the current task for this paneId
+	if (tasks.get(task.paneId) === task) {
+		tasks.delete(task.paneId);
+	}
+
+	// Re-queue any waiting task for this paneId
+	for (const t of queue) {
+		if (t.paneId === task.paneId && t.state === "waiting") {
+			t.state = "queued";
+			log(`Re-queued waiting task: ${task.paneId}`);
+			break;
+		}
+	}
+
+	if (wasRunning) {
+		inFlight = Math.max(0, inFlight - 1);
+	}
+	pump();
 }
 
 export function scheduleTerminalAttach({
@@ -135,75 +130,62 @@ export function scheduleTerminalAttach({
 	priority: number;
 	run: (done: () => void) => void;
 }): () => void {
-	if (DEBUG_SCHEDULER) {
-		console.log(
-			`[AttachScheduler] Schedule: ${paneId}, priority=${priority}, inFlight=${inFlight}, queueLength=${queue.length}`,
-		);
-	}
+	log(`Schedule: ${paneId}`, { priority, inFlight, queueLength: queue.length });
 
-	// Replace any existing pending task for this paneId.
-	const existing = pendingByPaneId.get(paneId);
-	if (existing) {
-		existing.canceled = true;
-		pendingByPaneId.delete(paneId);
-		if (DEBUG_SCHEDULER) {
-			console.log(
-				`[AttachScheduler] Canceled existing pending task: ${paneId}`,
-			);
-		}
+	// Cancel any existing task for this paneId
+	const existing = tasks.get(paneId);
+	if (
+		existing &&
+		existing.state !== "completed" &&
+		existing.state !== "canceled"
+	) {
+		existing.state = "canceled";
+		log(`Canceled existing task: ${paneId}`);
 	}
 
 	const task: AttachTask = {
 		paneId,
 		priority,
 		enqueuedAt: Date.now(),
-		canceled: false,
-		released: false,
+		state: "queued",
 		run,
 	};
 
-	pendingByPaneId.set(paneId, task);
+	tasks.set(paneId, task);
 	queue.push(task);
 	pump();
 
 	return () => {
-		task.canceled = true;
-		if (pendingByPaneId.get(paneId) === task) {
-			pendingByPaneId.delete(paneId);
-		}
-		if (waitingByPaneId.get(paneId) === task) {
-			waitingByPaneId.delete(paneId);
+		// Skip if already done
+		if (task.state === "completed" || task.state === "canceled") {
+			return;
 		}
 
-		// If this task is currently running, we need to decrement inFlight now
-		// because the tRPC callbacks for unmounted components may not fire,
-		// meaning done() would never be called and inFlight would stay stuck.
-		// Use idempotent release to prevent double-decrement if done() also fires.
-		if (runningByPaneId.get(paneId) === task && !task.released) {
-			task.released = true;
-			runningByPaneId.delete(paneId);
+		const wasRunning = task.state === "running";
+		task.state = "canceled";
+
+		log(`Cancel: ${paneId}`, {
+			wasRunning,
+			inFlight: wasRunning ? inFlight - 1 : inFlight,
+		});
+
+		// Clean up if this is still the current task
+		if (tasks.get(paneId) === task) {
+			tasks.delete(paneId);
+		}
+
+		// Re-queue any waiting task
+		for (const t of queue) {
+			if (t.paneId === paneId && t.state === "waiting") {
+				t.state = "queued";
+				log(`Re-queued waiting task after cancel: ${paneId}`);
+				break;
+			}
+		}
+
+		if (wasRunning) {
 			inFlight = Math.max(0, inFlight - 1);
-			if (DEBUG_SCHEDULER) {
-				console.log(
-					`[AttachScheduler] Cancel running task: ${paneId}, inFlight=${inFlight}`,
-				);
-			}
-			// Re-queue any task that was waiting for this one to complete
-			// (mirrors done() behavior for the "done never fires" scenario)
-			const waiting = waitingByPaneId.get(paneId);
-			if (waiting && !waiting.canceled) {
-				waitingByPaneId.delete(paneId);
-				queue.push(waiting);
-				if (DEBUG_SCHEDULER) {
-					console.log(
-						`[AttachScheduler] Re-queued waiting task after cancel: ${paneId}`,
-					);
-				}
-			}
-			// Pump to start any waiting tasks now that we have capacity
 			pump();
-		} else if (DEBUG_SCHEDULER) {
-			console.log(`[AttachScheduler] Cancel called: ${paneId}`);
 		}
 	};
 }
