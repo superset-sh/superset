@@ -30,6 +30,32 @@ interface FileDiffSectionProps {
 const VISIBILITY_MARGIN = "200px 0px";
 const LARGE_DIFF_THRESHOLD = 500;
 
+const GENERATED_FILE_PATTERNS = [
+	/^bun\.lock(b)?$/,
+	/^package-lock\.json$/,
+	/^yarn\.lock$/,
+	/^pnpm-lock\.yaml$/,
+	/^composer\.lock$/,
+	/^Gemfile\.lock$/,
+	/^Cargo\.lock$/,
+	/^poetry\.lock$/,
+	/^Pipfile\.lock$/,
+	/^go\.sum$/,
+	/\.min\.(js|css)$/,
+	/\.bundle\.(js|css)$/,
+	/[\\/]vendor[\\/]/,
+	/[\\/]node_modules[\\/]/,
+	/[\\/]dist[\\/]/,
+	/[\\/]build[\\/]/,
+];
+
+function isGeneratedFile(filePath: string): boolean {
+	const fileName = filePath.split("/").pop() || filePath;
+	return GENERATED_FILE_PATTERNS.some(
+		(pattern) => pattern.test(fileName) || pattern.test(filePath),
+	);
+}
+
 export function FileDiffSection({
 	file,
 	category,
@@ -55,10 +81,12 @@ export function FileDiffSection({
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
-	const [loadLargeDiff, setLoadLargeDiff] = useState(false);
+	const [loadHiddenDiff, setLoadHiddenDiff] = useState(false);
 
 	const totalChanges = file.additions + file.deletions;
 	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
+	const isGenerated = isGeneratedFile(file.path);
+	const isHiddenByDefault = isLargeDiff || isGenerated;
 
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
@@ -171,7 +199,9 @@ export function FileDiffSection({
 			},
 			{
 				enabled:
-					isExpanded && (!isLargeDiff || loadLargeDiff) && !!worktreePath,
+					isExpanded &&
+					(!isHiddenByDefault || loadHiddenDiff) &&
+					!!worktreePath,
 			},
 		);
 
@@ -207,17 +237,18 @@ export function FileDiffSection({
 				/>
 
 				<CollapsibleContent>
-					{isLargeDiff && !loadLargeDiff ? (
+					{isHiddenByDefault && !loadHiddenDiff ? (
 						<div className="flex flex-col items-center justify-center gap-3 py-8 text-muted-foreground bg-muted/30">
 							<LuFileCode className="w-8 h-8" />
 							<p className="text-sm">
-								Large diff hidden — {totalChanges.toLocaleString()} lines
-								changed
+								{isGenerated
+									? "Generated file hidden"
+									: `Large diff hidden — ${totalChanges.toLocaleString()} lines changed`}
 							</p>
 							<Button
 								variant="outline"
 								size="sm"
-								onClick={() => setLoadLargeDiff(true)}
+								onClick={() => setLoadHiddenDiff(true)}
 							>
 								Load diff
 							</Button>
