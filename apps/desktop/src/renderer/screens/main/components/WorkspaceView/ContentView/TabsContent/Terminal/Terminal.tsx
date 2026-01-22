@@ -2,7 +2,6 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { IDisposable, Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import debounce from "lodash/debounce";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -14,7 +13,6 @@ import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalCallbacksStore } from "renderer/stores/tabs/terminal-callbacks";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { scheduleTerminalAttach } from "./attach-scheduler";
-import { sanitizeForTitle } from "./commandBuffer";
 import {
 	ConnectionErrorOverlay,
 	RestoredModeOverlay,
@@ -32,6 +30,7 @@ import {
 	type TerminalRendererRef,
 } from "./helpers";
 import {
+	useCommandBuffer,
 	useFileLinkClick,
 	useTerminalColdRestore,
 	useTerminalConnection,
@@ -64,11 +63,9 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	);
 	const wasKilledByUserRef = useRef(false);
 	const pendingEventsRef = useRef<TerminalStreamEvent[]>([]);
-	const commandBufferRef = useRef("");
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [xtermInstance, setXtermInstance] = useState<XTerm | null>(null);
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
 	const focusedPaneId = useTabsStore(
 		(s) => s.focusedPaneIds[pane?.tabId ?? ""],
 	);
@@ -145,14 +142,13 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 	const parentTabIdRef = useRef(parentTabId);
 	parentTabIdRef.current = parentTabId;
 
-	const setTabAutoTitleRef = useRef(setTabAutoTitle);
-	setTabAutoTitleRef.current = setTabAutoTitle;
-
-	const debouncedSetTabAutoTitleRef = useRef(
-		debounce((tabId: string, title: string) => {
-			setTabAutoTitleRef.current(tabId, title);
-		}, 100),
-	);
+	// Command buffer for tracking typed commands and auto-title updates
+	const { handleKeyForBuffer, appendToBuffer, setTitle, cancelDebounce } =
+		useCommandBuffer({
+			paneId,
+			parentTabId,
+			isAlternateScreenRef,
+		});
 
 	const registerClearCallbackRef = useRef(
 		useTerminalCallbacksStore.getState().registerClearCallback,
@@ -415,41 +411,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			domEvent: KeyboardEvent;
 		}) => {
 			if (isRestoredModeRef.current || connectionErrorRef.current) return;
-			const { domEvent } = event;
-			if (domEvent.key === "Enter") {
-				if (!isAlternateScreenRef.current) {
-					const title = sanitizeForTitle(commandBufferRef.current);
-					if (title && parentTabIdRef.current) {
-						debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
-					}
-				}
-				commandBufferRef.current = "";
-			} else if (domEvent.key === "Backspace") {
-				commandBufferRef.current = commandBufferRef.current.slice(0, -1);
-			} else if (domEvent.key === "c" && domEvent.ctrlKey) {
-				commandBufferRef.current = "";
-				const currentPane = useTabsStore.getState().panes[paneId];
-				if (
-					currentPane?.status === "working" ||
-					currentPane?.status === "permission"
-				) {
-					useTabsStore.getState().setPaneStatus(paneId, "idle");
-				}
-			} else if (domEvent.key === "Escape") {
-				const currentPane = useTabsStore.getState().panes[paneId];
-				if (
-					currentPane?.status === "working" ||
-					currentPane?.status === "permission"
-				) {
-					useTabsStore.getState().setPaneStatus(paneId, "idle");
-				}
-			} else if (
-				domEvent.key.length === 1 &&
-				!domEvent.ctrlKey &&
-				!domEvent.metaKey
-			) {
-				commandBufferRef.current += domEvent.key;
-			}
+			handleKeyForBuffer(event.domEvent);
 		};
 
 		const initialCommands = paneInitialCommandsRef.current;
@@ -546,9 +508,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		const inputDisposable = xterm.onData(handleTerminalInput);
 		const keyDisposable = xterm.onKey(handleKeyPress);
 		const titleDisposable = xterm.onTitleChange((title) => {
-			if (title && parentTabIdRef.current) {
-				debouncedSetTabAutoTitleRef.current(parentTabIdRef.current, title);
-			}
+			setTitle(title);
 		});
 
 		const handleClear = () => {
@@ -584,9 +544,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			(cols, rows) => resizeRef.current({ paneId, cols, rows }),
 		);
 		const cleanupPaste = setupPasteHandler(xterm, {
-			onPaste: (text) => {
-				commandBufferRef.current += text;
-			},
+			onPaste: appendToBuffer,
 			onWrite: handleWrite,
 			isBracketedPasteEnabled: () => isBracketedPasteRef.current,
 		});
@@ -629,7 +587,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 			cleanupQuerySuppression();
 			unregisterClearCallbackRef.current(paneId);
 			unregisterScrollToBottomCallbackRef.current(paneId);
-			debouncedSetTabAutoTitleRef.current?.cancel?.();
+			cancelDebounce();
 
 			const detachTimeout = setTimeout(() => {
 				detachRef.current({ paneId });
