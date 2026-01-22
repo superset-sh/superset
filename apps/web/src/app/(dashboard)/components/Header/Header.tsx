@@ -87,7 +87,7 @@ export function Header() {
 						<DropdownMenuSeparator />
 						{organizations && organizations.length === 1 && (
 							<>
-								<DropdownMenuItem disabled className="opacity-100">
+								<div className="flex items-center px-2 py-1.5 text-sm">
 									<Avatar className="mr-2 size-4">
 										<AvatarFallback className="text-[8px]">
 											{activeOrganization?.name?.charAt(0) ?? "O"}
@@ -96,7 +96,7 @@ export function Header() {
 									<span className="truncate">
 										{activeOrganization?.name ?? "Organization"}
 									</span>
-								</DropdownMenuItem>
+								</div>
 								<DropdownMenuSeparator />
 							</>
 						)}
