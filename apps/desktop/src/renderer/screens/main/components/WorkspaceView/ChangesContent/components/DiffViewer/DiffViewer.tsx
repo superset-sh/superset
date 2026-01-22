@@ -277,7 +277,7 @@ export function DiffViewer({
 				readOnly: !editable,
 				originalEditable: false,
 				renderOverviewRuler: !fitContent,
-				renderGutterMenu: false,
+				glyphMargin: false,
 				diffWordWrap: "on",
 				contextmenu: !contextMenuProps,
 				hideUnchangedRegions: {

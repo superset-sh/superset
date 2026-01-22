@@ -2,7 +2,6 @@ import { type AuthProvider, COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useEffect } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { authClient } from "renderer/lib/auth-client";
@@ -17,10 +16,6 @@ export const Route = createFileRoute("/sign-in/")({
 function SignInPage() {
 	const { data: session, isPending } = authClient.useSession();
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
-
-	useEffect(() => {
-		posthog.capture("desktop_opened");
-	}, []);
 
 	// Show loading while session is being fetched
 	if (isPending) {

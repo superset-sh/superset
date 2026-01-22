@@ -41,6 +41,12 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
 
+	// Billing
+	BILLING_OVERVIEW: "billing-overview",
+	BILLING_PLANS: "billing-plans",
+	BILLING_USAGE: "billing-usage",
+	BILLING_INVOICES: "billing-invoices",
+
 	// Project
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
@@ -435,6 +441,69 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cmd",
 			"ctrl",
 			"browser",
+		],
+	},
+
+	// Billing
+	{
+		id: SETTING_ITEM_ID.BILLING_OVERVIEW,
+		section: "billing",
+		title: "Current plan",
+		description: "View your current subscription and usage",
+		keywords: [
+			"billing",
+			"plan",
+			"subscription",
+			"pro",
+			"free",
+			"enterprise",
+			"current",
+			"payment",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_PLANS,
+		section: "billing",
+		title: "All plans",
+		description: "Compare and upgrade plans",
+		keywords: [
+			"billing",
+			"upgrade",
+			"pricing",
+			"plans",
+			"pro",
+			"enterprise",
+			"compare",
+			"features",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_USAGE,
+		section: "billing",
+		title: "Usage limits",
+		description: "Track workspace and user limits",
+		keywords: [
+			"billing",
+			"usage",
+			"limits",
+			"workspaces",
+			"users",
+			"quota",
+			"seats",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BILLING_INVOICES,
+		section: "billing",
+		title: "Invoices",
+		description: "View billing history and invoices",
+		keywords: [
+			"billing",
+			"invoices",
+			"payment",
+			"history",
+			"receipts",
+			"transactions",
 		],
 	},
 

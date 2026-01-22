@@ -125,6 +125,8 @@ class PortManager extends EventEmitter {
 			this.pendingHintScans.delete(paneId);
 			this.scanPane(paneId).catch(() => {});
 		}, HINT_SCAN_DELAY_MS);
+		// Don't keep Electron alive just for port scanning
+		timeout.unref();
 
 		this.pendingHintScans.set(paneId, timeout);
 	}

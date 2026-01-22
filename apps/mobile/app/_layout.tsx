@@ -1,3 +1,4 @@
+import "react-native-get-random-values"; // MUST BE FIRST IMPORT
 import "../global.css";
 import { PortalHost } from "@rn-primitives/portal";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

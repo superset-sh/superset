@@ -5,6 +5,7 @@ import {
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
 	HiOutlineComputerDesktop,
+	HiOutlineCreditCard,
 	HiOutlinePaintBrush,
 	HiOutlineSparkles,
 	HiOutlineUser,
@@ -24,7 +25,8 @@ type SettingsRoute =
 	| "/settings/ringtones"
 	| "/settings/keyboard"
 	| "/settings/behavior"
-	| "/settings/terminal";
+	| "/settings/terminal"
+	| "/settings/billing";
 
 const GENERAL_SECTIONS: {
 	id: SettingsRoute;
@@ -79,6 +81,12 @@ const GENERAL_SECTIONS: {
 		section: "terminal",
 		label: "Terminal",
 		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/billing",
+		section: "billing",
+		label: "Billing",
+		icon: <HiOutlineCreditCard className="h-4 w-4" />,
 	},
 ];
 

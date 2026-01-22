@@ -301,6 +301,7 @@ export interface KeyboardHandlerOptions {
 	onShiftEnter?: () => void;
 	/** Callback for the configured clear terminal shortcut */
 	onClear?: () => void;
+	onWrite?: (data: string) => void;
 }
 
 export interface PasteHandlerOptions {
@@ -464,6 +465,20 @@ export function setupKeyboardHandler(
 		if (isShiftEnter) {
 			if (event.type === "keydown" && options.onShiftEnter) {
 				options.onShiftEnter();
+			}
+			return false;
+		}
+
+		const isCmdBackspace =
+			event.key === "Backspace" &&
+			event.metaKey &&
+			!event.ctrlKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (isCmdBackspace) {
+			if (event.type === "keydown" && options.onWrite) {
+				options.onWrite("\x15\x1b[D"); // Ctrl+U + left arrow
 			}
 			return false;
 		}

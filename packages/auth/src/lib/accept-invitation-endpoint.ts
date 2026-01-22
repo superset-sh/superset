@@ -71,8 +71,7 @@ export const acceptInvitationEndpoint = {
 				});
 
 				if (!user) {
-					const userName =
-						invitation.name || invitation.email.split("@")[0] || "User";
+					const userName = invitation.email;
 					const [newUser] = await db
 						.insert(users)
 						.values({

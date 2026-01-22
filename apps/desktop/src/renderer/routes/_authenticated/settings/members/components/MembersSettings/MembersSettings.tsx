@@ -35,7 +35,6 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const { data: activeOrg } = authClient.useActiveOrganization();
 
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.MEMBERS_LIST,
@@ -59,6 +58,16 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 		[collections, activeOrganizationId],
 	);
 
+	// Get organization name from collections
+	const { data: orgData } = useLiveQuery(
+		(q) =>
+			q
+				.from({ organizations: collections.organizations })
+				.select(({ organizations }) => ({ ...organizations })),
+		[collections],
+	);
+	const organization = orgData?.find((org) => org.id === activeOrganizationId);
+
 	// Sort by role priority (owner > admin > member), then by join date
 	// Cast roles to OrganizationRole since database stores them as strings
 	const members: TeamMember[] = (membersData ?? [])
@@ -75,10 +84,9 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 
 	const currentUserId = session?.user?.id;
-	const currentMember = activeOrg?.members?.find(
-		(m) => m.userId === currentUserId,
-	);
-	const currentUserRole = currentMember?.role as OrganizationRole;
+	// Find current user's role from the members data we already fetched
+	const currentMember = members.find((m) => m.userId === currentUserId);
+	const currentUserRole = currentMember?.role;
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
@@ -101,13 +109,13 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 
 			<div className="flex-1 overflow-auto">
 				<div className="p-8 space-y-12">
-					{currentUserRole && activeOrganizationId && activeOrg?.name && (
+					{currentUserRole && activeOrganizationId && organization?.name && (
 						<div className="max-w-5xl">
 							<PendingInvitations
 								visibleItems={visibleItems}
 								currentUserRole={currentUserRole}
 								organizationId={activeOrganizationId}
-								organizationName={activeOrg.name}
+								organizationName={organization.name}
 							/>
 						</div>
 					)}
@@ -194,18 +202,20 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 															{formatDate(member.createdAt)}
 														</TableCell>
 														<TableCell>
-															<MemberActions
-																member={member}
-																currentUserRole={currentUserRole}
-																ownerCount={ownerCount}
-																isCurrentUser={isCurrentUserRow}
-																canRemove={canRemoveMember(
-																	currentUserRole,
-																	member.role as OrganizationRole,
-																	isCurrentUserRow,
-																	ownerCount,
-																)}
-															/>
+															{currentUserRole && (
+																<MemberActions
+																	member={member}
+																	currentUserRole={currentUserRole}
+																	ownerCount={ownerCount}
+																	isCurrentUser={isCurrentUserRow}
+																	canRemove={canRemoveMember(
+																		currentUserRole,
+																		member.role,
+																		isCurrentUserRow,
+																		ownerCount,
+																	)}
+																/>
+															)}
 														</TableCell>
 													</TableRow>
 												);

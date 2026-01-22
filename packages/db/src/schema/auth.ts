@@ -135,7 +135,6 @@ export const invitations = authSchema.table(
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 		email: text("email").notNull(),
-		name: text("name"),
 		role: text("role"),
 		status: text("status").default("pending").notNull(),
 		expiresAt: timestamp("expires_at").notNull(),
