@@ -1,6 +1,7 @@
+import { Button } from "@superset/ui/button";
 import { Collapsible, CollapsibleContent } from "@superset/ui/collapsible";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LuLoader } from "react-icons/lu";
+import { LuFileCode, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -27,6 +28,7 @@ interface FileDiffSectionProps {
 }
 
 const VISIBILITY_MARGIN = "200px 0px";
+const LARGE_DIFF_THRESHOLD = 500;
 
 export function FileDiffSection({
 	file,
@@ -53,6 +55,10 @@ export function FileDiffSection({
 	const { viewMode: diffViewMode, hideUnchangedRegions } = useChangesStore();
 	const [isCopied, setIsCopied] = useState(false);
 	const [hasBeenVisible, setHasBeenVisible] = useState(false);
+	const [loadLargeDiff, setLoadLargeDiff] = useState(false);
+
+	const totalChanges = file.additions + file.deletions;
+	const isLargeDiff = totalChanges > LARGE_DIFF_THRESHOLD;
 
 	const fileKey = createFileKey(file, category, commitHash);
 	const isViewed = viewedFiles.has(fileKey);
@@ -164,7 +170,8 @@ export function FileDiffSection({
 				defaultBranch: category === "against-base" ? baseBranch : undefined,
 			},
 			{
-				enabled: isExpanded && !!worktreePath,
+				enabled:
+					isExpanded && (!isLargeDiff || loadLargeDiff) && !!worktreePath,
 			},
 		);
 
@@ -200,7 +207,22 @@ export function FileDiffSection({
 				/>
 
 				<CollapsibleContent>
-					{isLoadingDiff ? (
+					{isLargeDiff && !loadLargeDiff ? (
+						<div className="flex flex-col items-center justify-center gap-3 py-8 text-muted-foreground bg-muted/30">
+							<LuFileCode className="w-8 h-8" />
+							<p className="text-sm">
+								Large diff hidden — {totalChanges.toLocaleString()} lines
+								changed
+							</p>
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setLoadLargeDiff(true)}
+							>
+								Load diff
+							</Button>
+						</div>
+					) : isLoadingDiff ? (
 						<div className="flex items-center justify-center h-24 text-muted-foreground bg-background">
 							<LuLoader className="w-4 h-4 animate-spin mr-2" />
 							<span>Loading diff...</span>
