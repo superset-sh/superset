@@ -443,14 +443,17 @@ function handleDispose(): void {
 
 	if (ptyProcess) {
 		const pid = ptyProcess.pid;
+		ptyProcess = null;
 
-		// Kill the process tree - fire and forget since we're exiting
+		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
+		// so we must wait for the callback before exiting.
 		treeKill(pid, "SIGKILL", (err) => {
 			if (err) {
 				console.error("[pty-subprocess] Failed to kill process tree:", err);
 			}
+			process.exit(0);
 		});
-		ptyProcess = null;
+		return;
 	}
 
 	process.exit(0);
