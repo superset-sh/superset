@@ -196,6 +196,10 @@ jobs:
           QSTASH_NEXT_SIGNING_KEY: ${{ secrets.QSTASH_NEXT_SIGNING_KEY }}
           ELECTRIC_URL: ${{ env.ELECTRIC_URL }}
           ELECTRIC_SECRET: ${{ secrets.ELECTRIC_SECRET_PREVIEW }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -230,7 +234,11 @@ jobs:
             --env QSTASH_CURRENT_SIGNING_KEY=$QSTASH_CURRENT_SIGNING_KEY \
             --env QSTASH_NEXT_SIGNING_KEY=$QSTASH_NEXT_SIGNING_KEY \
             --env ELECTRIC_URL=$ELECTRIC_URL \
-            --env ELECTRIC_SECRET=$ELECTRIC_SECRET)
+            --env ELECTRIC_SECRET=$ELECTRIC_SECRET \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -309,6 +317,10 @@ jobs:
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -328,7 +340,11 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
-            --env RESEND_API_KEY=$RESEND_API_KEY)
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID)
           vercel alias $VERCEL_URL ${{ env.WEB_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -392,6 +408,10 @@ jobs:
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -408,7 +428,11 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
-            --env RESEND_API_KEY=$RESEND_API_KEY)
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID)
           vercel alias $VERCEL_URL ${{ env.MARKETING_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
@@ -487,6 +511,10 @@ jobs:
           KV_REST_API_URL: ${{ secrets.KV_REST_API_URL }}
           KV_REST_API_TOKEN: ${{ secrets.KV_REST_API_TOKEN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -507,7 +535,11 @@ jobs:
             --env NEXT_PUBLIC_SENTRY_ENVIRONMENT=$NEXT_PUBLIC_SENTRY_ENVIRONMENT \
             --env KV_REST_API_URL=$KV_REST_API_URL \
             --env KV_REST_API_TOKEN=$KV_REST_API_TOKEN \
-            --env RESEND_API_KEY=$RESEND_API_KEY)
+            --env RESEND_API_KEY=$RESEND_API_KEY \
+            --env STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY \
+            --env STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET \
+            --env STRIPE_PRO_MONTHLY_PRICE_ID=$STRIPE_PRO_MONTHLY_PRICE_ID \
+            --env STRIPE_PRO_YEARLY_PRICE_ID=$STRIPE_PRO_YEARLY_PRICE_ID)
           vercel alias $VERCEL_URL ${{ env.ADMIN_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 
