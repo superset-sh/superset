@@ -435,9 +435,7 @@ export function NewWorkspaceModal() {
 									<div className="text-sm font-medium text-foreground mb-1">
 										Cloud Workspaces
 									</div>
-									<p className="text-xs text-muted-foreground">
-										Coming soon
-									</p>
+									<p className="text-xs text-muted-foreground">Coming soon</p>
 								</div>
 							)}
 						</div>
