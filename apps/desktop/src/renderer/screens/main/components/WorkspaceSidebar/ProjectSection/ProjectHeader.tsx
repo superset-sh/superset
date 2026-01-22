@@ -195,7 +195,7 @@ export function ProjectHeader({
 						<LuCheck className="size-4 text-primary" />
 					)}
 				</ContextMenuItem>
-				{discoveredImages && discoveredImages.length > 0 && (
+				{(isLoadingImages || (discoveredImages && discoveredImages.length > 0)) && (
 					<>
 						<ContextMenuSeparator />
 						<div className="px-2 py-1 text-xs text-muted-foreground">
@@ -206,7 +206,7 @@ export function ProjectHeader({
 								<Spinner className="size-4" />
 							</div>
 						) : (
-							discoveredImages.map((image) => (
+							discoveredImages?.map((image) => (
 								<ContextMenuItem
 									key={image.path}
 									onSelect={() => handleImageSelect(image.path)}
