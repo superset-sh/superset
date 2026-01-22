@@ -33,6 +33,23 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find previous desktop release tag
+        id: prev_tag
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          # Get all desktop tags sorted by version, find the one before current
+          PREVIOUS_TAG=$(git tag -l 'desktop-v*' | sort -V | grep -B1 "^${CURRENT_TAG}$" | head -1)
+          if [ "$PREVIOUS_TAG" = "$CURRENT_TAG" ] || [ -z "$PREVIOUS_TAG" ]; then
+            # Current tag is the first or no previous found, get the oldest desktop tag
+            PREVIOUS_TAG=""
+          fi
+          echo "current_tag=${CURRENT_TAG}" >> $GITHUB_OUTPUT
+          echo "previous_tag=${PREVIOUS_TAG}" >> $GITHUB_OUTPUT
+          echo "Current tag: ${CURRENT_TAG}"
+          echo "Previous tag: ${PREVIOUS_TAG:-none}"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -64,12 +81,37 @@ jobs:
           echo "Release artifacts:"
           ls -la
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release-artifacts/*
-          draft: true
-          generate_release_notes: true
-          name: Superset Desktop ${{ github.ref_name }}
+      - name: Generate release notes
+        id: release_notes
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREVIOUS_TAG="${{ steps.prev_tag.outputs.previous_tag }}"
+          CURRENT_TAG="${{ steps.prev_tag.outputs.current_tag }}"
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Generating notes from ${PREVIOUS_TAG} to ${CURRENT_TAG}"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="${CURRENT_TAG}" \
+              -f previous_tag_name="${PREVIOUS_TAG}" \
+              --jq '.body')
+          else
+            echo "No previous tag found, generating notes without comparison"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="${CURRENT_TAG}" \
+              --jq '.body')
+          fi
+
+          # Write to file to preserve formatting
+          echo "$NOTES" > release_notes.md
+          echo "Release notes generated"
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            release-artifacts/* \
+            --title "Superset Desktop ${{ github.ref_name }}" \
+            --notes-file release_notes.md \
+            --draft
