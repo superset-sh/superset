@@ -6,8 +6,8 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
-import { AppMockup } from "./components/AppMockup";
 import { GridBackground } from "./components/GridBackground";
+import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
 export function HeroSection() {
@@ -64,7 +64,7 @@ export function HeroSection() {
 							animate={{ opacity: 1, x: 0 }}
 							transition={{ duration: 0.5, delay: 0.2 }}
 						>
-							<AppMockup />
+							<ProductDemo />
 						</motion.div>
 					</div>
 				</div>

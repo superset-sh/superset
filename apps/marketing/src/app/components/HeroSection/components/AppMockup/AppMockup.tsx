@@ -122,49 +122,17 @@ const WORKSPACES = [
 ];
 
 const FILE_CHANGES = [
-	{ path: "bun.lock", add: 38, del: 25, indent: 0, type: "edit" },
-	{
-		path: "apps/api/src/app/api/electric/[...path]",
-		add: 1,
-		del: 0,
-		indent: 0,
-		type: "folder",
-	},
-	{ path: "utils.ts", add: 21, del: 4, indent: 1, type: "edit" },
-	{ path: "route.ts", add: 1, del: 1, indent: 1, type: "edit" },
-	{
-		path: "apps/desktop/src/lib/trpc/routers",
-		add: 0,
-		del: 0,
-		indent: 0,
-		type: "folder",
-	},
-	{ path: "index.ts", add: 2, del: 0, indent: 1, type: "add" },
-	{ path: "cloud-terminal", add: 0, del: 0, indent: 0, type: "folder" },
-	{ path: "index.ts", add: 178, del: 0, indent: 1, type: "add" },
-	{ path: "ssh-terminal", add: 0, del: 0, indent: 0, type: "folder" },
-	{ path: "index.ts", add: 7, del: 0, indent: 1, type: "add" },
-	{ path: "ssh-manager.ts", add: 277, del: 0, indent: 1, type: "add" },
-	{ path: "NewCloudWorkspaceModal", add: 0, del: 0, indent: 0, type: "folder" },
-	{ path: "index.ts", add: 4, del: 0, indent: 1, type: "add" },
-	{
-		path: "NewCloudWorkspaceModal...",
-		add: 239,
-		del: 0,
-		indent: 1,
-		type: "add",
-	},
-	{
-		path: "useCloudWorkspaceMutati...",
-		add: 121,
-		del: 0,
-		indent: 1,
-		type: "add",
-	},
-	{ path: "useCloudWorkspaces.ts", add: 84, del: 0, indent: 1, type: "add" },
-	{ path: "layout.tsx", add: 2, del: 0, indent: 1, type: "edit" },
-	{ path: "collections.ts", add: 51, del: 17, indent: 1, type: "edit" },
-	{ path: "WorkspaceSidebar.tsx", add: 14, del: 0, indent: 1, type: "edit" },
+	{ path: "bun.lock", add: 38, del: 25, type: "edit" },
+	{ path: "packages/db/src/schema", type: "folder" },
+	{ path: "cloud-workspace.ts", add: 119, del: 0, type: "add", indent: 1 },
+	{ path: "enums.ts", add: 21, del: 0, type: "edit", indent: 1 },
+	{ path: "apps/desktop/src/renderer", type: "folder" },
+	{ path: "CloudTerminal.tsx", add: 169, del: 0, type: "add", indent: 1 },
+	{ path: "useCloudWorkspaces.ts", add: 84, del: 0, type: "add", indent: 1 },
+	{ path: "WorkspaceSidebar.tsx", add: 14, del: 0, type: "edit", indent: 1 },
+	{ path: "apps/api/src/trpc/routers", type: "folder" },
+	{ path: "ssh-manager.ts", add: 277, del: 0, type: "add", indent: 1 },
+	{ path: "index.ts", add: 7, del: 0, type: "edit", indent: 1 },
 ];
 
 const PORTS = [
@@ -253,15 +221,15 @@ function WorkspaceItem({
 
 function FileChangeItem({
 	path,
-	add,
-	del,
-	indent,
+	add = 0,
+	del = 0,
+	indent = 0,
 	type,
 }: {
 	path: string;
-	add: number;
-	del: number;
-	indent: number;
+	add?: number;
+	del?: number;
+	indent?: number;
 	type: string;
 }) {
 	const Icon =
@@ -279,26 +247,48 @@ function FileChangeItem({
 				? "text-amber-400"
 				: "text-muted-foreground/50";
 
+	const isFolder = type === "folder";
+
 	return (
 		<div
-			className="flex items-center justify-between gap-1 py-0.5 text-[9px] hover:bg-white/5 px-2"
-			style={{ paddingLeft: `${8 + indent * 12}px` }}
+			className={`flex items-center justify-between gap-2 hover:bg-white/5 px-3 ${isFolder ? "py-1.5 mt-1" : "py-1"}`}
+			style={{ paddingLeft: `${12 + (indent || 0) * 14}px` }}
 		>
-			<div className="flex items-center gap-1.5 min-w-0">
-				<Icon className={`size-3 shrink-0 ${iconColor}`} />
-				<span className="text-muted-foreground/80 truncate">{path}</span>
+			<div className="flex items-center gap-2 min-w-0">
+				<Icon className={`size-3.5 shrink-0 ${iconColor}`} />
+				<span
+					className={`truncate ${isFolder ? "text-muted-foreground/60 text-[9px]" : "text-muted-foreground/80 text-[10px]"}`}
+				>
+					{path}
+				</span>
 			</div>
-			{type !== "folder" && (add > 0 || del > 0) && (
-				<span className="shrink-0 tabular-nums">
+			{!isFolder && (add > 0 || del > 0) && (
+				<span className="shrink-0 tabular-nums text-[9px]">
 					{add > 0 && <span className="text-emerald-400">+{add}</span>}
-					{del > 0 && <span className="text-red-400 ml-0.5">-{del}</span>}
+					{del > 0 && <span className="text-red-400 ml-1">-{del}</span>}
 				</span>
 			)}
 		</div>
 	);
 }
 
-export function AppMockup() {
+export type ActiveDemo =
+	| "Use Any Agents"
+	| "Create Parallel Branches"
+	| "See Changes"
+	| "Open in Any IDE";
+
+interface AppMockupProps {
+	activeDemo?: ActiveDemo;
+}
+
+export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
+	// Animation states based on activeDemo
+	// - "Use Any Agents": Highlight terminal area with agent output
+	// - "Create Parallel Branches": Highlight workspace sidebar with branches
+	// - "See Changes": Highlight file changes panel on right
+	// - "Open in Any IDE": Highlight top bar / open actions
+
 	return (
 		<motion.div
 			className="relative w-full rounded-lg overflow-hidden bg-[#0d0d0d] border border-white/10 shadow-2xl"

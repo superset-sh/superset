@@ -1,1 +1,1 @@
-export { AppMockup } from "./AppMockup";
+export { AppMockup, type ActiveDemo } from "./AppMockup";

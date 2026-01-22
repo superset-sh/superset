@@ -3,14 +3,12 @@
 import { MeshGradient } from "@superset/ui/mesh-gradient";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { DemoVideo } from "./components/DemoVideo";
+import { type ActiveDemo, AppMockup } from "../AppMockup";
 import { SelectorPill } from "./components/SelectorPill";
 import { DEMO_OPTIONS } from "./constants";
 
 export function ProductDemo() {
-	const [activeOption, setActiveOption] = useState<string>(
-		DEMO_OPTIONS[0]?.label ?? "",
-	);
+	const [activeOption, setActiveOption] = useState<ActiveDemo>("Use Any Agents");
 
 	return (
 		<div className="relative w-full max-w-full rounded-lg overflow-hidden">
@@ -32,26 +30,8 @@ export function ProductDemo() {
 
 			{/* Content wrapper */}
 			<div className="relative flex flex-col gap-4 p-6">
-				{/* Video container with border */}
-				<div
-					className="relative w-full rounded-lg overflow-hidden "
-					style={{ aspectRatio: "1728/1080" }}
-				>
-					{DEMO_OPTIONS.map((option) => (
-						<motion.div
-							key={option.label}
-							className="absolute -inset-px"
-							initial={false}
-							animate={{ opacity: activeOption === option.label ? 1 : 0 }}
-							transition={{ duration: 0.5, ease: "easeInOut" }}
-						>
-							<DemoVideo
-								src={option.videoPath}
-								isActive={activeOption === option.label}
-							/>
-						</motion.div>
-					))}
-				</div>
+				{/* App mockup container */}
+				<AppMockup activeDemo={activeOption} />
 
 				{/* Selector pills */}
 				<div className="flex items-center gap-2 overflow-x-auto">
@@ -60,7 +40,7 @@ export function ProductDemo() {
 							key={option.label}
 							label={option.label}
 							active={activeOption === option.label}
-							onClick={() => setActiveOption(option.label)}
+							onHover={() => setActiveOption(option.label as ActiveDemo)}
 						/>
 					))}
 				</div>
