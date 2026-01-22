@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import {
+	createFileRoute,
+	Outlet,
+	useMatchRoute,
+	useNavigate,
+} from "@tanstack/react-router";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { TopBar } from "renderer/screens/main/components/TopBar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
@@ -17,6 +23,20 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+
+	// Get current workspace from route to pre-select project in new workspace modal
+	const matchRoute = useMatchRoute();
+	const currentWorkspaceMatch = matchRoute({
+		to: "/workspace/$workspaceId",
+		fuzzy: true,
+	});
+	const currentWorkspaceId =
+		currentWorkspaceMatch !== false ? currentWorkspaceMatch.workspaceId : null;
+
+	const { data: currentWorkspace } = electronTrpc.workspaces.get.useQuery(
+		{ id: currentWorkspaceId ?? "" },
+		{ enabled: !!currentWorkspaceId },
+	);
 
 	const {
 		isOpen: isWorkspaceSidebarOpen,
@@ -54,9 +74,12 @@ function DashboardLayout() {
 		],
 	);
 
-	useAppHotkey("NEW_WORKSPACE", () => openNewWorkspaceModal(), undefined, [
-		openNewWorkspaceModal,
-	]);
+	useAppHotkey(
+		"NEW_WORKSPACE",
+		() => openNewWorkspaceModal(currentWorkspace?.projectId),
+		undefined,
+		[openNewWorkspaceModal, currentWorkspace?.projectId],
+	);
 
 	return (
 		<div className="flex flex-col h-full w-full">
