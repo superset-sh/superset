@@ -36,6 +36,25 @@ export function SidebarDropZone({ children, className }: SidebarDropZoneProps) {
 		return () => clearTimeout(timer);
 	}, [error]);
 
+	// Clear drag state when drag ends anywhere (e.g., drop outside this component)
+	useEffect(() => {
+		const handleWindowDragEnd = () => {
+			setIsDragOver(false);
+		};
+
+		const handleWindowDrop = () => {
+			setIsDragOver(false);
+		};
+
+		window.addEventListener("dragend", handleWindowDragEnd);
+		window.addEventListener("drop", handleWindowDrop);
+
+		return () => {
+			window.removeEventListener("dragend", handleWindowDragEnd);
+			window.removeEventListener("drop", handleWindowDrop);
+		};
+	}, []);
+
 	const handleDragOver = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
