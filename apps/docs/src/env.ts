@@ -11,6 +11,10 @@ export const env = createEnv({
 	},
 
 	server: {
+		STRIPE_SECRET_KEY: z.string().optional(),
+		STRIPE_WEBHOOK_SECRET: z.string().optional(),
+		STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
+		STRIPE_PRO_YEARLY_PRICE_ID: z.string().optional(),
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 	},
 

@@ -5,18 +5,18 @@ import { motion } from "framer-motion";
 interface SelectorPillProps {
 	label: string;
 	active?: boolean;
-	onClick?: () => void;
+	onHover?: () => void;
 }
 
 export function SelectorPill({
 	label,
 	active = false,
-	onClick,
+	onHover,
 }: SelectorPillProps) {
 	return (
 		<motion.button
 			type="button"
-			onClick={onClick}
+			onMouseEnter={onHover}
 			className={`
 				inline-flex items-center justify-center py-2 text-sm whitespace-nowrap cursor-pointer
 				${

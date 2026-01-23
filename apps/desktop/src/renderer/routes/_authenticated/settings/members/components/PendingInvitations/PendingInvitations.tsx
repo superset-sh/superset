@@ -25,6 +25,7 @@ interface PendingInvitationsProps {
 	currentUserRole: OrganizationRole;
 	organizationId: string;
 	organizationName: string;
+	plan?: "free" | "pro" | "enterprise";
 }
 
 export function PendingInvitations({
@@ -32,11 +33,12 @@ export function PendingInvitations({
 	currentUserRole,
 	organizationId,
 	organizationName,
+	plan,
 }: PendingInvitationsProps) {
 	const collections = useCollections();
 
 	const shouldShowSection = isItemVisible(
-		SETTING_ITEM_ID.MEMBERS_PENDING_INVITATIONS,
+		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS,
 		visibleItems,
 	);
 
@@ -77,7 +79,7 @@ export function PendingInvitations({
 	};
 
 	const showInvite = isItemVisible(
-		SETTING_ITEM_ID.MEMBERS_INVITE,
+		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_INVITE,
 		visibleItems,
 	);
 
@@ -119,6 +121,7 @@ export function PendingInvitations({
 						currentUserRole={currentUserRole}
 						organizationId={organizationId}
 						organizationName={organizationName}
+						plan={plan}
 					/>
 				)}
 			</div>

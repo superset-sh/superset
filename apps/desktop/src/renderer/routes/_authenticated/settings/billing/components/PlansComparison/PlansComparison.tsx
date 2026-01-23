@@ -2,12 +2,23 @@ import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
+import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
-import { MOCK_BILLING_INFO, type PlanTier } from "../../constants";
+import { env } from "renderer/env.renderer";
+import { authClient } from "renderer/lib/auth-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { PlanTier } from "../../constants";
 
-type PlanCardAction = "current" | "upgrade" | "contact";
+type PlanCardAction =
+	| "current"
+	| "upgrade"
+	| "downgrade"
+	| "restore"
+	| "contact";
 type PlanCardData = {
 	id: "free" | "pro" | "enterprise";
 	name: string;
@@ -173,13 +184,44 @@ const COMPARISON_SECTIONS: ComparisonSection[] = [
 
 export function PlansComparison() {
 	const [isYearly, setIsYearly] = useState(true);
-	const billingInfo = MOCK_BILLING_INFO;
+	const [isUpgrading, setIsUpgrading] = useState(false);
+	const [isCanceling, setIsCanceling] = useState(false);
+	const [isRestoring, setIsRestoring] = useState(false);
+	const { data: session } = authClient.useSession();
+	const collections = useCollections();
+
+	const activeOrgId = session?.session?.activeOrganizationId;
+
+	const { data: subscriptionData, refetch: refetchSubscription } = useQuery({
+		queryKey: ["subscription", activeOrgId],
+		queryFn: async () => {
+			if (!activeOrgId) return null;
+			const result = await authClient.subscription.list({
+				query: { referenceId: activeOrgId },
+			});
+			return result.data?.find((s) => s.status === "active");
+		},
+		enabled: !!activeOrgId,
+	});
+
+	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
+	const cancelAt = subscriptionData?.cancelAt;
+
+	const { data: membersData } = useLiveQuery(
+		(q) =>
+			q
+				.from({ members: collections.members })
+				.select(({ members }) => ({ id: members.id })),
+		[collections],
+	);
+	const memberCount = membersData?.length ?? 1;
+
 	const currentPlanLabelByTier: Record<PlanTier, string> = {
 		free: "Free",
 		pro: "Pro",
 		enterprise: "Enterprise",
 	};
-	const currentPlanLabel = currentPlanLabelByTier[billingInfo.currentPlan];
+	const currentPlanLabel = currentPlanLabelByTier[currentPlan];
 
 	const getValue = <T,>(value: T | { monthly: T; yearly: T }): T => {
 		if (typeof value === "object" && value !== null && "monthly" in value) {
@@ -188,7 +230,7 @@ export function PlansComparison() {
 		return value as T;
 	};
 
-	const handlePlanAction = (action: PlanCardAction) => {
+	const handlePlanAction = async (action: PlanCardAction) => {
 		if (action === "current") {
 			return;
 		}
@@ -198,7 +240,68 @@ export function PlansComparison() {
 			return;
 		}
 
-		toast.info("Stripe integration coming soon");
+		if (!activeOrgId) return;
+
+		if (action === "downgrade") {
+			setIsCanceling(true);
+			try {
+				await authClient.subscription.cancel(
+					{
+						referenceId: activeOrgId,
+						returnUrl: env.NEXT_PUBLIC_WEB_URL,
+					},
+					{
+						onSuccess: (ctx) => {
+							if (ctx.data?.url) {
+								window.open(ctx.data.url, "_blank");
+							}
+						},
+					},
+				);
+				await refetchSubscription();
+			} finally {
+				setIsCanceling(false);
+			}
+			return;
+		}
+
+		if (action === "restore") {
+			setIsRestoring(true);
+			try {
+				await authClient.subscription.restore({
+					referenceId: activeOrgId,
+				});
+				await refetchSubscription();
+				toast.success("Plan restored");
+			} finally {
+				setIsRestoring(false);
+			}
+			return;
+		}
+
+		setIsUpgrading(true);
+		try {
+			await authClient.subscription.upgrade(
+				{
+					plan: "pro",
+					referenceId: activeOrgId,
+					annual: isYearly,
+					seats: memberCount,
+					successUrl: `${env.NEXT_PUBLIC_WEB_URL}/settings/billing?success=true`,
+					cancelUrl: env.NEXT_PUBLIC_WEB_URL,
+					disableRedirect: true,
+				},
+				{
+					onSuccess: (ctx) => {
+						if (ctx.data?.url) {
+							window.open(ctx.data.url, "_blank");
+						}
+					},
+				},
+			);
+		} finally {
+			setIsUpgrading(false);
+		}
 	};
 
 	const renderComparisonValue = (value: ComparisonValue) => {
@@ -276,15 +379,47 @@ export function PlansComparison() {
 								/>
 								{PLAN_CARDS.map((plan) => {
 									const isCurrent = currentPlanLabel === plan.name;
-									const planActions = isCurrent
-										? [
-												{
-													label: "Current plan",
-													action: "current" as const,
-													variant: "secondary" as const,
-												},
-											]
-										: plan.actions;
+									const isDowngrade =
+										plan.id === "free" && currentPlan !== "free";
+
+									let planActions: typeof plan.actions;
+									if (isCurrent && cancelAt) {
+										planActions = [
+											{
+												label: isRestoring ? "Restoring..." : "Restore plan",
+												action: "restore" as const,
+												variant: "default" as const,
+											},
+										];
+									} else if (isCurrent) {
+										planActions = [
+											{
+												label: "Current plan",
+												action: "current" as const,
+												variant: "secondary" as const,
+											},
+										];
+									} else if (isDowngrade && cancelAt) {
+										planActions = [
+											{
+												label: `Starts ${cancelAt ? format(new Date(cancelAt), "MMMM d, yyyy") : ""}`,
+												action: "current" as const,
+												variant: "outline" as const,
+											},
+										];
+									} else if (isDowngrade) {
+										planActions = [
+											{
+												label: isCanceling
+													? "Downgrading..."
+													: "Downgrade to Free",
+												action: "downgrade" as const,
+												variant: "outline" as const,
+											},
+										];
+									} else {
+										planActions = plan.actions;
+									}
 
 									if (rowKey === "plan") {
 										return (
@@ -343,7 +478,10 @@ export function PlansComparison() {
 															action.align === "center" && "self-center",
 															action.align === "start" && "self-start",
 														)}
-														disabled={action.action === "current"}
+														disabled={
+															action.action === "current" ||
+															(action.action === "upgrade" && isUpgrading)
+														}
 														onClick={() => handlePlanAction(action.action)}
 													>
 														{action.label}

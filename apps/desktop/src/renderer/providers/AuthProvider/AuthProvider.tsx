@@ -39,12 +39,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 		setIsHydrated(true);
 	}, [storedToken, isSuccess, isHydrated, refetchSession]);
 
-	// Listen for token changes from main process (OAuth callback)
+	// Listen for token changes from main process (OAuth callback or sign-out)
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: (data) => {
 			if (data?.token && data?.expiresAt) {
 				setAuthToken(data.token);
 				setIsHydrated(true);
+				refetchSession();
+			} else if (data === null) {
+				// Token was cleared (sign-out)
+				setAuthToken(null);
 				refetchSession();
 			}
 		},

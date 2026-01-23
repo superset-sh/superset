@@ -31,7 +31,11 @@ export async function GET(request: Request): Promise<Response> {
 		return new Response("Missing table parameter", { status: 400 });
 	}
 
-	const whereClause = await buildWhereClause(tableName, organizationId);
+	const whereClause = await buildWhereClause(
+		tableName,
+		organizationId,
+		sessionData.user.id,
+	);
 	if (!whereClause) {
 		return new Response(`Unknown table: ${tableName}`, { status: 400 });
 	}

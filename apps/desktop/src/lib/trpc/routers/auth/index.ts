@@ -38,14 +38,20 @@ export const createAuthRouter = () => {
 					}
 				});
 
-				const handler = (data: { token: string; expiresAt: string }) => {
+				const handleSaved = (data: { token: string; expiresAt: string }) => {
 					emit.next(data);
 				};
 
-				authEvents.on("token-saved", handler);
+				const handleCleared = () => {
+					emit.next(null);
+				};
+
+				authEvents.on("token-saved", handleSaved);
+				authEvents.on("token-cleared", handleCleared);
 
 				return () => {
-					authEvents.off("token-saved", handler);
+					authEvents.off("token-saved", handleSaved);
+					authEvents.off("token-cleared", handleCleared);
 				};
 			});
 		}),
@@ -85,6 +91,7 @@ export const createAuthRouter = () => {
 
 		signOut: publicProcedure.mutation(async () => {
 			await fs.unlink(TOKEN_FILE).catch(() => {});
+			authEvents.emit("token-cleared");
 			return { success: true };
 		}),
 	});

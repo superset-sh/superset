@@ -196,8 +196,6 @@ export function DiffViewer({
 		[captureScroll],
 	);
 
-	// Update readOnly and register save action when editable changes or editor mounts
-	// Using addAction with an ID allows replacing the action on subsequent calls
 	useEffect(() => {
 		if (!isEditorMounted || !modifiedEditorRef.current) return;
 
@@ -208,11 +206,9 @@ export function DiffViewer({
 		}
 	}, [isEditorMounted, editable, handleSave]);
 
-	// Set up content change listener for dirty tracking
 	useEffect(() => {
 		if (!isEditorMounted || !modifiedEditorRef.current || !onChange) return;
 
-		// Clean up previous listener
 		changeListenerRef.current?.dispose();
 
 		changeListenerRef.current =
@@ -228,19 +224,25 @@ export function DiffViewer({
 		};
 	}, [isEditorMounted, onChange]);
 
-	// Get the active editor (modified or original)
 	const getEditor = useCallback(() => {
 		return (
 			modifiedEditorRef.current || diffEditorRef.current?.getOriginalEditor()
 		);
 	}, []);
 
-	// Use shared editor actions hook - diff viewer is read-only (no cut/paste)
 	const editorActions = useEditorActions({
 		getEditor,
 		filePath,
 		editable: false,
 	});
+
+	useEffect(() => {
+		if (!diffEditorRef.current) return;
+		diffEditorRef.current.updateOptions({
+			renderSideBySide: viewMode === "side-by-side",
+			hideUnchangedRegions: { enabled: hideUnchangedRegions },
+		});
+	}, [viewMode, hideUnchangedRegions]);
 
 	if (!isMonacoReady) {
 		return (
@@ -255,7 +257,7 @@ export function DiffViewer({
 
 	const diffEditor = (
 		<DiffEditor
-			key={`${filePath}-${viewMode}-${hideUnchangedRegions}`}
+			key={filePath}
 			height={editorHeight}
 			original={contents.original}
 			modified={contents.modified}
@@ -277,7 +279,7 @@ export function DiffViewer({
 				renderOverviewRuler: !fitContent,
 				glyphMargin: false,
 				diffWordWrap: "on",
-				contextmenu: !contextMenuProps, // Disable Monaco's context menu if we have custom props
+				contextmenu: !contextMenuProps,
 				hideUnchangedRegions: {
 					enabled: hideUnchangedRegions,
 				},
@@ -291,7 +293,6 @@ export function DiffViewer({
 		/>
 	);
 
-	// If no context menu props, return plain editor
 	if (!contextMenuProps) {
 		return (
 			// biome-ignore lint/a11y/noStaticElementInteractions: focus/blur tracking for scroll behavior
@@ -306,7 +307,6 @@ export function DiffViewer({
 		);
 	}
 
-	// Wrap with custom context menu
 	const paneActions: PaneActions = {
 		onSplitHorizontal: contextMenuProps.onSplitHorizontal,
 		onSplitVertical: contextMenuProps.onSplitVertical,

@@ -53,7 +53,7 @@ function generateBranchFromTitle(title: string): string {
 		.slice(0, 50);
 }
 
-type Mode = "existing" | "new";
+type Mode = "existing" | "new" | "cloud";
 
 export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
@@ -250,11 +250,22 @@ export function NewWorkspaceModal() {
 								>
 									Existing
 								</button>
+								<button
+									type="button"
+									onClick={() => setMode("cloud")}
+									className={`flex-1 px-3 py-1 text-xs font-medium rounded-sm transition-colors ${
+										mode === "cloud"
+											? "bg-background text-foreground shadow-sm"
+											: "text-muted-foreground hover:text-foreground"
+									}`}
+								>
+									Cloud
+								</button>
 							</div>
 						</div>
 
 						<div className="px-4 pb-4">
-							{mode === "new" ? (
+							{mode === "new" && (
 								<div className="space-y-3">
 									<Input
 										ref={titleInputRef}
@@ -412,11 +423,20 @@ export function NewWorkspaceModal() {
 										Create Workspace
 									</Button>
 								</div>
-							) : (
+							)}
+							{mode === "existing" && (
 								<ExistingWorktreesList
 									projectId={selectedProjectId}
 									onOpenSuccess={handleClose}
 								/>
+							)}
+							{mode === "cloud" && (
+								<div className="flex flex-col items-center justify-center py-8 text-center">
+									<div className="text-sm font-medium text-foreground mb-1">
+										Cloud Workspaces
+									</div>
+									<p className="text-xs text-muted-foreground">Coming soon</p>
+								</div>
 							)}
 						</div>
 					</>

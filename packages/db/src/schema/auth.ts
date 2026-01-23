@@ -98,6 +98,7 @@ export const organizations = authSchema.table(
 		logo: text("logo"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		metadata: text("metadata"),
+		stripeCustomerId: text("stripe_customer_id"),
 	},
 	(table) => [uniqueIndex("organizations_slug_idx").on(table.slug)],
 );

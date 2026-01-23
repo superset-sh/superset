@@ -1,16 +1,18 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import {
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
 	HiOutlineCommandLine,
-	HiOutlineComputerDesktop,
 	HiOutlineCreditCard,
 	HiOutlinePaintBrush,
+	HiOutlinePuzzlePiece,
 	HiOutlineSparkles,
 	HiOutlineUser,
-	HiOutlineUserGroup,
 } from "react-icons/hi2";
+import { LuKeyboard } from "react-icons/lu";
 import type { SettingsSection } from "renderer/stores/settings-state";
 
 interface GeneralSettingsProps {
@@ -20,12 +22,12 @@ interface GeneralSettingsProps {
 type SettingsRoute =
 	| "/settings/account"
 	| "/settings/organization"
-	| "/settings/members"
 	| "/settings/appearance"
 	| "/settings/ringtones"
 	| "/settings/keyboard"
 	| "/settings/behavior"
 	| "/settings/terminal"
+	| "/settings/integrations"
 	| "/settings/billing";
 
 const GENERAL_SECTIONS: {
@@ -47,12 +49,6 @@ const GENERAL_SECTIONS: {
 		icon: <HiOutlineBuildingOffice2 className="h-4 w-4" />,
 	},
 	{
-		id: "/settings/members",
-		section: "members",
-		label: "Members",
-		icon: <HiOutlineUserGroup className="h-4 w-4" />,
-	},
-	{
 		id: "/settings/appearance",
 		section: "appearance",
 		label: "Appearance",
@@ -68,7 +64,7 @@ const GENERAL_SECTIONS: {
 		id: "/settings/keyboard",
 		section: "keyboard",
 		label: "Keyboard",
-		icon: <HiOutlineCommandLine className="h-4 w-4" />,
+		icon: <LuKeyboard className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/behavior",
@@ -80,7 +76,13 @@ const GENERAL_SECTIONS: {
 		id: "/settings/terminal",
 		section: "terminal",
 		label: "Terminal",
-		icon: <HiOutlineComputerDesktop className="h-4 w-4" />,
+		icon: <HiOutlineCommandLine className="h-4 w-4" />,
+	},
+	{
+		id: "/settings/integrations",
+		section: "integrations",
+		label: "Integrations",
+		icon: <HiOutlinePuzzlePiece className="h-4 w-4" />,
 	},
 	{
 		id: "/settings/billing",
@@ -92,13 +94,15 @@ const GENERAL_SECTIONS: {
 
 export function GeneralSettings({ matchCounts }: GeneralSettingsProps) {
 	const matchRoute = useMatchRoute();
+	const billingEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.BILLING_ENABLED);
 
-	// When searching, only show sections that have matches
-	const filteredSections = matchCounts
-		? GENERAL_SECTIONS.filter(
-				(section) => (matchCounts[section.section] ?? 0) > 0,
-			)
-		: GENERAL_SECTIONS;
+	const filteredSections = (
+		matchCounts
+			? GENERAL_SECTIONS.filter(
+					(section) => (matchCounts[section.section] ?? 0) > 0,
+				)
+			: GENERAL_SECTIONS
+	).filter((section) => section.section !== "billing" || billingEnabled);
 
 	if (filteredSections.length === 0) {
 		return null;

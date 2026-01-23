@@ -1,0 +1,1 @@
+export { WallOfLoveSection } from "./WallOfLoveSection";

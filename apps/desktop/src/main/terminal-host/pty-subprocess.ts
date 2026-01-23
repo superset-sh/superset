@@ -11,6 +11,7 @@
 import { write as fsWrite } from "node:fs";
 import type { IPty } from "node-pty";
 import * as pty from "node-pty";
+import treeKill from "tree-kill";
 import {
 	PtySubprocessFrameDecoder,
 	PtySubprocessIpcType,
@@ -367,23 +368,24 @@ function handleKill(payload: Buffer): void {
 
 	const pid = ptyProcess.pid;
 
-	// Step 1: Send the requested signal (usually SIGTERM for graceful shutdown)
-	try {
-		ptyProcess.kill(signal);
-	} catch {
-		// Process may already be dead
-	}
+	// Step 1: Kill the process tree using tree-kill
+	// tree-kill traverses by PPID to find all descendants
+	treeKill(pid, signal, (err) => {
+		if (err) {
+			console.error("[pty-subprocess] Failed to kill process tree:", err);
+		}
+	});
 
 	// Step 2: Escalate to SIGKILL if still alive after 2 seconds
 	// node-pty's onExit callback may not fire reliably after pty.kill()
 	const escalationTimer = setTimeout(() => {
 		if (!ptyProcess) return; // Already exited via onExit
 
-		try {
-			ptyProcess.kill("SIGKILL");
-		} catch {
-			// Process may already be dead
-		}
+		treeKill(pid, "SIGKILL", (err) => {
+			if (err) {
+				console.error("[pty-subprocess] Failed to SIGKILL process tree:", err);
+			}
+		});
 
 		// Step 3: Force completion if onExit still hasn't fired after another 1 second
 		// This ensures the subprocess exits even if node-pty never emits onExit
@@ -440,12 +442,18 @@ function handleDispose(): void {
 	ptyFd = null;
 
 	if (ptyProcess) {
-		try {
-			ptyProcess.kill("SIGKILL");
-		} catch {
-			// Ignore
-		}
+		const pid = ptyProcess.pid;
 		ptyProcess = null;
+
+		// tree-kill spawns child processes (ps/pgrep) to discover descendants,
+		// so we must wait for the callback before exiting.
+		treeKill(pid, "SIGKILL", (err) => {
+			if (err) {
+				console.error("[pty-subprocess] Failed to kill process tree:", err);
+			}
+			process.exit(0);
+		});
+		return;
 	}
 
 	process.exit(0);

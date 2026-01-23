@@ -29,12 +29,14 @@ export function MemberActions({
 	ownerCount,
 	isCurrentUser,
 	canRemove,
+	plan,
 }: {
 	member: TeamMember;
 	currentUserRole: OrganizationRole;
 	ownerCount: number;
 	isCurrentUser: boolean;
 	canRemove: boolean;
+	plan?: "free" | "pro" | "enterprise";
 }) {
 	const [isChangingRole, setIsChangingRole] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
@@ -83,11 +85,14 @@ export function MemberActions({
 	}
 
 	const handleRemoveClick = () => {
+		const billingNote =
+			plan === "pro" ? " Your subscription will be adjusted accordingly." : "";
+
 		alert.destructive({
 			title: isCurrentUser ? "Leave organization?" : "Remove team member?",
 			description: isCurrentUser
-				? "Are you sure you want to leave this organization? You will lose access immediately."
-				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.`,
+				? `Are you sure you want to leave this organization? You will lose access immediately.${billingNote}`
+				: `Are you sure you want to remove ${member.name} (${member.email}) from the organization? They will lose access immediately.${billingNote}`,
 			confirmText: isCurrentUser ? "Leave Organization" : "Remove Member",
 			cancelText: "Cancel",
 			onConfirm: () => {

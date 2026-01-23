@@ -89,7 +89,7 @@ export function WorkspaceInitializingView({
 	if (isInterrupted && !progress && showInterruptedUI) {
 		return (
 			<>
-				<div className="flex flex-col items-center justify-center h-full px-8">
+				<div className="flex flex-col items-center justify-center h-full w-full px-8">
 					<div className="flex flex-col items-center max-w-sm text-center space-y-6">
 						{/* Icon */}
 						<div className="flex items-center justify-center size-16 rounded-full bg-muted">
@@ -180,7 +180,7 @@ export function WorkspaceInitializingView({
 	if (hasFailed) {
 		return (
 			<>
-				<div className="flex flex-col items-center justify-center h-full px-8">
+				<div className="flex flex-col items-center justify-center h-full w-full px-8">
 					<div className="flex flex-col items-center max-w-sm text-center space-y-6">
 						{/* Error icon */}
 						<div className="flex items-center justify-center size-16 rounded-full bg-destructive/10">
@@ -271,7 +271,7 @@ export function WorkspaceInitializingView({
 
 	// Initializing state
 	return (
-		<div className="flex flex-col items-center justify-center h-full px-8">
+		<div className="flex flex-col items-center justify-center h-full w-full px-8">
 			<div className="flex flex-col items-center max-w-sm text-center space-y-6">
 				{/* Icon with pulse animation */}
 				<div className="relative">

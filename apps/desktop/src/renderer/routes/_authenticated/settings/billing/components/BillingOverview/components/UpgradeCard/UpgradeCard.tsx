@@ -1,16 +1,16 @@
 import { Button } from "@superset/ui/button";
 import { Card, CardContent } from "@superset/ui/card";
-import { toast } from "@superset/ui/sonner";
 import { Link } from "@tanstack/react-router";
 import { HiCheck } from "react-icons/hi2";
 import { PLANS } from "../../../../constants";
 
-export function UpgradeCard() {
-	const plan = PLANS.pro;
+interface UpgradeCardProps {
+	onUpgrade: () => void;
+	isUpgrading: boolean;
+}
 
-	const handleUpgrade = () => {
-		toast.info("Stripe integration coming soon");
-	};
+export function UpgradeCard({ onUpgrade, isUpgrading }: UpgradeCardProps) {
+	const plan = PLANS.pro;
 
 	return (
 		<Card className="gap-0 rounded-lg border-border/60 py-0 shadow-none">
@@ -28,8 +28,8 @@ export function UpgradeCard() {
 						<Button variant="ghost" size="sm" asChild>
 							<Link to="/settings/billing/plans">View all plans</Link>
 						</Button>
-						<Button onClick={handleUpgrade} size="sm">
-							Upgrade now
+						<Button onClick={onUpgrade} size="sm" disabled={isUpgrading}>
+							{isUpgrading ? "Redirecting..." : "Upgrade now"}
 						</Button>
 					</div>
 				</div>

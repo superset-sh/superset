@@ -13,7 +13,7 @@
 	"dependencies": {
 		"@radix-ui/react-collapsible": "^1.1.12",
 		"@radix-ui/react-scroll-area": "^1.2.10",
-		"@sentry/nextjs": "^10.32.1",
+		"@sentry/nextjs": "^10.36.0",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-nextjs": "^0.13.8",
 		"class-variance-authority": "^0.7.1",

@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { type RefObject, useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { CommitInfo } from "shared/changes-types";
-import { FileDiffSection } from "../../../FileDiffSection";
+import { VirtualizedFileList } from "../../../VirtualizedFileList";
 
 interface CommitSectionProps {
 	commit: CommitInfo;
 	worktreePath: string;
 	collapsedFiles: Set<string>;
 	onToggleFile: (key: string) => void;
+	scrollElementRef: RefObject<HTMLDivElement | null>;
 }
 
 export function CommitSection({
@@ -16,6 +17,7 @@ export function CommitSection({
 	worktreePath,
 	collapsedFiles,
 	onToggleFile,
+	scrollElementRef,
 }: CommitSectionProps) {
 	const [isCommitExpanded, setIsCommitExpanded] = useState(true);
 
@@ -49,22 +51,17 @@ export function CommitSection({
 					{commit.files.length} files
 				</span>
 			</button>
-			{isCommitExpanded && (
+			{isCommitExpanded && files.length > 0 && (
 				<div className="pl-4">
-					{files.map((file) => {
-						const fileKey = `committed:${commit.hash}:${file.path}`;
-						return (
-							<FileDiffSection
-								key={fileKey}
-								file={file}
-								category="committed"
-								commitHash={commit.hash}
-								worktreePath={worktreePath}
-								isExpanded={!collapsedFiles.has(fileKey)}
-								onToggleExpanded={() => onToggleFile(fileKey)}
-							/>
-						);
-					})}
+					<VirtualizedFileList
+						files={files}
+						category="committed"
+						commitHash={commit.hash}
+						worktreePath={worktreePath}
+						collapsedFiles={collapsedFiles}
+						onToggleFile={onToggleFile}
+						scrollElementRef={scrollElementRef}
+					/>
 				</div>
 			)}
 		</div>

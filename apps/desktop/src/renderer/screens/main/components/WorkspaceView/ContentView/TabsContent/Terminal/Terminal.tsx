@@ -189,6 +189,7 @@ export const Terminal = ({ tabId, workspaceId }: TerminalProps) => {
 		onErrorEvent: (event, xterm) => handleStreamErrorRef.current(event, xterm),
 		onDisconnectEvent: (reason) =>
 			setConnectionError(reason || "Connection to terminal daemon lost"),
+		onResize: (cols, rows) => resizeRef.current({ paneId, cols, rows }),
 	});
 
 	// Cold restore handling

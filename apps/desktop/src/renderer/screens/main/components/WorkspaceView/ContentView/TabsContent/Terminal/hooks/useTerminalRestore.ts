@@ -21,6 +21,8 @@ export interface UseTerminalRestoreOptions {
 		xterm: XTerm,
 	) => void;
 	onDisconnectEvent: (reason: string | undefined) => void;
+	/** Callback to send resize to PTY after fit() - ensures PTY dimensions match xterm */
+	onResize: (cols: number, rows: number) => void;
 }
 
 export interface UseTerminalRestoreReturn {
@@ -54,6 +56,7 @@ export function useTerminalRestore({
 	onExitEvent,
 	onErrorEvent,
 	onDisconnectEvent,
+	onResize,
 }: UseTerminalRestoreOptions): UseTerminalRestoreReturn {
 	// Gate streaming until initial state restoration is applied
 	const isStreamReadyRef = useRef(false);
@@ -73,6 +76,8 @@ export function useTerminalRestore({
 	onErrorEventRef.current = onErrorEvent;
 	const onDisconnectEventRef = useRef(onDisconnectEvent);
 	onDisconnectEventRef.current = onDisconnectEvent;
+	const onResizeRef = useRef(onResize);
+	onResizeRef.current = onResize;
 
 	const flushPendingEvents = useCallback(() => {
 		const xterm = xtermRef.current;
@@ -119,7 +124,19 @@ export function useTerminalRestore({
 					if (xtermRef.current !== xterm) return;
 					if (restoreSequenceRef.current !== restoreSequence) return;
 					fitAddon.fit();
-					scrollToBottom(xterm);
+					// Send resize to PTY after fit() to ensure dimensions are synced.
+					// This fixes the race condition where createOrAttach uses stale dimensions
+					// from before the container was fully laid out.
+					onResizeRef.current(xterm.cols, xterm.rows);
+					// Only scroll to bottom for NEW sessions. For reattached sessions,
+					// the snapshot already positions the viewport correctly and we should
+					// not override the user's scroll position.
+					if (result.isNew) {
+						// Write empty string with callback to ensure all pending writes are
+						// processed before scrolling. xterm.write() is async and buffers writes,
+						// so scrollToBottom() called immediately might not see all content.
+						xterm.write("", () => scrollToBottom(xterm));
+					}
 				});
 			};
 

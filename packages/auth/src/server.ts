@@ -1,6 +1,7 @@
 import { expo } from "@better-auth/expo";
+import { stripe } from "@better-auth/stripe";
 import { db } from "@superset/db/client";
-import { members } from "@superset/db/schema";
+import { members, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
@@ -8,12 +9,15 @@ import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, customSession, organization } from "better-auth/plugins";
-import { and, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
+import Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
+
+const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
 
 export const auth = betterAuth({
 	baseURL: env.NEXT_PUBLIC_API_URL,
@@ -21,7 +25,7 @@ export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
 		usePlural: true,
-		schema: authSchema,
+		schema: { ...authSchema, subscriptions },
 	}),
 	trustedOrigins: [
 		env.NEXT_PUBLIC_WEB_URL,
@@ -160,6 +164,132 @@ export const auth = betterAuth({
 						throw new Error("Cannot invite users with this role");
 					}
 				},
+
+				afterCreateOrganization: async ({ organization, user }) => {
+					const customer = await stripeClient.customers.create({
+						name: organization.name,
+						email: user.email,
+						metadata: {
+							organizationId: organization.id,
+							organizationSlug: organization.slug,
+						},
+					});
+
+					await db
+						.update(authSchema.organizations)
+						.set({ stripeCustomerId: customer.id })
+						.where(eq(authSchema.organizations.id, organization.id));
+				},
+
+				beforeDeleteOrganization: async ({ organization }) => {
+					if (!organization.stripeCustomerId) return;
+
+					const subs = await stripeClient.subscriptions.list({
+						customer: organization.stripeCustomerId,
+						status: "active",
+					});
+					for (const sub of subs.data) {
+						await stripeClient.subscriptions.cancel(sub.id);
+					}
+				},
+
+				afterUpdateOrganization: async ({ organization }) => {
+					if (!organization?.stripeCustomerId) return;
+
+					await stripeClient.customers.update(organization.stripeCustomerId, {
+						name: organization.name,
+					});
+				},
+
+				beforeAddMember: async ({ organization }) => {
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, organization.id),
+							eq(subscriptions.status, "active"),
+						),
+					});
+
+					if (subscription) return;
+
+					const memberCount = await db
+						.select({ count: count() })
+						.from(members)
+						.where(eq(members.organizationId, organization.id));
+
+					const currentCount = memberCount[0]?.count ?? 0;
+
+					if (currentCount >= 1) {
+						throw new Error(
+							"Free plan is limited to 1 user. Upgrade to add more members.",
+						);
+					}
+				},
+
+				afterAddMember: async ({ organization }) => {
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, organization.id),
+							eq(subscriptions.status, "active"),
+						),
+					});
+
+					if (!subscription?.stripeSubscriptionId) return;
+
+					const memberCount = await db
+						.select({ count: count() })
+						.from(members)
+						.where(eq(members.organizationId, organization.id));
+
+					const quantity = memberCount[0]?.count ?? 1;
+
+					const stripeSub = await stripeClient.subscriptions.retrieve(
+						subscription.stripeSubscriptionId,
+					);
+					const itemId = stripeSub.items.data[0]?.id;
+
+					if (itemId) {
+						await stripeClient.subscriptions.update(
+							subscription.stripeSubscriptionId,
+							{
+								items: [{ id: itemId, quantity }],
+								proration_behavior: "create_prorations",
+							},
+						);
+					}
+				},
+
+				afterRemoveMember: async ({ organization }) => {
+					const subscription = await db.query.subscriptions.findFirst({
+						where: and(
+							eq(subscriptions.referenceId, organization.id),
+							eq(subscriptions.status, "active"),
+						),
+					});
+
+					if (!subscription?.stripeSubscriptionId) return;
+
+					const memberCount = await db
+						.select({ count: count() })
+						.from(members)
+						.where(eq(members.organizationId, organization.id));
+
+					const quantity = Math.max(1, memberCount[0]?.count ?? 1);
+
+					const stripeSub = await stripeClient.subscriptions.retrieve(
+						subscription.stripeSubscriptionId,
+					);
+					const itemId = stripeSub.items.data[0]?.id;
+
+					if (itemId) {
+						await stripeClient.subscriptions.update(
+							subscription.stripeSubscriptionId,
+							{
+								items: [{ id: itemId, quantity }],
+								proration_behavior: "create_prorations",
+							},
+						);
+					}
+				},
 			},
 		}),
 		bearer(),
@@ -185,10 +315,86 @@ export const auth = betterAuth({
 					.where(eq(authSchema.sessions.id, session.id));
 			}
 
+			// Get active subscription plan for the organization
+			let plan: string | null = null;
+			if (activeOrganizationId) {
+				const subscription = await db.query.subscriptions.findFirst({
+					where: and(
+						eq(subscriptions.referenceId, activeOrganizationId),
+						eq(subscriptions.status, "active"),
+					),
+				});
+				plan = subscription?.plan ?? null;
+			}
+
 			return {
 				user,
-				session: { ...session, activeOrganizationId, role: membership?.role },
+				session: {
+					...session,
+					activeOrganizationId,
+					role: membership?.role,
+					plan,
+				},
 			};
+		}),
+		stripe({
+			stripeClient,
+			stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET,
+			createCustomerOnSignUp: false,
+
+			subscription: {
+				enabled: true,
+				plans: [
+					{
+						name: "pro",
+						priceId: env.STRIPE_PRO_MONTHLY_PRICE_ID,
+						annualDiscountPriceId: env.STRIPE_PRO_YEARLY_PRICE_ID,
+					},
+				],
+
+				authorizeReference: async ({ user, referenceId, action }) => {
+					const member = await db.query.members.findFirst({
+						where: and(
+							eq(members.userId, user.id),
+							eq(members.organizationId, referenceId),
+						),
+					});
+
+					if (!member) return false;
+
+					switch (action) {
+						case "upgrade-subscription":
+						case "cancel-subscription":
+						case "restore-subscription":
+							return member.role === "owner";
+						case "list-subscription":
+							return member.role === "owner" || member.role === "admin";
+						default:
+							return false;
+					}
+				},
+
+				getCheckoutSessionParams: async ({ user, subscription }) => {
+					const org = await db.query.organizations.findFirst({
+						where: eq(
+							authSchema.organizations.id,
+							subscription?.referenceId ?? "",
+						),
+					});
+
+					return {
+						params: {
+							customer: org?.stripeCustomerId ?? undefined,
+							allow_promotion_codes: true,
+							billing_address_collection: "required",
+							metadata: {
+								organizationId: org?.id ?? "",
+								initiatedByUserId: user.id,
+							},
+						},
+					};
+				},
+			},
 		}),
 		acceptInvitationEndpoint,
 	],

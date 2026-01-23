@@ -2,21 +2,21 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { getMatchingItemsForSection } from "../utils/settings-search";
-import { MembersSettings } from "./components/MembersSettings";
+import { IntegrationsSettings } from "./components/IntegrationsSettings";
 
-export const Route = createFileRoute("/_authenticated/settings/members/")({
-	component: MembersSettingsPage,
+export const Route = createFileRoute("/_authenticated/settings/integrations/")({
+	component: IntegrationsSettingsPage,
 });
 
-function MembersSettingsPage() {
+function IntegrationsSettingsPage() {
 	const searchQuery = useSettingsSearchQuery();
 
 	const visibleItems = useMemo(() => {
 		if (!searchQuery) return null;
-		return getMatchingItemsForSection(searchQuery, "members").map(
+		return getMatchingItemsForSection(searchQuery, "integrations").map(
 			(item) => item.id,
 		);
 	}, [searchQuery]);
 
-	return <MembersSettings visibleItems={visibleItems} />;
+	return <IntegrationsSettings visibleItems={visibleItems} />;
 }

@@ -166,6 +166,7 @@ export class DaemonTerminalManager extends EventEmitter {
 					this.sessions.delete(paneId);
 					this.cleanupTimeouts.delete(paneId);
 				}, SESSION_CLEANUP_DELAY_MS);
+				timeoutId.unref();
 				this.cleanupTimeouts.set(paneId, timeoutId);
 			},
 		);

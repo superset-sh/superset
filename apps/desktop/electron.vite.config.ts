@@ -97,7 +97,7 @@ export default defineConfig({
 		plugins: [
 			tsconfigPaths,
 			externalizeDepsPlugin({
-				exclude: ["trpc-electron"],
+				exclude: ["trpc-electron", "@sentry/electron"],
 			}),
 		],
 

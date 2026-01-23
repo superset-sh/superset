@@ -16,6 +16,7 @@ import {
 import {
 	integrationConnections,
 	repositories,
+	subscriptions,
 	taskStatuses,
 	tasks,
 } from "./schema";
@@ -48,6 +49,7 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 export const organizationsRelations = relations(organizations, ({ many }) => ({
 	members: many(members),
 	invitations: many(invitations),
+	subscriptions: many(subscriptions),
 	repositories: many(repositories),
 	tasks: many(tasks),
 	taskStatuses: many(taskStatuses),
@@ -74,6 +76,13 @@ export const invitationsRelations = relations(invitations, ({ one }) => ({
 	inviter: one(users, {
 		fields: [invitations.inviterId],
 		references: [users.id],
+	}),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [subscriptions.referenceId],
+		references: [organizations.id],
 	}),
 }));
 
