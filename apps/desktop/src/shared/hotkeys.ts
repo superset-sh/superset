@@ -490,23 +490,23 @@ export const HOTKEYS = {
 		description: "Scroll the active terminal to the bottom",
 	}),
 	PREV_TERMINAL: defineHotkey({
-		keys: "meta+left",
+		keys: "meta+alt+left",
 		label: "Previous Terminal",
 		category: "Terminal",
 	}),
 	NEXT_TERMINAL: defineHotkey({
-		keys: "meta+right",
+		keys: "meta+alt+right",
 		label: "Next Terminal",
 		category: "Terminal",
 	}),
 	PREV_PANE: defineHotkey({
-		keys: "meta+alt+left",
+		keys: "meta+shift+left",
 		label: "Previous Pane",
 		category: "Terminal",
 		description: "Focus the previous pane in the current tab",
 	}),
 	NEXT_PANE: defineHotkey({
-		keys: "meta+alt+right",
+		keys: "meta+shift+right",
 		label: "Next Pane",
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
