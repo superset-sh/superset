@@ -1,9 +1,17 @@
 import { Button } from "@superset/ui/button";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { LuFolderOpen } from "react-icons/lu";
+import { useState } from "react";
+import { LuFolderGit, LuFolderOpen, LuFolderPlus } from "react-icons/lu";
 import { useOpenNew } from "renderer/react-query/projects";
 import { useCreateBranchWorkspace } from "renderer/react-query/workspaces";
+import { CloneRepoDialog } from "../StartView/CloneRepoDialog";
 import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
@@ -15,8 +23,9 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const openNew = useOpenNew();
 	const createBranchWorkspace = useCreateBranchWorkspace();
+	const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
 
-	const handleOpenNewProject = async () => {
+	const handleOpenProject = async () => {
 		try {
 			const result = await openNew.mutateAsync(undefined);
 			if (result.canceled) {
@@ -53,39 +62,99 @@ export function WorkspaceSidebarFooter({
 		}
 	};
 
+	const handleCloneError = (error: string) => {
+		toast.error("Failed to clone repository", {
+			description: error,
+		});
+	};
+
+	const isLoading = openNew.isPending || createBranchWorkspace.isPending;
+
 	if (isCollapsed) {
 		return (
-			<div className="border-t border-border p-2 flex justify-center">
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-8 text-muted-foreground hover:text-foreground"
-							onClick={handleOpenNewProject}
-							disabled={openNew.isPending || createBranchWorkspace.isPending}
-						>
-							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
-						</Button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Add repository</TooltipContent>
-				</Tooltip>
-			</div>
+			<>
+				<div className="border-t border-border p-2 flex justify-center">
+					<DropdownMenu>
+						<Tooltip delayDuration={300}>
+							<TooltipTrigger asChild>
+								<DropdownMenuTrigger asChild>
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-8 text-muted-foreground hover:text-foreground"
+										disabled={isLoading}
+									>
+										<LuFolderPlus
+											className="size-4"
+											strokeWidth={STROKE_WIDTH}
+										/>
+									</Button>
+								</DropdownMenuTrigger>
+							</TooltipTrigger>
+							<TooltipContent side="right">Add repository</TooltipContent>
+						</Tooltip>
+						<DropdownMenuContent side="top" align="start">
+							<DropdownMenuItem
+								onClick={handleOpenProject}
+								disabled={isLoading}
+							>
+								<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
+								Open project
+							</DropdownMenuItem>
+							<DropdownMenuItem
+								onClick={() => setIsCloneDialogOpen(true)}
+								disabled={isLoading}
+							>
+								<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
+								Clone repo
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
+				<CloneRepoDialog
+					isOpen={isCloneDialogOpen}
+					onClose={() => setIsCloneDialogOpen(false)}
+					onError={handleCloneError}
+				/>
+			</>
 		);
 	}
 
 	return (
-		<div className="border-t border-border p-2">
-			<Button
-				variant="ghost"
-				size="sm"
-				className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
-				onClick={handleOpenNewProject}
-				disabled={openNew.isPending || createBranchWorkspace.isPending}
-			>
-				<LuFolderOpen className="w-4 h-4" strokeWidth={STROKE_WIDTH} />
-				<span>Add repository</span>
-			</Button>
-		</div>
+		<>
+			<div className="border-t border-border p-2">
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+							disabled={isLoading}
+						>
+							<LuFolderPlus className="w-4 h-4" strokeWidth={STROKE_WIDTH} />
+							<span>Add repository</span>
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent side="top" align="start">
+						<DropdownMenuItem onClick={handleOpenProject} disabled={isLoading}>
+							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
+							Open project
+						</DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={() => setIsCloneDialogOpen(true)}
+							disabled={isLoading}
+						>
+							<LuFolderGit className="size-4" strokeWidth={STROKE_WIDTH} />
+							Clone repo
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
+			<CloneRepoDialog
+				isOpen={isCloneDialogOpen}
+				onClose={() => setIsCloneDialogOpen(false)}
+				onError={handleCloneError}
+			/>
+		</>
 	);
 }
