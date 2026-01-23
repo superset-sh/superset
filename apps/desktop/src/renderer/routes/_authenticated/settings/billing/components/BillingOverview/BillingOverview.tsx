@@ -16,7 +16,6 @@ import {
 } from "../../../utils/settings-search";
 import type { PlanTier } from "../../constants";
 import { CurrentPlanCard } from "./components/CurrentPlanCard";
-import { InvoicesSection } from "./components/InvoicesSection";
 import { UpgradeCard } from "./components/UpgradeCard";
 
 interface BillingOverviewProps {
@@ -64,10 +63,6 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
-		visibleItems,
-	);
-	const showInvoices = isItemVisible(
-		SETTING_ITEM_ID.BILLING_INVOICES,
 		visibleItems,
 	);
 
@@ -186,12 +181,6 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 							)}
 						</>
 					))}
-
-				{showInvoices && (
-					<div className="mt-6">
-						<InvoicesSection />
-					</div>
-				)}
 			</div>
 		</div>
 	);

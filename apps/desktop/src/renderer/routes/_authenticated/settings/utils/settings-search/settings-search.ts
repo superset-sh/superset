@@ -35,7 +35,6 @@ export const SETTING_ITEM_ID = {
 	BILLING_OVERVIEW: "billing-overview",
 	BILLING_PLANS: "billing-plans",
 	BILLING_USAGE: "billing-usage",
-	BILLING_INVOICES: "billing-invoices",
 
 	PROJECT_NAME: "project-name",
 	PROJECT_PATH: "project-path",
@@ -492,20 +491,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"users",
 			"quota",
 			"seats",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.BILLING_INVOICES,
-		section: "billing",
-		title: "Invoices",
-		description: "View billing history and invoices",
-		keywords: [
-			"billing",
-			"invoices",
-			"payment",
-			"history",
-			"receipts",
-			"transactions",
 		],
 	},
 	{
