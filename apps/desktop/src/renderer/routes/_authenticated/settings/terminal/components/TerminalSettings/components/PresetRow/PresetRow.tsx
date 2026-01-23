@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
-import { Kbd } from "@superset/ui/kbd";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
@@ -132,13 +131,6 @@ export function PresetRow({
 				className="w-6 flex justify-center shrink-0 pt-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
 			>
 				<LuGripVertical className="h-4 w-4" />
-			</div>
-			<div className="w-10 flex justify-center shrink-0 pt-1">
-				{rowIndex < 9 ? (
-					<Kbd>{rowIndex + 1}</Kbd>
-				) : (
-					<span className="text-xs text-muted-foreground">-</span>
-				)}
 			</div>
 			{PRESET_COLUMNS.map((column) => (
 				<div key={column.key} className="flex-1 min-w-0">

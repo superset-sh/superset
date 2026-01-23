@@ -16,7 +16,6 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import { Slider } from "@superset/ui/slider";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
@@ -33,10 +32,7 @@ import {
 	PRESET_COLUMNS,
 	type PresetColumnKey,
 } from "renderer/routes/_authenticated/settings/presets/types";
-import {
-	DEFAULT_CHORD_TIMEOUT_MS,
-	DEFAULT_TERMINAL_PERSISTENCE,
-} from "shared/constants";
+import { DEFAULT_TERMINAL_PERSISTENCE } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -115,10 +111,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 	);
 	const showQuickAdd = isItemVisible(
 		SETTING_ITEM_ID.TERMINAL_QUICK_ADD,
-		visibleItems,
-	);
-	const showChordTimeout = isItemVisible(
-		SETTING_ITEM_ID.TERMINAL_CHORD_TIMEOUT,
 		visibleItems,
 	);
 	const showPersistence = isItemVisible(
@@ -359,50 +351,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		setTerminalPersistence.mutate({ enabled });
 	};
 
-	// Chord timeout setting
-	const { data: chordTimeout, isLoading: isLoadingChordTimeout } =
-		electronTrpc.settings.getChordTimeout.useQuery();
-
-	const setChordTimeout = electronTrpc.settings.setChordTimeout.useMutation({
-		onMutate: async ({ timeoutMs }) => {
-			await utils.settings.getChordTimeout.cancel();
-			const previous = utils.settings.getChordTimeout.getData();
-			utils.settings.getChordTimeout.setData(undefined, timeoutMs);
-			return { previous };
-		},
-		onError: (_err, _vars, context) => {
-			if (context?.previous !== undefined) {
-				utils.settings.getChordTimeout.setData(undefined, context.previous);
-			}
-		},
-		onSettled: () => {
-			utils.settings.getChordTimeout.invalidate();
-		},
-	});
-
-	// Local state for slider to enable smooth dragging
-	const [chordTimeoutLocal, setChordTimeoutLocal] = useState(
-		chordTimeout ?? DEFAULT_CHORD_TIMEOUT_MS,
-	);
-
-	// Sync local state when server value changes
-	useEffect(() => {
-		if (chordTimeout !== undefined) {
-			setChordTimeoutLocal(chordTimeout);
-		}
-	}, [chordTimeout]);
-
-	const handleChordTimeoutChange = useCallback((value: number[]) => {
-		setChordTimeoutLocal(value[0]);
-	}, []);
-
-	const handleChordTimeoutCommit = useCallback(
-		(value: number[]) => {
-			setChordTimeout.mutate({ timeoutMs: value[0] });
-		},
-		[setChordTimeout],
-	);
-
 	// Terminal link behavior setting
 	const { data: terminalLinkBehavior, isLoading: isLoadingLinkBehavior } =
 		electronTrpc.settings.getTerminalLinkBehavior.useQuery();
@@ -604,9 +552,6 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 							<div className="rounded-lg border border-border overflow-hidden">
 								<div className="flex items-center gap-4 py-2 px-4 bg-accent/10 border-b border-border">
 									<div className="w-6 shrink-0" />
-									<div className="w-10 text-xs font-medium text-muted-foreground uppercase tracking-wider text-center shrink-0">
-										Key
-									</div>
 									{PRESET_COLUMNS.map((column) => (
 										<div
 											key={column.key}
@@ -656,51 +601,10 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 					</div>
 				)}
 
-				{showChordTimeout && (
-					<div
-						className={
-							showPresets || showQuickAdd
-								? "flex items-center justify-between pt-6 border-t"
-								: "flex items-center justify-between"
-						}
-					>
-						<div className="space-y-1">
-							<Label htmlFor="chord-timeout" className="text-sm font-medium">
-								Preset chord shortcut timeout
-							</Label>
-							<p className="text-xs text-muted-foreground">
-								Quickly open presets with a two-key combo: press the new tab
-								shortcut, then a number key (1-9) to launch that preset.
-							</p>
-							<p className="text-xs text-muted-foreground/70">
-								Example: ⌘T → 1 opens the first preset. This timeout controls
-								how long you have to press the number after the new tab
-								shortcut.
-							</p>
-						</div>
-						<div className="flex items-center gap-3">
-							<Slider
-								id="chord-timeout"
-								className="w-[140px]"
-								min={100}
-								max={2000}
-								step={100}
-								value={[chordTimeoutLocal]}
-								onValueChange={handleChordTimeoutChange}
-								onValueCommit={handleChordTimeoutCommit}
-								disabled={isLoadingChordTimeout || setChordTimeout.isPending}
-							/>
-							<span className="text-sm text-muted-foreground w-14 text-right">
-								{chordTimeoutLocal}ms
-							</span>
-						</div>
-					</div>
-				)}
-
 				{showPersistence && (
 					<div
 						className={
-							showPresets || showQuickAdd || showChordTimeout
+							showPresets || showQuickAdd
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}
@@ -737,7 +641,7 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 				{showLinkBehavior && (
 					<div
 						className={
-							showPersistence || showPresets || showQuickAdd || showChordTimeout
+							showPersistence || showPresets || showQuickAdd
 								? "flex items-center justify-between pt-6 border-t"
 								: "flex items-center justify-between"
 						}

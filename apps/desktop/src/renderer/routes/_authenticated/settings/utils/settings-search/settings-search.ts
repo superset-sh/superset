@@ -37,7 +37,6 @@ export const SETTING_ITEM_ID = {
 	// Terminal (includes presets)
 	TERMINAL_PRESETS: "terminal-presets",
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
-	TERMINAL_CHORD_TIMEOUT: "terminal-chord-timeout",
 	TERMINAL_PERSISTENCE: "terminal-persistence",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
@@ -380,24 +379,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"opencode",
 			"ai",
 			"assistant",
-		],
-	},
-	{
-		id: SETTING_ITEM_ID.TERMINAL_CHORD_TIMEOUT,
-		section: "terminal",
-		title: "Preset Chord Timeout",
-		description: "Time to wait for number key after new tab shortcut",
-		keywords: [
-			"terminal",
-			"chord",
-			"timeout",
-			"delay",
-			"preset",
-			"shortcut",
-			"hotkey",
-			"wait",
-			"ms",
-			"milliseconds",
 		],
 	},
 	{

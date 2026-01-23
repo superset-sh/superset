@@ -1,8 +1,8 @@
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
-import { usePresetChordShortcut } from "renderer/hooks/usePresetChordShortcut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
+import { usePresets } from "renderer/react-query/presets";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { NotFound } from "renderer/routes/not-found";
 import { WorkspaceInitializingView } from "renderer/screens/main/components/WorkspaceView/WorkspaceInitializingView";
@@ -112,11 +112,63 @@ function WorkspacePage() {
 
 	const focusedPaneId = activeTabId ? focusedPaneIds[activeTabId] : null;
 
-	// Tab management shortcuts - NEW_GROUP handled by chord shortcut hook
-	usePresetChordShortcut({
+	// Get presets for preset hotkeys
+	const { presets } = usePresets();
+	const renameTab = useTabsStore((s) => s.renameTab);
+
+	// Helper to open a tab with a preset
+	const openTabWithPreset = useCallback(
+		(presetIndex: number) => {
+			const preset = presets[presetIndex];
+			if (preset) {
+				const result = addTab(workspaceId, {
+					initialCommands: preset.commands,
+					initialCwd: preset.cwd || undefined,
+				});
+				if (preset.name) {
+					renameTab(result.tabId, preset.name);
+				}
+			} else {
+				addTab(workspaceId);
+			}
+		},
+		[presets, workspaceId, addTab, renameTab],
+	);
+
+	// New tab hotkey (default preset or empty)
+	useAppHotkey("NEW_GROUP", () => addTab(workspaceId), undefined, [
 		workspaceId,
 		addTab,
-	});
+	]);
+
+	// Preset hotkeys (⌘⇧1-9)
+	useAppHotkey("OPEN_PRESET_1", () => openTabWithPreset(0), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_2", () => openTabWithPreset(1), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_3", () => openTabWithPreset(2), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_4", () => openTabWithPreset(3), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_5", () => openTabWithPreset(4), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_6", () => openTabWithPreset(5), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_7", () => openTabWithPreset(6), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_8", () => openTabWithPreset(7), undefined, [
+		openTabWithPreset,
+	]);
+	useAppHotkey("OPEN_PRESET_9", () => openTabWithPreset(8), undefined, [
+		openTabWithPreset,
+	]);
 
 	useAppHotkey(
 		"CLOSE_TERMINAL",

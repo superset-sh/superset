@@ -8,7 +8,6 @@ import { app } from "electron";
 import { quitWithoutConfirmation } from "main/index";
 import { localDb } from "main/lib/local-db";
 import {
-	DEFAULT_CHORD_TIMEOUT_MS,
 	DEFAULT_CONFIRM_ON_QUIT,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PERSISTENCE,
@@ -296,26 +295,6 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { terminalPersistence: input.enabled },
-					})
-					.run();
-
-				return { success: true };
-			}),
-
-		getChordTimeout: publicProcedure.query(() => {
-			const row = getSettings();
-			return row.chordTimeoutMs ?? DEFAULT_CHORD_TIMEOUT_MS;
-		}),
-
-		setChordTimeout: publicProcedure
-			.input(z.object({ timeoutMs: z.number().int().min(100).max(2000) }))
-			.mutation(({ input }) => {
-				localDb
-					.insert(settings)
-					.values({ id: 1, chordTimeoutMs: input.timeoutMs })
-					.onConflictDoUpdate({
-						target: settings.id,
-						set: { chordTimeoutMs: input.timeoutMs },
 					})
 					.run();
 

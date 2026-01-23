@@ -1,5 +1,4 @@
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { PresetChordIndicator } from "renderer/components/PresetChordIndicator";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { TopBar } from "renderer/screens/main/components/TopBar";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
@@ -79,7 +78,6 @@ function DashboardLayout() {
 				)}
 				<Outlet />
 			</div>
-			<PresetChordIndicator />
 		</div>
 	);
 }

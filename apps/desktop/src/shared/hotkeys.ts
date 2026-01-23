@@ -511,6 +511,51 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Focus the next pane in the current tab",
 	}),
+	OPEN_PRESET_1: defineHotkey({
+		keys: "meta+shift+1",
+		label: "Open Preset 1",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_2: defineHotkey({
+		keys: "meta+shift+2",
+		label: "Open Preset 2",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_3: defineHotkey({
+		keys: "meta+shift+3",
+		label: "Open Preset 3",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_4: defineHotkey({
+		keys: "meta+shift+4",
+		label: "Open Preset 4",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_5: defineHotkey({
+		keys: "meta+shift+5",
+		label: "Open Preset 5",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_6: defineHotkey({
+		keys: "meta+shift+6",
+		label: "Open Preset 6",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_7: defineHotkey({
+		keys: "meta+shift+7",
+		label: "Open Preset 7",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_8: defineHotkey({
+		keys: "meta+shift+8",
+		label: "Open Preset 8",
+		category: "Terminal",
+	}),
+	OPEN_PRESET_9: defineHotkey({
+		keys: "meta+shift+9",
+		label: "Open Preset 9",
+		category: "Terminal",
+	}),
 
 	// Workspace creation
 	NEW_WORKSPACE: defineHotkey({
