@@ -1305,15 +1305,18 @@ export function parsePrUrl(url: string): {
 
 /**
  * Fetches PR information using the GitHub CLI.
- * @param repoPath - Path to the repository (used to resolve the repo context)
+ * @param owner - The repository owner from the PR URL
+ * @param repo - The repository name from the PR URL
  * @param prNumber - The PR number to fetch
  * @returns PR info or throws if not found/error
  */
 export async function getPrInfo({
-	repoPath,
+	owner,
+	repo,
 	prNumber,
 }: {
-	repoPath: string;
+	owner: string;
+	repo: string;
 	prNumber: number;
 }): Promise<PullRequestInfo> {
 	const env = await getGitEnv();
@@ -1325,10 +1328,12 @@ export async function getPrInfo({
 				"pr",
 				"view",
 				String(prNumber),
+				"--repo",
+				`${owner}/${repo}`,
 				"--json",
 				"number,title,headRefName,headRepository,headRepositoryOwner,isCrossRepository",
 			],
-			{ cwd: repoPath, env, timeout: 30_000 },
+			{ env, timeout: 30_000 },
 		);
 
 		return JSON.parse(stdout) as PullRequestInfo;
@@ -1349,7 +1354,7 @@ export async function getPrInfo({
 				stderr.includes("Could not resolve") ||
 				stderr.includes("not found")
 			) {
-				throw new Error(`PR #${prNumber} not found`);
+				throw new Error(`PR #${prNumber} not found in ${owner}/${repo}`);
 			}
 		}
 		throw new Error(
@@ -1430,63 +1435,60 @@ export async function createWorktreeFromPr({
 		const git = simpleGit(mainRepoPath);
 		const localBranches = await git.branchLocal();
 
-		if (prInfo.isCrossRepository) {
-			const forkOwner = prInfo.headRepositoryOwner.login.toLowerCase();
-			const remoteBranch = `${forkOwner}/${prInfo.headRefName}`;
+		const remoteRef = prInfo.isCrossRepository
+			? `refs/remotes/${prInfo.headRepositoryOwner.login.toLowerCase()}/${prInfo.headRefName}`
+			: `refs/remotes/origin/${prInfo.headRefName}`;
+		const branchName = prInfo.isCrossRepository
+			? localBranchName
+			: prInfo.headRefName;
+		const branchExists = localBranches.all.includes(branchName);
 
-			if (localBranches.all.includes(localBranchName)) {
+		if (branchExists) {
+			const localCommit = (await git.revparse([branchName])).trim();
+			const remoteCommit = (await git.revparse([remoteRef])).trim();
+
+			if (localCommit !== remoteCommit) {
+				try {
+					await execFileAsync(
+						"git",
+						[
+							"-C",
+							mainRepoPath,
+							"merge-base",
+							"--is-ancestor",
+							localCommit,
+							remoteCommit,
+						],
+						{ env, timeout: 10_000 },
+					);
+				} catch {
+					throw new Error(
+						`Local branch "${branchName}" has diverged from the PR. ` +
+							`Please delete or rename it before opening this PR.`,
+					);
+				}
+			}
+
+			await execFileAsync(
+				"git",
+				["-C", mainRepoPath, "worktree", "add", worktreePath, branchName],
+				{ env, timeout: 120_000 },
+			);
+
+			if (localCommit !== remoteCommit) {
 				await execFileAsync(
 					"git",
-					["-C", mainRepoPath, "worktree", "add", worktreePath, localBranchName],
-					{ env, timeout: 120_000 },
-				);
-			} else {
-				await execFileAsync(
-					"git",
-					[
-						"-C",
-						mainRepoPath,
-						"worktree",
-						"add",
-						"-b",
-						localBranchName,
-						worktreePath,
-						remoteBranch,
-					],
-					{ env, timeout: 120_000 },
+					["-C", worktreePath, "reset", "--hard", remoteRef],
+					{ env, timeout: 30_000 },
 				);
 			}
 		} else {
-			if (localBranches.all.includes(prInfo.headRefName)) {
-				await execFileAsync(
-					"git",
-					[
-						"-C",
-						mainRepoPath,
-						"worktree",
-						"add",
-						worktreePath,
-						prInfo.headRefName,
-					],
-					{ env, timeout: 120_000 },
-				);
-			} else {
-				await execFileAsync(
-					"git",
-					[
-						"-C",
-						mainRepoPath,
-						"worktree",
-						"add",
-						"--track",
-						"-b",
-						prInfo.headRefName,
-						worktreePath,
-						`origin/${prInfo.headRefName}`,
-					],
-					{ env, timeout: 120_000 },
-				);
+			const args = ["-C", mainRepoPath, "worktree", "add"];
+			if (!prInfo.isCrossRepository) {
+				args.push("--track");
 			}
+			args.push("-b", branchName, worktreePath, remoteRef);
+			await execFileAsync("git", args, { env, timeout: 120_000 });
 		}
 
 		console.log(

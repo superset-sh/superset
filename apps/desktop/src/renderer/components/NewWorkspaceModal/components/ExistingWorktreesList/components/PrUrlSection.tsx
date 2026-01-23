@@ -47,11 +47,7 @@ export function PrUrlSection({
 					onClick={onSubmit}
 					disabled={!prUrl.trim() || isPending}
 				>
-					{isPending ? (
-						<LuLoader className="size-3.5 animate-spin" />
-					) : (
-						"Open"
-					)}
+					{isPending ? <LuLoader className="size-3.5 animate-spin" /> : "Open"}
 				</Button>
 			</div>
 		</div>

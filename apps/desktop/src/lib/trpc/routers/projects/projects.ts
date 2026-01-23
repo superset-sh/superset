@@ -412,7 +412,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						}
 					}
 
-					let branches = Array.from(branchMap.entries()).map(
+					const branches = Array.from(branchMap.entries()).map(
 						([name, data]) => ({
 							name,
 							...data,

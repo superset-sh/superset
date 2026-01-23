@@ -26,8 +26,8 @@ import {
 	getPrInfo,
 	getPrLocalBranchName,
 	listBranches,
-	parsePrUrl,
 	type PullRequestInfo,
+	parsePrUrl,
 	safeCheckoutBranch,
 	worktreeExists,
 } from "../utils/git";
@@ -597,7 +597,8 @@ export const createCreateProcedures = () => {
 				}
 
 				const prInfo = await getPrInfo({
-					repoPath: project.mainRepoPath,
+					owner: parsed.owner,
+					repo: parsed.repo,
 					prNumber: parsed.number,
 				});
 

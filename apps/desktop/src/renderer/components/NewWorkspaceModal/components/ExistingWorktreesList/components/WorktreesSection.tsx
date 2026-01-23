@@ -53,9 +53,7 @@ export function WorktreesSection({
 					className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
 				>
 					<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-					<span className="flex-1 text-sm truncate font-mono">
-						{wt.branch}
-					</span>
+					<span className="flex-1 text-sm truncate font-mono">{wt.branch}</span>
 					<span className="text-xs text-muted-foreground shrink-0">
 						{formatDistanceToNow(wt.createdAt, { addSuffix: false })}
 					</span>
