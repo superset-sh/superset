@@ -1,7 +1,17 @@
 import { Button } from "@superset/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { formatDistanceToNow } from "date-fns";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { GoGitBranch } from "react-icons/go";
+import { HiChevronUpDown } from "react-icons/hi2";
 import { LuGitBranch } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
@@ -26,6 +36,9 @@ export function ExistingWorktreesList({
 	const openWorktree = useOpenWorktree();
 	const createWorkspace = useCreateWorkspace();
 
+	const [branchOpen, setBranchOpen] = useState(false);
+	const [branchSearch, setBranchSearch] = useState("");
+
 	const closedWorktrees = worktrees
 		.filter((wt) => !wt.hasActiveWorkspace)
 		.sort((a, b) => b.createdAt - a.createdAt);
@@ -41,6 +54,15 @@ export function ExistingWorktreesList({
 			(branch) => !worktreeBranches.has(branch.name),
 		);
 	}, [branchData?.branches, worktrees]);
+
+	// Filter branches based on search
+	const filteredBranches = useMemo(() => {
+		if (!branchSearch) return branchesWithoutWorktrees;
+		const searchLower = branchSearch.toLowerCase();
+		return branchesWithoutWorktrees.filter((b) =>
+			b.name.toLowerCase().includes(searchLower),
+		);
+	}, [branchesWithoutWorktrees, branchSearch]);
 
 	const handleOpenWorktree = async (worktreeId: string, branch: string) => {
 		toast.promise(openWorktree.mutateAsync({ worktreeId }), {
@@ -188,35 +210,71 @@ export function ExistingWorktreesList({
 
 			{/* Branches Section */}
 			{hasBranches && (
-				<div className="space-y-1">
+				<div className="space-y-1.5">
 					{hasWorktrees && <div className="border-t border-border pt-2 mt-2" />}
 					<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
 						Branches
 					</div>
-					{branchesWithoutWorktrees.map((branch) => (
-						<button
-							key={branch.name}
-							type="button"
-							onClick={() => handleCreateFromBranch(branch.name)}
-							disabled={isPending}
-							className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
+					<Popover open={branchOpen} onOpenChange={setBranchOpen}>
+						<PopoverTrigger asChild>
+							<Button
+								variant="outline"
+								size="sm"
+								className="w-full h-8 justify-between font-normal"
+								disabled={isPending}
+							>
+								<span className="flex items-center gap-2 truncate">
+									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+									<span className="truncate text-sm text-muted-foreground">
+										Select branch...
+									</span>
+								</span>
+								<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
+							</Button>
+						</PopoverTrigger>
+						<PopoverContent
+							className="w-[--radix-popover-trigger-width] p-0"
+							align="start"
 						>
-							<LuGitBranch className="h-3.5 w-3.5 text-blue-500 shrink-0" />
-							<span className="flex-1 text-sm truncate font-mono">
-								{branch.name}
-							</span>
-							{branch.name === branchData?.defaultBranch && (
-								<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-									default
-								</span>
-							)}
-							{branch.lastCommitDate > 0 && (
-								<span className="text-xs text-muted-foreground shrink-0">
-									{formatRelativeTime(branch.lastCommitDate)}
-								</span>
-							)}
-						</button>
-					))}
+							<Command shouldFilter={false}>
+								<CommandInput
+									placeholder="Search branches..."
+									value={branchSearch}
+									onValueChange={setBranchSearch}
+								/>
+								<CommandList className="max-h-[200px]">
+									<CommandEmpty>No branches found</CommandEmpty>
+									{filteredBranches.map((branch) => (
+										<CommandItem
+											key={branch.name}
+											value={branch.name}
+											onSelect={() => {
+												setBranchOpen(false);
+												setBranchSearch("");
+												handleCreateFromBranch(branch.name);
+											}}
+											className="flex items-center justify-between"
+										>
+											<span className="flex items-center gap-2 truncate">
+												<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
+												<span className="truncate">{branch.name}</span>
+												{branch.name === branchData?.defaultBranch && (
+													<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+														default
+													</span>
+												)}
+											</span>
+											{branch.lastCommitDate > 0 && (
+												<span className="text-xs text-muted-foreground shrink-0">
+													{formatRelativeTime(branch.lastCommitDate)}
+												</span>
+											)}
+										</CommandItem>
+									))}
+								</CommandList>
+							</Command>
+						</PopoverContent>
+					</Popover>
 				</div>
 			)}
 		</div>
