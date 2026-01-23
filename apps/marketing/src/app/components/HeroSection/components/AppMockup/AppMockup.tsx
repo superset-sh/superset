@@ -594,52 +594,142 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 				</div>
 
 				{/* Right sidebar */}
-				<div className="w-[200px] bg-[#111111] border-l border-white/10 flex flex-col shrink-0">
-					{/* Header */}
-					<div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-						<span className="text-[10px] text-foreground/80">Review Changes</span>
-						<div className="flex items-center gap-1 text-[10px]">
-							<LuGitPullRequest className="size-3.5 text-cyan-400" />
-							<span className="text-muted-foreground/70">#827</span>
-						</div>
-					</div>
-
-					{/* Commit & Push section */}
-					<div className="px-3 py-2 border-b border-white/10 space-y-2">
-						<div className="h-7 bg-[#0a0a0a] rounded border border-white/10 px-2 flex items-center text-[10px] text-muted-foreground/40">
-							Commit message...
-						</div>
-						<button
-							type="button"
-							className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-[10px] bg-white/10 hover:bg-white/15 rounded text-foreground/90"
-						>
-							<span>↑</span>
-							<span>Push</span>
-							<span className="text-muted-foreground/60">26</span>
-						</button>
-					</div>
-
-					{/* File changes list */}
+				<motion.div
+					className="bg-[#111111] border-l border-white/10 flex flex-col shrink-0 relative overflow-hidden"
+					initial={{ width: 200 }}
+					animate={{
+						width: activeDemo === "See Changes" ? 350 : 200,
+					}}
+					transition={{ duration: 0.3, ease: "easeOut" }}
+				>
+					{/* Default view - Header, Commit & Push, File changes */}
 					<motion.div
-						className="flex-1 overflow-hidden"
+						className="absolute inset-0 flex flex-col"
 						initial={{ opacity: 1 }}
 						animate={{
-							opacity: activeDemo === "Create Parallel Branches" ? 0 : 1,
+							opacity: activeDemo === "See Changes" ? 0 : 1,
 						}}
-						transition={{ duration: 0.3, ease: "easeOut" }}
+						transition={{ duration: 0.2, ease: "easeOut" }}
+						style={{ pointerEvents: activeDemo === "See Changes" ? "none" : "auto" }}
 					>
-						{FILE_CHANGES.map((file, i) => (
-							<FileChangeItem
-								key={`${file.path}-${i}`}
-								path={file.path}
-								add={file.add}
-								del={file.del}
-								indent={file.indent}
-								type={file.type}
-							/>
-						))}
+						{/* Header */}
+						<div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+							<span className="text-[10px] text-foreground/80">Review Changes</span>
+							<div className="flex items-center gap-1 text-[10px]">
+								<LuGitPullRequest className="size-3.5 text-cyan-400" />
+								<span className="text-muted-foreground/70">#827</span>
+							</div>
+						</div>
+
+						{/* Commit & Push section */}
+						<div className="px-3 py-2 border-b border-white/10 space-y-2">
+							<div className="h-7 bg-[#0a0a0a] rounded border border-white/10 px-2 flex items-center text-[10px] text-muted-foreground/40">
+								Commit message...
+							</div>
+							<button
+								type="button"
+								className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-[10px] bg-white/10 hover:bg-white/15 rounded text-foreground/90"
+							>
+								<span>↑</span>
+								<span>Push</span>
+								<span className="text-muted-foreground/60">26</span>
+							</button>
+						</div>
+
+						{/* File changes list */}
+						<motion.div
+							className="flex-1 overflow-hidden"
+							initial={{ opacity: 1 }}
+							animate={{
+								opacity: activeDemo === "Create Parallel Branches" ? 0 : 1,
+							}}
+							transition={{ duration: 0.3, ease: "easeOut" }}
+						>
+							{FILE_CHANGES.map((file, i) => (
+								<FileChangeItem
+									key={`${file.path}-${i}`}
+									path={file.path}
+									add={file.add}
+									del={file.del}
+									indent={file.indent}
+									type={file.type}
+								/>
+							))}
+						</motion.div>
 					</motion.div>
-				</div>
+
+					{/* Diff review view - shown when "See Changes" is active */}
+					<motion.div
+						className="absolute inset-0 flex flex-col bg-[#111111]"
+						initial={{ opacity: 0 }}
+						animate={{
+							opacity: activeDemo === "See Changes" ? 1 : 0,
+						}}
+						transition={{ duration: 0.3, ease: "easeOut", delay: activeDemo === "See Changes" ? 0.1 : 0 }}
+						style={{ pointerEvents: activeDemo === "See Changes" ? "auto" : "none" }}
+					>
+						{/* PR Header */}
+						<div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
+							<div className="flex items-center gap-2">
+								<LuGitPullRequest className="size-4 text-emerald-400" />
+								<span className="text-sm text-foreground/90 font-medium">Review PR #827</span>
+							</div>
+							<span className="text-xs text-emerald-400 px-2 py-0.5 bg-emerald-500/10 rounded">Open</span>
+						</div>
+
+						{/* File tabs */}
+						<div className="flex items-center gap-1 px-3 py-2 border-b border-white/10 text-xs">
+							<span className="px-2 py-1 bg-white/10 rounded text-foreground/80">cloud-workspace.ts</span>
+							<span className="px-2 py-1 text-muted-foreground/60">enums.ts</span>
+							<span className="px-2 py-1 text-muted-foreground/60">+4 more</span>
+						</div>
+
+						{/* Diff content */}
+						<div className="flex-1 overflow-hidden p-3 font-mono text-[10px]">
+							<div className="space-y-0.5">
+								<div className="text-muted-foreground/50 py-1">@@ -1,4 +1,6 @@</div>
+								<div className="flex">
+									<span className="w-6 text-muted-foreground/30 shrink-0">1</span>
+									<span className="text-muted-foreground/70">import {"{"} db {"}"} from "../db"</span>
+								</div>
+								<div className="flex bg-emerald-500/10">
+									<span className="w-6 text-emerald-400 shrink-0">+</span>
+									<span className="text-emerald-400">import {"{"} CloudWorkspace {"}"} from "./types"</span>
+								</div>
+								<div className="flex bg-emerald-500/10">
+									<span className="w-6 text-emerald-400 shrink-0">+</span>
+									<span className="text-emerald-400">import {"{"} createSSHConnection {"}"} from "./ssh"</span>
+								</div>
+								<div className="flex">
+									<span className="w-6 text-muted-foreground/30 shrink-0">2</span>
+									<span className="text-muted-foreground/70"></span>
+								</div>
+								<div className="flex bg-red-500/10">
+									<span className="w-6 text-red-400 shrink-0">-</span>
+									<span className="text-red-400">export const getWorkspaces = () ={">"} {"{"}</span>
+								</div>
+								<div className="flex bg-emerald-500/10">
+									<span className="w-6 text-emerald-400 shrink-0">+</span>
+									<span className="text-emerald-400">export const getWorkspaces = async () ={">"} {"{"}</span>
+								</div>
+								<div className="flex">
+									<span className="w-6 text-muted-foreground/30 shrink-0">4</span>
+									<span className="text-muted-foreground/70">{"  "}return db.query.workspaces</span>
+								</div>
+							</div>
+						</div>
+
+						{/* Review actions */}
+						<div className="px-3 py-2 border-t border-white/10 flex items-center gap-2">
+							<button type="button" className="px-3 py-1.5 text-xs bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30">
+								Approve
+							</button>
+							<button type="button" className="px-3 py-1.5 text-xs bg-white/10 text-foreground/70 rounded hover:bg-white/15">
+								Comment
+							</button>
+						</div>
+					</motion.div>
+				</motion.div>
 			</div>
 
 			{/* External IDE Popup - shown when "Open in Any IDE" is active */}
