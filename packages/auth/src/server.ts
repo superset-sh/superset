@@ -20,10 +20,10 @@ import { and, count, eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
-import { formatPrice, getOrganizationOwners } from "./lib/billing";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
+import { formatPrice, getOrganizationOwners } from "./utils";
 
 const stripeClient = new Stripe(env.STRIPE_SECRET_KEY);
 
