@@ -1,25 +1,11 @@
-import { Button } from "@superset/ui/button";
-import {
-	Command,
-	CommandEmpty,
-	CommandInput,
-	CommandItem,
-	CommandList,
-} from "@superset/ui/command";
-import { Input } from "@superset/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
-import { formatDistanceToNow } from "date-fns";
 import { useMemo, useState } from "react";
-import { GoGitBranch, GoGitPullRequest } from "react-icons/go";
-import { HiChevronUpDown } from "react-icons/hi2";
-import { LuGitBranch, LuLoader } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { formatRelativeTime } from "renderer/lib/formatRelativeTime";
 import {
 	useCreateWorkspace,
 	useOpenWorktree,
 } from "renderer/react-query/workspaces";
+import { BranchesSection, PrUrlSection, WorktreesSection } from "./components";
 
 interface ExistingWorktreesListProps {
 	projectId: string;
@@ -49,7 +35,6 @@ export function ExistingWorktreesList({
 		.filter((wt) => wt.hasActiveWorkspace)
 		.sort((a, b) => b.createdAt - a.createdAt);
 
-	// Filter out branches that already have worktrees
 	const branchesWithoutWorktrees = useMemo(() => {
 		if (!branchData?.branches) return [];
 		const worktreeBranches = new Set(worktrees.map((wt) => wt.branch));
@@ -58,7 +43,6 @@ export function ExistingWorktreesList({
 		);
 	}, [branchData?.branches, worktrees]);
 
-	// Filter branches based on search
 	const filteredBranches = useMemo(() => {
 		if (!branchSearch) return branchesWithoutWorktrees;
 		const searchLower = branchSearch.toLowerCase();
@@ -102,6 +86,9 @@ export function ExistingWorktreesList({
 	};
 
 	const handleCreateFromBranch = async (branchName: string) => {
+		setBranchOpen(false);
+		setBranchSearch("");
+
 		try {
 			const result = await createWorkspace.mutateAsync({
 				projectId,
@@ -147,16 +134,7 @@ export function ExistingWorktreesList({
 				});
 			}
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to open PR",
-			);
-		}
-	};
-
-	const handlePrKeyDown = (e: React.KeyboardEvent) => {
-		if (e.key === "Enter" && !createFromPr.isPending) {
-			e.preventDefault();
-			handleCreateFromPr();
+			toast.error(err instanceof Error ? err.message : "Failed to open PR");
 		}
 	};
 
@@ -179,172 +157,36 @@ export function ExistingWorktreesList({
 
 	return (
 		<div className="space-y-3 max-h-[350px] overflow-y-auto">
-			{/* PR URL Section */}
-			<div className="space-y-1.5">
-				<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-					Pull Request
-				</div>
-				<div className="flex gap-2">
-					<div className="relative flex-1">
-						<GoGitPullRequest className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-						<Input
-							className="h-8 text-sm pl-8 pr-3"
-							placeholder="Paste PR URL..."
-							value={prUrl}
-							onChange={(e) => setPrUrl(e.target.value)}
-							onKeyDown={handlePrKeyDown}
-							disabled={createFromPr.isPending}
-						/>
-					</div>
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-8 px-3"
-						onClick={handleCreateFromPr}
-						disabled={!prUrl.trim() || createFromPr.isPending}
-					>
-						{createFromPr.isPending ? (
-							<LuLoader className="size-3.5 animate-spin" />
-						) : (
-							"Open"
-						)}
-					</Button>
-				</div>
-			</div>
+			<PrUrlSection
+				prUrl={prUrl}
+				onPrUrlChange={setPrUrl}
+				onSubmit={handleCreateFromPr}
+				isPending={createFromPr.isPending}
+			/>
 
-			{/* Branches Section */}
 			{hasBranches && (
-				<div className="space-y-1.5">
-					<div className="border-t border-border pt-2" />
-					<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-						Branches
-					</div>
-					<Popover open={branchOpen} onOpenChange={setBranchOpen} modal={false}>
-						<PopoverTrigger asChild>
-							<Button
-								variant="outline"
-								size="sm"
-								className="w-full h-8 justify-between font-normal"
-								disabled={isPending}
-							>
-								<span className="flex items-center gap-2 truncate">
-									<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-									<span className="truncate text-sm text-muted-foreground">
-										Select branch...
-									</span>
-								</span>
-								<HiChevronUpDown className="size-4 shrink-0 text-muted-foreground" />
-							</Button>
-						</PopoverTrigger>
-						<PopoverContent
-							className="w-[--radix-popover-trigger-width] p-0"
-							align="start"
-							onWheel={(e) => e.stopPropagation()}
-						>
-							<Command shouldFilter={false}>
-								<CommandInput
-									placeholder="Search branches..."
-									value={branchSearch}
-									onValueChange={setBranchSearch}
-								/>
-								<CommandList className="max-h-[200px]">
-									<CommandEmpty>No branches found</CommandEmpty>
-									{filteredBranches.map((branch) => (
-										<CommandItem
-											key={branch.name}
-											value={branch.name}
-											onSelect={() => {
-												setBranchOpen(false);
-												setBranchSearch("");
-												handleCreateFromBranch(branch.name);
-											}}
-											className="flex items-center justify-between"
-										>
-											<span className="flex items-center gap-2 truncate">
-												<GoGitBranch className="size-3.5 shrink-0 text-muted-foreground" />
-												<span className="truncate">{branch.name}</span>
-												{branch.name === branchData?.defaultBranch && (
-													<span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-														default
-													</span>
-												)}
-											</span>
-											{branch.lastCommitDate > 0 && (
-												<span className="text-xs text-muted-foreground shrink-0">
-													{formatRelativeTime(branch.lastCommitDate)}
-												</span>
-											)}
-										</CommandItem>
-									))}
-								</CommandList>
-							</Command>
-						</PopoverContent>
-					</Popover>
-				</div>
+				<BranchesSection
+					branches={filteredBranches}
+					defaultBranch={branchData?.defaultBranch}
+					searchValue={branchSearch}
+					onSearchChange={setBranchSearch}
+					isOpen={branchOpen}
+					onOpenChange={setBranchOpen}
+					onSelectBranch={handleCreateFromBranch}
+					disabled={isPending}
+				/>
 			)}
 
-			{/* Worktrees Section */}
 			{hasWorktrees && (
-				<div className="space-y-1">
-					<div className="border-t border-border pt-2" />
-					<div className="flex items-center justify-between">
-						<div className="text-[10px] text-muted-foreground/60 uppercase tracking-wider px-2">
-							Worktrees
-						</div>
-						{closedWorktrees.length > 1 && (
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-5 px-2 text-[10px]"
-								onClick={handleOpenAll}
-								disabled={isPending}
-							>
-								Open All
-							</Button>
-						)}
-					</div>
-
-					{closedWorktrees.map((wt) => (
-						<button
-							key={wt.id}
-							type="button"
-							onClick={() => handleOpenWorktree(wt.id, wt.branch)}
-							disabled={isPending}
-							className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left hover:bg-accent transition-colors disabled:opacity-50"
-						>
-							<LuGitBranch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-							<span className="flex-1 text-sm truncate font-mono">
-								{wt.branch}
-							</span>
-							<span className="text-xs text-muted-foreground shrink-0">
-								{formatDistanceToNow(wt.createdAt, { addSuffix: false })}
-							</span>
-						</button>
-					))}
-
-					{openWorktrees.length > 0 && (
-						<div className="pt-1">
-							<div className="text-[10px] text-muted-foreground/40 uppercase tracking-wider px-2 py-1">
-								Already open
-							</div>
-							{openWorktrees.map((wt) => (
-								<div
-									key={wt.id}
-									className="flex items-center gap-2 px-2 py-1.5 text-muted-foreground/60"
-								>
-									<LuGitBranch className="h-3.5 w-3.5 shrink-0" />
-									<span className="flex-1 text-sm truncate font-mono">
-										{wt.branch}
-									</span>
-									<span className="text-[10px] shrink-0">open</span>
-								</div>
-							))}
-						</div>
-					)}
-				</div>
+				<WorktreesSection
+					closedWorktrees={closedWorktrees}
+					openWorktrees={openWorktrees}
+					onOpenWorktree={handleOpenWorktree}
+					onOpenAll={handleOpenAll}
+					disabled={isPending}
+				/>
 			)}
 
-			{/* Empty state when no worktrees or branches */}
 			{!hasWorktrees && !hasBranches && (
 				<div className="py-4 text-center text-xs text-muted-foreground">
 					No existing worktrees or branches.
