@@ -13,7 +13,7 @@
 	"dependencies": {
 		"@react-three/drei": "^10.7.6",
 		"@react-three/fiber": "^9.4.0",
-		"@sentry/nextjs": "^10.32.1",
+		"@sentry/nextjs": "^10.36.0",
 		"@superset/auth": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/ui": "workspace:*",
