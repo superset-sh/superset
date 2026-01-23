@@ -395,29 +395,43 @@ export function AppMockup({ activeDemo = "Use Any Agents" }: AppMockupProps) {
 						</div>
 						{/* Other agent tabs - shown when "Use Any Agents" is active */}
 						<motion.div
-							className="flex items-center gap-0.5 overflow-hidden"
+							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
 							initial={{ opacity: 0, width: 0 }}
 							animate={{
 								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
 								width: activeDemo === "Use Any Agents" ? "auto" : 0,
 							}}
-							transition={{ duration: 0.3, ease: "easeOut" }}
+							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.1 : 0 }}
 						>
-							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
-								<Image src="/app-icons/codex.svg" alt="Codex" width={12} height={12} />
-								<span>codex</span>
-								<LuX className="size-3 text-muted-foreground/30" />
-							</div>
-							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
-								<Image src="/app-icons/gemini.svg" alt="Gemini" width={12} height={12} />
-								<span>gemini</span>
-								<LuX className="size-3 text-muted-foreground/30" />
-							</div>
-							<div className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t">
-								<Image src="/app-icons/cursor-agent.svg" alt="Cursor" width={12} height={12} />
-								<span>cursor</span>
-								<LuX className="size-3 text-muted-foreground/30" />
-							</div>
+							<Image src="/app-icons/codex.svg" alt="Codex" width={12} height={12} />
+							<span>codex</span>
+							<LuX className="size-3 text-muted-foreground/30" />
+						</motion.div>
+						<motion.div
+							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							initial={{ opacity: 0, width: 0 }}
+							animate={{
+								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
+								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+							}}
+							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.25 : 0 }}
+						>
+							<Image src="/app-icons/gemini.svg" alt="Gemini" width={12} height={12} />
+							<span>gemini</span>
+							<LuX className="size-3 text-muted-foreground/30" />
+						</motion.div>
+						<motion.div
+							className="flex items-center gap-1.5 px-3 py-1 text-[10px] text-muted-foreground/60 hover:bg-white/5 rounded-t overflow-hidden"
+							initial={{ opacity: 0, width: 0 }}
+							animate={{
+								opacity: activeDemo === "Use Any Agents" ? 1 : 0,
+								width: activeDemo === "Use Any Agents" ? "auto" : 0,
+							}}
+							transition={{ duration: 0.25, ease: "easeOut", delay: activeDemo === "Use Any Agents" ? 0.4 : 0 }}
+						>
+							<Image src="/app-icons/cursor-agent.svg" alt="Cursor" width={12} height={12} />
+							<span>cursor</span>
+							<LuX className="size-3 text-muted-foreground/30" />
 						</motion.div>
 						<div className="flex items-center px-2 py-1 text-muted-foreground/40 hover:text-muted-foreground/60 cursor-pointer">
 							<LuPlus className="size-3.5" />
