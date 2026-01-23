@@ -395,8 +395,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 								});
 							} else {
 								// Update isLocal flag for branches that exist both locally and remotely
-								const existing = branchMap.get(branch)!;
-								existing.isLocal = true;
+								const existing = branchMap.get(branch);
+								if (existing) {
+									existing.isLocal = true;
+								}
 							}
 						}
 					} catch {
