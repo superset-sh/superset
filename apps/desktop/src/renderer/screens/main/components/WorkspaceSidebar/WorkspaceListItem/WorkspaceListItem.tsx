@@ -17,7 +17,7 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
-import { HiMiniXMark } from "react-icons/hi2";
+import { HiMiniXMark, HiOutlineCloud } from "react-icons/hi2";
 import {
 	LuCopy,
 	LuEye,
@@ -69,6 +69,8 @@ interface WorkspaceListItemProps {
 	shortcutIndex?: number;
 	/** Whether the sidebar is in collapsed mode (icon-only view) */
 	isCollapsed?: boolean;
+	/** Cloud workspace ID if linked to cloud */
+	cloudWorkspaceId?: string | null;
 }
 
 export function WorkspaceListItem({
@@ -82,7 +84,9 @@ export function WorkspaceListItem({
 	index,
 	shortcutIndex,
 	isCollapsed = false,
+	cloudWorkspaceId,
 }: WorkspaceListItemProps) {
+	const isCloudWorkspace = !!cloudWorkspaceId;
 	const isBranchWorkspace = type === "branch";
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -261,6 +265,13 @@ export function WorkspaceListItem({
 			>
 				{workspaceStatus === "working" ? (
 					<AsciiSpinner className="text-base" />
+				) : isCloudWorkspace ? (
+					<HiOutlineCloud
+						className={cn(
+							"size-4",
+							isActive ? "text-foreground" : "text-muted-foreground",
+						)}
+					/>
 				) : isBranchWorkspace ? (
 					<LuFolder
 						className={cn(
@@ -293,15 +304,15 @@ export function WorkspaceListItem({
 			</button>
 		);
 
-		// Branch workspaces get a simple tooltip
-		if (isBranchWorkspace) {
+		// Branch workspaces and cloud workspaces get a simple tooltip
+		if (isBranchWorkspace || isCloudWorkspace) {
 			return (
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>{collapsedButton}</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
 						<span className="font-medium">{name || branch}</span>
 						<span className="text-xs text-muted-foreground">
-							Local workspace
+							{isCloudWorkspace ? "Cloud workspace" : "Local workspace"}
 						</span>
 					</TooltipContent>
 				</Tooltip>
@@ -384,6 +395,13 @@ export function WorkspaceListItem({
 					<div className="relative shrink-0 size-5 flex items-center justify-center mr-2.5">
 						{workspaceStatus === "working" ? (
 							<AsciiSpinner className="text-base" />
+						) : isCloudWorkspace ? (
+							<HiOutlineCloud
+								className={cn(
+									"size-4 transition-colors",
+									isActive ? "text-foreground" : "text-muted-foreground",
+								)}
+							/>
 						) : isBranchWorkspace ? (
 							<LuFolder
 								className={cn(
@@ -414,7 +432,14 @@ export function WorkspaceListItem({
 					</div>
 				</TooltipTrigger>
 				<TooltipContent side="right" sideOffset={8}>
-					{isBranchWorkspace ? (
+					{isCloudWorkspace ? (
+						<>
+							<p className="text-xs font-medium">Cloud workspace</p>
+							<p className="text-xs text-muted-foreground">
+								Linked to cloud for remote access
+							</p>
+						</>
+					) : isBranchWorkspace ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>
 							<p className="text-xs text-muted-foreground">

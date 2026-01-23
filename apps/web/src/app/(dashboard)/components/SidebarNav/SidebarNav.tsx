@@ -24,9 +24,7 @@ export function SidebarNav() {
 						href={item.href}
 						className={cn(
 							"font-mono transition-opacity",
-							isActive
-								? "underline opacity-100"
-								: "opacity-60 hover:opacity-80",
+							isActive ? "opacity-100" : "opacity-60 hover:opacity-80",
 						)}
 					>
 						{item.label}
