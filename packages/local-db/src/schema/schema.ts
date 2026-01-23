@@ -106,11 +106,14 @@ export const workspaces = sqliteTable(
 		// Timestamp when deletion was initiated. Non-null means deletion in progress.
 		// Workspaces with deletingAt set should be filtered out from queries.
 		deletingAt: integer("deleting_at"),
+		// Optional link to cloud workspace (UUID from cloud_workspaces table)
+		cloudWorkspaceId: text("cloud_workspace_id"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
 		index("workspaces_worktree_id_idx").on(table.worktreeId),
 		index("workspaces_last_opened_at_idx").on(table.lastOpenedAt),
+		index("workspaces_cloud_workspace_id_idx").on(table.cloudWorkspaceId),
 		// NOTE: Migration 0006 creates an additional partial unique index:
 		// CREATE UNIQUE INDEX workspaces_unique_branch_per_project
 		//   ON workspaces(project_id) WHERE type = 'branch'
