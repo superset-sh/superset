@@ -154,7 +154,12 @@ export const createSettingsRouter = () => {
 			}),
 
 		reorderTerminalPresets: publicProcedure
-			.input(z.object({ fromIndex: z.number(), toIndex: z.number() }))
+			.input(
+				z.object({
+					fromIndex: z.number().int().min(0),
+					toIndex: z.number().int().min(0),
+				}),
+			)
 			.mutation(({ input }) => {
 				const row = getSettings();
 				const presets = row.terminalPresets ?? [];

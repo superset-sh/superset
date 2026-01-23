@@ -184,8 +184,11 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		(rowIndex: number, column: PresetColumnKey) => {
 			setLocalPresets((currentLocal) => {
 				const preset = currentLocal[rowIndex];
-				const serverPreset = serverPresetsRef.current[rowIndex];
-				if (!preset || !serverPreset) return currentLocal;
+				if (!preset) return currentLocal;
+				const serverPreset = serverPresetsRef.current.find(
+					(p) => p.id === preset.id,
+				);
+				if (!serverPreset) return currentLocal;
 				if (preset[column] === serverPreset[column]) return currentLocal;
 
 				updatePreset.mutate({
@@ -224,8 +227,11 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		(rowIndex: number) => {
 			setLocalPresets((currentLocal) => {
 				const preset = currentLocal[rowIndex];
-				const serverPreset = serverPresetsRef.current[rowIndex];
-				if (!preset || !serverPreset) return currentLocal;
+				if (!preset) return currentLocal;
+				const serverPreset = serverPresetsRef.current.find(
+					(p) => p.id === preset.id,
+				);
+				if (!serverPreset) return currentLocal;
 				if (
 					JSON.stringify(preset.commands) ===
 					JSON.stringify(serverPreset.commands)
@@ -278,16 +284,22 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 		[setDefaultPreset],
 	);
 
-	const handleReorder = useCallback(
+	const handleLocalReorder = useCallback(
 		(fromIndex: number, toIndex: number) => {
-			// Update local state optimistically
+			// Update local state optimistically during drag
 			setLocalPresets((prev) => {
 				const newPresets = [...prev];
 				const [removed] = newPresets.splice(fromIndex, 1);
 				newPresets.splice(toIndex, 0, removed);
 				return newPresets;
 			});
-			// Persist to server
+		},
+		[],
+	);
+
+	const handlePersistReorder = useCallback(
+		(fromIndex: number, toIndex: number) => {
+			// Persist to server only on drop
 			reorderPresets.mutate({ fromIndex, toIndex });
 		},
 		[reorderPresets],
@@ -586,7 +598,8 @@ export function TerminalSettings({ visibleItems }: TerminalSettingsProps) {
 												onCommandsBlur={handleCommandsBlur}
 												onDelete={handleDeleteRow}
 												onSetDefault={handleSetDefault}
-												onReorder={handleReorder}
+												onLocalReorder={handleLocalReorder}
+												onPersistReorder={handlePersistReorder}
 											/>
 										))
 									) : (

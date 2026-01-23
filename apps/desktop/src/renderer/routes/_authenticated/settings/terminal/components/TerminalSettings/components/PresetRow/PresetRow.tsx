@@ -69,7 +69,8 @@ interface PresetRowProps {
 	onCommandsBlur: (rowIndex: number) => void;
 	onDelete: (rowIndex: number) => void;
 	onSetDefault: (presetId: string | null) => void;
-	onReorder: (fromIndex: number, toIndex: number) => void;
+	onLocalReorder: (fromIndex: number, toIndex: number) => void;
+	onPersistReorder: (fromIndex: number, toIndex: number) => void;
 }
 
 export function PresetRow({
@@ -82,7 +83,8 @@ export function PresetRow({
 	onCommandsBlur,
 	onDelete,
 	onSetDefault,
-	onReorder,
+	onLocalReorder,
+	onPersistReorder,
 }: PresetRowProps) {
 	const rowRef = useRef<HTMLDivElement>(null);
 	const dragHandleRef = useRef<HTMLDivElement>(null);
@@ -90,7 +92,7 @@ export function PresetRow({
 	const [{ isDragging }, drag, preview] = useDrag(
 		() => ({
 			type: PRESET_TYPE,
-			item: { id: preset.id, index: rowIndex },
+			item: { id: preset.id, index: rowIndex, originalIndex: rowIndex },
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
@@ -100,10 +102,15 @@ export function PresetRow({
 
 	const [{ isOver }, drop] = useDrop({
 		accept: PRESET_TYPE,
-		hover: (item: { id: string; index: number }) => {
+		hover: (item: { id: string; index: number; originalIndex: number }) => {
 			if (item.index !== rowIndex) {
-				onReorder(item.index, rowIndex);
+				onLocalReorder(item.index, rowIndex);
 				item.index = rowIndex;
+			}
+		},
+		drop: (item: { id: string; index: number; originalIndex: number }) => {
+			if (item.originalIndex !== item.index) {
+				onPersistReorder(item.originalIndex, item.index);
 			}
 		},
 		collect: (monitor) => ({
